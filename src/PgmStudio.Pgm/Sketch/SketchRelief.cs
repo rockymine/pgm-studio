@@ -115,6 +115,13 @@ public sealed class ReliefMarkJson
     /// between them grade over <c>pitch − 2·tread</c>.</summary>
     [JsonPropertyName("tread")]  public double? Tread { get; set; }
 
+    /// <summary>How steeply a lofted shoulder falls, in <b>degrees from level</b>. Unset it takes the whole
+    /// run between the two treads. Stated, it may only be steeper than that: the fall runs at the angle from
+    /// the upper tread's edge and then holds at the lower pass's height — a bench under a bank. A gentler
+    /// angle than the run requires would not have arrived by the next tread, so it is raised to what the gap
+    /// needs.</summary>
+    [JsonPropertyName("batter")] public double Batter { get; set; }
+
     /// <summary>A line's or scarp's course, as <c>[x, z]</c> pairs.</summary>
     [JsonPropertyName("points")] public double[][]? Points { get; set; }
 
@@ -152,7 +159,7 @@ public sealed class ReliefMarkJson
     {
         MarkKinds.Point when At is { Length: >= 2 } at => new PointMark(at[0], at[1], FirstHeight, Radius),
         MarkKinds.Line when Points is { Length: >= 2 } =>
-            new LineMark(Points, Heights ?? [0], Radius, Tread ?? double.NaN),
+            new LineMark(Points, Heights ?? [0], Radius, Tread ?? double.NaN, Batter),
         MarkKinds.Area when Ring is { Length: >= 3 } ring => new AreaMark(ring, FirstHeight),
         MarkKinds.Rim => new RimMark(FirstHeight, Depth),
         MarkKinds.Scarp when Points is { Length: >= 2 } points => new ScarpMark(points, High, Low, Face, Band),

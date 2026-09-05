@@ -217,6 +217,18 @@ what is gathered here is the parked and dormant slices of the same surface.
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
+- [ ] **WE101 — Two marks whose bands touch meet on a wall, and the loft only knows about one line.**
+  `LineMark.Tread` grades between two passes of the *same* line (`WE100`). Between two *different* marks
+  nothing grades: the later one wins its cells outright and the seam is one cell wide, whatever the two heights
+  are. Generalise it — a mark's shoulder past its tread blends with what is already pinned next to it rather
+  than overwriting, which needs `Mark.Pins` to say which of its cells are tread and which are shoulder and the
+  solver to blend the second kind. `ReliefSolver.Solve`'s pin loop, `Marks.cs`; `docs/world-export/relief.md`
+  §2.0 and §2. Supersedes the half of `WE33` that is about the seam rather than about spacing.
+
+  *`opus5-scarp-mask` at (14, −78): `crest` (r 18, h 33) pins to z −79 and `terrace` (r 13, h 24) pins from
+  z −78, so the transect reads 33, 33, 33, then DROP −9 in one cell. 112 of the board's 684 barrier cells are
+  this one seam.*
+
 - [ ] **WE98 — A water prop's band stops at its radius, not at the bank.** A `water` prop fills its own
   stated band, so where the channel is narrower than the ground it runs through the top course faces air on
   both sides and the river reads as a trench with a stripe in it. The bank is a fact about the terrain and the

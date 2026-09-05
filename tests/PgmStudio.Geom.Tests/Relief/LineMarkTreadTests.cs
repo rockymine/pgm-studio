@@ -18,12 +18,13 @@ public sealed class LineMarkTreadTests
     /// <summary>Two straight passes of one line running down the board, <paramref name="pitch"/> apart in x
     /// and <paramref name="drop"/> blocks apart in height, joined round the far end so they are one polyline.
     /// A switchback, reduced to the two things about it that matter.</summary>
-    private static LineMark Switchback(double pitch, double drop, double radius, double tread = double.NaN)
+    private static LineMark Switchback(double pitch, double drop, double radius, double tread = double.NaN,
+                                       double batter = 0)
     {
         var left = 30 - pitch / 2;
         var right = 30 + pitch / 2;
         double[][] points = [[left, 6], [left, 50], [right, 54], [right, 6]];
-        return new LineMark(points, [20, 20, 20 - drop, 20 - drop], radius, tread);
+        return new LineMark(points, [20, 20, 20 - drop, 20 - drop], radius, tread, batter);
     }
 
     private static Dictionary<(int X, int Z), double> Pinned(Footprint footprint, Mark mark)
@@ -83,20 +84,74 @@ public sealed class LineMarkTreadTests
         }
     }
 
+    /// <summary><b>A tread never shrinks the band a mark claims.</b> The tread says what happens where the
+    /// line comes back past itself and nothing else, so a line with no second pass pins its whole reach
+    /// exactly as it did before there was a tread at all. A mark that stopped claiming its band would hand
+    /// those cells back to whichever earlier mark had pinned them, and what shows through is that mark's
+    /// height standing beside this one's — a wall from somewhere else.</summary>
     [Test]
-    public async Task A_lone_line_is_unchanged_by_a_tread()
+    public async Task A_tread_never_shrinks_the_band_a_line_claims()
     {
-        // No second pass to ramp toward, so the shoulder past the tread is left to the relaxation exactly as
-        // it always was — the loft is a statement about a line that comes back, not about every line.
         var footprint = Board();
         double[][] straight = [[30, 6], [30, 54]];
         var whole = Pinned(footprint, new LineMark(straight, [20], 5));
         var trod = Pinned(footprint, new LineMark(straight, [20], 5, 2));
 
-        // The tread pins its flat band and nothing else; the full-band mark pins the whole five.
-        await Assert.That(trod.ContainsKey((31, 30))).IsTrue();     // inside the tread
-        await Assert.That(trod.ContainsKey((34, 30))).IsFalse();    // past it, and free
-        await Assert.That(whole.ContainsKey((34, 30))).IsTrue();
+        await Assert.That(trod.Keys.Order()).IsEquivalentTo(whole.Keys.Order());
+        foreach (var cell in whole.Keys)
+            await Assert.That((cell, trod[cell])).IsEqualTo((cell, whole[cell]));
+    }
+
+    /// <summary>The regression this cost a build to find: an earlier mark's pin showing through a later
+    /// mark's shoulder. A high line drawn first, a low one drawn over it with a tread — every cell the low
+    /// line's band covers must carry the low line's ground, or the high one stands beside the low one as a
+    /// wall nobody drew.</summary>
+    [Test]
+    public async Task A_lines_shoulder_still_covers_what_an_earlier_mark_pinned()
+    {
+        var footprint = Board();
+        var high = new LineMark([[30, 0], [30, 60]], [34], 18);
+        var low = new LineMark([[30, 20], [30, 40]], [12], 5, 2);
+
+        var pins = new Dictionary<(int X, int Z), double>();
+        foreach (var (cell, height) in high.Pins(footprint)) pins[cell] = height;
+        foreach (var (cell, height) in low.Pins(footprint)) pins[cell] = height;
+
+        // Four cells out from the low line is past its tread and inside its reach: the low line's, not the
+        // high line's, whatever order they were written in.
+        await Assert.That(pins[(34, 30)]).IsEqualTo(12);
+    }
+
+    /// <summary>A stated batter is a bench under a bank: the fall runs at the angle from the upper tread's
+    /// edge and then holds at the lower pass's height, rather than spreading over the whole run.</summary>
+    [Test]
+    public async Task A_stated_batter_falls_at_its_angle_and_then_holds()
+    {
+        // Passes 14 apart with treads of 2 leave 10 blocks of run for a 6-block fall — 31 degrees left to
+        // itself. Asked for 60, the fall takes about 3.5 blocks and the rest is flat at the lower level.
+        var footprint = Board();
+        var pins = Pinned(footprint, Switchback(pitch: 14, drop: 6, radius: 7, tread: 2, batter: 60));
+
+        // The high pass runs at x = 23 at height 20; the low at x = 37 at height 14.
+        await Assert.That(pins[(24, 28)]).IsEqualTo(20).Within(0.01);        // on the tread
+        await Assert.That(pins[(30, 28)]).IsEqualTo(14).Within(0.01);        // past the toe, flat and low
+        // The batter is doing the work rather than a gentle ramp: three and a half blocks out from the upper
+        // tread the ground has already fallen the whole six, where the free ramp would be a fifth of the way.
+        await Assert.That(pins[(28, 28)]).IsEqualTo(14).Within(0.01);
+        await Assert.That(pins[(27, 28)]).IsLessThan(16.5);
+    }
+
+    /// <summary>A batter gentler than the run requires is raised to what the run needs, because the ramp has
+    /// to have arrived by the time it meets the next tread — anything left over is a step.</summary>
+    [Test]
+    public async Task A_batter_gentler_than_the_run_requires_is_raised_to_it()
+    {
+        var footprint = Board();
+        var asked = Pinned(footprint, Switchback(pitch: 8, drop: 6, radius: 5, tread: 2, batter: 10));
+        var free = Pinned(footprint, Switchback(pitch: 8, drop: 6, radius: 5, tread: 2));
+
+        foreach (var cell in free.Keys)
+            await Assert.That((cell, asked[cell])).IsEqualTo((cell, free[cell]));
     }
 
     [Test]

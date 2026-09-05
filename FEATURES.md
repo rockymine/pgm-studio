@@ -6479,12 +6479,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   on the mark JSON) is the flat half-width; past it, a cell with a second pass in reach takes a straight ramp
   between the two treads' edges instead of snapping to the nearer. A *second* pass is one separated by distance
   travelled **along** the line, which is the only test that tells a neighbouring winding from the far side of a
-  bend. The batter's angle is the drawing's rather than a knob — `atan(drop / (pitch − 2·tread))` — so a road's
-  width and a bank's steepness are one decision taken when the line is drawn, and whether a benched quarry can
-  have both is arithmetic before it is a build. Measured on `opus5-scarp-mask`'s delph: drawn at `r0 21,
+  bend, and a cell counts as *between* two passes when the vectors to their nearest points oppose rather than
+  when it falls on opposite hands of them — two limbs of a switchback travel opposite ways. The loft runs only
+  where the two bands meet, `d₁ + d₂ ≤ 2r`, which is the pitch for every cell in a gap, so a gap is wholly
+  lofted or wholly not and no threshold cuts through the middle of one. **A tread never shrinks the band a mark
+  claims**: past it with no second pass in reach the shoulder is held at the line's own height, because a mark
+  that stopped claiming its band would hand those cells back to whichever earlier mark had pinned them.
+  The drawing sets the gentlest batter there can be — `atan(drop / (pitch − 2·tread))` — and **`batter`**, in
+  degrees, may only be steeper: the fall runs at that angle from the upper tread's edge and then holds at the
+  lower pass's height, which is a bench under a bank. Measured on `opus5-scarp-mask`'s delph: drawn at `r0 21,
   turns 2.5` the pitch is 6.4 against a 5.6-block fall and the bands overlap by 3.6 before any batter starts;
-  redrawn at `r0 24, turns 2` with `tread: 2` it grades at 52°, and the board goes from 1,006 barrier cells and
-  a largest face of 282 to 816 and 146, with the rim section walking end to end at worst step 2.
+  redrawn at `r0 24, turns 2` with `tread: 2, batter: 65` the board goes from 1,006 barrier cells and a largest
+  face of 282 to 684 and 112, and the largest face left is no longer the quarry.
   (`LineMarkTreadTests`, `docs/world-export/relief.md` §2.0)
 - **The angle a mask paints by is a read (`WS60`).** `GET /map/{slug}/incline` answers how steeply the ground
   is inclined, cell by cell, as `text/plain` in the grid the heightmap already reads elevation in: a cell's

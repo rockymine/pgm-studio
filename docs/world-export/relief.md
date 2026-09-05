@@ -92,21 +92,41 @@ pass is distance travelled **along** the line rather than distance across it, be
 that tells a neighbouring winding from the far side of a bend: a hairpin's two limbs are close in plan and
 close along the line, and the next turn of a spiral is close in plan and a whole winding away.
 
-**The batter's angle is the drawing's, not a knob.** Two passes `pitch` apart falling `drop` between them grade
-over `pitch − 2·tread`, so the road's width and the bank's steepness are one decision, taken when the line is
-drawn:
+**The drawing sets the gentlest batter there can be, and `batter` may only be steeper.** Two passes `pitch`
+apart falling `drop` between them have `pitch − 2·tread` of run to do it in, so left alone the ramp spreads
+over the whole gap at
 
 ```
 angle = atan(drop / (pitch − 2·tread))
 ```
+
+State `batter` in degrees and the fall runs at that angle from the upper tread's edge and then **holds at the
+lower pass's height** — a bench under a bank rather than one continuous slope, which is what a quarry actually
+looks like. A batter gentler than the run requires cannot be honoured: the ramp would not have arrived by the
+time it met the next tread, and what is left over is a step, so it is raised to what the gap needs. Read in the
+gap's own frame rather than from whichever pass is nearer, so every cell between two treads answers one
+function of one distance and the ramp is continuous across the midline.
+
+Two rules keep the loft from cutting a step of its own. A cell is **between** two passes when the vectors from
+it to their two nearest points oppose — not when it is on opposite hands of them, because two limbs of a
+switchback travel opposite ways and show a cell between them the same hand. And the loft runs only where the
+two bands meet, `d₁ + d₂ ≤ 2r`: between two passes that sum is the pitch and the same for every cell in the
+gap, so a gap is wholly lofted or wholly not, where a bound on the second pass alone would cut through the
+middle of one.
+
+**A tread never shrinks the band a mark claims.** Past it, with no second pass in reach, the shoulder is held
+at the line's own height exactly as the whole band always was. A mark that stopped claiming its band would hand
+those cells back to whichever *earlier* mark had pinned them, and what shows through is that mark's height
+standing beside this one's — an 18-block wall out of a mark drawn somewhere else, which is what the first cut
+of this feature built.
 
 A spiral makes both terms readable off its own numbers — for `r0`, `r1` and `turns`, the pitch is
 `(r0 − r1) / turns` and the fall per turn is the whole drop over `turns` — so whether a benched quarry can have
 a walkable road *and* a bank that is not a cliff is arithmetic before it is a build. `opus5-scarp-mask`'s delph
 is the worked example: drawn at `r0 21, turns 2.5` its pitch is 6.4 against a 5.6-block fall, which no tread
 can grade because the bands overlap by 3.6 before the batter starts; redrawn at `r0 24, turns 2` the pitch is
-9.5, and a tread of 2 leaves 5.5 blocks of run for a 7-block fall — 52°, and a rim section that walks end to
-end at worst step 2 where it was a barrier.
+9.5, and a tread of 2 leaves 5.5 blocks of run for a 7-block fall — 52° left alone, or bench-and-bank at
+`batter: 65`, and a rim section that walks end to end at worst step 2 where it was a barrier.
 
 **An `area` mark states no radius, and its corners are what its ring is.** A point spreads over `r` and a line
 over `r` either side; an area pins every cell inside a drawn ring at one height and nothing softens the step

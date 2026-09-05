@@ -55,20 +55,31 @@ public sealed record PointMark(double X, double Z, double Height, double Radius 
 /// serpentine comes out as flat road and graded batter rather than road and cliff. Unset, the tread is the
 /// whole radius and every cell in the band is flat, which is what a ridgeline wants.</para>
 ///
-/// <para>The batter's angle is not a knob, because it is not free: the ramp has the run the drawing leaves
-/// it. Two passes <c>pitch</c> apart falling <c>drop</c> between them grade over <c>pitch − 2·tread</c>, so
-/// a road wide enough and a batter gentle enough are the same decision, taken when the line is drawn.</para>
+/// <para><b>Batter</b> is how steeply that ramp falls, in degrees from level. Unset, it takes the whole run
+/// the drawing leaves it — two passes <c>pitch</c> apart falling <c>drop</c> between them grade over
+/// <c>pitch − 2·tread</c>, and nothing is flat between them. Stated, it may only be <em>steeper</em> than
+/// that: the fall runs at the stated angle from the upper tread's edge and then holds at the lower pass's
+/// height, which is a bench under a bank rather than one continuous slope. A batter gentler than the run
+/// requires cannot be honoured — the ramp would not have arrived by the time it met the next tread, and what
+/// is left over is a step — so it is raised to what the gap needs and the drawing stays the thing that
+/// decides.</para>
 /// </summary>
-public sealed record LineMark(double[][] Points, double[] Heights, double Radius = 2, double Tread = double.NaN)
+public sealed record LineMark(
+    double[][] Points, double[] Heights, double Radius = 2, double Tread = double.NaN, double Batter = 0)
     : Mark
 {
     /// <summary>The flat half-width, which is the whole radius unless a narrower one is stated.</summary>
     private double FlatTo => double.IsNaN(Tread) ? Radius : Math.Clamp(Tread, 0, Radius);
 
+    /// <summary>The stated batter as a fall per block of run, or zero for none. Clamped short of vertical,
+    /// since a mark states ground and ground that overhangs is not a height field.</summary>
+    private double Fall => Batter <= 0 ? 0 : Math.Tan(Math.Clamp(Batter, 1, 89) * Math.PI / 180.0);
+
     public override IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint)
     {
         if (Points.Length < 2) yield break;
         var flat = FlatTo;
+        var fall = Fall;
         // A second pass is one at least this far away measured ALONG the line, which is what tells a
         // neighbouring winding from the far side of a bend in the pass the cell is already on.
         var apart = Math.Max(1, 2 * Radius);
@@ -77,18 +88,43 @@ public sealed record LineMark(double[][] Points, double[] Heights, double Radius
         {
             var (distance, along, _, _) = Polyline.Nearest(x + 0.5, z + 0.5, Points);
             if (distance > Radius) continue;
-            if (distance <= flat) { yield return ((x, z), HeightAt(along)); continue; }
 
-            // Out past the tread: ramp toward whichever other pass of the line is in reach, and leave the
-            // cell to the relaxation where there is none — a lone line's shoulder is the solver's to fill.
+            var height = HeightAt(along);
+            if (distance <= flat) { yield return ((x, z), height); continue; }
+
+            // Out past the tread, and the band is still the mark's: what the tread changes is only what
+            // happens where the line comes back past itself. With no second pass in reach the shoulder is
+            // held at the line's own height, exactly as the whole band always was — a mark that stopped
+            // claiming its band would hand those cells back to whichever earlier mark had pinned them, which
+            // is a wall from somewhere else rather than a shoulder.
+            // What puts a cell BETWEEN two passes rather than outside them both: the two nearest points lie
+            // on opposite sides of it, so the vectors to them oppose. Which hand of each pass the cell falls
+            // on cannot answer this — two limbs of a switchback travel opposite ways, so a cell between them
+            // is on the same hand of both, while a cell outside is on opposite hands.
+            //
+            // The loft then runs only where the two bands actually meet, `d1 + d2 <= 2r`. Between two passes
+            // that sum is the pitch, the same for every cell in the gap, so a gap is wholly lofted or wholly
+            // not — where a bound on the second pass alone would cut through the middle of one and leave a
+            // step at whichever cell fell the wrong side of it.
             var second = Polyline.NearestPass(x + 0.5, z + 0.5, Points, along, apart);
-            if (second is not { } other || other.Distance > Radius) continue;
+            if (second is not { } other || distance + other.Distance > 2 * Radius
+                || !Polyline.Between(x + 0.5, z + 0.5, Points, along, other.Along))
+            { yield return ((x, z), height); continue; }
 
+            var otherHeight = HeightAt(other.Along);
             var here = Math.Max(0, distance - flat);
             var there = Math.Max(0, other.Distance - flat);
-            var span = here + there;
-            var toward = span <= 0 ? 0 : here / span;
-            yield return ((x, z), HeightAt(along) + (HeightAt(other.Along) - HeightAt(along)) * toward);
+            var gap = here + there;
+            if (gap <= 0) { yield return ((x, z), height); continue; }
+
+            // Read in the gap's own frame rather than from whichever pass is nearer, so every cell between
+            // the two treads answers one function of one distance and the ramp is continuous across the
+            // midline. The needed fall is what the run demands; a stated batter may only exceed it.
+            var high = Math.Max(height, otherHeight);
+            var low = Math.Min(height, otherHeight);
+            var fromHigh = height >= otherHeight ? here : there;
+            var slope = Math.Max(fall, (high - low) / gap);
+            yield return ((x, z), Math.Max(high - slope * fromHigh, low));
         }
     }
 
@@ -290,6 +326,41 @@ public static class Polyline
             found = true;
         }
         return found ? (best, bestAlong, bestSide) : null;
+    }
+
+    /// <summary>Whether the cell lies <b>between</b> two points of the line rather than outside them both:
+    /// the vectors from it to the two points oppose. Direction-free, which the hand each pass presents is
+    /// not — two limbs of a switchback travel opposite ways and show a cell between them the same hand.
+    /// </summary>
+    public static bool Between(double x, double z, double[][] points, double along, double otherAlong)
+    {
+        var (ax, az) = PointAt(points, along);
+        var (bx, bz) = PointAt(points, otherAlong);
+        return (ax - x) * (bx - x) + (az - z) * (bz - z) < 0;
+    }
+
+    /// <summary>The point at a fractional position along the line — the inverse of the <c>Along</c> every
+    /// read here answers with.</summary>
+    public static (double X, double Z) PointAt(double[][] points, double along)
+    {
+        double total = 0;
+        for (var i = 0; i + 1 < points.Length; i++)
+            total += Math.Sqrt(Square(points[i + 1][0] - points[i][0]) + Square(points[i + 1][1] - points[i][1]));
+        var wanted = Math.Clamp(along, 0, 1) * total;
+
+        double arc = 0;
+        for (var i = 0; i + 1 < points.Length; i++)
+        {
+            double ax = points[i][0], az = points[i][1];
+            var length = Math.Sqrt(Square(points[i + 1][0] - ax) + Square(points[i + 1][1] - az));
+            if (arc + length >= wanted || i == points.Length - 2)
+            {
+                var t = length <= 0 ? 0 : Math.Clamp((wanted - arc) / length, 0, 1);
+                return (ax + t * (points[i + 1][0] - ax), az + t * (points[i + 1][1] - az));
+            }
+            arc += length;
+        }
+        return (points[0][0], points[0][1]);
     }
 
     private static double Square(double value) => value * value;
