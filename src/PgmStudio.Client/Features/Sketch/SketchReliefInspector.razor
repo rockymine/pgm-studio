@@ -135,26 +135,26 @@
       }
       else if (kind == MarkKinds.Scarp)
       {
-        <Field Label="Shelf">
-          <LabelHint>(the +z hand of the line)</LabelHint>
+        <Field Label="High side">
+          <LabelHint>(the level on the +z hand of the drawn line)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(MarkFields.High, 11)" ValueChanged="SetHigh" />
           </ChildContent>
         </Field>
-        <Field Label="Ground below">
-          <LabelHint>(the other side)</LabelHint>
+        <Field Label="Low side">
+          <LabelHint>(the level on the other hand)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(MarkFields.Low, 5)" ValueChanged="SetLow" />
           </ChildContent>
         </Field>
         <Field Label="Face">
-          <LabelHint>(how wide the drop is)</LabelHint>
+          <LabelHint>(the drop's own width, left free to ramp between the two)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(MarkFields.Face, 2)" ValueChanged="SetFace" Min="1" />
           </ChildContent>
         </Field>
         <Field Label="Band">
-          <LabelHint>(how far the two levels are held)</LabelHint>
+          <LabelHint>(how far out each level is held before the surface is free again)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(MarkFields.Band, 5)" ValueChanged="SetBand" Min="1" />
           </ChildContent>
@@ -218,7 +218,17 @@
 
   @* The group's own settings. Always shown, never behind a selection: they are what the marks are stated
      against, so a base an author cannot see is a set of heights they cannot read. *@
-  @if (groupId is not null)
+  @* A selected mark is the subject and its group is the frame it is read in. So the frame is one line while a
+     mark is selected, and the form that changes it appears when the group itself is what was picked — which
+     the list's own group row does. *@
+  @if (groupId is not null && editingSelection)
+  {
+    <Section Title="@GroupTitle">
+      <p class="plan-readout">@GroupLine</p>
+      <p class="section-desc">Pick the group in the list to change these.</p>
+    </Section>
+  }
+  else if (groupId is not null)
   {
     <Section Title="@GroupTitle">
       <Field Label="Base" Error="@groupError">

@@ -43,7 +43,7 @@ import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   paintSketchShape, paintGroups, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostGroups, paintRaster, paintStructural,
   paintObjectives,
-  paintContours,
+  paintContours, paintHeightMap, heightMapBitmap,
 } from "../render/sketch-render.js";
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
@@ -427,11 +427,21 @@ export class SketchCanvas extends CanvasBase {
    */
   loadReliefLayer(relief) {
     this.#relief = relief?.groups?.length ? relief : null;
+    // The shading is decoded once per payload rather than per frame: it is one pixel per block over a box a
+    // team island fills with six thousand of them, and a pan redraws at whatever rate the pointer moves.
+    this.#reliefShading.clear();
+    for (const group of this.#relief?.groups ?? []) {
+      const image = heightMapBitmap(group);
+      if (image) this.#reliefShading.set(group.group, image);
+    }
     this.#paintWorld();
   }
 
   /** Whether a relief is on screen — what a phase asks before offering to read a height off it. */
   get hasRelief() { return this.#relief !== null; }
+
+  // One shaded height map per group, decoded when the payload lands and held until the next one.
+  #reliefShading = new Map();
 
   // ── isometric preview (S6) ─────────────────────────────────────────────────────
   // Swap the top-down viewport for a read-only 3-D render of the world the export builds. Entering and
@@ -770,11 +780,17 @@ export class SketchCanvas extends CanvasBase {
       else paintRaster(painter, this.#rasterRuns);
     });
     // The group fill would tint every painted block towards the result purple, so under the paint the
-    // group contributes its outline only.
-    painter.layer("group",    () => paintGroups(painter, this.#groups, { filled: !painted }));
+    // group contributes its outline only. The height map is the same case: its whole reading is a lightness,
+    // and a fill under it shifts every cell by the same amount in the same direction.
+    const shaded = this.#relief !== null && this.#reliefShading.size > 0;
+    painter.layer("group",    () => paintGroups(painter, this.#groups, { filled: !painted && !shaded }));
     // Contours sit over the blocks and the group fill and under everything drawn or selected: they describe
     // the ground, so they belong on it, but an author's own shapes have to stay legible across them.
-    painter.layer("relief",    () => { if (this.#relief) paintContours(painter, this.#relief); });
+    painter.layer("relief",    () => {
+      if (!this.#relief) return;
+      paintHeightMap(painter, this.#relief, this.#reliefShading);
+      paintContours(painter, this.#relief);
+    });
     painter.layer("shapes",    () => this.#paintShapes());
     // Structural pieces (S25) are locked plan context, not drawn primitives — always shown (like the group
     // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.

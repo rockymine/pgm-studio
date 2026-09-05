@@ -278,11 +278,38 @@ public partial class SketchReliefInspector
     /// <summary>Where one of a line's heights lands. They are spaced evenly along the run and have nothing to
     /// do with the points the line was drawn with — a two-point line can state five heights — so they are
     /// named by the position they hold rather than numbered as if they were vertices.</summary>
-    private static string StationLabel(int at, int count)
-        => count <= 1 ? "Height"
-         : at == 0 ? "At the start"
-         : at == count - 1 ? "At the end"
-         : $"{100.0 * at / (count - 1):0}% along";
+    private string StationLabel(int at, int count)
+    {
+        if (count <= 1) return "Height";
+        if (at == 0) return "Start";
+        if (at == count - 1) return "End";
+        var run = LineLength;
+        return run > 0 ? $"{run * at / (count - 1):0} blocks in" : $"{100.0 * at / (count - 1):0}% along";
+    }
+
+    /// <summary>How far the drawn line runs, walked point to point. A station sits at its own fraction of
+    /// this, so the distance is what says where a height lands — the fraction alone means nothing without
+    /// the length it is a fraction of.</summary>
+    private double LineLength
+    {
+        get
+        {
+            if (mark?[MarkFields.Points] is not JsonArray points || points.Count < 2) return 0;
+            var run = 0.0;
+            for (var i = 1; i < points.Count; i++)
+            {
+                var (ax, az) = Point(points, i - 1);
+                var (bx, bz) = Point(points, i);
+                run += Math.Sqrt((bx - ax) * (bx - ax) + (bz - az) * (bz - az));
+            }
+            return run;
+        }
+    }
+
+    private static (double X, double Z) Point(JsonArray points, int at)
+        => points[at] is JsonArray pair && pair.Count >= 2
+           && double.TryParse(pair[0]?.ToString(), out var x)
+           && double.TryParse(pair[1]?.ToString(), out var z) ? (x, z) : (0, 0);
 
     /// <summary>Add a height to the profile, starting at the last one — an author adding one means to bend
     /// the run from where it already is, not to introduce a step.</summary>
@@ -318,6 +345,24 @@ public partial class SketchReliefInspector
     /// <summary>What an absent <c>base</c> means, matching the C# record's own default so a document the
     /// editor seeds and one a hand writes mean the same thing by an absent field.</summary>
     private const double FallbackBase = 4;
+
+    /// <summary>The group's settings as one line — what a mark's heights are read against, without the form
+    /// that changes them. A selected mark is the subject; its group is the frame, and six fields of frame
+    /// under one field of subject is a panel an author reads past.</summary>
+    private string GroupLine
+    {
+        get
+        {
+            var parts = new List<string> { $"base {Trim(Base)}" };
+            var reach = ReliefNum(ReliefFields.Reach, 0);
+            parts.Add(reach > 0 ? $"reach {Trim(reach)}" : "marks decide it all");
+            var step = ReliefNum(ReliefFields.Step, 1);
+            if (step > 1) parts.Add($"step {Trim(step)}");
+            if (GrainNum(GrainFields.Amplitude) > 0) parts.Add($"grain ±{Trim(GrainNum(GrainFields.Amplitude))}");
+            if (HasRim) parts.Add($"rim {Trim(RimHeight)}");
+            return string.Join(" · ", parts);
+        }
+    }
 
     private static string Blocks(double count)
         => $"{Math.Round(count)} block{(Math.Abs(Math.Round(count)) == 1 ? "" : "s")}";

@@ -21,6 +21,14 @@ public sealed record ReliefContoursDto(double Interval, IReadOnlyList<ReliefGrou
 /// <param name="MaxX">The east edge, inclusive.</param>
 /// <param name="MaxZ">The south edge, inclusive.</param>
 /// <param name="Lines">The contours across it.</param>
+/// <param name="Heights">The solved surface itself, one block height per cell of the box above, row-major
+/// from the north-west corner — <c>(z − min_z) · width + (x − min_x)</c>, where the width is
+/// <c>max_x − min_x + 1</c>. A cell the group's footprint does not hold is <c>null</c>, since a box is
+/// rectangular and a landmass is not.
+///
+/// <para>It rides with the contours because the solve that traces them is the solve that produces it: the
+/// field is already in hand, and the lines alone say where the ground changes height without saying which
+/// way. A reader that only strokes contours ignores the key.</para></param>
 public sealed record ReliefGroupContoursDto(
     string Group,
     int Min,
@@ -29,7 +37,8 @@ public sealed record ReliefGroupContoursDto(
     [property: JsonPropertyName("min_z")] int MinZ,
     [property: JsonPropertyName("max_x")] int MaxX,
     [property: JsonPropertyName("max_z")] int MaxZ,
-    IReadOnlyList<ContourLineDto> Lines);
+    IReadOnlyList<ContourLineDto> Lines,
+    IReadOnlyList<int?>? Heights = null);
 
 /// <summary>
 /// One contour at one height. <see cref="Points"/> is a flat <c>[x, z, x, z, …]</c> run rather than a list of

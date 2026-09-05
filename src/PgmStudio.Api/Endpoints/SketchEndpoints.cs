@@ -655,7 +655,10 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
                                           or OverflowException or KeyNotFoundException)
         { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault.Message, ct); return; }
 
-        // Points go out as one flat [x, z, x, z, …] run per line — see ContourLineDto.
+        // Points go out as one flat [x, z, x, z, …] run per line — see ContourLineDto. The solved surface goes
+        // with them: contours say where the ground changes height and not which way, and the field they are
+        // traced from is already in hand, so sending it costs the serialization and nothing else.
+        var withHeights = Query<bool>("heights", isRequired: false);
         var groups = fields.Select(entry => new ReliefGroupContoursDto(
             entry.Key, entry.Value.Min, entry.Value.Max,
             entry.Value.Footprint.MinX,
@@ -664,9 +667,22 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
             entry.Value.Footprint.MinZ + entry.Value.Footprint.Depth - 1,
             [.. Contours.Of(entry.Value, interval).Select(line => new ContourLineDto(
                 line.Level, line.Closed,
-                [.. line.Points.SelectMany(point => new[] { point.X, point.Z })]))])).ToList();
+                [.. line.Points.SelectMany(point => new[] { point.X, point.Z })]))],
+            withHeights ? Grid(entry.Value) : null)).ToList();
 
         await Send.OkAsync(new ReliefContoursDto(interval, groups), ct);
+    }
+
+    /// <summary>The field's block heights over its own box, row-major, with null where the footprint holds no
+    /// land. The box is rectangular and a landmass is not, so the holes have to be in the answer rather than
+    /// left for a reader to infer from a shape it does not have.</summary>
+    private static IReadOnlyList<int?> Grid(HeightField field)
+    {
+        var footprint = field.Footprint;
+        var cells = new int?[footprint.Width * footprint.Depth];
+        for (var index = 0; index < cells.Length; index++)
+            if (footprint.InsideAt(index)) cells[index] = field.Blocks[index];
+        return cells;
     }
 }
 

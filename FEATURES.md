@@ -6544,6 +6544,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where `crest` (r 18, h 33) and `terrace` (r 13, h 24) overlap: the transect read `33 33 33 DROP −9 24` and now
   reads `33 33 32 31 29 28 26 25 24`, worst step 2. Board-wide, 1,006 barrier cells become **480**.
   (`LineMarkTreadTests`, `docs/world-export/relief.md` §2)
+- **The relief overlay is a shaded height map, and the panel names what a mark states (`TS97`).** Judging a
+  surface meant switching to the isometric and back: contours say where the ground changes height and never
+  which way, so reading a shape off them is counting labels. `POST …/sketch/relief?heights=true` now returns
+  the solved field with the lines traced from it — one block height per cell of the group's box, row-major,
+  `null` off the footprint — and the canvas blits it a pixel a block under the contours. It costs the
+  serialization and nothing else: the solve that traces the lines is the solve that produces it. The ramp is
+  dark-low to light-high over each group's **own** range, so four blocks of relief and forty each use all of
+  it, and the group fill stands down underneath the way it does under the painted blocks.
+  Three namings go with it. A **scarp** states `High side` and `Low side` — the wire's own words, the high one
+  on the +z hand of the drawn line — where `Shelf` and `Ground below` named a thing for a field that takes a
+  level and said which side nowhere; `face` is the drop's own width and the part of the band **left free** for
+  the relaxation to ramp across, `band` is how far out each level is held. A **line's** heights are named by
+  where they land along the drawn run — `Start`, `27 blocks in`, `End` — rather than by a percentage. And the
+  **group's settings are the frame, not the subject**: with a mark selected they are one line
+  (`base 20 · reach 5 · step 2`) and the form that changes them appears when the group itself is picked.
+  (`docs/tools/sketch.md` § Relief)
 - **A relief phase cannot reach the ground it is stating on, and a mark's shape can be changed (`TS96`).**
   Five faults found by authoring a board with it. **`Delete` took the island.** The shape chord fired on any
   `#selectedId`, and picking a single-shape group to reach its base selected that group's one member — so the

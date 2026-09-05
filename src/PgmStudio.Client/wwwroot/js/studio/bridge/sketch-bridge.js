@@ -728,7 +728,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   async function fetchRelief() {
     const seq = ++reliefSeq;
     try {
-      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/relief`, {
+      // `heights=true` brings the solved surface back with the lines it is traced from. It is already in
+      // hand on the server, and the shading it draws is what makes the contours readable.
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/relief?heights=true`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(handle.getState()),
       });
       if (!res.ok) return;

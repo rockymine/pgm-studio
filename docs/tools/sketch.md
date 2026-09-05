@@ -719,12 +719,31 @@ array back to the single amount.
 A sixth mark, the **rim**, is not placed at all: it holds the group's whole outline, so it rides as a property
 of the group's relief — one height and a depth.
 
+**The overlay is a shaded height map under its own contours.** `POST …/sketch/relief?heights=true` returns
+the solved surface with the lines traced from it — one block height per cell of the group's box, row-major,
+`null` where the footprint holds no land — and the canvas blits it a pixel a block under the contours. The
+solve that traces the lines is the solve that produces it, so the grid costs the serialization and nothing
+else. Contours say where the ground changes height and not which way; a lightness ramp says the shape at a
+glance and the lines then say by how much, which is why the two are one overlay rather than two toggles. The
+ramp runs dark-low to light-high over each group's **own** range, so a board of four blocks of relief and one
+of forty each use all of it — what an author is judging is the shape of their surface, not how it compares to
+a board they are not looking at. The group fill stands down underneath, the way it does under the painted
+blocks: the whole reading is a lightness, and a fill under it shifts every cell the same way.
+
+**A scarp's fields are the wire's own words.** `high` and `low` are the two levels — the high one on the +z
+hand of the drawn line — and they are *the panel's* `High side` and `Low side` rather than a shelf and the
+ground below, which named a thing where the field takes a level and never said which side. `face` is the
+drop's own width and is the one part of the band **left free**: the two levels are pinned either side of it
+and the relaxation ramps across, so the face is the run the drop happens over and `|high − low| / face` is the
+grade an author is really choosing. `band` is how far out each level is *held* before the surface is free
+again, which is what makes the two sides arrive at the heights the drop is measured between.
+
 **A line's heights are stations along its run, not its vertices.** `LineMark.HeightAt` reads the fraction of
 the line travelled and interpolates the array over it, so the count is the author's and has nothing to do with
 how many points the line was drawn with: a two-point line stating five heights bends five times along a
-straight run, and adding a height adds no point. The panel names them by where they land — *At the start*,
-*50% along*, *At the end* — because numbering them made the button beside them read as a promise to add a
-vertex, which it never was. A **scarp** states no array at all: `high` and `low` hold its whole run, since a
+straight run, and adding a height adds no point. The panel names them by where they land — *Start*, *27 blocks in*, *End*, measured
+along the drawn line — because numbering them made the button beside them read as a promise to add a vertex,
+which it never was. A **scarp** states no array at all: `high` and `low` hold its whole run, since a
 scarp states a drop rather than a profile.
 
 **Points are added on the outline, the way they are in Draw.** With a mark selected, hovering near one of its
@@ -732,6 +751,11 @@ edges offers a midpoint ghost, and the press that inserts the point **keeps hold
 the cursor that asked for it and the same gesture places it, which is the draw stage's behaviour and the
 reason the gesture is one press rather than press, re-aim, press. Same reach, and the same `distToSegment`
 behind both. Before it, the only way to change the shape a mark was drawn as was to draw it again.
+
+**The group's settings are the frame, not the subject.** With a mark selected the panel states them as one
+line — `base 20 · reach 5 · step 2` — and the form that changes them appears when the group itself is picked,
+which the list's own group row does. Six fields of frame under one field of subject is a panel an author
+reads past, and the base is the only part of the frame a stated height cannot be read without.
 
 **A phase that places its own things owns the selection while it is up.** Relief and Dressing keep a shape out
 of reach: a click picks the group, `selectGroup` does not drill to a sole member, and `Delete` removes the
@@ -1549,7 +1573,7 @@ carry — the board an author is looking at is the one place those complaints ar
 | Endpoint | Answers |
 |---|---|
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
-| `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, groups[]}` — per group its height range, its bounds and its traced contour lines, from the build's own solver |
+| `POST /map/{slug}/sketch/relief[?interval=][&heights=true]` | `{interval, groups[]}` — per group its height range, its bounds and its traced contour lines, from the build's own solver. `heights=true` adds `heights`, the solved surface itself: one block height per cell of that box, row-major from the north-west corner, `null` where the footprint holds no land |
 | `POST /map/{slug}/sketch/relief/read` | `{groups[]}` — per group the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, the symmetry error, the `landform` it measures as beside the `smoothing` it kept, the `level` share of it and the `largestField` of level ground on it, the `seams` where two of its marks meet on a step, and the `silentMarks` that pinned nothing. Carries `RL1` where the group states a different word, `RL2` where it carries elevation it never graded (`docs/world-export/relief.md` §6.1), `RL3` where a seam is taller than a scramble, `RL4` for a mark that landed nowhere and `RL5` where it was graded everywhere and left nowhere level to stand (§2.0) |
 | `POST /map/{slug}/sketch/columns` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells, claims}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. `claims` is `{bounds, width, height, classes[], rows[]}`, digit rows over the board's own ground the way `coverage`'s own classes are, classing every cell as a prop's own claim, a goal's clearance, a keep-out, or free — so a candidate site is looked up on the raster rather than tried and read back as a decline. `?format=text` answers the same reading as characters, with the classes' key, a column-index line, the declines and a `placed n, declined n` line under it | 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |

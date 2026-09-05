@@ -159,6 +159,63 @@ export function paintRaster(painter, runs) {
 }
 
 /**
+ * The solved surface as a shaded height map — one pixel per block, blitted over the group's own box.
+ *
+ * Contours say where the ground changes height and not which way, so reading a shape off them means counting
+ * labels; a lightness ramp says it at a glance and the lines then say by how much. The two are one overlay for
+ * that reason rather than two toggles: the fill is what makes the contours readable, and the contours are what
+ * make the fill measurable.
+ *
+ * The ramp runs dark-low to light-high over the group's OWN range, so a board whose relief is four blocks and
+ * one whose relief is forty each use the whole ramp — what an author is judging is the shape of their surface,
+ * not how it compares to a board they are not looking at. A group with no range at all is flat and is drawn at
+ * the middle of the ramp rather than at whichever end a division by zero would pick.
+ */
+const HEIGHT_LOW  = [ 24,  38,  54];   // deep blue-grey: the lowest ground the group holds
+const HEIGHT_HIGH = [242, 232, 206];   // bone: the highest
+
+export function heightMapBitmap(group) {
+  const heights = group?.heights;
+  const width = (group?.max_x ?? 0) - (group?.min_x ?? 0) + 1;
+  const depth = (group?.max_z ?? 0) - (group?.min_z ?? 0) + 1;
+  if (!Array.isArray(heights) || width < 1 || depth < 1 || heights.length !== width * depth) return null;
+
+  const low = group.min ?? 0, high = group.max ?? 0;
+  const span = high - low;
+  const image = new ImageData(width, depth);
+  for (let i = 0; i < heights.length; i++) {
+    const at = i * 4;
+    const height = heights[i];
+    // A cell the footprint does not hold stays fully transparent: the box is rectangular and the landmass
+    // drawn in it is not, and tinting the gap would draw ground that is not there.
+    if (height === null || height === undefined) { image.data[at + 3] = 0; continue; }
+    const t = span > 0 ? (height - low) / span : 0.5;
+    for (let channel = 0; channel < 3; channel++)
+      image.data[at + channel] = Math.round(HEIGHT_LOW[channel] + (HEIGHT_HIGH[channel] - HEIGHT_LOW[channel]) * t);
+    image.data[at + 3] = 255;
+  }
+  // A canvas rather than the ImageData itself: drawImage takes a drawable, and ImageData is not one — it is
+  // pixels without a surface. One block per pixel, stretched to the box at paint time.
+  const surface = document.createElement("canvas");
+  surface.width = width;
+  surface.height = depth;
+  surface.getContext("2d").putImageData(image, 0, 0);
+  return surface;
+}
+
+/** Blit each group's height map over the box it was measured on. `bitmaps` is keyed by group id. */
+export function paintHeightMap(painter, relief, bitmaps, { alpha = 0.88 } = {}) {
+  for (const group of relief?.groups ?? []) {
+    const bitmap = bitmaps?.get(group.group);
+    if (!bitmap) continue;
+    // max_x/max_z are inclusive cell indices, so the box the image covers reaches one block past each.
+    painter.image(bitmap, { min_x: group.min_x, min_z: group.min_z,
+                            max_x: group.max_x + 1, max_z: group.max_z + 1 },
+                  { alpha, smooth: false });
+  }
+}
+
+/**
  * The relief as contour lines — the payload `sketch/relief` returns, one entry per group:
  * `{ group, min, max, lines: [{ level, closed, points: [x, z, x, z, …] }] }`. Nothing here decides where a
  * line goes; the server traces the same field the export builds from, so what is drawn is the ground that
