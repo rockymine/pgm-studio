@@ -862,7 +862,12 @@ of reading as current — the sample plateau the theme finishes, a swatch per bu
 change the registry rather than the board — **Save to library**, which decomposes the theme into one style per
 bucket so it can be edited there, and **Remove**, which takes it off the board. Selection: what that shape or
 group is painted with, `mixed` where a group's shapes disagree, and **Unpaint**. Board defaults, when
-nothing is selected: the map default, how many shapes are still falling through to it, and the room shells.
+nothing is selected: the default theme, the board's biome, how many shapes are still falling through to the
+theme, and the two room shells, in one section rather than two. **Every row there is one library row bound to
+the whole board** — the same statement four times over — so each row carries its own button through to the
+library that holds it and each says what it is bound to by name. The pictures are the library's, and a section
+describing what the board falls back to is a list of bindings rather than a gallery. The order is the order a
+column is built: the paint under everything, the tint over it, then the finish stamped where a room stands.
 
 **The map default is the board's; the built-in is stone.** Every bucket of `TerrainTheme.Default` is stone —
 what unpainted ground already is — so a board that names no theme exports as a board that names no theme, and
@@ -871,16 +876,20 @@ finishes worth starting from are named themes: `ThemePresets` holds six — `mea
 `firnline`, `claybed`, `oldstone` — and `LibrarySeed` puts them in the library, where they are picked like any
 other.
 
-**The map's biome sits with the map default**, because it is the same kind of statement: what every column
+**The map's biome sits with the default theme**, because it is the same kind of statement: what every column
 falls back to. A biome places no block — it is the byte a client reads to tint grass, leaves and water — so it
-is neither a prop nor a per-shape choice, and what the phase offers is a **select over the biome library**
-plus the patch of ground the picked row tints. The kinds, the scale and the palette are the library editor's;
-picking one here copies its field onto the board and records the row it came from (`biome`, `biomeSource`), so
-editing the library afterwards retints nothing. `(none — plains everywhere)` is what a board that never opened
-the question exports as. `docs/world-export/terrain-painting.md` §5b is the field itself.
+is neither a prop nor a per-shape choice, and what the phase offers is a **select over the biome library**.
+The kinds, the scale and the palette are the library editor's; picking one here copies its field onto the
+board and records the row it came from (`biome`, `biomeSource`), so editing the library afterwards retints
+nothing. The select resolves what is held by that note first and by the field's own content after it, so a
+field written straight to `PUT …/sketch/biome` reads as the preset it is; one the library does not hold says
+so rather than reading as none. `(none — plains everywhere)` is what a board that never opened the question
+exports as. `docs/world-export/terrain-painting.md` §5b is the field itself.
 
-**Room shells** sit under the board defaults, because they are a fallback in the same sense the map default
-is: one shell for every wool cage and one for every spawn cube. Two bindings and no more — rooms are fanned
+**Room shells** are two more of those bindings, and they are a fallback in the same sense the default theme
+is: one shell for every wool cage and one for every spawn cube. What separates them from the theme and the
+biome is reach, not kind — a shell finishes only where a room stands — which is why they are rows in the same
+section rather than a section of their own. Two bindings and no more — rooms are fanned
 across the symmetry orbit so both sides face the same building, and a per-room shell would be a sightline that
 differed between teams. What is stored is the composed style's **JSON snapshot**, not the library id it came
 from, so editing the library afterwards cannot rebuild a shipped map's rooms. Each binding has three states,

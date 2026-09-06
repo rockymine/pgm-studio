@@ -106,18 +106,25 @@
     @* Nothing is selected, so the column describes the board: what paints where nothing else reaches, and how
        much of the board is still falling through to it. *@
     <Section Title="Board defaults">
-      <Field Label="Map default">
+      @* Every row is one library row bound to the whole board, and each carries the button through to the
+         library that holds it. What a row is bound to is said by name; the pictures are the library's own.
+         The order is the order a column is built: the paint under everything, the tint over it, then the
+         finish stamped where a room stands. *@
+      <Field Label="Default theme">
         <LabelHint>(the lowest layer — what paints a cell no shape claims)</LabelHint>
         <ChildContent>
-          <Select Options="MapThemes" Value="@MapTheme" ValueChanged="SetMapDefault"
-                  Placeholder="(unthemed — stone)" />
+          <div class="lib-bind">
+            <Select Options="MapThemes" Value="@MapTheme" ValueChanged="SetMapDefault"
+                    Placeholder="(unthemed — stone)" />
+            <Button Variant="icon" Icon="library" Href="/library/themes" Title="Open the theme library" />
+          </div>
         </ChildContent>
       </Field>
       <p class="section-desc">@Coverage</p>
 
-      @* A biome places no block — it is the byte a client reads to tint grass, leaves and water — so it is a
-         board default like the map theme rather than something placed. Picked, never authored here: a field is
-         a library row, and the row's own editor is where its palette and its scale are chosen. *@
+      @* A biome places no block — it is the byte a client reads to tint grass, leaves and water — so it is
+         bound here rather than placed. Picked, never authored: the row's own editor holds its palette and
+         its scale. *@
       <Field Label="Map biome">
         <LabelHint>(what tints every column — grass, leaves and water)</LabelHint>
         <ChildContent>
@@ -129,45 +136,35 @@
           </div>
         </ChildContent>
       </Field>
-      @if (HeldBiome is { } biome)
-      {
-        <div class="theme-biome-card">@((MarkupString)biome.Preview)</div>
-      }
-    </Section>
 
-    <Section Title="Room shells">
-      <Actions>
-        <Button Variant="icon" Icon="library" Href="/library/houses" Title="Open the house library" />
-      </Actions>
-      <ChildContent>
-        <p class="section-desc">The finish each is stamped with — never its size. One shell each, since both
-          are mirrored.</p>
-        @foreach (var kind in RoomKindInfo.All)
+      <p class="section-desc">A room shell is the finish its rooms are stamped with — never their size. One
+        shell each, since both are mirrored.</p>
+      @foreach (var kind in RoomKindInfo.All)
+      {
+        <Field Label="@kind.Title" @key="kind.Id">
+          <div class="lib-bind">
+            <Select Options="RoomShells(kind.Id)" Value="@RoomChoice(kind.Id)"
+                    ValueChanged="choice => BindRoom(kind.Id, choice)" />
+            @if (BoundRoom(kind.Id) is not null || IsOpenRoom(kind.Id))
+            {
+              <Button Variant="icon" Icon="x" Title="Go back to the built-in shell"
+                      OnClick="() => ClearRoom(kind.Id)" />
+            }
+            <Button Variant="icon" Icon="library" Href="/library/houses" Title="Open the house library" />
+          </div>
+        </Field>
+        @if (RoomPreview(kind.Id) is { } views)
         {
-          <Field Label="@kind.Title" @key="kind.Id">
-            <div class="lib-bind">
-              <Select Options="RoomShells(kind.Id)" Value="@RoomChoice(kind.Id)"
-                      ValueChanged="choice => BindRoom(kind.Id, choice)" />
-              @if (BoundRoom(kind.Id) is not null || IsOpenRoom(kind.Id))
-              {
-                <Button Variant="icon" Icon="x" Title="Go back to the built-in shell"
-                        OnClick="() => ClearRoom(kind.Id)" />
-              }
-            </div>
-          </Field>
-          @if (RoomPreview(kind.Id) is { } views)
-          {
-            <div class="dressing-views">
-              <figure class="theme-section-figure">@((MarkupString)views.Plan)</figure>
-              <figure class="theme-section-figure">@((MarkupString)views.Section)</figure>
-            </div>
-          }
+          <div class="dressing-views">
+            <figure class="theme-section-figure">@((MarkupString)views.Plan)</figure>
+            <figure class="theme-section-figure">@((MarkupString)views.Section)</figure>
+          </div>
         }
-        @if (rooms.Count == 0)
-        {
-          <p class="section-desc">The library has no room styles yet.</p>
-        }
-      </ChildContent>
+      }
+      @if (rooms.Count == 0)
+      {
+        <p class="section-desc">The library has no room styles yet.</p>
+      }
     </Section>
   }
   }
