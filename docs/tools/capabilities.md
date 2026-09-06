@@ -126,10 +126,10 @@ describe. One clarification worth keeping, because the map is easy to misread: i
 layer named "Ground". The layering that reads as depth is the shapes' own `base_height` tiers, not
 `layers[]`.
 
-## Forty-eight worked plans, and a traced corpus
+## Forty-nine worked plans, and a traced corpus
 
 `ruediger` is the worked example this document reached for first, and it is a whole stack — plan, layout and
-intent, one map. The plan layer has further worked examples and there are forty-eight of them, in
+intent, one map. The plan layer has further worked examples and there are forty-nine of them, in
 `tools/seeds/`, which is where an author looking for "how is a board actually stated" should start. Nothing
 pointed at them, which is the likeliest reason every generated board so far began from `compose`: the only
 example on offer was one layer down from the question being asked.

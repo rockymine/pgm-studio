@@ -155,7 +155,7 @@ The friction is that their names do not announce the order they come in.
 | 3 | `MapIntent` (`map_intent_json`) | `Pgm/Authoring` | what the author *wants*: teams, spawns, objectives, regions — the **configure** tool's input |
 | 4 | `MapXml` + entities | `Domain/MapModel.cs` | what a finished map *is*, parsed and typed |
 | 5 | the `Dict` doc (`xml_data.json`) | `Pgm/JsonTree.cs` | the loose `Dictionary<string, object?>` tree — the round-trip currency the **edit** tool patches |
-| 6 | `*Row` POCOs (40 tables) | `Data/Schema/Entities.cs` | the relational shape — the hybrid persistence model |
+| 6 | `*Row` POCOs (42 tables) | `Data/Schema/Entities.cs` | the relational shape — the hybrid persistence model |
 | 7 | wire DTOs | `Contracts/*.cs` | what crosses `/api` to the client |
 
 **Two decisions shape representation 6, and both are about what deserves a column.** The map contract is
@@ -229,14 +229,14 @@ and the harness; its `FromJson` is the production codec.
 | `Pgm` | **Two charters in one project** (§3). Both halves are internally well-shaped. | the split decision, §7.1 |
 | `Analysis` | **Right internal shape** — `Region/`, `Layer/`, `Playability/`, `Footprint/`, `Suggest/`. | none |
 | `Data` | **Right internal shape** — `Schema/`, `Map/`, `Features/`, and since then `Theme/` and `Plan/` for the library and plan stores. | none |
-| `Export` | **New (`B119`), flat and small.** Seven files — the world builder, the destroy/core/wool scope readers, and the `map.xml` composer — with no DB reference, so `Api` and a headless CLI reach it identically. | none yet; a fold if it grows the way `Minecraft` did |
-| `Api` | **Acceptable for a composition root**, though 41 endpoint files and 21 services is where feature folders start to pay. | optional grouping |
+| `Export` | **New (`B119`), flat and small.** Fourteen files — the world builder, the destroy/core/wool scope readers, and the `map.xml` composer — with no DB reference, so `Api` and a headless CLI reach it identically. | none yet; a fold if it grows the way `Minecraft` did |
+| `Api` | **Acceptable for a composition root**, though 59 endpoint files and 45 services is where feature folders start to pay. | optional grouping |
 | `Client` | **Well organized** — `Pages/` for routable pages, `Features/<Tool>/` for a tool's own bodies, `Components/` for the shared vocabulary, and 11 JS layers under `wwwroot/js/studio/`. | none |
 
 ## 6. `tools/` — drivers, dev harnesses and fixtures
 
-70 files, 18,365 lines — never on this map before, despite being larger than every `src/` project but `Pgm`.
-It is not one thing: four are real `.csproj` projects the solution builds, most of the rest are single
+89 files, 21,668 lines — never on this map before, despite being larger than every `src/` project but `Pgm`.
+It is not one thing: one is a real `.csproj` project the solution builds, most of the rest are single
 file-based scripts `dotnet run` builds on demand, and three folders hold no code at all.
 
 **One project-based tool**, a `ProjectReference` graph like any `src/` project and listed in
@@ -254,11 +254,12 @@ lets a file-based script link the real composition instead of growing a second c
 
 **The rest are file-based scripts** — no `.csproj`, no solution entry, each a `.cs` file opening with
 `#:project` directives that name the `src/` projects it needs and running as `dotnet run
-tools/<folder>/<script>.cs`. **There are seven, and the count is the point** (`CLAUDE.md`, *Investigation
+tools/<folder>/<script>.cs`. **There are eight, and the count is the point** (`CLAUDE.md`, *Investigation
 stays local*): three gates over the composer in `compose/` (`reproduction-gate`, `fingerprints`,
 `unit-fingerprint`), two in `deriver/` (`figure-check` gates `model.md`'s figures, `envelope-stats` writes
-`seed-envelopes.md`), and two operational tools at the root (`seed-library` seeds the database,
-`library-map` writes the catalogue map's layout and intent for `POST /map/from-documents`). A script that is
+`seed-envelopes.md`), and three operational tools at the root (`seed-library` seeds the database,
+`seed-trees` cuts a hand-built tree into the library, and `library-map` writes the catalogue map's layout
+and intent for `POST /map/from-documents`). A script that is
 not re-run does not live here; the reading
 it took belongs in `docs/` or in the code, and the script belongs in a scratchpad.
 

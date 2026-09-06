@@ -12,7 +12,7 @@ parsed.
 
 ## A gate belongs to whichever door it was put behind
 
-The pipeline has one entry point: `PgmStudio.Api`, **149 endpoint classes** over 45 files. Everything that
+The pipeline has one entry point: `PgmStudio.Api`, **219 endpoint classes** over 59 files. Everything that
 authors a map arrives through it — the browser, the headless drivers agents write, and the catalogue map,
 which is emitted as a layout and an intent and loaded through `POST /map/from-documents` like any other.
 That route is the **authoring** call for a headless caller and not only an import: it takes the three
@@ -35,12 +35,12 @@ request arrived.
 
 ## The boundary carries no schema
 
-The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 118
-paths, **149 operations**, 291 schemas, **257 of them carrying the docstring beside the type** — and
+The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 165
+paths, **219 operations**, 371 schemas, **337 of them carrying the docstring beside the type** — and
 `/api-docs` is the page over it, where a route can be expanded and sent without writing a client. Both are served from the app's own assets.
 
 What that document can say is bounded by what is declared, and the write surface states all of it. Of the
-**67 POST/PUT/PATCH routes**, **64 publish a request body** — 25 by binding a request type, 39 by naming the
+**92 POST/PUT/PATCH routes**, **89 publish a request body** — some by binding a request type, the rest by naming the
 shape they take while still reading it themselves — and the three that do not read no body at all, which is
 the truth rather than a gap. `SchemaCompletenessTests` holds both halves as counts that only move down, and
 both are now zero.
@@ -86,11 +86,11 @@ caller. The other 38 sites are a different thing entirely: `NoSuchSubject`, `Con
 
 **Every operation now says what it answers.** An endpoint that declares no response type is published as
 **204 No Content** — the generator's default, and a claim rather than a silence, so an undeclared route does
-not leave a caller guessing but misleads it. **Nought of the 149 operations** publish that 204 without
-answering it; seven publish it truthfully, every one a delete whose answer is that the thing is gone.
-`SchemaCompletenessTests` holds the count at zero and the seven as a named list, so a route added without a
+not leave a caller guessing but misleads it. **Nought of the 219 operations** publish that 204 without
+answering it; nine publish it truthfully, every one a delete whose answer is that the thing is gone.
+`SchemaCompletenessTests` holds the count at zero and the nine as a named list, so a route added without a
 response type fails there, and one on the list that grows a body cannot leave it quietly. The media types
-are declared too: the six `image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
+are declared too: the fifteen `image/png` routes, the fifteen `text/plain` ones and the export's `application/zip` all say so, so
 `/api-docs` renders a theme swatch beside the route that draws it.
 
 **And a field that takes one of a handful of words says which.** `PgmStudio.Vocabulary` holds ten closed
@@ -99,7 +99,7 @@ sets — `MapStage` and the nine in `TerrainVocabulary` — because three partie
 C# enum, since the party writing one furthest down is `Minecraft` and it cannot see `Contracts`, so every one
 of them crossed as a bare `string` and an agent learned the four stages by being refused one. A `[WordSet]`
 naming the declaring class now ties the field to its set, and a schema processor reads the words off that
-class into the field's `enum`: **26 fields** publish theirs — the ten sets plus the plan's own roles, zone
+class into the field's `enum`: **29 fields** publish theirs — the ten sets plus the plan's own roles, zone
 kinds and box kinds — and `WordSetSchemaTests` holds each to the words its class declares and every set to
 being published by something. The words are still stated once, where they were stated already; nothing is
 copied into the document.
@@ -108,8 +108,8 @@ copied into the document.
 object whose request raised one, and the document said nothing about it: no schema carried the key and no
 operation named a response header. Both are published now by an operation processor — every 2xx JSON object
 is `allOf` the answer the route names plus the optional `warnings`, and every 2xx names `Pgm-Warnings` —
-which puts one fact in one place rather than a field on a hundred records that no handler fills. **110
-answers carry the key and 151 name the header.** The client reads it in one place too, `ServerWarnings`
+which puts one fact in one place rather than a field on a hundred records that no handler fills. **167
+answers carry the key and 219 name the header.** The client reads it in one place too, `ServerWarnings`
 beside `ServerRefusal`, which is what let the plan tool take `/plan/compile` as `CompiledPlanDto` again
 instead of as a `JsonElement` it picked the key out of by hand.
 
@@ -120,7 +120,7 @@ fill. `PlanPiece` was the worked case: its blurb explained `rect`, `surface` and
 about `role`, the one field a caller must fill and the one whose allowed words it could not guess.
 
 **Both directions carry it now.** Every field a write route reads and every field a route answers says what
-it is — **1,027 of the 1,032** an answer can carry, up from 251, and 189 of the 190 a request takes.
+it is — **1,520 of the 1,537** a schema can carry, up from 251.
 `SchemaCompletenessTests` holds both halves to it and names the one exception, a polymorphic base's
 synthesised discriminator, which has no property to document. Two things fell out of writing it. The five
 library `*Detail` records differed from their `*SaveRequest` by exactly `id` — 53 fields declared twice — so
@@ -162,7 +162,7 @@ false failure over prose, loosely where it could only ever weaken the check.
 
 Making the third of those pass is what put the codes in the schema. The tables had been right and the
 document poor: **44 of 54 rows** named a 404, a 409 or a 422 that `/api/openapi/v1.json` did not publish,
-because the only refusals declared were the 400 and 500 every route carries from one place. **95 routes now
+because the only refusals declared were the 400 and 500 every route carries from one place. **156 routes now
 declare their own**, through `Answers.Refuses`, per route rather than derived from the path — a path holding
 `{slug}` nearly always answers 404, and nearly is a guess.
 
@@ -193,7 +193,7 @@ and a layout are stored the same way and refuse the same two things, and what di
 says about *itself*, which stays with the document that has it. `MapOrigin` is the row every one of the six
 ways into the studio writes. `IntentWrite` was already an operation and was simply misfiled. `SketchDiscard`,
 `MapMetadata`, `SymmetryConfirm` and `WorldFolderImport` are the four that were only ever one route's, and
-are now reachable without one. `MapEdit` is the thirty-six edit routes' one path, moved off `Endpoints` and
+are now reachable without one. `MapEdit` is the twenty-two edit routes' one path, moved off `Endpoints` and
 made HTTP-free with it.
 
 `Api/Services` is **32 files and 3,620 lines** against `Api/Endpoints`' 46 and 6,185.
@@ -256,17 +256,17 @@ open moves is the one being waited on.
 
 ## A fault carries an id, a class and what it is about
 
-The studio declares **77 rule constants in 14 families**, and answers `GET /api/rules` by reading each
+The studio declares **129 rule constants in 18 families**, and answers `GET /api/rules` by reading each
 constant's own XML docstring and the `[Rule]` attribute beside it — so a rule's meaning, its fix and its
 classification all have one home and no catalogue can fall out of step with any of them. That mechanism is
 the best thing in the codebase.
 
 What it lacked was a **class**. A caller that wants to know whether to fix the request, change the design,
-change the map or report a bug had to know all 77 ids to find out, because the only machine-legible thing a
+change the map or report a bug had to know all 129 ids to find out, because the only machine-legible thing a
 finding carried was the id itself. It now reads a **category** — one of eight words, each defined by the
 action it implies — and a **concerns** list of one to several of thirteen words saying what the rule is about.
-Both belong to the rule rather than to the finding: a category is fixed by the id, and the 77 constants are
-raised from 97 sites, so a field on the finding would have 25 of them restating what another site already
+Both belong to the rule rather than to the finding: a category is fixed by the id, and the 129 constants are
+raised from 178 sites, so a field on the finding would have 25 of them restating what another site already
 fixed with nothing checking they agree. A caller joins on the id, which is what the catalogue is for.
 
 The family prefix is *not* the defect, though it reads like one at first. `PL2` and `EX2` carry nearly the
@@ -285,13 +285,13 @@ structure and an objective at once — which is why `concerns` is a list and why
 `refusals.md` § *One question, asked at every grain* states in prose is now a query,
 `?concerns=objective&concerns=plan`.
 
-**Rules are stated three ways, and the third is a string literal.** The 77 constants are one; the layout law
+**Rules are stated three ways, and the third is a string literal.** The 129 constants are one; the layout law
 in `docs/generator/rules.md`, embedded and parsed, is a second. The third is a bare literal at the site that
 names it — a plan-validator lint (`SP1`, `SP2`, `EL1`, `ST8`, `WL1`, `CT12`, `BZ5` and nine more), an
 evaluator term's `RuleId`, a producibility finding's `Cites` — and no reflection can see one.
 
-**The catalogue answers what a caller can meet.** `rules.md` states 92 layout rules and those three kinds of
-site between them name 34; `/api/rules` answers those, because the question it exists for is *what is this
+**The catalogue answers what a caller can meet.** `rules.md` states 96 layout rules and those three kinds of
+site between them name 40; `/api/rules` answers those, because the question it exists for is *what is this
 finding* and a rule nothing raises has no finding to explain. `RuleCatalog.Raised` is where that set is
 stated, and `RulesEndpointTests` holds it to the source in both directions: a row answered that no source
 names fails, and an id named that the catalogue does not answer fails too. So a typo at a throw site is a
@@ -418,7 +418,7 @@ answer already and stopped one step short of the form that makes it machine-read
 **They depend on each other in one order, and the first of them is in place.** The surface is described, so
 a declared request shape and a generated client now have something to hang off. The application layer comes
 next, because it is where a gate stops belonging to a door. The fault category is third and is a change to
-an attribute plus a sweep of 77 constants, and is done. The lifecycle is last, because a state machine over a
+an attribute plus a sweep of 129 constants, and is done. The lifecycle is last, because a state machine over a
 pipeline whose steps are still HTTP handlers has nothing to hold.
 
 None of this is a rewrite. Every one is a shape the codebase already half-has, stated once instead of by

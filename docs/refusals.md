@@ -102,7 +102,7 @@ about the request rather than about the fault, so each endpoint names its own.
 
 **And each endpoint declares which**, so the codes reach a caller from the schema rather than only from a
 document. The 400 and 500 are published once, by the configurator every route passes through; the other three
-are this route's own and are stated at it, through `Answers.Refuses` — **95 of the 149 operations** carry at
+are this route's own and are stated at it, through `Answers.Refuses` — **156 of the 219 operations** carry at
 least one. Declared per route rather than derived from the path: a path holding `{slug}` nearly always answers
 404, and a schema that guesses is the one thing a caller cannot act on. The `Fails with` column of every
 endpoint table in `docs/tools/` names exactly the same set, and `DocumentedFailureTests` fails if a row and its
@@ -116,9 +116,9 @@ a bound request that will not read is refused before any handler runs, and
 under `error: "request will not read"`. `RequiredFields` answers the other half — a field that is missing
 rather than unreadable — as `RQ1` under `error: "incomplete request"`. Both name the field **as the wire
 spells it**, which is the only name a caller can look for: a property stating its own JSON name reports
-`region_id`, not the `regionId` its record declares. The Edit tool's thirty-six write routes
-answer it through one path: `EditException` carries the finding, and `WriteSupport.RunEditAsync` writes
-`Refusals.Of` with it.
+`region_id`, not the `regionId` its record declares. The Edit tool's twenty-two write routes
+answer it through one path: `EditException` carries the finding, and `MapEdit.RunAsync` writes
+a `Refusal` with it.
 
 Complaints travel the same way but on a **success** response, under `warnings`, since nothing was refused —
 and the response carries them whether or not the endpoint thought to, which is *What a success carries* below.
@@ -143,6 +143,7 @@ a rule that changed its name between the two would be two rules.
 | `IM*` | the import's own — `IM1` a host the import does not fetch from (the SSRF allowlist), `IM2` an archive the host did not serve, `IM3` one past the download cap, `IM4` one that is not a zip, `IM5` one carrying no `region/*.mca`, `IM6` a folder that is a map already rather than a world to originate from | `Api/Endpoints/ImportEndpoints.cs` → `ImportRules` |
 | `CO1` | the composer's — a well-formed descriptor naming a board it cannot emit; the sentence carries which knob and which value, because the emitter that stopped is the only thing that knows | `Pgm/Compose/ComposeException.cs` → `ComposeRules` |
 | `RL*` | a solved relief measured against what its island says it is — `RL1` ground that is not the landform stated, `RL2` elevation that was never graded. Complaints: a relief is authored ground, and the studio measures it rather than overruling it | `Analysis/Playability/ReliefRules.cs` → `ReliefRules` |
+| `PT*` | terrain paint the painter cannot honour — `PT1` a surfacing block written below the course it surfaces (grass, podzol, mycelium and farmland are one course thick, so a deeper bucket filled with one buries it), `PT2` a pattern stating a band, a stop or a side and carrying no material in it. Checked at the theme gate, because the painter meets a missing material while the world is being built | `Minecraft/Painting/TerrainThemeValidation.cs` → `TerrainThemeRules` |
 | `EZ1` | ground a player can stand on and nobody can edit, outside the zones a map seals on purpose — a canopy over the void past every build zone, a crag the void rule closed with the air around it. Recognised as protected by the `enter` rule that protects it rather than by a name, and reported per patch with its box. A complaint: inert ground may be exactly what was drawn | `Analysis/Playability/EditZoneRules.cs` → `EditZoneRules` |
 | `RQ*` | the request itself — a document that could not be read, a subject the route names and the studio does not have, a request conflicting with what is stored, a stored document that will not read back, a field that went unread, and a fault that is the studio's own | `Domain/RequestRules.cs` |
 | `ED*` | the document editors' own two — `ED1` a reference the document cannot resolve (an apply-rule naming an unknown filter, a filter naming itself), `ED2` an edit the document is not in a state to take (a group with fewer children than its type takes, an apply-rule with no region, filter or action). The other six an edit is refused for are the request's, above | `Pgm/Editing/EditRules.cs` |
@@ -241,7 +242,7 @@ type, because the interesting question is not how many findings there are.
 | a house style | `HouseStyleValidation.Check(style)` |
 | a placed building | `house.Check()` |
 | how two wings meet | `WingJoints.Check(plan)` |
-| a sketch's bound room styles | `SketchRoomStyleGate.Check(layoutJson)` |
+| a sketch's bound room styles | `SketchMaterialGate.Check(layoutJson)` |
 | a bound shell against the build ceiling | `RoomStyleScope.Check(style, field)` |
 | a roof's own materials | `HouseStyleValidation.CheckRoof(roof)` |
 
@@ -314,7 +315,7 @@ One case sits outside both, and it is honest: a **refusal** carries refusals onl
 `findings`, because the work did not happen and nothing rode along with it. Where a non-JSON success loses a
 finding anyway — nothing handed it over before the response started, so neither carrier was available — the
 studio logs it as an error against the route rather than dropping it in silence. A success whose JSON body
-is an **array** is in that position by construction: twenty-one routes answer a list at the root and a list
+is an **array** is in that position by construction: twenty-six routes answer a list at the root and a list
 has nowhere to hold a key, so those name the header alone. Every one of them is a plain read with no posted
 document to complain about, and one that grew a gate would be reporting into a log rather than onto the
 wire.
@@ -499,8 +500,8 @@ emits — so the sentence a caller is shown is the sentence in the source, and t
 of step with it. A layout rule comes out of `docs/generator/rules.md`, embedded in `PgmStudio.Domain` and
 parsed, because that document is the rule law and copying its statements into C# would have made a second law.
 
-**Every gate rule is answered; the layout rules are the ones a caller can meet.** `rules.md` states 92 and
-the catalogue answers the 34 something can name — a plan-validator lint, an evaluator term's `RuleId`, a
+**Every gate rule is answered; the layout rules are the ones a caller can meet.** `rules.md` states 96 and
+the catalogue answers the 40 something can name — a plan-validator lint, an evaluator term's `RuleId`, a
 producibility finding's `Cites`. The rest are the generator's law, and `rules.md` is where the law lives:
 publishing a rule nothing raises in a row identical to one a caller can fail on makes every row less
 informative, and there is no finding to explain. `RuleCatalog.Raised` states which, and
@@ -531,7 +532,7 @@ uncapped. `?concerns=objective` answers every rule that touches one; repeating i
 400 rather than answered with an empty list, which a caller would read as "no rules do that".
 
 Both come off a **`[Rule]` attribute beside the constant**, so they are declared once per rule rather than
-restated at each site that raises one: the 77 constants are raised from 97 sites, and a field on the finding
+restated at each site that raises one: the 129 constants are raised from 178 sites, and a field on the finding
 would have 25 of those restating what another site already fixed with nothing checking they agree.
 
 **A layout rule carries neither**, having no declaration site to write one on. Nor do four gate rules —

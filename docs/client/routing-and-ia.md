@@ -35,7 +35,7 @@ phase a tool opens on (`?phase=info`), the row a listing should highlight (`?jus
 | `/generator` | `GeneratorTool` | the composer's browse-and-pin gallery |
 | `/catalog` | `CatalogTool` | the shape catalog |
 | `/library` | `LibraryTool` | the chooser — one card per library kind |
-| `/library/{kind}` | `LibraryTool` | one library's browse grid; `kind` is `styles\|themes\|roofs\|storeys\|porches\|houses` |
+| `/library/{kind}` | `LibraryTool` | one library's browse grid; `kind` is `styles\|themes\|roofs\|storeys\|porches\|houses\|trees\|boulders` |
 | `/library/{kind}/{entry}` | `LibraryTool` | one entry's editor; `entry` is a row id or `new` |
 | `/design` | `Design` | the component showcase |
 | `/not-found` | `NotFound` | 404 |
