@@ -123,6 +123,27 @@ public sealed class RoomDoorListEndpoint : EndpointWithoutRequest<List<DoorOptio
         => Send.OkAsync(DoorMaterials.All.Select(c => new DoorOptionDto(c.Slug, c.Label)).ToList(), ct);
 }
 
+/// <summary>GET /api/room-styles/block-kinds — what kind of block each house-style field takes, and the ids
+/// of each kind.
+///
+/// <para>Served for the reason the door list is: the authoritative statement is
+/// <see cref="HouseBlockKinds"/> in <c>PgmStudio.Minecraft</c>, which neither the client nor an agent can
+/// reach, and it is the very table <c>HS1</c> refuses from — so a block offered here is a block the gate
+/// accepts, and the sentence a field carries is the sentence the refusal names it with. Without it the only
+/// way to learn that <c>doorHead.block</c> wants a stair is to be refused one.</para></summary>
+public sealed class HouseBlockKindsEndpoint : EndpointWithoutRequest<HouseBlockKindsDto>
+{
+    public override void Configure() { Get("/room-styles/block-kinds"); AllowAnonymous(); }
+
+    public override Task HandleAsync(CancellationToken ct)
+        => Send.OkAsync(new HouseBlockKindsDto(
+            [.. HouseBlockKinds.Fields.Select(field => new HouseBlockFieldDto(
+                field.Field, field.Kind, field.When, field.Means, field.AlsoAt))],
+            [.. BlockKinds.All.Select(kind => new HouseBlockKindDto(kind,
+                [.. HouseBlockKinds.BlocksOf(kind).Select(block => new HouseBlockOptionDto(
+                    block.Id, block.Data, block.Name, block.Material, block.Hex))]))]), ct);
+}
+
 /// <summary>GET /api/room-styles/{id} — one room style with its per-part courses.</summary>
 public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithoutRequest<RoomStyleDetail>
 {

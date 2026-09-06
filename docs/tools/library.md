@@ -432,6 +432,16 @@ meant. Leave the `sill` part unbound to reach the same choice from the library.
 where the cell sits, which would turn every stair in a wall the same way. A window's `hostBlock` names the
 block it may be cut into, so a seat chosen by spacing on a banded wall does not land half in one band.
 
+**Six fields name a block for that geometry rather than for what it is made of, and `GET
+/room-styles/block-kinds` is the catalogue of them.** It answers, per field, the kind of block it takes
+(`stair`, `slab`, `log`), the other statement that puts it in play — a door head's `fill`, a window's `form` —
+and the sentence saying what the geometry does with it; then, per kind, every id that carries it with the
+material it is cut from. Both halves are the table `HS1` refuses from, so a block it offers is one the gate
+accepts, the `means` a field carries is the sentence the refusal names it with, and the `material` shown is
+the one `HS4` pairs a head's stair and its slab fill by. The kinds are membership by id alone: `stair` is the
+thirteen stair ids, `slab` the three **single** slabs (a double slab is a full cube wearing the name), `log`
+the two id pairs the six woods split across.
+
 A room style previews in four views — the building standing up, and a plan, a section and a cutaway of it —
 and the editor shows them as the building over a row of the three cuts, because what a building looks like and
 how it is made are two questions. Any one can be asked for alone, which is the only way to read a cut at the
@@ -655,6 +665,7 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `GET /room-styles` · `GET /room-styles/{id}` | the room library and one room style's parts and courses |
 | `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles — body `{name, roofForm, …parts, courses[]}`. 400 `{error, message, findings[]}` when the composed shell fails the house-style gate |
 | `GET /room-styles/doors` | the doors a room may be stamped with |
+| `GET /room-styles/block-kinds` | which kind of block each style field takes, and the ids of each kind — `{fields[], kinds[]}`. A field row is `{field, kind, when, means, alsoAt[]}` and a kind row is `{kind, blocks[]}` with each block `{id, data, name, material, hex}`. It is the table `HS1` refuses from, so a block it offers is one the gate accepts and a field's `means` is the sentence the refusal names it with |
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
 | `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds. The answer is `{plan, section, cutaway, columns}`: three SVG cuts, and **`columns`** — the stamped world's own per-column runs, the same shape `POST /plan/columns` answers for a map, which the browser meshes and draws in 3-D. **The two take different bodies**: `preview` takes the same record as `POST /room-styles`, `preview-snapshot` takes a **bare `HouseStyle`** — the document itself, unwrapped, exactly what `GET /room-styles/{id}/json` hands back once its string is unwrapped. A wrapper posted to it is dropped and previews the defaults |
 | `DELETE /room-styles/{id}` | forget a room style; its courses cascade, its styles stay |

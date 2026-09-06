@@ -1,3 +1,5 @@
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Contracts;
 
 /// <summary>One door a room may be stamped with (<c>GET /api/room-styles/doors</c>). Served rather than
@@ -7,6 +9,44 @@ namespace PgmStudio.Contracts;
 /// <param name="Slug">What a room style names the door by.</param>
 /// <param name="Label">The door as an author reads it in the picker.</param>
 public sealed record DoorOptionDto(string Slug, string Label);
+
+/// <summary>One house-style field that names a block for its <b>geometry</b>
+/// (<c>GET /api/room-styles/block-kinds</c>). A stair turns a corner by its own facing and a slab fills half
+/// its cube, so a field asking for one gets nothing it can use from the other — which is what <c>HS1</c>
+/// refuses, in these very words.</summary>
+/// <param name="Field">The field's name in the document a style is saved as.</param>
+/// <param name="Kind">The kind of block it takes.</param>
+/// <param name="When">The other statement that puts the field in play — a door head's fill, a window's
+/// form — or null for a field that takes its kind whenever it names a block at all.</param>
+/// <param name="Means">What the geometry does with the block, and what a block of another kind builds
+/// instead.</param>
+/// <param name="AlsoAt">The other paths the same field is stated at.</param>
+public sealed record HouseBlockFieldDto(
+    string Field, [property: WordSet(typeof(BlockKinds))] string Kind, string? When, string Means,
+    IReadOnlyList<string> AlsoAt);
+
+/// <summary>One kind of block a house-style field may ask for, with every id of it
+/// (<c>GET /api/room-styles/block-kinds</c>).</summary>
+/// <param name="Kind">The word a field names the kind by.</param>
+/// <param name="Blocks">Every block that carries the geometry, with the material it is cut from — which is
+/// what <c>HS4</c> pairs a door head's stair and its slab fill by.</param>
+public sealed record HouseBlockKindDto(
+    [property: WordSet(typeof(BlockKinds))] string Kind, IReadOnlyList<HouseBlockOptionDto> Blocks);
+
+/// <summary>One block of a kind, as a picker receives it.</summary>
+/// <param name="Id">The block id the export places.</param>
+/// <param name="Data">Its variant nibble — which wood, which stone.</param>
+/// <param name="Name">The block as an author reads it.</param>
+/// <param name="Material">What it is cut from — <c>sandstone</c>, <c>dark oak</c>.</param>
+/// <param name="Hex">The colour the export places, so a swatch cannot promise another.</param>
+public sealed record HouseBlockOptionDto(int Id, int Data, string Name, string Material, string Hex);
+
+/// <summary>What kind of block each house-style field takes, and the blocks of each kind
+/// (<c>GET /api/room-styles/block-kinds</c>).</summary>
+/// <param name="Fields">Every field that names a block for its geometry.</param>
+/// <param name="Kinds">The kinds those fields name, each with its ids.</param>
+public sealed record HouseBlockKindsDto(
+    IReadOnlyList<HouseBlockFieldDto> Fields, IReadOnlyList<HouseBlockKindDto> Kinds);
 
 /// <summary>One block a terrain-paint material may resolve to, as the block picker receives it
 /// (<c>GET /api/terrain/blocks</c>). <see cref="Hex"/> is the colour the export actually places, so a swatch

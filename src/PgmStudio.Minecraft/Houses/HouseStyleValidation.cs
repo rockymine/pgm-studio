@@ -15,7 +15,7 @@ public static class HouseStyleRules
     /// that kind of block: <c>doorHead.block</c>, its <c>fillBlock</c> under <c>upperSlab</c>, a window's
     /// <c>block</c> under <c>stairLattice</c>, <c>arched</c> or <c>slabBanded</c>, or <c>roofSlab</c>
     /// itself.</summary>
-    /// <remarks>Name a block of the kind the field means: a stair id where a stair is asked for, a slab where a slab is. The finding names the field it read and the kind that field takes, which is the whole of what has to change.</remarks>
+    /// <remarks>Name a block of the kind the field means: a stair id where a stair is asked for, a slab where a slab is. The finding names the field it read and the kind that field takes, which is the whole of what has to change. `GET /api/room-styles/block-kinds` answers the same table it is refused from — every field, the kind it takes, and every id of that kind with the material it is cut from.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Style, RuleConcern.Material)]
     public const string BlockKind = "HS1";
 
@@ -170,19 +170,20 @@ public static class HouseStyleValidation
     private static void CheckDoorHead(DoorHeadStyle head, List<Finding> findings)
     {
         if (head.Form == DoorHeadForm.None) return;
+        Refuse(HouseBlockKinds.DoorHeadBlock, head.Block, findings);
+        if (head.Fill == DoorHeadFill.UpperSlab) Refuse(HouseBlockKinds.DoorHeadFill, head.FillBlock, findings);
+    }
 
-        if (!BlockFamilies.IsStair(head.Block))
-            findings.Add(new Finding(HouseStyleRules.BlockKind,
-                $"doorHead.block ({head.Block}) is not a stair. An arched head turns its two corners by a " +
-                "stair's own facing; anything else lays a solid lintel across the doorway instead of an arch.",
-                Field: "doorHead.block"));
-
-        if (head.Fill == DoorHeadFill.UpperSlab && !BlockFamilies.IsSlab(head.FillBlock))
-            findings.Add(new Finding(HouseStyleRules.BlockKind,
-                $"doorHead.fillBlock ({head.FillBlock}) under upperSlab is not a single slab. The fill raises " +
-                "half of its own cube to read as one line with the corners; a block without a half — a double " +
-                "slab included — reads as a full cube instead.",
-                Field: "doorHead.fillBlock"));
+    /// <summary>HS1 for one field of the catalogue, at the path it is stated at. The field, the kind it takes
+    /// and the sentence saying why are the catalogue's, so <c>GET /api/room-styles/block-kinds</c> answers
+    /// with the same words the refusal does.</summary>
+    private static void Refuse(HouseBlockField field, int blockId, List<Finding> findings, string? at = null)
+    {
+        if (HouseBlockKinds.Accepts(field.Kind, blockId)) return;
+        var path = at ?? field.Field;
+        findings.Add(new Finding(HouseStyleRules.BlockKind,
+            $"{path} ({blockId}) is not {HouseBlockKinds.Spoken(field.Kind)}. {field.Means}",
+            Field: path));
     }
 
     // ── a beam is a log, and a part built of two blocks is built of one material ──────────────────────────
@@ -192,11 +193,7 @@ public static class HouseStyleValidation
     /// Anything else is a beam that is not one.</summary>
     private static void CheckBeams(BeamStyle beams, List<Finding> findings)
     {
-        if (beams.Block >= 0 && !BlockFamilies.IsLog(beams.Block))
-            findings.Add(new Finding(HouseStyleRules.BlockKind,
-                $"beams.block ({beams.Block}) is not a log. A beam is the end of a floor timber and docks "
-                + "against the posts; a log is what one is cut from.",
-                Field: "beams.block"));
+        if (beams.Block >= 0) Refuse(HouseBlockKinds.Beams, beams.Block, findings);
     }
 
     /// <summary>HS9 — beams over a wall carrying no timber. The ends are the ends of a floor beam, so a wall
@@ -400,29 +397,14 @@ public static class HouseStyleValidation
     {
         switch (windows.Form)
         {
-            case WindowForm.StairLattice or WindowForm.Arched when !BlockFamilies.IsStair(windows.Block):
-                findings.Add(new Finding(HouseStyleRules.BlockKind,
-                    $"{field}.block ({windows.Block}) is not a stair. {FormName(windows.Form)} turns its " +
-                    "corners by a stair's own facing; anything else builds without the diamond or the rounded " +
-                    "corners the form is named for.",
-                Field: $"{field}.block"));
+            case WindowForm.StairLattice or WindowForm.Arched:
+                Refuse(HouseBlockKinds.WindowStair, windows.Block, findings, at: $"{field}.block");
                 break;
-            case WindowForm.SlabBanded when !BlockFamilies.IsSlab(windows.Block):
-                findings.Add(new Finding(HouseStyleRules.BlockKind,
-                    $"{field}.block ({windows.Block}) is not a single slab. A slab band raises half a cube for " +
-                    "the sill and lowers half for the lintel; anything else — a double slab included — leaves " +
-                    "no half-block of clear air above the sill or below the lintel.",
-                Field: $"{field}.block"));
+            case WindowForm.SlabBanded:
+                Refuse(HouseBlockKinds.WindowSlab, windows.Block, findings, at: $"{field}.block");
                 break;
         }
     }
-
-    private static string FormName(WindowForm form) => form switch
-    {
-        WindowForm.StairLattice => "a stair lattice",
-        WindowForm.Arched => "an arched window",
-        _ => form.ToString(),
-    };
 
     // ── a roof's own materials ─────────────────────────────────────────────────────────────────────────────
 
@@ -437,12 +419,7 @@ public static class HouseStyleValidation
     public static Findings CheckRoof(RoofStyle roof)
     {
         var findings = new List<Finding>();
-        if (roof.Slab >= 0 && !BlockFamilies.IsSlab(roof.Slab))
-            findings.Add(new Finding(HouseStyleRules.BlockKind,
-                $"roofSlab ({roof.Slab}) is not a single slab. A half-course roof steps in the slab's own " +
-                "half on every odd course; anything else — a double slab included — comes out a full cube and " +
-                "the slope stops climbing by halves.",
-                Field: "roofSlab"));
+        if (roof.Slab >= 0) Refuse(HouseBlockKinds.RoofSlab, roof.Slab, findings);
 
         // A slab belongs in a roof only on a half-course rise (RoofSlab set). Naming one in Roof itself while
         // RoofSlab is unset asks for a whole block of rise in a material that only fills half its cube, which

@@ -31,6 +31,13 @@ public static class BlockMaterials
         return Named.TryGetValue((id, variant), out var material) ? material : $"{id}:{variant}";
     }
 
+    /// <summary>Every block the table names, with the material it is cut from, ordered by id then data — what
+    /// a catalogue offering the blocks of one <em>shape</em> lists, since a field asking for a slab is asking
+    /// which material's slab.</summary>
+    public static IEnumerable<(int Id, int Data, string Material)> Catalogue =>
+        Named.Select(entry => (entry.Key.Id, entry.Key.Data, entry.Value))
+             .OrderBy(entry => entry.Id).ThenBy(entry => entry.Data);
+
     /// <summary>Whether two blocks are cut from the same material — a roof and the slab that continues it, a
     /// door head's stair and the slab that fills it, a window and the block it is seated in.</summary>
     public static bool Same(int id, int data, int otherId, int otherData) =>
