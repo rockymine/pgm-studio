@@ -284,7 +284,7 @@
               {
                 <Chip Active="@(SolidBiomeId == offered.Id)" @key="offered.Id"
                       OnClick="() => SetSolidBiome(offered.Id)">
-                  <span class="lib-bind-swatch" style="background:@offered.Hex"></span> @offered.Name
+                  <span class="biome-swatch" style="background:@offered.Hex"></span> @offered.Name
                 </Chip>
               }
             </div>
@@ -328,7 +328,7 @@
               <div class="panel-actions">
                 <Select Options="BiomeOptions" Value="@BiomeList[slot].ToString()"
                         ValueChanged="value => SetBiomeAt(slot, int.TryParse(value, out var id) ? id : DefaultBiome)" />
-                <span class="lib-bind-swatch" style="background:@BiomeHex(BiomeList[slot])"></span>
+                <span class="biome-swatch" style="background:@BiomeHex(BiomeList[slot])"></span>
                 <Button Variant="icon" Icon="x" Title="Drop it" Disabled="@(BiomeList.Count <= 1)"
                         OnClick="() => DropBiomeAt(slot)" />
               </div>
