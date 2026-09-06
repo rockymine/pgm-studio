@@ -298,8 +298,18 @@ The eventual theme file (a JSON extension) is exactly this record serialized: a 
 its own surface, so a cell standing on two layers is painted twice — once per surface it carries. That is
 what puts a gallery floor's turf under a deck's meadow rather than giving the deck the paint of what lies
 beneath it, and it is why `TerrainThemeScope.ThemeAt` answers `(layer, x, z)` and
-`SketchRasterizer.ShapeThemeOwners` keys `(layer, cell)`. Within one layer nothing changes: the smallest-area
-shape still wins a contested cell. Across layers there is no contest at all — each surface shows its own.
+`SketchRasterizer.ShapeThemeOwners` keys `(layer, cell)`. Across layers there is no contest at all — each
+surface shows its own.
+
+**Within a layer it is the same rule read one storey down: paint follows the shape that forms the surface.**
+Among the shapes covering a column, only those reaching its visible top may own its paint; among *those* the
+smallest area wins, which is what keeps a patch a scope. Height first is what stops a shape running *under*
+another from painting a surface it does not form — the documented way to give a tier an organic edge is to let
+the tier below run beneath it, and by area alone that lower tier keeps its own paint over ground the upper one
+owns. Where two shapes tie on height nothing changes: two at one height are a theme scoped to a patch, and the
+smaller one is the scope. A shape stating a `height_mode` is outside the test both ways — it stands in the
+terrain rather than being it, and the top it settles at is read against ground the relief has not yet made
+when the owners are resolved.
 The passes cannot tread on each other because of the stone-only invariant: a course a lower layer has already
 finished is no longer stone.
 

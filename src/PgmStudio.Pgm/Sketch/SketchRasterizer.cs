@@ -45,12 +45,12 @@ public readonly record struct DetachedMass(int Places, int X, int Z, int Y);
 /// layer it is on, the group whose relief overrules it, and the top it asked for.</summary>
 public readonly record struct ReliefOverTop(string Shape, string Layer, string Group, int Top);
 
-/// <summary>Two shapes on one layer where one builds the ground and the other paints it: the taller
-/// <see cref="Built"/> wins the column, the smaller <see cref="Painted"/> wins the theme, and the world holds
-/// one shape's blocks in the other's material. <see cref="Cells"/> counts the columns they contest and
-/// <see cref="X"/>/<see cref="Z"/> name the northmost.</summary>
-public readonly record struct PaintedByAnother(string Layer, string Built, string Painted,
-                                               string BuiltTheme, string PaintedTheme, int Cells, int X, int Z);
+/// <summary>Two shapes on one layer whose ground overlaps, where the taller <see cref="Standing"/> forms the
+/// surface and the smaller, shorter <see cref="Hidden"/> states a theme that therefore appears on none of the
+/// columns the two share. <see cref="Cells"/> counts those columns and <see cref="X"/>/<see cref="Z"/> name
+/// the northmost.</summary>
+public readonly record struct ThemeHidden(string Layer, string Standing, string Hidden,
+                                          string StandingTheme, string HiddenTheme, int Cells, int X, int Z);
 
 public static class SketchRasterizer
 {
@@ -287,15 +287,25 @@ public static class SketchRasterizer
         => ShapeScopeOwners(layoutJson, shape => shape.Theme is not null || shape.Material is not null);
 
     /// <summary>Maps every cell a scoped shape covers, keyed by the layer it covers it on, to that shape's
-    /// id — the primary footprint plus each
-    /// mirroring group's orbit copies (which keep the shape id), the smallest-area shape winning an overlap
-    /// (the most specific scope). <paramref name="isScope"/> says which annotation makes a shape a scope, so
-    /// paint and planting resolve through one traversal rather than two that could disagree about which shape
-    /// owns a contested cell — and each caller keeps its own rule for what counts, since what makes a shape a
-    /// paint scope and what makes it a planting one are not the same question. Only add shapes the predicate
-    /// answers for are considered; subtracts and role-tagged (structural) shapes are skipped — they place no
-    /// terrain of their own. Void cells that no surface stands on are harmless: a consumer only reads owners
-    /// where a column is solid.</summary>
+    /// id — the primary footprint plus each mirroring group's orbit copies (which keep the shape id).
+    ///
+    /// <para><b>Paint follows the shape that forms the surface.</b> Among the shapes covering a column, only
+    /// those reaching its visible top may own the paint on it, and among <em>those</em> the smallest area
+    /// wins — the most specific scope. Height first is what stops a shape running <em>under</em> another from
+    /// painting a surface it does not form, which is what a tier given an organic edge by the tier below
+    /// does; area second is what keeps a patch a scope, since two shapes at one height are a theme scoped to
+    /// a patch and the smaller one is the scope. It is the across-layer rule read within one layer: each
+    /// surface shows its own paint. A shape stating a <c>height_mode</c> is outside the height test both ways
+    /// — it stands in the terrain rather than being it, and the top it settles at is read against ground the
+    /// relief has not made when this runs.</para>
+    ///
+    /// <para><paramref name="isScope"/> says which annotation makes a shape a scope, so paint and planting
+    /// resolve through one traversal rather than two that could disagree about which shape owns a contested
+    /// cell — and each caller keeps its own rule for what counts, since what makes a shape a paint scope and
+    /// what makes it a planting one are not the same question. Only add shapes the predicate answers for can
+    /// own a cell; subtracts and role-tagged (structural) shapes are skipped entirely — they place no terrain
+    /// of their own. Void cells that no surface stands on are harmless: a consumer only reads owners where a
+    /// column is solid.</para></summary>
     public static Dictionary<(string Layer, int X, int Z), string> ShapeScopeOwners(
         string layoutJson, Func<SketchShape, bool> isScope)
     {
@@ -304,23 +314,54 @@ public static class SketchRasterizer
         var cz = state?.Setup?.Center?.Cz ?? 0;
         var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
 
-        var owner = new Dictionary<(string, int, int), string>();
-        var areaOf = new Dictionary<(string, int, int), long>();
+        var claimed = new Dictionary<(string Layer, int X, int Z),
+                                     (int Ground, string? Owner, long Area, bool Standing, int Top)>();
         var layerId = "";
 
-        void Claim(SketchShape s)
+        void Claim(SketchShape shape)
         {
-            if (!isScope(s) || s.Operation == "subtract" || s.Role is not null) return;
-            var cells = RasterShape(s).Select(c => (layerId, c.X, c.Z)).ToList();
+            if (shape.Operation == "subtract" || shape.Role is not null) return;
+            // A shape that says how its top is decided stands IN the terrain rather than being it, and what
+            // it settles at is read against ground the relief has not made yet — so it is always a candidate
+            // and never sets the surface another shape is measured against.
+            var standing = IsErected(shape);
+            var scopes = isScope(shape);
+            var cells = RasterShape(shape).ToList();
             long area = cells.Count;
-            foreach (var cell in cells)
-                if (!owner.ContainsKey(cell) || area < areaOf[cell]) { owner[cell] = s.Id; areaOf[cell] = area; }
+
+            foreach (var (x, z, top, _) in cells)
+            {
+                var key = (layerId, x, z);
+                if (!claimed.TryGetValue(key, out var held))
+                    held = (Ground: int.MinValue, Owner: null, Area: 0L, Standing: false, Top: int.MinValue);
+
+                if (!standing && top > held.Ground)
+                {
+                    held.Ground = top;
+                    // Only a shape reaching the surface may own the paint on it: one running UNDER another
+                    // forms no surface there, and the theme a column wears is the theme of what it shows.
+                    if (held.Owner is not null && !held.Standing && held.Top < held.Ground) held.Owner = null;
+                }
+
+                // Among the shapes that do reach it, the smallest area still wins — two at one height are a
+                // theme scoped to a patch, and the smaller one is the scope.
+                if (scopes && (standing || top == held.Ground) && (held.Owner is null || area < held.Area))
+                {
+                    held.Owner = shape.Id;
+                    held.Area = area;
+                    held.Standing = standing;
+                    held.Top = top;
+                }
+
+                claimed[key] = held;
+            }
         }
 
         foreach (var layer in ResolveLayers(state))
         {
-            // A cell contested on one layer goes to the smallest-area shape covering it; a cell covered on
-            // two layers is not contested at all, because each layer shows its own surface.
+            // A cell contested on one layer goes to the shape that forms its surface, and among those to the
+            // smallest area; a cell covered on two layers is not contested at all, because each layer shows
+            // its own surface.
             layerId = layer.Id!;
             var shapes = layer.Shapes;
             foreach (var s in shapes) Claim(s);                             // primary footprint
@@ -338,7 +379,8 @@ public static class SketchRasterizer
                         foreach (var axis in axes) Claim(MirrorShape(byId[id], axis, cx, cz));
             }
         }
-        return owner;
+        return claimed.Where(entry => entry.Value.Owner is not null)
+                      .ToDictionary(entry => entry.Key, entry => entry.Value.Owner!);
     }
 
     // Layers to rasterize, in draw order — read through the document's one stack reader.
@@ -762,12 +804,13 @@ public static class SketchRasterizer
         return found;
     }
 
-    /// <summary>Every pair of override adds on one layer where one shape's blocks come out in another's
-    /// material. Two override adds over a column is not a fault in itself — the taller wins it, which is what
-    /// "the tallest add is the height" means — but a theme is scoped by <b>area</b> rather than by height
-    /// (<see cref="ShapeThemeOwners"/>), so where the smaller of the two is also the shorter, the world holds
-    /// the taller shape's ground painted in the smaller one's theme. A mound's ring crossing a wall leaves the
-    /// wall standing to its own courses and finished in grass over dirt.
+    /// <summary>Every pair of override adds on one layer where one shape's theme lands on none of the ground
+    /// it is stated over. Two override adds over a column is not a fault in itself — the taller wins it, which
+    /// is what "the tallest add is the height" means — and the paint follows the shape that forms the surface
+    /// (<see cref="ShapeThemeOwners"/>), so where the smaller of the two is also the shorter, the taller
+    /// shape's own theme is what stands there and the smaller one's is nowhere on the columns they share. A
+    /// mound's ring crossing a wall leaves the wall standing to its own courses in its own stone, and the
+    /// mound's turf absent from every column of it.
     ///
     /// <para>Only pairs that differ in <em>both</em> theme and stated top are in it: two shapes at one height
     /// are a theme scoped to a patch, which is what scoping is for, and two sharing a theme cannot disagree
@@ -778,9 +821,9 @@ public static class SketchRasterizer
     /// itself — a dais laid clear of a court on the half it is drawn on lands in the middle of it on the
     /// other. The image carries its shape's theme and top, so it is judged as that shape and reported under
     /// its id.</para></summary>
-    public static List<PaintedByAnother> PaintedByAnotherShape(SketchLayout? state)
+    public static List<ThemeHidden> ThemesHiddenUnderAnother(SketchLayout? state)
     {
-        var found = new List<PaintedByAnother>();
+        var found = new List<ThemeHidden>();
         var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
         double centerX = state?.Setup?.Center?.Cx ?? 0, centerZ = state?.Setup?.Center?.Cz ?? 0;
 
@@ -822,7 +865,7 @@ public static class SketchRasterizer
                 var shared = tall.Cells.Where(low.Cells.Contains).ToList();
                 if (shared.Count == 0) continue;
                 var (x, z) = shared.OrderBy(cell => cell.Z).ThenBy(cell => cell.X).First();
-                found.Add(new PaintedByAnother(layer.Id ?? "", tall.Id, low.Id, tall.Item2, low.Item2,
+                found.Add(new ThemeHidden(layer.Id ?? "", tall.Id, low.Id, tall.Item2, low.Item2,
                                                shared.Count, x, z));
             }
         }
@@ -1148,50 +1191,83 @@ public static class SketchRasterizer
     /// a layer's place in the stack is a height, and a slab written first is written <c>below</c> — so an add
     /// on another layer is a fill wherever it lands.</para>
     ///
+    /// <para><b>A subtract is a span, not a column.</b> It states void over its own courses, so an add
+    /// contests it only where the two hold a course together. An add whose top stops at or below the hole's
+    /// floor is the ground <em>under</em> the void and an add whose floor starts at or above the hole's top is
+    /// a deck <em>over</em> it — which is what a floor and a ceiling around a room are, and neither says
+    /// anything about the void between them. Spans are compared in absolute courses, each layer's own
+    /// <c>base_y</c> already in them, so the test is one number across a stack; the count and the coordinate
+    /// the finding carries are the contesting columns rather than every shared one.</para>
+    ///
     /// <para><b>A lid is not a fill.</b> A layer holds one span per column, so an override add resting
     /// <em>above</em> the subtract's own floor moves that single span up and records nothing beneath it — the
     /// void the subtract states is still void, with a deck over it. Only an override add standing at or below
-    /// the subtract's floor puts the negative space back as ground. Same layer only: a floor is measured from
-    /// its own layer's <c>base_y</c>, so two layers' floors are not one number.</para>
+    /// the subtract's floor puts the negative space back as ground. Same layer only: across layers each keeps
+    /// its own span, so there the courses decide it.</para>
     ///
     /// <para>One entry per contesting pair, carrying which of the two happened. Role-tagged shapes are
     /// annotations and are not in it.</para>
     /// </summary>
     public static List<AddOverSubtract> AddsOverSubtracts(SketchLayout? state)
     {
-        var subtracts = new List<(string Id, string Layer, bool Override, int Index, int Floor, HashSet<(int X, int Z)> Cells)>();
-        var adds = new List<(string Id, string Layer, bool Override, int Index, int Floor, HashSet<(int X, int Z)> Cells)>();
+        var subtracts = new List<Cut>();
+        var adds = new List<Cut>();
         var index = 0;
         foreach (var layer in ResolveLayers(state))
+        {
+            var baseY = (int)Math.Round(layer.BaseY);
             foreach (var shape in layer.Shapes)
             {
                 index++;
                 if (shape.Role is not null) continue;
-                var cells = RasterShape(shape).Select(column => (column.X, column.Z)).ToHashSet();
-                if (cells.Count == 0) continue;
+                // Absolute courses, so two layers' spans are one number. A floor is stated from its own
+                // layer's base_y, and what decides this rule is whether the two occupy a course together.
+                var spans = new Dictionary<(int X, int Z), (int Floor, int Top)>();
+                foreach (var (x, z, top, floor) in RasterShape(shape))
+                    spans[(x, z)] = spans.TryGetValue((x, z), out var held)
+                        ? (Math.Min(held.Floor, floor + baseY), Math.Max(held.Top, top + baseY))
+                        : (floor + baseY, top + baseY);
+                if (spans.Count == 0) continue;
                 (shape.Operation == "subtract" ? subtracts : adds)
-                    .Add((shape.Id, layer.Id!, shape.Override, index,
-                          Math.Max(0, (int)Math.Round(shape.Floor ?? 0)), cells));
+                    .Add(new Cut(shape.Id, layer.Id!, shape.Override, index, spans));
             }
+        }
 
         var found = new List<AddOverSubtract>();
         foreach (var subtract in subtracts)
             foreach (var add in adds)
             {
-                if (add.Layer == subtract.Layer && add.Index < subtract.Index) continue;
-                // A lid: the span moves up and leaves the void under it, so the subtract still holds there.
-                if (add.Layer == subtract.Layer && add.Override && add.Floor > subtract.Floor) continue;
-                var shared = add.Cells.Where(subtract.Cells.Contains).ToList();
-                if (shared.Count == 0) continue;
+                var sameLayer = add.Layer == subtract.Layer;
+                if (sameLayer && add.Index < subtract.Index) continue;
+
+                var contested = new List<(int X, int Z)>();
+                foreach (var (cell, span) in add.Spans)
+                {
+                    if (!subtract.Spans.TryGetValue(cell, out var hole)) continue;
+                    // A lid: the span moves up and leaves the void under it, so the subtract still holds there.
+                    if (sameLayer && add.Override && span.Floor > hole.Floor) continue;
+                    // The floor under a void and the ceiling over one share no course with it, so neither
+                    // fills it and neither is drawn where it cannot be: only a span crossing the hole's own
+                    // courses is what this rule is about.
+                    if (span.Top <= hole.Floor || span.Floor >= hole.Top) continue;
+                    contested.Add(cell);
+                }
+                if (contested.Count == 0) continue;
+
                 // A subtract only reaches the layer it is on, so an add anywhere else is ground of its own
                 // over the hole. On one layer the override flags decide it.
-                var survives = add.Layer != subtract.Layer || (add.Override && !subtract.Override);
-                var first = shared.MinBy(cell => (cell.Z, cell.X));
+                var survives = !sameLayer || (add.Override && !subtract.Override);
+                var first = contested.MinBy(cell => (cell.Z, cell.X));
                 found.Add(new AddOverSubtract(add.Id, add.Layer, subtract.Id, subtract.Layer,
-                                              survives, shared.Count, first.X, first.Z));
+                                              survives, contested.Count, first.X, first.Z));
             }
         return found;
     }
+
+    /// <summary>One shape as this rule reads it: what it is, where it sits in its layer's list, and the
+    /// absolute course span it holds over each of its columns.</summary>
+    private sealed record Cut(string Id, string Layer, bool Override, int Index,
+                              Dictionary<(int X, int Z), (int Floor, int Top)> Spans);
 
     /// <summary>Where two layers are driven into each other. A layer is a slab and the stack is what puts air
     /// between two of them, so a pair whose spans meet builds as one solid mass and the gap the layers were

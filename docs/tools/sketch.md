@@ -377,9 +377,10 @@ out of existence.
 seated on the top. `docs/world-export/decoration.md` §1 carries the prop half.
 
 **A column carries one theme per layer, not one theme.** The board is painted one pass per layer, each layer
-against its own surface, so a cell standing on two layers is painted twice. Within a layer the smallest-area
-themed shape still wins a contested cell; across layers there is no contest, because each surface shows its
-own. A shape id is unique within its layer and not across the stack — two made things compiled by one tool
+against its own surface, so a cell standing on two layers is painted twice. Within a layer the paint follows
+the shape that forms the surface: among the shapes covering a column only those reaching its visible top may
+own it, and among those the smallest-area themed shape wins. Across layers there is no contest, because each
+surface shows its own. A shape id is unique within its layer and not across the stack — two made things compiled by one tool
 number their shapes alike — and the theme a cell paints with is its own layer's shape's. `docs/world-export/terrain-painting.md` §3 carries the mechanism.
 
 **A stacked board is walked layer by layer.** The walk's node is a place — a cell and the layer of it — so
@@ -1374,6 +1375,15 @@ are written in — the shape is on the canvas and not in the world, which is the
 complains. Either way `SK13` names both shapes, which of the two happened, how many columns they contest and
 the northmost of them.
 
+**A subtract states void over its own courses, so what contests it is a span rather than a footprint.** An add
+whose top stops at or below the hole's floor is the ground *under* the void, and one whose floor starts at or
+above the hole's top is a deck *over* it; neither holds a course the hole holds, and neither is what the rule
+is about. That is what makes a **room** drawable: a mass, a subtract stating the courses the void is meant to
+have, a floor whose top meets its floor and a ceiling whose floor meets its top. The comparison is in absolute
+courses with each layer's own `base_y` already in them, so it holds across a stack as readily as within one
+layer, and the count and coordinate the finding carries are the contesting columns rather than every shared
+one.
+
 **Where a refusal lands, and why nowhere earlier.** Every sketch-stage route — the write, the merge, and the
 paint, dressing, relief and 3-D reads — takes a board whatever its geometry says and rides the findings back
 on `warnings`, refusals included. `POST .../sketch/finish` is where the same check becomes fatal, which is the
@@ -1419,12 +1429,13 @@ looks like. A top has to have been stated to be discarded, so an override add ca
 relief solves under it is the ground it was drawn for — a scree apron over a swell is written exactly that
 way.
 
-A **theme** is scoped by area rather than by height, so where two override adds share a column the taller wins
-the ground and the *smaller* wins the paint. Where the smaller is also the shorter, the world holds one
-shape's blocks in another's material: a mound's outer ring crossing a wall leaves the wall standing to its own
-courses and finished in the mound's paint, sides included. That is `SK15`, a complaint naming both shapes, both
-themes, the columns they contest and the northmost. Two shapes at *one* height are a theme scoped to a patch,
-which is what scoping is for, and are not this. **The images count**: a shape in a mirroring group stands on
+A **theme** follows the shape that forms the surface, so where two override adds share a column the taller
+wins both the ground and the paint. Where the smaller of the two is also the shorter, its theme is therefore on
+*none* of the ground they share: a mound's outer ring crossing a wall leaves the wall standing to its own
+courses in its own stone, and the mound's turf absent from every column of it — a shape drawn, stored and
+painting nothing. That is `SK15`, a complaint naming both shapes, both themes, the columns they share and the
+northmost. Two shapes at *one* height are a theme scoped to a patch, the smaller one is the scope, and that is
+what scoping is for and is not this. **The images count**: a shape in a mirroring group stands on
 the board once per axis of the orbit, and what a patch contests is as often another patch's reflection as the
 patch itself — a dais laid clear of a court on the half it is drawn on lands in the middle of it on the other.
 

@@ -58,7 +58,7 @@ public static class SketchLayoutCheck
     [
         SketchRules.StackedInOneLayer, SketchRules.LayersOverlap, SketchRules.MassUnreached,
         SketchRules.DrawnOverSubtraction, SketchRules.ReliefOverStatedTop,
-        SketchRules.PaintedByAnotherShape, SketchRules.SeatedOnNothing,
+        SketchRules.ThemeHiddenUnderAnother, SketchRules.SeatedOnNothing,
         // Raised by the theme gate rather than here, because it needs the theme registry as well as the
         // ground; named here because this is the list a caller taking the shallower reading is handed, and a
         // rule left unwalked is unwalked whichever gate owns it.
@@ -230,16 +230,16 @@ public static class SketchLayoutCheck
                     + "the top it states, or \"relief_scope\": \"exclude\" to keep its ground out of the solve",
                     Severity.Complaint, Subjects: [shape]));
 
-            // SK15 — the taller add wins the column and the smaller one wins the paint, so where the smaller is
-            // also the shorter the world holds one shape's ground in another's material.
-            foreach (var (layerId, built, painted, builtTheme, paintedTheme, cells, x, z) in
-                     SketchRasterizer.PaintedByAnotherShape(layout))
-                findings.Add(new Finding(SketchRules.PaintedByAnotherShape,
-                    $"'{built}' builds {cells} column(s) on layer '{layerId}' that '{painted}' paints — from "
-                    + $"({x}, {z}). The taller shape wins the ground and the smaller wins the theme, so what "
-                    + $"stands there is '{built}' finished in '{paintedTheme}' rather than '{builtTheme}'. Cut "
-                    + $"'{painted}' out of '{built}'s footprint, or give the two one theme",
-                    Severity.Complaint, Subjects: [built, painted]));
+            // SK15 — the taller add wins the column and the paint follows what forms the surface, so where the
+            // smaller shape is also the shorter its theme lands on none of the ground the two share.
+            foreach (var (layerId, standing, hidden, standingTheme, hiddenTheme, cells, x, z) in
+                     SketchRasterizer.ThemesHiddenUnderAnother(layout))
+                findings.Add(new Finding(SketchRules.ThemeHiddenUnderAnother,
+                    $"'{hidden}' states '{hiddenTheme}' over {cells} column(s) on layer '{layerId}' that "
+                    + $"'{standing}' stands taller on — from ({x}, {z}) — so what shows there is '{standing}'s "
+                    + $"ground in '{standingTheme}', and '{hiddenTheme}' is on none of them. Cut '{hidden}' out "
+                    + $"of '{standing}'s footprint, or give the two one theme",
+                    Severity.Complaint, Subjects: [standing, hidden]));
 
             // SK13 — a subtract states the board's negative space, and an add over one is silent either way it
             // lands: it draws nothing, or it puts the ground back.
