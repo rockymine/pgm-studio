@@ -124,6 +124,15 @@ the tasks that delivered them.
   the step from the station before, classed walked, scrambled, barrier or drop, with the totals and every
   non-walk step as an event; `beside=N` lists what stands within N cells. JSON beside the text, so a tool
   sums and a reader reads. Every height is the first free course above a block, so two subtract to blocks.
+- **Which ground no player can reach** (`WS61`). `reach` answers the patches of standing ground nothing
+  arrives on: their sizes, their lowest standing course, the box to stand in, and which of two reasons —
+  `no-build-zone` where nothing the map opens to bridging gets there, `above-ceiling` where the ground stands
+  over `maxbuildheight`. It is the one read here that is **not** a measure of quality. A board is free to
+  carry ground no player reaches, and three kinds routinely do: scenery, a side observer island players spawn
+  on and never leave, and a shelf above the build ceiling. What it is for is that a shape stranded **by
+  accident** looks exactly the same, and nothing else puts that in front of an author. A spawn or a goal
+  actually cut off from the board is a different question and a different rule's; a component carrying a
+  marker is left out of this reading for that reason.
 - **A heightmap and a slope grid as text** (`WS20`). `render/heightmap?format=text&every=N` answers the
   height band per cell with the spawns, goals, houses and water overprinted; `slopes` answers the worst
   step to a neighbour per cell — `.` walked, `:` scrambled, `#` a barrier — and names the barrier runs as

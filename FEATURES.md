@@ -6718,6 +6718,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tilted to a height per corner and bevelled 5 from the panel, no seam, no face, 100% crossable. On
   `relief-06-road-no-tread`, a tread of 2 typed into the panel takes `hill | road` from step 10 to step 2 and
   48 faces to 32. (`tests/js/relief-doc.test.js`, `docs/tools/sketch.md` § Relief)
+- **Which ground no player can reach, as information rather than as a fault (`WS61`).** `GET
+  /map/{slug}/reach` answers the patches of standing ground nothing arrives on — their column counts, their
+  lowest standing course, the box to stand in, and which of two reasons: `no-build-zone` where nothing the map
+  opens to bridging gets there, `above-ceiling` where the ground stands over `maxbuildheight` and cannot be
+  built up to. It is `render/traversability`'s own partition read as numbers, off the same components the
+  picture is coloured by, so the two cannot disagree: the navigable components, less the one the board is
+  played on, less every component a marker sits on, less every component the buildable region reaches.
+  **It never refuses and never complains**, and it is not a `Finding` — a board is free to carry ground no
+  player reaches, and scenery, a side observer island and a shelf over the ceiling all do. What it is for is
+  that a shape stranded by accident looks exactly the same, and only the author can tell them apart. A spawn
+  or a goal genuinely cut off is left to the connectivity rule, so a component carrying a marker is out of
+  this reading rather than said twice in two vocabularies. `drive.py` writes it as `04-reach.txt` and prints
+  one line per board, which is what puts it in front of an agent without being asked.
+  (`ReachTextTests`, `docs/world-scan/read-backs.md`, `answer-shapes.md`)
 - **The angle a mask paints by is a read (`WS60`).** `GET /map/{slug}/incline` answers how steeply the ground
   is inclined, cell by cell, as `text/plain` in the grid the heightmap already reads elevation in: a cell's
   glyph is the **tens** of its degrees, so `0` is under ten from level, `4` is forty to fifty and `8` is a

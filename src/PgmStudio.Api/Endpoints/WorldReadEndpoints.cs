@@ -387,6 +387,53 @@ internal static class GridReads
     }
 }
 
+/// <summary>GET /api/map/{slug}/reach — which standing ground no player can get to, and why, as
+/// <c>text/plain</c>. The text twin of <c>render/traversability</c>: the picture colours the navigable
+/// components and this says which of them nobody can arrive on, so the two are the same partition read two
+/// ways and cannot disagree.
+///
+/// <para>It states nothing as wrong. A board is free to carry ground no player reaches — scenery, a side
+/// observer island, a shelf above the build ceiling — and the reading exists because a shape stranded by
+/// accident looks exactly the same, and only the author knows which they drew.</para></summary>
+internal sealed class ReachReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/reach");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("reach"));
+        Description(b => b.PlainText().Refuses(404, 422));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+
+        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
+        if (read is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 404, "no world to read",
+                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                    "this map has no stored sketch layout, so there is no world for the studio to build and "
+                    + "read back")], ct);
+            return;
+        }
+
+        var walked = TraversabilityRender.Read(read.Built.World, read.Map);
+        if (walked is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "nothing to walk",
+                [new Vocabulary.Finding(RequestRules.Conflict,
+                    "this world has no ground column, so it holds nowhere to arrive")], ct);
+            return;
+        }
+
+        await Send.StringAsync(ReachText.Render(walked, read.Map?.MaxBuildHeight),
+                               contentType: "text/plain; charset=utf-8", cancellation: ct);
+    }
+}
+
 /// <summary>GET /api/map/{slug}/incline — how steeply the ground is inclined, cell by cell, as characters:
 /// the angle a slope band is picked by (TP24), in the grid the heightmap already reads elevation in.
 /// <c>text/plain</c> always, because the picture that would answer the same question is
