@@ -425,19 +425,6 @@ height. That is exactly what a made thing needs, and none of it has to be invent
 
 ### Shapes
 
-- [ ] **TS31 — A shape drawing ground outside every island is silent until the world is built.** A one-course
-  add on a cell no region shape covers builds a speck of bedrock standing over the void; a shape drawn wholly
-  on the mirrored half falls outside the compiled polygon and becomes an island of its own. Both pass the
-  sketch PUT without a word, and the read that catches them is `GET …/coverage` — a world-tier read, so an
-  author learns it after a build. **`SK11` is not the rule for it (author):** a mass standing beside another
-  is a landmass, and reporting every unreached component makes an ordinary board complain about itself. What
-  is open is whether the sketch tier should answer it at all, and by which predicate — distance from the rest
-  of the board is the candidate the evidence suggests, and the number is the author's.
-
-  *`opus5-ravensmere`: `GET …/coverage` reported **141 cells at (−24, 91), 364 blocks from used ground** —
-  a disconnected island made of paint. Nothing before that read mentioned it, and every spec now clamps and
-  folds each stroke by hand to avoid both cases.*
-
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
@@ -580,6 +567,20 @@ set that reads a surface as somewhere a player can stand rather than as any colu
 
   *122 buildings on 32 boards: 4 fail today. A side with ground and under 3 clear blocks fails 51, under 5
   fails 76. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*
+
+- [ ] **WS61 — Which ground no player can reach, answered as information rather than as a fault.** Ground
+  ends up unreachable two ways: drawn outside every build zone with nothing connecting it, and standing above
+  the map's `max_build_height`, where nobody can pillar to it. Both are legitimate — a side observer island is
+  *meant* to be unreachable and scenery is scenery — so this **never refuses and never complains**. It is a
+  read: the patches, their cell counts and their boxes, so whoever holds one can say whether they meant it.
+  The audience is an **agent**, which re-examines a shape it did not mean to strand; a human in the editor
+  already knows. The handles are the map's `max_build_height` and `Editability.Compute`. It takes the intent
+  as an **input** rather than a stage, since an agent entering Sketch through the plan tool already holds the
+  zones. Do not key it on the observer spawn — that is a point pasted in as a structure, not a sketch shape —
+  and do not restate the spawn-to-objective connectivity rule, which owns the case that is genuinely broken.
+
+  *`opus5-ravensmere`: `GET …/coverage` reported **141 cells at (−24, 91), 364 blocks from used ground** — a
+  disconnected island made of paint, and nothing said so until the world was built.*
 
 - [ ] **WS1 — The corridor allowance wants restating where a map runs thinner than kanto.**
   `GroundCoverage` now reads a ribbon at an absolute `Walk.Detour` of 10 blocks, calibrated against
