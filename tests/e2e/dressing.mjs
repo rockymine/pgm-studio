@@ -24,7 +24,7 @@ const layout = await api(`/map/${seed.sketchSlug}/sketch`);
 const dressed = structuredClone(layout);
 dressed.dressing = {
   props: [
-    { kind: "path", id: "p1", points: [[0, 0], [24, 6], [40, 24]], radius: 3, style: "stones", seed: 5,
+    { kind: "stroke", id: "p1", points: [[0, 0], [24, 6], [40, 24]], radius: 3, style: "stones", seed: 5,
       pave: { kind: "solid", id: 4, data: 0 } },
     { kind: "flora", id: "f1", points: [[0, 0], [20, 0], [20, 20]], spec: { coverage: 0.8 }, seed: 7 },
     { kind: "tree", id: "t1", x: 10, z: 12, species: "birch", height: 22, seed: 9 },
@@ -36,7 +36,7 @@ await api(`/map/${seed.sketchSlug}/sketch`, { method: "PUT", body: dressed });
 const back = await api(`/map/${seed.sketchSlug}/sketch`);
 const props = back.dressing?.props ?? [];
 checks.add("every prop persisted", props.length === 4, `${props.length} props`);
-checks.add("each kept its kind", props.map(p => p.kind).join(",") === "path,flora,tree,boulder",
+checks.add("each kept its kind", props.map(p => p.kind).join(",") === "stroke,flora,tree,boulder",
   props.map(p => p.kind).join(","));
 checks.add("a path kept its route, width and style",
   props[0]?.points?.length === 3 && props[0]?.radius === 3 && props[0]?.style === "stones",
@@ -46,12 +46,12 @@ checks.add("a marker kept its cell", props[2]?.x === 10 && props[2]?.z === 12, J
 // ── 2. the pickers are drawn, and the preview places ──────────────────────────────────────────────────
 checks.section("every option is drawn by the pass");
 
-const styles = await api("/terrain/path-styles");
+const styles = await api("/terrain/stroke-styles");
 const waterFormCards = await api("/terrain/water-forms");
 const forms = await api("/terrain/boulder-forms");
 const species = await api("/terrain/species");
 
-checks.add("five path styles, each drawn", styles.length === 5 && styles.every(s => s.svg?.includes("<rect")),
+checks.add("five stroke styles, each drawn", styles.length === 5 && styles.every(s => s.svg?.includes("<rect")),
   styles.map(s => s.key).join(" "));
 checks.add("three channel forms, each drawn", waterFormCards.length === 3 && waterFormCards.every(f => f.svg?.includes("<rect")),
   waterFormCards.map(f => f.key).join(" "));
@@ -83,8 +83,8 @@ const preview = (prop) => api("/terrain/prop-preview", {
 
 const sparse = await preview({ kind: "flora", points: [[0, 0], [40, 0], [40, 40], [0, 40]], spec: { coverage: 0.2 }, seed: 7 });
 const lush = await preview({ kind: "flora", points: [[0, 0], [40, 0], [40, 40], [0, 40]], spec: { coverage: 0.9 }, seed: 7 });
-const road = await preview({ kind: "path", points: [[0, 20], [40, 20]], radius: 3, seed: 5, pave: { kind: "solid", id: 13, data: 0 } });
-const trail = await preview({ kind: "path", points: [[0, 20], [40, 20]], radius: 3, style: "stones", seed: 5, pave: { kind: "solid", id: 13, data: 0 } });
+const road = await preview({ kind: "stroke", points: [[0, 20], [40, 20]], radius: 3, seed: 5, pave: { kind: "solid", id: 13, data: 0 } });
+const trail = await preview({ kind: "stroke", points: [[0, 20], [40, 20]], radius: 3, style: "stones", seed: 5, pave: { kind: "solid", id: 13, data: 0 } });
 const tree = await preview({ kind: "tree", x: 0, z: 0, species: "spruce", height: 24, seed: 5 });
 const shallow = await preview({ kind: "water", points: [[0, 20], [40, 20]], radius: 4, depth: 1, seed: 5 });
 const deep = await preview({ kind: "water", points: [[0, 20], [40, 20]], radius: 4, depth: 5, seed: 5 });

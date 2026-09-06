@@ -384,10 +384,11 @@ export class SketchCanvas extends CanvasBase {
 
   /**
    * Make the canvas a selection surface: groups and shapes can be picked (and the view panned and zoomed),
-   * but nothing can be moved, resized, rotated, reshaped or given a vertex. The Theme and Relief phases run
-   * in this mode — both reach geometry the Draw phase owns by picking it, one to assign paint and one to
-   * state ground inside it, so offering an edit would make the gesture that selects a group the gesture
-   * that reshapes it, from a rail with no undo, no snapping and no height controls to make sense of it.
+   * but nothing can be moved, resized, rotated, reshaped or given a vertex. Every phase but Draw runs in this
+   * mode — Theme, Relief and Dressing all reach geometry the Draw phase owns by picking it, one to assign
+   * paint, one to state ground inside it and one to place things on it, so offering an edit would make the
+   * gesture that selects a group the gesture that reshapes it, from a rail with no snapping and no height
+   * controls to make sense of it.
    *
    * Restricted at the source rather than by ignoring the results: the edit controller draws no handles, the
    * transform box draws no anchors, bands or rotate zones, the ladder cannot be walked down, and

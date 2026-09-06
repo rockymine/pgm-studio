@@ -6555,6 +6555,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   name, which is why `AuthorIntent` has no field to put one in. The intent is patched as JSON rather than
   round-tripped through `MapIntent`, so a key the model does not carry cannot be lost by a rename, and a map
   holding no intent is left alone. (`docs/tools/sketch.md` § Info)
+- **Only Draw edits geometry, and the dressing e2e runs again (`TS100`).** The canvas becomes a selection
+  surface for every phase that reaches the Draw phase's ground by picking it — Theme and Relief already did;
+  **Dressing did not**, so its group transform box carried live resize grips and its shapes could be dragged.
+  The way it showed on `opus5-harrowgate`: the plinth under a spawn was dragged out from under it, the
+  projected spawn piece stayed where the plan put it, and the ground left behind fused into an island of its
+  own — one group became two, and `east-22` came back with eight vertices where it was drawn with four.
+  Restored from the spec with the author's relief kept.
+  Beside it, `tests/e2e/dressing.mjs` had been **dead since 2026-09-04**: `C63` renamed the prop kind `path`
+  to `stroke` and swept the source but not the fixtures, so the suite threw on its first `PUT` and printed no
+  result — including in the full runs, where a crashed suite reports nothing rather than a failure. The kind
+  and `/terrain/path-styles` are `stroke` now and 18 of its 20 checks run. The last two drive a `.choice-tile`
+  Vanilla/Grown switch that `83534a3f` removed when trees became library recipes; the class is CSS with no
+  markup behind it, and what that section should assert now is a question for whoever owns the tree picker.
+  (`docs/tools/sketch.md` § Limits)
 - **Undo reaches every phase, not just Draw (`TS99`).** A history step is the whole `getState()` value and a
   restore is `load()`, so the document always came back correct — and only Draw ever showed it. `load` puts
   the shapes on the canvas and the restore re-announces the shape selection; the marks, the props and the

@@ -1832,6 +1832,15 @@ Sketch draws the ground and everything on it, and it does not know what any of i
 no spawns, no objectives, no build regions and no protection: a map begun here reaches Configure with geometry
 and nothing else, and a map that came from a plan carries the plan's intent unchanged through this tool.
 
+**Only Draw edits geometry.** Theme, Relief and Dressing all run the canvas as a selection surface: a group
+or a shape can be picked, and the view panned and zoomed, but nothing can be moved, resized, rotated,
+reshaped or given a vertex. Each of those phases reaches the ground the Draw phase owns by *picking* it — one
+to assign paint, one to state terrain inside it, one to place things on it — so an edit offered there makes
+the gesture that selects a group the gesture that reshapes it, from a rail with no snapping and no height
+controls to make sense of it. Dressing was the one that did not, and the way it showed was a plinth dragged
+out from under a spawn: the piece the plan projected stayed where it was, the ground under it did not, and
+the ground it left behind fused into an island of its own.
+
 The structural pieces a plan projects in are **read-only here**. A spawn or wool room and the building inside
 it are rendered so they stay visible while the ground around them is refined, but neither can be selected,
 moved or reshaped, and a destroy objective has no sketch presence at all. The building is drawn where the plan

@@ -184,7 +184,7 @@ public partial class SketchTool
         // selects a group is also the gesture that reshapes it. Dressing places props rather than shapes,
         // so it is not select-only in that sense: its own tools are armed and the shape tools are simply not
         // offered.
-        await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief");
+        await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief" or "dressing");
         // Both finishing phases show the paint: Theme is authoring it, and Dressing is placing things on it,
         // which is a judgement about the finish as much as about the planting.
         await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing");
