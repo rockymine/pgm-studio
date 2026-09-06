@@ -49,13 +49,13 @@ shape whether a layout was hand-drawn or compiled from a plan.
 |---|---|
 | `setup` | `mirror_mode`, the symmetry `center`, and the `bbox` the canvas frames on open |
 | `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, groups}}`, plus `kind`, `part_of` and `seat` where the layer holds a made thing. Always at least one; a flat board is a stack of one, called `ground` |
-| `themes` · `mapTheme` | the terrain-paint registry and the map-wide default |
+| `themes` · `themeSources` · `mapTheme` | the terrain-paint registry, which library row each of its themes was copied from, and the map-wide default |
 | `roomStyles` | the two bound room shells — `cage` (wool) and `spawn` |
 | `dressing` | every placed prop |
 | `relief` | interior elevation, keyed by group id — and `landform`, the word the group states about what kind of ground it is meant to be |
 
-Four of those are the map's **finish** rather than its shape — `themes`, `mapTheme`, `roomStyles`,
-`dressing` — and that grouping is load-bearing: a plan cannot express any of them, so when a plan is recompiled
+Five of those are the map's **finish** rather than its shape — `themes`, `themeSources`, `mapTheme`,
+`roomStyles`, `dressing` — and that grouping is load-bearing: a plan cannot express any of them, so when a plan is recompiled
 onto a map the compiled layout's geometry replaces what was there while the finish is carried across
 (`CarryFinish`). Relief is *not* in that set, because a relief is geometry: it decides what the rasterizer
 emits, and it is carried by its own rule with a refusal attached (below).
@@ -839,8 +839,12 @@ through the registry with the empty hand as one of the stops, so one pair of key
 many there are. The map
 default is badged on its own swatch. The trailing `+` opens the inspector's **Add from the library** panel,
 which takes the column while it is up: a library theme copied in lands as a snapshot under its library name,
-and copying one in again under the same name replaces it, which is how a theme edited in the library is
-brought up to date.
+and the snapshot records the row it came from (`themeSources`, keyed by the board's theme id). That note is
+what a second copy of the same row matches by, so copying it in again refreshes the copy it already made
+rather than defining a second theme beside it — and it holds whichever of the two has since been renamed,
+where a match by name would have made a renamed pair into two themes with nothing saying they are one. A row
+the board has a copy of is badged with the name that copy carries, and its action reads **refresh** rather
+than **copy in**. Saving a board theme out records the row it was written to for the same reason.
 
 **With a theme in hand the canvas is a brush**, and the modifiers are read against what is held rather than
 against the grouping. A click paints the shape under it; `Shift`+click widens the stroke to every shape the
@@ -851,7 +855,9 @@ cell that carries none falls to the map default, so the resolution is shape, the
 down — a thing in hand is the first thing it lets go of — and so does leaving the phase.
 
 **The inspector says what is in hand, what the selection carries, and — with nothing selected — what the board
-falls back to.** In hand: the sample plateau the theme finishes, a swatch per bucket, and the two acts that
+falls back to.** In hand: where the theme was copied from and whether it still says what that row says — the
+row is read and the two documents compared, so a snapshot that has been edited on either side says so instead
+of reading as current — the sample plateau the theme finishes, a swatch per bucket, and the two acts that
 change the registry rather than the board — **Save to library**, which decomposes the theme into one style per
 bucket so it can be edited there, and **Remove**, which takes it off the board. Selection: what that shape or
 group is painted with, `mixed` where a group's shapes disagree, and **Unpaint**. Board defaults, when

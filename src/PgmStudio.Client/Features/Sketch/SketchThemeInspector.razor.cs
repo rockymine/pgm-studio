@@ -25,6 +25,9 @@ public partial class SketchThemeInspector
     [Parameter] public IJSObjectReference? Handle { get; set; }
     /// <summary>The board's theme ids, in registry order.</summary>
     [Parameter] public IReadOnlyList<string> Themes { get; set; } = [];
+    /// <summary>Which library row each board theme was copied from, by theme id — what a copy-in matches by,
+    /// so a rename on either side still finds the one theme.</summary>
+    [Parameter] public IReadOnlyDictionary<string, long> ThemeSources { get; set; } = new Dictionary<string, long>();
     /// <summary>The theme in hand, held by the tool because the canvas can lift one into it.</summary>
     [Parameter] public string? Brush { get; set; }
     /// <summary>The board's map default, or empty for unthemed.</summary>
@@ -87,11 +90,13 @@ public partial class SketchThemeInspector
         if (previewedFor == (InHand, Revision)) return;
         previewedFor = (InHand, Revision);
         preview = null;
+        heldMatchesSource = null;
         if (Handle is null || InHand is null) return;
         var json = await Handle.InvokeAsync<string>("getThemes");
         using var doc = JsonDocument.Parse(json);
         if (doc.RootElement.TryGetProperty("themes", out var themes) && themes.TryGetProperty(InHand, out var node))
             preview = await Library.ThemePreviewAsync(node.GetRawText());
+        await ReadHeldSource();
     }
 
     /// <summary>What the selection paints: the theme every target shape shares, empty when none carries one, or
@@ -125,19 +130,69 @@ public partial class SketchThemeInspector
         var themeJson = await Library.DocumentAsync(LibraryKinds.Themes, picked.Id);
         if (themeJson is null) { note = "That theme could not be read."; return; }
 
-        // Copying in under a name already on the board replaces it, which is how a theme edited in the library
-        // is brought up to date; a new name defines a new one.
-        var id = Themes.Contains(picked.Name)
-            ? picked.Name
-            : await Handle.InvokeAsync<string>("defineTheme", picked.Name);
+        // The copy this row already made is what a second copy refreshes, whatever either side has since been
+        // renamed to. Only a row nothing on the board came from defines a theme, and that theme records where
+        // it came from — a name is the author's word and two of them may be the same.
+        var already = await Handle.InvokeAsync<string>("themeFromLibrary", picked.Id);
+        var id = already.Length > 0 ? already : await Handle.InvokeAsync<string>("defineTheme", picked.Name);
         var fault = await Handle.InvokeAsync<string?>("setThemeJson", id, themeJson);
         note = fault;
         if (fault is null)
         {
+            await Handle.InvokeVoidAsync("setThemeSource", id, picked.Id);
+            librarySnapshots[id] = themeJson;
             await AddOpenChanged.InvokeAsync(false);
             await OnHold.InvokeAsync(id);
         }
         await OnChanged.InvokeAsync();
+    }
+
+    /// <summary>The board theme copied from a library row, or null where nothing on the board came from
+    /// it — what the add panel says instead of matching the row's name against a board theme's.</summary>
+    private string? CopiedAs(long row) =>
+        ThemeSources.FirstOrDefault(entry => entry.Value == row && Themes.Contains(entry.Key)).Key;
+
+    /// <summary>The library row the theme in hand was copied from, or null for one authored on the board or
+    /// copied from a row the library has since forgotten.</summary>
+    private ThemeSummary? HeldSource =>
+        InHand is { } held && ThemeSources.TryGetValue(held, out var row)
+            ? libraryThemes.FirstOrDefault(theme => theme.Id == row)
+            : null;
+
+    /// <summary>The library row's own document, per board theme, as it read when it was last compared — what
+    /// says whether the snapshot is still that row or has moved on from it.</summary>
+    private readonly Dictionary<string, string> librarySnapshots = [];
+
+    /// <summary>Whether the theme in hand still says what its library row says: true where the two documents
+    /// match, false where the copy has been edited or the row has moved on, and null where the row has not
+    /// been read.</summary>
+    private bool? heldMatchesSource;
+
+    /// <summary>Read the row behind the theme in hand and compare, so the phase can say whether the snapshot
+    /// is behind. One round trip per theme, taken with the swatch render.</summary>
+    private async Task ReadHeldSource()
+    {
+        heldMatchesSource = null;
+        if (Handle is null || InHand is not { } held || HeldSource is not { } source) return;
+        if (!librarySnapshots.TryGetValue(held, out var rowJson))
+        {
+            rowJson = await Library.DocumentAsync(LibraryKinds.Themes, source.Id);
+            if (rowJson is null) return;
+            librarySnapshots[held] = rowJson;
+        }
+        var json = await Handle.InvokeAsync<string>("getThemes");
+        using var doc = JsonDocument.Parse(json);
+        if (!doc.RootElement.TryGetProperty("themes", out var themes) || !themes.TryGetProperty(held, out var node))
+            return;
+        heldMatchesSource = SameDocument(node.GetRawText(), rowJson);
+    }
+
+    /// <summary>Whether two theme documents say the same thing. Compared as parsed values rather than as text:
+    /// key order and whitespace are serialization, and a copy that differs only in those is the row.</summary>
+    private static bool SameDocument(string left, string right)
+    {
+        try { return JsonNode.DeepEquals(JsonNode.Parse(left), JsonNode.Parse(right)); }
+        catch (JsonException) { return false; }
     }
 
     private async Task SaveToLibrary()
@@ -151,13 +206,23 @@ public partial class SketchThemeInspector
         note = id is null
             ? "The library refused this theme."
             : $"Saved “{InHand}” to the library, one style per bucket.";
+        if (id is { } row)
+        {
+            // The row this theme was written out to is the row it is now a copy of, so copying it back in
+            // refreshes this theme rather than defining a second one beside it.
+            await Handle.InvokeVoidAsync("setThemeSource", InHand, row);
+            librarySnapshots.Remove(InHand);
+            await OnChanged.InvokeAsync();
+        }
         libraryThemes = await Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
+        await ReadHeldSource();
         StateHasChanged();
     }
 
     private async Task RemoveFromBoard()
     {
         if (Handle is null || InHand is null) return;
+        librarySnapshots.Remove(InHand);
         await Handle.InvokeVoidAsync("deleteTheme", InHand);
         note = null;
         await OnHold.InvokeAsync("");

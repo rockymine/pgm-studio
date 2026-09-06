@@ -27,6 +27,15 @@ public sealed class SketchLayout
     /// a sketch that never picked one, which paints unthemed stone.</summary>
     [JsonPropertyName("themes")]   public Dictionary<string, JsonElement>? Themes { get; set; }
 
+    /// <summary>Which library row each of <see cref="Themes"/> was copied from, id → row id. A theme authored
+    /// on the board has no entry, and neither has one whose row has since been forgotten.
+    ///
+    /// <para><b>It is what makes a snapshot answerable about the row behind it.</b> A copy is matched back to
+    /// its row by this and never by its name, so a theme renamed on the board or in the library is still the
+    /// one theme — copying it in again replaces the snapshot it made rather than growing a second — and
+    /// whether the snapshot is behind the row is answered by reading that row and comparing.</para></summary>
+    [JsonPropertyName("themeSources")] public Dictionary<string, long>? ThemeSources { get; set; }
+
     /// <summary>Which of <see cref="Themes"/> covers every cell no shape's own theme scope claims.</summary>
     [JsonPropertyName("mapTheme")] public string? MapTheme { get; set; }
 
@@ -68,11 +77,12 @@ public sealed class SketchLayout
         catch (JsonException) { return null; }
     }
 
-    /// <summary>The keys that hold a map's finish rather than its shape: the terrain-theme registry and the
-    /// map default, the two bound room shells, every placed prop, and the biome the ground is tinted by. A
-    /// plan states where the ground is and nothing about how it looks, so a layout compiled from one carries
-    /// none of them.</summary>
-    public static readonly string[] FinishKeys = ["themes", "mapTheme", "roomStyles", "dressing", "biome"];
+    /// <summary>The keys that hold a map's finish rather than its shape: the terrain-theme registry, where
+    /// each of its themes was copied from and the map default, the two bound room shells, every placed prop,
+    /// and the biome the ground is tinted by. A plan states where the ground is and nothing about how it
+    /// looks, so a layout compiled from one carries none of them.</summary>
+    public static readonly string[] FinishKeys =
+        ["themes", "themeSources", "mapTheme", "roomStyles", "dressing", "biome"];
 
     /// <summary>
     /// A freshly compiled layout with the finish of the layout the map already holds carried onto it.

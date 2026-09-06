@@ -17,7 +17,9 @@
         <Button Variant="icon" Icon="x" Title="Close" OnClick="() => AddOpenChanged.InvokeAsync(false)" />
       </Actions>
       <ChildContent>
-        <p class="section-desc">Copying one in takes a snapshot; the same name again replaces it.</p>
+        <p class="section-desc">Copying one in takes a snapshot, and the snapshot records the row it came
+           from — so copying the same row again refreshes the copy it already made, whichever of the two has
+           been renamed since.</p>
         @if (libraryThemes.Count == 0)
         {
           <p class="section-desc">The library has no themes yet.</p>
@@ -29,8 +31,8 @@
             {
               <ListRow Compact @key="theme.Id" OnClick="() => CopyIn(theme)">
                 <span class="list-label">@theme.Name</span>
-                @if (Themes.Contains(theme.Name)) { <Badge Kind="dim">on the board</Badge> }
-                <span class="list-tag">copy in</span>
+                @if (CopiedAs(theme.Id) is { } copy) { <Badge Kind="dim">on the board as @copy</Badge> }
+                <span class="list-tag">@(CopiedAs(theme.Id) is null ? "copy in" : "refresh")</span>
               </ListRow>
             }
           </div>
@@ -49,6 +51,14 @@
       <Actions><Badge Kind="neutral">@held</Badge></Actions>
       <ChildContent>
         <p class="section-desc">Click to paint · Shift-click the group · Alt-click to lift · Esc to put down</p>
+        @if (HeldSource is { } source)
+        {
+          <p class="section-desc">
+            Copied from the library’s “@source.Name”.
+            @if (heldMatchesSource == true) { <text>It still says what that row says.</text> }
+            else if (heldMatchesSource == false) { <text>The two have since parted — this copy or that row has been edited.</text> }
+          </p>
+        }
         @if (preview is not null)
         {
           <div class="theme-section-figure">@((MarkupString)preview.Section)</div>

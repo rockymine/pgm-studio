@@ -57,6 +57,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
   let themes = {};
+  // Which library row each theme was copied from, theme id -> row id. A theme authored on the board
+  // has no entry. It is what a copy-in matches by, so a rename on either side still finds the one theme.
+  let themeSources = {};
   let mapTheme = "";
   // The two room-style snapshots the map binds (structures.md §9): the shell every wool cage is stamped with
   // and the one every spawn cube is. Snapshots rather than library ids, so a library edit never rebuilds a
@@ -596,7 +599,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       shapeCount++;
       if (s.theme) shapeThemes[s.id] = s.theme;
     }
-    return JSON.stringify({ themes, mapTheme: mapTheme || "", shapeThemes, shapeCount });
+    return JSON.stringify({ themes, themeSources, mapTheme: mapTheme || "", shapeThemes, shapeCount });
   }
   // A theme edit is a discrete action the author is waiting on the result of, so it repaints at once; only
   // the continuous geometry stream (drag, resize) is worth coalescing.
@@ -954,6 +957,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       const id = uniqueScopeId(Object.keys(themes).filter(k => k !== oldId), newId || oldId);
       if (id === oldId) return oldId;
       themes[id] = themes[oldId]; delete themes[oldId];
+      // The note travels with the theme: a renamed copy is still the copy of the row it came from.
+      if (themeSources[oldId] !== undefined) { themeSources[id] = themeSources[oldId]; delete themeSources[oldId]; }
       if (mapTheme === oldId) mapTheme = id;
       for (const L of layers) for (const s of (L.shapes || [])) if (s.theme === oldId) s.theme = id;
       afterThemeChange(); return id;
@@ -961,9 +966,23 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     deleteTheme(id) {
       if (!themes[id]) return;
       delete themes[id];
+      delete themeSources[id];
       if (mapTheme === id) mapTheme = "";
       for (const L of layers) for (const s of (L.shapes || [])) if (s.theme === id) delete s.theme;
       afterThemeChange();
+    },
+    // Record which library row a board theme was copied from, or clear the note with a row id of 0 — what a
+    // theme edited on the board past the point of being that row's copy says.
+    setThemeSource(id, libraryId) {
+      if (!themes[id]) return;
+      if (libraryId > 0) themeSources[id] = libraryId; else delete themeSources[id];
+      afterThemeChange();
+    },
+    // The board theme copied from this library row, or "" for none — what a copy-in replaces instead of
+    // defining a second theme, whatever either side has since been renamed to.
+    themeFromLibrary(libraryId) {
+      const found = Object.keys(themeSources).find(id => themeSources[id] === libraryId && themes[id]);
+      return found || "";
     },
     // Replace a theme's material JSON (the raw TerrainTheme). Returns an error string on invalid JSON, else null.
     setThemeJson(id, text) {
@@ -1104,6 +1123,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       const s = state ?? {};
       if (s.setup) applySetup(s.setup, keepView);
       themes = (s.themes && typeof s.themes === "object") ? s.themes : {};
+      themeSources = {};
+      if (s.themeSources && typeof s.themeSources === "object")
+        for (const id of Object.keys(s.themeSources))
+          if (themes[id] && Number.isFinite(s.themeSources[id])) themeSources[id] = s.themeSources[id];
       mapTheme = (s.mapTheme && themes[s.mapTheme]) ? s.mapTheme : "";
       roomStyles = {
         cage: s.roomStyles && "cage" in s.roomStyles ? s.roomStyles.cage : undefined,
@@ -1151,6 +1174,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): the registry + default ride the layout; each shape's
         // own override rides on the shape below. Omitted when empty so an unthemed sketch serialises as before.
         themes: Object.keys(themes).length ? themes : undefined,
+        // Which library row each copied theme came from. Omitted when nothing was copied in, so a board whose
+        // themes are all its own serialises without the key.
+        themeSources: Object.keys(themeSources).length ? themeSources : undefined,
         mapTheme: mapTheme || undefined,
         // The bound room shells, omitted when neither is picked so a sketch that never opened the step
         // serialises exactly as it did before it existed.
@@ -1197,6 +1223,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     "renameGroup",
     "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY",
     "setRoomStyle", "defineTheme", "renameTheme", "deleteTheme", "setThemeJson", "setMapTheme",
+    "setThemeSource", "themeFromLibrary",
     "assignShape", "assignGroup",
     "deleteProp", "updateProp",
     "deleteMark", "updateMark", "renameMark", "updateGroupRelief", "setPushAmount",

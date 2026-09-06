@@ -61,6 +61,10 @@ public partial class SketchTool
     private List<string> themeIds = [];
     private string mapThemeId = "";
     private Dictionary<string, string> shapeThemes = [];
+    /// <summary>Which library row each board theme was copied from, by theme id — read from the bridge with
+    /// the registry, so the strip, the inspector and the document cannot disagree about where a copy came
+    /// from.</summary>
+    private Dictionary<string, long> themeSources = [];
     /// <summary>Bumped on every registry change, so a view keyed on a theme's name refreshes when the theme
     /// under that name is replaced.</summary>
     private int themeRevision;
@@ -84,6 +88,10 @@ public partial class SketchTool
             ? [.. themes.EnumerateObject().Select(p => p.Name)] : [];
         mapThemeId = root.TryGetProperty("mapTheme", out var mt) && mt.ValueKind == JsonValueKind.String
             ? mt.GetString() ?? "" : "";
+        themeSources = [];
+        if (root.TryGetProperty("themeSources", out var sources) && sources.ValueKind == JsonValueKind.Object)
+            foreach (var p in sources.EnumerateObject())
+                if (p.Value.ValueKind == JsonValueKind.Number) themeSources[p.Name] = p.Value.GetInt64();
         shapeThemes = [];
         if (root.TryGetProperty("shapeThemes", out var assigned) && assigned.ValueKind == JsonValueKind.Object)
             foreach (var p in assigned.EnumerateObject())
