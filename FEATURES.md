@@ -1433,6 +1433,26 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   puts them 30. A compiled 30-block strait with a rectangle drawn across it answers `the drawn board joins
   them into one landmass`.*
 
+- **A subtract is a span, so a floor and a ceiling around one are a room (`TS74`).** `SK13` refused every add
+  over a subtracted cell alike, at any height, on any layer — so a subtract, which is what an author reaches
+  for to say *this column is void*, could not be floored and roofed. It now contests only where the two hold a
+  **course** together: an add whose top stops at or below the hole's floor is the ground under the void, one
+  whose floor starts at or above its top is a deck over it, and neither says anything about the space between
+  them. Spans are compared in absolute courses with each layer's own `base_y` in them, so the test holds
+  across a stack as readily as within a layer, and the count and coordinate the finding carries are the
+  contesting columns rather than every shared one. A mass with a subtract stating the courses the void is
+  meant to have, a floor and a ceiling on their own layers, now builds the room and answers nothing.
+  (`SketchSubtractedGroundTests`, `docs/tools/sketch.md` § Refusals, `docs/refusals.md`)
+- **Paint follows the shape that forms the surface (`B144`).** Height took the taller add-shape and paint took
+  the smallest-area one, with no height test at all — so the documented way to give a tier an organic edge, by
+  letting the tier below run *under* it, left that lower tier painting ground the upper one forms. Among the
+  shapes covering a column, only those reaching its visible top may own its paint; among *those* the smallest
+  area still wins, so patch-scoping is untouched and two shapes at one height remain a theme scoped to a
+  patch. It is `TS23`'s across-layer rule read within a layer: each surface shows its own. A shape stating a
+  `height_mode` is outside the test both ways, standing in the terrain rather than being it and settling at a
+  top read against ground the relief has not yet made. `SK15` keeps its id and states what is now true — a
+  theme stated over ground another shape stands taller on is on *none* of it — and `PaintedByAnother` becomes
+  `ThemeHidden`. (`SketchThemeOwnerTests`, `docs/world-export/terrain-painting.md` §3, `docs/tools/sketch.md`)
 - **A shape drawn over ground a subtract takes away is no longer silent (TS33).** A subtract is how a board
   states its **negative space** — the void a plan's buffer pieces compile to, the hole a composed footprint
   leaves — and drawing over one said nothing either way it landed. On the same layer a plain add draws

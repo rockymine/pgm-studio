@@ -498,10 +498,10 @@ public sealed class SketchLayoutCheckTests
     /// <summary>A shape in a mirroring group stands on the board once per axis of the orbit, so what a patch
     /// contests is as often another patch's reflection as the patch itself.</summary>
     [Test]
-    public async Task A_shape_painted_by_another_shapes_image_is_named()
+    public async Task A_theme_hidden_under_another_shapes_image_is_named()
     {
         // A mound laid clear of the raised court on the half it is drawn on, whose rot_180 image lands in it:
-        // smaller, so it wins the paint, and shorter, so the court's own ground is what stands there.
+        // shorter, so the court forms the surface there and the mound's theme is on none of those columns.
         var court = """{"id":"court","type":"rectangle","operation":"add","override":true,"theme":"flags","min_x":-16,"max_x":16,"min_z":4,"max_z":20,"floor":0,"base_height":13}""";
         var mound = """{"id":"mound","type":"rectangle","operation":"add","override":true,"theme":"turf","min_x":-14,"max_x":-6,"min_z":-18,"max_z":-10,"floor":0,"base_height":10}""";
         var board = "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
@@ -509,27 +509,27 @@ public sealed class SketchLayoutCheckTests
                   + "\"groups\":[{\"id\":\"i\",\"name\":\"I\",\"mirrors\":true,\"shapeIds\":[\"court\",\"mound\"]}]}}]}";
 
         var findings = SketchLayoutCheck.Check(board)
-            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape).ToList();
+            .Where(finding => finding.Rule == SketchRules.ThemeHiddenUnderAnother).ToList();
 
         await Assert.That(findings.Count).IsEqualTo(1);
         await Assert.That(findings[0].SubjectIds).IsEquivalentTo(new[] { "court", "mound" });
 
         // The same two on a group that is not fanned contest nothing: the image is what they meet in.
         await Assert.That(SketchLayoutCheck.Check(board.Replace("\"mirrors\":true", "\"mirrors\":false"))
-            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape)).IsEmpty();
+            .Where(finding => finding.Rule == SketchRules.ThemeHiddenUnderAnother)).IsEmpty();
     }
 
-    // ── SK15: one shape builds the column and another paints it ──────────────────────────────────────────
+    // ── SK15: a theme stated over ground another shape stands taller on ──────────────────────────────────
     private const string Mound =
         """{"id":"mound","type":"rectangle","operation":"add","override":true,"theme":"grass","min_x":-8,"max_x":8,"min_z":8,"max_z":16,"floor":0,"base_height":11}""";
 
-    /// <summary>The taller add wins the column and the smaller wins the theme, so a mound's ring crossing a
-    /// wall leaves the wall standing to its own courses and painted in the mound's material.</summary>
+    /// <summary>The taller add wins the column and the paint follows what forms the surface, so a mound's
+    /// ring crossing a wall leaves the wall in its own stone and the mound's theme on none of it.</summary>
     [Test]
-    public async Task A_shape_built_by_one_and_painted_by_another_is_named()
+    public async Task A_theme_stated_under_a_taller_shape_is_named()
     {
         var findings = SketchLayoutCheck.Check(Layout(Wall + "," + Mound))
-            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape).ToList();
+            .Where(finding => finding.Rule == SketchRules.ThemeHiddenUnderAnother).ToList();
 
         await Assert.That(findings.Count).IsEqualTo(1);
         await Assert.That(findings[0].SubjectIds).IsEquivalentTo(new[] { "wall", "mound" });
@@ -544,11 +544,11 @@ public sealed class SketchLayoutCheckTests
     {
         var patch = Mound.Replace("\"base_height\":11", "\"base_height\":22");
         await Assert.That(SketchLayoutCheck.Check(Layout(Wall + "," + patch))
-            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape)).IsEmpty();
+            .Where(finding => finding.Rule == SketchRules.ThemeHiddenUnderAnother)).IsEmpty();
 
         var sameTheme = Mound.Replace("\"theme\":\"grass\"", "\"theme\":\"stone\"");
         await Assert.That(SketchLayoutCheck.Check(Layout(Wall + "," + sameTheme))
-            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape)).IsEmpty();
+            .Where(finding => finding.Rule == SketchRules.ThemeHiddenUnderAnother)).IsEmpty();
     }
 
     /// <summary>And two that do not share a column have nothing to contest.</summary>
@@ -557,7 +557,7 @@ public sealed class SketchLayoutCheckTests
     {
         var apart = Mound.Replace("\"min_z\":8,\"max_z\":16", "\"min_z\":24,\"max_z\":32");
         await Assert.That(SketchLayoutCheck.Check(Layout(Wall + "," + apart))
-            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape)).IsEmpty();
+            .Where(finding => finding.Rule == SketchRules.ThemeHiddenUnderAnother)).IsEmpty();
     }
     // ── SK20: the list order and base_y disagree about which layer is on top ──────────
 

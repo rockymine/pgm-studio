@@ -375,26 +375,6 @@ placement takes it — so what is left is each surface reading and writing the l
   at the viaduct's faces, `(0,104)`–`(0,78)` and `(0,60)`–`(0,42)`. `opus5-interchange` measured the same
   thing on lane markings — `"layer": "under"` came back at y25.*
 
-- [ ] **B144 — Settle how height and paint resolve an overlap, and warn where they disagree.** Height takes the
-  **taller** add-shape (`MergeCell`); paint takes the **smallest-area** shape (`ShapeScopeOwners`, "the most
-  specific scope"). The documented way to give a tier an organic edge is to let the tier below run *under* it —
-  and where that lower tier is the smaller shape, it keeps its own paint over ground the upper tier owns. No
-  field scopes paint to the visible surface rather than to a shape, and nothing warns.
-
-  *`opus5-run2` §5 #2 · re-probed on `marlstone-steps` against the committed region files: `(0, 58)` is
-  sandstone at y21 where `(0, 70)` — the same shelf at the same height — is quartz.*
-
-  **The stacked case is already settled** (`TS23`, `FEATURES.md`): across layers there is no contest, because
-  each surface shows its own paint.
-
-  **The nested-tier case is settled the same way: paint follows the shape that forms the surface.** Among the
-  shapes covering a column, only those reaching the visible top may own its paint; among *those*, the smallest
-  area still wins. That keeps patch-scoping exactly as it is — two shapes at one height are a theme scoped to
-  a patch, and the smaller one is the scope — and stops a shape running *under* another from painting a
-  surface it does not form, which is the whole of the defect. It is `TS23`'s rule read within a layer rather
-  than across layers: each surface shows its own. `ShapeScopeOwners` gains the height test `MergeCell` already
-  makes; where two shapes tie on height nothing changes.
-
 ### A made thing is a third kind, and it is drawn out of layers
 
 - [ ] **WE77 — `WX11` measures a structure's plinth from the highest terrain its footprint touches, and the
@@ -489,20 +469,6 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   slope-fit has the same problem and the same fix. The 3-D preview is where a height edit is actually legible
   and it now draws the built world (`FEATURES.md`), but it is a modal swap rather than a companion view, so it
   confirms an edit after the fact rather than while it is being made.
-
-- [ ] **TS74 — `SK13` cannot tell a fill from a floor, so a subtract cannot mark a room.** A subtract is
-  what an author reaches for to say *this column is void*, and flooring and roofing that void is the use it
-  is reached for — but `SK13` refuses every add over a subtracted cell alike, at any height, on any layer.
-  Give it the cut it is missing: an add whose **top is at or below the subtract's stated `floor`** is the
-  ground under the void and says nothing; one whose span crosses that floor is the fill the rule is for.
-  `SketchRasterizer.AddsOverSubtracts` already carries both floors and decides `survives` from them, so the
-  test is a comparison it can make where it stands. `docs/tools/sketch.md` and `docs/refusals.md` carry the
-  rule's two halves and both change with it.
-
-  *Measured on the running studio: `rock` a mass `[0..30)` with a subtract over a 12×12, `floor` a plain add
-  `[0..4)` and `ceil` a plain add `[11..30)`, each on its own layer, builds the column `y0..3` solid, **void
-  `y4..10` — seven courses** — `y11..29` solid. A room, with rock under it. It previews, and `finish`
-  answers 422 `SK13` twice.*
 
 ## The library: a browse page, an editor page, and the rail between them
 

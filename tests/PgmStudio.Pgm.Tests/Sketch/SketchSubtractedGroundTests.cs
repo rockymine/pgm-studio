@@ -23,12 +23,14 @@ public sealed class SketchSubtractedGroundTests
     private const string Setup = @"""setup"":{""mirror_mode"":""none"",""center"":{""cx"":0,""cz"":0}}";
 
     private static string Rect(string id, string operation, int minX, int minZ, int maxX, int maxZ,
-                               bool over = false, int floor = 0) =>
+                               bool over = false, int floor = 0, int height = 8) =>
         $@"{{""id"":""{id}"",""type"":""rectangle"",""operation"":""{operation}"",""override"":{(over ? "true" : "false")},"
-        + $@"""min_x"":{minX},""min_z"":{minZ},""max_x"":{maxX},""max_z"":{maxZ},""floor"":{floor},""base_height"":8}}";
+        + $@"""min_x"":{minX},""min_z"":{minZ},""max_x"":{maxX},""max_z"":{maxZ},""floor"":{floor},""base_height"":{height}}}";
 
-    private static string Layer(string id, params string[] shapes) =>
-        $@"{{""id"":""{id}"",""base_y"":0,""layout"":{{""shapes"":[{string.Join(",", shapes)}],""groups"":[]}}}}";
+    private static string Layer(string id, params string[] shapes) => Layer(id, 0, shapes);
+
+    private static string Layer(string id, int baseY, params string[] shapes) =>
+        $@"{{""id"":""{id}"",""base_y"":{baseY},""layout"":{{""shapes"":[{string.Join(",", shapes)}],""groups"":[]}}}}";
 
     private static string Board(params string[] layers) =>
         "{" + Setup + @",""layers"":[" + string.Join(",", layers) + "]}";
@@ -125,6 +127,54 @@ public sealed class SketchSubtractedGroundTests
             Rect("deck", "add", 12, 12, 18, 18, over: true))));
 
         await Assert.That(SketchRasterizer.AddsOverSubtracts(board).Single().Survives).IsTrue();
+    }
+
+    [Test]
+    public async Task A_floor_and_a_ceiling_around_a_subtract_are_a_room_and_say_nothing()
+    {
+        // A room: a mass, a subtract stating the void inside it, and an add either side of that void. The
+        // floor's top stops where the void starts and the ceiling's floor starts where it ends, so neither
+        // holds a course the hole holds and neither is what the rule is about.
+        var board = Read(Board(
+            Layer("rock", Rect("mass", "add", 0, 0, 40, 40, height: 30),
+                          Rect("room", "subtract", 10, 10, 22, 22, floor: 4, height: 7)),
+            Layer("slab", Rect("floor", "add", 12, 12, 20, 20, height: 4)),
+            Layer("cap",  Rect("ceil", "add", 12, 12, 20, 20, floor: 11, height: 19))));
+
+        await Assert.That(SketchRasterizer.AddsOverSubtracts(board)).IsEmpty();
+        await Assert.That(SketchLayoutCheck.Check(board)
+                          .Where(f => f.Rule == SketchRules.DrawnOverSubtraction)).IsEmpty();
+    }
+
+    [Test]
+    public async Task An_add_crossing_the_holes_own_courses_is_the_fill_the_rule_is_for()
+    {
+        // The same floor raised two courses into the void it was standing under. Nothing else moves, and the
+        // only columns it is reported over are the ones where the two now share a course.
+        var board = Read(Board(
+            Layer("rock", Rect("mass", "add", 0, 0, 40, 40, height: 30),
+                          Rect("room", "subtract", 10, 10, 22, 22, floor: 4, height: 7)),
+            Layer("slab", Rect("floor", "add", 12, 12, 20, 20, height: 6))));
+
+        var over = SketchRasterizer.AddsOverSubtracts(board).Single();
+        await Assert.That(over.Add).IsEqualTo("floor");
+        await Assert.That(over.Subtract).IsEqualTo("room");
+        await Assert.That(over.Survives).IsTrue();          // another layer, so the ground is back
+        await Assert.That(over.Cells).IsEqualTo(8 * 8);
+    }
+
+    [Test]
+    public async Task A_ceiling_raised_by_its_layers_base_y_is_still_a_deck_over_the_void()
+    {
+        // The ceiling states floor 0 and stands at course 11, because a floor is stated from its own layer's
+        // base_y. Read as a bare number it sits at the bottom of the hole and fills it; read as the course it
+        // builds at, it is the roof.
+        var board = Read(Board(
+            Layer("rock", Rect("mass", "add", 0, 0, 40, 40, height: 30),
+                          Rect("room", "subtract", 10, 10, 22, 22, floor: 4, height: 7)),
+            Layer("cap", 11, Rect("ceil", "add", 12, 12, 20, 20, height: 19))));
+
+        await Assert.That(SketchRasterizer.AddsOverSubtracts(board)).IsEmpty();
     }
 
     [Test]
