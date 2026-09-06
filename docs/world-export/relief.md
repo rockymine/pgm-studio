@@ -79,7 +79,7 @@ a lake wants.
 
 A solved field reports a seam as terrain. Two marks placed to describe one slope describe a wall instead, and
 the wall arrives in the read-back as a step, a face and a barrier cell — none of them attributed to anything an
-author can go and change, and neither mark looking wrong on its own. `ReliefSolver.ReadMarks` answers the other
+author can go and change, and neither mark looking wrong on its own. `ReliefSolver.Read` answers the other
 question: it walks the pinned ground carrying the id of whichever mark last claimed each cell, and reports
 where two of those territories meet on a drop, naming the pair, the worst cell and how far the boundary runs.
 It costs one pin pass rather than a solve, because a seam is decided before the relaxation ever runs.
@@ -300,6 +300,22 @@ never has to be drawn: the outline already contains it.
 That closes the vocabulary rather than extending it. An explicit centre point, a profile curve per push and a
 brush stack were all considered and are all covered by these two numbers, and each would have cost the property
 that makes the model authorable at all — that a landform is one drawn ring and a few numbers beside it.
+
+**A push therefore climbs at two rates, and the read answers both.** Outside the ring it rises at
+`amount / falloff` over its skirt; inside it rises again at `crown / deepest` from the outline in to the medial
+axis. Both are blocks of rise per block of run, so they compare directly — and where they disagree the landform
+has a step **at its own outline**, a cliff with a hill on top of it, whatever its height. Nothing about the
+surface says so: the readback reports the face, correctly, with no push's name on it, and both numbers are
+knobs an author set one at a time from opposite ends of the document. So `relief/read` answers a `pushes` entry
+per push — its id, its two gradients and how much ground its ring covers — and raises `RL6` where the two run
+more than about twice apart. That ratio is the number actually being chosen: a skirt of 1.7 against a crown of
+1.7 sections as a mountainside at any height, and a skirt of 3.0 against a crown of 1.3 sections as a face at
+any height too. A push stating no crown has one rate and nothing to disagree with, and is not read here. The
+steepest stated amount is what the skirt is read at, since a push carrying one lift per ring vertex is as steep
+as its steepest side.
+
+A push carries an **id** for the reason a mark does: it is a placed thing, and a finding that cannot name which
+one it measured sends an author back to the board to guess. Absent, it is called `push`.
 
 Constraints and pushes are both authored and both fan across the symmetry orbit; what separates them is whether
 the author is stating a fact about the ground or sculpting it.
@@ -987,7 +1003,9 @@ exactly when the paint preview is not.
 
 **The readback sits next to the document it describes.** `POST /map/{slug}/sketch/relief/read` answers, per
 group, what the terrain charges at each of the three thresholds, the places that leaves and the ledges stranded
-off them, the faces with cliffs qualified, crossings counted both ways, and the symmetry error. It is fetched on
+off them, the faces with cliffs qualified, crossings counted both ways, the symmetry error, and — the two rows
+that describe statements rather than ground — the `seams` where two marks meet on a step and the `pushes` with
+each one's two gradients. It is fetched on
 a button rather than on every edit, and it is what makes a relief correctable by a generator or an agent rather
 than only by eye.
 

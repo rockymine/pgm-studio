@@ -146,6 +146,28 @@
           </table>
         }
 
+        @* A push is two slopes, and neither is in the numbers above. Where the two run far apart the ground
+           steps at the push's own outline, which reads back as a face with nothing's name on it. *@
+        @if (group.Pushes.Count > 0)
+        {
+          <table class="readback-table">
+            <thead>
+              <tr><th>Push</th><th>Skirt</th><th>Crown</th><th>Cells</th></tr>
+            </thead>
+            <tbody>
+              @foreach (var push in group.Pushes)
+              {
+                <tr @key="push">
+                  <td>@push.Id</td>
+                  <td>@push.Skirt.ToString("0.0")</td>
+                  <td>@(push.Crown > 0 ? push.Crown.ToString("0.0") : "—")</td>
+                  <td>@push.Cells</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
         @if (group.SilentMarks.Count > 0)
         {
           <p class="section-desc">

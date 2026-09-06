@@ -716,7 +716,7 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
         SketchLayout? state;
         // What the marks did to one another, filled in as each group is solved. A seam is a fact about the
         // statements rather than about the surface, so nothing downstream of the field can recover it.
-        var marks = new Dictionary<string, MarkReading>(StringComparer.Ordinal);
+        var marks = new Dictionary<string, ReliefReading>(StringComparer.Ordinal);
         try
         {
             state = SketchLayout.Parse(layoutJson);
@@ -764,7 +764,10 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
                 read.Level, read.LargestField,
                 [.. (reading?.Seams ?? []).Take(12)
                         .Select(seam => new ReliefSeamDto(seam.A, seam.B, seam.Step, seam.X, seam.Z, seam.Cells))],
-                reading?.Silent ?? []);
+                reading?.Silent ?? [],
+                [.. (reading?.Pushes ?? []).Select(push =>
+                        new ReliefPushGradeDto(push.Id, Math.Round(push.Skirt, 2),
+                                               Math.Round(push.Crown, 2), push.Cells))]);
         }).ToList();
 
         Complaints.Add(HttpContext, complaints);

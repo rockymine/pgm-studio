@@ -234,7 +234,7 @@ public static class SketchRasterizer
     public static Dictionary<string, HeightField> ReliefFields(
         string layoutJson, Func<string, Footprint, double[]?>? warmStart = null,
         Action<string, HeightField>? remember = null,
-        Action<string, MarkReading>? marks = null)
+        Action<string, ReliefReading>? marks = null)
     {
         var state = SketchLayout.Parse(layoutJson);
         if (state?.Relief is not { Count: > 0 } relief) return [];
@@ -657,7 +657,7 @@ public static class SketchRasterizer
     private static Dictionary<string, HeightField> SolveRelief(
         Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes, List<SketchGroup> metas,
         Dictionary<string, SketchReliefJson>? relief, string? mirrorMode, double cx, double cz,
-        Func<string, Footprint, double[]?>? warmStart = null, Action<string, MarkReading>? marks = null)
+        Func<string, Footprint, double[]?>? warmStart = null, Action<string, ReliefReading>? marks = null)
     {
         var solved = new Dictionary<string, HeightField>();
         if (relief is not { Count: > 0 }) return solved;
@@ -756,7 +756,7 @@ public static class SketchRasterizer
 
             // What the marks did to one another, off the same footprint and the same spec the field was
             // solved from — a seam and a mark that landed nowhere are both invisible in the surface.
-            marks?.Invoke(groupId, ReliefSolver.ReadMarks(footprint, spec));
+            marks?.Invoke(groupId, ReliefSolver.Read(footprint, spec));
 
             solved[groupId] = field;
         }

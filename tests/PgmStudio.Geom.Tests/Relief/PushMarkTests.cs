@@ -161,4 +161,72 @@ public sealed class PushMarkTests
         await Assert.That(push.AmountAt(0.99)).IsGreaterThan(push.AmountAt(0.80));
         await Assert.That(push.AmountAt(0)).IsEqualTo(10);
     }
+
+    /// <summary>A push climbs at two rates — <c>amount / falloff</c> over its skirt and
+    /// <c>crown / deepest</c> from its outline in to its medial axis — and where they disagree the landform
+    /// has a step at its own edge. The reading is what lets an author get back from a face to the knob that
+    /// cut it.</summary>
+    [Test]
+    public async Task A_pushs_two_gradients_are_read_and_named()
+    {
+        var footprint = Board();
+        var spec = new ReliefSpec
+        {
+            Base = 5,
+            Marks = [new RimMark(5)],
+            Pushes = [new PushMark(Blob(), Amount: 20, Falloff: 10, Crown: 8) { Id = "knoll" }],
+        };
+
+        var push = ReliefSolver.Read(footprint, spec).Pushes.Single();
+
+        await Assert.That(push.Id).IsEqualTo("knoll");
+        await Assert.That(push.Skirt).IsEqualTo(2).Within(0.001);      // 20 over a falloff of 10
+        await Assert.That(push.Cells).IsGreaterThan(0);
+        // A 16x16 ring runs 8 deep at its middle, so the crown climbs 8 over 8.
+        await Assert.That(push.Crown).IsEqualTo(1).Within(0.2);
+    }
+
+    [Test]
+    public async Task A_push_stating_no_crown_has_one_rate_and_nothing_to_disagree_with()
+    {
+        var footprint = Board();
+        var push = ReliefSolver.Read(footprint, new ReliefSpec
+        {
+            Base = 5,
+            Marks = [new RimMark(5)],
+            Pushes = [new PushMark(Blob(), Amount: 12, Falloff: 6) { Id = "table" }],
+        }).Pushes.Single();
+
+        await Assert.That(push.Skirt).IsEqualTo(2).Within(0.001);
+        await Assert.That(push.Crown).IsEqualTo(0);
+    }
+
+    /// <summary>A push carrying one lift per ring vertex is as steep as its steepest side, so that is what
+    /// the skirt is read at.</summary>
+    [Test]
+    public async Task A_varying_lift_is_read_at_its_steepest_side()
+    {
+        var footprint = Board();
+        var push = ReliefSolver.Read(footprint, new ReliefSpec
+        {
+            Base = 5,
+            Marks = [new RimMark(5)],
+            Pushes = [new PushMark(Blob(), Amount: 0, Falloff: 10, Amounts: [6, 30, 12, 9]) { Id = "ridge" }],
+        }).Pushes.Single();
+
+        await Assert.That(push.Skirt).IsEqualTo(3).Within(0.001);      // 30 over a falloff of 10
+    }
+
+    [Test]
+    public async Task A_push_whose_ring_lands_off_the_group_covers_nothing()
+    {
+        var push = ReliefSolver.Read(Board(), new ReliefSpec
+        {
+            Base = 5,
+            Marks = [new RimMark(5)],
+            Pushes = [new PushMark(Ring((200, 200), (220, 200), (220, 220), (200, 220)), 10) { Id = "adrift" }],
+        }).Pushes.Single();
+
+        await Assert.That(push.Cells).IsEqualTo(0);
+    }
 }
