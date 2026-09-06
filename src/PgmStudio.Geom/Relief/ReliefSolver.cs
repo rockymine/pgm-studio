@@ -71,6 +71,9 @@ public static class ReliefSolver
         var pinned = new double[footprint.Cells];
         var isPinned = new bool[pinned.Length];
         var isRigid = new bool[pinned.Length];
+        // The quantum each cell finishes at, carried the same way the seam reading carries a mark's territory:
+        // the last mark to claim a cell decides it, and ground no mark claimed takes the group's.
+        var stepOf = new int[pinned.Length];
         // Marks resolve in order and a full-weight pin replaces what an earlier one said, which is what lets a
         // bench be drawn over a slope and flatten it. A pin of less than full weight — a mark's outer shoulder
         // — grades that far toward its height from what is already there instead, so two bands that touch meet
@@ -88,7 +91,7 @@ public static class ReliefSolver
                 pinned[index] = weight >= 1
                     ? height
                     : pinned[index] + (height - pinned[index]) * Math.Clamp(weight, 0, 1);
-                isPinned[index] = true; isRigid[index] = mark.Rigid;
+                isPinned[index] = true; isRigid[index] = mark.Rigid; stepOf[index] = mark.Step;
             }
 
         var field = Diffuse(footprint, pinned, isPinned, spec, warmStart, sweeps, cascade);
@@ -121,20 +124,28 @@ public static class ReliefSolver
         if (spec.FoldMode is not null)
         {
             var symmetric = (double[])field.Clone();
+            // The quantum folds with the surface it finishes. A cell and its image that snapped by different
+            // steps would round one continuous height two ways, which is the whole-block disagreement the
+            // fold exists to prevent — and a mark authored on one half states the ground on both.
+            var folded = (int[])stepOf.Clone();
             foreach (var (x, z) in footprint.Land())
             {
                 var (sx, sz) = Fold(x, z, spec);
-                if (footprint.Inside(sx, sz)) symmetric[footprint.Index(x, z)] = field[footprint.Index(sx, sz)];
+                if (!footprint.Inside(sx, sz)) continue;
+                symmetric[footprint.Index(x, z)] = field[footprint.Index(sx, sz)];
+                folded[footprint.Index(x, z)] = stepOf[footprint.Index(sx, sz)];
             }
             field = symmetric;
+            stepOf = folded;
         }
 
         var blocks = new int[field.Length];
-        var step = Math.Max(1, spec.Step);
+        var groupStep = Math.Max(1, spec.Step);
         var baseBlock = (int)Math.Round(spec.Base);
         foreach (var (x, z) in footprint.Land())
         {
             var index = footprint.Index(x, z);
+            var step = stepOf[index] > 0 ? stepOf[index] : groupStep;
             blocks[index] = (int)Math.Round((field[index] - spec.Base) / step) * step + baseBlock;
         }
         return new HeightField(footprint, field, blocks);

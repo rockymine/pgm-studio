@@ -6600,6 +6600,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the `incline` read and this rule all reach, so a paint that picks a material by angle and a rule that
   measures how much of a board is level cannot answer differently about the same ground.
   (`ReliefReadbackTests`, `docs/world-export/relief.md` §2.0)
+- **A mark states the quantum its own ground finishes at (`WE76`).** A relief's `step` is the block quantum
+  the solved surface snaps to, and it was a group's alone — so ground that wants worked terraces and ground
+  that wants a walkable ramp were one setting on one landmass, and what an author reached for instead was a
+  ring of nested area rings terracing themselves by hand. Every mark now carries a `step` of its own, falling
+  back to the group's: a cell takes the step of the **last mark to claim it**, which is the territory
+  `ReliefSolver.Read` already walks for a seam, and ground no mark claimed takes the group's. The quantum
+  **folds with the surface it finishes** — a cell and its image snapping by different steps would round one
+  continuous height two ways, which is the whole-block disagreement between the halves the fold exists to
+  prevent. The panel states it per mark with a readout of which of the two is in force.
+  (`MarkStepTests`, `docs/world-export/relief.md` §4, `docs/tools/sketch.md` § Relief)
+- **`step` is the width of the smallest landform the ground can have, and the model says so (`WE99`).** A
+  surface snapped to a step of two cannot express a one-block rise, so every contour it makes is two blocks
+  tall — which is also what an angle mask makes visible, since at a step of one every contour is a one-block
+  riser and a band cut low enough catches every lip. `relief.md` §4 states the reading, and the per-mark step
+  above is what makes it a local choice rather than a board-wide one.
+  (`docs/world-export/relief.md` §4, `docs/world-export/terrain-painting.md` TP24)
 - **A seam names the two marks that built it (`WE33`).** A solved field reports a wall between two marks as
   terrain — a step, a face, a barrier cell — with no mark's name on any of it, and neither mark looking wrong
   on its own. `ReliefSolver.ReadMarks` walks the pinned ground carrying the id of whichever mark last claimed

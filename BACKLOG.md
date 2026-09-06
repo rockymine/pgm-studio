@@ -215,19 +215,6 @@ binding invents a fourth. `docs/tools/sketch.md`'s finish model is what they lea
 
 ### Relief
 
-- [ ] **WE76 — `step` is keyed once per group, so a bench and a road cannot share a landmass.** A relief's
-  `step` is the block quantum the whole solved surface snaps to, and the schema has no per-mark or per-shape
-  quantum beside it — so ground that wants worked terraces and ground that wants a walkable ramp are one
-  setting on a group and a group is a landmass. Give a mark its own `step`, falling back to the group's, in
-  `SketchReliefJson`'s mark model and in `ReliefSolver`. `docs/world-export/relief.md` §6 and
-  `docs/tools/sketch.md` § the relief document both state the group's step as the only one and change with it.
-
-  *`opus5-scarrow-delph`, one board, the same seventeen marks: `step 1` → 559 scrambles / 603 barriers ·
-  `step 2` → 1881 / 482, and `RL2` goes silent while no row is crossable on foot in either direction ·
-  `step 3` → 12 / 1785 · `step 6` → 2 / 1086 and 31 cliffs. What shipped is four nested `area` rings written
-  outward-in, which terrace themselves at `step 1` and leave the roads at a one-block quantum — a workaround
-  that is better than the knob.*
-
 - [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
   charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
   should share an answer. The materials exist — the share of the board at each passability tier, the detour
@@ -280,17 +267,6 @@ binding invents a fourth. `docs/tools/sketch.md`'s finish model is what they lea
 
   *`opus5-corbel-scar`, section at x=0: two courses of air between the water's top course and both banks.
   `DR-DRY` already counts them — 126 open columns — so the detection exists and the fill does not.*
-
-- [ ] **WE99 — A mask makes the relief field's own quantum visible, and there is no knob under a block.**
-  Relief snaps the surface to `step`, so at `step: 1` every contour is a one-block riser: an angle mask reads
-  27 degrees at each of their lips and nothing between, which is why a mask's first band has to end at 28 to
-  keep the open moor one material (`TP24`). That is a workaround for ground that is terraced by construction.
-  Either state what a sub-block surface would be — the relief solve is already continuous and only the write
-  is quantised — or say in `relief.md` that `step` is the width of the smallest landform the ground can have,
-  which is the fact an author is choosing and nothing says.
-
-  *`opus5-scarp-mask`: a first band ending at 27 stripes the whole board with contour shoulders; ending at 28
-  it is 68% clean moor. The 27 is Horn's gradient over a one-block step and is exact, not a tuning.*
 
 - [ ] **WE32 — A push has two gradients and the read-back reports neither.** A push climbs at `amount /
   falloff` over its skirt and at `crown / half` from the ring's edge to its medial axis, and where those two

@@ -45,6 +45,17 @@ public abstract record Mark
     /// that can never slope, and one course of it lifted is a floor standing over a hole. So a mark placed
     /// for a floor is rigid, and the lift steps over it exactly as the grain already does.</summary>
     public bool Rigid { get; init; }
+
+    /// <summary>The block quantum the ground this mark claims snaps to, or zero for the group's. It is the
+    /// <b>width of the smallest landform that ground can have</b>: at one the surface follows the field cell
+    /// by cell, and at two every riser it makes is a two-block wall.
+    ///
+    /// <para>A quantum is a fact about a landform rather than about a landmass, which is why it sits here as
+    /// well as on the spec. Worked terraces and a walkable ramp are different ground and want different
+    /// numbers, and a bench and a road drawn on one island cannot say so through a single setting. A cell
+    /// takes the step of the last mark to claim it — the same territory the seam reading is taken over — and
+    /// ground no mark claimed takes the group's.</para></summary>
+    public int Step { get; init; }
 }
 
 /// <summary>A summit, a hollow or a spot height: one position, one height, and the radius over which it is
