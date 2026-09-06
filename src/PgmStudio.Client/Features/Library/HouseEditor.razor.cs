@@ -105,14 +105,25 @@ public partial class HouseEditor
         : $"{draft.Storeys} storey{(draft.Storeys == 1 ? "" : "s")} · {RoofForms.Canonical(draft.RoofForm)} roof"
           + $" · door {draft.DoorHeight} tall";
 
+    /// <summary>The six lists the editor's pickers are built from, fetched together. None of them feeds
+    /// another, and nothing renders until the last one lands, so a sequence costs the sum of six round trips
+    /// where the page only ever waits on the slowest — and the styles are the slowest by an order of
+    /// magnitude, since every row carries its own preview picture.</summary>
     protected override async Task OnInitializedAsync()
     {
-        doors = await Library.RoomDoorsAsync();
-        blocks = await Library.BlocksAsync();
-        styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
-        roofs = await Library.ListAsync<RoofStyleSummary>(LibraryKinds.Roofs);
-        storeys = await Library.ListAsync<StoreyStyleSummary>(LibraryKinds.Storeys);
-        porches = await Library.ListAsync<PorchStyleSummary>(LibraryKinds.Porches);
+        var doorsAsked = Library.RoomDoorsAsync();
+        var blocksAsked = Library.BlocksAsync();
+        var stylesAsked = Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+        var roofsAsked = Library.ListAsync<RoofStyleSummary>(LibraryKinds.Roofs);
+        var storeysAsked = Library.ListAsync<StoreyStyleSummary>(LibraryKinds.Storeys);
+        var porchesAsked = Library.ListAsync<PorchStyleSummary>(LibraryKinds.Porches);
+
+        doors = await doorsAsked;
+        blocks = await blocksAsked;
+        styles = await stylesAsked;
+        roofs = await roofsAsked;
+        storeys = await storeysAsked;
+        porches = await porchesAsked;
     }
 
     /// <summary>What the draft was loaded for. A parameter set that does not move the route is the host
