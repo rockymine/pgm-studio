@@ -12,7 +12,7 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **75 open entries over 12,403 words**: a median entry of 146 words and **8 above 250** —
+The two boards carry **75 open entries over 12,431 words**: a median entry of 146 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
 is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 19, `B` 16, `TS` 7,
 `G` 7, `S` 6, `N` 4, `TL` 4, `C` 3, and six others in ones and twos.
@@ -142,13 +142,7 @@ current.
 
 ## The verified defects
 
-Confirmed by reading the code at the cited site. Three stand.
-
-**`TS31`** — `SketchRasterizer.DetachedMasses` (`SketchRasterizer.cs:972`) drops any component sharing no
-column with a second one, so it reports a storey whose stair was never drawn and never an island standing
-*beside* the board, which is the case an author actually draws by accident. The entry has absorbed that
-reading and now states the fix as reporting a component that is neither reached nor over anything, under
-`SK11` rather than a new id — so this is work, not a question.
+Confirmed by reading the code at the cited site. Two stand.
 
 **`B145`** — a role piece reaches the sketch as a role-tagged annotation and the rasterizer skips it outright
 (`SketchRasterizer.cs:1027`, `if (s.Role is not null) continue;`), so the ground under a spawn or wool room is
@@ -358,8 +352,9 @@ until it was answered.
 
 **Phase 1 — the verified defect run.** `B145` and `B57`. Each lands with a test that fails on the old
 behaviour — that is the deliverable, not the fix. `TS74` and `B144` left this way (`FEATURES.md`), and `TS31`
-left it a third way: the ruling it needed says its fault is not `SK11`'s to report, so what remains of the
-entry is a question rather than a defect.
+left it by being withdrawn: the ruling it needed says a sketch cannot judge reachability at all, so the
+reading it wanted is `WS61` at the tier that holds the build zones, and it is information rather than a
+defect.
 
 **Phase 2 — fix the causes, not the entries.** The building's one model (3 entries) is `TODO.md`'s programme
 and is worked to its end first. Then, in the order that maximises what each closes: the measured convention
