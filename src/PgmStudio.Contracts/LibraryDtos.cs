@@ -25,6 +25,9 @@ public record StyleSaveRequest(string Name, [property: WordSet(typeof(MaterialKi
 /// tints — the same picture a style row carries, for the same reason: a name says which pattern it is and the
 /// picture says what it looks like.</summary>
 /// <param name="Id">The row number every later route names it by.</param>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="Kind">Which field this is, from <see cref="BiomeKinds"/>.</param>
+/// <param name="Params">The serialized <c>BiomeField</c>, as JSON text.</param>
 /// <param name="Preview">A top-down patch of grass under the field, as an SVG. Named as every other library
 /// row names its picture, because the browse grid reads one field across every kind.</param>
 public sealed record BiomePatternSummary(long Id, string Name, [property: WordSet(typeof(BiomeKinds))] string Kind,

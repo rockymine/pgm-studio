@@ -153,13 +153,6 @@
             <Button Variant="icon" Icon="library" Href="/library/houses" Title="Open the house library" />
           </div>
         </Field>
-        @if (RoomPreview(kind.Id) is { } views)
-        {
-          <div class="dressing-views">
-            <figure class="theme-section-figure">@((MarkupString)views.Plan)</figure>
-            <figure class="theme-section-figure">@((MarkupString)views.Section)</figure>
-          </div>
-        }
       }
       @if (rooms.Count == 0)
       {

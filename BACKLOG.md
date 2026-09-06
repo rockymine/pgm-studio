@@ -112,6 +112,17 @@ what is gathered here is the parked and dormant slices of the same surface.
   what the brush actually edits, and would also buy a scoped isometric preview of the selection in the
   inspector — the affordable half of a live preview of the built world.
 
+- [ ] **TS101 — A bound room shell reads as the built-in one after a reload.** The Theme phase's room
+  selects show `PickedRoom(kind)`, fed only by `pickedRooms` in
+  `SketchThemeInspector.razor.cs:BindRoom`. `ReadRoomBindings` fills `boundRooms` and `openRooms` on load and
+  never `pickedRooms`, and no finish key records which library row a shell was snapshotted from, so every
+  reload — and every binding written through `PUT /map/{slug}/sketch/room-styles/{part}` — shows
+  `(the built-in shell)` over a board that has a shell bound. Record the row the way `themeSources` (B47) and
+  `biomeSource` do: a `roomStyleSources` in `SketchLayout.FinishKeys`, carried by `sketch-bridge.js`, with a
+  content match through `SameDocument` behind it for a snapshot written over HTTP. Evidence: bind style 13 to
+  `cage` on `biome-demo` over HTTP, open the Theme phase — the select reads `(the built-in shell)` while the
+  `×` beside it, which keys off `boundRooms`, says something is bound.
+
 - [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
   construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),
   and roughly 35 ms of that is its two `GridComponents.Label` passes: one flood fill for plateaus, a second for

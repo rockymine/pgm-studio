@@ -116,14 +116,14 @@ public partial class SketchThemeInspector
 
     /// <summary>The room-style snapshot bound per kind — the JSON itself, which is what the document holds.</summary>
     private readonly Dictionary<string, string> boundRooms = [];
-    /// <summary>Which library row each snapshot was taken from. Presentation only: it re-selects the dropdown
-    /// after a reload and is never what the map exports from.</summary>
+    /// <summary>Which library row each snapshot was taken from, for the rows bound in this session. Presentation
+    /// only — never what the map exports from — and held only in memory: nothing in the finish records it, so a
+    /// binding read back off the board resolves to no row.</summary>
     private readonly Dictionary<string, long> pickedRooms = [];
     /// <summary>The kinds bound to <b>no building</b> — a pad on open ground with nothing over it. Held apart
     /// from <see cref="boundRooms"/> because it is a binding, not a style: the document states an explicit
     /// null for it, which is a different answer from never having asked.</summary>
     private readonly HashSet<string> openRooms = [];
-    private readonly Dictionary<string, RoomStylePreviewDto> roomPreviews = [];
 
     private string? InHand => string.IsNullOrEmpty(Brush) ? null : Brush;
     private bool HasSelection => SelectedGroupId is not null || SelectedShapeId is not null;
@@ -324,7 +324,6 @@ public partial class SketchThemeInspector
 
     /// <summary>Whether this kind is bound to no building.</summary>
     private bool IsOpenRoom(string kind) => openRooms.Contains(kind);
-    private RoomStylePreviewDto? RoomPreview(string kind) => roomPreviews.GetValueOrDefault(kind);
 
     private async Task ReadRoomBindings()
     {
@@ -341,12 +340,10 @@ public partial class SketchThemeInspector
             JsonNode? snapshot = null;
             var present = (state as JsonObject)?.TryGetPropertyValue(kind.Id, out snapshot) is true;
             boundRooms.Remove(kind.Id);
-            roomPreviews.Remove(kind.Id);
             openRooms.Remove(kind.Id);
             if (!present) continue;
             if (snapshot is null) { openRooms.Add(kind.Id); continue; }
             boundRooms[kind.Id] = snapshot.ToJsonString();
-            await RedrawRoom(kind.Id);
         }
         StateHasChanged();
     }
@@ -364,14 +361,13 @@ public partial class SketchThemeInspector
         pickedRooms[kind] = id;
         note = null;
         if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, styleJson);
-        await RedrawRoom(kind);
+        StateHasChanged();
     }
 
     private async Task ClearRoom(string kind)
     {
         boundRooms.Remove(kind);
         pickedRooms.Remove(kind);
-        roomPreviews.Remove(kind);
         openRooms.Remove(kind);
         note = null;
         if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, null);
@@ -384,19 +380,12 @@ public partial class SketchThemeInspector
     {
         boundRooms.Remove(kind);
         pickedRooms.Remove(kind);
-        roomPreviews.Remove(kind);
         openRooms.Add(kind);
         note = null;
         if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, "null");
         StateHasChanged();
     }
 
-    private async Task RedrawRoom(string kind)
-    {
-        if (boundRooms.GetValueOrDefault(kind) is not { } styleJson) return;
-        if (await Library.RoomStyleSnapshotPreviewAsync(styleJson) is { } views) roomPreviews[kind] = views;
-        StateHasChanged();
-    }
 }
 
 /// <summary>The two kinds of room a board binds a shell for. The ids are the wire keys the sketch document

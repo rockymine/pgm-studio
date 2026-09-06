@@ -866,8 +866,8 @@ nothing is selected: the default theme, the board's biome, how many shapes are s
 theme, and the two room shells, in one section rather than two. **Every row there is one library row bound to
 the whole board** — the same statement four times over — so each row carries its own button through to the
 library that holds it and each says what it is bound to by name. The pictures are the library's, and a section
-describing what the board falls back to is a list of bindings rather than a gallery. The order is the order a
-column is built: the paint under everything, the tint over it, then the finish stamped where a room stands.
+describing what the board falls back to is a list of bindings rather than a gallery — no row of it draws what
+it is bound to. The order is the order a column is built: the paint under everything, the tint over it, then the finish stamped where a room stands.
 
 **The map default is the board's; the built-in is stone.** Every bucket of `TerrainTheme.Default` is stone —
 what unpainted ground already is — so a board that names no theme exports as a board that names no theme, and
@@ -889,12 +889,17 @@ exports as. `docs/world-export/terrain-painting.md` §5b is the field itself.
 **Room shells** are two more of those bindings, and they are a fallback in the same sense the default theme
 is: one shell for every wool cage and one for every spawn cube. What separates them from the theme and the
 biome is reach, not kind — a shell finishes only where a room stands — which is why they are rows in the same
-section rather than a section of their own. Two bindings and no more — rooms are fanned
+section rather than a section of their own, and why a bound shell says its name and draws nothing: the plan
+and the section of a shell are the house library's pictures, and `POST /room-styles/preview-snapshot` is what
+draws one from a snapshot outside the UI. Two bindings and no more — rooms are fanned
 across the symmetry orbit so both sides face the same building, and a per-room shell would be a sightline that
 differed between teams. What is stored is the composed style's **JSON snapshot**, not the library id it came
 from, so editing the library afterwards cannot rebuild a shipped map's rooms. Each binding has three states,
 and they are genuinely distinct: absent stamps that kind's built-in shell, an object stamps the bound style,
-and an explicit null means no building at all — a pad on open ground.
+and an explicit null means no building at all — a pad on open ground. The finish records the shell but not
+the row it was snapshotted from, so a binding read back off the board — after a reload, or written straight to
+the endpoint — shows in the select as the built-in shell (`TS101`); the clear beside it, which reads the
+snapshot rather than the row, is what says something is bound.
 
 ```json
 { "roomStyles": { "cage": { "form": "gable", "pitch": 1 }, "spawn": null } }

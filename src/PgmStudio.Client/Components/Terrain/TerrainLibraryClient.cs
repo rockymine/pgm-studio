@@ -156,11 +156,6 @@ public sealed class TerrainLibraryClient(HttpClient http)
     public async Task<IReadOnlyList<DoorOptionDto>> RoomDoorsAsync()
         => await GetOrDefault<List<DoorOptionDto>>("api/room-styles/doors") ?? [];
 
-    /// <summary>The shell a <em>bound</em> style stamps. Previewed from the snapshot the map holds, never from
-    /// the library row it came from — the row may have moved on since.</summary>
-    public Task<RoomStylePreviewDto?> RoomStyleSnapshotPreviewAsync(string styleJson)
-        => PostJsonDocument<RoomStylePreviewDto>("api/room-styles/preview-snapshot", styleJson);
-
     /// <summary>Lift a whole theme JSON into the library as one style per bucket plus a theme binding them.
     /// Returns the new theme's id, or null when the JSON was refused.</summary>
     public async Task<long?> ImportThemeAsync(string name, string themeJson)
