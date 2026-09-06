@@ -58,6 +58,57 @@ public partial class SketchThemeInspector
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
     private IReadOnlyList<ThemeSummary> libraryThemes = [];
+
+    /// <summary>The biome library's rows, each with the patch of ground it tints — what the map's biome is
+    /// picked from. A field is authored in the library and only chosen here, so this select is the whole of
+    /// the phase's biome surface.</summary>
+    private IReadOnlyList<BiomePatternSummary> biomePatterns = [];
+
+    /// <summary>The library row the board's field was copied from, as its id, or 0 for a board that states no
+    /// field. Kept beside the snapshot the way a theme's source is: a map holds the field itself, and this is
+    /// what says which row it came from so the select can show it.</summary>
+    [Parameter] public long BiomeSource { get; set; }
+
+    /// <summary>The board's field changed; the tool re-reads it off the bridge.</summary>
+    [Parameter] public EventCallback BiomeChanged { get; set; }
+
+    /// <summary>The board's field as its JSON text, or empty for a board that states none.</summary>
+    [Parameter] public string? BiomeJson { get; set; }
+
+    private string BiomeChoice => (HeldBiome?.Id ?? 0).ToString();
+
+    /// <summary>
+    /// The library row the board's field is, or null where it is none of them.
+    ///
+    /// <para>The recorded row first, and the field's own <b>content</b> after it: a field written over HTTP
+    /// records no row, and one of the flat presets is what most boards state, so matching the document is what
+    /// stops the select reading "none" over a board that plainly has a field. Compared as parsed values rather
+    /// than as text, since key order and whitespace are serialization.</para></summary>
+    private BiomePatternSummary? HeldBiome =>
+        biomePatterns.FirstOrDefault(pattern => pattern.Id == BiomeSource)
+        ?? (string.IsNullOrWhiteSpace(BiomeJson)
+            ? null
+            : biomePatterns.FirstOrDefault(pattern => SameDocument(pattern.Params, BiomeJson)));
+
+    /// <summary>Whether the board states a field the library does not hold — what the select says instead of
+    /// claiming the board has none.</summary>
+    private bool BiomeOffLibrary => !string.IsNullOrWhiteSpace(BiomeJson) && HeldBiome is null;
+
+    private IReadOnlyList<SelectOption> BiomePatterns =>
+        [.. biomePatterns.Select(pattern => new SelectOption(pattern.Id.ToString(), pattern.Name))];
+
+    /// <summary>Copy a library pattern onto the board, or take the field off with the unbound row. The field
+    /// itself is snapshotted the way a theme is — editing the library row afterwards retints nothing — and the
+    /// row it came from is recorded beside it so the select can say which one is held.</summary>
+    private async Task SetMapBiome(string value)
+    {
+        if (Handle is null) return;
+        var row = long.TryParse(value, out var id) ? id : 0;
+        var picked = biomePatterns.FirstOrDefault(pattern => pattern.Id == row);
+        await Handle.InvokeAsync<string?>("setBiome", picked?.Params ?? "", picked?.Id ?? 0);
+        await BiomeChanged.InvokeAsync();
+        await OnChanged.InvokeAsync();
+    }
     private IReadOnlyList<RoomStyleSummary> rooms = [];
     private ThemePreviewDto? preview;
     private (string? Held, int Revision) previewedFor;
@@ -81,6 +132,7 @@ public partial class SketchThemeInspector
     {
         libraryThemes = await Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
         rooms = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
+        biomePatterns = await Library.ListAsync<BiomePatternSummary>(LibraryKinds.Biomes);
         await ReadRoomBindings();
     }
 

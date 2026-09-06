@@ -1170,6 +1170,11 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 
 .dressing-refusal { background: var(--color-error-bg); color: var(--color-error); }
 
+/* The patch of ground the board's biome tints, under the select that picked it. Sized to the card the
+   library draws rather than to the panel, so it reads as the same picture in both places. */
+.theme-biome-card { width: 120px; margin-top: var(--space-2); }
+.theme-biome-card svg { width: 100%; height: auto; display: block; border-radius: var(--radius-sm); }
+
 /* The ground colour a biome tints with, beside the biome it belongs to. A flat fill rather than a picture,
    so it carries its own size — `.lib-bind-swatch` takes its from the SVG it wraps and collapses without one. */
 .biome-swatch {

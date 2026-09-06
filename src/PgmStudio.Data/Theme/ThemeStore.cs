@@ -6,7 +6,8 @@ using PgmStudio.Data.Schema;
 namespace PgmStudio.Data.Theme;
 
 /// <summary>
-/// Persistence for the terrain-paint theme / style library (the M0011 tables, B44). Thin over linq2db: a
+/// Persistence for the terrain-paint library — the M0011 theme/style tables and the M0032 biome patterns.
+/// Thin over linq2db: a
 /// <see cref="StyleRow"/> is one reusable material recipe, a <see cref="ThemeRow"/> plus its
 /// <see cref="ThemeBucketRow"/> bindings is a composition of styles. The store stays row-level (strings +
 /// scalars) — turning a theme's rows into the <c>TerrainTheme</c> the painter consumes is a composition-root
@@ -45,6 +46,31 @@ public sealed class ThemeStore(PgmDb db)
 
     public Task<int> DeleteStyleAsync(long id, CancellationToken ct = default)
         => db.Styles.Where(s => s.Id == id).DeleteAsync(ct);
+
+    // ── biome patterns ──────────────────────────────────────────────────────────
+    // Shaped like a style and stored beside one: a name, a kind and one serialized field. Nothing binds a
+    // pattern — a map takes a snapshot copy the way it does a theme — so a delete asks nobody.
+    /// <summary>Biome patterns, newest first, optionally one <see cref="PgmStudio.Vocabulary.BiomeKinds"/>.</summary>
+    public Task<List<BiomePatternRow>> ListBiomesAsync(string? kind = null, CancellationToken ct = default)
+        => (kind is null ? db.BiomePatterns : db.BiomePatterns.Where(b => b.Kind == kind))
+            .OrderByDescending(b => b.Id).ToListAsync(ct);
+
+    public Task<BiomePatternRow?> GetBiomeAsync(long id, CancellationToken ct = default)
+        => db.BiomePatterns.FirstOrDefaultAsync(b => b.Id == id, ct);
+
+    public Task<long> CreateBiomeAsync(BiomePatternRow row, CancellationToken ct = default)
+    {
+        row.CreatedAt = DateTime.UtcNow;
+        return db.InsertWithInt64IdentityAsync(row, token: ct);
+    }
+
+    public Task<int> UpdateBiomeAsync(long id, string name, string kind, string paramsJson, CancellationToken ct = default)
+        => db.BiomePatterns.Where(b => b.Id == id)
+            .Set(b => b.Name, name).Set(b => b.Kind, kind).Set(b => b.Params, paramsJson)
+            .UpdateAsync(ct);
+
+    public Task<int> DeleteBiomeAsync(long id, CancellationToken ct = default)
+        => db.BiomePatterns.Where(b => b.Id == id).DeleteAsync(ct);
 
     /// <summary>The names of the themes still binding a style, newest first — empty when nothing does. A style
     /// is shared, so a caller asks this before deleting one and can say which themes would break instead of

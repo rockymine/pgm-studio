@@ -23,4 +23,16 @@ public static class BiomeKinds
 
     /// <summary>The three, in the order a control offers them.</summary>
     public static readonly string[] All = [Solid, Cell, Noise];
+
+    /// <summary>What a kind does, in one sentence — what a picker reads under the word.</summary>
+    public static string Describe(string? kind) => Canonical(kind) switch
+    {
+        Cell => "Jittered regions, each taking one biome from the palette — the shape a biome map actually has",
+        Noise => "A field cut into bands, one biome per band, so regions wander into one another",
+        _ => "One biome over the whole area",
+    };
+
+    /// <summary>The word, or <see cref="Solid"/> for one that is not a kind — the plainest field, and what an
+    /// unstated one means.</summary>
+    public static string Canonical(string? kind) => All.Contains(kind) ? kind! : Solid;
 }

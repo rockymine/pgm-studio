@@ -114,6 +114,25 @@
         </ChildContent>
       </Field>
       <p class="section-desc">@Coverage</p>
+
+      @* A biome places no block — it is the byte a client reads to tint grass, leaves and water — so it is a
+         board default like the map theme rather than something placed. Picked, never authored here: a field is
+         a library row, and the row's own editor is where its palette and its scale are chosen. *@
+      <Field Label="Map biome">
+        <LabelHint>(what tints every column — grass, leaves and water)</LabelHint>
+        <ChildContent>
+          <div class="lib-bind">
+            <Select Options="BiomePatterns" Value="@BiomeChoice" ValueChanged="SetMapBiome"
+                    Placeholder="@(BiomeOffLibrary ? "(a field the library does not hold)" : "(none — plains everywhere)")"
+                    PlaceholderValue="0" />
+            <Button Variant="icon" Icon="library" Href="/library/biomes" Title="Open the biome library" />
+          </div>
+        </ChildContent>
+      </Field>
+      @if (HeldBiome is { } biome)
+      {
+        <div class="theme-biome-card">@((MarkupString)biome.Preview)</div>
+      }
     </Section>
 
     <Section Title="Room shells">

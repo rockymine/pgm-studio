@@ -40,6 +40,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         var built = await SeedPartsAsync(bound, ct);
         var themes = await SeedThemesAsync(ct);
         await SeedRecipesAsync(ct);
+        await SeedBiomesAsync(ct);
         return new Tally(
             bound.Added, bound.Updated, added + built.Added, updated + built.Updated,
             themes.Added, themes.Updated);
@@ -79,6 +80,31 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             if (rocks.Contains(name)) continue;
             await props.CreateBoulderAsync(PropStyleLibrary.RowOf(new BoulderStyleSaveRequest(
                 name, form, size, Mossy: true, """{"kind":"solid","id":1,"data":0}""")), ct);
+        }
+    }
+
+    // ── the biome patterns ────────────────────────────────────────────────────────────────────────────
+    /// <summary>One flat pattern per named biome, so wanting a board that is simply desert is a pick rather
+    /// than a document to write. They are the whole library out of the box: a field of several biomes is a
+    /// composition an author makes, and one biome everywhere is the plainest thing to say and the most asked
+    /// for.
+    ///
+    /// <para>Idempotent by name like every other seed here, so a preset an author has since retuned keeps
+    /// their numbers.</para></summary>
+    private async Task SeedBiomesAsync(CancellationToken ct)
+    {
+        var named = (await styles.ListBiomesAsync(ct: ct))
+            .Select(row => row.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (id, name) in PgmStudio.Minecraft.Palette.Biome.All)
+        {
+            if (named.Contains(name)) continue;
+            await styles.CreateBiomeAsync(new BiomePatternRow
+            {
+                Name = name,
+                Kind = BiomeKinds.Solid,
+                Params = TerrainThemeJson.SerializeBiome(new SolidBiome(id)),
+            }, ct);
         }
     }
 

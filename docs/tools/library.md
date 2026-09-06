@@ -6,22 +6,24 @@ The library is where a material is authored once and reused. It is the only tool
 nothing about maps: no slug, no stage, no map row anywhere in it. What it holds is recipes, and the tools that
 build worlds reach into it to pick one.
 
-Eight kinds, in two families. Six **compose upward**: **Styles** — a style is one material; **Themes** — a
+Nine kinds, in three families. Six **compose upward**: **Styles** — a style is one material; **Themes** — a
 terrain finish made of styles; **Roofs**, **Storeys** and **Porches** — the parts a building binds, each made
 of styles; **Houses** — a whole building made of parts and styles. Two are **recipes a click puts down**:
-**Trees** and **Boulders**, which compose nothing and are what a placement names. A style is browsed by what it
-looks like, everything above it by what it composes to, and a recipe by what it builds. A house's row is a
-`room_style` and composes to a `HouseStyle`; the surface calls it what the thing is.
+**Trees** and **Boulders**, which compose nothing and are what a placement names. One places nothing at all:
+**Biomes**, the byte each column carries, which tints the ground without adding a block. A style is browsed by
+what it looks like, everything above it by what it composes to, a recipe by what it builds, and a biome by the
+ground it colours. A house's row is a `room_style` and composes to a `HouseStyle`; the surface calls it what
+the thing is.
 
-Three routes, and the rail carries the eight kinds. `/library` is the chooser — one card per kind over its own
+Three routes, and the rail carries the nine kinds. `/library` is the chooser — one card per kind over its own
 count and a picture of what it holds. `/library/{kind}` browses that kind: a strip carrying a name search,
 whatever else the kind filters by, and **New**, over a grid of cards. `/library/{kind}/{id}`, or
 `/library/{kind}/new`, opens one entry on a page of its own.
 
-Two tools consume the library. The Sketch tool's Theme phase pulls a theme in and pushes one back out, and
-binds a room style as the shell every wool cage and spawn cube is stamped with; the Dressing phase names a
-room style, a tree recipe or a boulder recipe on each placement, pulling the row it picked into the map's own
-registry. Nothing else reads it.
+Two tools consume the library. The Sketch tool's Theme phase pulls a theme in and pushes one back out, binds a
+room style as the shell every wool cage and spawn cube is stamped with, and picks the biome the board's columns
+carry; the Dressing phase names a room style, a tree recipe or a boulder recipe on each placement, pulling the
+row it picked into the map's own registry. Nothing else reads it.
 
 ## What it writes
 
@@ -345,6 +347,37 @@ what is left to it is its shape.
 
 Every part's picture stands it on a plain sample building, so what differs between two cards is the part and
 never the house around it.
+
+### A biome is the colour a column carries
+
+A `biome_pattern` row carries a name, a kind and `params` — the serialized `BiomeField` the export itself
+reads. It is shaped like a style and stored beside one because it is the same kind of thing: one recipe, named
+once and reused. What it states is not a block but the byte a client reads to tint grass, leaves and water, so
+a board wearing one changes colour without a single extra block being placed.
+
+The three kinds are the three a field takes. **`solid`** is one biome over the whole area — the plainest thing
+to say, and what the sixteen seeded presets are: one per named biome, so a board that is simply desert is a
+pick rather than a document to write. **`cell`** is jittered regions each taking one biome from a palette,
+which is the shape a biome map actually has, and states a `seed`, a `cellSize` in blocks and a `jitter` from 0
+(a grid) to 100 (a fully wandering boundary). **`noise`** is a fractal field cut into bands, one biome per
+band, so regions wander into one another rather than meeting on a cell wall; it states a `seed`, a `scale` in
+blocks and `octaves`.
+
+```json
+{ "kind": "cell", "seed": 91, "cellSize": 45, "jitter": 85, "palette": [1, 4, 5] }
+```
+
+**The card is a patch of grass seen from above, under the field.** Grass because it is the block a biome moves
+most and the one a board is mostly made of, so the picture shows the difference an author is actually choosing
+between — a `solid` row reads as a flat green and a `cell` row draws the regions it will lay down. It is
+measured in blocks at the size an area pattern's style card uses, since a biome field is read in blocks
+exactly as one is, and it is drawn through the export's own palette and biome tints, so a card cannot promise
+a colour the game will not show.
+
+**A map takes a copy, never a key.** Picking a pattern in the sketch's Theme phase copies the field onto the
+board (`biome`) and records the row it came from (`biomeSource`), the same doctrine a theme and a room shell
+follow: editing a library pattern must never silently retint a shipped map. Nothing binds a row, so forgetting
+one asks no question and changes no board.
 
 ### A tree and a boulder are recipes a click puts down
 
@@ -672,7 +705,9 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}`. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
 | `GET /tree-styles/{id}/json` · `GET /boulder-styles/{id}/json` | the recipe as a dressing document states it, as `{styleJson: "…"}` — what a pull copies into a map's `styles` registry under a key |
 | `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette, and every material kind with its fields, defaults and the cell facts it varies with |
-| `GET /terrain/biomes` | the biomes a map's field may name — `{id, name, hex}` per row, the colour being the grass tint choosing it produces (`docs/world-export/terrain-painting.md` §5b) |
+| `GET /terrain/biomes` | the biomes a field may name — `{id, name, hex}` per row, the colour being the grass tint choosing it produces (`docs/world-export/terrain-painting.md` §5b) |
+| `GET`·`POST`·`PUT`·`DELETE /biome-patterns[/{id}]` | the biome library; each row `{id, name, kind, params, preview}`, the preview being a patch of grass under the field. `POST`/`PUT` answer 400 `malformed biome` when `params` does not read as a field. A delete asks nothing: a map holds a snapshot |
+| `POST /biome-patterns/preview` | what a draft field draws, saving nothing — body is a **bare** `BiomeField`, unwrapped, answering `{card}` |
 | `POST /terrain/material-preview` | one material drawn in plan and section — body is a **bare material**, `{kind, …}`, unwrapped. One column, not an area: a pattern cannot be judged from it |
 | `POST /terrain/theme-preview` · `POST /terrain/theme-map-preview` | a whole theme as it will paint — the first over a sample plateau cut open plus one swatch per themeable bucket, the second over a compiled plan, so a theme is judged against the board it will dress rather than against a sample. Body is a **bare theme**, unwrapped |
 | `POST /terrain/prop-preview` | one placed prop standing on the finish it will stand on — body `{propJson, themeJson}`, because what the paint leaves on top is what decides whether flora grows at all |
@@ -745,7 +780,8 @@ Both `/json` endpoints answer a **string in a field** rather than the document �
 `{styleJson: "…"}` — so what a sketch stores is the parse of that string, not the response.
 
 **The built-in presets are put in at startup, not by a migration.** `LibrarySeed` runs as the API comes up and
-writes five of the six libraries: the materials the house presets are made of, the storeys, roofs and porches
+writes six of the nine libraries — the sixteen flat biome patterns among them, one per named biome, so the
+select that picks one is never empty and a board that is simply desert needs nothing authored. It writes: the materials the house presets are made of, the storeys, roofs and porches
 they are built from, the houses that bind those, and six terrain finishes — `meadow`, `dunes`, `ashfall`,
 `firnline`, `claybed`, `oldstone` — decomposed out of `ThemePresets` into one style per bucket plus a theme
 binding them. It is idempotent and keyed by name: a row already there is updated in place and keeps the id

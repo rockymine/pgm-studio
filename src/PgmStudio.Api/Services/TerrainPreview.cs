@@ -98,7 +98,7 @@ public static class TerrainPreview
 
         // The biome the export would write, written into this world too, so the overlay's colours come off
         // the same pass the world does rather than off a second reading of the same document.
-        BiomeScope.Paint(terrain.World, BiomeScope.FieldOf(layoutJson), BiomeScope.PatchesOf(layoutJson),
+        BiomeScope.Paint(terrain.World, BiomeScope.FieldOf(layoutJson),
                          DressingScope.SymmetryOf(layoutJson).Canonical);
 
         var themeAt = TerrainThemeScope.ThemeAt(layoutJson);

@@ -58,6 +58,12 @@ public sealed class SketchLayout
     /// through <c>BiomeScope</c>, which does.</para></summary>
     [JsonPropertyName("biome")] public JsonElement? Biome { get; set; }
 
+    /// <summary>Which library row <see cref="Biome"/> was copied from, or absent for a board whose field came
+    /// from none — one written over HTTP, or none at all. The field itself is the snapshot the export reads;
+    /// this only says which row it came from, so the phase that picked it can show which one is held. It is
+    /// the note a copied theme carries in <see cref="ThemeSources"/>, for one field rather than a registry.</summary>
+    [JsonPropertyName("biomeSource")] public long? BiomeSource { get; set; }
+
     /// <summary>Interior elevation, keyed by group id. It rides at the top level rather than inside the
     /// shapes because a plan recompile replaces every shape it produced and a relief is hand work a plan
     /// cannot express, so it is carried across one under its own rule.</summary>
@@ -82,7 +88,7 @@ public sealed class SketchLayout
     /// and the biome the ground is tinted by. A plan states where the ground is and nothing about how it
     /// looks, so a layout compiled from one carries none of them.</summary>
     public static readonly string[] FinishKeys =
-        ["themes", "themeSources", "mapTheme", "roomStyles", "dressing", "biome"];
+        ["themes", "themeSources", "mapTheme", "roomStyles", "dressing", "biome", "biomeSource"];
 
     /// <summary>
     /// A freshly compiled layout with the finish of the layout the map already holds carried onto it.

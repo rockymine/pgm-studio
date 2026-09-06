@@ -45,6 +45,30 @@ public static class StylePreview
         int columns = 32, int cell = 4)
         => PlanRaster(material, bucket, columns, cell).Svg();
 
+    /// <summary>
+    /// A biome field over a patch of ground, seen from above — a grass block per column, tinted by whatever
+    /// the field answers there.
+    ///
+    /// <para>Grass because it is the block a biome moves most and the one a board is mostly made of, so the
+    /// card shows the difference an author is actually choosing between. A <c>solid</c> field is therefore a
+    /// flat square of that biome's own green, and a <c>cell</c> or a <c>noise</c> field draws its regions at
+    /// the scale it states — which is why the patch is measured in blocks like any other area pattern rather
+    /// than at the swatch size a single colour would need.</para>
+    /// </summary>
+    public static string BiomeSvg(BiomeField field, int columns = BiomeColumns, int cell = BiomeCell)
+        => BiomeRaster(field, columns, cell).Svg();
+
+    /// <summary>The same patch before an encoding is chosen, so the card's SVG and an agent's PNG are one
+    /// derivation.</summary>
+    public static CellRaster BiomeRaster(BiomeField field, int columns = BiomeColumns, int cell = BiomeCell)
+        => new(columns, columns, cell,
+            (x, z) => BlockPalette.Hex(Blocks.Grass, 0, field.At(x, z), x, z));
+
+    /// <summary>The patch a biome card draws, in blocks, and the pixels a block gets — the size an area
+    /// pattern's style card uses, since a biome field is read in blocks exactly as one is.</summary>
+    private const int BiomeColumns = 60;
+    private const int BiomeCell = 2;
+
     /// <summary>The plan view as the picture it is, before an encoding is chosen — <see cref="CellRaster"/>
     /// is what lets the SVG a card shows and the PNG an agent asks for be one derivation.</summary>
     public static CellRaster PlanRaster(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,

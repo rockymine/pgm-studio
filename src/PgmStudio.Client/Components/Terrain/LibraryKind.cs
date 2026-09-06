@@ -20,8 +20,9 @@ public sealed record LibraryKind(
     string Slug, string Route, string Title, string One, string Icon, string Blurb,
     bool DraftPreview = true, bool Composed = false);
 
-/// <summary>The six libraries, in the order they compose: a style is one material, a theme is a finish made of
-/// styles, a roof, a storey and a porch are the parts a house binds, and a house is the whole building.</summary>
+/// <summary>The libraries, in the order they compose: a style is one material, a theme is a finish made of
+/// styles, a roof, a storey and a porch are the parts a house binds, a house is the whole building, a tree and
+/// a boulder are what a click puts down, and a biome is the colour a column carries.</summary>
 public static class LibraryKinds
 {
     // The route segments as constants, because a switch over a kind needs them at compile time.
@@ -33,6 +34,7 @@ public static class LibraryKinds
     public const string HousesSlug = "houses";
     public const string TreesSlug = "trees";
     public const string BouldersSlug = "boulders";
+    public const string BiomesSlug = "biomes";
 
     public static readonly LibraryKind Styles = new(
         StylesSlug, "styles", "Styles", "style", "paintbrush",
@@ -84,8 +86,17 @@ public static class LibraryKinds
         + "sky-lit faces. Cut from any material a style may be.",
         Composed: true);
 
+    /// <summary>A biome field is a recipe like a material is — a kind, a scale and a palette — so it is named
+    /// once here and picked wherever it is applied, rather than authored in the phase that applies it. It
+    /// places no block: what a row states is which byte each column carries, and the card shows the ground
+    /// that byte tints.</summary>
+    public static readonly LibraryKind Biomes = new(
+        BiomesSlug, "biome-patterns", "Biomes", "biome", "sun",
+        "Which biome each column of the exported world carries — one byte that tints grass, leaves and water, "
+        + "and places nothing. One biome everywhere, jittered regions, or a field cut into bands.");
+
     public static readonly IReadOnlyList<LibraryKind> All =
-        [Styles, Themes, Roofs, Storeys, Porches, Houses, Trees, Boulders];
+        [Styles, Themes, Roofs, Storeys, Porches, Houses, Trees, Boulders, Biomes];
 
     /// <summary>The kind a route segment names, or null where it names none.</summary>
     public static LibraryKind? Of(string? slug) =>

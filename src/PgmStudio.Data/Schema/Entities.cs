@@ -469,6 +469,18 @@ public sealed class StyleRow
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }
 
+/// <summary>One named biome field (see M0032) — its kind and the serialized <c>BiomeField</c> under it. Shaped
+/// like a <see cref="StyleRow"/> because it is the same kind of thing: one recipe, named once and reused.</summary>
+[Table("biome_pattern")]
+public sealed class BiomePatternRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("kind"), NotNull] public string Kind { get; set; } = "";
+    [Column("params_json"), NotNull] public string Params { get; set; } = "";
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
 /// <summary>A terrain-paint theme's geometry knobs (see M0011). The per-bucket materials live in
 /// <see cref="ThemeBucketRow"/> — a theme is a composition of styles, not a monolith.</summary>
 [Table("theme")]

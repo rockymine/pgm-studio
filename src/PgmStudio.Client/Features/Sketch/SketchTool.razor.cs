@@ -80,13 +80,33 @@ public partial class SketchTool
         ApplyThemes(await handle.InvokeAsync<string>("getThemes"));
     }
 
-    /// <summary>Re-read the map-wide biome field off the bridge — after a load, and after the inspector has
-    /// written one.</summary>
+    /// <summary>Which library row the board's biome was copied from, or 0 for a board that states none and for
+    /// one whose field came from outside the library. The field itself is the layout's; this is what the Theme
+    /// phase's select shows as held.</summary>
+    private long biomeSource;
+
+    /// <summary>The board's field as its JSON text, or empty for a board that states none. Carried beside the
+    /// source because a field written over HTTP records no row, and matching it against the library is what
+    /// stops the select reading "none" over a board that plainly has one.</summary>
+    private string biomeJson = "";
+
+    /// <summary>Re-read the board's biome off the bridge — after a load, and after the inspector has set
+    /// one.</summary>
     private async Task ReadBiome()
     {
         if (handle is null) return;
-        biomeJson = await handle.InvokeAsync<string>("getBiome");
+        ApplyBiome(await handle.InvokeAsync<string>("getBiome"));
         StateHasChanged();
+    }
+
+    private void ApplyBiome(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        biomeSource = root.TryGetProperty("source", out var source) && source.ValueKind == JsonValueKind.Number
+            ? source.GetInt64() : 0;
+        biomeJson = root.TryGetProperty("field", out var field) && field.ValueKind == JsonValueKind.Object
+            ? field.GetRawText() : "";
     }
 
     private void ApplyThemes(string json)
@@ -127,10 +147,6 @@ public partial class SketchTool
     // The Theme phase keeps its create/apply split because a theme genuinely is a recipe authored once.
     private bool DressingActive => active == "dressing";
     private string dressingJson = "";
-    /// <summary>The map-wide biome field as its JSON text, or empty for a board that states none. Read off
-    /// the bridge with the rest of the board's finish, so the Dressing phase's control and the document
-    /// cannot disagree about what is stated.</summary>
-    private string biomeJson = "";
     private Task GoDressing() { tool = DressingTools.Tree; return SetPhase("dressing"); }
 
     // ── Relief phase (docs/world-export/relief.md §15) ──
@@ -221,8 +237,7 @@ public partial class SketchTool
         // A brush and the panel that fills it only exist while the phase that hands one out is up.
         if (phase != "theme") { themeAddOpen = false; await SetThemeBrush(""); }
         if (phase == "relief") reliefOn = true;
-        if (phase == "theme") await ReadThemes();
-        if (phase == "dressing") await ReadBiome();
+        if (phase == "theme") { await ReadThemes(); await ReadBiome(); }
         await PushPhaseOverlays(phase);
     }
 
@@ -619,9 +634,9 @@ public partial class SketchTool
     [JSInvokable]
     public void OnDressing(string json) { dressingJson = json; StateHasChanged(); }
 
-    /// <summary>The map-wide biome field changed on the bridge.</summary>
+    /// <summary>The board's biome changed on the bridge.</summary>
     [JSInvokable]
-    public void OnBiome(string json) { biomeJson = json; StateHasChanged(); }
+    public void OnBiome(string json) { ApplyBiome(json); StateHasChanged(); }
 
     [JSInvokable]
     public void OnRelief(string json) { reliefJson = json; reliefRevision++; StateHasChanged(); }

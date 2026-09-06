@@ -225,11 +225,6 @@ export class DressingDoc {
   // unstacked board has always meant.
   #layer = "";
 
-  // The biome patches drawn on the board, in the order they were drawn. They place no block, so nothing here
-  // draws or edits one yet (TS101) — but they ride in this document, and a document model that read them and
-  // did not write them back would drop an author's patches on the next save.
-  #biomes = [];
-
   /** Read a stored document. Anything unrecognised is dropped rather than carried as a shape nothing can
    *  edit — a prop kind the client does not know is a prop the client cannot draw. */
   static from(stored) {
@@ -239,9 +234,6 @@ export class DressingDoc {
       doc.#props.push({ ...prop, id: prop.id || doc.#mintId() });
     }
     if (stored?.styles && typeof stored.styles === "object") doc.#styles = { ...stored.styles };
-    for (const patch of stored?.biomes ?? []) {
-      if (Array.isArray(patch?.points) && patch.points.length >= 3 && patch?.field) doc.#biomes.push({ ...patch });
-    }
     doc.#nextId = Math.max(doc.#nextId, ...doc.#props.map(p => (parseInt(String(p.id).replace(/\D/g, ""), 10) || 0) + 1));
     return doc;
   }
@@ -249,15 +241,9 @@ export class DressingDoc {
   /** The stored form — exactly what the pass deserializes. The registry rides with the placements, because a
    *  key naming no recipe is a refusal and a document is the only thing that can carry both. */
   toJSON() {
-    const doc = { props: this.#props };
-    if (Object.keys(this.#styles).length) doc.styles = this.#styles;
-    if (this.#biomes.length) doc.biomes = this.#biomes;
-    return doc;
+    return Object.keys(this.#styles).length ? { props: this.#props, styles: this.#styles }
+                                            : { props: this.#props };
   }
-
-  /** The biome patches the board carries. Read-only until something draws one (TS101); they are here so a
-   *  round trip through the editor keeps them. */
-  get biomes() { return this.#biomes; }
 
   /** The recipes this document names. */
   get styles() { return this.#styles; }
@@ -285,7 +271,7 @@ export class DressingDoc {
   }
 
   get props() { return this.#props; }
-  get isEmpty() { return this.#props.length === 0 && this.#biomes.length === 0; }
+  get isEmpty() { return this.#props.length === 0; }
 
   byId(id) { return this.#props.find(prop => prop.id === id) ?? null; }
 

@@ -1,0 +1,97 @@
+@namespace PgmStudio.Client.Features.Library
+@using PgmStudio.Client.Components
+@using PgmStudio.Contracts
+@using PgmStudio.Vocabulary
+
+@* One named biome field. It places no block — it is the byte a client reads to tint grass, leaves and water —
+   so there is no geometry to draw and the whole of it is its numbers plus a patch of ground showing what they
+   do. A map takes a copy of the row it picks, the way it does with a theme. *@
+
+<LibraryEditor Kind="Kind" Name="@draftName" NameChanged="SetName" Nests="false"
+               Outline="Outline" Selected="@FieldPart" OnSelect="_ => Task.CompletedTask"
+               Note="@note" Footnote="@Footnote">
+  <Preview>
+    @if (card is not null)
+    {
+      <figure class="theme-section-figure">@((MarkupString)card)</figure>
+    }
+  </Preview>
+  <Fields>
+    <p class="section-desc">One byte per column, and no block. It tints grass, leaves and water, so the ground
+      changes colour without anything being placed. A board that states no field is plains everywhere.</p>
+
+    <Field Label="How it varies">
+      <Select Options="@Select.Words(BiomeKinds.All, word => word, BiomeKinds.Describe)" Value="@Kinds"
+              ValueChanged="SetKind" />
+    </Field>
+
+    @if (Kinds == BiomeKinds.Solid)
+    {
+      <Field Label="Biome">
+        <div class="filter-group-options">
+          @foreach (var offered in biomes)
+          {
+            <Chip Active="@(SolidId == offered.Id)" @key="offered.Id" OnClick="() => SetSolid(offered.Id)">
+              <span class="biome-swatch" style="background:@offered.Hex"></span> @offered.Name
+            </Chip>
+          }
+        </div>
+      </Field>
+    }
+    else
+    {
+      <Field Label="Seed">
+        <NumberField Value="Number(SeedField)" ValueChanged="v => SetNumber(SeedField, (int)v)" Min="0" />
+      </Field>
+
+      @if (Kinds == BiomeKinds.Cell)
+      {
+        <Field Label="Region size">
+          <NumberField Value="Number(CellSizeField)" ValueChanged="v => SetNumber(CellSizeField, (int)v)" Min="1" />
+        </Field>
+        <Field Label="Jitter">
+          <NumberField Value="Number(JitterField)" ValueChanged="v => SetNumber(JitterField, (int)v)" Min="0" Max="100" />
+        </Field>
+        <p class="section-desc">A region runs that many blocks across. Jitter 0 is a grid; 100 is a fully
+          wandering cell boundary.</p>
+      }
+      else
+      {
+        <Field Label="Scale">
+          <NumberField Value="Number(ScaleField)" ValueChanged="v => SetNumber(ScaleField, (int)v)" Min="1" />
+        </Field>
+        <Field Label="Octaves">
+          <NumberField Value="Number(OctavesField)" ValueChanged="v => SetNumber(OctavesField, (int)v)" Min="1" Max="6" />
+        </Field>
+        <p class="section-desc">A band of the field runs that many blocks across. More octaves add finer
+          detail without narrowing it.</p>
+      }
+
+      <div class="section-header section-header--ruled">
+        <h2 class="section-title">@(Kinds == BiomeKinds.Cell ? "The palette" : "The bands")</h2>
+      </div>
+      @for (var at = 0; at < Picked.Count; at++)
+      {
+        var slot = at;
+        <Field Label="@($"#{slot + 1}")">
+          <div class="panel-actions">
+            <Select Options="BiomeOptions" Value="@Picked[slot].ToString()"
+                    ValueChanged="value => SetAt(slot, int.TryParse(value, out var id) ? id : First)" />
+            <span class="biome-swatch" style="background:@Hex(Picked[slot])"></span>
+            <Button Variant="icon" Icon="x" Title="Drop it" Disabled="@(Picked.Count <= 1)"
+                    OnClick="() => DropAt(slot)" />
+          </div>
+        </Field>
+      }
+      <Button Icon="plus" OnClick="() => SetAt(-1, First)">Add one</Button>
+    }
+  </Fields>
+  <Actions>
+    <Button Variant="primary" OnClick="Save" Disabled="@string.IsNullOrWhiteSpace(draftName)">Save</Button>
+    @if (editingId is not null)
+    {
+      <Button OnClick="SaveAsCopy">Save as copy</Button>
+      <Button Variant="danger" Icon="trash-2" OnClick="Delete">Forget</Button>
+    }
+  </Actions>
+</LibraryEditor>

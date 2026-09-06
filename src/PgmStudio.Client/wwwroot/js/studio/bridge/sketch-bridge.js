@@ -61,6 +61,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // none — which is plains everywhere. Carried on the layout like the themes, so the editor's own save keeps
   // a field written through the API instead of dropping it.
   let biome;
+  // Which library row that field was copied from, or 0 for a board whose field came from none — one written
+  // over HTTP, or none at all. The field itself is the snapshot; this only says which row to show as held.
+  let biomeSource = 0;
   // Which library row each theme was copied from, theme id -> row id. A theme authored on the board
   // has no entry. It is what a copy-in matches by, so a rename on either side still finds the one theme.
   let themeSources = {};
@@ -609,6 +612,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // the continuous geometry stream (drag, resize) is worth coalescing.
   function roomStylesState() { return JSON.stringify(roomStyles); }
 
+  // The board's biome as the host reads it: the field itself and the row it was copied from.
+  function getBiomeState() { return JSON.stringify({ field: biome ?? null, source: biomeSource }); }
+
   function afterThemeChange() { syncActive(); markDirty(); fire("OnThemes", themesState()); refreshPaint({ now: true }); }
 
   // ── dressing (decoration.md) ────────────────────────────────────────────────
@@ -952,14 +958,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       fire("OnRoomStyles", roomStylesState());
     },
     // ── the biome (docs/world-export/terrain-painting.md 5b) ──
-    // The map-wide field as its JSON text, or "" for a board that states none.
-    getBiome() { return biome === undefined ? "" : JSON.stringify(biome); },
-    // Replace the field, or take it off the board with an empty string. Returns an error string on invalid
-    // JSON, else null.
-    setBiome(text) {
-      if (!text) { biome = undefined; markDirty(); fire("OnBiome", ""); return null; }
+    // The map-wide field and the library row it came from: {"field": …|null, "source": n}.
+    getBiome() { return getBiomeState(); },
+    // Copy a field onto the board, recording the library row it came from, or take it off with an empty
+    // string. Returns an error string on invalid JSON, else null.
+    setBiome(text, source) {
+      if (!text) { biome = undefined; biomeSource = 0; markDirty(); fire("OnBiome", getBiomeState()); return null; }
       let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "Invalid JSON"; }
-      biome = parsed; markDirty(); fire("OnBiome", JSON.stringify(biome)); return null;
+      biome = parsed;
+      biomeSource = Number.isFinite(source) && source > 0 ? source : 0;
+      markDirty(); fire("OnBiome", getBiomeState()); return null;
     },
     defineTheme(name) {
       const id = uniqueScopeId(Object.keys(themes), name || "theme");
@@ -1147,6 +1155,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         spawn: s.roomStyles && "spawn" in s.roomStyles ? s.roomStyles.spawn : undefined,
       };
       biome = (s.biome && typeof s.biome === "object") ? s.biome : undefined;
+      biomeSource = (biome && Number.isFinite(s.biomeSource)) ? s.biomeSource : 0;
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
       canvas.setReliefDoc(s.relief && typeof s.relief === "object" ? s.relief : null);
       const raw = (s.layers && s.layers.length) ? s.layers : [];
@@ -1199,8 +1208,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
           ? { cage: roomStyles.cage, spawn: roomStyles.spawn }
           : undefined,
         // The map-wide biome, omitted where the board states none — which is plains everywhere and what a
-        // board that never opened the question exports as.
+        // board that never opened the question exports as — and the library row it was copied from.
         biome,
+        biomeSource: biomeSource || undefined,
         // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
         // exactly as it did before the phase existed.
         dressing: canvas.dressing.isEmpty ? undefined : canvas.dressing.toJSON(),

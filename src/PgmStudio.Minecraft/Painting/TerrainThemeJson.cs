@@ -153,6 +153,9 @@ public static class TerrainThemeJson
     /// whose renames are of fields a material once had and a biome field never did.</summary>
     public static BiomeField DeserializeBiome(string json) => Read<BiomeField>(JsonNode.Parse(json)!);
 
+    /// <summary>Write one biome field — the form a library row stores and a map snapshots.</summary>
+    public static string SerializeBiome(BiomeField field) => JsonSerializer.Serialize(field, Options);
+
     /// <summary>Deserialize, carrying the kind fault across whatever depth it was found at. A material is
     /// polymorphic on <c>kind</c>, and System.Text.Json reports a missing discriminator as
     /// <see cref="NotSupportedException"/> rather than <see cref="JsonException"/> — a difference in how it is

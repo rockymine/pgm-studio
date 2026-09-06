@@ -21,6 +21,25 @@ public sealed record StyleDto(long Id, string Name, string Kind, string Params, 
 /// <c>HS1</c>.</param>
 public record StyleSaveRequest(string Name, [property: WordSet(typeof(MaterialKind))] string Kind, string Params);
 
+/// <summary>One row of the biome library (<c>GET /api/biome-patterns</c>), with the patch of ground it
+/// tints — the same picture a style row carries, for the same reason: a name says which pattern it is and the
+/// picture says what it looks like.</summary>
+/// <param name="Id">The row number every later route names it by.</param>
+/// <param name="Preview">A top-down patch of grass under the field, as an SVG. Named as every other library
+/// row names its picture, because the browse grid reads one field across every kind.</param>
+public sealed record BiomePatternSummary(long Id, string Name, [property: WordSet(typeof(BiomeKinds))] string Kind,
+    string Params, string Preview) : BiomePatternSaveRequest(Name, Kind, Params);
+
+/// <summary>Create/update a biome pattern (POST /api/biome-patterns, PUT /api/biome-patterns/{id}).</summary>
+/// <param name="Name">What the library lists it under — the author's word, not a key.</param>
+/// <param name="Kind">Which field this is, from <see cref="BiomeKinds"/>. It decides which fields
+/// <paramref name="Params"/> has to carry.</param>
+/// <param name="Params">The serialized <c>BiomeField</c> the pass reads, as JSON text rather than an object,
+/// for the reason a style's is: a wire type restating the hierarchy would be a second copy free to disagree
+/// with the deserializer.</param>
+public record BiomePatternSaveRequest(string Name,
+    [property: WordSet(typeof(BiomeKinds))] string Kind, string Params);
+
 /// <summary>One bucket binding of a theme (<see cref="ThemeBuckets"/>): the style that fills it, and the
 /// bucket's depth (rim/surface) and toggle. <paramref name="StyleId"/> 0 binds no style — the bucket keeps the
 /// built-in material and the binding carries only its depth and its toggle, which is how a theme says "no

@@ -252,8 +252,7 @@
         @if (DressingActive)
         {
           <div class="sidebar-handle"></div>
-          <SketchDressingInspector Handle="handle" ActiveTool="@tool" StateJson="@dressingJson"
-                                   BiomeJson="@biomeJson" BiomeChanged="ReadBiome" />
+          <SketchDressingInspector Handle="handle" ActiveTool="@tool" StateJson="@dressingJson" />
         }
         else if (ReliefActive)
         {
@@ -265,6 +264,7 @@
           <div class="sidebar-handle"></div>
           <SketchThemeInspector Handle="handle" Themes="themeIds" Brush="@themeBrush" MapTheme="@mapThemeId"
                                 ThemeSources="themeSources"
+                                BiomeSource="biomeSource" BiomeJson="@biomeJson" BiomeChanged="ReadBiome"
                                 ShapeThemes="shapeThemes" ShapeCount="themedShapeTotal" Revision="themeRevision"
                                 SelectedGroupId="@selectedGroupId" SelectedShapeId="@selectedShapeId"
                                 TargetShapeIds="ScopeTargetShapeIds"

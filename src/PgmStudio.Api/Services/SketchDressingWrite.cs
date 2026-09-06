@@ -55,12 +55,4 @@ public static class SketchDressingWrite
         catch (JsonException) { return null; }
     }
 
-    /// <summary>What a body states as one drawn biome patch, or null where it states none. Read the same way
-    /// and refused in the same place a placement is.</summary>
-    public static BiomePatch? StatedBiome(string json)
-    {
-        try { return JsonSerializer.Deserialize<BiomePatch>(json, DressingJson.Options); }
-        catch (Exception fault) when (fault is JsonException or NotSupportedException) { return null; }
-    }
-
 }

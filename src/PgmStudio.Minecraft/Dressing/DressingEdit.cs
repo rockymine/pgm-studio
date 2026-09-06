@@ -1,8 +1,7 @@
 namespace PgmStudio.Minecraft.Dressing;
 
 /// <summary>
-/// The edits a dressing document takes one thing at a time — add one, replace one, remove one — over the two
-/// kinds of thing it holds: the placements, and the biome patches drawn beside them.
+/// The three edits a dressing document takes one placement at a time: add one, replace one, remove one.
 ///
 /// <para>Pure, and separate from the plumbing that reads and stores the layout the document rides in, for the
 /// reason <c>MapEdit</c> and the intent editors are separate: what an edit <em>means</em> is a fact about the
@@ -48,52 +47,8 @@ public static class DressingEdit
         return new(doc with { Props = props }, id);
     }
 
-    /// <summary>The document with <paramref name="patch"/> appended, carrying an id the way a placement does.
-    /// Drawing order is read — the last patch holding a column is the one it answers — so an addition goes on
-    /// the end, which is the one drawn over everything already there.</summary>
-    public static DressingEditResult AddBiome(DressingDoc doc, BiomePatch patch)
-    {
-        var taken = doc.Biomes.Select(drawn => drawn.Id).ToHashSet(StringComparer.Ordinal);
-        var id = patch.Id.Length > 0 && !taken.Contains(patch.Id) ? patch.Id : MintBiome(taken);
-        return new(doc with { Biomes = [.. doc.Biomes, patch with { Id = id }] }, id);
-    }
-
-    /// <summary>The document with the patch at <paramref name="id"/> replaced, keeping its place in the
-    /// drawing order — a patch edited in place is the same patch, and moving it to the end would put it over
-    /// every patch drawn after it.</summary>
-    public static DressingEditResult ReplaceBiome(DressingDoc doc, string id, BiomePatch patch)
-    {
-        var at = IndexOfBiome(doc, id);
-        if (at < 0) return DressingEditResult.Missing;
-        var patches = new List<BiomePatch>(doc.Biomes) { [at] = patch with { Id = id } };
-        return new(doc with { Biomes = patches }, id);
-    }
-
-    /// <summary>The document without the patch at <paramref name="id"/>. The columns it held fall to whatever
-    /// is under it — an earlier patch, else the map's own field.</summary>
-    public static DressingEditResult RemoveBiome(DressingDoc doc, string id)
-    {
-        var at = IndexOfBiome(doc, id);
-        if (at < 0) return DressingEditResult.Missing;
-        var patches = new List<BiomePatch>(doc.Biomes);
-        patches.RemoveAt(at);
-        return new(doc with { Biomes = patches }, id);
-    }
-
     private static int IndexOf(DressingDoc doc, string id) =>
         doc.Props.FindIndex(prop => string.Equals(prop.Id, id, StringComparison.Ordinal));
-
-    private static int IndexOfBiome(DressingDoc doc, string id) =>
-        doc.Biomes.FindIndex(patch => string.Equals(patch.Id, id, StringComparison.Ordinal));
-
-    /// <summary>The lowest <c>biome-{n}</c> no patch holds. A patch has no kind to name it by — every one of
-    /// them is an area with a field — so the word is the thing itself.</summary>
-    private static string MintBiome(IReadOnlySet<string> taken)
-    {
-        var next = 1;
-        while (taken.Contains($"biome-{next}")) next++;
-        return $"biome-{next}";
-    }
 
     /// <summary>The lowest <c>{kind}-{n}</c> no placement holds. Named for the kind so a document read by hand
     /// says what each id is, the same shape a plan's markers take.</summary>
@@ -107,7 +62,7 @@ public static class DressingEdit
 }
 
 /// <summary>What an edit did: the document it produced and the id it acted on, or <see cref="Missing"/> where
-/// the id named nothing on the document. <see cref="Doc"/> is null exactly when the edit did not happen, so a caller
+/// the id named no placement. <see cref="Doc"/> is null exactly when the edit did not happen, so a caller
 /// tests one field rather than two.</summary>
 public readonly record struct DressingEditResult(DressingDoc? Doc, string Id)
 {

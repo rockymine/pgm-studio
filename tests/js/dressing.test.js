@@ -569,29 +569,3 @@ test("a marker's reach is its recipe's, so the hit test follows what stands ther
   assert.equal(propReach(small, doc.styles), Math.max(3, 12 * 0.35));
   assert.equal(propReach(tall, doc.styles), 40 * 0.35);
 });
-
-test("a biome patch survives the round trip through the document", () => {
-  // The patches ride in the dressing document but nothing on the canvas draws one yet (TS101). A model that
-  // read them and did not write them back would drop an author's patches on the next save.
-  const stored = {
-    props: [],
-    biomes: [{ id: "biome-1", points: [[0, 0], [8, 0], [8, 8]], field: { kind: "solid", id: 2 } }],
-  };
-
-  const doc = DressingDoc.from(stored);
-
-  assert.equal(doc.biomes.length, 1);
-  assert.equal(doc.isEmpty, false, "a board with a patch and no prop is not an empty document");
-  assert.deepEqual(doc.toJSON().biomes, stored.biomes);
-});
-
-test("a patch with too few points is dropped rather than carried", () => {
-  const doc = DressingDoc.from({ props: [], biomes: [{ id: "thin", points: [[0, 0], [8, 8]], field: {} }] });
-
-  assert.equal(doc.biomes.length, 0);
-  assert.equal(doc.isEmpty, true);
-});
-
-test("a document with neither props nor patches writes no biomes key", () => {
-  assert.equal("biomes" in DressingDoc.from({ props: [] }).toJSON(), false);
-});

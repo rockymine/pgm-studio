@@ -292,18 +292,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   *`opus5-slipway`'s `s2` is `(0, 16, 114, 56)` in its layout and the compile's `back-band-22` is
   `(0, 16, 100, 56)`: 14 blocks wider than any bend accounts for, so the plan moved under the layout.*
 
-### The biome, and the half of it the canvas does not draw yet
-
-- [ ] **TS101 — A biome patch has no drawing tool.** A patch is a drawn area carrying its own `BiomeField`,
-  the map's field is the default it sits on, and both halves are built: the pass resolves patch-first
-  (`Export/BiomeScope.cs`), the document holds them (`DressingDoc.Biomes`), and `POST`/`PATCH`/`DELETE
-  /map/{slug}/sketch/biome-patches[/{patchId}]` address one at a time. What is missing is the canvas: nothing
-  in the Dressing phase traces a ring for one, so a patch reaches a board over HTTP or through a hand-edited
-  layout and no other way. It is the ring-tracing geometry a `flora` area already has
-  (`js/studio/canvas/dressing*.js`), placing a `biomes[]` entry rather than a `props[]` one, and the
-  inspector's map-wide biome control repeated for the selected patch. `docs/tools/sketch.md`'s Dressing
-  section and `docs/world-export/terrain-painting.md` §5b both change with it.
-
 ### Layers
 
 `WE24` gave every placement an optional layer and two resolvers that agree about where a floor is. The export

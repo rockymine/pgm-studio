@@ -334,10 +334,11 @@ this population until the building's one model turned them from three reaches in
 document, a route or a solver that already answers, and a surface that never asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
-`S34`, `TS51`, `TS63`, `G187`, `G164`, `B54`, `B9`, `B58`. Five left it by shipping —
-`B221` and `B258`, the library's pictures, `WE34`, the seat read, `TS30`, the bend, and `WE52`, the drawn
-biome patch — which is the population behaving as intended: a roadmap entry is drained by being built, not
-by being triaged again.
+`S34`, `TS51`, `TS63`, `G187`, `G164`, `B54`, `B9`, `B58`. Four left it by shipping —
+`B221` and `B258`, the library's pictures, `WE34`, the seat read, and `TS30`, the bend — which is the
+population behaving as intended: a roadmap entry is drained by being built, not by being triaged again.
+`WE52`, the drawn biome patch, left it the other way: withdrawn on the author's call once the field became a
+library row, since an area drawn per board is not what a named, reusable pattern is for.
 
 **Relocating the roadmap to the ideas files was tried and refused.** Seventeen of the eighteen entries named
 on the previous reading are still on the board; only `B21` left, and it left by withdrawal rather than by

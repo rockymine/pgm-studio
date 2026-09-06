@@ -405,12 +405,11 @@ public static class WorldBuilder
             OverCeiling(built, kind, name, owner, box, maxBuildHeight);
 
         // ── Biome — the one colour that costs no block. Every chunk the world holds takes its byte from the
-        // patch the author drew over it, else from the map's field, folded through the same symmetry the
-        // painter uses so a mirrored board answers one biome on both halves. It runs after every pass that
-        // could add a chunk, because a chunk that arrives later would otherwise keep the plains it was
-        // created with; it writes no blocks, so nothing above cares that it ran at all.
-        BiomeScope.Paint(world, BiomeScope.FieldOf(layoutJson), BiomeScope.PatchesOf(layoutJson),
-                         symmetry.Canonical);
+        // map's field, folded through the same symmetry the painter uses so a mirrored board answers one
+        // biome on both halves. It runs after every pass that could add a chunk, because a chunk that arrives
+        // later would otherwise keep the plains it was created with; it writes no blocks, so nothing above
+        // cares that it ran at all.
+        BiomeScope.Paint(world, BiomeScope.FieldOf(layoutJson), symmetry.Canonical);
 
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;
