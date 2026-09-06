@@ -44,6 +44,14 @@ public sealed class VoxelWorld
         biomes[((z & 15) << 4) | (x & 15)] = biome;
     }
 
+    /// <summary>The biome one column carries — <see cref="Palette.Biome.Plains"/> for a column in a chunk the
+    /// world does not hold and for one in a chunk nothing painted, which is what an unpainted chunk exports
+    /// as.</summary>
+    public byte GetBiome(int x, int z) =>
+        _chunks.TryGetValue((x >> 4, z >> 4), out var chunk) && chunk.Biomes is { } biomes
+            ? biomes[((z & 15) << 4) | (x & 15)]
+            : Palette.Biome.Plains;
+
     private static byte[] NewBiomes()
     {
         var biomes = new byte[256];

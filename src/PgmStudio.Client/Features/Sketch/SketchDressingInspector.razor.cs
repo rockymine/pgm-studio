@@ -35,6 +35,12 @@ public partial class SketchDressingInspector
     /// selected prop itself.</summary>
     [Parameter] public string? StateJson { get; set; }
 
+    /// <summary>The map-wide biome field as its JSON text, or empty for a board that states none.</summary>
+    [Parameter] public string? BiomeJson { get; set; }
+
+    /// <summary>The field was written; the tool re-reads it off the bridge.</summary>
+    [Parameter] public EventCallback BiomeChanged { get; set; }
+
     [Inject] public TerrainLibraryClient Library { get; set; } = default!;
     [Inject] public IJSRuntime JS { get; set; } = default!;
     [Inject] public NavigationManager Nav { get; set; } = default!;
@@ -71,10 +77,158 @@ public partial class SketchDressingInspector
     protected override async Task OnParametersSetAsync()
     {
         ReadState();
+        ReadBiome();
         await LoadTheme();
         await LoadOptions();
         await RefreshPreview();
     }
+
+    // ── the map's biome (docs/world-export/terrain-painting.md 5b) ──
+    // The phase's one map-wide control. A biome places no block — it is the byte a client reads to tint grass,
+    // leaves and water — so it belongs with the finish rather than with the props, and it is stated once for
+    // the whole board rather than per placement.
+
+    /// <summary>The biomes on offer, with the grass colour each tints ground with. Served rather than listed
+    /// here, so a control cannot offer one the export writes as something else.</summary>
+    private IReadOnlyList<BiomeOptionDto> biomes = [];
+
+    /// <summary>What a field started here says first — the head of the offered list, which is the ground the
+    /// format's own default is. A control is only offered once the list has arrived, so there is no id to
+    /// invent when it has not.</summary>
+    private int DefaultBiome => biomes.Count > 0 ? biomes[0].Id : 0;
+
+    /// <summary>What a field of several starts its second entry as, so picking a kind draws two regions
+    /// rather than one repeated.</summary>
+    private int SecondBiome => biomes.Count > 1 ? biomes[1].Id : DefaultBiome;
+
+    /// <summary>The stated field, or null for a board that paints plains everywhere.</summary>
+    private JsonObject? biome;
+
+    /// <summary>Which of the three kinds the field states, or empty for none.</summary>
+    private string BiomeKind => biome?["kind"]?.GetValue<string>() ?? "";
+
+    private void ReadBiome()
+    {
+        biome = null;
+        if (string.IsNullOrWhiteSpace(BiomeJson)) return;
+        try { biome = JsonNode.Parse(BiomeJson) as JsonObject; } catch (JsonException) { biome = null; }
+    }
+
+    /// <summary>Start, replace or drop the field. Each kind starts from a state that paints something an
+    /// author can see, so picking one and looking at the board is one act rather than three.</summary>
+    private async Task SetBiomeKind(string kind)
+    {
+        biome = kind switch
+        {
+            BiomeKinds.Solid => new JsonObject
+            {
+                ["kind"] = BiomeKinds.Solid,
+                ["id"] = DefaultBiome,
+            },
+            BiomeKinds.Cell => new JsonObject
+            {
+                ["kind"] = BiomeKinds.Cell, ["seed"] = 1, ["cellSize"] = 32, ["jitter"] = 80,
+                ["palette"] = new JsonArray(DefaultBiome, SecondBiome),
+            },
+            BiomeKinds.Noise => new JsonObject
+            {
+                ["kind"] = BiomeKinds.Noise, ["seed"] = 1, ["scale"] = 48, ["octaves"] = 2,
+                ["stops"] = new JsonArray(DefaultBiome, SecondBiome),
+            },
+            _ => null,
+        };
+        await WriteBiome();
+    }
+
+    /// <summary>One number of the field, by its own name.</summary>
+    private async Task SetBiomeNumber(string field, int value)
+    {
+        if (biome is null) return;
+        biome[field] = value;
+        await WriteBiome();
+    }
+
+    /// <summary>The list of biomes a cell or a noise field picks between — the palette or the stops, whichever
+    /// this kind names.</summary>
+    private string BiomeListField => BiomeKind == BiomeKinds.Cell ? "palette" : "stops";
+
+    private IReadOnlyList<int> BiomeList =>
+        biome?[BiomeListField] is JsonArray list
+            ? [.. list.Select(entry => entry?.GetValue<int>() ?? DefaultBiome)]
+            : [];
+
+    private async Task SetBiomeAt(int at, int id)
+    {
+        if (biome is null) return;
+        var list = new List<int>(BiomeList);
+        if (at < 0) list.Add(id);
+        else if (at < list.Count) list[at] = id;
+        biome[BiomeListField] = new JsonArray([.. list.Select(entry => JsonValue.Create(entry))]);
+        await WriteBiome();
+    }
+
+    private async Task DropBiomeAt(int at)
+    {
+        if (biome is null) return;
+        var list = new List<int>(BiomeList);
+        if (at < 0 || at >= list.Count || list.Count <= 1) return;
+        list.RemoveAt(at);
+        biome[BiomeListField] = new JsonArray([.. list.Select(entry => JsonValue.Create(entry))]);
+        await WriteBiome();
+    }
+
+    /// <summary>The single biome a <c>solid</c> field names.</summary>
+    private int SolidBiomeId => biome?["id"]?.GetValue<int>() ?? DefaultBiome;
+
+    private async Task SetSolidBiome(int id)
+    {
+        if (biome is null) return;
+        biome["id"] = id;
+        await WriteBiome();
+    }
+
+    /// <summary>Hand the field to the bridge, which is what the board's save writes out. The tool re-reads it
+    /// rather than this holding a copy, so what is shown is what is stored.</summary>
+    private async Task WriteBiome()
+    {
+        if (Handle is null) return;
+        await Handle.InvokeAsync<string?>("setBiome", biome?.ToJsonString() ?? "");
+        await BiomeChanged.InvokeAsync();
+    }
+
+    /// <summary>The numbers a field states, by the names it states them under. Named rather than written at
+    /// the control, because a Razor attribute cannot carry a quoted string inside a quoted one.</summary>
+    private const string SeedField = "seed";
+    private const string CellSizeField = "cellSize";
+    private const string JitterField = "jitter";
+    private const string ScaleField = "scale";
+    private const string OctavesField = "octaves";
+
+    /// <summary>One number of the field, by its own name — 0 where the field does not state it.</summary>
+    private int BiomeNumber(string field) => biome?[field]?.GetValue<int>() ?? 0;
+
+    /// <summary>The offered biomes as select rows, which is what a palette entry is picked from.</summary>
+    private IReadOnlyList<SelectOption> BiomeOptions =>
+        [.. biomes.Select(offered => new SelectOption(offered.Id.ToString(), offered.Name))];
+
+    /// <summary>What each kind does, in one sentence — what a chip's hover says and what the line under the
+    /// row says about the one picked.</summary>
+    private static string BiomeKindBlurb(string kind) => kind switch
+    {
+        BiomeKinds.Solid => "One biome over the whole board.",
+        BiomeKinds.Cell => "Jittered regions, each taking one biome from the palette — the shape a biome map "
+                           + "actually has.",
+        BiomeKinds.Noise => "A field cut into bands, one biome per band, so regions wander into one another "
+                            + "rather than meeting on a cell wall.",
+        _ => "Plains everywhere, which is what a board that never opened this exports as.",
+    };
+
+    /// <summary>The colour a biome tints ground with, for the swatch beside its name.</summary>
+    private string BiomeHex(int id) =>
+        biomes.FirstOrDefault(entry => entry.Id == id)?.Hex ?? "#555555";
+
+    private string BiomeName(int id) =>
+        biomes.FirstOrDefault(entry => entry.Id == id)?.Name ?? $"Biome {id}";
 
     // The bridge pushes one document; which half of it is being edited depends on whether anything is selected.
     private void ReadState()
@@ -132,6 +286,8 @@ public partial class SketchDressingInspector
 
     private async Task LoadOptions()
     {
+        // The biome control is map-wide, so its list is fetched whatever tool is armed.
+        if (biomes.Count == 0) biomes = await Library.BiomesAsync();
         // The block picker's offered list is the export's own palette, so a path and a rock cannot be paved
         // with something the painter has no colour for.
         if (blocks.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Water) blocks = await Library.BlocksAsync();

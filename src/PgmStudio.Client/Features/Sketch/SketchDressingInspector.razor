@@ -1,5 +1,6 @@
 @namespace PgmStudio.Client.Features.Sketch
 @using System.Text.Json.Nodes
+@using PgmStudio.Vocabulary
 
 @* The Dressing phase's inspector: the knobs of the prop under the cursor, and a picture of what they make.
    With nothing selected the same form edits the active tool's starting values, so the next prop placed is
@@ -248,4 +249,94 @@
       }
     }
   </Section>
+
+  @* ── the map's biome: the phase's one map-wide statement ──────────────────────────────────────────
+     A biome places no block — it is the byte a client reads to tint grass, leaves and water — so it is
+     neither a prop nor a per-prop knob, and it is stated once for the whole board. The patches an author
+     draws over it sit on top; this is what a column inside none of them answers. *@
+  @if (biomes.Count > 0)
+  {
+    <Section Title="The map's biome">
+      <Actions><Badge Kind="dim">@(BiomeKind.Length == 0 ? "none" : BiomeKind)</Badge></Actions>
+      <ChildContent>
+        <p class="section-desc">
+          One byte per column, and no block. It tints grass, leaves and water, so the ground changes colour
+          without anything being placed. Stated for the whole board; unstated is plains everywhere.
+        </p>
+        <Field Label="How it varies">
+          <div class="filter-group-options">
+            <Chip Active="@(BiomeKind.Length == 0)" OnClick="() => SetBiomeKind(string.Empty)"
+                  Title="Plains everywhere, which is what a board that never opened this exports as">none</Chip>
+            @foreach (var offered in BiomeKinds.All)
+            {
+              <Chip Active="@(BiomeKind == offered)" @key="offered"
+                    OnClick="() => SetBiomeKind(offered)" Title="@BiomeKindBlurb(offered)">@offered</Chip>
+            }
+          </div>
+        </Field>
+        <p class="section-desc">@BiomeKindBlurb(BiomeKind)</p>
+
+        @if (BiomeKind == BiomeKinds.Solid)
+        {
+          <Field Label="Biome">
+            <div class="filter-group-options">
+              @foreach (var offered in biomes)
+              {
+                <Chip Active="@(SolidBiomeId == offered.Id)" @key="offered.Id"
+                      OnClick="() => SetSolidBiome(offered.Id)">
+                  <span class="lib-bind-swatch" style="background:@offered.Hex"></span> @offered.Name
+                </Chip>
+              }
+            </div>
+          </Field>
+        }
+        else if (BiomeKind.Length > 0)
+        {
+          <Field Label="Seed">
+            <NumberField Value="BiomeNumber(SeedField)" ValueChanged="v => SetBiomeNumber(SeedField, (int)v)" Min="0" />
+          </Field>
+          @if (BiomeKind == BiomeKinds.Cell)
+          {
+            <Field Label="Region size">
+              <NumberField Value="BiomeNumber(CellSizeField)" ValueChanged="v => SetBiomeNumber(CellSizeField, (int)v)" Min="1" />
+            </Field>
+            <Field Label="Jitter">
+              <NumberField Value="BiomeNumber(JitterField)" ValueChanged="v => SetBiomeNumber(JitterField, (int)v)" Min="0" Max="100" />
+            </Field>
+            <p class="section-desc">A region runs that many blocks across. Jitter 0 is a grid; 100 is a fully
+              wandering cell boundary.</p>
+          }
+          else
+          {
+            <Field Label="Scale">
+              <NumberField Value="BiomeNumber(ScaleField)" ValueChanged="v => SetBiomeNumber(ScaleField, (int)v)" Min="1" />
+            </Field>
+            <Field Label="Octaves">
+              <NumberField Value="BiomeNumber(OctavesField)" ValueChanged="v => SetBiomeNumber(OctavesField, (int)v)" Min="1" Max="6" />
+            </Field>
+            <p class="section-desc">A band of the field runs that many blocks across. More octaves add finer
+              detail without narrowing it.</p>
+          }
+
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">@(BiomeKind == BiomeKinds.Cell ? "The palette" : "The bands")</h2>
+          </div>
+          @for (var at = 0; at < BiomeList.Count; at++)
+          {
+            var slot = at;
+            <Field Label="@($"#{slot + 1}")">
+              <div class="panel-actions">
+                <Select Options="BiomeOptions" Value="@BiomeList[slot].ToString()"
+                        ValueChanged="value => SetBiomeAt(slot, int.TryParse(value, out var id) ? id : DefaultBiome)" />
+                <span class="lib-bind-swatch" style="background:@BiomeHex(BiomeList[slot])"></span>
+                <Button Variant="icon" Icon="x" Title="Drop it" Disabled="@(BiomeList.Count <= 1)"
+                        OnClick="() => DropBiomeAt(slot)" />
+              </div>
+            </Field>
+          }
+          <Button Icon="plus" OnClick="() => SetBiomeAt(-1, DefaultBiome)">Add one</Button>
+        }
+      </ChildContent>
+    </Section>
+  }
 </Inspector>

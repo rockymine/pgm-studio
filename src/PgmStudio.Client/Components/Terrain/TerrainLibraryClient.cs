@@ -26,6 +26,11 @@ public sealed class TerrainLibraryClient(HttpClient http)
     public async Task<IReadOnlyList<PaintBlockDto>> BlocksAsync()
         => await GetOrDefault<List<PaintBlockDto>>("api/terrain/blocks") ?? [];
 
+    /// <summary>The biomes a map's field may name, each with the grass colour it tints ground with. Empty when
+    /// the call fails: a picker with no offers still edits the id underneath.</summary>
+    public async Task<IReadOnlyList<BiomeOptionDto>> BiomesAsync()
+        => await GetOrDefault<List<BiomeOptionDto>>("api/terrain/biomes") ?? [];
+
     /// <summary>Both views of one material, or null when the material cannot be previewed.</summary>
     public Task<MaterialPreviewDto?> MaterialPreviewAsync(string materialJson)
         => PostJsonDocument<MaterialPreviewDto>("api/terrain/material-preview", materialJson);

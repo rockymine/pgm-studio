@@ -23,9 +23,61 @@ public sealed record DressingDoc
     /// what the placements carry (<see cref="PropStyle"/>).</summary>
     public Dictionary<string, PropStyle> Styles { get; init; } = [];
 
+    /// <summary>The biome patches drawn on the board, in the order they were drawn. A patch is not a
+    /// placement — it puts down no block — but it is a shape an author drew on the same canvas, which is why
+    /// it rides in the same document.</summary>
+    public List<BiomePatch> Biomes { get; init; } = [];
+
     /// <summary>Nothing placed — what a map that never opened the phase carries, and what makes the pass a
     /// no-op rather than a walk over an empty world.</summary>
     public static DressingDoc Empty { get; } = new();
+}
+
+/// <summary>
+/// An area of the board carrying a biome of its own — a corner that reads as desert against a map that is
+/// otherwise forest and river.
+///
+/// <para><b>It is drawn, not inherited from the geometry.</b> A patch says where an author wants a different
+/// colour, which is a decision about the board rather than a property of any shape on it (the author's
+/// ruling), so it carries its own outline the way an area of cover does. The map's own field is the default
+/// the patches sit on: a column inside no patch answers the map, and a column inside one answers that
+/// patch's field.</para>
+///
+/// <para>Nothing here is fanned across the symmetry orbit, because the pass folds the column before it asks
+/// (TP21): a patch drawn on the primary half already answers at its image.</para>
+/// </summary>
+public sealed record BiomePatch
+{
+    /// <summary>Stable id, so a canvas can select, move and delete one patch among many.</summary>
+    public string Id { get; init; } = "";
+
+    /// <summary>The drawn outline, as <c>[x, z]</c> pairs. Three points or more.</summary>
+    public IReadOnlyList<double[]> Points { get; init; } = [];
+
+    /// <summary>What the columns inside it answer — the same three field kinds a map states, so a patch may
+    /// itself be a scatter of two biomes rather than one flat one.</summary>
+    public BiomeField Field { get; init; } = new SolidBiome();
+
+    /// <summary>Whether <paramref name="x"/>, <paramref name="z"/> falls inside the drawn outline. An outline
+    /// of fewer than three points encloses nothing and answers false.</summary>
+    public bool Holds(int x, int z) =>
+        Points.Count >= 3 && Geom.Polygon.PointInRing(x, z, Points);
+
+    /// <summary>Outline for outline, not list for list: the generated equality compares the points by
+    /// <em>reference</em>, so a patch read back from its document could never equal the one it was written
+    /// from.</summary>
+    public bool Equals(BiomePatch? other)
+        => other is not null && Id == other.Id && Field == other.Field
+           && Points.Count == other.Points.Count
+           && Points.Zip(other.Points).All(pair => pair.First.SequenceEqual(pair.Second));
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Id); hash.Add(Field);
+        foreach (var point in Points) foreach (var axis in point) hash.Add(axis);
+        return hash.ToHashCode();
+    }
 }
 
 /// <summary>
@@ -133,16 +185,51 @@ public static class DressingJson
             throw new DressingParseException("the document", null, $"is {Describe(node)}, not an object of props");
 
         var propsNode = root["props"];
-        if (propsNode is null) return DressingDoc.Empty;
-        if (propsNode is not JsonArray propsArray)
+        if (propsNode is null && root["biomes"] is null) return DressingDoc.Empty;
+        if (propsNode is not (null or JsonArray))
             throw new DressingParseException("the document", "props", $"is {Describe(propsNode)}, not a list");
 
+        var propsArray = propsNode as JsonArray ?? [];
         var styles = ParseStyles(root["styles"]);
         var props = new List<PlacedProp>(propsArray.Count);
         for (var index = 0; index < propsArray.Count; index++)
             props.Add(Resolved(ParseProp(propsArray[index], Label(propsArray[index], index)),
                                styles, Label(propsArray[index], index)));
-        return new DressingDoc { Props = props, Styles = styles };
+        return new DressingDoc { Props = props, Styles = styles, Biomes = ParseBiomes(root["biomes"]) };
+    }
+
+    /// <summary>The drawn biome patches. Absent is a document that draws none, which is every document that
+    /// never opened the question; anything else that does not read as a list of patches is refused by the
+    /// patch and the field, the way a prop is.</summary>
+    private static List<BiomePatch> ParseBiomes(JsonNode? node)
+    {
+        if (node is null) return [];
+        if (node is not JsonArray patches)
+            throw new DressingParseException("the document", "biomes", $"is {Describe(node)}, not a list");
+
+        var drawn = new List<BiomePatch>(patches.Count);
+        for (var index = 0; index < patches.Count; index++)
+        {
+            var subject = BiomeLabel(patches[index], index);
+            try
+            {
+                drawn.Add(patches[index].Deserialize<BiomePatch>(Options)
+                          ?? throw new DressingParseException(subject, null, "read as nothing"));
+            }
+            catch (Exception ex) when (ex is JsonException or NotSupportedException)
+            {
+                throw Explain(subject, ex);
+            }
+        }
+        return drawn;
+    }
+
+    /// <summary>Names a patch for a refusal, the way <see cref="Label"/> names a prop.</summary>
+    private static string BiomeLabel(JsonNode? node, int index)
+    {
+        var id = node is JsonObject obj && obj["id"] is JsonValue value && value.TryGetValue<string>(out var text)
+            && text.Length > 0 ? text : null;
+        return id is { } named ? $"biome patch '{named}' (#{index})" : $"biome patch #{index}";
     }
 
     /// <summary>The document's recipe registry. Absent is a document whose placements name nothing, which is

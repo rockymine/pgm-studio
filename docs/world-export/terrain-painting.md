@@ -544,11 +544,37 @@ The field is map-wide, stated on the layout beside the other finish keys:
 ```
 
 `PgmStudio.Minecraft.Palette.Biome` names the ids worth reaching for; a field may state any id whatever is
-listed there. The pass runs after every pass that could add a chunk — a chunk arriving later would otherwise
+listed there, and `GET /api/terrain/biomes` answers the named ones with the grass colour each tints ground
+with. The pass runs after every pass that could add a chunk — a chunk arriving later would otherwise
 keep the plains it was created with — and folds every column through the board's symmetry the way the painter
 folds every cell (TP21), so a mirrored board answers one biome at a cell and at its image rather than putting
 a desert against a forest across the axis. **On a mirrored board the field therefore only varies over the
 primary half**, which is the half a scale should be chosen against.
+
+**A drawn patch states a field of its own over it.** The map's field is the default; an author who wants a
+corner of the board to read as desert against a map that is otherwise forest and river draws an area for it,
+the way an area of cover is drawn, and that area carries a whole `BiomeField` — so a patch may itself be a
+scatter of two biomes rather than one flat one. The patches ride on the **dressing** document beside the
+placements, because a patch is a shape drawn on the same canvas even though it puts down no block:
+
+```json
+{ "dressing": { "props": [], "biomes": [
+  { "id": "biome-1", "points": [[10, 10], [40, 10], [40, 40], [10, 40]],
+    "field": { "kind": "solid", "id": 2 } }
+] } }
+```
+
+A column is offered to the patches from the last drawn back and answers the first that holds it, so paint laid
+later covers paint laid earlier; a column inside none of them answers the map's own field, and a board that
+states neither is left the plains every chunk is created with. The fold is applied before anything is asked,
+which is why a patch is **never fanned across the orbit**: an area drawn on the primary half already answers at
+its image, and fanning it as well would draw it twice. Per-*shape* selection is deliberately not offered
+(author's ruling) — a patch says where an author wants a different colour, which is a decision about the board
+rather than a property of any shape on it.
+
+`POST`, `PATCH` and `DELETE /api/map/{slug}/sketch/biome-patches[/{patchId}]` address one patch at a time,
+the way the props are addressed; `GET …/sketch/props` answers the whole dressing document, patches included.
+A patch stating fewer than three points encloses no column and is refused as a malformed body.
 
 **Swampland paints itself, and no other biome does** (author, confirmed in 1.8.9 and in WorldEdit). Vanilla
 gives swampland — and swampland M — its own grass colour noise, choosing between a brown and a dark green over
@@ -556,9 +582,26 @@ large cells, so its ground reads splotchy whatever a field says about it. It is 
 a flat colour, which makes it a poor choice for a region meant to read as one thing and a good one where
 mottled ground is wanted.
 
-**The studio's own pictures do not show any of this.** Every static render multiplies grass, leaves and water
-by a fixed temperate tint, because a render has no biome to sample (`BlockPaletteData`). A painted biome is
-therefore visible in game and nowhere in the studio, which is a gap rather than a decision (`WE53`).
+**The studio's pictures show it.** The block palette's stored colours carry a temperate tint baked into every
+biome-coloured block, so a render tints by *rescaling* that — dividing the reference tint out and multiplying
+the biome's in (`BiomeTint`) — rather than by holding a second table of colours. A block whose texture is
+nearly white, the grass block, therefore comes out as the biome's own colour; one with a colour of its own
+keeps it and shifts. Which blocks read which of the three tints is `BlockTints`: the grass colour for the
+grass block, the short plants and sugar cane, the foliage colour for vines and for the four biome-tinted
+woods' leaves, and the water colour, which only swampland moves off white. Spruce and birch leaves are
+deliberately absent — the game tints those constantly, so they are the same green in a desert as in a jungle.
+
+Two surfaces read it, and both take the biome off the world the pass has already painted rather than resolving
+the field a second time: the Theme phase's **Blocks overlay**, whose swatch is keyed by the colour a column
+resolved to rather than by the block pair, and the **3-D preview**, whose column palette is keyed the same
+way. Swampland is approximated rather than reproduced: its two colours and the scale of its mottling are
+vanilla's, and the field that places them is the studio's own `PatternNoise`, so the picture shows that swamp
+is two-tone at about the right size without claiming to be the same splotches the client will draw.
+
+**The Dressing phase is where the map's field is authored.** It is the phase's one map-wide control — a biome
+is neither a prop nor a per-prop knob — and it offers the three kinds, the numbers each states, and the
+palette or stops a `cell` or a `noise` field picks between, every biome shown with the ground colour choosing
+it produces.
 
 ## 6. Extensions
 

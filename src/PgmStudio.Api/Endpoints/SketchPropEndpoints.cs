@@ -15,7 +15,8 @@ namespace PgmStudio.Api.Endpoints;
 // which is what puts the six prop kinds and their knobs in the published schema — a shape an agent reads off
 // the document rather than out of prose.
 
-/// <summary>GET /api/map/{slug}/sketch/props — every placement the map carries, with the recipes they name.
+/// <summary>GET /api/map/{slug}/sketch/props — the whole dressing document: every placement the map carries
+/// with the recipes they name, and the biome patches drawn beside them.
 ///
 /// <para>The recipes ride with the placements because a placement referencing a key nobody can resolve is not
 /// readable on its own: a tree states <c>styleKey</c> and the registry states what that key is made of.</para></summary>
@@ -62,8 +63,9 @@ public sealed class SketchPropCreateEndpoint(MapRepository repo, MapArtifactStor
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SketchPropWrite.PropBodyAsync(HttpContext, ct) is not { } prop) return;
         var outcome = await SketchPropWrite.RunAsync(repo, artifacts, HttpContext, ct,
-            (doc, prop) => DressingEdit.Add(doc, prop!), needsBody: true);
+            doc => DressingEdit.Add(doc, prop));
         if (outcome.IsAnswered) return;
         if (outcome.IsMissing) { await Send.NotFoundAsync(ct); return; }
         await Send.OkAsync(new PropWrittenDto(outcome.Id), ct);
@@ -84,8 +86,9 @@ public sealed class SketchPropUpdateEndpoint(MapRepository repo, MapArtifactStor
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SketchPropWrite.PropBodyAsync(HttpContext, ct) is not { } prop) return;
         var outcome = await SketchPropWrite.RunAsync(repo, artifacts, HttpContext, ct,
-            (doc, prop) => DressingEdit.Replace(doc, Route<string>("propId")!, prop!), needsBody: true);
+            doc => DressingEdit.Replace(doc, Route<string>("propId")!, prop));
         if (outcome.IsAnswered) return;
         if (outcome.IsMissing) { await Send.NotFoundAsync(ct); return; }
         await Send.OkAsync(new PropWrittenDto(outcome.Id), ct);
@@ -106,7 +109,83 @@ public sealed class SketchPropDeleteEndpoint(MapRepository repo, MapArtifactStor
     public override async Task HandleAsync(CancellationToken ct)
     {
         var outcome = await SketchPropWrite.RunAsync(repo, artifacts, HttpContext, ct,
-            (doc, _) => DressingEdit.Remove(doc, Route<string>("propId")!), needsBody: false);
+            doc => DressingEdit.Remove(doc, Route<string>("propId")!));
+        if (outcome.IsAnswered) return;
+        if (outcome.IsMissing) { await Send.NotFoundAsync(ct); return; }
+        await Send.OkAsync(new PropWrittenDto(outcome.Id), ct);
+    }
+}
+
+// ── the biome patches, one drawn area at a time ─────────────────────────────────────
+//
+// A patch places no block, so it is not a prop — but it is a shape an author drew on the same canvas and it
+// rides in the same document, so it is addressed the same way. What a map states beside them is the map-wide
+// field at `sketch/biome`, which the patches sit on top of.
+
+/// <summary>POST /api/map/{slug}/sketch/biome-patches — draw one patch, answering the id it was given.
+///
+/// <para>A body stating a free id keeps it; one stating none, or one already taken, is minted
+/// <c>biome-{n}</c>. The patch goes on the end, which is the one drawn over everything already
+/// there.</para></summary>
+public sealed class SketchBiomePatchCreateEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<PropWrittenDto>
+{
+    public override void Configure()
+    {
+        Post("/map/{slug}/sketch/biome-patches"); AllowAnonymous();
+        Description(b => b.Accepts<BiomePatch>("application/json")
+                          .Produces<PropWrittenDto>(200, "application/json").Refuses(400, 404, 409));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await SketchPropWrite.BiomeBodyAsync(HttpContext, ct) is not { } patch) return;
+        var outcome = await SketchPropWrite.RunAsync(repo, artifacts, HttpContext, ct,
+            doc => DressingEdit.AddBiome(doc, patch));
+        if (outcome.IsAnswered) return;
+        if (outcome.IsMissing) { await Send.NotFoundAsync(ct); return; }
+        await Send.OkAsync(new PropWrittenDto(outcome.Id), ct);
+    }
+}
+
+/// <summary>PATCH /api/map/{slug}/sketch/biome-patches/{patchId} — replace one patch, keeping its place in
+/// the drawing order. 404 where the id names no patch.</summary>
+public sealed class SketchBiomePatchUpdateEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<PropWrittenDto>
+{
+    public override void Configure()
+    {
+        Patch("/map/{slug}/sketch/biome-patches/{patchId}"); AllowAnonymous();
+        Description(b => b.Accepts<BiomePatch>("application/json")
+                          .Produces<PropWrittenDto>(200, "application/json").Refuses(400, 404, 409));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await SketchPropWrite.BiomeBodyAsync(HttpContext, ct) is not { } patch) return;
+        var outcome = await SketchPropWrite.RunAsync(repo, artifacts, HttpContext, ct,
+            doc => DressingEdit.ReplaceBiome(doc, Route<string>("patchId")!, patch));
+        if (outcome.IsAnswered) return;
+        if (outcome.IsMissing) { await Send.NotFoundAsync(ct); return; }
+        await Send.OkAsync(new PropWrittenDto(outcome.Id), ct);
+    }
+}
+
+/// <summary>DELETE /api/map/{slug}/sketch/biome-patches/{patchId} — take one patch off the board. The columns
+/// it held fall to whatever is under it: an earlier patch, else the map's own field.</summary>
+public sealed class SketchBiomePatchDeleteEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<PropWrittenDto>
+{
+    public override void Configure()
+    {
+        Delete("/map/{slug}/sketch/biome-patches/{patchId}"); AllowAnonymous();
+        Description(b => b.Produces<PropWrittenDto>(200, "application/json").Refuses(400, 404, 409));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var outcome = await SketchPropWrite.RunAsync(repo, artifacts, HttpContext, ct,
+            doc => DressingEdit.RemoveBiome(doc, Route<string>("patchId")!));
         if (outcome.IsAnswered) return;
         if (outcome.IsMissing) { await Send.NotFoundAsync(ct); return; }
         await Send.OkAsync(new PropWrittenDto(outcome.Id), ct);

@@ -105,6 +105,31 @@ public static class BlockPalette
         return known != Absent ? known : FallbackRgb(blockId, blockData);
     }
 
+    /// <summary>
+    /// The colour a block shows in a given biome, at a given column — what the client will draw rather than
+    /// what the texture is. Untinted blocks answer <see cref="PackedRgb"/> unchanged, which is nearly all of
+    /// them; the tinted few are rescaled off the temperate tint the table already carries
+    /// (<see cref="BiomeTint"/>). The column is read only by swampland, whose grass is two-tone.
+    /// </summary>
+    public static int PackedRgbIn(int blockId, int blockData, byte biome, int x, int z)
+    {
+        var channel = BlockTints.Of(blockId, blockData);
+        var stored = PackedRgb(blockId, blockData);
+        return channel == TintChannel.None || stored < 0
+            ? stored
+            : (int)BiomeTint.Rescale((uint)stored, biome, channel, x, z);
+    }
+
+    /// <summary>Hex <c>"#rrggbb"</c> for a block as a biome tints it. Not interned: a tint is a point on a
+    /// continuum of biomes rather than a table entry.</summary>
+    public static string Hex(int blockId, int blockData, byte biome, int x, int z)
+    {
+        var channel = BlockTints.Of(blockId, blockData);
+        return channel == TintChannel.None
+            ? Hex(blockId, blockData)
+            : ToHex((uint)PackedRgbIn(blockId, blockData, biome, x, z));
+    }
+
     /// <summary>How much of its colour the block at the very back of a side view keeps. Enough darkening to
     /// read as distance, not so much that oak leaves at the back stop being green.</summary>
     private const double BackShade = 0.42;

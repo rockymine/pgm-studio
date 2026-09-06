@@ -252,7 +252,8 @@
         @if (DressingActive)
         {
           <div class="sidebar-handle"></div>
-          <SketchDressingInspector Handle="handle" ActiveTool="@tool" StateJson="@dressingJson" />
+          <SketchDressingInspector Handle="handle" ActiveTool="@tool" StateJson="@dressingJson"
+                                   BiomeJson="@biomeJson" BiomeChanged="ReadBiome" />
         }
         else if (ReliefActive)
         {

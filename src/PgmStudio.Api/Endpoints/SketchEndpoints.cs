@@ -19,6 +19,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Vocabulary;
 
@@ -276,14 +277,19 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 
         Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());
 
-        IReadOnlyList<SurfaceCell> cells;
-        try { cells = TerrainPreview.SketchPaintCells(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct)); }
+        TerrainPreview.SketchPaint painted;
+        try { painted = TerrainPreview.SketchPaintCells(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct)); }
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
                                           or OverflowException or KeyNotFoundException)
         { await Refusals.UnreadableAsync(HttpContext, "could not paint layout", fault.Message, ct); return; }
 
-        await Send.OkAsync(cells.Count == 0 ? BlockPixels.EmptyPixels() : BlockPixels.PalettePixels(cells), ct);
+        // Grass, leaves and water take the colour of the ground they stand on, so the swatch is the block's
+        // and the column's biome together — which is what makes a painted biome visible in the studio at all.
+        await Send.OkAsync(painted.Cells.Count == 0
+            ? BlockPixels.EmptyPixels()
+            : BlockPixels.PalettePixels(painted.Cells, cell => BlockPalette.Hex(
+                  cell.BlockId, cell.BlockData, painted.BiomeAt(cell.X, cell.Z), cell.X, cell.Z)), ct);
     }
 }
 

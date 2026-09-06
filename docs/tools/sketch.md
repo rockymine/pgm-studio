@@ -51,11 +51,12 @@ shape whether a layout was hand-drawn or compiled from a plan.
 | `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, groups}}`, plus `kind`, `part_of` and `seat` where the layer holds a made thing. Always at least one; a flat board is a stack of one, called `ground` |
 | `themes` · `themeSources` · `mapTheme` | the terrain-paint registry, which library row each of its themes was copied from, and the map-wide default |
 | `roomStyles` | the two bound room shells — `cage` (wool) and `spawn` |
-| `dressing` | every placed prop |
+| `dressing` | every placed prop, and the biome patches drawn beside them |
+| `biome` | the map-wide biome field, which the patches sit on top of |
 | `relief` | interior elevation, keyed by group id — and `landform`, the word the group states about what kind of ground it is meant to be |
 
-Five of those are the map's **finish** rather than its shape — `themes`, `themeSources`, `mapTheme`,
-`roomStyles`, `dressing` — and that grouping is load-bearing: a plan cannot express any of them, so when a plan is recompiled
+Six of those are the map's **finish** rather than its shape — `themes`, `themeSources`, `mapTheme`,
+`roomStyles`, `dressing`, `biome` — and that grouping is load-bearing: a plan cannot express any of them, so when a plan is recompiled
 onto a map the compiled layout's geometry replaces what was there while the finish is carried across
 (`CarryFinish`). Relief is *not* in that set, because a relief is geometry: it decides what the rasterizer
 emits, and it is carried by its own rule with a refusal attached (below).
@@ -937,6 +938,19 @@ Two of those reach further. A grown tree is scored against `tree-corpus.md`, the
 truth for what a tree looks like; and the building prop stamps `structures.md`'s house, which is why what it
 can be made of runs past what this phase can state.
 
+**The phase carries one map-wide statement, and it is the biome.** A biome places no block — it is the byte a
+client reads to tint grass, leaves and water — so it is neither a prop nor a per-prop knob, and it is stated
+once for the whole board. The inspector offers the three kinds a field takes (`solid`, `cell`, `noise`), the
+numbers each of them states, and the palette or the bands a `cell` or a `noise` field picks between, every
+biome shown with the ground colour choosing it produces. Unstated is plains everywhere, which is what a board
+that never opened the question exports as. `docs/world-export/terrain-painting.md` §5b is the field itself.
+
+**An area drawn with a field of its own is a patch**, and the map's field is the default it sits on: a column
+inside no patch answers the map, and one inside a patch answers that patch, the last drawn winning where two
+overlap. A patch rides on the dressing document beside the placements, since it is a shape drawn on the same
+canvas even though it puts down no block. Nothing fans it across the orbit — the pass folds a column before it
+asks, so an area drawn on the primary half already answers at its image.
+
 Six things can be placed, in three placement geometries.
 
 | Tool | Kind | Placed by | Starts as |
@@ -1615,10 +1629,13 @@ in the same two registers.
 | `POST /map/{slug}/sketch/shapes/{shapeId}/vertices` | `{id, index, vertices}` — add one point after the vertex `after` names, and answer where it landed. Body `{after, x?, z?}`; stating no point puts it at the **midpoint of that edge**, which is a new corner half way along a wall with nothing else moved. The last vertex's edge closes the ring | 400 as above · 409 · 404 the id names no shape |
 | `DELETE /map/{slug}/sketch/shapes/{shapeId}/vertices/{index}` | `{id, index, vertices}` — take one point out, leaving every other where it was drawn | 400 `the edit cannot be made` `RQ1` — as above, plus an outline down to its last three, since two points draw no ground · 409 · 404 the id names no shape |
 | `DELETE /map/{slug}/sketch/shapes/{shapeId}` | `{id}` — rub one shape out, and take it out of every group that listed it | 409 · 404 the id names no shape |
-| `GET /map/{slug}/sketch/props` | `{props[], styles{}}` — every placement the map carries and the recipes they name, typed as `PlacedProp` so the six kinds, their knobs and their styles are in the published schema. The recipes ride with the placements because a placement naming a key nobody can resolve is not readable on its own | 400 `unreadable dressing` `DR-DOC` · 404 |
+| `GET /map/{slug}/sketch/props` | `{props[], styles{}, biomes[]}` — every placement the map carries, the recipes they name and the biome patches drawn beside them, typed as `PlacedProp` so the six kinds, their knobs and their styles are in the published schema. The recipes ride with the placements because a placement naming a key nobody can resolve is not readable on its own | 400 `unreadable dressing` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/props` | `{id}` — place one prop, without sending the board it stands on. A body stating a free id keeps it; one stating none, or one already taken, is minted `{kind}-{n}`. The placement goes on the end, since the pass runs in placement order and an addition has not been placed before anything | 400 `malformed prop` `RQ1` (the message names every kind) · 400 `invalid style or theme` `HS*`/`PT*` · 409 stale `If-Match` · 404 |
 | `PATCH /map/{slug}/sketch/props/{propId}` | `{id}` — replace one placement, keeping its position in the pass's order and the id it is addressed by. Editing a prop must not move it past what the pass places after it | 400 as above · 409 · **404 the id names no placement** |
 | `DELETE /map/{slug}/sketch/props/{propId}` | `{id}` — take one placement off the board. The recipe it named stays in the registry, since a key is shared by every placement wearing it | 409 · **404 the id names no placement** |
+| `POST /map/{slug}/sketch/biome-patches` | `{id}` — draw one area carrying a biome field of its own: `{id?, points[[x,z]…], field}`, three points or more. A body stating a free id keeps it, else one is minted `biome-{n}`. It goes on the end, which is the one drawn over everything already there | 400 `malformed biome patch` `RQ1` · 409 · 404 |
+| `PATCH /map/{slug}/sketch/biome-patches/{patchId}` | `{id}` — replace one patch, keeping its place in the drawing order | 400 as above · 409 · **404 the id names no patch** |
+| `DELETE /map/{slug}/sketch/biome-patches/{patchId}` | `{id}` — take one patch off the board; the columns it held fall to an earlier patch, else to the map's own field | 409 · **404 the id names no patch** |
 | `GET /map/{slug}/sketch/themes` | `{themes{}, mapTheme}` — the registry by the id an author registered each theme under, and which of it covers every cell no shape scope claims. A registry entry the painter cannot read as a theme is left out, the same way the painter drops it | 404 |
 | `GET /map/{slug}/sketch/themes/{themeId}` | one `TerrainTheme`, as the painter reads it | 404 the registry carries no such id |
 | `PUT /map/{slug}/sketch/themes/{themeId}` | `{id}` — register a theme under an id, replacing whatever that id carried. The one write in the sketch that creates and replaces through the same verb, because a registry entry is addressed by the name an author gave it | 400 `malformed theme` `RQ1` · 400 `invalid style or theme` `PT*` · 409 stale `If-Match` · 404 |
@@ -1631,7 +1648,7 @@ in the same two registers.
 | `GET /map/{slug}/sketch/room-styles` | `{cage, spawn}` — both shells **resolved**, which is what the stampers will read: a part that is absent answers its built-in shell and a part bound to open ground answers null. Raw snapshots would not say which of the three states a caller is in | 404 |
 | `PUT /map/{slug}/sketch/room-styles/{part}` | `{id}` — bind the shell one kind of room is stamped in; `part` is `cage` or `spawn`. **A body of literal `null` is a statement, not an omission**: it asks for open ground, a pad rather than a building over it, which is what a spawn on a plateau the plan already shaped often wants to be | 400 `unknown room part` / `malformed room style` `RQ1` · 400 `invalid style or theme` `HS*` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/room-styles/{part}` | `{id}` — unbind, which puts that kind of room back to its **built-in** shell. Not the same as binding null | 409 · 404 nothing is bound |
-| `GET /map/{slug}/sketch/biome` | one `BiomeField` — `solid`, `cell` or `noise` | 400 `unreadable biome` `RQ1` · 404 the board states none, which is plains everywhere |
+| `GET /map/{slug}/sketch/biome` | one `BiomeField` — `solid`, `cell` or `noise`. The biomes worth naming, with the colour each tints ground with, are `GET /api/terrain/biomes` | 400 `unreadable biome` `RQ1` · 404 the board states none, which is plains everywhere |
 | `PUT /map/{slug}/sketch/biome` | `{id}` — which biome each column of the exported world carries. Map-wide and answered per chunk, because a biome's tint is blended across a radius and a region drawn to a finer edge never reaches its own colour there | 400 `malformed biome` `RQ1` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/biome` | `{id}` — take the field off the board, which is plains everywhere | 409 · 404 |
 

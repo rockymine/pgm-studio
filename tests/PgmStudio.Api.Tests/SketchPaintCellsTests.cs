@@ -46,7 +46,7 @@ public sealed class SketchPaintCellsTests
         }.ToJson();
 
     private static IReadOnlyList<SurfaceCell> Paint(string layoutJson)
-        => TerrainPreview.SketchPaintCells(layoutJson, new MapIntent());
+        => TerrainPreview.SketchPaintCells(layoutJson, new MapIntent()).Cells;
 
     [Test]
     public async Task Each_themed_shape_contributes_its_own_surface_block()

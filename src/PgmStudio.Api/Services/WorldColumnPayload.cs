@@ -28,6 +28,9 @@ public static class WorldColumnPayload
     {
         var palette = new List<string>();
         var index = new Dictionary<(int Id, int Data), int>();
+        // A biome-tinted block is one colour per column rather than one per pair, so it is keyed by the
+        // colour the tint resolved to and shares a slot with every other column that came out the same.
+        var tinted = new Dictionary<string, int>(StringComparer.Ordinal);
         var cols = new List<int>();
         int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
 
@@ -49,12 +52,22 @@ public static class WorldColumnPayload
         {
             cols.Add(x); cols.Add(z); cols.Add(runs.Count);
             spans.TryGetValue((x, z), out var here);
+            var biome = world.GetBiome(x, z);
             foreach (var run in runs)
             {
-                var key = (run.BlockId, run.BlockData);
-                if (!index.TryGetValue(key, out var slot))
+                int slot;
+                if (BlockTints.IsTinted(run.BlockId, run.BlockData))
                 {
-                    index[key] = slot = palette.Count;
+                    var hex = BlockPalette.Hex(run.BlockId, run.BlockData, biome, x, z);
+                    if (!tinted.TryGetValue(hex, out slot))
+                    {
+                        tinted[hex] = slot = palette.Count;
+                        palette.Add(hex);
+                    }
+                }
+                else if (!index.TryGetValue((run.BlockId, run.BlockData), out slot))
+                {
+                    index[(run.BlockId, run.BlockData)] = slot = palette.Count;
                     palette.Add(BlockPalette.Hex(run.BlockId, run.BlockData));
                 }
                 // A segment is half-open in Y, so a run starting exactly at one's top starts above it: a

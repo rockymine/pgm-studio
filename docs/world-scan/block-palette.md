@@ -85,9 +85,12 @@ from the face a top-down render sees: a log shows its rings, grass and podzol th
 Three families depart from the raw texture mean on purpose, because the mean is the wrong answer for them.
 
 **Biome-tinted blocks** carry no colour of their own in the asset — grass, foliage, vines, sugar cane, lily
-pad and water are greyscale textures multiplied by a tint the game samples from the biome. A static render
-has no biome to sample, so these carry a fixed temperate (plains/forest) tint. Spruce and birch leaves are
-the exception within the exception: the game gives them a constant tint everywhere, and they take it.
+pad and water are greyscale textures multiplied by a tint the game samples from the biome. The stored colour
+carries the temperate (forest) tint, which is what a render shows where nothing says otherwise. A render that
+*does* know the ground moves off it by rescaling — dividing that reference out and multiplying the biome's in
+(`BiomeTint`, `docs/world-export/terrain-painting.md` §5b) — rather than by holding a second table of colours,
+and `BlockTints` is which block reads which of the three. Spruce and birch leaves are the exception within
+the exception: the game gives them a constant tint everywhere, and they take it, so a biome moves neither.
 
 **Ores** are four-fifths stone matrix by pixel count, so their raw means differ by a few units and every ore
 prints the same grey. Each instead takes its accent — gold's yellow, lapis's blue, diamond's cyan — which is

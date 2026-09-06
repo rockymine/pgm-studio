@@ -57,6 +57,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
   let themes = {};
+  // The map-wide biome field (docs/world-export/terrain-painting.md 5b), or undefined for a board that states
+  // none — which is plains everywhere. Carried on the layout like the themes, so the editor's own save keeps
+  // a field written through the API instead of dropping it.
+  let biome;
   // Which library row each theme was copied from, theme id -> row id. A theme authored on the board
   // has no entry. It is what a copy-in matches by, so a rename on either side still finds the one theme.
   let themeSources = {};
@@ -947,6 +951,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       markDirty();
       fire("OnRoomStyles", roomStylesState());
     },
+    // ── the biome (docs/world-export/terrain-painting.md 5b) ──
+    // The map-wide field as its JSON text, or "" for a board that states none.
+    getBiome() { return biome === undefined ? "" : JSON.stringify(biome); },
+    // Replace the field, or take it off the board with an empty string. Returns an error string on invalid
+    // JSON, else null.
+    setBiome(text) {
+      if (!text) { biome = undefined; markDirty(); fire("OnBiome", ""); return null; }
+      let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "Invalid JSON"; }
+      biome = parsed; markDirty(); fire("OnBiome", JSON.stringify(biome)); return null;
+    },
     defineTheme(name) {
       const id = uniqueScopeId(Object.keys(themes), name || "theme");
       themes[id] = defaultThemeJson();
@@ -1132,6 +1146,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         cage: s.roomStyles && "cage" in s.roomStyles ? s.roomStyles.cage : undefined,
         spawn: s.roomStyles && "spawn" in s.roomStyles ? s.roomStyles.spawn : undefined,
       };
+      biome = (s.biome && typeof s.biome === "object") ? s.biome : undefined;
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
       canvas.setReliefDoc(s.relief && typeof s.relief === "object" ? s.relief : null);
       const raw = (s.layers && s.layers.length) ? s.layers : [];
@@ -1183,6 +1198,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         roomStyles: (roomStyles.cage !== undefined || roomStyles.spawn !== undefined)
           ? { cage: roomStyles.cage, spawn: roomStyles.spawn }
           : undefined,
+        // The map-wide biome, omitted where the board states none — which is plains everywhere and what a
+        // board that never opened the question exports as.
+        biome,
         // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
         // exactly as it did before the phase existed.
         dressing: canvas.dressing.isEmpty ? undefined : canvas.dressing.toJSON(),
@@ -1223,7 +1241,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     "renameGroup",
     "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY",
     "setRoomStyle", "defineTheme", "renameTheme", "deleteTheme", "setThemeJson", "setMapTheme",
-    "setThemeSource", "themeFromLibrary",
+    "setThemeSource", "themeFromLibrary", "getBiome", "setBiome",
     "assignShape", "assignGroup",
     "deleteProp", "updateProp",
     "deleteMark", "updateMark", "renameMark", "updateGroupRelief", "setPushAmount",

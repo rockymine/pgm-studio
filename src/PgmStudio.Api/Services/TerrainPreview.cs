@@ -28,6 +28,15 @@ public static class TerrainPreview
     /// block extent — the image spans world rect (MinX, MinZ)–(MinX+SpanX, MinZ+SpanZ).</summary>
     public readonly record struct MapPaint(string Svg, int MinX, int MinZ, int SpanX, int SpanZ);
 
+    /// <summary>A sketch's painted surface: the block every footprint cell shows from above, and the biome
+    /// each of those columns carries. The two travel together because the colour a cell is drawn in is the
+    /// block's <em>and</em> the biome's — grass, leaves and water are tinted by the ground they stand on, so a
+    /// caller handed only the blocks would have to resolve the field a second time to draw them right.</summary>
+    /// <param name="Cells">One entry per footprint cell, the block seen from directly above.</param>
+    /// <param name="BiomeAt">The biome one column carries, by block coordinates.</param>
+    public readonly record struct SketchPaint(
+        IReadOnlyList<SurfaceCell> Cells, Func<int, int, byte> BiomeAt);
+
     /// <summary>A whole plan compiled, its terrain painted (through the scoped theme resolver), and rendered
     /// top-down: each footprint cell shows its highest painted block, coloured via <see cref="BlockPalette"/>.
     /// Structures above the terrain (rooms, approach walls) show their own top; the floating observer platform
@@ -81,11 +90,16 @@ public static class TerrainPreview
     /// reading one of them back was the bulk of this call. It is the same painter either way —
     /// <see cref="TerrainPainter.ColumnBlocks"/> is the single place a band becomes blocks, and the full paint
     /// walks the sequence this stops after the first element of.</para></summary>
-    public static IReadOnlyList<SurfaceCell> SketchPaintCells(string layoutJson, MapIntent intent)
+    public static SketchPaint SketchPaintCells(string layoutJson, MapIntent intent)
     {
         var terrain = TerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layoutJson));
         var surface = terrain.SurfaceTop;
-        if (surface.Count == 0) return [];
+        if (surface.Count == 0) return new SketchPaint([], (_, _) => Biome.Plains);
+
+        // The biome the export would write, written into this world too, so the overlay's colours come off
+        // the same pass the world does rather than off a second reading of the same document.
+        BiomeScope.Paint(terrain.World, BiomeScope.FieldOf(layoutJson), BiomeScope.PatchesOf(layoutJson),
+                         DressingScope.SymmetryOf(layoutJson).Canonical);
 
         var themeAt = TerrainThemeScope.ThemeAt(layoutJson);
         var teamAt = TeamTerritory.DamageAt(surface.Keys, intent);
@@ -119,7 +133,7 @@ public static class TerrainPreview
                 break;
             }
         }
-        return cells;
+        return new SketchPaint(cells, terrain.World.GetBiome);
     }
 
     private static MapPaint EmptyPaint(string reason) => new(Empty(reason), 0, 0, 0, 0);

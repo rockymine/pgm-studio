@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Painting;
 
@@ -28,9 +29,9 @@ namespace PgmStudio.Minecraft.Painting;
 /// belongs.</para>
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
-[JsonDerivedType(typeof(SolidBiome), "solid")]
-[JsonDerivedType(typeof(CellBiome), "cell")]
-[JsonDerivedType(typeof(NoiseBiome), "noise")]
+[JsonDerivedType(typeof(SolidBiome), BiomeKinds.Solid)]
+[JsonDerivedType(typeof(CellBiome), BiomeKinds.Cell)]
+[JsonDerivedType(typeof(NoiseBiome), BiomeKinds.Noise)]
 public abstract record BiomeField
 {
     /// <summary>The biome the column at these <b>block</b> coordinates carries.</summary>

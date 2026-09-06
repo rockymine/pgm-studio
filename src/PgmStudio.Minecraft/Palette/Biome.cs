@@ -29,4 +29,34 @@ public static class Biome
     public const byte ColdTaiga = 30;
     public const byte Savanna = 35;
     public const byte Mesa = 37;
+
+    /// <summary>The named ids, in the order a picker offers them — the plain grounds first, then the cold
+    /// ones, then the odd ones. A field may state any id whatever is here; what a name buys is a document
+    /// that reads and a control an author can use.</summary>
+    public static readonly (byte Id, string Name)[] All =
+    [
+        (Plains, "Plains"),
+        (Forest, "Forest"),
+        (BirchForest, "Birch forest"),
+        (RoofedForest, "Roofed forest"),
+        (Taiga, "Taiga"),
+        (ExtremeHills, "Extreme hills"),
+        (Savanna, "Savanna"),
+        (Desert, "Desert"),
+        (Mesa, "Mesa"),
+        (Jungle, "Jungle"),
+        (Swampland, "Swampland"),
+        (River, "River"),
+        (IcePlains, "Ice plains"),
+        (ColdTaiga, "Cold taiga"),
+        (FrozenRiver, "Frozen river"),
+        (MushroomIsland, "Mushroom island"),
+    ];
+
+    /// <summary>What an author reads the id as, or the number itself for one no name claims.</summary>
+    public static string NameOf(byte id)
+    {
+        foreach (var (named, name) in All) if (named == id) return name;
+        return $"Biome {id}";
+    }
 }

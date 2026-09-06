@@ -10,6 +10,15 @@ namespace PgmStudio.Contracts;
 /// <param name="Label">The door as an author reads it in the picker.</param>
 public sealed record DoorOptionDto(string Slug, string Label);
 
+/// <summary>One biome a field may name (<c>GET /api/terrain/biomes</c>). Served rather than restated in the
+/// client, because the ids and their names live in <c>Minecraft.Palette.Biome</c> and a second copy is how a
+/// picker comes to offer a biome the export writes as something else.</summary>
+/// <param name="Id">The byte a chunk's <c>Biomes</c> array carries.</param>
+/// <param name="Name">The biome as an author reads it.</param>
+/// <param name="Hex">The grass colour it tints ground with, so a picker shows what choosing it does. Swampland
+/// is two-tone and answers the greener of its two.</param>
+public sealed record BiomeOptionDto(int Id, string Name, string Hex);
+
 /// <summary>One house-style field that names a block for its <b>geometry</b>
 /// (<c>GET /api/room-styles/block-kinds</c>). A stair turns a corner by its own facing and a slab fills half
 /// its cube, so a field asking for one gets nothing it can use from the other — which is what <c>HS1</c>

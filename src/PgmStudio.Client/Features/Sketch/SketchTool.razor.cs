@@ -80,6 +80,15 @@ public partial class SketchTool
         ApplyThemes(await handle.InvokeAsync<string>("getThemes"));
     }
 
+    /// <summary>Re-read the map-wide biome field off the bridge — after a load, and after the inspector has
+    /// written one.</summary>
+    private async Task ReadBiome()
+    {
+        if (handle is null) return;
+        biomeJson = await handle.InvokeAsync<string>("getBiome");
+        StateHasChanged();
+    }
+
     private void ApplyThemes(string json)
     {
         using var doc = JsonDocument.Parse(json);
@@ -118,6 +127,10 @@ public partial class SketchTool
     // The Theme phase keeps its create/apply split because a theme genuinely is a recipe authored once.
     private bool DressingActive => active == "dressing";
     private string dressingJson = "";
+    /// <summary>The map-wide biome field as its JSON text, or empty for a board that states none. Read off
+    /// the bridge with the rest of the board's finish, so the Dressing phase's control and the document
+    /// cannot disagree about what is stated.</summary>
+    private string biomeJson = "";
     private Task GoDressing() { tool = DressingTools.Tree; return SetPhase("dressing"); }
 
     // ── Relief phase (docs/world-export/relief.md §15) ──
@@ -209,6 +222,7 @@ public partial class SketchTool
         if (phase != "theme") { themeAddOpen = false; await SetThemeBrush(""); }
         if (phase == "relief") reliefOn = true;
         if (phase == "theme") await ReadThemes();
+        if (phase == "dressing") await ReadBiome();
         await PushPhaseOverlays(phase);
     }
 
@@ -604,6 +618,10 @@ public partial class SketchTool
     /// the selected prop itself, which is what the inspector and the list both read.</summary>
     [JSInvokable]
     public void OnDressing(string json) { dressingJson = json; StateHasChanged(); }
+
+    /// <summary>The map-wide biome field changed on the bridge.</summary>
+    [JSInvokable]
+    public void OnBiome(string json) { biomeJson = json; StateHasChanged(); }
 
     [JSInvokable]
     public void OnRelief(string json) { reliefJson = json; reliefRevision++; StateHasChanged(); }

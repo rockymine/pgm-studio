@@ -52,10 +52,18 @@ internal static class BlockPixels
     /// <para><b>Cells</b> (<c>xs</c>/<c>zs</c>/<c>color_idx</c>) is the fallback, for a footprint so scattered
     /// that its runs cost more than its cells, or one whose bounding box is too large to raster at all.</para>
     /// </summary>
-    public static BlockPixelsDto PalettePixels(IReadOnlyList<SurfaceCell> cells)
+    /// <param name="cells">The painted footprint.</param>
+    /// <param name="colourOf">What one cell's swatch is. Defaults to the block's own palette colour; a caller
+    /// that knows the ground the cell stands on hands over one that tints it — a biome-painted board is one
+    /// colour per column rather than one per block pair.</param>
+    public static BlockPixelsDto PalettePixels(
+        IReadOnlyList<SurfaceCell> cells, Func<SurfaceCell, string>? colourOf = null)
     {
-        var asRuns = RunPixels(cells);
-        return asRuns is not null && asRuns.Runs!.Count < 3 * cells.Count ? asRuns : CellPixels(cells);
+        colourOf ??= static cell => BlockPalette.Hex(cell.BlockId, cell.BlockData);
+        var asRuns = RunPixels(cells, colourOf);
+        return asRuns is not null && asRuns.Runs!.Count < 3 * cells.Count
+            ? asRuns
+            : CellPixels(cells, colourOf);
     }
 
     // The largest bounding box worth rastering to find runs. A footprint is normally compact, but nothing stops
@@ -63,7 +71,7 @@ internal static class BlockPixels
     private const long MaxRunRasterCells = 4_000_000;
 
     /// <summary>The run encoding, or null when the footprint's bounding box is too large to raster.</summary>
-    private static BlockPixelsDto? RunPixels(IReadOnlyList<SurfaceCell> cells)
+    private static BlockPixelsDto? RunPixels(IReadOnlyList<SurfaceCell> cells, Func<SurfaceCell, string> colourOf)
     {
         int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
         foreach (var c in cells)
@@ -74,17 +82,18 @@ internal static class BlockPixels
         long width = (long)maxX - minX + 1, height = (long)maxZ - minZ + 1;
         if (width * height > MaxRunRasterCells) return null;
 
-        var colorCache = new Dictionary<(int, int), int>();
+        // Keyed by the colour rather than by the block pair, since a tinted block is one colour per column.
+        var colorCache = new Dictionary<string, int>(StringComparer.Ordinal);
         var palette = new List<string>();
         var slot = new int[width * height];
         Array.Fill(slot, -1);
         foreach (var c in cells)
         {
-            var key = (c.BlockId, c.BlockData);
-            if (!colorCache.TryGetValue(key, out var index))
+            var hex = colourOf(c);
+            if (!colorCache.TryGetValue(hex, out var index))
             {
-                colorCache[key] = index = palette.Count;
-                palette.Add(BlockPalette.Hex(c.BlockId, c.BlockData));
+                colorCache[hex] = index = palette.Count;
+                palette.Add(hex);
             }
             slot[(c.Z - minZ) * width + (c.X - minX)] = index;
         }
@@ -107,9 +116,9 @@ internal static class BlockPixels
     /// palette. Terrain is built from a handful of blocks, so repeating an 8-character hex per cell was most of
     /// the response before the palette went in — 657 KB on a 200×200 board, 440 KB of it the same few strings.
     /// </summary>
-    private static BlockPixelsDto CellPixels(IReadOnlyList<SurfaceCell> cells)
+    private static BlockPixelsDto CellPixels(IReadOnlyList<SurfaceCell> cells, Func<SurfaceCell, string> colourOf)
     {
-        var colorCache = new Dictionary<(int, int), int>();
+        var colorCache = new Dictionary<string, int>(StringComparer.Ordinal);
         var palette = new List<string>();
         var xs = new int[cells.Count];
         var zs = new int[cells.Count];
@@ -119,11 +128,11 @@ internal static class BlockPixels
         {
             var c = cells[i];
             xs[i] = c.X; zs[i] = c.Z;
-            var key = (c.BlockId, c.BlockData);
-            if (!colorCache.TryGetValue(key, out var slot))
+            var hex = colourOf(c);
+            if (!colorCache.TryGetValue(hex, out var slot))
             {
-                colorCache[key] = slot = palette.Count;
-                palette.Add(BlockPalette.Hex(c.BlockId, c.BlockData));
+                colorCache[hex] = slot = palette.Count;
+                palette.Add(hex);
             }
             idx[i] = slot;
             if (c.X < minX) minX = c.X; if (c.X > maxX) maxX = c.X;

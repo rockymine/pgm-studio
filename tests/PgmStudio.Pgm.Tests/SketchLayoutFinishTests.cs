@@ -17,7 +17,7 @@ public sealed class SketchLayoutFinishTests
 
     private const string Finished = """
     {"setup":{"mirror_mode":"mirror_x"},
-     "themes":{"grass":{"surface":"grass"}},"mapTheme":"grass",
+     "themes":{"grass":{"surface":"grass"}},"themeSources":{"grass":12},"mapTheme":"grass",
      "roomStyles":{"cage":{"walls":"quartz"}},
      "dressing":{"props":[{"kind":"tree","x":4,"z":9}]},
      "biome":{"kind":"cell","seed":3,"cellSize":2,"jitter":70,"palette":[4,7]},
@@ -36,6 +36,7 @@ public sealed class SketchLayoutFinishTests
         await Assert.That(merged.GetProperty("mapTheme").GetString()).IsEqualTo("grass");
         await Assert.That(merged.GetProperty("dressing").GetProperty("props").GetArrayLength()).IsEqualTo(1);
         await Assert.That(merged.GetProperty("biome").GetProperty("kind").GetString()).IsEqualTo("cell");
+        await Assert.That(merged.GetProperty("themeSources").GetProperty("grass").GetInt64()).IsEqualTo(12);
     }
 
     [Test]
