@@ -425,14 +425,14 @@ height. That is exactly what a made thing needs, and none of it has to be invent
 
 ### Shapes
 
-- [ ] **TS31 — A shape drawing ground outside every island is silent.** A one-course add on a cell no region
-  shape covers is the only add on that column, so it builds a speck of bedrock standing over the void; a shape
-  drawn wholly on the mirrored half is outside the compiled polygon and becomes an island of its own. Both
-  pass the sketch PUT without a word — and `SK11` is the rule that should have said so.
-  `SketchRasterizer.DetachedMasses` drops any component sharing no column with a second one (`// beside, not
-  above`), so it reports a storey whose stair was never drawn and never an island standing *beside* the board,
-  which is the case an author actually draws by accident. Report a component that is neither reached nor over
-  anything, under `SK11` rather than a new id. `docs/tools/sketch.md` § Refusals and complaints.
+- [ ] **TS31 — A shape drawing ground outside every island is silent until the world is built.** A one-course
+  add on a cell no region shape covers builds a speck of bedrock standing over the void; a shape drawn wholly
+  on the mirrored half falls outside the compiled polygon and becomes an island of its own. Both pass the
+  sketch PUT without a word, and the read that catches them is `GET …/coverage` — a world-tier read, so an
+  author learns it after a build. **`SK11` is not the rule for it (author):** a mass standing beside another
+  is a landmass, and reporting every unreached component makes an ordinary board complain about itself. What
+  is open is whether the sketch tier should answer it at all, and by which predicate — distance from the rest
+  of the board is the candidate the evidence suggests, and the number is the author's.
 
   *`opus5-ravensmere`: `GET …/coverage` reported **141 cells at (−24, 91), 364 blocks from used ground** —
   a disconnected island made of paint. Nothing before that read mentioned it, and every spec now clamps and

@@ -1,6 +1,6 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 68 open entries and `TODO.md` three — the interaction slice of the programme that put a
+`BACKLOG.md` holds 67 open entries and `TODO.md` eight — the interaction slice of the programme that put a
 room's building and a dressed one on one model. This document is the reading that says which of them are
 defects, which are questions, which share a cause, and what order drains them. Its subject is the board
 itself, and it expires when the board it describes is gone. It is the one document this work adds:
@@ -12,10 +12,10 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **71 open entries over 11,766 words**: a median entry of 151 words and **8 above 250** —
-the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `G163`
-is the longest at 390 words, then `WS3` at 356. The prefix spread is `B` 20, `WE` 14, `TS` 7, `S` 7, `G` 7,
-`N` 4, `C` 3, `WS` 3, and four others in ones and twos.
+The two boards carry **75 open entries over 12,403 words**: a median entry of 146 words and **8 above 250** —
+the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
+is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 19, `B` 16, `TS` 7,
+`G` 7, `S` 6, `N` 4, `TL` 4, `C` 3, and six others in ones and twos.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -248,10 +248,10 @@ measures the wrong rectangle and asks for the widest side instead of every side.
 the board and the one closest to being work, because the measurements are already taken and the shape of the
 answer — a complaint pass over a themed board, with the floor stated by the author — is common to all five.
 
-**A read answers the picture and not the knob that made it.** A push has two gradients and `relief/read`
-reports the face rather than either (`WE32`). Two flat marks build a wall and it is reported as terrain,
-attributed to nothing (`WE33`). A declared route was never walked back until `WS14` (`FEATURES.md`).
-`RouteFork` reports one fork
+**A read answers the picture and not the knob that made it.** This is the cause the relief track has been
+draining: a wall between two marks reported as terrain with nothing's name on it shipped as `WE33`, a push's
+two gradients as `WE32`, and a declared route walked back as `WS14` (`FEATURES.md`). What is left of it is
+elsewhere. `RouteFork` reports one fork
 where a board has several, and reports it against no demand set (`WS3`). Eleven world reads answer a picture
 each and no browser surface shows any of them (`B262`), and a read taken off a shipped world cannot be given
 the sidecar that would name its materials (`B265`). Every one of these is an author holding an artifact with
@@ -301,7 +301,7 @@ section already names: `C11` and `B70` left the board, and `WE13` turned into a 
 the thing at all. Two became work with a stated reason. Two were deferred with the reason for deferring. Not
 one of them needed more measurement, which is the whole claim this section makes.
 
-**`B144` was handed back, and the ruling is: paint follows the shape that forms the surface.** Among the shapes
+**`B144` was handed back, and the ruling is: paint follows the shape that forms the surface** (shipped, `FEATURES.md`)**.** Among the shapes
 covering a column, only those reaching the visible top may own its paint; among those the smallest area still
 wins. Patch-scoping is untouched — two shapes at one height are a theme scoped to a patch — and a shape running
 *under* another stops painting a surface it does not form, which is the whole of the defect. It is `TS23`'s
@@ -360,8 +360,10 @@ for deferring. It cost one message. This phase is the one nobody can do alone, a
 whenever the list refills — the causes below each had a question sitting in them, and none of them could move
 until it was answered.
 
-**Phase 1 — the verified defect run.** `TS31`, `B145`, `B57`. Each lands with a test that fails on the old
-behaviour — that is the deliverable, not the fix.
+**Phase 1 — the verified defect run.** `B145` and `B57`. Each lands with a test that fails on the old
+behaviour — that is the deliverable, not the fix. `TS74` and `B144` left this way (`FEATURES.md`), and `TS31`
+left it a third way: the ruling it needed says its fault is not `SK11`'s to report, so what remains of the
+entry is a question rather than a defect.
 
 **Phase 2 — fix the causes, not the entries.** The building's one model (3 entries) is `TODO.md`'s programme
 and is worked to its end first. Then, in the order that maximises what each closes: the measured convention
