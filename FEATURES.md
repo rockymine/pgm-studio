@@ -2694,7 +2694,41 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   so an id-only guard counted a course already finished in one of those as unpainted ground and the next
   layer's pass wrote through it — a plinth in polished diorite under a wool prop came back wool. The read now
   compares `(id, data)` against `(Stone, 0)`, which is what the write beside it always compared. (WE58)
-- **A board is painted in biomes (WE55 — see BACKLOG WE52–WE54 for what is left).** A biome is one byte per
+- **A drawn patch takes its own biome field (WE52).** The map's field is the default the patches sit on: an
+  area drawn with a `BiomeField` of its own — so a corner of the board reads as desert against a map that is
+  otherwise forest and river — rides on the **dressing** document beside the placements, since a patch is a
+  shape drawn on the same canvas even though it puts down no block. A column is offered to the patches from
+  the last drawn back and answers the first that holds it, so paint laid later covers paint laid earlier; one
+  inside none of them answers the map, and a board stating neither is left the plains every chunk is created
+  with. The fold runs before anything is asked, which is why a patch is **never fanned** — an area drawn on
+  the primary half already answers at its image. Per-*shape* selection is deliberately not offered (author).
+  `POST`/`PATCH`/`DELETE /map/{slug}/sketch/biome-patches[/{patchId}]` address one at a time, and
+  `GET …/sketch/props` answers the whole document, patches included. (`Minecraft/Dressing/{DressingJson,
+  DressingEdit}.cs`, `Export/BiomeScope.cs`, `Api/Endpoints/SketchPropEndpoints.cs`,
+  `docs/world-export/terrain-painting.md` §5b, `docs/tools/sketch.md`; 10 tests)
+- **A painted biome is visible in the studio (WE53).** Every static render multiplied grass, leaves, vines and
+  water by a fixed temperate tint, so a board's biomes showed in game and nowhere in the studio and an author
+  painted blind. The palette's stored colours carry that tint baked in, so a render moves off it by
+  **rescaling** — dividing the reference out and multiplying the biome's in (`BiomeTint`) — rather than by
+  holding a second table of colours: a grass block, whose texture is nearly white, comes out as the biome's
+  own colour, and a block with a colour of its own keeps it and shifts. `BlockTints` says which block reads
+  which of the three tints, spruce and birch leaves deliberately absent because the game tints those
+  constantly. The Theme phase's Blocks overlay and the 3-D preview both read the biome off the world the pass
+  has already painted, and both key their palette by the colour a column resolved to rather than by the block
+  pair. Swampland is approximated rather than reproduced: its two colours and the scale of its mottling are
+  vanilla's, the field placing them is the studio's own. (`Palette/{BiomeTint,BlockTints,BlockPalette}.cs`,
+  `Anvil/VoxelWorld.cs`, `Api/Services/{TerrainPreview,WorldColumnPayload}.cs`,
+  `docs/world-scan/block-palette.md`; 7 tests)
+- **A biome field has a surface to author it on (WE54).** The Dressing phase gains its first map-wide control
+  — a biome is neither a prop nor a per-prop knob — offering the three kinds, the numbers each states, and the
+  palette or bands a `cell` or a `noise` field picks between, every biome shown with the ground colour
+  choosing it produces. `GET /api/terrain/biomes` serves the named ids with those colours, so a picker cannot
+  offer one the export writes as something else, and `BiomeKinds` puts the three words where the pass, the
+  wire and the control all spell them alike. The bridge now **carries** the field: it held none, so the
+  editor's own save dropped a field written through `PUT /sketch/biome`.
+  (`Palette/Biome.cs`, `Vocabulary/BiomeKinds.cs`, `Api/Endpoints/TerrainPreviewEndpoints.cs`,
+  `js/studio/bridge/sketch-bridge.js`, `Features/Sketch/SketchDressingInspector.*`, `docs/tools/sketch.md`)
+- **A board is painted in biomes (WE55).** A biome is one byte per
   column the client reads to tint grass, leaves and water, so it is the only colour a board gets for free.
   `AnvilRegionWriter` filled every chunk with plains; a chunk now carries 256 bytes answered by a map-wide
   `BiomeField` — `solid`, `cell` or `noise`, stated on the layout beside the other finish keys and read by

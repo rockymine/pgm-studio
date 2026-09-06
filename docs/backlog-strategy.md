@@ -219,15 +219,17 @@ preamble of its own, which is the shape a cause should reach before it is worked
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
 and field, typed, and the client keeps 422 lines of `ThemeVocabulary.cs` instead — which is why a kind added
 server-side reaches no editor, why three room-style fields have no control, and why a band stack is
-authorable only over HTTP. `WE54` · `C51`. Three of it have landed. `B260`: the six room-style fields
+authorable only over HTTP. `C51`. Four of it have landed. `B260`: the six room-style fields
 the editor could not reach are controls now, and the load that wrote them away goes through the one mapping
 that states them all. `B200`: the Theme phase's layered form wrote a shape the reader had to carry forward,
 and carrying it forward is what pinned every stack to `repeat` — it writes the wire shape now, so a ring stack
 is authorable. And `B261`: the material editor reads `GET /api/terrain/patterns` for the kinds, their names,
 their help, their fields and their defaults, so a kind added server-side is offered with a seed that works and
-`laidLog` stopped silently becoming a stone block. All three were the same fault in different clothes — the
-client holding its own account of a shape the server publishes — and the third is the one that removes the
-class rather than an instance of it.
+`laidLog` stopped silently becoming a stone block. And `WE54`: the biome the export writes had a route and no
+control, and the bridge held no field at all, so the editor's own save dropped one written over HTTP — the
+Dressing phase authors it now, from the ids `GET /api/terrain/biomes` serves. All four were the same fault in
+different clothes — the client holding its own account of a shape the server publishes, or no account of it —
+and `B261` is the one that removes the class rather than an instance of it.
 
 **`PlanCompiler` fuses by surface height and drops every identity in the plan.** One `GroupBy(p => p.Surface)`
 followed by a rectilinear union fuses several pieces into one shape, so a wall's seam has no two pieces left
@@ -326,15 +328,16 @@ ambiguity at their edges.
 on a ruling. Each has a definite end and none of it is work until the answer arrives.
 
 **Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`,
-`WE54`, `N08`, `N12`, `TS64`, `TS75`, `S59`, `B262`, `B44`. Three more — `B107`, `S25b`, `B145` — were
+`N08`, `N12`, `TS64`, `TS75`, `S59`, `B262`, `B44`. Four more — `B107`, `S25b`, `B145`, `WE54` — were
 this population until the building's one model turned them from three reaches into one, and they are on
 `TODO.md`. This is the population the studio's own shape produces, and every one of them is the same thing: a
 document, a route or a solver that already answers, and a surface that never asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
-`S34`, `TS51`, `TS63`, `G187`, `G164`, `B54`, `B9`, `B58`, `WE52`. Four left it by shipping —
-`B221` and `B258`, the library's pictures, `WE34`, the seat read, and `TS30`, the bend — which is the
-population behaving as intended: a roadmap entry is drained by being built, not by being triaged again.
+`S34`, `TS51`, `TS63`, `G187`, `G164`, `B54`, `B9`, `B58`. Five left it by shipping —
+`B221` and `B258`, the library's pictures, `WE34`, the seat read, `TS30`, the bend, and `WE52`, the drawn
+biome patch — which is the population behaving as intended: a roadmap entry is drained by being built, not
+by being triaged again.
 
 **Relocating the roadmap to the ideas files was tried and refused.** Seventeen of the eighteen entries named
 on the previous reading are still on the board; only `B21` left, and it left by withdrawal rather than by

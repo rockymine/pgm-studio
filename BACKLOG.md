@@ -292,29 +292,17 @@ what is gathered here is the parked and dormant slices of the same surface.
   *`opus5-slipway`'s `s2` is `(0, 16, 114, 56)` in its layout and the compile's `back-band-22` is
   `(0, 16, 100, 56)`: 14 blocks wider than any bend accounts for, so the plan moved under the layout.*
 
-- [ ] **WE52 — A drawn patch takes its own biome field.** The map states one field and every column answers
-  to it. What an author wants beside that is a shape drawn in the Dressing phase — the way an area of cover is
-  drawn — carrying a field of its own, so a corner of the board reads as desert against a map that is otherwise
-  forest and river. The map's field becomes the default the patches sit on. `BiomeScope.Paint` already walks
-  every column and would resolve patch-first, map-second; what is missing is a drawn area on the dressing
-  document and the pass that reads it. Per **shape** selection is deliberately not wanted (author) — a patch is
-  drawn for this, not inherited from the geometry.
+### The biome, and the half of it the canvas does not draw yet
 
-- [ ] **WE53 — A painted biome is invisible in the studio.** Every static render multiplies grass, leaves,
-  vines and water by a fixed temperate tint, because a render has no biome to sample
-  (`Minecraft/Palette/BlockPaletteData.cs`). So a board's biome field shows in game and nowhere in the studio —
-  an author paints it blind. The fix is a biome-aware tint on the paint overlay and the iso preview: the tint
-  is a per-biome multiplier over the same texture mean the palette already holds. Evidence:
-  `maps/biome-test-pattern` in the mapgen repo carries three biomes over 16,384 columns and looks identical in
-  every studio picture. Swampland wants its own path even then: vanilla paints it two-tone from a noise of its
-  own (see `terrain-painting.md` §5b), so a single multiplier cannot reproduce it.
-
-- [ ] **WE54 — A biome field has no surface to author it on.** `GET`/`PUT`/`DELETE
-  /map/{slug}/sketch/biome` states one and the published schema names `solid`, `cell` and `noise`
-  (`FEATURES.md`); nothing in the browser does. It belongs in the Dressing phase (author), which today
-  places props — a prop is a point or a point-list with a radius, and a field is neither — so the phase gains
-  its first map-wide control rather than a seventh prop kind. Wants the biome ids as a named list, which
-  `Minecraft/Palette/Biome.cs` already holds.
+- [ ] **TS101 — A biome patch has no drawing tool.** A patch is a drawn area carrying its own `BiomeField`,
+  the map's field is the default it sits on, and both halves are built: the pass resolves patch-first
+  (`Export/BiomeScope.cs`), the document holds them (`DressingDoc.Biomes`), and `POST`/`PATCH`/`DELETE
+  /map/{slug}/sketch/biome-patches[/{patchId}]` address one at a time. What is missing is the canvas: nothing
+  in the Dressing phase traces a ring for one, so a patch reaches a board over HTTP or through a hand-edited
+  layout and no other way. It is the ring-tracing geometry a `flora` area already has
+  (`js/studio/canvas/dressing*.js`), placing a `biomes[]` entry rather than a `props[]` one, and the
+  inspector's map-wide biome control repeated for the selected patch. `docs/tools/sketch.md`'s Dressing
+  section and `docs/world-export/terrain-painting.md` §5b both change with it.
 
 ### Layers
 
