@@ -1148,6 +1148,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what `docs/refusals.md` states — now `RQ1` per field through `Refusals.UseRefusalEnvelope`. And
   `RequiredFields` named the **property** rather than the wire field, so a missing `region_id` was reported
   as `regionId`: a name an author cannot find in the body they sent.
+- **A property's nullability is asked once, off a context nothing else holds (TL30).** A
+  `NullabilityInfoContext` caches into a `Dictionary` of its own and is not thread-safe, so two callers asking
+  one at the same time corrupt it and the loser gets an `ArgumentException` out of a question with no failure
+  mode — two concurrent posts of a house style, one of them a 500 from inside `RefuseStatedNulls`, and a
+  round-trip test that failed about one run in six. The answer is pure, so `Domain.DeclaredNullability`
+  computes it once per property against a fresh context and keeps it; the request gate and the style reader
+  both ask it, where the gate held the only cache and the reader held a shared context. Zero failures over 24
+  runs of the suite that failed 1 in 8. (`Domain/DeclaredNullability.cs`,
+  `Minecraft/Houses/HouseStyleJson.cs`, `Api/Endpoints/RequiredFields.cs`; 2 tests)
 - **No generated client, and the check it would have bought (`RP43`).** The question was whether
   `NSwag.CodeGeneration.CSharp` as a build-time package plus a committed generated file was worth what it
   fixes. Measured after `RP11` drained, it is not: a generated client's whole value is the response types,
@@ -2548,6 +2557,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (the least a room may be, `WX2`), **8×8**, **10×15**, **16×16** — offered as canvas chips on the house and
   part editors and as a `?footprint=` word on every house preview route. A word outside the set draws the
   default, the way a bad `scale` does.
+- **A theme copied onto a board records the library row it came from (B47).** The sketch layout gains
+  `themeSources`, theme id → library row id, written when a row is copied in and when a board theme is saved
+  out to one; a copy-in matches by it rather than by name, so copying the same row again refreshes the copy it
+  already made instead of defining a second theme beside it — and it holds whichever of the two has since been
+  renamed, where a name match made a renamed pair into two themes with nothing saying they are one. The
+  inspector says which row the theme in hand came from and whether the two still say the same thing, read by
+  comparing the row's own document against the snapshot; the add panel badges a row with the name its copy
+  carries and offers **refresh** rather than **copy in**. It is a finish key, so a plan recompile carries it
+  with the themes. (`Pgm/Sketch/SketchLayout.cs`, `js/studio/bridge/sketch-bridge.js`,
+  `Features/Sketch/SketchThemeInspector.*`, `docs/tools/sketch.md`)
 - **Every library is searched by name (B47).** The browse strip carries a name search on all six kinds, where
   only styles could be narrowed at all and only by kind.
 - **A studio nobody has seeded is not a state the app can be in, and it ships with six finishes (TL4, G158).**
@@ -2709,6 +2728,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   failing to compile; each now reads its absence off the row the way the porch already did, so a save maps
   the absence back to the same stored value and the pair round-trips.
   (`Api/Endpoints/{RoomStyle,HousePart}LibraryEndpoints.cs`; 3 tests)
+- **What kind of block each house-style field takes is served, not learned by being refused (TL14).**
+  `GET /api/room-styles/block-kinds` answers, per field, the kind of block it takes (`stair`, `slab`, `log`),
+  the other statement that puts it in play — a door head's `fill`, a window's `form` — and the sentence saying
+  what the geometry does with it; then, per kind, every id that carries it with the material it is cut from,
+  which is what `HS4` pairs a head's stair and its slab fill by. `HouseBlockKinds` is the one statement and
+  `HS1` refuses from it, so a block the catalogue offers is one the gate accepts and a field's `means` is the
+  sentence the refusal names it with — pinned by tests that check the offered blocks against the gate itself
+  rather than against a copy of the table. (`Minecraft/Houses/HouseBlockKinds.cs`,
+  `Vocabulary/BlockKinds.cs`, `Api/Endpoints/RoomStyleLibraryEndpoints.cs`, `docs/tools/library.md`; 6 tests)
+- **The house editor opens in one round trip's time rather than six (TL13).** Its six list fetches — doors,
+  blocks, styles, roofs, storeys and porches — ran in sequence before the first render, so the page waited on
+  their sum and showed "Reading the house…" for about ten seconds cold; none of them feeds another, so they
+  are asked together and the page waits on the slowest, which is `GET /api/styles` at 843 ms because every one
+  of its 203 rows carries a preview picture. (`Features/Library/HouseEditor.razor.cs`)
 - **An entry being read says so (TL10).** The house and theme editors worded a failure — "That house could
   not be read" — into the gap before the document arrived, which on a cold client is the seconds the whole
   WASM app takes to boot. The fields column now says only what the header cannot, that the document is still

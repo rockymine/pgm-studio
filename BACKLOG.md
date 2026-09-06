@@ -217,19 +217,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
-- [ ] **TL30 — A house style does not always equal itself after a JSON round trip.** `HouseStyleTests`'
-  round-trip assertions fail about one run in six, and which one fails varies:
-  `A_deck_survives_the_snapshot` and `A_style_the_writer_produced_reads_back` have each been seen. Both assert
-  `read == style` after `HouseStyleJson.Serialize`/`Deserialize`. A failure that moves between tests at a
-  steady rate and never inside one run is a **hash-order** dependence, not a serializer bug: .NET randomizes
-  the string hash seed per process, so an equality or a member walk that reaches a `Dictionary`/`HashSet`
-  enumeration order answers differently from run to run. Find the collection compared by enumeration rather
-  than by content — a record whose generated `Equals` walks a hashed member is the shape — and compare it by
-  content. `HouseStyleJson`, `HouseStyle` and the material records it nests.
-
-  *Reproduce: `dotnet run --no-build -c Release --project tests/PgmStudio.Minecraft.Tests` six times and count.
-  Present on `claude/relief-stacking-80ngwm` and on its checkpoint, so it predates that branch.*
-
 - [ ] **WE98 — A water prop's band stops at its radius, not at the bank.** A `water` prop fills its own
   stated band, so where the channel is narrower than the ground it runs through the top course faces air on
   both sides and the river reads as a trench with a stripe in it. The bank is a fact about the terrain and the
@@ -504,56 +491,14 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   `y4..10` — seven courses** — `y11..29` solid. A room, with rock under it. It previews, and `finish`
   answers 422 `SK13` twice.*
 
-## The library: a browse page, an editor page, and the rail between them
-
-The shape has landed: the rail carries the six kinds, `/library` chooses between them, and an entry opens a
-page laid out as an outline, its fields and a preview companion. What is left is what an author can *say* on
-it, what they can *see* while saying it, and what is on the shelf to say it about.
-
-**The dressing surface is being cleaned up, and the line is what an author *draws*.** A water channel and a
-path are traced on the canvas, so pre-authoring one is authoring a shape without its place and they keep their
-controls in the tool (author). A tree and a boulder are a click, so what is placed is a *recipe* and the recipe
-is library material — picked in the inspector, with a way through to the library to author a new one. A
-building already works this way. The inspector then holds a full editor for the two drawn kinds, a picker and a
-forward for the two clicked ones, and the per-placement handful — seed, position, door edge — for all of them.
-
-### What the author sees while authoring
-
-- [ ] **TL14 — Nothing says what kind of block a house-style field takes.** `HS1` refuses a block named for a
-  geometric role in a field that means another — a stair id under `doorHead.block`, a slab under
-  `roofSlab` — and until this was corrected its fix text sent an author to `GET /api/house-parts`, which has
-  never been served. What exists instead: `GET /api/terrain/blocks` is the **terrain** palette (110 rows, no
-  stairs at all), `GET /api/room-styles/doors` answers door kinds, and the rule's own `means` names the kind
-  per field in prose. An author's way through is to read a shipped preset's `/room-styles/{id}/json` and copy.
-  Wants one catalogue answering, per style field, the kind it accepts and the ids of that kind —
-  `Minecraft/Palette/BlockFamilies.cs` already holds the families the geometry reads. `docs/tools/library.md`
-  § what a style states, and the `HS1` remark, both change with it.
-
-
-**The card carries the section, and that is settled** (author): an author knows a house by its name, and the
-one that wants looking at is a click away from the real thing, turnable, cut to the row they have open
-(`FEATURES.md`). What is left here is how long the page takes to say any of it.
-
-- [ ] **TL13 — The house editor waits ten seconds on a list it barely uses.** `HouseEditor.OnInitializedAsync`
-  makes six sequential fetches before `OnParametersSetAsync` may run, so nothing renders until the last one
-  lands — and one of them is `GET /api/styles`, which answers **203 rows each carrying its preview SVG**
-  (843 ms on localhost) to fill a select that shows a name and a kind. The editor shows "Reading the house…"
-  for about ten seconds on a cold open. Either the six run together, or the style list answers a summary
-  without the pictures for callers that only pick by name; `StyleSelect` groups by kind and renders no swatch,
-  so it needs neither `preview` nor `params`.
-
-  *measured 2026-09-02 on the workshop preset: doors, blocks and styles fire, then roofs, storeys and porches,
-  and `GET /room-styles/{id}` only after all six.*
-
-### What is on the shelf
-
-- [ ] **B47 — A theme copied onto a board loses where it came from.** Copying in matches by name, so the same
-  library theme copied twice replaces its own snapshot rather than growing a `meadow-2` — but a board theme
-  renamed on either side is two rows with nothing saying they are one theme, and nothing can say whether a
-  snapshot is behind the row it came from. Wants a note on the copied theme recording the library row, which
-  slots into `B44`'s snapshot record rather than duplicating it.
-
 ## Props: what a recipe may be made of
+
+**The line is what an author *draws*** (author). A water channel and a path are traced on the canvas, so
+pre-authoring one is authoring a shape without its place and they keep their controls in the tool. A tree and
+a boulder are a click, so what is placed is a *recipe* and the recipe is library material — picked in the
+inspector, with a way through to the library to author a new one, which is how a building already works. The
+inspector holds a full editor for the two drawn kinds, a picker and a forward for the two clicked ones, and
+the per-placement handful — seed, position, door edge — for all of them.
 
 A `template` or a `grown` tree is built from two blocks — `timber.LogId` and `timber.LeafId`, chosen by
 species (`Decorator.TreeCells`). Anything else a real tree has, and every small thing that is not a tree at
