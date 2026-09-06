@@ -6616,9 +6616,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   riser and a band cut low enough catches every lip. `relief.md` §4 states the reading, and the per-mark step
   above is what makes it a local choice rather than a board-wide one.
   (`docs/world-export/relief.md` §4, `docs/world-export/terrain-painting.md` TP24)
+- **A push's two gradients are read, and the push has a name to report them under (`WE32`).** A push is not
+  one slope: it climbs at `amount / falloff` over its skirt and again at `crown / deepest` from its own outline
+  in to its medial axis, and where the two disagree the landform has a step **at its own outline** — a cliff
+  with a hill on top of it, which the readback could only report as a face with nothing's name on it.
+  `PushMark` gains the `Id` the wire already carried and `ReliefSolver.Read` answers a `PushGrade` per push —
+  both gradients and how much ground its ring covers — over the same medial-axis sweep the lift is applied
+  through, so the read and the sculpt cannot disagree. `POST …/sketch/relief/read` carries them as `pushes`
+  and raises **`RL6`** past about twice apart; the readback panel draws the table. That ratio is the number an
+  author is choosing: a skirt of 1.7 against a crown of 1.7 sections as a mountainside at any height, and one
+  of 3.0 against 1.3 as a face at any height too. `MarkReading` becomes `ReliefReading` and `ReadMarks`
+  becomes `Read`, since one reading now answers what every kind of statement did.
+  (`PushMarkTests`, `docs/world-export/relief.md` §2.4)
 - **A seam names the two marks that built it (`WE33`).** A solved field reports a wall between two marks as
   terrain — a step, a face, a barrier cell — with no mark's name on any of it, and neither mark looking wrong
-  on its own. `ReliefSolver.ReadMarks` walks the pinned ground carrying the id of whichever mark last claimed
+  on its own. `ReliefSolver.Read` walks the pinned ground carrying the id of whichever mark last claimed
   each cell and reports where two of those territories meet on a drop: the pair, the worst cell, and how far
   the boundary runs. It is one pin pass rather than a solve, because a seam is decided before the relaxation
   runs. `POST …/sketch/relief/read` carries it per group as `seams`, worst first, and raises **`RL3`** where

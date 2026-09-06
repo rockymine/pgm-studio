@@ -268,20 +268,6 @@ binding invents a fourth. `docs/tools/sketch.md`'s finish model is what they lea
   *`opus5-corbel-scar`, section at x=0: two courses of air between the water's top course and both banks.
   `DR-DRY` already counts them — 126 open columns — so the detection exists and the fill does not.*
 
-- [ ] **WE32 — A push has two gradients and the read-back reports neither.** A push climbs at `amount /
-  falloff` over its skirt and at `crown / half` from the ring's edge to its medial axis, and where those two
-  disagree the landform has a step at its own outline — a cliff with a hill on top of it, whatever its height.
-  `relief/read` reports the *face* — `faces` carries its facing, width, drop and whether it qualifies as a
-  cliff — but says nothing about which push made one, and neither gradient is ever stated, so an author
-  holding a step has no way back to the knob that cut it. Answer each push's two gradients, and lint where
-  they differ by more than about 2×: that ratio is the number an author is actually choosing.
-  `docs/world-export/relief.md` § the push.
-
-  *`opus5-thornfell`: `amounts 22–36 · falloff 12 · crown 16` sections as a vertical face; the same range at
-  `13–17 · falloff 10 · crown 12` — both gradients ≈1.7 — sections as a mountainside. Both read identically
-  through the five fields the driver prints (`cells`, `low`, `high`, `relief`, `symErr`) of a response
-  carrying twelve.*
-
 ### Water
 
 - [ ] **S46 — Water reads the relief; a river on the axis is a canal.** A dressing path draping over whatever

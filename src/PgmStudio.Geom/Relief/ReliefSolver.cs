@@ -29,15 +29,24 @@ public sealed class HeightField(Footprint footprint, double[] continuous, int[] 
 /// board.</summary>
 public readonly record struct MarkSeam(string A, string B, int Step, int X, int Z, int Cells);
 
-/// <summary>What the marks of one relief did to each other, as against what the surface between them came out
-/// as: where two of them met on a step, and which of them pinned nothing at all. Both are faults a solved
-/// field cannot report — a seam reads back as terrain with no mark's name on it, and a mark that landed
-/// nowhere leaves no trace whatsoever.</summary>
+/// <summary>What one relief's <b>statements</b> did, as against what the surface they made came out as: where
+/// two marks met on a step, which of them pinned nothing at all, and what each push's two gradients work out
+/// to. Every one of them is a fault a solved field cannot report — a seam and a push's step both read back as
+/// terrain with nothing's name on them, and a mark that landed nowhere leaves no trace whatsoever.</summary>
 /// <param name="Seams">Every pair of marks whose ground touches with a step of more than one block, worst
 /// first.</param>
 /// <param name="Silent">The ids of marks that pinned no cell — placed off the footprint, or inside a shape
 /// that took itself out of the solve.</param>
-public sealed record MarkReading(IReadOnlyList<MarkSeam> Seams, IReadOnlyList<string> Silent);
+/// <param name="Pushes">The two gradients each push climbs at, in the order the document states them.</param>
+public sealed record ReliefReading(IReadOnlyList<MarkSeam> Seams, IReadOnlyList<string> Silent,
+                                   IReadOnlyList<PushGrade> Pushes);
+
+/// <summary>The two gradients one push climbs at. <see cref="Skirt"/> is <c>amount / falloff</c>, the rise
+/// per block from the ground outside to the push's own outline; <see cref="Crown"/> is <c>crown / deepest</c>,
+/// the rise per block from that outline in to the medial axis. Both are blocks per block, so they compare
+/// directly — and where they do not agree the landform has a step at its own edge, which reads back as a face
+/// with nothing's name on it. <see cref="Cells"/> is how much of the group's ground the ring covers.</summary>
+public readonly record struct PushGrade(string Id, double Skirt, double Crown, int Cells);
 
 /// <summary>
 /// Solves a relief into a height field: the smoothest surface that satisfies the marks, then the pushes, the
@@ -166,7 +175,7 @@ public static class ReliefSolver
     /// answers the fault and not the arrangement — two marks may overlap as much as they like, as long as the
     /// ground between them arrives.</para>
     /// </summary>
-    public static MarkReading ReadMarks(Footprint footprint, ReliefSpec spec)
+    public static ReliefReading Read(Footprint footprint, ReliefSpec spec)
     {
         var height = new double[footprint.Cells];
         var owner = new string?[height.Length];
@@ -213,13 +222,14 @@ public static class ReliefSolver
             }
         }
 
-        return new MarkReading(
+        return new ReliefReading(
             [.. worst.Where(pair => pair.Value.Step > Walk.FreeRise)
                      .OrderByDescending(pair => pair.Value.Step)
                      .Select(pair => new MarkSeam(pair.Key.Item1, pair.Key.Item2,
                                                   pair.Value.Step, pair.Value.X, pair.Value.Z,
                                                   pair.Value.Cells))],
-            silent);
+            silent,
+            ReadPushes(footprint, spec));
     }
 
     /// <summary>The coordinate a cell's grain is drawn from and the cell its solved height is copied from:
@@ -362,6 +372,58 @@ public static class ReliefSolver
     /// stays long and thin as it fades. The sweep only steps onto land, so a push on one arm of a shape does
     /// not lift the arm across the notch from it.
     /// </summary>
+    /// <summary>How deep a ring runs inward at its deepest point — the medial axis, which is what a crown is
+    /// measured to — the inward distance field it was taken from, and how many of the group's cells the ring
+    /// covers. A ring covering nothing answers zero for all three.</summary>
+    private static (double[] Inward, double Deepest, int Cells) Inside(Footprint footprint, double[][] ring)
+    {
+        var inward = new double[footprint.Cells];
+        Array.Fill(inward, double.PositiveInfinity);
+        var cells = 0;
+        foreach (var (x, z) in footprint.Land())
+            if (Polygon.PointInRing(x + 0.5, z + 0.5, ring)) cells++;
+            else inward[footprint.Index(x, z)] = 0;
+        if (cells == 0) return (inward, 0, 0);
+
+        Chamfer(footprint, inward);
+        var deepest = 0.0;
+        foreach (var (x, z) in footprint.Land())
+        {
+            var value = inward[footprint.Index(x, z)];
+            if (!double.IsPositiveInfinity(value)) deepest = Math.Max(deepest, value);
+        }
+        return (inward, deepest, cells);
+    }
+
+    /// <summary>
+    /// The <b>two gradients</b> each push climbs at, per push.
+    ///
+    /// <para>A push is not one slope. It rises at <c>amount / falloff</c> over its skirt — from the ground
+    /// outside to its own outline — and again at <c>crown / deepest</c> from that outline in to its medial
+    /// axis. Where the two disagree the landform has a step at its own edge, a cliff with a hill on top of it,
+    /// and the surface reads back as a face attributed to nothing: the readback measures the ground and no
+    /// field of it names the knob that cut it.</para>
+    ///
+    /// <para>The steepest stated amount is what the skirt is read at, since a push carrying one lift per ring
+    /// vertex is as steep as its steepest side. A push whose ring covers no cell of the group answers zero
+    /// cells and is measured at nothing.</para>
+    /// </summary>
+    private static IReadOnlyList<PushGrade> ReadPushes(Footprint footprint, ReliefSpec spec)
+    {
+        var grades = new List<PushGrade>();
+        foreach (var push in spec.Pushes)
+        {
+            if (push.Ring.Length < 3) continue;
+            var (_, deepest, cells) = Inside(footprint, push.Ring);
+            var amount = push.Amounts is { Length: > 0 } stated
+                ? stated.Max(Math.Abs)
+                : Math.Abs(push.Amount);
+            grades.Add(new PushGrade(push.Id, amount / Math.Max(0.5, push.Falloff),
+                                     deepest > 0 ? Math.Abs(push.Crown) / deepest : 0, cells));
+        }
+        return grades;
+    }
+
     private static double[] Sculpt(Footprint footprint, IReadOnlyList<PushMark> pushes)
     {
         var lift = new double[footprint.Cells];
@@ -384,19 +446,7 @@ public static class ReliefSolver
             // a long one does, neither of them authored.
             double[]? inward = null;
             var deepest = 0.0;
-            if (push.Crown != 0)
-            {
-                inward = new double[lift.Length];
-                Array.Fill(inward, double.PositiveInfinity);
-                foreach (var (x, z) in footprint.Land())
-                    if (!Polygon.PointInRing(x + 0.5, z + 0.5, push.Ring)) inward[footprint.Index(x, z)] = 0;
-                Chamfer(footprint, inward);
-                foreach (var (x, z) in footprint.Land())
-                {
-                    var value = inward[footprint.Index(x, z)];
-                    if (!double.IsPositiveInfinity(value)) deepest = Math.Max(deepest, value);
-                }
-            }
+            if (push.Crown != 0) (inward, deepest, _) = Inside(footprint, push.Ring);
 
             // A closed copy, so the arc the per-vertex amounts read runs the whole way round and meets itself
             // rather than stopping at the last drawn vertex.

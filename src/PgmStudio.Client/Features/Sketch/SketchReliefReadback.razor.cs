@@ -35,10 +35,15 @@ public partial class SketchReliefReadback
     /// change.</summary>
     private sealed record SeamRow(string A, string B, int Step, int X, int Z, int Cells);
 
+    /// <summary>What one push climbs at, on both of its slopes — over its skirt and again from its outline in
+    /// to its medial axis. The surface reports the face those two make where they disagree and cannot say
+    /// which knob cut it, which is the whole reason this row is here rather than in the numbers above.</summary>
+    private sealed record PushRow(string Id, double Skirt, double Crown, int Cells);
+
     private sealed record GroupRead(string Id, int Low, int High, int Relief, List<TierRow> Tiers,
         List<FaceRow> Faces, int FaceCount, int Cliffs, Crossing AcrossX, Crossing AcrossZ,
         int SymmetryError, bool Symmetric, double Level, double LargestField,
-        List<SeamRow> Seams, List<string> SilentMarks);
+        List<SeamRow> Seams, List<string> SilentMarks, List<PushRow> Pushes);
 
     /// <summary>One complaint the read raised, by the rule that raised it. A reading that measures a fault
     /// and does not say so leaves the author to spot it in the numbers.</summary>
@@ -133,6 +138,11 @@ public partial class SketchReliefReadback
                 foreach (var mark in Array(group, "silentMarks"))
                     if (mark.ValueKind == JsonValueKind.String) silent.Add(mark.GetString() ?? "");
 
+                var pushes = new List<PushRow>();
+                foreach (var push in Array(group, "pushes"))
+                    pushes.Add(new PushRow(Str(push, "id"), Dbl(push, "skirt"), Dbl(push, "crown"),
+                                           Int(push, "cells")));
+
                 var error = Int(group, "symmetryError");
                 read.Add(new GroupRead(Str(group, "group"), Int(group, "low"), Int(group, "high"),
                     Int(group, "relief"), tiers, faces, Int(group, "faceCount"), Int(group, "cliffs"),
@@ -140,7 +150,7 @@ public partial class SketchReliefReadback
                     // "Mirrors exactly" is only worth saying when a symmetry was declared at all; a group on
                     // a map with none is not symmetric, it is simply not being asked to be.
                     Symmetric: error == 0 && group.TryGetProperty("symmetryError", out _),
-                    Dbl(group, "level"), Dbl(group, "largestField"), seams, silent));
+                    Dbl(group, "level"), Dbl(group, "largestField"), seams, silent, pushes));
             }
         }
         catch (JsonException) { /* a reply the client cannot read shows nothing rather than throwing */ }

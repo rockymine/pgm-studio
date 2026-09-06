@@ -97,6 +97,8 @@ public sealed record ReliefReadDto(IReadOnlyList<ReliefGroupReadDto> Groups);
 /// the reading that attributes a wall to the pair of statements that built it.</param>
 /// <param name="SilentMarks">Marks that pinned no cell at all, by id: placed off the group's ground, or over
 /// a shape that took itself out of the solve.</param>
+/// <param name="Pushes">The two gradients each push climbs at — the knobs behind a face the surface can only
+/// report as terrain.</param>
 /// <param name="Smoothing">How many two-block scrambles the surface keeps per barrier taller than one. Above
 /// two the ground rolls, at or below one it steps, whatever its range: a quarry and a mountainside carry the
 /// same elevation and are not the same ground. <b>Null where the group has no barrier at all</b> — there is
@@ -117,7 +119,21 @@ public sealed record ReliefGroupReadDto(
     double Level = 1,
     double LargestField = 1,
     IReadOnlyList<ReliefSeamDto>? Seams = null,
-    IReadOnlyList<string>? SilentMarks = null);
+    IReadOnlyList<string>? SilentMarks = null,
+    IReadOnlyList<ReliefPushGradeDto>? Pushes = null);
+
+/// <summary>What one push climbs at, on both of its slopes. A push is not one gradient: it rises at
+/// <c>amount / falloff</c> over its skirt, from the ground outside in to the drawn ring, and again at
+/// <c>crown / deepest</c> from that ring in to its medial axis. Where the two disagree the landform has a step
+/// at its own outline — a cliff with a hill on top of it — and the surface can only report the face, never
+/// which of the two knobs cut it (<c>RL6</c> past about twice apart).</summary>
+/// <param name="Id">Which push, by the id the document gives it.</param>
+/// <param name="Skirt">Blocks of rise per block of run from outside the ring in to it.</param>
+/// <param name="Crown">Blocks of rise per block of run from the ring in to the medial axis. Zero for a push
+/// stating no crown, which has one gradient and nothing to disagree with.</param>
+/// <param name="Cells">How much of the group's ground the ring covers. Zero is a push that landed nowhere,
+/// and it is measured at nothing.</param>
+public sealed record ReliefPushGradeDto(string Id, double Skirt, double Crown, int Cells);
 
 /// <summary>Where two of a group's marks meet on a step, named. A mark pins every cell in its band exactly, so
 /// two placed to describe one slope describe a wall instead — and the wall reads back through every other

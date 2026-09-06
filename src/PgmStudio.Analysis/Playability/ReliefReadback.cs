@@ -247,27 +247,46 @@ public static class ReliefReadback
         return findings;
     }
 
-    /// <summary>What the marks did to each other, as findings: a seam two of them meet on, and a mark that
-    /// landed nowhere. Separate from <see cref="Check(Result, string?, string)"/> because it reads the marks
-    /// rather than the surface — the two answer different questions about the same relief, and a seam is
-    /// exactly the thing the surface cannot attribute.</summary>
-    public static Findings Check(MarkReading marks, string island)
+    /// <summary>What the relief's <b>statements</b> did, as findings: a seam two marks meet on, a mark that
+    /// landed nowhere, and a push whose two gradients disagree. Separate from
+    /// <see cref="Check(Result, string?, string)"/> because it reads the statements rather than the surface —
+    /// the two answer different questions about the same relief, and every fault here is one the surface
+    /// shows and cannot attribute.</summary>
+    public static Findings Check(ReliefReading reading, string island)
     {
         var findings = new List<Finding>();
-        foreach (var seam in marks.Seams.Where(seam => seam.Step > Walk.ScrambleStep))
+        foreach (var seam in reading.Seams.Where(seam => seam.Step > Walk.ScrambleStep))
             findings.Add(new Finding(ReliefRules.MarksMeetOnAStep,
                 $"on island '{island}', '{seam.A}' and '{seam.B}' meet on a {seam.Step}-block step, worst at "
                 + $"({seam.X}, {seam.Z}) along {seam.Cells} cell(s) of boundary. Two marks pin their bands "
                 + "exactly, so where they touch the whole difference lands in one cell.",
                 Severity.Complaint, Subjects: [island, seam.A, seam.B]));
 
-        foreach (var id in marks.Silent)
+        foreach (var id in reading.Silent)
             findings.Add(new Finding(ReliefRules.MarkPinsNothing,
                 $"mark '{id}' pins no cell of island '{island}', so the surface is what it would have been "
                 + "without it.",
                 Severity.Complaint, Subjects: [island, id]));
+
+        foreach (var push in reading.Pushes.Where(grade => grade.Cells > 0 && grade.Skirt > 0 && grade.Crown > 0))
+        {
+            var ratio = Math.Max(push.Skirt, push.Crown) / Math.Min(push.Skirt, push.Crown);
+            if (ratio <= GradesApart) continue;
+            var steeper = push.Skirt > push.Crown ? "skirt" : "crown";
+            findings.Add(new Finding(ReliefRules.PushGradesDisagree,
+                $"push '{push.Id}' on island '{island}' climbs its skirt at {push.Skirt:0.0} and its crown at "
+                + $"{push.Crown:0.0} blocks a block — {ratio:0.0}x apart, the {steeper} the steeper — so the "
+                + "ground steps where the two meet, at the push's own outline.",
+                Severity.Complaint, Subjects: [island, push.Id]));
+        }
         return findings;
     }
+
+    /// <summary>How far apart a push's two gradients may run before the landform has a step at its own
+    /// outline. A ratio rather than a difference, because it is the ratio an author is choosing: a skirt and
+    /// a crown of 1.7 each read as a mountainside at any height, and one of 3.0 against one of 1.3 reads as a
+    /// face at any height too.</summary>
+    private const double GradesApart = 2;
 
     /// <summary>The surface as one tier sees it: cells joined to their neighbours only where the step between
     /// them is within reach.</summary>

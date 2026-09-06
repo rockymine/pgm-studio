@@ -209,7 +209,7 @@ public sealed class LineMarkTreadTests
     [Test]
     public async Task A_seam_names_the_two_marks_that_built_it()
     {
-        var reading = ReliefSolver.ReadMarks(Board(), Two());
+        var reading = ReliefSolver.Read(Board(), Two());
 
         var seam = reading.Seams.Single();
         await Assert.That((seam.A, seam.B)).IsEqualTo(("crest", "shelf"));
@@ -224,7 +224,7 @@ public sealed class LineMarkTreadTests
     [Test]
     public async Task A_seam_that_grades_is_not_reported()
     {
-        var reading = ReliefSolver.ReadMarks(Board(), Two(tread: 2));
+        var reading = ReliefSolver.Read(Board(), Two(tread: 2));
         await Assert.That(reading.Seams.Where(seam => seam.Step > 1)).IsEmpty();
     }
 
@@ -233,7 +233,7 @@ public sealed class LineMarkTreadTests
     [Test]
     public async Task A_mark_that_pins_nothing_is_named()
     {
-        var reading = ReliefSolver.ReadMarks(Board(), new ReliefSpec
+        var reading = ReliefSolver.Read(Board(), new ReliefSpec
         {
             Base = 20, Marks = [new PointMark(30, 30, 26, 4) { Id = "knoll" },
                                 new PointMark(400, 400, 26, 4) { Id = "off-the-board" }],
@@ -306,7 +306,7 @@ public sealed class LineMarkTreadTests
     {
         int Worst(double bevel)
         {
-            var reading = ReliefSolver.ReadMarks(
+            var reading = ReliefSolver.Read(
                 Board(60), Hillside(new AreaMark(Pad, [32, 24, 24, 32], bevel) { Id = "shelf" }));
             return reading.Seams.Where(seam => seam.A == "hill" || seam.B == "hill")
                           .Select(seam => seam.Step).DefaultIfEmpty(0).Max();

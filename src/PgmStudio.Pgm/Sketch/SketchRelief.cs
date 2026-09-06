@@ -224,6 +224,7 @@ public sealed class ReliefPushJson
 
     public PushMark? ToPush() => Ring is { Length: >= 3 } ring
         ? new PushMark(ring, Amount, Falloff, Roughness, Seed, Amounts, Crown)
+          { Id = Id is { Length: > 0 } stated ? stated : "push" }
         : null;
 }
 

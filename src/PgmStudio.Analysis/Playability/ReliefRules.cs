@@ -45,4 +45,14 @@ public static class ReliefRules
     /// <remarks>Take the tread off the marks meant to be flat to their edge, or widen them. A tread grades a mark's shoulder into its neighbour, so a tread on every mark builds a board of nothing but shoulders — measured on `opus5-thwaite-ghyll`, whose five marks all carried one: 25.4% level and no face at all, against 43.6% level and 70 faces with the same marks and the treads taken off. A map is played on its flat ground, and a face is what decides where players go.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
     public const string NowhereLevel = "RL5";
+
+    /// <summary>A push climbs at two different rates and the landform has a step at its own outline. A push
+    /// rises at <c>amount / falloff</c> over its skirt, from the ground outside in to the drawn ring, and
+    /// again at <c>crown / deepest</c> from that ring in to its medial axis — and where the two disagree what
+    /// stands there is a cliff with a hill on top of it, whatever its height. Nothing else says so: the
+    /// surface reads back as a face, correctly, with no push's name on it, and both numbers are inside knobs
+    /// an author set one at a time.</summary>
+    /// <remarks>Bring the two rates together — the ratio between them is the number actually being chosen. A skirt steeper than the crown is a plateau with a bank round it; a crown steeper than the skirt is a spike on an apron. Widen the `falloff` to soften the skirt, or lower the `crown` to soften the top, until the two are within about twice each other. A push with no crown states one rate and is not read here.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
+    public const string PushGradesDisagree = "RL6";
 }

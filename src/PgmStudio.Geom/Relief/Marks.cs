@@ -338,6 +338,11 @@ public sealed record ScarpMark(double[][] Points, double High, double Low,
 public sealed record PushMark(double[][] Ring, double Amount, double Falloff = 10, double Roughness = 0,
                               uint Seed = 1, double[]? Amounts = null, double Crown = 0)
 {
+    /// <summary>The author's handle on this push, for a finding that has to name it. A push is a placed thing
+    /// the same way a mark is, and a reading that cannot say which one it measured sends an author back to
+    /// the board to guess.</summary>
+    public string Id { get; init; } = "";
+
     /// <summary>How the lift decays from the ring outward. Smoothstep flattens at both ends, so the push
     /// leaves the surrounding land level and meets its own edge without a crease.</summary>
     public static double Ease(double t) => t <= 0 ? 1 : t >= 1 ? 0 : 1 - t * t * (3 - 2 * t);
