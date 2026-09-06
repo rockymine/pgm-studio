@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using FastEndpoints;
@@ -27,11 +26,6 @@ namespace PgmStudio.Api.Endpoints;
 /// </summary>
 internal sealed class RequiredFields : IGlobalPreProcessor
 {
-    /// <summary>Whether a property is required, by property. A <see cref="NullabilityInfoContext"/> caches
-    /// into a dictionary of its own and is not thread-safe, so two concurrent requests reading one corrupt it;
-    /// the answer is pure, so it is computed once per property against a fresh context and kept here.</summary>
-    private static readonly ConcurrentDictionary<PropertyInfo, bool> RequiredByProperty = new();
-
     public async Task PreProcessAsync(IPreProcessorContext context, CancellationToken ct)
     {
         if (context.Request is not { } request) return;
@@ -57,9 +51,7 @@ internal sealed class RequiredFields : IGlobalPreProcessor
     /// meant cannot be told from a field they forgot, and refusing on it would refuse every legitimate
     /// request that leaned on a default.</summary>
     private static bool Required(PropertyInfo property) =>
-        RequiredByProperty.GetOrAdd(property, static candidate =>
-            !candidate.PropertyType.IsValueType
-            && new NullabilityInfoContext().Create(candidate).ReadState is NullabilityState.NotNull);
+        !property.PropertyType.IsValueType && DeclaredNullability.IsNonNullable(property);
 
     /// <summary>
     /// Null, and nothing else. A JSON body that omits a field binds it to null, so null <b>is</b> "not

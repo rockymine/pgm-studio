@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -90,7 +89,7 @@ public static class HouseStyleJson
             var where = path.Length == 0 ? name : $"{path}.{name}";
             if (value is null)
             {
-                if (Nullability.Create(property).ReadState is not NullabilityState.NotNull) continue;
+                if (!PgmStudio.Domain.DeclaredNullability.IsNonNullable(property)) continue;
                 throw new PgmStudio.Domain.DocumentFault(where,
                     $"field '{where}' is stated as null, and this part of a style is always present — "
                     + "drop it from the document, or say it is not wanted in the part's own words "
@@ -99,8 +98,6 @@ public static class HouseStyleJson
             RefuseStatedNulls(value, property.PropertyType, where);
         }
     }
-
-    private static readonly NullabilityInfoContext Nullability = new();
 
     /// <summary>
     /// Carry a stored style forward onto the current record, in place.
