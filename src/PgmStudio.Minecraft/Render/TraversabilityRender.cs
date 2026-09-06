@@ -44,8 +44,18 @@ public static class TraversabilityRender
 {
     public sealed record Marker(BlockBox Box, string Label, int PackedRgb);
 
+    /// <summary>One patch of standing ground no player can get to, and why. <see cref="Reason"/> is
+    /// <c>no-build-zone</c> where nothing the map opens to bridging reaches it, and <c>above-ceiling</c> where
+    /// its ground stands over the map's <c>maxbuildheight</c> and cannot be built up to. <see cref="Floor"/>
+    /// is its lowest standing course, and the box is what a reader stands in to check it.
+    ///
+    /// <para><b>Neither is a fault.</b> A side observer island is meant to be unreachable, and scenery is
+    /// scenery — this states where the ground is, not that it is wrong.</para></summary>
+    public sealed record Stranded(int Cells, int MinX, int MinZ, int MaxX, int MaxZ, int Floor, string Reason);
+
     public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, int ComponentCount,
-        int NavigableCount, int BridgeableCount, int MarkerCount, int IsolatedCount);
+        int NavigableCount, int BridgeableCount, int MarkerCount, int IsolatedCount,
+        IReadOnlyList<Stranded> OutOfReach);
 
     /// <summary>Reads a built region directory from disk.</summary>
     public static int Run(string regionDir, string outPng, MapXml? map, int scale)
@@ -64,11 +74,18 @@ public static class TraversabilityRender
     public static int Run(VoxelWorld world, string outPng, MapXml? map, int scale)
         => Emit(AnvilRegion.FromWorld(world).ToList(), outPng, map, scale) is null ? 1 : 0;
 
+    /// <summary>The navigability reading without the picture — the same components, markers and buildable
+    /// region the render is drawn from, for a caller that wants the numbers. Null where the world holds no
+    /// ground column.</summary>
+    public static Result? Read(VoxelWorld world, MapXml? map)
+        => Render([.. AnvilRegion.FromWorld(world)], map is null ? [] : Markers(map),
+                  map is null ? null : BridgeableColumns(map), map?.MaxBuildHeight);
+
     private static byte[]? Emit(List<AnvilRegion.Chunk> chunks, string? outPng, MapXml? map, int scale)
     {
         var markers = map is null ? [] : Markers(map);
         var bridgeable = map is null ? null : BridgeableColumns(map);
-        var result = Render(chunks, markers, bridgeable);
+        var result = Render(chunks, markers, bridgeable, map?.MaxBuildHeight);
         if (result is null) { if (outPng is not null) Console.Error.WriteLine("no ground columns"); return null; }
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
@@ -169,6 +186,58 @@ public static class TraversabilityRender
         return false;
     }
 
+    /// <summary>
+    /// The patches of standing ground no player can get to, off the same components the picture is drawn
+    /// from — largest first.
+    ///
+    /// <para>A component that is not the main one is not walked to. Two things still let a player reach it, so
+    /// neither is reported: a <b>marker</b> on it, since a spawn or an objective is where players are put and
+    /// what they fight over, and a <b>build zone</b> reaching it, since what the map opens to bridging is a
+    /// route from the first tick. What is left is ground standing outside both — and ground above the map's
+    /// <c>maxbuildheight</c>, which cannot be built up to whatever else is true of it.</para>
+    ///
+    /// <para><b>It is a reading and not a rule.</b> An island drawn to be looked at, a side platform players
+    /// spawn on and never leave, a shelf above the ceiling: each is ground an author meant, and none of them
+    /// is named here as wrong. A component carrying a marker is left out for a second reason — a spawn or a
+    /// goal cut off from the board is the connectivity rule's to report, and saying it twice in two
+    /// vocabularies is how a reader learns to believe neither.</para>
+    /// </summary>
+    private static List<Stranded> Unreached(
+        IReadOnlyList<List<(int X, int Z)>> components, int main,
+        Dictionary<(int X, int Z), int> labelOf, IReadOnlyList<Marker> markers,
+        IReadOnlySet<(int X, int Z)> bridged, IReadOnlyDictionary<(int X, int Z), int> standing,
+        int? maxBuildHeight)
+    {
+        var navigableCells = new HashSet<(int X, int Z)>(labelOf.Keys);
+        var marked = new HashSet<int>();
+        foreach (var marker in markers)
+        {
+            var centre = (X: (marker.Box.MinX + marker.Box.MaxX) / 2, Z: (marker.Box.MinZ + marker.Box.MaxZ) / 2);
+            var component = ComponentNear(navigableCells, labelOf, centre);
+            if (component >= 0) marked.Add(component);
+        }
+
+        var found = new List<Stranded>();
+        for (var index = 0; index < components.Count; index++)
+        {
+            if (index == main || marked.Contains(index)) continue;
+            var cells = components[index];
+            var standingCells = cells.Where(standing.ContainsKey).ToList();
+            if (standingCells.Count == 0) continue;      // a bridge over void stands on nothing to report
+
+            var floor = standingCells.Min(cell => standing[cell]);
+            var reason = maxBuildHeight is { } ceiling && floor > ceiling ? "above-ceiling"
+                : cells.Any(bridged.Contains) ? null
+                : "no-build-zone";
+            if (reason is null) continue;
+
+            found.Add(new Stranded(standingCells.Count,
+                standingCells.Min(cell => cell.X), standingCells.Min(cell => cell.Z),
+                standingCells.Max(cell => cell.X), standingCells.Max(cell => cell.Z), floor, reason));
+        }
+        return [.. found.OrderByDescending(patch => patch.Cells)];
+    }
+
     /// <summary>A packed colour tinting a bridgeable-but-ungrounded cell — distinct from every ground shade,
     /// palette entry and marker colour this render already uses, so a column carried only by a build region
     /// never reads as ordinary ground: the connectivity it grants is real from the first tick, but the
@@ -180,7 +249,7 @@ public static class TraversabilityRender
     /// buildable-region wiring opens to bridging from the first tick — see <see cref="BridgeableColumns"/>;
     /// null/empty means the render falls back to ground-and-headroom only.</summary>
     public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, IReadOnlyList<Marker> markers,
-        IReadOnlySet<(int X, int Z)>? bridgeable = null)
+        IReadOnlySet<(int X, int Z)>? bridgeable = null, int? maxBuildHeight = null)
     {
         var ground = new Dictionary<(int X, int Z), int?>();   // value: the standing Y, null = no headroom
         foreach (var chunk in chunks) Scan(chunk, ground);
@@ -253,7 +322,9 @@ public static class TraversabilityRender
             DrawMarker(pixels, blocksWide, blocksHigh, minX, minZ, marker.Box, connected ? 0xf5f5f0 : 0xef4444);
         }
 
-        return new Result(pixels, blocksWide, blocksHigh, components.Count, navigable.Count, bridged.Count, markers.Count, isolated);
+        return new Result(pixels, blocksWide, blocksHigh, components.Count, navigable.Count, bridged.Count,
+                          markers.Count, isolated,
+                          Unreached(components, main, labelOf, markers, bridged, standing, maxBuildHeight));
     }
 
     /// <summary>The component nearest a point, searching a small ring outward — an objective box's centre can

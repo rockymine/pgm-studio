@@ -1,6 +1,6 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 67 open entries and `TODO.md` eight — the interaction slice of the programme that put a
+`BACKLOG.md` holds 66 open entries and `TODO.md` eight — the interaction slice of the programme that put a
 room's building and a dressed one on one model. This document is the reading that says which of them are
 defects, which are questions, which share a cause, and what order drains them. Its subject is the board
 itself, and it expires when the board it describes is gone. It is the one document this work adds:
@@ -12,7 +12,7 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **75 open entries over 12,431 words**: a median entry of 146 words and **8 above 250** —
+The two boards carry **74 open entries over 12,215 words**: a median entry of 146 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
 is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 19, `B` 16, `TS` 7,
 `G` 7, `S` 6, `N` 4, `TL` 4, `C` 3, and six others in ones and twos.
@@ -357,8 +357,8 @@ until it was answered.
 **Phase 1 — the verified defect run.** `B145` and `B57`. Each lands with a test that fails on the old
 behaviour — that is the deliverable, not the fix. `TS74` and `B144` left this way (`FEATURES.md`), and `TS31`
 left it by being withdrawn: the ruling it needed says a sketch cannot judge reachability at all, so the
-reading it wanted is `WS61` at the tier that holds the build zones, and it is information rather than a
-defect.
+reading it wanted shipped as `WS61` (`FEATURES.md`) at the tier that holds the build zones — and as
+information rather than as a defect, which is the disposition the whole question turned on.
 
 **Phase 2 — fix the causes, not the entries.** The building's one model (3 entries) is `TODO.md`'s programme
 and is worked to its end first. Then, in the order that maximises what each closes: the measured convention

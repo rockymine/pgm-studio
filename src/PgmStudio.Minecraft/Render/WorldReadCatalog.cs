@@ -70,6 +70,17 @@ public static class WorldReadCatalog
             + "`window` answers a different question from the one the paint was chosen by, and `every` above "
             + "1 samples one block a cell like every other grid read."),
 
+        new("reach", null,
+            "Which standing ground no player can get to, and why — the patches, their sizes, their lowest "
+            + "course and the box to stand in. It is the traversability picture's own partition read as "
+            + "numbers: the navigable components, minus the one the board is played on, minus every component "
+            + "a spawn or an objective sits on, minus every component the map opens to bridging. What is left "
+            + "is ground outside all three, plus ground above the map's `maxbuildheight`, which cannot be "
+            + "built up to.",
+            "It names nothing as wrong. Scenery, a side observer island and a shelf over the ceiling all read "
+            + "exactly like a shape stranded by accident, and only the author can tell them apart — a spawn "
+            + "or a goal actually cut off from the board is the connectivity rule's to report, not this."),
+
         new("render/surface", "--surface",
             "The paint, read as the tone families `TerrainPalette.Families` names — so a board can be checked "
             + "against the palette it was authored from, and a whole family taken where two members were "
