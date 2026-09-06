@@ -345,11 +345,28 @@ size — the wobble that stops a solved surface reading as machined. It is never
 stated height is a statement, and a field that moved it would make the marks advisory. Grain is hashed from the
 cell, never drawn from a generator, so a map re-exports identically.
 
-**Step** is the block quantum the finished surface snaps to. One follows the field cell by cell. Two is the step
-unit the hand-built corpus uses (`rules.md` EL1) and reads as deliberate terracing — and it is the one knob that
-can genuinely break a map rather than merely make it harder. Measured on the board above, terracing at two turns
-a surface that was one connected piece of walkable ground into **six** separate places, the largest holding
+**Step** is the block quantum the finished surface snaps to, and the honest way to read it is as **the width of
+the smallest landform the ground can have**: a surface snapped to a step of two cannot express a one-block
+rise, so every contour it makes is two blocks tall. One follows the field cell by cell. Two is the step unit
+the hand-built corpus uses (`rules.md` EL1) and reads as deliberate terracing — and it is the one knob that can
+genuinely break a map rather than merely make it harder. Measured on the board above, terracing at two turns a
+surface that was one connected piece of walkable ground into **six** separate places, the largest holding
 49.8%: every terrace riser is now a two-block wall, and the map is in halves.
+
+**A quantum is a fact about a landform, not about a landmass, so a mark states its own.** Ground that wants
+worked terraces and ground that wants a walkable ramp are different ground and are drawn on one island; a
+single setting on the group cannot say so, and what an author reaches for instead is a ring of nested area
+marks whose outlines do the terracing by hand. Every mark therefore carries a `step` of its own, falling back
+to the group's where it states none. A cell takes the step of the **last mark to claim it** — the same
+territory the seam reading is taken over (§2.0) — and ground no mark claimed takes the group's. The quantum
+folds with the surface it finishes: a cell and its image that snapped by different steps would round one
+continuous height two ways, which is the whole-block disagreement between the halves that the fold exists to
+prevent (§8).
+
+That it is the smallest landform is also what the paint makes visible. An angle mask reads a surface's
+inclination (`terrain-painting.md` TP24), and at a step of one every contour is a one-block riser, so a band cut
+low enough catches every lip and stripes ground that is otherwise flat. The number an author is choosing there
+is the same number: how coarse the ground is allowed to be.
 
 **There is no repair for it, and there is deliberately none.** A `stairs` switch used to cut one flight per
 stranded place through that place's cheapest riser, which restored connectivity by measurement and hid the

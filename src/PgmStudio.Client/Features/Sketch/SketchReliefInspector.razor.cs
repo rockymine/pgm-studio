@@ -222,6 +222,12 @@ public partial class SketchReliefInspector
 
     private double Bevel => Num(MarkFields.Bevel);
 
+    private double MarkStep => Num(MarkFields.Step);
+
+    private Task SetMarkStep(double value)
+        => value <= 0 ? Remove(MarkFields.Step)
+                      : Set(MarkFields.Step, JsonValue.Create((int)Math.Clamp(value, 1, 4)));
+
     private Task SetBevel(double value)
         => value <= 0 ? Remove(MarkFields.Bevel) : Set(MarkFields.Bevel, JsonValue.Create(value));
 
@@ -584,6 +590,23 @@ public partial class SketchReliefInspector
         }
     }
 
+    /// <summary>What this mark's own quantum works out to, against the group's. Absent and one are opposite
+    /// statements where the group states more — one follows the field cell by cell and absent takes whatever
+    /// the group says — so the line says which of the two is in force.</summary>
+    private string MarkStepReadout
+    {
+        get
+        {
+            var step = (int)MarkStep;
+            var group = (int)ReliefNum(ReliefFields.Step, 1);
+            if (step <= 0)
+                return group <= 1 ? "" : $"Takes the group's step: every riser here is {Span(group)} tall.";
+            if (step <= 1)
+                return group <= 1 ? "" : "Follows the field cell by cell, where the rest of the group steps.";
+            return $"Every riser this mark's ground makes is {Span(step)} tall.";
+        }
+    }
+
     /// <summary>What the grain adds. Off is worth saying, because a zero amplitude and no grain at all are the
     /// same surface and an author who set one and got neither would have nowhere to look.</summary>
     private string GrainReadout
@@ -677,6 +700,10 @@ public static class MarkFields
     /// <summary>How far inside an area's ring its height gives way to the ground around it — the tread of an
     /// area, stated from the rim inward because that is where an area's edge is.</summary>
     public const string Bevel = "bevel";
+
+    /// <summary>The block quantum this mark's own ground snaps to — the width of the smallest landform it can
+    /// have. Absent takes the group's, which is what makes a bench and a road drawable on one island.</summary>
+    public const string Step = "step";
 
     public const string Points = "points";
     public const string Ring = "ring";

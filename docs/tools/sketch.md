@@ -686,8 +686,9 @@ group's shapes the solve actually covers is not stated here but on the shapes th
 The group's own settings are what every mark is measured against: `base` (the level the field falls back to
 where nothing is stated), `reach` (how far a mark's influence travels before the field returns to `base` —
 zero is unlimited, and a finite value is what keeps a landform local on a large group), `step` (the
-block quantum the finished surface snaps to — a step of two is the one setting here that can break a map, and
-there is deliberately nothing that repairs it), `landform` (what kind of
+block quantum the finished surface snaps to, which is the width of the smallest landform the ground can have —
+a step of two is the one setting here that can break a map, and there is deliberately nothing that repairs
+it; a mark may state its own and fall back to this one), `landform` (what kind of
 ground this is meant to be — one of `plain`, `rolling`, `hills`, `mountain` — which the readback measures
 the solved surface against) and `grain` (a wobble applied after the solve: amplitude, feature scale, seed).
 A word outside those four is a `SK3` complaint on the stored document: `RL1` judges a group only against a
@@ -715,6 +716,12 @@ Every one of those carries a **name**, edited at the top of the inspector, and i
 about the mark uses: a seam is reported as a pair of them and `RL4` names the one that pinned nothing. It is
 the document's own key, so the panel renames through the canvas rather than by patching, and a name another
 statement already carries is refused with a sentence rather than merging the two.
+
+Every one of them carries a name, and the four marks carry a **`step`** besides — the block quantum that mark's
+own ground finishes at, absent for the group's. A quantum is a fact about a landform rather than about a
+landmass, so worked terraces and a walkable ramp state different numbers and share one island; a cell takes the
+step of the last mark to claim it, and ground no mark claimed takes the group's. A push states none, because a
+quantum belongs to what pins a height and a push composes over one.
 
 The first four are **marks**, and a mark is a constraint: the ground here *is* twelve. Two marks over the same
 ground argue, and the solver settles it. A **push** is different in kind — it is applied to the solved surface

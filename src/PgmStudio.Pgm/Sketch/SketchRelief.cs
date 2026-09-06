@@ -158,6 +158,13 @@ public sealed class ReliefMarkJson
     /// <summary>How far either side is held at its own height before the surface is free again.</summary>
     [JsonPropertyName("band")]   public double Band { get; set; } = 5;
 
+    /// <summary>The block quantum the ground this mark claims snaps to, or absent for the group's. It is the
+    /// width of the smallest landform that ground can have, so worked terraces and a walkable ramp state
+    /// different numbers and can share one island: a cell takes the step of the last mark to claim it, and
+    /// ground no mark claimed takes the group's.</summary>
+    [JsonPropertyName("step"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int Step { get; set; }
+
     private double FirstHeight => Heights is { Length: > 0 } heights ? heights[0] : 0;
 
     /// <summary>The solver's mark, or null when the JSON does not carry what the kind needs — a half-written
@@ -165,20 +172,24 @@ public sealed class ReliefMarkJson
     public Mark? ToMark() => Kind switch
     {
         MarkKinds.Point when At is { Length: >= 2 } at =>
-            new PointMark(at[0], at[1], FirstHeight, Radius) { Id = Named },
+            new PointMark(at[0], at[1], FirstHeight, Radius) { Id = Named, Step = Quantum },
         MarkKinds.Line when Points is { Length: >= 2 } =>
-            new LineMark(Points, Heights ?? [0], Radius, Tread ?? double.NaN, Batter) { Id = Named },
+            new LineMark(Points, Heights ?? [0], Radius, Tread ?? double.NaN, Batter) { Id = Named, Step = Quantum },
         MarkKinds.Area when Ring is { Length: >= 3 } ring =>
-            new AreaMark(ring, Heights ?? [0], Bevel) { Id = Named },
-        MarkKinds.Rim => new RimMark(FirstHeight, Depth) { Id = Named },
+            new AreaMark(ring, Heights ?? [0], Bevel) { Id = Named, Step = Quantum },
+        MarkKinds.Rim => new RimMark(FirstHeight, Depth) { Id = Named, Step = Quantum },
         MarkKinds.Scarp when Points is { Length: >= 2 } points =>
-            new ScarpMark(points, High, Low, Face, Band) { Id = Named },
+            new ScarpMark(points, High, Low, Face, Band) { Id = Named, Step = Quantum },
         _ => null,
     };
 
     /// <summary>What a finding calls this mark: its stated id, or its kind where the document gave none. A
     /// seam between two marks has to name both of them, and "the line" is more use than nothing.</summary>
     private string Named => Id is { Length: > 0 } stated ? stated : Kind ?? "";
+
+    /// <summary>The quantum this mark's ground finishes at, clamped to a whole block and never negative;
+    /// zero is the group's.</summary>
+    private int Quantum => Math.Max(0, Step);
 }
 
 /// <summary>A shape of ground lifted or lowered: the drawn ring, how far it lifts, and how its top and skirt

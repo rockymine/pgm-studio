@@ -208,6 +208,22 @@
         }
       }
 
+      @* The quantum is a mark's as well as a group's: a bench and a road on one island want different
+         ground. A push states none — a quantum belongs to what pins a height, and a push composes over one. *@
+      @if (kind != MarkKinds.Push)
+      {
+        <Field Label="Block step">
+          <LabelHint>(this mark's own ground; 0 takes the group's)</LabelHint>
+          <ChildContent>
+            <NumberField Value="MarkStep" ValueChanged="SetMarkStep" Min="0" Max="4" />
+          </ChildContent>
+        </Field>
+        @if (MarkStepReadout.Length > 0)
+        {
+          <p class="plan-readout">@MarkStepReadout</p>
+        }
+      }
+
       @if (editingSelection)
       {
         <Button Full Variant="danger" OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>
