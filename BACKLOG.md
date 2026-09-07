@@ -52,10 +52,12 @@ the focus-integration polish remains.
 - [ ] **N09 — Team id should track the team's colour.** The team id is seeded from the colour first picked
   (`Id = colour.Replace(' ','-')`), but `TeamAssignStep.SetColor` only updates the colour — so recolouring a
   team (e.g. red → purple) leaves `id="red"` and every id derived from it (`only-red`, `red-spawn-point`,
-  the `…-red-monument` blocks, `reds-woolrooms`). Functionally fine (PGM resolves the id) but reads wrong.
-  Re-derive the id on colour change and **cascade the rename** across the intent — `teams`, `islandTeams`,
-  and `spawns[].team` / `wools[].owner` / `wools[].monuments[].team` — with a guard to skip the rename (just
-  recolour) when the new colour-derived id would collide with another team's.
+  the `…-red-monument` blocks, `reds-woolrooms`). **The `map.xml` is arguably wrong, not merely untidy**
+  (author): PGM resolves the id, so the map loads and plays — but a purple team is called red in every id a
+  reader meets, and the ids run in a fixed order, so nothing in the document says which of them the colour
+  belongs to. Re-derive the id on colour change and **cascade the rename** across the intent — `teams`,
+  `islandTeams`, and `spawns[].team` / `wools[].owner` / `wools[].monuments[].team` — with a guard to skip
+  the rename (just recolour) where the new colour-derived id would collide with another team's.
 
 - [~] **N11 — Monument Y must seat on terrain; coord-input moves must re-snap.** The **point tool** now
   seats every spawn it places — team spawns + orbit copies, the observer, and wool spawns — on the target
@@ -373,16 +375,6 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   31 in its `RQ4` refusal. Render the strip, the layer list and the topdown filter **by `prop`** — one row per
   made thing with its layers folded under it. **A prop is also what moves**: dragging one has to take every
   layer of it together, since a made thing standing half a block from where it was put is not a made thing.
-
-- [ ] **TS79 — `SK18` reads a column and not a course, so a frame over a goal is "inside" it.** The
-  provenance a made thing and a stamped structure are compared on carries one claim per column and no Y, so a
-  beacon frame at y72–80 over a monument at y37–40 raises one complaint per layer of the frame — fourteen on
-  `maps/fable-millrace-revamp`, all wrong about a thing forty courses up. Compare the made thing's own span
-  (`ColumnSegment` floor and top, which the rasterizer has) against the structure's stamped courses, and name
-  only the columns where the two share a course. `SketchRasterizer` and the check that raises `SK18`;
-  `docs/tools/sketch.md` Refusals and `docs/refusals.md`.
-
-  *`beacon-front-L2` … `L6` against `destroyable-1`, first at `(−90, 18)`; the frame's lowest block is y72.*
 
 - [ ] **WE74 — A made thing fanned across the axis cannot change colour with the side it lands on.** The
   author's statue is red clay and wool on one island and blue on the other; a `teamTint` material answers
@@ -784,18 +776,6 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   is worth removing rather than tolerating.
 
 ## The remainder: work no concept above has claimed
-
-- [ ] **WE13 — The catalogue map is not a map, and may not be wanted at all.** `tools/library-map.cs` emits a
-  grid of 37 unconnected plots and `GET /map/{slug}/export` refuses it 409 `EX1` — *3 spawn/objective point(s)
-  are not reachable from the rest*. **The ruling (author): a catalogue is not a map**, so `EX1` is asking it a
-  question it was never built to answer, and moving its wools onto one plot would make it a worse catalogue to
-  fix a verdict that does not apply.
-
-  **What is open is whether to keep the catalogue at all**, and the author's lean is not to: it has not been
-  opened in a while, and the library's own 3-D preview now shows a piece far better than walking to its plot
-  does. So the exemption is not worth building until that is settled — an exemption for a tool nobody opens is
-  the more expensive of the two answers. Retiring it takes `tools/library-map.cs` out of the seven scripts in
-  `tools/` and its paragraph out of `docs/tools/library.md`.
 
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled

@@ -265,9 +265,8 @@ the older flat `layers` list is still read forward, and reading it forward is wh
 every such list owned its whole space, so it ends `repeat`. `ending` is now written as `"repeat"`/`"handOver"` rather than 0/1, the way `rimEdges` and `axis` are:
 it had never been read by a person before, because nothing authored a stack that ends.
 
-`tools/library-map.cs` puts two plots on the catalogue map from this — a disc and a cross — so the reading can
-be walked as well as read, and the cross is there because an inner corner seeds ring 0 as surely as an outer
-one does.
+A disc and a cross are the two shapes worth walking this on, because an inner corner seeds ring 0 as surely as
+an outer one does.
 
 **Team tint (built).** `TeamTintedMaterial(block, neutral)` stamps a colour-by-damage block (clay, wool,
 stained glass) with the owning team's colour — **the same 0–15 damage scale wool uses** (`BlockColors`), so a

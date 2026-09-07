@@ -12,9 +12,9 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **59 open entries over 10,274 words**: a median entry of 154 words and **8 above 250** —
+The two boards carry **57 open entries over 10,015 words**: a median entry of 154 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
-is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 13, `TS` 10,
+is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 12, `TS` 9,
 `B` 9, `G` 7, `S` 5, `N` 4, `C` 3, and seven others in ones and twos. `TODO.md` holds none of them: the
 mapgen-authoring programme drained and no group has been pulled up in its place.
 
@@ -281,6 +281,11 @@ them.** Each had been filed from a symptom that was real; none survived being me
 | `B150` | a route that evaluates a stored map's sketch | `EvalContext` is a `PlanModel` and nothing else, and `BoardStructure` is piece-keyed throughout — a sketch would need a second deriver inventing a piece decomposition for polygons, not a rasterize-and-reuse. The author does not want a sketch scored |
 | `B171` | how a wool approach attaches, in the shapes endpoint's terms | `/shapes/catalog` states no attachment at all, and `/plan/feasibility` — which does answer it — is a critic for *generated* boards, so a hand-drawn plan gets `producible: false` every time (`pgm-studio-mapgen/reports/opus5-coldharbour-authoring.md`) |
 
+**Two more left by being done rather than withdrawn (2026-09-07).** `TS79` asked whether `SK18` could read a
+course instead of a column, and it could: both spans were already to hand, so the rule was fixed and the entry
+left with it rather than being re-filed. `WE13` was a ruling waiting to be carried out, and the catalogue map
+is gone.
+
 **A second pass of the same reading withdrew five more (author, 2026-09-07).** Three were rulings and two
 were premises the code no longer holds.
 
@@ -310,7 +315,7 @@ answers cost is worth recording, because it is not what the board's shape sugges
 | `WE48` — the floor on a brush? | **2** | work. A guard against a brush finer than the blocks it paints, not a style rule — every board on the shelf passes |
 | `B144` — height against paint? | **delegated** | ruled below, on `TS23`'s precedent |
 | `B70` — which view on a card? | **the section, as it is** | the entry withdrawn: an author knows a house by name, and the one worth looking at is a click from a 3-D view |
-| `WE13` — is a catalogue a map? | **no** | and the catalogue itself is probably not wanted, so the exemption is not worth building until that is settled |
+| `WE13` — is a catalogue a map? | **no** | and the catalogue itself was not wanted either, so it went rather than gaining an exemption (`FEATURES.md`) |
 | `A8` — where does `PlanCompiler` belong? | **not yet** | deferred, with the reason stated: the answer is not known, and it is the one thing the split turns on |
 
 `TODO.md`'s eighth — whether a building's two ceilings should be one number — came back the same way: they

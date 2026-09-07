@@ -257,10 +257,10 @@ lets a file-based script link the real composition instead of growing a second c
 tools/<folder>/<script>.cs`. **There are seven, and the count is the point** (`CLAUDE.md`, *Investigation
 stays local*): three gates over the composer in `compose/` (`reproduction-gate`, `fingerprints`,
 `unit-fingerprint`), two in `deriver/` (`figure-check` gates `model.md`'s figures, `envelope-stats` writes
-`seed-envelopes.md`), and two operational tools at the root (`seed-library` seeds the database,
-`library-map` writes the catalogue map's layout and intent for `POST /map/from-documents`). A script that is
-not re-run does not live here; the reading
-it took belongs in `docs/` or in the code, and the script belongs in a scratchpad.
+`seed-envelopes.md`), and two operational tools at the root (`seed-library` seeds the database, `seed-trees`
+seeds its tree corpus). `tools/build-scripts.sh` builds exactly these and its count is the check. A script
+that is not re-run does not live here; the reading it took belongs in `docs/` or in the code, and the script
+belongs in a scratchpad.
 
 **`dotnet run <script>.cs` caches the built app keyed on the script**, so an unchanged script re-runs stale
 `src/` output with no error — `rm -rf ~/.local/share/dotnet/runfile/<script>-*` before trusting a measurement
