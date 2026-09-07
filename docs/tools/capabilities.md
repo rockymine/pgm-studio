@@ -167,42 +167,7 @@ shorthand — and states the fragment directly through the `layout` or
 convenience field and not by handing a document fragment through — that is a gap in the system, not in the
 spec.
 
-### Three ways to state a board, and one of them skips the plan
-
-`compose` asks the generator for a board and `plan` carries a drawn one; both produce a `PlanModel` and
-compile it. **`grid` is the third, and it is a catalogue rather than a board**: a list of plots laid on a
-regular grid, each its own group, none of them mirroring. It emits its `SketchLayout` directly instead of
-compiling one, because a plan piece is a rectangle on a cell grid and a plot is a disc, an octagon, a cross
-or a wedge — compiling one through a plan would either lose the outline or grow the plan a shape vocabulary
-with no gameplay use. A `grid` map therefore carries no plan at all.
-
-**It is an emitter (`Pgm/Sketch/IslandGrid`) rather than a route, and nothing in the repo drives it.** The
-catalogue map it was written for is retired (`FEATURES.md`), so what follows describes what the emitter takes
-for a caller that wants a catalogue; the layout it produces goes to `POST /map/from-documents` like any
-other.
-
-A plot states only what it is; the grid decides where it sits. `kind` is the sketch's own vocabulary and no
-more of it — `rectangle` (reading `width`/`depth`), `circle` (`radius`), `polygon` (`vertices` as `[dx, dz]`
-offsets from the plot's own centre, so one outline lays at every plot without restating its coordinates) —
-plus a `theme` naming a key in the layout's own registry and a `name` carried onto the group. The grid
-carries `columns`, `pitch`, `floor` and `top`: plots run left to right and then down, so the order stated is
-the order walked, and the whole grid is centred on the origin however long it is.
-
-**A plot reaching past half the pitch is refused rather than drawn.** Two outlines that touch rasterize into
-one landmass, so a catalogue silently shows fewer things than it lists and nothing downstream says so — which
-is the one failure a catalogue map cannot tolerate, since not-showing-something is exactly what it is built
-to detect.
-
-```json
-{ "grid": { "columns": 5, "pitch": 56, "floor": 1, "top": 26,
-            "plots": [ { "kind": "rectangle", "theme": "striped", "name": "wall stripes", "width": 34, "depth": 26 },
-                       { "kind": "circle", "theme": "rings", "name": "inward rings", "radius": 14 },
-                       { "kind": "polygon", "theme": "rings", "name": "cross",
-                         "vertices": [[-5,-15],[5,-15],[5,-5],[15,-5],[15,5],[5,5],
-                                      [5,15],[-5,15],[-5,5],[-15,5],[-15,-5],[-5,-5]] } ] } }
-```
-
-**The two documents are the whole interface.** A caller that can write a layout and an intent can make a map
+**The two documents are the whole interface.** A caller that can write a layout and an intent makes a map
 without the browser, whatever wrote them — a spec script, an agent, a sweep over the catalogues:
 
 ```bash
@@ -211,7 +176,8 @@ GET  /api/map/{slug}/export                  # → the world
 ```
 
 `pgm-studio-mapgen`'s `tools/drive.py` is the worked example: it emits both documents from a spec, posts
-them, and reads the board back over the same API.
+them, and reads the board back over the same API. **Two ways state the board itself** — `compose` asks the
+generator for one and `plan` carries a drawn one; both produce a `PlanModel` and compile it.
 
 ### A shape is not only ground — it is also an obstacle, and the cap is what makes it one
 
