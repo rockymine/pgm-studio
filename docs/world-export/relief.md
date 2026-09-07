@@ -1005,9 +1005,11 @@ exactly when the paint preview is not.
 group, what the terrain charges at each of the three thresholds, the places that leaves and the ledges stranded
 off them, the faces with cliffs qualified, crossings counted both ways, the symmetry error, and — the two rows
 that describe statements rather than ground — the `seams` where two marks meet on a step and the `pushes` with
-each one's two gradients. It is fetched on
-a button rather than on every edit, and it is what makes a relief correctable by a generator or an agent rather
-than only by eye.
+each one's two gradients. It is what makes a relief correctable by a generator or an agent rather than only by
+eye, and that is the whole of who reads it: **the browser does not show it.** The reading is nineteen fields
+and eleven of them are counts against other counts on the same row, which is a shape a driver subtracts from
+and a sidebar cannot hold — the panel that tried filled itself with the complaint list and clipped the tables
+under it. The `warnings` the reply carries are read the same way, by whatever posted the layout.
 
 **A count says a board is broken; the pieces say where.** Beside the place and ledge counts each tier carries
 `parts`, one entry per piece of surface, largest first: how many cells it holds, what share of the group that

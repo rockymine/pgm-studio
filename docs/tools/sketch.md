@@ -828,19 +828,23 @@ each piece named with its cell count, its middle and its box, faces qualified as
 both directions because a drop is free the way it falls, and the symmetry error. It is asked for rather than
 pushed, since it is a second solve's worth of measurement.
 
-Beside those it answers two things the surface alone cannot say, and the panel draws both. **`level` and
-`largestField`** are how much of the group lies under ten degrees and how much of it the biggest connected run
-of that holds — an angle rather than a step, because ground graded end to end crosses perfectly and has
-nowhere on it a player can stand still. **`seams`** name the pairs of marks whose ground meets on a step, worst
-first, each with the coordinate to stand at: every other reading describes the surface, and this one describes
-the two statements that built it. **`pushes`** is the other of that kind, and the reason a push needs one is
-that it is not one slope: it climbs at `amount / falloff` over its skirt and again at `crown / deepest` from
-its own outline in to its medial axis, and where the two disagree the ground steps at that outline — a face the
-surface reports and cannot attribute. The complaints ride in the reply's own `warnings` key and are listed
-above the numbers they were drawn from — `RL1` where the group states a landform it does not measure as, `RL2`
-where its elevation was never graded, `RL3` on a seam taller than a scramble, `RL4` for a mark that pinned
-nothing, `RL5` where it was graded everywhere and left nowhere level to stand, and `RL6` on a push whose two
-gradients run more than about twice apart.
+Beside those it answers two things the surface alone cannot say. **`level` and `largestField`** are how much
+of the group lies under ten degrees and how much of it the biggest connected run of that holds — an angle
+rather than a step, because ground graded end to end crosses perfectly and has nowhere on it a player can
+stand still. **`seams`** name the pairs of marks whose ground meets on a step, worst first, each with the
+coordinate to stand at: every other reading describes the surface, and this one describes the two statements
+that built it. **`pushes`** is the other of that kind, and the reason a push needs one is that it is not one
+slope: it climbs at `amount / falloff` over its skirt and again at `crown / deepest` from its own outline in to
+its medial axis, and where the two disagree the ground steps at that outline — a face the surface reports and
+cannot attribute. The complaints ride in the reply's own `warnings` key — `RL1` where the group states a
+landform it does not measure as, `RL2` where its elevation was never graded, `RL3` on a seam taller than a
+scramble, `RL4` for a mark that pinned nothing, `RL5` where it was graded everywhere and left nowhere level to
+stand, and `RL6` on a push whose two gradients run more than about twice apart.
+
+**Only the contour overlay of those two reaches the canvas.** The readback answers a caller that posts the
+layout — a driver, an agent, `tools/drive.py` — and the phase draws none of it: nineteen fields, eleven of
+them a count against another count on the same row, is a shape a sidebar cannot hold. What the phase shows is
+the mark list and the group tree, which is what an author edits.
 
 `docs/world-export/relief.md` is this phase written out in full: the relaxation between the marks and why it
 is that rather than a weighting, what each knob costs measured on a room and on a whole map, how steepness
