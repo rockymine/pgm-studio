@@ -310,6 +310,18 @@ owns. Where two shapes tie on height nothing changes: two at one height are a th
 smaller one is the scope. A shape stating a `height_mode` is outside the test both ways — it stands in the
 terrain rather than being it, and the top it settles at is read against ground the relief has not yet made
 when the owners are resolved.
+
+**A structural annotation is a scope over ground it did not place, and that is how a room's floor is stated.**
+A spawn, a wool room and the building footprint inside one reach the sketch as role-tagged rectangles: the
+plan's own pieces, drawn over terrain the fused island already holds so they stay visible while a plan is
+refined. They place nothing, so they are read exactly the way a `height_mode` shape is — a candidate for the
+paint on the cells they cover at whatever height they carry, never the surface another shape is measured
+against. Area still decides between an annotation and the island under it, so a room's rectangle wins on its
+own footprint and the board keeps its own ground everywhere else; an annotation stating no theme states
+nothing. Without this there is no shape a room's ground can be scoped to, and the only reading available is
+whatever the fused component paints. The **group** read (`SketchRasterizer.GroupOwners`, which answers the
+relief a cell is solved under) excludes them through its own scope predicate: an annotation belongs to no
+island's `shapeIds`, so letting one own a cell there would drop that cell's group rather than report it.
 The passes cannot tread on each other because of the stone-only invariant: a course a lower layer has already
 finished is no longer stone.
 
@@ -433,6 +445,20 @@ idempotent. It reads inputs already in hand: the finished world (column heights 
 surface grid (`BuiltTerrain.SurfaceTop`), and — only for scoped theming — the shape footprints the rasterizer
 already walks. Running after the stampers is what makes TP6 free: the rooms, cubes and approach walls
 are already non-stone columns, so "consult the stamps" is just "read the finished world."
+
+**The surface grid is the terrain's, plus every room's plinth.** A foundation levels the dip under a room's
+footprint in stone precisely so the painter will finish it, and stone is what the painter rewrites — but the
+painter reads a *surface map*, and the fill sits **above** the top that map states, so it is a course the pass
+never addresses. Left alone that is a room's ground staying raw stone on a board painted everywhere else,
+which is what it did. So each room's levelling reports the surface it leaves
+(`StructureStamper.FoundationTops`, read by the same walk that writes the courses), and `WorldBuilder` folds
+those tops into the map it hands the painter — into the layer the plinth was levelled from, matched by the top
+it replaced, so a storey standing under a room on a stacked board keeps its own surface. The terrain's own
+maps are untouched: what reads them afterwards asks where the *ground* is — the dressing pass seats a tree on
+it, the walk prices a step over it — and a plinth is ground with a building on it. Where the room's shell or
+its wool pad covers the plinth the painter leaves it alone anyway, because those columns are no longer stone;
+where the footprint is too small to carry walls (WX2) the plinth **is** the floor, and that is where the
+difference shows.
 
 **The four stages.** The pass is one pure function assembled from four separable stages, in pipeline order:
 

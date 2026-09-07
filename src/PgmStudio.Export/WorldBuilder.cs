@@ -137,6 +137,13 @@ public static class WorldBuilder
         var pendingMarkers = new List<(int X, int Z, int Data, GoalMarkerShape Shape)>();
         var pendingCeiling = new List<(string Kind, string Name, StampId Owner, BlockBox Box)>();
 
+        // Where every room's plinth leaves the ground, cell by cell. A foundation levels a dip in stone so the
+        // floor over it spans no air, and the painter finishes stone — but it finishes it against a surface
+        // map, and the fill sits above the top that map states, so the plinth stays raw stone under a board
+        // that is quartz everywhere else. Collected as the rooms are stamped and folded into the map the
+        // painter reads, which is the whole of what makes a room's ground the board's ground (B145).
+        var plinths = new Dictionary<(int X, int Z), int>();
+
         // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
         var woolFrame = new RoomFrame[wools.Count];
@@ -153,6 +160,8 @@ public static class WorldBuilder
             {
                 Frame = frame, FloorY = fy, WoolSlug = slug, Ground = woolGround, Shell = woolStyle,
             });
+            Raise(plinths, StructureStamper.FoundationTops(
+                woolGround, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ));
             // The cells the shell actually filled, walked from the stamper's own function. A RoomFrame's
             // bounds are grid lines — its Width is MaxX − MinX — so carrying them into a max-inclusive
             // provenance rect claims a row and a column of ground the room never touched, on the +x/+z side
@@ -193,6 +202,8 @@ public static class WorldBuilder
                 Frame = frame, FloorY = fy, TeamColor = WoolDataForTeam(s.Team, teams),
                 CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = spawnStyle,
             }).Monuments;
+            Raise(plinths, StructureStamper.FoundationTops(
+                spawnGround, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ));
             provenance.Claim(StructureStamper.FoundationCells(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ),
                              ProvenancePass.Structure, s.Stamp);
 
@@ -309,7 +320,8 @@ public static class WorldBuilder
         // stone-only invariant stood between the two, and that invariant is about what a block IS rather than
         // about which layer may address it: a ground theme filling in plain stone hands its whole column to
         // whatever is drawn above. A layer's limit is its own shapes, so that is what it is given.
-        TerrainPainter.Paint(world, terrain.SurfaceByLayer, TerrainThemeScope.ThemeAt(layoutJson),
+        TerrainPainter.Paint(world, PaintSurface(terrain.SurfaceByLayer, plinths),
+                             TerrainThemeScope.ThemeAt(layoutJson),
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
                              terrain.FloorByLayer);
 
@@ -720,6 +732,43 @@ public static class WorldBuilder
         => Math.Clamp(y, 1, VoxelWorld.MaxHeight - 1 - (style is null
             ? HouseStyle.MaxTopLayer
             : style.TopLayerOver(width, depth, front)));
+
+    /// <summary>Record a room's plinth against the plinths already recorded, keeping the higher top where two
+    /// footprints overlap — which is the level the later fill actually left, since each one levels to its own
+    /// footprint's highest column and writes upward.</summary>
+    private static void Raise(Dictionary<(int X, int Z), int> plinths, Dictionary<(int X, int Z), int> tops)
+    {
+        foreach (var (cell, top) in tops)
+            if (!plinths.TryGetValue(cell, out var held) || top > held) plinths[cell] = top;
+    }
+
+    /// <summary>The surface the painter reads: the terrain's own, with every room's plinth standing on it.
+    ///
+    /// <para>A plinth is ground the build raised, and the painter finishes ground against a surface map — so
+    /// a fill laid above the top that map states is a course it never addresses, and a room's ground stays raw
+    /// stone on a board that is painted everywhere else (B145). A cell is raised only in the layer whose
+    /// surface it was levelled from, matched by the top the plinth replaced, so a storey standing under a room
+    /// on a stacked board keeps its own surface and is painted at it.</para>
+    ///
+    /// <para>The terrain's own maps are left alone. What reads them afterwards asks where the <em>ground</em>
+    /// is — the dressing pass seats a tree on it, the walk prices a step over it — and a plinth is ground with
+    /// a building on it, which is not a thing to plant on or route across.</para></summary>
+    private static IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> PaintSurface(
+        IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> byLayer,
+        Dictionary<(int X, int Z), int> plinths)
+    {
+        if (plinths.Count == 0) return byLayer;
+        var painted = new Dictionary<string, IReadOnlyDictionary<(int X, int Z), int>>(byLayer.Count);
+        foreach (var (layer, tops) in byLayer)
+        {
+            Dictionary<(int X, int Z), int>? raised = null;
+            foreach (var (cell, top) in plinths)
+                if (tops.TryGetValue(cell, out var held) && held < top)
+                    (raised ??= new Dictionary<(int X, int Z), int>(tops))[cell] = top;
+            painted[layer] = raised ?? tops;
+        }
+        return painted;
+    }
 
     /// <summary>The floor a room shell rests on: the highest surface over the columns its footprint spans —
     /// not the one at its marker, which is a grid line whose side does not survive the symmetry orbit.

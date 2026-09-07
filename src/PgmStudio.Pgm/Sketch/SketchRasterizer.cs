@@ -273,8 +273,11 @@ public static class SketchRasterizer
                 foreach (var shapeId in group.ShapeIds)
                     if (group.Id is { } groupId) groupOfShape[(layer.Id!, shapeId)] = groupId;
 
+        // Only terrain answers here: a role-tagged shape belongs to no group — an annotation is never added
+        // to an island's own ShapeIds — so letting one own a cell would drop that cell's group rather than
+        // report it, and the relief a gate reads would go silent under every room on the board.
         var owners = new Dictionary<(int X, int Z), string>();
-        foreach (var ((layer, x, z), shapeId) in ShapeScopeOwners(layoutJson, _ => true))
+        foreach (var ((layer, x, z), shapeId) in ShapeScopeOwners(layoutJson, shape => shape.Role is null))
             if (groupOfShape.TryGetValue((layer, shapeId), out var groupId)) owners[(x, z)] = groupId;
         return owners;
     }
@@ -299,13 +302,21 @@ public static class SketchRasterizer
     /// — it stands in the terrain rather than being it, and the top it settles at is read against ground the
     /// relief has not made when this runs.</para>
     ///
+    /// <para><b>A role-tagged shape is a scope over ground it did not place.</b> It is the plan's own piece —
+    /// a spawn, a wool room, the building footprint inside one — drawn over terrain the fused island already
+    /// holds, so it says what paints its cells without ever being the surface another shape is measured
+    /// against. That is the erected reading exactly, and it is what lets a room's ground be stated: the plinth
+    /// the build levels under a footprint is finished by the theme scoped there, and without this there is no
+    /// shape to scope one to. Area still decides between it and the island under it, so the room's own
+    /// rectangle wins on its own footprint.</para>
+    ///
     /// <para><paramref name="isScope"/> says which annotation makes a shape a scope, so paint and planting
     /// resolve through one traversal rather than two that could disagree about which shape owns a contested
     /// cell — and each caller keeps its own rule for what counts, since what makes a shape a paint scope and
-    /// what makes it a planting one are not the same question. Only add shapes the predicate answers for can
-    /// own a cell; subtracts and role-tagged (structural) shapes are skipped entirely — they place no terrain
-    /// of their own. Void cells that no surface stands on are harmless: a consumer only reads owners where a
-    /// column is solid.</para></summary>
+    /// what makes it a planting one are not the same question. It is also where a caller reading terrain
+    /// rather than paint excludes the annotations. Only add shapes the predicate answers for can own a cell;
+    /// subtracts are skipped entirely. Void cells that no surface stands on are harmless: a consumer only
+    /// reads owners where a column is solid.</para></summary>
     public static Dictionary<(string Layer, int X, int Z), string> ShapeScopeOwners(
         string layoutJson, Func<SketchShape, bool> isScope)
     {
@@ -320,11 +331,13 @@ public static class SketchRasterizer
 
         void Claim(SketchShape shape)
         {
-            if (shape.Operation == "subtract" || shape.Role is not null) return;
+            if (shape.Operation == "subtract") return;
             // A shape that says how its top is decided stands IN the terrain rather than being it, and what
             // it settles at is read against ground the relief has not made yet — so it is always a candidate
-            // and never sets the surface another shape is measured against.
-            var standing = IsErected(shape);
+            // and never sets the surface another shape is measured against. A role-tagged shape stands in it
+            // the same way for the opposite reason: it places no terrain at all, and the ground it annotates
+            // is already there.
+            var standing = IsErected(shape) || shape.Role is not null;
             var scopes = isScope(shape);
             var cells = RasterShape(shape).ToList();
             long area = cells.Count;

@@ -107,12 +107,12 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Contracts` | 33 | 3,534 | flat |
 | `Data` | 16 | 2,686 | `Map/` 5 · `Features/` 4 · `Theme/` 4 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 27 | 2,860 | flat |
-| `Export` | 14 | 3,254 | flat |
+| `Export` | 14 | 3,303 | flat |
 | `Geom` | 52 | 6,590 | `Algorithms/` 22 · `Render/` 6 · `Relief/` 5 · 19 at root |
 | `Import` | 4 | 471 | flat |
 | `Migrations` | 33 | 2,017 | `Migrations/` 32 · 1 at root |
-| `Minecraft` | 98 | 19,991 | `Stamping/` 16 · `Palette/` 15 · `Render/` 15 · `Anvil/` 13 · `Painting/` 12 · `Houses/` 11 · `Dressing/` 10 · `Views/` 4 · `Suggest/` 1 · 1 at root |
-| `Pgm` | 154 | 26,872 | `Compose/` 42 (nested) · `Authoring/` 23 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Sketch/` 10 · `Derive/` 9 · `Plan/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
+| `Minecraft` | 98 | 20,006 | `Stamping/` 16 · `Palette/` 15 · `Render/` 15 · `Anvil/` 13 · `Painting/` 12 · `Houses/` 11 · `Dressing/` 10 · `Views/` 4 · `Suggest/` 1 · 1 at root |
+| `Pgm` | 154 | 26,885 | `Compose/` 42 (nested) · `Authoring/` 23 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Sketch/` 10 · `Derive/` 9 · `Plan/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
 | `Vocabulary` | 17 | 1,365 | flat |
 <!-- /census -->
 

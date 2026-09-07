@@ -24,24 +24,39 @@ public static class StructureStamper
     ///
     /// <para>It fills in <b>stone</b>, which is what the terrain painter finishes (TP6 — the painter rewrites
     /// only stone), so the ground a room stands on is painted like the ground around it rather than reading as
-    /// a made thing. A cell with no ground at all is left alone: there is nothing under it to level against,
-    /// and building a column there would put a stack in open sky. Nothing is filled <b>downward</b>: what
-    /// keeps a room from being entered from below is its own protection region, and a plinth sunk to
-    /// <c>y 0</c> is a wall nobody drew.</para></summary>
+    /// a made thing. That only holds while the painter is told the plinth is there: it reads a surface map,
+    /// and a fill laid above the top that map states is a course the painter never addresses. The caller
+    /// raises its map by <see cref="FoundationTops"/> before painting. A cell with no ground at all is left
+    /// alone: there is nothing under it to level against, and building a column there would put a stack in
+    /// open sky. Nothing is filled <b>downward</b>: what keeps a room from being entered from below is its own
+    /// protection region, and a plinth sunk to <c>y 0</c> is a wall nobody drew.</para></summary>
     public static void StampFoundation(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int minX, int minZ, int maxX, int maxZ)
+    {
+        foreach (var (cell, level) in FoundationTops(surfaceTop, minX, minZ, maxX, maxZ))
+            for (var y = surfaceTop[cell]; y < level; y++) world.SetBlock(cell.X, y, cell.Z, Blocks.Stone);
+    }
+
+    /// <summary>The surface <see cref="StampFoundation"/> leaves behind: every footprint cell with ground under
+    /// it, mapped to the levelled top the plinth raises it to. The level is read here and the fill walks it, so
+    /// the courses written and the surface reported cannot disagree about where the plinth stops.
+    ///
+    /// <para>What a caller does with it is paint: a plinth is ground the build raised, and the painter finishes
+    /// ground by reading a surface map, so a room's plinth stays raw stone until the map handed to the painter
+    /// says the ground reaches the levelled top. A cell the plinth did not have to raise is in here too, at the
+    /// top it already had — the footprint's own surface, whether or not it moved.</para></summary>
+    public static Dictionary<(int X, int Z), int> FoundationTops(
+        IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int minX, int minZ, int maxX, int maxZ)
     {
         var level = 1;
         foreach (var cell in FoundationCells(minX, minZ, maxX, maxZ))
             level = Math.Max(level, surfaceTop.GetValueOrDefault(cell, 1));   // topmost air cell
 
+        var tops = new Dictionary<(int X, int Z), int>();
         foreach (var cell in FoundationCells(minX, minZ, maxX, maxZ))
-        {
-            if (!surfaceTop.TryGetValue(cell, out var top)) continue;         // no ground here to stand on
-            var (x, z) = cell;
-            for (var y = top; y < level; y++) world.SetBlock(x, y, z, Blocks.Stone);
-        }
+            if (surfaceTop.ContainsKey(cell)) tops[cell] = level;             // no ground here to stand on
+        return tops;
     }
 
     /// <summary>The columns <see cref="StampFoundation"/> fills, for a caller recording what it covered. Its

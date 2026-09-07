@@ -75,6 +75,51 @@ public sealed class StructureStamperTests
         await Assert.That(w.GetBlock(3, 0, 2).Id).IsEqualTo(Blocks.Stone);
     }
 
+    /// <summary>The surface the fill leaves behind is the surface it reports, cell for cell. A caller painting
+    /// the plinth reads <see cref="StructureStamper.FoundationTops"/> rather than re-deriving the level, and the
+    /// two agreeing is what makes the painter finish exactly the courses the fill wrote (B145).</summary>
+    [Test]
+    public async Task The_tops_reported_are_the_tops_the_fill_leaves()
+    {
+        var surf = new Dictionary<(int X, int Z), int>();
+        for (var x = 0; x <= 10; x++)
+        for (var z = 0; z <= 10; z++)
+            surf[(x, z)] = 10 + z;
+        var w = Ground(surf);
+
+        var tops = StructureStamper.FoundationTops(surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
+        StructureStamper.StampFoundation(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
+
+        // One level over the whole footprint — the highest column's own first air — and every cell of it
+        // reported, whether or not the fill had to raise that cell.
+        await Assert.That(tops.Count).IsEqualTo(16);
+        await Assert.That(tops.Values.Distinct().Single()).IsEqualTo(15);
+
+        // And the world agrees: solid up to the reported top, open at it.
+        foreach (var (cell, top) in tops)
+        {
+            await Assert.That(w.GetBlock(cell.X, top - 1, cell.Z).Id).IsEqualTo(Blocks.Stone);
+            await Assert.That(w.GetBlock(cell.X, top, cell.Z).Id).IsEqualTo(Blocks.Air);
+        }
+    }
+
+    /// <summary>A footprint cell with no ground under it is in neither the fill nor the report. There is
+    /// nothing to level against, and a top reported over open sky would have the painter finish a course that
+    /// does not exist.</summary>
+    [Test]
+    public async Task A_cell_over_void_is_not_reported()
+    {
+        var surf = FlatSurface(0, 0, 10, 10, top: 13);
+        surf.Remove((3, 3));
+        surf.Remove((4, 3));
+
+        var tops = StructureStamper.FoundationTops(surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
+
+        await Assert.That(tops.Count).IsEqualTo(14);              // 16 cells, two of them over void
+        await Assert.That(tops.ContainsKey((3, 3))).IsFalse();
+        await Assert.That(tops.ContainsKey((4, 3))).IsFalse();
+    }
+
     /// <summary>Ground that floats over void keeps the void under it. A foundation that filled from
     /// <c>y 0</c> hung a pillar under every stamped room on a board of crags — measured on `opus5-aerie` at
     /// `(20, 28)`: solid from y0 to y24 under a wool room whose crag begins at y16, in open sky the whole

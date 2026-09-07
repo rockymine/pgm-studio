@@ -28,16 +28,6 @@ entries are the join that is left rather than the whole read. Nothing in it touc
 
 ## A building is a footprint and a shell, wherever it came from
 
-- [ ] **B145 — A spawn or wool room's ground carries no theme.** A role piece reaches the sketch as a
-  role-tagged annotation and `SketchRasterizer` skips it outright (`line 1027`), so it is never a shape a
-  theme can be scoped to: the ground under a room is whatever its fused component paints, and there is no way
-  to state a room floor. It is also what `StructureStamper.StampFoundation` levels in, so the material that
-  fills a dip under a footprint is the same question. The shape to hang it on is there — a room projects a
-  `building` annotation carrying its footprint. Wants a theme scope on it, and the levelling fill reading it.
-
-  *re-probed on `marlstone-steps`: the column under the red wool at `(0, 85)` is raw `1:0` Stone from y24 down
-  to y1, on a board whose `crest` theme is quartz. Reported independently by four runs.*
-
 - [~] **B107 — A structural shape cannot be selected, so its stated height cannot be corrected.** The backend
   half is landed (`FEATURES.md`): a shape's stated height survives a recompile, marked per field and carried
   by `intentRef`. `sketch-canvas.js` keeps structural shapes render-only — never hit-tested, never selected —

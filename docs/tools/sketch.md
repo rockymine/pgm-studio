@@ -244,7 +244,15 @@ five (`worn` and `stones` besides), because a fill can leave gaps and an outline
 
 A shape tagged with a `role` is not terrain at all. It is something the plan placed, projected in so it stays
 visible instead of dissolving into the fused group, and loaded as a locked render-only overlay: never
-hit-tested, never edited, skipped by the rasterizer, and merged back into the saved document unchanged.
+hit-tested, never edited, laying no ground of its own, and merged back into the saved document unchanged.
+
+**It places no terrain and it does scope paint**, which are not the same claim. The rasterizer takes no ground
+from a role shape — the island under it already holds that — but it does read one as a **paint scope** over the
+cells it covers, the way it reads a shape stating a `height_mode`: a candidate at whatever height it carries,
+never the surface another shape is measured against. That is how a room's own ground is stated, and without it
+there is no shape to state it on; a role shape naming no theme says nothing and the board's own ground stands.
+The plinth the build levels under a room's footprint is finished by whatever theme resolves there
+(`docs/world-export/terrain-painting.md` § the scope, § the runtime seam).
 
 **A room projects as two shapes, because it is two rectangles.** `spawn` and `woolRoom` are the *region* — the
 ground the room stands on and the protection around it — and carry the `intentRef` back to the entity they

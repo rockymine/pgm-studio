@@ -797,6 +797,15 @@ the painter rewrites (TP6), so the ground under a room is finished like the grou
 with no ground at all is left alone — there is nothing under it to level against, and a column built there
 would stand in open sky.
 
+**Finished like the ground around it only because the painter is told the plinth is there.** The painter reads
+a surface map and the fill stands above the top that map states, so the levelled courses were ones no pass ever
+addressed: a room's ground came out raw stone on a board painted everywhere else. So the levelling reports the
+surface it leaves — `StructureStamper.FoundationTops`, the same walk that writes the courses, so the two cannot
+disagree about where the plinth stops — and the world build folds those tops into the map it hands the painter
+(`docs/world-export/terrain-painting.md` § the runtime seam). Where a shell or a wool pad covers the plinth
+nothing changes, those columns no longer being stone; where the footprint is too small to carry walls (WX2) the
+plinth **is** the floor, and it is now the board's ground rather than rock.
+
 **And where the cell beside a building has no ground to meet it on, `WX11` says so** — a complaint at the
 columns tier, since a building on a ledge is a real thing to draw and the world builds either way. The
 foundation levels its fill at the footprint's own highest column, so a neighbour that is void, or more than
@@ -906,7 +915,8 @@ column of the footprint it fills, because the room standing on it takes one floo
 column — a platform following the ground would stop under the floor wherever the ground falls away and leave
 it spanning air. It fills **upward only, in stone**: what keeps a room from being entered from below is its
 region rather than its floor, so there is no plinth under it, and stone is what the painter finishes (TP6), so
-the ground a room stands on is painted like the ground around it.
+the ground a room stands on is painted like the ground around it — the platform reporting its own levelled
+surface is what lets the painter reach it.
 
 Check this section against the studio: the house-part library previews stamp a draft through the real
 `HouseStamper` and read it back out of the world, so where the prose here and the preview disagree, suspect

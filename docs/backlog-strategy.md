@@ -142,14 +142,15 @@ current.
 
 ## The verified defects
 
-Confirmed by reading the code at the cited site. Two stand.
+Confirmed by reading the code at the cited site. One stands.
 
-**`B145`** — a role piece reaches the sketch as a role-tagged annotation and the rasterizer skips it outright
-(`SketchRasterizer.cs:1027`, `if (s.Role is not null) continue;`), so the ground under a spawn or wool room is
-whatever its fused component paints and no theme can be scoped to it. It is on `TODO.md` with the building
-programme, because a room's building is the shape a theme scope would hang on.
+**`B145` shipped** (`FEATURES.md`), and the reading it needed was not the one filed. The annotation being
+skipped was half of it: a role shape is now a paint scope over ground it did not place, so a room's floor has
+a shape to be stated on. The other half was that the plinth the build levels under a footprint stands *above*
+the surface map the painter reads, so the courses a room actually shows were ones no pass addressed — the
+levelling reports its own surface now and the world build folds it in.
 
-**`B57`** — `FeatureExtractors.Segments` → `scan_segment` applies neither of the two exclusion rules
+**`B57` — `FeatureExtractors.Segments` → `scan_segment` applies neither of the two exclusion rules
 `CleanColumns` applies, so a build-region floor sheet at `y=0` persists as solid ground and everything reading
 it at query time walks on a marker. Reported with measured evidence and not re-confirmed here, because
 confirming it wants a built world rather than a reading.
@@ -201,9 +202,10 @@ entries listed after it are what stop being separate work once it lands.
 **A building is a footprint and a shell, and the studio has two models of it.** A room states one `Rect`, a
 dressed `HouseProp` states `AuthoredWing[]`, and the author's ruling is that a room's building *is* the
 single-wing case of the dressed one. `WE71` landed that model — one least span, one ink on all three canvases.
-What is left is the interaction it makes possible: `B107`, `S25b` and `B145`, which are `TODO.md`'s current
-programme. Once a room's building is drawn and hit-tested by the code that already does both for a prop,
-selection, the drag and the theme scope are three things one hit-test unlocks rather than three features.
+What is left is the interaction it makes possible: `B107` and `S25b`, which are `TODO.md`'s current
+programme. The theme scope left it by shipping (`B145`, `FEATURES.md`), which is the half that needed no
+hit-test at all; once a room's building is drawn and hit-tested by the code that already does both for a prop,
+selection and the drag are two things one hit-test unlocks rather than two features.
 
 **A layer is first-class in the export and an afterthought everywhere else.** `DressingDoc.add` stamps the
 storey; `SketchDressingInspector` has no field for it. `TerrainPainter` is handed a surface per layer and
@@ -323,8 +325,8 @@ on a ruling. Each has a definite end and none of it is work until the answer arr
 
 **Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`,
 `N08`, `N12`, `TS64`, `TS75`, `S59`, `B262`, `B44`. Four more — `B107`, `S25b`, `B145`, `WE54` — were
-this population until the building's one model turned them from three reaches into one, and they are on
-`TODO.md`. This is the population the studio's own shape produces, and every one of them is the same thing: a
+this population until the building's one model turned them from three reaches into one; `B145` and `WE54` have
+since shipped and the other two are on `TODO.md`. This is the population the studio's own shape produces, and every one of them is the same thing: a
 document, a route or a solver that already answers, and a surface that never asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
@@ -354,8 +356,10 @@ for deferring. It cost one message. This phase is the one nobody can do alone, a
 whenever the list refills — the causes below each had a question sitting in them, and none of them could move
 until it was answered.
 
-**Phase 1 — the verified defect run.** `B145` and `B57`. Each lands with a test that fails on the old
-behaviour — that is the deliverable, not the fix. `TS74` and `B144` left this way (`FEATURES.md`), and `TS31`
+**Phase 1 — the verified defect run.** Drained but for `B57`, which is blocked in practice by re-import.
+Each lands with a test that fails on the old behaviour — that is the deliverable, not the fix. `B145` left
+this way (`FEATURES.md`), pinned at three tiers: the levelling reporting the surface it leaves, the painter
+finishing a plinth folded into its map, and a built room's floor course carrying no raw stone. `TS74` and `B144` left this way (`FEATURES.md`), and `TS31`
 left it by being withdrawn: the ruling it needed says a sketch cannot judge reachability at all, so the
 reading it wanted shipped as `WS61` (`FEATURES.md`) at the tier that holds the build zones — and as
 information rather than as a defect, which is the disposition the whole question turned on.

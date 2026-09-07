@@ -5303,6 +5303,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A room's ground is the board's ground, and a room can state its own (B145).** A foundation levels the dip
+  under a room's footprint in stone precisely so the painter will finish it, but the painter reads a surface
+  map and the fill stands above the top that map states — so the levelled courses were ones no pass ever
+  addressed, and a room's ground came out raw stone on a board painted everywhere else. The levelling now
+  reports the surface it leaves (`StructureStamper.FoundationTops`, read by the same walk that writes the
+  courses), and `WorldBuilder` folds those tops into the map it hands the painter — into the layer the plinth
+  was levelled from, matched by the top it replaced, so a storey under a room on a stacked board keeps its
+  own. The terrain's own maps are untouched, since what reads them afterwards asks where the *ground* is.
+  Beside it the scope that was missing: a role-tagged shape — a spawn, a wool room, the building footprint
+  inside one — is now a **paint scope** over ground it did not place, read the way a `height_mode` shape is
+  (a candidate at any height, never the surface another is measured against), so a room's floor has a shape to
+  be stated on at all; the group read excludes them through its own predicate, an annotation being in no
+  island's `shapeIds`. *Measured on a 5×5 wool room straddling a four-block step on a quartz board: its floor
+  course was 12 cells of raw stone, 9 wool and 4 quartz, and is now 16 quartz and the 9-cell pad.*
 - **A shape says what it is made of, not only what paints the ground it is part of (WE80).** A shape may carry
   a `material` — one `TerrainMaterial`, any kind a theme's bucket takes — in place of a `theme`, painted over
   its whole span with no rim, no wall and no surface depth (`TP22`). It reaches the painter as the theme it
