@@ -516,14 +516,15 @@ own. It does: `BlockGeometry.Turned` maps each set bit through the image's trans
 a single face survives a mirror or a quarter-turn without a second bit to protect it. The rule is asked once
 per body, since a board draws the same tree thirty times and the fault is in the recipe.
 
-**`copied` is doing three jobs, and only one of them is its own (`WE95`, `WE96`, `TL15`).** A `template` or
+**`copied` is doing three jobs, and only one of them is its own (`TL15`).** A `template` or
 a `grown` tree is built from two blocks — the species' log and its leaf — so anything else a real tree has
 (a vine on the crown, a bush at the foot) and anything that is not a tree at all has nowhere to go but a
 copied body, which is the one recipe carrying an arbitrary `[x, y, z, id, data]`. Measured over the 81 copied
 bodies in `pgm-studio-mapgen/specs`: 44 are genuinely cut from a world, logs and leaves only; 37 are
-hand-written, and 27 of those carry a block the generative forms cannot emit. Until a tree can state an
-understorey and a small built thing can be one, the word will keep being reached for by anything that needs a
-third block.
+hand-written, and 27 of those carry a block the generative forms cannot emit. A body is therefore what an
+author reaches for whenever a prop needs a third block, and that is the shape rather than a gap in it: a
+vine on a crown is something the tree generator could state, and everything else a board files this way is a
+small built thing an author drew because they wanted exactly it.
 
 **The third tree is copied, and it decides nothing about its own shape.** A `TreeForm.Copied` recipe carries
 a `body` — every block of a tree an author built, as `[x, y, z, id, data]` offsets from its foot, the lowest

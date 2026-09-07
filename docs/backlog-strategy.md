@@ -12,9 +12,9 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **64 open entries over 10,876 words**: a median entry of 147 words and **8 above 250** —
+The two boards carry **59 open entries over 10,274 words**: a median entry of 154 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
-is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 16, `TS` 11,
+is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 13, `TS` 10,
 `B` 9, `G` 7, `S` 5, `N` 4, `C` 3, and seven others in ones and twos. `TODO.md` holds none of them: the
 mapgen-authoring programme drained and no group has been pulled up in its place.
 
@@ -281,6 +281,19 @@ them.** Each had been filed from a symptom that was real; none survived being me
 | `B150` | a route that evaluates a stored map's sketch | `EvalContext` is a `PlanModel` and nothing else, and `BoardStructure` is piece-keyed throughout — a sketch would need a second deriver inventing a piece decomposition for polygons, not a rasterize-and-reuse. The author does not want a sketch scored |
 | `B171` | how a wool approach attaches, in the shapes endpoint's terms | `/shapes/catalog` states no attachment at all, and `/plan/feasibility` — which does answer it — is a critic for *generated* boards, so a hand-drawn plan gets `producible: false` every time (`pgm-studio-mapgen/reports/opus5-coldharbour-authoring.md`) |
 
+**A second pass of the same reading withdrew five more (author, 2026-09-07).** Three were rulings and two
+were premises the code no longer holds.
+
+| entry | why it left |
+|---|---|
+| `WE95`, `WE96` | ruled out. The two boards that prompted them had been asked for trees with stated features, and the agent built those out of layers; a vine on a crown is something the tree generator could state, and nothing ever asked for a mushroom under one. Checking the studio against everything an agent might do has no end |
+| `WS1` | ruled off. The thin-lane case has not come up again, because no board since has been authored at that scale |
+| `TS75` | both halves measurably false. The sketch draws a destroyable and a core from the intent's anchor (`sketch-render.js` `paintObjectives`), read-only by a decision stated there — *Configure is where one is edited*; and `PlanBoardScene` fans both, `B128`'s empty-`piece` case included. Rendered on the entry's own evidence board, `tallow-mirefast`'s wardstone draws at both orbit images |
+| `WE79` | fixed. `PlaceStroke` seats through `DressingContext.GroundFor` and claims on the prop's own layer. Measured on two storeys — a street at y10 under a deck at y25 — a stroke naming `street` paves at **y9**, one naming nothing paves at y24, and one naming a layer the board lacks paves nothing and declines `DR-LAYER` |
+
+What survived the same pass is `WE78`, which reads like `WE79`'s twin and is not: `B144` settles which shape
+owns a column's paint, and `WE78` is how far down that shape's bands then run.
+
 `B171`'s evidence outlived its entry. `PL13` — a bedrock wall on the wool room's own interface — is five of
 the ten refusals the authored corpus carries, the commonest structural refusal there is, and it already names
 its own remedy. What kept that sentence from an agent was the sentinel the evaluator answered under, and
@@ -331,11 +344,11 @@ partition it — a third of the entries are cleanup, naming and consistency work
 but each of the three wants a different treatment, which is what makes them worth naming despite the
 ambiguity at their edges.
 
-**Blocked decisions** are the twelve questions above, plus `S47` and `WS1`, which wait on material rather than
-on a ruling. Each has a definite end and none of it is work until the answer arrives.
+**Blocked decisions** are the twelve questions above, plus `S47`, which waits on material rather than on a
+ruling. Each has a definite end and none of it is work until the answer arrives.
 
 **Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`,
-`N08`, `N12`, `TS64`, `TS75`, `S59`, `B44`. Four more — `B107`, `S25b`, `B145`, `WE54` — were
+`N08`, `N12`, `TS64`, `S59`, `B44`. Four more — `B107`, `S25b`, `B145`, `WE54` — were
 this population until the building's one model turned them from three reaches into one, and all four have
 since shipped. That is the reading's own claim tested: a reach gap is drained by naming the cause under it,
 not by working the entries in turn. This is the population the studio's own shape produces, and every one of them is the same thing: a

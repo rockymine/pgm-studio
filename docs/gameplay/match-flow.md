@@ -57,8 +57,9 @@ original flow read used. Measured against recorded play the ratio does not survi
 41-cell walk is twelve cells of slack on a board twenty-six cells across, and on the same board with only the
 width changing the share of ground no journey covers runs 26.1% (geodesics), 13.7% (5%), and **0% at both 15%
 and 30%**. A ribbon that admits everything measures nothing. `GroundCoverage` reads an absolute six blocks
-instead, and the two definitions differ by twenty points of dead ground on one board; settling them on one
-absolute width is `WS1`.
+instead, and the two definitions differ by twenty points of dead ground on one board. The absolute width is
+calibrated on boards of the size this corpus holds; a map with lanes materially thinner would want it read
+again.
 
 **The choke.** The minimum vertex cut between two ends — the cheapest set of cells that, if held, separates
 them. Its position says where a clash happens; its **size is the funnel capacity**, which is the more
