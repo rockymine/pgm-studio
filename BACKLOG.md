@@ -670,6 +670,17 @@ set that reads a surface as somewhere a player can stand rather than as any colu
 
 ## The remainder: work no concept above has claimed
 
+- [ ] **TL15 — Anything can be filed as a `copied` tree.** `copied` means cut out of a world
+  (`docs/tools/library.md`, the author's ruling) and `tools/seed-trees.cs` over
+  `pgm-studio-mapgen/showcase/tree-showcase` is the only thing that cuts one, but `PropStyleLibrary.Save`
+  takes `form: "copied"` with the request's own `Body` array, so a board can post a block list it made up and
+  the row is indistinguishable from a cut one — which is how a dead-bush cluster, a log pile and a crate came
+  to be filed as trees. What is wanted is the **refusal**, not a provenance card: give `TreeStyleRow` the cut
+  — the world directory, the foot's world coordinates, the date — written by the cutter and absent on
+  anything else, and refuse a `copied` row that carries none. **Weigh against:** a body is the only recipe
+  that can hold a block the two generative forms cannot emit, so a hand-built prop needs a form word of its
+  own before `copied` can be closed to it.
+
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled
   room need `6 + 2 + 3` = 11 blocks on one axis and those spawn pieces are 10×10, 15×15 and 20×10. Nothing is

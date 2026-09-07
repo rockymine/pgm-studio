@@ -13,48 +13,25 @@ blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smalle
 it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room building's 20×20 measure the same
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
-## A library row copied onto a board: what is kept, and what names it
+## The room shells and the dressing key: what a copy is keyed by, and who sees it is there
 
 A map holds a **snapshot** of a library row and never a foreign key, so a library edit can never rebuild a
-shipped map. That half is settled. The note beside the snapshot saying *which* row it came from is not.
-**Seven bindings copy a row onto a board and they answer in three shapes**: a theme records `themeSources`
-(a map, theme id → row id), the biome records `biomeSource` (a scalar), the two room shells —
-`roomStyles.cage` and `roomStyles.spawn` — record **nothing at all**, and the three dressing recipes (a tree,
-a boulder, a house shell) key themselves on `recipe.Name`, the one field no library table indexes uniquely.
-These entries settle the shape before an eighth binding invents a fourth.
-
-**Two rulings come first and the rest are downstream of them.** `TS102` says what a note is and what it is
-called; `TS104` says whether an agent wants one at all. `TS101`, `TS103` and `B44` each name the shape they
-would record in, so answering the two is what makes the other five small. `docs/tools/sketch.md`'s finish
-model is what the group leaves correct.
-
-- [ ] **TS102 — One word and one shape for "the library row this snapshot came from".** *Parked on a ruling.*
-  `SketchLayout.FinishKeys` carries `themeSources` (a map, theme id → row id) and `biomeSource` (a scalar),
-  and nothing for the two room shells or the three dressing recipes. A note per binding makes four names in
-  two shapes for one idea; one `sources` table keyed by a path — `themes/meadow`, `roomStyles/cage`,
-  `dressing/oak-10`, `biome` — makes one reader, at the cost of folding the two existing keys in on read the
-  way `DressingJson.Upgraded` already folds an older dressing document forward. **Which, and under what
-  word:** `Source` is taken twice in the repo and neither is this — `MapOrigin.PlanSourceId` is the plan a map
-  was compiled from, and `Region.SourceId` in `XmlWriter`/`Deserializer` is a `map.xml` region reference.
-
-- [ ] **TS104 — No source can be recorded over HTTP, and it is not settled that one should be.** *Parked on a
-  ruling.* `grep 'themeSources\|biomeSource' src/PgmStudio.Api` returns nothing: `SketchFinishWrite.WithBiome`
-  and `.WithRoomStyle` take no source, and `PUT /map/{slug}/sketch/themes/{themeId}` registers a theme with
-  none, so both working cases work only for a human clicking. **Is the note wanted for an agent at all?** An
-  agent authoring a board usually has no library to have copied from — it writes documents against a seeded
-  database it did not fill, so the id would be absent on nearly every board `pgm-studio-mapgen` has built. The
-  case that earns it is the local one: an author who has already made themes asks for a board finished with a
-  named one, and the board should say which row that was. If yes, every finish write takes an optional row id.
+shipped map — and nothing beside the snapshot names the row it came from. `themeSources` and `biomeSource`
+are read in two places, both in `SketchThemeInspector`, and no route accepts either;
+`docs/design-decisions.md` says why that is the whole model rather than a gap. What is left is what a copy is
+**keyed by** and who can **see** it is there: a bound room shell that reads as the built-in one, ten callers
+guessing whether one is bound at all, a dressing recipe keyed by a name the library does not make unique, and
+a wire word that calls the wool room a cage. `docs/tools/sketch.md`'s finish model is what the group leaves
+correct.
 
 - [ ] **TS101 — A bound room shell reads as the built-in one.** The Theme phase's room selects show
   `PickedRoom(kind)`, fed only by `pickedRooms` in `SketchThemeInspector.razor.cs:BindRoom`.
-  `ReadRoomBindings` fills `boundRooms` and `openRooms` on load and never `pickedRooms`, because
-  `roomStyles.{part}` is a bare snapshot with no note beside it — so every reload, and every binding written
-  through `PUT /map/{slug}/sketch/room-styles/{part}`, shows `(the built-in shell)` over a board that has one
-  bound. Record the row in whatever shape `TS102` settles and resolve it the way the biome select does: the
-  recorded row first, a `SameDocument` content match after it. Evidence: bind style 13 to `cage` over HTTP and
-  open the Theme phase — the select reads `(the built-in shell)` while the `×` beside it, which keys off
-  `boundRooms`, says something is bound.
+  `ReadRoomBindings` fills `boundRooms` and `openRooms` on load and never `pickedRooms`, so every reload, and
+  every binding written through `PUT /map/{slug}/sketch/room-styles/{part}`, shows `(the built-in shell)` over
+  a board that has one bound. Resolve it by content, the way `HeldBiome` already does one line up: match the
+  snapshot against each library row's document with `SameDocument`, and say "off-library" where none of them
+  is it. Evidence: bind style 13 to `cage` over HTTP and open the Theme phase — the select reads `(the
+  built-in shell)` while the `×` beside it, which keys off `boundRooms`, says something is bound.
 
 - [ ] **WE70 — Ten callers guess whether a shell is bound, and the export is the only one that knows.**
   `WoolFrame`/`SpawnRoom`/`RoomFrames.Resolve` take `shellBound`, which sizes the default footprint (`WX1`)
@@ -76,35 +53,16 @@ model is what the group leaves correct.
   No library table indexes `name` uniquely (`M0011`, `M0012`) — identity is the identity column and the name
   is free text, which is what lets **Save as copy** mint "X copy" beside "X". So two rows sharing a name
   collide on pull, and a row named `oak-10` overwrites the key `DressingJson.KeyFor` mints for a lifted
-  recipe. Recipes lifted off old placements are already keyed from content; a library pull should be too, with
-  identity moving to whatever `TS102` settles. **Weigh against:** the key is what an author reads their recipe
-  by in the inspector, so a minted key is a legibility loss the UI has to pay back elsewhere.
+  recipe. Recipes lifted off old placements are already keyed from content; a library pull should be too.
+  **Weigh against:** the key is what an author reads their recipe by in the inspector, so a minted key is a
+  legibility loss the UI has to pay back by showing the name beside it.
 
-- [ ] **TS105 — The wool room's wire word is `cage`.** `SketchRoomStyles` already names the property `Wool`
-  and the inspector already offers it as "Wool cages"; only the JSON key is `cage` — `SketchLayout.cs:281`,
-  `SketchFinishWrite.RoomParts`, `sketch-bridge.js:953` and `:1154`, `RoomKindInfo`, and the `part` value of
-  `PUT /map/{slug}/sketch/room-styles/{part}` — plus four hits in `docs/`. The comment above the property says
-  a rename would leave every bound wool style falling back to the built-in shell on load, which is what an
-  upgrade on read exists to prevent; rename the route's `part` value in the same commit.
-
-- [~] **B44 — The library cannot see which maps carry a copy of a row.** The tables, the HTTP surface, the
-  `/library` page and the sketch's pull/push bridge all shipped (`FEATURES.md`); two slices remain, and the
-  first **waits on `TS102`** — what the document records is what the database can index.
-  **(1) Apply-as-snapshot** — a map's *applied* theme is still the sketch document's own registry, so
-  "the library holds the reusable copy, the map holds a frozen one" holds in the document and nowhere the
-  database can see: `themeSources` says which row a board theme came from (B47), but the link lives in the
-  layout blob, so the library cannot answer which maps carry a copy of a row or which copies have fallen
-  behind it. Give the map's scope store a forked instance with a `parent_id` back-reference, the same doctrine
-  the generator's plan persistence uses; whether it is wanted at all is `TS102`'s answer.
-  **(2) A data migration** lifting the themes inlined in a map's own `sketch_layout_json`
-  registry into styles + themes + bindings, deduping identical materials — today a map themed without pushing
-  anything out keeps its blob and the library cannot see it.
-
-- [ ] **TL15 — A copied body records the world it was cut out of.** `copied` means cut from a world
-  (`docs/tools/library.md`, the author's ruling) and nothing enforces it, because a body carries no
-  provenance: `tools/seed-trees.cs` and a hand-typed array produce the same row. Add the cut to
-  `TreeStyleRow` — the world directory, the foot's world coordinates, the date — written by the cutter and
-  absent on anything else, and shown on the card so a browse says which trees are real. It is what makes
-  "typed in rather than cut" a checkable statement. **Weigh against:** an author who wants a tree the two
-  generative forms cannot state has nowhere else to put it, so a record that says "typed in" describes a
-  legitimate body rather than a fault — the note is worth having as provenance and not as a gate.
+- [ ] **TS105 — The wool room's wire word is `cage`.** The two shells a board binds are a **wool** room and a
+  **spawn** room. `SketchRoomStyles` already names the property `Wool` and the inspector already offers it as
+  "Wool cages"; only the wire word is left, in six places — `SketchLayout.cs:281`,
+  `SketchFinishWrite.RoomParts`, `sketch-bridge.js:1051,1242`, `RoomKindInfo`, and the `part` value of
+  `PUT /map/{slug}/sketch/room-styles/{part}` — plus four tests and four lines in `docs/`. A stored board
+  lives in one place, the `map_artifact` rows of kind `sketch_layout_json`, so a migration rewrites them
+  **once**, the way `M0024` already rewrites that same blob; the reader gains nothing — no upgrade on read
+  and no second accepted key. `pgm-studio-mapgen` carries the key in 61 spec documents and 14 build
+  scripts, which a sweep in that repo fixes in the same change.

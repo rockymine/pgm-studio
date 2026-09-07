@@ -1,9 +1,9 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 64 open entries and `TODO.md` five — the interaction slice of the programme that put a
-room's building and a dressed one on one model. This document is the reading that says which of them are
-defects, which are questions, which share a cause, and what order drains them. Its subject is the board
-itself, and it expires when the board it describes is gone. It is the one document this work adds:
+`BACKLOG.md` holds 50 open entries and `TODO.md` four — the room shells and the dressing key, what a
+snapshot of a library row is keyed by and who can see it is there. This document is the reading that says
+which of them are defects, which are questions, which share a cause, and what order drains them. Its subject
+is the board itself, and it expires when the board it describes is gone. It is the one document this work adds:
 `CLAUDE.md`'s standing rule is that a change updates the document that already covers its subject rather than
 growing a new one, and the board had no such document.
 
@@ -12,11 +12,11 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **57 open entries over 10,036 words**: a median entry of 158 words and **8 above 250** —
+The two boards carry **54 open entries over 9,612 words**: a median entry of 164 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
-is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 12, `TS` 9,
-`B` 9, `G` 7, `S` 5, `N` 4, `C` 3, and seven others in ones and twos. **Eight of them are on `TODO.md`** —
-the library-row group, pulled up whole when the mapgen-authoring programme drained.
+is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 12, `B` 8,
+`TS` 7, `G` 7, `S` 5, `N` 4, `C` 3, and seven others in ones and twos. **Four of them are on `TODO.md`** —
+the room-shell group, whose four entries are the ones a library snapshot's identity is actually spent on.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -354,7 +354,7 @@ ambiguity at their edges.
 ruling. Each has a definite end and none of it is work until the answer arrives.
 
 **Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`,
-`N08`, `N12`, `TS64`, `S59`, `B44`. Four more — `B107`, `S25b`, `B145`, `WE54` — were
+`N08`, `N12`, `TS64`, `S59`. Four more — `B107`, `S25b`, `B145`, `WE54` — were
 this population until the building's one model turned them from three reaches into one, and all four have
 since shipped. That is the reading's own claim tested: a reach gap is drained by naming the cause under it,
 not by working the entries in turn. This is the population the studio's own shape produces, and every one of them is the same thing: a

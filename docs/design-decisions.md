@@ -197,6 +197,29 @@ front of the opening would first be used by the **8th** monument.
 don't leak the tree. (Failures do currently escape the structured-error path — that part is a
 real finding — but the leak claim is not.)
 
+## The library and a board's copy of a row
+
+### A snapshot records no library row, and the two notes that do exist are one panel's
+A board copies a library row's document and keeps nothing that points back at it. `themeSources`
+and `biomeSource` are the only two notes on the wire, and both are read by `SketchThemeInspector`
+alone — which row the theme in hand came from, and whether that copy has drifted from it. The two
+room shells and the three dressing recipes record nothing at all, and nothing in `Export`, `Pgm`
+or `Api` resolves a snapshot back to the library.
+
+- *Looks wrong:* seven bindings copy a row and answer in three shapes, which reads as an omission
+  one common `sources` table would close — and an author who edits a theme in the library expects
+  the boards holding a copy of it to follow.
+- *Why it stands:* the snapshot is the point. A library edit must not be able to rebuild a shipped
+  map, so a note can never be more than a hint about where a copy came from, and a hint is worth
+  what a surface does with it. Both notes serve one panel; a board authored over HTTP records
+  neither, because no route accepts one. Making the hint uniform would put a fourth name on the
+  wire, a migration under it and an optional row id on every finish write, for a fact only that
+  panel reads.
+- *Enforced:* `SketchLayout.FinishKeys` names the two, and a grep for `ThemeSources` across `src`
+  reaches only the record and that inspector. A select that must say which row a snapshot is
+  resolves it by **content** — `SketchThemeInspector.HeldBiome` matches each library row's document
+  with `SameDocument` — which is what a board carrying no note needs regardless.
+
 ## The HTTP surface
 
 ### The refusal envelope is the studio's own, and RFC 9457 was weighed and declined

@@ -409,9 +409,11 @@ one grown conifer and four erratics, and knows nothing about any world.
 
 **Nothing yet enforces "cut out of a world" (`TL15`).** A body carries no record of where it came from, so the
 cutter's row and a hand-typed array are indistinguishable once stored — which is how boards came to file a
-dead-bush cluster, a log pile and a crate as `copied` trees. A body is the only recipe that can carry a block
-the two generative forms cannot emit, so those props had nowhere else to go: the record is worth having as
-provenance rather than as a gate.
+dead-bush cluster, a log pile and a crate as `copied` trees. `PropStyleLibrary.Save` takes the request's own
+`Body` for any row whose form is `copied`, and what the entry asks for is the refusal: the cut recorded on the
+row, and a row claiming the form without one turned away. A body is the only recipe that can carry a block the
+two generative forms cannot emit, so a hand-built prop wants a form word of its own before `copied` closes to
+it.
 
 **The card is the whole picture, and that is the point.** Six woods differ in colour and six species differ in
 *shape* — a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia — and neither reads off a
