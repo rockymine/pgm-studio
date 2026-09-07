@@ -294,6 +294,9 @@ public partial class SketchTool
     // The plan piece a click picked. Not one of `shapes` — the bridge keeps the plan's own pieces apart from
     // the shapes an author drew — so the row itself is held rather than an id into a list.
     private SketchStructuralRow? selectedStructural;
+    // Why the last drag on a plan piece was not made. The intent owns where a room is, so a move is asked
+    // rather than told, and a refusal is the answer rather than a fault.
+    private string? structuralNote;
 
     private SketchShapeRow? SelectedShape => shapes.FirstOrDefault(s => s.Id == selectedShapeId);
     private SketchGroupRow? SelectedGroup => groups.FirstOrDefault(i => i.Id == selectedGroupId);
@@ -605,8 +608,14 @@ public partial class SketchTool
     public void OnStructuralSelected(string? json)
     {
         selectedStructural = json is null ? null : JsonSerializer.Deserialize<SketchStructuralRow>(json);
+        if (selectedStructural is null) structuralNote = null;
         StateHasChanged();
     }
+
+    /// <summary>Why a drag on a plan piece was not made — the intent's own sentence, or null where the move
+    /// went through.</summary>
+    [JSInvokable]
+    public void OnStructuralNote(string? message) { structuralNote = message; StateHasChanged(); }
 
     /// <summary>Correct the height the selected region was compiled at. The bridge writes the number and the
     /// author's-height flag together, which is what makes the correction outlive the next recompile.</summary>

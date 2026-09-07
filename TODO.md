@@ -8,33 +8,26 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**One programme, and its foundation has landed.** A room's building and a dressed building are the same thing
-— a footprint and a shell — and the first is a **special case** of the second (`WE71`, `FEATURES.md`): one
-least span, one ink on all three canvases, and the prose that said otherwise corrected. What is left is the
-interaction that shape makes possible. Anything found while working goes to `BACKLOG.md`.
+**The building programme has drained.** A room's building and a dressed building are the same thing — a
+footprint and a shell — and the first is a special case of the second (`WE71`); what that shape made possible
+is now built. The ground under a room is the board's ground and a room can state its own (`B145`), a plan
+piece is picked and the height it was compiled at corrected on the canvas (`B107`), and a picked piece drags,
+the move written back to the intent so the picture and the world build cannot diverge (`S25b`). All three are
+in `FEATURES.md`. Anything found while working goes to `BACKLOG.md`.
 
 **A building's ceiling stays two numbers, for now (author).** A dressed prop is capped at 192 covered cells
 (`HP3`) and a room's building at 20×20 by `ST9`; they measure the same concept since `WE71`, and holding them
-apart is a deliberate not-yet rather than an oversight. Nothing below depends on it.
+apart is a deliberate not-yet rather than an oversight.
 
 **Three numbers are the author's and are not to be re-derived.** A protection region is at most **20×30**
 blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smallest room with no building over
 it is **4×4** (`WX2`).
 
-**A second programme rides beside the first (author, 2026-09-02): the boards the driver authored, and what
-it had to work around.** The group below is pulled up whole from `BACKLOG.md`. Its ground has just moved —
-the reads a model subtracts from landed (`WS19`–`WS22`, `TS81`, `RP64`, `FEATURES.md`), so two of its
-entries are the join that is left rather than the whole read. Nothing in it touches the building programme.
-
-## A building is a footprint and a shell, wherever it came from
-
-- [ ] **S25b — Make the surfaced spawn/wool shapes movable, writing the move back to the intent.** S25 landed
-  them as **locked** read-only rectangles (`FEATURES.md`), and `TN11` added the second one. The next slice
-  makes both draggable: moving the region writes `Protection`, moving the building writes `Footprint`, so the
-  sketch and the intent cannot diverge. **Resize stays deferred** — a spawn/wool's `at` is a fractional offset
-  into the region, so resizing shifts the marker and needs its own handling. Needs a write path
-  (sketch → intent); the read projection already exists for both shapes. Then extend beyond spawn/wool to the
-  other intent entities (build / monuments / iron) as they each earn a sketch surface.
+**What is left on this board is the second programme (author, 2026-09-02): the boards the driver authored,
+and what it had to work around.** It was pulled up whole from `BACKLOG.md` and rode beside the building one;
+it is now the focus alone. Its ground has moved since it was pulled — the reads a model subtracts from landed
+(`WS19`–`WS22`, `TS81`, `RP64`, `FEATURES.md`), so two of its entries are the join that is left rather than
+the whole read.
 
 ## Mapgen authoring tasks
 

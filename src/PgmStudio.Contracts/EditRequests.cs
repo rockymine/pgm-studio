@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Contracts;
 
@@ -253,3 +254,23 @@ public sealed record MapMetadataRequest(
     string? Objective = null,
     [property: JsonPropertyName("max_build_height")] double? MaxBuildHeight = null,
     IReadOnlyList<MapAuthorDto>? Authors = null);
+
+/// <summary>Put one room piece where the sketch dragged it — the region a spawn or wool room owns, or the
+/// building raised inside it. The room is the path's <c>reference</c>, which is the <c>intentRef</c> the
+/// sketch annotation carries: a team id for a spawn, <c>owner:colour</c> for a wool.</summary>
+/// <param name="Part">Which of the room's two rectangles moved — <c>spawn</c> or <c>woolRoom</c> for the
+/// region, <c>building</c> for the footprint on it. Moving the region carries the room seated on it: the
+/// marker, the building, the iron, the entry interfaces.</param>
+/// <param name="MinX">The placed rectangle's west edge, in world blocks. The four are min-inclusive to
+/// max-inclusive, the same bounds the annotation is drawn with, and together they <b>move and do not
+/// resize</b>: a span differing from the one they replace is refused as <c>RQ1</c>, a room's marker being a
+/// fraction of its own rectangle.</param>
+/// <param name="MinZ">Its north edge.</param>
+/// <param name="MaxX">Its east edge, inclusive.</param>
+/// <param name="MaxZ">Its south edge, inclusive.</param>
+public sealed record RoomMoveRequest(
+    [property: WordSet(typeof(StructuralRoles))] string Part,
+    [property: JsonPropertyName("minX")] double MinX,
+    [property: JsonPropertyName("minZ")] double MinZ,
+    [property: JsonPropertyName("maxX")] double MaxX,
+    [property: JsonPropertyName("maxZ")] double MaxZ);

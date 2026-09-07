@@ -89,6 +89,7 @@ export class SketchCanvas extends CanvasBase {
   #shapes      = new Map();   // id → shape (source for paint / hit-test / edit)
   #structural  = [];          // locked plan pieces (S25) — the plan's own, never edited/rasterized as terrain
   #selectedStructuralId = null;   // the picked plan piece, where the phase editing geometry may pick one
+  #dragStartPiece = null;         // where the dragged piece stood, so a refused move can be answered
   #objectives  = [];          // {kind, x, z} — where the intent's destroyables and cores stand, marker only
   #selectedId  = null;        // drilled/single-member shape (drives the edit-controller handles)
   #selectedGroupId = null;   // selected group (drives the group bbox chrome + whole-group drag)
@@ -641,8 +642,17 @@ export class SketchCanvas extends CanvasBase {
   // A shape handle is its id (string); a group handle is `{ groupId }`.
   #isGroupHandle(h) { return !!(h && typeof h === "object" && h.groupId); }
 
+  #isPieceHandle(h) { return !!(h && typeof h === "object" && h.pieceId); }
+
   _hitMovable(world) {
     if (this._isoOn || this.#selectOnly) return null;   // select-only: a selected thing is not draggable
+    // A picked plan piece is dragged from anywhere inside it. It is the thing the click chose and the thing
+    // drawn on top, so a drag starting in it is a drag of it — and the terrain under it stays unreachable
+    // until the piece is let go, which is the same rule the shape rung follows.
+    if (this.#selectedStructuralId) {
+      const piece = this.#structural.find(s => s.id === this.#selectedStructuralId);
+      if (piece && containsPoint(piece, world.x, world.z)) return { pieceId: piece.id };
+    }
     // Group selected → drag the whole group when the point is inside its footprint.
     if (this.#selectedGroupId) {
       const isl = this.#groups.find(i => i.id === this.#selectedGroupId);
@@ -657,6 +667,14 @@ export class SketchCanvas extends CanvasBase {
     return null;
   }
   _moveBy(handle, dx, dz) {
+    if (this.#isPieceHandle(handle)) {
+      const piece = this.#structural.find(s => s.id === handle.pieceId);
+      if (!piece) return;
+      piece.min_x += dx; piece.max_x += dx;
+      piece.min_z += dz; piece.max_z += dz;
+      this.#paintWorld();
+      return;
+    }
     if (this.#isGroupHandle(handle)) {
       const isl = this.#groups.find(i => i.id === handle.groupId);
       for (const id of (isl?.shapeIds ?? [])) { const s = this.#shapes.get(id); if (s) this.updateShape(translateShape(s, dx, dz)); }
@@ -674,6 +692,13 @@ export class SketchCanvas extends CanvasBase {
   setSnapEnabled(v) { this.#snapEnabled = !!v; }
 
   _moveStart(handle) {
+    if (this.#isPieceHandle(handle)) {
+      const piece = this.#structural.find(s => s.id === handle.pieceId);
+      this.#dragStartPiece = piece ? structuredClone(piece) : null;
+      this.#dragStartShape = null;
+      this.#dragStartShapes = null;
+      return;
+    }
     if (this.#isGroupHandle(handle)) {
       const isl = this.#groups.find(i => i.id === handle.groupId);
       const entries = (isl?.shapeIds ?? []).map(id => [id, this.#shapes.get(id)]).filter(([, s]) => s);
@@ -689,6 +714,7 @@ export class SketchCanvas extends CanvasBase {
   // Absolute, snap-aware move (S9): place the shape at start + (dx,dz), snapping its bbox edges/centre to
   // other shapes' edges/centres + the symmetry centre; draws alignment guides. Alt bypasses snapping.
   _moveTo(handle, dx, dz, alt) {
+    if (this.#isPieceHandle(handle)) return false;   // a room is placed in whole blocks, and snaps to none
     if (this.#isGroupHandle(handle)) return this.#moveGroupTo(dx, dz, alt);
     const start = this.#dragStartShape;
     if (!start || start.id !== handle) return false;
@@ -732,7 +758,26 @@ export class SketchCanvas extends CanvasBase {
     return true;
   }
 
-  _commitMove() { this.#dragStartShape = null; this.#dragStartShapes = null; this.#setGuides(null, null); }
+  _commitMove(handle) {
+    if (this.#isPieceHandle(handle)) {
+      // The intent is what a room's rectangle actually is, so the release asks it rather than telling it.
+      // `putBack` is the piece as it stood, which is what a refusal is answered with.
+      const piece = this.#structural.find(s => s.id === handle.pieceId);
+      const putBack = this.#dragStartPiece;
+      this.#dragStartPiece = null;
+      if (piece && putBack) this.#callbacks.onStructuralMoved?.(piece, putBack);
+      return;
+    }
+    this.#dragStartShape = null; this.#dragStartShapes = null; this.#setGuides(null, null);
+  }
+
+  /** Put a piece back where it stood — what a refused move is answered with. */
+  restoreStructural(piece) {
+    const held = this.#structural.find(s => s.id === piece.id);
+    if (!held) return;
+    Object.assign(held, piece);
+    this.#paintWorld();
+  }
 
   // Snap-aware rectangle resize: snap the dragged edge coord(s) to other shapes' edges/centres + the
   // symmetry centre, draw the alignment guide, and return the (possibly) adjusted coords. The resize

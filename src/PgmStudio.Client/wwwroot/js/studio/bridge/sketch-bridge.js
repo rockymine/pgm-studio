@@ -135,6 +135,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onThemeDrop: () => setThemeBrush(""),
     onGroupSelected: (id) => selectGroup(id),
     onStructuralSelected: (id) => selectStructural(id),
+    // The drag is already inside the step the pointer opened, so the whole of it is one undo; the release
+    // is where the intent is asked, and it is not a step of its own — it answers about a move already drawn.
+    onStructuralMoved: (piece, putBack) => moveStructural(piece, putBack),
     // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
     onDressingChanged: edit(() => afterDressingChange()),
     onPropSelected:    () => fire("OnDressing", dressingState()),
@@ -229,6 +232,50 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       baseHeight: s.base_height ?? null, heightAuthored: s.height_authored === true,
       minX: s.min_x, minZ: s.min_z, maxX: s.max_x, maxZ: s.max_z,
     }) : null);
+  }
+
+  /**
+   * The release of a drag on a plan piece. Where the rectangle *is* is the intent's answer, not the canvas's
+   * — the sketch draws these out of it — so the move is asked rather than told: the intent write goes first,
+   * and a refusal puts the piece back where it stood and says why. Moving the region carries the room seated
+   * on it; that is the intent's rule and happens on the far side, so nothing here has to know it.
+   *
+   * The dragged rectangle also rides on the sketch document, which is the picture of the same fact, so the
+   * board is marked dirty on the way through and saves with the ordinary debounce.
+   */
+  async function moveStructural(piece, putBack) {
+    if (!slug) { canvas.restoreStructural(putBack); return; }
+    // A building carries no intentRef of its own — a second shape claiming the region's identity would be a
+    // second answer to one question — so its region is the shape its id was derived from.
+    const owner = piece.role === "building"
+      ? canvas.getStructural(piece.id.replace(/-building$/, ""))
+      : piece;
+    const reference = owner?.intentRef;
+    if (!reference) {
+      canvas.restoreStructural(putBack);
+      fire("OnStructuralNote", "this piece is not linked to anything in the map's intent, so it cannot move.");
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/map/${encodeURIComponent(slug)}/intent/rooms/${encodeURIComponent(reference)}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ part: piece.role, minX: piece.min_x, minZ: piece.min_z,
+                                 maxX: piece.max_x, maxZ: piece.max_z }),
+        });
+      if (!res.ok) {
+        canvas.restoreStructural(putBack);
+        fire("OnStructuralNote", await refusalText(res));
+        return;
+      }
+    } catch {
+      canvas.restoreStructural(putBack);
+      fire("OnStructuralNote", "the map could not be reached, so the move was not made.");
+      return;
+    }
+    fire("OnStructuralNote", null);
+    selectStructural(piece.id);
+    markDirty();
   }
 
   /**

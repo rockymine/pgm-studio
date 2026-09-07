@@ -8651,6 +8651,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   operational tool. It also held a third copy of `Mirror`/`Fold`/`SymmetryError`, against the Traps rule that
   the transform is one C# leaf plus the JS twin. The numbers it printed already stood in the document, which
   now cites `Geom/Relief/` as what a disagreeing figure is settled against.
+- **A picked plan piece drags, and the move is written back to the intent (S25b).** The sketch draws a
+  spawn, a wool room and the building inside one out of the stored intent, so where a room is belongs there
+  and not to the canvas: the release **asks** — `PATCH /map/{slug}/intent/rooms/{reference}`, keyed by the
+  annotation's own `intentRef` — and a refusal puts the rectangle back where it stood and says why on the
+  rail. The route stores and projects the way an ordinary intent `PUT` does, so the map's own regions are
+  rewritten in the same call. **Moving the region carries the room seated on it** — the marker, the building,
+  the iron, the entry interfaces — because the region *is* the ground rather than a zone drawn beside it, and
+  leaving any of them behind puts it off the ground it belongs to; moving the building moves the building
+  alone, and one carried outside its region is refused under `WX12`. It **moves and does not resize**: a
+  room's marker is a fractional offset into its own rectangle, so a changed span shifts the marker inside it
+  and every rule resolved against that frame with it (`RQ1`, with the two spans in the sentence). A region an
+  author drew as several rectangles has no single rectangle a drag could mean and is refused rather than torn
+  apart. Only **one image** moves — each image of a mirrored board is its own entry with its own team. The
+  drag is block-granular and snaps to nothing, a region's edges answering to the plan's grid.
 - **A plan piece is picked on the canvas, and the height it was compiled at is corrected there (B107).** The
   Draw phase — the only phase that edits geometry — hit-tests the plan's own pieces before the ground under
   them, because a piece is drawn over that ground and is what the pointer is on; `ctrl`-click reaches past to
@@ -8661,7 +8675,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   is a lie. A **building** footprint states no height — the region it stands in is what a group's relief is
   held against — so its rail says so and offers no field. Picking drops whatever terrain selection was
   standing, chrome included, and undo re-announces the picked piece rather than re-picking it. The geometry
-  stays the plan's: moving a piece is `S25b`.
+  is the plan's to draw, and a recompile redraws it.
 - **A stated structural height survives a recompile (B107, backend half).** A spawn or wool-room piece is
   projected into the sketch as a `Role`-tagged shape whose `Floor`/`BaseHeight` already drive the relief's
   hold-pin — but `AppendStructuralShape` overwrote both with the plan's flat `surface` on every compile, so a

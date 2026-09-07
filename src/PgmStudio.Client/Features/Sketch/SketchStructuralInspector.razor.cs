@@ -18,6 +18,10 @@ public partial class SketchStructuralInspector
     /// together through the bridge, which is what makes the correction outlive the next recompile.</summary>
     [Parameter] public EventCallback<double> OnSetHeight { get; set; }
 
+    /// <summary>Why the last drag on this piece was not made — the intent's own sentence, absent where the
+    /// move went through. The intent owns where a room is, so a refusal is an answer rather than a fault.</summary>
+    [Parameter] public string? Note { get; set; }
+
     [Parameter] public EventCallback OnClose { get; set; }
 
     private string Label => Piece.Role switch

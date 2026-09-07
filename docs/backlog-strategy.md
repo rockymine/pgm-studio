@@ -1,6 +1,6 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 64 open entries and `TODO.md` eight — the interaction slice of the programme that put a
+`BACKLOG.md` holds 64 open entries and `TODO.md` five — the interaction slice of the programme that put a
 room's building and a dressed one on one model. This document is the reading that says which of them are
 defects, which are questions, which share a cause, and what order drains them. Its subject is the board
 itself, and it expires when the board it describes is gone. It is the one document this work adds:
@@ -12,10 +12,10 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **72 open entries over 11,949 words**: a median entry of 146 words and **8 above 250** —
+The two boards carry **69 open entries over 11,599 words**: a median entry of 146 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
-is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 16, `B` 15,
-`TS` 11, `G` 7, `S` 6, `N` 4, `C` 3, and seven others in ones and twos.
+is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 16, `B` 13,
+`TS` 11, `G` 7, `S` 5, `N` 4, `C` 3, and seven others in ones and twos.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -202,10 +202,11 @@ entries listed after it are what stop being separate work once it lands.
 **A building is a footprint and a shell, and the studio has two models of it.** A room states one `Rect`, a
 dressed `HouseProp` states `AuthoredWing[]`, and the author's ruling is that a room's building *is* the
 single-wing case of the dressed one. `WE71` landed that model — one least span, one ink on all three canvases.
-What is left is the interaction it makes possible, and it has drained to `S25b` — the drag, which is a write
-back to the intent rather than a canvas affordance. The other two left by shipping: the theme scope needed no
-hit-test at all (`B145`), and the hit-test itself, with the rail it opens on a picked piece, is `B107`
-(`FEATURES.md`). The drag now has a selection to begin on.
+The interaction it makes possible is built, and the group is empty (`FEATURES.md`): the theme scope needed
+no hit-test at all (`B145`), the hit-test itself with the rail it opens is `B107`, and the drag that rides on
+that selection is `S25b` — a write back to the intent rather than a canvas affordance, since the sketch draws
+those rectangles out of the intent and the release therefore asks rather than tells. This is what a programme
+worked to its end looks like: one foundation, three entries, and the cause named before the entries were.
 
 **A layer is first-class in the export and an afterthought everywhere else.** `DressingDoc.add` stamps the
 storey; `SketchDressingInspector` has no field for it. `TerrainPainter` is handed a surface per layer and
@@ -325,8 +326,9 @@ on a ruling. Each has a definite end and none of it is work until the answer arr
 
 **Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`,
 `N08`, `N12`, `TS64`, `TS75`, `S59`, `B262`, `B44`. Four more — `B107`, `S25b`, `B145`, `WE54` — were
-this population until the building's one model turned them from three reaches into one; three of the four have
-since shipped and `S25b` is what is left of the programme. This is the population the studio's own shape produces, and every one of them is the same thing: a
+this population until the building's one model turned them from three reaches into one, and all four have
+since shipped. That is the reading's own claim tested: a reach gap is drained by naming the cause under it,
+not by working the entries in turn. This is the population the studio's own shape produces, and every one of them is the same thing: a
 document, a route or a solver that already answers, and a surface that never asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
@@ -364,11 +366,13 @@ left it by being withdrawn: the ruling it needed says a sketch cannot judge reac
 reading it wanted shipped as `WS61` (`FEATURES.md`) at the tier that holds the build zones — and as
 information rather than as a defect, which is the disposition the whole question turned on.
 
-**Phase 2 — fix the causes, not the entries.** The building's one model (3 entries) is `TODO.md`'s programme
-and is worked to its end first. Then, in the order that maximises what each closes: the measured convention
-with no complaint (5), the read that reports a symptom (6), the layer word (5), the client reading its own
-schema (5), the compiler's lost identity (3), the live findings feed (2). This is `CLAUDE.md`'s own doctrine
-— *"the board is emptied concept by concept"* — applied to groups the board has already named.
+**Phase 2 — fix the causes, not the entries.** The building's one model (3 entries) was `TODO.md`'s programme
+and is drained (`FEATURES.md`); the mapgen-authoring group it rode beside is what `TODO.md` now holds alone.
+Then, in the order that maximises what each closes: the measured convention with no complaint (5), the read
+that reports a symptom (6), the layer word (5), the client reading its own schema (5), the compiler's lost
+identity (3), the live findings feed (2). This is `CLAUDE.md`'s own doctrine — *"the board is emptied concept
+by concept"* — applied to groups the board has already named, and the building programme is the worked
+example: one foundation named, three entries, each small because the cause was settled first.
 
 **The rule over Phases 1 and 2.** A programme pulled up from `BACKLOG.md` is worked to its end before
 anything above interrupts it, except a Phase 1 defect in the surface it is building. The board runs one

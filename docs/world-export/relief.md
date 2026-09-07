@@ -1065,7 +1065,8 @@ work; this document only establishes that what it would emit is what a hand plac
 
 **Editing a structural piece's height on the canvas** is done (`B107`, `FEATURES.md`): §11's `height_authored`
 carry was the storage half, and the Draw phase now picks the piece and offers its height on a rail of its own,
-writing through the sketch's ordinary save rather than a new endpoint. **Moving the piece** is not — that is
-`S25b`, and it is a write back to the intent rather than a canvas affordance. Giving a destroyable or a core the
+writing through the sketch's ordinary save rather than a new endpoint. **Moving the piece** is done too
+(`S25b`), and it is a write back to the intent rather than a canvas affordance: the release asks
+`PATCH …/intent/rooms/{reference}` and a refusal puts the rectangle back. Giving a destroyable or a core the
 same treatment is larger and is neither: such a marker has no rect in the plan to surface at all, so netting it
 into the sketch is downstream of deciding what its rect *is* — a plan-space question, not a sketch one.

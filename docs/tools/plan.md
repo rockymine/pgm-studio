@@ -819,5 +819,6 @@ refused rather than compiled.
 
 Once a plan has been built, the structural pieces it projected into the sketch keep their geometry there: the
 Sketch tool's Draw phase picks one and corrects the height it was compiled at, and the correction survives a
-recompile, but the rectangle itself is the plan's and moving it back from the sketch is `S25b`. A destroy
-objective has no sketch presence at all.
+recompile; and a picked piece drags, the move being written back to the intent so the two cannot diverge. A
+destroy objective has no sketch presence at all. What a drag does not do is resize, and a plan rebuild draws
+the rectangle from the plan again — the plan owns a board's structure.

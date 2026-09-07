@@ -1906,7 +1906,7 @@ be moved or reshaped here — the plan draws them, and a recompile redraws them.
 sketch presence at all. The building is drawn where the plan tool draws it, so the two tools show one
 rectangle rather than each showing its own.
 
-**One of them can be picked, and the one thing it states can be corrected.** In the Draw phase — the only
+**One of them can be picked, moved, and corrected.** In the Draw phase — the only
 phase that edits geometry — a click lands on the piece under the cursor before the ground under it, because
 the piece is drawn over that ground and is what the pointer is on; `ctrl`-click reaches past it to the island,
 the same modifier that already means *deeper*. The picked piece is ringed on the canvas and opens a rail of its
@@ -1917,6 +1917,21 @@ survive the next compile (matched by `intentRef`, `SketchLayout.CarryStructuralH
 footprint carries no height of its own — the region it stands in is what a group's relief is held against —
 so its rail states that and offers no field. Picking a piece drops whatever terrain selection was standing,
 chrome included: one click selects one thing, and a room and the ground under it are two.
+
+**A picked piece drags, and where a room is belongs to the intent.** The drag is block-granular and snaps to
+nothing — a region's edges answer to the plan's grid rather than to the shapes drawn beside it — and the
+release **asks** rather than tells: it writes through `PATCH /map/{slug}/intent/rooms/{reference}`, and a
+refusal puts the rectangle back where it stood and says why on the rail. That is the whole of what keeps the
+two from diverging, since the sketch draws these rectangles out of the intent in the first place. Moving the
+**region carries the room seated on it** — the marker players or a wool arrive at, the building raised on it,
+the iron beside it, the entry interfaces its doors are cut on — because the region *is* the ground rather
+than a zone drawn beside it, and leaving any of them behind puts it off the ground it belongs to. Moving the
+**building** moves the building alone, and one carried outside its region is refused under `WX12`. It **moves
+and does not resize**: a spawn or wool's marker is a fractional offset into its own rectangle, so a changed
+span shifts the marker inside it and every rule resolved against that frame with it. Only **one image**
+moves — each image of a mirrored board is its own entry with its own team, so moving red's spawn is a
+statement about red's spawn. And a plan rebuild draws the rectangle from the plan again, which is the
+standing rule for structure rather than anything about this edit.
 
 The layout model carries two shape types the **Draw** dock cannot draw. A `circle` rasterizes as a 64-gon, and
 a `polyline` is a centreline with a band whose width, edge and seed the inspector edits — but the dock offers

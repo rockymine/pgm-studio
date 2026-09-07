@@ -40,10 +40,19 @@
       </p>
     }
 
-    <div class="section-header section-header--ruled"><h2 class="section-title">Geometry</h2></div>
+    <div class="section-header section-header--ruled"><h2 class="section-title">Where it stands</h2></div>
     <p class="plan-readout">
-      Drawn by the plan, not here. Move it in the Plan tool and recompile, and the rectangle follows.
+      Drag it to move it. Where a room is belongs to the map's intent, so the move is written there —
+      @(Piece.IsRegion
+        ? "and the region is the ground, so the marker, the building and the iron on it travel with it."
+        : "the building alone, since the region under it is the ground rather than the house.")
+      It moves and does not resize: a room's marker is a fraction of its own rectangle.
+      A plan rebuild draws it from the plan again.
     </p>
+    @if (!string.IsNullOrEmpty(Note))
+    {
+      <p class="field-error">@Note</p>
+    }
     <Button Full OnClick="() => OnClose.InvokeAsync()">
       <i data-lucide="x"></i> Let go
     </Button>
