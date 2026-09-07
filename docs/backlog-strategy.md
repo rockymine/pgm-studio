@@ -12,11 +12,11 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **57 open entries over 10,015 words**: a median entry of 154 words and **8 above 250** —
+The two boards carry **57 open entries over 10,036 words**: a median entry of 158 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
 is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 12, `TS` 9,
-`B` 9, `G` 7, `S` 5, `N` 4, `C` 3, and seven others in ones and twos. `TODO.md` holds none of them: the
-mapgen-authoring programme drained and no group has been pulled up in its place.
+`B` 9, `G` 7, `S` 5, `N` 4, `C` 3, and seven others in ones and twos. **Eight of them are on `TODO.md`** —
+the library-row group, pulled up whole when the mapgen-authoring programme drained.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -160,14 +160,15 @@ confirming it wants a built world rather than a reading.
 
 Nine figures were re-measured against the tree. **Seven had moved.** Six of the seven are a count or a line
 number, which leaves the entry's prose true and the fix mechanical; the seventh is not, and it is the
-dangerous kind.
+dangerous kind. `C51` and `WE70` now carry the measured figures on the board itself, which is where a count
+belongs — a table of corrections is a second place for a number to be wrong.
 
 | entry | the board says | measured today | the command that retakes it |
 |---|---|---|---|
-| `C51` | 28 selects, the plan tool 7 | **30**, the plan tool **10** | `grep -rc "<select" src/PgmStudio.Client --include=*.razor` |
+| `C51` | 28 selects, the plan tool 7 | **25**, the plan tool **10**, and six of the 25 go with `TE3` | `grep -rc "<select" src/PgmStudio.Client --include=*.razor` |
 | `B261` | 422 hand-maintained lines in `ThemeVocabulary.cs` | **542** | `wc -l src/PgmStudio.Client/Components/Terrain/ThemeVocabulary.cs` |
 | `A8` | the generator is 85 files, 11.5k lines | **90 files, 13,385 lines** | `find src/PgmStudio.Pgm/{Compose,Evaluate,Shapes,Derive,Plan} -name '*.cs'` |
-| `WE70` | six callers hardcode `true`; `DressingScope:216,218` | **ten** sites — `WorldBuilder:662` is a seventh in the entry's own scope; `RoomStylePreview:41` and `PieceRoom.cs:66,88` are three the entry does not discuss; `DressingScope` is at `:218,220` | `grep -rn "shellBound: true" src --include=*.cs` |
+| `WE70` | six callers hardcode `true`; `DressingScope:216,218` | **ten** sites — `PlanStructurePreview:60,74`, `RoomStylePreview:42`, `PieceRoom:75,98`, `WorldBuilder:761`, `MapExportComposer:534,539`, `DressingScope:223,225` | `grep -rn "shellBound: true" src --include=*.cs` |
 | `C62` | `components.css:989–1004`; the grep "hits only that CSS" | **985–1001**; the grep hits **202**, and a fourth site is `editor.css:756` | `grep -rn "map-author-" src/ tests/` |
 | `TE2` | `ObjectivePhase.razor.cs:201`, `:211`; `.razor:56` | **`:204`**, **`:212`**; **`:55`** | `grep -n DyeColors src/PgmStudio.Client/Features/Edit/ObjectivePhase.razor.cs` |
 | `RP59` | every authored board takes six calls, because the one-call path reads as a re-import | `drive.py:582` stores through **`POST /map/from-documents`**, one call, under a stated slug | `grep -n 'call("P' /media/sf_repos/pgm-studio-mapgen/tools/drive.py` |
