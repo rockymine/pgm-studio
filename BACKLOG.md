@@ -216,8 +216,8 @@ binding invents a fourth. `docs/tools/sketch.md`'s finish model is what they lea
 ### Relief
 
 - [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
-  charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
-  should share an answer. The materials exist — the share of the board at each passability tier, the detour
+  charging is too much. The dressing stage has the identical gap (`WE108`) and the two should share an
+  answer. The materials exist — the share of the board at each passability tier, the detour
   factor between key places, the ford count and direction on a barrier, the reachable share per team side —
   and the corpus pass has now run on the right surface (`world-export/relief.md` §12, 105 maps, natural ground):
   body relief median **19 blocks**, walk median **72.6%**, barrier median **18.3%**, largest walkable place
@@ -490,7 +490,9 @@ means one thing again.
   it is filed rather than fixed alongside. The two derivations should agree on what ground is, and the fix is
   to route the floor-marker rule through both. **Blocked in practice by re-import**: `scan_segment` is
   written once at ingest from a world that is then discarded, so changing it reaches existing maps only when
-  a map can be re-imported.
+  a map can be re-imported — which is **`B9`**, and `docs/backlog-strategy.md` files that as roadmap:
+  a capability nobody is blocked on. So this entry waits on one nobody has asked for, and doing it alone
+  fixes the derivation for maps imported after it and for none of the maps that exist.
 
 - [~] **B58 — Finish the destroyable ranker.** The core half has shipped — gathered at ingest, stored in
   `core_candidate`, and confirmed in the Cores phase (`FEATURES.md`). What remains is the other objective,
@@ -636,20 +638,20 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   overlap, the count depends on which one was asked, and nothing at the call site would say so. Whichever
   rule is picked, the route reader must name the graph it read.
 
-- [ ] **G187 — Plan-tier flow: the cut, the ways round a hole, and the terms over them.** Every route
-  measure in the repo runs on a built world; `ContactGraph.CorridorMin` is a contact-width threshold and not
-  a corridor, so a plan is evaluated with no flow read at all. The inputs are already here —
-  `PlanBoxAnnotation.Apply`, `StructureSummary.Derive`, `PlanModel.Boxes` and `ContactGraph`'s proxy-cell
-  mask — and `WS1` supplies the ribbon. What is missing is two more `Geom.Cells` primitives:
-  **`MinVertexCut`** (unit-capacity vertex max-flow, the funnel capacity `match-flow.md` §2 asks for) and
-  **`WaysRound`** (the ray-cut connectivity test). Then a flow derive beside `BoardDeriver`, which makes
-  `G164` a short consumer rather than a project, and lets a dead-share term fire at `POST /plan/evaluate` —
-  the first call in the loop, before a map row exists.
+- [ ] **G187 — The funnel capacity, and a flow term the evaluator can fire.** Plan-tier flow is read
+  already: `PlanFlow.Read(plan)` takes a `PlanModel` and `GET /map/{slug}/plan/flow` serves it, `PlanRoutes`
+  reads one journey's corridor and the holes on it, and `Cells.WaysRound` is built and called from
+  `PlanRoutes.cs:169`. Two things are left. **`MinVertexCut`** — unit-capacity vertex max-flow, the funnel
+  capacity `match-flow.md` §2 asks for — is the one `Geom.Cells` primitive still missing. And no flow
+  reading reaches the evaluator: its 29 terms walk the surface for distances (`SurfaceNav`) and `Evaluate/`
+  cites neither `PlanRoutes` nor `PlanFlow`, so a dead-share term wants writing over the answer `PlanFlow`
+  already gives — at `POST /plan/evaluate`, the first call in the loop, before a map row exists. That
+  second half is what makes `G164` a short consumer rather than a project.
 
-  **Do not count the connected components of the minimum cut for ways-round.** That was tried and it gave
-  the opposite answer on the same corpus: "rotation never splits on any ring board" against "splits on
-  nearly all of them". An uncuttable door cell inside a single barrier splits it into two fragments with no
-  second route, and a real second way is missed whenever the cheapest cut lies elsewhere.
+  **`WaysRound` cuts with a ray, and `MinVertexCut` is a capacity rather than a second way count.** Counting
+  the cut's components answers the opposite question on the same corpus — "rotation never splits on any ring
+  board" against "splits on nearly all of them" — because an uncuttable door cell inside one barrier splits
+  it into two fragments with no second route.
 
   *Two-legged frontlines: 265 objectives, **97%** reachable more than one way; a plain bar, 375 objectives,
   **38%**. Second ways are a median 1.31× the first and never worse than 1.92× — routes, not escape hatches.*
@@ -779,12 +781,13 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   default: a 20×14 piece frames `(1,4)..(19,13)` bound and `(1,5)..(19,13)` open, and a 6×12 piece frames
   `(1,1)..(5,11)` against `(1,5)..(5,11)`.*
 
-- [ ] **C51 — Twenty-eight selects outside the authoring surface are still hand-rolled.** `Select` and
-  `StyleSelect` serve the library and the terrain components (`B259`, `FEATURES.md`); the plan tool carries 7
-  raw `<select>`, the sketch tool 7, Edit 6, Configure 5 and the design showcase 1. Each is the same
-  options-and-a-value question written as markup, so a group, a per-row note or a disabled row has to be
-  re-invented wherever one is wanted. Adopt the control at those sites; `docs/client/ui-conventions.md`'s
-  *Forms* tier already names it.
+- [ ] **C51 — Nineteen selects outside the authoring surface are still hand-rolled.** `Select` and
+  `StyleSelect` serve the library and the terrain components (`B259`, `FEATURES.md`), and the sketch tool's
+  three inspectors have since adopted them. What is left is 25 raw `<select>` — the plan tool 10
+  (`PlanTool.razor` 9, `PlanInfoPhase` 1), Configure 5, Edit 6, the sketch tool 1 and a page 1 — **of which
+  Edit's six go with `TE3`**, so the work is 19. Each is the same options-and-a-value question written as
+  markup, so a group, a per-row note or a disabled row has to be re-invented wherever one is wanted. Adopt
+  the control at those sites; `docs/client/ui-conventions.md`'s *Forms* tier already names it.
 
 - [ ] **G163 — `map-layers`' rebuild-confirmation step flakes about one run in three.** The step drives
   Compile on a freshly-opened plan and reads the drawer; when the plan document has not reached the client

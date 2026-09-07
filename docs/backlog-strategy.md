@@ -12,10 +12,11 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **69 open entries over 11,599 words**: a median entry of 146 words and **8 above 250** —
+The two boards carry **64 open entries over 10,876 words**: a median entry of 147 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
-is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 16, `B` 13,
-`TS` 11, `G` 7, `S` 5, `N` 4, `C` 3, and seven others in ones and twos.
+is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 16, `TS` 11,
+`B` 9, `G` 7, `S` 5, `N` 4, `C` 3, and seven others in ones and twos. `TODO.md` holds none of them: the
+mapgen-authoring programme drained and no group has been pulled up in its place.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -341,7 +342,9 @@ not by working the entries in turn. This is the population the studio's own shap
 document, a route or a solver that already answers, and a surface that never asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
-`S34`, `TS51`, `TS63`, `G187`, `G164`, `B54`, `B9`, `B58`. Four left it by shipping —
+`S34`, `TS51`, `TS63`, `G164`, `B54`, `B9`, `B58`. `G187` left this population by being read against the
+code rather than built: plan-tier flow is served and `Cells.WaysRound` is in use, so what its entry called a
+project is one missing primitive and one term. Four left it by shipping —
 `B221` and `B258`, the library's pictures, `WE34`, the seat read, and `TS30`, the bend — which is the
 population behaving as intended: a roadmap entry is drained by being built, not by being triaged again.
 `WE52`, the drawn biome patch, left it the other way: withdrawn on the author's call once the field became a

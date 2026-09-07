@@ -1053,7 +1053,7 @@ downstream, and per-pool water levels in place of one lowest-surface line.
 maps. What is still missing is the shape of the rule — a median is not a target, and a map at the 25th
 percentile for walkable share is not thereby worse than one at the 75th. What a budget needs is which of these
 measures a *bad* map fails, which means labelled examples rather than more measurement. The dressing stage has
-the identical gap (`ideas.md` G167) and the two should share one answer.
+the identical gap (`ideas.md` `WE108`) and the two should share one answer.
 
 **Anchors as marks.** Per-vertex anchor heights are exactly a set of point marks on the outline, so a shape with
 anchors could be read as a relief with no interior marks and a rim of varying height. Whether to converge the two

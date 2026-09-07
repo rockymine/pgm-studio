@@ -3,9 +3,15 @@
 The dressing stage (G161, `decoration.md`) ships four tools — paths, ground cover, boulders and trees — each
 *placed* on the sketch tool's Dressing canvas and run over the realized world. This file is the pool of what
 turns them from four soloists into one coherent stage: the connective tissue between the passes, the axes
-the flat-plane model never touches, and the fifth tool. One idea per few lines, grouped, **ids in the G
-track** (continuing G157/G161), **preserved** — an id here is never reused; pull one onto `BACKLOG.md` when
-it becomes the focus. Same discipline as `docs/generator/ideas.md`, for the world-export/dressing track.
+the flat-plane model never touches, and the fifth tool. One idea per few lines, grouped, **ids in the
+`WE` track** — the prefix `CLAUDE.md` gives this folder — **preserved**: an id here is never reused; pull one
+onto `BACKLOG.md` when it becomes the focus. Same discipline as `docs/generator/ideas.md`, for the
+world-export/dressing track.
+
+**Two rows carry a `G` id, and keep it.** `G162` and `G169` are cited as provenance by entries that have
+shipped (`FEATURES.md`, `decoration.md`), and an id is a handle: renaming one breaks every commit that cites
+it, which is why `CLAUDE.md` retires a prefix without renaming the entries already carrying it. Every id
+minted here follows the table instead, and `G` belongs to `docs/generator/`.
 
 Everything here is **designed, not built** — the model is `decoration.md`. Where an idea depends on a pass that does not exist yet (the elevation pass, G32-C), it
 says so.
@@ -22,7 +28,7 @@ says so.
   and accept the fused mass as intentional. Cheap to detect (the prop's own bounds against the axis), and
   cheap to test — the fairness check that counts unmirrored cover cells already exists.
 
-- **G167 — readability & playability budget** — nothing yet stops decoration from narrowing a corridor below
+- **WE108 — readability & playability budget** — nothing yet stops decoration from narrowing a corridor below
   the bridge-width minimum, walling a lane, burying a monument, or over-cluttering until the map is
   unreadable. The layout generator has a two-currency budget and the `BZ`/`LN`/traversability laws; dressing
   has neither. Add a **dressing budget** (density caps per region kind — a lane gets far less than a
@@ -34,7 +40,7 @@ says so.
 
 ## The missing dimension — vertical surfaces
 
-- **G163 — vertical-surface dressing** — every tool but water assumes a flat top plane; a cliff or wall (the
+- **WE104 — vertical-surface dressing** — every tool but water assumes a flat top plane; a cliff or wall (the
   `EL` laws, G32-C) dresses completely differently. The vocabulary: moss and lichen creeping on stone faces
   (a pattern, shaded / `PerimeterArc`-aware), vines and hanging foliage dripping from ledges and overhangs
   (the tree's hanging-strand idea turned vertical), the occasional ledge shrub or exposed root, and
@@ -44,7 +50,7 @@ says so.
 
 ## The connective tissue — composition
 
-- **G164 — the arbitration & order contract** — the five passes are demos in isolation; the missing piece is
+- **WE105 — the arbitration & order contract** — the five passes are demos in isolation; the missing piece is
   the score: the run-order and the masks each pass hands the next. Water carves first and owns its footprint;
   paths clear flora along their band; a dense canopy **suppresses** tall grass beneath it and seeds
   shade-ferns instead; reeds are water-edge flora, not a separate system; every pass yields to objectives,
@@ -52,7 +58,7 @@ says so.
   protocol (each pass reads the accumulated mask, writes its own), it is the difference between five features
   and one stage. Belongs in `decoration.md` as the composition contract more than as a figure.
 
-- **G165 — dressing theme / biome driver** — each tool picks materials and species by hand, so nothing
+- **WE106 — dressing theme / biome driver** — each tool picks materials and species by hand, so nothing
   prevents snow ground under oak trees beside liquid (un-frozen) water. One **biome / season selector** —
   temperate, desert, snow, autumn, swamp — should harmonize all five DR-* palettes at once (grass →
   dead-bush / cactus, water → ice, oak → spruce, sand → snow, and so on), riding the terrain-paint theme
@@ -61,7 +67,7 @@ says so.
 
 ## Placement intelligence — the "grew vs scattered" gap
 
-- **G166 — context-aware placement (the affinity model)** — placement today is by hand, which is right for the
+- **WE107 — context-aware placement (the affinity model)** — placement today is by hand, which is right for the
   props that decide a fight and tedious for the ones that only fill a hillside. What is missing is the
   *optional* half: a brush that scatters cosmetic dressing over an area by affinity rather than one at a time.
   The original text below still describes what that affinity model would read; the blue-noise scatter it needs
@@ -75,12 +81,12 @@ says so.
 
 ## Framing & edges
 
-- **G168 — border & POI framing** — two specific jobs the tools do not name. The **void edge / map border**
+- **WE109 — border & POI framing** — two specific jobs the tools do not name. The **void edge / map border**
   should read as a boundary — a treeline wall, a cliff or beach at the void — so players read the play-space
   limit without an invisible wall (a readability concern PGM maps already solve with terrain). And dressing
   should **frame** the important places rather than bury them: a clearing around a monument, flowers marking a
   spawn, a path leading to a wool room — POIs as things the dressing emphasizes, not merely exclusion holes.
-  Both lean on the affinity fields of G166 (distance-to-border, distance-to-objective).
+  Both lean on the affinity fields of WE107 (distance-to-border, distance-to-objective).
 
 ## The fifth tool
 

@@ -357,7 +357,9 @@ emptied when its ground is settled, not when its entries have each been done in 
    takes nothing new until a phase drains. Anything found while working still lands in `BACKLOG.md`.
 4. **Ids are a prefix + number, GLOBALLY unique + stable across all three files.** Moving a task between
    files **never** changes its id; never renumber or reuse — commits and memory cite ids, so
-   `grep <id> TODO.md BACKLOG.md docs/generator/ideas.md` must hit exactly once. The prefix names the
+   `grep <id> TODO.md BACKLOG.md docs/*/ideas.md` must hit exactly once. The glob is every idea pool rather
+   than one named file, because a pool the check does not read is a pool that can mint a duplicate — and an
+   id addressing two tasks is a handle that addresses neither. The prefix names the
    **document the task is obliged to leave correct** (catalogued below). It is not a section name and does not
    move when the board is regrouped, which is the whole reason it can be stable.
 
