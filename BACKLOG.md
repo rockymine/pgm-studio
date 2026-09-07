@@ -570,6 +570,16 @@ set that reads a surface as somewhere a player can stand rather than as any colu
 
 ## Refactoring and cleanup
 
+- [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
+  `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,
+  `PlanInspectDto:117`), and the two room families are the only ones naming a thing the rest of the studio
+  calls something else: the vocabulary beside them already says `woolRoom` (`StructuralRoles.WoolRoom`), and a
+  board binds a shell for a **wool** room and a **spawn** room (`roomStyles.wool`, `roomStyles.spawn`). Rename
+  the two to `wool-room` and `spawn-room`, and change the client that draws them. The words are this DTO's own
+  constant and nothing else spells them, so the surface is three source lines, three in
+  `PlanStructurePreviewTests` and four in `docs/` — one of which is a dated `rules.md` amendment and stays as
+  it reads.
+
 - [ ] **RP65 — The layout DTO still says `JsonElement` where its own routes say `DressingDoc` and
   `BiomeField`.** `SketchLayout.Dressing` and `.Biome` are `JsonElement?` because their types live in
   `Minecraft` and `SketchLayout` lives in `Pgm`, which are siblings over `Domain` + `Geom` — the fields' own

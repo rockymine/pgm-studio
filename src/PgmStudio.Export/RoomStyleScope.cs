@@ -30,13 +30,13 @@ public static class RoomStyleScope
     /// <para>A binding is a wish: whether a shell actually stands is the room's, resolved per footprint
     /// (<see cref="RoomFrameRules.FootprintTooSmall"/>), and the stampers read the frame's wall rather than
     /// this pair.</para></summary>
-    public static (HouseStyle? Wool, HouseStyle? Spawn) StylesOf(string layoutJson)
+    public static RoomShells StylesOf(string layoutJson)
         => StylesOf(SketchLayout.Parse(layoutJson));
 
-    public static (HouseStyle? Wool, HouseStyle? Spawn) StylesOf(SketchLayout? layout)
+    public static RoomShells StylesOf(SketchLayout? layout)
     {
         var bound = layout?.RoomStyles;
-        return (Shell(bound?.Wool, HouseStyle.Wool), Shell(bound?.Spawn, HouseStyle.Spawn));
+        return new RoomShells(Shell(bound?.Wool, HouseStyle.Wool), Shell(bound?.Spawn, HouseStyle.Spawn));
     }
 
     /// <summary>What a bound shell's own height refuses (<see cref="RoomFrameRules.ShellOverCeiling"/>): a
@@ -74,4 +74,22 @@ public static class RoomStyleScope
         null or JsonValueKind.Undefined => builtIn,    // never asked
         _ => HouseStyleJson.DeserializeOr(snapshot.Value.GetRawText(), builtIn),
     };
+}
+
+/// <summary>The shell each kind of room is stamped in, as <see cref="RoomStyleScope.StylesOf"/> resolves it
+/// from a board's finish: a bound style, that kind's built-in shell, or <b>null</b> for open ground.
+///
+/// <para>Null is what <c>shellBound</c> answers false for, and the reason this travels rather than being
+/// re-asked: a room with no building over it takes its whole footprint, while one with a shell is inset by a
+/// wall (<see cref="RoomFrames"/>) and sizes a different default rectangle. A caller that guesses names a
+/// different room from the one the export stamps.</para></summary>
+public readonly record struct RoomShells(HouseStyle? Wool, HouseStyle? Spawn)
+{
+    /// <summary>Whether a building stands over that kind of room — what the frame resolvers take.</summary>
+    public bool WoolBound => Wool is not null;
+    public bool SpawnBound => Spawn is not null;
+
+    /// <summary>Both kinds on their built-in shell: what a board that bound nothing is stamped with, and the
+    /// pair to state where there is no board to read one from.</summary>
+    public static RoomShells BuiltIn { get; } = new(HouseStyle.Wool, HouseStyle.Spawn);
 }

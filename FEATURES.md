@@ -5302,6 +5302,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **Every gate measuring from a room measures from the one that stands (`WE70`).** `shellBound` sizes both the
+  default footprint and the wall inset, and three readers of a built map assumed a shell was always over it:
+  the goal keep-outs (`MapExportComposer.KeepOuts`), the dressing pass's door approaches
+  (`DressingScope.ApproachAt`) and the renewable iron footprints (`WorldBuilder.RenewableCubeFootprints`). The
+  build resolves the board's pair once and carries it — `RoomShells`, on `BuiltWorld.Shells` — and the three
+  read it. *A 10×10 spawn piece stating no footprint frames `(1,1)..(9,8)` under a shell and `(1,1)..(9,6)` on
+  open ground, so a board that bound its spawn to open ground had its door approach kept clear two rows short
+  of its own door.* The plan-side callers keep their constants and say why: a plan carries no binding, so the
+  structure preview draws the built-in shell a plan exports and the validator checks doors against the widest
+  interior any binding could leave.
 - **A room's ground is the board's ground, and a room can state its own (B145).** A foundation levels the dip
   under a room's footprint in stone precisely so the painter will finish it, but the painter reads a surface
   map and the fill stands above the top that map states — so the levelled courses were ones no pass ever
@@ -7419,6 +7429,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **The wool room's wire word is `wool` (`TS105`).** A board binds a shell for a **wool** room and a **spawn**
+  room, and the stored layout, the finish route and the bridge all spell the first of them the same way:
+  `roomStyles.wool`, `PUT …/sketch/room-styles/wool`, `SketchRoomStylesDto.Wool`, and `roomStyles.wool` as the
+  field any bound style is refused under. Stored boards convert **once** — `M0033` over the
+  `sketch_layout_json` artifacts, carrying the binding's three states across unchanged: an object is the bound
+  style, an explicit null is open ground, an absent key is the built-in shell. The reader takes the new key
+  alone; there is no upgrade on read and no second accepted word. `pgm-studio-mapgen` is swept with it, 61
+  spec documents and 14 build scripts.
+- **A bound room shell reads as the row it is (`TS101`).** The Theme phase's room selects were fed only by
+  what that session had bound, so a board reloaded — or written straight to
+  `PUT …/sketch/room-styles/{part}` — read `(the built-in shell)` over a room that had one bound, while the ✕
+  beside it said something was. The select resolves the snapshot by **content** now, the way the biome select
+  already did: `GET /api/room-styles` carries each row's composed document (`RoomStyleSummary.Style`, the same
+  JSON `…/{id}/json` answers) and the phase matches the board's snapshot against it. One resolution path
+  rather than two — a row picked in the phase resolves exactly as one read off the board does — and a
+  snapshot no row holds reads as `(a shell the library does not hold)` instead of as the built-in one.
 - **A flight arrives somewhere, and `SK26` says when it does not (`TS90`).** Nothing in a layout says a shape
   is a flight — a stair, a ramp and a bank are all one polygon with a height per vertex — so nothing said where
   one ends, and a quad that topped out level with the ground beside it for a single cell and then fell

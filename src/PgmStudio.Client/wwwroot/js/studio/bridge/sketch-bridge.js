@@ -76,7 +76,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // Three states each, matching the stored layout: an object is the bound style, `undefined` is unpicked (the
   // built-in shell gets stamped), and `null` is no building at all — a pad on open ground. Keeping them apart
   // is what lets an open room survive being opened and saved here; collapsing them would rebuild it.
-  let roomStyles = { cage: undefined, spawn: undefined };
+  let roomStyles = { wool: undefined, spawn: undefined };
   // Dressing (decoration.md) does NOT ride beside theming. A theme is a recipe named once and applied to many
   // footprints; a prop was put somewhere, so the canvas owns the placements and this owns only the load/save.
   // Theme phase: the canvas is a selection surface only. Geometry is the Draw phase's to edit.
@@ -1048,7 +1048,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // A snapshot as its JSON text, the text "null" for no building at all, or null/"" to fall back to that
     // kind's built-in shell.
     setRoomStyle(kind, styleJson) {
-      if (kind !== "cage" && kind !== "spawn") return;
+      if (kind !== "wool" && kind !== "spawn") return;
       let parsed = undefined;
       if (styleJson) { try { parsed = JSON.parse(styleJson); } catch { parsed = undefined; } }
       roomStyles = { ...roomStyles, [kind]: parsed };
@@ -1239,7 +1239,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
           if (themes[id] && Number.isFinite(s.themeSources[id])) themeSources[id] = s.themeSources[id];
       mapTheme = (s.mapTheme && themes[s.mapTheme]) ? s.mapTheme : "";
       roomStyles = {
-        cage: s.roomStyles && "cage" in s.roomStyles ? s.roomStyles.cage : undefined,
+        wool: s.roomStyles && "wool" in s.roomStyles ? s.roomStyles.wool : undefined,
         spawn: s.roomStyles && "spawn" in s.roomStyles ? s.roomStyles.spawn : undefined,
       };
       biome = (s.biome && typeof s.biome === "object") ? s.biome : undefined;
@@ -1292,8 +1292,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         mapTheme: mapTheme || undefined,
         // The bound room shells, omitted when neither is picked so a sketch that never opened the step
         // serialises exactly as it did before it existed.
-        roomStyles: (roomStyles.cage !== undefined || roomStyles.spawn !== undefined)
-          ? { cage: roomStyles.cage, spawn: roomStyles.spawn }
+        roomStyles: (roomStyles.wool !== undefined || roomStyles.spawn !== undefined)
+          ? { wool: roomStyles.wool, spawn: roomStyles.spawn }
           : undefined,
         // The map-wide biome, omitted where the board states none — which is plains everywhere and what a
         // board that never opened the question exports as — and the library row it was copied from.

@@ -130,7 +130,7 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
 /// loses the work, and the client cannot even see that it did. <see cref="SketchFinishEndpoint"/> is where
 /// the same check becomes fatal, which is the stage that declares the drawing done.</para>
 ///
-/// <para>400 `{error, findings}` when a bound <c>roomStyles.cage</c> or <c>roomStyles.spawn</c> fails
+/// <para>400 `{error, findings}` when a bound <c>roomStyles.wool</c> or <c>roomStyles.spawn</c> fails
 /// <see cref="HouseStyleValidation"/>. That one still refuses: a style snapshot enters the studio here and
 /// nowhere else, so a wrong block or a see-through roof caught anywhere later is caught at export.</para></summary>
 public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<AppliedDto>
@@ -348,7 +348,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
             // learn a goal stands over the void; carried here it reaches an author while they are still
             // drawing, as a complaint, since nothing about this request is being refused.
             Complaints.Add(HttpContext,
-                MapExportComposer.CheckGoalPlacement(built.Columns!, built.ResolvedIntent).AsComplaints());
+                MapExportComposer.CheckGoalPlacement(built.Columns!, built.ResolvedIntent, built.Shells).AsComplaints());
 
             // WX11, for the same reason and off the same build: a building whose neighbours have no ground
             // to meet it on shows the world a sheer face of its own foundation, and nothing else reports it.
@@ -467,7 +467,7 @@ internal static class DressedBoard
         // The same two functions the pass itself asks a candidate site, read off the resolved intent — the
         // goals' boxes as the build actually stamped them, not the unbuilt ones the request carried in.
         return (built, layoutJson, ClaimRaster.Read(built.Dressing.Placements, built.Surface,
-            DressingScope.KeptClearAt(built.World, built.Surface, built.ResolvedIntent, layoutJson),
+            DressingScope.KeptClearAt(built.World, built.Surface, built.ResolvedIntent, built.Shells, layoutJson),
             DressingScope.GoalClearanceAt(built.ResolvedIntent)));
     }
 }

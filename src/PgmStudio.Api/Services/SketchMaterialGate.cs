@@ -31,19 +31,19 @@ public static class SketchMaterialGate
         // A layout the room-style shape does not parse against is not this gate's business — the blob is
         // authoring-source JSON of arbitrary shape, and only a well-formed roomStyles snapshot is checked, the
         // same leniency RoomStyleScope already gives export.
-        (HouseStyle? Wool, HouseStyle? Spawn) styles;
+        RoomShells styles;
         try { styles = RoomStyleScope.StylesOf(layoutJson); }
         catch (JsonException) { return Findings.None; }
 
         var findings = new List<Finding>();
         if (styles.Wool is { } wool)
-            findings.AddRange(HouseStyleValidation.Check(wool).Under("roomStyles.cage"));
+            findings.AddRange(HouseStyleValidation.Check(wool).Under("roomStyles.wool"));
         if (styles.Spawn is { } spawn)
             findings.AddRange(HouseStyleValidation.Check(spawn).Under("roomStyles.spawn"));
         findings.AddRange(Buildings(layoutJson));
         // And what neither can answer about itself: a shell too tall to stand under the map's build ceiling,
         // which is a fact about the pair of numbers rather than about the style's own materials.
-        findings.AddRange(RoomStyleScope.Check(styles.Wool, "roomStyles.cage"));
+        findings.AddRange(RoomStyleScope.Check(styles.Wool, "roomStyles.wool"));
         findings.AddRange(RoomStyleScope.Check(styles.Spawn, "roomStyles.spawn"));
         findings.AddRange(Themes(layoutJson));
         findings.AddRange(Materials(layoutJson));

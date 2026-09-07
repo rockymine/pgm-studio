@@ -41,7 +41,8 @@ public sealed record BuiltWorld(
     IReadOnlyList<Finding>? Declined = null,
     IReadOnlyList<ColumnSegment>? Columns = null,
     DressingPlacement Dressing = default,
-    IReadOnlyDictionary<(int X, int Z), int>? Ground = null)
+    IReadOnlyDictionary<(int X, int Z), int>? Ground = null,
+    RoomShells Shells = default)
 {
     /// <summary>The <b>terrain's</b> surface, cell by cell — the tops of everything on the board that is not
     /// a made thing. What a pass reading "where does the ground reach here" takes: deriving it from
@@ -125,7 +126,8 @@ public static class WorldBuilder
         var teams = intent.Teams ?? [];
         var wools = intent.Wools ?? [];
         // The shells this map is finished with — one for every cage, one for every spawn (structures.md §9).
-        var (woolStyle, spawnStyle) = RoomStyleScope.StylesOf(layoutJson);
+        var shells = RoomStyleScope.StylesOf(layoutJson);
+        var (woolStyle, spawnStyle) = shells;
 
         // ── The build ceiling, and the one altitude every goal marker hangs at ──────────────────────
         // Both are the author's rule (BuildCeiling): twenty blocks over the highest thing the map builds and
@@ -144,7 +146,7 @@ public static class WorldBuilder
         // painter reads, which is the whole of what makes a room's ground the board's ground.
         var plinths = new Dictionary<(int X, int Z), int>();
 
-        // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
+        // ── Wool rooms (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
         var woolFrame = new RoomFrame[wools.Count];
         var woolFloor = new int[wools.Count];
@@ -182,7 +184,7 @@ public static class WorldBuilder
         // below are the first to contribute: a region with no footprint stated IS the building it raises.
         var built = new List<Finding>();
 
-        // ── Spawn cubes + monuments; capture each monument's world air-cell coord ────────────────────
+        // ── Spawn rooms + monuments; capture each monument's world air-cell coord ────────────────────
         // monLoc[(woolIndex, team)] = the air cell where that team places that wool.
         var monLoc = new Dictionary<(int Wool, string Team), Pt>();
         var resolvedSpawns = new List<SpawnIntent>(intent.Spawns.Count);
@@ -342,7 +344,7 @@ public static class WorldBuilder
         var dressed = Decorator.Decorate(world, new DressingContext(
             groundTop,
             DressingScope.PropsOf(layoutJson),
-            DressingScope.KeptClearAt(world, groundTop, goals, layoutJson),
+            DressingScope.KeptClearAt(world, groundTop, goals, shells, layoutJson),
             symmetry,
             DressingScope.GoalGroundAt(goals),
             DressingScope.GoalClearanceAt(goals),
@@ -487,7 +489,7 @@ public static class WorldBuilder
             ? [.. built, .. dressed.Declines]
             : null;
         return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints, columns, dressed,
-                              groundTop);
+                              groundTop, shells);
     }
 
     /// <summary>The highest block the map built that a player meets — what the ceiling clears
@@ -754,11 +756,12 @@ public static class WorldBuilder
     /// renewables wiring covers so the mined ore regrows (ST2): every placeable spawn-side cube (WX8) plus
     /// any legacy <see cref="IronCube.Renew"/> directives an older stored intent still carries. Empty when
     /// there are none.</summary>
-    public static IReadOnlyList<(int MinX, int MinZ, int MaxX, int MaxZ)> RenewableCubeFootprints(MapIntent intent)
+    public static IReadOnlyList<(int MinX, int MinZ, int MaxX, int MaxZ)> RenewableCubeFootprints(
+        MapIntent intent, RoomShells shells)
     {
         var footprints = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
         foreach (var s in intent.Spawns)
-            foreach (var iron in SpawnRoom(s, shellBound: true).Iron)
+            foreach (var iron in SpawnRoom(s, shells.SpawnBound).Iron)
                 if (iron.Placeable)
                     footprints.Add((iron.MinX, iron.MinZ, iron.MinX + iron.Size - 1, iron.MinZ + iron.Size - 1));
         if (intent.Structures is { } structures)

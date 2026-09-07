@@ -274,14 +274,12 @@ public sealed class SketchLayout
 /// </summary>
 public sealed class SketchRoomStyles
 {
-    // The wire word stays "cage": it is written into stored layouts by the sketch bridge, and renaming it
-    // would leave every bound wool style silently falling back to the built-in one on load.
-    /// <summary>The style every wool cage is stamped in, as the stamper's own JSON. A snapshot rather than a
-    /// library id, so editing a library row never rebuilds a shipped map's cages.</summary>
-    [JsonPropertyName("cage"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    /// <summary>The style every wool room is stamped in, as the stamper's own JSON. A snapshot rather than a
+    /// library id, so editing a library row never rebuilds a shipped map's rooms.</summary>
+    [JsonPropertyName("wool"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public JsonElement Wool { get; set; }
 
-    /// <summary>The style every spawn cube is stamped in, likewise snapshotted.</summary>
+    /// <summary>The style every spawn room is stamped in, likewise snapshotted.</summary>
     [JsonPropertyName("spawn"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public JsonElement Spawn { get; set; }
 

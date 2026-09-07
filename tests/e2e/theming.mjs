@@ -165,8 +165,8 @@ checks.add("the dock offers select + move only", tools.length === 2, tools.join(
 checks.add("select-only checks ran", restricted, page.faults.slice(0, 3).join(" | "));
 
 // ── 4. the board defaults bind a room shell ───────────────────────────────────────────────────────────
-// A shell is a fallback in the sense the map default is (structures.md §9): one for every wool cage and one
-// for every spawn cube, snapshotted into the layout rather than referenced, and bound from the inspector's
+// A shell is a fallback in the sense the map default is (structures.md §9): one for every wool room and one
+// for every spawn room, snapshotted into the layout rather than referenced, and bound from the inspector's
 // board defaults where the other fallbacks are. What has to survive is the snapshot itself — the export
 // reads the layout and nothing else, so a binding that did not come back from GET would silently stamp the
 // built-in shell.
@@ -182,25 +182,38 @@ try {
   await page.waitForTimeout(1000);
   await shot("theme-rooms.png");
   checks.add("the room shells render under the board defaults",
-    await page.locator("text=Wool cages").count() > 0
-    && await page.locator("text=Spawn cubes").count() > 0);
+    await page.locator("text=Wool rooms").count() > 0
+    && await page.locator("text=Spawn rooms").count() > 0);
 
-  const picker = page.locator(String.raw`.field:has-text("Wool cages") .lib-bind select`).first();
+  const picker = page.locator(String.raw`.field:has-text("Wool rooms") .lib-bind select`).first();
   await picker.selectOption(String(style.id));
   await page.waitForTimeout(2000);   // past the autosave debounce
 
   const doc = await api(`/map/${seed.sketchSlug}/sketch`);
-  const cage = doc?.roomStyles?.cage;
-  checks.add("the cage binding survives PUT → GET", cage != null,
+  const wool = doc?.roomStyles?.wool;
+  checks.add("the wool binding survives PUT → GET", wool != null,
     JSON.stringify(Object.keys(doc?.roomStyles ?? {})));
   // A snapshot, not a reference: what came back is the style itself, carrying the wall this one was given
   // and no library id to go stale.
   checks.add("what is stored is the style, not its id",
-    cage?.wall?.extent === 11 && cage.styleId == null && cage.id == null,
-    JSON.stringify(Object.keys(cage ?? {})));
+    wool?.wall?.extent === 11 && wool.styleId == null && wool.id == null,
+    JSON.stringify(Object.keys(wool ?? {})));
   // The other kind is untouched — the two bind independently.
-  checks.add("binding the cage leaves the spawn on its built-in shell", doc.roomStyles.spawn == null);
+  checks.add("binding the wool room leaves the spawn on its built-in shell", doc.roomStyles.spawn == null);
   await shot("theme-rooms-bound.png");
+
+  // …and the binding reads back. The finish records the snapshot and never the row, so the select says which
+  // row is held by matching the document — which is the whole of it after a reload, where nothing the phase
+  // remembers survives.
+  await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.waitForSelector("canvas", { timeout: 20000 });
+  await page.waitForTimeout(1500);
+  await page.click('button[title="Theme"]', { timeout: 8000 });
+  await page.waitForTimeout(1500);
+  const reloaded = page.locator(String.raw`.field:has-text("Wool rooms") .lib-bind select`).first();
+  checks.add("the bound shell reads back as its own row after a reload",
+    await reloaded.inputValue() === String(style.id),
+    `select=${await reloaded.inputValue()} row=${style.id}`);
   bound = true;
 } catch (e) {
   page.faults.push(`room shells: ${String(e).split("\n")[0]}`);

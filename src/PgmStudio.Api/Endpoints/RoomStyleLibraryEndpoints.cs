@@ -108,7 +108,8 @@ public sealed class RoomStyleListEndpoint(RoomStyleLibrary library) : EndpointWi
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ComposeAllAsync(ct))
             .Select(entry => new RoomStyleSummary(
-                entry.Row.Id, entry.Row.Name, RoomStylePreview.Card(entry.Style)))
+                entry.Row.Id, entry.Row.Name, RoomStylePreview.Card(entry.Style),
+                HouseStyleJson.Serialize(entry.Style)))
             .ToList(), ct);
 }
 

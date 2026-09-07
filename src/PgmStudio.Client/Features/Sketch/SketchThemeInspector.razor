@@ -143,8 +143,9 @@
       {
         <Field Label="@kind.Title" @key="kind.Id">
           <div class="lib-bind">
-            <Select Options="RoomShells(kind.Id)" Value="@RoomChoice(kind.Id)"
-                    ValueChanged="choice => BindRoom(kind.Id, choice)" />
+            <Select Options="RoomOptions" Value="@RoomChoice(kind.Id)"
+                    ValueChanged="choice => BindRoom(kind.Id, choice)"
+                    Placeholder="@RoomPlaceholder(kind.Id)" PlaceholderValue="0" />
             @if (BoundRoom(kind.Id) is not null || IsOpenRoom(kind.Id))
             {
               <Button Variant="icon" Icon="x" Title="Go back to the built-in shell"

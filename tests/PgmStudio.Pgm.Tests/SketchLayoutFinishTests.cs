@@ -18,7 +18,7 @@ public sealed class SketchLayoutFinishTests
     private const string Finished = """
     {"setup":{"mirror_mode":"mirror_x"},
      "themes":{"grass":{"surface":"grass"}},"themeSources":{"grass":12},"mapTheme":"grass",
-     "roomStyles":{"cage":{"walls":"quartz"}},
+     "roomStyles":{"wool":{"walls":"quartz"}},
      "dressing":{"props":[{"kind":"tree","x":4,"z":9}]},
      "biome":{"kind":"cell","seed":3,"cellSize":2,"jitter":70,"palette":[4,7]},"biomeSource":9,
      "layers":[{"id":"old","layout":{"shapes":[{"id":"s0"}],"groups":[]}}]}

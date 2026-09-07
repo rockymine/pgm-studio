@@ -141,7 +141,11 @@ public sealed record RoomCourseDto(
 /// <param name="Name">What the library lists it under.</param>
 /// <param name="Preview">The card picture, drawn through the same code the export runs, so a library is
 /// browsed by what its entries look like.</param>
-public sealed record RoomStyleSummary(long Id, string Name, string Preview);
+/// <param name="Style">The composed shell as the stamper's own JSON — the same document
+/// <c>GET /room-styles/{id}/json</c> answers, and the one a map snapshots when it binds this row. Carried in
+/// the list so a caller holding a snapshot can say which row it is by matching the document, which is the
+/// only way to say it: a binding records no row id.</param>
+public sealed record RoomStyleSummary(long Id, string Name, string Preview, string Style);
 
 /// <summary>The windows a room style cuts through its walls (<see cref="WindowForms"/>). <paramref name="Block"/>
 /// is a block id rather than a bound style because the metadata is <b>geometry</b> here — which way a stair

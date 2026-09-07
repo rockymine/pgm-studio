@@ -116,10 +116,6 @@ public partial class SketchThemeInspector
 
     /// <summary>The room-style snapshot bound per kind — the JSON itself, which is what the document holds.</summary>
     private readonly Dictionary<string, string> boundRooms = [];
-    /// <summary>Which library row each snapshot was taken from, for the rows bound in this session. Presentation
-    /// only — never what the map exports from — and held only in memory: nothing in the finish records it, so a
-    /// binding read back off the board resolves to no row.</summary>
-    private readonly Dictionary<string, long> pickedRooms = [];
     /// <summary>The kinds bound to <b>no building</b> — a pad on open ground with nothing over it. Held apart
     /// from <see cref="boundRooms"/> because it is a binding, not a style: the document states an explicit
     /// null for it, which is a different answer from never having asked.</summary>
@@ -293,11 +289,11 @@ public partial class SketchThemeInspector
     private IReadOnlyList<SelectOption> MapThemes =>
         [.. Themes.Select(id => new SelectOption(id, id))];
 
-    /// <summary>One room kind's shells: the built-in, no building at all, and every style the library holds.
-    /// The two that are not a style carry what they do, since neither has a name that says it.</summary>
-    private IReadOnlyList<SelectOption> RoomShells(string kind) =>
+    /// <summary>What a room kind's select offers: no building at all, then every style the library holds. The
+    /// built-in shell is the placeholder rather than an option, because it is also what the select falls back
+    /// to for a snapshot no row matches, and those two read differently.</summary>
+    private IReadOnlyList<SelectOption> RoomOptions =>
     [
-        new("0", "(the built-in shell)", "The plain shell the export builds when nothing else is bound."),
         new(NoBuilding, "(no building)",
             "Leaves the pad, the chests and the monuments on open ground with nothing over them."),
         .. rooms.Select(room => new SelectOption(room.Id.ToString(), room.Name,
@@ -315,12 +311,40 @@ public partial class SketchThemeInspector
     // ── the room shells ──
 
     private string? BoundRoom(string kind) => boundRooms.GetValueOrDefault(kind);
-    private long PickedRoom(string kind) => pickedRooms.GetValueOrDefault(kind);
+
+    /// <summary>The library row a kind's bound shell is, or null where the board binds nothing — or binds a
+    /// shell no row holds.
+    ///
+    /// <para>Matched on the snapshot's own <b>content</b>, because that is the only thing there is to match
+    /// on: the binding is a snapshot and records no row id, so a board read back after a reload, and one
+    /// written straight to <c>PUT …/sketch/room-styles/{part}</c>, would otherwise resolve to nothing.
+    /// Compared as parsed values rather than as text, since key order and whitespace are
+    /// serialization.</para></summary>
+    private RoomStyleSummary? HeldRoom(string kind)
+    {
+        if (boundRooms.GetValueOrDefault(kind) is not { } snapshot) return null;
+        if (roomOfSnapshot.TryGetValue(snapshot, out var held)) return held;
+        return roomOfSnapshot[snapshot] = rooms.FirstOrDefault(room => SameDocument(room.Style, snapshot));
+    }
+
+    /// <summary>The row each snapshot resolves to, keyed by the snapshot itself so the match survives a
+    /// re-render without being re-derived: two selects are drawn per render and each row costs a parse of
+    /// both documents. The library list is read once, so a memo on the snapshot cannot go stale.</summary>
+    private readonly Dictionary<string, RoomStyleSummary?> roomOfSnapshot = [];
+
+    /// <summary>Whether the board binds a shell the library does not hold — what the select says instead of
+    /// claiming the room is on its built-in one.</summary>
+    private bool RoomOffLibrary(string kind) => boundRooms.ContainsKey(kind) && HeldRoom(kind) is null;
 
     /// <summary>What the select shows: a row id, <c>0</c> for the built-in shell, or
     /// <see cref="NoBuilding"/>.</summary>
     private string RoomChoice(string kind) =>
-        openRooms.Contains(kind) ? NoBuilding : PickedRoom(kind).ToString();
+        openRooms.Contains(kind) ? NoBuilding : (HeldRoom(kind)?.Id ?? 0).ToString();
+
+    /// <summary>What the select reads where it holds no row: the built-in shell, or a shell the library
+    /// cannot name.</summary>
+    private string RoomPlaceholder(string kind) =>
+        RoomOffLibrary(kind) ? "(a shell the library does not hold)" : "(the built-in shell)";
 
     /// <summary>Whether this kind is bound to no building.</summary>
     private bool IsOpenRoom(string kind) => openRooms.Contains(kind);
@@ -358,7 +382,6 @@ public partial class SketchThemeInspector
         if (styleJson is null) { note = "That room style could not be read."; return; }
 
         boundRooms[kind] = styleJson;
-        pickedRooms[kind] = id;
         note = null;
         if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, styleJson);
         StateHasChanged();
@@ -367,7 +390,6 @@ public partial class SketchThemeInspector
     private async Task ClearRoom(string kind)
     {
         boundRooms.Remove(kind);
-        pickedRooms.Remove(kind);
         openRooms.Remove(kind);
         note = null;
         if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, null);
@@ -379,7 +401,6 @@ public partial class SketchThemeInspector
     private async Task OpenRoom(string kind)
     {
         boundRooms.Remove(kind);
-        pickedRooms.Remove(kind);
         openRooms.Add(kind);
         note = null;
         if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, "null");
@@ -394,7 +415,7 @@ public sealed record RoomKindInfo(string Id, string Title)
 {
     public static readonly IReadOnlyList<RoomKindInfo> All =
     [
-        new("cage", "Wool cages"),
-        new("spawn", "Spawn cubes"),
+        new("wool", "Wool rooms"),
+        new("spawn", "Spawn rooms"),
     ];
 }

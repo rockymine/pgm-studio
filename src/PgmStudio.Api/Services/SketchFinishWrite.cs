@@ -11,11 +11,9 @@ namespace PgmStudio.Api.Services;
 /// </summary>
 public static class SketchFinishWrite
 {
-    /// <summary>The two parts of <c>roomStyles</c>, which are the words the stored layout uses. <c>cage</c>
-    /// rather than <c>wool</c> because that is what the bridge writes and renaming it would leave every bound
-    /// style falling back to the built-in shell on load. Not vocabulary: these two routes are the only
-    /// consumers, so the set is their constant.</summary>
-    public static readonly string[] RoomParts = ["cage", "spawn"];
+    /// <summary>The two parts of <c>roomStyles</c>, which are the words the stored layout uses. Not
+    /// vocabulary: these two routes are the only consumers, so the set is their constant.</summary>
+    public static readonly string[] RoomParts = ["wool", "spawn"];
 
     /// <summary>What a body states as a house style, or null where it states none. A body that is literally
     /// <c>null</c> is <b>not</b> nothing — it is the author asking for open ground — so it answers

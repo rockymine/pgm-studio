@@ -50,7 +50,7 @@ shape whether a layout was hand-drawn or compiled from a plan.
 | `setup` | `mirror_mode`, the symmetry `center`, and the `bbox` the canvas frames on open |
 | `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, groups}}`, plus `kind`, `part_of` and `seat` where the layer holds a made thing. Always at least one; a flat board is a stack of one, called `ground` |
 | `themes` · `themeSources` · `mapTheme` | the terrain-paint registry, which library row each of its themes was copied from, and the map-wide default |
-| `roomStyles` | the two bound room shells — `cage` (wool) and `spawn` |
+| `roomStyles` | the two bound room shells — `wool` and `spawn` |
 | `dressing` | every placed prop |
 | `biome` · `biomeSource` | the biome every column carries, and the library row it was copied from |
 | `relief` | interior elevation, keyed by group id — and `landform`, the word the group states about what kind of ground it is meant to be |
@@ -921,12 +921,13 @@ differed between teams. What is stored is the composed style's **JSON snapshot**
 from, so editing the library afterwards cannot rebuild a shipped map's rooms. Each binding has three states,
 and they are genuinely distinct: absent stamps that kind's built-in shell, an object stamps the bound style,
 and an explicit null means no building at all — a pad on open ground. The finish records the shell but not
-the row it was snapshotted from, so a binding read back off the board — after a reload, or written straight to
-the endpoint — shows in the select as the built-in shell (`TS101`); the clear beside it, which reads the
-snapshot rather than the row, is what says something is bound.
+the row it was snapshotted from, so the select says which row is held by matching the snapshot against each
+library row's **document**, the way the biome select does: a board read back after a reload, and one written
+straight to the endpoint, resolve the same way one bound in the phase does. A snapshot no row matches reads
+as `(a shell the library does not hold)` rather than as the built-in one.
 
 ```json
-{ "roomStyles": { "cage": { "form": "gable", "pitch": 1 }, "spawn": null } }
+{ "roomStyles": { "wool": { "form": "gable", "pitch": 1 }, "spawn": null } }
 ```
 
 That map stamps its wool cages with the bound style and gives its spawns no building at all. Leaving `spawn`
@@ -1304,7 +1305,7 @@ nowhere at all: every field of a stored layout now has a route that says what it
 That is where an agent looks before asking for something the studio cannot do, so a part with no address is
 a part it has to learn from prose instead.
 
-**The house half** reads `roomStyles.cage`, `roomStyles.spawn` and the shell of every building in
+**The house half** reads `roomStyles.wool`, `roomStyles.spawn` and the shell of every building in
 `dressing.props` off the document that is about to be written, and runs each through the same house-style gate
 (`docs/tools/library.md`'s Refusals, rule ids `HS1`–`HS3`) — a block named for a geometric role that is not
 that kind of block, a doorway that does not clear 2.5 blocks once its head is written in, or a roof whose own
@@ -1329,7 +1330,7 @@ always did: only a well-formed style or theme that is wrong is refused.
 the goal marker over it hangs five blocks above a ceiling twenty over the ground — so a tall layer stack
 swallows the very sign that says where the goal is. The height is measured on the smallest footprint a shell
 can stand on, 6×6, since every sloped roof only climbs further on a bigger one: a style refused here has no
-footprint it could have been stamped on. It rides in the same **400** envelope, `field` naming `roomStyles.cage` or
+footprint it could have been stamped on. It rides in the same **400** envelope, `field` naming `roomStyles.wool` or
 `roomStyles.spawn`.
 
 **Finish refuses an empty board.** `POST .../sketch/finish` answers 422 `SK6` when there is no stored layout
@@ -1688,8 +1689,8 @@ in the same two registers.
 | `GET /map/{slug}/sketch/relief/{groupId}` | one `SketchReliefJson` | 404 the layout states none for that group, which is every group as flat as its shapes drew it |
 | `PUT /map/{slug}/sketch/relief/{groupId}` | `{id}` — state one group's interior elevation, replacing whatever that group carried. **It does not check the group exists**: whether the id still names a fusion is `SK1`'s question on the compile path, where losing hand-authored terrain is the risk worth refusing over, and answering it here would refuse a relief written before the geometry it belongs to | 400 `malformed relief` `RQ1` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/relief/{groupId}` | `{id}` — take one group's relief off the board, leaving its ground as flat as the shapes drew it | 409 · 404 |
-| `GET /map/{slug}/sketch/room-styles` | `{cage, spawn}` — both shells **resolved**, which is what the stampers will read: a part that is absent answers its built-in shell and a part bound to open ground answers null. Raw snapshots would not say which of the three states a caller is in | 404 |
-| `PUT /map/{slug}/sketch/room-styles/{part}` | `{id}` — bind the shell one kind of room is stamped in; `part` is `cage` or `spawn`. **A body of literal `null` is a statement, not an omission**: it asks for open ground, a pad rather than a building over it, which is what a spawn on a plateau the plan already shaped often wants to be | 400 `unknown room part` / `malformed room style` `RQ1` · 400 `invalid style or theme` `HS*` · 409 · 404 |
+| `GET /map/{slug}/sketch/room-styles` | `{wool, spawn}` — both shells **resolved**, which is what the stampers will read: a part that is absent answers its built-in shell and a part bound to open ground answers null. Raw snapshots would not say which of the three states a caller is in | 404 |
+| `PUT /map/{slug}/sketch/room-styles/{part}` | `{id}` — bind the shell one kind of room is stamped in; `part` is `wool` or `spawn`. **A body of literal `null` is a statement, not an omission**: it asks for open ground, a pad rather than a building over it, which is what a spawn on a plateau the plan already shaped often wants to be | 400 `unknown room part` / `malformed room style` `RQ1` · 400 `invalid style or theme` `HS*` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/room-styles/{part}` | `{id}` — unbind, which puts that kind of room back to its **built-in** shell. Not the same as binding null | 409 · 404 nothing is bound |
 | `GET /map/{slug}/sketch/biome` | one `BiomeField` — `solid`, `cell` or `noise`. The library's own rows are `GET /api/biome-patterns`, and the biomes worth naming with the colour each tints ground with are `GET /api/terrain/biomes` | 400 `unreadable biome` `RQ1` · 404 the board states none, which is plains everywhere |
 | `PUT /map/{slug}/sketch/biome` | `{id}` — which biome each column of the exported world carries. Map-wide and answered per chunk, because a biome's tint is blended across a radius and a region drawn to a finer edge never reaches its own colour there | 400 `malformed biome` `RQ1` · 409 · 404 |
