@@ -9595,6 +9595,21 @@ these are the ones that shipped a map that could not be played as intended, and 
   already says it as a complaint, and refusing it here would refuse every map mid-authoring — which is what
   the obvious phrasing of the rule ("a map needs teams") would have done, and is why there is a test for it.
   The gate is intent-only, so the 281 corpus maps with no team are untouched.
+- **Every structural refusal is answered under its own rule, not under a sentinel (TN2).** `/plan/evaluate`
+  reported the validator's refusals through the one hard term that aggregates them, so its finding cited
+  `STRUCT` — six letters, matched by no `*Rules` constant and absent from `RuleCatalog.Raised`, which means
+  `GET /api/rules?rule=STRUCT` answers `[]` and a driver keying on the id had nothing to look up. Where more
+  than one refusal fired the message was `"{n} structural errors ({first})"` over the flat union of subjects,
+  so a board with four different overlaps reported one sentence and six unpaired piece ids, and the other
+  three arrived at the compile's 422 a phase later. `StructuralIntegrity` now has two readings of the same
+  findings: `Measure` scores them as one hard violation, because a plan that does not compile costs the flat
+  penalty once, and `Each` reports them one at a time with the `PL` id, the sentence and the offender rects of
+  the refusal it came from. The endpoint's no-geometry branch already answered that shape, so the two branches
+  now agree on one. Measured over the 94 authored plans in `pgm-studio-mapgen`: six refuse, all six had lost
+  their id; `tanglewold` now answers two `PL13` walls with their own pairs and `sandscar-complex` four `PL4`
+  overlaps with their own deltas, and its score is unchanged at 3026.1 — three hard terms, the structural one
+  counted once.
+
 - **A board with nothing on it is refused, and so is one that lost what its author stated (B140).** Two boards
   from an authoring trial built a world, wrote region files and a provenance sidecar, and exported clean. Their
   `map.xml` was **ten lines** — a name, an empty `<version>`, a `<gamemode>`, an empty `<objective>`, one

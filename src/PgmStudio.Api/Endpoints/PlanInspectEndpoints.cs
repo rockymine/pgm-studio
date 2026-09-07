@@ -8,6 +8,7 @@ using PgmStudio.Export;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Evaluate;
+using PgmStudio.Pgm.Evaluate.Terms;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Render;
@@ -339,6 +340,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
 
         Evaluation eval;
         IReadOnlyList<Finding> lint;
+        IReadOnlyList<Violation> structural;
         try
         {
             var ctx = EvalContext.Build(plan, SeedEnvelopes.Default);
@@ -346,6 +348,10 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
             // The validator's complaints ride along: computed by the same Check the context already ran, and
             // this response is the one surface the authoring loop actually reads them from.
             lint = [.. ctx.Findings.Complaints];
+            // And its refusals, itemised. The structural term scores them as one — a plan that does not
+            // compile costs the hard penalty once — so its own violation carries a count and the first
+            // sentence, which is a score talking rather than an answer. What goes on the wire is the list.
+            structural = [.. StructuralIntegrity.Each(ctx)];
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
@@ -353,7 +359,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
             return;
         }
 
-        await Send.OkAsync(ToDto(eval) with { Lint = lint }, ct);
+        await Send.OkAsync(ToDto(eval, structural) with { Lint = lint }, ct);
     }
 
     /// <summary>An evaluation carrying the <b>structural</b> validator's refusals rather than the evaluator's
@@ -363,22 +369,41 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
     internal static EvaluationDto Structural(Findings findings) => new(0, !findings.Refuses,
     [
         .. findings.Refusals.Select(finding =>
-            new ViolationDto(finding.Rule, "hard", 0, finding, [])),
+            new ViolationDto(StructuralIntegrity.Term, "hard", 0, finding, [])),
     ]);
 
     /// <summary>Map the derived <see cref="Evaluation"/> onto the wire DTO: every fired term (hard-first, the
-    /// registration order the evaluation already carries) with its kind, soft distance and flattened evidence.</summary>
-    internal static EvaluationDto ToDto(Evaluation eval)
+    /// registration order the evaluation already carries) with its kind, soft distance and flattened evidence.
+    ///
+    /// <para><paramref name="structural"/> is the validator's refusals, one violation each
+    /// (<see cref="StructuralIntegrity.Each"/>). They stand in for the structural term's own violation, which
+    /// is an aggregate built to be scored: it cites the sentinel <c>STRUCT</c>, which no rule catalogue
+    /// answers, and where several refusals fired it carries a count and one sentence. The list carries every
+    /// <c>PL</c> id under the sentence it was refused under, which is what a reader looks up and what the
+    /// no-geometry branch above has always answered.</para></summary>
+    internal static EvaluationDto ToDto(Evaluation eval, IReadOnlyList<Violation>? structural = null)
     {
         var violations = eval.Terms
-            .Where(t => t.Violation is not null)
-            .Select(t => new ViolationDto(
-                t.Violation!.TermId, t.Kind == TermKind.Hard ? "hard" : "soft", t.Distance,
-                t.Violation.Finding,
-                (t.Violation.Evidence ?? []).Select(MapEvidence).ToList()))
+            .Where(term => term.Violation is not null)
+            .SelectMany(term => Wire(term, structural))
             .ToList();
         return new EvaluationDto(eval.Score, eval.IsValid, violations);
     }
+
+    /// <summary>What one fired term puts on the wire: its own violation, or — for the structural term, whose
+    /// violation is the aggregate the score is summed from — the refusals it stands for, one each.</summary>
+    private static IEnumerable<ViolationDto> Wire(TermScore term, IReadOnlyList<Violation>? structural)
+    {
+        if (structural is not null && term.Violation!.TermId == StructuralIntegrity.Term)
+            return structural.Select(refusal => Wire(refusal, "hard", 0));
+        return [Wire(term.Violation!, term.Kind == TermKind.Hard ? "hard" : "soft", term.Distance)];
+    }
+
+    /// <summary>One violation on the wire: the term that noticed, its kind and soft distance, the finding in
+    /// the shape every gate answers in, and the flattened drawable evidence.</summary>
+    private static ViolationDto Wire(Violation violation, string kind, double distance) =>
+        new(violation.TermId, kind, distance, violation.Finding,
+            (violation.Evidence ?? []).Select(MapEvidence).ToList());
 
     private static EvidenceDto MapEvidence(Evidence e) => e switch
     {

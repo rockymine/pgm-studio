@@ -6,17 +6,34 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 /// <summary>Structural well-formedness: any refusal the validator reports
 /// (different-surface overlap, a placement outside its piece, a wall off a real seam, a wool unreachable or
 /// only reachable through a spawn — SP1). These are the parse/topology errors <see cref="PlanValidator"/> owns;
-/// this term surfaces them as one hard violation so the same gate that scores layout rules also blocks a plan
-/// that does not compile. Cites the sentinel <c>STRUCT</c> (not a single layout-rules id — it aggregates the
-/// structural error set).</summary>
+/// this term surfaces them so the same gate that scores layout rules also blocks a plan that does not compile.
+///
+/// <para><b>It has two readings, and they answer different questions.</b> <see cref="Measure"/> is the score:
+/// one hard violation however many refusals fired, because a plan that does not compile costs the flat hard
+/// penalty once. <see cref="Each"/> is the report: one violation per refusal, keeping the <c>PL</c> id it was
+/// refused under and pointing at its own subjects, which is what a caller answers a reader with. Scoring the
+/// itemised list would charge a plan twice for one fault; reporting the aggregate would tell an author a count
+/// where the validator gave them sentences.</para></summary>
 public sealed class StructuralIntegrity : ILayoutTerm
 {
-    /// <remarks>Not a rule of its own: the id the evaluator gives a structural refusal the validator already made, so the score carries it. Read the finding's own <c>PL</c> id and fix that.</remarks>
+    /// <remarks>Not a rule of its own: the id the evaluator gives the structural set when it scores as one hard
+    /// term, and it is deliberately not a catalogued rule — <c>GET /api/rules</c> answers the <c>PL</c> ids the
+    /// refusals themselves carry, which is what <see cref="Each"/> reports and what a reader looks up.</remarks>
     public const string Rule = "STRUCT";
 
-    public string Id => "structural-integrity";
+    /// <summary>The term id as a constant, so a caller naming this measurement spells it once.</summary>
+    public const string Term = "structural-integrity";
+
+    public string Id => Term;
     public string RuleId => Rule;
     public TermKind Kind => TermKind.Hard;
+
+    /// <summary>Every refusal the validator made, one violation each: the finding is the validator's own, so
+    /// the rule id and the sentence are the ones <c>/plan/compile</c> refuses under, and the evidence points at
+    /// that refusal's own subjects rather than at the union. Empty for a plan the validator accepts.</summary>
+    public static IEnumerable<Violation> Each(EvalContext ctx) =>
+        ctx.Findings.Refusals.Select(refusal =>
+            new Violation(Term, refusal, TermEvidence.OffenderRects(ctx.Plan, refusal.SubjectIds)));
 
     public TermScore Measure(EvalContext ctx)
     {

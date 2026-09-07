@@ -251,12 +251,12 @@ two gradients as `WE32`, and a declared route walked back as `WS14` (`FEATURES.m
 `WS3` alone — `RouteFork` reports one fork where a board has several, and reports it against no demand set.
 The two entries that read as this cause and were not it left the board on the reading below.
 
-**A gate's verdict reaches the author under a name they cannot look up.** `PlanValidator` runs in the live
-feed as well as at the compile gate — `/plan/evaluate` builds its context from the same `Check` and carries
-the complaints as `lint` — so what an author misses mid-edit is not the pass but the refusals' own sentences
-and ids, which the evaluator's one hard term replaces with the sentinel `STRUCT` (`TN2`). `WE34` was the same
-rule set never run forwards, and shipped as the seat read (`FEATURES.md`). One entry where there were four,
-the other three withdrawn.
+**A gate's verdict reaches the author under a name they cannot look up.** This cause is drained. It was
+never that `PlanValidator` ran only at the compile gate — `/plan/evaluate` builds its context from the same
+`Check` and has carried the complaints as `lint` throughout; what an author missed mid-edit was the refusals'
+own sentences and ids, which the evaluator's one hard term replaced with the sentinel `STRUCT`. That shipped
+as `TN2`, and `WE34` — the same rule set never run forwards — as the seat read (`FEATURES.md`); the other two
+entries were withdrawn.
 
 ## The questions no reading of this repository can answer
 
@@ -282,7 +282,8 @@ them.** Each had been filed from a symptom that was real; none survived being me
 
 `B171`'s evidence outlived its entry. `PL13` — a bedrock wall on the wool room's own interface — is five of
 the ten refusals the authored corpus carries, the commonest structural refusal there is, and it already names
-its own remedy. What stops that sentence reaching an agent is `TN2`, which is the entry that survived.
+its own remedy. What kept that sentence from an agent was the sentinel the evaluator answered under, and
+`TN2` — the one of the five that survived the reading — shipped the fix (`FEATURES.md`).
 
 **The sitting has happened, and it drained the whole list.** Seven questions were put to the author in one
 pass and seven came back, which is what this section claimed would happen and had never been tested. What the

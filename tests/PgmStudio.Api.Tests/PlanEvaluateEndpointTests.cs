@@ -113,9 +113,59 @@ public sealed class PlanEvaluateEndpointTests
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(body.GetProperty("valid").GetBoolean()).IsFalse();
         var violations = body.GetProperty("violations").EnumerateArray().ToList();
-        await Assert.That(violations.Any(v => v.GetProperty("termId").GetString() == "PL1")).IsTrue();
-        await Assert.That(violations.First(v => v.GetProperty("termId").GetString() == "PL1")
-            .GetProperty("finding").GetProperty("message").GetString()).IsNotNull();
+        var pl1 = violations.First(v => v.GetProperty("finding").GetProperty("rule").GetString() == "PL1");
+        await Assert.That(pl1.GetProperty("finding").GetProperty("message").GetString()).IsNotNull();
+        // The rule sits on the finding and the term id beside it, the same way the branch with geometry
+        // answers — a reader does not have to know which of the two produced a refusal to read it.
+        await Assert.That(pl1.GetProperty("termId").GetString()).IsEqualTo("structural-integrity");
+    }
+
+    /// <summary>Where several refusals fire, every one of them is on the wire under the rule id it was refused
+    /// under. The structural term scores them as one hard violation citing the sentinel <c>STRUCT</c>, which no
+    /// rule catalogue answers and which carried a count and one sentence — so an author was told how many
+    /// there were and shown one, and met the rest at the compile's 422 a phase later (TN2).</summary>
+    [Test]
+    public async Task Every_structural_refusal_is_answered_under_its_own_rule()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        // Two bedrock walls, each drawn on a wool room's own interface: PL13 twice, on two different pairs.
+        const string plan = """
+        { "plan":2, "globals":{"cell":5,"symmetry":"none"},
+          "pieces":[ {"id":"spawn","role":"spawn","rect":[0,0,2,2]},
+                     {"id":"approach-a","role":"piece","rect":[2,0,6,2]},
+                     {"id":"wool-a","role":"wool-room","rect":[8,0,2,2]},
+                     {"id":"approach-b","role":"piece","rect":[2,2,6,2]},
+                     {"id":"wool-b","role":"wool-room","rect":[8,2,2,2]} ],
+          "walls":[ {"a":"approach-a","b":"wool-a","side":"a"},
+                    {"a":"approach-b","b":"wool-b","side":"a"} ],
+          "placements":{
+            "spawns":[ {"piece":"spawn","at":[5,5],"facing":"front"} ],
+            "wools":[ {"piece":"wool-a","at":[5,5]}, {"piece":"wool-b","at":[5,5]} ],
+            "iron":[] } }
+        """;
+        var resp = await client.PostAsync("/api/plan/evaluate",
+            new StringContent(plan, Encoding.UTF8, "application/json"));
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(body.GetProperty("valid").GetBoolean()).IsFalse();
+        var violations = body.GetProperty("violations").EnumerateArray().ToList();
+
+        // Both walls are named, each under PL13 rather than one under a count.
+        var pl13 = violations
+            .Where(v => v.GetProperty("finding").GetProperty("rule").GetString() == "PL13").ToList();
+        await Assert.That(pl13.Count).IsEqualTo(2);
+        // and each points at its own pair, not at the union of both
+        var subjects = pl13
+            .Select(v => v.GetProperty("finding").GetProperty("subjects").EnumerateArray()
+                          .Select(s => s.GetString()!).OrderBy(s => s).ToList())
+            .OrderBy(pair => pair[0]).ToList();
+        await Assert.That(subjects[0]).IsEquivalentTo(new List<string> { "approach-a", "wool-a" });
+        await Assert.That(subjects[1]).IsEquivalentTo(new List<string> { "approach-b", "wool-b" });
+        // The sentinel is a scoring id and never an answer: nothing on the wire cites it.
+        await Assert.That(violations.Any(v => v.GetProperty("finding").GetProperty("rule").GetString() == "STRUCT"))
+            .IsFalse();
     }
 
     [Test]
