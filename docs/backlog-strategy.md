@@ -1,6 +1,6 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 66 open entries and `TODO.md` eight — the interaction slice of the programme that put a
+`BACKLOG.md` holds 64 open entries and `TODO.md` eight — the interaction slice of the programme that put a
 room's building and a dressed one on one model. This document is the reading that says which of them are
 defects, which are questions, which share a cause, and what order drains them. Its subject is the board
 itself, and it expires when the board it describes is gone. It is the one document this work adds:
@@ -12,10 +12,10 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **74 open entries over 12,215 words**: a median entry of 146 words and **8 above 250** —
+The two boards carry **72 open entries over 11,949 words**: a median entry of 146 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
-is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 19, `B` 16, `TS` 7,
-`G` 7, `S` 6, `N` 4, `TL` 4, `C` 3, and six others in ones and twos.
+is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 16, `B` 15,
+`TS` 11, `G` 7, `S` 6, `N` 4, `C` 3, and seven others in ones and twos.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -49,9 +49,9 @@ retirement pass — what other documents say about the entries that are gone.
 ## Every defect on this board passes every gate the repository has
 
 The tree is green, and it is green on every gate at once. `dotnet build` is clean over the solution.
-**3,154 C# tests pass** — Vocabulary 42, Geom 260, Domain 113, Analysis 115, Minecraft 920, Pgm 1,184,
-Export 127, Import 1, Data 40, Api 352 — with nothing failed and nothing skipped. The JS suite passes 413.
-`./tools/census.sh --check` answers *census is current*. `./tools/build-scripts.sh` builds 7 of 7.
+**3,557 C# tests pass** — Vocabulary 43, Geom 298, Domain 135, Analysis 119, Minecraft 1,041, Pgm 1,277,
+Export 184, Import 1, Data 40, Api 419 — with nothing failed and nothing skipped. The JS suite passes 436.
+`./tools/census.sh --check` answers *census is current*. `./tools/build-scripts.sh` builds 8 of 8.
 
 Twenty-two verified defects were live behind that when this board was first read. A core that stamps nothing
 exported 200; a stacked board's paint ran down a column it should have stopped at; a degenerate polygon
@@ -387,7 +387,7 @@ the longest is now 390 words rather than 1,068 — the retirement pass took the 
 rather than trimming the entries in it, which is the faster of the two moves and the one that needs the
 author.
 
-**Nothing is closed without a test.** The verified defects above are invisible to a suite of 3,154 tests.
+**Nothing is closed without a test.** The verified defects above are invisible to a suite of 3,557 tests.
 `LibrarySeedTests` is the shape: pin what is wrong, so it fails when it changes in either direction.
 
 **No measurement is written by hand.** Seven of nine re-measured figures had drifted, one entry's retake
