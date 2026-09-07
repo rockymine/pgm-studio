@@ -24,10 +24,10 @@ public sealed class SketchShellBiomeEndpointsTests
 
     private static StringContent Json(string body) => new(body, Encoding.UTF8, "application/json");
 
-    private static async Task<(bool Cage, bool Spawn)> ShellsAsync(HttpClient client)
+    private static async Task<(bool Wool, bool Spawn)> ShellsAsync(HttpClient client)
     {
         var d = await client.GetFromJsonAsync<JsonElement>(Shells);
-        return (d.GetProperty("cage").ValueKind != JsonValueKind.Null,
+        return (d.GetProperty("wool").ValueKind != JsonValueKind.Null,
                 d.GetProperty("spawn").ValueKind != JsonValueKind.Null);
     }
 
@@ -65,7 +65,7 @@ public sealed class SketchShellBiomeEndpointsTests
 
         var finding = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("part");
-        await Assert.That(finding.GetProperty("message").GetString()).Contains("cage");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("wool");
     }
 
     /// <summary>The biome field: absent is plains everywhere, which is why nothing stated answers 404 rather

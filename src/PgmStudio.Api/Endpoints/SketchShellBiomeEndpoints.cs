@@ -19,9 +19,9 @@ namespace PgmStudio.Api.Endpoints;
 
 /// <summary>The shells a map's rooms are stamped in, <b>resolved</b> — which is what will actually be built.
 /// A part that is absent answers its built-in shell; a part bound to open ground answers null.</summary>
-/// <param name="Cage">The style every wool cage is stamped in, or null for open ground.</param>
-/// <param name="Spawn">The style every spawn cube is stamped in, or null for open ground.</param>
-public sealed record SketchRoomStylesDto(HouseStyle? Cage, HouseStyle? Spawn);
+/// <param name="Wool">The style every wool room is stamped in, or null for open ground.</param>
+/// <param name="Spawn">The style every spawn room is stamped in, or null for open ground.</param>
+public sealed record SketchRoomStylesDto(HouseStyle? Wool, HouseStyle? Spawn);
 
 /// <summary>GET /api/map/{slug}/sketch/room-styles — both shells as the stampers will read them.
 ///
@@ -50,7 +50,7 @@ public sealed class SketchRoomStylesEndpoint(MapRepository repo, MapArtifactStor
 }
 
 /// <summary>PUT /api/map/{slug}/sketch/room-styles/{part} — bind the shell one kind of room is stamped in.
-/// <c>part</c> is <c>cage</c> or <c>spawn</c>.
+/// <c>part</c> is <c>wool</c> or <c>spawn</c>.
 ///
 /// <para><b>A body of literal <c>null</c> is a statement, not an omission</b>: it asks for open ground — a pad
 /// rather than a building over it, which is what a spawn on a plateau the plan already shaped often wants to

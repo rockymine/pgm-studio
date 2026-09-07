@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Domain;
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
@@ -25,14 +26,14 @@ public sealed class RoomStyleScopeTests
     /// <summary>The same layout with the two shells bound — the snapshot form the Rooms step writes. A kind
     /// left out here is absent from the JSON entirely, which is the "never picked one" state; passing
     /// <c>"null"</c> as its raw text is the other one, the map asking for no building.</summary>
-    private static string Bound(HouseStyle? cage = null, HouseStyle? spawn = null)
-        => BoundRaw(cage is null ? null : HouseStyleJson.Serialize(cage),
+    private static string Bound(HouseStyle? wool = null, HouseStyle? spawn = null)
+        => BoundRaw(wool is null ? null : HouseStyleJson.Serialize(wool),
                     spawn is null ? null : HouseStyleJson.Serialize(spawn));
 
-    private static string BoundRaw(string? cage = null, string? spawn = null)
+    private static string BoundRaw(string? wool = null, string? spawn = null)
     {
         var parts = new List<string>();
-        if (cage is not null) parts.Add($"\"cage\":{cage}");
+        if (wool is not null) parts.Add($"\"wool\":{wool}");
         if (spawn is not null) parts.Add($"\"spawn\":{spawn}");
         return Plain[..^1] + $",\"roomStyles\":{{{string.Join(',', parts)}}}}}";
     }
@@ -57,9 +58,9 @@ public sealed class RoomStyleScopeTests
     [Test]
     public async Task A_map_that_never_picked_one_gets_the_built_in_shells()
     {
-        var (cage, spawn) = RoomStyleScope.StylesOf(Plain);
+        var (wool, spawn) = RoomStyleScope.StylesOf(Plain);
 
-        await Assert.That(cage).IsEqualTo(HouseStyle.Wool);
+        await Assert.That(wool).IsEqualTo(HouseStyle.Wool);
         await Assert.That(spawn).IsEqualTo(HouseStyle.Spawn);
     }
 
@@ -67,19 +68,19 @@ public sealed class RoomStyleScopeTests
     public async Task Each_kind_is_bound_on_its_own_and_the_other_keeps_its_default()
     {
         var tall = HouseStyle.Wool with { Wall = HouseStyle.Wool.Wall with { Extent = 11 } };
-        var (cage, spawn) = RoomStyleScope.StylesOf(Bound(cage: tall));
+        var (wool, spawn) = RoomStyleScope.StylesOf(Bound(wool: tall));
 
-        await Assert.That(cage!.Wall.Extent).IsEqualTo(11);
+        await Assert.That(wool!.Wall.Extent).IsEqualTo(11);
         await Assert.That(spawn).IsEqualTo(HouseStyle.Spawn);
     }
 
     [Test]
     public async Task An_unreadable_snapshot_costs_that_map_its_shell_and_not_its_export()
     {
-        var layout = Plain[..^1] + ",\"roomStyles\":{\"cage\":{\"wall\":\"not a part\"}}}";
-        var (cage, spawn) = RoomStyleScope.StylesOf(layout);
+        var layout = Plain[..^1] + ",\"roomStyles\":{\"wool\":{\"wall\":\"not a part\"}}}";
+        var (wool, spawn) = RoomStyleScope.StylesOf(layout);
 
-        await Assert.That(cage).IsEqualTo(HouseStyle.Wool);
+        await Assert.That(wool).IsEqualTo(HouseStyle.Wool);
         await Assert.That(spawn).IsEqualTo(HouseStyle.Spawn);
     }
 
@@ -88,10 +89,10 @@ public sealed class RoomStyleScopeTests
     {
         // The two states a nullable snapshot would have collapsed into one. Absence is a map that never opened
         // the step; null is a map that opened it and said the ground is the room.
-        var (cage, spawn) = RoomStyleScope.StylesOf(BoundRaw(spawn: "null"));
+        var (wool, spawn) = RoomStyleScope.StylesOf(BoundRaw(spawn: "null"));
 
         await Assert.That(spawn).IsNull();
-        await Assert.That(cage).IsEqualTo(HouseStyle.Wool);
+        await Assert.That(wool).IsEqualTo(HouseStyle.Wool);
     }
 
     [Test]
@@ -126,11 +127,45 @@ public sealed class RoomStyleScopeTests
         // Sandstone walls: a block no built-in shell ever places, so finding it says the binding travelled the
         // whole way rather than that a default happened to match.
         var sandstone = HouseStyle.Wool with { Wall = RoomPart.Of(new SolidMaterial(Blocks.Sandstone), 7) };
-        var built = WorldBuilder.Build(Bound(cage: sandstone), Intent());
+        var built = WorldBuilder.Build(Bound(wool: sandstone), Intent());
 
         await Assert.That(Count(built.World, -10, 10, Blocks.Sandstone)).IsGreaterThan(0);
-        // And only the cages: a spawn room is a different kind, so it kept its own built-in shell.
+        // And only the wool rooms: a spawn room is a different kind, so it kept its own built-in shell.
         await Assert.That(Count(built.World, -20, 0, Blocks.Sandstone)).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task A_gate_reading_a_room_reads_the_one_that_stands()
+    {
+        // A region that states no footprint resolves a different rectangle bound and open — a shell insets a
+        // wall, and the default footprint is picked to seat the pad inside whatever is left — so the room's
+        // far edge moves with the binding. What must hold is that a gate measuring from the room measures
+        // from the one that stands: the dressing pass's door approach begins one block past it, whichever it
+        // is. A gate that assumed a shell keeps a lane clear two rows short of the open room's door.
+        var intent = new MapIntent
+        {
+            Teams = [new TeamDef { Id = "red", Color = "red" }],
+            Spawns =
+            [
+                new SpawnIntent
+                {
+                    Team = "red", Point = new Pt(5, 1, 5), Yaw = 0, Protection = [new Rect(0, 0, 10, 10)],
+                },
+            ],
+        };
+
+        var walled = WorldBuilder.SpawnRoom(intent.Spawns[0], shellBound: true).Frame;
+        var open = WorldBuilder.SpawnRoom(intent.Spawns[0], shellBound: false).Frame;
+        await Assert.That(open.MaxZ).IsNotEqualTo(walled.MaxZ);      // the premise a gate has to read
+
+        foreach (var shells in (RoomShells[])[RoomShells.BuiltIn, new RoomShells(HouseStyle.Wool, null)])
+        {
+            var frame = WorldBuilder.SpawnRoom(intent.Spawns[0], shells.SpawnBound).Frame;
+            var approach = DressingScope.ApproachAt(intent, shells);
+
+            await Assert.That(approach(5, frame.MaxZ)).IsFalse();
+            await Assert.That(approach(5, frame.MaxZ + 1)).IsTrue();
+        }
     }
 
     [Test]
@@ -138,7 +173,7 @@ public sealed class RoomStyleScopeTests
     {
         // The stage-one promise, held at the far end of the pipeline: the two worlds are the same world.
         var plain = WorldBuilder.Build(Plain, Intent());
-        var bound = WorldBuilder.Build(Bound(cage: HouseStyle.Wool, spawn: HouseStyle.Spawn), Intent());
+        var bound = WorldBuilder.Build(Bound(wool: HouseStyle.Wool, spawn: HouseStyle.Spawn), Intent());
 
         for (var y = 1; y < 30; y++)
         for (var x = -25; x <= 25; x += 1)
@@ -166,14 +201,14 @@ public sealed class RoomStyleScopeTests
     [Test]
     public async Task The_shipped_shells_stand_under_the_build_ceiling()
     {
-        await Assert.That(RoomStyleScope.Check(HouseStyle.Wool, "roomStyles.cage")).IsEmpty();
+        await Assert.That(RoomStyleScope.Check(HouseStyle.Wool, "roomStyles.wool")).IsEmpty();
         await Assert.That(RoomStyleScope.Check(HouseStyle.Spawn, "roomStyles.spawn")).IsEmpty();
     }
 
     [Test]
     public async Task A_shell_asked_for_no_building_at_all_has_no_height_to_refuse()
     {
-        await Assert.That(RoomStyleScope.Check(null, "roomStyles.cage")).IsEmpty();
+        await Assert.That(RoomStyleScope.Check(null, "roomStyles.wool")).IsEmpty();
     }
 
     [Test]
@@ -186,12 +221,12 @@ public sealed class RoomStyleScopeTests
             Storeys = [.. Enumerable.Repeat(new Storey { Clear = 5 }, 5)],
         };
 
-        var refused = RoomStyleScope.Check(tower, "roomStyles.cage");
+        var refused = RoomStyleScope.Check(tower, "roomStyles.wool");
 
         await Assert.That(refused.Refuses).IsTrue();
         var finding = refused.Single();
         await Assert.That(finding.Rule).IsEqualTo(RoomFrameRules.ShellOverCeiling);
-        await Assert.That(finding.Field).IsEqualTo("roomStyles.cage");
+        await Assert.That(finding.Field).IsEqualTo("roomStyles.wool");
         await Assert.That(finding.Message).Contains(BuildCeiling.OverGround.ToString());
     }
 
@@ -206,12 +241,12 @@ public sealed class RoomStyleScopeTests
         };
 
         await Assert.That(atTheCap.TopLayer).IsEqualTo(BuildCeiling.OverGround);
-        await Assert.That(RoomStyleScope.Check(atTheCap, "roomStyles.cage")).IsEmpty();
+        await Assert.That(RoomStyleScope.Check(atTheCap, "roomStyles.wool")).IsEmpty();
     }
 
     /// <summary>How many blocks of one kind stand in one room's own footprint — a count rather than a set, so a
     /// room that got half a shell would fail. The radius is the room's: a default shell frames 9 cells across
-    /// the marker, and a window any wider reaches the neighbouring room (the red spawn and the red cage stand
+    /// the marker, and a window any wider reaches the neighbouring room (the red spawn and the red wool room stand
     /// 10 apart here), which would read one room's material as the other's.</summary>
     private static int Count(VoxelWorld world, int x, int z, int blockId)
     {

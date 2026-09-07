@@ -85,17 +85,17 @@ public class FindingsTests
     /// <b>A field is only findable if it says which document it is in.</b> A house style bound twice onto one
     /// sketch reports <c>doorHead.block</c> from either, and an author reading that cannot tell which of the two
     /// to fix — so a gate run over a sub-object roots what it found. A finding with no field of its own takes
-    /// the root itself rather than <c>roomStyles.cage.</c> with nothing after it.
+    /// the root itself rather than <c>roomStyles.wool.</c> with nothing after it.
     /// </summary>
     [Test]
     public async Task A_gate_over_a_sub_object_roots_the_field_it_names()
     {
         var rooted = Findings.Of(
             new Finding("HS1", "not a stair", Field: "doorHead.block"),
-            new Finding("HS2", "too short")).Under("roomStyles.cage");
+            new Finding("HS2", "too short")).Under("roomStyles.wool");
 
-        await Assert.That(rooted[0].Field).IsEqualTo("roomStyles.cage.doorHead.block");
-        await Assert.That(rooted[1].Field).IsEqualTo("roomStyles.cage");
+        await Assert.That(rooted[0].Field).IsEqualTo("roomStyles.wool.doorHead.block");
+        await Assert.That(rooted[1].Field).IsEqualTo("roomStyles.wool");
 
         // Everything else about each finding survives the rooting.
         await Assert.That(rooted[0].Rule).IsEqualTo("HS1");

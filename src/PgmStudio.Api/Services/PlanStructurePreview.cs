@@ -52,7 +52,7 @@ public static class PlanStructurePreview
 
         var boxes = new List<StructureBox>();
 
-        // Spawn cubes + wool cages: the frame-resolved shell (its plan piece, or the marker-anchored
+        // Spawn and wool rooms: the frame-resolved shell (its plan piece, or the marker-anchored
         // default), resting on the columns it spans — the same WorldBuilder frames the build stamps.
         var teamColor = (intent.Teams ?? []).ToDictionary(t => t.Id, t => t.Color);
         foreach (var s in intent.Spawns)

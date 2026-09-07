@@ -87,6 +87,15 @@ rounding it away.
   had touched. The gap takes only what leaves the marker seated where it already sat, down to the one-block
   ring — which is why an existing 10×10 spawn piece keeps its point and simply gets a shallower room.
 
+  **And the default is the binding's, not just the piece's.** The pad has to seat inside whatever a shell
+  would leave, so a kind bound to **open ground** — no wall to inset — seats it under a wider door gap and
+  resolves a **shallower** room: a 10×10 spawn piece frames `(1,1)..(9,8)` with a shell over it and
+  `(1,1)..(9,6)` without one. Every reader measuring from a room therefore takes the board's bound pair
+  (`RoomShells`, resolved once by the build and carried on `BuiltWorld.Shells`) rather than assuming a shell:
+  the goal keep-outs, the dressing pass's door approaches and the renewable iron footprints all name the room
+  the export stamps. A plan is the exception and states it — a plan carries no binding, so the plan preview
+  and the plan validator resolve the widest and the narrowest room a binding could leave, deliberately.
+
   The shell's orientation is the rect's own; the fanned rect orients the orbit images.
 
 - **WX2** *Minimums are measured in blocks, never cells, and only one of them refuses.* The smallest room

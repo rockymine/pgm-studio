@@ -79,7 +79,7 @@ public sealed class DressingScopeTests
             Spawns = [new SpawnIntent { Team = "red", Point = new Pt(5, 8, 5) }],
             Wools = [new WoolIntent { Owner = "red", Color = "red", Spawn = new Pt(20, 8, 20) }],
         };
-        var keptClear = DressingScope.KeptClearAt(world, surface, intent);
+        var keptClear = DressingScope.KeptClearAt(world, surface, intent, RoomShells.BuiltIn);
 
         // And the mask says WHAT each cell is held for, which is what a decline has to name.
         await Assert.That(keptClear(5, 5)).IsEqualTo(KeepOut.Spawn);       // the spawn
@@ -101,7 +101,7 @@ public sealed class DressingScopeTests
             Cores = [new CoreIntent { Owner = "red", Anchor = new Pt(20, 8, 20), Lava = 5, LavaHeight = 5 }],
         };
 
-        await Assert.That(DressingScope.KeptClearAt(world, surface, core)(20, 20)).IsNull();
+        await Assert.That(DressingScope.KeptClearAt(world, surface, core, RoomShells.BuiltIn)(20, 20)).IsNull();
     }
 
     [Test]
@@ -210,7 +210,7 @@ public sealed class DressingScopeTests
     public async Task The_ground_in_front_of_a_spawn_door_is_kept_clear_and_the_ground_behind_it_is_not()
     {
         var (world, surface) = Ground(-40, 80);
-        var keptClear = DressingScope.KeptClearAt(world, surface, SpawnFacingPosZ);
+        var keptClear = DressingScope.KeptClearAt(world, surface, SpawnFacingPosZ, RoomShells.BuiltIn);
 
         await Assert.That(keptClear(0, 15)).IsEqualTo(KeepOut.Approach);   // in the lane
         await Assert.That(keptClear(0, -15)).IsNull();                     // behind the room
@@ -224,7 +224,7 @@ public sealed class DressingScopeTests
         // that the sightline argument does not hold for it, and a mask that reads the prop's kind before
         // deciding whether a lane is a lane is a carve-out nobody driving the studio can predict.
         var (world, surface) = Ground(-40, 80);
-        var keptClear = DressingScope.KeptClearAt(world, surface, SpawnFacingPosZ);
+        var keptClear = DressingScope.KeptClearAt(world, surface, SpawnFacingPosZ, RoomShells.BuiltIn);
 
         await Assert.That(keptClear(0, 15)).IsEqualTo(KeepOut.Approach);
     }
@@ -239,7 +239,7 @@ public sealed class DressingScopeTests
             Wools = [new WoolIntent { Owner = "blue", Color = "blue", Spawn = new Pt(0, 8, 0) }],
         };
         var (world, surface) = Ground(-40, 80);
-        var keptClear = DressingScope.KeptClearAt(world, surface, wool);
+        var keptClear = DressingScope.KeptClearAt(world, surface, wool, RoomShells.BuiltIn);
 
         await Assert.That(keptClear(0, 10)).IsEqualTo(KeepOut.Approach);
         await Assert.That(keptClear(0, 21)).IsNull();

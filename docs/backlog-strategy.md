@@ -1,7 +1,7 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 50 open entries and `TODO.md` four — the room shells and the dressing key, what a
-snapshot of a library row is keyed by and who can see it is there. This document is the reading that says
+`BACKLOG.md` holds 51 open entries and `TODO.md` one — the dressing key, the last of the bindings a board
+copies from the library that is named by something the library does not make unique. This document is the reading that says
 which of them are defects, which are questions, which share a cause, and what order drains them. Its subject
 is the board itself, and it expires when the board it describes is gone. It is the one document this work adds:
 `CLAUDE.md`'s standing rule is that a change updates the document that already covers its subject rather than
@@ -12,11 +12,11 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **54 open entries over 9,612 words**: a median entry of 164 words and **8 above 250** —
+The two boards carry **52 open entries over 9,332 words**: a median entry of 166 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
-is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 12, `B` 8,
-`TS` 7, `G` 7, `S` 5, `N` 4, `C` 3, and seven others in ones and twos. **Four of them are on `TODO.md`** —
-the room-shell group, whose four entries are the ones a library snapshot's identity is actually spent on.
+is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 11, `B` 8,
+`G` 7, `TS` 5, `S` 5, `N` 4, `C` 3, and seven others in ones and twos. **One of them is on `TODO.md`** —
+a ruling rather than a task, which is what a board looks like between groups.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -160,15 +160,15 @@ confirming it wants a built world rather than a reading.
 
 Nine figures were re-measured against the tree. **Seven had moved.** Six of the seven are a count or a line
 number, which leaves the entry's prose true and the fix mechanical; the seventh is not, and it is the
-dangerous kind. `C51` and `WE70` now carry the measured figures on the board itself, which is where a count
-belongs — a table of corrections is a second place for a number to be wrong.
+dangerous kind. `C51` carries its measured figures on the board itself, which is where a count belongs — a
+table of corrections is a second place for a number to be wrong.
 
 | entry | the board says | measured today | the command that retakes it |
 |---|---|---|---|
 | `C51` | 28 selects, the plan tool 7 | **25**, the plan tool **10**, and six of the 25 go with `TE3` | `grep -rc "<select" src/PgmStudio.Client --include=*.razor` |
 | `B261` | 422 hand-maintained lines in `ThemeVocabulary.cs` | **542** | `wc -l src/PgmStudio.Client/Components/Terrain/ThemeVocabulary.cs` |
 | `A8` | the generator is 85 files, 11.5k lines | **90 files, 13,385 lines** | `find src/PgmStudio.Pgm/{Compose,Evaluate,Shapes,Derive,Plan} -name '*.cs'` |
-| `WE70` | six callers hardcode `true`; `DressingScope:216,218` | **ten** sites — `PlanStructurePreview:60,74`, `RoomStylePreview:42`, `PieceRoom:75,98`, `WorldBuilder:761`, `MapExportComposer:534,539`, `DressingScope:223,225` | `grep -rn "shellBound: true" src --include=*.cs` |
+| `WE70` | six callers hardcode `true`; `DressingScope:216,218` | **ten** sites, of which **five are deliberate**: a plan carries no binding, so `PlanStructurePreview:60,74` and `PieceRoom:75,98` draw the shell a plan exports and `RoomStylePreview:42` previews a style. The three that read a built map were the defect (`FEATURES.md`) | `grep -rn "shellBound: true" src --include=*.cs` |
 | `C62` | `components.css:989–1004`; the grep "hits only that CSS" | **985–1001**; the grep hits **202**, and a fourth site is `editor.css:756` | `grep -rn "map-author-" src/ tests/` |
 | `TE2` | `ObjectivePhase.razor.cs:201`, `:211`; `.razor:56` | **`:204`**, **`:212`**; **`:55`** | `grep -n DyeColors src/PgmStudio.Client/Features/Edit/ObjectivePhase.razor.cs` |
 | `RP59` | every authored board takes six calls, because the one-call path reads as a re-import | `drive.py:582` stores through **`POST /map/from-documents`**, one call, under a stated slug | `grep -n 'call("P' /media/sf_repos/pgm-studio-mapgen/tools/drive.py` |
@@ -410,7 +410,7 @@ anything above interrupts it, except a Phase 1 defect in the surface it is build
 programme at a time and says at the top which one, so the phase order above is what to pull up next rather
 than a queue that runs beside the one already open.
 
-**Phase 3 — put the surviving measurements under a script.** `C51`, `B261`, `A8`, `WE70`, `C62` and `TE2` each
+**Phase 3 — put the surviving measurements under a script.** `C51`, `B261`, `A8`, `C62` and `TE2` each
 carry a count or a line number that has drifted, and `C62` carries a retake command that no longer measures
 its own claim. Where the number is load-bearing it earns a `census.sh`-shaped generator; where it is not, it
 comes out of the entry and the prose stands alone. `RP59` was not part of this phase — what drifted there was

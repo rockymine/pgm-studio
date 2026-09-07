@@ -624,7 +624,7 @@ else depends on are protected, and the things nothing depends on are the author'
 two `/storey-styles` verbs (over the storey's own window); the two `/roof-styles` verbs run
 `HouseStyleValidation.CheckRoof` over the composed roof, which is the whole roof gate rather than half of it —
 a roof part states its own `roofSlab`, so the slab/pitch pairing has both numbers there. The same checks run
-wherever else a `HouseStyle` snapshot enters the studio: a stored sketch's bound `roomStyles.cage` and
+wherever else a `HouseStyle` snapshot enters the studio: a stored sketch's bound `roomStyles.wool` and
 `roomStyles.spawn` and the shell of every building in its `dressing` (`docs/tools/sketch.md`'s Refusals) — the
 wool cage, the spawn and a placed house checked identically, since none of the three asks for a different
 rule, and there against the build ceiling as well (`WX10`, `docs/world-export/structures.md`). All three roads
@@ -698,7 +698,7 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `POST /themes/import` | lift a whole theme JSON in: one style per bucket plus a theme. Body `{name?, themeJson}` — the **mirror of the `GET` above**, the theme being the *stringified* document in `themeJson` rather than an object, and `name` optional (an unnamed import becomes "Imported theme"). 400, never 500, on bad JSON |
 | `DELETE /themes/{id}` | forget a theme; its bindings cascade, its styles stay |
 | `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building. `POST`/`PUT …/roof-styles` and `…/storey-styles` answer 400 `{error, message, findings[]}` (`docs/refusals.md`) when the house-style gate refuses the roof (its materials, its `roofSlab`, and the slab against its pitch) or the window (Refusals, above); porches carry nothing the gate checks |
-| `GET /room-styles` · `GET /room-styles/{id}` | the room library and one room style's parts and courses |
+| `GET /room-styles` · `GET /room-styles/{id}` | the room library — each row `{id, name, preview, style}`, `style` being the composed shell as the stamper's own JSON, so a caller holding a snapshot can say which row it is by matching the document — and one room style's parts and courses |
 | `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles — body `{name, roofForm, …parts, courses[]}`. 400 `{error, message, findings[]}` when the composed shell fails the house-style gate |
 | `GET /room-styles/doors` | the doors a room may be stamped with |
 | `GET /room-styles/block-kinds` | which kind of block each style field takes, and the ids of each kind — `{fields[], kinds[]}`. A field row is `{field, kind, when, means, alsoAt[]}` and a kind row is `{kind, blocks[]}` with each block `{id, data, name, material, hex}`. It is the table `HS1` refuses from, so a block it offers is one the gate accepts and a field's `means` is the sentence the refusal names it with |
@@ -776,7 +776,7 @@ shape's `theme` pointing at it. `POST /themes/import` collapses the first two wh
 
 A building is the same shape one level up: `POST /roof-styles`, `/storey-styles` and `/porch-styles` for the
 parts, `POST /room-styles` binding them with the shell's own knobs and courses, then `GET
-/room-styles/{id}/json` for the stamper's form — which a sketch's Theme phase stores as its `cage` or `spawn`
+/room-styles/{id}/json` for the stamper's form — which a sketch's Theme phase stores as its `wool` or `spawn`
 snapshot, or a placed building carries as its `style`.
 
 Both `/json` endpoints answer a **string in a field** rather than the document — `{themeJson: "…"}` and

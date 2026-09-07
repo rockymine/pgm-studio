@@ -17,7 +17,7 @@ namespace PgmStudio.Api.Tests;
 [NotInParallel("api-db")]
 public sealed class SketchMaterialGateTests
 {
-    /// <summary>A board whose wool cage wears a log verge — which <c>HS3</c> refuses, since a log is never a
+    /// <summary>A board whose wool room wears a log verge — which <c>HS3</c> refuses, since a log is never a
     /// roof or a verge material.</summary>
     private const string LogVerge = """
         {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
@@ -25,7 +25,7 @@ public sealed class SketchMaterialGateTests
            "shapes":[{"id":"s1","type":"rectangle","operation":"add",
                       "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}],
            "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}],
-         "roomStyles":{"cage":{"roof":{"form":"gable","pitch":1,"slab":-1,
+         "roomStyles":{"wool":{"roof":{"form":"gable","pitch":1,"slab":-1,
                                        "body":{"kind":"solid","id":5,"data":1},
                                        "verge":{"kind":"solid","id":17,"data":1}}}}}
         """;

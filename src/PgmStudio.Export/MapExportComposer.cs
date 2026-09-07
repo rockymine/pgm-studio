@@ -136,7 +136,7 @@ public static class MapExportComposer
         // OB17 — asked against the ground the rasterizer actually produced, not the plan's rectangles. A map
         // begun in Sketch never passes the compile gate at all, so this is the only place every export is
         // checked.
-        if (RefuseObjectivePlacement(columns, goals) is { } placementRefusal) return placementRefusal;
+        if (RefuseObjectivePlacement(columns, goals, built.Shells) is { } placementRefusal) return placementRefusal;
 
         IntentGenerator.Apply(doc, goals);
         decorate?.Invoke(doc);
@@ -152,7 +152,7 @@ public static class MapExportComposer
         if (Playable(goals, doc) is { Refuses: true } unplayable)
             return Refuse("not a playable map", [.. unplayable.Refusals]);
 
-        var renewCubes = WorldBuilder.RenewableCubeFootprints(goals);
+        var renewCubes = WorldBuilder.RenewableCubeFootprints(goals, built.Shells);
         var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
         return new(null, sketchXml, built, doc);
     }
@@ -355,9 +355,9 @@ public static class MapExportComposer
     // ── OB17 — objective placement, over the ground the rasterizer actually produced ──────────────────────
 
     private static ExportComposition? RefuseObjectivePlacement(
-        IReadOnlyList<ColumnSegment> columns, MapIntent goals)
+        IReadOnlyList<ColumnSegment> columns, MapIntent goals, RoomShells shells)
     {
-        var findings = CheckGoalPlacement(columns, goals);
+        var findings = CheckGoalPlacement(columns, goals, shells);
         return findings.Count == 0 ? null : Refuse("objective placement", [.. findings]);
     }
 
@@ -449,11 +449,11 @@ public static class MapExportComposer
     /// carries the answer as complaints, so an author hears it while drawing rather than at the door.</para>
     /// </summary>
     public static Findings CheckGoalPlacement(
-        IReadOnlyList<ColumnSegment> columns, MapIntent goals)
+        IReadOnlyList<ColumnSegment> columns, MapIntent goals, RoomShells shells)
     {
         var groundColumns = columns.Select(column => (column.X, column.Z)).ToHashSet();
         bool IsLand(int x, int z) => groundColumns.Contains((x, z));
-        var findings = ObjectivePlacement.Check(PlacedGoals(goals), IsLand, KeepOuts(goals)).ToList();
+        var findings = ObjectivePlacement.Check(PlacedGoals(goals), IsLand, KeepOuts(goals, shells)).ToList();
 
         // A wool monument over the void the same way: it is not a PlacedGoal — its room is its own keep-out,
         // which the footprint check would misread as the goal reaching into it — but a monument with no
@@ -526,17 +526,17 @@ public static class MapExportComposer
     // The stamped rooms a goal may not reach into: every spawn's and every wool's resolved frame, read
     // through the same public frame resolution WorldBuilder itself stamps by, so the export gate can
     // never disagree with the world it just built.
-    private static List<GoalKeepOut> KeepOuts(MapIntent goals)
+    private static List<GoalKeepOut> KeepOuts(MapIntent goals, RoomShells shells)
     {
         var keepOuts = new List<GoalKeepOut>();
         foreach (var spawn in goals.Spawns)
         {
-            var frame = WorldBuilder.SpawnRoom(spawn, shellBound: true).Frame;
+            var frame = WorldBuilder.SpawnRoom(spawn, shells.SpawnBound).Frame;
             keepOuts.Add(new GoalKeepOut("spawn", spawn.Team, new BlockRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)));
         }
         foreach (var wool in goals.Wools ?? [])
         {
-            var frame = WorldBuilder.WoolFrame(wool, shellBound: true);
+            var frame = WorldBuilder.WoolFrame(wool, shells.WoolBound);
             keepOuts.Add(new GoalKeepOut("wool room", wool.Owner, new BlockRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)));
         }
         return keepOuts;

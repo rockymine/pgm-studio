@@ -54,10 +54,13 @@ public static class DressingScope
     /// because ground a player may not enter is ground a prop has no business standing on — but what it answers
     /// is the other thing.</para>
     /// <para><b>layoutJson</b> — The sketch layout, for the shapes that mark themselves kept clear. Absent reads
-    /// the intent and the world alone, which is every board that marks none.</para></summary>
+    /// the intent and the world alone, which is every board that marks none.</para>
+    /// <para><b>shells</b> — What the board binds, so the door approaches are measured from the buildings that
+    /// actually stand. Taken from the build rather than resolved here, because the build is what stamped
+    /// them.</para></summary>
     public static Func<int, int, KeepOut?> KeptClearAt(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, MapIntent intent,
-        string? layoutJson = null, int margin = 2)
+        RoomShells shells, string? layoutJson = null, int margin = 2)
     {
         var blocked = new Dictionary<(int X, int Z), KeepOut>();
 
@@ -116,7 +119,7 @@ public static class DressingScope
 
         // The doors' approaches, held as rects rather than expanded: a board has a handful of doored faces and
         // each covers hundreds of cells, so the question is asked per candidate cell rather than per lane block.
-        var approach = ApproachAt(intent);
+        var approach = ApproachAt(intent, shells);
 
         return (x, z) => blocked.TryGetValue((x, z), out var why) ? why
             : approach(x, z) ? KeepOut.Approach
@@ -215,14 +218,14 @@ public static class DressingScope
     /// <para>Part of <see cref="KeptClearAt"/>, which is what makes it a keep-out rather than a refusal: a prop
     /// authored into a lane does not land, and the pass says so. Every kind is turned away, boulders included —
     /// a boulder is tall enough that the low-cover sightline argument does not hold for it.</para></summary>
-    public static Func<int, int, bool> ApproachAt(MapIntent intent)
+    public static Func<int, int, bool> ApproachAt(MapIntent intent, RoomShells shells)
     {
         var rects = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
 
         foreach (var spawn in intent.Spawns)
-            AddFrontages(rects, WorldBuilder.SpawnRoom(spawn, shellBound: true).Frame, SpawnApproach);
+            AddFrontages(rects, WorldBuilder.SpawnRoom(spawn, shells.SpawnBound).Frame, SpawnApproach);
         foreach (var wool in intent.Wools ?? [])
-            AddFrontages(rects, WorldBuilder.WoolFrame(wool, shellBound: true), WoolApproach);
+            AddFrontages(rects, WorldBuilder.WoolFrame(wool, shells.WoolBound), WoolApproach);
 
         return (x, z) => rects.Any(r => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ);
     }
