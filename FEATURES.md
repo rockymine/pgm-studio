@@ -8651,6 +8651,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   operational tool. It also held a third copy of `Mirror`/`Fold`/`SymmetryError`, against the Traps rule that
   the transform is one C# leaf plus the JS twin. The numbers it printed already stood in the document, which
   now cites `Geom/Relief/` as what a disagreeing figure is settled against.
+- **A plan piece is picked on the canvas, and the height it was compiled at is corrected there (B107).** The
+  Draw phase — the only phase that edits geometry — hit-tests the plan's own pieces before the ground under
+  them, because a piece is drawn over that ground and is what the pointer is on; `ctrl`-click reaches past to
+  the island, the modifier that already means *deeper*. The picked piece is ringed and opens a rail of its
+  own: its kind, whose it is, its extent, and — for a **region** — the surface it was compiled at, with the
+  prose saying whether that number is the plan's or the author's. Correcting it writes the number and the
+  `height_authored` flag together, which is what makes the correction outlive the next compile; either alone
+  is a lie. A **building** footprint states no height — the region it stands in is what a group's relief is
+  held against — so its rail says so and offers no field. Picking drops whatever terrain selection was
+  standing, chrome included, and undo re-announces the picked piece rather than re-picking it. The geometry
+  stays the plan's: moving a piece is `S25b`.
 - **A stated structural height survives a recompile (B107, backend half).** A spawn or wool-room piece is
   projected into the sketch as a `Role`-tagged shape whose `Floor`/`BaseHeight` already drive the relief's
   hold-pin — but `AppendStructuralShape` overwrote both with the plan's flat `surface` on every compile, so a
@@ -8972,8 +8983,8 @@ these are the ones that shipped a map that could not be played as intended, and 
   position (`PlanCompiler.ResolveGoalAnchor`) rather than a piece-relative offset, so a goal can ride an
   authored sketch landform with no tier manufactured to carry it, and `PlanValidator` no longer reports the
   absent piece as a dangling reference for these two marker kinds. The default float stays at 4 — a gameplay
-  constant, not part of this fix. Leaves open `B107` — the canvas has no way to draw an absolutely-placed goal
-  yet, so only a hand-written or agent-authored plan can. (It also read as leaving the spawn and wool anchors
+  constant, not part of this fix. Leaves open the canvas half: there is no way to draw an absolutely-placed
+  goal, so only a hand-written or agent-authored plan can. (It also read as leaving the spawn and wool anchors
   behind, filed as `B222`; measuring showed the world build had always resolved those against the terrain too,
   and what was missing was the sentence saying so.)
 - **A stage image is a diagram now, not a photograph, and every one carries its own key (B98, B95).**

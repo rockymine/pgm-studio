@@ -1900,11 +1900,23 @@ controls to make sense of it. Dressing was the one that did not, and the way it 
 out from under a spawn: the piece the plan projected stayed where it was, the ground under it did not, and
 the ground it left behind fused into an island of its own.
 
-The structural pieces a plan projects in are **read-only here**. A spawn or wool room and the building inside
-it are rendered so they stay visible while the ground around them is refined, but neither can be selected,
-moved or reshaped, and a destroy objective has no sketch presence at all. The building is drawn where the plan
-tool draws it, so the two tools show one rectangle rather than each showing its own. The backend half of correcting a structural piece's height across a
-recompile is in place; the canvas half is not (`B107`).
+The structural pieces a plan projects in keep their **geometry read-only**. A spawn or wool room and the
+building inside it are rendered so they stay visible while the ground around them is refined, and neither can
+be moved or reshaped here — the plan draws them, and a recompile redraws them. A destroy objective has no
+sketch presence at all. The building is drawn where the plan tool draws it, so the two tools show one
+rectangle rather than each showing its own.
+
+**One of them can be picked, and the one thing it states can be corrected.** In the Draw phase — the only
+phase that edits geometry — a click lands on the piece under the cursor before the ground under it, because
+the piece is drawn over that ground and is what the pointer is on; `ctrl`-click reaches past it to the island,
+the same modifier that already means *deeper*. The picked piece is ringed on the canvas and opens a rail of its
+own: what kind it is, whose it is, its extent, and — for a **region** — the height it was compiled at. That
+number is the plan's flat surface and every recompile writes it again, until an author corrects it here;
+correcting it writes the number and the author's-height flag together, which is what makes the correction
+survive the next compile (matched by `intentRef`, `SketchLayout.CarryStructuralHeight`). A **building**
+footprint carries no height of its own — the region it stands in is what a group's relief is held against —
+so its rail states that and offers no field. Picking a piece drops whatever terrain selection was standing,
+chrome included: one click selects one thing, and a room and the ground under it are two.
 
 The layout model carries two shape types the **Draw** dock cannot draw. A `circle` rasterizes as a 64-gon, and
 a `polyline` is a centreline with a band whose width, edge and seed the inspector edits — but the dock offers

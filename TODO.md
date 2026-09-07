@@ -28,12 +28,6 @@ entries are the join that is left rather than the whole read. Nothing in it touc
 
 ## A building is a footprint and a shell, wherever it came from
 
-- [~] **B107 — A structural shape cannot be selected, so its stated height cannot be corrected.** The backend
-  half is landed (`FEATURES.md`): a shape's stated height survives a recompile, marked per field and carried
-  by `intentRef`. `sketch-canvas.js` keeps structural shapes render-only — never hit-tested, never selected —
-  so nothing can write the `height_authored` flag a correction sets. Wants selection and an inspector row for
-  the stated height. The `building` shape has no height of its own and takes no such row; the region does.
-
 - [ ] **S25b — Make the surfaced spawn/wool shapes movable, writing the move back to the intent.** S25 landed
   them as **locked** read-only rectangles (`FEATURES.md`), and `TN11` added the second one. The next slice
   makes both draggable: moving the region writes `Protection`, moving the building writes `Footprint`, so the

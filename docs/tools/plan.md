@@ -817,6 +817,7 @@ else; the map's real pre-flight, its region tree and its XML are Configure's.
 Destroy objectives are offered only at symmetry order 2, and a hand-written plan that places them elsewhere is
 refused rather than compiled.
 
-Once a plan has been built, the structural pieces it projected into the sketch are read-only there. A shape's
-stated height can be corrected and survives a recompile, but selecting, moving or reshaping a spawn or wool
-room in the Sketch tool is not yet reachable (`B107`), and a destroy objective has no sketch presence at all.
+Once a plan has been built, the structural pieces it projected into the sketch keep their geometry there: the
+Sketch tool's Draw phase picks one and corrects the height it was compiled at, and the correction survives a
+recompile, but the rectangle itself is the plan's and moving it back from the sketch is `S25b`. A destroy
+objective has no sketch presence at all.

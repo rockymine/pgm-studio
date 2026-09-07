@@ -202,14 +202,14 @@ entries listed after it are what stop being separate work once it lands.
 **A building is a footprint and a shell, and the studio has two models of it.** A room states one `Rect`, a
 dressed `HouseProp` states `AuthoredWing[]`, and the author's ruling is that a room's building *is* the
 single-wing case of the dressed one. `WE71` landed that model — one least span, one ink on all three canvases.
-What is left is the interaction it makes possible: `B107` and `S25b`, which are `TODO.md`'s current
-programme. The theme scope left it by shipping (`B145`, `FEATURES.md`), which is the half that needed no
-hit-test at all; once a room's building is drawn and hit-tested by the code that already does both for a prop,
-selection and the drag are two things one hit-test unlocks rather than two features.
+What is left is the interaction it makes possible, and it has drained to `S25b` — the drag, which is a write
+back to the intent rather than a canvas affordance. The other two left by shipping: the theme scope needed no
+hit-test at all (`B145`), and the hit-test itself, with the rail it opens on a picked piece, is `B107`
+(`FEATURES.md`). The drag now has a selection to begin on.
 
 **A layer is first-class in the export and an afterthought everywhere else.** `DressingDoc.add` stamps the
 storey; `SketchDressingInspector` has no field for it. `TerrainPainter` is handed a surface per layer and
-sorts by nothing. `B263` · `B264` · `WE28` · `TS64` · `B107`. The board now carries this cause as a section
+sorts by nothing. `B263` · `B264` · `WE28` · `TS64`. The board now carries this cause as a section
 preamble of its own, which is the shape a cause should reach before it is worked.
 
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
@@ -233,7 +233,7 @@ to sit between. Fusing is deliberate — a compiled layout is a layout, not a co
 three things that rode on it have since been paid: a shape is named for its component's first piece and the
 surface it stands at rather than for where it was emitted (`TS82`, `FEATURES.md`), so a piece name does
 address what it produced; and a coast is bent by the studio rather than restated beside the plan (`TS30`).
-What is left is the seam itself. `B213` · `B107`.
+What is left is the seam itself. `B213`.
 
 **A convention is measured and nothing complains.** Four entries in one section each name a predicate, a
 corpus number and the document that would carry the rule, and none of them is a gate: a building walled in
@@ -325,8 +325,8 @@ on a ruling. Each has a definite end and none of it is work until the answer arr
 
 **Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`,
 `N08`, `N12`, `TS64`, `TS75`, `S59`, `B262`, `B44`. Four more — `B107`, `S25b`, `B145`, `WE54` — were
-this population until the building's one model turned them from three reaches into one; `B145` and `WE54` have
-since shipped and the other two are on `TODO.md`. This is the population the studio's own shape produces, and every one of them is the same thing: a
+this population until the building's one model turned them from three reaches into one; three of the four have
+since shipped and `S25b` is what is left of the programme. This is the population the studio's own shape produces, and every one of them is the same thing: a
 document, a route or a solver that already answers, and a surface that never asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,

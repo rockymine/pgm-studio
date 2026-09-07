@@ -291,6 +291,9 @@ public partial class SketchTool
     private int selectedVertexIdx = -1;
     private double selectedVertexHeight;
     private List<SketchSlopeControl> slopeControls = [];   // shift-marked surface-slope controls (2–3)
+    // The plan piece a click picked. Not one of `shapes` — the bridge keeps the plan's own pieces apart from
+    // the shapes an author drew — so the row itself is held rather than an id into a list.
+    private SketchStructuralRow? selectedStructural;
 
     private SketchShapeRow? SelectedShape => shapes.FirstOrDefault(s => s.Id == selectedShapeId);
     private SketchGroupRow? SelectedGroup => groups.FirstOrDefault(i => i.Id == selectedGroupId);
@@ -594,6 +597,25 @@ public partial class SketchTool
     /// <summary>A shape was selected on the canvas/panel (null = deselected).</summary>
     [JSInvokable]
     public void OnShapeSelected(string? id) { selectedShapeId = id; selectedVertexIdx = -1; slopeControls = []; StateHasChanged(); }
+
+    /// <summary>One of the plan's own pieces was picked on the canvas (null = let go). It arrives whole
+    /// rather than as an id: the bridge holds the structural pieces apart from the drawn shapes, so there is
+    /// no list on this side to look one up in.</summary>
+    [JSInvokable]
+    public void OnStructuralSelected(string? json)
+    {
+        selectedStructural = json is null ? null : JsonSerializer.Deserialize<SketchStructuralRow>(json);
+        StateHasChanged();
+    }
+
+    /// <summary>Correct the height the selected region was compiled at. The bridge writes the number and the
+    /// author's-height flag together, which is what makes the correction outlive the next recompile.</summary>
+    private Task SetStructuralHeight(double height) =>
+        selectedStructural is null || handle is null
+            ? Task.CompletedTask
+            : handle.InvokeVoidAsync("setStructuralHeight", selectedStructural.Id, height).AsTask();
+
+    private Task ClearStructural() => handle?.InvokeVoidAsync("clearStructural").AsTask() ?? Task.CompletedTask;
 
     /// <summary>The shift-marked surface-slope control set changed on the canvas — each entry is a vertex index
     /// + its current height, which the inspector lets the author edit before fitting the plane.</summary>

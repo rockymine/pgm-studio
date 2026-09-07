@@ -1,0 +1,51 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* The plan's own piece, picked on the canvas. Its geometry belongs to the plan and is not editable here;
+   what a region carries and an author may correct is the height it was compiled at. *@
+
+<Inspector>
+  <Section>
+    <DetailHeader Icon="@(Piece.IsRegion ? "square-dashed" : "house")" Label="@Label">
+      <span class="detail-header-badges">
+        <Badge Kind="neutral">@Piece.Who</Badge>
+        <Badge Kind="neutral">@Piece.Dim</Badge>
+        @if (Piece.HeightAuthored) { <Badge Kind="warning">corrected</Badge> }
+      </span>
+    </DetailHeader>
+
+    @if (Piece.IsRegion)
+    {
+      <div class="section-header section-header--ruled"><h2 class="section-title">Stated height</h2></div>
+      <Field Label="Surface (blocks)">
+        <NumberField Value="@(Piece.BaseHeight ?? 0)" ValueChanged="HeightChanged" Min="1" />
+      </Field>
+      <p class="plan-readout">
+        @if (Piece.HeightAuthored)
+        {
+          <text>Yours. A recompile carries this number onto the piece it writes, so refining the plan
+          will not put it back.</text>
+        }
+        else
+        {
+          <text>The plan's. It is the flat surface the piece was compiled at, and every recompile writes it
+          again — change it here and the correction is kept instead.</text>
+        }
+      </p>
+    }
+    else
+    {
+      <p class="plan-readout">
+        The footprint the room's shell stands on. It states no height of its own: the region around it is what
+        the group's relief is held against, and what a correction is made on.
+      </p>
+    }
+
+    <div class="section-header section-header--ruled"><h2 class="section-title">Geometry</h2></div>
+    <p class="plan-readout">
+      Drawn by the plan, not here. Move it in the Plan tool and recompile, and the rectangle follows.
+    </p>
+    <Button Full OnClick="() => OnClose.InvokeAsync()">
+      <i data-lucide="x"></i> Let go
+    </Button>
+  </Section>
+</Inspector>

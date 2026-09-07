@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
@@ -26,6 +27,39 @@ public sealed record SketchShapeRow(
     [property: JsonPropertyName("radius")] double Radius = 0,
     [property: JsonPropertyName("strokeEdge")] string StrokeEdge = "",
     [property: JsonPropertyName("strokeSeed")] int StrokeSeed = 0);
+
+/// <summary>The plan piece a click picked (sketch-bridge.js <c>OnStructuralSelected</c>): a spawn or wool
+/// room's region, or the building footprint inside one. It is not one of <see cref="SketchShapeRow"/> — the
+/// bridge keeps the plan's pieces apart from the shapes an author drew — so the row carries what it states
+/// rather than an id to look up.
+///
+/// <para><see cref="HeightAuthored"/> is the fact the rail exists for. A region's <see cref="BaseHeight"/>
+/// tracks the plan's flat surface on every compile until an author corrects it; the flag is what tells the
+/// next recompile to carry the stored number forward instead. A <c>building</c> carries no height of its
+/// own — the region it stands in is what a group's relief is held against — so its fields read empty.</para>
+/// </summary>
+public sealed record SketchStructuralRow(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("intentRef")] string? IntentRef,
+    [property: JsonPropertyName("color")] string? Color,
+    [property: JsonPropertyName("baseHeight")] double? BaseHeight,
+    [property: JsonPropertyName("heightAuthored")] bool HeightAuthored,
+    [property: JsonPropertyName("minX")] double MinX,
+    [property: JsonPropertyName("minZ")] double MinZ,
+    [property: JsonPropertyName("maxX")] double MaxX,
+    [property: JsonPropertyName("maxZ")] double MaxZ)
+{
+    /// <summary>Whether this piece is a region — the shape that carries a height and an intent entity — as
+    /// against the building footprint drawn inside one.</summary>
+    public bool IsRegion => Role != StructuralRoles.Building;
+
+    /// <summary>The piece's extent in blocks, the way every other selection on this canvas reads one.</summary>
+    public string Dim => $"{MaxX - MinX:0.#} × {MaxZ - MinZ:0.#}";
+
+    /// <summary>Who it belongs to: a spawn's team, a wool's dye colour. What the canvas label says.</summary>
+    public string Who => Role == StructuralRoles.Spawn ? (IntentRef ?? "") : (Color ?? "");
+}
 
 public sealed record SketchGroupRow(
     [property: JsonPropertyName("id")] string Id,

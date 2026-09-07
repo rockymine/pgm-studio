@@ -271,6 +271,14 @@
                                 AddOpen="themeAddOpen" AddOpenChanged="v => themeAddOpen = v"
                                 OnHold="SetThemeBrush" OnChanged="ReadThemes" />
         }
+        else if (selectedStructural is not null)
+        {
+          @* A picked plan piece answers a rail of its own: its geometry is the plan's, and the one thing
+             here is the height a region was compiled at. *@
+          <div class="sidebar-handle"></div>
+          <SketchStructuralInspector Piece="selectedStructural"
+                                     OnSetHeight="SetStructuralHeight" OnClose="ClearStructural" />
+        }
         else
         {
           <div class="sidebar-handle"></div>

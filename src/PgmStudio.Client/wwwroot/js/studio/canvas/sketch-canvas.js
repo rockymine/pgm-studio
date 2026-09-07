@@ -87,7 +87,8 @@ export class SketchCanvas extends CanvasBase {
   #mode    = "rot_180";
 
   #shapes      = new Map();   // id → shape (source for paint / hit-test / edit)
-  #structural  = [];          // locked plan pieces (S25) — render-only, never hit-tested/edited/rasterized
+  #structural  = [];          // locked plan pieces (S25) — the plan's own, never edited/rasterized as terrain
+  #selectedStructuralId = null;   // the picked plan piece, where the phase editing geometry may pick one
   #objectives  = [];          // {kind, x, z} — where the intent's destroyables and cores stand, marker only
   #selectedId  = null;        // drilled/single-member shape (drives the edit-controller handles)
   #selectedGroupId = null;   // selected group (drives the group bbox chrome + whole-group drag)
@@ -534,11 +535,26 @@ export class SketchCanvas extends CanvasBase {
       return;
     }
 
+    // A plan piece is drawn over the ground and is therefore what a click on it lands on. Only where the
+    // phase edits geometry: everywhere else the pieces are context, and picking one would answer a rail that
+    // has nothing to say about it. The ground under a room stays reachable — the island is one polygon and
+    // the room covers a corner of it — and Ctrl reaches through to it where a room is all that is under the
+    // cursor, which is the same modifier that already means "deeper".
+    if (!this.#selectOnly && !(e.ctrlKey || e.metaKey)) {
+      const piece = this.#hitStructural(svgPt.x, svgPt.y);
+      if (piece) {
+        this.#enterScope(null);
+        this.#callbacks.onStructuralSelected?.(piece);
+        return;
+      }
+    }
+
     const picked = resolvePick({
       group: group, member: shape, scope: this.#scopeGroupId, unit: this.#pickUnit,
       deep: e.ctrlKey || e.metaKey, up,
     });
     this.#enterScope(picked.scope);
+    this.#callbacks.onStructuralSelected?.(null);
     if (picked.pick === "group") this.#callbacks.onGroupSelected?.(picked.id);
     else if (picked.pick === "member") this.#callbacks.onShapeSelected?.(picked.id);
     else this.#callbacks.onGroupSelected?.(null);
@@ -796,7 +812,7 @@ export class SketchCanvas extends CanvasBase {
     // Structural pieces (S25) are locked plan context, not drawn primitives — always shown (like the group
     // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.
     painter.layer("structural", () => {
-      paintStructural(painter, this.#structural);
+      paintStructural(painter, this.#structural, this.#selectedStructuralId);
       paintObjectives(painter, this.#objectives);
     });
     painter.layer("selection", () => this.#paintSelectionHighlight());
@@ -838,8 +854,29 @@ export class SketchCanvas extends CanvasBase {
     }
   }
 
-  /** The locked plan pieces (S25) — follow the Shapes toggle, but are drawn read-only (no selection chrome). */
-  setStructural(shapes) { this.#structural = shapes ?? []; this.#paintWorld(); }
+  /** The plan pieces (S25). Reshaping them is the plan's business, but the phase that edits geometry may
+   *  pick one — a region carries the height an author corrects. A selection outliving its piece is dropped:
+   *  a recompile writes fresh shapes, and an id that no longer names one would draw chrome round nothing. */
+  setStructural(shapes) {
+    this.#structural = shapes ?? [];
+    if (!this.#structural.some(s => s.id === this.#selectedStructuralId)) this.#selectedStructuralId = null;
+    this.#paintWorld();
+  }
+
+  /** Pick a plan piece, or `null` to let it go. The terrain selection is cleared with it: one click selects
+   *  one thing, and a room and the ground under it are two. */
+  selectStructural(id) {
+    const next = this.#structural.some(s => s.id === id) ? id : null;
+    if (next === this.#selectedStructuralId) return;
+    this.#selectedStructuralId = next;
+    // Picking a piece drops the terrain selection with it, chrome included: a transform box left standing
+    // over the island is a second selection, and the handles on it act on ground the click did not choose.
+    if (next) { this.#selectedId = null; this.#selectedGroupId = null; this.#setLevel("group"); }
+    else this.#paintWorld();
+  }
+
+  /** The picked plan piece itself, for a caller that needs what it states rather than which one it is. */
+  getStructural(id) { return this.#structural.find(s => s.id === id) ?? null; }
 
   /** Where the map's destroyables and cores stand: `[{kind, x, z}]`, drawn as markers and nothing else. */
   setObjectives(objectives) { this.#objectives = objectives ?? []; this.#paintWorld(); }
@@ -1311,6 +1348,16 @@ export class SketchCanvas extends CanvasBase {
   #updateDim() {
     if (!this.#dimEl) return;
     this.#dimEl.textContent = this.#draw?.activeDimLabel?.() || "";
+  }
+
+  /** The topmost plan piece containing the point, or null. Walked back to front like the shape hit test, so
+   *  a building drawn inside its region is reached before the region it stands in. */
+  #hitStructural(wx, wz) {
+    for (let i = this.#structural.length - 1; i >= 0; i--) {
+      const s = this.#structural[i];
+      if (containsPoint(s, wx, wz)) return s.id;
+    }
+    return null;
   }
 
   #hitTest(wx, wz) {

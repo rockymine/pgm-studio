@@ -50,6 +50,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let groups = [];            // alias of layers[active].groups — kept current by recompute()
   let mirrorVisible = true;
   let selectedGroupId = null; // panel group selection (drives arrow-move of the whole group)
+  let selectedStructuralId = null; // the picked plan piece (S25), whose rail states the height it carries
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
   let view = "2d";             // "2d" | "iso" — the read-only isometric height preview (S6)
@@ -133,6 +134,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     onThemeDrop: () => setThemeBrush(""),
     onGroupSelected: (id) => selectGroup(id),
+    onStructuralSelected: (id) => selectStructural(id),
     // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
     onDressingChanged: edit(() => afterDressingChange()),
     onPropSelected:    () => fire("OnDressing", dressingState()),
@@ -201,8 +203,52 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   function selectShape(id) {
     selectedGroupId = null;
     canvas.selectShape(id);
+    selectStructural(null);
     fire("OnShapeSelected", id ?? null);
     fire("OnGroupSelected", null);
+  }
+
+  /**
+   * Pick one of the plan's own pieces, or let go of it. What rides to the rail is the piece rather than its
+   * id: the shape is not in `canvas.getShape`, so nothing on the other side could look it up, and the rail
+   * needs what it states — the role, who it belongs to, and the height a region carries.
+   *
+   * `heightAuthored` is the fact the rail is for. A region's `base_height` tracks the plan's flat surface on
+   * every compile until an author corrects it; the flag is what tells the next recompile to carry the stored
+   * one forward instead, so the rail has to show which of the two an author is looking at.
+   */
+  function selectStructural(id) {
+    canvas.selectStructural(id ?? null);
+    const s = id ? canvas.getStructural(id) : null;
+    selectedStructuralId = s ? s.id : null;
+    // One click selects one thing. The canvas has already dropped the terrain selection; the panel and the
+    // rail are told too, or the group list goes on lighting a row whose chrome is gone.
+    if (s) { selectedGroupId = null; fire("OnShapeSelected", null); fire("OnGroupSelected", null); }
+    fire("OnStructuralSelected", s ? JSON.stringify({
+      id: s.id, role: s.role, intentRef: s.intentRef ?? null, color: s.color ?? null,
+      baseHeight: s.base_height ?? null, heightAuthored: s.height_authored === true,
+      minX: s.min_x, minZ: s.min_z, maxX: s.max_x, maxZ: s.max_z,
+    }) : null);
+  }
+
+  /**
+   * Correct the height a plan piece was compiled at. It writes the number and the flag together, because
+   * either alone is a lie: the number without the flag is overwritten by the next recompile, and the flag
+   * without a number says an author corrected something to the value the plan already chose.
+   *
+   * A `building` carries no height — the region it stands in is what a group's relief is held against — so
+   * there is nothing here for one to state and the rail offers no field.
+   */
+  function setStructuralHeight(id, height) {
+    const list = layers[active].structural ?? [];
+    const s = list.find(x => x.id === id);
+    if (!s || s.role === "building") return;
+    s.base_height = clampHeight(height);
+    s.height_authored = true;
+    canvas.setStructural(list);
+    canvas.selectStructural(id);
+    selectStructural(id);
+    markDirty();
   }
 
   function selectGroup(id) {
@@ -216,6 +262,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const isl = selectedGroupId ? groups.find(i => i.id === selectedGroupId) : null;
     const placesOwnThings = reliefMode || dressingMode;
     const single = !placesOwnThings && isl && isl.shapeIds.length === 1 ? isl.shapeIds[0] : null;
+    selectStructural(null);
     fire("OnShapeSelected", single);
     fire("OnGroupSelected", single ? null : selectedGroupId);
     // In the Relief phase the group IS the unit being edited — its base, reach, step and grain are what the
@@ -536,12 +583,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const wasSelected = canvas.selectedId;
     const wasMark = canvas.reliefTools?.selectedId ?? null;
     const wasProp = canvas.dressingTools?.selectedId ?? null;
+    const wasPiece = selectedStructuralId;
     handle.load(state, true);
     // A shape that survived the step keeps its selection; one the step created is gone, so the selection
     // clears rather than naming nothing.
     if (wasSelected && canvas.getShape(wasSelected)) selectShape(wasSelected); else selectShape(null);
     if (wasMark && canvas.relief.byId(wasMark)) canvas.reliefTools?.select(wasMark);
     if (wasProp && canvas.dressing.byId?.(wasProp)) canvas.dressingTools?.select(wasProp);
+    // A plan piece survives every step — the plan writes it, not the author — so what a step back changes is
+    // what it states, and the rail is re-announced rather than re-picked.
+    if (wasPiece) selectStructural(wasPiece);
     markDirty();
 
     // A step replaces the WHOLE document, so every phase reading a part of it has to be told. `load` puts
@@ -1014,6 +1065,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     /** Which unit a plain click picks with no group entered — "group" or "shape". The phase states it. */
     setPickUnit(unit) { canvas.setPickUnit(unit); },
+    /** Correct the height a plan piece was compiled at, and mark it the author's so a recompile keeps it. */
+    setStructuralHeight: edit((id, height) => setStructuralHeight(id, height)),
+    /** Let go of the picked plan piece — what a rail's Close does. */
+    clearStructural() { selectStructural(null); },
     /** Arm a theme so a click on a shape paints it; "" puts the brush down. */
     /** Where the map's destroyables and cores stand, from the intent — markers the board carries, not shapes
      *  it owns, so they are handed in rather than read out of the layout. */

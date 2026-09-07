@@ -51,16 +51,21 @@ const ROLE_FILL = { spawn: "#8f7bd6", woolRoom: "#3fae74" };
  * are not terrain (the rasterizer skips them; the ground under them is the fused group): a filled box in the
  * plan's role colour (purple spawn / green wool), a solid border, and a centred label sized to fit. The colour
  * carries the role, so the label carries the identity — a spawn's team, a wool's dye colour + owning team.
- * Read-only — never hit-tested or edited, so no selection chrome.
+ * Their geometry is the plan's, so nothing here is dragged or reshaped; `selectedId` is the one a click has
+ * picked, ringed so an author can see which piece the rail is talking about.
  *
  * A `building` shape is the footprint raised inside one of those regions, and is drawn as a dashed outline
  * over it rather than a second filled box: it stands inside a rectangle that is already labelled, so a second
  * label and a second fill would say the same thing twice over the same ground.
  */
-export function paintStructural(painter, shapes) {
+export function paintStructural(painter, shapes, selectedId = null) {
   for (const s of shapes ?? []) {
     if (s.type !== "rectangle") continue;
     const hex = ROLE_FILL[s.role] ?? "#8892a0";
+    const box = { min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z };
+    // The ring goes outside whatever the piece draws for itself, in the selection ink every other picked
+    // thing on this canvas wears, so a picked region and a picked island read as the same kind of state.
+    if (s.id === selectedId) painter.rect(box, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
     // A building is drawn as a building, in the same ink a dressed house takes, because that is what it is:
     // a room's footprint is the single-wing case of the one an author draws in the Dressing phase. It is
     // unfilled where a prop is filled, and only because it stands on a box already filled with its region's

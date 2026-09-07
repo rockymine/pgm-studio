@@ -85,7 +85,7 @@ try {
   // With nothing selected the inspector describes the board rather than a selection.
   checks.add("the inspector shows the board's defaults with nothing selected",
     await page.locator("text=Board defaults").count() > 0
-    && await page.locator("text=Room shells").count() > 0);
+    && await page.locator("text=Default theme").count() > 0);
 
   // The Blocks overlay is the phase's own, on without being asked for: the paint is what the phase acts on.
   checks.add("Blocks is on when the phase opens",
@@ -185,7 +185,7 @@ try {
     await page.locator("text=Wool cages").count() > 0
     && await page.locator("text=Spawn cubes").count() > 0);
 
-  const picker = page.locator(".lib-bind select").first();
+  const picker = page.locator(String.raw`.field:has-text("Wool cages") .lib-bind select`).first();
   await picker.selectOption(String(style.id));
   await page.waitForTimeout(2000);   // past the autosave debounce
 
