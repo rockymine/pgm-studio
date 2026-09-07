@@ -11,7 +11,7 @@ using PgmStudio.Pgm.Plan;
 namespace PgmStudio.Export.Tests;
 
 /// <summary>
-/// <b>A room's plinth is ground, and ground is what the painter finishes</b> (B145). A foundation levels the
+/// <b>A room's plinth is ground, and ground is what the painter finishes</b>. A foundation levels the
 /// dip under a room's footprint in stone so the floor over it spans no air, and stone is what the painter
 /// rewrites (TP6) — but the painter reads a <em>surface map</em>, and the fill sits above the top that map
 /// states. So the plinth is a course the painter never addresses, and the ground a room stands on stays raw

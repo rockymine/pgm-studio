@@ -77,7 +77,7 @@ public sealed class StructureStamperTests
 
     /// <summary>The surface the fill leaves behind is the surface it reports, cell for cell. A caller painting
     /// the plinth reads <see cref="StructureStamper.FoundationTops"/> rather than re-deriving the level, and the
-    /// two agreeing is what makes the painter finish exactly the courses the fill wrote (B145).</summary>
+    /// two agreeing is what makes the painter finish exactly the courses the fill wrote.</summary>
     [Test]
     public async Task The_tops_reported_are_the_tops_the_fill_leaves()
     {

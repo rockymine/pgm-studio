@@ -7,7 +7,7 @@ namespace PgmStudio.Api.Tests;
 
 /// <summary>
 /// <c>PATCH /map/{slug}/intent/rooms/{reference}</c> — the route a drag on the sketch canvas arrives at
-/// (S25b). The sketch draws a spawn, a wool room and the building inside one out of the stored intent, so a
+///. The sketch draws a spawn, a wool room and the building inside one out of the stored intent, so a
 /// move has to be written back there or the picture and the world build disagree about where a room is.
 ///
 /// <para>What the route owns rather than <c>RoomPieceMove</c> is the round trip: the stored intent is read,

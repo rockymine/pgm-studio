@@ -141,7 +141,7 @@ public static class WorldBuilder
         // floor over it spans no air, and the painter finishes stone — but it finishes it against a surface
         // map, and the fill sits above the top that map states, so the plinth stays raw stone under a board
         // that is quartz everywhere else. Collected as the rooms are stamped and folded into the map the
-        // painter reads, which is the whole of what makes a room's ground the board's ground (B145).
+        // painter reads, which is the whole of what makes a room's ground the board's ground.
         var plinths = new Dictionary<(int X, int Z), int>();
 
         // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
@@ -746,7 +746,7 @@ public static class WorldBuilder
     ///
     /// <para>A plinth is ground the build raised, and the painter finishes ground against a surface map — so
     /// a fill laid above the top that map states is a course it never addresses, and a room's ground stays raw
-    /// stone on a board that is painted everywhere else (B145). A cell is raised only in the layer whose
+    /// stone on a board that is painted everywhere else. A cell is raised only in the layer whose
     /// surface it was levelled from, matched by the top the plinth replaced, so a storey standing under a room
     /// on a stacked board keeps its own surface and is painted at it.</para>
     ///

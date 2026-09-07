@@ -6,7 +6,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Tests.Authoring;
 
 /// <summary>
-/// Moving a room piece back from the sketch (S25b). The canvas draws a spawn, a wool room and the building
+/// Moving a room piece back from the sketch. The canvas draws a spawn, a wool room and the building
 /// inside one out of the intent, so a drag has to arrive here or the picture and the world build disagree
 /// about where a room is.
 ///

@@ -1,6 +1,6 @@
 // The plan's own pieces (S25) on the sketch canvas: which one a point lands on, and what the paint draws
-// round the one that was picked. Both are what `B107` turns from render-only context into something an
-// author can select and correct a height on.
+// round the one that was picked. Together they turn a render-only annotation into something an
+// author can select, correct a height on and drag.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { recordingPainter } from "./_painter-stub.js";

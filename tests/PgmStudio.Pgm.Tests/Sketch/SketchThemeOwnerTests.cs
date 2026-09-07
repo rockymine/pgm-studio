@@ -92,7 +92,7 @@ public sealed class SketchThemeOwnerTests
     /// <summary>A role-tagged shape — the spawn, the wool room, the building footprint inside one — is the
     /// plan's own piece drawn over terrain the island already holds. It places nothing, so it is read the way
     /// an erected shape is: a candidate for the paint on its cells at any height, never the surface another
-    /// shape is measured against. That is what makes a room's ground statable (B145).</summary>
+    /// shape is measured against. That is what makes a room's ground statable.</summary>
     [Test]
     public async Task A_role_tagged_shape_owns_the_paint_on_the_ground_it_annotates()
     {
