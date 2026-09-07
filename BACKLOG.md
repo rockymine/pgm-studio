@@ -92,16 +92,6 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 #### Markers
 
-- [ ] **TS75 — A destroy goal has no sketch presence, and no plan raster draws it.** A destroyable and a core
-  carry **no rect in the plan** — `Anchor` is a bare point, and that is correct: neither has a footprint. So
-  their sketch presence is a **movable point with a stated height**, not a rect, and the height is the
-  interesting half — the one thing the plan cannot know before the relief runs. `GET /plans/{id}/png` has the
-  same gap: `B128`'s empty-`piece` marker is how a landform carries an objective without a tier manufactured
-  to hold it, and the one picture the plan layer offers cannot show it.
-
-  *`tallow-mirefast`: the raster draws five pieces, both spawns and the legend, and nothing at `(0, −50)`
-  where the wardstone stands.*
-
 ### Painting terrain
 
 - [ ] **TS51 — Scoping the paint repaint, and the preview it would pay for.** A full board paint is ~2.0s and
@@ -330,28 +320,18 @@ placement takes it — so what is left is each surface reading and writing the l
 - [ ] **WE78 — A plain layer's paint runs to the bedrock course, and eats the layer under it in silence.**
   `TerrainPainter.Paint` gives a `prop` layer its own floor from `BuiltTerrain.FloorByLayer` (`WE56`), so a
   made thing is painted over its own span. A **plain** stacked layer is not: its bands run from the bedrock
-  course whatever its `base_y`, and the only thing keeping a pass off the layer below is the stone-only
-  invariant — it writes over `(1, 0)` and nothing else. So a viaduct over a street repaints the street's
-  whole column wherever the ground theme fills in plain stone, and the cure is a value in a *different*
-  theme. Nothing says so: the store answers 200, the export gate answers OPEN, and `themes/census` counts
-  the surface and is right. Either bound a plain layer's bands to its own span, or complain where a layer
-  stands over one whose resolved `fill` is `(1, 0)` — a document-level read, since the themes and the stack
-  are both in the layout. `docs/world-export/terrain-painting.md` states the bedrock-course rule and changes
-  with it.
+  course whatever its `base_y`, and only the stone-only invariant keeps a pass off the layer below. So a
+  viaduct over a street repaints the street's whole column wherever the ground theme fills in plain stone,
+  and the cure is a value in a *different* theme — while the store answers 200 and the export gate answers
+  OPEN. Either bound a plain layer's bands to its own span, or complain where a layer stands over one whose
+  resolved `fill` is `(1, 0)`, a document-level read since the themes and the stack are both in the layout.
+  `docs/world-export/terrain-painting.md` states the bedrock-course rule and changes with it. **`B144` does not reach this**: it settles *whose* theme owns a column, and this is how far
+  *down* that theme's bands run — `TerrainPainter.Paint` paints each pass from the bedrock course upward, and
+  `floorByLayer` is filled for a `prop` layer alone.
 
   *`opus5-tiefkreuz` build 1, `GET …/column?at=0,66`: `y 42..39 Iron Block` the viaduct rail, `y 29..27
   Stone Bricks` the street lid, and `y 26..1 Iron Block` — twenty-six courses of city painted as rail. The
   isometric drew a grey board and only `column` found it.*
-
-- [ ] **WE79 — A `stroke` ignores the layer every other prop kind honours.** `PlacedProp.Layer` is on the
-  abstract prop and `DR-LAYER` refuses one naming a layer with no ground, and both reach a `stroke` in the
-  schema; neither reaches its seating, which takes the column's top surface. So a street laid under a
-  viaduct paves the viaduct's ballast. Route the stroke's seating through `DressingContext.GroundFor` the
-  way the other five kinds are. `docs/world-export/decoration.md` § what a stroke rests on changes with it.
-
-  *`opus5-tiefkreuz`: one avenue from the head house to the station had to be drawn as two strokes stopping
-  at the viaduct's faces, `(0,104)`–`(0,78)` and `(0,60)`–`(0,42)`. `opus5-interchange` measured the same
-  thing on lane markings — `"layer": "under"` came back at y25.*
 
 ### A made thing is a third kind, and it is drawn out of layers
 
@@ -453,30 +433,14 @@ word for. Measured over the 81 copied bodies in `pgm-studio-mapgen/specs`: **44*
 carrying a block the two generative forms cannot emit. Give the other two jobs their own words and `copied`
 means one thing again.
 
-- [ ] **WE95 — A tree carries nothing but its own wood and leaves.** A real tree has vines on its crown, a
-  bush or a mushroom at its foot, litter under it; a `template` or `grown` recipe can state none of them, so
-  an author who wants one writes the whole tree out by hand instead. Add an **understorey** clause to
-  `TreeStyle` — a handful of `(block, where, how many)` statements the generator scatters on the crown and
-  around the foot after `TreeCells` builds the wood — and the same clause answers `DR-FACE` for free, since a
-  vine the generator places knows which leaf it hangs from. Evidence: `opus5-alderfen`'s seven `fenoak*`
-  bodies exist for 374 vines and nothing else; `opus5-quiverstone`'s four `quiver-acacia-*` for two dead
-  bushes each, at (−60, −68) and its orbit.
-
-- [ ] **WE96 — A small built thing is not a tree.** `opus5-lodestar` files `crate-1`, `dish-1`, `conduit-x`
-  and `debris-1` as `kind: "tree"`, `form: "copied"` — 6 to 30 cells of stained clay, quartz, stone brick,
-  iron bars and coal — and `opus5-alderfen`'s `logpile-*` and `opus5-quiverstone`'s `bonepile-*` do the same
-  with logs. None of them is a tree, and calling one a tree gives it a tree's standoff from a road
-  (`RouteStandoff` 3) and a tree's place in the placement order. Wants a prop **kind** whose recipe is a body
-  and whose rules are its own: a `piece`, seated and claimed like a boulder, with the standoff and the order
-  stated rather than inherited. Where it lands: `PlacedProp` + `DressingModel`, beside `BoulderProp`.
-
 - [ ] **TL15 — A copied body records the world it was cut out of.** `copied` means cut from a world
   (`docs/tools/library.md`, the author's ruling) and nothing enforces it, because a body carries no
   provenance: `tools/seed-trees.cs` and a hand-typed array produce the same row. Add the cut to
   `TreeStyleRow` — the world directory, the foot's world coordinates, the date — written by the cutter and
   absent on anything else, and shown on the card so a browse says which trees are real. It is what makes
-  "typed in rather than cut" a checkable statement; without `WE95` and `WE96` first it would only block work
-  that has no other expression.
+  "typed in rather than cut" a checkable statement. **Weigh against:** an author who wants a tree the two
+  generative forms cannot state has nowhere else to put it, so a record that says "typed in" describes a
+  legitimate body rather than a fault — the note is worth having as provenance and not as a gate.
 
 ## World import: reading a map the studio did not build
 
@@ -569,17 +533,6 @@ set that reads a surface as somewhere a player can stand rather than as any colu
 
   *122 buildings on 32 boards: 4 fail today. A side with ground and under 3 clear blocks fails 51, under 5
   fails 76. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*
-
-- [ ] **WS1 — The corridor allowance wants restating where a map runs thinner than kanto.**
-  `GroundCoverage` now reads a ribbon at an absolute `Walk.Detour` of 10 blocks, calibrated against
-  `wheal-hazel` and its rebuild (`FEATURES.md`). What is left is the one thing the author flagged and the
-  calibration cannot settle: **10 blocks is right for a board of that size, and maps exist with thinner ways**.
-  A lane genuinely 8 blocks wide pays the same allowance a 40-block one does, so a route treats the thin map
-  as loosely as the wide one.
-
-  The likely shape is to scale the allowance by the clearance actually available across the lane the journey
-  is in — `Cells.Clearance` already answers that per cell — rather than by a constant. It wants a traced board
-  with thin ways to test against; nothing in `tools/seeds/traced/` has one measured.
 
 - [ ] **WS3 — A board has fork points, plural, they belong to a demand set, and `RouteFork` reports one.**
   `PlanRoutes.Fork` takes the last cell common to *every* option and the first common to every option from the
