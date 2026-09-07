@@ -112,17 +112,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   what the brush actually edits, and would also buy a scoped isometric preview of the selection in the
   inspector — the affordable half of a live preview of the built world.
 
-- [ ] **TS101 — A bound room shell reads as the built-in one after a reload.** The Theme phase's room
-  selects show `PickedRoom(kind)`, fed only by `pickedRooms` in
-  `SketchThemeInspector.razor.cs:BindRoom`. `ReadRoomBindings` fills `boundRooms` and `openRooms` on load and
-  never `pickedRooms`, and no finish key records which library row a shell was snapshotted from, so every
-  reload — and every binding written through `PUT /map/{slug}/sketch/room-styles/{part}` — shows
-  `(the built-in shell)` over a board that has a shell bound. Record the row the way `themeSources` (B47) and
-  `biomeSource` do: a `roomStyleSources` in `SketchLayout.FinishKeys`, carried by `sketch-bridge.js`, with a
-  content match through `SameDocument` behind it for a snapshot written over HTTP. Evidence: bind style 13 to
-  `cage` on `biome-demo` over HTTP, open the Theme phase — the select reads `(the built-in shell)` while the
-  `×` beside it, which keys off `boundRooms`, says something is bound.
-
 - [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
   construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),
   and roughly 35 ms of that is its two `GridComponents.Label` passes: one flood fill for plateaus, a second for
@@ -170,6 +159,59 @@ what is gathered here is the parked and dormant slices of the same surface.
   85% carry three entries or more — 51 carry five, 8 carry six or seven — and only 15% carry two. Of **50
   voronois**, 44 are on the surface and none is in the fill. The earlier candidates (one family per pattern:
   157/201; a neutral family mixed with a warm one: 54) are superseded.*
+
+### A library row copied onto a board: what is kept, and what names it
+
+A map holds a **snapshot** of a library row and never a foreign key, so a library edit can never rebuild a
+shipped map. That half is settled. The note beside the snapshot saying *which* row it came from is not: six
+bindings record it three different ways, two of them record nothing, and the one that reaches furthest keys
+itself on the only field the library does not make unique. These entries settle the shape before a seventh
+binding invents a fourth. `docs/tools/sketch.md`'s finish model is what they leave correct.
+
+- [ ] **TS101 — A bound room shell reads as the built-in one.** The Theme phase's room selects show
+  `PickedRoom(kind)`, fed only by `pickedRooms` in `SketchThemeInspector.razor.cs:BindRoom`.
+  `ReadRoomBindings` fills `boundRooms` and `openRooms` on load and never `pickedRooms`, because
+  `roomStyles.{part}` is a bare snapshot with no note beside it — so every reload, and every binding written
+  through `PUT /map/{slug}/sketch/room-styles/{part}`, shows `(the built-in shell)` over a board that has one
+  bound. Record the row in whatever shape `TS102` settles and resolve it the way the biome select does: the
+  recorded row first, a `SameDocument` content match after it. Evidence: bind style 13 to `cage` over HTTP and
+  open the Theme phase — the select reads `(the built-in shell)` while the `×` beside it, which keys off
+  `boundRooms`, says something is bound.
+
+- [ ] **TS102 — One word and one shape for "the library row this snapshot came from".** *Parked on a ruling.*
+  `SketchLayout.FinishKeys` carries `themeSources` (a map, theme id → row id) and `biomeSource` (a scalar),
+  and nothing for the two room shells or the three dressing recipes. A note per binding makes four names in
+  two shapes for one idea; one `sources` table keyed by a path — `themes/meadow`, `roomStyles/cage`,
+  `dressing/oak-10`, `biome` — makes one reader, at the cost of folding the two existing keys in on read the
+  way `DressingJson.Upgraded` already folds an older dressing document forward. **Which, and under what
+  word:** `Source` is taken twice in the repo and neither is this — `MapOrigin.PlanSourceId` is the plan a map
+  was compiled from, and `Region.SourceId` in `XmlWriter`/`Deserializer` is a `map.xml` region reference.
+
+- [ ] **TS103 — The dressing registry is keyed by the library row's name, which the library does not make
+  unique.** `SketchDressingInspector.PickRecipe`/`PickShell` call `pullRecipe(recipe.Name, json)` and drop
+  `recipe.Id`; `dressing-doc.js:pull` writes `this.#styles[key] = recipe`, replacing whatever that key held.
+  No library table indexes `name` uniquely (`M0011`, `M0012`) — identity is the identity column and the name
+  is free text, which is what lets **Save as copy** mint "X copy" beside "X". So two rows sharing a name
+  collide on pull, and a row named `oak-10` overwrites the key `DressingJson.KeyFor` mints for a lifted
+  recipe. Recipes lifted off old placements are already keyed from content; a library pull should be too, with
+  identity moving to whatever `TS102` settles. **Weigh against:** the key is what an author reads their recipe
+  by in the inspector, so a minted key is a legibility loss the UI has to pay back elsewhere.
+
+- [ ] **TS104 — No source can be recorded over HTTP, and it is not settled that one should be.** *Parked on a
+  ruling.* `grep 'themeSources\|biomeSource' src/PgmStudio.Api` returns nothing: `SketchFinishWrite.WithBiome`
+  and `.WithRoomStyle` take no source, and `PUT /map/{slug}/sketch/themes/{themeId}` registers a theme with
+  none, so both working cases work only for a human clicking. **Is the note wanted for an agent at all?** An
+  agent authoring a board usually has no library to have copied from — it writes documents against a seeded
+  database it did not fill, so the id would be absent on nearly every board `pgm-studio-mapgen` has built. The
+  case that earns it is the local one: an author who has already made themes asks for a board finished with a
+  named one, and the board should say which row that was. If yes, every finish write takes an optional row id.
+
+- [ ] **TS105 — The wool room's wire word is `cage`.** `SketchRoomStyles` already names the property `Wool`
+  and the inspector already offers it as "Wool cages"; only the JSON key is `cage` — `SketchLayout.cs:281`,
+  `SketchFinishWrite.RoomParts`, `sketch-bridge.js:953` and `:1154`, `RoomKindInfo`, and the `part` value of
+  `PUT /map/{slug}/sketch/room-styles/{part}` — plus four hits in `docs/`. The comment above the property says
+  a rename would leave every bound wool style falling back to the built-in shell on load, which is what an
+  upgrade on read exists to prevent; rename the route's `part` value in the same commit.
 
 ### Relief
 
@@ -791,11 +833,12 @@ set that reads a surface as somewhere a player can stand rather than as any colu
 - [~] **B44 — Theme + style library: the map's applied theme is still an inline blob.** The tables, the HTTP
   surface, the `/library` page and the sketch's pull/push bridge all shipped (`FEATURES.md`); two slices
   remain. **(1) Apply-as-snapshot** — a map's *applied* theme is still the sketch document's own registry, so
-  "the library holds the reusable copy, the map holds a frozen one" is true only by convention: pulling a
-  library theme into a sketch copies its JSON and nothing links them, but there is no snapshot record saying
-  *which* library theme a map's paint came from, and no way to re-pull one when the library moves on. Give the
-  map's scope store a forked instance with a `parent_id` back-reference, the same doctrine the generator's plan
-  persistence uses. **(2) A data migration** lifting the themes inlined in a map's own `sketch_layout_json`
+  "the library holds the reusable copy, the map holds a frozen one" holds in the document and nowhere the
+  database can see: `themeSources` says which row a board theme came from (B47), but the link lives in the
+  layout blob, so the library cannot answer which maps carry a copy of a row or which copies have fallen
+  behind it. Give the map's scope store a forked instance with a `parent_id` back-reference, the same doctrine
+  the generator's plan persistence uses. What the *document* records is `TS102`'s, and settling that first is
+  what says whether this slice is still wanted. **(2) A data migration** lifting the themes inlined in a map's own `sketch_layout_json`
   registry into styles + themes + bindings, deduping identical materials — today a map themed without pushing
   anything out keeps its blob and the library cannot see it.
 
