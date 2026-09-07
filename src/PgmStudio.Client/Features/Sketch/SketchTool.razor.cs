@@ -156,9 +156,6 @@ public partial class SketchTool
     // to precede the two passes that read the built surface.
     private bool ReliefActive => active == "relief";
     private string reliefJson = "";
-    // Bumped on every relief change so a reading already on screen knows it is describing terrain that has
-    // since moved — a stale measurement reads as current, which is worse than none.
-    private int reliefRevision;
     private Task GoRelief() { tool = ReliefTools.Point; return SetPhase("relief"); }
 
     /// <summary>Whether the canvas is being used to place a scope rather than to draw — today only Theme,
@@ -670,7 +667,7 @@ public partial class SketchTool
     public void OnBiome(string json) { ApplyBiome(json); StateHasChanged(); }
 
     [JSInvokable]
-    public void OnRelief(string json) { reliefJson = json; reliefRevision++; StateHasChanged(); }
+    public void OnRelief(string json) { reliefJson = json; StateHasChanged(); }
 
     /// <summary>Which layers the board the preview just built is made of, and which of them it is leaving
     /// out. The bridge keeps a hidden layer hidden across a rebuild, so this is where the two agree again

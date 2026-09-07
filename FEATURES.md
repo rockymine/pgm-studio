@@ -1842,7 +1842,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   them. Riding with it, `render/section` refuses an `at` outside the world naming the axis and the range,
   where it used to answer 200 and a blank picture; a coordinate outside the world is a fault, not a picture.
   (`Analysis/Playability/ReliefReadback.cs`, `Contracts/ReliefDtos.cs`, `Api/Endpoints/SketchEndpoints.cs`,
-  `Minecraft/Render/SectionRender.Span`, `Client/Features/Sketch/SketchReliefReadback`,
+  `Minecraft/Render/SectionRender.Span`,
   `docs/world-export/relief.md`, `ReliefReadbackTests.cs`)
 
 - **A line mark's reach is a radius and is called one (`WE23`).** `LineMark.Pins` kept a cell where
@@ -6774,6 +6774,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   no rim and a push whose corners agree each render no line at all. 1,102 words become **312**, and the two
   shape controls that used to spend thirty words saying nothing was happening now spend three.
   (`docs/client/ui-conventions.md` § What a panel says, `docs/tools/sketch.md`)
+
+- **The relief readback is a read and not a panel (author).** `SketchReliefReadback` put the whole of
+  `POST …/sketch/relief/read` into the Relief phase's sidebar and was removed on the author's call: nineteen
+  fields, eleven of them a count against another count on the same row, do not fit a 230px column. Measured on
+  the rendered page, the section stood **2296px** tall of which **1394px — 61%** was the complaint list, so the
+  tables it exists for began below the fold; the tier table clipped its last column, rendering `Ledges` as
+  `Le`; the complaint rows carried `plan-lint-row` styling and were `<div>`s, so unlike the plan editor's lint
+  they could not be clicked to find the coordinate they name; and the panel dropped `landform` and `smoothing`
+  — the two fields that read as English without the document open — while rendering `largestPlace 97.6%`. Its
+  own docstring said it sat below the mark list because a number read without the statement that produced it
+  gets acted on blindly, and it was long enough to push that list off screen. The endpoint is untouched and is
+  what a driver, an agent and `tools/drive.py` already read. The Relief phase keeps the group tree and the
+  mark list, which is what an author edits.
+
 - **The Relief panel states the whole mark vocabulary, and reads back what it charges (`TS94`).** The solver
   had grown five statements the editor could not make and four readings it could not show. A **Ridgeline** now
   carries `tread` and `batter` behind one toggle — off holds the whole band flat, which is what a ridge wants;
@@ -6782,10 +6796,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   ground beside it. A **rim** states its depth as well as its height. And every mark carries a **name**, which
   is what every finding about it calls it: it is the document's own key, so the rename runs through the canvas
   and a name another statement already carries is refused with a sentence.
-  The readback answers the rest: `level` and `largestField` beside the range, the `seams` table naming the
-  pairs of marks that meet on a step with the coordinate to stand at, the marks that pinned nothing, and every
-  complaint the read raised — `RL1`–`RL5` — listed above the numbers they were drawn from. Two faults that
-  hid it: the `Measure` button crashed the render, because a `Busy` swap diffed past an `<i data-lucide>`
+  The reading answers the rest — `level` and `largestField` beside the range, the `seams` naming the pairs of
+  marks that meet on a step with the coordinate to stand at, the marks that pinned nothing, and the complaints
+  the read raised — though **the panel that drew it is gone** (below); the endpoint is where those are read.
+  Two faults that hid it: the `Measure` button crashed the render, because a `Busy` swap diffed past an `<i data-lucide>`
   lucide had already detached (`Button` now keys the swap, which fixes every busy button carrying a glyph);
   and an in-flight `getMarkSettings` could land after a selection and replace the selected mark's numbers with
   an armed tool's defaults, so the panel showed one kind's fields under another kind's heading.
@@ -8502,9 +8516,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   one way lets it through the other, which is a one-way cliff rather than a wall. And the symmetry error,
   which nothing else in the report would show — an unfair map looks identical on every other measure. Served
   at `POST /map/{slug}/sketch/relief/read` next to the document it describes, which is what makes a relief
-  correctable by a generator or an agent rather than only by eye, and shown as a **What it charges** panel in
-  the Relief phase, fetched on a button rather than on every edit. (`Analysis/Playability/ReliefReadback.cs`,
-  `SketchReliefReadEndpoint`, `SketchReliefReadback.razor`; 9 tests)
+  correctable by a generator or an agent rather than only by eye — and that is the whole of who reads it, since
+  the browser panel that showed it has been removed (below). (`Analysis/Playability/ReliefReadback.cs`,
+  `SketchReliefReadEndpoint`; 9 tests)
 
 - **Relief: shapes erected out of the field, and the stair the block step owes (S44).** A relief makes rolling
   ground; what makes a map is the thing standing in it. One word on a shape says how its top is decided once
