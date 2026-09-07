@@ -325,6 +325,14 @@ compared as id and data both, because a pattern samples the cell folded into the
 The build is paid per request; nothing is cached. A large board is the same cost as an export, which is what
 it is.
 
+**A picture says whether and a text read says where.** Every PNG here is framed on the world's own occupied
+extent and carries a scale bar naming pixels-per-block and the size in blocks — and never the corner it
+started from, so nothing in the image converts a pixel back to an `x, z`. The text reads do carry it:
+`TextGrid.Frame` writes an x ruler above the grid and the z of every row beside it, which is why `heightmap`,
+`incline`, `slopes` and `section` answer `?format=text` at all. A read whose answer is a coordinate to go and
+check — a column to name, a transect to walk, a patch to stand in — is asked in text and read there; the
+picture is for seeing that something came out.
+
 **`at` names the other axis, and one outside the world is refused.** A cut along x is taken at a z and a cut
 along z at an x, which is the easiest thing about this route to have backwards. An `at` outside the world's
 own span answers **422** naming the axis and the range rather than a blank picture, because a coordinate

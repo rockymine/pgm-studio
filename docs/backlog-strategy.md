@@ -20,9 +20,9 @@ is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spr
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
 Requiring the bullet at column zero is the same fault from the other side: a stray two-space indent is a
-formatting slip that costs an entry its existence in the count and hands its words to the entry above, so
-`B150` reads as 441 words and `B262` as nothing at all. Both readings must be indent-tolerant, and the board
-is kept flat. Every figure in this paragraph is retaken by:
+formatting slip that costs an entry its existence in the count and hands its words to the entry above, so one
+entry reads at four hundred words and the next at nothing at all. Both readings must be indent-tolerant, and
+the board is kept flat. Every figure in this paragraph is retaken by:
 
 ```sh
 python3 - <<'PY'
@@ -248,21 +248,15 @@ answer — a complaint pass over a themed board, with the floor stated by the au
 **A read answers the picture and not the knob that made it.** This is the cause the relief track has been
 draining: a wall between two marks reported as terrain with nothing's name on it shipped as `WE33`, a push's
 two gradients as `WE32`, and a declared route walked back as `WS14` (`FEATURES.md`). What is left of it is
-elsewhere. `RouteFork` reports one fork
-where a board has several, and reports it against no demand set (`WS3`). Eleven world reads answer a picture
-each and no browser surface shows any of them (`B262`), and a read taken off a shipped world cannot be given
-the sidecar that would name its materials (`B265`). Every one of these is an author holding an artifact with
-no way back to the field that produced it.
+`WS3` alone — `RouteFork` reports one fork where a board has several, and reports it against no demand set.
+The two entries that read as this cause and were not it left the board on the reading below.
 
-**A gate's verdict exists only at the compile boundary.** `PlanValidator` runs at compile and not in the live
-inspect feed, so an author sets a number, sees nothing, and meets the refusal a phase later. `TN2` folds every
-refusal into one sentence and drops the rest; `WE34` was the same rule set never run forwards, and shipped
-as the seat read (`FEATURES.md`). Two entries where there were four, the other two withdrawn.
-
-**A term measures the artifact it can reach rather than the one the claim is about.** This has drained to
-`B150` alone — every evaluator caller is plan-tier by construction, so a board's own ground is never the thing
-scored, and the missing piece is a route that evaluates a stored map. One entry is not a cause; it is a task,
-and it belongs to the mapgen-authoring group it now sits in.
+**A gate's verdict reaches the author under a name they cannot look up.** `PlanValidator` runs in the live
+feed as well as at the compile gate — `/plan/evaluate` builds its context from the same `Check` and carries
+the complaints as `lint` — so what an author misses mid-edit is not the pass but the refusals' own sentences
+and ids, which the evaluator's one hard term replaces with the sentinel `STRUCT` (`TN2`). `WE34` was the same
+rule set never run forwards, and shipped as the seat read (`FEATURES.md`). One entry where there were four,
+the other three withdrawn.
 
 ## The questions no reading of this repository can answer
 
@@ -275,6 +269,20 @@ previous reading left the board unanswered: `B55` (which API paths read a map as
 404 allowlist), `B249` (a per-call refusal override), `B96` (canopy share) and `B154` (the dark oak species).
 Deleting the entry answers the question by declining to have it, and four of those five were questions about
 work nobody was blocked on.
+
+**Four of the mapgen-authoring five went the same way, and reading them against the code is what withdrew
+them.** Each had been filed from a symptom that was real; none survived being measured.
+
+| entry | asked for | what the code said |
+|---|---|---|
+| `B262` | a browser page per map over the eleven world reads | the pictures carry no coordinate frame — `TopDownRender` labels a scale and a size and never `minX`/`minZ`, while `TextGrid.Frame` rules every text read — so a gallery answers *whether* and never *where*, which is the half the author already has |
+| `B265` | `--provenance <path>` on the reads that take a region directory | nothing takes a render off a shipped world that way. Every read in `pgm-studio-mapgen` goes over HTTP, where the build holds `Built.Provenance`; the CLI's own uses are `--goldens` and `--scan-out`, over a corpus that never had a sidecar |
+| `B150` | a route that evaluates a stored map's sketch | `EvalContext` is a `PlanModel` and nothing else, and `BoardStructure` is piece-keyed throughout — a sketch would need a second deriver inventing a piece decomposition for polygons, not a rasterize-and-reuse. The author does not want a sketch scored |
+| `B171` | how a wool approach attaches, in the shapes endpoint's terms | `/shapes/catalog` states no attachment at all, and `/plan/feasibility` — which does answer it — is a critic for *generated* boards, so a hand-drawn plan gets `producible: false` every time (`pgm-studio-mapgen/reports/opus5-coldharbour-authoring.md`) |
+
+`B171`'s evidence outlived its entry. `PL13` — a bedrock wall on the wool room's own interface — is five of
+the ten refusals the authored corpus carries, the commonest structural refusal there is, and it already names
+its own remedy. What stops that sentence reaching an agent is `TN2`, which is the entry that survived.
 
 **The sitting has happened, and it drained the whole list.** Seven questions were put to the author in one
 pass and seven came back, which is what this section claimed would happen and had never been tested. What the
@@ -325,7 +333,7 @@ ambiguity at their edges.
 on a ruling. Each has a definite end and none of it is work until the answer arrives.
 
 **Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`,
-`N08`, `N12`, `TS64`, `TS75`, `S59`, `B262`, `B44`. Four more — `B107`, `S25b`, `B145`, `WE54` — were
+`N08`, `N12`, `TS64`, `TS75`, `S59`, `B44`. Four more — `B107`, `S25b`, `B145`, `WE54` — were
 this population until the building's one model turned them from three reaches into one, and all four have
 since shipped. That is the reading's own claim tested: a reach gap is drained by naming the cause under it,
 not by working the entries in turn. This is the population the studio's own shape produces, and every one of them is the same thing: a
