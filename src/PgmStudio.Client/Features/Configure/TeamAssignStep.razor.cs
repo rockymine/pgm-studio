@@ -91,15 +91,28 @@ public partial class TeamAssignStep
     {
         teams.Clear();
         foreach (var c in SuggestedColors)
-            teams.Add(new Ctx.Team { Id = c.Value.Replace(' ', '-') + "-team", Name = c.Label, Color = c.Value });
+            teams.Add(new Ctx.Team { Id = Ctx.TeamId(c.Value), Name = c.Label, Color = c.Value });
         selectedTeamId = teams.FirstOrDefault()?.Id;
         WriteTeams();
     }
 
-    private void AddTeam()
+    /// <summary>The colours a team can still be added in — the sixteen minus the ones already taken. The
+    /// author picks one and that colour's team is what gets added, so the id is derived from a colour that
+    /// was chosen rather than from whichever came up next.</summary>
+    private IReadOnlyList<GameColors.Color> AddableColors
     {
-        if (GameColors.NextTeamColor(teams.Select(t => t.Color)) is not { } c) return;
-        var team = new Ctx.Team { Id = c.Value.Replace(' ', '-') + "-team", Name = c.Label, Color = c.Value };
+        get
+        {
+            var taken = teams.Select(t => t.Color).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return [.. GameColors.ChatColors.Where(c => !taken.Contains(c.Value))];
+        }
+    }
+
+    private void AddTeam(string color)
+    {
+        if (GameColors.ChatColors.FirstOrDefault(c => c.Value == color) is not { Value.Length: > 0 } c) return;
+        if (teams.Any(t => string.Equals(t.Color, c.Value, StringComparison.OrdinalIgnoreCase))) return;
+        var team = new Ctx.Team { Id = Ctx.TeamId(c.Value), Name = c.Label, Color = c.Value };
         teams.Add(team);
         selectedTeamId = team.Id;
         WriteTeams();
@@ -119,10 +132,36 @@ public partial class TeamAssignStep
 
     private void SetName(ChangeEventArgs e) { if (Selected is { } t) { t.Name = e.Value?.ToString() ?? ""; WriteTeams(); } }
 
-    private async Task SetColor(ChangeEventArgs e)
+    /// <summary>Recolour the selected team, and take its id and its name with the colour. The id is
+    /// derived from the colour, so leaving it behind is what strands <c>only-red</c> on a purple team; the
+    /// rename runs across the whole intent because every other slice states this team by that id. A colour
+    /// whose id another team already holds recolours alone — two teams cannot share an id, and the colour is
+    /// the lesser loss.</summary>
+    private async Task SetColor(string color)
     {
-        if (Selected is { } t) { t.Color = e.Value?.ToString() ?? t.Color; WriteTeams(); await PaintIslands(); }
+        if (Selected is not { } team || color.Length == 0 || color == team.Color) return;
+
+        var wasLabel = LabelOf(team.Color);
+        var (oldId, newId) = (team.Id, Ctx.TeamId(color));
+        team.Color = color;
+        if (team.Name == wasLabel) team.Name = LabelOf(color);   // an author's own name is not the colour word
+
+        if (newId != oldId && teams.All(other => other == team || other.Id != newId))
+        {
+            team.Id = newId;
+            foreach (var island in islandTeams.Where(kv => kv.Value == oldId).Select(kv => kv.Key).ToList())
+                islandTeams[island] = newId;
+            Ctx.RenameTeam(Wizard.Intent, oldId, newId);
+            if (selectedTeamId == oldId) selectedTeamId = newId;
+            WriteIslandTeams();
+        }
+
+        WriteTeams();
+        await PaintIslands();
     }
+
+    private static string LabelOf(string color)
+        => GameColors.ChatColors.FirstOrDefault(c => c.Value == color).Label ?? "";
 
     private void SetMaxPlayers(double v) { maxPlayers = (int)v; WriteMaxPlayers(); }
 

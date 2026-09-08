@@ -41,7 +41,13 @@
               </ListRow>
             }
           </div>
-          <Button Full Class="action-btn--separated" OnClick="AddMissing"><i data-lucide="plus"></i> Add a wool</Button>
+          @if (AddableColors.Count > 0)
+          {
+            <Field Label="Add a wool">
+              <SwatchRow TKey="string" OnPick="AddWool"
+                         Swatches="@AddableColors.Select(d => new SwatchRow<string>.Swatch(W.NormColor(d.Value), d.Hex, d.Label)).ToList()" />
+            </Field>
+          }
         }
         </ChildContent>
       </Section>
@@ -63,15 +69,8 @@
           </DetailHeader>
           <div class="section-body">
             <Field Label="Colour">
-              <div class="field-pick-row">
-                <span class="field-swatch" style="background:@W.Hex(sel.Color)"></span>
-                <select class="field-input" @onchange="@(e => SetColor(sel, e.Value?.ToString() ?? sel.Color))">
-                  @foreach (var d in GameColors.DyeColors)
-                  {
-                    <option value="@W.NormColor(d.Value)" selected="@(W.NormColor(d.Value) == sel.Color)">@d.Label</option>
-                  }
-                </select>
-              </div>
+              <SwatchRow TKey="string" Selected="@sel.Color" OnPick="@(c => SetColor(sel, c))"
+                         Swatches="@GameColors.DyeColors.Select(d => new SwatchRow<string>.Swatch(W.NormColor(d.Value), d.Hex, d.Label)).ToList()" />
             </Field>
             <Field Label="Owning team">
               <LabelHint>(defends it)</LabelHint>

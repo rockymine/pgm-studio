@@ -54,6 +54,25 @@ Every producer of `intent.Spawns` dedupes by team: `SpawnStep.PlaceAndOrbit` gua
   overwrite is real but the state is unreachable.
 - *Enforced:* the three producers above; no other code path appends to `intent.Spawns`.
 
+### A monument stands inside its capturing team's spawn, and the studio derives it there
+A wool's monument is a **standalone stamp tied to the spawn**, and it sits inside that spawn's structure.
+`WorldBuilder` fills every monument's `location` from the air cell the capturing team's spawn stamp left, so
+an authored location on a map the studio built is replaced, and `ConfigureTool.LoadOriginAsync` drops the
+Wools · Monuments step entirely for a sketch-origin map.
+
+- *Looks wrong:* three write paths accept a monument `location` — `POST …/wools/{woolId}/monuments`,
+  `PATCH …/monuments/{monumentId}` and `PUT /map/{slug}/intent` — and every read answers it, so a stated
+  location that comes back replaced reads as a write being swallowed. PGM itself puts no such limit on where
+  a monument may stand; near the spawn and discoverable is the whole of the rule.
+- *Why it stands:* it is the author's ruling, and its subject is **agent authoring**. A monument that may
+  stand anywhere near a spawn is one more position an agent has to choose well, judge for discoverability and
+  defend in review; a monument inside the spawn is a position the build already knows. The freedom PGM allows
+  is real and is not wanted here, so the studio spends it on having nothing to state.
+- *Enforced:* `OB25` reports the replacement rather than performing it silently, and its remark says what to
+  do — read the location back off the exported intent instead of stating it. On a map the studio did **not**
+  build the stored location is authoritative: `GET /xml` renders the document, and `WoolEditor` moves the
+  `<block>` with the region that names it, and the Monuments step is where an author places one by hand.
+
 ## Analysis / export pipeline
 
 ### The traversability gate is geometry-based; post-gate coordinate snapping can't flip it

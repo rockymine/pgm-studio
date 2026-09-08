@@ -33,6 +33,42 @@ public static class AuthoringContext
         return teams;
     }
 
+    /// <summary>The id a team of this colour is called by. One derivation, so a team added and a team
+    /// recoloured cannot mint it differently.</summary>
+    public static string TeamId(string color) => color.Replace(' ', '-') + "-team";
+
+    /// <summary>Rename a team across the whole intent: every <c>team</c> and <c>owner</c> a slice states,
+    /// wherever it is nested, plus the island map's values. Two key names carry a team id — a spawn's and a
+    /// monument's <c>team</c>, a wool's and a core's <c>owner</c> — so the walk names those rather than the
+    /// slices holding them, and a slice added later is carried without being listed here.</summary>
+    public static void RenameTeam(JsonObject intent, string from, string to)
+    {
+        if (from == to || from.Length == 0 || to.Length == 0) return;
+        Walk(intent);
+
+        if (intent["islandTeams"] is JsonObject islands)
+            foreach (var (island, team) in islands.ToList())
+                if (team?.GetValue<string>() == from) islands[island] = to;
+
+        void Walk(JsonNode? node)
+        {
+            switch (node)
+            {
+                case JsonObject o:
+                    foreach (var (key, value) in o.ToList())
+                    {
+                        if (key is "team" or "owner" && value?.GetValueKind() == JsonValueKind.String
+                            && value.GetValue<string>() == from) o[key] = to;
+                        else Walk(value);
+                    }
+                    break;
+                case JsonArray a:
+                    foreach (var item in a) Walk(item);
+                    break;
+            }
+        }
+    }
+
     public static (string? mode, double cx, double cz) Sym(JsonObject intent)
     {
         if (intent["symmetry"] is JsonObject s)

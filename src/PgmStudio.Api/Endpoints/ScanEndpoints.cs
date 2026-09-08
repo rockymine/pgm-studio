@@ -238,3 +238,37 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : Endpoint
         await Send.OkAsync(new ColumnFloorDto(floor), ct);
     }
 }
+
+/// <summary>
+/// GET /api/map/{slug}/block-seat?x=&amp;y=&amp;z= — whether one block can hold a thing placed into it,
+/// read off the same vertical segments <c>column-floor</c> takes. A monument is the block a player puts a
+/// wool into, so the authoring step asks both halves at once: the block itself must be clear, and the block
+/// directly under it must be solid for the wool to be placed against.
+/// <para>Unlike <c>column-floor</c> this reads each run's whole span rather than its top, because a Y inside
+/// a solid run is the case the two differ on — the floor below it is a real floor and the block is still
+/// occupied.</para>
+/// </summary>
+public sealed class BlockSeatEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<BlockSeatDto>
+{
+    public override void Configure() { Get("/map/{slug}/block-seat"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        if (!int.TryParse(HttpContext.Request.Query["x"], out var x)
+            || !int.TryParse(HttpContext.Request.Query["y"], out var y)
+            || !int.TryParse(HttpContext.Request.Query["z"], out var z))
+        {
+            await Refusals.UnreadableAsync(HttpContext, "block not named",
+                "a block is asked for by its x, y and z, and one of them is missing", ct);
+            return;
+        }
+
+        var runs = await db.Segments
+            .Where(s => s.MapId == map.Id && s.WorldX == x && s.WorldZ == z)
+            .Select(s => new { s.WorldYStart, s.WorldYEnd }).ToListAsync(ct);
+
+        bool Solid(int atY) => runs.Any(run => run.WorldYStart <= atY && atY <= run.WorldYEnd);
+        await Send.OkAsync(new BlockSeatDto(runs.Count > 0, !Solid(y), Solid(y - 1)), ct);
+    }
+}

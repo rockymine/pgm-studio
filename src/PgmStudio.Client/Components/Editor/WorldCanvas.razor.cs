@@ -340,12 +340,17 @@ public partial class WorldCanvas
         return p;
     }
 
+    /// <summary>Drop the canvas. The field is cleared <b>before</b> the reference is disposed, because every
+    /// call on this component guards on <c>handle is not null</c> and a disposed reference is not a live one:
+    /// a host that awaits something — a column read, a save — and paints when it returns can resume after its
+    /// step has gone, and a non-null handle would answer that paint by throwing out of the renderer.</summary>
     public async ValueTask DisposeAsync()
     {
-        if (handle is not null)
+        if (handle is { } canvas)
         {
-            try { await handle.InvokeVoidAsync("dispose"); } catch { }
-            try { await handle.DisposeAsync(); } catch { }
+            handle = null;
+            try { await canvas.InvokeVoidAsync("dispose"); } catch { }
+            try { await canvas.DisposeAsync(); } catch { }
         }
         selfRef?.Dispose();
     }

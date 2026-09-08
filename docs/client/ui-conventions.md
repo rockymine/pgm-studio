@@ -39,7 +39,10 @@ variants, an optional lucide `Icon` name, and an `Href` that switches it to an `
 error line and the hint slots, and the input itself is `ChildContent`. `NumberField` and `CoordField` are the
 two inputs with enough shape of their own to be components; `Select` is the dropdown, taking its rows as
 `SelectOption` values — a value, the word it is offered under, the note it carries on hover and the heading it
-sits under — so grouping and labelling are decided once rather than at each site that offers a list; and
+sits under — so grouping and labelling are decided once rather than at each site that offers a list;
+`SwatchRow` is the control a **colour** is chosen with, generic in what a swatch stands for — a block's data
+value in the library, a colour word in Configure — because a set of sixteen colours is picked by clicking the
+colour and a dropdown of their names makes the author read what they can already see; and
 `AuthorsEditor` is the shared author/contributor block every tool's Identity step uses — each row's mark
 is an initial over a hue hashed from the row's own uuid or name, so a page carrying authors fetches nothing
 from outside the studio to draw them.

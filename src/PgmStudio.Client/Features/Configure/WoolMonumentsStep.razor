@@ -59,12 +59,17 @@
                 <ChildContent>
                 @if (m is not null)
                 {
-                  <div class="ctrl-row">
-                    <CoordField Prefix="X" Value="@m.X" ReadOnly />
-                    <CoordField Prefix="Y" Value="@m.Y" ReadOnly />
-                    <CoordField Prefix="Z" Value="@m.Z" ReadOnly />
+                  <div class="ctrl-row" @onfocusin="() => SelectMonument(cap.Id)">
+                    <CoordField Prefix="X"><NumberField Value="m.X" ValueChanged="@(v => SetCoord(m, "x", v))" Step="1" CssClass="coord-input" /></CoordField>
+                    <CoordField Prefix="Y"><NumberField Value="m.Y" ValueChanged="@(v => SetCoord(m, "y", v))" Step="1" CssClass="coord-input" /></CoordField>
+                    <CoordField Prefix="Z"><NumberField Value="m.Z" ValueChanged="@(v => SetCoord(m, "z", v))" Step="1" CssClass="coord-input" /></CoordField>
                     <Button Title="Remove" OnClick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></Button>
                   </div>
+                  @if (selectedTeam == cap.Id)
+                  {
+                    <SliceView Slug="@Slug" Node="@MonumentNode(m)" OnYChanged="@(y => SetY(m, y))" />
+                    <p class="section-desc @SeatClass">@SeatMessage</p>
+                  }
                 }
                 else
                 {

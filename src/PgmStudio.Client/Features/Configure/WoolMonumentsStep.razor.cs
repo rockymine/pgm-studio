@@ -32,6 +32,10 @@ public partial class WoolMonumentsStep
     private List<IslandDto> islands = new();
     private readonly Dictionary<string, string> islandTeams = new();
     private string? selectedColor;
+    // The monument whose side-view is showing, keyed by capturing team — one canvas rather than one per
+    // capturer, because a four-team wool carries three and the inspector column is 230px wide.
+    private string? selectedTeam;
+    private BlockSeatDto? seat;
     private bool detecting;
     private WorldCanvas? canvas;
 
@@ -52,6 +56,8 @@ public partial class WoolMonumentsStep
         wools = W.ParseWools(Wizard.Intent);
         selectedColor = wools.FirstOrDefault()?.Color;
         islands = await Ctx.LoadIslandsAsync(Http, Slug);
+        if (selectedColor is not null) await SelectMonument(
+            Selected is { } w0 ? Capturers(w0).FirstOrDefault(t => MonumentFor(w0, t.Id) is not null)?.Id : null);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -65,11 +71,71 @@ public partial class WoolMonumentsStep
         if (id is { } s && s.StartsWith(pfx))
         {
             var color = s[pfx.Length..].Split('-')[0];
-            if (wools.Any(w => w.Color == color)) selectedColor = color;
+            if (wools.Any(w => w.Color == color)) SelectWool(color);
         }
     }
 
-    private void SelectWool(string color) => selectedColor = color;
+    private void SelectWool(string color)
+    {
+        selectedColor = color;
+        var first = Selected is { } w ? Capturers(w).FirstOrDefault(t => MonumentFor(w, t.Id) is not null)?.Id : null;
+        _ = SelectMonument(first);
+    }
+
+    /// <summary>Show one monument's side-view and read whether its block can hold a wool. Raised by focus
+    /// on a coordinate row, so touching a number is what points the slice at it.</summary>
+    private async Task SelectMonument(string? team)
+    {
+        selectedTeam = team;
+        seat = null;
+        if (team is null || Selected is not { } wool || MonumentFor(wool, team) is not { } m) { StateHasChanged(); return; }
+        seat = await ColumnFloor.SeatAtAsync(Http, Slug, m.X, m.Y, m.Z);
+        StateHasChanged();
+    }
+
+    /// <summary>The sentence under the side-view: what the chosen block is, in the terms a wool is placed
+    /// in. A monument is the block a player puts the wool into, so it needs to be clear and to stand on
+    /// something.</summary>
+    private string SeatMessage => seat switch
+    {
+        null => "",
+        { Scanned: false } => "This column carries no scan — nothing can be said about the block.",
+        { Clear: false } => "A block already stands here: the wool cannot be placed, and PGM warns on load.",
+        { Pedestal: false } => "Nothing stands under it — a wool cannot be placed against air.",
+        _ => "Clear, and standing on a pedestal: a wool can be placed here.",
+    };
+
+    /// <summary>A verdict that costs the author something is the tool's own warning panel; one that costs
+    /// nothing is body text. Configure tints a fault and never an approval, which is what makes a tinted
+    /// line mean something.</summary>
+    private string SeatClass => seat is { Scanned: true, Clear: false } or { Scanned: true, Pedestal: false }
+        ? "panel-warning" : "";
+
+    // A point RegionNode for the reused SliceView. The id carries x/z so moving the monument re-points the
+    // slice at its new column; a Y move keeps the same window, which is what the drag edits.
+    private static RegionNode MonumentNode(W.Monument m) => new()
+    {
+        Id = $"monument@{m.X},{m.Z}", Type = "point",
+        Coords = new() { ["x"] = m.X, ["y"] = m.Y, ["z"] = m.Z },
+    };
+
+    // Drag on the side-view, and the three coordinate inputs, write the same monument. Each rewrite re-asks
+    // the seat, because the answer is about the block and the block just moved.
+    private async Task SetY(W.Monument m, int y)
+    {
+        m.Y = y;
+        Write();
+        await SelectMonument(m.Team);
+        await Paint();
+    }
+
+    private async Task SetCoord(W.Monument m, string axis, double v)
+    {
+        switch (axis) { case "x": m.X = v; break; case "y": m.Y = v; break; case "z": m.Z = v; break; }
+        Write();
+        await SelectMonument(m.Team);
+        await Paint();
+    }
 
     private async Task DetectMapWide()
     {
@@ -106,7 +172,12 @@ public partial class WoolMonumentsStep
             double cx = (minX + maxX) / 2.0, cz = (minZ + maxZ) / 2.0;
             var team = Ctx.IslandTeamAt(cx, cz, islands, islandTeams)
                        ?? Capturers(sel).FirstOrDefault(t => MonumentFor(sel, t.Id) is null)?.Id ?? "";
-            if (team != sel.Owner) AddMonument(sel, team, Math.Floor(cx), 0, Math.Floor(cz));
+            // Seated on the column the author boxed, not at world-bottom: a monument is a block a wool is
+            // placed into, so the resting Y is the one position in that column that already answers the
+            // seat check. The author moves it from there, and the side-view says what each move costs.
+            var y = await ColumnFloor.RestingYAsync(Http, Slug, cx, cz) ?? 0;
+            if (team != sel.Owner && AddMonument(sel, team, Math.Floor(cx), y, Math.Floor(cz)))
+                await SelectMonument(team);
         }
         detecting = false;
         Write();

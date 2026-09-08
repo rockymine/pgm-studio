@@ -107,4 +107,9 @@ public partial class BlockPicker
         => int.TryParse((string?)e.Value, out var value) && value >= 0 ? value : fallback;
 
     private Task Pick(PaintBlockDto block) => OnPick.InvokeAsync(block);
+
+    // The swatch row picks a shade by its data value; the block it stands for is the one in this family
+    // carrying it.
+    private Task PickData(int data)
+        => Family?.FirstOrDefault(shade => shade.Data == data) is { } shade ? Pick(shade) : Task.CompletedTask;
 }

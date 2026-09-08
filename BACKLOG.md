@@ -24,47 +24,15 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds a map from declarative
 intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are landed —
-`FEATURES.md`). **Leave the existing Edit editor untouched** — a separate surface, not a refit. Only
-the focus-integration polish remains.
+`FEATURES.md`). **Leave the existing Edit editor untouched** — a separate surface, not a refit.
 
-- [ ] **PG3 — An authored monument location is discarded, and the author has ruled that it should not be.**
-  `WorldBuilder` fills every wool's `Monuments` from `monLoc` — the air cell the capturing team's spawn
-  structure stamped — so a stated location is replaced unconditionally (`OB25` now says so). The ruling is in
-  `docs/gameplay/approaches.md`: a monument is a **standalone stamp**, tied to the spawn for simplicity, and
-  an author may put it anywhere **near that team's spawn** so long as it is **discoverable**. So: honour a
-  stated location, derive only where none is stated, and have the spawn stamper leave no monument block for a
-  wool whose monument stands elsewhere. Two gates follow, both on the built world beside `OB17`: a monument
-  further from its capturing team's spawn than the author's distance allows, and one with no line onto it —
-  a player carrying a wool must not search. `OB25` retires when the honouring lands; the distance is a number
-  the author still owes, and the corpus is where to read what real maps do.
+**A monument sits inside its capturing team's spawn, and that settles which map each entry is about**
+(author; `docs/design-decisions.md`). The studio's own maps derive it — `WorldBuilder` fills the location
+from the air cell the spawn structure stamped, `OB25` says so, and `ConfigureTool.LoadOriginAsync` drops the
+Monuments step for a sketch-origin map because there is nothing there to author. So what is left in this
+group is the **imported** map: the one the scan reads a monument off, or fails to, and the colour an author
+never gets to choose on either kind.
 
-  *Reproduced on `probe-mootgate`: `POST /wools/red/monuments` at `(-8, 16, -48)` reads back from the map
-  document and the intent, and `GET /xml` writes `<block id="red-blue-monument">-20,16,-80</block>` — inside
-  blue's spawn room.*
-
-- [ ] **N08 — Monument Y via side-view + per-side focus.** The side-view (`SliceView`) already sets Y on
-  **spawn** and **wool-spawn** (`SpawnStep`/`WoolSpawnStep`, `FEATURES.md`); the open slice is the rest:
-  (a) wire the side-view into **`WoolMonumentsStep`** so a monument's Y is editable, not read-only
-  (lift it off y=0 onto terrain); (b) **per-side focus** — `FocusSection` is still a `/concepts` mockup;
-  the canvas **fit-island** exists but not per-team quadrant framing — refine the concept so the author
-  can frame one team's quadrant while working its unit. (`FocusSection`)
-
-- [ ] **N09 — Team id should track the team's colour.** The team id is seeded from the colour first picked
-  (`Id = colour.Replace(' ','-')`), but `TeamAssignStep.SetColor` only updates the colour — so recolouring a
-  team (e.g. red → purple) leaves `id="red"` and every id derived from it (`only-red`, `red-spawn-point`,
-  the `…-red-monument` blocks, `reds-woolrooms`). **The `map.xml` is arguably wrong, not merely untidy**
-  (author): PGM resolves the id, so the map loads and plays — but a purple team is called red in every id a
-  reader meets, and the ids run in a fixed order, so nothing in the document says which of them the colour
-  belongs to. Re-derive the id on colour change and **cascade the rename** across the intent — `teams`,
-  `islandTeams`, and `spawns[].team` / `wools[].owner` / `wools[].monuments[].team` — with a guard to skip
-  the rename (just recolour) where the new colour-derived id would collide with another team's.
-
-- [~] **N11 — Monument Y must seat on terrain; coord-input moves must re-snap.** The **point tool** now
-  seats every spawn it places — team spawns + orbit copies, the observer, and wool spawns — on the target
-  column's floor via the shared `ColumnFloor` helper. Still open: monuments aren't seated at all; and moving
-  a spawn (team or wool) via the **coord inputs** rewrites X/Z without re-snapping Y to the new column, so
-  only the point tool re-seats. Pairs with `N08` (monument Y editing); the side-view's own clamp has
-  landed (`FEATURES.md`).
 
 - [~] **N12 — Configure has no destroyable phase.** Wools and Cores each have one and the objective phases
   are a group sharing one gate (`FEATURES.md`), so this is now the third phase slotting into machinery that
@@ -75,6 +43,15 @@ the focus-integration polish remains.
   through untouched); what it cannot be is *seen* or edited there. Detection is a separate question and is
   `B58`: unlike a core, a destroyable has no signature of its own, so the phase should offer manual
   placement first and adopt candidates when that ranker lands.
+
+- [ ] **TC6 — Per-side focus: framing one team's quadrant while its unit is being worked.** *Parked on a
+  ruling: what the framing should be.* The want was filed against `FocusSection`, a mockup on the `/concepts`
+  page — both were deleted on 2026-07-22 (`7fac0f69`, superseded by Configure), so there is no design left to
+  wire up, only the question it stood for. The canvas half that exists is `WorldCanvas.FitIsland` →
+  `world-canvas.js:330 fitIsland(id, fillFrac)`, which frames one **island**; a team's quadrant on a
+  two-island board is not an island, and on a four-team board the two do not coincide either. **The
+  question:** is the frame an island, the team's spawn plus its objectives, the symmetry quadrant the orbit
+  cuts, or the author dragging it themselves — and does it follow the selected team, or is it a control.
 
 - [ ] **TE3 — Retire the Edit tool.** The author's ruling: it is not being kept. The intent model authors a
   map now, and nobody has driven `/maps/{slug}/edit` — so its three unwired inspectors were never work, they

@@ -1,6 +1,6 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 50 open entries and `TODO.md` one — the dressing key, the last of the bindings a board
+`BACKLOG.md` holds 48 open entries and `TODO.md` one — the dressing key, the last of the bindings a board
 copies from the library that is named by something the library does not make unique. This document is the
 reading that says which of them are defects, which are questions, which share a cause, and what order drains
 them. Its subject is the board itself, and it expires when the board it describes is gone. It is the one
@@ -305,6 +305,25 @@ the ten refusals the authored corpus carries, the commonest structural refusal t
 its own remedy. What kept that sentence from an agent was the sentinel the evaluator answered under, and
 `TN2` — the one of the five that survived the reading — shipped the fix (`FEATURES.md`).
 
+**A third pass took three answers on the Configure group (author, 2026-09-08), and the first of them
+withdrew an entry that had been filed from a misread explanation.** `PG3` was filed after the author
+explained that PGM *permits* a monument outside the spawn; the ruling is that the studio does not take that
+permission — a monument sits **inside** its capturing team's spawn, because a position the build already
+knows is one an agent never has to choose or defend. The entry goes, `OB25` is correct as it stands, and
+`docs/design-decisions.md` carries the ruling so the asymmetry between what PGM allows and what the studio
+states is not read as a gap again.
+
+| entry | the answer | what it left |
+|---|---|---|
+| `PG3` — honour an authored monument location? | **no**, the monument is inside the spawn | the entry withdrawn. It also reorders the group: `ConfigureTool.LoadOriginAsync` drops the Monuments step for a sketch-origin map *because* there is nothing to author there, so everything left in the group is about an **imported** map |
+| `N08` — what does the monuments step owe an author? | an editable block, the side-view over it, and a **report** | shipped the same day (`FEATURES.md`). The coordinates are editable, `SliceView` draws the selected monument's section, and `GET /map/{slug}/block-seat` answers clear-and-on-a-pedestal off the vertical segments. A report, not a snap |
+| `N09` — why does a team id drift from its colour? | the colour is taken in a **fixed order** and never chosen | shipped the same day (`FEATURES.md`). A team and a wool are added off a sixteen-swatch row, so the id is right the first time, and recolouring renames the team across the intent. The answer moved the work one layer up from where the entry had been looking |
+
+The per-side-focus half of `N08` did not survive the same reading and is not a question the author was
+asked: `FocusSection` and the `/concepts` page it lived on were deleted on 2026-07-22 (`7fac0f69`), so the
+design it named is gone and only the want is left. It is filed as `TC6`, parked on what the frame should be —
+`WorldCanvas.FitIsland` frames an island, and a team's quadrant is not one.
+
 **The sitting has happened, and it drained the whole list.** Seven questions were put to the author in one
 pass and seven came back, which is what this section claimed would happen and had never been tested. What the
 answers cost is worth recording, because it is not what the board's shape suggested:
@@ -350,15 +369,18 @@ partition it — a third of the entries are cleanup, naming and consistency work
 but each of the three wants a different treatment, which is what makes them worth naming despite the
 ambiguity at their edges.
 
-**Blocked decisions** are the twelve questions above, plus `S47`, which waits on material rather than on a
-ruling. Each has a definite end and none of it is work until the answer arrives.
+**Blocked decisions** are what the board still marks as parked — `TC6` (what a per-side frame is), `WE41`
+and `TS103` and `A8` — plus `S47`, which waits on material rather than on a ruling. The sittings above are
+why that list is four and not twelve: a question put to the author comes back the same day, and three of the
+answers so far have been to decline the question. Each has a definite end and none of it is work until the
+answer arrives.
 
-**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`,
-`N08`, `N12`, `TS64`, `S59`. Four more — `B107`, `S25b`, `B145`, `WE54` — were
-this population until the building's one model turned them from three reaches into one, and all four have
-since shipped. That is the reading's own claim tested: a reach gap is drained by naming the cause under it,
-not by working the entries in turn. This is the population the studio's own shape produces, and every one of them is the same thing: a
-document, a route or a solver that already answers, and a surface that never asks.
+**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`, `N12`, `TS64`,
+`S59`. `N08` was one until the same sitting drained it. Four more — `B107`, `S25b`, `B145`, `WE54` — were this
+population until the building's one model turned them from three reaches into one, and all four have since
+shipped. That is the reading's own claim tested: a reach gap is drained by naming the cause under it, not by
+working the entries in turn. This is the population the studio's own shape produces, and every one of them is
+the same thing: a document, a route or a solver that already answers, and a surface that never asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
 `S34`, `TS51`, `TS63`, `G164`, `B54`, `B9`, `B58`. `G187` left this population by being read against the

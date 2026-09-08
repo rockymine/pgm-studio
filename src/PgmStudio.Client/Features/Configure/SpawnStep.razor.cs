@@ -204,6 +204,10 @@ public partial class SpawnStep
     // top-down canvas. Null when the column is void.
     private Task<int?> StandingYAsync(double x, double z) => ColumnFloor.RestingYAsync(Http, Slug, x, z);
 
+    // The Y a spawn already standing somewhere re-seats to when it moves across the ground: the floor at or
+    // below the level it is leaving, so a spawn inside a building keeps its own storey.
+    private Task<int?> SeatedYAsync(double x, double z, int refY) => ColumnFloor.RestingYAsync(Http, Slug, x, z, refY);
+
     private void SelectTeam(string id) => selectedTeamId = id;
 
     // A point RegionNode for the reused SliceView (the edit page's mini side-view) — it reads x/y/z + Type.
@@ -223,14 +227,27 @@ public partial class SpawnStep
         WriteIntent();
     }
 
-    private void SetCoord(Spawn s, string axis, double v)
+    /// <summary>Write one coordinate of a placed spawn. A move across the ground <b>re-seats</b> it on the
+    /// column it lands in, the way the point tool places one: a spawn that keeps the height of the column it
+    /// left stands inside the terrain it moved onto. The search is anchored at the spawn's current level
+    /// rather than the column's top, because this moves a spawn that already stands somewhere — a spawn in a
+    /// building finds its own floor and not the roof over it. A Y typed here is the author's and is left
+    /// alone.</summary>
+    private async Task SetCoord(Spawn s, string axis, double v)
     {
+        // Read before the move: it is the level the spawn is leaving that says which floor it is looking for.
+        var refY = (int)Math.Floor(s.Y);
+
         if (IsObserver(s))
         {
             switch (axis) { case "x": s.X = v; break; case "z": s.Z = v; break; case "y": s.Y = v; break; case "yaw": s.Yaw = v; break; }
-            if (axis is "x" or "z") RecomputeObserverYaw();   // moving it re-aims at the team spawn (manual yaw edits stick)
+            if (axis is "x" or "z")
+            {
+                if (await SeatedYAsync(s.X, s.Z, refY) is { } observerY) s.Y = observerY;   // the observer owns its own height
+                RecomputeObserverYaw();   // moving it re-aims at the team spawn (manual yaw edits stick)
+            }
             WriteIntent();
-            _ = PaintSpawns();
+            await PaintSpawns();
             return;
         }
         switch (axis)
@@ -240,6 +257,11 @@ public partial class SpawnStep
             case "yaw": s.Yaw = v; break;
             case "y": foreach (var sp in spawns) sp.Y = v; break;   // orbit partners share terrain height
         }
+        // Orbit partners sit on symmetric terrain and share one height, so the column this spawn landed in
+        // is the height all of them take — which is what PlaceAndOrbit hands out when the point tool places
+        // the authored spawn, and what the group takes directly when an orbit copy is the one nudged.
+        if (axis is "x" or "z" && await SeatedYAsync(s.X, s.Z, refY) is { } seated)
+            foreach (var sp in spawns) sp.Y = seated;
         // Moving the authored spawn re-derives the symmetric orbit (and all yaws); an orbit spawn nudged on
         // its own just re-aims itself + the observer. A manual yaw edit is left untouched.
         if (s.Authored && axis is "x" or "z") PlaceAndOrbit(s.Team, s.X, s.Z, s.Y);
@@ -250,7 +272,7 @@ public partial class SpawnStep
             RecomputeObserverYaw();
         }
         WriteIntent();
-        _ = PaintSpawns();
+        await PaintSpawns();
     }
 
     private void WriteIntent()

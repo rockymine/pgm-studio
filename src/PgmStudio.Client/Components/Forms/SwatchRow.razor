@@ -1,0 +1,28 @@
+@namespace PgmStudio.Client.Components
+@typeparam TKey
+
+@* A row of colour swatches with one of them on — the control every sixteen-colour choice is made with: a
+   block's shade in the style library, a team's colour, a wool's. A colour is picked by clicking the colour,
+   which is the whole point: a dropdown of sixteen names makes the author read what they can already see. *@
+
+<div class="block-picker-colors">
+  @foreach (var swatch in Swatches)
+  {
+    <button type="button" @key="swatch.Key" title="@swatch.Label"
+            class="block-swatch @(EqualityComparer<TKey>.Default.Equals(swatch.Key, Selected) ? "block-swatch--on" : null)"
+            style="background:@swatch.Hex" @onclick="() => OnPick.InvokeAsync(swatch.Key)"></button>
+  }
+</div>
+
+@code {
+    /// <summary>One swatch: what picking it means, the colour shown, and the name behind the tooltip.</summary>
+    public readonly record struct Swatch(TKey Key, string Hex, string Label);
+
+    [Parameter, EditorRequired] public IReadOnlyList<Swatch> Swatches { get; set; } = [];
+
+    /// <summary>The swatch drawn as chosen. A key no swatch carries draws none of them on, which is the
+    /// honest reading of a colour off the offered set.</summary>
+    [Parameter] public TKey? Selected { get; set; }
+
+    [Parameter] public EventCallback<TKey> OnPick { get; set; }
+}

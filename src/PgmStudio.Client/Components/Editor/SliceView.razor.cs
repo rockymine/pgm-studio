@@ -107,12 +107,15 @@ public partial class SliceView : IAsyncDisposable
         return new() { ["axis"] = axis, ["xmin"] = x0, ["xmax"] = x1, ["zmin"] = z0, ["zmax"] = z1, ["markerY"] = (int?)null, ["markerP"] = (int?)null, ["markerMy"] = (int?)null };
     }
 
+    // The field is cleared before the reference is disposed: every use of it guards on `handle is not null`,
+    // and a host that awaits something and pushes a new window when it returns can resume after the slice
+    // has gone.
     private async Task DisposeHandleAsync()
     {
-        if (handle is null) return;
-        try { await handle.InvokeVoidAsync("dispose"); } catch { }
-        try { await handle.DisposeAsync(); } catch { }
+        if (handle is not { } slice) return;
         handle = null;
+        try { await slice.InvokeVoidAsync("dispose"); } catch { }
+        try { await slice.DisposeAsync(); } catch { }
     }
 
     public async ValueTask DisposeAsync()

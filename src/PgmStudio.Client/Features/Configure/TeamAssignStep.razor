@@ -24,10 +24,9 @@
       }
 
       <Section Title="Teams">
-        <Actions><Button OnClick="AddTeam">+ Add</Button></Actions>
         <ChildContent>
         <div class="panel-list">
-          @if (teams.Count == 0) { <div class="list-empty">No teams yet — accept the suggestion or add one.</div> }
+          @if (teams.Count == 0) { <div class="list-empty">No teams yet — accept the suggestion or pick a colour below.</div> }
           @for (var i = 0; i < teams.Count; i++)
           {
             var t = teams[i];
@@ -40,6 +39,13 @@
             </ListRow>
           }
         </div>
+        @if (AddableColors.Count > 0)
+        {
+          <Field Label="Add a team">
+            <SwatchRow TKey="string" OnPick="AddTeam"
+                       Swatches="@AddableColors.Select(c => new SwatchRow<string>.Swatch(c.Value, c.Hex, c.Label)).ToList()" />
+          </Field>
+        }
         @if (teams.Count > 0)
         {
           <p class="section-desc">Team 0 is <strong>authored</strong>; the rest are <strong>orbit</strong> —
@@ -104,15 +110,10 @@
               <input class="field-input" value="@sel.Name" @onchange="SetName" />
             </Field>
             <Field Label="Colour">
-              <div class="field-pick-row">
-                <span class="field-swatch" style="background:@Hex(sel.Color)"></span>
-                <select class="field-input" value="@sel.Color" @onchange="SetColor">
-                  @foreach (var c in GameColors.ChatColors)
-                  {
-                    <option value="@c.Value" selected="@(c.Value == sel.Color)">@c.Label</option>
-                  }
-                </select>
-              </div>
+              <SwatchRow TKey="string" Selected="@sel.Color" OnPick="SetColor"
+                         Swatches="@GameColors.ChatColors.Select(c => new SwatchRow<string>.Swatch(c.Value, c.Hex, c.Label)).ToList()" />
+              <p class="section-desc">The id follows the colour — recolouring renames the team across the
+                intent, unless another team already holds that name.</p>
             </Field>
             <Field Label="Islands">
               <div class="field-pick-row"><Badge Kind="neutral">@IslandsFor(sel.Id)</Badge><span class="list-tag">tagged</span></div>

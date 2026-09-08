@@ -227,13 +227,24 @@ public partial class WoolObjectivesStep
         PersistAndPaint();
     }
 
-    private void AddMissing()
+    /// <summary>The dyes a wool can still be added in — the sixteen minus the ones already claimed. A
+    /// colour is the wool's key, so the offered set is exactly the set that can be added without
+    /// colliding.</summary>
+    private IReadOnlyList<GameColors.Color> AddableColors
     {
-        var taken = candidates.Select(c => c.Color).ToHashSet();
-        var color = GameColors.DyeColors.Select(d => W.NormColor(d.Value)).FirstOrDefault(v => !taken.Contains(v)) ?? "white";
-        var cand = new Candidate { Color = color, Owner = teams.FirstOrDefault()?.Id ?? "", Included = true, HasSource = false };
-        candidates.Add(cand);
-        selectedColor = color;
+        get
+        {
+            var taken = candidates.Select(c => c.Color).ToHashSet();
+            return [.. GameColors.DyeColors.Where(d => !taken.Contains(W.NormColor(d.Value)))];
+        }
+    }
+
+    private void AddWool(string color)
+    {
+        var norm = W.NormColor(color);
+        if (norm.Length == 0 || candidates.Any(c => c.Color == norm)) return;
+        candidates.Add(new Candidate { Color = norm, Owner = teams.FirstOrDefault()?.Id ?? "", Included = true, HasSource = false });
+        selectedColor = norm;
         PersistAndPaint();
     }
 

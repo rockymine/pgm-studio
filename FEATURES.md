@@ -3526,6 +3526,46 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cluster centroid) + set its Y on the reused side-view; positions **orbit** like the team-spawn step
   (editing an anchor-team wool re-derives its mirror partners by mirrored position — colour/owner untouched,
   so green's mirror stays the real yellow). (`WoolSpawnStep`; N04)
+- **A monument is placed by hand, and the step says whether a wool can be won there (N08).** On an imported
+  map the scan does not always find a pedestal, and until now the gap could not be filled: the Wools ·
+  Monuments step drew the block's X/Y/Z read-only and dropped a manual one at `y=0` whatever the terrain
+  under it was. The three coordinates are editable now, a `SliceView` draws the section the selected monument
+  sits in, and a manual drop seats on the column the author boxed. Beneath it the step states what the block
+  **is**: a monument is the block a player puts the wool into, so it needs to be clear *and* to have a solid
+  block directly under it to place against — `GET /map/{slug}/block-seat` answers both off the vertical
+  segments in one column read, and its four answers are the four sentences shown (clear on a pedestal, a
+  block already standing there, nothing underneath, an unscanned column). It reports rather than snapping,
+  which is the ruling: the author states the block and the step says what it costs. The step stays absent on
+  a sketch-origin map, where a monument stands inside its capturing team's spawn and is derived.
+  (`BlockSeatEndpoint`, `BlockSeatDto`, `ColumnFloor.SeatAtAsync`, `WoolMonumentsStep`; N08)
+- **A team and a wool are added in a chosen colour, and a team's id follows it (N09).** The colour was taken
+  in a fixed order — `GameColors.NextTeamColor` walking `red, blue, green, …`, and a wool taking the first
+  free dye — with no way to say which one was wanted, so the route to a purple team was to add a red one and
+  recolour it; and recolouring wrote the colour alone, stranding `id="red-team"` and every id derived from
+  that stem (`only-red`, `red-spawn-point`, the `…-red-monument` blocks) on a team that is no longer red.
+  Both are picked off a sixteen-swatch row now, offering only the colours nothing holds, so the id is right
+  the first time. Recolouring afterwards **renames** the team: the id, the auto-derived name (an author's own
+  name is kept), the island tags, and every `team` or `owner` an intent slice states, at any nesting —
+  `AuthoringContext.RenameTeam` walks the two key names rather than the slices holding them, so a slice added
+  later is carried without being listed. A colour whose id another team already holds recolours alone, since
+  two teams cannot share an id. (`SwatchRow`, `AuthoringContext.TeamId`/`RenameTeam`, `TeamAssignStep`,
+  `WoolObjectivesStep`; N09)
+- **A canvas handle stops answering the moment its host goes (N11).** `WorldCanvas` and `SliceView` guard
+  every interop call on `handle is not null`, and both disposed the reference while leaving the field set —
+  so a disposed handle passed the guard and threw `ObjectDisposedException`. Nothing showed while every host
+  painted synchronously after an edit; a host that **awaits** a column read and repaints when it returns can
+  resume after its step is gone, and the throw escapes into the renderer as Blazor's *Reload* bar with the
+  page dead behind it. Both now clear the field before disposing the reference, so an in-flight caller
+  no-ops. (`WorldCanvas.DisposeAsync`, `SliceView.DisposeHandleAsync`; found under N11)
+- **A spawn moved through the coordinate inputs re-seats on the column it lands in (N11).** Only the point
+  tool seated a placement; typing a new X or Z rewrote the position and kept the height of the column being
+  left, so a spawn nudged onto higher ground stood inside it and one nudged off a rise hung over the drop.
+  `SpawnStep.SetCoord` and `WoolSpawnStep.SetCoord` re-seat through the same `ColumnFloor` helper the point
+  tool uses, anchored at the level the placement is **leaving** rather than at the column's top — this moves
+  something that already stands somewhere, so a spawn inside a building finds its own storey and not the roof
+  over it. A team spawn hands the new height to its whole orbit (partners sit on symmetric terrain and share
+  one), the observer re-seats alone, and a Y typed by hand is the author's and is left alone.
+  (`SpawnStep`, `WoolSpawnStep`, `ColumnFloor.RestingYAsync`; N11)
 - **Spawns seat on terrain (N11)** — a spawn placed with the **point tool** lands on the column's floor
   instead of Y 0: team spawns + their orbit copies, the observer, and wool spawns all route through one
   `ColumnFloor` helper, which owns the +1 (`column-floor` reports the topmost solid block *inclusive*, so

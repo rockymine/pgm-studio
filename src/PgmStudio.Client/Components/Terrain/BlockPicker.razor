@@ -24,13 +24,7 @@
 
   @if (ShowColors && Family is not null)
   {
-    <div class="block-picker-colors">
-      @foreach (var shade in Family)
-      {
-        <button type="button" class="block-swatch @(shade.Data == Data ? "block-swatch--on" : null)"
-                style="background:@shade.Hex" title="@shade.Name" @key="shade.Data"
-                @onclick="() => Pick(shade)"></button>
-      }
-    </div>
+    <SwatchRow TKey="int" Selected="@Data" OnPick="PickData"
+               Swatches="@Family.Select(shade => new SwatchRow<int>.Swatch(shade.Data, shade.Hex, shade.Name)).ToList()" />
   }
 </div>

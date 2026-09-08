@@ -110,3 +110,12 @@ public sealed record SegmentsDto(
 /// <param name="Y">The height a thing dropped at that column comes to rest on, or null where the column
 /// has no segment data at all.</param>
 public sealed record ColumnFloorDto(int? Y);
+
+/// <summary>Whether one block can hold a thing placed into it. A monument is the block a player puts a wool
+/// into, so it needs both halves: nothing already standing in it, and something standing directly under it
+/// for the wool to be placed against.</summary>
+/// <param name="Scanned">Whether the column carries segment data at all. False makes the other two
+/// meaningless — an unscanned column is not an empty one.</param>
+/// <param name="Clear">No solid run covers the block itself.</param>
+/// <param name="Pedestal">A solid run covers the block directly below it.</param>
+public sealed record BlockSeatDto(bool Scanned, bool Clear, bool Pedestal);

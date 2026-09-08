@@ -297,12 +297,20 @@ itself, and anything else is the sentence the build answered with, read out of t
 (`message`, then `error`, then the bare status). The host shows *no WebGL* for the first and the build's own
 words for the second. A failure with a sentence available should never be reported as a different failure.
 
-**Three interop details cost an afternoon each the first time.** `InvokeVoidAsync(name, params object?[])`
+**Four interop details cost an afternoon each the first time.** `InvokeVoidAsync(name, params object?[])`
 **spreads** an array argument, so passing one whole array means boxing it — `(object)ids.ToArray()` — or the
 JS side receives the elements as separate parameters. A Razor markup lambda cannot contain a `"` literal, so
-an inline handler that needs an empty string uses `string.Empty` or a method group instead. And a
+an inline handler that needs an empty string uses `string.Empty` or a method group instead. A
 `.control-input--hidden` checkbox is `display: none`, so a test or a script that clicks it hits nothing —
 the wrapping label is the clickable thing.
+
+And **a handle field is cleared before its reference is disposed, not after.** Every call on `WorldCanvas`
+and `SliceView` guards on `handle is not null`, and a disposed `IJSObjectReference` is still non-null — it
+throws `ObjectDisposedException` instead. That is invisible while a host paints synchronously after an edit
+and fatal the moment one **awaits** first: a step that reads a column height and repaints when the answer
+comes back can resume after the author has moved on, and the throw escapes into the renderer, where Blazor
+answers with the yellow *Reload* bar and the page is dead. Clearing the field first makes the guard mean what
+it says, and every in-flight caller no-ops instead.
 
 ## 7. What is tested, and what is not
 

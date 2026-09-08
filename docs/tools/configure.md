@@ -229,12 +229,24 @@ everything else → two), sets the shared `maxPlayers`, and tags each island to 
 clicking the island, which tints it. The tags are an authoring aid rather than map data: the spawn step reads
 them so a marker takes the team of the island it lands on.
 
+A team **is** its colour: the id is derived from it (`dark purple` → `dark-purple-team`), so a team is added
+by picking a colour off the sixteen-swatch row rather than by taking whichever the suggestion order offered
+next, and the row offers only the colours no team holds. Recolouring a team afterwards **renames it** — the
+id, the auto-derived name, the island tags and every `team` or `owner` an intent slice states, wherever it is
+nested. Two teams cannot share an id, so a colour whose id another team already holds recolours alone.
+
 **Spawn point** drops team 0's spawn with the point tool and orbit-fills the rest, reassigning each copy by
 the island it actually lands in — so a slightly-off rotation still gives the right team its own spawn. The
 **observer spawn is placed here too**, as a spawn like any other, and it matters because it is the one thing
 no plan authors: a plan puts the observer at the map origin at a computed height and offers no marker, so
-unless it is moved here every map's spectators stand at `0, 0`. Every placed point seats on the terrain
-column under it rather than floating.
+unless it is moved here every map's spectators stand at `0, 0`.
+
+Every placed point seats on the terrain column under it rather than floating, and it does so however it was
+moved — the point tool and the coordinate inputs both re-seat. A move by coordinate is anchored at the level
+the placement is *leaving* rather than at the column's top, because it moves something that already stands
+somewhere: a spawn inside a building finds its own storey and not the roof over it. A team spawn hands its
+new height to the whole orbit, since partners sit on symmetric terrain and share one; the observer owns its
+own. A Y typed by hand is the author's and stands.
 
 **Protection** draws the anti-grief rectangles over a spawn. A zone is a union, so the first rect fixes the
 team and further rects extend it; authored rects carry a stable id and resize on the canvas, and the symmetry
@@ -286,14 +298,25 @@ hand. **This is the step that makes an imported map configurable at all** — ev
 the scan proposed.
 
 **Spawn** confirms where each wool dispenses: the `<wool location>` and the spawner's point, seeded from the
-detected source centroid and seated on the floor the pile rests on, with the side-view setting Y. Editing the
+detected source centroid and seated on the floor the pile rests on, with the side-view setting Y. Moving one
+by coordinate re-seats it the same way the point tool does, anchored at the wool's own level — a wool
+normally sits in a covered room, whose roof would otherwise be the column's topmost surface. Editing the
 anchor team's wool re-derives its symmetric partners; editing an orbit copy nudges that one alone.
 
 **Monuments** confirms one monument per capturing team. The scan usually pre-fills them from signed pedestals;
 a gap is filled by drawing a box around a cluster, which routes each hit to its colour's wool with the
-capturing team read off the island. An empty box drops one manual monument at its centre. **This step is
-dropped entirely on a sketch-origin map**, where monuments are derived at export from the plan's geometry
-rather than authored.
+capturing team read off the island. An empty box drops one manual monument at the centre of the box, seated
+on that column's floor. **This step is dropped entirely on a sketch-origin map**, where a monument stands
+inside its capturing team's spawn and is derived from the stamp that built it
+(`docs/design-decisions.md`) — so everything below is about a map the studio did not build.
+
+Each monument's block is editable, three coordinates and a side-view over the section it sits in, the same
+control the spawn steps carry. Under it the step says whether a wool can actually be won there, because a
+monument is the block a player puts the wool **into** and so needs two things at once: the block itself
+clear, and a solid block directly under it to place against. `GET /map/{slug}/block-seat` answers both off
+the vertical segments, and the four answers it produces are the four sentences the step shows — clear on a
+pedestal, a block already standing there, nothing underneath, or a column the scan never reached. It reports
+rather than snapping: the author states the block and the step says what it costs.
 
 **Room** draws the rectangles the wool lives in — again a union, again orbited onto the partner wools as
 read-only copies. A wool with no room still generates its objective and its monuments; what it loses is the
@@ -510,6 +533,7 @@ short of a side says so as well.
 | Endpoint | Answers |
 |---|---|
 | `GET /map/{slug}/column-floor?x=&z=` | the floor a marker seats on — what makes a placed point land on terrain. `{y: null}` where the column has no segment data |
+| `GET /map/{slug}/block-seat?x=&y=&z=` | whether one block can hold a thing placed into it: `clear` that nothing stands in it, `pedestal` that something stands directly under it, `scanned` that the column was read at all. What the Monuments step says its verdict from |
 | `GET /map/{slug}/segments[?axis=&xmin=&xmax=&zmin=&zmax=]` | the vertical section through the world along one axis — what the side view draws. 404 when the map has no segments |
 | `POST /map/{slug}/wool-sources` | wool colours and their source clusters inside a drawn rectangle |
 | `POST /map/{slug}/resources` | the iron, gold and diamond blocks — optionally inside a drawn rectangle, the same `bounds` object — and how many of them a declared `<renewable>` already covers |
@@ -628,11 +652,6 @@ field at all. The one kit surface in the studio is a free-text box in the **Edit
 spawn uses, and nothing anywhere authors what a kit *contains* — that is the author's decision rather than
 a gap, so a map wanting different starting gear is finished outside the studio.
 
-**A team's id does not follow its colour.** The id is seeded from the colour first picked, and recolouring a
-team afterwards changes only the colour — so a team switched from red to purple keeps `id="red"` and every id
-derived from it (`only-red`, `red-spawn-point`, the `…-red-monument` blocks). PGM resolves the id, so the map
-plays correctly; it reads wrong everywhere (`N09`).
-
 **Water lanes cannot be authored here, and are invisible even when present.** The Buildable-layer step draws
 `build.areas` and `build.holes` and nothing else, so a lane compiled in from a plan does not render. It does
 survive, though, and that is worth knowing: measured on the example intent above, adding a `waterLanes` rect
@@ -650,10 +669,6 @@ from an existing `map.xml`. Configure authors an intent; it does not read one ba
 look at a corpus map's XML the tool is **Edit** — which is a technical inspector rather than an authoring
 surface, supports **CTW only**, and is not going to grow DTC or DTM. That gap is exactly what the intent model
 closed for new maps.
-
-**A monument's Y is not editable.** The side-view seats team spawns, the observer and wool sources on their
-terrain column, but monuments are neither seated nor adjustable, and moving any placed point through the
-coordinate inputs rewrites X and Z without re-snapping Y to the new column (`N08`, `N11`).
 
 **Nothing here judges how a map plays.** Pre-flight asks whether the document is well-formed, whether the
 halves agree, whether placements stand on ground, and whether the objectives are reachable. Whether the map is

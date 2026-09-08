@@ -167,16 +167,18 @@ A region that contains another names it; nothing is duplicated by value, which i
 **A wool's owner team is derived from its capturing `monument.team`**, not stated twice. The monument says who
 captures, and the ownership falls out of it — so the two can never disagree, because there is only one of them.
 
-**A monument's `location` is what the build produced, not what it was asked for — on a sketch-originated
-map, and `PG3` is open to change that.** The author's ruling is that a monument is a standalone stamp, tied
-to the spawn for simplicity, and may stand anywhere near the capturing team's spawn so long as it is
-discoverable (`docs/gameplay/approaches.md`). Until that lands, the build's own location wins: The block a wool is won on is one of the blocks the capturing team's own spawn structure *stamps*, so
-`WorldBuilder` fills every monument's location from the air cell that stamp left and an authored one is
-replaced. Three paths take a location — `POST /map/{slug}/wools/{woolId}/monuments`,
-`PATCH …/monuments/{monumentId}` and `PUT /map/{slug}/intent` — and every read answers it, which is why the
-replacement is now reported as `OB25` rather than made silently. On a map the studio did **not** build the
-location is authoritative: `GET /xml` renders the stored document, and there a monument naming a region
-carries its position in that region, so `WoolEditor` moves the `<block>` with it.
+**A monument's `location` is what the build produced, not what it was asked for**, on a sketch-originated map.
+The author's ruling is that a monument is a standalone stamp that sits **inside its capturing team's spawn**:
+PGM would allow it anywhere near that spawn, and the studio spends that freedom on having nothing to state,
+because a position the build already knows is one an agent does not have to choose, justify or defend
+(`docs/design-decisions.md`). So the build's own location wins. The block a wool is won on is one of the
+blocks the capturing team's own spawn structure *stamps*, so `WorldBuilder` fills every monument's location
+from the air cell that stamp left and an authored one is replaced. Three paths take a location — `POST
+/map/{slug}/wools/{woolId}/monuments`, `PATCH …/monuments/{monumentId}` and `PUT /map/{slug}/intent` — and
+every read answers it, which is why the replacement is now reported as `OB25` rather than made silently. On a
+map the studio did **not** build the location is authoritative: `GET /xml` renders the stored document, and
+there a monument naming a region carries its position in that region, so `WoolEditor` moves the `<block>` with
+it.
 
 ## 5b. Void enforcement, decoupled from the build area (B132)
 

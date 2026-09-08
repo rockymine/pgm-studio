@@ -69,22 +69,31 @@ public partial class WoolSpawnStep
 
     private void SelectWool(string color) => selectedColor = color;
 
-    private void SetCoord(W.Wool w, string axis, ChangeEventArgs e)
+    /// <summary>Write one coordinate of a wool's source point. A move across the ground <b>re-seats</b> it
+    /// on the column it lands in, the same rule the point tool places one by — the wool's own level anchors
+    /// the search, since it usually sits in a covered room whose roof would otherwise be the column's
+    /// topmost surface. A Y typed here is the author's and stands.</summary>
+    private async Task SetCoord(W.Wool w, string axis, ChangeEventArgs e)
     {
         if (!double.TryParse(e.Value?.ToString(), out var v)) return;
+        // Read before the X/Z move, and re-seat before the partners are re-derived, since they copy the
+        // authored wool's Y.
+        var refY = (int)Math.Floor(w.SpawnY);
         switch (axis)
         {
             case "x": w.SpawnX = v; break;
             case "z": w.SpawnZ = v; break;
             case "y": w.SpawnY = v; break;
         }
+        if (axis is "x" or "z" && await ColumnFloor.RestingYAsync(Http, Slug, w.SpawnX, w.SpawnZ, refY) is { } seated)
+            w.SpawnY = seated;
         if (IsAuthored(w))
         {
             if (axis is "x" or "z") ReDerivePartners(w);
             if (axis == "y") foreach (var p in Partners(w)) p.SpawnY = v;
         }
         Write();
-        _ = Paint();
+        await Paint();
     }
 
     private void SetY(W.Wool w, int y)

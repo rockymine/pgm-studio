@@ -32,4 +32,18 @@ internal static class ColumnFloor
         }
         catch { return null; }
     }
+
+    /// <summary>Whether the block at (<paramref name="x"/>, <paramref name="y"/>, <paramref name="z"/>) can
+    /// hold a thing placed into it — clear itself, and standing on something
+    /// (<c>GET /map/{slug}/block-seat</c>). Null when the read fails; the caller says nothing rather than
+    /// guessing.</summary>
+    public static async Task<BlockSeatDto?> SeatAtAsync(HttpClient http, string slug, double x, double y, double z)
+    {
+        try
+        {
+            return await http.GetFromJsonAsync<BlockSeatDto>(
+                $"api/map/{slug}/block-seat?x={(int)Math.Floor(x)}&y={(int)Math.Floor(y)}&z={(int)Math.Floor(z)}");
+        }
+        catch { return null; }
+    }
 }
