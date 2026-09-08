@@ -11,7 +11,7 @@
 
   /* ── Backgrounds ─────────────────────────────────────────────────────── */
   --bg-canvas:          #080f1a;   /* map/sketch VIEWPORT (themed; light override in [data-theme=light]) */
-  --bg-deep:            #080f1a;   /* deepest UI surface (map-detail pane, logo box) */
+  --bg-deep:            #080f1a;   /* deepest UI surface (logo box) */
   --bg-base:            #0f172a;   /* page background */
   --bg-panel:           #1e293b;   /* sidebars, panels, topbar */
   --bg-multi:           #1a3a2f;   /* multi-team selection tint */

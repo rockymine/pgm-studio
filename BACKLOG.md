@@ -592,18 +592,16 @@ past it unseen. Each entry names the assertion, and re-running its own spec is t
 
 ## Refactoring and cleanup
 
-- [ ] **C63 — A tenth of the studio's CSS styles markup that is gone.** Across the seven studio stylesheets,
-  **99 of 644** selectors are matched by no `.razor`, `.cs` or `.js` in the client and are not a modifier a
-  component composes at runtime (`action-btn--<variant>` and its kind are excluded, which is what makes the
-  count conservative). `editor.css` carries **61 of 158**, and **44 of them are one run, lines `603`–`763`** —
-  the **master-detail maps dashboard**: a sidebar (`sidebar-search-*`, `sidebar-import-row`,
-  `url-import-status`, `sidebar-maps`, `map-list-*`, `map-status-dot`) beside a detail pane (`map-detail-*`,
-  `map-thumb-*`, `#map-detail-content`, `detail-block`). `/maps` is `Pages/Maps.razor` now and draws a list
-  out of the shared vocabulary — `list-label`, `list-tag`, `map-layer`, `panel-list` — so none of it is
-  reachable. Two further rules in that span go with it, `sidebar-import-row .field-input` and
-  `map-detail-actions .action-btn`, which name a live class **inside a dead ancestor** and so read as live to
-  any grep. Delete the dead runs stylesheet by stylesheet, largest first, and check each name against the
-  client before it goes: a class built by string concatenation reads as dead and is not.
+- [ ] **C63 — What is left of the CSS that styles markup nobody renders.** The dashboard run is gone
+  (`FEATURES.md`); **54 of 598** selectors across the studio stylesheets are still matched by no `.razor`,
+  `.cs` or `.js` and are not a modifier a component composes at runtime — `components.css` **23**
+  (`panel-accordion`, the seven `choice-*`, `map-row-action`, `list-row-btn`), `editor.css` **18**
+  (`topbar-actions`, `topbar-changes-badge`, `map-svg`, `layer-item`, `page-placeholder`, `geo-label-input`)
+  and `design.css` **13** (the `gen-*` family). These are scattered rather than one surface, so each wants
+  its own look: a name here may be the last of a component that half-shipped rather than the leftover of one
+  that went. **Two traps.** A modifier whose stem is composed in C# — `action-btn--<variant>` — reads as dead
+  and is not, which is why the count excludes them. And a compound naming a live class inside a dead ancestor
+  reads as *live* and is not; `sidebar-import-row .field-input` was one, and a grep will never find the next.
 
 - [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
   `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,
