@@ -12,10 +12,10 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **45 open entries over 8,102 words**: a median entry of 168 words and **6 above 250** —
+The two boards carry **44 open entries over 7,846 words**: a median entry of 167 words and **6 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
 is the longest at 436 words, then `WS3` at 356, `B169` at 281 and `WE28` at 266. The prefix spread is `WE` 11,
-`B` 7, `G` 6, `TS` 5, `S` 5, and eight others in ones and twos. **One of them is on `TODO.md`** —
+`B` 7, `G` 6, `TS` 5, `S` 4, and eight others in ones and twos. **One of them is on `TODO.md`** —
 a ruling rather than a task, which is what a board looks like between groups.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
@@ -73,9 +73,9 @@ it. It is **relocated** to a subject's `ideas.md`, where an entry with no end co
 is **reworded down** to the slice that remains, under rule 7. Or it is **withdrawn** — deleted outright,
 because the work is not wanted.
 
-Withdrawal is what has emptied this board. **Twenty-one entries are gone and are in no other file**: `B21`,
+Withdrawal is what has emptied this board. **Twenty-two entries are gone and are in no other file**: `B21`,
 `B249`, `RP63`, `B55`, `B56`, `B24e`, `G9`, `G12`, `B96`, `B154`, `B174`, `G173`, `G176`, `C12`, `C14`,
-`CV15`, `B35`, `B36`, `C28`, `CV12` and `TS88`. Not one is an entry in `BACKLOG.md`, `TODO.md` or any
+`CV15`, `B35`, `B36`, `C28`, `CV12`, `TS88` and `S47`. Not one is an entry in `BACKLOG.md`, `TODO.md` or any
 `ideas.md`, and no document names any of them. Twenty of them went in two commits — a fifth of the board,
 more than the whole of the last programme shipped.
 
@@ -297,6 +297,16 @@ were premises the code no longer holds.
 | `TS75` | both halves measurably false. The sketch draws a destroyable and a core from the intent's anchor (`sketch-render.js` `paintObjectives`), read-only by a decision stated there — *Configure is where one is edited*; and `PlanBoardScene` fans both, `B128`'s empty-`piece` case included. Rendered on the entry's own evidence board, `tallow-mirefast`'s wardstone draws at both orbit images |
 | `WE79` | fixed. `PlaceStroke` seats through `DressingContext.GroundFor` and claims on the prop's own layer. Measured on two storeys — a street at y10 under a deck at y25 — a stroke naming `street` paves at **y9**, one naming nothing paves at y24, and one naming a layer the board lacks paves nothing and declines `DR-LAYER` |
 
+**A budget for pressure was declined outright (author, 2026-09-08).** `S47` asked what share of a board a
+relief may charge, and the answer is that there is no such number: a median is not a target, and one score
+over a whole surface ranks every deliberate barrier as a defect — which is the argument `relief.md` §2 already
+makes about walkability scores, turned on the readback. What judges a relief is a named rule on one measure
+with a corpus-calibrated threshold, and two of those shipped while the entry sat: `RL2` for elevation never
+graded, `RL5` for elevation graded everywhere with nowhere to stand. Nothing referenced `S47` in `src/`,
+`tools/` or `tests/`, and its measurements were never in it — `relief.md` §12 holds them, under the rule that
+keeps a corpus reading whatever happens to the design around it. Its one live idea, the detour factor between
+key places, moved to `world-export/ideas.md` beside `WE108`, which asks the same question of dressing.
+
 **And one left because the boards it was about no longer compile (author, 2026-09-08).** `TS88` asked for 54
 `themeById` and `shapePropsById` keys across twelve specs to be re-keyed onto the ids `TS82` minted, by
 reading each spec's own drive output. Every one of the twelve states `"plan": 1`, which `PL15` refuses, so
@@ -367,8 +377,11 @@ stone, a field pattern near shades of one ground. `TS63` asks which forms earn a
 the arch, the ziggurat, the ellipse wall, the tapered tower and the domed roof are wanted, the amphitheatre
 and the colonnade are not. Both are work; their entries want the parked sentence taken off.
 
-And `S47` is a decision of scheduling rather than of gameplay: what a pressure budget is, which the entry
-itself says needs labelled bad maps rather than more measurement.
+And `S47` was read here as a decision of scheduling rather than of gameplay, which is what kept it on the
+board: how much pressure a relief should charge is squarely on `CLAUDE.md`'s oracle list — whether a measured
+difference is a defect or a convention — so it was never waiting on material. Asked, it came back **no budget**
+(withdrawn, below). A question filed as needing more measurement, when what it needed was a ruling, sits until
+somebody re-reads it.
 
 ## Three different things live in one file
 
@@ -377,11 +390,10 @@ partition it — a third of the entries are cleanup, naming and consistency work
 but each of the three wants a different treatment, which is what makes them worth naming despite the
 ambiguity at their edges.
 
-**Blocked decisions** are what the board still marks as parked — `TC6` (what a per-side frame is), `WE41`
-and `TS103` and `A8` — plus `S47`, which waits on material rather than on a ruling. The sittings above are
-why that list is four and not twelve: a question put to the author comes back the same day, and three of the
-answers so far have been to decline the question. Each has a definite end and none of it is work until the
-answer arrives.
+**Blocked decisions** are what the board still marks as parked — `TC6` (what a per-side frame is), `WE41`,
+`TS103` and `A8`. The sittings above are why that list is four and not twelve: a question put to the author
+comes back the same day, and four of the answers so far have been to decline the question. Each has a definite
+end and none of it is work until the answer arrives.
 
 **Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`, `TS64`, `S59`.
 `N08` and `N12` were both one until the same sitting drained them. Four more — `B107`, `S25b`, `B145`, `WE54`

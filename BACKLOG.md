@@ -120,21 +120,6 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Relief
 
-- [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
-  charging is too much. The dressing stage has the identical gap (`WE108`) and the two should share an
-  answer. The materials exist — the share of the board at each passability tier, the detour
-  factor between key places, the ford count and direction on a barrier, the reachable share per team side —
-  and the corpus pass has now run on the right surface (`world-export/relief.md` §12, 105 maps, natural ground):
-  body relief median **19 blocks**, walk median **72.6%**, barrier median **18.3%**, largest walkable place
-  median **29.4%**, **8** cliffs. Filtering the architecture out made the terrain read *steeper*, not gentler
-  — a building's flat roof was smoothing the reading — so the tier shares were never the distorted numbers;
-  the **cliff count** was, and heavily (Alpine Mining II: 36 cliffs off the built surface, 13 off natural
-  ground). What is still missing is the shape of a rule: a median is not a target, and a map at the 25th
-  percentile for walkable share is not thereby worse than one at the 75th. That needs labelled examples of a
-  *bad* map rather than more measurement — and the **detour factor between key places**, which is the
-  material most likely to separate them, is measurable now that the walk prices a climb — a detour factor
-  reads ≈1 only on ground that is genuinely flat.
-
 - [ ] **WE28 — A relief is keyed by group id, and a stacked board's storeys share one namespace.**
   `SketchReliefJson` rides top-level on the layout keyed by group, and a group id is unique across the stack
   only by the author keeping it so: two storeys of one board are the same footprint one layer up, told apart
@@ -485,19 +470,22 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
 
-- [ ] **B54 — A rebuild has no undo.** The rebuild now carries the finish and the credits across (B49, B52)
-  and says what it trades before it runs (S39), so what it still replaces is replaced *on purpose*: the
-  board, and the teams/spawns/wools/build zones the plan states. What is missing is a way back from a
-  deliberate press that turns out to have been wrong. The mechanism is cheap, because both authored blobs
-  are already rows in `map_artifact` keyed by a 64-char `kind` with no unique constraint: before each
-  from-plan write, copy the current blob to a `…_prior` kind, and add a restore that puts both back and
-  re-runs the pipeline from them (restore layout → `sketch/finish` → restore intent, the same chain the
-  build uses, so the world cannot end up disagreeing with the layout). The finish step wants extracting out
-  of `SketchFinishEndpoint` first so both callers share it. Surface it where the loss would be noticed: a
-  one-shot *Undo this rebuild* in the plan editor's success panel. Deliberately not built with S39 — with
-  the carries landed, the remaining exposure is a mis-click rather than silent data loss, and the
-  confirmation already covers a mis-click at a fraction of the cost. This is the belt to that pair of
-  braces, worth having once the studio is used by someone who did not write it.
+- [ ] **B54 — A rebuild drops a hand-drawn shape and says nothing.** `PUT /map/{slug}/sketch/from-plan`
+  carries the finish, the relief and an author-corrected structural height, and refuses **409** rather than
+  orphan a relief. Geometry drawn in the sketch is carried by nothing — right, since the plan owns the board —
+  but the reply does not say so: `200`, `{"orphaned": []}`, no warning, which tells a caller the opposite of
+  what happened. The endpoint already asks this of the relief and answers it as `SketchFromPlanDto(orphans)`;
+  a stored shape no compile output and no `intentRef` accounts for is the same question of a different field,
+  and belongs beside it in the reply and as a complaint. `SketchEndpoints`, `docs/tools/sketch.md`.
+
+  Two wordings go with it, in `PlanTool.razor`'s rebuild confirmation: **Keeps** omits the relief, which is
+  the most expensive thing on the board and is kept, and **Replaces** says "everything the plan states",
+  which a hand-drawn shape is not. The client also never sends `?force=true`, so a rebuild that would orphan
+  a relief dies as `save layout failed (HTTP 409)` with nothing offered.
+
+  *Built from `opus5-corbel-scar`'s plan, sketched on, then rebuilt after growing one piece by two cells:
+  relief, theme and prop carried; the circle gone from the shapes and from `team`'s `shapeIds`; `200`,
+  `{"orphaned":[]}`, no `Pgm-Warnings`.*
 
 ## Refactoring and cleanup
 

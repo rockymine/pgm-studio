@@ -1049,11 +1049,14 @@ established (§8).
 still assumes a flat plane, and what it needs is depression-filled routing, a bed floor forced non-increasing
 downstream, and per-pool water levels in place of one lowest-surface line.
 
-**A budget for pressure** (`S47`). §12 supplies the numbers, on the right surface: a terrain-only reading of 105
-maps. What is still missing is the shape of the rule — a median is not a target, and a map at the 25th
-percentile for walkable share is not thereby worse than one at the 75th. What a budget needs is which of these
-measures a *bad* map fails, which means labelled examples rather than more measurement. The dressing stage has
-the identical gap (`ideas.md` `WE108`) and the two should share one answer.
+**There is no single budget for pressure, and there is not meant to be** (author). §12 supplies the corpus
+reading, but a median is not a target: a map at the 25th percentile for walkable share is not thereby worse
+than one at the 75th, and one score over all of it would rank every deliberate barrier as a defect — which is
+§2's whole argument, turned on the readback rather than on the surface. What judges a relief instead is a
+named rule on one measure with a threshold calibrated on the corpus, and two of those bracket the failure:
+`RL2` where the elevation was never graded, `RL5` where it was graded everywhere and left nowhere to stand.
+The dressing stage asks the same question and its answer is parked with it (`ideas.md` `WE108`), which also
+holds the one measure not yet taken — the detour factor between key places.
 
 **Anchors as marks.** Per-vertex anchor heights are exactly a set of point marks on the outline, so a shape with
 anchors could be read as a relief with no interior marks and a rim of varying height. Whether to converge the two

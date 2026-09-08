@@ -38,6 +38,15 @@ says so.
   objective keeps a clear framing radius.
   Restraint as a first-class control, not an afterthought.
 
+  The terrain half of the same question is here rather than on the board: how much a relief should charge is a
+  ruling and not a measurement, and the two shipped rules that bracket it — `RL2` for elevation that was never
+  graded, `RL5` for elevation graded everywhere with nowhere left to stand — are the shape the answer takes,
+  a named rule on one measure rather than a single score. `world-export/relief.md` §12 holds the corpus
+  reading a threshold would be set against. The one measure not yet taken is the **detour factor between key
+  places**, which is the material most likely to separate a board that charges well from one that charges
+  badly, and it is measurable now that the walk prices a climb: a detour factor reads ≈1 only on ground that
+  is genuinely flat.
+
 ## The missing dimension — vertical surfaces
 
 - **WE104 — vertical-surface dressing** — every tool but water assumes a flat top plane; a cliff or wall (the
