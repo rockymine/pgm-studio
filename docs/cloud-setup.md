@@ -23,7 +23,10 @@ project and DB up — and the traps that waste time if you don't know them. (Loc
 - **`dotnet test` does NOT work** on the .NET 10 SDK (the VSTest bridge was removed). Run each test project
   directly: `dotnet run --project tests/<Project>`.
 - **No systemd** in the container — start MariaDB with `sudo service mariadb start` (or `/etc/init.d/mariadb
-  start`), not `systemctl`.
+  start`), not `systemctl`. **It stops again once the session has been idle a while**, which is routine here
+  rather than a fault: a command that has been waiting on something long-running comes back to
+  `Can't connect to local server through socket '/run/mysqld/mysqld.sock' (111)`. Start it again and re-run;
+  the schemas and their data survive.
 - The app's `appsettings.Development.json` points `MapsRoots`/`Import.Root` at `/media/sf_repos/...` (the
   reference VM) — **those paths don't exist here.** Only needed for map import / corpus features.
 

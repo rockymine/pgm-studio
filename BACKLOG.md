@@ -560,14 +560,6 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   confirmation already covers a mis-click at a fraction of the cost. This is the belt to that pair of
   braces, worth having once the studio is used by someone who did not write it.
 
-- [ ] **C57 — The plan canvas enters a box without showing it has.** Both authoring canvases hold the same
-  two-level model, and the sketch draws the island it has entered as a dashed outline under the selection —
-  the frame clicks are resolving inside. `PlanCanvas` holds `#scopeBoxId` and honours it in `#selectDown`,
-  but nothing on screen says a box is entered, so the same click means two different things with no way to
-  tell which. The box's own rect is already drawn by the overlay pass; it wants the entered one drawn in the
-  accent, dashed, the way `SketchCanvas.#paintSelectionHighlight` draws its scope. Same file, same pass as
-  the selection box it sits under.
-
 ## The browser gate: three specs that fail before anything is changed
 
 `./tools/e2e.sh all` runs in the cloud container and is red — thirteen specs, four failures, and the same
@@ -600,6 +592,19 @@ past it unseen. Each entry names the assertion, and re-running its own spec is t
 
 ## Refactoring and cleanup
 
+- [ ] **C64 — A tenth of the studio's CSS styles markup that is gone.** Across the seven studio stylesheets,
+  **99 of 644** selectors are matched by no `.razor`, `.cs` or `.js` in the client and are not a modifier a
+  component composes at runtime (`action-btn--<variant>` and its kind are excluded, which is what makes the
+  count conservative). `editor.css` carries **61 of 158**, and **44 of them are one run, lines `603`–`763`** —
+  the **master-detail maps dashboard**: a sidebar (`sidebar-search-*`, `sidebar-import-row`,
+  `url-import-status`, `sidebar-maps`, `map-list-*`, `map-status-dot`) beside a detail pane (`map-detail-*`,
+  `map-thumb-*`, `#map-detail-content`, `detail-block`). `/maps` is `Pages/Maps.razor` now and draws a list
+  out of the shared vocabulary — `list-label`, `list-tag`, `map-layer`, `panel-list` — so none of it is
+  reachable. Two further rules in that span go with it, `sidebar-import-row .field-input` and
+  `map-detail-actions .action-btn`, which name a live class **inside a dead ancestor** and so read as live to
+  any grep. Delete the dead runs stylesheet by stylesheet, largest first, and check each name against the
+  client before it goes: a class built by string concatenation reads as dead and is not.
+
 - [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
   `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,
   `PlanInspectDto:117`), and the two room families are the only ones naming a thing the rest of the studio
@@ -608,7 +613,9 @@ past it unseen. Each entry names the assertion, and re-running its own spec is t
   the two to `wool-room` and `spawn-room`, and change the client that draws them. The words are this DTO's own
   constant and nothing else spells them, so the surface is three source lines, three in
   `PlanStructurePreviewTests` and four in `docs/` — one of which is a dated `rules.md` amendment and stays as
-  it reads.
+  it reads. The prose goes with it: nine docstrings across `WorldBuilder`, `MapExportComposer`, `SketchRules`,
+  `SketchMaterialGate` and `PlanStructurePreview` still call the structures a wool cage and a spawn cube,
+  which is the same word under a different hat and wants renaming in one pass rather than in two.
 
 - [ ] **RP65 — The layout DTO still says `JsonElement` where its own routes say `DressingDoc` and
   `BiomeField`.** `SketchLayout.Dressing` and `.Biome` are `JsonElement?` because their types live in
@@ -620,7 +627,7 @@ past it unseen. Each entry names the assertion, and re-running its own spec is t
   the two schemas from `Minecraft` and reference them from the layout.
 
 - [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
-  `/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as
+  `/maps/{slug}/plan` from a single component through six `@if (MapBacked)` branches, and the two render as
   different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
   the bare route gets no flow bar, no phases, the same three panels as **rail buttons**, and a collapsible
   sidebar the map-backed one cannot have (`SidebarOpen => MapBacked || leftOpen`). Same panels, two navigation
@@ -650,48 +657,13 @@ past it unseen. Each entry names the assertion, and re-running its own spec is t
   *Five authored boards never opened it. What they read instead was `relief.md`, `decoration.md`,
   `terrain-painting.md` and the endpoint tables inside them — the split this entry proposes, observed.*
 
-- [ ] **C62 — Three CSS rules describe a component nothing renders.** `components.css:989–1004` carries an
-  `AUTHOR CHIP (avatar + resolved player name — used in map detail view)` block — `.map-author-chip`,
-  `.map-author-avatar`, `.map-author-name` — and no markup in the repo uses any of the three: `grep -r
-  "map-author" src/ tests/` hits only that CSS. The comment names a surface (the map detail view) that
-  either never shipped or lost the rows since, so a reader looking for the author chip finds a definition
-  and no component. Delete the block, or build the chip the comment names and say which page carries it.
-  `src/PgmStudio.Client/wwwroot/css/studio/components.css:989`. The class list in
-  `docs/client/ui-conventions.md` names no chip either, so nothing else has to move with it.
-
 - [ ] **C51 — Nineteen selects outside the authoring surface are still hand-rolled.** `Select` and
   `StyleSelect` serve the library and the terrain components (`B259`, `FEATURES.md`), and the sketch tool's
   three inspectors have since adopted them. What is left is 25 raw `<select>` — the plan tool 10
-  (`PlanTool.razor` 9, `PlanInfoPhase` 1), Configure 5, Edit 6, the sketch tool 1 and a page 1 — **of which
-  Edit's six go with `TE3`**, so the work is 19. Each is the same options-and-a-value question written as
+  (`PlanTool.razor` 9, `PlanInfoPhase` 1), Configure 5, Edit 6, the sketch tool 1, the world canvas 1 and a
+  page 1, plus `Select.razor`'s own — **of which Edit's six go with `TE3`**, so the work is 18. Each is the same options-and-a-value question written as
   markup, so a group, a per-row note or a disabled row has to be re-invented wherever one is wanted. Adopt
   the control at those sites; `docs/client/ui-conventions.md`'s *Forms* tier already names it.
-
-- [ ] **G163 — `map-layers`' rebuild-confirmation step flakes about one run in three.** The step drives
-  Compile on a freshly-opened plan and reads the drawer; when the plan document has not reached the client
-  yet it compiles an empty plan, which is a 422 by design, so the drawer never opens and the following
-  `page.click` times out at 30s. The spec guards it with a fixed `waitForTimeout(1500)` — a duration
-  standing in for a condition, and the wrong guess about a third of the time. Measured 1-in-3 both with and
-  without the `OB17` rule, so it is timing rather than validation. Waiting on the first piece id label
-  (`.map-canvas-svg text`, the overlay's proof the document arrived) was tried and did **not** fix it, so
-  the stall is later than the document load. **A caught failure now names the click, and it is not the one
-  the paragraph above blames.** The step got as far as reading the drawer's button label ("the button names
-  a rebuild" passed on `Rebuild this map`) and then timed out on `page.click("Rebuild this map")` — the
-  *second* click, on a compile that answered 200, long before the empty-plan compile the 1500ms guard is
-  aimed at. The recorded 422 is an earlier fault on the same page, not this one. A 30s timeout on a button
-  whose text was just read means the element was found but never became actionable, which points at a
-  drawer that keeps re-rendering rather than at a document that has not arrived — so the fix is a wait on
-  the drawer settling, and the 1500ms guard may be guarding nothing. A flake in the browser gate costs more
-  than the step is worth, because it makes every unrelated run ambiguous.
-  
-  The suite half is one missing wait. `map-layers.mjs:75` waits for `.map-canvas-svg`, the element that exists
-  too early; at `:122`, before the *second* compile, it waits 1500 ms with a comment saying exactly why.
-  Fixing the tool makes both unnecessary.
-
-  *diagnosed 2026-08-16 by intercepting the editor's own `POST /api/plan/compile` under both navigations:
-  same database, `goto` → **200**, row-link → **422**. `./tools/e2e.sh all` gives `map-layers` 13/14 with
-  `smoke` 39/39 in the same run; `./tools/e2e.sh map-layers` alone is 18/18. `B229` was this filed a second
-  time — its hypothesis, that an earlier spec breaks the stored plan, is disproved by the same test.*
 
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous

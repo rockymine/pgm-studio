@@ -803,8 +803,30 @@ export class PlanCanvas extends CanvasBase {
           if (e.kind === "measure" && e.label)
             label(e.label, ((e.x1 + e.x2) / 2) * cell, ((e.z1 + e.z2) / 2) * cell, "var(--accent-light)");
 
+    // The entered box, as the frame clicks resolve inside it — drawn before the selection so it sits under
+    // whatever is picked within it. Tinted rather than only outlined, because the plan's own selection is a
+    // dashed accent box too and two dashed boxes say nothing about which is which.
+    this.#drawScopeBox(layer, toS, cell);
+
     // The selection outline: its box plus resize handles (a marker shows just a ring).
     if (this.#sel) this.#drawSelectionOutline(this.#sel, layer, toS, cell, true);
+  }
+
+  // The box the canvas has entered, or nothing where it has entered none. A context rather than a selection:
+  // no handles, no dimension pill, and a fill the selection never carries.
+  #drawScopeBox(layer, toS, cell) {
+    if (!this.#scopeBoxId) return;
+    const box = this.#itemOf({ kind: "box", id: this.#scopeBoxId });
+    if (!box) return;
+    const b = rectCellsToBlocks(box.rect, cell);
+    const p0 = toS(b.min_x, b.min_z), p1 = toS(b.max_x, b.max_z);
+    const l = Math.min(p0.x, p1.x), r = Math.max(p0.x, p1.x), t = Math.min(p0.y, p1.y), bot = Math.max(p0.y, p1.y);
+    layer.appendChild(svgEl("rect", {
+      x: l, y: t, width: r - l, height: bot - t,
+      fill: "var(--accent)", "fill-opacity": "0.06",
+      stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "6 4", "stroke-opacity": "0.75",
+      "pointer-events": "none",
+    }));
   }
 
   // Draw one selection's screen-space outline: a ring for a marker, a dashed box for a piece/zone/box, with
@@ -1188,7 +1210,8 @@ export class PlanCanvas extends CanvasBase {
       { id: "plan.delete", keys: ["delete", "backspace"], label: "Delete the selection", group: "Canvas",
         when: () => live() && !!this.#sel, run: () => this.#cb.onDelete?.(this.#sel) },
       { id: "plan.enter", keys: "enter", label: "Enter the selection's group", group: "Canvas",
-        when: () => live() && this.#sel?.kind === "box", run: () => { this.#scopeBoxId = this.#sel.id; } },
+        when: () => live() && this.#sel?.kind === "box",
+        run: () => { this.#scopeBoxId = this.#sel.id; this.#refreshOverlay(); } },
       { id: "plan.escape", keys: "escape", label: "Leave the group · deselect", group: "Canvas",
         when: live, run: () => this.#popOut() },
     ]);
