@@ -1,6 +1,6 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 51 open entries and `TODO.md` one — the dressing key, the last of the bindings a board
+`BACKLOG.md` holds 54 open entries and `TODO.md` one — the dressing key, the last of the bindings a board
 copies from the library that is named by something the library does not make unique. This document is the reading that says
 which of them are defects, which are questions, which share a cause, and what order drains them. Its subject
 is the board itself, and it expires when the board it describes is gone. It is the one document this work adds:
@@ -12,10 +12,10 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **52 open entries over 9,332 words**: a median entry of 166 words and **8 above 250** —
+The two boards carry **55 open entries over 9,648 words**: a median entry of 158 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
 is the longest at 436 words, then `G163` at 390 and `WS3` at 356. The prefix spread is `WE` 11, `B` 8,
-`G` 7, `TS` 5, `S` 5, `N` 4, `C` 3, and seven others in ones and twos. **One of them is on `TODO.md`** —
+`G` 7, `TS` 6, `S` 5, `N` 4, `TN` 4, `C` 3, and six others in ones and twos. **One of them is on `TODO.md`** —
 a ruling rather than a task, which is what a board looks like between groups.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
