@@ -102,17 +102,17 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 24 | 4,261 | `Playability/` 14 · `Region/` 3 · `Footprint/` 2 · `Scan/` 2 · `Suggest/` 2 · 1 at root |
-| `Api` | 109 | 15,493 | `Endpoints/` 60 · `Services/` 45 · `Http/` 3 · 1 at root |
-| `Client` | 210 | 26,314 | `Features/` 121 (nested) · `Components/` 70 (nested) · `Pages/` 7 · `Models/` 6 · `Layout/` 3 · 3 at root |
+| `Api` | 109 | 15,518 | `Endpoints/` 60 · `Services/` 45 · `Http/` 3 · 1 at root |
+| `Client` | 208 | 25,940 | `Features/` 119 (nested) · `Components/` 70 (nested) · `Pages/` 7 · `Models/` 6 · `Layout/` 3 · 3 at root |
 | `Contracts` | 33 | 3,555 | flat |
 | `Data` | 16 | 2,686 | `Map/` 5 · `Features/` 4 · `Theme/` 4 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 27 | 2,860 | flat |
-| `Export` | 14 | 3,303 | flat |
+| `Export` | 14 | 3,349 | flat |
 | `Geom` | 52 | 6,590 | `Algorithms/` 22 · `Render/` 6 · `Relief/` 5 · 19 at root |
 | `Import` | 4 | 471 | flat |
 | `Migrations` | 33 | 2,017 | `Migrations/` 32 · 1 at root |
 | `Minecraft` | 98 | 20,006 | `Stamping/` 16 · `Palette/` 15 · `Render/` 15 · `Anvil/` 13 · `Painting/` 12 · `Houses/` 11 · `Dressing/` 10 · `Views/` 4 · `Suggest/` 1 · 1 at root |
-| `Pgm` | 155 | 27,072 | `Compose/` 42 (nested) · `Authoring/` 24 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Sketch/` 10 · `Derive/` 9 · `Plan/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
+| `Pgm` | 154 | 26,933 | `Compose/` 42 (nested) · `Authoring/` 24 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Plan/` 9 · `Sketch/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
 | `Vocabulary` | 17 | 1,365 | flat |
 <!-- /census -->
 
@@ -257,10 +257,10 @@ lets a file-based script link the real composition instead of growing a second c
 tools/<folder>/<script>.cs`. **There are seven, and the count is the point** (`CLAUDE.md`, *Investigation
 stays local*): three gates over the composer in `compose/` (`reproduction-gate`, `fingerprints`,
 `unit-fingerprint`), two in `deriver/` (`figure-check` gates `model.md`'s figures, `envelope-stats` writes
-`seed-envelopes.md`), and two operational tools at the root (`seed-library` seeds the database,
-`library-map` writes the catalogue map's layout and intent for `POST /map/from-documents`). A script that is
-not re-run does not live here; the reading
-it took belongs in `docs/` or in the code, and the script belongs in a scratchpad.
+`seed-envelopes.md`), and two operational tools at the root (`seed-library` seeds the database, `seed-trees`
+seeds its tree corpus). `tools/build-scripts.sh` builds exactly these and its count is the check. A script
+that is not re-run does not live here; the reading it took belongs in `docs/` or in the code, and the script
+belongs in a scratchpad.
 
 **`dotnet run <script>.cs` caches the built app keyed on the script**, so an unchanged script re-runs stale
 `src/` output with no error — `rm -rf ~/.local/share/dotnet/runfile/<script>-*` before trusting a measurement

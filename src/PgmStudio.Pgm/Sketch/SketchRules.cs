@@ -191,12 +191,18 @@ public static class SketchRules
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string ShapeInNoGroup = "SK17";
 
-    /// <summary>A made thing and a built thing standing in the same columns. A made thing — a layer stating
+    /// <summary>A made thing and a built thing holding the same <b>courses</b>. A made thing — a layer stating
     /// <c>kind: "made"</c> — is laid by the rasterizer, before anything is stamped, and every stamper writes
     /// where it is told: a wool cage, a spawn cube, an objective and a dressing-placed building all seat on
     /// the <b>terrain's</b> surface, which is every column's top with the made things taken out. So neither
-    /// half knows about the other. The blocks interleave in the columns they share, the later pass winning
-    /// each cell it writes, and what stands there is a balloon with a house inside it.
+    /// half knows about the other. Where their spans meet the blocks interleave, the later pass winning each
+    /// cell it writes, and what stands there is a balloon with a house inside it.
+    ///
+    /// <para><b>A shared column is not the fault.</b> A frame drawn forty courses over a monument stands in
+    /// every one of its columns and in none of its blocks, so the read is the made thing's own span — the
+    /// rasterizer's <c>ColumnSegment</c> floor and top — against the solid run rising off the terrain, which
+    /// at a column a stamp claimed is the stamp. A thing drawn clear above what it passes over says
+    /// nothing.</para>
     ///
     /// <para>Nothing else names it. <c>SK10</c> is the gate for two layers driven into each other and skips a
     /// made thing by design, since a thing drawn over ground is not a lost gap; and a stamped structure is not

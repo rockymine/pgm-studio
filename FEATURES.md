@@ -1343,12 +1343,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   README. Two of its three board modes were reachable over HTTP already, and the drivers agents actually
   write speak HTTP: the last authoring run made fifteen calls and never touched it.
 
-  **The third mode was the grid, and the grid was never in it.** `IslandGrid.Lay` is in `Pgm/Sketch` and
-  emits a `SketchLayout` directly, because a plot is a disc or a cross and a plan piece is a rectangle. So
-  `tools/library-map.cs` calls it and writes the two documents any map is loaded from —
-  `library-map.layout.json` and `library-map.intent.json`, 37 plots, 37 themes, 110 props — and
-  `POST /map/from-documents` takes them: **37 islands, 31 255 ground cells**, in the database and openable in
-  Configure, which a spec built into a world folder never was.
+  **The third mode was the grid, and the grid was never in it.** It emitted a `SketchLayout` directly rather
+  than compiling a plan, and the two documents went to `POST /map/from-documents` like any others: the
+  catalogue sweep that proved it out came to **37 islands, 31 255 ground cells**, in the database and openable
+  in Configure, which a spec built into a world folder never was. The emitter behind it went with the
+  catalogue map (`WE13`).
 
   `MirrorReport` moves to `PgmStudio.RoundTrip --mirror <regionDir> <outPng> [--mode …] [--center cx cz]`,
   which is where the other five stage renders already lived. Nothing else was only there.
@@ -9234,8 +9233,8 @@ these are the ones that shipped a map that could not be played as intended, and 
   A script now earns `tools/` only by being **re-run**: a gate that fails (`reproduction-gate`,
   `figure-check`), a generator of a committed artifact (`fingerprints` writes `composer-fingerprints.json`,
   `envelope-stats` writes `seed-envelopes.md`, `unit-fingerprint` is the hash a refactor must not move), or an
-  operational tool the product needs (`seed-library` seeds the database, `library-map` builds the spec
-  `mapgen` consumes). *"It might be useful again"* is not one of them, and it is the sentence that produced
+  operational tool the product needs (`seed-library` seeds the database). *"It might be useful again"* is not
+  one of them, and it is the sentence that produced
   all forty-four: a fresh throwaway against today's `src/` beats a restored one against last year's, which
   `B227` had just finished proving over a day of repairs.
 
@@ -9624,6 +9623,29 @@ these are the ones that shipped a map that could not be played as intended, and 
   overlaps with their own deltas, and its score is unchanged at 3026.1 — three hard terms, the structural one
   counted once.
 
+- **`SK18` is raised on a shared course, not a shared column (TS79).** A made thing and a stamped structure
+  were compared on the provenance record, which is keyed by column and carries no Y — so a beacon frame at
+  y72–80 over a monument at y37–40 stood in every one of its columns and in none of its blocks, and raised one
+  complaint per layer of the frame about a thing forty courses up. The spans were both to hand: the made
+  thing's is the rasterizer's own `ColumnSegment` floor and top, and what is standing at a column is the solid
+  run rising off the terrain — at a column a stamp claimed, that run is the stamp, because nothing else
+  claimed it and the terrain under it is where it seated. A thing resting *on* the stamp carries that run
+  straight on into itself, which is the two touching and is still named. Measured on the 2-island seed, whose
+  terrain tops out at y8 with a spawn reaching y16: an envelope floored at y10 is named, the same envelope at
+  y40 is not, and neither is one out over the water. (`Export/WorldBuilder`, `Pgm/Sketch/SketchRules.cs`,
+  `MadeThingInBuiltTests`, `docs/tools/sketch.md`, `docs/refusals.md`)
+
+- **The catalogue map is retired (WE13).** `tools/library-map.cs` emitted a grid of 37 unconnected plots as
+  the two documents a map is loaded from, and `GET /map/{slug}/export` refused it `EX1` — three spawn or
+  objective points unreachable from the rest — because a catalogue is not a map and `EX1` was asking it a
+  question it was never built to answer. Rather than exempt a tool nobody opens, the tool goes: the library's
+  own 3-D preview shows a piece better than walking to its plot does. **`IslandGrid` goes with it** — the
+  script was its only caller, and an emitter nothing drives is a second way to state a board that no board is
+  stated by; `Pgm/Sketch/IslandGrid.cs`, `GridPlot`, `IslandGridTests` and `capabilities.md`'s grid section
+  are removed, leaving `compose` and `plan` as the two ways. `POST /map/from-documents` is untouched and
+  `pgm-studio-mapgen`'s `drive.py` is the worked example of authoring a map as two documents. `tools/` is
+  seven file-based scripts, which is what `build-scripts.sh` builds.
+
 - **A board with nothing on it is refused, and so is one that lost what its author stated (B140).** Two boards
   from an authoring trial built a world, wrote region files and a provenance sidecar, and exported clean. Their
   `map.xml` was **ten lines** — a name, an empty `<version>`, a `<gamemode>`, an empty `<objective>`, one
@@ -9725,23 +9747,17 @@ these are the ones that shipped a map that could not be played as intended, and 
   `tools/` twice, the studio itself could reach neither. The two copies had quietly diverged in the half that
   matters when something is wrong: one refused an unknown family with the list of real ones and clamped an
   index past a family's end, the other threw a bare index error. The surviving one keeps the first.
-- **A grid of islands is a board the studio can state (B209).** `IslandGrid` (`Pgm.Sketch`) lays a list of
-  plots — rectangle, circle or polygon, the sketch's own vocabulary — on a regular pitch, one shape and one
-  island each, none mirroring, the whole grid centred on the origin however long it is. It emits its
-  `SketchLayout` **directly rather than through a plan**, because a plan piece is a rectangle on a cell grid
-  and a plot is a disc, an octagon or a cross. `mapgen`'s spec gains it as `grid`, the third and last way to
-  state a board beside `compose` and `plan`, and the one that carries no plan at all — visible in exactly one
-  place, a stage set of the other eight images. A plot reaching past half the pitch is **refused**: two
-  outlines that touch rasterize into one landmass, so the catalogue silently shows fewer things than it lists
-  and nothing downstream would say so.
+- **A grid of islands was a third way to state a board, and is retired (B209, then WE13).** `IslandGrid`
+  laid a list of plots — rectangle, circle or polygon — on a regular pitch, one shape and one island each,
+  emitting a `SketchLayout` **directly rather than through a plan**, because a plan piece is a rectangle on a
+  cell grid and a plot is a disc, an octagon or a cross. The one board it was written for was the catalogue
+  map, and both went together: `compose` and `plan` are the two ways to state a board.
 - **The showcase map is a spec, and the second world builder is gone (B209, B208).** `tools/PgmStudio.PatternMap`
   (597 lines over three files, its own `.csproj`) wrote a world folder through the same seven steps `mapgen`
   does — build, xml, dir, region, provenance, level.dat, map.xml — and hand-authored a grid of themed plateaus
-  to do it. Everything it had to say is sayable in the documents the studio already has, so it is now
-  `tools/library-map.cs`: an emitter that fills a `MapSpec` from the catalogues — every terrain pattern, the
-  inward axis on a disc and a cross, a plot per house preset, a tree of every species and wood, the two wool
-  rooms and two spawns — and builds nothing. `mapgen` builds it like any other spec, which retires the
-  duplicated write sequence by deletion rather than by extraction. The sweep stays as code because a frozen
+  to do it. Everything it had to say is sayable in the documents the studio already has — a layout and an
+  intent, posted to `POST /map/from-documents` — so the duplicated write sequence is retired by deletion
+  rather than by extraction. The sweep stays as code because a frozen
   spec cannot notice an eleventh house preset, and the spec is harness output (`tools/out/`) rather than a
   quarter-megabyte checked-in seed for the same reason. All **37 themes are byte-identical** to the retired
   tool's, checked by building both and comparing the JSON a layout stores. One live defect came out of the

@@ -373,13 +373,20 @@ public static class WorldBuilder
         // this branch: it is the one place both halves have registered, the rasterizer having laid the thing
         // and every stamper having claimed what it wrote. Grouped by the pair so one gantry through one shed
         // is one sentence rather than a sentence per column.
+        // The complaint is raised on a shared COURSE and not a shared column. A column says the two are over
+        // one another, which a gantry over a shed and a frame forty courses above a monument both are; what
+        // says they are in each other's way is their blocks meeting. The made thing's span is the
+        // rasterizer's own (`ColumnSegment`), and what is standing at the column is the solid run rising off
+        // the terrain — at a column a stamp claimed, that run is the stamp, because nothing else claimed it
+        // and the terrain under it is where it seated.
+        var madeSpans = MadeSpans(columns, madeLayers);
         var shared = new Dictionary<(string Layer, string Built, string Unit), (int Cells, int X, int Z)>();
         foreach (var layer in madeLayers)
             if (terrain.SurfaceByLayer.TryGetValue(layer, out var madeCells))
                 foreach (var cell in madeCells.Keys)
                     if (provenance.PassAt(cell.X, cell.Z) != ProvenancePass.Structure)
                         provenance.Claim(cell.X, cell.Z, ProvenancePass.Made);
-                    else
+                    else if (SharesACourse(world, cell, layer, madeSpans, groundTop))
                     {
                         var owner = provenance.OwnerAt(cell.X, cell.Z);
                         var standing = owner is { Kind.Length: > 0 } stamp
@@ -393,7 +400,7 @@ public static class WorldBuilder
 
         foreach (var (key, seen) in shared.OrderByDescending(entry => entry.Value.Cells))
             built.Add(new Finding(SketchRules.MadeThingInBuilt,
-                $"the made thing '{key.Layer}' and the {key.Built} stand in {seen.Cells} of the same "
+                $"the made thing '{key.Layer}' and the {key.Built} share the courses of {seen.Cells} "
                 + $"column(s) — first at ({seen.X}, {seen.Z}). Neither pass reads the other: the thing is "
                 + "drawn at the floor it states, and what is built seats on the terrain under it with the "
                 + "made things taken out, so their blocks interleave and what stands there is one inside the "
@@ -522,6 +529,45 @@ public static class WorldBuilder
             }
         }
         return highest;
+    }
+
+    /// <summary>Every made layer's spans, keyed by the layer and the cell — the floor and top the rasterizer
+    /// laid each segment at. It is the made thing's own record rather than a read of the world, which matters
+    /// where a stamp wrote over the courses they share: the blocks there are the stamp's and the span is still
+    /// the thing's.</summary>
+    private static Dictionary<(string Layer, int X, int Z), List<(int Floor, int Top)>> MadeSpans(
+        IReadOnlyList<ColumnSegment> columns, IReadOnlySet<string> madeLayers)
+    {
+        var spans = new Dictionary<(string Layer, int X, int Z), List<(int Floor, int Top)>>();
+        foreach (var segment in columns)
+        {
+            if (!madeLayers.Contains(segment.Layer)) continue;
+            var key = (segment.Layer, segment.Cell.X, segment.Cell.Z);
+            if (!spans.TryGetValue(key, out var at)) spans[key] = at = [];
+            at.Add((segment.YFloor, segment.YTop));
+        }
+        return spans;
+    }
+
+    /// <summary>Whether the made thing on <paramref name="layer"/> and whatever is standing at
+    /// <paramref name="cell"/> hold a course together (<c>SK18</c>). What is standing is the solid run rising
+    /// off the terrain: a stamp seats on the ground and writes upward, so the run's top is its top — and where
+    /// the made thing rests on the stamp the run carries straight on into it, which is the two touching.
+    /// A thing drawn clear above what it passes over shares the column and no course, and says nothing.</summary>
+    private static bool SharesACourse(
+        VoxelWorld world, (int X, int Z) cell, string layer,
+        IReadOnlyDictionary<(string Layer, int X, int Z), List<(int Floor, int Top)>> madeSpans,
+        IReadOnlyDictionary<(int X, int Z), int> groundTop)
+    {
+        if (!madeSpans.TryGetValue((layer, cell.X, cell.Z), out var spans) || spans.Count == 0) return false;
+        if (!groundTop.TryGetValue(cell, out var ground)) return false;
+
+        var standingTop = ground;
+        while (standingTop < VoxelWorld.MaxHeight && world.GetBlock(cell.X, standingTop, cell.Z).Id != 0)
+            standingTop++;
+
+        // The spans are half-open: a thing floored at the run's top rests on it, which is a shared course.
+        return spans.Any(span => span.Floor <= standingTop && ground < span.Top);
     }
 
     // Stamp the plan-compiled layout structures (already resolved + fanned to block coords) onto the world.

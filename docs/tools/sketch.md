@@ -1473,9 +1473,12 @@ different passes that do not read each other. A made thing is the rasterizer's �
 states and is in the world before anything is stamped — while a wool cage, a spawn cube, an objective and a
 dressing-placed building all seat on the **terrain's** surface, which is every column's top with the made
 things taken out. So a balloon drawn where a house is going, or a house placed under a balloon, is nobody's
-error to catch: the blocks interleave in the columns they share, the later pass winning each cell it writes,
-and what stands there is one inside the other. `SK18` names the made thing, what it is standing in, how many
-columns they share and the first of them. It is read off the finished world's **provenance** rather than off
+error to catch: where their spans meet the blocks interleave, the later pass winning each cell it writes, and
+what stands there is one inside the other. `SK18` names the made thing, what it is standing in, how many
+columns they share courses in and the first of them. **A shared column is not the fault** — a beacon frame
+forty courses over a monument stands in every one of its columns and in none of its blocks — so the read is
+the made thing's own span against the solid run rising off the terrain, which at a column a stamp claimed is
+the stamp. It is read off the finished world's **provenance** rather than off
 the document, because that is the one place all four passes have registered — `SK10` skips a made-thing layer
 by design, a thing drawn over ground being no lost gap, and a stamped structure is not a layer at all. A
 complaint, and deliberately not a refusal: a gantry over a shed or a hull in a dry dock is a board somebody
