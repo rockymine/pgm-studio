@@ -83,9 +83,17 @@ group so no per-test schema reset overlaps another test.
 `./tools/e2e.sh all` works in the container, and it is the only check that exercises the Blazor surfaces at
 all. Nothing extra needs installing: **Playwright is already global** (`/opt/node22`, resolved by
 `tests/e2e/lib/harness.mjs`) and **Chromium is pre-installed** at `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`
-— never run `playwright install`. The only prerequisite is the database section above, since the script
-resets its own schema through `sudo -n mariadb` (its default admin path, which works once
-`sudo service mariadb start` has run). It uses its own port (7895) and database (`pgm_studio_e2e`), so a run
+— never run `playwright install`, **whatever Playwright's own banner says**.
+
+**No version has to match, and none is named here.** A Playwright package pins exactly one browser revision,
+so a container whose global package is newer than its browsers directory resolves a build that is not there
+and answers with the install banner — which is how "the e2e suite cannot be run in the cloud" gets reported.
+It can. `openBrowser` tries Playwright's own resolution first and, where that finds nothing, drives the
+newest Chromium actually under `PLAYWRIGHT_BROWSERS_PATH`, printing the path it took. Nothing needs passing
+and no revision needs pinning; `PW_CHROMIUM=<path>` still overrides, for a browser somewhere else entirely.
+
+The only prerequisite is the database section above, since the script resets its own schema through
+`sudo -n mariadb` (its default admin path, which works once `sudo service mariadb start` has run). It uses its own port (7895) and database (`pgm_studio_e2e`), so a run
 cannot touch dev data. A full sweep takes roughly forty minutes here, most of it the WASM build and the
 per-page boot.
 

@@ -11,6 +11,7 @@
 
 import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
+import { existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -74,10 +75,54 @@ const ALLOWED_FAULTS = [
 
 const isAllowed = (text) => ALLOWED_FAULTS.some(a => a.match.test(text));
 
-/** Launch a browser. Honours PW_CHROMIUM when Playwright can't resolve one itself. */
+/**
+ * Launch a browser.
+ *
+ * Playwright pins one browser revision per package version and resolves it under
+ * `PLAYWRIGHT_BROWSERS_PATH`, so a package upgraded without the browsers being fetched with it resolves a
+ * directory that is not there and prints its own "run `npx playwright install`" banner — which is the one
+ * thing this repo does not do (`docs/cloud-setup.md`). The Chromium that *is* installed is still the browser
+ * the suite is meant to drive, so a launch that resolves nothing falls back to it and says which it took.
+ *
+ * Order matters: `PW_CHROMIUM` where a caller names one, then Playwright's own resolution, and the fallback
+ * only after that fails — a matching pair is launched the way Playwright means to launch it.
+ */
 export async function openBrowser() {
-  const executablePath = process.env.PW_CHROMIUM || undefined;
-  return chromium.launch(executablePath ? { executablePath } : {});
+  const named = process.env.PW_CHROMIUM;
+  if (named) return chromium.launch({ executablePath: named });
+  try {
+    return await chromium.launch();
+  } catch (unresolved) {
+    const installed = installedChromium();
+    if (!installed) throw unresolved;
+    console.error(`· playwright resolved no browser; driving the installed one at ${installed}`);
+    return chromium.launch({ executablePath: installed });
+  }
+}
+
+/**
+ * The newest Chromium actually present under `PLAYWRIGHT_BROWSERS_PATH`, or null where there is none — the
+ * three per-platform layouts a Playwright browsers directory takes.
+ */
+function installedChromium() {
+  const root = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  if (!root) return null;
+  let entries;
+  try { entries = readdirSync(root); } catch { return null; }
+
+  const builds = [];
+  for (const entry of entries) {
+    const revision = /^chromium-(\d+)$/.exec(entry);
+    if (!revision) continue;
+    const binary = [
+      `${root}/${entry}/chrome-linux/chrome`,
+      `${root}/${entry}/chrome-mac/Chromium.app/Contents/MacOS/Chromium`,
+      `${root}/${entry}/chrome-win/chrome.exe`,
+    ].find(existsSync);
+    if (binary) builds.push([Number(revision[1]), binary]);
+  }
+  builds.sort((left, right) => right[0] - left[0]);
+  return builds[0]?.[1] ?? null;
 }
 
 /**
