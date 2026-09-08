@@ -173,25 +173,34 @@ what is gathered here is the parked and dormant slices of the same surface.
   studio plants none. Let a boulder seat on a bed the water claims and write through the water, keeping the
   claim for everything else; `docs/world-export/decoration.md` §5 and §7.
 
-### Layers
+### Placing something on a storey that is not the top one
 
-`WE24` gave every placement an optional layer and two resolvers that agree about where a floor is. The export
-has read it since the stack landed; nothing in the browser writes it, so a stacked board can only be dressed
-and populated on its top surface. The frame is settled — the storey being drawn on is canvas chrome and a
-placement takes it — so what is left is each surface reading and writing the layer it is handed.
+All six placement kinds carry an optional `Layer`, a prop carries one, and `BuiltTerrain.SurfaceFor(layer)`
+answers that storey's own surface — so what a document states, the world builds. Each entry below states what
+cannot state it.
 
-- [ ] **B263 — A prop's layer can be neither seen nor overridden, and the canvas draws every prop alike.**
-  `DressingDoc.add` stamps the storey being drawn on, so a prop placed on an upper layer records it and
-  `DressingContext.GroundFor` resolves it (declining `DR-LAYER` where that layer has no ground). What is
-  left is the two reads: `SketchDressingInspector` has no field for `PlacedProp.Layer`, so a prop cannot be
-  moved to another storey without editing the layout by hand; and `dressing-render.js` draws a
-  gallery-floor prop exactly like a roof one, so a stacked board's dressing reads as one plane.
+*Measured on a two-storey board (`under` y0..7 under `ground` y24..31), two wools alike but for the field: the
+one naming `layer: "under"` builds at **y7** with its cage around it, the one naming nothing at **y31**.
+`PUT /map/{slug}/intent` is what places an underground objective.*
 
-- [ ] **B264 — No intent placement takes the active layer either.** The same optional `Layer` is on all six —
-  monument, spawn, wool, iron cube, destroyable, core — and `MapIntent` carries it at six sites, set by no
-  Configure step; `SpawnStep` states outright that its canvas is base-layer only. So on a stacked board an
-  objective stands on a lower floor only by writing the intent by hand. Under `TS45` a placement takes the
-  active layer, and what is left is the six write paths and the field on each inspector.
+- [ ] **B263 — A prop's layer cannot be seen or changed, and every storey's props draw alike.** Placing one
+  already records the storey (`dressing-doc.js` `add`, `TS45`), and `DressingContext.GroundFor` resolves it,
+  declining `DR-LAYER` where that layer has no ground. Two reads are missing. `SketchDressingInspector` has no
+  field for `PlacedProp.Layer`, so moving a prop between storeys means editing the layout by hand. And
+  `dressing-render.js` draws a gallery-floor prop exactly like the roof one over it, so a stacked board's
+  dressing reads as one plane. The Sketch tool already carries the layer strip, so this adds no chrome.
+
+  **Needs a ruling first:** should a prop on an inactive storey be dimmed, hidden, or drawn as it is with a
+  badge? The field is an afternoon; how the canvas says which floor something is on is the actual decision.
+
+- [ ] **B264 — Configure cannot address a storey at all, so no objective can be authored below the top one.**
+  Not six missing fields. `SketchLayerStrip` appears in one file, `SketchTool.razor`, and every Configure
+  canvas runs base-layer-only by construction — `SpawnStep`, `TeamAssignStep`, `WorldIslandsStep` and
+  `WorldSymmetryStep` each say so in their own comments. So there is no active layer for a placement to take,
+  and the point-pick surface cannot pick a point on a lower floor even if there were.
+  Build in that order: the strip in Configure, a pick that resolves against the chosen storey's surface, then
+  the six write paths (spawn, wool, monument, iron cube, destroyable, core) and a field on each inspector.
+  `docs/tools/configure.md` gains the storey to its phases.
 
 ### A made thing is a third kind, and it is drawn out of layers
 

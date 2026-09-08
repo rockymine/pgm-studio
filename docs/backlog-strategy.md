@@ -12,7 +12,7 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **42 open entries over 7,449 words**: a median entry of 167 words and **6 above 250** —
+The two boards carry **42 open entries over 7,517 words**: a median entry of 167 words and **6 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
 is the longest at 436 words, then `WS3` at 356, `B169` at 281 and `WE28` at 266. The prefix spread is `WE` 9,
 `B` 7, `G` 6, `TS` 5, `S` 4, and eight others in ones and twos. **One of them is on `TODO.md`** —
