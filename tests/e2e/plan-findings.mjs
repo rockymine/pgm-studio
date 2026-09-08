@@ -19,10 +19,12 @@ const checks = new Checks("plan · findings");
 // One 6×6-cell island, and a core sitting on its right edge wearing a casing three cells across: centred on
 // the marker, over half of that footprint hangs past the last block of land.
 const plan = {
-  plan: 1,
+  plan: 2,
   globals: { cell: 5, symmetry: "rot_180", maxPlayers: 12, surface: 9, headroom: 11 },
   pieces: [{ id: "land", role: "piece", rect: [0, 0, 6, 6] }],
-  placements: { cores: [{ id: "core-1", piece: "land", at: [6, 3], size: 15 }] },
+  // `at` is blocks from the piece's minimum corner: the right edge of a 6-cell piece on a cell of 5, and
+  // half its depth down. The piece's own rect stays in cells — only the marker moved units.
+  placements: { cores: [{ id: "core-1", piece: "land", at: [30, 15], size: 15 }] },
 };
 
 checks.section("the plan is refused, and the refusal names the core");

@@ -29,6 +29,11 @@ async function pick(family, option) {
 // by substring rather than exact text.
 const field = (label) => page.locator(`.field:has(.field-label:has-text("${label}")) input`).first();
 const control = (label, tag) => page.locator(`.field:has(.field-label:has-text("${label}")) ${tag}`).first();
+// A two-state knob is a pair of chips rather than an input, so what it reads is which of them is active.
+const activeChip = (label) =>
+  page.locator(`.field:has(.field-label:has-text("${label}")) .filter-chip--active`).first().textContent();
+const chip = (label, option) =>
+  page.click(`.field:has(.field-label:has-text("${label}")) .filter-chip:has-text("${option}")`);
 const body = () => page.textContent(".workspace");
 
 // A blank plan opens at the origin with rot_180 — an order-2 symmetry, which is what offers the objective
@@ -70,7 +75,9 @@ checks.add("it opens on the generator's defaults, not on blanks",
 // rather than the interior alone, and a size that had to be typed beside a wall thickness could contradict it.
 checks.add("the obsidian the two imply is read back",
   /5×5×5 obsidian, 3×3×3 lava inside/.test(opened), opened.match(/\d+×\d+×\d+ obsidian[^.]*/)?.[0] ?? "(absent)");
-checks.add("the lava starts capped", /capped over the lava/.test(opened));
+// Which state the casing is in is the active chip, not a sentence: the readout beside it states the derived
+// obsidian, and both chip labels are in the panel's text whichever one is on.
+checks.add("the lava starts capped", (await activeChip("Casing"))?.trim() === "capped", await activeChip("Casing"));
 checks.add("and leak 5 under float 6 means no digging", /no digging/.test(opened));
 
 // ── a change reaches the document and comes back ──────────────────────────────────────────────────────
@@ -84,10 +91,11 @@ await page.waitForTimeout(300);
 // the leak level is half a block too high and the core leaks one course lower than the number reads.
 checks.add("the dig depth follows leak through the document", /digging 4 blocks/.test(await body()));
 
-await page.click('.field:has(.field-label:has-text("Casing")) .ctrl-row');
+await chip("Casing", "open");
 await page.waitForTimeout(300);
 const uncapped = await body();
-checks.add("the lava can be left flush with the rim", /flush with the rim/.test(uncapped));
+checks.add("the lava can be left flush with the rim", (await activeChip("Casing"))?.trim() === "open",
+  await activeChip("Casing"));
 // An open top gives up the cap course, so the derived obsidian loses exactly one from its height.
 checks.add("and the casing loses its cap course, not its walls",
   /5×5×4 obsidian/.test(uncapped), uncapped.match(/\d+×\d+×\d+ obsidian[^.]*/)?.[0] ?? "(absent)");

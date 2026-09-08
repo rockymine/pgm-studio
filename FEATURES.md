@@ -157,6 +157,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **Three browser specs describe the tools the studio has (`TN17`, `TN18`, `TS106`).** Nothing had run the
+  sweep, so three of them drove interactions that had moved on and the gate was red before any change.
+  `plan-findings` and `plan-refusals` posted `plan: 1` where `PlanModel.CurrentVersion` is **2**, so both met
+  the version refusal instead of the finding they meant to provoke; the marker goes `[6, 3]` cells →
+  `[30, 15]` blocks, the same `× globals.cell` `M0029` applied to stored documents, and the three `PlanModel`
+  docstrings still calling `at` "an offset in cells" go with it. `plan-objective-variants` clicked a
+  `.ctrl-row` for a casing knob that is a **Chip pair**, and read for two sentences — "capped over the lava",
+  "flush with the rim" — the panel has never rendered; it reads the active chip now. `dressing` clicked a
+  `.choice-tile`, a class nothing renders, because a tree became a **recipe picked from the library**; it
+  picks a card and checks the mark moves rather than multiplies. *`plan-findings` 10/10 and
+  `plan-objective-variants` 16/16, both from a crash; `dressing` 18/20 → 24/24; `plan-refusals` 23/23. The
+  whole gate answers **15 specs, 274/274**, where the sweep that found them was four specs red.*
 - **The plan canvas shows the box it has entered (`C57`).** `PlanCanvas` held `#scopeBoxId` and resolved
   clicks inside it while drawing nothing, so the same click meant two things with no way to tell which. The
   entered box is drawn in the overlay pass before the selection, so it sits under whatever is picked within
