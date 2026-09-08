@@ -64,7 +64,7 @@ null `cores` and nothing about cores is generated or cleared.
 | `build` | `maxHeight` plus the buildable `areas` and the no-build `holes` cut out of them, and a separate `voidEnforcement` (null = none) stating whether the void is permanent — independent of whether `areas` is populated |
 | `wools` | per wool: owner, colour, room rects, the source point, and one monument per capturing team |
 | `cores` | per core: owner, anchor, the casing's measurements, and `leak` |
-| `destroyables` | the DTM objectives — carried, never authored here (below) |
+| `destroyables` | per destroyable: owner, name, anchor, its shape, what it is built of and its float |
 | `waterLanes` | the late-opening gaps — carried, never authored here (below) |
 | `structures` · `spawns[].piece` · `wools[].piece`/`entries` | written only by the plan compiler; consumed by the world export |
 
@@ -325,6 +325,32 @@ what it costs.
 read-only copies. A wool with no room still generates its objective and its monuments; what it loses is the
 room region, the spawner and the room wiring.
 
+### Destroyables — Objectives
+
+One step, because a destroyable states less than a core does: what shape it is, what it is built of, and how
+far it floats over the ground solved under its anchor. There is no casing to describe and, like a core, no
+per-attacking-team mapping — one team defends it and the rest break it.
+
+**It is a confirm list, and the precision is why.** The ingest scan proposes destroyables from what surrounds
+them rather than from what they are, because a DTM goal has no local signature at all
+(`docs/world-scan/objective-suggestion.md` §3). About two proposals in three are real, against a core's
+near-certainty, so the step never applies a proposal: it lists them, and each row states the two readings it
+was proposed on in words a person can check against the world — how many blocks of that material are within
+ten, and how far the mass stands over the ground around it. A goal is placed once and stands over its
+terrain; decoration repeats and sits level with what it decorates. The proposals that survive that test and
+are still wrong are the ones the readings cannot see: an observer platform built to the same symmetry as the
+map, a bell hung in a church.
+
+Confirming a proposal adopts the mass the detector measured as the goal's own region, which is what keeps the
+blocks and the region scoping them the same box (OB8). Boxing an area on the canvas confirms every proposal
+inside it, and a box holding none places a destroyable on that footprint — which is how a goal the detector
+missed, or one on a map with no scan at all, is authored. A hand-placed goal floats over the column under it
+by the world-export stamper's own rule, so one described here and one built from a plan stand at the same
+height over the same terrain.
+
+A destroyable is named on the way in, because PGM rejects a nameless one and a refusal three phases later is
+a worse way to learn it.
+
 ### Cores — Objectives · Casing
 
 **Objectives** is confirmation rather than detection: a lava volume sealed in obsidian is a signature nothing
@@ -543,6 +569,7 @@ short of a side says so as well.
 | `GET /map/{slug}/wool-suggestions` | the wool colours the **world** holds that the intent has not declared as objectives: the gap between what was built and what was stated |
 | `GET /map/{slug}/monument-suggestions?box=&style=` | scored monument candidates in a box, each with its colour, confidence and evidence. `box` is required — the author marks the area |
 | `GET /map/{slug}/core-suggestions[?box=]` | the detected casings, plus the generator's casing defaults. The box is optional and narrows the list; one that is stated and cannot be read is refused (`RQ1`, `field: box`) rather than skipped, because skipping it answers every casing the map has and reads as the volume holding them all |
+| `GET /map/{slug}/destroyable-suggestions[?box=]` | the destroyables the scan proposed, each carrying the two readings it was proposed on — `sameNearby` and `elevation` — beside the generator's defaults and the style and material vocabularies. About two in three are real, which is why the step confirms rather than applies |
 | `GET /map/{slug}/origin` | whether the map came from a sketch — which drops the Monuments step |
 
 ### Asking whether the map can be played
@@ -644,11 +671,6 @@ The map that goes with this document is any sketch-origin map in the corpus of b
 all four checks passing, and the gate open.
 
 ## Limits
-
-**There is no destroyable phase.** Wools and cores each have one; DTM does not (`N12`). A destroyable authored
-in the Plan tool rides through Configure untouched and exports correctly — the slice is carried, generated and
-mirrored — but it cannot be seen or edited here, and there is no detection for one either, because unlike a
-core a destroyable has no signature of its own (`B58`).
 
 **Kits cannot be edited.** Every generated team gets the fixed Standard preset, and the intent carries no kit
 field at all. The one kit surface in the studio is a free-text box in the **Edit** tool naming which kit a

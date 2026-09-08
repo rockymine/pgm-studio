@@ -1,0 +1,190 @@
+@namespace PgmStudio.Client.Features.Configure
+@using D = PgmStudio.Client.Features.Configure.DestroyableAuthoring
+
+@* Destroyables · objectives: the ingest scan proposed this map's destroyables from what surrounds them —
+   how alone the mass is, and how far it stands over the ground around it. About two proposals in three are
+   real, so this is a list to confirm from: adopt one, or box a footprint to place a goal the scan missed. *@
+
+<Workspace>
+
+  <Sidebar>
+      <Section Title="Destroyables">
+        <Actions><Badge Class="@(destroyables.Count > 0 ? "badge--success" : "badge--dim")">@destroyables.Count goal@(destroyables.Count == 1 ? "" : "s")</Badge></Actions>
+        <ChildContent>
+        <p class="section-desc">A destroyable is defended by one team and broken by the others. Confirm a
+          <strong>proposed</strong> one to adopt the mass the scan measured, or <strong>box</strong> a
+          footprint on the canvas to place one it missed.</p>
+
+        @if (loading)
+        {
+          <div class="list-empty">Reading the scan…</div>
+        }
+        else
+        {
+          <div class="panel-list">
+            @if (destroyables.Count == 0) { <div class="list-empty">No destroyables yet.</div> }
+            @for (var i = 0; i < destroyables.Count; i++)
+            {
+              var index = i;
+              var goal = destroyables[index];
+              <ListRow Compact Selected="selected == index" @key="index" OnClick="() => Select(index)">
+                <span class="geo-type-icon" style="color:@TeamHex(goal.Owner)"><i data-lucide="gem"></i></span>
+                <span class="list-label">@(string.IsNullOrEmpty(goal.Name) ? "Destroyable" : goal.Name)</span>
+                <Badge Kind="@(string.IsNullOrEmpty(goal.Owner) ? "dim" : "neutral")">@(string.IsNullOrEmpty(goal.Owner) ? "no team" : TeamName(goal.Owner))</Badge>
+              </ListRow>
+            }
+          </div>
+
+          var proposals = Unconfirmed.ToList();
+          @if (proposals.Count > 0)
+          {
+            <p class="section-desc" style="margin-top:var(--space-3)">
+              <strong>@proposals.Count</strong> proposed destroyable@(proposals.Count == 1 ? "" : "s") not yet
+              confirmed. Each row says why it was proposed — a goal is placed once and stands over its ground,
+              while decoration repeats and sits level with what it decorates.
+            </p>
+            <div class="panel-list">
+              @foreach (var proposal in proposals)
+              {
+                <ListRow Compact @key="proposal" OnClick="() => Confirm(proposal)">
+                  <span class="geo-type-icon text-muted"><i data-lucide="scan-search"></i></span>
+                  <span class="list-label list-label--mono">@Where(proposal)</span>
+                  <Badge Kind="dim">@proposal.Materials</Badge>
+                </ListRow>
+              }
+            </div>
+            <Button Full Class="action-btn--separated" Variant="primary" OnClick="ConfirmAll">
+              <i data-lucide="check"></i> Confirm all @proposals.Count
+            </Button>
+          }
+
+          <Button Full Class="action-btn--separated" Disabled="@loading" OnClick="DetectMapWide">
+            <i data-lucide="scan-search"></i> Re-read the scan (whole map)
+          </Button>
+        }
+        </ChildContent>
+      </Section>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  <WorldCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__destroyables__"
+                OnRectDrawn="OnBoxDrawn" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <Inspector>
+      @if (Selected is { } sel)
+      {
+        <Section @key="selected">
+          <DetailHeader Icon="gem" IconStyle="@($"color:{TeamHex(sel.Owner)}")" Label="@(string.IsNullOrEmpty(sel.Name) ? "Destroyable" : sel.Name)">
+            <Badge Class="@(sel.Volume is null ? "badge--warning" : "badge--success")">@(sel.Volume is null ? "not stamped yet" : "in the world")</Badge>
+          </DetailHeader>
+          <div class="section-body">
+            <Field Label="Defending team">
+              <LabelHint>(the others break it)</LabelHint>
+              <ChildContent>
+                <div class="field-pick-row">
+                  <span class="field-swatch" style="background:@(string.IsNullOrEmpty(sel.Owner) ? "transparent" : TeamHex(sel.Owner))"></span>
+                  <select class="field-input" @onchange="@(e => SetOwner(sel, e.Value?.ToString() ?? string.Empty))">
+                    <option value="" selected="@string.IsNullOrEmpty(sel.Owner)">— pick —</option>
+                    @foreach (var t in teams)
+                    {
+                      <option value="@t.Id" selected="@(t.Id == sel.Owner)">@t.Name</option>
+                    }
+                  </select>
+                </div>
+              </ChildContent>
+            </Field>
+
+            <Field Label="Name">
+              <LabelHint>(PGM rejects a nameless destroyable)</LabelHint>
+              <ChildContent>
+                <input class="field-input" value="@sel.Name" placeholder="Monument"
+                       @onchange="@(e => SetName(sel, e.Value?.ToString() ?? string.Empty))" />
+              </ChildContent>
+            </Field>
+
+            <Field Label="Shape">
+              <div class="field-pick-row">
+                <select class="field-input" @onchange="@(e => SetStyle(sel, e.Value?.ToString() ?? string.Empty))">
+                  @foreach (var style in defaults.StyleOptions)
+                  {
+                    <option value="@style" selected="@(style == sel.Style)">@style</option>
+                  }
+                </select>
+              </div>
+            </Field>
+
+            <Field Label="Built of">
+              <div class="field-pick-row">
+                <select class="field-input" @onchange="@(e => SetMaterials(sel, e.Value?.ToString() ?? string.Empty))">
+                  @foreach (var material in defaults.MaterialOptions)
+                  {
+                    <option value="@material" selected="@(material == sel.Materials)">@material</option>
+                  }
+                </select>
+              </div>
+            </Field>
+
+            <Field Label="Float">
+              <LabelHint>(blocks of air under it)</LabelHint>
+              <ChildContent>
+                <div class="ctrl-row">
+                  <CoordField Prefix="▲"><NumberField Value="sel.Float" ValueChanged="@(v => SetFloat(sel, v))" Min="0" Max="16" Step="1" CssClass="coord-input" /></CoordField>
+                </div>
+              </ChildContent>
+            </Field>
+
+            <Field Label="Structure">
+              <div class="field-value">
+                @if (sel.Volume is { } vol)
+                {
+                  <text>@vol.Width×@vol.Height×@vol.Depth at @vol.MinX, @vol.MinY, @vol.MinZ</text>
+                }
+                else
+                {
+                  <text>stamped when the world is built — a plan states this goal, so it has no volume yet</text>
+                }
+              </div>
+            </Field>
+
+            @if (sel.Detected)
+            {
+              <Field Label="Why it was proposed">
+                <LabelHint>· scan</LabelHint>
+                <ChildContent>
+                  <div class="field-value">@Evidence(sel)</div>
+                </ChildContent>
+              </Field>
+            }
+
+            <div class="ctrl-row" style="margin-top:var(--space-2)">
+              <Button Fill OnClick="() => Remove(sel)" Title="Remove this destroyable"><i data-lucide="trash-2"></i> Remove</Button>
+            </div>
+          </div>
+        </Section>
+      }
+      else
+      {
+        <Section>
+          <DetailHeader Icon="gem" IconMuted Label="Destroyable" />
+          <p class="section-desc">Select a destroyable to set the team defending it. Destroyables are
+            independent of the map's other objectives — a map may carry wools, cores and destroyables at
+            once.</p>
+        </Section>
+      }
+  </Inspector>
+
+</Workspace>
+
+@code {
+    private static string Where(D.Destroyable goal) =>
+        goal.Volume is { } v ? $"{v.MinX}, {v.MinY}, {v.MinZ}" : "unplaced";
+
+    // The two readings in the words a person judges by, rather than as a score they cannot check.
+    private static string Evidence(D.Destroyable goal) =>
+        $"{goal.Blocks} block{(goal.Blocks == 1 ? "" : "s")} of {goal.Materials}; "
+        + (goal.SameNearby == 0 ? "nothing else of it within ten" : $"{goal.SameNearby} more of it within ten")
+        + $", standing {goal.Elevation} over the ground around it";
+}

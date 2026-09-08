@@ -286,7 +286,7 @@ together — which is what the tool was built for, and what it is still best at.
 destroyables and cores are invisible in it. `sentient` in the corpus carries four wools and eight
 destroyables, and Edit shows the four. They survive an edit untouched, because every write saves the whole
 document back — but nothing here can see them. DTC is Configure's Cores phase today, and DTM is Configure's
-too once `N12` lands; neither is coming here.
+too, in its own phase; neither is coming here.
 
 **It cannot export.** The topbar's Export XML button is disabled and the rail's Filters and Export entries
 have no phase behind them, so a map opened here cannot be turned back into a file from this tool. The XML and

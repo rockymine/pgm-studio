@@ -3550,6 +3550,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   later is carried without being listed. A colour whose id another team already holds recolours alone, since
   two teams cannot share an id. (`SwatchRow`, `AuthoringContext.TeamId`/`RenameTeam`, `TeamAssignStep`,
   `WoolObjectivesStep`; N09)
+- **Configure has a Destroyables phase, and it confirms rather than applies (N12, B58).** Wools and cores each
+  had one; DTM did not, so a destroyable authored in the Plan tool rode through Configure correctly and could
+  not be *seen* there. It is the third objective phase, one step because a destroyable states less than a core
+  — its shape, what it is built of, and its float over the ground under its anchor, with no casing and no
+  per-attacking-team mapping. It shares the objective gate, so a DTM map is never held behind an empty wool
+  slice. The step lists what the ingest scan proposed and never applies it: about two proposals in three are
+  real, against a core's near-certainty, so each row states the readings it was proposed on in words a person
+  can check against the world — how much of that material is within ten, and how far the mass stands over the
+  ground around it. Confirming adopts the measured mass as the goal's own region (OB8); boxing an area
+  confirms everything inside it, and a box holding none places one on that footprint, floated by the
+  world-export stamper's own rule so a goal described here and one built from a plan stand at the same height.
+  A destroyable is named on the way in, because PGM rejects a nameless one.
+  (`DestroyableAuthoring`, `DestroyableObjectivesStep`, `ConfigurePhases`; N12)
 - **A destroyable is proposed from what surrounds it, not from what it is (B58).** A DTM goal has no local
   signature — size spans one block to 31,105, fill is uninformative, and support is bimodal, so "destroyables
   float" describes the generator rather than the corpus. `DestroyableSuggester` reads the two properties that

@@ -34,15 +34,6 @@ group is the **imported** map: the one the scan reads a monument off, or fails t
 never gets to choose on either kind.
 
 
-- [~] **N12 — Configure has no destroyable phase.** Wools and Cores each have one and the objective phases
-  are a group sharing one gate (`FEATURES.md`), so this is now the third phase slotting into machinery that
-  already exists: add `destroyables` to `ConfigurePhases` + `IsObjective`, a `DestroyableAuthoring` slice
-  beside `CoreAuthoring`, and the steps. A destroyable is the core's shape with a different structure — one
-  region per defending team, no per-capturing-team monuments — but its knobs are style/materials/float
-  rather than a casing. A DTM map authored in the plan tool can already be configured (the slice rides
-  through untouched); what it cannot be is *seen* or edited there. Detection is a separate question and is
-  `B58`: unlike a core, a destroyable has no signature of its own, so the phase should offer manual
-  placement first and adopt candidates when that ranker lands.
 
 - [ ] **TC6 — Per-side focus: framing one team's quadrant while its unit is being worked.** *Parked on a
   ruling: what the framing should be.* The want was filed against `FocusSection`, a mockup on the `/concepts`
@@ -346,18 +337,6 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   a capability nobody is blocked on. So this entry waits on one nobody has asked for, and doing it alone
   fixes the derivation for maps imported after it and for none of the maps that exist.
 
-- [~] **B58 — The confirm flow for a proposed destroyable.** The detector has shipped: gathered at ingest
-  into `destroyable_candidate` and served by `GET /map/{slug}/destroyable-suggestions`, at 63.9% precision
-  and 55.3% recall over 31 corpus maps (`FEATURES.md`). What is left is the surface that confirms one, which
-  is the Configure phase `N12` builds — a proposal is right about one time in two, so the list is something a
-  person reads and accepts rather than something the tool applies. The row already carries the two readings
-  the person judges by (how alone the mass is, how far it stands over the ring around it), so the step has to
-  show them rather than a score.
-
-  *Two layout rules were measured and declined — minimum separation between proposals, and requiring a
-  partner under the map's own detected symmetry. Both cost multiples of the recall they buy, and both fail
-  for one reason: a map's observer platform and its displays are laid out with the same symmetry and care as
-  its objectives (`docs/world-scan/objective-suggestion.md` §3). Not gaps to close.*
 
 ## The plan model: pieces, and the edges between them
 

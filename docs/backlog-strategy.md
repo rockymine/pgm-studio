@@ -375,12 +375,13 @@ why that list is four and not twelve: a question put to the author comes back th
 answers so far have been to decline the question. Each has a definite end and none of it is work until the
 answer arrives.
 
-**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`, `N12`, `TS64`,
-`S59`. `N08` was one until the same sitting drained it. Four more — `B107`, `S25b`, `B145`, `WE54` — were this
-population until the building's one model turned them from three reaches into one, and all four have since
-shipped. That is the reading's own claim tested: a reach gap is drained by naming the cause under it, not by
-working the entries in turn. This is the population the studio's own shape produces, and every one of them is
-the same thing: a document, a route or a solver that already answers, and a surface that never asks.
+**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`, `TS64`, `S59`.
+`N08` and `N12` were both one until the same sitting drained them. Four more — `B107`, `S25b`, `B145`, `WE54`
+— were this population until the building's one model turned them from three reaches into one, and all four
+have since shipped. That is the reading's own claim tested: a reach gap is drained by naming the cause under
+it, not by working the entries in turn. This is the population the studio's own shape produces, and every one
+of them is the same thing: a document, a route or a solver that already answers, and a surface that never
+asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
 `S34`, `TS51`, `TS63`, `G164`, `B54`, `B9`, `B58`. `G187` left this population by being read against the

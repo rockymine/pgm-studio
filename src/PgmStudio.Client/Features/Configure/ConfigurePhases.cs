@@ -24,6 +24,7 @@ public static class ConfigurePhases
         new("teams",  "users",          "Teams",           ["Teams & islands", "Spawn point", "Protection"],  "N02"),
         new("build",  "pickaxe",        "Build",           ["Build height", "Buildable layer"],               "N03"),
         new("wools",  "goal",           "Wools",           ["Objectives", "Spawn", "Monuments", "Room"],      "N04"),
+        new("dtm",    "gem",            "Destroyables",    ["Objectives"],                                    "N12"),
         new("cores",  "flame",          "Cores",           ["Objectives", "Casing"],                          "N12"),
         new("review", "badge-check",    "Review & Export", ["Pre-flight", "Region tree", "XML"],              "N05"),
     ];
@@ -33,7 +34,7 @@ public static class ConfigurePhases
     public static readonly string[] ObjectiveSlices = ["wools", "destroyables", "cores"];
 
     /// <summary>Whether a phase authors one of the map's objectives (and so shares the objective gate).</summary>
-    public static bool IsObjective(string phaseId) => phaseId is "wools" or "cores";
+    public static bool IsObjective(string phaseId) => phaseId is "wools" or "dtm" or "cores";
 
     public static int IndexOf(string id) => Array.FindIndex(All, p => p.Id == id);
 }

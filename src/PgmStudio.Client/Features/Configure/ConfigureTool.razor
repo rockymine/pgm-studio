@@ -88,6 +88,10 @@ else
   {
     <WoolRoomStep @key="@("wools-room")" />
   }
+  else if (Phase.Id == "dtm" && step == 0)
+  {
+    <DestroyableObjectivesStep @key="@("dtm-objectives")" />
+  }
   else if (Phase.Id == "cores" && step == 0)
   {
     <CoreObjectivesStep @key="@("cores-objectives")" />
