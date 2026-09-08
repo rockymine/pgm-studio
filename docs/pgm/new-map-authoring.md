@@ -123,6 +123,21 @@ coordinates through **raw**, and the asymmetry is grounded in the PGM parser (`/
 | `<wool location="x,y,z">` | `XMLUtils.parseVector` → raw `Vector`, kept for proximity distance | **no** (never block-snapped) | **floors it** — keep the wool's goal reference block-aligned |
 | `<monument><block>x,y,z</block>` | `BlockRegion(Vector)` → `new Vector(getBlockX(), getBlockY(), getBlockZ())` | **yes** (PGM floors itself) | **leaves it raw** — re-flooring would be redundant |
 
+**A `<block>` states its vector two ways, and a reader that knows one resolves the other to the origin.**
+PGM's `RegionParser.parseBlock` reads the **`location` attribute first** — a back-compat spelling it still
+takes — and falls back to the element's own text; `parsePoint` reads text alone. The corpus uses both freely:
+`<block location="165,18,-1"/>` and `<block>165,18,-1</block>` are the same monument. `Xml.BlockVector` is
+the one place that order lives, and both readers take it — the named region (`RegionParser.ParseBlock`) and
+the inline `<monument><block>` (`MapParser.ResolveMonument`).
+
+**A wool's `monument` is a region reference, and the region is not always a bare block.** The corpus points
+it at a `union` of the blocks a team may score at, at a `mirror` of another team's, and at a `translate`;
+`MapParser.BlockOf` walks all four to the position they name — the first block a composite holds, and the
+reflected or offset one for a transform, through `Geom.Symmetry` rather than a second copy of the math. A
+reference that names no block at all resolves to **nothing**, which the caller reports as a reference the
+document cannot answer; it must never become a monument at `0,0,0`, because the origin is a real block
+somewhere and every check downstream then measures it.
+
 The rule: **floor a coordinate iff PGM will not.** A `<block>` or `<point>` region is already block-snapped by
 its region constructor; a bare proximity `Vector` is not. Verified by static read of `wool/WoolModule`,
 `regions/RegionParser` and `regions/BlockRegion`; the generated XML exports valid.

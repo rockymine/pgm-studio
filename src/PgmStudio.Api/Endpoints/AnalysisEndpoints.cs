@@ -161,20 +161,21 @@ public sealed class WoolAvailabilityEndpoint(MapRepository repo, MapReader reade
     }
 }
 
-/// <summary>GET /api/map/{slug}/monument-obstruction — each wool monument's block must be air; a
-/// pre-existing block there blocks wool placement (PGM warns on load).</summary>
-public sealed class MonumentObstructionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<MonumentObstructionResponseDto>
+/// <summary>GET /api/map/{slug}/monument-seat — whether each wool monument's block can hold the wool won on
+/// it: clear of anything standing in it, and with a block on one of its six faces to be placed against. Both
+/// faults stop the wool going in, so both are errors.</summary>
+public sealed class MonumentSeatEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<MonumentSeatResponseDto>
 {
-    public override void Configure() { Get("/map/{slug}/monument-obstruction"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/monument-seat"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.WithDocOfRouteAsync(reader, HttpContext, ct) is not ({ } map, { } doc)) return;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
-        var monuments = WoolSources.CheckMonumentObstruction(doc, segs)
-            .Select(c => new MonumentObstructionDto(c.WoolColor, c.Team, c.MonumentId, c.X, c.Y, c.Z, c.Obstructed, c.Severity, c.Message)).ToList();
-        await Send.OkAsync(new MonumentObstructionResponseDto(monuments, segs is not null), ct);
+        var monuments = WoolSources.CheckMonumentSeats(doc, segs)
+            .Select(c => new MonumentSeatDto(c.WoolColor, c.Team, c.MonumentId, c.X, c.Y, c.Z, c.Clear, c.Support, c.Pedestal, c.Severity, c.Message)).ToList();
+        await Send.OkAsync(new MonumentSeatResponseDto(monuments, segs is not null), ct);
     }
 }
 

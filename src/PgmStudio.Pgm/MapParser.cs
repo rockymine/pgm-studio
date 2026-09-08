@@ -518,17 +518,60 @@ public sealed partial class MapParser
         foreach (var path in new[] { ("monument", "block"), ("monument", "point") })
         {
             var child = wool.Element.Elements(path.Item1).FirstOrDefault()?.Elements(path.Item2).FirstOrDefault();
-            if (child is not null && Xml.Text(child).Length > 0)
-                return (Coords3OrZero(Xml.Text(child)), null);
+            // A block states its vector as an attribute or as text; a point only as text, which is what PGM's
+            // own two parsers read (RegionParser.parseBlock / parsePoint).
+            var stated = child is null ? "" : path.Item2 == "block" ? Xml.BlockVector(child) : Xml.Text(child);
+            if (stated.Length > 0) return (Coords3OrZero(stated), null);
         }
         var monumentRef = wool.GetOrNull("monument");
-        if (monumentRef is not null && monumentRef.Length > 0)
-        {
-            var region = regions.GetValueOrDefault(monumentRef);
-            if (region is { Type: "block" or "point" })
-                return (new Vec3(Xml.Or0(region.PosX), Xml.Or0(region.PosY), Xml.Or0(region.PosZ)), monumentRef);
-        }
+        if (monumentRef is not null && monumentRef.Length > 0
+            && BlockOf(monumentRef, regions, []) is { } referenced)
+            return (referenced, monumentRef);
         return (new Vec3(0, 0, 0), null);
+    }
+
+    /// <summary>The block a monument region names. A wool's <c>monument</c> is a region reference, and the
+    /// corpus points it at more than a bare <c>&lt;block&gt;</c>: a <c>union</c> of the blocks a team may
+    /// score at — any one of them wins, so the first is the one recorded — and a <c>mirror</c> of another
+    /// team's, which is the block reflected. A composite is walked to the first position it holds; null is a
+    /// region that names no block at all, which is a reference the document cannot answer rather than a
+    /// monument at the origin.</summary>
+    private static Vec3? BlockOf(string regionId, Dictionary<string, Region> regions, HashSet<string> seen)
+    {
+        // A region may name itself through a chain; the set stops a cycle rather than the stack doing it.
+        if (!seen.Add(regionId) || regions.GetValueOrDefault(regionId) is not { } region) return null;
+
+        switch (region.Type)
+        {
+            case "block" or "point":
+                return new Vec3(Xml.Or0(region.PosX), Xml.Or0(region.PosY), Xml.Or0(region.PosZ));
+
+            case "union" or "intersect" or "complement":
+                foreach (var child in region.Children ?? [])
+                    if (BlockOf(child, regions, seen) is { } found) return found;
+                return null;
+
+            // A mirror plane stands upright: its normal is horizontal, which leaves the height alone and
+            // makes the reflection the plan one `Symmetry.ReflectPoint` owns — the same formula PGM applies
+            // in `MirroredRegion.transform`, and the one place this math lives. A normal tilted out of the
+            // horizontal would fold the height too and is not this reflection, so it resolves to nothing
+            // rather than to a block picked by a formula that does not describe it.
+            case "mirror" when region.SourceId is { Length: > 0 } mirrored && Xml.Or0(region.NormalY) == 0:
+            {
+                if (BlockOf(mirrored, regions, seen) is not { } source) return null;
+                var (rx, rz) = Symmetry.ReflectPoint(source.X, source.Z,
+                    Xml.Or0(region.NormalX), Xml.Or0(region.NormalZ), Xml.Or0(region.OriginX), Xml.Or0(region.OriginZ));
+                return new Vec3(rx, source.Y, rz);
+            }
+
+            case "translate" when region.SourceId is { Length: > 0 } moved:
+                return BlockOf(moved, regions, seen) is { } from
+                    ? new Vec3(from.X + Xml.Or0(region.OffsetX), from.Y + Xml.Or0(region.OffsetY), from.Z + Xml.Or0(region.OffsetZ))
+                    : null;
+
+            default:
+                return null;
+        }
     }
 
     // ── destroyables (DTM) + objective modes ────────────────────────────────────────

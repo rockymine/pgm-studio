@@ -246,7 +246,7 @@ internal sealed class RegionParser
 
     private static Region ParseBlock(XElement elem, string regionId)
     {
-        var c = Xml.Coords3(NonEmpty(Xml.Text(elem), "0,0,0"));
+        var c = Xml.Coords3(NonEmpty(Xml.BlockVector(elem), "0,0,0"));
         var r = new Region { Id = regionId, Type = "block", PosX = Xml.Or0(c[0]), PosY = Xml.Or0(c[1]), PosZ = Xml.Or0(c[2]) };
         r.Bounds2d = Bounds2d.Of(Xml.Or0(c[0]), Xml.Or0(c[2]), Xml.Or0(c[0]) + 1, Xml.Or0(c[2]) + 1);
         return r;

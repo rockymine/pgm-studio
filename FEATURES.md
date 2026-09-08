@@ -3550,6 +3550,31 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   later is carried without being listed. A colour whose id another team already holds recolours alone, since
   two teams cannot share an id. (`SwatchRow`, `AuthoringContext.TeamId`/`RenameTeam`, `TeamAssignStep`,
   `WoolObjectivesStep`; N09)
+- **A monument's seat is whether a wool can be placed into its block (author).** The check asked only
+  whether something already stood there. It asks the other half too now — whether there is a block to place
+  the wool **against** — and against **any** of the six faces, because that is what placing a block means: a
+  monument hung from a ceiling or set into a wall plays exactly like one on a pedestal, and the corpus builds
+  all three. `GET /map/{slug}/monument-seat` answers `clear`, `support` and `pedestal` per monument, and
+  `GET /map/{slug}/block-seat` the same for one block while it is being placed by hand, reading the block's
+  own column and its four neighbours. Both faults are errors: neither can take the wool. A column the scan
+  never reached says nothing rather than reading as empty air on all six faces
+  (`SegmentIndex.Scanned`). (`WoolSources.CheckMonumentSeats`, `MonumentSeatDto`, `BlockSeatEndpoint`)
+- **A monument's block is read the way PGM reads it, and every corpus monument now resolves.** Three faults
+  under one subject, each of which put a monument somewhere it is not. The block index was a **cast** where
+  PGM floors (`BlockRegion` → `getBlockX/Y/Z`), so a monument written at the block centre — `46.5,10,-191.5`,
+  a corpus idiom — landed a block off wherever the coordinate is negative and the column read was the
+  neighbour's. A `<block>` states its vector as a `location` **attribute** or as element text and PGM takes
+  either, first the attribute; the studio read only the text, so 22 maps resolved every monument to the
+  origin. And a wool's `monument` is a **region reference** that the corpus points at a `union` of scoring
+  blocks, a `mirror` of another team's, or a `translate`, where only a bare block resolved — 5 more maps at
+  the origin. `Xml.BlockVector` holds the attribute-then-text order for both readers, and `MapParser.BlockOf`
+  walks a composite to the block it names, reflecting through `Geom.Symmetry` rather than a second copy of
+  that math. A reference naming no block resolves to nothing, never to `0,0,0` — the origin is a real block
+  somewhere, and every check downstream measured it. Over 354 scanned corpus maps and 1,754 monuments the
+  verdicts go from 1,466 ok / 62 error / 226 warning to **1,750 ok / 4 error**, and monuments stranded at the
+  origin from **129 to 1**. The four left are one genuine obstruction (`after_hours_ii`), one genuinely
+  unsupported (`thunder_blank`) and two in a scratch map.
+  (`Xml.BlockVector`, `RegionParser.ParseBlock`, `MapParser.ResolveMonument`/`BlockOf`)
 - **A canvas handle stops answering the moment its host goes (N11).** `WorldCanvas` and `SliceView` guard
   every interop call on `handle is not null`, and both disposed the reference while leaving the field set —
   so a disposed handle passed the guard and threw `ObjectDisposedException`. Nothing showed while every host

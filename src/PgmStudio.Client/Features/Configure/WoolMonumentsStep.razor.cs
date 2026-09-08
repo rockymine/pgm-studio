@@ -101,14 +101,15 @@ public partial class WoolMonumentsStep
         null => "",
         { Scanned: false } => "This column carries no scan — nothing can be said about the block.",
         { Clear: false } => "A block already stands here: the wool cannot be placed, and PGM warns on load.",
-        { Pedestal: false } => "Nothing stands under it — a wool cannot be placed against air.",
+        { Support: false } => "Nothing on any of its six faces — a wool is placed against a block, and there is none.",
+        { Pedestal: false } => "Clear, and held by the block against it: a wool can be placed here.",
         _ => "Clear, and standing on a pedestal: a wool can be placed here.",
     };
 
     /// <summary>A verdict that costs the author something is the tool's own warning panel; one that costs
     /// nothing is body text. Configure tints a fault and never an approval, which is what makes a tinted
     /// line mean something.</summary>
-    private string SeatClass => seat is { Scanned: true, Clear: false } or { Scanned: true, Pedestal: false }
+    private string SeatClass => seat is { Scanned: true, Clear: false } or { Scanned: true, Support: false }
         ? "panel-warning" : "";
 
     // A point RegionNode for the reused SliceView. The id carries x/z so moving the monument re-points the

@@ -53,24 +53,61 @@ public sealed class WoolSourcesTests
     }
 
     [Test]
-    public async Task Monument_is_clear_without_a_terrain_layer_and_obstructed_when_the_block_is_solid()
+    public async Task Monument_seat_is_the_block_being_clear_and_the_block_under_it_being_solid()
     {
         var doc = Serializer.ToDict(MapParser.ParseXmlString(Xml));   // monument block at 1,1,1
 
-        // No terrain layer (segments null) — nothing to test against, reported clear.
-        var clear = WoolSources.CheckMonumentObstruction(doc, null);
-        await Assert.That(clear.Count).IsEqualTo(1);
-        await Assert.That(clear[0].WoolColor).IsEqualTo("red");
-        await Assert.That((clear[0].X, clear[0].Y, clear[0].Z)).IsEqualTo((1, 1, 1));
-        await Assert.That(clear[0].Obstructed).IsFalse();
-        await Assert.That(clear[0].Severity).IsEqualTo("ok");
+        // No terrain layer (segments null) — nothing can be said, so it is not reported as a fault.
+        var unscanned = WoolSources.CheckMonumentSeats(doc, null);
+        await Assert.That(unscanned.Count).IsEqualTo(1);
+        await Assert.That(unscanned[0].WoolColor).IsEqualTo("red");
+        await Assert.That((unscanned[0].X, unscanned[0].Y, unscanned[0].Z)).IsEqualTo((1, 1, 1));
+        await Assert.That(unscanned[0].Severity).IsEqualTo("ok");
 
-        // A solid block at the monument cell — wool can't be placed → obstructed (error).
-        var segs = new SegmentIndex([(1, 1, 0, 2)]);   // column (x=1,z=1) solid y0..2, so (1,1,1) is solid
-        var blocked = WoolSources.CheckMonumentObstruction(doc, segs);
-        await Assert.That(blocked[0].Obstructed).IsTrue();
+        // Solid through the monument cell — the wool cannot go in at all.
+        var blocked = WoolSources.CheckMonumentSeats(doc, new SegmentIndex([(1, 1, 0, 2)]));
+        await Assert.That(blocked[0].Clear).IsFalse();
         await Assert.That(blocked[0].Severity).IsEqualTo("error");
         await Assert.That(blocked[0].Message).Contains("obstructed");
+
+        // Solid up to y=0, so (1,1,1) is air standing on a block: the shape a monument is built in.
+        var seated = WoolSources.CheckMonumentSeats(doc, new SegmentIndex([(1, 1, -1, 0)]));
+        await Assert.That((seated[0].Clear, seated[0].Pedestal)).IsEqualTo((true, true));
+        await Assert.That(seated[0].Severity).IsEqualTo("ok");
+
+        // Held from above rather than below — a monument hung from a ceiling, which plays the same, so it
+        // is seated without being on a pedestal.
+        var hung = WoolSources.CheckMonumentSeats(doc, new SegmentIndex([(1, 1, 2, 4)]));
+        await Assert.That((hung[0].Clear, hung[0].Support, hung[0].Pedestal)).IsEqualTo((true, true, false));
+        await Assert.That(hung[0].Severity).IsEqualTo("ok");
+
+        // Held from the side — the wall a monument is set into. The monument's own column carries a run of
+        // its own (well above it), because a column with no run at all is one the scan never reached and is
+        // reported as saying nothing rather than as empty.
+        var walled = WoolSources.CheckMonumentSeats(doc, new SegmentIndex([(1, 1, 5, 6), (2, 1, 0, 4)]));
+        await Assert.That((walled[0].Support, walled[0].Pedestal)).IsEqualTo((true, false));
+        await Assert.That(walled[0].Severity).IsEqualTo("ok");
+
+        // A column the scan never reached says nothing about the block, so it is not a fault: the map is
+        // simply not read there. Without this an unscanned column reads as air on all six faces.
+        var unread = WoolSources.CheckMonumentSeats(doc, new SegmentIndex([(40, 40, 0, 4)]));
+        await Assert.That(unread[0].Severity).IsEqualTo("ok");
+
+        // Nothing on any of the six faces — there is nothing to place the wool against at all.
+        var floating = WoolSources.CheckMonumentSeats(doc, new SegmentIndex([(1, 1, -9, -5)]));
+        await Assert.That((floating[0].Clear, floating[0].Support)).IsEqualTo((true, false));
+        await Assert.That(floating[0].Severity).IsEqualTo("error");
+        await Assert.That(floating[0].Message).Contains("six faces");
+
+        // The block is the FLOORED coordinate, which is PGM's own reading (`BlockRegion` → getBlockX/Y/Z).
+        // A monument written at the block centre is the corpus idiom, and a cast would truncate toward zero
+        // — so at a negative coordinate the column read would be the neighbour's.
+        var centred = Serializer.ToDict(MapParser.ParseXmlString(
+            Xml.Replace("<block>1,1,1</block>", "<block>1.5,1,-1.5</block>")));
+        var floored = WoolSources.CheckMonumentSeats(centred, new SegmentIndex([(1, -2, -4, 0)]));
+        await Assert.That((floored[0].X, floored[0].Y, floored[0].Z)).IsEqualTo((1, 1, -2));
+        await Assert.That((floored[0].Clear, floored[0].Pedestal)).IsEqualTo((true, true));
+        await Assert.That(floored[0].Severity).IsEqualTo("ok");
     }
 
     [Test]

@@ -112,10 +112,12 @@ public sealed record SegmentsDto(
 public sealed record ColumnFloorDto(int? Y);
 
 /// <summary>Whether one block can hold a thing placed into it. A monument is the block a player puts a wool
-/// into, so it needs both halves: nothing already standing in it, and something standing directly under it
-/// for the wool to be placed against.</summary>
-/// <param name="Scanned">Whether the column carries segment data at all. False makes the other two
-/// meaningless — an unscanned column is not an empty one.</param>
+/// into, so it needs both halves: nothing already standing in it, and a block to place against. A block is
+/// placed against any face of a neighbour — below it, above it, or beside it — so all six are asked.</summary>
+/// <param name="Scanned">Whether the block's own column carries segment data at all. False makes the other
+/// two meaningless — an unscanned column is not an empty one.</param>
 /// <param name="Clear">No solid run covers the block itself.</param>
-/// <param name="Pedestal">A solid run covers the block directly below it.</param>
-public sealed record BlockSeatDto(bool Scanned, bool Clear, bool Pedestal);
+/// <param name="Support">A solid block touches one of its six faces, which is what a placement needs.</param>
+/// <param name="Pedestal">The support is the block directly below — the shape a monument is normally built
+/// in. Support without a pedestal is a monument hung from a ceiling or a wall, which plays the same.</param>
+public sealed record BlockSeatDto(bool Scanned, bool Clear, bool Support, bool Pedestal);

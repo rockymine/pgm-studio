@@ -96,4 +96,11 @@ internal static class Xml
 
     /// <summary>None → 0.0 coercion used by block/cylinder/circle/sphere/half parsing.</summary>
     public static double Or0(double? v) => v ?? 0.0;
+
+    /// <summary>The vector a <c>&lt;block&gt;</c> states, from either form PGM accepts: the <c>location</c>
+    /// attribute first, then the element's own text. PGM's <c>RegionParser.parseBlock</c> reads them in that
+    /// order — the attribute is a back-compat spelling it still takes — and the corpus uses both, so a reader
+    /// that takes only the text resolves every attribute-spelled monument to the origin.</summary>
+    public static string BlockVector(XElement e) =>
+        GetOrNull(e, "location") is { Length: > 0 } attr ? attr : Text(e);
 }

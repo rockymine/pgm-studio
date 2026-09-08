@@ -53,6 +53,11 @@ public sealed class SegmentIndex
                 yield return (cell.x, cell.z, top, clear);
     }
 
+    /// <summary>Whether the scan reached this column at all. A column it never read answers <c>IsAir</c> to
+    /// everything, which is the right answer for a caller asking what is standing somewhere and the wrong
+    /// one for a caller asking whether anything is: an unscanned column is not an empty one.</summary>
+    public bool Scanned(int x, int z) => _byCol.ContainsKey((x, z));
+
     public bool IsSolid(int x, int y, int z)
         => _byCol.TryGetValue((x, z), out var segs) && segs.Any(s => s.ys <= y && y <= s.ye);
 

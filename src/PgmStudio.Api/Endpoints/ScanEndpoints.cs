@@ -264,11 +264,22 @@ public sealed class BlockSeatEndpoint(MapRepository repo, PgmDb db) : EndpointWi
             return;
         }
 
-        var runs = await db.Segments
-            .Where(s => s.MapId == map.Id && s.WorldX == x && s.WorldZ == z)
-            .Select(s => new { s.WorldYStart, s.WorldYEnd }).ToListAsync(ct);
+        // The block's own column plus its four neighbours: a placement needs a block on any one of six
+        // faces, so the read is five columns wide rather than one.
+        var columns = await db.Segments
+            .Where(s => s.MapId == map.Id
+                        && ((s.WorldX == x && (s.WorldZ == z || s.WorldZ == z - 1 || s.WorldZ == z + 1))
+                            || (s.WorldZ == z && (s.WorldX == x - 1 || s.WorldX == x + 1))))
+            .Select(s => new { s.WorldX, s.WorldZ, s.WorldYStart, s.WorldYEnd }).ToListAsync(ct);
 
-        bool Solid(int atY) => runs.Any(run => run.WorldYStart <= atY && atY <= run.WorldYEnd);
-        await Send.OkAsync(new BlockSeatDto(runs.Count > 0, !Solid(y), Solid(y - 1)), ct);
+        bool Solid(int atX, int atY, int atZ) => columns.Any(
+            run => run.WorldX == atX && run.WorldZ == atZ && run.WorldYStart <= atY && atY <= run.WorldYEnd);
+
+        var scanned = columns.Any(run => run.WorldX == x && run.WorldZ == z);
+        var clear = !Solid(x, y, z);
+        var pedestal = Solid(x, y - 1, z);
+        var support = pedestal || Solid(x, y + 1, z)
+                      || Solid(x - 1, y, z) || Solid(x + 1, y, z) || Solid(x, y, z - 1) || Solid(x, y, z + 1);
+        await Send.OkAsync(new BlockSeatDto(scanned, clear, support, pedestal), ct);
     }
 }

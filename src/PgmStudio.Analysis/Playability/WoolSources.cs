@@ -20,7 +20,14 @@ public static class WoolSources
     public sealed record ColorSummary(string Color, int Total, List<string> SourceTypes, bool Repeatable, bool OneTime, List<SourceOut> Sources);
     public sealed record AvailabilityEntry(string WoolId, string Color, bool Obtainable, bool Repeatable, bool OneTime, string Severity, List<string> SourceTypes, string Message);
     public sealed record Suggestion(string Color, int Total, List<string> SourceTypes);
-    public sealed record MonumentCheck(string WoolColor, string Team, string MonumentId, int X, int Y, int Z, bool Obstructed, string Severity, string Message);
+    /// <summary>What one monument's block is, in the terms a wool is placed in. A wool goes <b>into</b> the
+    /// block, so it needs both halves: <paramref name="Clear"/> that nothing already stands in it, and
+    /// <paramref name="Support"/> that a block touches one of its six faces, since a block is placed against
+    /// any face of a neighbour. <paramref name="Pedestal"/> says the support is the one below, which is the
+    /// shape a monument is normally built in. The same answer <c>GET /map/{slug}/block-seat</c> gives for a
+    /// single block while a monument is being placed by hand.</summary>
+    public sealed record MonumentSeat(string WoolColor, string Team, string MonumentId, int X, int Y, int Z,
+        bool Clear, bool Support, bool Pedestal, string Severity, string Message);
 
     private static readonly GeometryFactory Gf = new();
 
@@ -105,9 +112,12 @@ public static class WoolSources
             .Select(e => new Suggestion(e.Color, e.Total, e.SourceTypes)).ToList();
     }
 
-    public static List<MonumentCheck> CheckMonumentObstruction(Dict data, SegmentIndex? segments)
+    /// <summary>Whether each wool monument's block can hold the wool won on it: clear, and standing on
+    /// something. A column with no scan says neither, and is reported as seated rather than as a fault — a
+    /// map the studio has not read must not come back as a map with a hundred bad monuments.</summary>
+    public static List<MonumentSeat> CheckMonumentSeats(Dict data, SegmentIndex? segments)
     {
-        var outp = new List<MonumentCheck>();
+        var outp = new List<MonumentSeat>();
         foreach (var w in MapDoc.AsList(data.GetValueOrDefault("wools")).OfType<Dict>())
         {
             var color = BlockColors.Normalize(w.GetValueOrDefault("color") as string ?? "");
@@ -116,13 +126,32 @@ public static class WoolSources
                 var loc = MapDoc.AsDict(m.GetValueOrDefault("location"));
                 if (MapDoc.Num(loc.GetValueOrDefault("x")) is not { } lx || MapDoc.Num(loc.GetValueOrDefault("y")) is not { } ly || MapDoc.Num(loc.GetValueOrDefault("z")) is not { } lz)
                     continue;
-                int x = (int)lx, y = (int)ly, z = (int)lz;
-                var obstructed = segments is not null && segments.IsSolid(x, y, z);
-                outp.Add(new MonumentCheck(color, m.GetValueOrDefault("team") as string ?? "", m.GetValueOrDefault("id") as string ?? "",
-                    x, y, z, obstructed, obstructed ? "error" : "ok",
-                    obstructed
-                        ? $"{color} monument at ({x},{y},{z}) is obstructed by a block — the wool can't be placed (PGM warns on load); clear it to air"
-                        : $"{color} monument at ({x},{y},{z}) is clear"));
+                // Floored, never cast: PGM reads this block through `BlockRegion`'s getBlockX/Y/Z, which
+                // floor, and the studio stores the monument's coordinate raw because of it
+                // (docs/pgm/new-map-authoring.md §4). A cast truncates toward zero, so a monument written at
+                // the block centre — `46.5,10,-191.5`, the corpus idiom — lands a block off in x or z
+                // wherever the coordinate is negative, and the column read is the neighbour's.
+                int x = (int)Math.Floor(lx), y = (int)Math.Floor(ly), z = (int)Math.Floor(lz);
+                // A map with no terrain layer, and a column the scan never reached inside one, say the same
+                // thing: nothing. Both are reported as seated rather than as a fault.
+                var unread = segments is null || !segments.Scanned(x, z);
+                var clear = unread || segments!.IsAir(x, y, z);
+                var pedestal = unread || segments!.IsSolid(x, y - 1, z);
+                // A block is placed against any face of a neighbour, so all six are asked. A monument hung
+                // from a ceiling or set into a wall plays exactly like one on a pedestal.
+                var support = unread || pedestal
+                    || segments!.IsSolid(x, y + 1, z)
+                    || segments.IsSolid(x - 1, y, z) || segments.IsSolid(x + 1, y, z)
+                    || segments.IsSolid(x, y, z - 1) || segments.IsSolid(x, y, z + 1);
+
+                var (severity, sentence) = (clear, support) switch
+                {
+                    (false, _) => ("error", "is obstructed by a block — the wool can't be placed (PGM warns on load); clear it to air"),
+                    (_, false) => ("error", "has nothing on any of its six faces — a wool is placed against a block, and there is none to place against"),
+                    _ => ("ok", pedestal ? "is clear, and stands on a pedestal" : "is clear, and is placed against the block that holds it"),
+                };
+                outp.Add(new MonumentSeat(color, m.GetValueOrDefault("team") as string ?? "", m.GetValueOrDefault("id") as string ?? "",
+                    x, y, z, clear, support, pedestal, severity, $"{color} monument at ({x},{y},{z}) {sentence}"));
             }
         }
         return outp;

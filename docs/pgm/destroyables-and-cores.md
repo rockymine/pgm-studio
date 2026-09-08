@@ -26,7 +26,7 @@ to this file the way `structures.md` owns `WX*`.
 PGM has **no `<monument>` element**. DTM's element is `<destroyables>/<destroyable>`;
 `Gamemode.DESTROY_THE_MONUMENT` is produced by `DestroyableModule`. The word "monument" is already taken
 throughout this codebase for the *CTW wool-monument* — the block a capturing team places wool on — and it is
-load-bearing in `Wool.Monument`, `MonumentRow.wool_id`, `MonumentIntent`, `MonumentObstructionDto`,
+load-bearing in `Wool.Monument`, `MonumentRow.wool_id`, `MonumentIntent`, `MonumentSeatDto`,
 `monument_candidate`, and `MonumentSuggester`.
 
 **OB1 — the objective is called a `Destroyable` in code, never a monument.** The core is a `Core`.
