@@ -335,7 +335,7 @@ public static class SketchLayoutCheck
         }
 
         var groups = new HashSet<string>(SketchLayout.GroupIds(layout), StringComparer.Ordinal);
-        foreach (var (group, where) in Groups(layout))
+        foreach (var (group, _, where) in Groups(layout))
             foreach (var named in group.ShapeIds.Where(id => !shapeIds.Contains(id)))
                 findings.Add(new Finding(SketchRules.NamesNothing,
                     $"group '{group.Id}' lists shape '{named}', which the layout does not carry",
@@ -366,17 +366,26 @@ public static class SketchLayoutCheck
             }
 
         // SK12 — one id, two groups. The relief is stored under the id and so is a placement's group, so a
-        // board carrying it twice has no single answer to either.
-        foreach (var group in Groups(layout).Select(entry => entry.Group)
-                                             .Where(group => group.Id is { Length: > 0 })
-                                             .GroupBy(group => group.Id!, StringComparer.Ordinal)
+        // board carrying it twice has no single answer to either. The layers are named because they decide
+        // which way it goes wrong: within one layer the last of them takes the terrain and the rest build
+        // flat, across two every one of them takes it over its own footprint.
+        foreach (var group in Groups(layout).Where(entry => entry.Group.Id is { Length: > 0 })
+                                             .GroupBy(entry => entry.Group.Id!, StringComparer.Ordinal)
                                              .Where(group => group.Count() > 1)
                                              .OrderBy(group => group.Key, StringComparer.Ordinal))
+        {
+            var layers = group.Select(entry => entry.Layer).Distinct(StringComparer.Ordinal).ToList();
             findings.Add(new Finding(SketchRules.GroupIdTwice,
                 $"{group.Count()} groups answer to the id '{group.Key}', so terrain and placements stored "
-                + "under it have no single group to belong to — the first one solved takes them and the "
-                + "rest build flat. Give each group its own id",
+                + "under it have no single group to belong to — "
+                + (layers.Count > 1
+                    ? $"and they are on {layers.Count} layers ({string.Join(", ", layers.Select(id => $"'{id}'"))}), "
+                      + "so every one of them is shaped by the relief stored under that name while the "
+                      + "read-back reports only the first"
+                    : $"on layer '{layers[0]}' the last one solved takes them and the rest build flat")
+                + ". Give each group its own id",
                 Severity.Complaint, Subjects: [group.Key]));
+        }
 
         foreach (var orphan in (layout.Relief ?? []).Keys.Where(key => !groups.Contains(key)).OrderBy(key => key, StringComparer.Ordinal))
             findings.Add(new Finding(SketchRules.NamesNothing,
@@ -465,11 +474,11 @@ public static class SketchLayoutCheck
                 yield return (shape, $"layers[{index}].layout.shapes[{at}]");
     }
 
-    private static IEnumerable<(SketchGroup Group, string Where)> Groups(SketchLayout layout)
+    private static IEnumerable<(SketchGroup Group, string Layer, string Where)> Groups(SketchLayout layout)
     {
         foreach (var (layer, index) in SketchLayout.Stack(layout).Select((layer, index) => (layer, index)))
             foreach (var (group, at) in layer.Groups.Select((group, at) => (group, at)))
-                yield return (group, $"layers[{index}].layout.groups[{at}]");
+                yield return (group, layer.Id ?? $"layer{index}", $"layers[{index}].layout.groups[{at}]");
     }
 
     // Twice the signed area a ring encloses, absolute — the shoelace sum. Zero says the vertices are

@@ -42,12 +42,12 @@ public static class ReliefReadback
     public const int CliffDrop = 6;
 
     /// <summary>How many pieces a tier names with coordinates. A place is at least
-    /// <see cref="PlaceShare"/> of the island, so there are at most a hundred of those; what the cap actually
+    /// <see cref="PlaceShare"/> of the group, so there are at most a hundred of those; what the cap actually
     /// bounds is the ledges, whose tail is slivers along a brink rather than ground anyone stands on.</summary>
     public const int NamedParts = 16;
 
     /// <summary>One piece of surface a player can move around within, with the coordinates that let it be
-    /// found: how many cells, what share of the island that is, where its middle sits and what box it spans.
+    /// found: how many cells, what share of the group that is, where its middle sits and what box it spans.
     /// <see cref="Place"/> separates a piece big enough to be somewhere from a ledge stranded off one.
     ///
     /// <para>The centroid is the mean of the piece's cells, which for a horseshoe lies outside it. That is
@@ -204,46 +204,46 @@ public static class ReliefReadback
         return ((double)flat.Count / land.Count, (double)largest / land.Count);
     }
 
-    /// <summary>What the measurement says about what the island claimed. Two complaints and never a refusal:
+    /// <summary>What the measurement says about what the group claimed. Two complaints and never a refusal:
     /// a relief is authored ground, and the studio's business is to measure it and say where the measurement
     /// and the statement disagree.
     ///
-    /// <para><paramref name="declared"/> is the word the island states about itself, or null for one that
+    /// <para><paramref name="declared"/> is the word the group states about itself, or null for one that
     /// states nothing — in which case there is nothing to disagree with and only the smoothing is read, since
     /// that one is about how the ground was made rather than about what it was meant to be.</para></summary>
-    public static Findings Check(Result read, string? declared, string island)
+    public static Findings Check(Result read, string? declared, string group)
     {
         var findings = new List<Finding>();
         if (Vocabulary.Landform.IsKnown(declared) && declared != read.Landform)
             findings.Add(new Finding(ReliefRules.LandformMismatch,
-                $"island '{island}' says it is {declared} and measures {read.Landform}: {read.Relief} blocks "
+                $"group '{group}' says it is {declared} and measures {read.Landform}: {read.Relief} blocks "
                 + $"of range over {read.Cells} cells, which is "
                 + $"{read.Relief / Math.Sqrt(Math.Max(1, read.Cells)):0.00} for the board's own size.",
-                Severity.Complaint, Subjects: [island]));
+                Severity.Complaint, Subjects: [group]));
 
         // Ground with nothing to grade is not unsmoothed ground: a plain has no elevation to have shaped.
         if (read.Landform != Vocabulary.Landform.Plain && read.Smoothing <= Stepped)
             findings.Add(new Finding(ReliefRules.NotSmoothed,
-                $"island '{island}' carries {read.Relief} blocks of range and "
+                $"group '{group}' carries {read.Relief} blocks of range and "
                 + (read.Steps.GetValueOrDefault("scramble") == 0
                     ? "not one two-block step on it"
                     : $"{read.Smoothing:0.0} scrambles for every barrier")
                 + $" — {read.Steps.GetValueOrDefault("barrier")} of its steps are taller than a player can "
                 + "scramble. The elevation is there and was never graded.",
-                Severity.Complaint, Subjects: [island]));
+                Severity.Complaint, Subjects: [group]));
 
         // RL2's twin, and the reason it needs an angle: the step histogram above calls a surface graded
         // everywhere perfect — one place, no ledge, every step walked — while there is nowhere on it a player
         // can stand still.
         if (read.Cells > 0 && read.Level < LevelEnough)
             findings.Add(new Finding(ReliefRules.NowhereLevel,
-                $"island '{island}' is {read.Level:P0} level ground, the largest run of it "
-                + $"{read.LargestField:P0} of the island"
+                $"group '{group}' is {read.Level:P0} level ground, the largest run of it "
+                + $"{read.LargestField:P0} of the group"
                 + (read.Faces.Count == 0
                     ? ", and it presents no face at all — it is a ramp end to end"
                     : $", against {read.Faces.Count} face(s)")
                 + ". The elevation was graded everywhere and left nowhere to stand.",
-                Severity.Complaint, Subjects: [island]));
+                Severity.Complaint, Subjects: [group]));
         return findings;
     }
 
@@ -252,21 +252,21 @@ public static class ReliefReadback
     /// <see cref="Check(Result, string?, string)"/> because it reads the statements rather than the surface —
     /// the two answer different questions about the same relief, and every fault here is one the surface
     /// shows and cannot attribute.</summary>
-    public static Findings Check(ReliefReading reading, string island)
+    public static Findings Check(ReliefReading reading, string group)
     {
         var findings = new List<Finding>();
         foreach (var seam in reading.Seams.Where(seam => seam.Step > Walk.ScrambleStep))
             findings.Add(new Finding(ReliefRules.MarksMeetOnAStep,
-                $"on island '{island}', '{seam.A}' and '{seam.B}' meet on a {seam.Step}-block step, worst at "
+                $"on group '{group}', '{seam.A}' and '{seam.B}' meet on a {seam.Step}-block step, worst at "
                 + $"({seam.X}, {seam.Z}) along {seam.Cells} cell(s) of boundary. Two marks pin their bands "
                 + "exactly, so where they touch the whole difference lands in one cell.",
-                Severity.Complaint, Subjects: [island, seam.A, seam.B]));
+                Severity.Complaint, Subjects: [group, seam.A, seam.B]));
 
         foreach (var id in reading.Silent)
             findings.Add(new Finding(ReliefRules.MarkPinsNothing,
-                $"mark '{id}' pins no cell of island '{island}', so the surface is what it would have been "
+                $"mark '{id}' pins no cell of group '{group}', so the surface is what it would have been "
                 + "without it.",
-                Severity.Complaint, Subjects: [island, id]));
+                Severity.Complaint, Subjects: [group, id]));
 
         foreach (var push in reading.Pushes.Where(grade => grade.Cells > 0 && grade.Skirt > 0 && grade.Crown > 0))
         {
@@ -274,10 +274,10 @@ public static class ReliefReadback
             if (ratio <= GradesApart) continue;
             var steeper = push.Skirt > push.Crown ? "skirt" : "crown";
             findings.Add(new Finding(ReliefRules.PushGradesDisagree,
-                $"push '{push.Id}' on island '{island}' climbs its skirt at {push.Skirt:0.0} and its crown at "
+                $"push '{push.Id}' on group '{group}' climbs its skirt at {push.Skirt:0.0} and its crown at "
                 + $"{push.Crown:0.0} blocks a block — {ratio:0.0}x apart, the {steeper} the steeper — so the "
                 + "ground steps where the two meet, at the push's own outline.",
-                Severity.Complaint, Subjects: [island, push.Id]));
+                Severity.Complaint, Subjects: [group, push.Id]));
         }
         return findings;
     }

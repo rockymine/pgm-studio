@@ -135,24 +135,25 @@ what is gathered here is the parked and dormant slices of the same surface.
   material most likely to separate them, is measurable now that the walk prices a climb — a detour factor
   reads ≈1 only on ground that is genuinely flat.
 
-- [ ] **WE28 — A relief is keyed by island id, and on a stacked board two storeys hold the same island.**
-  `SketchReliefJson` rides top-level on the layout keyed by island, which is right when an island is a
-  landmass: it is the unit the solve runs over, and a recompile that re-fuses the board genuinely produces a
-  different one. It reads badly on a stack, where the ground and the storey under it are the *same footprint
-  one layer up* and their islands are told apart only by an id that nothing in the geometry distinguishes —
-  both are centred on the same place, both cover the same cells, and only a string says which is which.
+- [ ] **WE28 — A relief is keyed by group id, and a stacked board's storeys share one namespace.**
+  `SketchReliefJson` rides top-level on the layout keyed by group, and a group id is unique across the stack
+  only by the author keeping it so: two storeys of one board are the same footprint one layer up, told apart
+  by a string nothing in the geometry distinguishes. A collision is a complaint (`SK12`) rather than a
+  refusal, and the two halves of the studio then disagree about what it means — the rasterizer solves the
+  stated relief onto **every** group answering to the id, each over its own footprint, while
+  `POST …/sketch/relief/read` and the contour overlay report the first alone.
 
-  That fragility has already cost one bug (`C49`, fixed): a centroid match adopted the wrong storey's id and
-  the relief silently detached. The fix is correct and the shape it defends is still a string equality
-  between two documents that a recompile, a rename, a fork or a hand-edit can each break on their own, with
-  no gate to notice — an orphaned relief is caught only on the compile path (`SK1`), not on a plain save.
+  **Settled (author): the key is the layer plus the group.** The pairing becomes structural rather than a
+  string equality two documents have to keep agreeing on, and it addresses a relief the way
+  `PUT …/sketch/layers/{layerId}/groups/{groupId}` already addresses the group it belongs to. Amend the model
+  in `docs/world-export/relief.md` first, then the key and the four `/sketch/relief/{groupId}` routes, then a
+  read-forward for a relief keyed by group alone — its layer is the one that carries that group. `SK12`
+  narrows to within a layer in the same commit.
 
-  **Settled (author): the key is the layer plus the island.** That is what an author means — "the ground of
-  the ground storey" — and it is the reading that lets a relief be solved on a storey *under* the board, which
-  is the case a bare island id cannot express at all. The pairing becomes structural rather than a string
-  equality two documents have to keep agreeing on. Amend the model in `docs/world-export/relief.md` first,
-  then the key, then a read-forward for a stored relief keyed by island alone — its layer is the one that
-  carries the island, which is recoverable.
+  *A stack keyed `team` on both `under` (`base_y` 0) and `ground` (`base_y` 40), one point mark at h 24:
+  both storeys build the solved surface — `under` y1..23, `ground` y40..63 — and the read answers one group.
+  Every key in the 24 stored relief-bearing layouts and the 76 in `pgm-studio-mapgen` resolves to exactly one
+  layer, so the read-forward is unambiguous.*
 
 - [ ] **S42 — Relief: the carve and the graded road fold too.** The solve folds, and so now does the stair cut
   (`FEATURES.md`) — the first later pass to land, and the one that showed the rule is real rather than
@@ -197,20 +198,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   than air in `Decorator.Fan` if it were. The author brushed about twenty rocks into Millrace's bed and the
   studio plants none. Let a boulder seat on a bed the water claims and write through the water, keeping the
   claim for everything else; `docs/world-export/decoration.md` §5 and §7.
-
-### Polyline and stroke
-
-- [ ] **TS88 — 54 finish keys across 12 specs still name a shape no compile produces.** `TS82` renamed the
-  compiler's minted ids and 143 keys were re-keyed from each spec's own committed layout, which pairs the
-  compiled shapes positionally and exactly (`FEATURES.md`). Twelve specs did not pair and were left alone
-  rather than guessed at: `haiku-wharf`, `opus5-sandcaster` and `opus5-hollowmarch` have layouts whose shapes
-  no longer line up with their plan at all, `firnline` and `sunspit` carry no layout to map by, and
-  `opus5-cairnmeadow`, `opus5-elderwold`, `opus5-hoarstone`, `opus5-sandcaster-ii`, `opus5-slipway`,
-  `sonnet-compass` and `haiku-chancel` pair some and not others. Re-key each by hand from the run's own line —
-  `drive.py` prints the key, and the ids the compile emitted beside it. The work is in `pgm-studio-mapgen`.
-
-  *`opus5-slipway`'s `s2` is `(0, 16, 114, 56)` in its layout and the compile's `back-band-22` is
-  `(0, 16, 100, 56)`: 14 blocks wider than any bend accounts for, so the plan moved under the layout.*
 
 ### Layers
 

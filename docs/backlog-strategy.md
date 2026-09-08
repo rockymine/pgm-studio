@@ -12,10 +12,10 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **51 open entries over 9,099 words**: a median entry of 167 words and **7 above 250** —
+The two boards carry **45 open entries over 8,102 words**: a median entry of 168 words and **6 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
-is the longest at 436 words, then `WS3` at 356 and `WE28` at 298. The prefix spread is `WE` 11, `B` 8,
-`TS` 6, `G` 6, `S` 5, `N` 4, and eight others in ones and twos. **One of them is on `TODO.md`** —
+is the longest at 436 words, then `WS3` at 356, `B169` at 281 and `WE28` at 266. The prefix spread is `WE` 11,
+`B` 7, `G` 6, `TS` 5, `S` 5, and eight others in ones and twos. **One of them is on `TODO.md`** —
 a ruling rather than a task, which is what a board looks like between groups.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
@@ -73,11 +73,11 @@ it. It is **relocated** to a subject's `ideas.md`, where an entry with no end co
 is **reworded down** to the slice that remains, under rule 7. Or it is **withdrawn** — deleted outright,
 because the work is not wanted.
 
-Withdrawal is what has emptied this board. **Twenty entries are gone and are in no other file**: `B21`,
+Withdrawal is what has emptied this board. **Twenty-one entries are gone and are in no other file**: `B21`,
 `B249`, `RP63`, `B55`, `B56`, `B24e`, `G9`, `G12`, `B96`, `B154`, `B174`, `G173`, `G176`, `C12`, `C14`,
-`CV15`, `B35`, `B36`, `C28` and `CV12`. Not one is an entry in `BACKLOG.md`, `TODO.md` or any `ideas.md`, and
-no document names any of them. That is a fifth of the board, and it went in two commits — more than the whole
-of the last programme shipped.
+`CV15`, `B35`, `B36`, `C28`, `CV12` and `TS88`. Not one is an entry in `BACKLOG.md`, `TODO.md` or any
+`ideas.md`, and no document names any of them. Twenty of them went in two commits — a fifth of the board,
+more than the whole of the last programme shipped.
 
 Withdrawal is the cheapest close there is and the board is better for it, but it is the one disposition with
 **no record outside the commit message**, and that costs twice.
@@ -297,6 +297,14 @@ were premises the code no longer holds.
 | `TS75` | both halves measurably false. The sketch draws a destroyable and a core from the intent's anchor (`sketch-render.js` `paintObjectives`), read-only by a decision stated there — *Configure is where one is edited*; and `PlanBoardScene` fans both, `B128`'s empty-`piece` case included. Rendered on the entry's own evidence board, `tallow-mirefast`'s wardstone draws at both orbit images |
 | `WE79` | fixed. `PlaceStroke` seats through `DressingContext.GroundFor` and claims on the prop's own layer. Measured on two storeys — a street at y10 under a deck at y25 — a stroke naming `street` paves at **y9**, one naming nothing paves at y24, and one naming a layer the board lacks paves nothing and declines `DR-LAYER` |
 
+**And one left because the boards it was about no longer compile (author, 2026-09-08).** `TS88` asked for 54
+`themeById` and `shapePropsById` keys across twelve specs to be re-keyed onto the ids `TS82` minted, by
+reading each spec's own drive output. Every one of the twelve states `"plan": 1`, which `PL15` refuses, so
+none of them compiles and the run the method needs cannot be started. `pgm-studio-mapgen/README.md` already
+settles what a version 1 spec is — the record of a world rather than a thing that rebuilds — so a key naming
+nothing on one of them costs nothing at all. The entry was filed before that ruling and reads as work only
+because it predates it.
+
 What survived the same pass is `WE78`, which reads like `WE79`'s twin and is not: `B144` settles which shape
 owns a column's paint, and `WE78` is how far down that shape's bands then run.
 
@@ -331,7 +339,7 @@ answers cost is worth recording, because it is not what the board's shape sugges
 | question | answer | what it left |
 |---|---|---|
 | `C11` — is the Edit tool kept? | **no** | the entry withdrawn, and `TE3` — retire the tool — filed in its place. `TE2` went with it |
-| `WE28` — how is a relief keyed? | **layer + island** | work, with the reason: it is the reading that lets a relief be solved on a storey *under* the board |
+| `WE28` — how is a relief keyed? | **layer + group** | work: the pairing becomes structural rather than a global id an author keeps unique by hand |
 | `WE48` — the floor on a brush? | **2** | work. A guard against a brush finer than the blocks it paints, not a style rule — every board on the shelf passes |
 | `B144` — height against paint? | **delegated** | ruled below, on `TS23`'s precedent |
 | `B70` — which view on a card? | **the section, as it is** | the entry withdrawn: an author knows a house by name, and the one worth looking at is a click from a 3-D view |
@@ -384,11 +392,13 @@ of them is the same thing: a document, a route or a solver that already answers,
 asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
-`S34`, `TS51`, `TS63`, `G164`, `B54`, `B9`, `B58`. `G187` left this population by being read against the
+`S34`, `TS51`, `TS63`, `G164`, `B54`, `B9`. `G187` left this population by being read against the
 code rather than built: plan-tier flow is served and `Cells.WaysRound` is in use, so what its entry called a
 project is one missing primitive and one term. Four left it by shipping —
 `B221` and `B258`, the library's pictures, `WE34`, the seat read, and `TS30`, the bend — which is the
 population behaving as intended: a roadmap entry is drained by being built, not by being triaged again.
+`B58` left it the same way, with `N12`: the destroyable suggester and the Configure phase that confirms from
+its list are one capability, and it took a phase to arrive rather than a triage.
 `WE52`, the drawn biome patch, left it the other way: withdrawn on the author's call once the field became a
 library row, since an area drawn per board is not what a named, reusable pattern is for.
 

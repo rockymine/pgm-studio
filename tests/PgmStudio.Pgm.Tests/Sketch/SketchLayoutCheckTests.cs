@@ -390,35 +390,62 @@ public sealed class SketchLayoutCheckTests
     }
 
     /// <summary>A group id is the key a relief is stored under, so a board carrying it twice has no single
-    /// group for that terrain to belong to. Measured on `pgm-studio-mapgen`'s `opus5-ravensmere`, where the
-    /// canvas split one board into three groups and gave all three the saved id: the relief keyed to it
-    /// reached one of them and the board's whole surface came back flat.</summary>
+    /// group for that terrain to belong to. On one layer the last group solved takes the terrain over its own
+    /// cells and the ones before it build flat, so the message says which layer they are on.</summary>
     [Test]
-    public async Task Two_islands_answering_to_one_id_are_declined()
+    public async Task Two_groups_answering_to_one_id_are_declined()
     {
-        var found = SketchLayoutCheck.Check(TwoIslands("i", "i"))
+        var found = SketchLayoutCheck.Check(TwoGroups("i", "i"))
             .Where(finding => finding.Rule == SketchRules.GroupIdTwice).ToList();
         await Assert.That(found.Count).IsEqualTo(1);
         await Assert.That(found[0].Message).Contains("2 groups answer to the id 'i'");
+        await Assert.That(found[0].Message).Contains("on layer 'ground' the last one solved takes them");
+    }
+
+    /// <summary>The same id on two layers is the worse half, and the message has to separate it: the
+    /// rasterizer solves the stated relief onto every group answering to the id, each over its own footprint,
+    /// so a storey is shaped by ground it never stated — and the read reports the first alone, which is what
+    /// keeps that off every read of the board. The layers are named because they are what an author moves.</summary>
+    [Test]
+    public async Task One_id_on_two_layers_names_both_of_them()
+    {
+        var found = SketchLayoutCheck.Check(TwoLayers("team", "team"))
+            .Where(finding => finding.Rule == SketchRules.GroupIdTwice).ToList();
+        await Assert.That(found.Count).IsEqualTo(1);
+        await Assert.That(found[0].Message).Contains("on 2 layers ('ground', 'under')");
+        await Assert.That(found[0].Message).Contains("every one of them is shaped by the relief");
     }
 
     /// <summary>Two groups with their own ids is the ordinary shape of a board with two landmasses, and it
-    /// stays silent.</summary>
+    /// stays silent — on one layer and across two alike.</summary>
     [Test]
-    public async Task Two_islands_with_their_own_ids_are_not_declined()
+    public async Task Two_groups_with_their_own_ids_are_not_declined()
     {
-        await Assert.That(SketchLayoutCheck.Check(TwoIslands("i", "j"))
+        await Assert.That(SketchLayoutCheck.Check(TwoGroups("i", "j"))
+            .Where(finding => finding.Rule == SketchRules.GroupIdTwice)).IsEmpty();
+        await Assert.That(SketchLayoutCheck.Check(TwoLayers("team", "under"))
             .Where(finding => finding.Rule == SketchRules.GroupIdTwice)).IsEmpty();
     }
 
-    /// <summary>Two rectangles wide apart, one group named over each.</summary>
-    private static string TwoIslands(string first, string second) =>
+    /// <summary>Two rectangles wide apart on one layer, one group named over each.</summary>
+    private static string TwoGroups(string first, string second) =>
         "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
-        + "\"layers\":[{\"base_y\":0,\"layout\":{\"shapes\":[" + Rect + ","
+        + "\"layers\":[{\"id\":\"ground\",\"base_y\":0,\"layout\":{\"shapes\":[" + Rect + ","
         + "{\"id\":\"s2\",\"type\":\"rectangle\",\"operation\":\"add\",\"min_x\":60,\"max_x\":70,"
         + "\"min_z\":60,\"max_z\":70,\"floor\":8,\"base_height\":12}],"
         + "\"groups\":[{\"id\":\"" + first + "\",\"name\":\"I\",\"shapeIds\":[\"s1\"]},"
         + "{\"id\":\"" + second + "\",\"name\":\"J\",\"shapeIds\":[\"s2\"]}]}}]}";
+
+    /// <summary>One footprint on two storeys — the shape a stacked board has, and the one a group id cannot
+    /// tell apart on its own.</summary>
+    private static string TwoLayers(string ground, string under) =>
+        "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},\"layers\":["
+        + "{\"id\":\"ground\",\"base_y\":40,\"layout\":{\"shapes\":[" + Rect + "],"
+        + "\"groups\":[{\"id\":\"" + ground + "\",\"name\":\"Ground\",\"shapeIds\":[\"s1\"]}]}},"
+        + "{\"id\":\"under\",\"base_y\":0,\"layout\":{\"shapes\":["
+        + "{\"id\":\"s2\",\"type\":\"rectangle\",\"operation\":\"add\",\"min_x\":-20,\"max_x\":20,"
+        + "\"min_z\":-20,\"max_z\":20,\"floor\":8,\"base_height\":12}],"
+        + "\"groups\":[{\"id\":\"" + under + "\",\"name\":\"Under\",\"shapeIds\":[\"s2\"]}]}}]}";
 
     /// <summary>Walls clamped around a tucked-in floor is how a roofed gallery is built, and the shapes do
     /// not contest a cell — so the way that works is not reported as the way that does not.</summary>

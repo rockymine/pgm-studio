@@ -178,8 +178,10 @@ The collapse is about the *list*, not the verdict. A structure that clusters int
 several times, and offering the same goal four ways makes a worse thing to confirm from. Over the sample it
 takes the proposals from 125 to 100 and the false ones from 37 to 32 while leaving coverage exactly where it
 was, landing at one proposal per structure. The precision figure moves the other way — 70.4% to 68.0% — only
-because a duplicate true proposal counts as a win in that ratio and as noise on the screen. What remains of `B58` is
-the confirm flow.
+because a duplicate true proposal counts as a win in that ratio and as noise on the screen. A proposal right
+about two times in three is something a person confirms rather than something the tool applies, and
+Configure's Destroyables phase is where the list is read: each row states the two readings it was proposed
+on, in words that can be checked against the world (`docs/tools/configure.md`).
 
 ## 4. Gather at ingest, or not at all
 

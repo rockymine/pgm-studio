@@ -91,10 +91,12 @@ public static class SketchRules
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string LayersOverlap = "SK10";
 
-    /// <summary>Two groups of one layer answering to the same id. A group id is the key a relief is
-    /// stored under and the handle a placement names, so a board carrying it twice has no single answer to
-    /// either: the terrain authored under that name lands on whichever of them is solved first and the rest
-    /// of the ground builds flat.</summary>
+    /// <summary>Two groups answering to the same id. A group id is the key a relief is stored under and the
+    /// handle a placement names, so a board carrying it twice has no single answer to either — and which way
+    /// it goes wrong depends on where the second one is. On <b>one layer</b> the last group solved takes the
+    /// terrain over its own cells and the ones before it build flat. Across <b>two layers</b> every group
+    /// answering to the id takes it, each solved over its own footprint, so a storey is shaped by ground it
+    /// never stated; the read-back reports the first alone, which is what keeps that invisible.</summary>
     /// <remarks>Give each group its own id. A recompile mints one per group, so a duplicate is a document
     /// that was written by hand or by a tool that copied a record onto more than one group.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]

@@ -7641,7 +7641,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   compiled ground shapes are the same shapes in the same order a fresh compile names differently, so the two
   pair positionally and the pairing is *asserted* rather than assumed: every pair's bounding box must agree,
   within a bent shape's own stated wander and exactly otherwise. 143 keys across 17 specs re-keyed, taking the
-  corpus to **156 of 210 live**; the twelve specs that did not pair were left alone and are `TS88`.
+  corpus to **156 of 210 live**. The twelve specs that did not pair were left alone, and stay that way: every one of their plans states `"plan": 1`, which `PL15` refuses, so none of them compiles and a key naming nothing costs a board that is a record of a world rather than a thing that rebuilds.
 - **A write reads the document; a read walks the ground (`TS86`).** Seven of the sketch rules — `SK9`,
   `SK10`, `SK11`, `SK13`–`SK16` — are answered off the rasterized spans rather than off the JSON, so
   `SketchLayoutCheck.Check` ran a whole-board rasterize on every partial write: a shape, a vertex, a layer, a
