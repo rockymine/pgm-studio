@@ -12,9 +12,9 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **44 open entries over 7,846 words**: a median entry of 167 words and **6 above 250** —
+The two boards carry **42 open entries over 7,449 words**: a median entry of 167 words and **6 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
-is the longest at 436 words, then `WS3` at 356, `B169` at 281 and `WE28` at 266. The prefix spread is `WE` 11,
+is the longest at 436 words, then `WS3` at 356, `B169` at 281 and `WE28` at 266. The prefix spread is `WE` 9,
 `B` 7, `G` 6, `TS` 5, `S` 4, and eight others in ones and twos. **One of them is on `TODO.md`** —
 a ruling rather than a task, which is what a board looks like between groups.
 
@@ -73,9 +73,9 @@ it. It is **relocated** to a subject's `ideas.md`, where an entry with no end co
 is **reworded down** to the slice that remains, under rule 7. Or it is **withdrawn** — deleted outright,
 because the work is not wanted.
 
-Withdrawal is what has emptied this board. **Twenty-two entries are gone and are in no other file**: `B21`,
+Withdrawal is what has emptied this board. **Twenty-three entries are gone and are in no other file**: `B21`,
 `B249`, `RP63`, `B55`, `B56`, `B24e`, `G9`, `G12`, `B96`, `B154`, `B174`, `G173`, `G176`, `C12`, `C14`,
-`CV15`, `B35`, `B36`, `C28`, `CV12`, `TS88` and `S47`. Not one is an entry in `BACKLOG.md`, `TODO.md` or any
+`CV15`, `B35`, `B36`, `C28`, `CV12`, `TS88`, `S47` and `WE98`. Not one is an entry in `BACKLOG.md`, `TODO.md` or any
 `ideas.md`, and no document names any of them. Twenty of them went in two commits — a fifth of the board,
 more than the whole of the last programme shipped.
 
@@ -297,6 +297,16 @@ were premises the code no longer holds.
 | `TS75` | both halves measurably false. The sketch draws a destroyable and a core from the intent's anchor (`sketch-render.js` `paintObjectives`), read-only by a decision stated there — *Configure is where one is edited*; and `PlanBoardScene` fans both, `B128`'s empty-`piece` case included. Rendered on the entry's own evidence board, `tallow-mirefast`'s wardstone draws at both orbit images |
 | `WE79` | fixed. `PlaceStroke` seats through `DressingContext.GroundFor` and claims on the prop's own layer. Measured on two storeys — a street at y10 under a deck at y25 — a stroke naming `street` paves at **y9**, one naming nothing paves at y24, and one naming a layer the board lacks paves nothing and declines `DR-LAYER` |
 
+**Water is not widened to meet its hollow, and the two complaints are the answer (author, 2026-09-08).**
+`WE98` asked the water pass to fill outward to the bank rather than to the stated radius. A radius is what the
+author said the water is, and reading the terrain back to overrule it would have the tool decide how much of a
+board is under water — the same overreach as routing a road somebody drew. `DR-DRY` and `DR-BANK` already name
+both directions with coordinates and `DR-DRY` carries the remedy in its own sentence, so an agent can widen the
+prop and re-read rather than be corrected silently. The entry also proposed a fix that could not work: filling
+"capped by the radius" is what produces the fault it cited — measured on a basin dug `r=20` to y7 with a
+radius-3 channel at level 12, the water occupies x −3…2 and the pit floor runs x −20…20, so the cap is the
+defect rather than the bound.
+
 **A budget for pressure was declined outright (author, 2026-09-08).** `S47` asked what share of a board a
 relief may charge, and the answer is that there is no such number: a median is not a target, and one score
 over a whole surface ranks every deliberate barrier as a defect — which is the argument `relief.md` §2 already
@@ -316,7 +326,10 @@ nothing on one of them costs nothing at all. The entry was filed before that rul
 because it predates it.
 
 What survived the same pass is `WE78`, which reads like `WE79`'s twin and is not: `B144` settles which shape
-owns a column's paint, and `WE78` is how far down that shape's bands then run.
+owns a column's paint, and `WE78` was how far down that shape's bands then run. That reading was right and the
+entry outlived it anyway — the defect was fixed five days later inside a commit that closed four other ids and
+named none of them `WE78`, so it sat on the board with its own fix already shipped. A close is not a close
+until the id leaves.
 
 `B171`'s evidence outlived its entry. `PL13` — a bedrock wall on the wool room's own interface — is five of
 the ten refusals the authored corpus carries, the commonest structural refusal there is, and it already names

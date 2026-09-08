@@ -688,6 +688,14 @@ wet cell's four neighbours: air there is a fault, **unless the neighbour has no 
 exception is the whole of the rule's judgement and it is the author's — a pool reaching the board's own edge
 meets the void, and a wall of water at the world's rim is what a coast is.
 
+**The pass does not widen the bed to meet the hollow, and that is the ruling** (author). A radius is what the
+author said the water is, and reading the terrain back to overrule it would have the tool decide how much of a
+board is under water — the same overreach as routing a road the author drew. So the band stays the document's
+and the two complaints are the whole answer: `DR-DRY` names the open columns with a first coordinate and says
+what to do about them — widen the pool onto the ground that was dug for it, or stop digging it there — and
+`DR-BANK` names the other direction. Neither needs a person to act on: the open count falls as the radius
+grows, and `PATCH /map/{slug}/sketch/props/{propId}` is what changes it.
+
 **Still to come (`G169`).** The reads that take a channel from "a filled cut" to "water that looks like
 water," and the closed form: **depth shading** warped off-centre so one bank runs deeper than the other; an
 **irregular shoreline** whose width wanders to zero in places; a **voronoi-patterned** bed and shore (sand,

@@ -2742,6 +2742,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   Without it a made thing's fill band claims the whole column beneath it and only the stone-only invariant
   stops the damage, which makes the *order* of the layer list load-bearing: `opus5-automaton`'s colossus
   listed before its plinth painted that plinth brass at y9–11. (WE56)
+- **Every layer is painted over its own span, made or not (WE78).** `WE56` gave a made thing its own floor and
+  left every plain storey resolving from the bedrock course, so a stacked layer's fill band claimed the courses
+  beneath it and the only thing between the two was the stone-only invariant — which is about whether a block
+  has been finished, not about which layer may address it. A ground theme filling in plain stone therefore
+  handed its whole column to whatever was drawn above, and both the store and the export gate answered clean.
+  `FloorByLayer` was already computed for every layer; it is handed over for every layer now, so a layer's
+  limit is its own shapes. Measured on `opus5-tiefkreuz`: `y 42..39 Iron Block` the viaduct rail, `y 29..27
+  Stone Bricks` the street lid, and `y 26..1 Iron Block` — twenty-six courses of city painted as rail, which
+  only `column` found. A street slab under a viaduct at `base_y` 40 now keeps its own 26 courses and the
+  viaduct's iron stops at y40. (`WorldBuilder`, `TerrainBuilder`, `TerrainPainter`; WE78)
 - **A material that reads absolute Y, so a colour band costs no layer (WE57).** `BandAxis.Height` reads
   `BucketContext.Y` less the stack's own `from`, beside `Depth` down a bucket and `Inward` from an edge — a
   third distance for the same `BandStack`, which states its bands and its ending and lets the caller state the

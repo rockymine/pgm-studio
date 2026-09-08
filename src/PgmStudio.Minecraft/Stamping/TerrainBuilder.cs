@@ -12,8 +12,10 @@ namespace PgmStudio.Minecraft.Stamping;
 /// stacked board has a surface per storey and the whole-board answer only ever names the highest, so this is what
 /// a pass addressing a particular storey — painting it, seating something on it — reads instead.</param>
 /// <param name="FloorByLayer">Where each layer's own span starts, cell by cell — the other end of the pair above.
-/// Only a pass painting a layer that is not ground reads it: terrain's bands run from the bedrock course whatever
-/// its floor, and a made thing's run over its own span.</param>
+/// Every layer's bands are resolved over it, made or not: a layer's limit is its own shapes, and a storey handed
+/// the bedrock course instead gives its fill band every course beneath it. The bottom of a board states floor
+/// nought wherever it holds ground, so the bedrock band and a fill reaching down to it are what that layer
+/// reads here.</param>
 /// <param name="MadeLayers">Which of those layers are made things rather than ground, so <see cref="Ground"/> can
 /// leave them out. A board that names none reads the same as one that has none.</param>
 public sealed record BuiltTerrain(

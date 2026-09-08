@@ -148,17 +148,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
-- [ ] **WE98 — A water prop's band stops at its radius, not at the bank.** A `water` prop fills its own
-  stated band, so where the channel is narrower than the ground it runs through the top course faces air on
-  both sides and the river reads as a trench with a stripe in it. The bank is a fact about the terrain and the
-  radius is a fact about the document, and nothing reconciles them. Fill to the contour instead: from the
-  prop's centreline outward to the first column whose surface stands above the stated level, capped by the
-  radius, so a wide reach fills wide and a narrow one narrows. `WaterProp` in `Minecraft/Dressing/Decorator.cs`;
-  `docs/world-export/decoration.md` § water.
-
-  *`opus5-corbel-scar`, section at x=0: two courses of air between the water's top course and both banks.
-  `DR-DRY` already counts them — 126 open columns — so the detection exists and the fill does not.*
-
 ### Water
 
 - [ ] **S46 — Water reads the relief; a river on the axis is a canal.** A dressing path draping over whatever
@@ -203,23 +192,6 @@ placement takes it — so what is left is each surface reading and writing the l
   Configure step; `SpawnStep` states outright that its canvas is base-layer only. So on a stacked board an
   objective stands on a lower floor only by writing the intent by hand. Under `TS45` a placement takes the
   active layer, and what is left is the six write paths and the field on each inspector.
-
-- [ ] **WE78 — A plain layer's paint runs to the bedrock course, and eats the layer under it in silence.**
-  `TerrainPainter.Paint` gives a `prop` layer its own floor from `BuiltTerrain.FloorByLayer` (`WE56`), so a
-  made thing is painted over its own span. A **plain** stacked layer is not: its bands run from the bedrock
-  course whatever its `base_y`, and only the stone-only invariant keeps a pass off the layer below. So a
-  viaduct over a street repaints the street's whole column wherever the ground theme fills in plain stone,
-  and the cure is a value in a *different* theme — while the store answers 200 and the export gate answers
-  OPEN. Either bound a plain layer's bands to its own span, or complain where a layer stands over one whose
-  resolved `fill` is `(1, 0)`, a document-level read since the themes and the stack are both in the layout.
-  `docs/world-export/terrain-painting.md` states the bedrock-course rule and changes with it. **`B144` does
-  not reach this**: it settles *whose* theme owns a column, and this is how far *down* that theme's bands run
-  — `TerrainPainter.Paint` paints each pass from the bedrock course upward, and `floorByLayer` is filled for a
-  `prop` layer alone.
-
-  *`opus5-tiefkreuz` build 1, `GET …/column?at=0,66`: `y 42..39 Iron Block` the viaduct rail, `y 29..27
-  Stone Bricks` the street lid, and `y 26..1 Iron Block` — twenty-six courses of city painted as rail. The
-  isometric drew a grey board and only `column` found it.*
 
 ### A made thing is a third kind, and it is drawn out of layers
 
