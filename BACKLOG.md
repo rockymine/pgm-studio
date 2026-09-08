@@ -560,36 +560,6 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   confirmation already covers a mis-click at a fraction of the cost. This is the belt to that pair of
   braces, worth having once the studio is used by someone who did not write it.
 
-## The browser gate: three specs that fail before anything is changed
-
-`./tools/e2e.sh all` runs in the cloud container and is red — thirteen specs, four failures, and the same
-four on a checkout with no code change on it, so none of them is a regression. They are gathered because
-they share a cause rather than a subject: **nothing had run the sweep**, so a fixture and two phases drifted
-past it unseen. Each entry names the assertion, and re-running its own spec is the check.
-
-- [ ] **TN17 — Two plan specs post a version-1 document the build refuses.** `PlanModel.CurrentVersion` is
-  **2** and `PlanValidator:184` refuses anything else, but `plan-findings.mjs:22` and `plan-refusals.mjs:89`
-  still state `plan: 1`, so both get the version refusal where they assert on the finding they meant to
-  provoke. `plan-refusals` loses one check of 23; `plan-findings` loses the spec — the refusal it expects
-  never reaches the compile drawer, and the `locator.textContent` waiting for it throws at `:58`. Lift both
-  fixtures: a marker's `at` is blocks from its piece's minimum corner now, which is the cell offset times
-  `globals.cell`. Evidence: `a finding says the goal overhangs the void` answers *"this plan states version
-  1; this build reads version 2"*.
-
-- [ ] **TN18 — A core's casing panel does not open its row, and the lava reads uncapped.**
-  `plan-objective-variants` fails `the lava starts capped` with the casing panel otherwise correct — the
-  three knobs, the float/leak pair and the 5×5×5 obsidian with 3×3×3 lava inside all read back — and then
-  `page.click` at `:87` waits out 30s on `.field:has(.field-label:has-text("Casing")) .ctrl-row`, which is
-  the row the second half of the spec varies the casing through. Whether the two are one fault is the first
-  thing to find out: the locator names a control row that either is not rendered or is not named that any
-  more.
-
-- [ ] **TS106 — The Dressing phase's spec times out on a click.** `dressing` passes 18 of 20 — the document
-  survives `PUT` → `GET`, every option is drawn by the pass, and the preview places what the prop says — then
-  `locator.click` waits out 30s in *the sketch Dressing phase places things*, so the two closing checks
-  (`drove without error`, `is clean under dressing`) fail on the timeout rather than on anything the phase
-  did. Find which control the spec is reaching for and whether it still exists under that name.
-
 ## Refactoring and cleanup
 
 - [ ] **C63 — What is left of the CSS that styles markup nobody renders.** The dashboard run is gone
