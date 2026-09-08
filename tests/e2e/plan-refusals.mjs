@@ -86,7 +86,7 @@ checks.section("a goalless plan compiles, but says so");
 
 checks.section("an empty plan is refused, not answered with an empty map");
 {
-  const empty = { plan: 1, globals: { cell: 5 } };
+  const empty = { plan: 2, globals: { cell: 5 } };
   const compiled = await apiRaw("/plan/compile", { method: "POST", body: empty });
   checks.add("empty plan → 422", compiled.status === 422, `${compiled.status}`);
   const why = (compiled.json?.findings ?? []).map(f => f.message)[0] ?? "";

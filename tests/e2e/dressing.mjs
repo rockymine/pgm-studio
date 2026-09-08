@@ -145,6 +145,14 @@ try {
   await page.mouse.click(box.x + box.width * 0.45, box.y + box.height * 0.45);
   await page.waitForTimeout(1500);
   checks.add("a click places a tree", await page.locator("text=Species").count() > 0);
+  console.error("PROBE panel >>>", JSON.stringify(
+    (await page.evaluate(() => document.body.innerText)).replace(/\s+/g, " ").slice(0, 900)));
+  console.error("PROBE prop-cards >>>", JSON.stringify(
+    await page.locator(".prop-card").allTextContents()));
+  console.error("PROBE species-bearing elements >>>", JSON.stringify(
+    await page.evaluate(() => [...document.querySelectorAll("*")]
+      .filter(el => el.children.length === 0 && /Species/i.test(el.textContent ?? ""))
+      .map(el => `${el.tagName}.${el.className}: ${el.textContent.trim().slice(0, 60)}`))));
   await shot("dressing-tree.png");
 
   // The tree is two trees, and the inspector has to be able to say which.

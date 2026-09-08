@@ -453,8 +453,9 @@ public sealed class SpawnPlacement : IPlanMarker
     /// <summary>The piece it stands on, by id.</summary>
     [JsonPropertyName("piece")]  public string Piece { get; set; } = "";
 
-    /// <summary>Where on that piece, as an <c>[x, z]</c> offset in cells from its minimum corner. The lattice
-    /// is half-block, so a marker can sit on a block grid line or at a block centre.</summary>
+    /// <summary>Where on that piece, as an <c>[x, z]</c> offset in <b>blocks</b> from its minimum corner —
+    /// what <see cref="PlanMarkers.Block"/> adds straight to the piece's own block coordinates. The lattice is
+    /// half-block, so a marker can sit on a block grid line or at a block centre.</summary>
     [JsonPropertyName("at")]     public double[] At { get; set; } = [0, 0];
 
     /// <summary>Which way the player faces on arriving, in absolute board directions: the four walls
@@ -484,8 +485,9 @@ public sealed class WoolPlacement : IPlanMarker
     /// <summary>The piece it stands on, by id.</summary>
     [JsonPropertyName("piece")] public string Piece { get; set; } = "";
 
-    /// <summary>Where on that piece, as an <c>[x, z]</c> offset in cells from its minimum corner. The lattice
-    /// is half-block, so a marker can sit on a block grid line or at a block centre.</summary>
+    /// <summary>Where on that piece, as an <c>[x, z]</c> offset in <b>blocks</b> from its minimum corner —
+    /// what <see cref="PlanMarkers.Block"/> adds straight to the piece's own block coordinates. The lattice is
+    /// half-block, so a marker can sit on a block grid line or at a block centre.</summary>
     [JsonPropertyName("at")]    public double[] At { get; set; } = [0, 0];
 
     /// <summary>The wool's colour, or absent to have one chosen: the team's first wool takes the team colour
@@ -509,8 +511,9 @@ public sealed class IronPlacement : IPlanMarker
     /// <summary>The piece it stands on, by id.</summary>
     [JsonPropertyName("piece")] public string Piece { get; set; } = "";
 
-    /// <summary>Where on that piece, as an <c>[x, z]</c> offset in cells from its minimum corner. The lattice
-    /// is half-block, so a marker can sit on a block grid line or at a block centre.</summary>
+    /// <summary>Where on that piece, as an <c>[x, z]</c> offset in <b>blocks</b> from its minimum corner —
+    /// what <see cref="PlanMarkers.Block"/> adds straight to the piece's own block coordinates. The lattice is
+    /// half-block, so a marker can sit on a block grid line or at a block centre.</summary>
     [JsonPropertyName("at")]    public double[] At { get; set; } = [0, 0];
 }
 
