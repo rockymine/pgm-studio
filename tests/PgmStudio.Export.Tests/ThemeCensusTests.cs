@@ -45,7 +45,7 @@ public sealed class ThemeCensusTests
         var terrain = TerrainBuilder.Build(columns);
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer, TerrainThemeScope.ThemeAt(layoutJson));
         return new BuiltWorld(terrain.World, 0, 1, 0, new MapIntent(), new WorldProvenance(),
-            null, columns, default, terrain.Ground);
+            RoomShells.BuiltIn, null, columns, default, terrain.Ground);
     }
 
     [Test]

@@ -35,14 +35,18 @@ namespace PgmStudio.Export;
 /// <para><b>Dressing</b> — What the dressing pass placed and what it declined, as the pass itself reported it.
 /// Carried rather than left inside the build because the claim a prop made — the cells a stroke's style, coverage
 /// and seed actually decided on — is reachable no other way, and a keep-out computed against a guess at it is a
-/// keep-out tuned to the wrong distances.</para></summary>
+/// keep-out tuned to the wrong distances.</para>
+/// <para><b>Shells</b> — What the board bound each kind of room to, resolved once here. Every gate that measures
+/// from a room reads it rather than assuming a building stands: a room on open ground takes a different
+/// rectangle, so a guess names a room the export did not stamp. Stated rather than defaulted, because the
+/// value a struct defaults to is <b>open ground on both kinds</b> — the answer a caller least means.</para></summary>
 public sealed record BuiltWorld(
     VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance,
+    RoomShells Shells,
     IReadOnlyList<Finding>? Declined = null,
     IReadOnlyList<ColumnSegment>? Columns = null,
     DressingPlacement Dressing = default,
-    IReadOnlyDictionary<(int X, int Z), int>? Ground = null,
-    RoomShells Shells = default)
+    IReadOnlyDictionary<(int X, int Z), int>? Ground = null)
 {
     /// <summary>The <b>terrain's</b> surface, cell by cell — the tops of everything on the board that is not
     /// a made thing. What a pass reading "where does the ground reach here" takes: deriving it from
@@ -488,8 +492,8 @@ public static class WorldBuilder
         List<Finding>? complaints = built.Count > 0 || dressed.Declines.Count > 0
             ? [.. built, .. dressed.Declines]
             : null;
-        return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints, columns, dressed,
-                              groundTop, shells);
+        return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, shells, complaints, columns,
+                              dressed, groundTop);
     }
 
     /// <summary>The highest block the map built that a player meets — what the ceiling clears
