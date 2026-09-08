@@ -595,11 +595,15 @@ past it unseen. Each entry names the assertion, and re-running its own spec is t
 - [ ] **C63 — A tenth of the studio's CSS styles markup that is gone.** Across the seven studio stylesheets,
   **99 of 644** selectors are matched by no `.razor`, `.cs` or `.js` in the client and are not a modifier a
   component composes at runtime (`action-btn--<variant>` and its kind are excluded, which is what makes the
-  count conservative). `editor.css` carries **61 of 158**, and 44 of those are one run — `603`–`775`, the
-  whole **master-detail dashboard**: `master-detail`, `map-detail-*`, `map-list-*`, `map-thumb-*`,
-  `sidebar-filter-panel`, `settings-msg`, `detail-block`. No page renders any of it. Delete the dead runs
-  stylesheet by stylesheet, largest first, and check each name against the client before it goes: a class
-  built by string concatenation reads as dead and is not.
+  count conservative). `editor.css` carries **61 of 158**, and **44 of them are one run, lines `603`–`763`** —
+  the **master-detail maps dashboard**: a sidebar (`sidebar-search-*`, `sidebar-import-row`,
+  `url-import-status`, `sidebar-maps`, `map-list-*`, `map-status-dot`) beside a detail pane (`map-detail-*`,
+  `map-thumb-*`, `#map-detail-content`, `detail-block`). `/maps` is `Pages/Maps.razor` now and draws a list
+  out of the shared vocabulary — `list-label`, `list-tag`, `map-layer`, `panel-list` — so none of it is
+  reachable. Two further rules in that span go with it, `sidebar-import-row .field-input` and
+  `map-detail-actions .action-btn`, which name a live class **inside a dead ancestor** and so read as live to
+  any grep. Delete the dead runs stylesheet by stylesheet, largest first, and check each name against the
+  client before it goes: a class built by string concatenation reads as dead and is not.
 
 - [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
   `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,

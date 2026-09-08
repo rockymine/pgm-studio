@@ -174,7 +174,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   authors are drawn by `AuthorsEditor` under `.author-row`/`.author-mark`/`.author-name`, which are different
   classes for a different design. The block is deleted and `editor.css`'s signpost comment names only the
   class that is still there. *Measured across the studio stylesheets: 99 of 644 selectors are referenced by
-  no markup and cannot be composed at runtime, `editor.css` 61 of 158 — filed as `C63`.*
+  no markup and cannot be composed at runtime, `editor.css` 61 of 158, 44 of them one run — filed as `C63`.*
 - **A kind is one list, and every word in it has a reader (`C63`).** The client hand-spelled the prop kinds
   and the mark kinds a second time — a Razor markup lambda cannot hold a string literal — and nothing checked
   the two copies agreed, so a kind renamed on one side compiled green on both while the picker wrote a word
