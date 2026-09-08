@@ -144,27 +144,29 @@ try {
   await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
   await page.mouse.click(box.x + box.width * 0.45, box.y + box.height * 0.45);
   await page.waitForTimeout(1500);
-  checks.add("a click places a tree", await page.locator("text=Species").count() > 0);
-  console.error("PROBE panel >>>", JSON.stringify(
-    (await page.evaluate(() => document.body.innerText)).replace(/\s+/g, " ").slice(0, 900)));
-  console.error("PROBE prop-cards >>>", JSON.stringify(
-    await page.locator(".prop-card").allTextContents()));
-  console.error("PROBE species-bearing elements >>>", JSON.stringify(
-    await page.evaluate(() => [...document.querySelectorAll("*")]
-      .filter(el => el.children.length === 0 && /Species/i.test(el.textContent ?? ""))
-      .map(el => `${el.tagName}.${el.className}: ${el.textContent.trim().slice(0, 60)}`))));
+  // What the phase draws for a tree is the recipe list, so that is what says one landed. `text=Species`
+  // passed on the blurb's own "of its species" and would have passed with no tree placed at all.
+  const panel = () => page.evaluate(() => document.body.innerText);
+  checks.add("a click places a tree, and the phase asks which one",
+    await page.locator('.prop-card[title="oak"]').count() > 0,
+    (await panel()).match(/WHICH TREE/)?.[0] ?? "(no recipe list)");
   await shot("dressing-tree.png");
 
-  // The tree is two trees, and the inspector has to be able to say which.
-  await page.locator('.choice-tile:has-text("Grown")').click();
+  // The tree is two trees, and the inspector has to be able to say which. The knobs are the recipe's — a
+  // grown tree's wood and branch angle are authored in the library — so what the phase carries is the card
+  // it marks active and the sentence under the title, and both follow the recipe picked. Cards are addressed
+  // by their title attribute, which is the row's name exactly: `oak` as text also matches `dark oak`.
+  await page.locator('.prop-card[title="grown conifer"]').click();
   await page.waitForTimeout(2500);
-  checks.add("switching to grown swaps the species picker for a wood picker",
-    await page.locator("text=Wood").count() > 0 && await page.locator("text=Branch angle").count() > 0);
+  checks.add("picking the grown recipe marks it, and the phase says the tree is grown",
+    await page.locator('.prop-card--active[title="grown conifer"]').count() > 0
+    && /Grown from a branch skeleton/.test(await panel()));
   await shot("dressing-tree-grown.png");
-  await page.locator('.choice-tile:has-text("Vanilla")').click();
+  await page.locator('.prop-card[title="oak"]').click();
   await page.waitForTimeout(2000);
-  checks.add("and back to vanilla leaves only the species and its height",
-    await page.locator("text=Species").count() > 0 && await page.locator("text=Branch angle").count() === 0);
+  checks.add("and a vanilla one says it is its species",
+    await page.locator('.prop-card--active[title="oak"]').count() > 0
+    && /A vanilla tree of its species/.test(await panel()));
 
   // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
   await page.click(`button[aria-label^="${DRIVEN.stroke}"]`);
