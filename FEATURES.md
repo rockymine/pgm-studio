@@ -157,6 +157,24 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **The plan canvas shows the box it has entered (`C57`).** `PlanCanvas` held `#scopeBoxId` and resolved
+  clicks inside it while drawing nothing, so the same click meant two things with no way to tell which. The
+  entered box is drawn in the overlay pass before the selection, so it sits under whatever is picked within
+  it: dashed accent at 0.75, and a 6% accent **fill** the selection never carries — the plan's own selection
+  outline is a dashed accent box too, and two dashed boxes say nothing about which is which. The `enter`
+  chord refreshes the overlay, which it did not, so the state it sets is now visible at the moment it is set.
+- **The rebuild step waits on the document, not on a duration (`G163`).** `map-layers`' rebuild
+  confirmation compiled whatever the client held when the click landed, which on a fresh navigation was an
+  empty plan and a 422 by design, so the drawer never opened and the next click timed out — about one run in
+  three. The tool gates its own Compile on the document arriving, and the spec waits on
+  `POST /api/plan/inspect` answering ok rather than on `waitForTimeout(1500)`: a condition where a duration
+  had been standing in for one. 18/18 inside a full `./tools/e2e.sh all`, twice.
+- **The author chip's stylesheet goes with the surface it styled (`C62`).** `components.css` defined
+  `.map-author-chip`, `.map-author-avatar` and `.map-author-name` for a map detail view no markup renders;
+  authors are drawn by `AuthorsEditor` under `.author-row`/`.author-mark`/`.author-name`, which are different
+  classes for a different design. The block is deleted and `editor.css`'s signpost comment names only the
+  class that is still there. *Measured across the studio stylesheets: 99 of 644 selectors are referenced by
+  no markup and cannot be composed at runtime, `editor.css` 61 of 158 — filed as `C63`.*
 - **A kind is one list, and every word in it has a reader (`C63`).** The client hand-spelled the prop kinds
   and the mark kinds a second time — a Razor markup lambda cannot hold a string literal — and nothing checked
   the two copies agreed, so a kind renamed on one side compiled green on both while the picker wrote a word

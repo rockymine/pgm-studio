@@ -13,8 +13,8 @@ namespace PgmStudio.Export;
 /// with one difference that is the point — there is no scope to resolve.
 ///
 /// <para>A terrain theme is per cell because a shape may override it. A room style is <b>map-wide</b>: one
-/// shell for every wool cage, one for every spawn cube. Rooms are fanned across the symmetry orbit so both
-/// sides face the same building, and a cage that differed between teams would be a sightline that differed
+/// shell for every wool room, one for every spawn room. Rooms are fanned across the symmetry orbit so both
+/// sides face the same building, and a shell that differed between teams would be a sightline that differed
 /// between teams — so there is nothing per-room to look up, and this answers a pair rather than a function.</para>
 /// </summary>
 public static class RoomStyleScope

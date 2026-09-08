@@ -39,8 +39,8 @@ public sealed class SketchLayout
     /// <summary>Which of <see cref="Themes"/> covers every cell no shape's own theme scope claims.</summary>
     [JsonPropertyName("mapTheme")] public string? MapTheme { get; set; }
 
-    /// <summary>The finish of the map's stamped rooms: one style for every wool cage and one for every spawn
-    /// cube. Map-wide on purpose — a cage that differed between teams would be a sightline that differed
+    /// <summary>The finish of the map's stamped rooms: one style for every wool room and one for every spawn
+    /// room. Map-wide on purpose — a shell that differed between teams would be a sightline that differed
     /// between teams. Snapshots, like the themes. Absent stamps the built-in shells.</summary>
     [JsonPropertyName("roomStyles")] public SketchRoomStyles? RoomStyles { get; set; }
 
