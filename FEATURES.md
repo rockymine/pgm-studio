@@ -169,6 +169,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   three. The tool gates its own Compile on the document arriving, and the spec waits on
   `POST /api/plan/inspect` answering ok rather than on `waitForTimeout(1500)`: a condition where a duration
   had been standing in for one. 18/18 inside a full `./tools/e2e.sh all`, twice.
+- **The master-detail dashboard's stylesheet goes with the page it styled (`C62`, `C64`).** `editor.css`
+  carried a two-pane maps dashboard — a sidebar with search, URL import and a map list beside a detail pane
+  with a thumbnail, an authors row and stacked actions — and `/maps` is `Pages/Maps.razor`, which draws a
+  list out of the shared vocabulary (`list-label`, `list-tag`, `map-layer`, `panel-list`) and reaches none of
+  it. **167 lines and 44 rules** deleted, plus `body.dashboard-page`, the two `settings-msg` states and the
+  region-coordinate pair above it. Two rules that no grep would have caught went with them:
+  `sidebar-import-row .field-input` and `map-detail-actions .action-btn` name a live class **inside a dead
+  ancestor**. `.geo-type-icon--warning`/`--flush` sat in the middle of the run and did **not** go — they are
+  modifiers of a class that is live at `:441`, so they moved up beside it. The file header and `tokens.css`'s
+  note on `--bg-deep` stop naming a pane that is not there. *`editor.css` 158 → 115 selectors, 61 dead → 18;
+  across the studio stylesheets 99 of 644 → 54 of 598. Smoke 45/45.*
 - **The author chip's stylesheet goes with the surface it styled (`C62`).** `components.css` defined
   `.map-author-chip`, `.map-author-avatar` and `.map-author-name` for a map detail view no markup renders;
   authors are drawn by `AuthorsEditor` under `.author-row`/`.author-mark`/`.author-name`, which are different
