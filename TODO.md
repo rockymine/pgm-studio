@@ -30,5 +30,5 @@ ruling rather than a task. `docs/tools/sketch.md`'s finish model is what the gro
   under every placement already put down. Nothing tells them apart without the row id the group refused.
   **Which way:** make a kind's names unique — an index, and a refusal on save — so a name identifies a row
   and the refresh survives; or mint the key from the recipe's own content on a collision, which ends the
-  overwrite and the refresh together. `DressingJson.KeyFor` already mints one for a lifted recipe and its keys read
-  `oak-12` and `round-4`, so a minted key costs no legibility.
+  overwrite and the refresh together. `DressingJson.KeyFor` already mints one for a lifted recipe and its keys
+  read `oak-12` and `round-4`, so a minted key costs no legibility.

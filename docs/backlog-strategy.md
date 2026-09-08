@@ -2,10 +2,10 @@
 
 `BACKLOG.md` holds 50 open entries and `TODO.md` one — the dressing key, the last of the bindings a board
 copies from the library that is named by something the library does not make unique. This document is the
-reading that says which of them are defects, which are questions, which share a cause, and what order drains them. Its subject
-is the board itself, and it expires when the board it describes is gone. It is the one document this work adds:
-`CLAUDE.md`'s standing rule is that a change updates the document that already covers its subject rather than
-growing a new one, and the board had no such document.
+reading that says which of them are defects, which are questions, which share a cause, and what order drains
+them. Its subject is the board itself, and it expires when the board it describes is gone. It is the one
+document this work adds: `CLAUDE.md`'s standing rule is that a change updates the document that already covers
+its subject rather than growing a new one, and the board had no such document.
 
 Every claim below is measured on the board as it stands. Where a figure the board states and a figure
 measured today disagree, the measured one is here.

@@ -272,9 +272,10 @@ placement takes it — so what is left is each surface reading and writing the l
   and the cure is a value in a *different* theme — while the store answers 200 and the export gate answers
   OPEN. Either bound a plain layer's bands to its own span, or complain where a layer stands over one whose
   resolved `fill` is `(1, 0)`, a document-level read since the themes and the stack are both in the layout.
-  `docs/world-export/terrain-painting.md` states the bedrock-course rule and changes with it. **`B144` does not reach this**: it settles *whose* theme owns a column, and this is how far
-  *down* that theme's bands run — `TerrainPainter.Paint` paints each pass from the bedrock course upward, and
-  `floorByLayer` is filled for a `prop` layer alone.
+  `docs/world-export/terrain-painting.md` states the bedrock-course rule and changes with it. **`B144` does
+  not reach this**: it settles *whose* theme owns a column, and this is how far *down* that theme's bands run
+  — `TerrainPainter.Paint` paints each pass from the bedrock course upward, and `floorByLayer` is filled for a
+  `prop` layer alone.
 
   *`opus5-tiefkreuz` build 1, `GET …/column?at=0,66`: `y 42..39 Iron Block` the viaduct rail, `y 29..27
   Stone Bricks` the street lid, and `y 26..1 Iron Block` — twenty-six courses of city painted as rail. The
@@ -641,9 +642,10 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   `StyleSelect` serve the library and the terrain components (`B259`, `FEATURES.md`), and the sketch tool's
   three inspectors have since adopted them. What is left is 25 raw `<select>` — the plan tool 10
   (`PlanTool.razor` 9, `PlanInfoPhase` 1), Configure 5, Edit 6, the sketch tool 1, the world canvas 1 and a
-  page 1, plus `Select.razor`'s own — **of which Edit's six go with `TE3`**, so the work is 18. Each is the same options-and-a-value question written as
-  markup, so a group, a per-row note or a disabled row has to be re-invented wherever one is wanted. Adopt
-  the control at those sites; `docs/client/ui-conventions.md`'s *Forms* tier already names it.
+  page 1, plus `Select.razor`'s own — **of which Edit's six go with `TE3`**, so the work is 18. Each is the
+  same options-and-a-value question written as markup, so a group, a per-row note or a disabled row has to be
+  re-invented wherever one is wanted. Adopt the control at those sites; `docs/client/ui-conventions.md`'s
+  *Forms* tier already names it.
 
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
