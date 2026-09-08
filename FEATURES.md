@@ -3550,6 +3550,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   later is carried without being listed. A colour whose id another team already holds recolours alone, since
   two teams cannot share an id. (`SwatchRow`, `AuthoringContext.TeamId`/`RenameTeam`, `TeamAssignStep`,
   `WoolObjectivesStep`; N09)
+- **A destroyable is proposed from what surrounds it, not from what it is (B58).** A DTM goal has no local
+  signature — size spans one block to 31,105, fill is uninformative, and support is bimodal, so "destroyables
+  float" describes the generator rather than the corpus. `DestroyableSuggester` reads the two properties that
+  do separate a goal from decoration: **isolation**, the same-material blocks within ten of the mass (a goal
+  is placed once, a material chosen for a wall repeats immediately), and **elevation** over the median
+  terrain of the ring around it. It clusters each of the four materials the stamper builds — the four that
+  carry 84% of declared destroyables, with wool excluded because admitting it takes the candidate set from
+  15,488 to 439,440 — and keeps `same ≤ 8 & elevation ≥ +2`. Masses of one material within 16 blocks then collapse onto their most
+  isolated member — not a verdict on either but a list that offers one proposal per structure rather than the
+  same goal four ways. Validated against declared structures with build-zone markers excluded, over a stride
+  sample across the corpus: **100 proposals, 68 true, covering all 68 structures the readings reach — 68.0%
+  precision at 81.0% recall**, above the operating point the corpus measurement predicted. Gathered inside the single ingest pass beside the core and monument
+  suggesters, because the signal needs the world and the world is discarded after it; stored in
+  `destroyable_candidate` with the readings as well as the box, since a proposal right one time in two is
+  something a person confirms and the readings are what they confirm against. Served by
+  `GET /map/{slug}/destroyable-suggestions`, least-surrounded first, beside the generator's defaults and the
+  style and material vocabularies. (`DestroyableSuggester`, `M0034`, `DestroyableCandidateStore`,
+  `DestroyableSuggestionsEndpoint`; B58)
 - **A monument's seat is whether a wool can be placed into its block (author).** The check asked only
   whether something already stood there. It asks the other half too now — whether there is a block to place
   the wool **against** — and against **any** of the six faces, because that is what placing a block means: a

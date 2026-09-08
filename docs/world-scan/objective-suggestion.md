@@ -22,6 +22,17 @@ Getting this wrong is not a detail. Labelling by the region box instead reported
 726 declared destroyables, because every gold block a human's box happened to enclose became a positive. The
 measurement said the signature worked; it was measuring itself.
 
+**And a declared destroyable is not always a goal.** A `<destroyables show="false">` group is a marker: it is
+not displayed, it is not required, and it is gone the moment the match starts. Two shapes of it are in the
+corpus. `abstract` marks its build zone with a 91×71×2 stained-glass slab at `y=0` that **red and blue declare
+at the same coordinates**, and `ulcinj` draws indicator arrows in stained glass under `after-0s`, four cuboids
+in one union under a single owner. Neither is a structure a player breaks. Counting them as truth charges a
+detector for missing something that is not there — and pairing one against a real monument is how `ulcinj`,
+whose obsidian monuments stand **218 blocks apart**, can be made to look like a map with a 17-block pair. The
+rule: **skip `show="false"`, and take one structure per `<destroyable>`** rather than one per cuboid, since a
+region that is a union is one objective. The same floor markers are what `B57` is about on the terrain side —
+`scan_segment` still reads that slab as solid ground.
+
 ## 2. Cores — lava sealed inside obsidian, and almost nothing else is
 
 `CoreSuggester.Gather` floods each connected lava volume and asks whether **every** non-lava face-neighbour is
@@ -102,6 +113,52 @@ Against the earlier best of 28% recall at roughly 15% precision, isolation and e
 improvement in precision at higher recall. A confirm-in-UI flow wants the `same ≤ 8, elevation ≥ +2` row —
 about one true proposal in two — rather than the strictest one.
 
+### Separation between proposals was measured and is not a rule
+
+A pair of identical masses ten blocks apart reads as two team goals to a detector that judges each one alone,
+and on `alpine_mining` such a pair — obsidian pillars in signed cobble alcoves, built exactly like the real
+monuments — is the observer spawn. The corpus says the distance is real: across 123 maps and 457 cross-owner
+pairs, **no genuine opposing pair is closer than 28 blocks** (p5 64, median 132), and nothing at all falls
+within 24.
+
+It still does not work as a filter, because the detector sees masses and not owners. Two goals of the *same*
+team are routinely close — same-owner separation has a p5 of 14 — so a minimum-separation rule cannot tell a
+display pair from a team's second monument. Swept over a stride sample against a 70.4% / 72.3% baseline (before the
+duplicate collapse), both readings of the rule cost multiples of what they buy:
+
+| minimum | rule | precision | recall |
+|---|---|---|---|
+| 16 | keep the most isolated | 67.3% (−3.1) | 72.3% (−0.0) |
+| 30 | keep the most isolated | 71.6% (+1.2) | 67.0% (−5.3) |
+| 50 | keep the most isolated | 73.4% (+3.0) | 61.7% (−10.6) |
+| 30 | drop both | 75.4% (+5.0) | 55.3% (−17.0) |
+| 50 | drop both | 72.1% (+1.7) | 46.8% (−25.5) |
+
+An alphabetical sample makes the rule look free — it excludes `quintlet` (28), `malupa` (34) and
+`chimeric_ii` (50), which are the maps a threshold takes apart. That is the reading to distrust, and the
+reason the sweep is stated here rather than the conclusion alone.
+
+### The map's own mirror axis was measured too, and fails for a sharper reason
+
+The symmetry is already there to use: `SymmetryDetector.Detect` reads it off the island layout and answers
+every mode it finds with a centre. So a candidate can be asked whether another candidate sits where the map
+sends it. Against the same 70.4% / 81.0% baseline, keeping only candidates with a mirror partner scores
+**70.7% precision at 73.8% recall** — 0.3 points of precision for 7 of recall — and asking only the
+*strongest* mode is worse still (70.0% / 59.5%), because a map's islands can read as `mirror_x` while its
+objectives are laid out under the `rot_180` about the same centre. Requiring an exact partner rather than one
+within a block collapses recall to 11.9%: a detected centre is not an objective centre to the half block.
+
+The reason it fails is worth stating, because it is the reason every layout rule fails here. On
+`alpine_mining` the detected modes are `[mirror_x, mirror_z, rot_180]` about `(0.5, 72.5)`. The real Monument
+A pair is an **exact** `rot_180` partner — miss `0,0`. And the observer-spawn pair, the false proposal this
+was meant to reject, is a `mirror_z` partner missing by **one block**. An observer platform is built with the
+same symmetry as the map it overlooks, because it is part of the map. Symmetry separates a well-built map
+from a careless one; it does not separate a goal from a display, and neither does distance. That is why the
+readings that work are the neighbourhood's.
+
+Nothing here uses symmetry, and neither does `MonumentSuggester` — a wool monument is proposed from signed
+pedestals, which is direct evidence rather than layout.
+
 ### The material set is four, and it is four for a reason
 
 Obsidian, emerald, gold and ender stone carry **84%** of declared destroyables. Wool, stained clay and stained
@@ -110,8 +167,19 @@ glass carry another 8% between them and must still be excluded: admitting wool t
 cannot mark a goal inside it, so those destroyables are unreachable by this method and that is the honest
 ceiling — 84%, not 100%.
 
-Nothing is shipped yet. The signals and their operating points are measured; what remains is the detector
-itself and the confirm flow (`B58`).
+`DestroyableSuggester` reads exactly this. It clusters each of the four materials, counts same-material
+blocks in the neighbourhood to a cap of 65, measures the mass's underside against the median terrain of the
+ring the neighbourhood covers outside its own footprint, keeps `same ≤ 8 & elevation ≥ +2`, and then
+collapses masses of one material within 16 blocks onto their most isolated member. Validated against declared
+structures with markers excluded, over a stride sample across the corpus: **100 proposals, 68 of them true,
+covering every one of the 68 structures the readings reach — 68.0% precision at 81.0% recall.**
+
+The collapse is about the *list*, not the verdict. A structure that clusters into several masses is proposed
+several times, and offering the same goal four ways makes a worse thing to confirm from. Over the sample it
+takes the proposals from 125 to 100 and the false ones from 37 to 32 while leaving coverage exactly where it
+was, landing at one proposal per structure. The precision figure moves the other way — 70.4% to 68.0% — only
+because a duplicate true proposal counts as a win in that ratio and as noise on the screen. What remains of `B58` is
+the confirm flow.
 
 ## 4. Gather at ingest, or not at all
 
@@ -119,14 +187,27 @@ itself and the confirm flow (`B58`).
 `MonumentSuggester.Gather` does. The world is discarded after import and there is no re-import path, so a
 suggestion not captured during that pass cannot be recovered.
 
+`DestroyableSuggester` runs in the same pass and on the same reading, for a sharper version of the same
+reason: its signal is not in the structure at all but in what surrounds it, so it needs the world rather than
+the goal, and the world is the one thing the pass has that nothing after it does.
+
 What it gathers lands in **`core_candidate`** (`M0014`, `CoreCandidateStore`) — one row per proposed core,
 carrying the casing box and every measured parameter. That is a different shape from `monument_candidate`,
 which stores *evidence* for a scoring pass to weigh later: a core's signature is unambiguous enough that the
 gather pass already knows the structure, so the row is the suggestion rather than an input to one. A re-scan
 is delete-then-insert per map, and deleting a map cascades its candidates away.
 
+A destroyable's proposals land in **`destroyable_candidate`** (`M0034`, `DestroyableCandidateStore`), the
+same shape with one difference: the row carries the two readings as well as the box. A core's proposal is
+self-evident — a sealed lava container is a core — while a mass of ender stone is a goal only relative to
+what surrounds it, so the surface that asks a person to confirm one has to say *why*, and that sentence is
+only writable if the readings outlive the world. They also order the list: least-surrounded first, because
+isolation is what separates a goal from decoration.
+
 The counts surface on all three ingest responses beside `monument_candidates`, so an import says how many
-cores it found without a second call.
+cores and destroyables it found without a second call. `GET /map/{slug}/destroyable-suggestions` serves them
+back, optionally filtered to a `box`, beside the generator's defaults and the two vocabularies a picker
+offers.
 
 ## 5. Confirming a core — the Cores phase
 

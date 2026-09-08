@@ -346,23 +346,18 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   a capability nobody is blocked on. So this entry waits on one nobody has asked for, and doing it alone
   fixes the derivation for maps imported after it and for none of the maps that exist.
 
-- [~] **B58 — Finish the destroyable ranker.** The core half has shipped — gathered at ingest, stored in
-  `core_candidate`, and confirmed in the Cores phase (`FEATURES.md`). What remains is the other objective,
-  and it is measured but unbuilt (`docs/world-scan/objective-suggestion.md`).
-  **Destroyables: the discriminating signals are measured, the detector is not written.** They are not
-  identified by anything about the structure — size spans 1 to 31,105 blocks and fill is uninformative — but by
-  their **neighbourhood**, dumped 10 blocks outward and down to `y=0` for all 614 declared structures.
-  *Isolation*: a declared destroyable has a median of 6 same-material blocks within 10, against 65+ for a false
-  cluster, because decoration repeats and a goal is placed once. *Elevation*: it sits a median +5 blocks above
-  the surrounding terrain, against −2 for false clusters. Together, with **no size cap and no air-face test**
-  (both of which were discarding truth), `same ≤ 8 & elevation ≥ +2` keeps 553 of 1,062 true clusters against
-  600 false — 48% precision at 52% recall, a four-fold precision gain on the previous best. `same ≤ 0 &
-  elevation ≥ +2` reaches 65.6% precision if a stricter list is wanted.
-  Build the detector at those operating points, gather at ingest into a `destroyable_candidate` table beside
-  `core_candidate`, and validate the same two ways cores are (corpus + a composed plan). **Scope honestly to
-  84%**: obsidian, emerald, gold and ender stone carry that share of declared destroyables, and the wool /
-  stained-clay / stained-glass remainder must stay out — admitting wool takes the candidate set from 15,488
-  clusters to 439,440, because a CTW map is made of wool.
+- [~] **B58 — The confirm flow for a proposed destroyable.** The detector has shipped: gathered at ingest
+  into `destroyable_candidate` and served by `GET /map/{slug}/destroyable-suggestions`, at 63.9% precision
+  and 55.3% recall over 31 corpus maps (`FEATURES.md`). What is left is the surface that confirms one, which
+  is the Configure phase `N12` builds — a proposal is right about one time in two, so the list is something a
+  person reads and accepts rather than something the tool applies. The row already carries the two readings
+  the person judges by (how alone the mass is, how far it stands over the ring around it), so the step has to
+  show them rather than a score.
+
+  *Two layout rules were measured and declined — minimum separation between proposals, and requiring a
+  partner under the map's own detected symmetry. Both cost multiples of the recall they buy, and both fail
+  for one reason: a map's observer platform and its displays are laid out with the same symmetry and care as
+  its objectives (`docs/world-scan/objective-suggestion.md` §3). Not gaps to close.*
 
 ## The plan model: pieces, and the edges between them
 

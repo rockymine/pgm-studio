@@ -21,7 +21,7 @@ namespace PgmStudio.Data.Features;
 /// </summary>
 public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
 {
-    public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int Segments, int Islands, int MonumentCandidates, int CoreCandidates);
+    public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int Segments, int Islands, int MonumentCandidates, int CoreCandidates, int DestroyableCandidates);
 
     /// <summary>One surface-scan row (layer.parquet schema).</summary>
     private sealed class LayerRow
@@ -78,12 +78,18 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
 
         // Cores are gathered in the same pass and for the same reason: the signature needs block materials,
         // which nothing persisted afterwards carries.
-        var cores = CoreSuggester.Gather(read.Blocks.ToDictionary(cell => cell.Key, cell => cell.Value.Id));
+        var byId = read.Blocks.ToDictionary(cell => cell.Key, cell => cell.Value.Id);
+        var cores = CoreSuggester.Gather(byId);
+
+        // Destroyables ride the same reading. Their signature is not local — a mass of ender stone is a goal
+        // only relative to what surrounds it — so the gather needs the world rather than the structure, which
+        // is the one thing this pass has and nothing after it does.
+        var destroyables = DestroyableSuggester.Gather(byId);
 
         // The whole replacement is one write. It drops six tables before it fills five of them, so a fault
         // between the two halves leaves a map whose features are gone and whose new ones are half there —
         // and a half-written scan reads exactly like a world that has less in it.
-        int monCount = 0, coreCount = 0, islands = 0;
+        int monCount = 0, coreCount = 0, destroyableCount = 0, islands = 0;
         await db.InOneWriteAsync(async () =>
         {
             await DeleteAsync(mapId, ct);
@@ -96,10 +102,11 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
 
             monCount = await MonumentCandidateStore.WriteAsync(db, mapId, monuments, ct);
             coreCount = await CoreCandidateStore.WriteAsync(db, mapId, cores, ct);
+            destroyableCount = await DestroyableCandidateStore.WriteAsync(db, mapId, destroyables, ct);
             islands = await WriteArtifactsAsync(mapId, chunks, erased, ct);
         }, ct);
 
-        return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands, monCount, coreCount);
+        return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands, monCount, coreCount, destroyableCount);
     }
 
     /// <summary>

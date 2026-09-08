@@ -75,7 +75,7 @@ public sealed record CoreDefaultsDto(int Lava, int LavaHeight, int Float, int Le
 /// <param name="Float">How far above the ground it stands.</param>
 /// <param name="OpenTop">Whether it is uncapped, its lava flush with the rim.</param>
 public sealed record CoreSuggestionDto(
-    CoreBoxDto Box,
+    SuggestedBoxDto Box,
     int Size,
     int Height,
     int Shell,
@@ -90,4 +90,45 @@ public sealed record CoreSuggestionDto(
 /// <param name="MaxX">Its east edge, inclusive.</param>
 /// <param name="MaxY">Its ceiling, inclusive.</param>
 /// <param name="MaxZ">Its south edge, inclusive.</param>
-public sealed record CoreBoxDto(int MinX, int MinY, int MinZ, int MaxX, int MaxY, int MaxZ);
+public sealed record SuggestedBoxDto(int MinX, int MinY, int MinZ, int MaxX, int MaxY, int MaxZ);
+
+/// <summary>The destroyables the ingest scan proposed for a map, and the defaults a hand-placed one takes.
+/// </summary>
+/// <param name="Defaults">What a destroyable placed by hand starts as. A suggestion says what is in the
+/// world; it cannot say what the author wants stamped, and the client cannot reach the generator's own
+/// numbers.</param>
+/// <param name="Destroyables">The proposals, most convincing first.</param>
+public sealed record DestroyableSuggestionsDto(
+    DestroyableDefaultsDto Defaults,
+    IReadOnlyList<DestroyableSuggestionDto> Destroyables);
+
+/// <summary>The generator's own starting knobs for a destroyable: its style, what it is built of, and how
+/// far it floats over the ground solved under its anchor.</summary>
+/// <param name="Style">The shape a hand-placed destroyable starts as, as <c>DestroyableStyles</c> spells
+/// it.</param>
+/// <param name="Materials">What it starts built of — a PGM material match, so the goal is these blocks
+/// rather than the region holding them.</param>
+/// <param name="Float">Blocks of air between the ground solved under the anchor's column and the structure's
+/// underside.</param>
+/// <param name="StyleOptions">The style vocabulary, default first — what a picker offers. The words travel
+/// as data rather than as a marked word set, because both vocabularies live in <c>Domain</c>, which the wire
+/// contracts do not reference, and a second copy of them here is exactly the drift the marking exists to
+/// prevent.</param>
+/// <param name="MaterialOptions">The material vocabulary, default first. Four, because those are the four
+/// the stamper builds and the four the corpus uses.</param>
+public sealed record DestroyableDefaultsDto(
+    string Style,
+    string Materials,
+    int Float,
+    IReadOnlyList<string> StyleOptions,
+    IReadOnlyList<string> MaterialOptions);
+
+/// <summary>One proposed destroyable: the mass in the world, and why it was proposed.</summary>
+/// <param name="Box">The connected mass's block box — the goal's blocks, never a region around them.</param>
+/// <param name="Materials">What it is made of, as the authoring vocabulary spells it.</param>
+/// <param name="Blocks">How many blocks the mass holds.</param>
+/// <param name="SameNearby">Same-material blocks within ten, excluding the mass. Low is the signal: a goal is
+/// placed once and decoration repeats.</param>
+/// <param name="Elevation">Blocks above the median terrain of the ring around it.</param>
+public sealed record DestroyableSuggestionDto(
+    SuggestedBoxDto Box, string Materials, int Blocks, int SameNearby, int Elevation);

@@ -28,6 +28,8 @@ namespace PgmStudio.Contracts;
 /// <param name="Islands">Separate landmasses the decomposition found.</param>
 /// <param name="MonumentCandidates">Places that could be a wool monument, scored.</param>
 /// <param name="CoreCandidates">Places that could be a core, scored.</param>
+/// <param name="DestroyableCandidates">Destroyables the scan proposed, from the mass's isolation and
+/// its height over the ring of terrain around it.</param>
 public sealed record WorldScanDto(
     string Slug,
     [property: JsonPropertyName("wool_blocks")] int WoolBlocks,
@@ -38,6 +40,7 @@ public sealed record WorldScanDto(
     int Islands,
     [property: JsonPropertyName("monument_candidates")] int MonumentCandidates,
     [property: JsonPropertyName("core_candidates")] int CoreCandidates,
+    [property: JsonPropertyName("destroyable_candidates")] int DestroyableCandidates,
     [property: JsonPropertyName("region_dir"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RegionDir = null,
     [property: JsonPropertyName("mca_files"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? McaFiles = null);
 

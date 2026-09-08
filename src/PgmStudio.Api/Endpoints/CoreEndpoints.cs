@@ -51,7 +51,7 @@ public sealed class CoreSuggestionsEndpoint(MapRepository repo, PgmDb db)
             new CoreDefaultsDto(ObjectiveDefaults.CoreLava, ObjectiveDefaults.CoreLavaHeight,
                 ObjectiveDefaults.CoreFloat, ObjectiveDefaults.CoreLeak),
             [.. cores.Select(core => new CoreSuggestionDto(
-                new CoreBoxDto(core.Casing.MinX, core.Casing.MinY, core.Casing.MinZ,
+                new SuggestedBoxDto(core.Casing.MinX, core.Casing.MinY, core.Casing.MinZ,
                     core.Casing.MaxX, core.Casing.MaxY, core.Casing.MaxZ),
                 // The casing as the author edits it: width/depth and height come off the box, so a confirmed
                 // suggestion states the structure that is actually there rather than the generator's default.

@@ -320,6 +320,25 @@ public sealed class CoreCandidateRow
     [Column("open_top"), NotNull] public bool OpenTop { get; set; }
 }
 
+/// <summary>A proposed destroyable (<c>destroyable_candidate</c>) — the mass's box, what it is made of, and
+/// the two neighbourhood readings that proposed it.</summary>
+[Table("destroyable_candidate")]
+public sealed class DestroyableCandidateRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("min_x"), NotNull] public int MinX { get; set; }
+    [Column("min_y"), NotNull] public int MinY { get; set; }
+    [Column("min_z"), NotNull] public int MinZ { get; set; }
+    [Column("max_x"), NotNull] public int MaxX { get; set; }
+    [Column("max_y"), NotNull] public int MaxY { get; set; }
+    [Column("max_z"), NotNull] public int MaxZ { get; set; }
+    [Column("materials"), NotNull] public string Materials { get; set; } = "";
+    [Column("blocks"), NotNull] public int Blocks { get; set; }
+    [Column("same_nearby"), NotNull] public int SameNearby { get; set; }
+    [Column("elevation"), NotNull] public int Elevation { get; set; }
+}
+
 /// <summary>A gathered monument candidate (F9, <c>monument_candidate</c>) — the style-agnostic ingest
 /// output of <c>MonumentSuggester.Gather</c>; the authoring <c>Score</c> reads these back per map + box.
 /// Mirrors <c>MonumentCandidate</c> (PgmStudio.Minecraft) minus <c>Id</c>/<c>MapId</c>.</summary>
