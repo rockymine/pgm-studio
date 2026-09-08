@@ -603,6 +603,18 @@ past it unseen. Each entry names the assertion, and re-running its own spec is t
   and is not, which is why the count excludes them. And a compound naming a live class inside a dead ancestor
   reads as *live* and is not; `sidebar-import-row .field-input` was one, and a grep will never find the next.
 
+- [ ] **TS107 — The Dressing phase calls every tree vanilla, and the wood picker behind it is unreachable.**
+  `SketchDressingInspector.IsGrown` reads the placement's own `form` field, and **nothing writes it**: the
+  only writer is `SetForm`, which has no caller since a tree became a recipe picked from the library. So the
+  blurb under the title always ends "A vanilla tree of its species: trunk, canopy, proportions" — including
+  over a placement wearing `grown conifer`, whose sentence should be "Grown from a branch skeleton you shape,
+  in the wood you choose". `SetForm`, `LoadWoods`, `woods` and `woodedFor` go with it: the wood cards they
+  fetch are reachable from nothing. **The ruling first:** does a placement carry the form beside its `style`
+  — `PickRecipe` already holds the recipe JSON it would come from — or does the inspector resolve it from the
+  registry entry `pullRecipe` just wrote under that name? The second keeps one statement of what a tree is;
+  the first costs a field that has to be kept in step. Evidence: place a tree, pick `grown conifer`, read the
+  paragraph under **Tree**.
+
 - [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
   `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,
   `PlanInspectDto:117`), and the two room families are the only ones naming a thing the rest of the studio
