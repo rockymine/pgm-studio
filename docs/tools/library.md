@@ -707,7 +707,8 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `DELETE /room-styles/{id}` | forget a room style; its courses cascade, its styles stay |
 | `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}`. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
 | `GET /tree-styles/{id}/json` · `GET /boulder-styles/{id}/json` | the recipe as a dressing document states it, as `{styleJson: "…"}` — what a pull copies into a map's `styles` registry under a key |
-| `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette, and every material kind with its fields, defaults and the cell facts it varies with |
+| `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette — each block's id/data, name, tone family, swatch, and what it **looks like** per face (below) — and every material kind with its fields, defaults and the cell facts it varies with |
+| `GET /terrain/looks` | the construction words a face's `construction` is drawn from, each with what it means |
 | `GET /terrain/biomes` | the biomes a field may name — `{id, name, hex}` per row, the colour being the grass tint choosing it produces (`docs/world-export/terrain-painting.md` §5b) |
 | `GET`·`POST`·`PUT`·`DELETE /biome-patterns[/{id}]` | the biome library; each row `{id, name, kind, params, preview}`, the preview being a patch of grass under the field. `POST`/`PUT` answer 400 `malformed biome` when `params` does not read as a field. A delete asks nothing: a map holds a snapshot |
 | `POST /biome-patterns/preview` | what a draft field draws, saving nothing — body is a **bare** `BiomeField`, unwrapped, answering `{card}` |

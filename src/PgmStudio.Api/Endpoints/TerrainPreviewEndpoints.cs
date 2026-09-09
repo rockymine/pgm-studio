@@ -13,14 +13,38 @@ namespace PgmStudio.Api.Endpoints;
 /// <summary>GET /api/terrain/blocks — the blocks a terrain-paint material may be built from
 /// (<see cref="TerrainPalette"/>), each with its id/data pair, display name, picker group and swatch colour.
 /// The block picker reads it, so the colour a picker shows is the colour the export places
-/// (docs/world-export/terrain-painting.md §3).</summary>
+/// (docs/world-export/terrain-painting.md §3).
+///
+/// <para><b>And what each one looks like</b>, per face (<see cref="BlockLook"/>): the sprite it wears, how
+/// much that sprite varies, how many colours it is drawn from and how it is constructed. The swatch is one
+/// number and says what a pixel of the block is worth; a caller choosing two blocks to put beside each other
+/// is asking something the swatch cannot answer, and this is that answer. The two faces are given apart
+/// because a theme paints two — the surface and rim buckets write the top, the wall and fill the side — so
+/// blocks interchangeable in one bucket can be quite distinct in the other.</para></summary>
 public sealed class TerrainBlocksEndpoint : EndpointWithoutRequest<List<PaintBlockDto>>
 {
     public override void Configure() { Get("/terrain/blocks"); AllowAnonymous(); }
 
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync(TerrainPalette.Paintable
-            .Select(b => new PaintBlockDto(b.Id, b.Data, b.Name, b.Group, b.Hex, b.InFamily)).ToList(), ct);
+            .Select(b => new PaintBlockDto(b.Id, b.Data, b.Name, b.Group, b.Hex, b.InFamily,
+                                           Look(BlockLook.Top(b.Id, b.Data)),
+                                           Look(BlockLook.Side(b.Id, b.Data)))).ToList(), ct);
+
+    private static FaceLookDto? Look(FaceLook? face)
+        => face is { } f ? new FaceLookDto(f.Texture, f.Contrast, f.Colours, f.Construction) : null;
+}
+
+/// <summary>GET /api/terrain/looks — the construction words a block's <c>construction</c> is drawn from,
+/// each with what it means. Served rather than restated by every caller, for the same reason the block
+/// palette is: a second copy on the far side of the wire is a vocabulary free to drift from the one the
+/// table was measured under.</summary>
+public sealed class TerrainLooksEndpoint : EndpointWithoutRequest<List<LookFlagDto>>
+{
+    public override void Configure() { Get("/terrain/looks"); AllowAnonymous(); }
+
+    public override Task HandleAsync(CancellationToken ct)
+        => Send.OkAsync(BlockLook.Flags.Select(f => new LookFlagDto(f.Key, f.Value)).ToList(), ct);
 }
 
 /// <summary>GET /api/terrain/biomes — the biomes a field may name, each with the grass colour it tints ground

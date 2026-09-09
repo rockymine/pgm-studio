@@ -75,4 +75,43 @@ public sealed record HouseBlockKindsDto(
 /// <param name="InFamily">Whether <paramref name="Group"/> names a <b>tone family</b> — the set of blocks
 /// that read as one ground, and the unit a pattern is filled from — or one of the sixteen-shade colour
 /// families, whose members are shades of one block chosen from a swatch row.</param>
-public sealed record PaintBlockDto(int Id, int Data, string Name, string Group, string Hex, bool InFamily);
+/// <param name="Top">How the block reads on the face the <b>surface</b> and <b>rim</b> buckets paint.</param>
+/// <param name="Side">How it reads on the face the <b>wall</b> and <b>fill</b> buckets paint. Equal to
+/// <paramref name="Top"/> for a block wearing one sprite on every face, which is most of them.</param>
+public sealed record PaintBlockDto(int Id, int Data, string Name, string Group, string Hex, bool InFamily,
+                                   FaceLookDto? Top = null, FaceLookDto? Side = null);
+
+/// <summary>
+/// What a block looks like on one face, beyond the one colour it averages to.
+///
+/// <para>A mean says what a pixel of it is worth and little about what it reads as. Stone and cobblestone
+/// are four counts apart per channel and differ by a factor of 2.5 in <paramref name="Contrast"/>; andesite
+/// and its polished variant are four apart and close in contrast, and what separates them is the bevel in
+/// <paramref name="Construction"/>. Two blocks of one tone family whose contrast matches have nothing to
+/// tell them apart at distance; two of near-identical colour whose contrast differs sharply read as a seam
+/// rather than as one ground.</para>
+///
+/// <para><paramref name="Texture"/> answers what no number can: two blocks naming the same sprite are the
+/// same block on that face. Sandstone, smooth sandstone and the double sandstone slab all wear
+/// <c>sandstone_top</c>, so a <em>surface</em> pattern built from two of them has one block in it whatever
+/// the document says — while a <em>wall</em> pattern from the same two has two.</para>
+///
+/// <para>Measured off the 1.8 textures: <paramref name="Contrast"/> is the standard deviation of luma over
+/// the sprite's opaque pixels and <paramref name="Colours"/> the count of distinct RGB values in its 256 —
+/// five means a hand-picked ramp, two hundred a generated field.</para>
+/// </summary>
+/// <param name="Texture">The 1.8 sprite this face wears.</param>
+/// <param name="Contrast">Spread of luma over the sprite's opaque pixels.</param>
+/// <param name="Colours">Distinct RGB values in the sprite.</param>
+/// <param name="Construction">How the sprite is drawn, from a closed set of words
+/// (<c>GET /terrain/looks</c> names them all): <c>inlaid</c>, <c>masonry</c>, <c>tiled</c>,
+/// <c>panelled</c>, <c>bevelled</c>, <c>dithered</c>, <c>ramped</c>, <c>grained-x</c>, <c>grained-y</c>,
+/// <c>flat</c>. Not exclusive — stone brick is masonry and bevelled.</param>
+public sealed record FaceLookDto(string Texture, double Contrast, int Colours,
+                                 IReadOnlyList<string> Construction);
+
+/// <summary>One construction word and what it means, for a caller that would rather read the set than a
+/// list of blocks (<c>GET /terrain/looks</c>).</summary>
+/// <param name="Flag">The word, as it appears in a face's <c>construction</c>.</param>
+/// <param name="Means">What the word says about how the sprite is drawn.</param>
+public sealed record LookFlagDto(string Flag, string Means);
