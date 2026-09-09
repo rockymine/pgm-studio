@@ -1,5 +1,6 @@
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Tests;
 
@@ -160,4 +161,89 @@ public sealed class TerrainThemeValidationTests
         await Assert.That(TerrainThemeValidation.Check(Surfaced(bare)).Single().Rule)
                     .IsEqualTo(TerrainThemeRules.SurfaceBlockBuried);
     }
+
+    // ── PT3: a sampled pattern's brush against the blocks it paints ───────────────
+    // A cell size or a field scale is the period a pattern varies over, in blocks. Below two it changes faster
+    // than the ground can show it and no palette rescues it. The floor is the author's and it is a guard
+    // against a pathological number: the committed themes sit at a median cellSize of 6 and scale of 8, so
+    // every board on the shelf is silent here.
+
+    [Test]
+    public async Task A_pattern_at_the_floor_and_above_it_is_silent()
+    {
+        (int Id, int Data)[] pair = [(Blocks.Stone, 0), (Blocks.Cobblestone, 0)];
+        TerrainMaterial[] stops = [new SolidMaterial(pair[0].Id), new SolidMaterial(pair[1].Id)];
+
+        foreach (var period in (int[])[TerrainThemeRules.BrushFloor, 6, 19])
+        {
+            await Assert.That(Brushed(new CellMaterial(1, period, 40, 2, stops))).IsEmpty();
+            await Assert.That(Brushed(new NoiseMaterial(1, period, 3, stops))).IsEmpty();
+        }
+    }
+
+    /// <summary>Each of the five sampled patterns, at a period of one — every block its own feature. The
+    /// field a finding names is the one the author edits, so a `cell` is pointed at `cellSize` and a `noise`
+    /// at `scale`.</summary>
+    [Test]
+    public async Task Every_sampled_pattern_is_named_under_the_floor()
+    {
+        TerrainMaterial[] stops = [new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)];
+        (TerrainMaterial Material, string Field)[] cases =
+        [
+            (new CellMaterial(1, 1, 40, 2, stops), "cellSize"),
+            (new VoronoiMaterial(1, 1, [new VoronoiBand(stops[0], 1), new VoronoiBand(stops[1], 2)]), "cellSize"),
+            (new NoiseMaterial(1, 1, 3, stops), "scale"),
+            (new TurbulenceMaterial(1, 1, 3, stops), "scale"),
+            (new ElectricMaterial(1, 1, 3, stops), "scale"),
+        ];
+
+        foreach (var (material, field) in cases)
+        {
+            var finding = Brushed(material).Single();
+            await Assert.That(finding.Rule).IsEqualTo(TerrainThemeRules.BrushTooFine);
+            await Assert.That(finding.Field).IsEqualTo($"fill.{field}");
+        }
+    }
+
+    /// <summary>A field nested inside another pattern paints at its own scale, so the walk reaches it. The
+    /// coarse voronoi around it is silent and the path names where the fine one actually sits.</summary>
+    [Test]
+    public async Task A_fine_field_nested_under_a_coarse_pattern_is_still_named()
+    {
+        TerrainMaterial[] stops = [new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)];
+        var nested = new VoronoiMaterial(1, 8,
+            [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1),
+             new VoronoiBand(new NoiseMaterial(2, 1, 3, stops), 2)]);
+
+        var finding = Brushed(nested).Single();
+        await Assert.That(finding.Rule).IsEqualTo(TerrainThemeRules.BrushTooFine);
+        await Assert.That(finding.Field).IsEqualTo("fill.bands[1].scale");
+    }
+
+    /// <summary>A checker and a wall run are drawn rather than sampled — an author states the square and the
+    /// stripe at the width they meant — so neither is asked, and a one-block checker stands.</summary>
+    [Test]
+    public async Task A_drawn_pattern_is_not_asked_for_a_period()
+    {
+        var checker = new CheckerMaterial(1, new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone));
+        await Assert.That(Brushed(checker)).IsEmpty();
+    }
+
+    /// <summary>Every theme the studio ships is silent under every rule here. `PT3`'s floor is a guard against
+    /// a pathological number and not a style rule, so the shelf is what proves it: a floor that complains
+    /// about a preset is a floor set too high.</summary>
+    [Test]
+    public async Task Every_shipped_preset_is_silent()
+    {
+        foreach (var (name, theme) in ThemePresets.All)
+        {
+            var findings = TerrainThemeValidation.Check(theme);
+            await Assert.That(findings.Select(f => $"{name}: {f.Rule} {f.Field}")).IsEmpty();
+        }
+    }
+
+    /// <summary>The fill bucket, which claims every course under the surface — the one place a pattern is
+    /// read with no depth rule firing beside it, so a brush finding stands alone.</summary>
+    private static Findings Brushed(TerrainMaterial material) =>
+        TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = material });
 }

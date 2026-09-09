@@ -87,23 +87,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   *9 of 50 buildings on the spec boards are walled in the ground's own family — `opus5-siderite-bowl` puts
   three grey-stone houses on grey stone, `sonnet-gantry` two brick houses on brick.*
 
-- [ ] **WE47 — A board wears a theme per piece.** A theme is a *place* and a board has two or three; giving
-  every piece of the plan its own is the plan leaking into the paint. Complain where a layout's `themes`
-  registry carries more than three, and where a flight of steps compiled from a plan does not share one theme
-  with itself. `docs/tools/sketch.md`.
-
-  *51 boards carry a registry: 16 hold three, but 11 hold five, 7 hold six, and five hold between sixteen and
-  twenty-four — `opus5-interchange` has 24.*
-
-- [ ] **WE48 — A pattern's brush is smaller than the thing it dresses.** A field whose features are smaller
-  than what they are laid over reads as static however good its palette is. Complain under a floor on
-  `CellMaterial.CellSize` and the field patterns' `Scale`. **The floor is 2 (author)** — a guard against a
-  brush finer than the blocks it paints rather than a style rule, so it flags a pathological value and leaves
-  every board on the shelf alone. `docs/world-export/terrain-painting.md`.
-
-  *Medians over the committed themes: `cellSize` 6 for a cell pattern (down to 2), `scale` 8 for a noise field
-  (down to 4), `cellSize` 6 for a voronoi. Those are the numbers that produced the boards under review.*
-
 - [~] **WE41 — A pattern is a family shown off rather than a ground.** *Parked on a ruling: no candidate
   predicate reproduces the author's judgement, and nothing is built until one is chosen.* The predicate the
   author has since named is not colour distance but **how much of a family a pattern takes**: two blocks is a
@@ -335,16 +318,18 @@ and what a `subtract` takes away.
 counting a fall, slowing through water, narrowed per team where an `enter` rule bars one — and it runs over a
 set that reads a surface as somewhere a player can stand rather than as any column holding a block. 
 
-- [ ] **WE45 — `DR-PASS` measures the wrong rectangle and asks the wrong question.** Three faults, one rule.
-  It measures the **wall rectangle** rather than the stamped extent, so a roof overhanging the passage is not
-  counted: `opus5-rimegarth`'s `hall` has zero clear blocks on all four sides once eaves count and passes
-  today. It takes the **widest** side, so a building with three sides open and a two-block ledge on the fourth
-  passes. And its width is **absolute**, so a twenty-block passage with a fifteen-wide house in it leaves five
-  and passes — which the author has ruled is not a way past.
+- [ ] **WE45 — `DR-PASS` still takes the widest side, and its width is absolute.** *Parked on a ruling: the
+  number, and what "every side" exempts.* The wrong-rectangle fault is fixed (`FEATURES.md`). What is left is
+  that the rule passes on **one** clear flank, so a building with three sides open and a two-block ledge on the
+  fourth stands; and that five blocks is absolute, so a twenty-block passage with a fifteen-wide house in it
+  leaves five and passes, which the author has ruled is not a way past.
   `docs/world-export/decoration.md`.
 
-  The author's number is **ten blocks** of way round a building, and every side is judged rather than the
-  widest. Not urgent while `DR-CROSS` fires on the boards this was found on.
+  **Why it is parked.** `DR-PASS` is a `Decline` — the building is dropped from the exported world — and the
+  entry's own measurement says every-side at five fails 76 of 122 buildings. Ten would fail more. Three things
+  have to be settled together: the depth; whether a flank over **void** is exempt (the rule text promises "a
+  coast house is a house", and today `Band` fails a flank with any missing ground, so `&&` alone declines every
+  coast house); and whether the verdict stays a `Decline` at that hit rate or becomes a `Complaint`.
 
   *122 buildings on 32 boards: 4 fail today. A side with ground and under 3 clear blocks fails 51, under 5
   fails 76. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*

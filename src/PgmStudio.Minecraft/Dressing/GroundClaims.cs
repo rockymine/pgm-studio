@@ -18,8 +18,10 @@ public static class DressingRules
     /// <summary>A building leaves no way past itself: none of its four sides has 5 blocks of passable ground
     /// alongside its whole run (the author's number). A house may stand against the map's own edge on one
     /// side — a coast house is a house — but a house with too little ground on every side corks the leg it
-    /// stands on, and a route players must dig through a building to walk is not a route.</summary>
-    /// <remarks>Move the building so at least one side keeps a five-block passage alongside its whole length — including one step past each corner, which is where the passage turns in from — or widen the ground it stands on. Passable here means terrain with nothing built on it; a road or a channel beside the wall still counts as a way past. The whole building is declined and is not in the exported world.</remarks>
+    /// stands on, and a route players must dig through a building to walk is not a route. Measured from what
+    /// the building <b>stamps</b> rather than from its walls: a roof oversails its wall by at least one block,
+    /// and the blocks a player walks under are the ones that were written.</summary>
+    /// <remarks>Move the building so at least one side keeps a five-block passage alongside its whole length — including one step past each corner, which is where the passage turns in from — or widen the ground it stands on. The five are counted from the roof's edge, not the wall's, so a style with a deep overhang needs that much more room. Passable here means terrain with nothing built on it; a road or a channel beside the wall still counts as a way past. The whole building is declined and is not in the exported world.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string PassAround = "DR-PASS";
 

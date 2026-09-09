@@ -24,6 +24,19 @@ public static class TerrainThemeRules
     /// <remarks>Give the member its material. A `voronoi`'s `bands` and a `layered`'s `stack` each take a pair — `{"material": …, "depth": N}` and `{"material": …, "thickness": N}` — where a `noise`'s `stops` takes bare materials, so a list of materials handed to `bands` binds a band per entry with the material left empty.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string MaterialMissing = "PT2";
+
+    /// <summary>A sampled pattern's brush is finer than the blocks it paints. A cell size or a field scale is
+    /// the period a pattern varies over, in blocks, so below two it changes faster than the ground it is laid
+    /// on can show: every block is its own feature, the pattern resolves to noise at any distance, and no
+    /// palette rescues it. A guard against a pathological number rather than a judgement about taste — how
+    /// coarse a brush should be is the author's, and only a brush finer than one block is nobody's.</summary>
+    /// <remarks>Give the pattern a period of at least two blocks. A `cell` and a `voronoi` state theirs as `cellSize`, a `noise`, `turbulence` or `electric` field as `scale`; the committed themes sit around six to eight, which is what a pattern read as a ground looks like. To mix two blocks with no feature size at all, a `cell` at a coarse size with a high `jitter` is the pattern that means it.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Theme, RuleConcern.Terrain)]
+    public const string BrushTooFine = "PT3";
+
+    /// <summary>The finest period a sampled pattern may vary over, in blocks — <see cref="BrushTooFine"/>'s
+    /// one number (author).</summary>
+    public const int BrushFloor = 2;
 }
 
 /// <summary>
@@ -53,7 +66,52 @@ public static class TerrainThemeValidation
         CheckDepth("rim", theme.Rim.Material, theme.Rim.Depth, findings);
         CheckDepth("surface", theme.Surface.Material, theme.Surface.Depth, findings);
         CheckDepth("fill", theme.Fill, int.MaxValue, findings);
+        CheckBrush("rim", theme.Rim.Material, findings);
+        CheckBrush("surface", theme.Surface.Material, findings);
+        CheckBrush("fill", theme.Fill, findings);
         return findings;
+    }
+
+    /// <summary>Every sampled pattern in a bucket whose period is under
+    /// <see cref="TerrainThemeRules.BrushFloor"/>, nested ones included — a field inside a voronoi's band
+    /// paints at its own scale and is as fine as it says it is.</summary>
+    private static void CheckBrush(string bucket, TerrainMaterial? material, List<Finding> findings)
+    {
+        foreach (var (node, path) in Nodes(material, bucket))
+        {
+            if (Brush(node) is not { } brush || brush.Period >= TerrainThemeRules.BrushFloor) continue;
+            findings.Add(new Finding(TerrainThemeRules.BrushTooFine,
+                $"{path} varies over {brush.Period} block(s), which is finer than the blocks it paints — "
+                + "every block is its own feature and the pattern reads as noise at any distance. A period "
+                + $"of at least {TerrainThemeRules.BrushFloor} is what makes a pattern a ground.",
+                Field: $"{path}.{brush.Field}"));
+        }
+    }
+
+    /// <summary>The period a pattern samples over and the field that states it, or null for a pattern that is
+    /// drawn rather than sampled. A checker's square and a wall run's stripe are geometry an author placed at
+    /// the width they meant, so neither is asked: what this measures is a <em>sampling</em> period, the one
+    /// number below which a field stops having features at all.</summary>
+    private static (int Period, string Field)? Brush(TerrainMaterial? material) => material switch
+    {
+        VoronoiMaterial voronoi => (voronoi.CellSize, "cellSize"),
+        CellMaterial cell => (cell.CellSize, "cellSize"),
+        NoiseMaterial noise => (noise.Scale, "scale"),
+        TurbulenceMaterial turbulence => (turbulence.Scale, "scale"),
+        ElectricMaterial electric => (electric.Scale, "scale"),
+        _ => null,
+    };
+
+    /// <summary>Every material in a tree with the path it sits at, the root included. The walk both the
+    /// empty-member read and the brush read run over, so a pattern reachable by one is reachable by
+    /// both.</summary>
+    private static IEnumerable<(TerrainMaterial? Material, string Path)> Nodes(TerrainMaterial? material, string path)
+    {
+        yield return (material, path);
+        if (material is null) yield break;
+        foreach (var (child, childPath) in Children(material, path))
+            foreach (var node in Nodes(child, childPath))
+                yield return node;
     }
 
     /// <summary>Every member of a bucket's material that binds with nothing in it. A pattern's bands, stops
@@ -76,12 +134,19 @@ public static class TerrainThemeValidation
     {
         if (material is null) { yield return path; yield break; }
 
-        // Every list here is read through Members, which answers an empty one for a pattern that states
-        // no list at all. A document naming a pattern's member set under a name the model does not have —
-        // a cell's `materials` where it wants `palette` — deserializes the pattern with a null list, which
-        // is the very fault this walk exists to name; walking it directly threw instead, and took the
-        // whole store with it.
-        IEnumerable<(TerrainMaterial? Material, string Path)> members = material switch
+        foreach (var (member, memberPath) in Children(material, path))
+            foreach (var gap in Uncarried(member, memberPath))
+                yield return gap;
+    }
+
+    /// <summary>One material's own members, each with the path it sits at. Every list is read through
+    /// <see cref="Members{T}"/>, which answers a single empty member for a pattern that states no list at
+    /// all: a document naming a member set under a name the model does not have — a cell's <c>materials</c>
+    /// where it wants <c>palette</c> — deserializes the pattern with a null list, which is the very fault
+    /// the empty-member walk exists to name, and walking it directly threw instead.</summary>
+    private static IEnumerable<(TerrainMaterial? Material, string Path)> Children(
+        TerrainMaterial material, string path)
+        => material switch
         {
             LayeredMaterial layered => Members(layered.Stack?.Bands, $"{path}.stack",
                                                band => (TerrainMaterial?)band.Material),
@@ -101,11 +166,6 @@ public static class TerrainThemeValidation
             CheckerMaterial checker => [(checker.Even, $"{path}.even"), (checker.Odd, $"{path}.odd")],
             _ => [],
         };
-
-        foreach (var (member, memberPath) in members)
-            foreach (var gap in Uncarried(member, memberPath))
-                yield return gap;
-    }
 
     /// <summary>A pattern's members with their paths, or the pattern's own path once where it states no
     /// member list at all — a pattern that picks from nothing paints nothing, which is the same finding one

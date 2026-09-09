@@ -1331,6 +1331,42 @@ public sealed class DecoratorTests
     }
 
     [Test]
+    public async Task The_passage_is_measured_from_the_roof_and_not_from_the_wall()
+    {
+        // WE45's first fault, found on `pgm-studio-mapgen`'s `opus5-rimegarth`: its `hall` has zero clear
+        // blocks on all four sides once eaves count, and passed. A roof oversails its wall by at least one
+        // block whatever the style says (`HouseStamper.StampedCells`), and the blocks a player has to walk
+        // under are the ones that were written — so the band is measured from what the building stamps.
+        //
+        // The island is tight on all four sides: x 5..23 and z 10..30, with a house at x 10..18, z 15..25.
+        // Every flank is exactly five clear of the WALL, and four clear of the roof over it.
+        var world = new VoxelWorld();
+        var top = new Dictionary<(int X, int Z), int>();
+        for (var z = 10; z <= 30; z++)
+        for (var x = 5; x <= 23; x++)
+        {
+            for (var y = 0; y < 7; y++) world.SetBlock(x, y, z, Blocks.Stone);
+            world.SetBlock(x, 7, z, Blocks.Grass);
+            top[(x, z)] = 8;
+        }
+
+        var tight = Decorator.Decorate(world, Context(top,
+            [new HouseProp { Id = "hall", Wings = [new AuthoredWing([[10, 15], [18, 25]])],
+                             Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } } }]));
+        await Assert.That(tight.Houses).IsEqualTo(0);
+        await Assert.That(tight.Declines.Single().Rule).IsEqualTo(DressingRules.PassAround);
+
+        // One more block of island on every side, and the roof itself clears five. The rule is about the
+        // ground beside the building, so widening the ground is what answers it.
+        var (wider, widerTop) = Plateau();
+        var stands = Decorator.Decorate(wider, Context(widerTop,
+            [new HouseProp { Id = "hall", Wings = [new AuthoredWing([[10, 15], [18, 25]])],
+                             Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } } }]));
+        await Assert.That(stands.Houses).IsEqualTo(1);
+        await Assert.That(stands.Declines.Where(f => f.Rule == DressingRules.PassAround)).IsEmpty();
+    }
+
+    [Test]
     public async Task A_house_that_corks_its_leg_is_refused_and_a_coast_house_stands()
     {
         // The generation failure this rule closes: a house across the full width of a land leg, void on both

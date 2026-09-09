@@ -1281,6 +1281,10 @@ well (`PT2`): a `voronoi`'s `bands` and a `layered`'s `stack` each take a **pair
 where a `noise`'s `stops` takes bare materials, so a list of materials handed to `bands` binds one band per
 entry with the material left empty. Each of those three members is a value type, so the document binds rather
 than failing, and without the gate the empty material is met by the painter while the world is being built.
+And they answer for a brush finer than the blocks it paints (`PT3`): a `cellSize` or a `scale` under two is a
+pattern varying faster than the ground can show it, which reads as noise at any distance whatever the palette
+holds. Every pattern in the tree is asked, so a fine field nested in a coarse voronoi's band is named where it
+sits; a `checker`'s square and a wall run's stripe are drawn rather than sampled and are not asked at all.
 
 **A dressing document that will not parse is refused here too**, rather than at the export that reads it
 again: the gate cannot judge a style it cannot read, but *that* is the finding, and it carries the JSON path

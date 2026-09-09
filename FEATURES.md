@@ -5449,6 +5449,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **`DR-PASS` measures the passage from the roof, not from the wall (`WE45`, first of three faults).** A roof
+  oversails its wall by at least one block whatever the style says (`HouseStamper.StampedCells`), and the
+  blocks a player has to walk under are the ones that were written — so the five-block band now starts where
+  the building physically stops. `opus5-rimegarth`'s `hall` has zero clear blocks on all four sides once eaves
+  count and passed. It is the same extent the claim test and the route crossing already read, which is what
+  keeps one account of how much ground a building takes. (`Decorator.HasPassage`, `DecoratorTests`,
+  `docs/world-export/decoration.md`, `docs/refusals.md`)
 - **Every gate measuring from a room measures from the one that stands (`WE70`).** `shellBound` sizes both the
   default footprint and the wall inset, and three readers of a built map assumed a shell was always over it:
   the goal keep-outs (`MapExportComposer.KeepOuts`), the dressing pass's door approaches
@@ -7576,6 +7583,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A pattern's brush is not finer than the blocks it paints (`WE48`, `PT3`).** A `cell`'s and a `voronoi`'s
+  `cellSize`, and a `noise`, `turbulence` or `electric` field's `scale`, are the period a pattern varies over
+  in blocks; under **2** it changes faster than the ground can show it, every block is its own feature and the
+  pattern reads as noise at any distance whatever the palette holds. A guard against a pathological number
+  rather than a judgement about taste — the floor is the author's, the shipped presets sit at four to ten, and
+  a test holds every one of them silent. Asked of every pattern in the material tree, so a fine field nested in
+  a coarse voronoi's band is named where it sits (`fill.bands[1].scale`); a `checker`'s square and a wall run's
+  stripe are **drawn** rather than sampled — geometry stated at the width it was meant — so neither is asked.
+  The empty-member walk and the brush walk now share one member list, so a pattern reachable by one is
+  reachable by both. (`TerrainThemeValidation`, `docs/world-export/terrain-painting.md`, `docs/tools/sketch.md`,
+  `docs/refusals.md` — which had carried no `PT*` row at all)
 - **A recipe is identified by what it is made of, not by the name on its card (`TS103`).** Pulling a library
   row into a board's `dressing.styles` registry keyed the entry by the row's **display name** and replaced
   whatever that key held — and no library table indexes a name uniquely, so two rows an author called the same

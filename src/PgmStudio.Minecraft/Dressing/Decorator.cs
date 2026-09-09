@@ -789,7 +789,7 @@ public static class Decorator
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
-            if (!HasPassage(context, ground, claims, image))
+            if (!HasPassage(context, ground, claims, image, house.Style))
             {
                 declined.Add(new Finding(DressingRules.PassAround,
                     $"building '{house.Id}' leaves no way past it: fewer than "
@@ -962,11 +962,18 @@ public static class Decorator
     /// cell that separates a flank a player can enter from a flank walled off at both ends. A house corking a
     /// leg fails all four: its flanks are void, and the ground beyond its gable ends fails the corner step.
     /// Passable is terrain with nothing <em>built</em> on it — a road or a channel alongside the wall is
-    /// still a way past, an earlier building is not. Measured over the plan's bounding box: the notch of an L
-    /// is the building's own ground, not a public route through it.</summary>
-    private static bool HasPassage(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, GroundClaims.Storey claims, BuildingPlan plan)
+    /// still a way past, an earlier building is not.
+    ///
+    /// <para><b>Measured from what the building stamps, not from its walls.</b> A roof overhangs its wall by
+    /// the style's eave, and the blocks a player has to walk under are the ones that were written — so the
+    /// band starts where the building physically stops. The same <see cref="ClaimedCells"/> the claim test and
+    /// the route crossing already read, which is what keeps one account of a building's extent. Over its
+    /// bounding box: the notch of an L is the building's own ground, not a public route through it.</para></summary>
+    private static bool HasPassage(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, GroundClaims.Storey claims, BuildingPlan plan, HouseStyle style)
     {
-        int minX = plan.MinX, minZ = plan.MinZ, maxX = plan.MaxX, maxZ = plan.MaxZ;
+        var stamped = ClaimedCells(plan, style);
+        int minX = stamped.Min(cell => cell.X), maxX = stamped.Max(cell => cell.X);
+        int minZ = stamped.Min(cell => cell.Z), maxZ = stamped.Max(cell => cell.Z);
         var depth = DressingRules.PassAroundWidth;
 
         return Band(maxX + 1, maxX + depth, minZ - 1, maxZ + 1)      // east flank

@@ -779,7 +779,11 @@ rather than hoping for one.
 **It must leave a way past itself (`DR-PASS`).** Beside a building there must be **five blocks** of passable
 ground along at least one of its four sides — the whole run of that side, extended one step past each
 corner, which is the cell a player turns in from and exactly what separates a flank that can be entered from
-one walled off at both ends. The failure this closes was generated for real: a house across the full width
+one walled off at both ends. The five are counted from **what the building stamps, not from its walls**: a
+roof oversails its wall by at least one block whatever the style says (`HouseStamper.StampedCells`), and the
+blocks a player has to walk under are the ones that were written, so the band starts where the building
+physically stops. It is the same extent the claim test and the route crossing already read, which is what
+keeps one account of how much ground a building takes. The failure this closes was generated for real: a house across the full width
 of a land leg, void on both flanks, so the only way to the other side was through the building. A house
 against the map's own edge is fine — a coast house is a house — as long as the other side keeps the passage.
 Passable means terrain with nothing *built* on it: a road or a channel alongside the wall still counts as a
