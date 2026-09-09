@@ -7576,6 +7576,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A recipe is identified by what it is made of, not by the name on its card (`TS103`).** Pulling a library
+  row into a board's `dressing.styles` registry keyed the entry by the row's **display name** and replaced
+  whatever that key held — and no library table indexes a name uniquely, so two rows an author called the same
+  thing were one key, and picking the second silently rewrote what every placement already wearing the first
+  was made of. `DressingDoc.pull` now answers the key it states a recipe under: a recipe the registry already
+  holds is the entry already held, whatever the row pulling it is named, so a grove stays one entry; a
+  different recipe arriving under a taken name is numbered (`oak`, then `oak-2`). Comparison is over a
+  canonical body — keys sorted, arrays in order — so the same recipe fetched from the library and read back
+  out of a stored document compare equal. The bridge hands the key back and both pickers name **that** on the
+  placement rather than the row's name. The client half of what `DressingJson.Named` already did for a
+  document assembled in code; the row **id** is deliberately still not the key, a map holding a snapshot and
+  never a foreign key into the library. (`dressing/dressing-doc.js`, `bridge/sketch-bridge.js`,
+  `SketchDressingInspector`, `docs/tools/sketch.md`, `tests/js/dressing.test.js`)
 - **The wool room's wire word is `wool` (`TS105`).** A board binds a shell for a **wool** room and a **spawn**
   room, and the stored layout, the finish route and the bridge all spell the first of them the same way:
   `roomStyles.wool`, `PUT …/sketch/room-styles/wool`, `SketchRoomStylesDto.Wool`, and `roomStyles.wool` as the

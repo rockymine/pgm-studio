@@ -1,7 +1,6 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 48 open entries and `TODO.md` one — the dressing key, the last of the bindings a board
-copies from the library that is named by something the library does not make unique. This document is the
+`BACKLOG.md` holds 41 open entries and `TODO.md` none, the board standing between programmes. This document is the
 reading that says which of them are defects, which are questions, which share a cause, and what order drains
 them. Its subject is the board itself, and it expires when the board it describes is gone. It is the one
 document this work adds: `CLAUDE.md`'s standing rule is that a change updates the document that already covers
@@ -12,11 +11,11 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **42 open entries over 7,517 words**: a median entry of 167 words and **6 above 250** —
+The two boards carry **41 open entries over 7,359 words**: a median entry of 168 words and **6 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
 is the longest at 436 words, then `WS3` at 356, `B169` at 281 and `WE28` at 266. The prefix spread is `WE` 9,
-`B` 7, `G` 6, `TS` 5, `S` 4, and eight others in ones and twos. **One of them is on `TODO.md`** —
-a ruling rather than a task, which is what a board looks like between groups.
+`B` 7, `G` 6, `TS` 4, `S` 4, and eight others in ones and twos. **None of them is on `TODO.md`**, which is
+what a board looks like between groups.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -403,10 +402,17 @@ partition it — a third of the entries are cleanup, naming and consistency work
 but each of the three wants a different treatment, which is what makes them worth naming despite the
 ambiguity at their edges.
 
-**Blocked decisions** are what the board still marks as parked — `TC6` (what a per-side frame is), `WE41`,
-`TS103` and `A8`. The sittings above are why that list is four and not twelve: a question put to the author
-comes back the same day, and four of the answers so far have been to decline the question. Each has a definite
-end and none of it is work until the answer arrives.
+**Blocked decisions** are what the board still marks as parked — `TC6` (what a per-side frame is), `WE41`
+and `A8`. The sittings above are why that list is three and not twelve: a question put to the author comes
+back the same day, and four of the answers so far have been to decline the question. Each has a definite end
+and none of it is work until the answer arrives.
+
+`TS103` is what one of them looks like once it is asked. The question read as a fork — index a kind's names
+uniquely, or mint the key from the recipe's content — and the answer was that neither was a choice to make,
+because the studio had already made it: `DressingJson.Named` keys a document assembled in code by **what a
+recipe is made of**, numbering two that read the same way, and only the client's pull path had grown a second
+answer keyed on the display name. One concept with two shapes rather than a decision, and reading the code
+either half of it was in is what said so (`FEATURES.md`).
 
 **Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`, `TS64`, `S59`.
 `N08` and `N12` were both one until the same sitting drained them. Four more — `B107`, `S25b`, `B145`, `WE54`

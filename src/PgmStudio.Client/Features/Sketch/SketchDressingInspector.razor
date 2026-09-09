@@ -168,7 +168,7 @@
         <div class="prop-cards prop-cards--tall">
           @foreach (var recipe in recipes)
           {
-            <button class="prop-card @(recipeName == recipe.Name ? "prop-card--active" : null)"
+            <button class="prop-card @(Wears(recipeName, recipe.Name) ? "prop-card--active" : null)"
                     title="@recipe.Name" @key="recipe.Id" @onclick="() => PickRecipe(recipe)">
               <span class="prop-card-art">@((MarkupString)recipe.Preview)</span>
               <span class="prop-card-label">@recipe.Name</span>
@@ -194,7 +194,7 @@
         <div class="prop-cards">
           @foreach (var shell in shells)
           {
-            <button class="prop-card @(shellName == shell.Name ? "prop-card--active" : null)"
+            <button class="prop-card @(Wears(shellName, shell.Name) ? "prop-card--active" : null)"
                     title="@shell.Name" @key="shell.Id" @onclick="() => PickShell(shell)">
               <span class="prop-card-art">@((MarkupString)shell.Preview)</span>
               <span class="prop-card-label">@shell.Name</span>

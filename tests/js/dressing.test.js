@@ -525,14 +525,45 @@ test("a pulled recipe is stated once however many placements name it", () => {
   assert.deepEqual(stored.props.map(p => p.style), ["oak-10", "oak-10"]);
 });
 
-test("pulling the same key again retunes every placement wearing it", () => {
+test("pulling the same recipe again is the entry already held", () => {
+  const doc = new DressingDoc();
+  const oak = { kind: "tree", form: "template", species: "oak", height: 10 };
+  assert.equal(doc.pull("oak-10", oak), "oak-10");
+  doc.add({ ...defaultProp("tree", 1), style: "oak-10" });
+
+  // The same recipe, arriving as a fresh object with its fields written in another order.
+  assert.equal(doc.pull("oak-10", { height: 10, species: "oak", form: "template", kind: "tree" }), "oak-10");
+  assert.equal(Object.keys(doc.toJSON().styles).length, 1);
+});
+
+test("a recipe already held answers its own key however the row pulling it is named", () => {
   const doc = new DressingDoc();
   doc.pull("oak-10", { kind: "tree", form: "template", species: "oak", height: 10 });
-  doc.add({ ...defaultProp("tree", 1), style: "oak-10" });
-  doc.pull("oak-10", { kind: "tree", form: "template", species: "oak", height: 22 });
+  // A second library row, named differently and made of the same thing, is not a second recipe.
+  assert.equal(doc.pull("my-oak", { kind: "tree", form: "template", species: "oak", height: 10 }), "oak-10");
+  assert.deepEqual(Object.keys(doc.styles), ["oak-10"]);
+});
 
-  assert.equal(doc.styles["oak-10"].height, 22);
-  assert.equal(Object.keys(doc.toJSON().styles).length, 1);
+test("two library rows sharing a name are two recipes, and the first keeps its placements", () => {
+  const doc = new DressingDoc();
+  assert.equal(doc.pull("oak", { kind: "tree", form: "template", species: "oak", height: 10 }), "oak");
+  doc.add({ ...defaultProp("tree", 1), style: "oak" });
+
+  // A different row, and the display name the author gave it is one the registry already holds.
+  assert.equal(doc.pull("oak", { kind: "tree", form: "template", species: "oak", height: 22 }), "oak-2");
+  assert.equal(doc.pull("oak", { kind: "tree", form: "template", species: "birch", height: 22 }), "oak-3");
+
+  // What the placement already down is made of did not move.
+  assert.equal(doc.styles["oak"].height, 10);
+  assert.equal(doc.styles["oak-2"].height, 22);
+  assert.equal(doc.props[0].style, "oak");
+});
+
+test("a pull states nothing without a name or a recipe", () => {
+  const doc = new DressingDoc();
+  assert.equal(doc.pull("", { kind: "tree" }), null);
+  assert.equal(doc.pull("oak", null), null);
+  assert.equal(Object.keys(doc.styles).length, 0);
 });
 
 test("a document with no recipes writes no registry", () => {

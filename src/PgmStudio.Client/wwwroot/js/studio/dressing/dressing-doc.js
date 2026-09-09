@@ -206,6 +206,16 @@ export function translateProp(prop, dx, dz) {
   return { ...prop, points: (prop.points ?? []).map(shift) };
 }
 
+/** What a recipe *is*, as one comparable string: the same fields in the same order however the object reached
+ *  here, so a recipe fetched from the library and the same recipe read back out of a stored document compare
+ *  equal. Object keys are sorted and arrays keep their order, position being part of what a body says. */
+function canonicalBody(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value ?? null);
+  if (Array.isArray(value)) return `[${value.map(canonicalBody).join(",")}]`;
+  return `{${Object.keys(value).sort()
+    .map(key => `${JSON.stringify(key)}:${canonicalBody(value[key])}`).join(",")}}`;
+}
+
 /**
  * The dressing document: props in the order they were placed, with ids minted here so a canvas can select,
  * move and delete one among many. Mutating methods return the document so a caller can chain; the caller owns
@@ -248,13 +258,27 @@ export class DressingDoc {
   /** The recipes this document names. */
   get styles() { return this.#styles; }
 
-  /** Put a library row in the registry under its name, replacing whatever that key held. Pulling the same row
-   *  twice is one entry, and pulling a retuned row updates every placement wearing it — which is what naming
-   *  a recipe is for. */
-  pull(key, recipe) {
-    if (!key || !recipe) return this;
+  /** Put a library row in the registry and answer the key it is stated under, which is what a placement then
+   *  names. A recipe is identified by what it is made of and named by what an author reads it as: pulling a
+   *  recipe the registry already holds is one entry however many rows carry that name, and a different recipe
+   *  arriving under a name already taken is numbered rather than put in its place — two rows sharing a display
+   *  name are two recipes, and the second may not quietly become the first under every placement already down.
+   *  The sibling of `DressingJson.Named`, which keys a document assembled in code the same way. */
+  pull(name, recipe) {
+    if (!name || !recipe) return null;
+    const body = canonicalBody(recipe);
+    for (const [key, held] of Object.entries(this.#styles))
+      if (canonicalBody(held) === body) return key;
+    const key = this.#freeKey(name);
     this.#styles[key] = recipe;
-    return this;
+    return key;
+  }
+
+  /** The name, numbered where it is taken. `-2` before `-3`, so the second recipe to read a way is the second
+   *  one an author sees. */
+  #freeKey(name) {
+    if (!(name in this.#styles)) return name;
+    for (let n = 2; ; n++) if (!(`${name}-${n}` in this.#styles)) return `${name}-${n}`;
   }
 
   /** Every key no placement names — what a save drops, so a registry does not grow a row per recipe an author

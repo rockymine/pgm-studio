@@ -1144,13 +1144,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     /** Join the selected buildings, or take a joined one apart — the inspector button's half of `mod+g`, so
      *  the two run the same operation rather than each having their own. */
     joinDressing() { canvas.joinDressing(); },
-    /** Put a library recipe in the document's registry under its name. What the inspector's picker calls
-     *  before it names the key on a placement, so the document always states what its placements name. */
-    pullRecipe(key, recipeJson) {
-      let recipe; try { recipe = JSON.parse(recipeJson); } catch (e) { return e?.message || "Invalid JSON"; }
-      canvas.dressing?.pull(key, recipe);
-      markDirty();
-      return null;
+    /** Put a library recipe in the document's registry and answer the key it is stated under — which the
+     *  inspector's picker then names on the placement, so the document always states what its placements name.
+     *  The key is the row's name where that name is free or already holds this very recipe, and a numbered
+     *  variant of it otherwise. Null where nothing was pulled: a recipe that will not parse, or no document. */
+    pullRecipe(name, recipeJson) {
+      let recipe; try { recipe = JSON.parse(recipeJson); } catch { return null; }
+      const key = canvas.dressing?.pull(name, recipe) ?? null;
+      if (key) markDirty();
+      return key;
     },
     /** Patch the selected prop. `patchJson` is a partial prop; returns an error string on bad JSON, else null. */
     updateProp(patchJson) {

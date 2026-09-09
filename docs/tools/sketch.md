@@ -1036,7 +1036,7 @@ as the beach.
 
 **A tree and a boulder are recipes rather than knobs, because a click has no geometry to draw.** What is
 placed is a point plus a `style` key; what stands there is a row from the library, pulled into the document's
-own registry under its name (`docs/tools/library.md`). A stroke and a channel are *traced*, so their knobs stay
+own registry under a key read off the row's name (`docs/tools/library.md`). A stroke and a channel are *traced*, so their knobs stay
 here — pre-authoring a river form is authoring a shape without its place — and the split is exactly that line
 (author).
 
@@ -1229,6 +1229,15 @@ resolve a library row against, and a shipped map must build the same way next ye
 row is *pulled in* — copied into the registry under a key — and editing that row afterwards changes the next
 pull rather than a map already written. That is the same rule a bound room style follows, kept by referencing
 inside the document rather than by copying onto every placement.
+
+**So a recipe is identified by what it is made of and named by what an author reads it as.** A library row's
+name is the key it is pulled in under, and no library table makes that name unique: two rows an author called
+the same thing are two recipes, and the key has to tell them apart. Pulling a recipe the registry already
+holds is therefore the entry already held, whatever the row pulling it is called — a grove stays one entry —
+while a *different* recipe arriving under a name already taken is numbered (`oak`, then `oak-2`), so what a
+placement already on the board is made of is never rewritten by a later pick. The row id is deliberately not
+the key: a map holds a snapshot and never a foreign key into the library, and a number that looks resolvable
+and is not would read as one.
 
 **On a stacked board a prop says which storey it rests on.** Every entry takes an optional `layer` — the id of
 the layer whose surface it sits on, as the tree above states it. Naming none takes the board's **ground** —

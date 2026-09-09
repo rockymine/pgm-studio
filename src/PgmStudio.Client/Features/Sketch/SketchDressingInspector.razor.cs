@@ -148,8 +148,8 @@ public partial class SketchDressingInspector
     }
 
     /// <summary>The shell a building would be raised in, offered as the library's own cards. Picking one pulls
-    /// it into the document's registry under its name and names that key on the placement — the same road a
-    /// tree and a boulder take, so one doctrine covers all three. The registry is the document's, so editing
+    /// it into the document's registry and names the key the registry gave it on the placement — the same road
+    /// a tree and a boulder take, so one doctrine covers all three. The registry is the document's, so editing
     /// that library row later cannot rebuild a map's scenery.</summary>
     private async Task PickShell(RoomStyleSummary shell)
     {
@@ -158,12 +158,20 @@ public partial class SketchDressingInspector
         // A room style composes to the stamper's own `HouseStyle`; the registry holds recipes, so it rides
         // under the `house` kind the way a tree's rides under `tree`.
         var recipe = new JsonObject { ["kind"] = "house", ["shell"] = JsonNode.Parse(json) };
-        await Handle.InvokeVoidAsync("pullRecipe", shell.Name, recipe.ToJsonString());
-        await Set(PropFields.Style, JsonValue.Create(shell.Name));
+        if (await Handle.InvokeAsync<string?>("pullRecipe", shell.Name, recipe.ToJsonString()) is not { } key) return;
+        await Set(PropFields.Style, JsonValue.Create(key));
     }
 
     /// <summary>Which shell the building names. Read off the prop, so a reopened map shows the card in use.</summary>
     private string? shellName => Text(PropFields.Style, string.Empty) is { Length: > 0 } key ? key : null;
+
+    /// <summary>Whether the placement's registry key came from the card carrying this name. A key is the row's
+    /// name or that name numbered, so both readings are matched; two rows sharing a name both answer yes,
+    /// which is the one case a name cannot tell apart and the reason the key no longer is one.</summary>
+    private static bool Wears(string? key, string name)
+        => key is not null && (key == name
+            || (key.Length > name.Length + 1 && key.StartsWith(name, StringComparison.Ordinal)
+                && key[name.Length] == '-' && key[(name.Length + 1)..].All(char.IsAsciiDigit)));
     private IReadOnlyList<RoomStyleSummary> shells = [];
 
     // ── the recipe a click puts down ───────────────────────────────────────────
@@ -184,13 +192,14 @@ public partial class SketchDressingInspector
     private string? recipeName => Text(PropFields.Style, string.Empty) is { Length: > 0 } key ? key : null;
 
     /// <summary>Name this recipe on the placement, and put it in the document's registry if it is not there
-    /// yet. The key is the row's name, which is what an author reads it by.</summary>
+    /// yet. The key is the row's name where nothing else holds it, and a numbered variant where two library
+    /// rows read the same way — so the placement names what it is actually made of.</summary>
     private async Task PickRecipe(LibraryRow recipe)
     {
         if (RecipeKind is not { } recipeKind || Handle is null) return;
         if (await Library.DocumentAsync(recipeKind, recipe.Id) is not { } json) return;
-        await Handle.InvokeVoidAsync("pullRecipe", recipe.Name, json);
-        await Set(PropFields.Style, JsonValue.Create(recipe.Name));
+        if (await Handle.InvokeAsync<string?>("pullRecipe", recipe.Name, json) is not { } key) return;
+        await Set(PropFields.Style, JsonValue.Create(key));
     }
 
     /// <summary>Open the library at this kind, so authoring another is one click from wanting one.</summary>
