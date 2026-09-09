@@ -352,9 +352,14 @@ public static class PlanCompiler
             {
                 var b = plan.Placements.Destroyables[i];
                 if (ResolveGoalAnchor(plan, d, b.Piece, b.At) is not { } anchor) continue;
-                // The cell first, then the cell's orbit image: a goal is anchored on a block, and fanning the
-                // position instead lands the two images a block apart on ground that mirrors exactly.
-                var (px, pz) = ObjectiveFootprint.ImageAnchor(anchor.X, anchor.Z, d.Mode, 0, 0, k);
+                // The cell first, then the orbit image of the cell's own footprint: a goal is anchored on a
+                // block, fanning the position instead lands the two images a block apart on ground that
+                // mirrors exactly, and fanning the anchor alone carries an even-sided structure's lean into
+                // an image that should reverse it.
+                var style = DestroyableStyles.TryParse(b.Style, out var parsed) ? parsed : ObjectiveDefaults.Style;
+                var (styleWidth, _, styleDepth) = ObjectiveFootprint.Destroyable(style);
+                var (px, pz) = ObjectiveFootprint.ImageAnchor(
+                    anchor.X, anchor.Z, d.Mode, 0, 0, k, styleWidth, styleDepth);
                 destroyables.Add(new DestroyableIntent
                 {
                     Owner = teams[k].Id,
@@ -375,7 +380,13 @@ public static class PlanCompiler
             {
                 var c = plan.Placements.Cores[i];
                 if (ResolveGoalAnchor(plan, d, c.Piece, c.At) is not { } anchor) continue;
-                var (px, pz) = ObjectiveFootprint.ImageAnchor(anchor.X, anchor.Z, d.Mode, 0, 0, k);
+                var casing = ObjectiveDefaults.CoreCasing(
+                    c.Lava ?? ObjectiveDefaults.CoreLava,
+                    c.LavaHeight ?? ObjectiveDefaults.CoreLavaHeight,
+                    c.OpenTop ?? false).Size;
+                var (coreWidth, coreDepth) = ObjectiveFootprint.Core(casing);
+                var (px, pz) = ObjectiveFootprint.ImageAnchor(
+                    anchor.X, anchor.Z, d.Mode, 0, 0, k, coreWidth, coreDepth);
                 cores.Add(new CoreIntent
                 {
                     Owner = teams[k].Id,

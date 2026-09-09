@@ -57,12 +57,31 @@ public static class ObjectiveFootprint
         => ((int)Math.Round(anchorX, MidpointRounding.AwayFromZero),
             (int)Math.Round(anchorZ, MidpointRounding.AwayFromZero));
 
-    /// <summary>The <paramref name="k"/>-th orbit image of a goal's anchor, as the anchor of that image:
-    /// the cell it stands in, mirrored as a cell.</summary>
-    public static (int X, int Z) ImageAnchor(double anchorX, double anchorZ, string? mode, double cx, double cz, int k)
+    /// <summary>
+    /// The <paramref name="k"/>-th orbit image of a goal's anchor, as the anchor of that image — taken by
+    /// mirroring the <b>footprint</b> and reading the anchor back off it, not by mirroring the anchor.
+    ///
+    /// <para>The two differ for an even-sided structure and the difference is a whole block.
+    /// <see cref="Centred"/> leans such a structure one further along +X/+Z than −X/−Z, matching the
+    /// stamper; an image that reverses an axis has to reverse that lean, and an anchor fanned on its own
+    /// carries it through unchanged. A <c>cube-4</c> mirrored that way lands a block off its own reflection
+    /// on both axes at once, which is what a hand-built cage around one shows immediately and what a corpus
+    /// of odd-sided goals never does — <c>(n−1)/2</c> is symmetric at every odd size.</para>
+    ///
+    /// <para>The image's own extent is measured from the mirrored corners rather than assumed, so a mode
+    /// that turns the plan carries the structure's depth into its width without a special case.</para>
+    /// </summary>
+    public static (int X, int Z) ImageAnchor(double anchorX, double anchorZ, string? mode, double cx, double cz,
+                                             int k, int width, int depth)
     {
         var (cellX, cellZ) = AnchorCell(anchorX, anchorZ);
-        return Symmetry.Cell(cellX, cellZ, mode, cx, cz, k);
+        var (minX, minZ, maxX, maxZ) = Centred(cellX, cellZ, width, depth);
+        var near = Symmetry.Cell(minX, minZ, mode, cx, cz, k);
+        var far = Symmetry.Cell(maxX, maxZ, mode, cx, cz, k);
+        int imageMinX = Math.Min(near.X, far.X), imageMinZ = Math.Min(near.Z, far.Z);
+        int imageWidth = Math.Abs(far.X - near.X) + 1, imageDepth = Math.Abs(far.Z - near.Z) + 1;
+        // Read the anchor back out of the image box: Centred puts the minimum at anchor − (n−1)/2.
+        return (imageMinX + (imageWidth - 1) / 2, imageMinZ + (imageDepth - 1) / 2);
     }
 
     /// <summary>
