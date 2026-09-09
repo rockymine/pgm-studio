@@ -13,6 +13,10 @@
 {
   <div class="canvas-layer-strip" role="group" aria-label="Layer">
     <span class="canvas-layer-strip-label">Layer</span>
+    @* The tabs scroll and the label and the add button do not: a board grows layers without limit and the
+       strip cannot, so what a long stack costs is a scroll rather than the one control that makes the next
+       layer. *@
+    <div class="canvas-layer-tabs">
     @foreach (var layer in Layers)
     {
       <span class="canvas-layer-tab-wrap @(layer.Id == ActiveId ? "canvas-layer-tab-wrap--on" : null)" @key="layer.Id">
@@ -32,6 +36,7 @@
         }
       </span>
     }
+    </div>
     @if (AllowEdit)
     {
       <button type="button" class="canvas-layer-add" title="Add a layer above" @onclick="OnAdd">

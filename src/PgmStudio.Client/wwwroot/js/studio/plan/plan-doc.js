@@ -69,10 +69,19 @@ export const FACING_DIR = {
 };
 export function nextFacing(f) { const i = FACINGS.indexOf(f); return FACINGS[(i + 1) % FACINGS.length]; }
 
+/**
+ * The shape version a document written here states — the twin of `PlanModel.CurrentVersion`, which is what
+ * the server reads. A marker's `at` is an offset in **blocks** from its piece's minimum corner (version 2);
+ * version 1 stated the same field in cells, the same numbers over a different distance, so a document
+ * naming the wrong one is refused `PL15` rather than measured in the wrong unit. `PlanDocVersionTests`
+ * reads the C# constant and fails when these two disagree.
+ */
+export const PLAN_VERSION = 2;
+
 /** A blank plan document (wire shape) with the schema defaults. */
 export function emptyDoc() {
   return {
-    plan: 1,
+    plan: PLAN_VERSION,
     meta: { name: "Untitled plan" },
     globals: { cell: 5, symmetry: "rot_180", maxPlayers: 12, surface: 9 },
     pieces: [],
@@ -96,7 +105,7 @@ export function normalizeDoc(d) {
   const meta = { name: src.meta?.name ?? "Untitled plan" };
   if (src.meta?.notes != null) meta.notes = src.meta.notes;
   const out = {
-    plan: src.plan ?? 1,
+    plan: src.plan ?? PLAN_VERSION,
     meta,
     globals,
     pieces: (src.pieces || []).map(p => {

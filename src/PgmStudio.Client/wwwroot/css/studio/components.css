@@ -1606,7 +1606,22 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   border-radius: var(--radius-sm);
   background: var(--canvas-float-bg); backdrop-filter: blur(6px);
   border: 1px solid var(--canvas-float-border); box-shadow: var(--canvas-float-shadow);
+  /* The dock is centred on the canvas (`.canvas-dock`, left 50% and translated back by half its width), so
+     what is left for the strip is the half-canvas beside it less the dock's own half, this element's own
+     left offset and a gap. Measured: the Draw dock is 350px wide, so 175 of half-width, and the number here
+     clears one up to about 490 — the phases carrying the most tools. Held as a calc against 50% rather than
+     as a share of the width, because the dock is a constant number of pixels while a share is not: on a
+     narrow canvas a percentage keeps growing past it. */
+  max-width: calc(50% - 260px);
 }
+/* Only the tabs scroll. `min-width: 0` is what lets a flex child shrink below its content and overflow at
+   all; without it the strip grows to fit the tabs and the cap above does nothing. */
+.canvas-layer-tabs {
+  display: flex; align-items: stretch; gap: 2px;
+  min-width: 0; overflow-x: auto; overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+.canvas-layer-strip-label, .canvas-layer-add { flex: none; }
 .canvas-layer-strip-label {
   display: flex; align-items: center; padding: 0 6px;
   font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
