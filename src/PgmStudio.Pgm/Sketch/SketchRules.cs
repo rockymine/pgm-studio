@@ -188,8 +188,15 @@ public static class SketchRules
     /// else catches it: the shape is in the document, it rasterizes where the author put it, the drawn
     /// mirror outline still covers it because a group's outline is the union of the ground it fused and not
     /// the shapes it lists, and half a landmass is missing only in the world. The same list carries the
-    /// group's relief and its keep-clear fan, so an unlisted shape takes neither.</summary>
-    /// <remarks>List the shape in the group its ground belongs to. The Sketch tool recomputes group membership on every edit, so opening the layout and moving the shape writes it back in; a document written by hand or by a tool names its groups itself and has to name this shape too. A layer stating no groups at all is not this — the whole of it mirrors — and a role-tagged room piece is never listed, by design.</remarks>
+    /// group's relief and its keep-clear fan, so an unlisted shape takes neither.
+    ///
+    /// <para>Asked only of a shape that changes the world. Having no image is a fault about what a shape
+    /// does on the far side, so one that does nothing on this side has no fault to have: a shape drawing no
+    /// ground is <c>SK4</c>'s, and a <b>subtract over ground no add on its layer reaches</b> takes nothing
+    /// away and is nobody's. That case is ordinary — a compile declares a buffer over every enclosed void so
+    /// a ring of pieces at one surface cannot fuse across its own hole, and where the ring is at several
+    /// surfaces the union never bridges the hole and the cut lands on nothing.</para></summary>
+    /// <remarks>List the shape in the group its ground belongs to. The Sketch tool recomputes group membership on every edit, so opening the layout and moving the shape writes it back in; a document written by hand or by a tool names its groups itself and has to name this shape too. A layer stating no groups at all is not this — the whole of it mirrors — a role-tagged room piece is never listed, by design, and a subtract that removes nothing is not asked.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string ShapeInNoGroup = "SK17";
 

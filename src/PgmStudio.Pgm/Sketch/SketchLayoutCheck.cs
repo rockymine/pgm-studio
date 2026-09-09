@@ -345,7 +345,9 @@ public static class SketchLayoutCheck
         // SK17 — a shape no group lists. The fan is read off each mirroring group's shapeIds, so a shape no
         // list names is built where it was drawn and nowhere else. Only where the board fans at all, and
         // never for a layer stating no groups (the whole of that layer mirrors) or for a role-tagged room
-        // piece (never listed, by design). A shape drawing nothing is SK4's to report.
+        // piece (never listed, by design). A shape drawing nothing is SK4's to report, and a subtract taking
+        // nothing away is nobody's: having no image is a fault about what a shape does to the world, so a
+        // shape that does nothing to it has no fault to have (CutsNothing).
         if (Symmetry.OrbitAxes(mode).Length > 0)
             foreach (var (layer, index) in SketchLayout.Stack(layout).Select((layer, at) => (layer, at)))
             {
@@ -355,6 +357,7 @@ public static class SketchLayoutCheck
                 {
                     if (shape.Role is not null || shape.Id.Length == 0 || listed.Contains(shape.Id)) continue;
                     if (!Kinds.Contains(shape.Type ?? "") || Empty(shape) is not null) continue;
+                    if (CutsNothing(shape, layer)) continue;
                     findings.Add(new Finding(SketchRules.ShapeInNoGroup,
                         $"'{shape.Id}' on layer '{layer.Id}' is in none of the layer's {layer.Groups.Count} "
                         + "group(s), and the symmetry orbit is fanned per group — the shape is built once, "
@@ -525,6 +528,37 @@ public static class SketchLayoutCheck
     }
 
     // The ground a shape covers, before the orbit fans it — its own outline's bounding box.
+    /// <summary>Whether a <b>subtract</b> takes nothing away, because no add on its layer reaches the ground
+    /// it covers. A subtract states negative space and reaches only its own layer, so one over ground no add
+    /// places removes nothing at any height — and a shape that removes nothing is the same silence
+    /// <see cref="Empty"/> already gives a shape that draws nothing.
+    ///
+    /// <para>The case is ordinary rather than exotic. A compile declares a buffer over every enclosed void
+    /// (<see cref="PlanVoids"/>) so a ring of pieces at one surface cannot fuse across its own hole; where
+    /// the ring is at several surfaces the union never bridges the hole to begin with and the cut lands on
+    /// nothing. It is then exactly the shape that goes ungrouped, since a regroup assigns a subtract by what
+    /// it overlaps — so the shape with no effect is the one this rule would otherwise name.</para>
+    ///
+    /// <para>Answered on bounds and only where they are disjoint, which is sound in the direction it is
+    /// used: boxes that do not overlap belong to shapes that do not either, whatever their outlines. Boxes
+    /// that merely touch are disjoint — a cut whose edge runs along a piece's edge shares a line and no
+    /// ground.</para></summary>
+    private static bool CutsNothing(SketchShape shape, SketchLayer layer)
+    {
+        if (!string.Equals(shape.Operation, "subtract", StringComparison.Ordinal)) return false;
+        if (Bounds(shape) is not { } cut) return false;
+
+        foreach (var other in layer.Shapes)
+        {
+            if (ReferenceEquals(other, shape)) continue;
+            if (string.Equals(other.Operation, "subtract", StringComparison.Ordinal)) continue;
+            if (Bounds(other) is not { } add) continue;
+            if (Math.Min(cut.MaxX, add.MaxX) > Math.Max(cut.MinX, add.MinX)
+             && Math.Min(cut.MaxZ, add.MaxZ) > Math.Max(cut.MinZ, add.MinZ)) return false;
+        }
+        return true;
+    }
+
     private static (double MinX, double MinZ, double MaxX, double MaxZ)? Bounds(SketchShape shape) => shape.Type switch
     {
         ShapeKinds.Rectangle => (Math.Min(shape.MinX ?? 0, shape.MaxX ?? 0), Math.Min(shape.MinZ ?? 0, shape.MaxZ ?? 0),

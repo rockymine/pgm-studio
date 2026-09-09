@@ -85,6 +85,40 @@ public sealed class SketchLayoutCheckTests
     }
 
     [Test]
+    public async Task An_unlisted_subtract_over_ground_no_add_reaches_takes_nothing_away()
+    {
+        // The compile declares a buffer over every enclosed void so a ring of pieces at one surface cannot
+        // fuse across its own hole. Where the ring stands at several surfaces the union never bridges the
+        // hole, the cut lands on nothing — and it is then exactly the shape a regroup leaves out, since a
+        // subtract is assigned by what it overlaps. Having no image is a fault about what a shape does to
+        // the world; this one does nothing to it (author).
+        var cut = """{"id":"void-1-cut","type":"rectangle","operation":"subtract","min_x":60,"max_x":70,"min_z":60,"max_z":70}""";
+        var findings = SketchLayoutCheck.Check(Layout(Rect + "," + cut));
+        await Assert.That(findings.Where(f => f.Rule == SketchRules.ShapeInNoGroup)).IsEmpty();
+    }
+
+    [Test]
+    public async Task An_unlisted_subtract_that_does_reach_an_add_is_still_named()
+    {
+        // The exemption is about effect, not about being a subtract: one over ground an add places is built
+        // on one side only, and the world is asymmetric where it cut.
+        var cut = """{"id":"real-cut","type":"rectangle","operation":"subtract","min_x":-4,"max_x":4,"min_z":-4,"max_z":4}""";
+        var finding = SketchLayoutCheck.Check(Layout(Rect + "," + cut))
+                                       .Single(f => f.Rule == SketchRules.ShapeInNoGroup);
+        await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "real-cut" });
+    }
+
+    [Test]
+    public async Task A_cut_whose_edge_only_touches_an_add_shares_a_line_and_no_ground()
+    {
+        // `Rect` runs to x 20. A cut starting there meets it along one line and removes nothing, which is
+        // what a buffer over the hole between abutting pieces looks like.
+        var cut = """{"id":"edge-cut","type":"rectangle","operation":"subtract","min_x":20,"max_x":30,"min_z":-5,"max_z":5}""";
+        var findings = SketchLayoutCheck.Check(Layout(Rect + "," + cut));
+        await Assert.That(findings.Where(f => f.Rule == SketchRules.ShapeInNoGroup)).IsEmpty();
+    }
+
+    [Test]
     public async Task A_board_that_does_not_mirror_loses_no_image_to_an_unlisted_shape()
     {
         var findings = SketchLayoutCheck.Check(Layout(
