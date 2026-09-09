@@ -708,10 +708,17 @@ public partial class SketchTool
     /// <summary>Every finding behind the note, in full, for the tooltip: the rule and its own sentence.</summary>
     private string IsoContestedWhy => string.Join("\n\n", isoNotBuilt.Select(f => $"{f.Rule} — {f.Message}"));
 
+    /// <summary>The build hands over everything it raised; this keeps the <b>declines</b>, which are the
+    /// findings whose whole meaning is that a piece of what the author wrote is not in the world
+    /// (<see cref="Severity.Decline"/>). A complaint about the same board is a remark on a world that came
+    /// out as drawn — a stack whose list order reads against its own heights, a shape no group fans, a mass
+    /// nothing walks onto — and naming its subjects under a note that says the drawing and the build differ
+    /// says the opposite of what the finding says.</summary>
     [JSInvokable]
     public void OnIsoNotBuilt(string json)
     {
-        isoNotBuilt = JsonSerializer.Deserialize<List<Finding>>(json, Wire) ?? [];
+        var raised = JsonSerializer.Deserialize<List<Finding>>(json, Wire) ?? [];
+        isoNotBuilt = [.. raised.Where(finding => finding.Severity == Severity.Decline)];
         StateHasChanged();
     }
 

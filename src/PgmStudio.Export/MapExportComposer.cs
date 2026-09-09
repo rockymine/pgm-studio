@@ -5,6 +5,7 @@ using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
@@ -361,13 +362,24 @@ public static class MapExportComposer
         return findings.Count == 0 ? null : Refuse("objective placement", [.. findings]);
     }
 
-    /// <summary> <b><c>WX11</c> — every stamped structure whose neighbours have no ground to meet it on.</b> A
+    /// <summary> <b><c>WX11</c> — every stamped structure the ground beside it falls away from.</b> A
     /// foundation seals the column under the whole footprint and levels it at the footprint's own highest, so
-    /// where the cell beside a building is void, or well below the floor it stands on, what the building shows
-    /// the world is a sheer face of bedrock: a wall nobody drew, at a height nobody chose. <para>Read off the
-    /// provenance rather than the intent, so it covers everything a pass stamped — a wool cage, a spawn cube, a
-    /// placed building — by the identity each already recorded, and needs no list of what a structure is. A
-    /// complaint: a building on a ledge is a real thing to draw, and the world builds either way.</para>
+    /// where the cell beside a building sits well below the floor it stands on, what the building shows the
+    /// world is a sheer face of bedrock: a wall nobody drew, at a height nobody chose.
+    /// <para><b>Ground the board drew, and only that.</b> A neighbour that is void is the edge of the map
+    /// rather than a face, and a structure at the rim is where the board stops — the same line <c>DR-DRY</c>
+    /// draws for water meeting the void. Measuring against it reported the floor's own height above y=0 as
+    /// though it were a step, so every structure at the rim raised one and the number it carried was its
+    /// altitude.</para>
+    /// <para><b>And only what lays a foundation is asked</b> (<see cref="StructureStamper.FoundationKinds"/>).
+    /// The floor below is the footprint's highest, which is the height of every cell in it only where
+    /// something levelled them to it. A bedrock wall, a redstone line and a goal's buried plate level
+    /// nothing, so against a footprint that spans a step — a wall sitting on the seam between two pieces —
+    /// the maximum belongs to one row and the neighbour that wins is beside the other, and the drop reported
+    /// is between two cells that never meet.</para>
+    /// <para>Read off the provenance rather than the intent, so it covers every stamping of such a thing by
+    /// the identity each already recorded. A complaint: a building on a ledge is a real thing to draw, and
+    /// the world builds either way.</para>
     /// <para><b>surface</b> — The <b>terrain's</b> tops, cell by cell — <see cref="BuiltWorld.Surface"/>. Not the
     /// board's highest: what stands over a cell is not what a building beside it steps down to, and a balloon
     /// flying over a field would read as a fifty-block plinth under the shed on it.</para></summary>
@@ -383,6 +395,10 @@ public static class MapExportComposer
         foreach (var (cell, pass, owner) in provenance.Claims)
         {
             if (pass != ProvenancePass.Structure || owner is not { } stamp) continue;
+            // Only what lays a foundation. The fault here is a foundation's own face, and the floor it is
+            // measured from is the footprint's highest — which is the height of every cell only where
+            // something levelled them to it. See StructureStamper.FoundationKinds.
+            if (!StructureStamper.FoundationKinds.Contains(stamp.Kind)) continue;
             var identity = $"{stamp.Kind}:{stamp.Unit}:{stamp.Image}";
             if (!byOwner.TryGetValue(identity, out var cells)) byOwner[identity] = cells = [];
             cells.Add(cell);
@@ -394,22 +410,24 @@ public static class MapExportComposer
             var footprint = cells.ToHashSet();
             var floor = cells.Where(surface.ContainsKey).Select(cell => surface[cell]).DefaultIfEmpty(0).Max();
             int worst = 0, atX = 0, atZ = 0;
-            var voids = 0;
             foreach (var (x, z) in cells)
                 foreach (var (nx, nz) in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
                 {
                     if (footprint.Contains((nx, nz))) continue;
-                    // A cell with no ground at all is the whole drop: the face runs to the void.
-                    var drop = surface.TryGetValue((nx, nz), out var beside) ? floor - beside : floor;
-                    if (!surface.ContainsKey((nx, nz))) voids++;
+                    // Only ground the board drew is measured against. A neighbour with no ground is where the
+                    // board stops, not a face the structure presents to it: there is nothing to bring up to
+                    // the building and nothing for a player to fail to climb. Comparing against it also has
+                    // no drop to state — the fall would be the floor's own height above y=0, which is the
+                    // structure's altitude wearing the name of a step.
+                    if (!surface.TryGetValue((nx, nz), out var beside)) continue;
+                    var drop = floor - beside;
                     if (drop > worst) (worst, atX, atZ) = (drop, nx, nz);
                 }
 
             if (worst <= 1) continue;
-            var over = voids > 0 ? $"{voids} of them over the void" : "the ground falling away";
             findings.Add(new Finding(RoomFrameRules.StructureOnAPlinth,
-                $"{identity.Replace(":", " ")} stands {worst} blocks above the cell beside it at "
-                + $"({atX}, {atZ}) — {over}. Its foundation fills that face in bedrock, which is a wall a "
+                $"{identity.Replace(":", " ")} stands {worst} blocks above the ground beside it at "
+                + $"({atX}, {atZ}). Its foundation fills that face in bedrock, which is a wall a "
                 + "player cannot climb and nobody drew.",
                 Severity.Complaint, Subjects: [identity], Edit: BenchEdit(identity, cells, floor, groupAt)));
         }

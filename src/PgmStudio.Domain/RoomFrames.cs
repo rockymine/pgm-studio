@@ -141,11 +141,18 @@ public static class RoomFrameRules
     [Rule(RuleCategory.Unplayable, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Objective)]
     public const string ShellOverCeiling = "WX10";
 
-    /// <summary>A stamped structure stands over ground the cell beside it does not have. Its foundation fills
-    /// the column under its whole footprint, so where the neighbouring cell is void or well below the floor
-    /// what the building meets the world with is a sheer face of bedrock — a wall nobody drew, at a height
-    /// nobody chose, which a player cannot climb and no other read reports.</summary>
-    /// <remarks>Bring the ground up to the building, or move the building onto ground that carries it: the drop is measured from the floor it stands on to the surface of the cell beside it, and a step of one is a doorstep rather than a wall. A building deliberately sited on a ledge is the case to ignore — this is a complaint, and the world builds either way.</remarks>
+    /// <summary>A stamped structure stands well above the ground beside it. Its foundation fills the column
+    /// under its whole footprint and levels it at the footprint's highest, so where a neighbouring cell sits
+    /// well below that floor what the building meets the world with is a sheer face of bedrock — a wall
+    /// nobody drew, at a height nobody chose, which a player cannot climb and no other read reports.
+    ///
+    /// <para>Two things bound it. Only ground the board drew is measured against, a neighbour that is void
+    /// being the edge of the map. And only what <b>lays a foundation</b> is asked — the wool room and the
+    /// spawn room. A bedrock approach wall stands from <c>y 0</c> by construction, a redstone line is wire
+    /// on the surface and a goal's plate is buried under it, so none of the three has a floor its whole
+    /// footprint was levelled to, and measuring one against the highest ground it happens to span reports a
+    /// drop between two cells that never meet.</para></summary>
+    /// <remarks>Bring the ground up to the building, or move the building onto ground that carries it: the drop is measured from the floor it stands on to the surface of the cell beside it, and a step of one is a doorstep rather than a wall. Only a wool room or a spawn room is asked — those are what level their footprint — so a wall sitting on the step between two pieces raises nothing, its bedrock going to the ground either side by design. A structure at the board's rim raises nothing here — there is no ground beside it to fall away, and the void is where the map stops rather than a face it presents. A building deliberately sited on a ledge is the case to ignore — this is a complaint, and the world builds either way.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.World, RuleConcern.Terrain)]
     public const string StructureOnAPlinth = "WX11";
 }

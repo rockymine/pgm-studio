@@ -59,6 +59,20 @@ public static class StructureStamper
         return tops;
     }
 
+    /// <summary>The stamps that lay a <see cref="StampFoundation"/>, by the <c>Kind</c> their
+    /// <c>StampId</c> carries — the two room frames, and nothing else.
+    ///
+    /// <para>It sits here rather than with the rule that reads it because this is the file that lays the
+    /// thing: a kind added to the two call sites is a kind added a few lines from this set. What it exists
+    /// for is that a foundation levels a whole footprint at its own highest, and a reader measuring a
+    /// structure against the ground beside it is only entitled to that maximum where something actually
+    /// levelled. A bedrock approach wall is bedrock from <c>y 0</c> by construction, a redstone line is
+    /// wire laid on the surface, and a goal's plate is buried under the ground it already stood on — none
+    /// of the three levels anything, and against a footprint that spans a step the maximum belongs to no
+    /// cell the neighbour touches.</para></summary>
+    public static readonly IReadOnlySet<string> FoundationKinds =
+        new HashSet<string>(StringComparer.Ordinal) { "wool", "spawn" };
+
     /// <summary>The columns <see cref="StampFoundation"/> fills, for a caller recording what it covered. Its
     /// footprint is <b>max-exclusive</b> and a provenance rect is max-inclusive, so the two disagree by a
     /// column on each axis wherever the bounds are carried across by hand rather than walked — which is what
