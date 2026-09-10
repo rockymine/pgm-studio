@@ -62,6 +62,23 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Painting terrain
 
+- [ ] **WE61 — A field pattern in a tall bucket with no `Rise` draws vertical stripes.** `TerrainPatterns.cs`
+  states it already: a pattern of the plane "gives every block in a column the same answer … and leaves a wall
+  face as vertical stripes — which is what a wall-run already draws deliberately and what a pattern draws by
+  accident." `Rise` is off by default because it costs more, and the buckets it earns its cost on are exactly
+  the two that are tall. Two painting agents met this on the same board pair: one found it and gave every
+  noise and voronoi in a wall a rise, the other did not and shipped striped tunnel walls
+  (`specs/probe-plains-2`, the `tunnel-walls` shapes). A field pattern landing in `wall` or `fill` with
+  `Rise: 0` should raise a finding naming the bucket, or default to a rise there rather than to none.
+
+- [ ] **WE62 — A log checker on a freestanding column can only show end grain.** `LogCheckerMaterial` takes
+  its axis from the wall's own run, and off a wall its docstring says the flat squares "read as bark against
+  sawn end, which is what a log floor is" — right for a floor and wrong for a pillar, which has no perimeter
+  run to ask. A painting agent put one on the monument pillars of `specs/probe-snowfield-2` and the logs show
+  their cut faces to the player. Same shape of problem as `SK23`: a column is all edge, and the material has no
+  way to learn it is not a floor. Either resolve upright on a shape with no run, or refuse the material there.
+
+
 - [ ] **WE60 — `repeat` names a cycle and holds a course.** `BandEnding.Repeat` makes the last band claim
   everything past the stack, which is what `BandStack.At` does and what the enum's own docstring says. The
   word says the opposite: a reader who has met a repeating texture anywhere else expects the bands to cycle.
@@ -196,6 +213,34 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   `docs/tools/configure.md` gains the storey to its phases.
 
 ### A made thing is a third kind, and it is drawn out of layers
+
+- [ ] **WE63 — The room plate stamps raw stone under every room.** A shell's `Foundation.Plate` is a stated
+  solid — stone brick, sandstone, cobblestone, depending on the preset — so the courses under a room keep that
+  block however the ground around them is themed. On a board where the rooms stand on raised pieces the whole
+  outside face of each platform reads as a grey core in a coloured map: `specs/probe-plains-1` and
+  `specs/probe-plains-2` both left the undersides of their spawn and wool rooms unthemed, and the author
+  reported it on both. Two other agents found it and fixed it by hand — one resolved the plate through the
+  board's own strata at extent 24, the other dropped the `footing` because a proud ring left the outermost
+  column unpainted. That is the right answer and it should be the default: the plate resolves through the
+  theme under it unless a style states otherwise.
+
+- [ ] **WE64 — A boulder in the ground's own tone family disappears.** The author's ruling, from three boards:
+  a rock must not be built from the family it sits on. Sandstone rocks on sand vanish into the sandstone
+  structures behind them (`specs/probe-desert-1`, `specs/probe-desert-2`), and red clay against hardened clay
+  on one rock is noise rather than variation (`specs/probe-badlands-2`). The stated fallback is stone, andesite
+  and cobblestone, which works against sand, grass, dirt and red sand, or a single clay, since no two clay
+  colours are close. Seed that rock as the library's default so a placement naming nothing gets it, and raise a
+  finding where a boulder's blocks and the theme under it share a tone family.
+
+- [ ] **WE65 — Remove the grown tree.** `TreeForm.Grown` builds its trees from `TreeSkeleton` and they come out
+  broken; the author's ruling is that the form goes rather than gets a knob. It reaches six files in `src/` —
+  `DressingModel` (the enum), `PropStyleLibrary`, `DressingPreview`, `TerrainPreviewEndpoints`, `LibrarySeed`
+  (the one seeded row, "grown conifer") and the client's `SketchDressingInspector` — plus `TreeSkeleton` itself
+  at 297 lines in `Geom`, the `Wood`/`Stems`/`Leader`/`BranchAngle`/`Levels`/`LeafSize`/`Whorled`/`Flow` fields
+  on `TreeStyle` that only it reads, and `docs/world-export/tree-corpus.md`. `Template` and `Copied` stay and
+  cover what the corpus actually plants. Boards carrying a grown placement are the ten probe boards; they are
+  a record of a run and are not migrated.
+
 
 - [ ] **WE77 — `WX11` measures a structure's plinth from the highest terrain its footprint touches, and the
   stamper seats it on the lowest.** The same maximum-over-a-footprint reading put a goal's bedrock plate above
