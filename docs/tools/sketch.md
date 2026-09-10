@@ -26,8 +26,8 @@ document is the tool: what each phase authors, what it writes, and what refuses.
 take one of those statements through to the blocks it becomes — `relief.md` (the elevation solver behind the
 Relief phase, with the measured terrain law), `terrain-painting.md` (what the painter makes of a theme, cell by
 cell), `structures.md` (the shells the Theme phase binds and the house the Dressing phase stamps),
-`decoration.md` (the dressing pass itself) and `tree-corpus.md` (the hand-built ground truth a grown tree is
-scored against). `docs/world-export/sketch-world-export.md` is the world folder Finish writes into. Each is cited
+`decoration.md` (the dressing pass itself) and `tree-corpus.md` (the hand-built ground truth any generated
+foliage is scored against). `docs/world-export/sketch-world-export.md` is the world folder Finish writes into. Each is cited
 below from the phase that feeds it.
 
 ## What it writes
@@ -980,10 +980,10 @@ of the same kind and knobs differ from each other while any one prop re-exports 
 
 `docs/world-export/decoration.md` is the pass this phase feeds, one section per tool and each carrying its
 `DR*` rules: how a flora field reads the paint under it, how a stroke's band is derived from its centreline, how
-a boulder is bedded into the ground it stands on, how a tree is copied or grown, and how a channel is dug.
-Two of those reach further. A grown tree is scored against `tree-corpus.md`, the 75 hand-built trees that are the measured ground
-truth for what a tree looks like; and the building prop stamps `structures.md`'s house, which is why what it
-can be made of runs past what this phase can state.
+a boulder is bedded into the ground it stands on, how a tree is built or copied, and how a channel is dug.
+Two of those reach further. A tree's foliage is scored against `tree-corpus.md`, the 75 hand-built trees that
+are the measured ground truth for what a tree looks like; and the building prop stamps `structures.md`'s
+house, which is why what it can be made of runs past what this phase can state.
 
 Six things can be placed, in three placement geometries.
 
@@ -1043,12 +1043,11 @@ here — pre-authoring a river form is authoring a shape without its place — a
 **A tree is two different things rather than one thing with a switch.** A `template` tree is vanilla: its
 `species` — oak, birch, spruce, jungle, acacia or dark oak — names its wood, its canopy profile and its
 proportions together, since a notched cone is a spruce and a flat umbrella on a leaning trunk is an acacia,
-and neither is a knob setting of the other; `height` scales the lot. A `grown` tree is the recursive skeleton,
-where the shape is the author's and `wood` (the same six) is all that is left to name: `stems` one to three,
-`leader` for how far the central axis climbs, `flow` for how much the trunk wanders, `branchAngle`, `levels`
-two or three, `whorled` for the ring-every-few-courses conifer against the broadleaf, and `leafSize`. Each
-form reads only its own fields, so the others are inert rather than wrong. Both live on the **recipe**, so a
-grove of forty oaks is forty positions and one row, and retuning that row retunes the grove.
+and neither is a knob setting of the other; `height` scales the lot. A `copied` tree is one an author built by
+hand and cut out of a world, carried as its own `body` of `[x, y, z, id, data]` offsets: it states no species
+and no height, because what it looks like is what was built. Each form reads only its own fields, so the
+others are inert rather than wrong. Both live on the **recipe**, so a grove of forty oaks is forty positions
+and one row, and retuning that row retunes the grove.
 
 **A boulder** is a glacial erratic: a mass standing on the ground, bedded a third of its height into it. It
 takes a `form` — `round` (a weathered erratic), `angular` (the same rock, its surface broken), `outcrop` (wide
@@ -1069,10 +1068,10 @@ own libraries instead, each row drawn through the pass that builds it. `POST /te
 before it is placed — and a building whose wings make no building is refused there with the same `HJ*`/`HP*`
 findings the build acts on, rather than drawn as though it would stand.
 
-Two knobs are bounded rather than free, and it is load-bearing: a tree's height is held to 5–40 and its leaf
-cluster to 0.2–1, and a boulder's size to 2–10. Cost is superlinear in reach — a grown crown is filled by
-testing every cell of its bounding box — so a `leader` of 55 rather than 0.55 would not draw a strange tree,
-it would ask for a volume hundreds of blocks across and never return.
+Two reaches are bounded rather than free, and it is load-bearing: a tree's height is held to 5–40 and a
+boulder's size to 2–10. Cost is superlinear in reach — the sample patch a preview cuts is quadratic in it — so
+a height of 999 would not draw a tall tree, it would ask for a patch hundreds of blocks across and never
+return.
 
 The two clicked kinds are **markers**, and a marker seats on the ground: it can only be dropped where there is
 terrain, and dragging one across the void simply does not follow, so it stays on the last real cell it was
@@ -1215,7 +1214,7 @@ in `library.md` may stand there.
 a `style` key into the document's own `styles` registry, and the registry states each recipe once — a board
 carrying hundreds of trees over a few dozen recipes stores the recipes and not the repetition, and changing one
 changes every placement wearing it. A recipe names its kind the way a placement does, so one registry holds all
-three; the key is read off the recipe (`oak-10`, `grown-birch-18`, `copied-716`, `angular-6`), so it says what
+three; the key is read off the recipe (`oak-10`, `copied-716`, `angular-6`), so it says what
 it is rather than counting, and two recipes that read the same way are numbered rather than collapsed. A
 copied tree's key counts its blocks, which is the one thing about a cut body that reads at a glance.
 
@@ -1762,7 +1761,7 @@ phase binds from, with `/room-styles/{id}/json` for the stamper's own form; `/ro
 `/porch-styles` are the parts a room style is composed from. `/terrain/blocks` is the
 block palette, and `/terrain/material-preview`, `/terrain/theme-preview`, `/terrain/theme-map-preview` and
 `/terrain/prop-preview` render what an edit will look like; `/terrain/stroke-styles`, `/terrain/water-forms`,
-`/terrain/boulder-forms`, `/terrain/species` and `/terrain/woods` are the dressing vocabularies.
+`/terrain/boulder-forms` and `/terrain/species` are the dressing vocabularies.
 
 ## Driving it without the UI
 

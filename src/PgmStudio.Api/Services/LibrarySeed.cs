@@ -61,13 +61,8 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         {
             if (trees.Contains(species.Name)) continue;
             await props.CreateTreeAsync(PropStyleLibrary.RowOf(new TreeStyleSaveRequest(
-                species.Name, TreeForms.Template, species.Name, species.Name, species.Height)), ct);
+                species.Name, TreeForms.Template, species.Name, species.Height)), ct);
         }
-        // One grown tree beside them, because the form is the thing an author cannot discover from six vanilla
-        // cards: a conifer is whorled and a broadleaf is not, and that is the choice the grower exists for.
-        if (!trees.Contains("grown conifer"))
-            await props.CreateTreeAsync(PropStyleLibrary.RowOf(new TreeStyleSaveRequest(
-                "grown conifer", TreeForms.Grown, "spruce", "spruce", Height: 18, Whorled: true)), ct);
 
         var rocks = (await props.ListBouldersAsync(ct))
             .Select(row => row.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);

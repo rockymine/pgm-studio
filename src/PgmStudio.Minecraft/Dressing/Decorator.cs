@@ -1111,20 +1111,15 @@ public static class Decorator
         => Fan(world, context, context.GroundFor(tree), (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", declined);
 
     /// <summary>How far this tree's crown actually reaches from its own trunk — the farthest a leaf cell of
-    /// <see cref="TemplateTree"/> or <see cref="GrownTree"/> stands from the anchor, horizontally. This is the
-    /// same deterministic build the stamp writes with (species/shape, seed, form), read for its geometry rather
+    /// <see cref="TemplateTree"/> or <see cref="CopiedTree"/> stands from the anchor, horizontally. This is the
+    /// same deterministic build the stamp writes with (species, seed, form), read for its geometry rather
     /// than its blocks, so a caller wanting the crown's true reach without a world to measure it — the
     /// point-and-radius foliage render (<c>docs/world-export/decoration.md</c> §6) — gets the honest figure
     /// rather than a species-nominal guess, at the cost of nothing more than the same generation the stamp was
     /// always going to run.</summary>
     public static double CanopyRadius(TreeProp tree)
     {
-        var (_, leaves) = tree.Style.Form switch
-        {
-            TreeForm.Template => TemplateTree(tree),
-            TreeForm.Copied => CopiedTree(tree),
-            _ => GrownTree(tree),
-        };
+        var (_, leaves) = tree.Style.Form == TreeForm.Copied ? CopiedTree(tree) : TemplateTree(tree);
         var farthest = 0.0;
         foreach (var (x, _, z) in leaves)
         {
@@ -1134,15 +1129,15 @@ public static class Decorator
         return farthest;
     }
 
-    /// <summary>A tree as offsets from the block it stands on. Both forms end here: each produces the cells
-    /// that are wood and the cells that are leaf, and this turns those into blocks. Wood wins where they
-    /// overlap, so a trunk is never hollowed by its own foliage, and every leaf carries the no-decay bit — a
+    /// <summary>A tree as offsets from the block it stands on. A copied tree carries its own blocks and is
+    /// written straight out; a template produces the cells that are wood and the cells that are leaf, and this
+    /// turns those into blocks in its species' timber. Wood wins where they overlap, so a trunk is never hollowed by its own foliage, and every leaf carries the no-decay bit — a
     /// built map has no growing tree behind its crown, and without the flag the whole thing disappears shortly
     /// after the map loads.</summary>
     private static List<PropCell> TreeCells(TreeProp tree)
     {
         if (tree.Style.Form == TreeForm.Copied) return CopiedCells(tree);
-        var (wood, leaves) = tree.Style.Form == TreeForm.Template ? TemplateTree(tree) : GrownTree(tree);
+        var (wood, leaves) = TemplateTree(tree);
         var timber = tree.Style.Timber;
         var leafData = timber.LeafData | DressingPalette.LeafNoDecay;
         var logData = timber.LogData | DressingPalette.LogAllBark;
@@ -1195,28 +1190,6 @@ public static class Decorator
             cells.Add(new PropCell(x, y, z, id, written, Buried: false));
         }
         return cells;
-    }
-
-    /// <summary>The grown tree: wood swept from the limb splines, leaves owned cluster by cluster.</summary>
-    private static (HashSet<(int X, int Y, int Z)> Wood, IReadOnlyList<(int X, int Y, int Z)> Leaves) GrownTree(TreeProp tree)
-    {
-        var shape = tree.Style.Shape;
-        var grown = TreeSkeleton.Grow(shape, tree.Seed);
-        var wood = new HashSet<(int X, int Y, int Z)>();
-        foreach (var limb in grown.Limbs)
-            foreach (var cell in SweptVolume.Sweep(limb.Path, limb.StartRadius, limb.EndRadius))
-                wood.Add(cell);
-
-        var clusters = TreeCrown.Clusters(grown.Tips, tree.Style.LeafCluster, shape.Size, tree.Seed);
-        var (min, max) = TreeCrown.Bounds(clusters);
-        var leaves = new List<(int X, int Y, int Z)>();
-        for (var y = (int)Math.Floor(min.Y); y <= (int)Math.Ceiling(max.Y); y++)
-        for (var z = (int)Math.Floor(min.Z); z <= (int)Math.Ceiling(max.Z); z++)
-        for (var x = (int)Math.Floor(min.X); x <= (int)Math.Ceiling(max.X); x++)
-            if (TreeCrown.OwnerAt(clusters, new Vec3(x, y, z), tree.Seed) is not null) leaves.Add((x, y, z));
-        // Nothing is placed that the tree does not hold: a leaf out of reach of the wood is a block floating
-        // in the air, and the crown is emitted through the same reachability the corpus is gated on.
-        return (wood, [.. TreeCrown.Rooted(leaves, wood)]);
     }
 
     // ── the shared prop pipeline ────────────────────────────────────────────────

@@ -257,29 +257,6 @@ give a player a reason to enter one, and turn scenery into a place worth crossin
 be modest and consistent with the map's own kit, and — see MG26 — identical across the orbit, since a chest
 that is richer on one side is a competitive advantage rather than decoration.
 
-**MG28 — A conifer stands on a stump.** A grown tree drawn `whorled` puts its lowest branches near the base
-but its stem stops short, so the crown sits on a stub rather than running through it: the trunk never reaches
-below the topmost leaves and the tree reads as a bush balanced on a post. A conifer's whole silhouette is a
-continuous stem with rings of branches getting shorter up it. This is in the grower rather than in mapgen —
-`TreeSkeleton` and `TreeCrown` in `PgmStudio.Geom` — and it is measurable the same way `B78` is, by scoring a
-grown tree against the 75 hand-built ones: limb angle and reach are what `tree-corpus.md` already scores, and
-stem extent goes beside them.
-
-**Reopened, and the note that closed it counted the wrong thing.** This entry was marked *does not
-reproduce* on the evidence that "whorled lands 1136 leaves" over sixty sites. An absolute leaf count cannot
-distinguish a leafy tree from a wooden one, which is the question. Measured over one board, one species and
-one build on `tallow-mirefast`: five `grown` + `whorled` trees give **228 logs to 287 leaves — 1.26 leaves
-per log, 46 logs a tree**, against three template spruces beside them at 42 logs to 222 leaves, 5.29 leaves
-per log, 14 logs a tree. The whorled form builds four times the wood for the same canopy, so
-"mainly logs and no leaves" is the right description and is now a number. The fault is a count standing in
-for a ratio, recurring on a different subject and closing a real defect. The ratio above is the evidence, and
-this entry does not close again on a leaf count.
-
-**MG10 — A tree's parts must agree with each other.** An oak-profiled tree is being built with spruce logs.
-The `template` form takes a `Species` — which names the wood, the canopy profile and the proportions
-together — and the `grown` form takes a `Wood`; the tool draws from one list of names for both and hands a
-species name to a wood field. The result is a tree whose silhouette and timber come from different plants.
-
 **MG11 — Density is a design decision and is currently a number nobody chose.** One board came out at 17,629
 leaves, a closed canopy with the terrain, the buildings and the routes all buried under it; another at 173,
 which is a bare map with a shrub on it. Roughly 1,000–5,000 on a board of this size reads as wooded. The
@@ -394,13 +371,11 @@ that is merely out of reach, and who therefore stops asking. `B118` is that fix:
 `intent` handed through verbatim as the real documents, with the convenience fields kept only as shorthand
 that expands into them.
 
-**What it got wrong is worth more than what it got right.** Two faults were reported that a controlled rerun
-does not reproduce. A pass drawn `grown` with `whorled` was reported as building trunks with no crown; over
-one board at sixty sites, spruce between 8 and 14 with the village off, whorled lands 1136 leaves against
-plain grown's 1102 and template's 1846, so the whorl is within noise of not being set. And template was
-reported as an order of magnitude denser than grown as a property of the form; at equal height it is 1.6×.
+**What it got wrong is worth more than what it got right.** A fault was reported that a controlled rerun does
+not reproduce: a board was read as carrying two components separated by a water lane, and its only include is
+the kill reward.
 
-There is a likely mechanism for the second class of error, and it is worth naming because the pictures were
+There is a likely mechanism for that class of error, and it is worth naming because the pictures were
 added to prevent exactly this. The plan render colours by **role**, and at the time carried a zone — a build
 zone or a water lane — in two shades of **blue**, separated only by shade, opacity and dash. Blue reads as
 water to anyone who has the image and not the key, and the board in question carries no water whatever: its
@@ -408,15 +383,6 @@ only include is the kill reward. So a true observation (two components) acquired
 lane) that happened to make the observation sound resolved. `B95` closed that gap — a legend on every plan
 render and a build zone drawn in a hue no water ever wears — because the rule it argues for is that an image
 answers whether something came out and never what it is.
-
-Both tree readings come from the same place, and it is a fault this document already carries. The zero-leaf pass
-asked for a **tall** grown tree, and a tall grown tree is not a tall tree but an absent one (`B78`): every
-grown prop was dropped, the 136 logs left standing were the village's corner posts, and the run reported
-success. So a documented, filed, understood inversion emptied a forest inside three passes, and the reading
-back could not name it — after the README warns in as many words that a building's corner posts are logs too
-and that the leaf count is a forest's only honest measure. A fault an author reliably misattributes is worse
-than one that merely bites, because the correction it invites is to the wrong knob: the next pass changed the
-whorl, which does nothing, and left the height, which is everything.
 
 ## Still to come
 

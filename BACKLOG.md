@@ -232,16 +232,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   colours are close. Seed that rock as the library's default so a placement naming nothing gets it, and raise a
   finding where a boulder's blocks and the theme under it share a tone family.
 
-- [ ] **WE65 — Remove the grown tree.** `TreeForm.Grown` builds its trees from `TreeSkeleton` and they come out
-  broken; the author's ruling is that the form goes rather than gets a knob. It reaches six files in `src/` —
-  `DressingModel` (the enum), `PropStyleLibrary`, `DressingPreview`, `TerrainPreviewEndpoints`, `LibrarySeed`
-  (the one seeded row, "grown conifer") and the client's `SketchDressingInspector` — plus `TreeSkeleton` itself
-  at 297 lines in `Geom`, the `Wood`/`Stems`/`Leader`/`BranchAngle`/`Levels`/`LeafSize`/`Whorled`/`Flow` fields
-  on `TreeStyle` that only it reads, and `docs/world-export/tree-corpus.md`. `Template` and `Copied` stay and
-  cover what the corpus actually plants. Boards carrying a grown placement are the ten probe boards; they are
-  a record of a run and are not migrated.
-
-
 - [ ] **WE77 — `WX11` measures a structure's plinth from the highest terrain its footprint touches, and the
   stamper seats it on the lowest.** The same maximum-over-a-footprint reading put a goal's bedrock plate above
   the goal it protects, and `WE82` settled that half by handing the stamper the ground the goal resolved on
@@ -520,18 +510,6 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   that went. **Two traps.** A modifier whose stem is composed in C# — `action-btn--<variant>` — reads as dead
   and is not, which is why the count excludes them. And a compound naming a live class inside a dead ancestor
   reads as *live* and is not; `sidebar-import-row .field-input` was one, and a grep will never find the next.
-
-- [ ] **TS107 — The Dressing phase calls every tree vanilla, and the wood picker behind it is unreachable.**
-  `SketchDressingInspector.IsGrown` reads the placement's own `form` field, and **nothing writes it**: the
-  only writer is `SetForm`, which has no caller since a tree became a recipe picked from the library. So the
-  blurb under the title always ends "A vanilla tree of its species: trunk, canopy, proportions" — including
-  over a placement wearing `grown conifer`, whose sentence should be "Grown from a branch skeleton you shape,
-  in the wood you choose". `SetForm`, `LoadWoods`, `woods` and `woodedFor` go with it: the wood cards they
-  fetch are reachable from nothing. **The ruling first:** does a placement carry the form beside its `style`
-  — `PickRecipe` already holds the recipe JSON it would come from — or does the inspector resolve it from the
-  registry entry `pullRecipe` just wrote under that name? The second keeps one statement of what a tree is;
-  the first costs a field that has to be kept in step. Evidence: place a tree, pick `grown conifer`, read the
-  paragraph under **Tree**.
 
 - [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
   `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,

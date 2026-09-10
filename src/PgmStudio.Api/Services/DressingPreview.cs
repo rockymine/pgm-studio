@@ -139,16 +139,6 @@ public static class DressingPreview
                 ["species"] = species.Name, ["height"] = species.Height,
             }.ToJsonString()))]);
 
-    /// <summary>The six woods, each shown as the <em>same</em> grown tree. A wood is a material and nothing
-    /// else, so the cards differ only in colour — which is precisely the claim being made, and the reason
-    /// these are not the species picker: a grown tree has no species.</summary>
-    public static IReadOnlyList<PropOptionDto> WoodCards(TreeProp template, TerrainTheme theme, int cell = 2)
-        => SectionCards(theme, cell, [.. DressingPalette.Woods.Select(wood => (
-            Key: wood.Name,
-            Label: wood.Name,
-            Prop: (PlacedProp)(template with { Style = template.Style with { Form = TreeForm.Grown, Wood = wood.Name } }),
-            Defaults: (string?)null))]);
-
     private static readonly IReadOnlyDictionary<StrokeStyle, string> StrokeStyleLabels = new Dictionary<StrokeStyle, string>
     {
         [StrokeStyle.Solid] = "Solid", [StrokeStyle.Worn] = "Worn", [StrokeStyle.Rough] = "Rough edge",

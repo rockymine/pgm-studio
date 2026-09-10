@@ -1,11 +1,11 @@
-# Tree corpus — what a hand-built tree measures like, and where the grower misses
+# Tree corpus — what a hand-built tree measures like
 
 The tree-showcase world holds 75 author-built trees, one per 19×19 platform, sorted into 14 families by
-platform band plus a single wool tree. It is the first measured ground truth for the grown tree of
-`decoration.md` §6, and it says the grower is wrong in three specific, separable ways. The world is committed
+platform band plus a single wool tree. It is the measured ground truth for what a tree on a board should read
+like, and the thresholds it supports are what any generated foliage is judged against. The world is committed
 at `pgm-studio-mapgen/showcase/tree-showcase`, and it is read by one operational tool: `tools/seed-trees.cs`
 cuts every tree standing in it into the library as a **copied** recipe (`decoration.md` §6), which is how a
-board plants the author's own trees rather than a grower's. The numbers below are still the artifact —
+board plants the author's own trees rather than a generated one. The numbers below are still the artifact —
 re-taking a reading means a scratch pass over that world against today's code (`CLAUDE.md`, *Investigation
 stays local*).
 
@@ -37,10 +37,10 @@ Every leaf, filed by its strongest contact in its own 3×3×3 neighbourhood:
 | **edge-or-corner-to-leaf** | **10.6%** | **0.5%** |
 | nothing at all | 7 (0.03%) | 4 (0.02%) |
 
-The generated column is `pgm-studio-mapgen/maps/pattern_test`, which mixes template and grown trees and cannot be
-split by block alone — so it indicates rather than proves, and the grower sweep below is what proves. That
-map was rebuilt as `library_map` from the catalogue sweep (`B209`); the measurement is kept under the name it
-was taken at.
+The generated column is `pgm-studio-mapgen/maps/pattern_test`, a world of placed trees read the same way, so
+it says what a board's foliage measures like beside an author's rather than proving anything about one
+algorithm. That map was rebuilt as `library_map` from the catalogue sweep (`B209`); the measurement is kept
+under the name it was taken at.
 
 The row that carries the finding is **edge-or-corner-to-leaf: 10.6% against 0.5%**. A fifth of the author's
 foliage hangs on diagonally, because a hand-built crown is drawn as lace; a generated crown fills a solid
@@ -54,31 +54,6 @@ tree of the 74 leafed ones carries a single stranded leaf**. pattern_test holds 
 islands, the largest 57 blocks**, and those 22 are not detached parts of trees: they are separate bodies in
 the world containing no wood whatsoever. 68 trees, 22 free-floating leaf clouds.
 
-## The crown is detached from the skeleton by construction
-
-Running the real `TreeSkeleton.Grow` and `TreeCrown` over 480 trees — 8 heights × 5 leaf sizes × 12 seeds —
-isolates the cause to one line of `TreeCrown.Clusters`:
-
-```csharp
-var center = tip.Position + outward * 1.6 + new Vec3(0, Math.Max(0, outward.Y) * 1.4 + height * 0.25, 0);
-```
-
-That lifts a cluster's centre a median **3.0–3.3 blocks** above its tip while the cluster's vertical
-half-height is only **1.2–3.0**, so the branch tip lies *outside* the ellipsoid meant to hang on it in
-**~100% of clusters** — the sole exception is height 40 at maximum leaf size, and even there 81%. Measured on
-the swept blocks, **1,516 of 4,020 crown clusters (37.7%) never touch their own branch**. The crown holds
-together only because neighbouring clusters overlap and rescue each other, which is also why it reads as one
-merged mass rather than per-branch foliage.
-
-`decoration.md` §6 states the lift as intent — leaves sit at the branch ends and not on the wood. The corpus
-refuses that premise: 30.3% of hand-built leaves are in direct contact with wood.
-
-Two further faults compound it. `Density = 0.92` punches random holes that leave single-leaf specks on cluster
-rims. And the grower emits far too few tips — 3 at height 6, 13 at height 40 — so each cluster must be large
-to fill a crown, which leaves `SeamMargin = 0.30` nothing to separate. Small trees are the worst case by a
-wide margin: at height 6–9 the grower produces only 3 tips and **42–76% of the crown is stranded**, with
-islands up to 105 blocks.
-
 ## The wool tree is the author's branching model, stated
 
 One tree in the corpus is built entirely of wool with each limb in its own colour, which makes its skeleton
@@ -91,14 +66,11 @@ directly readable — 270 blocks, 31 limbs across 15 colours (a colour is reused
 | 2 | 17 | 3.8 | 2.7 | 71° |
 | 3 | 4 | 1.5 | 0.6 | 45° |
 
-Set against `TreeShape`, three constants are wrong. `LengthFactor = 0.62` gives a child 62% of its parent's
-length where the author gives **0.29**, so generated children are more than twice as long relative to their
-parent and compete with the trunk instead of separating from it. `BranchAngle = 0.55 rad` (31°) is far too
-tight against primaries that leave the trunk at **~94° off vertical**, essentially perpendicular with a slight
-droop. And `Levels` clamped to 2–3 cannot express the **three** orders past the trunk the author uses, in a
-1 → 9 → 17 → 4 fan. `ChildStart = 0.30` is the one default that matches: the first primary attaches at y=7 of
-a 23-tall trunk. The primaries are staggered up the whole trunk — y 7, 8, 10, 11, 12, 12, 16, 19, 22 — never
-whorled.
+Three proportions fall out of it. A child keeps **0.29** of its parent's length, so a branch separates from
+the trunk rather than competing with it. Primaries leave the trunk at **~94° off vertical**, essentially
+perpendicular with a slight droop. And the author uses **three** orders past the trunk, in a 1 → 9 → 17 → 4
+fan. The first primary attaches at y=7 of a 23-tall trunk, and the primaries are staggered up its whole
+length — y 7, 8, 10, 11, 12, 12, 16, 19, 22 — never whorled.
 
 ## The wood on its own: how a branch is joined, and where it thins
 
@@ -141,9 +113,9 @@ read its own output on exactly this curve.
 The skeleton the corpus draws from that is a low fan on a straight stem. The median tree carries **three
 limbs** off its stem and stops there; only 71 second-order limbs and 5 third-order exist across all 75 trees.
 A first-order limb reaches **0.40 of its stem's reach**, leaves it **0.37 of the way along**, and stands at
-**59° off vertical**; a second-order limb keeps 0.53 of its parent and stands at 67°. Read against
-`TreeShape`, the angle is the finding that survives generalisation from the wool tree: `BranchAngle = 0.55 rad`
-puts a generated limb at 41° off vertical where the author's sit at 59–67°.
+**59° off vertical**; a second-order limb keeps 0.53 of its parent and stands at 67°. Across the whole corpus
+the wood averages **6.3 occupied neighbours per block**, which is the density figure a generated skeleton is
+read against — well past 45° and open rather than solid is the shape of the finding.
 
 The wool tree is the control for all of this, being the one tree whose skeleton is known independently. Read
 by network rather than by colour it comes out at 1 → 12 → 17 → 2 limbs against the hand-read 1 → 9 → 17 → 4,
@@ -175,45 +147,6 @@ Carpentry being structural is visible here rather than inferred. Counting only l
 breaks **13 of 75** log networks into pieces — tree 59 into fourteen — and leaves 43 blocks touching no wood
 at all, because those families' branches are dark oak slabs and stairs.
 
-## The grown tree's wood is too solid, too steep, and sometimes in pieces
-
-Running the same reading over the grower's own swept wood — `TreeSkeleton.Grow` plus `SweptVolume.Sweep`, 8
-heights × 12 seeds, 9,705 blocks — makes the two directly comparable:
-
-| | hand-built (4,044 blocks) | grown (9,705 blocks) |
-|---|---|---|
-| wood neighbours per block | 6.3 | 9.6 |
-| held face-to-wood | 94.5% | 97.7% |
-| ends at 10+ steps from the stem | 35% | 21% |
-| neighbours at 10+ steps from the stem | 2.1 | 3.4 |
-| first-order limbs, reach against the stem's | 0.40 | 0.20 |
-| first-order limb angle off vertical | 59° | 41° |
-| stems with a step that does not rise | 28 of 75 | 0 of 96 |
-| trees whose wood is in more than one piece | 3 of 75 | 18 of 96 |
-
-The first four rows are the wood repeating what the foliage already said: the grower builds a solid, and its
-limbs keep their girth to the end instead of running out. The angle and the reach ratio are new, and they
-disagree with each other in a way worth stating plainly — a generated limb is *shorter* relative to its trunk
-than an author's (0.20 against 0.40) while `LengthFactor = 0.62` is *larger* than the wool tree's 0.29,
-because the grower's axis is so much longer than an author's bole that a child at 62% of it still lands short.
-The proportion to fix is the one measured in blocks, not the knob read on its own.
-
-The last two rows are defects rather than differences of taste. The grown stem never runs flat, so no limb
-ever leaves horizontally. And **18 of 96 grown trees emit wood in more than one piece**, with 10 blocks
-touching no wood at all, against 3 trees and 2 blocks in the corpus — where the corpus's are an author's
-slips, the grower's are one line of arithmetic.
-
-That line is in `SweptVolume.Ball`, and the wood network is what exposed it. A ball's membership test is the
-distance from the limb's continuous centre to the *integer coordinate* of a candidate cell, so a centre
-sitting near a cell corner is √3/2 = 0.866 away from every candidate around it — and the only floor is
-`radius < 0.5`, which fills the containing cell outright. Between those two figures a sweep sample can fill
-**nothing**: at radius 0.55 a third of positions fill no cell, at 0.60 a fifth, and at exactly 0.5 — where the
-floor does not apply — very nearly half. Every twig the grower makes lands in that band, because `TreeSkeleton`
-floors a limb's end radius at 0.55 and the axis's at 0.5, and **1,116 of the sweep's limbs end thinner than
-0.866**. Over the 96 trees, **5,322 of 25,392 sweep samples (21.0%) place no block**. The detached wood is the
-visible tail of it; the invisible part is that every generated twig is thinner and shorter than the spline it
-was swept from.
-
 ## The families are distinct silhouettes, not one crown in fourteen palettes
 
 Each platform band holds one family, and they do not vary around a single profile. Wood contact ranges
@@ -235,7 +168,7 @@ overlap:
 The widest tenth of a conifer crown sits in the bottom third; every broadleaf family puts it at #4 or above.
 Tier count separates at the same place — 3 to 7 against never more than 2. And the tiering is regular enough
 to hand to a generator: **tier spacing is 4.6 to 5.8 courses** across all four conifer families (7 tiers in
-32 courses, 4 in 20, 4 in 23, 3 in 14). The grower produces no tiers at all.
+32 courses, 4 in 20, 4 in 23, 3 in 14).
 
 Set 8 is the corpus's one flat-crowned acacia and isolates on proportion: seven courses tall, 16.6 across,
 **width:height 2.37** where the next-widest family is 1.70 and both acacia-log conifers sit at 0.39 and 0.53.
@@ -250,58 +183,6 @@ from block id.
 
 ## What this gives the generator
 
-Three thresholds the corpus supports directly, as a gate on generated foliage: at least **99%** of leaves
+Three thresholds the corpus supports directly, as a gate on any generated foliage: at least **99%** of leaves
 reach wood through a chain of leaves, at least **25%** touch wood directly, and occupied neighbours per leaf
-below about **9**. The corpus sits at 99.95%, 30.3% and 6.2; the grower sat at 98.7%, 18.7% and 13.1.
-
-## What the grower does with it
-
-Every finding above is now law in the code, and the figures below are the same measures taken off the grower
-rather than off the corpus: a tree grown and foliated exactly as the dressing pass does, scored on every
-measure the corpus supplies — eight heights, three leaf sizes, eight seeds, at the knobs a placed tree ships
-with:
-
-| | before | after | corpus |
-|---|---|---|---|
-| leaves reaching wood through leaves | 98.7% | **100%** | 99.95% |
-| leaves touching wood directly | 14.8% | **36%** | 30.3% |
-| occupied neighbours per leaf | 12.5 | **7.3** | 6.2 |
-| leaves enclosed on all six faces | 7.2% | **0.0%** | 1.7% |
-| trees carrying a stranded leaf | 36% | **0%** | 0% |
-| worst stranded island | 189 blocks | **0** | 2 blocks |
-| trees whose wood is in one piece | 81% | **100%** | 96% |
-| wood neighbours per block | 7.9 | **4.7** | 6.3 |
-| first-order limb, off vertical | 24° | **60°** | 59° |
-| first-order limb, reach against the trunk's | 0.20 | **0.42** | 0.40 |
-
-Six changes carry it. `SweptVolume.Ball` stamps the block its centre sits in whatever the radius, which is
-what stops a twig from evaporating and takes the wood from 81% to 100% in one piece. `TreeCrown` seats each
-cluster **on** its tip rather than beyond it, and `TreeCrown.Rooted` emits only the foliage that reaches wood
-through foliage — so a stranded leaf is not rare, it is impossible. Clusters are small, many and perforated
-rather than few and solid, and each is sized by the branch carrying it. `TreeSkeleton.Steer` turns a child in
-its parent's own frame, so a branch angle is the angle a branch actually leaves by even off a vertical trunk —
-the single change that moved the limbs from 24° to 60° and thinned the wood from 7.9 neighbours to 4.7.
-
-**A hand-built tree's wood barely grows with its height.** Read per tree and bucketed, the corpus carries 23
-blocks of wood at 5–9 courses, 36 at 10–13, then 51, 53 and 53 all the way to 40 — an author adds crown as a
-tree gets taller, not timber, and the tallest tree in the corpus carries about what a fourteen-course one
-does. The grower ran 13 → 456 over the same range, six to nine times an author's wood at the top of it,
-because both its trunk radius and its lateral count scaled with height. Both are now nearly flat in it, and
-the sweep runs 13 → 322. The crown that few branches have to carry comes from the other half of the same
-finding: a hand-built crown is **24% block over its own volume**, with **every one of its leaves carrying air
-on some side** — there is no interior to it at all — so a cluster is filled a little under half rather than
-nearly whole, and a handful of big lacy clumps foliate a tree that a dozen small dense ones could not.
-
-What is not closed is the last of the density: **8.6 occupied neighbours per leaf against the corpus's 6.2**.
-It still climbs with size — 8.0 at height 6 to 9.9 at height 40 — but far less steeply than the 8.3 to 10.8 it
-climbed before, and `--by-height` is the switch that shows it. The gate in
-`DressingAlgorithmTests` holds it under 11 — enough to catch a return to the solid, not enough to claim the
-gap is shut. The other half of the same gap is that a generated tree still carries more wood for its foliage
-than an author's: 2.2 leaves per block against a corpus that runs 2.7 to 13.4 on its own large trees.
-
-The conifer is most of the way there. A whorled tree rings its whole trunk — three to five branches at one
-height, the next ring 5.2 courses up, each ring shorter than the one below, none of them forking, and a spire
-rather than a fork at the apex — and it separates from the staggered form on the measure that separates the
-corpus's families: **63% of its foliage in the lower half against 49%**, where hand-built conifers run 60–77%
-and broadleaves 43–61%. It still misses on the second: its widest tenth sits at **#4.4** where a hand-built
-conifer's is #1–#3, so the bulk is at mid-height rather than in the bottom third.
+below about **9**. The corpus sits at 99.95%, 30.3% and 6.2.

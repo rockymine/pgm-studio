@@ -20,7 +20,7 @@ field. So every part of this stage is a thing put somewhere: a route is dragged,
 a tree and a rock are clicked into place, and each carries its own knobs. The fields that remain are the ones
 *inside* a drawn area — which blade of grass, which cobble — where placing them one at a time would be data
 entry rather than authoring. The model was worked out against a live prototype whose every figure — the noise fields, the stroke variants,
-the boulder elevations, the grown tree, the forest scatter — was emitted by the real algorithm rather than
+the boulder elevations, the vanilla tree, the forest scatter — was emitted by the real algorithm rather than
 hand-drawn; what it settled is stated here, and the C# is the authority for all of it. Rule ids here are `DR*` (dressing), local to this file the way
 `structures.md` owns `WX*` and `terrain-painting.md` owns `TP*` — `rules.md` is compose-scoped and frozen,
 so decoration law lives in the world-export docs, not there. The one exception is §3.1's clearance decline,
@@ -195,19 +195,21 @@ its own faces and is seen straight past.
 The threshold is `DressingRules.ClipSevered` blocks cut away, not a share of the prop — a share is the
 truncation measure, and it is the boulder's answer rather than this one. Against a wall taller than the tree:
 
-| prop | clearance from the wall | blocked | cut off | `DR-CUT` |
-|---|---|---|---|---|
-| grown oak, height 8 | 2 | 8 | 6 | — |
-| grown oak, height 12 | 2 | 33 | 3 | — |
-| grown oak, height 20 | 2 | 57 | 79 | raised |
-| grown oak, height 20 | 8 | 1 | 39 | raised |
-| grown oak, height 32 | 2 | 140 | 162 | raised |
-| grown oak, height 32 | 8 | 23 | 43 | raised |
-| erratic, size 4–10 | 2 | 51–1,060 | 0 | — |
+| prop | clearance from the wall | of | blocked | cut off | `DR-CUT` |
+|---|---|---|---|---|---|
+| acacia, height 12 | 4 | 249 | 133 | 104 | raised |
+| acacia, height 20 | 8 | 665 | 270 | 73 | raised |
+| acacia, height 20 | 10 | 665 | 222 | 24 | raised |
+| acacia, height 20 | 12 | 665 | — | — | — |
+| oak, height 32 | 4 | 4,343 | 1,093 | 24 | raised |
+| dark oak, height 32 | 6 | 6,560 | 1,181 | 16 | raised |
+| erratic, size 4–10 | 2 | — | 51–1,060 | 0 | — |
 
-The height-20 row at eight blocks' clearance is the whole case for that arm: **429 of its 430 blocks are in
-the world** and a limb is floating. No measure of how much landed can see that, which is why the finding is
-raised off what was severed and reports both numbers.
+The dark oak row is the whole case for that arm: **5,379 of its 6,560 blocks are in the world**, the 18% the
+wall blocked is nowhere near the half that raises the other arm, and sixteen blocks are floating. No measure
+of how much landed can see that, which is why the finding is raised off what was severed and reports both
+numbers. The acacia is the species that meets a wall soonest — a flat disc four blocks of nominal radius
+wide, scaled by height — so it is what the clearance rows are read on.
 
 **Buried is the third state, and it is the first one read from underneath.** A prop seats on the *lowest*
 column its feet cover — the rule that lets it sit into a slope rather than perch on its high corner — so on a
@@ -215,7 +217,7 @@ stepped landform a trunk standing a course under its neighbours has its whole bo
 stands over it. Almost nothing lands, and what does is whatever cleared the surface: a pancake of leaves lying
 on a mesa with no trunk under it. That remnant rests on real ground, so **nothing is severed** and the count
 above stays nought however much of the tree went missing. Measured on a column nine courses below its
-neighbours, a grown oak of height 10 puts **8 of its 137 blocks in the world**, blocks 129 and severs none.
+neighbours, an oak of height 10 puts **35 of its 142 blocks in the world**, blocks 107 and severs none.
 
 So the rule has a second arm, and it is a share after all — not of what landed but of what the ground
 blocked. Past `DressingRules.ClipBlockedShare` of the body inside something already standing, what stands
@@ -434,75 +436,28 @@ so a layer stack reads as a weathered skin over a core rather than as the terrai
 else, and the moss mask is laid over whatever the material resolved. A boulder is a solid volume standing on
 the ground, so where it stands is cover, which is why it is placed rather than scattered.
 
-## 6. Trees — copied and grown (`DR-TR`)
+## 6. Trees — vanilla and copied (`DR-TR`)
 
-The trivial tree copies vanilla: a trunk of a known height and a canopy of a known profile, parameterised
-per species — oak's blob, birch's tall slim crown, spruce's layered cone, acacia's leaning flat top,
-jungle's broad canopy, dark oak's two-wide trunk. Each is a parametric template (trunk height, canopy
-radius, canopy profile), not a copied schematic, and an oak grove is genuinely all most maps need.
+The vanilla tree copies Minecraft's own: a trunk of a known height and a canopy of a known profile,
+parameterised per species — oak's blob, birch's tall slim crown, spruce's layered cone, acacia's leaning flat
+top, jungle's broad canopy, dark oak's two-wide trunk. Each is a parametric template (trunk height, canopy
+radius, canopy profile), not a copied schematic, so adding a species adds a row rather than a code path, and an
+oak grove is genuinely all most maps need. Every irregularity in it is hash-keyed off the seed, so a seed
+always builds the same tree and a map re-exports identically.
 
-The interesting tree is **grown**, and the shape that reads as a tree is neither a fractal nor a straight
-pole — a recursive brancher reads as a fractal, and one clean spline reads as a mast. The model that works
-takes both halves. The skeleton is **recursive** — the ez-tree knobs of levels, children per level, and a
-per-level radius and length taper, with a gentle upward *force* — but **every branch is a gnarly stepped
-path smoothed into a flowing Catmull-Rom curve**. The trunk carries a slow noise sway so it wanders like a
-bonsai (up, twist, straighten) rather than rising dead straight; the limbs carry a sharper per-step jitter;
-both are pulled gently upright. Limbs branch to a **second degree**, and the leaf clusters gather on the
-outer tips. The trunk is a **continuous central axis**, not a stub that forks and stops: a **leader** knob
-sets how far it climbs — at a low leader it dissolves into a spreading fork (a decurrent oak), at a high
-leader it carries on up through the crown as one dominant spine, thinning and twisting, with branches
-staggered up its length and a small fan at the top (an excurrent birch or conifer). A **stems** knob gives
-the base setups a real tree has — one stem, a double, or a triple. A **height** sets the tree's size in
-blocks, and it is not a uniform scale: a smaller tree carries a **thinner stem at the foot** and **fewer
-branches** (a branch shorter than a floor length is terminal, so recursion stops sooner), and its leaf
-clusters shrink with it — a sapling is a few clusters on a thin stalk, not a shrunken big tree. The rest
-(leader, trunk flow, branch angle, levels, leaf size) are hash-keyed so a seed always grows the same tree. This is the ez-tree lesson (Dan Greenheck) — a tree reads from **taper + curve + a canopy at the
-tips**, not from branch count — married to the Catmull-Rom flow a Minecraft builder draws by hand in
-Axiom's path tool. The stage renders it two ways: the **spine** (the centerlines and their thickness, each
-limb spline in its own colour) is the view the shape is designed against, and the voxelised blocks are the
-swept-disc fill of §4's stroke lifted one dimension (a capsule along a spline instead of a band along a
-line), so the tree and the stroke share one rasterization primitive.
+A `TreeProp` is placed at a cell and names which of the two it is. **The forms are two trees, not two settings
+of one**: a template names a **species** (`TreeSpecies`: its wood, its canopy profile, its proportions) and
+scales it by height, while a copy names nothing at all and carries its blocks. What a template can say about
+itself is exhausted by those two fields, which is why the picker draws six species cards that differ in
+*shape* — a picker whose cards differ only in palette would be claiming the wood decides the silhouette.
 
-The crown is where a naive generator gives itself away — a spherical brush with holes punched in it reads as
-one blob, and you cannot tell which branch a patch of leaves belongs to. So the crown is placed the way a
-mapmaker does it by hand: **one disc-shaped cluster per outer tip**, seated *on* the tip so the branch it
-hangs from is inside it, and **sized by the branch that carries it** — a short limb holds a small clump.
-Clusters are **small and many** rather than large and few, because a hand-built crown is lace: 1.7% of its
-leaves are enclosed on all six faces and each carries about six occupied neighbours, and a puff two blocks
-across is lace by construction where a wide one is a solid whatever is done to its surface. Neighbouring
-clusters keep a **seam of air** between them: a cell fills only when it clearly belongs to one cluster
-(nearest-cluster ownership, the seam where two are equidistant), so a viewer still reads each patch as its own
-branch's instead of one merged mass. Most of the air is those seams; a little of it is perforation inside a
-cluster, which at this size ragged-edges a puff rather than hollowing a ball. Whatever the fill leaves behind,
-**only foliage that reaches wood through foliage is emitted** (`TreeCrown.Rooted`) — a leaf floating in the air
-is not made rare, it is made impossible. A few short strands hang below each disc for a broken lower edge.
-
-The laterals come in two arrangements, and they are two trees rather than two settings of one. **Staggered**
-puts one branch at a time up the trunk, spiralling — every broadleaf. **Whorled** gathers them into rings a
-fixed 5.2 courses apart, each ring shorter than the one below and none of them forking — the conifer, whose
-cone comes from the ring lengths and from each cluster being sized by its own branch.
-
-Both trees are the same stamper as the boulder: a trunk-and-limbs volume plus a leaf mask over a box, and
-both end at one place that turns those cells into blocks — so the wood, the no-decay bit every leaf carries,
-and the all-bark orientation every log carries, are decided once. A built tree's wood is scenery rather than a
-felled trunk and its limbs run every way, so each log takes the all-bark variant (`LogAllBark`, bark on all
-six faces) instead of the pale end grain an upright log shows where a branch turns; the wood it paints as still
-reads through the low two data bits. `TreeTemplate.Build` answers the vanilla tree's wood and leaves from a
-`TemplateShape`, its canopy a radius per course from `CanopyProfiles` (profile-as-data, the same seam
-`BoulderShapes` uses for a rock's form). `TreeSkeleton.Grow` answers the grown tree's limbs and tips from a
-`TreeShape`, `SweptVolume` fills each limb as a capsule along its spline, and `TreeCrown` places the
-clusters and answers which one owns a cell.
-
-A `TreeProp` is placed at a cell and names which of the three it is. **The forms are three trees, not three
-settings of one**, and collapsing them is a mistake worth naming because it was made: six presets of the
-grower, one per species, offer six silhouettes and build one. The grower has no notched cone and no flat
-umbrella in it — there is no knob for a canopy that steps in as it rises — so a "spruce" preset is the
-grower's own crown wearing spruce blocks, which is exactly the promise a drawn picker exists to refuse.
-So a template tree names a **species** (`TreeSpecies`: its wood, its canopy profile, its proportions) and
-scales it by height, while a grown tree names a **wood** (`TreeWood`: the log and leaf blocks) and is shaped
-by the knobs above. Wood is the one thing neither form decides for the other, which is why it is its own
-row and why the grown tree's picker is six cards of the same tree in six colours — where the species
-picker's six cards must differ in shape, or they are one tree wearing six palettes.
+Both trees end at one place that turns cells into blocks, so the wood, the no-decay bit every leaf carries and
+the all-bark orientation every log carries are decided once. A built tree's wood is scenery rather than a
+felled trunk, so each log takes the all-bark variant (`LogAllBark`, bark on all six faces) instead of the pale
+end grain an upright log shows where a branch turns; the wood it paints as still reads through the low two
+data bits. `TreeTemplate.Build` answers the vanilla tree's wood and leaves from a `TemplateShape`, its canopy a
+radius per course from `CanopyProfiles` (profile-as-data, the same seam `BoulderShapes` uses for a rock's
+form). A copy is read straight off its own body.
 
 **A copied body's own block states are `DR-FACE`.** A copy is written block for block with the data it was
 cut with — that is what makes it a copy rather than a recipe — so a block whose data *is* a direction has to
@@ -516,8 +471,8 @@ own. It does: `BlockGeometry.Turned` maps each set bit through the image's trans
 a single face survives a mirror or a quarter-turn without a second bit to protect it. The rule is asked once
 per body, since a board draws the same tree thirty times and the fault is in the recipe.
 
-**`copied` is doing three jobs, and only one of them is its own (`TL15`).** A `template` or
-a `grown` tree is built from two blocks — the species' log and its leaf — so anything else a real tree has
+**`copied` is doing three jobs, and only one of them is its own (`TL15`).** A `template` tree is built from
+two blocks — the species' log and its leaf — so anything else a real tree has
 (a vine on the crown, a bush at the foot) and anything that is not a tree at all has nowhere to go but a
 copied body, which is the one recipe carrying an arbitrary `[x, y, z, id, data]`. Measured over the 81 copied
 bodies in `pgm-studio-mapgen/specs`: 44 are genuinely cut from a world, logs and leaves only; 37 are
@@ -526,7 +481,7 @@ author reaches for whenever a prop needs a third block, and that is the shape ra
 vine on a crown is something the tree generator could state, and everything else a board files this way is a
 small built thing an author drew because they wanted exactly it.
 
-**The third tree is copied, and it decides nothing about its own shape.** A `TreeForm.Copied` recipe carries
+**The second tree is copied, and it decides nothing about its own shape.** A `TreeForm.Copied` recipe carries
 a `body` — every block of a tree an author built, as `[x, y, z, id, data]` offsets from its foot, the lowest
 log, which stands at the origin. The stamp writes it block for block: the foot lands on the ground the way a
 template's trunk does, the cells at the foot's course are the ones that rest and are asked about ground,
@@ -569,8 +524,8 @@ than the cover a player crouches behind.
 
 `DressingScope.TreeFootprints` reads every `TreeProp` off the dressing document, fanned across the map's
 symmetry the same way every other footprint here is, and pairs each anchor with `Decorator.CanopyRadius(tree)`
-— the farthest a leaf cell of the **same deterministic build** (`TreeTemplate.Build` or `TreeSkeleton.Grow` plus
-`TreeCrown`) stands from the trunk, horizontally. This is the **measured** figure, read off the crown's own
+— the farthest a leaf cell of the **same deterministic build** (`TreeTemplate.Build`, or the copied body
+itself) stands from the trunk, horizontally. This is the **measured** figure, read off the crown's own
 geometry before any world exists rather than a species-nominal number: a tree is deterministic and RNG-free
 (§2), so the shape `CanopyRadius` measures is exactly the shape the stamp goes on to write, and a taller tree
 of the same species answers with a larger radius rather than a fixed one. `TopDownRender`'s `--subject foliage`
@@ -1011,7 +966,7 @@ and lands in the same realize seam.
 | Ground cover | `PatternNoise`; `SurfaceTop`; the `TerrainProfile` column read | the overlay pass, gated by a drawn outline — one `SetBlock` above the surface | `DR-FL` |
 | Strokes | `CatmullRom`; `Ribbon`; `Polyline`'s distance field; the lasso's own press-trace-release | `StrokeFill`'s six gates; `StrokeOutline` + its `geometry/stroke.js` twin for the drawn outline | `DR-PA` |
 | Boulders | `SurfaceTop`; the squared-distance masks the objective stampers fill by | `Blob`; `BoulderShapes` | `DR-SC` |
-| Trees | the boulder's seating; `CatmullRom` for the limb splines | `TreeSkeleton`; `TreeCrown`; `SweptVolume`; the species rows | `DR-TR` |
+| Trees | the boulder's seating | `TreeTemplate`; `CanopyProfiles`; the species rows | `DR-TR` |
 | Water | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `WaterBed` + `Decorator.PlaceWater` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
 | Buildings | `HouseStamper` + `HouseStyle` whole; the room-style library; `DressingSymmetry`'s outline fan | `HouseProp` + `Decorator.PlaceHouse`; the rectangle drag; `TurnEdge` for the door | `DR-HO` |
 | The ways past a building | `Walk` + `WalkGround.OfSpans` — the one traversal every distance is measured with, and `Walk.Detour`'s ten blocks | `WayThrough` — the waypoint-pair routes read off the bare terrain, held as each building is admitted to them | `DR-WAY` |
@@ -1046,12 +1001,10 @@ there:
   terrain-paint materials). The pattern *materials* (`VoronoiMaterial`/`CellMaterial`/`NoiseMaterial`/`WallRunMaterial`)
   stay in `Minecraft` and call it. The move added the one edge that was missing, **`Minecraft → Geom`**, which
   is what lets the dressing stamper reach any of this.
-- `Blob` — the eroded quadric a boulder lobe is; `SweptVolume` — the capsule a tree limb is; `Polyline` —
-  the distance field a stroke of any width is filled by.
-- `TreeSkeleton` and `TreeCrown` — the grower and the crown placement, as abstract limb centerlines, radii
-  and leaf-cluster centres. No block ever appears in either.
-- `TreeTemplate` and `CanopyProfiles` — the other tree: a trunk under a canopy whose profile is a radius per
-  course. It is a sibling of the grower rather than a mode of it, because the two build different shapes.
+- `Blob` — the eroded quadric a boulder lobe is; `Polyline` — the distance field a stroke of any width is
+  filled by.
+- `TreeTemplate` and `CanopyProfiles` — the vanilla tree: a trunk under a canopy whose profile is a radius per
+  course, so a species is a row rather than a code path. No block ever appears in either.
 - `StrokeFill` — which cells a stroke paves, one gate per style; `StrokeOutline` — the outline the canvas draws
   it as, and the one C# side of the `geometry/stroke.js` parity pair; `WaterBed` — the same swept-disc band read
   as a carve, a bed depth per cell (deepest on the line, one at the shore) for the three channel forms.

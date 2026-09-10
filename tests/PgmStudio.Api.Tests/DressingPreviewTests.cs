@@ -237,22 +237,6 @@ public sealed class DressingPreviewTests
     }
 
     [Test]
-    public async Task The_wood_cards_change_the_colour_and_nothing_else()
-    {
-        // A wood is a material, so six wood cards are one tree six times. If they differed in shape the picker
-        // would be claiming the wood decides the silhouette, which is the claim the species picker makes and
-        // this one must not.
-        var woods = DressingPreview.WoodCards(new TreeProp { Seed = 5, Style = new TreeStyle { Form = TreeForm.Grown, Height = 18 } }, TerrainTheme.Default);
-
-        await Assert.That(woods.Select(card => card.Key)).IsEquivalentTo(DressingPalette.Woods.Select(wood => wood.Name));
-        await Assert.That(woods.Select(card => Cells(card.Svg)).Distinct().Count()).IsEqualTo(1);
-        await Assert.That(woods.Select(card => card.Svg).Distinct().Count()).IsEqualTo(woods.Count);
-
-        // How many blocks a card draws — the same tree in another wood fills the same cells.
-        static int Cells(string svg) => Regex.Matches(svg, "<rect").Count;
-    }
-
-    [Test]
     public async Task A_species_is_a_silhouette_and_not_a_colour()
     {
         // The inverse claim, and the reason the two pickers are two pickers: the species cards must differ in

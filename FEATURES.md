@@ -5449,6 +5449,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A tree is a species or a body, and nothing else (`WE65`, `TS107`).** The grown tree is gone: the enum, the
+  eight knobs only it read on `TreeStyle` and on the wire, the `/terrain/woods` picker behind it, the seeded
+  "grown conifer" row, and the three `Geom` algorithms nothing else reached — `TreeSkeleton` (297 lines),
+  `TreeCrown` and `SweptVolume`, 496 lines in the leaf. `M0035` drops the eight columns and the rows that
+  named the form, since a recipe whose shape cannot be built has no second reading as one that can. The
+  Dressing inspector's unreachable wood picker (`IsGrown`, `SetForm`, `LoadWoods`, `KnobSpec`) goes with it,
+  and its blurb no longer answers a form nothing wrote. `DR-CUT`'s clearance table is re-measured on the
+  species that meets a wall soonest — *acacia, height 20, ten blocks clear: 222 of 665 blocks blocked, 24 cut
+  off floating, and the buried arm silent at a third* — and the culture gate moves onto `?interval=`, the
+  studio's remaining fractional query knob. (`docs/world-export/decoration.md`,
+  `docs/world-export/tree-corpus.md`, `docs/tools/sketch.md`, `docs/tools/library.md`,
+  `docs/tools/mapgen-review.md`)
 - **`DR-PASS` measures the passage from the roof, not from the wall (`WE45`, first of three faults).** A roof
   oversails its wall by at least one block whatever the style says (`HouseStamper.StampedCells`), and the
   blocks a player has to walk under are the ones that were written — so the five-block band now starts where
@@ -7478,28 +7490,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   dragged to reshape in place. A path that runs two blocks wide of a bridge is a point to move, not a route to
   trace again. The fields that remain are the ones *inside* a drawn area — which blade of grass,
   which cobble — where placing them one at a time would be data entry.
-  Behind them: `TreeSkeleton` growing limbs as Catmull-Rom splines with a leader knob, upward pull and
-  per-step jitter; `SweptVolume` filling each as a capsule; `TreeCrown` placing one cluster per outer tip
-  with a seam of air between neighbours, so a viewer reads each patch as its own branch's; `Blob`-eroded
-  quadric lobes in four rock forms, standing on the surface and bedded into it.
-- **A grown tree is built to what 75 hand-built ones measure (G171, G172, G174, G175).** The corpus of
-  `docs/world-export/tree-corpus.md` is now the grower's law, and the same harnesses score the result.
-  **Nothing is emitted that the tree does not hold**: `TreeCrown.Rooted` keeps only foliage reaching wood
-  through foliage, so a floating leaf is impossible rather than rare (36% of generated trees carried one, with
-  islands up to 189 blocks); and `SweptVolume.Ball` always stamps the block its centre sits in, closing a band
-  between radius 0.5 and √3/2 where a sample selected no cell at all — 21% of sweep samples placed nothing, and
-  19% of trees emitted wood in more than one piece. **A cluster sits on its tip, not beyond it**, and is small,
-  perforated and sized by the branch carrying it, which takes leaves touching wood from 14.8% to 36% (an
-  author's 30.3%) and enclosed leaves from 7.2% to nil (1.7%). **A branch leaves by the angle it was given**:
-  `TreeSkeleton.Steer` turns a child in its parent's own frame rather than in world yaw and pitch, which a
-  vertical trunk discards entirely — first-order limbs moved from 24° off vertical to 60° (59°), their reach
-  against the trunk's from 0.20 to 0.42 (0.40), and the wood from 7.9 occupied neighbours per block to 4.7
-  (6.3). **Wood barely grows with height**, because an author's does not — 23 blocks at 5-9 courses and 53 at
-  24-40 — so neither the trunk radius nor the lateral count scales with it, and a 40-course tree fell from 456
-  blocks of wood to 322. A **whorled** form gathers the laterals into rings 5.2 courses apart, each shorter than the last and
-  none forking: the conifer against the broadleaf, an author's toggle on the tree's own panel. Gated by
-  `DressingAlgorithmTests` over a height and seed sweep. (`PgmStudio.Geom/Algorithms/TreeSkeleton.cs`,
-  `TreeCrown.cs`, `SweptVolume.cs`; `tools/tree-corpus/grower-gate.cs`, `wood-skeleton.cs --grower`) (G171, G172, G174, G175)
+  Behind them: `TreeTemplate` building a trunk under a canopy whose profile is a radius per course, so a
+  species is a row rather than a code path; `Blob`-eroded quadric lobes in four rock forms, standing on the
+  surface and bedded into it.
 - **A boulder is a glacial erratic (WE64, the author's ruling).** A rock a glacier carried and left stands on
   the ground and is bedded into it — `BoulderShapes.Bed`, 30% of its height — rather than being sunk to its
   middle, which halved it and left a dome the full width of the thing and a third of its height. It is big:
@@ -9282,7 +9275,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   that actually decides whether a board reads as wooded, cannot be read off it. A tree is authored as one prop
   at one coordinate; `DressingScope.TreeFootprints` now answers with exactly that, fanned across the map's
   symmetry and paired with `Decorator.CanopyRadius` — the farthest a leaf of that tree's own deterministic
-  build (`TreeTemplate`/`TreeSkeleton` plus `TreeCrown`) stands from its trunk, the measured figure rather than
+  build (`TreeTemplate`, or the copied body itself) stands from its trunk, the measured figure rather than
   a species-nominal guess, read off the crown's own geometry with no world needed to measure it.
   `TopDownRender`'s `--layer foliage` plots each as a softly-tinted circle grown to that radius with a solid
   trunk mark on top, so overlapping crowns build up density rather than fusing, and every trunk stays

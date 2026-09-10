@@ -18,9 +18,10 @@ namespace PgmStudio.Api.Tests;
 /// after is what proves the binding is invariant on its own — the guarantee has to survive ambient state that
 /// any library is free to change.</para>
 ///
-/// <para>Asserted by comparing against the same request with the parameter omitted. The value sent is the
-/// endpoint's own default for that knob, so a correctly-bound request must draw the identical picture; one
-/// that mis-binds draws a different tree, and the bytes say so.</para>
+/// <para>Asserted on the contour interval, the studio's one fractional query knob. The reply echoes the
+/// spacing it bound, so the bound value is read directly rather than inferred from a picture; a second case
+/// holds the echo to the value actually in play, since an interval that is reported and not used would pass
+/// the first on its own.</para>
 /// </summary>
 [NotInParallel("api-db")]
 public sealed class NumberBindingCultureTests
@@ -45,8 +46,29 @@ public sealed class NumberBindingCultureTests
         }
     }
 
-    private static async Task<List<string>> WoodCardsAsync(HttpClient client, string query)
-        => [.. (await client.GetFromJsonAsync<List<PropOptionDto>>($"/api/terrain/woods?{query}"))!.Select(card => card.Svg)];
+    /// <summary>A board carrying one group with a relief field on it — the layout the contour preview reads,
+    /// posted whole because the overlay tracks unsaved edits rather than the stored document.</summary>
+    private const string Relieved = """
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layers":[{"base_y":0,"layout":{
+           "shapes":[{"id":"s1","type":"rectangle","operation":"add",
+                      "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}],
+           "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}],
+         "relief":{"i":{"base":6,"reach":40,"step":1,
+                        "marks":[{"kind":"point","at":[0,0],"h":40,"r":8}]}}}
+        """;
+
+    /// <summary>The board's contours at <paramref name="interval"/> blocks of spacing: the spacing the
+    /// endpoint bound, echoed back, and how many lines it drew at it.</summary>
+    private static async Task<(double Interval, int Lines)> ContoursAsync(HttpClient client, string interval)
+    {
+        var body = new StringContent(Relieved, System.Text.Encoding.UTF8, "application/json");
+        var response = await client.PostAsync(
+            $"/api/map/{SketchBoard.Slug}/sketch/relief?interval={interval}", body);
+        response.EnsureSuccessStatusCode();
+        var contours = await response.Content.ReadFromJsonAsync<ReliefContoursDto>();
+        return (contours!.Interval, contours.Groups.Sum(group => group.Lines.Count));
+    }
 
     [Test]
     public async Task The_culture_this_gates_really_would_misread_a_dot()
@@ -58,28 +80,36 @@ public sealed class NumberBindingCultureTests
     }
 
     [Test]
-    public async Task A_fractional_query_value_binds_as_written_under_a_comma_decimal_culture()
+    [Arguments("0.5", 0.5)]
+    [Arguments("1.5", 1.5)]
+    [Arguments("0.25", 0.25)]
+    [Arguments("0.001", 0.001)]
+    public async Task A_fractional_query_value_binds_as_written_under_a_comma_decimal_culture(
+        string sent, double bound)
         => await UnderCommaDecimalCulture(async client =>
         {
-            // The tree-wood picker, every knob sent explicitly at exactly the endpoint's own default.
-            var sent = await WoodCardsAsync(client,
-                "height=13&stems=1&leader=0.55&flow=0.45&branchAngle=1.1&levels=2&leafSize=0.6");
-            var defaulted = await WoodCardsAsync(client, "height=13");
+            using var board = await SketchBoard.FreshAsync();
 
-            await Assert.That(sent).IsEquivalentTo(defaulted)
-                .Because("sending a knob's own default value must draw the same tree as omitting it");
+            // The dot read as a group separator turns each of these into the digits run together — 0.5 into
+            // five, 0.001 into one — so the spacing the endpoint reports is the whole assertion.
+            var (interval, _) = await ContoursAsync(client, sent);
+            await Assert.That(interval).IsEqualTo(bound)
+                .Because($"'{sent}' must bind as written, whatever the ambient culture reads a dot as");
         });
 
     [Test]
-    public async Task Each_fractional_knob_binds_independently()
+    public async Task The_bound_interval_is_the_one_the_contours_are_traced_at()
         => await UnderCommaDecimalCulture(async client =>
         {
-            // One knob at a time: a shared parser fault shows on all of them, a per-knob one on exactly the
-            // knob that misses.
-            var defaulted = await WoodCardsAsync(client, "height=13");
-            foreach (var knob in new[] { "leader=0.55", "flow=0.45", "branchAngle=1.1", "leafSize=0.6" })
-                await Assert.That(await WoodCardsAsync(client, $"height=13&{knob}")).IsEquivalentTo(defaulted)
-                    .Because($"{knob} is the endpoint's own default and must bind as written");
+            using var board = await SketchBoard.FreshAsync();
+
+            // A value reported and not used would pass the case above on its own, so the spacing is held to
+            // what it draws: half-block levels are ten times as dense as five-block ones over the same field.
+            var (_, fine) = await ContoursAsync(client, "0.5");
+            var (_, coarse) = await ContoursAsync(client, "5");
+
+            await Assert.That(fine).IsGreaterThan(coarse)
+                .Because("a half-block contour interval traces more lines than a five-block one");
         });
 
     [Test]
@@ -96,16 +126,16 @@ public sealed class NumberBindingCultureTests
     public async Task A_knob_far_outside_its_range_answers_instead_of_running_away()
         => await UnderCommaDecimalCulture(async client =>
         {
-            // The shape of the original failure, kept reachable: a leader of 55 asked for a tree hundreds of
-            // blocks tall and the request never returned. Bounds now hold it to a tree, so this answers — a
-            // regression would hang the suite rather than fail it, which is why the timeout is explicit.
+            // The shape of the original failure, kept reachable: a mis-bound fractional value asks for work
+            // hundreds of times the size intended and the request never returns. A regression would hang the
+            // suite rather than fail it, which is why the timeout is explicit.
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            var response = await client.GetAsync(
-                "/api/terrain/woods?height=999&leader=99&flow=99&branchAngle=99&levels=99&leafSize=99&stems=99",
-                timeout.Token);
+            using var board = await SketchBoard.FreshAsync();
+
+            var body = new StringContent(Relieved, System.Text.Encoding.UTF8, "application/json");
+            var response = await client.PostAsync(
+                $"/api/map/{SketchBoard.Slug}/sketch/relief?interval=0.001", body, timeout.Token);
 
             await Assert.That(response.IsSuccessStatusCode).IsTrue();
-            var cards = await response.Content.ReadFromJsonAsync<List<PropOptionDto>>();
-            await Assert.That(cards!.Count).IsGreaterThan(0);
         });
 }

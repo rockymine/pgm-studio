@@ -61,15 +61,9 @@ checks.add("every species drawn, and carrying its own proportions",
   species.length >= 6 && species.every(s => s.svg?.includes("<rect") && s.defaults?.includes("height")),
   species.map(s => s.key).join(" "));
 
-// The two tree forms are two trees. A species has to differ from its neighbours in shape, and a wood only in
-// colour — six species that draw the same tree, or six woods that draw different ones, means the pickers have
-// swapped the claim they are each making.
-const woods = await api("/terrain/woods");
+// A species names a silhouette, so six species cards that drew the same tree would be six palettes on one
+// shape — the claim the picker exists to make, asserted on the cards themselves.
 const blocks = (svg) => (svg.match(/<rect/g) ?? []).length;
-checks.add("six woods, one tree, six colours",
-  woods.length === 6 && new Set(woods.map(w => blocks(w.svg))).size === 1
-    && new Set(woods.map(w => w.svg)).size === 6,
-  woods.map(w => w.key).join(" "));
 checks.add("the species differ in shape, not just in wood",
   new Set(species.map(s => blocks(s.svg))).size >= 5,
   species.map(s => `${s.key}:${blocks(s.svg)}`).join(" "));
@@ -152,23 +146,20 @@ try {
     (await panel()).match(/WHICH TREE/)?.[0] ?? "(no recipe list)");
   await shot("dressing-tree.png");
 
-  // The tree is two trees, and the inspector has to be able to say which. The knobs are the recipe's — a
-  // grown tree's wood and branch angle are authored in the library — so what the phase carries is the card
-  // it marks active and the sentence under the title, and both follow the recipe picked. Cards are addressed
-  // by their title attribute, which is the row's name exactly: `oak` as text also matches `dark oak`.
-  await page.locator('.prop-card[title="grown conifer"]').click();
+  // Which tree a placement is, is the recipe it names, so what the phase carries is the card it marks
+  // active. Cards are addressed by their title attribute, which is the row's name exactly: `oak` as text
+  // also matches `dark oak`.
+  await page.locator('.prop-card[title="spruce"]').click();
   await page.waitForTimeout(2500);
   checks.add("picking a recipe marks it, and only it",
-    await page.locator('.prop-card--active[title="grown conifer"]').count() === 1
+    await page.locator('.prop-card--active[title="spruce"]').count() === 1
     && await page.locator(".prop-card--active").count() === 1);
-  await shot("dressing-tree-grown.png");
+  await shot("dressing-tree-spruce.png");
   await page.locator('.prop-card[title="oak"]').click();
   await page.waitForTimeout(2000);
   checks.add("and picking another moves the mark rather than adding one",
     await page.locator('.prop-card--active[title="oak"]').count() === 1
     && await page.locator(".prop-card--active").count() === 1);
-  // What the blurb says is not asserted: it reads the placement's `form`, which nothing writes since the
-  // form became the recipe's, so it says "vanilla" over a grown tree — `TS107`.
 
   // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
   await page.click(`button[aria-label^="${DRIVEN.stroke}"]`);

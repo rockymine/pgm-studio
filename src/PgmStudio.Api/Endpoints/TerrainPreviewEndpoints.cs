@@ -324,20 +324,6 @@ public sealed class TreeSpeciesEndpoint : EndpointWithoutRequest<List<PropOption
         => Send.OkAsync([.. DressingPreview.SpeciesCards(ThemePresets.Meadow)], ct);
 }
 
-/// <summary>GET /api/terrain/woods — the six woods a grown tree can be cut from, each shown on the same tree.
-/// The tree drawn is the one being edited, so the cards answer "what would mine look like in that wood"
-/// rather than showing a stock shape nobody placed.</summary>
-public sealed class TreeWoodEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
-{
-    public override void Configure() { Get("/terrain/woods"); AllowAnonymous(); }
-
-    public override Task HandleAsync(CancellationToken ct)
-    {
-        var template = new TreeProp { Seed = 5, Style = new TreeStyle { Form = TreeForm.Grown, Height = Query<double?>("height", isRequired: false) ?? 18, Leader = Query<double?>("leader", isRequired: false) ?? 0.55, BranchAngle = Query<double?>("branchAngle", isRequired: false) ?? 1.1, Levels = Query<int?>("levels", isRequired: false) ?? 2, LeafSize = Query<double?>("leafSize", isRequired: false) ?? 0.6, Whorled = Query<bool?>("whorled", isRequired: false) ?? false, Stems = Query<int?>("stems", isRequired: false) ?? 1, Flow = Query<double?>("flow", isRequired: false) ?? 0.45 } };
-        return Send.OkAsync([.. DressingPreview.WoodCards(template, ThemePresets.Meadow)], ct);
-    }
-}
-
 /// <summary>POST /api/terrain/theme-map-preview — body is a plan JSON; compiles it, paints the terrain through
 /// the scoped theme resolver, and returns a top-down SVG of the map's top blocks so the Theme rail's apply step
 /// can show the themes on the actual map (TP10). 400 when the plan can't be rendered.</summary>

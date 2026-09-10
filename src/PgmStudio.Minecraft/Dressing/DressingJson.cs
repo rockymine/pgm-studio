@@ -438,12 +438,9 @@ public static class DressingJson
                 ? Slug(shell) : "building";
         if (kind == "boulder") return $"{Text("form", "round")}-{Number("size", 4)}";
 
-        var form = Text("form", "template");
-        if (form == "copied")
+        if (Text("form", "template") == "copied")
             return $"copied-{(recipe["body"] is JsonArray body ? body.Count : 0)}";
-        var grown = form == "grown";
-        var wood = grown ? Text("wood", "oak") : Text("species", "oak");
-        return $"{(grown ? "grown-" : "")}{Slug(wood)}-{Number("height", 12)}";
+        return $"{Slug(Text("species", "oak"))}-{Number("height", 12)}";
     }
 
     private static string Slug(string name)

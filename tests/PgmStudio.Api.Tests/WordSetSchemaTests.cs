@@ -29,7 +29,7 @@ public sealed class WordSetSchemaTests
         typeof(MapStage), typeof(MaterialKind), typeof(ThemeBuckets), typeof(RimEdgeModes),
         typeof(RoomParts), typeof(RoofForms), typeof(PorchEdges), typeof(WindowForms),
         typeof(DoorHeadForms), typeof(DoorHeadFills), typeof(Landform), typeof(EditZone),
-        typeof(WoolColors), typeof(TreeForms), typeof(TreeSpeciesNames), typeof(TreeWoodNames),
+        typeof(WoolColors), typeof(TreeForms), typeof(TreeSpeciesNames),
         typeof(BoulderForms), typeof(BlockKinds), typeof(BiomeKinds), typeof(StructuralRoles),
     ];
 

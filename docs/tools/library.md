@@ -386,15 +386,14 @@ canvas, so pre-authoring one is authoring a shape without its place and their kn
 phase. A tree and a boulder are a *click* — there is no geometry to draw — so what is placed is a point plus a
 name, and the name is a row here (author).
 
-A `tree_style` is one of **three trees**, which its form picks. A `template` tree names a **species**, whose row
-carries the wood, the canopy profile and the proportions, and scales it by height. A `grown` tree names a
-**wood** and is shaped by the skeleton knobs beside it — stems, leader, trunk flow, branch angle, levels,
-whorled, leaf size. A `copied` tree is one an author built by hand and carries its own **body**: every block
-as `[x, y, z, id, data]` from its foot, the lowest log, which stands at the origin and rests on the ground.
-Its height is read off the body rather than stated, and it has no knob — it is retuned by cutting it again.
-Each form reads only its own fields, so the ones it does not read are inert rather than wrong, and switching
-form keeps every field: an author who tries the skeleton and goes back finds the species they had chosen
-still chosen, and a body survives a look at the template. A `boulder_style` is four statements — form, size,
+A `tree_style` is one of **two trees**, which its form picks. A `template` tree names a **species**, whose row
+carries the wood, the canopy profile and the proportions, and scales it by height. A `copied` tree is one an
+author built by hand and carries its own **body**: every block as `[x, y, z, id, data]` from its foot, the
+lowest log, which stands at the origin and rests on the ground. Its height is read off the body rather than
+stated, and it has no knob — it is retuned by cutting it again. Each form reads only its own fields, so the
+ones it does not read are inert rather than wrong, and switching form keeps every field: a body survives a
+look at what the same recipe would be as a template, and the species chosen for it is still chosen on the way
+back. A `boulder_style` is four statements — form, size,
 whether moss takes its sky-lit faces, and the material it is cut from, which is a full terrain material and
 so may be any of the fourteen kinds.
 
@@ -404,8 +403,8 @@ carpentry — wooden slabs and stairs, fences, vines — that rests on something
 `<name>-r<row>-<n>`, rows by the z the trees stand at and numbered along x, so a re-run over the same world
 updates the same rows. A body hanging in the air is a fragment of a tree that broke and is reported rather
 than filed. The 74 trees of `pgm-studio-mapgen/showcase/tree-showcase` are the corpus it was written for, and
-cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the six vanilla species,
-one grown conifer and four erratics, and knows nothing about any world.
+cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the six vanilla species
+and four erratics, and knows nothing about any world.
 
 **Nothing yet enforces "cut out of a world" (`TL15`).** A body carries no record of where it came from, so the
 cutter's row and a hand-typed array are indistinguishable once stored — which is how boards came to file a
@@ -715,7 +714,7 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `POST /terrain/material-preview` | one material drawn in plan and section — body is a **bare material**, `{kind, …}`, unwrapped. One column, not an area: a pattern cannot be judged from it |
 | `POST /terrain/theme-preview` · `POST /terrain/theme-map-preview` | a whole theme as it will paint — the first over a sample plateau cut open plus one swatch per themeable bucket, the second over a compiled plan, so a theme is judged against the board it will dress rather than against a sample. Body is a **bare theme**, unwrapped |
 | `POST /terrain/prop-preview` | one placed prop standing on the finish it will stand on — body `{propJson, themeJson}`, because what the paint leaves on top is what decides whether flora grows at all |
-| `GET /terrain/stroke-styles` · `/terrain/water-forms` · `/terrain/boulder-forms` · `/terrain/species` · `/terrain/woods` | the dressing vocabularies — every stroke style, water form, boulder form, tree species and wood a prop may name, each with the fields it carries. What a picker offers, and the closed sets a prop document is refused against |
+| `GET /terrain/stroke-styles` · `/terrain/water-forms` · `/terrain/boulder-forms` · `/terrain/species` | the dressing vocabularies — every stroke style, water form, boulder form and tree species a prop may name, each with the fields it carries. What a picker offers, and the closed sets a prop document is refused against |
 
 **Every preview also draws a picture, and three query words say how to ask for one.** The default is
 SVG-in-JSON, which is what the client renders inline; `?format=png` answers **one** view as `image/png` bytes

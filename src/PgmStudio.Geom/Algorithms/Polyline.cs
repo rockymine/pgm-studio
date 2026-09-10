@@ -12,8 +12,7 @@ public readonly record struct PolylineHit(double Distance, double Along, double 
 /// the distance, not the boundary. That is what lets one line carry a width that varies along it, an outline
 /// that wanders, or gaps, without any of those becoming a different shape to trace.
 ///
-/// <para>Two dimensions here, because a path lies on the ground. The same test one dimension up is a limb, and
-/// <see cref="SweptVolume"/> is where that lives.</para>
+/// <para>Two dimensions here, because a path lies on the ground.</para>
 /// </summary>
 public static class Polyline
 {

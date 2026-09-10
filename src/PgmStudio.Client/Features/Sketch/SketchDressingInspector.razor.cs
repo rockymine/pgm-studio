@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
@@ -56,8 +55,6 @@ public partial class SketchDressingInspector
     private IReadOnlyList<PropOptionDto> waterForms = [];
     private IReadOnlyList<PropOptionDto> boulderForms = [];
     private IReadOnlyList<PropOptionDto> species = [];
-    private IReadOnlyList<PropOptionDto> woods = [];
-    private string woodedFor = "";
     private IReadOnlyList<PaintBlockDto> blocks = [];
     // The library's styles, so a prop's paving, bank or rock can be filled from one the same way a theme's
     // can. Loaded beside the blocks, since the surfaces that offer one offer the other.
@@ -215,32 +212,6 @@ public partial class SketchDressingInspector
         ("negZ", "−z"), ("posZ", "+z"), ("negX", "−x"), ("posX", "+x"),
     ];
 
-    /// <summary>Whether the tree being edited is the grown one rather than a vanilla template.</summary>
-    private bool IsGrown => Text(PropFields.Form, PropFields.TemplateForm) == PropFields.GrownForm;
-
-    /// <summary>The wood cards, drawn on the tree the author is actually shaping — so the picker answers "what
-    /// would <em>mine</em> look like in that wood". Refetched only when the shape changes, for the same reason
-    /// the preview is: every card is a real grow.</summary>
-    private async Task LoadWoods()
-    {
-        var knobs = KnobSpec();
-        if (knobs == woodedFor && woods.Count > 0) return;
-        woodedFor = knobs;
-        woods = await Library.WoodsAsync(knobs);
-    }
-
-    /// <summary>The tree's shape as query parameters. Formatted invariantly rather than by the ambient
-    /// culture: this is a wire format, and a comma-decimal locale would write "leader=0,55" — where the comma
-    /// separates parameters, not digits.</summary>
-    private string KnobSpec()
-        => $"height={Knob(PropFields.Height, 12)}&stems={Knob(PropFields.Stems, 1, "0")}" +
-           $"&leader={Knob(PropFields.Leader, 0.55)}&flow={Knob(PropFields.Flow, 0.45)}" +
-           $"&branchAngle={Knob(PropFields.BranchAngle, 1.1)}&levels={Knob(PropFields.Levels, 2, "0")}" +
-           $"&leafSize={Knob(PropFields.LeafSize, 0.6)}&whorled={Flag(PropFields.Whorled)}";
-
-    private string Knob(string field, double fallback, string format = "0.##")
-        => Num(field, fallback).ToString(format, CultureInfo.InvariantCulture);
-
     /// <summary>One of the prop's materials as a query parameter, so a shape card is drawn in the material the
     /// author actually chose rather than a stock one.</summary>
     private string? Spec(string field) => Material(field)?.ToJsonString();
@@ -356,14 +327,6 @@ public partial class SketchDressingInspector
         await RefreshPreview();
     }
 
-    /// <summary>Switch a tree between its two forms. The wood cards are drawn on the tree being shaped, so
-    /// they are fetched after the switch rather than before it.</summary>
-    private async Task SetForm(string form)
-    {
-        await Set(PropFields.Form, JsonValue.Create(form));
-        if (form == PropFields.GrownForm) await LoadWoods();
-    }
-
     private async Task Pick(string field, PropOptionDto option)
     {
         await Set(field, JsonValue.Create(option.Key));
@@ -391,18 +354,7 @@ public partial class SketchDressingInspector
         };
 
     private (string Icon, string Title, string Blurb) Info
-    {
-        get
-        {
-            if (!KindInfo.TryGetValue(kind, out var info)) return ("shapes", "Dressing", "");
-            // A tree is two trees, and which one is being edited changes what the sentence should say.
-            return kind == PropKinds.Tree
-                ? info with { Blurb = info.Blurb + (IsGrown
-                    ? " Grown from a branch skeleton you shape, in the wood you choose."
-                    : " A vanilla tree of its species: trunk, canopy, proportions.") }
-                : info;
-        }
-    }
+        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Dressing", "");
 }
 
 /// <summary>A prop's own fields (see <see cref="PropKinds"/> for why these are constants).</summary>
@@ -428,15 +380,7 @@ public static class PropFields
     public const string Bank = "bank";
     public const string Species = "species";
     public const string Height = "height";
-    public const string Stems = "stems";
-    public const string Leader = "leader";
-    public const string Flow = "flow";
-    public const string BranchAngle = "branchAngle";
-    public const string Levels = "levels";
-    public const string Whorled = "whorled";
-    public const string LeafSize = "leafSize";
-    public const string Wood = "wood";
-    /// <summary>Which shape a prop takes — a boulder's rock family, a tree's vanilla-or-grown. One wire name
+    /// <summary>Which shape a prop takes — a boulder's rock family, a tree's vanilla-or-copied. One wire name
     /// because the two never share an object; the distinction lives in their C# types.</summary>
     public const string Form = "form";
     public const string Size = "size";
@@ -449,9 +393,7 @@ public static class PropFields
     public const string SolidStyle = "solid";
     public const string RoundForm = "round";
     public const string OakSpecies = "oak";
-    public const string OakWood = "oak";
     public const string TemplateForm = "template";
-    public const string GrownForm = "grown";
     public const string WornStyle = "worn";
     public const string CanalForm = "canal";
 }

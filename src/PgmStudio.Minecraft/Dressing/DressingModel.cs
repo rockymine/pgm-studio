@@ -62,28 +62,23 @@ public enum BoulderForm
 /// Which of the two trees a <see cref="TreeProp"/> is. They are different things, not settings of one thing.
 ///
 /// <para>A <see cref="Template"/> is the vanilla tree: a trunk of a known height under a canopy of a known
-/// profile, per species. It is what a player reads as "an oak", and it is what most maps want.
-/// <see cref="Grown"/> is the recursive skeleton — a wandering spline trunk with foliage gathered at its tips
-/// — which makes shapes no vanilla generator does, but makes only <em>that</em> family of shapes: it has no
-/// notched conifer and no flat umbrella in it. Six named presets of the grower would therefore offer six
-/// silhouettes and build one, so the species live on the template and the grown tree takes a
-/// <see cref="TreeWood"/> instead.</para>
+/// profile, per species. It is what a player reads as "an oak", and it is what most maps want. A
+/// <see cref="Copied"/> tree is whatever an author built, so the studio describes it with no numbers at
+/// all.</para>
 /// </summary>
 public enum TreeForm
 {
     /// <summary>The vanilla tree of a named species.</summary>
     Template,
-    /// <summary>The grown skeleton, in a chosen wood.</summary>
-    Grown,
     /// <summary>A tree an author built by hand, cut out of a world and carried block by block as the recipe's
     /// own <see cref="TreeStyle.Body"/>. It has no species, no wood and no knob: what it looks like is what
     /// was built, and the studio's part is only to seat it, turn it round the symmetry and keep its leaves.</summary>
     Copied,
 }
 
-/// <summary>What a tree is made of: the log and leaf blocks, named once. It is separate from the species
-/// because both trees need it and only one has a species — a grown tree is a shape the author designed, so
-/// the only thing left to choose about its material is which wood it is cut from.</summary>
+/// <summary>What a tree is made of: the log and leaf blocks, named once. It is a species' own row rather than
+/// a field on it because a wood is a pair of blocks and a species is a silhouette, and the two are asked for
+/// separately — the crown is cut from the profile, the blocks it is written in from here.</summary>
 public sealed record TreeWood(string Name, int LogId, int LogData, int LeafId, int LeafData);
 
 /// <summary>A vanilla tree species as data: its wood and its proportions. A species is a row, not a class — the
@@ -200,13 +195,12 @@ public static class BoulderShapes
 public abstract record PropStyle;
 
 /// <summary>
-/// One tree, as a recipe — and one of <b>three</b> trees, which <see cref="Form"/> picks.
+/// One tree, as a recipe — and one of <b>two</b> trees, which <see cref="Form"/> picks.
 ///
 /// <para>A <see cref="TreeForm.Template"/> tree is vanilla: <see cref="Species"/> names its wood, its canopy
-/// profile and its proportions, and <see cref="Height"/> scales the lot. A <see cref="TreeForm.Grown"/> tree is
-/// the recursive skeleton: <see cref="Wood"/> names what it is cut from and the knobs below shape it. A
-/// <see cref="TreeForm.Copied"/> tree is the blocks an author placed, carried in <see cref="Body"/>. Each form
-/// reads only its own fields, so the ones it does not read are inert rather than wrong.</para>
+/// profile and its proportions, and <see cref="Height"/> scales the lot. A <see cref="TreeForm.Copied"/> tree
+/// is the blocks an author placed, carried in <see cref="Body"/>. Each form reads only its own fields, so the
+/// ones it does not read are inert rather than wrong.</para>
 /// </summary>
 public sealed record TreeStyle : PropStyle
 {
@@ -232,66 +226,21 @@ public sealed record TreeStyle : PropStyle
     /// and the proportions of one vanilla species.</summary>
     public string Species { get; init; } = "oak";
 
-    /// <summary>Grown only — a row in <see cref="DressingPalette.Woods"/>. A grown tree's shape is the
-    /// author's, so its wood is all that is left to name.</summary>
-    public string Wood { get; init; } = "oak";
-
-    /// <summary>Overall height in blocks. Template: it scales the species' proportions. Grown: not a uniform
-    /// scale — a smaller tree also carries a thinner stem and fewer branches, so a sapling reads as a sapling
-    /// rather than as a shrunken tree.</summary>
+    /// <summary>Overall height in blocks: on a template it scales the species' proportions; on a copy it is
+    /// the courses the body stands, read off the blocks rather than stated.</summary>
     public double Height { get; init; } = 12;
-
-    /// <summary>Grown only — 1–3 stems at the base.</summary>
-    public int Stems { get; init; } = 1;
-
-    /// <summary>Grown only — how far the central axis climbs: low spreads, high spires.</summary>
-    public double Leader { get; init; } = 0.55;
-
-    /// <summary>Grown only — how much the trunk wanders on its way up.</summary>
-    public double Flow { get; init; } = 0.45;
-
-    /// <summary>Grown only — how far a branch leaves its parent, in radians. A hand-built corpus leaves the
-    /// trunk at 59° off vertical and forks its children at 67°, so the default is a radian rather than the
-    /// half one a tighter fan wants.</summary>
-    public double BranchAngle { get; init; } = 1.1;
-
-    /// <summary>Grown only — branching depth: 2 is a tree, 3 a denser one.</summary>
-    public int Levels { get; init; } = 2;
-
-    /// <summary>Grown only — whether the branches are gathered into whorls, a ring every few courses, each ring
-    /// shorter than the one below. It is the conifer against the broadleaf, and it is the one shape choice a
-    /// picker of six woods cannot make for an author.</summary>
-    public bool Whorled { get; init; }
-
-    /// <summary>Grown only — how big each tip's leaf cluster is.</summary>
-    public double LeafSize { get; init; } = 0.6;
 
     /// <summary>How tall this tree is built, held to the range the editor offers.
     ///
-    /// <para>The bounds on this and the knobs below are load-bearing rather than tidiness. A tree's cost is
-    /// superlinear in its reach — the sample patch a preview cuts is quadratic in it, a grown crown is filled by
-    /// testing every cell of its bounding box — while the knobs that set that reach are plain multipliers. A
-    /// <see cref="Leader"/> of 55 rather than 0.55 therefore does not draw a strange tree, it asks for a volume
-    /// hundreds of blocks on a side and never returns. Holding the values here covers every caller instead of
-    /// each guarding its own input, and means a stored recipe that is out of range still builds something.</para></summary>
+    /// <para>The bound is load-bearing rather than tidiness. A tree's cost is superlinear in its reach — the
+    /// sample patch a preview cuts is quadratic in it — so a height of 999 asks for a patch hundreds of blocks
+    /// on a side. Holding the value here covers every caller instead of each guarding its own input, and means
+    /// a stored recipe that is out of range still builds something.</para></summary>
     [JsonIgnore] public double Reach => Math.Clamp(Form == TreeForm.Copied ? BodyHeight : Height, 5, 40);
 
-    /// <summary>This tree's growth parameters, as the grower wants them, each bounded like
-    /// <see cref="Reach"/>. Read only when it is grown.</summary>
-    [JsonIgnore] public TreeShape Shape => new(
-        Height: Reach, Stems: Math.Clamp(Stems, 1, 3), Levels: Math.Clamp(Levels, 2, 3),
-        BranchAngle: Math.Clamp(BranchAngle, 0.2, 1.5), Flow: Math.Clamp(Flow, 0, 1),
-        Leader: Math.Clamp(Leader, 0, 1), Whorled: Whorled);
-
-    /// <summary>How big each tip's leaf cluster is, bounded like <see cref="Reach"/>: it scales the crown, and
-    /// the crown is filled cell by cell.</summary>
-    [JsonIgnore] public double LeafCluster => Math.Clamp(LeafSize, 0.2, 1);
-
-    /// <summary>The blocks this tree is made of, whichever form it is: a template takes its species' wood, a
-    /// grown tree the one it was given.</summary>
-    [JsonIgnore] public TreeWood Timber => Form == TreeForm.Template
-        ? DressingPalette.SpeciesNamed(Species).Wood
-        : DressingPalette.WoodNamed(Wood);
+    /// <summary>The blocks this tree is made of: its species' wood. Read on a template, which is the form that
+    /// builds its own blocks — a copied tree is written in the blocks it was cut with.</summary>
+    [JsonIgnore] public TreeWood Timber => DressingPalette.SpeciesNamed(Species).Wood;
 }
 
 /// <summary>One boulder, as a recipe: a glacial erratic's form, its reach, what it is cut from and whether moss

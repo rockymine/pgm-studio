@@ -13,9 +13,8 @@ public enum CanopyProfile
     Umbrella,
 }
 
-/// <summary> A vanilla tree's proportions. This is the <em>other</em> tree, and it is deliberately not the grown
-/// one: a trunk of a known height under a canopy of a known shape, which is the tree almost every map wants and
-/// the only tree a player reads as "an oak". </summary>
+/// <summary>A vanilla tree's proportions: a trunk of a known height under a canopy of a known shape, which is
+/// the tree almost every map wants and the only tree a player reads as "an oak".</summary>
 /// <param name="Profile">The canopy's silhouette — which radius table the crown is cut from.</param>
 /// <param name="TrunkHeight">Courses of bare trunk under the canopy.</param>
 /// <param name="CanopyRadius">How far the canopy reaches from the trunk at its widest.</param>
@@ -30,8 +29,7 @@ public sealed record TemplateShape(
     bool WideTrunk = false);
 
 /// <summary>A template tree as pure geometry: the cells that are wood and the cells that are leaf, in the
-/// tree's own frame with its foot at the origin. Which blocks those become is the caller's half, exactly as
-/// it is for <see cref="GrownTree"/>.</summary>
+/// tree's own frame with its foot at the origin. Which blocks those become is the caller's half.</summary>
 public sealed record TemplateTree(
     IReadOnlyList<(int X, int Y, int Z)> Wood,
     IReadOnlyList<(int X, int Y, int Z)> Leaves);
@@ -39,11 +37,8 @@ public sealed record TemplateTree(
 /// <summary>
 /// Builds the vanilla tree — trunk column, canopy of a named profile.
 ///
-/// <para>It exists beside <see cref="TreeSkeleton"/> rather than as a setting on it because the two make
-/// different things. The grower produces a wandering spline skeleton with foliage gathered at its tips: that
-/// reads as an oak or a birch, and it cannot produce a notched conifer or a flat acacia umbrella at all —
-/// there is no knob for a canopy that steps in as it rises. Parameterising the grower per species would
-/// therefore promise six silhouettes and build one, which is the failure a drawn picker exists to prevent.</para>
+/// <para>A species is a radius table rather than a code path, so the six silhouettes a picker draws are the six
+/// it builds: a notched conifer and a flat acacia umbrella are rows, not knobs.</para>
 ///
 /// <para>Every irregularity is hash-keyed off the seed, never RNG, so a seed always builds the same tree —
 /// the discipline the whole dressing stage holds so a map re-exports identically.</para>

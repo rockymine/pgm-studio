@@ -662,9 +662,9 @@ public sealed class PorchStyleRow
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }
 
-/// <summary>A tree recipe (M0030): which of the two trees it is, and the fields that form reads. A placement
-/// names it once it has been pulled into a map's dressing registry — the row is the library's copy, the
-/// registry entry the map's, so editing the row cannot rebuild a shipped map's groves.</summary>
+/// <summary>A tree recipe (M0030, M0035): which of the two trees it is, and the fields that form reads. A
+/// placement names it once it has been pulled into a map's dressing registry — the row is the library's copy,
+/// the registry entry the map's, so editing the row cannot rebuild a shipped map's groves.</summary>
 [Table("tree_style")]
 public sealed class TreeStyleRow
 {
@@ -672,17 +672,9 @@ public sealed class TreeStyleRow
     [Column("name"), NotNull] public string Name { get; set; } = "";
     [Column("form"), NotNull] public string Form { get; set; } = "template";
     [Column("species"), NotNull] public string Species { get; set; } = "oak";
-    [Column("wood"), NotNull] public string Wood { get; set; } = "oak";
     [Column("height")] public double Height { get; set; } = 12;
-    [Column("stems")] public int Stems { get; set; } = 1;
-    [Column("leader")] public double Leader { get; set; } = 0.55;
-    [Column("flow")] public double Flow { get; set; } = 0.45;
-    [Column("branch_angle")] public double BranchAngle { get; set; } = 1.1;
-    [Column("levels")] public int Levels { get; set; } = 2;
-    [Column("whorled")] public bool Whorled { get; set; }
-    [Column("leaf_size")] public double LeafSize { get; set; } = 0.6;
     /// <summary>Copied only — the tree's blocks as the recipe's own JSON (<c>[[x, y, z, id, data], …]</c>,
-    /// M0031). Empty on the two built forms, which carry no blocks of their own.</summary>
+    /// M0031). Empty on a template, which builds its own from its species.</summary>
     [Column("body"), NotNull] public string Body { get; set; } = "";
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }

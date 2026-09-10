@@ -88,7 +88,7 @@ public static class DressingPalette
     /// which wood a log paints as.</summary>
     public const int LogAllBark = 12;
 
-    /// <summary>The six woods a tree of either form can be cut from.</summary>
+    /// <summary>The six woods a tree can be cut from — the block pair each <see cref="Species"/> row names.</summary>
     public static readonly IReadOnlyList<TreeWood> Woods =
     [
         new("oak", Blocks.Log, 0, Blocks.Leaves, 0),
@@ -98,9 +98,6 @@ public static class DressingPalette
         new("acacia", Blocks.Log2, 0, Blocks.Leaves2, 0),
         new("dark oak", Blocks.Log2, 1, Blocks.Leaves2, 1),
     ];
-
-    public static TreeWood WoodNamed(string name)
-        => Woods.FirstOrDefault(wood => wood.Name == name) ?? Woods[0];
 
     /// <summary>The vanilla species: each its own wood, canopy profile and proportions. The profiles are what
     /// separate them — a notched cone is a spruce and a flat umbrella on a leaning trunk is an acacia, and

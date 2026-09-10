@@ -177,26 +177,22 @@ public static class HouseFootprints
 /// Which distance a band stack is read along — the wire words for <c>BandAxis</c>. The stack states its bands
 /// and where they run out and never the axis, so the material doing the reading is where the choice belongs.
 /// </summary>
-/// <summary>Which of the three trees a recipe is — the wire words for <c>TreeForm</c>. The three are genuinely
-/// three trees rather than one with a switch: a template is a vanilla species with a drawn canopy profile, a
-/// grown one is a recursive skeleton, and a copied one is a hand-built tree cut out of a world block by block.
-/// None is a knob setting of another.</summary>
+/// <summary>Which of the two trees a recipe is — the wire words for <c>TreeForm</c>. The two are genuinely two
+/// trees rather than one with a switch: a template is a vanilla species with a drawn canopy profile, and a
+/// copied one is a hand-built tree cut out of a world block by block. Neither is a knob setting of the
+/// other.</summary>
 public static class TreeForms
 {
     /// <summary>The vanilla tree of a named species.</summary>
     public const string Template = "template";
 
-    /// <summary>The grown skeleton, in a chosen wood.</summary>
-    public const string Grown = "grown";
-
     /// <summary>A tree cut out of a world: the blocks an author placed, carried as the recipe's own body.</summary>
     public const string Copied = "copied";
 
-    public static readonly string[] All = [Template, Grown, Copied];
+    public static readonly string[] All = [Template, Copied];
 
     public static string Describe(string? form) => Canonical(form) switch
     {
-        Grown => "Grown from a branch skeleton you shape",
         Copied => "Copied block by block from a tree an author built",
         _ => "A vanilla tree of a named species",
     };
@@ -208,16 +204,6 @@ public static class TreeForms
 /// The profiles are what separate them: a notched cone is a spruce and a flat umbrella on a leaning trunk is an
 /// acacia.</summary>
 public static class TreeSpeciesNames
-{
-    public static readonly string[] All = ["oak", "birch", "spruce", "jungle", "acacia", "dark oak"];
-
-    public static string Canonical(string? name) => All.Contains(name) ? name! : All[0];
-}
-
-/// <summary>The six woods a tree of either form is cut from — the wire words for
-/// <c>DressingPalette.Woods</c>. Separate from the species because both trees need a wood and only one has a
-/// species.</summary>
-public static class TreeWoodNames
 {
     public static readonly string[] All = ["oak", "birch", "spruce", "jungle", "acacia", "dark oak"];
 

@@ -75,7 +75,7 @@ public partial class PropRecipeEditor
         editingId = null;
         draftName = "";
         rock = ThemeFields.Solid(1);
-        if (IsTree) tree = new TreeStyleSaveRequest("", TreeForms.Template, "oak", "oak", Height: 12);
+        if (IsTree) tree = new TreeStyleSaveRequest("", TreeForms.Template, "oak", Height: 12);
         else boulder = new BoulderStyleSaveRequest("", BoulderForms.Round, 4, Mossy: true, rock.ToJsonString());
     }
 
@@ -90,9 +90,7 @@ public partial class PropRecipeEditor
             }
             (editingId, draftName) = (detail.Id, detail.Name);
             tree = new TreeStyleSaveRequest(
-                detail.Name, detail.Form, detail.Species, detail.Wood, detail.Height, detail.Stems,
-                detail.Leader, detail.Flow, detail.BranchAngle, detail.Levels, detail.Whorled, detail.LeafSize,
-                detail.Body);
+                detail.Name, detail.Form, detail.Species, detail.Height, detail.Body);
             return;
         }
 
@@ -122,9 +120,9 @@ public partial class PropRecipeEditor
         return Preview();
     }
 
-    /// <summary>Switching form keeps every field, because the three are three trees rather than one: an author
-    /// who tries the grown skeleton and goes back finds the species they had chosen still chosen, and a copied
-    /// body survives a look at what the same recipe would be as a template.</summary>
+    /// <summary>Switching form keeps every field, because the two are two trees rather than one: a copied body
+    /// survives a look at what the same recipe would be as a template, and the species chosen for it is still
+    /// chosen on the way back.</summary>
     private Task SetTreeForm(string form) => Tree(t => t with { Form = TreeForms.Canonical(form) });
 
     private Task Boulder(Func<BoulderStyleSaveRequest, BoulderStyleSaveRequest> edit)
@@ -191,13 +189,4 @@ public partial class PropRecipeEditor
 
     private static double Number(ChangeEventArgs e, double fallback)
         => double.TryParse(e.Value?.ToString(), out var value) ? value : fallback;
-
-    private static double Share(ChangeEventArgs e, double fallback)
-        => double.TryParse(e.Value?.ToString(), out var value) ? Math.Clamp(value / 100, 0, 1) : fallback;
-
-    /// <summary>The slider is in degrees because that is the thing being chosen; the recipe stores the radian
-    /// the grower reads, held to the range it builds in.</summary>
-    private static double Radians(ChangeEventArgs e, double fallback)
-        => double.TryParse(e.Value?.ToString(), out var value)
-            ? Math.Clamp(value * Math.PI / 180, 0.2, 1.5) : fallback;
 }
