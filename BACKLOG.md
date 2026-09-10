@@ -62,6 +62,16 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Painting terrain
 
+- [ ] **WE60 — `repeat` names a cycle and holds a course.** `BandEnding.Repeat` makes the last band claim
+  everything past the stack, which is what `BandStack.At` does and what the enum's own docstring says. The
+  word says the opposite: a reader who has met a repeating texture anywhere else expects the bands to cycle.
+  A painting agent authoring a `height` strata for a 9-block pillar wrote three courses of red sandstone and
+  six of smooth and reported it as a defect, then wrote its courses out longhand to work around behaviour
+  that was never wrong — evidence at `(-4,-49)` on `specs/probe-badlands-2` in `pgm-studio-mapgen`. Nothing
+  to fix in the painter; the fix is the name. `hold`, `carry` or `extend` each say what it does, and
+  `BandEndings.Repeat` in `ThemeVocabulary` plus the `"repeat"` on the wire and `TerrainThemeJson:139` move
+  with it. A stored theme carrying the old word has no second reading, so the callers change in one commit.
+
 - [ ] **TS51 — Scoping the paint repaint, and the preview it would pay for.** A full board paint is ~2.0s and
   the column read ~2.9s / 2.6MB on a real agent board, tracking board *area* rather than shape count — a
   112-shape board and a 534-shape board of the same size cost the same. So the Blocks overlay refreshes on
