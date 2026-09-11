@@ -31,8 +31,8 @@ public sealed record WoolStructure
     /// <summary>Which wool this room gives out — the colour of its pad, and what the XML names.</summary>
     public required string WoolSlug { get; init; }
 
-    /// <summary>The terrain it stands on: the foundation fills bedrock from y=0 to the surface under the
-    /// footprint, so the room cannot be tunnelled into from below.</summary>
+    /// <summary>The surface height under the footprint, one top per cell — what the stamp levels its floor
+    /// against and what the plinth is filled up to.</summary>
     public required IReadOnlyDictionary<(int X, int Z), int> Ground { get; init; }
 
     /// <summary>The entrance row, as a pair of block ends sharing an axis.</summary>

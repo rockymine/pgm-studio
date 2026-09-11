@@ -578,16 +578,6 @@ public sealed class SketchShape
     /// <summary>The dye or team slug the labelled box is filled with.</summary>
     [JsonPropertyName("color")]      public string? Color { get; set; }
 
-    // Whether Floor/BaseHeight on a Role-tagged shape were stated by the author rather than derived from the
-    // plan's flat Surface. A compile always writes a fresh Floor/BaseHeight for the shape it holds the
-    // group's relief against (AppendStructuralShape), because that is the only way a plan-space piece can
-    // state a height at all before any terrain exists. Once a relief is solved the author can see where that
-    // flat number lands and correct it — and the correction has to outlive the next recompile, which
-    // otherwise overwrites every structural shape it produces. This flag is what tells the recompile which
-    // shapes to leave alone: absent (or false), Floor/BaseHeight track the plan's Surface on every compile,
-    // same as before; true, the stored Floor/BaseHeight/AnchorHeights carry forward onto the freshly compiled
-    // shape with the same IntentRef instead (SketchLayout.CarryStructuralHeight), the same way a relief
-    // outlives the shapes it was solved over. Never set by the compiler itself.
     /// <summary>Whether a role-tagged shape's <see cref="Floor"/> and <see cref="BaseHeight"/> were stated by
     /// the author rather than derived from the plan's flat surface. It is what tells a recompile which shapes
     /// to leave alone: absent, they track the plan on every compile; true, the stored heights carry forward
