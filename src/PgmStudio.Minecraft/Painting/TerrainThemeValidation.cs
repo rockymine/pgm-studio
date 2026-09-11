@@ -34,6 +34,14 @@ public static class TerrainThemeRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string BrushTooFine = "PT3";
 
+    /// <summary>A sampled field paints a bucket a player reads from the side and states no vertical period,
+    /// so every block in a column resolves the same and the face comes out in vertical stripes. A field of the
+    /// plane is a fabric for ground seen from above; a wall or a fill is seen edge-on, and the one thing that
+    /// gives a face its grain there is the field varying with height.</summary>
+    /// <remarks>Give the pattern a `rise` — the vertical period of its field, in blocks, which samples the volume instead of the plane. Around the pattern's own `cellSize` or `scale` is what reads as one fabric rather than two; the wall-run and diagonal patterns draw their stripes deliberately and are not asked. A field whose stripes are the intent belongs in `surface` or `rim`, which are the buckets read from above.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
+    public const string FlatFieldOnAFace = "PT4";
+
     /// <summary>The finest period a sampled pattern may vary over, in blocks — <see cref="BrushTooFine"/>'s
     /// one number (author).</summary>
     public const int BrushFloor = 2;
@@ -69,8 +77,70 @@ public static class TerrainThemeValidation
         CheckBrush("rim", theme.Rim.Material, findings);
         CheckBrush("surface", theme.Surface.Material, findings);
         CheckBrush("fill", theme.Fill, findings);
+
+        // The wall is asked only where it paints. A theme built from one material binds that material to
+        // every bucket and disables the ones it does not want (TerrainTheme.OfMaterial), so a wall nothing
+        // writes would answer a second time for the fill's own fault.
+        if (theme.WallEnabled)
+        {
+            CheckCarried("wall", theme.Wall, findings);
+            CheckBrush("wall", theme.Wall, findings);
+            CheckRise("wall", theme.Wall, findings);
+        }
+
+        // A fill under a surface is ground, and ground is met from above wherever it is not cut. A fill with
+        // neither a surface nor a rim over it is the whole of a thing that is *made of* its material (TP22) —
+        // a stilt, a kerb, a tunnel wall — and every side of that is a face.
+        if (!theme.Surface.Enabled && !theme.Rim.Enabled) CheckRise("fill", theme.Fill, findings);
         return findings;
     }
+
+    /// <summary>Every sampled field in a bucket read from the side that states no vertical period. A face is
+    /// met edge-on, so a field of the plane gives each of its columns one answer and it comes out striped.
+    ///
+    /// <para>Its own walk rather than <see cref="Nodes"/>'s, because one band of a depth stack is the one
+    /// place the question does not apply: a band a single course thick has no height for a field to vary
+    /// over, which is what the course of turf over a body of stone is. A stack read any other way — by ring,
+    /// by world height, by inclination — gives each band the whole span, so each is asked as the bucket
+    /// was.</para></summary>
+    private static void CheckRise(string bucket, TerrainMaterial? material, List<Finding> findings)
+    {
+        if (material is null) return;
+
+        if (material is LayeredMaterial layered)
+        {
+            var bands = layered.Stack?.Bands ?? [];
+            for (var at = 0; at < bands.Count; at++)
+            {
+                if (layered.Axis == BandAxis.Depth && bands[at].Thickness <= 1) continue;
+                CheckRise($"{bucket}.stack[{at}]", bands[at].Material, findings);
+            }
+            if (layered.Beyond is { } beyond) CheckRise($"{bucket}.beyond", beyond, findings);
+            return;
+        }
+
+        if (Rise(material) is { Blocks: <= 0 } field)
+            findings.Add(new Finding(TerrainThemeRules.FlatFieldOnAFace,
+                $"{bucket} samples its field in the plane only, so every block of a column resolves alike and "
+                + "it reads as vertical stripes. A rise is the vertical period that gives a face its grain.",
+                Field: $"{bucket}.{field.Field}"));
+
+        foreach (var (child, childPath) in Children(material, bucket))
+            CheckRise(childPath, child, findings);
+    }
+
+    /// <summary>The vertical period a sampled field varies over and the field that states it, or null for a
+    /// material that is not a sampled field. A checker's square, a wall run's stripe and a stack's bands are
+    /// drawn rather than sampled and each already says what it does with height.</summary>
+    private static (int Blocks, string Field)? Rise(TerrainMaterial? material) => material switch
+    {
+        VoronoiMaterial voronoi => (voronoi.Rise, "rise"),
+        CellMaterial cell => (cell.Rise, "rise"),
+        NoiseMaterial noise => (noise.Rise, "rise"),
+        TurbulenceMaterial turbulence => (turbulence.Rise, "rise"),
+        ElectricMaterial electric => (electric.Rise, "rise"),
+        _ => null,
+    };
 
     /// <summary>Every sampled pattern in a bucket whose period is under
     /// <see cref="TerrainThemeRules.BrushFloor"/>, nested ones included — a field inside a voronoi's band

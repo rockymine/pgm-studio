@@ -376,6 +376,41 @@ public sealed record CheckerMaterial(int Size, TerrainMaterial Even, TerrainMate
 }
 
 /// <summary>
+/// How a log is turned where it is written.
+///
+/// <para>A log's data nibble <em>is</em> its axis, and the two faces that axis picks out are its sawn ends. So
+/// the turn is decided by what a player can see of the block, and there are three answers. A wall states its
+/// own run (<see cref="BucketContext.PerimeterRun"/>) and the log takes it, which buries both ends in the
+/// neighbouring wall blocks and leaves only bark showing. A corner has faces on two axes and no laid log shows
+/// bark to both, so it stands.</para>
+///
+/// <para>Where there is no run at all the <b>bucket</b> answers, because the two halves of a theme are read
+/// from different directions: a surface or a rim is met from above, where a laid log shows its bark upward and
+/// lying down is the whole point — a log floor. A wall or a fill with no run is a face met edge-on with no
+/// direction to follow, which is what a freestanding pillar is, and a laid log there puts a sawn end straight
+/// at the viewer. It stands instead: upright, a log shows bark on all four sides a pillar has.</para>
+/// </summary>
+internal static class LogAxis
+{
+    /// <summary>The two bits of a log's data that carry its axis, above the two that carry its species.</summary>
+    public const int Upright = 0, AlongX = 4, AlongZ = 8;
+
+    /// <summary>The axis a log lies on here, or <see cref="Upright"/> where none of its faces may be sawn.</summary>
+    public static int Laid(in BucketContext ctx) => ctx.PerimeterRun switch
+    {
+        GridBoundary.RunAlongX => AlongX,
+        GridBoundary.RunAlongZ => AlongZ,
+        GridBoundary.RunsBothWays => Upright,
+        _ => ReadFromAbove(ctx.Bucket) ? AlongX : Upright,
+    };
+
+    /// <summary>Whether this bucket writes what a player meets from above. The surface and the rim do; the
+    /// wall, the fill and the bedrock are met edge-on.</summary>
+    private static bool ReadFromAbove(TerrainBucket bucket) =>
+        bucket is TerrainBucket.Surface or TerrainBucket.Rim;
+}
+
+/// <summary>
 /// A log <b>laid along the wall</b>, everywhere — the course that reads as a beam running through the masonry.
 ///
 /// <para>It is the log checkerboard with one of its two states taken away, and it exists for the same reason
@@ -391,12 +426,7 @@ public sealed record CheckerMaterial(int Size, TerrainMaterial Even, TerrainMate
 /// </summary>
 public sealed record LaidLogMaterial(int Id, int Data = 0) : TerrainMaterial
 {
-    public override (int Id, int Data) Resolve(in BucketContext ctx)
-    {
-        var wood = Data & 3;
-        if (ctx.PerimeterRun == GridBoundary.RunsBothWays) return (Id, wood);          // upright at a corner
-        return (Id, wood | (ctx.PerimeterRun == GridBoundary.RunAlongZ ? 8 : 4));
-    }
+    public override (int Id, int Data) Resolve(in BucketContext ctx) => (Id, (Data & 3) | LogAxis.Laid(in ctx));
 }
 
 /// <summary>
@@ -418,22 +448,13 @@ public sealed record LaidLogMaterial(int Id, int Data = 0) : TerrainMaterial
 /// </summary>
 public sealed record LogCheckerMaterial(int Size, int Id, int Data = 0) : TerrainMaterial
 {
-    /// <summary>The two bits of a log's data that carry its axis, above the two that carry its species.</summary>
-    private const int Upright = 0, AlongX = 4, AlongZ = 8;
-
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
         // The data a log carries is its species in the low two bits and its axis in the two above, so the
         // author names the wood and the pattern supplies the turn — the rule a window's block already follows.
         var wood = Data & 3;
-        // A corner is on two faces at right angles and no log lying down can show bark to both, so it stands —
-        // which is what a corner of a timbered building is anyway.
-        if (ctx.PerimeterRun == GridBoundary.RunsBothWays) return (Id, wood | Upright);
-        if (CheckerMaterial.Parity(in ctx, Size) == 0) return (Id, wood | Upright);
-
-        // Along the wall where there is one. Off a wall either axis shows bark upward, and x is taken so a
-        // floor's grain is at least consistent rather than deciding itself per cell.
-        var axis = ctx.PerimeterRun == GridBoundary.RunAlongZ ? AlongZ : AlongX;
-        return (Id, wood | axis);
+        // One square of the two stands whatever the geometry says; the other takes the turn the geometry
+        // allows, which on a face with no run to follow is upright as well (LogAxis).
+        return (Id, wood | (CheckerMaterial.Parity(in ctx, Size) == 0 ? LogAxis.Upright : LogAxis.Laid(in ctx)));
     }
 }

@@ -13,6 +13,36 @@ blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smalle
 it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room building's 20×20 measure the same
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
+## Which face a bucket paints, and what a block is chosen against
+
+Four findings the author read off ten painted boards. `BlockLook` states the division the group turns on — the
+surface and rim buckets write what a player sees **from above**, the wall and fill buckets what they see **from
+the side** — and a material that resolves without asking which of the two it landed in is the cause the first
+two shared. That half has shipped (`FEATURES.md`): the gate now asks the wall, `PT4` names a field with no
+`rise` on a face, and both log patterns stand a log up where there is no run to lay it along.
+
+The two that remain are each their own: one is about who resolves a block (a stated solid where a theme
+resolution belongs), the other about what a block is chosen *against* (the ground it stands on). The second
+carries a threshold that is the author's and is not yet stated — it is measured before it is asked.
+
+- [ ] **WE63 — The room plate stamps raw stone under every room.** A shell's `Foundation.Plate` is a stated
+  solid — stone brick, sandstone, cobblestone, depending on the preset — so the courses under a room keep that
+  block however the ground around them is themed. On a board where the rooms stand on raised pieces the whole
+  outside face of each platform reads as a grey core in a coloured map: `specs/probe-plains-1` and
+  `specs/probe-plains-2` both left the undersides of their spawn and wool rooms unthemed, and the author
+  reported it on both. Two other agents found it and fixed it by hand — one resolved the plate through the
+  board's own strata at extent 24, the other dropped the `footing` because a proud ring left the outermost
+  column unpainted. That is the right answer and it should be the default: the plate resolves through the
+  theme under it unless a style states otherwise.
+
+- [ ] **WE64 — A boulder in the ground's own tone family disappears.** The author's ruling, from three boards:
+  a rock must not be built from the family it sits on. Sandstone rocks on sand vanish into the sandstone
+  structures behind them (`specs/probe-desert-1`, `specs/probe-desert-2`), and red clay against hardened clay
+  on one rock is noise rather than variation (`specs/probe-badlands-2`). The stated fallback is stone, andesite
+  and cobblestone, which works against sand, grass, dirt and red sand, or a single clay, since no two clay
+  colours are close. Seed that rock as the library's default so a placement naming nothing gets it, and raise a
+  finding where a boulder's blocks and the theme under it share a tone family.
+
 ## A convention is measured and nothing complains
 
 The group `docs/backlog-strategy.md` names as the next one up. Its measurements are taken and its numbers are

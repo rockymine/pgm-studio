@@ -737,6 +737,41 @@ public sealed class TerrainPatternsTests
             PerimeterRun: GridBoundary.RunAlongX))).IsEqualTo((Blocks.Log, 1 | AlongX));
     }
 
+    /// <summary>A freestanding column is a face with no run to follow, and a log laid on it shows a sawn end
+    /// to the player on every side. Both log patterns stand it up there instead — upright, a log wears bark
+    /// on all four sides a pillar has.</summary>
+    [Test]
+    [Arguments(TerrainBucket.Wall)]
+    [Arguments(TerrainBucket.Fill)]
+    public async Task A_log_on_a_column_stands_rather_than_showing_its_cut_end(TerrainBucket bucket)
+    {
+        var board = new LogCheckerMaterial(1, Acacia);
+        var beam = new LaidLogMaterial(Blocks.Log, 0);
+
+        // No perimeter anywhere on it: a pillar has no wall run, which is the default context a stamped
+        // column is painted through.
+        for (var y = 0; y < 4; y++)
+        for (var x = 0; x < 4; x++)
+        {
+            var column = new BucketContext(x, y, 0, bucket, 0);
+            await Assert.That(board.Resolve(column)).IsEqualTo((Acacia, Upright));
+            await Assert.That(beam.Resolve(column)).IsEqualTo((Blocks.Log, Upright));
+        }
+    }
+
+    /// <summary>A floor is the other half of the same question and is unchanged: read from above, a laid log
+    /// shows its bark upward, which is what the checkerboard is for on a surface.</summary>
+    [Test]
+    [Arguments(TerrainBucket.Surface)]
+    [Arguments(TerrainBucket.Rim)]
+    public async Task A_log_on_a_floor_still_lies_down(TerrainBucket bucket)
+    {
+        var board = new LogCheckerMaterial(1, Acacia);
+        await Assert.That(board.Resolve(new BucketContext(1, 0, 0, bucket, 0))).IsEqualTo((Acacia, AlongX));
+        await Assert.That(new LaidLogMaterial(Blocks.Log, 0).Resolve(new BucketContext(1, 0, 0, bucket, 0)))
+            .IsEqualTo((Blocks.Log, AlongX));
+    }
+
     // ── the symmetry fold: a pattern samples the orbit's representative, not the cell ────────────────────
 
     /// <summary>A 12x12 board painted with a four-colour cell pattern on its surface, mirrored about z = 6 —

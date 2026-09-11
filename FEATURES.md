@@ -5449,6 +5449,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **Which face a bucket paints decides how a block is turned and how a field is sampled (`WE61`, `WE62`).**
+  `BlockLook` already said it — the surface and rim write what a player meets from above, the wall and fill
+  what they meet edge-on — and two materials resolved without asking. **`PT4`** names a sampled field on a
+  face that states no `rise`: of the plane it gives every block in a column one answer, which is a fabric from
+  above and vertical stripes from the side. It is asked of the wall, which `TerrainThemeValidation.Check` had
+  never walked at all, and of a fill carrying neither surface nor rim — a thing *made of* its material
+  (`TP22`), so every side of it is a face. Ground under a surface is not asked, nor is one course of a depth
+  stack, which has no height to vary over. *The pair the finding was read off separates cleanly:
+  `probe-plains-1` raises nothing across eight themes, `probe-plains-2` one on each of five and on 31 of its
+  39 shape materials; all eight committed presets stay silent.* And `LogAxis` gives both log patterns one
+  answer for how a log is turned: a wall's run where there is one, upright at a corner, and upright on a face
+  with no run at all — a freestanding pillar, where a laid log shows a cut end on every side a player walks
+  round. A floor is unchanged. (`TerrainThemeValidation`, `TerrainPatterns`, `docs/world-export/terrain-painting.md`,
+  `docs/tools/sketch.md`, `docs/tools/library.md`, `docs/refusals.md`)
 - **A tree is a species or a body, and nothing else (`WE65`, `TS107`).** The grown tree is gone: the enum, the
   eight knobs only it read on `TreeStyle` and on the wire, the `/terrain/woods` picker behind it, the seeded
   "grown conifer" row, and the three `Geom` algorithms nothing else reached — `TreeSkeleton` (297 lines),

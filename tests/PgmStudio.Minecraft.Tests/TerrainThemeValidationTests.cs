@@ -242,6 +242,100 @@ public sealed class TerrainThemeValidationTests
         }
     }
 
+    // ── PT4: a sampled field on a face a player reads edge-on ────────────────────
+    // A field of the plane gives every block in a column one answer, which is a fabric seen from above and a
+    // run of vertical stripes seen from the side. The wall is a face by definition; a fill is ground under a
+    // surface and a face when it is the whole of a thing that is *made of* its material (TP22).
+
+    /// <summary>A noise in an enabled wall with no vertical period is named at the bucket it landed in.</summary>
+    [Test]
+    public async Task A_flat_field_in_the_wall_is_named()
+    {
+        var flat = new NoiseMaterial(1, 8, 2,
+            [new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)]);
+        var finding = TerrainThemeValidation.Check(TerrainTheme.Default with { Wall = flat }).Single();
+
+        await Assert.That(finding.Rule).IsEqualTo(TerrainThemeRules.FlatFieldOnAFace);
+        await Assert.That(finding.Field).IsEqualTo("wall.rise");
+    }
+
+    /// <summary>The same field with a rise is the answer the finding asks for, so it says nothing.</summary>
+    [Test]
+    public async Task A_field_carrying_a_rise_is_silent()
+    {
+        var risen = new NoiseMaterial(1, 8, 2,
+            [new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)], Rise: 8);
+        await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Wall = risen })).IsEmpty();
+    }
+
+    /// <summary>A wall that paints nothing is not asked. A theme built from one material binds it to every
+    /// bucket and disables the ones it does not want, so a disabled wall would answer a second time for the
+    /// fill's own fault.</summary>
+    [Test]
+    public async Task A_disabled_wall_is_not_asked()
+    {
+        var flat = new NoiseMaterial(1, 8, 2,
+            [new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)]);
+        await Assert.That(TerrainThemeValidation
+            .Check(TerrainTheme.Default with { Wall = flat, WallEnabled = false })).IsEmpty();
+    }
+
+    /// <summary>A fill under a surface is ground: it is met from above wherever it is not cut, and every
+    /// committed preset paints its body with a flat voronoi on purpose.</summary>
+    [Test]
+    public async Task A_flat_field_in_ground_under_a_surface_is_silent()
+    {
+        var flat = new VoronoiMaterial(1, 9,
+            [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1),
+             new VoronoiBand(new SolidMaterial(Blocks.Cobblestone), 4)]);
+        await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = flat })).IsEmpty();
+    }
+
+    /// <summary>A shape stating a <c>material</c> is a thing made of it rather than ground with a top, so
+    /// every side of it is a face — which is what a tunnel wall and a kerb are.</summary>
+    [Test]
+    public async Task A_flat_field_on_a_made_thing_is_named()
+    {
+        var flat = new VoronoiMaterial(1, 9,
+            [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1),
+             new VoronoiBand(new SolidMaterial(Blocks.Cobblestone), 4)]);
+        var made = TerrainTheme.OfMaterial(flat, TerrainTheme.Default);
+        var finding = TerrainThemeValidation.Check(made).Single();
+
+        await Assert.That(finding.Rule).IsEqualTo(TerrainThemeRules.FlatFieldOnAFace);
+        await Assert.That(finding.Field).IsEqualTo("fill.rise");
+    }
+
+    /// <summary>One course of a depth stack has no height for a field to vary over — the turf over a clay
+    /// body, which two shipped presets lay exactly this way. The band under it does, and is asked.</summary>
+    [Test]
+    public async Task A_field_in_a_single_course_band_is_not_asked()
+    {
+        var turf = new CellMaterial(1, 4, 50, 4,
+            [new SolidMaterial(Blocks.Grass), new SolidMaterial(Blocks.Dirt)]);
+        var body = new NoiseMaterial(2, 8, 2,
+            [new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)]);
+
+        var oneCourse = new LayeredMaterial(new BandStack([new Band(turf, 1), new Band(body, 6)]));
+        var findings = TerrainThemeValidation.Check(TerrainTheme.OfMaterial(oneCourse, TerrainTheme.Default));
+
+        // The six-course body answers; the single course of turf above it does not.
+        await Assert.That(findings.Single().Field).IsEqualTo("fill.stack[1].rise");
+    }
+
+    /// <summary>A stack read any way but by depth gives every band the bucket's whole span, so each is asked
+    /// exactly as the bucket was.</summary>
+    [Test]
+    public async Task A_band_read_across_the_shape_is_asked_whatever_its_thickness()
+    {
+        var flat = new NoiseMaterial(1, 8, 2,
+            [new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)]);
+        var across = new LayeredMaterial(new BandStack([new Band(flat, 1)]), BandAxis.Slope);
+
+        await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Wall = across })
+            .Single().Field).IsEqualTo("wall.stack[0].rise");
+    }
+
     /// <summary>The fill bucket, which claims every course under the surface — the one place a pattern is
     /// read with no depth rule firing beside it, so a brush finding stands alone.</summary>
     private static Findings Brushed(TerrainMaterial material) =>

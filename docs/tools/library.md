@@ -228,8 +228,10 @@ wall gets squares rather than the vertical stripes a plane pattern would give it
   "odd":  { "kind": "solid", "id": 159, "data": 15 } }
 ```
 
-**`logChecker` — one log alternating upright and laid**, which is the timbering the corpus houses use. Off a
-wall the flat squares read as bark against sawn end, which is what a log floor is.
+**`logChecker` — one log alternating upright and laid**, which is the timbering the corpus houses use. On a
+`surface` or a `rim` the flat squares read as bark against sawn end, which is what a log floor is. On a face
+with no wall run to follow — a freestanding pillar — both squares stand, because a laid log there would show a
+cut end on every side a player walks round.
 
 ```json
 { "kind": "logChecker", "size": 1, "id": 162, "data": 0 }
@@ -238,7 +240,7 @@ wall the flat squares read as bark against sawn end, which is what a log floor i
 **`laidLog` — one log lying along the wall, never across it.** The axis a log is laid on decides which two of
 its six faces are the sawn ends, and a log laid across a wall puts one straight out at the viewer; this takes
 the axis the wall is going. At a corner, where the wall has faces on both axes, the log stands upright — which
-is what a corner post is.
+is what a corner post is, and so does a log on a face with no run at all.
 
 ```json
 { "kind": "laidLog", "id": 17, "data": 0 }

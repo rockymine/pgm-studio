@@ -1284,6 +1284,11 @@ And they answer for a brush finer than the blocks it paints (`PT3`): a `cellSize
 pattern varying faster than the ground can show it, which reads as noise at any distance whatever the palette
 holds. Every pattern in the tree is asked, so a fine field nested in a coarse voronoi's band is named where it
 sits; a `checker`'s square and a wall run's stripe are drawn rather than sampled and are not asked at all.
+And they answer for a field on a **face** with no vertical period (`PT4`): a pattern of the plane gives every
+block in a column the same answer, which is a fabric from above and vertical stripes edge-on, so a `rise` is
+what gives a face its grain. The wall is asked where it paints, and a shape's own `material` is asked because
+a thing made of a material has no top — a tunnel wall, a kerb, a pillar. A fill under a surface is ground and
+is not asked, and neither is one course of a depth stack, which has no height to vary over.
 
 **A dressing document that will not parse is refused here too**, rather than at the export that reads it
 again: the gate cannot judge a style it cannot read, but *that* is the finding, and it carries the JSON path
