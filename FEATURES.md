@@ -5453,12 +5453,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `BlockLook` already said it — the surface and rim write what a player meets from above, the wall and fill
   what they meet edge-on — and two materials resolved without asking. **`PT4`** names a sampled field on a
   face that states no `rise`: of the plane it gives every block in a column one answer, which is a fabric from
-  above and vertical stripes from the side. It is asked of the wall, which `TerrainThemeValidation.Check` had
-  never walked at all, and of a fill carrying neither surface nor rim — a thing *made of* its material
-  (`TP22`), so every side of it is a face. Ground under a surface is not asked, nor is one course of a depth
-  stack, which has no height to vary over. *The pair the finding was read off separates cleanly:
-  `probe-plains-1` raises nothing across eight themes, `probe-plains-2` one on each of five and on 31 of its
-  39 shape materials; all eight committed presets stay silent.* And `LogAxis` gives both log patterns one
+  above and vertical stripes from the side. Both tall buckets are asked — the wall, which
+  `TerrainThemeValidation.Check` had never walked at all, and the fill, which is the face every cut through a
+  board leaves and the bucket a shape's own `material` reaches. Every band of a stack is asked whatever its
+  thickness: a rise is never nought on a face (author). The eight committed presets were the first thing it
+  caught — `StoneBody` is a flat voronoi in all six bodies and the clay turf in the other two — and they carry
+  a rise now, two or three blocks against a `cellSize` of nine or ten, the period the clay bodies already
+  used. *The pair the finding was read off separates cleanly:
+  `probe-plains-1` raises nothing across its eight themes, `probe-plains-2` eight across its five and on 31 of
+  its 39 shape materials, and three of the ten probe boards are clean on their themes.* And `LogAxis` gives both log patterns one
   answer for how a log is turned: a wall's run where there is one, upright at a corner, and upright on a face
   with no run at all — a freestanding pillar, where a laid log shows a cut end on every side a player walks
   round. A floor is unchanged. (`TerrainThemeValidation`, `TerrainPatterns`, `docs/world-export/terrain-painting.md`,

@@ -38,7 +38,7 @@ public static class TerrainThemeRules
     /// so every block in a column resolves the same and the face comes out in vertical stripes. A field of the
     /// plane is a fabric for ground seen from above; a wall or a fill is seen edge-on, and the one thing that
     /// gives a face its grain there is the field varying with height.</summary>
-    /// <remarks>Give the pattern a `rise` — the vertical period of its field, in blocks, which samples the volume instead of the plane. Around the pattern's own `cellSize` or `scale` is what reads as one fabric rather than two; the wall-run and diagonal patterns draw their stripes deliberately and are not asked. A field whose stripes are the intent belongs in `surface` or `rim`, which are the buckets read from above.</remarks>
+    /// <remarks>Give the pattern a `rise` — the vertical period of its field, in blocks, which samples the volume instead of the plane. Small is what the committed bodies use: two or three blocks against a `cellSize` of nine or ten, so the fabric turns over every few courses without the face reading as noise. A rise is never nought on a face, whatever the band's thickness. The wall-run and diagonal patterns draw their stripes deliberately and are not asked.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string FlatFieldOnAFace = "PT4";
 
@@ -88,21 +88,19 @@ public static class TerrainThemeValidation
             CheckRise("wall", theme.Wall, findings);
         }
 
-        // A fill under a surface is ground, and ground is met from above wherever it is not cut. A fill with
-        // neither a surface nor a rim over it is the whole of a thing that is *made of* its material (TP22) —
-        // a stilt, a kerb, a tunnel wall — and every side of that is a face.
-        if (!theme.Surface.Enabled && !theme.Rim.Enabled) CheckRise("fill", theme.Fill, findings);
+        // The fill is asked as the wall is. Ground is cut wherever a board has a cliff, a tunnel or a void
+        // edge, and the face that cut leaves is the fill — so a field flat through it stripes exactly where a
+        // player is closest to it (author).
+        CheckRise("fill", theme.Fill, findings);
         return findings;
     }
 
     /// <summary>Every sampled field in a bucket read from the side that states no vertical period. A face is
     /// met edge-on, so a field of the plane gives each of its columns one answer and it comes out striped.
     ///
-    /// <para>Its own walk rather than <see cref="Nodes"/>'s, because one band of a depth stack is the one
-    /// place the question does not apply: a band a single course thick has no height for a field to vary
-    /// over, which is what the course of turf over a body of stone is. A stack read any other way — by ring,
-    /// by world height, by inclination — gives each band the whole span, so each is asked as the bucket
-    /// was.</para></summary>
+    /// <para>Every field in the tree is asked, a band of a stack included and whatever that band's thickness:
+    /// a course sits against the courses around it, so a field flat through one still meets its neighbours in
+    /// a straight seam. A rise is never nought on a face (author).</para></summary>
     private static void CheckRise(string bucket, TerrainMaterial? material, List<Finding> findings)
     {
         if (material is null) return;
@@ -111,10 +109,7 @@ public static class TerrainThemeValidation
         {
             var bands = layered.Stack?.Bands ?? [];
             for (var at = 0; at < bands.Count; at++)
-            {
-                if (layered.Axis == BandAxis.Depth && bands[at].Thickness <= 1) continue;
                 CheckRise($"{bucket}.stack[{at}]", bands[at].Material, findings);
-            }
             if (layered.Beyond is { } beyond) CheckRise($"{bucket}.beyond", beyond, findings);
             return;
         }
@@ -130,8 +125,13 @@ public static class TerrainThemeValidation
     }
 
     /// <summary>The vertical period a sampled field varies over and the field that states it, or null for a
-    /// material that is not a sampled field. A checker's square, a wall run's stripe and a stack's bands are
-    /// drawn rather than sampled and each already says what it does with height.</summary>
+    /// material that is not a sampled field.
+    ///
+    /// <para>The five here are the five that <em>have</em> a rise, so the question is unaskable of anything
+    /// else by construction. A checker's square, a log checker's, a wall run's stripe, a diagonal's, a frame's
+    /// edge and a laid log's axis are all <b>drawn</b> — geometry placed where the author placed it, each
+    /// already stating what it does with height — and a solid, a stack and a team tint vary with something
+    /// that is not position at all.</para></summary>
     private static (int Blocks, string Field)? Rise(TerrainMaterial? material) => material switch
     {
         VoronoiMaterial voronoi => (voronoi.Rise, "rise"),

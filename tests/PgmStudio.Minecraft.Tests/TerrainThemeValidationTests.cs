@@ -101,7 +101,7 @@ public sealed class TerrainThemeValidationTests
     public async Task A_band_carrying_no_material_is_named_where_it_sits()
     {
         var voronoi = new VoronoiMaterial(1, 7,
-            [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1), default]);
+            [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1), default], Rise: 3);
 
         var findings = TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = voronoi });
 
@@ -124,7 +124,7 @@ public sealed class TerrainThemeValidationTests
 
         // Nested: the checker's odd side is a voronoi whose second band is empty.
         var nested = new CheckerMaterial(4, new SolidMaterial(Blocks.Stone),
-            new VoronoiMaterial(1, 7, [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1), default]));
+            new VoronoiMaterial(1, 7, [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1), default], Rise: 3));
         await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = nested })
             .Single().Field).IsEqualTo("fill.odd.bands[1]");
     }
@@ -136,7 +136,7 @@ public sealed class TerrainThemeValidationTests
     {
         var voronoi = new VoronoiMaterial(1, 7,
             [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1),
-             new VoronoiBand(new SolidMaterial(Blocks.Cobblestone), 2)]);
+             new VoronoiBand(new SolidMaterial(Blocks.Cobblestone), 2)], Rise: 3);
         await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = voronoi })).IsEmpty();
     }
 
@@ -176,8 +176,8 @@ public sealed class TerrainThemeValidationTests
 
         foreach (var period in (int[])[TerrainThemeRules.BrushFloor, 6, 19])
         {
-            await Assert.That(Brushed(new CellMaterial(1, period, 40, 2, stops))).IsEmpty();
-            await Assert.That(Brushed(new NoiseMaterial(1, period, 3, stops))).IsEmpty();
+            await Assert.That(Brushed(new CellMaterial(1, period, 40, 2, stops, Rise: 3))).IsEmpty();
+            await Assert.That(Brushed(new NoiseMaterial(1, period, 3, stops, Rise: 3))).IsEmpty();
         }
     }
 
@@ -190,11 +190,11 @@ public sealed class TerrainThemeValidationTests
         TerrainMaterial[] stops = [new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)];
         (TerrainMaterial Material, string Field)[] cases =
         [
-            (new CellMaterial(1, 1, 40, 2, stops), "cellSize"),
-            (new VoronoiMaterial(1, 1, [new VoronoiBand(stops[0], 1), new VoronoiBand(stops[1], 2)]), "cellSize"),
-            (new NoiseMaterial(1, 1, 3, stops), "scale"),
-            (new TurbulenceMaterial(1, 1, 3, stops), "scale"),
-            (new ElectricMaterial(1, 1, 3, stops), "scale"),
+            (new CellMaterial(1, 1, 40, 2, stops, Rise: 3), "cellSize"),
+            (new VoronoiMaterial(1, 1, [new VoronoiBand(stops[0], 1), new VoronoiBand(stops[1], 2)], Rise: 3), "cellSize"),
+            (new NoiseMaterial(1, 1, 3, stops, Rise: 3), "scale"),
+            (new TurbulenceMaterial(1, 1, 3, stops, Rise: 3), "scale"),
+            (new ElectricMaterial(1, 1, 3, stops, Rise: 3), "scale"),
         ];
 
         foreach (var (material, field) in cases)
@@ -213,7 +213,7 @@ public sealed class TerrainThemeValidationTests
         TerrainMaterial[] stops = [new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)];
         var nested = new VoronoiMaterial(1, 8,
             [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1),
-             new VoronoiBand(new NoiseMaterial(2, 1, 3, stops), 2)]);
+             new VoronoiBand(new NoiseMaterial(2, 1, 3, stops, Rise: 3), 2)], Rise: 3);
 
         var finding = Brushed(nested).Single();
         await Assert.That(finding.Rule).IsEqualTo(TerrainThemeRules.BrushTooFine);
@@ -244,8 +244,9 @@ public sealed class TerrainThemeValidationTests
 
     // ── PT4: a sampled field on a face a player reads edge-on ────────────────────
     // A field of the plane gives every block in a column one answer, which is a fabric seen from above and a
-    // run of vertical stripes seen from the side. The wall is a face by definition; a fill is ground under a
-    // surface and a face when it is the whole of a thing that is *made of* its material (TP22).
+    // run of vertical stripes seen from the side. Both tall buckets are asked: the wall is a face by
+    // definition, and the fill is the face every cut through a board leaves — a cliff, a tunnel, a void edge.
+    // A rise is never nought on either, whatever the band's thickness (author).
 
     /// <summary>A noise in an enabled wall with no vertical period is named at the bucket it landed in.</summary>
     [Test]
@@ -280,19 +281,22 @@ public sealed class TerrainThemeValidationTests
             .Check(TerrainTheme.Default with { Wall = flat, WallEnabled = false })).IsEmpty();
     }
 
-    /// <summary>A fill under a surface is ground: it is met from above wherever it is not cut, and every
-    /// committed preset paints its body with a flat voronoi on purpose.</summary>
+    /// <summary>A fill is asked exactly as a wall is. Ground is cut wherever a board has a cliff, a tunnel or
+    /// a void edge, and what that cut leaves is the fill — the face a player stands closest to.</summary>
     [Test]
-    public async Task A_flat_field_in_ground_under_a_surface_is_silent()
+    public async Task A_flat_field_in_the_fill_is_named()
     {
         var flat = new VoronoiMaterial(1, 9,
             [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1),
              new VoronoiBand(new SolidMaterial(Blocks.Cobblestone), 4)]);
-        await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = flat })).IsEmpty();
+        var finding = TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = flat }).Single();
+
+        await Assert.That(finding.Rule).IsEqualTo(TerrainThemeRules.FlatFieldOnAFace);
+        await Assert.That(finding.Field).IsEqualTo("fill.rise");
     }
 
-    /// <summary>A shape stating a <c>material</c> is a thing made of it rather than ground with a top, so
-    /// every side of it is a face — which is what a tunnel wall and a kerb are.</summary>
+    /// <summary>A shape stating a <c>material</c> reaches the gate as a theme carrying that material in its
+    /// fill, so a tunnel wall and a kerb are asked through the same bucket a board's body is.</summary>
     [Test]
     public async Task A_flat_field_on_a_made_thing_is_named()
     {
@@ -306,21 +310,52 @@ public sealed class TerrainThemeValidationTests
         await Assert.That(finding.Field).IsEqualTo("fill.rise");
     }
 
-    /// <summary>One course of a depth stack has no height for a field to vary over — the turf over a clay
-    /// body, which two shipped presets lay exactly this way. The band under it does, and is asked.</summary>
+    /// <summary>Every band of a stack is asked whatever its thickness. A course sits against the courses
+    /// around it, so a field flat through one still meets its neighbours in a straight seam — which is why the
+    /// clay bodies on the shelf give a rise to a band a single course deep.</summary>
     [Test]
-    public async Task A_field_in_a_single_course_band_is_not_asked()
+    public async Task Every_band_of_a_stack_is_asked_whatever_its_thickness()
     {
         var turf = new CellMaterial(1, 4, 50, 4,
             [new SolidMaterial(Blocks.Grass), new SolidMaterial(Blocks.Dirt)]);
         var body = new NoiseMaterial(2, 8, 2,
             [new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)]);
 
-        var oneCourse = new LayeredMaterial(new BandStack([new Band(turf, 1), new Band(body, 6)]));
-        var findings = TerrainThemeValidation.Check(TerrainTheme.OfMaterial(oneCourse, TerrainTheme.Default));
+        var stack = new LayeredMaterial(new BandStack([new Band(turf, 1), new Band(body, 6)]));
+        var findings = TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = stack });
 
-        // The six-course body answers; the single course of turf above it does not.
-        await Assert.That(findings.Single().Field).IsEqualTo("fill.stack[1].rise");
+        await Assert.That(findings.Select(f => f.Field))
+            .IsEquivalentTo(new[] { "fill.stack[0].rise", "fill.stack[1].rise" });
+    }
+
+    /// <summary>Only a <b>sampled</b> field is asked. A pattern that is drawn — a checkerboard's square, a wall
+    /// run's stripe, a frame's edge — places its geometry where the author put it and already says what it
+    /// does with height, so it carries no <c>rise</c> to state and none is wanted of it.
+    ///
+    /// <para>Held by reflection rather than by a list, so a material added with a <c>Rise</c> of its own joins
+    /// the rule and one without it can never be asked for a field it does not have.</para></summary>
+    [Test]
+    public async Task Only_the_materials_carrying_a_rise_are_asked_for_one()
+    {
+        var drawn = new TerrainMaterial[]
+        {
+            new SolidMaterial(Blocks.Stone),
+            new CheckerMaterial(2, new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)),
+            new LogCheckerMaterial(1, Blocks.Log),
+            new LaidLogMaterial(Blocks.Log),
+            new WallRunMaterial([new WallStripe(new SolidMaterial(Blocks.Stone), 2)]),
+            new WallDiagonalMaterial([new WallStripe(new SolidMaterial(Blocks.Stone), 2)]),
+            new WallFrameMaterial(new SolidMaterial(Blocks.Stone), new SolidMaterial(Blocks.Cobblestone)),
+            new TeamTintedMaterial(Blocks.StainedClay, new SolidMaterial(Blocks.StainedClay)),
+        };
+
+        foreach (var material in drawn)
+        {
+            await Assert.That(material.GetType().GetProperty("Rise")).IsNull()
+                .Because($"{material.GetType().Name} is drawn rather than sampled and states no vertical period");
+            await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Wall = material })
+                .Where(f => f.Rule == TerrainThemeRules.FlatFieldOnAFace)).IsEmpty();
+        }
     }
 
     /// <summary>A stack read any way but by depth gives every band the bucket's whole span, so each is asked

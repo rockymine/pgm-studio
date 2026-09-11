@@ -18,8 +18,10 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 Four findings the author read off ten painted boards. `BlockLook` states the division the group turns on — the
 surface and rim buckets write what a player sees **from above**, the wall and fill buckets what they see **from
 the side** — and a material that resolves without asking which of the two it landed in is the cause the first
-two shared. That half has shipped (`FEATURES.md`): the gate now asks the wall, `PT4` names a field with no
-`rise` on a face, and both log patterns stand a log up where there is no run to lay it along.
+two shared. That half has shipped (`FEATURES.md`): `PT4` names a sampled field with no `rise` on either tall
+bucket — the wall, which the gate had never walked, and the fill, which is the face every cut through a board
+leaves — and the eight committed presets were the first thing it caught. Both log patterns now stand a log up
+where there is no run to lay it along.
 
 The two that remain are each their own: one is about who resolves a block (a stated solid where a theme
 resolution belongs), the other about what a block is chosen *against* (the ground it stands on). The second

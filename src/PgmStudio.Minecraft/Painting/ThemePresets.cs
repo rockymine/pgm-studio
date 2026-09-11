@@ -40,9 +40,11 @@ public static class ThemePresets
         => new NoiseMaterial(seed, scale, Octaves: 2, stops);
 
     /// <summary>The body a board is cut out of: stone worn into cells, the grid line on the boundary and the
-    /// middle taking whatever is left.</summary>
+    /// middle taking whatever is left. The rise is what keeps a cut through it — a cliff, a tunnel, a void
+    /// edge — reading as stone rather than as vertical stripes (<c>PT4</c>): the cells turn over every three
+    /// courses, which is the period the clay bodies already use against the same cell size.</summary>
     private static TerrainMaterial StoneBody(uint seed, TerrainMaterial line, TerrainMaterial middle)
-        => new VoronoiMaterial(seed, CellSize: 9, [new VoronoiBand(line, 1), new VoronoiBand(middle, 4)]);
+        => new VoronoiMaterial(seed, CellSize: 9, [new VoronoiBand(line, 1), new VoronoiBand(middle, 4)], Rise: 3);
 
     /// <summary>The team-tinted riser every finish shares the shape of: clay that takes the owning team's
     /// colour, falling through to a neutral shade on land no team owns.</summary>
@@ -154,7 +156,8 @@ public static class ThemePresets
         Fill = new LayeredMaterial(new BandStack(
         [
             new Band(new CellMaterial(1, 4, 50, 4,
-                [Block(Blocks.Wool, Green), Block(Blocks.StainedClay, Green), Block(Blocks.Grass)]), 1),
+                [Block(Blocks.Wool, Green), Block(Blocks.StainedClay, Green), Block(Blocks.Grass)],
+                Rise: 2), 1),
             .. ClayBody,
         ])),
     };
@@ -171,7 +174,7 @@ public static class ThemePresets
         [
             new Band(new CellMaterial(1, 4, 50, 4,
                 [Block(Blocks.StainedClay, LightBlue), Block(Blocks.StainedClay, LightGrey),
-                 Block(Mycelium)]), 1),
+                 Block(Mycelium)], Rise: 2), 1),
             .. ClayBody,
         ])),
     };
