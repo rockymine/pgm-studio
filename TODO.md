@@ -23,19 +23,8 @@ bucket — the wall, which the gate had never walked, and the fill, which is the
 leaves — and the eight committed presets were the first thing it caught. Both log patterns now stand a log up
 where there is no run to lay it along.
 
-The two that remain are each their own: one is about who resolves a block (a stated solid where a theme
-resolution belongs), the other about what a block is chosen *against* (the ground it stands on). The second
-carries a threshold that is the author's and is not yet stated — it is measured before it is asked.
-
-- [ ] **WE63 — The room plate stamps raw stone under every room.** A shell's `Foundation.Plate` is a stated
-  solid — stone brick, sandstone, cobblestone, depending on the preset — so the courses under a room keep that
-  block however the ground around them is themed. On a board where the rooms stand on raised pieces the whole
-  outside face of each platform reads as a grey core in a coloured map: `specs/probe-plains-1` and
-  `specs/probe-plains-2` both left the undersides of their spawn and wool rooms unthemed, and the author
-  reported it on both. Two other agents found it and fixed it by hand — one resolved the plate through the
-  board's own strata at extent 24, the other dropped the `footing` because a proud ring left the outermost
-  column unpainted. That is the right answer and it should be the default: the plate resolves through the
-  theme under it unless a style states otherwise.
+The one that remains is about what a block is chosen *against* — the ground it stands on. It carries a
+threshold that is the author's and is not yet stated: it is measured before it is asked.
 
 - [ ] **WE64 — A boulder in the ground's own tone family disappears.** The author's ruling, from three boards:
   a rock must not be built from the family it sits on. Sandstone rocks on sand vanish into the sandstone

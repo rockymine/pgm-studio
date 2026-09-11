@@ -82,9 +82,15 @@ consults splits by how a stamp is anchored:
   is not stone is a structure, and its height is that column's top — so no separate registry is needed,
   though the footprints (`Piece` rects, the `WallStructure` list) are equivalent inputs.
 
+  **The exclusion is of the course, not of the column.** A structure is what stands on the ground, and the
+  ground under it is ground: a column carrying a stamp is classified and its bands resolved like any other,
+  and what keeps the stamp itself unpainted is the stone-only rule, taken block by block. A room's plate is
+  one stated course, so the plinth beneath it takes the rim, wall and fill its neighbours take — which is
+  what a raised piece shows on its outside face, that face being the room's own footprint.
+
 ## 2. The three outputs
 
-In pipeline order: read the elevation, classify each stone column by its edges, then paint. Every column
+In pipeline order: read the elevation, classify each column by its edges, then paint. Every column
 splits into at most three painted parts and one kept part — bedrock (y=0, kept), the **rim** (its
 top-most block, when it is an edge), the **wall** (the exposed riser below the rim), and the **interior**
 (the top-most block, when it is not an edge).
@@ -439,8 +445,8 @@ flexible (any depth knob, any pattern, any scope) without becoming tangled — e
 exactly one seam, and the core never moves.
 
 **The runtime seam.** `TerrainPainter` runs **last** in `WorldBuilder.Build`, after the stampers, and
-rewrites **only stone** — so bedrock and every structure are excluded by construction and a re-run is
-idempotent. It reads inputs already in hand: the finished world (column heights + materials), the per-cell
+rewrites **only stone** — so bedrock and every stamped block are excluded by construction and a re-run is
+idempotent. The test is per block, so a stamp keeps its own courses and nothing more. It reads inputs already in hand: the finished world (column heights + materials), the per-cell
 surface grid (`BuiltTerrain.SurfaceTop`), and — only for scoped theming — the shape footprints the rasterizer
 already walks. Running after the stampers is what makes TP6 free: the rooms, cubes and approach walls
 are already non-stone columns, so "consult the stamps" is just "read the finished world."
@@ -461,8 +467,9 @@ difference shows.
 
 **The four stages.** The pass is one pure function assembled from four separable stages, in pipeline order:
 
-1. **Profile — the shared core (theme-agnostic).** Classify every stone column into neutral geometric facts
-   (`ColumnProfile`): its `surfaceTop`, its plateau, whether each face drops (to void, to lower terrain, or is
+1. **Profile — the shared core (theme-agnostic).** Classify every column into neutral geometric facts
+   (`ColumnProfile`): its `surfaceTop`, its plateau, whether its own top course is a stamp (`Structure`),
+   whether each face drops (to void, to lower terrain, or is
    sealed by a structure — TP6), its membership of all three nested rim-edge tests (void · open · closed, the
    three a theme's `rimEdges` chooses between), its void/terrain drop floors, and its
    **perimeter arc** — the index around its landmass's outer void-facing boundary that a wall-run reads (TP13).
@@ -820,7 +827,7 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP3** | `rimEdges` picks the edge test: `void` (only where the footprint meets the void — no lip on the treads of a stacked body), `drop` (the default — void or lower), `boundary` (the full plateau outline, also lipping edges facing a room or a taller plateau). |
 | **TP4** | The wall is the exposed riser, `y ∈ [drop, surfaceTop − 2]`; buried stone and the y=0 bedrock course are left. |
 | **TP5** | The interior is the top course of every non-edge column. |
-| **TP6** | A stamped structure (piece-relative room/cube, or the interface-relative bedrock approach wall) is height-bearing: never painted, never a drop (no open lip, no clay behind it), always a closed-rim edge. |
+| **TP6** | A stamped structure (piece-relative room/cube, or the interface-relative bedrock approach wall) is height-bearing: never painted, never a drop (no open lip, no clay behind it), always a closed-rim edge. The exclusion is of the **course**: only the stamp's own blocks are kept, and the ground under it is classified and painted like any other column. |
 | **TP7** | Rim depth is configurable (`Rim.Depth`, default 1); the wall takes the height below it, and the rim never overrides the bedrock floor. |
 | **TP8** | Bedrock floor thickness is configurable — absolute, or terrain-relative (bedrock = column height − intended terrain depth); ≥1, ≤ column height. When it equals the height, no rim or wall. |
 | **TP9** | A toggle paints wall on exposed terrain-to-terrain faces (adjacent height difference ≥2 after the rim), not only void-facing ones. |

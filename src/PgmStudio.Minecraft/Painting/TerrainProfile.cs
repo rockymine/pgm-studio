@@ -36,19 +36,24 @@ namespace PgmStudio.Minecraft.Painting;
 /// <para><b>Base</b> — The lowest course the column's bands run from. Zero for terrain, whose bands start at the
 /// bedrock floor; a made thing's own floor where the column belongs to one, because a sculpture flying at y24 has
 /// no bedrock course and no fill reaching down to one — its span is what it is made of and the column under it is
-/// somebody else's.</para></summary>
+/// somebody else's.</para>
+/// <para><b>Structure</b> — Whether the column's <em>top</em> course is a stamp rather than stone. It says
+/// nothing about the courses under it, which are ground and are painted like ground; what it answers is a
+/// question about the surface, for a caller reading what a board shows from above.</para></summary>
 public readonly record struct ColumnProfile(
     int SurfaceTop, bool VoidEdge, bool OpenEdge, bool ClosedEdge, int VoidDrop, int TerrainDrop,
     int PerimeterArc = -1, int PerimeterTurn = 0, int PerimeterRun = 0, int Inset = -1, int Base = 0,
-    int Slope = 0);
+    int Slope = 0, bool Structure = false);
 
 /// <summary>
 /// The shared core of terrain painting (docs/world-export/terrain-painting.md §5, stage 1): classifies every
 /// stone column of a finished world into <see cref="ColumnProfile"/> facts, reading nothing but the world and
 /// the per-cell surface top. Because it runs on the <em>finished</em> world, consulting the stamps is free —
-/// a column whose top block is not stone is a structure (a room plateau, a bedrock approach wall, an
-/// objective), excluded from painting and read as a height-bearing, face-sealing neighbour (TP6). Pure and
-/// theme-agnostic, so the same profile serves every theme, scope and pattern.
+/// a column whose top block is not stone carries a structure (a room plateau, a bedrock approach wall, an
+/// objective) and is read as a height-bearing, face-sealing neighbour (TP6). That is a fact about its
+/// <em>top</em> course: the stone under a stamp is ground and is classified like ground, and what keeps the
+/// stamp itself unpainted is the stone-only rule at the block (TP6). Pure and theme-agnostic, so the same
+/// profile serves every theme, scope and pattern.
 /// </summary>
 public sealed class TerrainProfile
 {
@@ -91,8 +96,8 @@ public sealed class TerrainProfile
     {
         _base = floorAt;
         _slopeWindow = Math.Max(1, slopeWindow);
-        // A column is a structure (not paintable) when it has no stone to paint — its surface block is not
-        // stone (a stamp's bedrock/wool/obsidian sits there or the column is a bare bedrock course).
+        // A column carries a structure when its surface block is not stone — a stamp's bedrock/wool/obsidian
+        // sits there, or the column is a bare bedrock course.
         var structures = new HashSet<(int, int)>();
         foreach (var (cell, top) in surfaceTop)
             if (top <= 1 || world.GetBlock(cell.X, top - 1, cell.Z).Id != Blocks.Stone) structures.Add(cell);
@@ -113,19 +118,17 @@ public sealed class TerrainProfile
         foreach (var (cell, step) in GridBoundary.StepsInward(surfaceTop.Keys)) _inset[cell] = step;
 
         foreach (var (cell, facts) in _facts)
-        {
-            if (facts.IsStructure) continue;    // structures are never painted (TP6)
             _columns[cell] = Classify(cell.Item1, cell.Item2, facts);
-        }
     }
 
-    /// <summary>Every paintable column with its facts — what the band resolver consumes.</summary>
-    public IEnumerable<((int X, int Z) Cell, ColumnProfile Profile)> PaintableColumns()
+    /// <summary>Every column of the footprint with its facts — what the band resolver consumes. A column
+    /// carrying a stamp is among them: its bands are resolved like any other and the stone-only rule decides,
+    /// course by course, that the stamp stays and the ground under it is painted (TP6).</summary>
+    public IEnumerable<((int X, int Z) Cell, ColumnProfile Profile)> Columns()
         => _columns.Select(kv => (kv.Key, kv.Value));
 
-    /// <summary>One cell's facts, or false where the cell is not paintable (off the footprint, or a structure
-    /// column the paint leaves alone — TP6). For a caller that walks the footprint itself and needs to know,
-    /// per cell, whether the painter has an opinion about it.</summary>
+    /// <summary>One cell's facts, or false where the cell is off the footprint. For a caller that walks the
+    /// footprint itself; <see cref="ColumnProfile.Structure"/> says whether the top course is a stamp.</summary>
     public bool TryGetColumn((int X, int Z) cell, out ColumnProfile column) => _columns.TryGetValue(cell, out column);
 
     private ColumnProfile Classify(int x, int z, CellFacts self)
@@ -156,7 +159,7 @@ public sealed class TerrainProfile
             _perimeterRun.GetValueOrDefault((x, z), 0),
             _inset.GetValueOrDefault((x, z), -1),
             _base?.GetValueOrDefault((x, z), 0) ?? 0,
-            Slope(x, z, self));
+            Slope(x, z, self), self.IsStructure);
     }
 
     /// <summary>How steeply the surface is inclined at one cell, in whole degrees from level. Horn's 3×3

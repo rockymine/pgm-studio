@@ -5449,6 +5449,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A stamp is one course, and the ground under it is painted (`WE63`).** `TerrainProfile` classified only
+  columns whose top block was stone, so a single stated course — a room's `Foundation.Plate`, a wool pad, a
+  `footing` ring one block proud — took the whole column out of the pass and left it raw stone from the floor
+  to bedrock. A room's plinth is exactly its own footprint, so that is the platform's entire outside face:
+  a grey core in a coloured board. Every column is classified now, `ColumnProfile.Structure` carries the fact
+  about the **top** course for a caller that needs it, and `TP6` is what it always said it was — the stone-only
+  rule, taken block by block, which keeps the stamp and paints the plinth beneath it with the rim, wall and fill
+  its neighbours take. Measured on a 5×5 plateau with a one-course plate: the edge column read `Stone` at y5
+  before and the clay wall its unstamped neighbour shows after. The top-down preview asks the new flag, so a
+  room still shows the block that is on it rather than a themed one.
+  (`Painting/TerrainProfile`, `TerrainPainter`, `Api/Services/TerrainPreview`,
+  `docs/world-export/terrain-painting.md`, `docs/world-export/structures.md`; `TerrainPainterTests`)
 - **Which face a bucket paints decides how a block is turned and how a field is sampled (`WE61`, `WE62`).**
   `BlockLook` already said it — the surface and rim write what a player meets from above, the wall and fill
   what they meet edge-on — and two materials resolved without asking. **`PT4`** names a sampled field on a

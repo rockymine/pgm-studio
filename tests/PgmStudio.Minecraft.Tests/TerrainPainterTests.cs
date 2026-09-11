@@ -401,6 +401,40 @@ public sealed class TerrainPainterTests
     }
 
     /// <summary>
+    /// The stone-only rule is taken course by course, not column by column: a room's plate is one stated
+    /// course and everything under it is ground. A column excluded whole would leave the plinth a room stands
+    /// on as raw stone all the way down, which on a raised piece is the platform's whole outside face.
+    /// </summary>
+    [Test]
+    public async Task A_stamped_top_course_still_leaves_the_ground_under_it_painted()
+    {
+        // a 5×5 plateau; a one-course plate — bedrock at the surface block alone — on an interior column and
+        // on an edge column, which is the face a raised piece shows.
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 5; x++)
+        for (var z = 0; z < 5; z++)
+            columns.Add(Seg(x, z, 1, 9));
+        var terrain = TerrainBuilder.Build(columns);
+        terrain.World.SetBlock(2, 8, 2, Blocks.Bedrock);
+        terrain.World.SetBlock(0, 8, 2, Blocks.Bedrock);
+
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, Themed);
+
+        var w = terrain.World;
+        // the plate stays exactly as it was stamped, on both.
+        await Assert.That(w.GetBlock(2, 8, 2)).IsEqualTo((Blocks.Bedrock, 0));
+        await Assert.That(w.GetBlock(0, 8, 2)).IsEqualTo((Blocks.Bedrock, 0));
+        // interior: the surface stack carries on under it rather than stopping at raw stone.
+        await Assert.That(w.GetBlock(2, 7, 2)).IsEqualTo((Blocks.Dirt, 0));
+        await Assert.That(w.GetBlock(2, 6, 2)).IsEqualTo((Blocks.Dirt, 0));
+        // edge: the face reads as the wall it is, the same clay its unstamped neighbour shows.
+        await Assert.That(w.GetBlock(0, 5, 2)).IsEqualTo((Blocks.StainedClay, 8));
+        await Assert.That(w.GetBlock(0, 5, 3)).IsEqualTo((Blocks.StainedClay, 8));
+        // and the bedrock floor is still the bedrock floor.
+        await Assert.That(w.GetBlock(2, 0, 2)).IsEqualTo((Blocks.Bedrock, 0));
+    }
+
+    /// <summary>
     /// The whole point of routing both callers through <see cref="TerrainPainter.ColumnBlocks"/>: a top-down
     /// preview that resolves only each column's top block must name the same block the full paint writes
     /// there. If these two ever diverge, the preview stops being a preview — so the agreement is asserted over
@@ -418,7 +452,7 @@ public sealed class TerrainPainterTests
         int TeamAt(int x, int z) => x < 6 ? 14 : 11;   // a tint that differs across the two plateaus
 
         var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
-        var tops = profile.PaintableColumns().ToDictionary(
+        var tops = profile.Columns().ToDictionary(
             c => c.Cell,
             c => TerrainPainter.TopBlock(c.Cell.X, c.Cell.Z, c.Profile, TerrainTheme.Default, TeamAt(c.Cell.X, c.Cell.Z)));
 

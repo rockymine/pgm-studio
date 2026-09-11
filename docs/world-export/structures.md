@@ -811,9 +811,10 @@ a surface map and the fill stands above the top that map states, so the levelled
 addressed: a room's ground came out raw stone on a board painted everywhere else. So the levelling reports the
 surface it leaves — `StructureStamper.FoundationTops`, the same walk that writes the courses, so the two cannot
 disagree about where the plinth stops — and the world build folds those tops into the map it hands the painter
-(`docs/world-export/terrain-painting.md` § the runtime seam). Where a shell or a wool pad covers the plinth
-nothing changes, those columns no longer being stone; where the footprint is too small to carry walls (WX2) the
-plinth **is** the floor, and it is now the board's ground rather than rock.
+(`docs/world-export/terrain-painting.md` § the runtime seam). Where a shell or a wool pad covers the plinth the
+courses beneath it are still ground and are painted as such — the stone-only rule keeps the stamp and nothing
+more (TP6), which is what finishes the outside face a raised piece shows; where the footprint is too small to
+carry walls (WX2) the plinth **is** the floor, and it is now the board's ground rather than rock.
 
 **And where the cell beside a building has no ground to meet it on, `WX11` says so** — a complaint at the
 columns tier, since a building on a ledge is a real thing to draw and the world builds either way. The

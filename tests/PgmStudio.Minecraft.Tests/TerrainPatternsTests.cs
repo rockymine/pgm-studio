@@ -426,7 +426,7 @@ public sealed class TerrainPatternsTests
             columns.Add(Seg(x, z, 1, 9));
         var terrain = TerrainBuilder.Build(columns);
         var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
-        var arc = profile.PaintableColumns().ToDictionary(p => p.Cell, p => p.Profile.PerimeterArc);
+        var arc = profile.Columns().ToDictionary(p => p.Cell, p => p.Profile.PerimeterArc);
 
         var onPerimeter = arc.Where(kv => kv.Value >= 0).Select(kv => kv.Value).OrderBy(v => v).ToList();
         await Assert.That(onPerimeter.Count).IsEqualTo(16);                 // the boundary ring
@@ -618,7 +618,7 @@ public sealed class TerrainPatternsTests
         for (var x = 0; x < 16; x++)
             for (var z = 0; z < 12; z++) footprint.Add((x, z));
 
-        var turn = ProfileOf(footprint).PaintableColumns().ToDictionary(p => p.Cell, p => p.Profile.PerimeterTurn);
+        var turn = ProfileOf(footprint).Columns().ToDictionary(p => p.Cell, p => p.Profile.PerimeterTurn);
 
         foreach (var corner in new[] { (0, 0), (15, 0), (0, 11), (15, 11) })
             await Assert.That(turn[corner]).IsEqualTo(90);
@@ -636,7 +636,7 @@ public sealed class TerrainPatternsTests
             for (var z = -radius; z <= radius; z++)
                 if (x * x + z * z <= radius * radius) footprint.Add((x, z));
 
-        var turn = ProfileOf(footprint).PaintableColumns().ToDictionary(p => p.Cell, p => p.Profile.PerimeterTurn);
+        var turn = ProfileOf(footprint).Columns().ToDictionary(p => p.Cell, p => p.Profile.PerimeterTurn);
         await Assert.That(turn.Values.Max()).IsLessThan(45);
 
         // So on this shape no cell of the wall's middle is ever inked — the frame is its top and bottom only.

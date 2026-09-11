@@ -11,7 +11,9 @@ public readonly record struct TerrainBand(int LoY, int HiY, TerrainBucket Bucket
 /// <see cref="TerrainTheme"/>. Two remaining stages sit here: the pure band <see cref="Resolve"/> (which Y is
 /// bedrock / fill / wall / surface / rim, TP7/TP8/TP11/TP12) and the paint loop that resolves each band's
 /// material and writes it. It touches <b>only stone</b>, so bedrock and every stamped structure are left
-/// exactly as the terrain builder and stampers placed them (TP6) and a re-run is idempotent.
+/// exactly as the terrain builder and stampers placed them (TP6) and a re-run is idempotent. That rule is
+/// taken block by block, which is what paints the ground under a room: a plate is one stated course and the
+/// stone beneath it is ground.
 /// </summary>
 public static class TerrainPainter
 {
@@ -66,7 +68,7 @@ public static class TerrainPainter
     {
         var team = teamDamageAt ?? ((_, _) => -1);
         var profile = new TerrainProfile(world, surfaceTop, floorAt);
-        foreach (var (cell, column) in profile.PaintableColumns())
+        foreach (var (cell, column) in profile.Columns())
         {
             var sample = foldAt?.Invoke(cell.X, cell.Z) ?? cell;
             foreach (var (y, id, data) in ColumnBlocks(cell.X, cell.Z, column, themeAt(cell.X, cell.Z), team(cell.X, cell.Z), sample))

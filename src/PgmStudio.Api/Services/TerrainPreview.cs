@@ -115,7 +115,7 @@ public static class TerrainPreview
         var cells = new List<SurfaceCell>(surface.Count);
         foreach (var (cell, top) in surface)
         {
-            if (profile.TryGetColumn(cell, out var column)
+            if (profile.TryGetColumn(cell, out var column) && !column.Structure
                 && TerrainPainter.TopBlock(cell.X, cell.Z, column,
                        themeAt(topLayer.GetValueOrDefault(cell, ""), cell.X, cell.Z),
                        teamAt(cell.X, cell.Z)) is { } painted)
@@ -123,8 +123,9 @@ public static class TerrainPreview
                 cells.Add(new SurfaceCell(cell.X, cell.Z, painted.Id, painted.Data));
                 continue;
             }
-            // Not paintable (a bare bedrock course): the terrain's own block stands. SurfaceTop is the first
-            // air Y above the column, so scan down from just under it for the first solid.
+            // A stamp or a bare bedrock course tops this column, so what the board shows from above is the
+            // block that is there. SurfaceTop is the first air Y above the column, so scan down from just
+            // under it for the first solid.
             for (var y = Math.Min(top, VoxelWorld.MaxHeight - 1); y >= 0; y--)
             {
                 var (id, data) = terrain.World.GetBlock(cell.X, y, cell.Z);
