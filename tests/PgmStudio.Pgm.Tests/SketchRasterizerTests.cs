@@ -291,7 +291,7 @@ public sealed class SketchRasterizerTests
              {"id":"s0","type":"polygon","operation":"add","base_height":14,
               "vertices":[[-20,0],[20,0],[20,60],[-20,60]]},
              {"id":"room","type":"rectangle","operation":"add","role":"woolRoom","intentRef":"red:blue",
-              "base_height":18,"relief_scope":"hold","min_x":-5,"min_z":40,"max_x":5,"max_z":50}],
+              "base_height":18,"relief_scope":"follow","min_x":-5,"min_z":40,"max_x":5,"max_z":50}],
            "groups":[{"id":"team","mirrors":false,"shapeIds":["s0"]}]}}],
          "relief":{"team":{"base":14,"reach":0,"step":1,
            "marks":[{"id":"m","kind":"area","h":14,"ring":[[-20,0],[20,0],[20,10],[-20,10]]}],
@@ -323,7 +323,7 @@ public sealed class SketchRasterizerTests
              {"id":"s0","type":"polygon","operation":"add","base_height":10,
               "vertices":[[-20,0],[20,0],[20,60],[-20,60]]},
              {"id":"room","type":"rectangle","operation":"add","role":"woolRoom","intentRef":"red:blue",
-              "base_height":10,"relief_scope":"hold","min_x":-5,"min_z":40,"max_x":5,"max_z":50}],
+              "base_height":10,"relief_scope":"follow","min_x":-5,"min_z":40,"max_x":5,"max_z":50}],
            "groups":[{"id":"team","mirrors":false,"shapeIds":["s0"]}]}}],
          "relief":{"team":{"base":10,"reach":0,"step":1,"marks":[
            {"id":"low","kind":"area","h":10,"ring":[[-20,0],[20,0],[20,6],[-20,6]]},

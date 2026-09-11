@@ -1,4 +1,5 @@
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests.Sketch;
 
@@ -22,7 +23,7 @@ public sealed class SketchStructuralHeightCarryTests
           { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
             "intentRef": "{{intentRef}}", "color": "red",
             "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10,
-            "base_height": {{baseHeight}}, "relief_scope": "hold" }
+            "base_height": {{baseHeight}}, "relief_scope": "follow" }
         ],
         "groups": [ { "id": "team", "mirrors": true, "shapeIds": ["s0"] } ]
       } }]
@@ -56,9 +57,10 @@ public sealed class SketchStructuralHeightCarryTests
         await Assert.That(spawn.Floor).IsEqualTo(2);
         await Assert.That(spawn.BaseHeight).IsEqualTo(4);
         await Assert.That(spawn.HeightAuthored).IsTrue();
-        // The compiler's own rect/relief_scope are untouched — only the height fields move.
+        // The compiler's own rect is untouched. The scope is not: a corrected height is one the author means
+        // against the relief, so carrying it turns the shape from following the ground to holding its number.
         await Assert.That(spawn.MinX).IsEqualTo(0);
-        await Assert.That(spawn.ReliefScope).IsEqualTo("hold");
+        await Assert.That(spawn.ReliefScope).IsEqualTo(ReliefScopes.Hold);
     }
 
     [Test]
@@ -71,7 +73,7 @@ public sealed class SketchStructuralHeightCarryTests
             "shapes": [
               { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
                 "intentRef": "red", "color": "red",
-                "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10, "base_height": 9, "relief_scope": "hold" }
+                "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10, "base_height": 9, "relief_scope": "follow" }
             ],
             "groups": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
           } }]
@@ -190,7 +192,7 @@ public sealed class SketchStructuralHeightCarryTests
           { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
             "intentRef": "red", "color": "red",
             "min_x": 22, "min_z": 22, "max_x": 38, "max_z": 38,
-            "base_height": 9, "relief_scope": "hold"DOORS }
+            "base_height": 9, "relief_scope": "follow"DOORS }
         ],
         "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["land"] } ]
       } }],
@@ -226,27 +228,33 @@ public sealed class SketchStructuralHeightCarryTests
         await Assert.That(seated).IsLessThan(TopAt(underTheRoom, 30, 30));
     }
 
+    /// <summary>The <b>word</b> separates the two, and nothing else does. A room that follows gives up the
+    /// number its plan carried — stated before any terrain existed — to stay level with the ground it opens
+    /// onto; the same room holding keeps that number and lets the relief meet it as a face.</summary>
     [Test]
-    public async Task An_uncorrected_room_is_seated_on_the_terrain_rather_than_on_the_plans_number()
+    public async Task A_following_room_is_seated_on_the_terrain_rather_than_on_the_plans_number()
     {
-        // The flag is what separates the two. A height the author has stated against real ground is theirs;
-        // one carried over from a plan was stated before any terrain existed, and holding a room there is
-        // what leaves a spawn door facing a wall the relief built around it.
-        var uncorrected = HeldOverRelief.Replace("HEIGHT", "9").Replace(""", "height_authored": true""", "");
+        var following = HeldOverRelief.Replace("HEIGHT", "9")
+                                      .Replace("\"relief_scope\": \"hold\"", "\"relief_scope\": \"follow\"");
 
         int TopAt(string layoutJson, int x, int z) =>
             SketchRasterizer.RasterizeColumns(layoutJson).Single(c => c.X == x && c.Z == z).YTop;
 
-        var room = TopAt(uncorrected, 30, 30);
+        var room = TopAt(following, 30, 30);
         await Assert.That(room).IsNotEqualTo(9).Because("the plan's flat number is not a statement about terrain");
 
         // It is still a room: flat across its whole floor, and level with the ground it opens onto.
         var floor = new List<int>();
         for (var x = 23; x < 38; x++)
             for (var z = 23; z < 38; z++)
-                floor.Add(TopAt(uncorrected, x, z));
-        await Assert.That(floor.Distinct().Count()).IsEqualTo(1).Because("a held room is flat");
-        await Assert.That(Math.Abs(TopAt(uncorrected, 30, 20) - room)).IsLessThanOrEqualTo(1)
+                floor.Add(TopAt(following, x, z));
+        await Assert.That(floor.Distinct().Count()).IsEqualTo(1).Because("a followed room is flat");
+        await Assert.That(Math.Abs(TopAt(following, 30, 20) - room)).IsLessThanOrEqualTo(1)
             .Because("a player walks out of the door rather than into it");
+
+        // And the same room holding keeps the number instead, whatever the relief wants — which is the
+        // difference the two words exist to state, and the face is the author's to accept.
+        var holding = HeldOverRelief.Replace("HEIGHT", "9");
+        await Assert.That(TopAt(holding, 30, 30)).IsEqualTo(9);
     }
 }

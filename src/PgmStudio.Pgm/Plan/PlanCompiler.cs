@@ -47,9 +47,11 @@ public static class PlanCompiler
     // rectangle alone re-secures the link back to the intent entity. Role-tagged, so the rasterizer skips it
     // as terrain (the ground under it is already the island) and the sketch renders it read-only.
     //
-    // The authored (k = 0) image also binds into its island's relief solve: `hold` pins the room at the
-    // piece's own surface, so the ground around it is solved knowing the floor must arrive there rather than
-    // cutting through it (docs/world-export/relief.md §11 — the rasterizer matches it to its island by
+    // The authored (k = 0) image also binds into its island's relief solve as `follow`: the room takes the
+    // height the field settles on under it and is held flat there, so the ground around it keeps its shape and
+    // the floor arrives level with it rather than the plan's flat number cutting through the relief. An author
+    // who wants the stated height against the relief says `hold` instead — which is what correcting a piece's
+    // height in the sketch writes (docs/world-export/relief.md §11 — the rasterizer matches it to its island by
     // footprint, not by list membership, since an annotation is never added to an island's own ShapeIds).
     // Every other orbit image needs no binding of its own — its ground comes back from the same solved
     // field, reflected, so it is pinned by construction (§8).
@@ -72,7 +74,7 @@ public static class PlanCompiler
         if (orbitIndex == 0)
         {
             shape.BaseHeight = surface;
-            shape.ReliefScope = "hold";
+            shape.ReliefScope = ReliefScopes.Follow;
             // Only the authored image states a door: the mirror images take their ground from the same
             // relief read through the same transform, so a side named in plan space would be the wrong one.
             if (doors is not null)

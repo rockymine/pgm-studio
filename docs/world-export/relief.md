@@ -872,8 +872,20 @@ and one for whether its ground joins the group's, which is the other question an
 first is not:
 
 ```json
-"relief_scope": "hold" | "exclude"
+"relief_scope": "follow" | "hold" | "exclude"
 ```
+
+The three are three answers to *where does this shape's floor end up*, and each is one thing. **`follow`** takes
+the height the field settles on under the shape and holds it flat there: the shape moves with the terrain and
+keeps a level floor. **`hold`** pins it at the top it states and the relief does not move it, so ground that
+wants to be far above or below meets it as a face — which is the point of the word. **`exclude`** takes the
+footprint out of the solve altogether. Absent is the default: the shape is part of the group's ground.
+
+A room wants `follow`, and that is what the plan compiler writes on a role piece: a plan states its piece's
+height before any terrain exists, so the number it carries is about a flat board, and leaving it there puts a
+spawn door against a wall the relief built around it. Correcting a piece's height in the sketch writes `hold`
+instead — a corrected number is one the author means against the relief, and holding it is what makes it mean
+anything.
 
 A structural room carries one more, written by the plan compiler rather than by an author, naming which sides
 its doors stand on so the seating above knows which ground the room has to be level with:

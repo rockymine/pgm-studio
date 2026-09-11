@@ -226,8 +226,10 @@ public static class SketchLayoutCheck
                 findings.Add(new Finding(SketchRules.ReliefOverStatedTop,
                     $"'{shape}' on layer '{layerId}' is an override add stating a top of y{top}, and group "
                     + $"'{groupId}' carries a relief that solves a surface through it — the world builds it to "
-                    + "whatever the relief says. Give it \"height_mode\": \"level\" with \"skirt\": 0 to hold "
-                    + "the top it states, or \"relief_scope\": \"exclude\" to keep its ground out of the solve",
+                    + "whatever the relief says. Give it \"relief_scope\": \"hold\" to pin the top it states "
+                    + "and let the ground meet it as a face, \"height_mode\": \"level\" with \"skirt\": 0 for "
+                    + "the same top with a sheer edge, or \"relief_scope\": \"exclude\" to keep its ground out "
+                    + "of the solve entirely",
                     Severity.Complaint, Subjects: [shape]));
 
             // SK15 — the taller add wins the column and the paint follows what forms the surface, so where the

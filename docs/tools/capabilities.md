@@ -41,7 +41,8 @@ The **layout** is the ground: `shapes` (rectangle, circle, polygon, path) with s
 grouped into `groups` that decide what mirrors. A shape carries far more than a footprint — its own `theme`
 or, where it is a thing rather than ground, its own `material`; its `floor` and `base_height`, per-vertex
 `anchor_heights`, a `height_mode` of `level`/`raise`/`sink` with a `skirt`, and a `relief_scope` of
-`hold`/`exclude` deciding whether its ground joins the group's solved relief. The two paint words are one
+`follow`/`hold`/`exclude` deciding how its ground takes part in the group's solved relief — following it flat,
+holding its own stated level against it, or leaving the solve. The two paint words are one
 question at two grains: a `theme` chooses among five buckets per column by whether that column is an edge,
 which is right for ground with a middle and useless on a stilt or a tread, where every column is an edge and
 only the rim and the wall can ever show (`SK23`); a `material` is one material over the shape's whole span. The **relief** rides beside the shapes rather than inside them, keyed by group id, because a plan

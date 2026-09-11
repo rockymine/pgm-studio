@@ -687,12 +687,23 @@ public static class SketchRasterizer
             var owned = new List<(int X, int Z)>();
             var excluded = new HashSet<(int X, int Z)>();
             var held = new List<Mark>();
+            // Shapes that take the height the field settles on under them. Filled by both walks below and
+            // resolved once the field is solved, since what they pin is not known until then.
+            var seated = new List<(SketchShape Shape, List<(int X, int Z)> Covered)>();
             foreach (var id in meta.ShapeIds.Where(byId.ContainsKey))
             {
                 var shape = byId[id];
                 if (shape.Role is not null || shape.Operation == "subtract") continue;
                 var covered = RasterShape(shape).Select(cell => (cell.X, cell.Z))
                                                 .Where(cells.ContainsKey).ToList();
+                // `follow` is answered here rather than through ScopeOf, which maps the words the solver's
+                // own Participation has: what follow does is decided after the solve, not during it.
+                if (!IsErected(shape) && shape.ReliefScope == ReliefScopes.Follow)
+                {
+                    owned.AddRange(covered);
+                    if (covered.Count > 0) seated.Add((shape, covered));
+                    continue;
+                }
                 switch (ScopeOf(shape))
                 {
                     case Participation.Exclude:
@@ -718,22 +729,20 @@ public static class SketchRasterizer
             // the annotation itself, so it never draws terrain of its own; this only lets it pin or hole
             // the terrain that was already there.
             var groundSoFar = new HashSet<(int X, int Z)>(owned);
-            var seated = new List<(SketchShape Shape, List<(int X, int Z)> Covered)>();
             foreach (var shape in shapes)
             {
-                if (shape.Role is null || shape.ReliefScope is not ("hold" or "exclude")) continue;
+                if (shape.Role is null || !ReliefScopes.Stated(shape.ReliefScope)) continue;
                 var covered = RasterShape(shape).Select(cell => (cell.X, cell.Z))
                                                 .Where(cells.ContainsKey).ToList();
                 if (covered.Count == 0 || !covered.Any(groundSoFar.Contains)) continue;
-                if (shape.ReliefScope == "exclude") { excluded.UnionWith(covered); continue; }
+                if (shape.ReliefScope == ReliefScopes.Exclude) { excluded.UnionWith(covered); continue; }
                 owned.AddRange(covered);
                 var ring = RingOf(shape);
                 if (ring.Count < 3) continue;
-                // A room whose height the author has corrected states it; one that has not is still carrying
-                // the plan's flat number and is seated on the terrain below, once there is terrain to read.
-                // Either way the mark is rigid: what it pins is a floor, and the sculpting passes may not
-                // tilt a floor.
-                if (shape.HeightAuthored == true)
+                // The word says which. `hold` pins the top the shape states and lets the ground meet it as a
+                // face; `follow` takes the height the field settles on under it and is held flat there. Either
+                // way the mark is rigid: what it pins is a floor, and the sculpting passes may not tilt one.
+                if (shape.ReliefScope == ReliefScopes.Hold)
                     held.Add(new AreaMark([.. ring], [StatedTop(shape, ring)]) { Rigid = true, Id = shape.Id ?? "" });
                 else seated.Add((shape, covered));
             }
@@ -749,10 +758,10 @@ public static class SketchRasterizer
             var footprint = Footprint.Over(ground, margin: 0);
             var field = ReliefSolver.Solve(footprint, spec, warmStart?.Invoke(groupId, footprint));
 
-            // A room that has not been corrected takes its height from the surface just solved for it, and the
-            // group is solved again holding it there. A plan-space piece states its height before any terrain
-            // exists, so the number it carries is about a flat board; leaving it alone puts a spawn door
-            // against a wall the relief built around it, and a player walks out into rock.
+            // A `follow` shape takes its height from the surface just solved for it, and the group is solved
+            // again holding it there. A plan-space piece states its height before any terrain exists, so the
+            // number it carries is about a flat board; leaving it alone puts a spawn door against a wall the
+            // relief built around it, and a player walks out into rock.
             if (seated.Count > 0)
             {
                 foreach (var (shape, covered) in seated)
@@ -806,7 +815,7 @@ public static class SketchRasterizer
             foreach (var shape in layer.Shapes)
             {
                 if (!shape.Override || shape.Operation == "subtract" || shape.Role is not null) continue;
-                if (IsErected(shape) || shape.ReliefScope is "hold" or "exclude") continue;
+                if (IsErected(shape) || ReliefScopes.Stated(shape.ReliefScope)) continue;
                 if (shape.BaseHeight is null && shape.Floor is null && shape.AnchorHeights is null) continue;
                 if (!groupOf.TryGetValue(shape.Id, out var groupId)) continue;
                 var floor = Math.Max(0, (int)Math.Round(shape.Floor ?? 0));
@@ -1575,11 +1584,13 @@ public static class SketchRasterizer
 
     // How a shape's ground takes part in its group's relief. An erected shape does not get a say: it already
     // stands out of the field, and raise/sink read the ground under their own footprint to know where to stand.
+    // `follow` is absent here on purpose: what it does is decided after the field is solved, so it is answered
+    // where the walk collects its seated shapes and never reaches the solver's own three-way participation.
     private static Participation ScopeOf(SketchShape s) => IsErected(s) ? Participation.Inherit : s.ReliefScope switch
     {
-        "hold"    => Participation.Hold,
-        "exclude" => Participation.Exclude,
-        _         => Participation.Inherit,
+        ReliefScopes.Hold    => Participation.Hold,
+        ReliefScopes.Exclude => Participation.Exclude,
+        _                    => Participation.Inherit,
     };
 
     // The top a held shape pins the field to, read the same way RasterShape reads it so the shape lands where

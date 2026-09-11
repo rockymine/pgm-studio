@@ -112,19 +112,21 @@ public partial class SketchInspector
     /// <summary>Whether a shape's ground joins the relief its group is solved over (docs/world-export/relief.md §11).
     /// Inherit is first and is the default: the group is the unit because a relief solved per shape leaves
     /// a seam wherever two of them meet and disagree about the height they share.</summary>
-    private static readonly SelectOption[] ReliefScopes =
+    private static readonly SelectOption[] ReliefScopeOptions =
     [
         new("",        "Inherit", "Its ground is the group's ground — the relief rolls through it, which is what a shape drawn to make a landmass wants."),
-        new("hold",    "Hold",    "Flat at its own floor + height, with the surrounding surface solved knowing where it has to arrive — a walled town the valley runs up to."),
-        new("exclude", "Exclude", "Out of the solve entirely, so the land is whatever that outline would have made at any height — a citadel on its own plinth."),
+        new(Vocabulary.ReliefScopes.Follow,  "Follow",  "Flat, at whatever height the relief settles on under it — the shape moves with the terrain and keeps a level floor, which is what a room wants."),
+        new(Vocabulary.ReliefScopes.Hold,    "Hold",    "Flat at its own floor + height whatever the relief wants, with the surrounding surface solved knowing where it has to arrive — a walled town the valley runs up to, and a face where the ground disagrees."),
+        new(Vocabulary.ReliefScopes.Exclude, "Exclude", "Out of the solve entirely, so the land is whatever that outline would have made at any height — a citadel on its own plinth."),
     ];
 
     /// <summary>What this shape's scope works out to, in its own numbers. Empty for the default, which states
     /// nothing about the shape that the group's own relief does not already say.</summary>
     private string ReliefScopeReadout => Shape?.ReliefScope switch
     {
-        "hold" => $"Held flat at {Shape.Floor + Shape.BaseHeight}; the land around it is solved to arrive there.",
-        "exclude" => "Out of the solve — the land is whatever the group would have made without it.",
+        Vocabulary.ReliefScopes.Follow => "Flat at the height the relief settles on under it; the land around it keeps its own shape.",
+        Vocabulary.ReliefScopes.Hold => $"Held flat at {Shape.Floor + Shape.BaseHeight} whatever the relief wants; the land around it is solved to arrive there.",
+        Vocabulary.ReliefScopes.Exclude => "Out of the solve — the land is whatever the group would have made without it.",
         _ => "",
     };
 

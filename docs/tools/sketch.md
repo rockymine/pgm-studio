@@ -206,7 +206,7 @@ Four further fields matter once a group carries a relief. `height_mode` — `lev
 a shape stand out of the solved field rather than be part of it: a mesa cut flat at an absolute height, a
 plinth held a fixed amount above whatever ground it sits on, a quarry the same downward. `skirt` is how far in
 from its own outline an erected shape eases back into the ground it meets, in blocks; zero is a sheer face,
-which is right for a built thing and wrong for a landform. `relief_scope` is `hold` or `exclude` and decides
+which is right for a built thing and wrong for a landform. `relief_scope` is `follow`, `hold` or `exclude` and decides
 whether the shape's ground takes part in its group's relief at all (see *Groups and layers*); absent means
 it is simply part of the group's ground. And a polyline carries `stroke_edge`
 (`solid`, `rough`, `tapered`) with a `stroke_seed`, since a polyline is stored as the open centreline it was
@@ -289,12 +289,15 @@ one relief, keyed by its id, and there is no way to give two parts of a landmass
 that touch are one group and share whatever it states.
 
 **A shape can leave that solve, though, and this is where the fusion stops being a cage.** `relief_scope` on a
-shape says how its ground takes part: `exclude` removes its cells from the field entirely, so the shape keeps
+shape says how its ground takes part. `exclude` removes its cells from the field entirely, so the shape keeps
 its own column — its stated floor, its thickness and any per-vertex tilt — while the relaxation treats the
-footprint as a hole and bends around it exactly as it bends around the void; `hold` leaves the cells in the
-field but pins them at one level, read at the shape's ring centre, and the surrounding land is then solved
-knowing where it has to arrive. Held shapes are applied last, so one wins its cells outright rather than being
-averaged against.
+footprint as a hole and bends around it exactly as it bends around the void. `hold` leaves the cells in the
+field but pins them at the level the shape states, read at its ring centre, and the surrounding land is then
+solved knowing where it has to arrive — so a relief that wants to run far above or below meets the shape as a
+face. `follow` is the other half of that: the field is solved once, the shape takes whatever height settled
+under it, and the group is solved again holding it flat there — it moves with the terrain and keeps a level
+floor, which is what a room wants. Held and followed shapes are applied last, so one wins its cells outright
+rather than being averaged against.
 
 That is what makes a mixed board possible without a second relief. A flat rectangle with a raised step
 attached to it is one group; marking the step `exclude` leaves it standing at exactly the height it was drawn
@@ -690,7 +693,8 @@ rather than offering a second list of the same rows.
 One step, and the phase that turns flat plateaus into terrain. Everything here is stated **inside a group**,
 so the group tree is half the sidebar and the list of what has been stated is the other half. Which of the
 group's shapes the solve actually covers is not stated here but on the shapes themselves, through
-`relief_scope` in the Draw inspector — a shape can hold its own level or leave the field altogether.
+`relief_scope` in the Draw inspector — a shape can follow the terrain flat, hold its own level against it, or
+leave the field altogether.
 
 The group's own settings are what every mark is measured against: `base` (the level the field falls back to
 where nothing is stated), `reach` (how far a mark's influence travels before the field returns to `base` —

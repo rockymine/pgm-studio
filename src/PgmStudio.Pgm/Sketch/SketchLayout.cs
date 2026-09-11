@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Sketch;
 
@@ -235,6 +236,10 @@ public sealed class SketchLayout
                 shape["anchor_heights"] = height.AnchorHeights is { } anchorHeights
                     ? JsonSerializer.SerializeToNode(anchorHeights, Json) : null;
                 shape["height_authored"] = JsonValue.Create(true);
+                // A corrected height is a height the author means against the relief, so the shape holds it
+                // rather than following the surface the field settles on. Without this the carried number
+                // would be read and then overruled by the solve on the next build.
+                shape["relief_scope"] = JsonValue.Create(ReliefScopes.Hold);
                 carried = true;
             }
         return carried ? target.ToJsonString(Json) : compiledJson;
@@ -531,10 +536,13 @@ public sealed class SketchShape
     /// is solved over, because a relief solved per shape leaves a seam wherever two of them meet and disagree
     /// about the height they share. The fusion is not always what an author wants, and the case that decides
     /// it is a built thing standing on the ground — a city, a keep, a walled compound — whose floor is not
-    /// terrain and which is themed as a unit. <c>hold</c> pins the shape at its own stated top, so the
-    /// surrounding surface is solved knowing where it has to arrive; <c>exclude</c> pins nothing and takes the
-    /// footprint out of the solve entirely, so the land is whatever that outline would have produced and the
-    /// shape keeps its own height. Absent is <c>inherit</c> — the shape is part of the group's ground.
+    /// terrain and which is themed as a unit. The three words are <see cref="ReliefScopes"/>:
+    /// <c>follow</c> takes the height the field settles on under the shape and holds it flat there, so the
+    /// shape moves with the terrain and keeps a level floor; <c>hold</c> pins it at its own stated top
+    /// whatever the relief wants, so the surrounding surface is solved knowing where it has to arrive and
+    /// ground that disagrees meets it as a face; <c>exclude</c> pins nothing and takes the footprint out of
+    /// the solve entirely, so the land is whatever that outline would have produced and the shape keeps its
+    /// own height. Absent is <c>inherit</c> — the shape is part of the group's ground.
     /// <para>Not read on a shape that declares a <see cref="HeightMode"/>: such a shape already stands out of
     /// the field, and <c>raise</c>/<c>sink</c> read the ground under their own footprint to know where to
     /// stand, which an excluded footprint would not have.</para></summary>

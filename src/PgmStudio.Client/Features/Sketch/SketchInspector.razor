@@ -66,7 +66,7 @@
              standing out of the field already answers it, and a raise reads the ground under its own
              footprint to know where to stand. *@
           <Field Label="Takes part in relief">
-            <Select Options="ReliefScopes" Value="@Shape.ReliefScope" ValueChanged="ReliefScopeChanged" />
+            <Select Options="ReliefScopeOptions" Value="@Shape.ReliefScope" ValueChanged="ReliefScopeChanged" />
           </Field>
           @if (ReliefScopeReadout.Length > 0)
           {

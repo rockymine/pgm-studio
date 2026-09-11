@@ -1,4 +1,5 @@
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests.Sketch;
 
@@ -72,6 +73,44 @@ public sealed class SketchReliefScopeTests
 
         await Assert.That(SpreadAcross(tops)).IsEqualTo(0);
         await Assert.That(tops[(30, 30)]).IsEqualTo(14);
+    }
+
+    /// <summary>Following is the other answer to the same question, and the pair is what separates the two
+    /// words: a followed shape is flat like a held one, but at the height the field settled on under it rather
+    /// than the one it states. A room wants this — a plan states its height before any terrain exists.</summary>
+    [Test]
+    public async Task A_following_shape_is_flat_at_the_height_the_relief_settles_on()
+    {
+        var tops = Tops(Layout(ReliefScopes.Follow));
+
+        await Assert.That(SpreadAcross(tops)).IsEqualTo(0);
+        await Assert.That(tops[(30, 30)]).IsNotEqualTo(14)
+            .Because("a followed shape takes the ground's height, not the one it states");
+    }
+
+    /// <summary>The two words on one relief, which is the whole reason they are two words. Holding keeps the
+    /// stated number and lets the ground meet it as a face; following gives that number up to stay level with
+    /// the land.</summary>
+    [Test]
+    public async Task Following_and_holding_settle_at_different_heights()
+    {
+        var followed = Tops(Layout(ReliefScopes.Follow));
+        var held = Tops(Layout(ReliefScopes.Hold));
+
+        await Assert.That(held[(30, 30)]).IsEqualTo(14);
+        await Assert.That(followed[(30, 30)]).IsNotEqualTo(held[(30, 30)]);
+
+        // And the ground just outside differs too: a held shape drags the surface to arrive at its number,
+        // a followed one took the surface as it found it.
+        var differing = 0;
+        for (var x = 0; x < 60; x++)
+            for (var z = 0; z < 60; z++)
+            {
+                var outside = x is < 22 or > 38 || z is < 22 or > 38;
+                if (outside && followed.TryGetValue((x, z), out var a)
+                            && held.TryGetValue((x, z), out var b) && a != b) differing++;
+            }
+        await Assert.That(differing).IsGreaterThan(0);
     }
 
     [Test]

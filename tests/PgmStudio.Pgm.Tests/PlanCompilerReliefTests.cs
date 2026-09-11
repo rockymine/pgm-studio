@@ -1,5 +1,6 @@
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests;
 
@@ -35,12 +36,14 @@ public sealed class PlanCompilerReliefTests
     }
 
     [Test]
-    public async Task The_authored_spawn_shape_states_hold_at_the_piece_surface()
+    public async Task The_authored_spawn_shape_states_follow_at_the_piece_surface()
     {
+        // A plan states a piece's height before any terrain exists, so what it carries is about a flat board
+        // — the room follows the ground the relief settles on rather than holding a number from before it.
         var (layout, shapeId) = Compile();
         var shape = SketchLayout.Stack(layout)[0].Shapes.Single(s => s.Id == shapeId);
 
-        await Assert.That(shape.ReliefScope).IsEqualTo("hold");
+        await Assert.That(shape.ReliefScope).IsEqualTo(ReliefScopes.Follow);
         await Assert.That(shape.BaseHeight).IsEqualTo(8d);
     }
 
