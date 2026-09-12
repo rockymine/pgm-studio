@@ -19,6 +19,9 @@ public static class Gamemodes
     public const string Ctw = "ctw";
     public const string Dtm = "dtm";
     public const string Dtc = "dtc";
+    public const string Cp = "cp";
+    public const string Koth = "koth";
+    public const string Tdm = "tdm";
 
     /// <summary>Every id PGM's own <c>Gamemode</c> enum recognizes (<c>Gamemode.java</c>), matched
     /// case-insensitively the same way <c>Gamemode.byId</c> does. A <c>&lt;gamemode&gt;</c> element outside
@@ -41,14 +44,25 @@ public static class Gamemodes
     /// DTM the moment <c>DestroyableModule</c> parses anything, but a map whose every destroyable is a
     /// phantom is not DTM whatever PGM's tag says — those are pure CTW maps that happen to script their
     /// build floor with the destroyable element. Cores need no such carve-out: they have no <c>show</c>
-    /// attribute, so every core is an objective.</para>
+    /// attribute, so every core is an objective. A hidden control point gets no carve-out either, and
+    /// deliberately: <c>ControlPointModule</c> adds its tag per element parsed without consulting
+    /// <c>show</c>, and a second deviation is the author's call rather than this method's.</para>
+    /// <para>CP and KotH are <b>one</b> tag in PGM, added as KotH only when nothing has already claimed it
+    /// — so a map spelling both elements is CP. <paramref name="scoresKillsOrDeaths"/> is the whole of what
+    /// makes a map TDM: a <c>&lt;score&gt;</c> that only sets a limit is the ending a capture map is played
+    /// to and names no gamemode of its own.</para>
     /// </summary>
-    public static IReadOnlyList<string> From(bool hasWools, bool hasRealDestroyable, bool hasCores)
+    public static IReadOnlyList<string> From(
+        bool hasWools, bool hasRealDestroyable, bool hasCores,
+        bool hasControlPoints, bool hasKing, bool scoresKillsOrDeaths)
     {
-        var modes = new List<string>(3);
+        var modes = new List<string>(4);
         if (hasWools) modes.Add(Ctw);
         if (hasRealDestroyable) modes.Add(Dtm);
         if (hasCores) modes.Add(Dtc);
+        if (hasControlPoints) modes.Add(Cp);
+        else if (hasKing) modes.Add(Koth);
+        if (scoresKillsOrDeaths) modes.Add(Tdm);
         return modes;
     }
 }

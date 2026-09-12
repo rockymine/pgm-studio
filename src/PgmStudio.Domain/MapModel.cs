@@ -157,6 +157,105 @@ public sealed class Core
     public List<string>? Modes;
 }
 
+/// <summary>Which of PGM's two spellings a control point is written as. The element is not a different
+/// objective — one parser builds both — but it chooses the defaults PGM applies to every attribute the
+/// point leaves unset, and it is what the export re-emits.</summary>
+public enum ControlPointElement
+{
+    /// <summary><c>&lt;control-points&gt;&lt;control-point/&gt;</c> — CP. Progress snaps back the moment
+    /// the last player steps off, and the point has no neutral state.</summary>
+    ControlPoints,
+    /// <summary><c>&lt;king&gt;&lt;hills&gt;&lt;hill/&gt;</c> — KotH. Partial progress is kept, the point
+    /// passes through a neutral state between owners, and capture progress is shown.</summary>
+    King,
+}
+
+/// <summary>
+/// A CP/KotH objective: a region a team owns by standing in it, paying out score for as long as it holds.
+/// Every knob below is the author's or unset — <c>null</c> and <c>""</c> mean "PGM's default for this
+/// element", which is not the same value for a hill and a point and is therefore never materialised here.
+/// <c>docs/pgm/control-points.md</c> carries the default table and the state machine they drive.
+/// <para>Only <see cref="CaptureRegionId"/> decides play. The two display regions are cosmetic: PGM
+/// enumerates their colour-affected blocks once at match load and recolours them to the owning team's dye,
+/// drawing capture progress across the progress region as a pie.</para>
+/// </summary>
+public sealed class ControlPoint
+{
+    public string Id = "";                      // XML id; generated on parse when unauthored
+    public string Name = "";                    // "" lets PGM auto-name: "Hill", "Hill 2", …
+    public ControlPointElement Element;
+
+    /// <summary>Where a player has to stand. Required by PGM, which tests the block a player's feet are in
+    /// against the region at that block's centre.</summary>
+    public string CaptureRegionId = "";
+    /// <summary>Blocks showing capture progress as a pie. Optional, and must be block-bounded.</summary>
+    public string ProgressRegionId = "";
+    /// <summary>Blocks showing the owner. Optional, block-bounded, and PGM subtracts the progress region
+    /// from it — a block belongs to at most one of the two.</summary>
+    public string OwnerRegionId = "";
+    /// <summary>A filter narrowing which blocks of the display regions are recoloured. "" = every
+    /// colour-affected material, which is PGM's default and what almost every map takes.</summary>
+    public string VisualMaterialsFilterId = "";
+
+    public string InitialOwner = "";            // "" = unowned at match start
+    public string CaptureTime = "";             // a duration; "" = PGM's 30s
+    public string CaptureRule = "";             // exclusive | majority | lead; "" = exclusive
+    public string CaptureFilterId = "";         // which teams may own it
+    public string PlayerFilterId = "";          // which players count toward the lead
+
+    /// <summary>Shorthand for <see cref="Recovery"/> and <see cref="Decay"/> together; PGM refuses it
+    /// alongside either.</summary>
+    public bool? Incremental;
+    public double? Recovery;                    // the owner pushing progress back down
+    public double? Decay;                       // progress bleeding away with nobody on the point
+    public double? OwnedDecay;                  // an owned point drifting back to neutral
+    public double? Contested;                   // progress bleeding away while contested
+
+    public double? TimeMultiplier;              // how much faster a crowd captures
+    public bool? NeutralState;                  // whether the point passes through unowned between owners
+    public bool Permanent;                      // PGM's default is false; written only when true
+
+    public double? Points;                      // per second, to the owner
+    public double? OwnerPoints;                 // one-off, on capture
+    public double? PointsGrowth;                // seconds per doubling of Points
+
+    public bool? ShowProgress;
+    /// <summary>Whether owning this point wins the match outright. <b>PGM's default is true</b> at every
+    /// proto the studio reads, so <c>null</c> is a goal that ends the match on capture — which is why the
+    /// corpus writes <c>required="false"</c> on all but a handful of points.</summary>
+    public bool? Required;
+    /// <summary>PGM's default is true; <c>false</c> clears every show option, and one of those is
+    /// <c>stats</c>, without which <c>GoalMatchModule</c> never registers the point as a goal at all.</summary>
+    public bool Show = true;
+}
+
+/// <summary>
+/// The <c>&lt;score&gt;</c> module: the match-level score configuration a control point pays into. Its
+/// presence is what makes scoring happen at all — <c>ControlPoint.tickScore</c> looks up
+/// <c>ScoreMatchModule</c>, and PGM builds none for a document with no <c>&lt;score&gt;</c> element, so a
+/// map whose every point names a <c>points</c> rate and declares no score scores nothing for the whole
+/// match. Every field is the author's or unset.
+/// </summary>
+public sealed class ScoreConfig
+{
+    public int? Initial;
+    /// <summary>The score that ends the match, and the ending a KotH map actually uses: only a handful of
+    /// corpus KotH maps set a <c>&lt;time&gt;</c> limit instead.</summary>
+    public int? Limit;
+    public bool? EnforceLimit;
+    public int? Kills;
+    public int? Deaths;
+    /// <summary>The mercy rule's threshold and its floor — <c>&lt;mercy min="…"&gt;n&lt;/mercy&gt;</c>.</summary>
+    public int? Mercy;
+    public int? MercyMin;
+    public string Display = "";                 // "" = numerical
+    public string ScoreboardFilterId = "";
+    /// <summary>The legacy <c>&lt;king/&gt;</c> marker, which zeroed the default kill and death scores.
+    /// Those already default to zero at proto 1.3.6 and above, so on every map the studio reads it changes
+    /// nothing and is kept only so it round-trips.</summary>
+    public bool King;
+}
+
 /// <summary>
 /// A scheduled change to an objective's material at a match time. Declarative — no world or structure
 /// impact — but it is what makes a <c>show="false"</c> destroyable a timed block-swap rather than a goal.
@@ -312,6 +411,12 @@ public sealed class MapXml
     public List<Wool> Wools = [];
     public List<Destroyable> Destroyables = [];
     public List<Core> Cores = [];
+    public List<ControlPoint> ControlPoints = [];
+
+    /// <summary>The <c>&lt;score&gt;</c> module, or <c>null</c> when the map declares none — which is a
+    /// different map, not an empty configuration: with no element PGM loads no score module at all and
+    /// nothing on the map can score.</summary>
+    public ScoreConfig? Score;
     public List<ObjectiveMode> Modes = [];
     public List<WoolSpawner> Spawners = [];
     public List<Renewable> Renewables = [];
@@ -361,5 +466,10 @@ public sealed class MapXml
     /// <summary>This map's gamemodes, derived from its objective modules — see
     /// <see cref="Domain.Gamemodes"/>, which owns the rule.</summary>
     public IReadOnlyList<string> Gamemodes => Domain.Gamemodes.From(
-        Wools.Count > 0, Destroyables.Any(d => d.IsObjective), Cores.Count > 0);
+        hasWools: Wools.Count > 0,
+        hasRealDestroyable: Destroyables.Any(d => d.IsObjective),
+        hasCores: Cores.Count > 0,
+        hasControlPoints: ControlPoints.Any(p => p.Element == ControlPointElement.ControlPoints),
+        hasKing: ControlPoints.Any(p => p.Element == ControlPointElement.King),
+        scoresKillsOrDeaths: Score is { } s && ((s.Kills ?? 0) != 0 || (s.Deaths ?? 0) != 0));
 }

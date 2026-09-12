@@ -34,6 +34,8 @@ public static class Deserializer
             Wools = wools,
             Destroyables = ListOf(d, "destroyables").Select(x => DecodeDestroyable(AsDict(x))).ToList(),
             Cores = ListOf(d, "cores").Select(x => DecodeCore(AsDict(x))).ToList(),
+            ControlPoints = ListOf(d, "control_points").Select(x => DecodeControlPoint(AsDict(x))).ToList(),
+            Score = Val(d, "score") is Dict score ? DecodeScore(score) : null,
             Modes = ListOf(d, "modes").Select(x => DecodeMode(AsDict(x))).ToList(),
             Spawners = ListOf(d, "spawners").Select(s => DecodeSpawner(AsDict(s))).ToList(),
             Renewables = ListOf(d, "renewables").Select(r => DecodeRenewable(AsDict(r))).ToList(),
@@ -60,6 +62,8 @@ public static class Deserializer
     private static int AsInt(object? v, int def) => v is null ? def : Convert.ToInt32(v);
     private static int? AsIntN(object? v) => v is null ? null : Convert.ToInt32(v);
     private static double AsDouble(object? v, double def) => v is null ? def : Convert.ToDouble(v);
+    private static double? AsDoubleN(object? v) => v is null ? null : Convert.ToDouble(v);
+    private static bool? AsBoolN(object? v) => v is bool b ? b : null;
     private static bool AsBool(object? v, bool def) => v is bool b ? b : def;
     private static double Cd(object? v) => Coord.Decode(v);
     private static (double x, double y, double z) Xyz(object? v)
@@ -293,6 +297,50 @@ public static class Deserializer
         Leak = AsIntN(Val(d, "leak")),
         ModeChanges = Val(d, "mode_changes") is true,
         Modes = d.ContainsKey("modes") ? ListOf(d, "modes").Select(m => m as string ?? "").ToList() : null,
+    };
+
+    private static ControlPoint DecodeControlPoint(Dict d) => new()
+    {
+        Id = Str(d, "id"),
+        Name = Str(d, "name"),
+        Element = Str(d, "element") == "king" ? ControlPointElement.King : ControlPointElement.ControlPoints,
+        CaptureRegionId = Str(d, "capture_region"),
+        ProgressRegionId = Str(d, "progress_region"),
+        OwnerRegionId = Str(d, "owner_region"),
+        VisualMaterialsFilterId = Str(d, "visual_materials"),
+        InitialOwner = Str(d, "initial_owner"),
+        CaptureTime = Str(d, "capture_time"),
+        CaptureRule = Str(d, "capture_rule"),
+        CaptureFilterId = Str(d, "capture_filter"),
+        PlayerFilterId = Str(d, "player_filter"),
+        Incremental = AsBoolN(Val(d, "incremental")),
+        Recovery = AsDoubleN(Val(d, "recovery")),
+        Decay = AsDoubleN(Val(d, "decay")),
+        OwnedDecay = AsDoubleN(Val(d, "owned_decay")),
+        Contested = AsDoubleN(Val(d, "contested")),
+        TimeMultiplier = AsDoubleN(Val(d, "time_multiplier")),
+        NeutralState = AsBoolN(Val(d, "neutral_state")),
+        Permanent = Val(d, "permanent") is true,
+        Points = AsDoubleN(Val(d, "points")),
+        OwnerPoints = AsDoubleN(Val(d, "owner_points")),
+        PointsGrowth = AsDoubleN(Val(d, "points_growth")),
+        ShowProgress = AsBoolN(Val(d, "show_progress")),
+        Required = AsBoolN(Val(d, "required")),
+        Show = Val(d, "show") is not false,
+    };
+
+    private static ScoreConfig DecodeScore(Dict d) => new()
+    {
+        Initial = AsIntN(Val(d, "initial")),
+        Limit = AsIntN(Val(d, "limit")),
+        EnforceLimit = AsBoolN(Val(d, "enforce_limit")),
+        Kills = AsIntN(Val(d, "kills")),
+        Deaths = AsIntN(Val(d, "deaths")),
+        Mercy = AsIntN(Val(d, "mercy")),
+        MercyMin = AsIntN(Val(d, "mercy_min")),
+        Display = Str(d, "display"),
+        ScoreboardFilterId = Str(d, "scoreboard_filter"),
+        King = Val(d, "king") is true,
     };
 
     private static ObjectiveMode DecodeMode(Dict d) => new()

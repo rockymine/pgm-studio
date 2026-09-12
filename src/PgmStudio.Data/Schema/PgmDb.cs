@@ -21,6 +21,8 @@ public sealed class PgmDb : DataConnection
     public ITable<MonumentRow> Monuments => this.GetTable<MonumentRow>();
     public ITable<DestroyableRow> Destroyables => this.GetTable<DestroyableRow>();
     public ITable<CoreRow> Cores => this.GetTable<CoreRow>();
+    public ITable<ControlPointRow> ControlPoints => this.GetTable<ControlPointRow>();
+    public ITable<ScoreRow> Scores => this.GetTable<ScoreRow>();
     public ITable<ModeRow> Modes => this.GetTable<ModeRow>();
     public ITable<SpawnRow> Spawns => this.GetTable<SpawnRow>();
     public ITable<MapSpawnerRow> MapSpawners => this.GetTable<MapSpawnerRow>();

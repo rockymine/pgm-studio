@@ -287,25 +287,14 @@ height. That is exactly what a made thing needs, and none of it has to be invent
 
 ## The hill: a goal owned by standing on it
 
-PGM's fourth objective family, and the first the studio refuses outright. One module —
-`tc.oc.pgm.controlpoint` — serves three elements (`<control-points>`, `<king><hills>`, `<payloads>`) that
-differ only in their defaults, so there is one thing to build and three spellings of it. The contract, the
-state machine and the corpus measurements behind every number below are `docs/pgm/control-points.md`; read it
-before the first entry, because the group's shape comes from it. What a board should *be* — square pads, the
-count per team count, one point dead centre and the rest to the sides — is the author's and is settled in
-`docs/gameplay/approaches.md`. Payload stays out: it is behind a server experiment flag whose XML PGM says
-will change.
-
-- [ ] **PG5 — Read and re-emit the control-point module.** `MapParser.EnsureSupported` refuses any map
-  carrying `<control-points>`, `<king>` or `<payloads>` (`MapParser.cs:66` `ParsedObjectiveModules`), which
-  is 163 corpus slugs. Add a `ControlPoint` to `MapModel.cs` beside `Destroyable` and `Core` — the three
-  region refs (`capture-region`/`capture` required, `progress-display-region`/`progress` and
-  `owner-display-region`/`captured` optional), the tuning attributes, and which element it was written as, so
-  it round-trips in its own spelling. Two parser facts are not optional: any child of the container is a
-  point whatever its tag, and attributes descend `<king>` → `<hills>` → `<hill>` through
-  `InheritingElement`, which is how the corpus writes shared tuning once. Then `Gamemodes.From` gains `cp`
-  and `koth`, remembering that PGM tags a map carrying both elements `cp`. Evidence: `koth/rafiki`
-  `capture="base-middle"` = `<cuboid min="4,6,5" max="-3,9,-2"/>`, a 7×7 wool pad at `y=6`.
+PGM's fourth objective family: a region a team owns by standing in it. The codec has landed
+(`FEATURES.md`) — both spellings of a point and the `<score>` module parse, store and re-emit — so what is
+left is what the studio should *say* about one and what it should *build*. The contract, the state machine
+and the corpus measurements behind every number below are `docs/pgm/control-points.md`; read it before the
+first entry, because the group's shape comes from it. What a board should *be* — square pads, the count per
+team count, one point dead centre and the rest to the sides — is the author's and is settled in
+`docs/gameplay/approaches.md`. Payload stays out: it is a furnace minecart players push, behind a server
+experiment flag whose XML PGM says will change.
 
 - [ ] **PG6 — A point that scores needs a `<score>` element, and nothing says so.** `tickScore` reads
   `ScoreMatchModule`, and `ScoreModule.parse` returns null when the document has no `<score>` child — so a

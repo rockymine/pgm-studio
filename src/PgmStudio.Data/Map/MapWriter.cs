@@ -123,6 +123,8 @@ public sealed class MapWriter(PgmDb db)
         await db.Wools.Where(x => x.MapId == mapId).DeleteAsync(ct);           // cascades monument
         await db.Destroyables.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Cores.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.ControlPoints.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.Scores.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Modes.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Spawns.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.MapSpawners.Where(x => x.MapId == mapId).DeleteAsync(ct);
@@ -208,6 +210,36 @@ public sealed class MapWriter(PgmDb db)
                 RegionKey = NullIfEmpty(c.RegionId), Material = NullIfEmpty(c.Material), Leak = c.Leak,
                 ModeChanges = c.ModeChanges,
                 ModesJson = c.Modes is { Count: > 0 } ? Json(c.Modes.Select(x => (object?)x).ToList()) : null,
+            }, token: ct);
+
+        foreach (var p in m.ControlPoints)
+            await db.InsertAsync(new ControlPointRow
+            {
+                MapId = mapId, ControlPointKey = p.Id, Name = NullIfEmpty(p.Name),
+                Element = p.Element == ControlPointElement.King ? "king" : "control-points",
+                CaptureRegionKey = NullIfEmpty(p.CaptureRegionId),
+                ProgressRegionKey = NullIfEmpty(p.ProgressRegionId),
+                OwnerRegionKey = NullIfEmpty(p.OwnerRegionId),
+                VisualMaterialsKey = NullIfEmpty(p.VisualMaterialsFilterId),
+                InitialOwner = NullIfEmpty(p.InitialOwner),
+                CaptureTime = NullIfEmpty(p.CaptureTime),
+                CaptureRule = NullIfEmpty(p.CaptureRule),
+                CaptureFilterKey = NullIfEmpty(p.CaptureFilterId),
+                PlayerFilterKey = NullIfEmpty(p.PlayerFilterId),
+                Incremental = p.Incremental, Recovery = p.Recovery, Decay = p.Decay,
+                OwnedDecay = p.OwnedDecay, Contested = p.Contested,
+                TimeMultiplier = p.TimeMultiplier, NeutralState = p.NeutralState, Permanent = p.Permanent,
+                Points = p.Points, OwnerPoints = p.OwnerPoints, PointsGrowth = p.PointsGrowth,
+                ShowProgress = p.ShowProgress, Required = p.Required, Show = p.Show,
+            }, token: ct);
+
+        if (m.Score is { } score)
+            await db.InsertAsync(new ScoreRow
+            {
+                MapId = mapId, Initial = score.Initial, Limit = score.Limit, EnforceLimit = score.EnforceLimit,
+                Kills = score.Kills, Deaths = score.Deaths, Mercy = score.Mercy, MercyMin = score.MercyMin,
+                Display = NullIfEmpty(score.Display), ScoreboardFilterKey = NullIfEmpty(score.ScoreboardFilterId),
+                King = score.King,
             }, token: ct);
 
         foreach (var s in m.Spawns)

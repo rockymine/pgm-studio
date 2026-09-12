@@ -15,6 +15,8 @@ public static class Serializer
         // so a map without them serialises to exactly the shape it always did.
         if (m.Destroyables.Count > 0) d["destroyables"] = m.Destroyables.Select(EncodeDestroyable).ToList<object?>();
         if (m.Cores.Count > 0) d["cores"] = m.Cores.Select(EncodeCore).ToList<object?>();
+        if (m.ControlPoints.Count > 0) d["control_points"] = m.ControlPoints.Select(EncodeControlPoint).ToList<object?>();
+        if (m.Score is { } score) d["score"] = EncodeScore(score);
         if (m.Modes.Count > 0) d["modes"] = m.Modes.Select(EncodeMode).ToList<object?>();
         // The derived truth beside the declared label — `gamemode` is what the author wrote (often
         // nothing), `gamemodes` is what the map's modules make it.
@@ -253,6 +255,58 @@ public static class Serializer
         if (c.Leak is not null) r["leak"] = c.Leak;
         if (c.ModeChanges) r["mode_changes"] = true;
         if (c.Modes is { Count: > 0 }) r["modes"] = c.Modes.ToList<object?>();
+        return r;
+    }
+
+    // Every knob is written only when the map stated one: the absent ones are the element's PGM default,
+    // which differs between a hill and a point, so a materialised value would be a different map.
+    private static Dict EncodeControlPoint(ControlPoint p)
+    {
+        var r = new Dict
+        {
+            ["id"] = p.Id,
+            ["element"] = p.Element == ControlPointElement.King ? "king" : "control-points",
+            ["capture_region"] = p.CaptureRegionId,
+        };
+        if (p.Name.Length > 0) r["name"] = p.Name;
+        if (p.ProgressRegionId.Length > 0) r["progress_region"] = p.ProgressRegionId;
+        if (p.OwnerRegionId.Length > 0) r["owner_region"] = p.OwnerRegionId;
+        if (p.VisualMaterialsFilterId.Length > 0) r["visual_materials"] = p.VisualMaterialsFilterId;
+        if (p.InitialOwner.Length > 0) r["initial_owner"] = p.InitialOwner;
+        if (p.CaptureTime.Length > 0) r["capture_time"] = p.CaptureTime;
+        if (p.CaptureRule.Length > 0) r["capture_rule"] = p.CaptureRule;
+        if (p.CaptureFilterId.Length > 0) r["capture_filter"] = p.CaptureFilterId;
+        if (p.PlayerFilterId.Length > 0) r["player_filter"] = p.PlayerFilterId;
+        if (p.Incremental is { } incremental) r["incremental"] = incremental;
+        if (p.Recovery is { } recovery) r["recovery"] = recovery;
+        if (p.Decay is { } decay) r["decay"] = decay;
+        if (p.OwnedDecay is { } ownedDecay) r["owned_decay"] = ownedDecay;
+        if (p.Contested is { } contested) r["contested"] = contested;
+        if (p.TimeMultiplier is { } timeMultiplier) r["time_multiplier"] = timeMultiplier;
+        if (p.NeutralState is { } neutral) r["neutral_state"] = neutral;
+        if (p.Permanent) r["permanent"] = true;
+        if (p.Points is { } points) r["points"] = points;
+        if (p.OwnerPoints is { } ownerPoints) r["owner_points"] = ownerPoints;
+        if (p.PointsGrowth is { } growth) r["points_growth"] = growth;
+        if (p.ShowProgress is { } showProgress) r["show_progress"] = showProgress;
+        if (p.Required is { } required) r["required"] = required;
+        if (!p.Show) r["show"] = false;
+        return r;
+    }
+
+    private static Dict EncodeScore(ScoreConfig s)
+    {
+        var r = new Dict();
+        if (s.Initial is { } initial) r["initial"] = initial;
+        if (s.Limit is { } limit) r["limit"] = limit;
+        if (s.EnforceLimit is { } enforce) r["enforce_limit"] = enforce;
+        if (s.Kills is { } kills) r["kills"] = kills;
+        if (s.Deaths is { } deaths) r["deaths"] = deaths;
+        if (s.Mercy is { } mercy) r["mercy"] = mercy;
+        if (s.MercyMin is { } mercyMin) r["mercy_min"] = mercyMin;
+        if (s.Display.Length > 0) r["display"] = s.Display;
+        if (s.ScoreboardFilterId.Length > 0) r["scoreboard_filter"] = s.ScoreboardFilterId;
+        if (s.King) r["king"] = true;
         return r;
     }
 

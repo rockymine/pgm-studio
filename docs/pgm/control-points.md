@@ -11,10 +11,11 @@ colour-affected material — of 359 pads read out of the corpus worlds, **246 ar
 stained glass** (§6). It is drawn either as a filled square or as a disc, and both are ordinary: 174 of those
 pads are solid rectangles and 120 are discs.
 
-None of this is parsed yet. `MapParser.EnsureSupported` refuses a map carrying `<control-points>`, `<king>`
-or `<payloads>` (`supported-maps.md`), and that stands until `PG5` lands. This document is the contract the
-work is measured against: what PGM does, read from `tc.oc.pgm.controlpoint`, and what authors actually build,
-measured over both corpora.
+The studio reads both spellings of the point and the `<score>` module they pay into, and writes them back
+under the spelling they arrived in. `<payloads>` is still refused (`supported-maps.md`): a payload is a
+furnace minecart players push, and none of the geometry that describes one is read. This document is the
+contract: what PGM does, read from `tc.oc.pgm.controlpoint`, and what authors actually build, measured over
+both corpora.
 
 ## 1. One module, three elements
 
@@ -33,10 +34,11 @@ The CP and KotH tags carry the **same id**, `controlpoint`, and the module adds 
 `if (tags.isEmpty())` — so a map declaring both elements is tagged CP, not KotH. No corpus map does; the
 two are alternatives, not a pair.
 
-Payload is behind a server experiment flag (`experiments.payload`) and throws `InvalidXMLException` when the
-flag is off, with the message that its XML syntax is expected to change. It takes a required `location` and
-`radius` instead of a capture region, uses `EverywhereRegion` for capture, and moves. Nine corpus maps carry
-one. It is out of scope below except where a default differs.
+Payload is a **furnace minecart players push around the board**, and the capture mechanic rides along with
+it: the point moves, so it takes a required `location` and `radius` instead of a capture region and uses
+`EverywhereRegion` for capture. It is behind a server experiment flag (`experiments.payload`) and throws
+`InvalidXMLException` when the flag is off, with the message that its XML syntax is expected to change. Nine
+corpus maps carry one. The studio refuses it, and it is out of scope below except where a default differs.
 
 **Any element inside the container is a point.** `XMLUtils.flattenElements(root, "control-points",
 "control-point")` recurses into the container with `minChildDepth` exhausted, at which point it takes *every*
@@ -90,7 +92,7 @@ document makes:
 
 **Hardened clay is not in it; stained clay is.** A pad built out of `hard clay` parses, exports, loads and
 never changes colour. So does one built of stone, brick or planks. This is the single easiest way to build a
-hill that looks finished and shows nothing, and it is what `PG7` is for.
+hill that looks finished and shows nothing, and nothing yet says so (`PG7`).
 
 ## 3. The capture state machine
 
@@ -187,7 +189,9 @@ per-second rate every that-many seconds (default `+∞`, i.e. never).
 `ScoreModule.parse` returns null when the document has no `<score>` child — so a KotH map with `points="1"`
 on every hill and no score module scores nothing at all, for the whole match, silently. Corpus authors know
 it: `koth/qboid` carries `<score><kills>0</kills><deaths>0</deaths></score>` under the comment *"placeholder
-so the score module will show up"*. 95 of the 103 corpus KotH maps declare a score limit. This is `PG6`.
+so the score module will show up"*. 95 of the 103 corpus KotH maps declare a score limit. The studio reads
+the element and the difference — a map with no `<score>` gets a null `ScoreConfig` and writes no element back
+— but raises no finding over a point that scores into nothing (`PG6`).
 
 `<score><king/></score>` appears in a handful of maps. It is a legacy marker that zeroes the default kill and
 death scores; at proto ≥ 1.3.6 those already default to zero, so on every map the studio will ever read it is
@@ -357,14 +361,23 @@ white stained-clay pad of the same footprint or a block narrower all round, its 
 three blocks of air above. "Middle" sits at the map's centre of symmetry and the other two are images of each
 other under the rotation that swaps the spawns, about two-thirds of the way out from the centre to one.
 
-## 8. What the studio does not do yet
+## 8. What the studio does with one
 
-None of this is built. The board entries are in `BACKLOG.md` under *"The hill: a goal owned by standing on
-it"*; the ids are cited here so a reader knows which gap is claimed by whom, and each sentence below becomes
-false when its task ships.
+**It reads it, stores it and writes it back.** `MapParser.ParseControlPoints` reads both spellings into
+`Domain.ControlPoint`, carrying the element rather than resolving it; `ParseScore` reads `<score>` into
+`ScoreConfig`, or `null` where the map declares none. `XmlWriter` re-emits each point under the element it
+arrived in, `control_point` and `map_score` store it, and `Gamemodes.From` derives `cp`, `koth` and `tdm`
+from what is there. Over both corpora, 286 maps carry one or the other; all 286 parse and survive the XML
+round trip unchanged.
 
-- **`PG5`** — parse and re-emit the module. `<control-points>`, `<king>` and `<payloads>` are refused by
-  `MapParser.EnsureSupported` today.
+**Nothing states a knob the map did not.** Every optional attribute is `null` or `""` all the way down to
+its nullable column, because PGM's default for it depends on the element — a hill keeps partial capture
+progress and a control point discards it, from the same unwritten `incremental` — so materialising one
+stores a different map.
+
+**What is not built** is on the board in `BACKLOG.md` under *"The hill: a goal owned by standing on it"*.
+Each sentence becomes false when its task ships:
+
 - **`PG6`** — a scoring point with no `<score>` element scores nothing; nothing says so.
 - **`PG7`** — a pad built in a material outside the colour-affected set never changes colour.
 - **`PG8`** — `required` left off ends the match on first capture, at every proto the studio reads.

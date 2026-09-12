@@ -170,6 +170,60 @@ public sealed class CoreRow
     [Column("modes_json")] public string? ModesJson { get; set; }
 }
 
+// A CP/KotH point. Every knob is nullable and stays NULL when the map did not state one, because the
+// default PGM then applies depends on `element` — filling one in would store a different map.
+[Table("control_point")]
+public sealed class ControlPointRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("control_point_key"), NotNull] public string ControlPointKey { get; set; } = "";
+    [Column("name")] public string? Name { get; set; }
+    [Column("element"), NotNull] public string Element { get; set; } = "";   // control-points | king
+    [Column("capture_region_key")] public string? CaptureRegionKey { get; set; }
+    [Column("progress_region_key")] public string? ProgressRegionKey { get; set; }
+    [Column("owner_region_key")] public string? OwnerRegionKey { get; set; }
+    [Column("visual_materials_key")] public string? VisualMaterialsKey { get; set; }
+    [Column("initial_owner")] public string? InitialOwner { get; set; }
+    [Column("capture_time")] public string? CaptureTime { get; set; }
+    [Column("capture_rule")] public string? CaptureRule { get; set; }
+    [Column("capture_filter_key")] public string? CaptureFilterKey { get; set; }
+    [Column("player_filter_key")] public string? PlayerFilterKey { get; set; }
+    [Column("incremental")] public bool? Incremental { get; set; }
+    [Column("recovery")] public double? Recovery { get; set; }
+    [Column("decay")] public double? Decay { get; set; }
+    [Column("owned_decay")] public double? OwnedDecay { get; set; }
+    [Column("contested")] public double? Contested { get; set; }
+    [Column("time_multiplier")] public double? TimeMultiplier { get; set; }
+    [Column("neutral_state")] public bool? NeutralState { get; set; }
+    [Column("permanent"), NotNull] public bool Permanent { get; set; }
+    [Column("points")] public double? Points { get; set; }
+    [Column("owner_points")] public double? OwnerPoints { get; set; }
+    [Column("points_growth")] public double? PointsGrowth { get; set; }
+    [Column("show_progress")] public bool? ShowProgress { get; set; }
+    [Column("required")] public bool? Required { get; set; }
+    [Column("show"), NotNull] public bool Show { get; set; } = true;
+}
+
+// The <score> module, at most one row per map. A map with no row declared no element, which is the map on
+// which nothing scores at all — not one whose limit happens to be unset.
+[Table("map_score")]
+public sealed class ScoreRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("initial")] public int? Initial { get; set; }
+    [Column("score_limit")] public int? Limit { get; set; }
+    [Column("enforce_limit")] public bool? EnforceLimit { get; set; }
+    [Column("kills")] public int? Kills { get; set; }
+    [Column("deaths")] public int? Deaths { get; set; }
+    [Column("mercy")] public int? Mercy { get; set; }
+    [Column("mercy_min")] public int? MercyMin { get; set; }
+    [Column("display")] public string? Display { get; set; }
+    [Column("scoreboard_filter_key")] public string? ScoreboardFilterKey { get; set; }
+    [Column("king"), NotNull] public bool King { get; set; }
+}
+
 [Table("mode")]
 public sealed class ModeRow
 {

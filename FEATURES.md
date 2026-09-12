@@ -3026,6 +3026,24 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `flags`/`score`); auxiliary modules (`blitz`, `ffa`, `rage`) modify play rather than the goal and stay
   ignorable. Corpus-verified over the 350 slugs: 12 rejects, exactly the maps carrying an unread objective.
   (B22, OB10)
+- **CP/KotH: control points and the score module — parse, write, store.** `<control-points>`,
+  `<king><hills>` and `<score>` now round-trip. One PGM parser builds both spellings of a point, so one
+  reader does: `ControlPoint` carries the **element** it was written as rather than resolving it, because a
+  hill and a control point disagree about nearly every default — the same unwritten `incremental` keeps
+  partial capture progress on one and discards it on the other — so materialising a default would store a
+  different map. Every optional knob is `null`/`""` from `Domain.ControlPoint` down to its nullable
+  `control_point` column, and the writer emits only what the map stated. `ScoreConfig` is `null` for a
+  document with no `<score>`, which is the map PGM loads no score module for and on which a point's `points`
+  rate pays nothing. Attribute inheritance runs the full `<king>` → `<hills>` → `<hill>` chain
+  (`Xml.FlattenUnder`), and `<king><hill/></king>` with no `<hills>` parses the same. `Gamemodes.From` gains
+  `cp`, `koth` and `tdm` — CP and KotH share one PGM tag so a map spelling both is `cp`, and a bare score
+  limit is how a capture map ends rather than a mode of its own. **Payload stays refused** (a furnace
+  minecart, none of whose geometry is read), and so does a `<score>` carrying a `<box>` — a scorebox is its
+  own objective inside an element that is read, so the gate looks one level in. Corpus-verified over both
+  repositories: **1,329 of 1,622 map directories parse** (was 293 refused, now the 146 `flags`, 75 scorebox,
+  37 proto, 27 modern-world and 9 `payloads` maps), and all **286** carrying a control point or a score
+  module survive the XML round trip with every point and knob unchanged. `docs/pgm/control-points.md`.
+  (PG5, OB10)
 - **DTM: destroyables + objective modes — parse, write, codec.** `<destroyables>` and `<modes>` now
   round-trip: `Destroyable` (owner · region · materials · completion · show · mode membership) and
   `ObjectiveMode` (after · material · show-before · filter · action) on `MapXml`, through `Serializer`/

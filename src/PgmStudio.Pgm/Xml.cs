@@ -19,6 +19,22 @@ internal readonly record struct InheritedElement(XElement Element, IReadOnlyDict
         var raw = Get(name, def ? "true" : "false").Trim().ToLowerInvariant();
         return raw is "true" or "1" or "yes" or "on";
     }
+
+    /// <summary>The attribute as a boolean, or <c>null</c> when it is absent. Distinct from
+    /// <see cref="Bool"/> wherever PGM's own default is not <c>false</c> — an unwritten attribute is then a
+    /// different value from a written <c>false</c>, and materialising one as the other changes the map.</summary>
+    public bool? BoolOrNull(string name) => GetOrNull(name) is null ? null : Bool(name);
+
+    /// <summary>The attribute as a number, or <c>null</c> when it is absent or does not parse. Accepts
+    /// PGM's <c>oo</c>/<c>-oo</c> spelling of infinity, which several of the capture rates take.</summary>
+    public double? DoubleOrNull(string name)
+    {
+        var raw = GetOrNull(name)?.Trim();
+        if (raw is null) return null;
+        if (raw is "oo") return double.PositiveInfinity;
+        if (raw is "-oo") return double.NegativeInfinity;
+        return double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : null;
+    }
 }
 
 /// <summary>XML attribute, text and coordinate helpers over XElement.</summary>
@@ -34,8 +50,20 @@ internal static class Xml
     public static List<InheritedElement> Flatten(XElement root, string groupTag, string leafTag)
     {
         var leaves = new List<InheritedElement>();
-        foreach (var group in root.Elements(groupTag))
-            Walk(group, AttributesOf(group, null));
+        foreach (var group in root.Elements(groupTag)) leaves.AddRange(FlattenUnder(group, groupTag, leafTag));
+        return leaves;
+    }
+
+    /// <summary>
+    /// Flatten from an element that is itself outside the group — <c>&lt;king&gt;</c> over
+    /// <c>&lt;hills&gt;</c>/<c>&lt;hill&gt;</c> — so that the outer element's attributes seed the cascade
+    /// and reach every leaf. A leaf sitting directly under it is a leaf, which is how
+    /// <c>&lt;king&gt;&lt;hill/&gt;&lt;/king&gt;</c> parses the same as the nested spelling.
+    /// </summary>
+    public static List<InheritedElement> FlattenUnder(XElement outer, string groupTag, string leafTag)
+    {
+        var leaves = new List<InheritedElement>();
+        Walk(outer, AttributesOf(outer, null));
         return leaves;
 
         void Walk(XElement group, Dictionary<string, string> inherited)

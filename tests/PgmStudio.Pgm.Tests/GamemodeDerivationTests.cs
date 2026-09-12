@@ -66,6 +66,48 @@ public sealed class GamemodeDerivationTests
         await Assert.That(m.Gamemodes).IsEquivalentTo(new[] { "dtm" });
     }
 
+    // ── the capture-point family ────────────────────────────────────────────────────
+    private const string Hill = """<king><hills><hill capture="r"/></hills></king>""";
+    private const string Point = """<control-points><control-point capture="r"/></control-points>""";
+
+    [Test]
+    public async Task A_hill_makes_a_map_koth()
+        => await Assert.That(Parse(Hill).Gamemodes).IsEquivalentTo(new[] { "koth" });
+
+    [Test]
+    public async Task A_control_point_makes_a_map_cp()
+        => await Assert.That(Parse(Point).Gamemodes).IsEquivalentTo(new[] { "cp" });
+
+    // PGM gives both elements the same tag id and adds the KotH one only when nothing has claimed it, so a
+    // map spelling both is CP — not both, and not one of each.
+    [Test]
+    public async Task A_map_spelling_both_elements_is_cp()
+        => await Assert.That(Parse(Point + Hill).Gamemodes).IsEquivalentTo(new[] { "cp" });
+
+    // ControlPointModule adds its tag per element parsed without consulting `show`, and this mirrors it —
+    // the phantom carve-out is a destroyable rule and not a second deviation invented here.
+    [Test]
+    public async Task A_hidden_control_point_still_tags_its_map()
+        => await Assert.That(Parse("""<control-points><control-point capture="r" show="false"/></control-points>""").Gamemodes)
+            .IsEquivalentTo(new[] { "cp" });
+
+    // ── the score module ────────────────────────────────────────────────────────────
+    // A limit is how a capture map ends, not a gamemode: PGM adds its deathmatch tag only when a kill or a
+    // death is worth something.
+    [Test]
+    public async Task A_score_limit_alone_is_not_a_gamemode()
+        => await Assert.That(Parse("<score><limit>750</limit></score>").Gamemodes).IsEmpty();
+
+    [Test]
+    public async Task A_hill_map_with_a_score_limit_is_koth_and_nothing_else()
+        => await Assert.That(Parse(Hill + "<score><limit>750</limit></score>").Gamemodes).IsEquivalentTo(new[] { "koth" });
+
+    [Test]
+    [Arguments("<kills>1</kills>")]
+    [Arguments("<deaths>1</deaths>")]
+    public async Task A_score_that_pays_for_kills_or_deaths_is_tdm(string body)
+        => await Assert.That(Parse($"<score>{body}</score>").Gamemodes).IsEquivalentTo(new[] { "tdm" });
+
     // ── the declared label ──────────────────────────────────────────────────────────
     [Test]
     public async Task An_absent_gamemode_element_stays_absent()

@@ -143,6 +143,35 @@ public sealed class MapReader(PgmDb db)
                 ModeChanges = c.ModeChanges, Modes = ModeKeys(c.ModesJson),
             });
 
+        foreach (var p in await db.ControlPoints.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.ControlPoints.Add(new ControlPoint
+            {
+                Id = p.ControlPointKey, Name = p.Name ?? "",
+                Element = p.Element == "king" ? ControlPointElement.King : ControlPointElement.ControlPoints,
+                CaptureRegionId = p.CaptureRegionKey ?? "",
+                ProgressRegionId = p.ProgressRegionKey ?? "",
+                OwnerRegionId = p.OwnerRegionKey ?? "",
+                VisualMaterialsFilterId = p.VisualMaterialsKey ?? "",
+                InitialOwner = p.InitialOwner ?? "",
+                CaptureTime = p.CaptureTime ?? "",
+                CaptureRule = p.CaptureRule ?? "",
+                CaptureFilterId = p.CaptureFilterKey ?? "",
+                PlayerFilterId = p.PlayerFilterKey ?? "",
+                Incremental = p.Incremental, Recovery = p.Recovery, Decay = p.Decay,
+                OwnedDecay = p.OwnedDecay, Contested = p.Contested,
+                TimeMultiplier = p.TimeMultiplier, NeutralState = p.NeutralState, Permanent = p.Permanent,
+                Points = p.Points, OwnerPoints = p.OwnerPoints, PointsGrowth = p.PointsGrowth,
+                ShowProgress = p.ShowProgress, Required = p.Required, Show = p.Show,
+            });
+
+        if (await db.Scores.Where(x => x.MapId == id).FirstOrDefaultAsync(ct) is { } sc)
+            m.Score = new ScoreConfig
+            {
+                Initial = sc.Initial, Limit = sc.Limit, EnforceLimit = sc.EnforceLimit,
+                Kills = sc.Kills, Deaths = sc.Deaths, Mercy = sc.Mercy, MercyMin = sc.MercyMin,
+                Display = sc.Display ?? "", ScoreboardFilterId = sc.ScoreboardFilterKey ?? "", King = sc.King,
+            };
+
         foreach (var s in await db.Spawns.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
         {
             var spawn = new Spawn { Team = s.Team, Kit = s.Kit ?? "", Yaw = s.Yaw, Region = ResolveRegion(m, s.RegionKey) };

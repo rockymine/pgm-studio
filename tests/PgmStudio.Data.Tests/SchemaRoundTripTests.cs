@@ -34,7 +34,7 @@ public sealed class SchemaRoundTripTests
                      "kit_item", "kit_armor", "map_spawner", "renewable", "block_drop_rule",
                      "apply_rule", "author", "wool_block", "resource_block", "chest_item",
                      "spawner_block", "monument_candidate", "segment", "map_artifact",
-                     "destroyable", "core", "mode",
+                     "destroyable", "core", "mode", "control_point", "map_score",
                  })
         {
             await Assert.That(tables).Contains(expected);

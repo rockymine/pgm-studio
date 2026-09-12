@@ -54,10 +54,10 @@ public sealed class MapSupportTests
     // An objective module the parser does not read would be dropped in silence — the map would export
     // without its goal. Each of these declares a non-auxiliary gamemode in PGM.
     [Test]
-    [Arguments("<control-points><control-point id=\"hill\"/></control-points>")]
-    [Arguments("<king><hills><hill id=\"h\"/></hills></king>")]
     [Arguments("<flags><flag id=\"f\"/></flags>")]
-    [Arguments("<score><limit>50</limit></score>")]
+    [Arguments("<payloads><payload id=\"cart\" location=\"0,0,0\" radius=\"4\"/></payloads>")]
+    // A scorebox is its own objective inside an element that is read, so the gate looks one level in.
+    [Arguments("<score><limit>50</limit><box region=\"r\" points=\"1\"/></score>")]
     public async Task Rejects_an_objective_module_it_cannot_read(string module)
     {
         await Assert.That(() => MapParser.ParseXmlString(Map("<map proto=\"1.5.0\">", module)))
@@ -80,6 +80,11 @@ public sealed class MapSupportTests
     [Arguments("<wools team=\"red\"><wool color=\"red\" location=\"1,2,3\"/></wools>")]
     [Arguments("<destroyables><destroyable owner=\"red\" name=\"a\" materials=\"obsidian\"/></destroyables>")]
     [Arguments("<cores><core team=\"red\" region=\"r\"/></cores>")]
+    // One PGM module under two spellings, so one parser clears both at once — and the score module a
+    // capture map is played to.
+    [Arguments("<control-points><control-point id=\"hill\" capture=\"r\"/></control-points>")]
+    [Arguments("<king><hills><hill id=\"h\" capture=\"r\"/></hills></king>")]
+    [Arguments("<score><limit>750</limit></score>")]
     public async Task Accepts_an_objective_module_it_reads(string module)
     {
         var m = MapParser.ParseXmlString(Map("<map proto=\"1.5.0\">", module));

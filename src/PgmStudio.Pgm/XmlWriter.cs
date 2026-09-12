@@ -86,6 +86,8 @@ public static partial class XmlWriter
             Add(r.BlockBreakFilter); Add(r.BlockPhysicsFilter); Add(r.BlockPlaceAgainstFilter); Add(r.UseFilter); Add(r.FilterId);
         }
         foreach (var r in m.Renewables) { Add(r.RenewFilter); Add(r.ReplaceFilter); }
+        foreach (var p in m.ControlPoints) { Add(p.VisualMaterialsFilterId); Add(p.CaptureFilterId); Add(p.PlayerFilterId); }
+        if (m.Score is { } score) Add(score.ScoreboardFilterId);
         return refs;
     }
 
@@ -99,6 +101,9 @@ public static partial class XmlWriter
         foreach (var w in m.Wools) if (w.MonumentRegionId is { Length: > 0 }) refs.Add(w.MonumentRegionId);
         foreach (var d in m.Destroyables) if (d.RegionId.Length > 0 && !IsSynthetic(d.RegionId)) refs.Add(d.RegionId);
         foreach (var c in m.Cores) if (c.RegionId.Length > 0 && !IsSynthetic(c.RegionId)) refs.Add(c.RegionId);
+        foreach (var p in m.ControlPoints)
+            foreach (var id in new[] { p.CaptureRegionId, p.ProgressRegionId, p.OwnerRegionId })
+                if (id.Length > 0 && !IsSynthetic(id)) refs.Add(id);
         return refs;
     }
 
@@ -131,6 +136,8 @@ public static partial class XmlWriter
         WriteModes(root, m.Modes);
         WriteDestroyables(root, m.Destroyables, m.Regions);
         WriteCores(root, m.Cores, m.Regions);
+        WriteControlPoints(root, m.ControlPoints, m.Regions);
+        WriteScore(root, m.Score);
 
         if (m.Filters.Count > 0) WriteFiltersBlock(root, m.Filters, ExternalFilterRefs(m));
         if (m.Regions.Count > 0 || m.ApplyRules.Count > 0)
@@ -383,6 +390,119 @@ public static partial class XmlWriter
             else if (c.RegionId.Length > 0 && regions.TryGetValue(c.RegionId, out var region))
                 e.Add(new XElement("region", RegionElemInline(region)));
             block.Add(e);
+        }
+    }
+
+    /// <summary>
+    /// The CP/KotH objectives, each re-emitted under the spelling it was read as: the points written as
+    /// <c>&lt;control-point&gt;</c> in one <c>&lt;control-points&gt;</c> block and those written as
+    /// <c>&lt;hill&gt;</c> in one <c>&lt;king&gt;&lt;hills&gt;</c>. The spelling is not decoration — it is
+    /// what tells PGM which default to apply to every attribute the point leaves unset — so a map that said
+    /// "hill" gets "hill" back.
+    /// <para>Flat and explicit, like the destroyable and core blocks: authors nest to share attributes and a
+    /// writer has nothing to share. Only what the map actually stated is written; an unset knob stays unset
+    /// so PGM applies the same default it applied before.</para>
+    /// </summary>
+    private static void WriteControlPoints(XElement parent, List<ControlPoint> points, Dictionary<string, Region> regions)
+    {
+        if (points.Count == 0) return;
+        Block(ControlPointElement.ControlPoints, "control-points", "control-point", parent);
+        if (points.Any(p => p.Element == ControlPointElement.King))
+        {
+            var king = new XElement("king"); parent.Add(king);
+            Block(ControlPointElement.King, "hills", "hill", king);
+        }
+
+        void Block(ControlPointElement element, string blockTag, string leafTag, XElement host)
+        {
+            var mine = points.Where(p => p.Element == element).ToList();
+            if (mine.Count == 0) return;
+            var block = new XElement(blockTag); host.Add(block);
+            foreach (var p in mine) block.Add(ControlPointLeaf(p, leafTag, regions));
+        }
+    }
+
+    private static XElement ControlPointLeaf(ControlPoint p, string leafTag, Dictionary<string, Region> regions)
+    {
+        var e = new XElement(leafTag);
+        Set(e, "id", p.Id);
+        if (p.Name.Length > 0) Set(e, "name", p.Name);   // absent lets PGM auto-name "Hill", "Hill 2", …
+        if (p.InitialOwner.Length > 0) Set(e, "initial-owner", p.InitialOwner);
+        if (p.CaptureTime.Length > 0) Set(e, "capture-time", p.CaptureTime);
+        if (p.CaptureRule.Length > 0) Set(e, "capture-rule", p.CaptureRule);
+        if (p.CaptureFilterId.Length > 0) Set(e, "capture-filter", p.CaptureFilterId);
+        if (p.PlayerFilterId.Length > 0) Set(e, "player-filter", p.PlayerFilterId);
+        if (p.VisualMaterialsFilterId.Length > 0) Set(e, "visual-materials", p.VisualMaterialsFilterId);
+
+        SetBool(e, "incremental", p.Incremental);
+        SetNumber(e, "recovery", p.Recovery);
+        SetNumber(e, "decay", p.Decay);
+        SetNumber(e, "owned-decay", p.OwnedDecay);
+        SetNumber(e, "contested", p.Contested);
+        SetNumber(e, "time-multiplier", p.TimeMultiplier);
+        SetBool(e, "neutral-state", p.NeutralState);
+        if (p.Permanent) Set(e, "permanent", "true");
+        SetNumber(e, "points", p.Points);
+        SetNumber(e, "owner-points", p.OwnerPoints);
+        SetNumber(e, "points-growth", p.PointsGrowth);
+        SetBool(e, "show-progress", p.ShowProgress);
+        SetBool(e, "required", p.Required);
+        if (!p.Show) Set(e, "show", "false");
+
+        // The long spellings, because they say which region is which without the reader knowing the short
+        // aliases. A named region is referenced; a synthetic one is inlined, the way an objective's is.
+        Region(e, "capture-region", p.CaptureRegionId);
+        Region(e, "progress-display-region", p.ProgressRegionId);
+        Region(e, "owner-display-region", p.OwnerRegionId);
+        return e;
+
+        void Region(XElement leaf, string name, string regionId)
+        {
+            if (regionId.Length == 0) return;
+            if (!IsSynthetic(regionId)) Set(leaf, name, regionId);
+            else if (regions.TryGetValue(regionId, out var region)) leaf.Add(new XElement(name, RegionElemInline(region)));
+        }
+    }
+
+    private static void SetBool(XElement e, string name, bool? value)
+    {
+        if (value is { } v) Set(e, name, v ? "true" : "false");
+    }
+
+    private static void SetNumber(XElement e, string name, double? value)
+    {
+        if (value is { } v) Set(e, name, C(v));
+    }
+
+    /// <summary>
+    /// The <c>&lt;score&gt;</c> module. Everything PGM accepts as an attribute or a same-named child is
+    /// written as a <b>child</b>, which is what the corpus writes and what its <c>&lt;mercy&gt;</c> and
+    /// <c>&lt;kills&gt;</c> can only be. An element with nothing in it is still written when the map had
+    /// one, because a map with an empty <c>&lt;score&gt;</c> loads a score module and a map with none does
+    /// not — which is the whole difference between a point that pays and a point that does not.
+    /// </summary>
+    private static void WriteScore(XElement parent, ScoreConfig? score)
+    {
+        if (score is null) return;
+        var block = new XElement("score"); parent.Add(block);
+        if (score.Display.Length > 0) Set(block, "display", score.Display);
+        if (score.ScoreboardFilterId.Length > 0) Set(block, "scoreboard-filter", score.ScoreboardFilterId);
+        if (score.King) block.Add(new XElement("king"));
+        Child("initial", score.Initial);
+        Child("limit", score.Limit);
+        if (score.EnforceLimit is { } enforce) block.Add(new XElement("enforce-limit", enforce ? "true" : "false"));
+        Child("kills", score.Kills);
+        Child("deaths", score.Deaths);
+        if (score.Mercy is { } mercy)
+        {
+            var e = new XElement("mercy", mercy.ToString(CultureInfo.InvariantCulture));
+            if (score.MercyMin is { } min) Set(e, "min", min.ToString(CultureInfo.InvariantCulture));
+            block.Add(e);
+        }
+
+        void Child(string tag, int? value)
+        {
+            if (value is { } v) block.Add(new XElement(tag, v.ToString(CultureInfo.InvariantCulture)));
         }
     }
 

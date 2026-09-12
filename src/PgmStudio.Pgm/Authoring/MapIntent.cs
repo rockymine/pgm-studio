@@ -70,7 +70,11 @@ public sealed record MapIntent
     /// the observer platform's own board are both written from, so the map and the sign in it cannot
     /// disagree.</summary>
     public IReadOnlyList<string> Gamemodes => Domain.Gamemodes.From(
-        Wools is { Count: > 0 }, Destroyables is { Count: > 0 }, Cores is { Count: > 0 });
+        hasWools: Wools is { Count: > 0 },
+        hasRealDestroyable: Destroyables is { Count: > 0 },
+        hasCores: Cores is { Count: > 0 },
+        // The intent authors no capture objective and no score module (`TC7`), so neither can be carried.
+        hasControlPoints: false, hasKing: false, scoresKillsOrDeaths: false);
 
     /// <summary>Map identity: name + authors/contributors. Version (1.0.0) and proto (1.5.0) are fixed; the
     /// gamemode and the objective text are auto-derived from which objective modules the intent carries

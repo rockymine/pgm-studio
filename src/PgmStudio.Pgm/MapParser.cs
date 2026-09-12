@@ -62,8 +62,12 @@ public sealed partial class MapParser
     };
 
     // The subset we actually read. A listed-but-unread module is an objective the map would lose on
-    // round-trip with no error, so its presence rejects the map instead.
-    private static readonly HashSet<string> ParsedObjectiveModules = ["wools", "destroyables", "cores"];
+    // round-trip with no error, so its presence rejects the map instead. `control-points` and `king` are
+    // one PGM module under two spellings and arrive together; `payloads` is the third spelling and does
+    // not, because a payload is a furnace minecart players push around the board and none of the geometry
+    // that describes one is read.
+    private static readonly HashSet<string> ParsedObjectiveModules =
+        ["wools", "destroyables", "cores", "control-points", "king", "score"];
 
     // Reject maps outside the supported range up front rather than silently mis-parsing them: the old
     // positional format below proto 1.4.0 (anonymous teams, no region/filter ids), modern worlds whose
@@ -94,12 +98,18 @@ public sealed partial class MapParser
             .Select(e => e.Name.LocalName)
             .Where(t => ObjectiveModules.ContainsKey(t) && !ParsedObjectiveModules.Contains(t))
             .Distinct()
+            .Select(t => $"<{t}> ({ObjectiveModules[t]})")
             .ToList();
+        // A scorebox is its own objective wearing <score>'s element: PGM gives a <box> its own map tag, and
+        // the region, filter and redeemables that make one are not read here. The module around it is, so
+        // the gate has to look one level in or a scorebox map would parse and export without its boxes.
+        if (_root.Elements("score").SelectMany(s => s.Elements("box")).Any())
+            unread.Add("<score>'s <box> (Scorebox)");
         if (unread.Count == 0) return;
 
-        var described = string.Join(", ", unread.Select(t => $"<{t}> ({ObjectiveModules[t]})"));
         throw new UnsupportedMapException(
-            $"map declares an objective the studio cannot read: {described}. Parsing it would drop the objective silently on round-trip.");
+            $"map declares an objective the studio cannot read: {string.Join(", ", unread)}. "
+            + "Parsing it would drop the objective silently on round-trip.");
     }
 
     private MapXml ParseInternal()
@@ -156,6 +166,8 @@ public sealed partial class MapParser
         data.Modes = ParseModes();
         data.Destroyables = ParseDestroyables();
         data.Cores = ParseCores();
+        data.ControlPoints = ParseControlPoints();
+        data.Score = ParseScore();
         data.Spawners = ParseSpawners();
         data.Renewables = ParseRenewables();
         data.BlockDropRules = ParseBlockDropRules();
@@ -665,6 +677,154 @@ public sealed partial class MapParser
         }
         return cores;
     }
+
+    /// <summary>
+    /// The CP/KotH objectives. One PGM parser builds both spellings, so one method reads both: the element
+    /// a point was written as chooses the defaults PGM will apply and is carried on the record rather than
+    /// baked into its fields, because a hill and a point disagree about nearly every default and
+    /// materialising either here would change the map on round-trip.
+    /// <para>Attributes cascade from the outermost element inward — <c>&lt;king&gt;</c> to
+    /// <c>&lt;hills&gt;</c> to <c>&lt;hill&gt;</c> — which is how the corpus writes the shared tuning once,
+    /// and <c>&lt;king&gt;&lt;hill/&gt;&lt;/king&gt;</c> with no <c>&lt;hills&gt;</c> is the same map.</para>
+    /// <para>PGM names an unnamed point "Hill", "Hill 2", … off one counter running across the whole
+    /// document. That is left to PGM: an empty name here is a name the map did not state, and inventing one
+    /// would write a name the author never chose into the export.</para>
+    /// </summary>
+    private List<ControlPoint> ParseControlPoints()
+    {
+        var points = new List<ControlPoint>();
+        var used = new HashSet<string>();
+
+        foreach (var (leaf, element) in ControlPointLeaves())
+        {
+            var name = leaf.Get("name");
+            var id = leaf.Get("id");
+            if (id.Length == 0) id = UniqueId(Slug(NonEmpty(name, "hill")), used);
+            used.Add(id);
+
+            points.Add(new ControlPoint
+            {
+                Id = id,
+                Name = name,
+                Element = element,
+                // PGM takes each region as an attribute naming one or as a child element wrapping the
+                // geometry, under either of two spellings, and refuses a leaf declaring both.
+                CaptureRegionId = ResolveRegionProperty(leaf, $"__cp_{id}_capture", "capture-region", "capture"),
+                ProgressRegionId = ResolveRegionProperty(leaf, $"__cp_{id}_progress", "progress-display-region", "progress"),
+                OwnerRegionId = ResolveRegionProperty(leaf, $"__cp_{id}_owner", "owner-display-region", "captured"),
+                VisualMaterialsFilterId = leaf.Get("visual-materials"),
+
+                InitialOwner = leaf.Get("initial-owner"),
+                CaptureTime = leaf.Get("capture-time"),
+                CaptureRule = leaf.Get("capture-rule"),
+                CaptureFilterId = leaf.Get("capture-filter"),
+                PlayerFilterId = leaf.Get("player-filter"),
+
+                Incremental = leaf.BoolOrNull("incremental"),
+                Recovery = FirstNumber(leaf, "recovery", "recovery-rate"),
+                Decay = FirstNumber(leaf, "decay", "decay-rate"),
+                OwnedDecay = FirstNumber(leaf, "owned-decay", "owned-decay-rate"),
+                Contested = FirstNumber(leaf, "contested", "contested-rate"),
+
+                TimeMultiplier = leaf.DoubleOrNull("time-multiplier"),
+                NeutralState = leaf.BoolOrNull("neutral-state"),
+                Permanent = leaf.Bool("permanent"),
+
+                Points = leaf.DoubleOrNull("points"),
+                OwnerPoints = leaf.DoubleOrNull("owner-points"),
+                PointsGrowth = leaf.DoubleOrNull("points-growth"),
+
+                ShowProgress = leaf.BoolOrNull("show-progress"),
+                Required = leaf.BoolOrNull("required"),
+                Show = leaf.Bool("show", true),
+            });
+        }
+        return points;
+    }
+
+    // <control-point> leaves first and <hill> leaves after, which is the order PGM parses them in and
+    // therefore the order its shared name counter runs in.
+    private IEnumerable<(InheritedElement Leaf, ControlPointElement Element)> ControlPointLeaves()
+    {
+        foreach (var leaf in Xml.Flatten(_root, "control-points", "control-point"))
+            yield return (leaf, ControlPointElement.ControlPoints);
+        foreach (var king in _root.Elements("king"))
+            foreach (var leaf in Xml.FlattenUnder(king, "hills", "hill"))
+                yield return (leaf, ControlPointElement.King);
+    }
+
+    // PGM accepts either spelling of a rate and reads whichever the map wrote; declaring both is the
+    // author's contradiction and the first listed is the one PGM's alias order takes.
+    private static double? FirstNumber(InheritedElement e, params string[] names)
+    {
+        foreach (var n in names) if (e.DoubleOrNull(n) is { } v) return v;
+        return null;
+    }
+
+    /// <summary>
+    /// A region property under either of PGM's two spellings, as an <c>id</c> attribute or as a child
+    /// element wrapping the geometry. The child form is the union of everything inside it, the same way an
+    /// objective's <c>&lt;region&gt;</c> wrapper is.
+    /// </summary>
+    private string ResolveRegionProperty(InheritedElement e, string syntheticId, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            if (e.Element.Elements(name).FirstOrDefault() is { } wrapper)
+                return _regionParser.ParseRegionProperty(wrapper, syntheticId)?.Id ?? "";
+            // The attribute is read off the cascade, so a group naming one region for every leaf works.
+            if (e.GetOrNull(name) is { Length: > 0 } reference) return reference;
+        }
+        return "";
+    }
+
+    /// <summary>
+    /// The <c>&lt;score&gt;</c> module. PGM reads every <c>&lt;score&gt;</c> child of the root in order and
+    /// lets each overwrite what the last said, so the merge here is the same: the last statement of a field
+    /// wins, and a field nobody states stays unset.
+    /// <para>Returns <c>null</c> for a document with no such element, because that is a map on which PGM
+    /// builds no score module at all — not one whose score is zero.</para>
+    /// </summary>
+    private ScoreConfig? ParseScore()
+    {
+        var elements = _root.Elements("score").ToList();
+        if (elements.Count == 0) return null;
+
+        var score = new ScoreConfig();
+        foreach (var e in elements)
+        {
+            // PGM's fluent parser reads a property from an attribute or a same-named child and refuses
+            // both, so each of these is one value written either way.
+            score.Initial = IntProperty(e, "initial") ?? score.Initial;
+            score.Limit = IntProperty(e, "limit") ?? score.Limit;
+            score.EnforceLimit = BoolProperty(e, "enforce-limit") ?? score.EnforceLimit;
+            // kills and deaths are child-only.
+            score.Kills = ChildInt(e, "kills") ?? score.Kills;
+            score.Deaths = ChildInt(e, "deaths") ?? score.Deaths;
+            if (e.Elements("mercy").FirstOrDefault() is { } mercy)
+            {
+                score.Mercy = ParseInt(Xml.Text(mercy)) ?? score.Mercy;
+                score.MercyMin = ParseInt(Xml.Get(mercy, "min")) ?? score.MercyMin;
+            }
+            score.Display = NonEmpty(Xml.Get(e, "display"), score.Display);
+            score.ScoreboardFilterId = NonEmpty(Xml.Get(e, "scoreboard-filter"), score.ScoreboardFilterId);
+            if (e.Elements("king").Any()) score.King = true;
+        }
+        return score;
+    }
+
+    private static int? IntProperty(XElement e, string name) => ParseInt(Xml.Get(e, name)) ?? ChildInt(e, name);
+    private static int? ChildInt(XElement e, string name) =>
+        e.Elements(name).FirstOrDefault() is { } child ? ParseInt(Xml.Text(child)) : null;
+
+    private static bool? BoolProperty(XElement e, string name)
+    {
+        var raw = Xml.GetOrNull(e, name) ?? (e.Elements(name).FirstOrDefault() is { } c ? Xml.Text(c) : null);
+        return raw is null ? null : raw.Trim().ToLowerInvariant() is "true" or "1" or "yes" or "on";
+    }
+
+    private static int? ParseInt(string? raw) =>
+        int.TryParse((raw ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : null;
 
     // Mode membership is a tri-state, not a list: `modes="a b"` is a specific set, `mode-changes="true"`
     // means every mode (modelled as no set rather than an enumerated one), and neither means no modes.
