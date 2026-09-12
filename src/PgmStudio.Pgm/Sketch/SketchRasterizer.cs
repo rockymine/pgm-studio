@@ -453,13 +453,33 @@ public static class SketchRasterizer
                     // rot_90 lands on the rot_180 image's ground, which the field does not cover, so the
                     // copy keeps its shapes' flat base heights and one pair of teams plays a solved surface
                     // while the other pair plays a table.
+                    //
+                    // <b>The image's own holes are read from the image's own shapes</b> (<see
+                    // cref="ReliefHoles"/>), because the field is a surface over the group's ground and a
+                    // shape excluded from it is excluded wherever it stands. Read any other way the fallback
+                    // below hands an excluded column the height of the ground beside it, and one team's
+                    // terrace sits six courses under the other's.
                     var back = Symmetry.Inverse(axis);
                     if (field is not null)
+                    {
+                        // A room is an annotation rather than terrain, so <see cref="MirrorShape"/> leaves
+                        // the word off its image; the image holes the ground it stands on all the same.
+                        var rooms = shapes.Where(room => room.Role is not null
+                                                         && room.ReliefScope == ReliefScopes.Exclude)
+                                          .Select(room =>
+                                          {
+                                              var image = MirrorShape(room, axis, cx, cz);
+                                              image.Role = room.Role;
+                                              return image;
+                                          }).ToList();
+                        var holes = ReliefHoles(mirrored, rooms, copy);
                         foreach (var cell in copy.Keys.ToList())
                         {
+                            if (holes.Contains(cell)) continue;
                             if (Sampled(field, MirrorCell(cell, back, cx, cz)) is not { } height) continue;
                             copy[cell] = (Math.Max(copy[cell].Floor + 1, height), copy[cell].Floor);
                         }
+                    }
                     // The image gets the same pass over it the primary got, and in the same order. An erected
                     // shape is settled against the ground under it, so reading its height back through the
                     // mirror would give it the relief's answer instead of its own — one team a mesa and the
@@ -664,6 +684,39 @@ public static class SketchRasterizer
         return under[under.Count / 2];
     }
 
+    /// <summary>
+    /// The cells a group takes out of its own relief: every shape of it whose scope says the field may not
+    /// answer for the ground under it, and every room standing on that ground saying the same. The field is
+    /// solved around these, so a column inside one keeps the top its shape stated.
+    ///
+    /// <para><b>Asked of the shapes, which is what lets a mirrored copy ask it too.</b> A shape's image is
+    /// the same shape, so the hole under it is the same hole; a copy that let the field answer for those
+    /// cells drags one team's ground to a height the other team's never takes — the terrace that keeps its
+    /// own top on one side of a board and sits six courses lower on the other.</para>
+    /// </summary>
+    private static HashSet<(int X, int Z)> ReliefHoles(
+        IReadOnlyList<SketchShape> groupShapes, IReadOnlyList<SketchShape> rooms,
+        Dictionary<(int, int), (int Top, int Floor)> cells)
+    {
+        HashSet<(int X, int Z)> ground = [], holes = [];
+        foreach (var shape in groupShapes)
+        {
+            if (shape.Role is not null || shape.Operation == "subtract") continue;
+            var covered = RasterShape(shape).Select(cell => (cell.X, cell.Z)).Where(cells.ContainsKey);
+            (ScopeOf(shape) == Participation.Exclude ? holes : ground).UnionWith(covered);
+        }
+        // A room is never one of the group's own rings, so it binds by footprint: it holes the terrain it
+        // stands on, and stands on nothing the group did not already own.
+        var owned = new HashSet<(int X, int Z)>(ground);
+        foreach (var room in rooms)
+        {
+            if (room.Role is null || room.ReliefScope != ReliefScopes.Exclude) continue;
+            var covered = RasterShape(room).Select(cell => (cell.X, cell.Z)).Where(cells.ContainsKey).ToList();
+            if (covered.Any(owned.Contains)) holes.UnionWith(covered);
+        }
+        return holes;
+    }
+
     /// <summary>Each relief-bearing group's solved surface, over the cells that group actually contributes
     /// to the standing footprint. A group with no relief is absent, which is the common case and costs
     /// nothing.</summary>
@@ -684,15 +737,15 @@ public static class SketchRasterizer
             // The group's own ground: the cells its add-shapes cover that survived the layer's set algebra,
             // minus the shapes that take themselves out of the solve. An excluded shape is a hole, so the
             // relaxation bends around it exactly as it bends around the void.
+            var groupShapes = meta.ShapeIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
+            var excluded = ReliefHoles(groupShapes, shapes, cells);
             var owned = new List<(int X, int Z)>();
-            var excluded = new HashSet<(int X, int Z)>();
             var held = new List<Mark>();
             // Shapes that take the height the field settles on under them. Filled by both walks below and
             // resolved once the field is solved, since what they pin is not known until then.
             var seated = new List<(SketchShape Shape, List<(int X, int Z)> Covered)>();
-            foreach (var id in meta.ShapeIds.Where(byId.ContainsKey))
+            foreach (var shape in groupShapes)
             {
-                var shape = byId[id];
                 if (shape.Role is not null || shape.Operation == "subtract") continue;
                 var covered = RasterShape(shape).Select(cell => (cell.X, cell.Z))
                                                 .Where(cells.ContainsKey).ToList();
@@ -707,8 +760,7 @@ public static class SketchRasterizer
                 switch (ScopeOf(shape))
                 {
                     case Participation.Exclude:
-                        excluded.UnionWith(covered);
-                        break;
+                        break;                                  // a hole, and ReliefHoles holds it
                     case Participation.Hold:
                         owned.AddRange(covered);
                         var ring = RingOf(shape);
@@ -735,7 +787,7 @@ public static class SketchRasterizer
                 var covered = RasterShape(shape).Select(cell => (cell.X, cell.Z))
                                                 .Where(cells.ContainsKey).ToList();
                 if (covered.Count == 0 || !covered.Any(groundSoFar.Contains)) continue;
-                if (shape.ReliefScope == ReliefScopes.Exclude) { excluded.UnionWith(covered); continue; }
+                if (shape.ReliefScope == ReliefScopes.Exclude) continue;    // a hole, as above
                 owned.AddRange(covered);
                 var ring = RingOf(shape);
                 if (ring.Count < 3) continue;

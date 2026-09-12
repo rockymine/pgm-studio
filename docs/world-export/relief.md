@@ -566,6 +566,18 @@ no neighbour in it either. Measured on a `rot_180` board whose polygon carries a
 flat top of y 19: six such pillars at (0, −35), (1, −40), (2, −45), (3, −50), (31, 25) and (42, 34), each
 standing 11 to 14 blocks over every neighbour it had, and none after.
 
+**A hole in the field is a hole in every image of it, and the nearest reading may not fill one.** The field
+answers for the ground the group gave it, and `relief_scope: exclude` — on a shape or on a room standing on the
+group's ground — takes cells out of that; the primary leaves those columns exactly as their shape drew them.
+An image cell over the same shape is the same statement, so the image's holes are read from the **image's own
+shapes** rather than from the field, and a cell inside one is passed over before the nearest-reading fallback
+can touch it. Without that separation the fallback hands an excluded column whatever the ground beside it
+settled at, and the reading lands one row deep along every boundary the excluded shape has: a made terrace
+whose front edge keeps its own top on one side of a board and drops six courses to the meadow's on the other,
+and, where the excluded shape stands beside an erected one, a ring around that shape raised to the field's own
+level — a nine-by-nine, nine-course wall standing on flat ground at one team's end of a quay and nothing at the
+other's.
+
 And the fold is not finished when the solve is. Every pass that runs afterwards decides things by walking the
 map — a stair cut picks the cheapest riser it finds first, a carve follows a route from one end, a graded road
 smooths along its length — and a walk has a direction the symmetry does not preserve. The stair repair folds

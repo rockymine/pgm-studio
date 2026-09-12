@@ -463,30 +463,45 @@ exempts the wing the roof belongs to, and the wall pass stops under whatever cou
 claimed there. Wings never share a cell, so nothing else
 moves — a marched or projected column stands inside *another* wing and is clamped exactly as before.
 
-**Only the highest roof over a cell is written there**, and that one comparison is what makes the union a
-building rather than two roofs in the same place. Where two wings' plans overlap the lower surface stands
-*inside* the higher one, and a roof block inside a building is not a roof — it is an obstruction in the attic.
-So a wing lays nothing at a cell another wing's field crowns higher. This is the cut a projecting wing makes in
-the roof it pushes into: the hall's eave course stops at the wing's opening instead of running over the room
-behind it, and the two lofts are one space. It is not a max of crowns — no surface is blended and no field is
-touched; each wing still answers for itself, and the comparison decides only which of them is the one showing.
+**Only the highest roof over a cell is written there, and crowning higher is not on its own enough.** Over its
+own rectangle a wing's roof is the lid on a room, so a lower surface under it stands *inside* the building, and
+a roof block inside a building is not a roof — it is an obstruction in the attic. That much a wing gives way to
+whatever it is covering, and it is the cut a projecting wing makes in the roof it pushes into: the hall's eave
+course stops at the wing's opening instead of running over the room behind it, and the two lofts are one space.
+It is not a max of crowns — no surface is blended and no field is touched; each wing still answers for itself,
+and the comparison decides only which of them is the one showing.
 
-The same comparison keeps a gable's overhang open, which is the other thing it is for. **A verge climbs and an
-eave does not**: the cells beneath a verge overhang are air, because nothing sheds onto them, while an eave
-overhang is a solid course running the length. Where a wing's eave overhang reaches the column another wing's
-gable oversails, the verge crowns higher and the eave gives way. Laid the other way round — and it was — the
-eave fills the triangle and a gable end reads as a filled panel instead of a roof hanging past its wall.
+**Out past the walls there is no room to be inside, and two overhangs settle it differently.** A cell a roof
+covers beyond its own wall line is overhang and nothing else, and an overhang gives way only to a **verge**
+overhang. Both halves carry weight. *A verge climbs and an eave does not*: the cells beneath a verge overhang
+are air, because nothing sheds onto them, while an eave overhang is a solid course running the length — so
+where a wing's eave overhang reaches the column another wing's gable oversails, the verge crowns higher and the
+eave gives way, and the other way round the eave fills the triangle and a gable end reads as a filled panel
+instead of a roof hanging past its wall. And *a roof over its own walls is the cover on its own rooms*, which
+no neighbour's eave may hollow out: a lower wing running into a taller one meets that eave along the whole row
+where the two rectangles touch, and reading the crowns alone there takes the wing's roof out for the length of
+the joint and leaves its gable standing open under the eave.
 
 **A face rises only where the building is outside it.** The walls climbing to meet the roof are built on the
 **body's** perimeter, not on each wing's own rectangle: the side of a wing that stands against a neighbour is
 not an outside face but a doorway between two halves of one building, open at the storey and open above it.
 Filled anyway it walls the wing's loft off from the hall's. So **a marching T carries three gable faces and a
-projecting one carries four** — the difference between the two junctions, stated as something countable.
+projecting one carries four** — the difference between the two junctions, stated as something countable. The
+window in a gable is held to the same outline, because it is cut into that face: a window centred on the side a
+wing stands against its neighbour on has no gable to cut and comes out as a pane hanging in the air between two
+roofs.
 
-**A verge is the outer rim of a roof, so no cell inside the outline is one.** A building of several wings has a
-single outline however many rectangles drew it, and the rim is read from the roof plan as a whole — a cell with
-a neighbour outside it. Read from the wing instead, a march's first step lands exactly on that wing's own
-overhang line and stamps verge in the middle of the roof it has just run into.
+**A rim is where a roof stops, which is a question about height rather than about plan.** Two readings settle
+it, both asked of the column being laid. The first is whether this roof carries on: a neighbour the same wing's
+field covers, or its own march reaches, is no edge however far the slope falls, because the riser under the
+next column closes the step. Read from the wing's rectangle instead, a march's first step lands exactly on that
+wing's own overhang line and stamps verge in the middle of the roof it has just run into. The second is what
+stands beside it — a roof at the neighbour that reaches this column's own band, to within the course of slack a
+riser leaves, carries the surface on; one standing clear of it, below or above, leaves a face, and a face is
+what a verge covers. Two wings of one building share an outline and not a surface, so a taller wing
+looking out over a lower one, or a lower one running on under a taller one's eave, has a neighbour inside the
+plan and open air beside it all the same; answered from the plan alone that whole edge comes out in roof body,
+which reads as the fill bleeding through the border.
 
 **A wing may state which way its ridge runs, because its own proportions cannot know whether it crosses
 anything.** A roof pitches across the shorter side, so by default the ridge lies along the longer one — and

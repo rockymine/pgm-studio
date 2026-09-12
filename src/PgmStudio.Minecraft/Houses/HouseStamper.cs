@@ -237,7 +237,7 @@ public static class HouseStamper
         var hole = RoofHole(style, body);
         var marched = Marched();
 
-        foreach (var (wing, index, _, field, _, slab) in roofs)
+        foreach (var (wing, index, roofed, field, _, slab) in roofs)
             for (var x = field.MinX; x <= field.MaxX; x++)
                 for (var z = field.MinZ; z <= field.MaxZ; z++)
                 {
@@ -247,20 +247,20 @@ public static class HouseStamper
                     // strike a block at the first step and never move.
                     if (BeyondMarch(wing, index, x, z)) continue;
                     // <b>Only the highest roof over a cell is written there.</b> The union of two wings is the
-                    // outside of both volumes, so where their plans overlap the lower surface is inside the
-                    // higher one — and a roof block inside a building is not a roof, it is an obstruction in
+                    // outside of both volumes, so a surface under another wing's own rectangle is inside the
+                    // building — and a roof block inside a building is not a roof, it is an obstruction in
                     // the attic. This is what cuts the roof a projecting wing pushes into, across its own span:
                     // the hall's eave course stops at the wing's opening rather than running over the room
                     // behind it, and the two attics are one space. It is not a max of crowns — no surface is
                     // blended and no wing's field is touched; each still answers for itself, and this decides
                     // only which of them is the one showing.
                     //
-                    // The same comparison is what keeps a gable's overhang open. A verge climbs, so the cells
-                    // under it are air; an eave does not, so its overhang is a solid course. Where a wing's
-                    // eave overhang runs into the column another wing's verge overhangs, the verge stands
-                    // higher and the eave gives way — which it must, since an eave under a verge has no slope
-                    // above it to catch anything from.
-                    if (Overtopped(wing, field, x, z)) continue;
+                    // The same comparison is what keeps a gable's overhang open, and out past the walls that
+                    // is all it settles. A verge climbs, so the cells under it are air; an eave does not, so
+                    // its overhang is a solid course. Where a wing's eave overhang runs into the column
+                    // another wing's verge overhangs, the verge stands higher and the eave gives way — which
+                    // it must, since an eave under a verge has no slope above it to catch anything from.
+                    if (Overtopped(wing, roofed, field, x, z)) continue;
                     Lay(field, x, z, body, slab, index);
                 }
 
@@ -409,12 +409,17 @@ public static class HouseStamper
                 // rather than as a window. Every course the opening takes must therefore have gable a cell
                 // either side of it as well, which is what makes a small gable admit only a small window and a
                 // hip, having no gable at all, admit none.
+                //
+                // <b>And a face rises only where the building is outside it</b>, which is the rule the gable
+                // itself is laid by: the side a wing stands against its neighbour on carries no gable to cut,
+                // so a window centred there is a pane hanging in the air between two roofs.
                 var fits = true;
                 for (var course = sill; course < sill + height && fits; course++)
                     for (var along = start - 1; along <= start + width && fits; along++)
                     {
                         var (x, z) = wall.Cell(along);
                         fits = along >= lo - 1 && along <= hi + 1
+                               && body.OnPerimeter(x, z)
                                && field.Underside(x, z) > top + course;
                     }
                 if (!fits) continue;
@@ -512,13 +517,10 @@ public static class HouseStamper
         void Lay(RoofField field, int x, int z, BuildingPlan ring, int slabBlock, int? owner = null)
         {
             var crown = field.Crown(x, z);
-            // <b>The rim is the building's, not the wing's.</b> A verge and an eave are the outer edge of a
-            // roof, and a building of several wings has one outline however many rectangles drew it — so a cell
-            // is rim where the roof plan stops, never where one wing's own rectangle happens to end. Asked of
-            // the wing it would call a marched cell rim, because a march's first step lands exactly on the
-            // wing's own overhang line, and stamp verge in the middle of the roof it just ran into: a T would
-            // come out carrying four gables where it has three.
-            var material = OnRoofRim(x, z) || (style.Roof.RidgeCap && field.OnRidge(x, z))
+            // A verge and an eave are the outer edge of a roof, and a building of several wings has one
+            // outline however many rectangles drew it — so the rim is asked of the building and at the height
+            // the block is laid (<see cref="OnRoofRim"/>), never of the wing's own rectangle.
+            var material = OnRoofRim(field, owner, x, z) || (style.Roof.RidgeCap && field.OnRidge(x, z))
                 ? style.Roof.Verge
                 : style.Roof.Body;
 
@@ -653,18 +655,27 @@ public static class HouseStamper
             return spans;
         }
 
-        /// <summary>Whether another wing's roof stands strictly higher over this cell, so this one's surface is
-        /// inside it. Asked of the other wing's <b>field</b> rather than of its walls, because an overhang is
-        /// roof too: the cells a gable oversails are exactly where a neighbour's eave would otherwise fill the
-        /// triangle that has to stay open under it — and of its <see cref="Marched"/> span as well, which is
-        /// roof standing outside any field's rectangle.</summary>
-        bool Overtopped(Wing wing, RoofField field, int x, int z)
+        /// <summary>Whether this cell belongs to another wing's roof rather than to this one's. Asked of the
+        /// other wing's <b>field</b> rather than of its walls, because an overhang is roof too — and of its
+        /// <see cref="Marched"/> span as well, which is roof standing outside any field's rectangle.
+        ///
+        /// <para><b>Crowning higher settles it only over the other wing's own rectangle</b>, where its roof is
+        /// the lid on a room and whatever lies under it is in that attic. Past its walls there is no room,
+        /// only the overhang, and an overhang takes a cell from another roof on two conditions: that roof is
+        /// itself overhanging, since a roof over its own walls is the cover on its own rooms and no
+        /// neighbour's eave may hollow it out; and the overhang taking it is a
+        /// <see cref="RoofField.PastVerge"/> one, whose triangle has to stay open because nothing sheds onto
+        /// it. Under an eave, which is a solid course, a lower roof simply stands — the whole row where a
+        /// lower wing runs into a taller one is that.</para></summary>
+        bool Overtopped(Wing wing, BuildingPlan mineRoofed, RoofField field, int x, int z)
         {
             var mine = field.Crown(x, z);
-            foreach (var (other, index, _, otherField, _, _) in roofs)
+            foreach (var (other, index, otherRoofed, otherField, _, _) in roofs)
             {
                 if (other.Equals(wing)) continue;
-                if (otherField.Covers(x, z) && otherField.Crown(x, z) > mine) return true;
+                if (otherField.Covers(x, z) && otherField.Crown(x, z) > mine
+                    && (otherRoofed.Holds(x, z)
+                        || (!mineRoofed.Holds(x, z) && otherField.PastVerge(x, z)))) return true;
                 if (marched[index].TryGetValue((x, z), out var crown) && crown > mine) return true;
             }
             return false;
@@ -679,12 +690,48 @@ public static class HouseStamper
             return false;
         }
 
-        /// <summary>Whether the cell is on the outer edge of that plan: in it, with a neighbour outside it. One
-        /// building, one outline — which is the whole of why this is asked of every wing's field at once rather
-        /// than of the one laying the block.</summary>
-        bool OnRoofRim(int x, int z) =>
-            InRoofPlan(x, z) &&
-            (!InRoofPlan(x - 1, z) || !InRoofPlan(x + 1, z) || !InRoofPlan(x, z - 1) || !InRoofPlan(x, z + 1));
+        /// <summary>Whether any wing's roof at this cell stands in the band a column running
+        /// <paramref name="underside"/> to <paramref name="crown"/> fills — whether the two surfaces meet, or
+        /// one stands clear of the other and leaves a face between them. A course of slack either way, because
+        /// the riser under the next column down a slope closes its step exactly.</summary>
+        bool RoofMeets(int x, int z, int underside, int crown)
+        {
+            foreach (var (_, index, _, field, _, _) in roofs)
+            {
+                if (field.Covers(x, z) && field.Crown(x, z) >= underside - 1
+                    && field.Underside(x, z) <= crown + 1) return true;
+                if (marched[index].TryGetValue((x, z), out var stepped)
+                    && stepped >= underside - 1 && stepped <= crown + 1) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Whether the column being laid stands on the roof's outer edge — a verge or an eave rather
+        /// than a cell in the middle of a slope.
+        ///
+        /// <para><b>The rim is the building's, not the wing's.</b> Where this roof carries on into the next
+        /// cell there is no edge however far the slope falls, because the riser under the next column closes
+        /// the step; so the wing's own field and its march are passed over, and a T comes out carrying three
+        /// gables rather than four.</para>
+        ///
+        /// <para><b>And an edge is a question about height, not about plan.</b> Two wings of one building
+        /// share an outline and not a surface: where a taller wing's roof looks out over a lower wing's, or a
+        /// lower one runs on under a taller one's eave, the cell has a neighbour in the plan and open air
+        /// beside it all the same, and the trim belongs there as much as it does over open ground. So the
+        /// neighbour is measured (<see cref="RoofMeets"/>): a roof standing clear of this column, above or
+        /// below, leaves a face, and a face is what a verge covers.</para></summary>
+        bool OnRoofRim(RoofField field, int? owner, int x, int z)
+        {
+            if (!InRoofPlan(x, z)) return false;
+            var span = owner is { } index ? marched[index] : null;
+            var (underside, crown) = (field.Underside(x, z), field.Crown(x, z));
+            foreach (var (nextX, nextZ) in new[] { (x - 1, z), (x + 1, z), (x, z - 1), (x, z + 1) })
+            {
+                if (field.Covers(nextX, nextZ) || span?.ContainsKey((nextX, nextZ)) == true) continue;
+                if (!RoofMeets(nextX, nextZ, underside, crown)) return true;
+            }
+            return false;
+        }
 
         /// <summary>The highest <see cref="WallTopOf"/> of any wing standing on this cell, or a course below
         /// every roof where none does — so a cell out past the walls is gated by nothing and keeps its

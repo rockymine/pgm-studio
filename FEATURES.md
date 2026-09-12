@@ -6630,8 +6630,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   against its neighbour, walling one loft off from the other. One comparison and one outline settle all four.
   **Only the highest roof over a cell is written there** — not a max of crowns, no surface blended and no field
   touched, each wing still answering for itself and the comparison deciding only which is the one showing — and
-  the **rim is read from the roof plan as a whole**, a cell with a neighbour outside it. Faces rise on the
-  **body's** perimeter, so the side of a wing against a neighbour is a doorway rather than an outside face.
+  the **rim is read from the building rather than from the wing**, so a march's own step is no edge (`WE122`
+  says what else it is asked). Faces rise on the **body's** perimeter, so the side of a wing against a
+  neighbour is a doorway rather than an outside face.
   `RoofField.OnBorder` is deleted: it was the predicate the conflation lived in, answering one thing for an
   eave, a verge and the edge of a rectangle that is the middle of a house, and nothing needs it now. What an
   eave and a verge each are is written where the geometry is. Measured after: one enclosed loft per course on
@@ -6640,6 +6641,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   test cannot stand in for — a seal passes happily on a roof with a hole in its body. Both `Ell()` fixtures had
   two **parallel** ridges and therefore no junction to test, which is how all four shipped unnoticed (`G182`);
   `EllMarch`/`EllProject` are the ones with crossing ridges, and `G186` redrew the rest.
+- **A junction of two unequal wings is one roof, read at the height each block is laid (WE122).** Three
+  defects of the same shape, all of them a question about a surface answered from a **plan**. A lower wing
+  running into a taller one lost its roof along the whole row where the two rectangles touch — the taller
+  wing's eave overhangs that row one block, crowns above it, and a roof giving way to whatever crowns higher
+  gives way to an eave hanging five courses clear of it. Out past the walls the rule is narrower now: an
+  overhang gives way to a **verge** overhang, whose triangle has to stay open, and never to an eave, because a
+  roof standing over its own walls is the cover on its own rooms. A taller wing's roof edge overlooking a
+  lower one came out trimmed in roof body, since the cell has a neighbour inside the building's outline: the
+  rim is measured instead — a neighbouring roof standing clear of this column, above or below, leaves a face,
+  and a face is what a verge covers, while a neighbour the same field or the same march reaches is no edge
+  however far the slope falls. And the window in a gable is held to the **body's** perimeter the gable itself
+  is laid on, so a wing no longer centres a pane on the side it stands against its neighbour, where there is
+  no gable to cut and the pane hangs in the air between two roofs. Measured on four boards. On
+  `opus5-burgage-terrace`, the two-storey hall at x −32…−20, z 58…67 with its one-storey cross wing at
+  x −29…−23, z 68…74: the wing's roof at z 68 present for its whole width, the hall's eave over it in verge,
+  and the pane at (−26, 68, y 23) gone. The same junction on `opus5-heftfold` and `opus5-glassmere`, and on
+  `fable-saltwharf`, whose flat-roofed warehouse now carries stone brick down the whole of x 40, z 34…42
+  instead of dark oak planks over the five cells its low wing abuts. `RoofField.PastVerge` names which two
+  sides of a roof are raked.
+  (`HouseStamperTests`, `docs/world-export/structures.md`)
 - **The eave falls with the slope and stops two courses down (WE2, author).** Distances are measured from the
   wall line and go negative outside it, so the overhang kept falling one course per unit of pitch: at a
   two-block overhang and a pitch of 4 the tip landed at y6 under a floor at y8 — two courses below the ground
@@ -6949,6 +6970,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   back where the step left them standing, the way the shape already was. And `renameMark` joins the mutator
   list: a verb that changes the document and is not in it is a verb undo cannot reach.
   (`docs/client/ui-conventions.md` § What a panel says)
+- **A hole in the relief is a hole in every image of it (WE121).** The field answers for the ground a group
+  gave it, and `relief_scope: exclude` takes cells out of that: the primary leaves those columns exactly as
+  their shape drew them. An image cell over the same shape is the same statement, but the copy asked the field
+  for every cell it held and the `TS98` fallback below answered for the excluded ones out of the ground beside
+  them — so the reading landed one row deep along every boundary an excluded shape has, on one team's half of
+  the board and not the other's. The image's holes are read from the **image's own shapes** now
+  (`SketchRasterizer.ReliefHoles`, which the solve itself uses for the primary, so the two cannot drift), and
+  a cell inside one is passed over before the fallback can touch it. Two boards measured it. On
+  `opus5-burgage-terrace` the made terrace kept its own top at z 50 and sat six courses down at its image
+  z −51, which took the docking course off the top of both flights of steps and left a one-block slot the
+  whole height of the face — 222 columns disagreeing with their own rot_180 image before, 4 after. On
+  `fable-saltwharf` the excluded quay met an erected pier, and the ring of cells around that pier's image rose
+  to the relief's own level: a nine-wide, nine-course wall standing on flat ground at x 34…42, z 20, and
+  nothing at its mirror z −21. (`docs/world-export/relief.md` § 15)
 - **A mirrored copy samples the field it misses by a cell, and a two-state control looks like one
   (`TS98`).** Two faults an author found by taking a `rot_180` board to the isometric.
   **Pillars in the shape's own base height.** A relief-bearing group is mirrored by mirroring its *polygons*
