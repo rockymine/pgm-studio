@@ -677,13 +677,14 @@ set that reads a surface as somewhere a player can stand rather than as any colu
 
 ## The remainder: work no concept above has claimed
 
-- [ ] **WE121 — A spawn room's door bay is a block out of place on its mirror image.** `RoomFrames` cuts the
-  opening in the shell's roof course from the piece's own corner, so the two images of one room under
-  `rot_180` disagree by a block: one team walks out under a roof and the other under sky. Cut the bay from
-  the frame's centre instead, so a room and its image open on the same columns. Evidence: on
-  `pgm-studio-mapgen/specs/opus5-coinfall`, the roof course is `y = 23`; red's bay spans `z −54…−51` at
-  `x = 0` and blue's spans `z 50…53`, where the image of red's is `51…54` — `column?at=0,-54` answers no
-  roof block and `column?at=0,54` answers one.
+- [ ] **WE121 — A room's stamp is a block out of place on its mirror image.** The frame a room is built out
+  from is measured from the piece's own minimum corner, and `rot_180` maps one piece's minimum corner onto
+  its image's maximum, so everything the stamp does not centre — the bay, the ridge, the storey posts —
+  lands a block off on the far team's copy. Measure the frame from its centre instead, so a room and its
+  image stand on the same columns. Evidence: on `pgm-studio-mapgen/specs/opus5-coinfall`, whose two camp
+  pieces are exact mirror rectangles (the mirror gate passes), the halls stamped in them are not —
+  `column?at=2,-72` tops out at `y 38` against `y 40` at its image `column?at=-2,72`, and `column?at=0,-68`
+  is open grass where `column?at=0,68` carries roof at `y 32`.
 
 - [ ] **TL15 — Anything can be filed as a `copied` tree.** `copied` means cut out of a world
   (`docs/tools/library.md`, the author's ruling) and `tools/seed-trees.cs` over
