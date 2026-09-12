@@ -313,10 +313,19 @@ capture footprint equals the pad's in 187 cases or is exactly two blocks wider �
 round — in 93. The pad's main layer lies entirely under the capture column in more than three quarters of
 cases. The capture region *is* the pad, extended upward into the air a player stands in.
 
-**The owner display region** is present on 196 of 316 points. Where both it and the capture region are
-cuboids, it shares the pad's footprint 81 times of 97, sitting over or through the capture column — a banner
-strip, a roof, a beam. The rest put it somewhere visible from across the map instead, which is the whole of
-the mismatch noted in §2: `koth/beach_battles` captures at `y 9–12` and shows on a castle roof at `y 20–30`.
+**The owner display region** is present on 193 of 314 points, and 189 of those resolve to a box beside a
+capture box that also resolves. It shares the capture footprint in plan 94 times, sitting over or through the
+capture column — a banner strip, a roof, a beam.
+
+**And it is a thing in the sky as often as a thing on the pad.** 62 of the 189 put it **entirely above** the
+capture volume, a median 7 blocks over the capture top (quartiles 2 and 15, maximum 26); 114 overlap the
+volume and 13 sit under it. The high ones are built to be read from across the board rather than from the
+pad: `koth/beach_battles` captures at `y 9–12` and shows on a castle roof at `y 20–30`, and
+`koth/industrial`'s `north-signal` is `<cuboid min="-4,35,-25" max="7,41,-16"/>`, a 12 × 6 × 9 slab standing
+26 blocks over a capture volume at `y 5–9`. Every one of its 594 solid blocks is colour-affected — **578 white
+stained clay** (`159:0`) and **16 white wool** (`35:0`) — so the whole slab is white while the point is
+neutral and the holder's dye the moment it is taken. That is what an owner display region is *for*: the pad
+says who is standing on it and the signal says who owns it, to a player who cannot see the pad.
 
 **Two worked examples, checkable in game.**
 
@@ -397,6 +406,24 @@ from every other objective's. A destroyable and a core float — the gap is what
 lava falls through — but a hill is ground: `ControlPointStamper` replaces the terrain's top course over a
 square footprint with white stained clay, and the capture volume is the three blocks of air starting at that
 course. A pad that floated would be a hill nobody could stand on.
+
+**The marker over it is the board's one changing signal.** Every goal the studio stamps carries a small
+marker hanging five blocks over the map's build ceiling, out of reach by construction (`ST7`). A wool room's
+is the wool's colour and a destroyable's or a core's is the owning team's, fixed for the match, because those
+goals belong to somebody from the start. A point does not, so its marker is a 3-block wool asterisk laid in
+**white** and its box is emitted as the point's `owner-display-region` — PGM paints it flat in the holder's
+dye on capture and restores the white when the point goes neutral. It is the owner region and not the
+progress one because the progress display is a pie about the centre of its own bounds (§5), and a marker
+sharing that region would put the centre in the sky and wipe the pad about the wrong point. The two regions
+are disjoint, so the `InverseFilter(progress)` PGM applies over the owner region (§2) takes nothing from it.
+
+A point therefore exports with three regions and the score beside them:
+
+```xml
+<region id="middle-capture" type="cuboid" …/>   <!-- the pad course + the air a player stands in -->
+<region id="middle-pad"     type="cuboid" …/>   <!-- the pad course alone: the progress pie -->
+<region id="middle-marker"  type="cuboid" …/>   <!-- the 3×3×3 over the build ceiling: the owner display -->
+```
 
 Two properties the flat pad still has to hold. It is **level** across its whole footprint, because the
 progress pie is drawn about the centre of the blocks PGM finds and a pad following a slope draws that pie

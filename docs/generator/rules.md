@@ -684,14 +684,22 @@ disagree with the one that runs.
   the monument, not in the space the plate opens under the terrain: the plate is what goes into the
   ground, and a chest three courses down under whole terrain is a supply nobody can see or reach
   (`StructureStamper.StampPlatform` and `StampDefenseChest`, called from `WorldBuilder`).
-- **ST7 [author]** *Goal sky marker*: every wool room, destroyable and core carries a small marker —
-  a solid 3×3×3 cube or a 3-D asterisk, the shape a per-call choice — floating clear of
+- **ST7 [author]** *Goal sky marker*: every wool room, destroyable, core and capture point carries a
+  small marker — a solid 3×3×3 cube or a 3-D asterisk, the shape a per-call choice — floating clear of
   `BuildIntent.MaxHeight` (a fixed clearance above it, or above the tallest built terrain when no cap
-  is authored), so it sits out of build reach by construction. Coloured to the goal: the wool's own
-  colour for a wool room, the owning team's colour for a destroyable or a core. One marker per
-  already-fanned goal entry — a wool room, a destroyable, a core are each one list entry per
-  symmetry-orbit image (`PlanCompiler` fans team-outer) — so a mirrored board's markers match without
-  the stamper (`GoalMarkerStamper`) doing any orbit math of its own.
+  is authored), so it sits out of build reach by construction. One marker per already-fanned goal
+  entry — a wool room, a destroyable, a core, a point are each one list entry per symmetry-orbit image
+  (`PlanCompiler` fans team-outer) — so a mirrored board's markers match without the stamper
+  (`GoalMarkerStamper`) doing any orbit math of its own.
+
+  **Three of the four are a constant colour and the fourth changes.** A wool room's marker is the
+  wool's own colour and a destroyable's or a core's is the owning team's, because those goals belong
+  to somebody for the whole match. A capture point belongs to nobody until it is taken, so its marker
+  is laid in **white wool** and the map recolours it: the marker's box is the point's
+  **owner display region**, which PGM paints flat in the holder's dye and restores from the world
+  snapshot when the point goes neutral. Wool because `ColorUtils` recolours only a closed set of
+  materials; the owner region rather than the progress one because the progress display is a pie swept
+  about the centre of its own bounds, and a marker inside it would move that centre off the pad.
 - **ST8 [author]** *Approach wall geometry*: the interface a wall bars is a **10–20 block lane
   mouth** (a wall across a 30-block face bars a room, not a lane), and the wall stands **about 15
   blocks in front of** the wool room's entrance — judged against the **nearest parallel** entry seam,
@@ -1005,3 +1013,13 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     `WX8`'s span for both and both resolve through `RoomFrames.PlaceIron`, so a cube that will not fit its
     piece resolves unplaceable and the export stamps nothing. `ST2` follows: it tests the cube rather than the
     marker block, and fires on a board with no spawn piece at all, where every cube is one a team mines once.
+
+32. **`ST7`: a capture point's marker is the one that changes colour (2026-09-12).** Author's call. A hill
+    carried no marker at all, on the reading that a marker names the team a goal belongs to and a point
+    belongs to nobody. The reverse is the useful case: a point's marker is laid white and scoped by the
+    point's `owner-display-region`, so it is the board's one signal of who holds what, readable from a spawn.
+    The corpus builds the same thing by hand — 62 of the 189 KotH points with both regions resolvable put
+    their owner display **entirely above** the capture volume, a median 7 blocks over it and up to 26, and
+    `koth/industrial`'s `north-signal` is a 12×6×9 slab at `y 35–40` over a capture volume at `y 5–9`, 578
+    white stained clay and 16 white wool, every block of it colour-affected. No other marker changes: a wool
+    room's stays the wool's colour and a destroyable's or a core's stays its team's.

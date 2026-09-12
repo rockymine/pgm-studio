@@ -20,11 +20,14 @@ using Dict = Dictionary<string, object?>;
 /// the one that is not a convention but a correctness rule: PGM defaults it to <b>true</b> at every proto
 /// this studio writes, and a point that keeps that default ends the match for whoever captures it first.</para>
 ///
-/// <para>Both regions are the stamper's own boxes (OB8). The point is <em>played</em> through its capture
-/// region and <em>seen</em> through its progress region, and deriving either independently is how a region
-/// misses the pad it belongs to. No owner-display region is written: at zero progress PGM paints the whole
-/// progress region in the controller's colour, so the pad already shows who holds it, and a second region
-/// over the same blocks would be subtracted away to nothing.</para>
+/// <para>All three regions are the stamper's own boxes (OB8). The point is <em>played</em> through its
+/// capture region, <em>seen up close</em> through the progress region that scopes its pad, and <em>seen from
+/// across the board</em> through the owner region that scopes its sky marker — and deriving any of them
+/// independently is how a region misses the blocks it belongs to. The pad and the marker are separate
+/// regions rather than one: the progress display is a pie swept about the centre of its own bounds, so a
+/// marker inside it would move that centre off the pad, while the owner display is flat and does not
+/// care where its blocks are. They do not overlap, which is what keeps PGM's
+/// <c>InverseFilter(progress)</c> over the owner region from eating the marker.</para>
 ///
 /// <para>Idempotent clear-then-build, the score element included — a board that states no scoring point
 /// leaves none behind, the same way a board that states no point leaves no <c>&lt;hill&gt;</c>. The intent
@@ -37,7 +40,7 @@ public static class ControlPointGenerator
     public static void Apply(Dict doc, MapIntent intent)
     {
         var list = ObjectiveRegion.List(doc, Key);
-        ObjectiveRegion.Clear(doc, list, "capture_region", "progress_region");
+        ObjectiveRegion.Clear(doc, list, "capture_region", "progress_region", "owner_region");
         doc.Remove("score");
         if (intent.ControlPoints is null) return;
 
@@ -72,6 +75,11 @@ public static class ControlPointGenerator
             // The pad is where the pie is drawn, so the display region is exactly the course the stamper
             // laid — one block thick, and every block of it colour-affected.
             if (point.PadBox is { } pad) entry["progress_region"] = ObjectiveRegion.Emit(doc, id, pad, "pad");
+            // The sky marker, which is white until somebody owns the point and the holder's dye afterwards.
+            // Flat display, so the box is emitted as it stands and PGM picks the wool cross out of the air
+            // around it through the default visual-materials filter.
+            if (point.MarkerBox is { } marker)
+                entry["owner_region"] = ObjectiveRegion.Emit(doc, id, marker, "marker");
             list.Add(entry);
         }
 

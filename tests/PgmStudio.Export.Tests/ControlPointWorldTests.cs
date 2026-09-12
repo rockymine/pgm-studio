@@ -87,6 +87,40 @@ public sealed class ControlPointWorldTests
         await Assert.That(capture.MaxY).IsGreaterThanOrEqualTo(pad.MinY + 1);
     }
 
+    // The marker is the hill's one changing signal, so it has to be laid in something PGM recolours and in
+    // the neutral the pad is built in. White wool: in ColorUtils's set, and white is what 263 of 359 corpus
+    // pads are.
+    [Test]
+    public async Task The_sky_marker_is_white_wool_over_the_build_ceiling()
+    {
+        var built = Build(At(0, 0));
+        var point = built.ResolvedIntent.ControlPoints!.Single();
+        var marker = point.MarkerBox!.Value;
+
+        await Assert.That(marker.MinY).IsGreaterThan(built.ResolvedIntent.Build!.MaxHeight!.Value);
+        var (block, data) = built.World.GetBlock(marker.MinX + 1, marker.MinY + 1, marker.MinZ + 1);
+        await Assert.That(block).IsEqualTo(Blocks.Wool);
+        await Assert.That(data).IsEqualTo(BlockColors.BlockDamage(ObjectiveDefaults.ControlPointColor));
+    }
+
+    // The marker changes colour only if it is inside the region PGM paints in the owner's dye, and it may
+    // not be inside the progress region: that display is a pie about the centre of its own bounds, so a
+    // marker in it would sweep about a point in the sky instead of about the pad.
+    [Test]
+    public async Task The_owner_region_is_the_marker_and_does_not_touch_the_pad()
+    {
+        var built = Build(At(0, 0));
+        var doc = new Dictionary<string, object?>();
+        IntentGenerator.Apply(doc, built.ResolvedIntent);
+        var map = MapParser.ParseXmlString(XmlWriter.ToXml(Deserializer.FromDict(doc)));
+
+        var point = map.ControlPoints.Single();
+        var resolved = built.ResolvedIntent.ControlPoints!.Single();
+        await Assert.That(point.OwnerRegionId).IsNotEmpty();
+        await Assert.That(Box(map, point.OwnerRegionId)).IsEqualTo(resolved.MarkerBox!.Value);
+        await Assert.That(resolved.MarkerBox!.Value.MinY).IsGreaterThan(resolved.CaptureBox!.Value.MaxY);
+    }
+
     // OB8: one box feeds the blocks and the region, so the region cannot miss its own pad.
     [Test]
     public async Task The_emitted_regions_are_the_boxes_the_world_laid()

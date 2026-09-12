@@ -124,9 +124,13 @@ public sealed class ControlPointIntentTests
             // PGM defaults `required` to true, and a point that keeps it ends the match on first capture.
             await Assert.That(point.Required).IsFalse();
             await Assert.That(point.Element).IsEqualTo(ControlPointElement.King);
-            // Both regions resolve, or the point is played and displayed through nothing.
+            // All three regions resolve, or the point is played and displayed through nothing. The owner
+            // region is the sky marker: white until somebody holds the point, the holder's dye after.
             await Assert.That(map.Regions.ContainsKey(point.CaptureRegionId)).IsTrue();
             await Assert.That(map.Regions.ContainsKey(point.ProgressRegionId)).IsTrue();
+            await Assert.That(map.Regions.ContainsKey(point.OwnerRegionId)).IsTrue();
+            await Assert.That(map.Regions[point.OwnerRegionId].MinY!.Value)
+                .IsGreaterThan(map.Regions[point.CaptureRegionId].MaxY!.Value);
         }
         await Assert.That(map.ControlPoints.Select(p => p.Name))
             .IsEquivalentTo(new[] { "North", "Middle", "South" });

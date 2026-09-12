@@ -3052,10 +3052,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   stained clay and makes the three blocks of air above it the capture volume, because a pad that floated
   would be a hill nobody could stand on. It is laid **level** (the progress pie is drawn about the centre of
   the blocks PGM finds, so a pad following a slope draws it across several courses), skirts down a bounded
-  fall where the ground drops away, and clears the volume over it. Both emitted regions are the stamper's own
-  boxes (OB8) — the capture volume, and the pad course alone as the progress display, which is one block
-  thick and entirely colour-affected; no owner-display region, since at zero progress PGM already paints the
-  progress region in the controller's colour. `ControlPointGenerator` writes the studio's convention out in
+  fall where the ground drops away, and clears the volume over it. All three emitted regions are the stamper's
+  own boxes (OB8) — the capture volume, the pad course alone as the progress display (one block thick and
+  entirely colour-affected), and the **sky marker as the owner display**. That last is what makes a hill's
+  marker different from every other goal's: a wool room's and a destroyable's name a team and never change,
+  but a point belongs to nobody until it is taken, so its marker is laid in **white wool** and PGM repaints it
+  to the holder's dye and restores the white when the point goes neutral (`ST7`). It is the owner region and
+  not the progress one because a progress display is a pie about the centre of its own bounds, and a marker
+  inside it would sweep about a point in the sky. `ControlPointGenerator` writes the studio's convention out in
   full rather than trusting either element's defaults, and `required="false"` above all: PGM defaults it to
   **true**, and a point that keeps that default ends the match for whoever captures first. It brings its own
   `<score>` (750, the corpus mode) because without one PGM builds no score module and every point pays

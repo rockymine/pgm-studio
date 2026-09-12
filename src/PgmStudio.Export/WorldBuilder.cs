@@ -312,7 +312,8 @@ public static class WorldBuilder
             built);
         // Before the terrain finish, like the two above it: the finish paints stone and the pad is clay, so a
         // pad already laid is a pad the finish leaves alone. Laid after it, the pad would be painted over.
-        var resolvedPoints = StampControlPoints(world, terrain, intent.ControlPoints, provenance);
+        List<ControlPointIntent>? resolvedPoints =
+            StampControlPoints(world, terrain, intent.ControlPoints, provenance);
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
@@ -430,6 +431,7 @@ public static class WorldBuilder
             maxBuildHeight + BuildCeiling.MarkerOver, 0, VoxelWorld.MaxHeight - GoalMarkerStamper.Size);
         foreach (var (mx, mz, data, shape) in pendingMarkers)
             GoalMarkerStamper.Stamp(world, mx, mz, markerFloor, data, shape);
+        resolvedPoints = StampControlPointMarkers(world, resolvedPoints, markerFloor);
         foreach (var (kind, name, owner, box) in pendingCeiling)
             OverCeiling(built, kind, name, owner, box, maxBuildHeight);
 
@@ -706,11 +708,13 @@ public static class WorldBuilder
     /// the other objectives keep (OB8): the blocks laid here are the blocks the generator scopes its regions
     /// to, so the pad PGM recolours cannot miss the pad a player stands on.
     ///
-    /// <para>No goal marker and no build-ceiling entry, and both for the same reason: a hill is <b>ground</b>.
-    /// A marker names the team a goal belongs to and a point belongs to nobody; the ceiling catches a
-    /// structure raised over what a player can reach, and a pad cut into the terrain is by construction under
-    /// it. What it does take is the provenance claim, so the dressing pass does not stand a tree on the
-    /// hill.</para>
+    /// <para>No build-ceiling entry: the ceiling catches a structure raised over what a player can reach, and
+    /// a pad cut into the terrain is by construction under it. The provenance claim it does take, so the
+    /// dressing pass does not stand a tree on the hill.</para>
+    ///
+    /// <para>The marker is not stamped here. Every goal on a board hangs its marker at one altitude and that
+    /// altitude is the build ceiling's, which is not known until the last house is standing — so a point's
+    /// marker is laid with the rest of them, and its box comes back onto the intent there.</para>
     /// </summary>
     private static List<ControlPointIntent>? StampControlPoints(
         VoxelWorld world, BuiltTerrain terrain, List<ControlPointIntent>? points, WorldProvenance provenance)
@@ -731,6 +735,37 @@ public static class WorldBuilder
             provenance.ClaimRect(pad.MinX, pad.MinZ, pad.MaxX, pad.MaxZ, ProvenancePass.Structure, point.Stamp);
 
             resolved.Add(point with { Size = size, PadBox = pad, CaptureBox = capture });
+        }
+        return resolved;
+    }
+
+    /// <summary>
+    /// Hang each point's marker at the board's one marker altitude and carry its box back onto the intent,
+    /// which the generator emits as the owner display region.
+    ///
+    /// <para><b>A hill's marker is the one that changes colour.</b> A wool room's and a destroyable's name the
+    /// team the goal belongs to and are stamped in that team's dye for the whole match; a point belongs to
+    /// nobody until somebody takes it, so its marker is laid in <b>white</b> — the neutral the corpus's own
+    /// pads are built in — and PGM repaints it to the holder's colour and restores the white when the point
+    /// goes neutral. That only happens because the marker's blocks are inside a region the point displays
+    /// through, and it is the owner display region rather than the progress one: the progress display is a
+    /// pie swept about the centre of its <em>own</em> bounds, so a marker sharing that region would move the
+    /// centre off the pad and wipe the wrong point.</para>
+    ///
+    /// <para>Wool, because <c>ColorUtils</c> only recolours a closed set of materials and the marker has to
+    /// be in it. Every other block in the box is air, so the region PGM enumerates is exactly the marker.</para>
+    /// </summary>
+    private static List<ControlPointIntent>? StampControlPointMarkers(
+        VoxelWorld world, List<ControlPointIntent>? points, int markerFloor)
+    {
+        if (points is null) return null;
+        var neutral = BlockColors.BlockDamage(ObjectiveDefaults.ControlPointColor);
+        var resolved = new List<ControlPointIntent>(points.Count);
+        foreach (var point in points)
+        {
+            var (ax, az) = ObjectiveFootprint.AnchorCell(point.Anchor.X, point.Anchor.Z);
+            GoalMarkerStamper.Stamp(world, ax, az, markerFloor, neutral, GoalMarkerShape.Cross);
+            resolved.Add(point with { MarkerBox = GoalMarkerStamper.Box(ax, az, markerFloor) });
         }
         return resolved;
     }

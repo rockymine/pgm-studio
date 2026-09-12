@@ -667,6 +667,12 @@ public sealed record ControlPointIntent
     /// <summary>The resolved volume a player stands in to hold it — the pad's footprint and the air over it.
     /// Emitted verbatim as the capture region.</summary>
     public BlockBox? CaptureBox { get; init; }
+
+    /// <summary>The resolved box of the sky marker over the pad, filled by the world-export path once the
+    /// board's build ceiling is known. The generator emits it as the point's <b>owner</b> display region, so
+    /// the marker is white while the point is neutral and takes the holder's dye the moment it is captured —
+    /// which is what makes a marker on a goal nobody owns mean something.</summary>
+    public BlockBox? MarkerBox { get; init; }
 }
 
 /// <summary>
