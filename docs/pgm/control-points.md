@@ -431,10 +431,9 @@ across several courses; where the ground falls away it skirts down to meet it, b
 plinth cut into a hillside rather than a sheet hanging off one. And the volume over it is **cleared**, so a
 pad laid under a tree is still somewhere a player can stand.
 
-The two emitted regions are the stamper's own boxes (OB8): the capture region is the volume, the progress
-display region is the pad course alone — one block thick, every block of it colour-affected. No owner-display
-region is written, because at zero progress PGM paints the whole progress region in the controller's colour
-(§5) and a second region over the same blocks would be subtracted away to nothing.
+All three emitted regions are the stamper's own boxes (OB8): the capture region is the volume, the progress
+display region is the pad course alone — one block thick, every block of it colour-affected — and the owner
+display region is the sky marker's box.
 
 **What is not built** is on the board in `BACKLOG.md` under *"The hill: a goal owned by standing on it"*.
 Each sentence becomes false when its task ships:

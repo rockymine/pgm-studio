@@ -65,6 +65,7 @@ null `cores` and nothing about cores is generated or cleared.
 | `wools` | per wool: owner, colour, room rects, the source point, and one monument per capturing team |
 | `cores` | per core: owner, anchor, the casing's measurements, and `leak` |
 | `destroyables` | per destroyable: owner, name, anchor, its shape, what it is built of and its float |
+| `shops` | per shop: an id, a name, its categories and what each sells, and the keeper that opens it. **It carries no coordinates** — a shop is a catalogue rather than a place, and the studio puts one keeper per shop at every team's spawn (`docs/pgm/shops.md` §9). **The tool has no step for these** (`TC9`): they are stated through the API, carried here, and projected like any other slice |
 | `controlPoints` · `scoreLimit` | per capture point: name, anchor, pad size, what holding it pays and how long it takes — and the score the match ends at. Owned by nobody, so unlike every other objective they carry no team. **The tool has no step for these** (`TC7`): they are stated through the API (`docs/pgm/control-points.md` §9), carried here, and projected like any other slice |
 | `waterLanes` | the late-opening gaps — carried, never authored here (below) |
 | `structures` · `spawns[].piece` · `wools[].piece`/`entries` | written only by the plan compiler; consumed by the world export |

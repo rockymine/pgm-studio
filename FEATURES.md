@@ -3068,6 +3068,46 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   side and a two-team board comes back a middle and a matched pair, a four-team board a middle and a ring of
   four. Proven end to end over HTTP: compile, sketch, finish, state the points, and `GET …/xml` answers a
   three-hill KotH map with every region resolved. `docs/pgm/control-points.md` §9. (WE110, PG5)
+- **Shops and shopkeepers — parse, write, store.** `<shops>` and `<shopkeepers>` now round-trip. A shop is a
+  menu — an id, a name, one or more categories each carrying its own icon and up to 28 things to buy — and a
+  keeper is an entity PGM spawns **itself** at match load from the element, frozen, undamageable and
+  unpushable, so the whole of one is XML and the studio writes no blocks and no entity data for it. Both
+  elements flatten with attribute inheritance the way every objective group does, which is how the corpus
+  writes one shop and one label over eight keepers. Three point forms are read — coordinates as the element's
+  text, a `<point>` child and a `<region id="…"/>` reference — with the facing riding on whichever element
+  states it. A keeper's shop id is **carried rather than resolved**: 15 corpus maps take their menus from an
+  `<include>` this parser reads without splicing, and a keeper naming a shop the document does not hold is a
+  whole map. `color` on an icon is read as the **price's** colour rather than the stack's dye, which is PGM's
+  own reading for every stack that is not leather armour. `action` and `kit` are one reference under two
+  spellings — one `parser.action` call, one feature namespace, and `KitDefinition` *is* an `ActionDefinition`
+  — so one field carries it. Storage is `shop` and `shopkeeper` (M0038). A fourth gate,
+  `EnsureShopsReadable`, refuses a map whose shop states something the reader cannot carry, because a
+  bedwars board whose every block is bought is unplayable with an icon missing. Corpus-verified: of the 39
+  maps carrying a shop or a keeper, 35 parse and all 35 survive both codecs — 45 shops, 99 categories, 877
+  icons and 272 keepers unchanged. `docs/pgm/shops.md`. (PG9)
+- **One item shape, everywhere an item is written.** A kit item, a kit's armour piece, a shop category's icon
+  and a shop icon are all `ItemSpec`: material, amount, damage, name, lore, leather dye, enchantments and
+  stored enchantments, the unbreakable/team-colour/prevent-sharing/locked flags, a projectile and a consumable
+  reference, the hidden item-flag words, potion effects, attribute modifiers and the can-place-on/can-destroy
+  matchers. One reader (`ParseItemSpec`), one writer (`WriteItemSpec`), one stored object — `kit_item.spec_json`
+  and the icons inside `shop.categories_json`. `KitItem` is a slot and a stack, `KitArmor` a slot name and a
+  stack, and `KitEffect` is `PotionEffect` because a kit grants one to the player and a potion carries one in
+  the bottle, which is the same statement about two subjects. Kits gain the six fields the columns never held
+  along the way. (PG9)
+- **Shop boards are authorable: the menu, and a keeper at every spawn.** An agent adds one array to the intent
+  it already posts — `PUT /api/map/{slug}/intent` with `shops` — and the export does the rest. No second
+  endpoint and no new document. **The keeper carries no position**, and that is the placement rule: a shop is
+  a catalogue rather than a place, so `ShopGenerator` puts one keeper per shop at every team's spawn, on the
+  spawn's own floor, beside the point players arrive on and turned to face them — which is what the corpus
+  builds by hand on every board with more than one keeper. Blocks are counted from the block the spawn point
+  stands in, so a keeper lands on a block centre and both sides of the spawn are the same distance out;
+  several shops flank the point alternately; and each keeper is held inside the spawn's room (the stated
+  footprint less its wall course, or the protection ground less that wall and the clean ring, `WX1`) so a
+  narrow hall pulls the villager in rather than putting it through a wall. **Nothing is stamped** — PGM spawns
+  the entity from the element — so the slice runs beside the objective generators rather than waiting for the
+  world build, and a shop board exports the moment the intent is stored. Proven end to end over HTTP:
+  compile, sketch, finish, state the shop, and `GET …/xml` answers a map with the menu in it and a villager
+  at each spawn. `docs/pgm/shops.md` §9. (PG10)
 - **DTM: destroyables + objective modes — parse, write, codec.** `<destroyables>` and `<modes>` now
   round-trip: `Destroyable` (owner · region · materials · completion · show · mode membership) and
   `ObjectiveMode` (after · material · show-before · filter · action) on `MapXml`, through `Serializer`/

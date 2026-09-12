@@ -117,14 +117,14 @@ public sealed class XmlWriterTests
                 new Kit
                 {
                     Id = "spawn-kit",
-                    Items = [new KitItem { Slot = 0, Material = "iron sword" }],
-                    Effects = [new KitEffect { Type = "damage resistance", Duration = "oo", Amplifier = 100 }],
+                    Items = [new KitItem { Slot = 0, Item = new() { Material = "iron sword" } }],
+                    Effects = [new PotionEffect { Type = "damage resistance", Duration = "oo", Amplifier = 100 }],
                 },
                 new Kit
                 {
                     Id = "reset-resistance-kit",
                     Force = true,
-                    Effects = [new KitEffect { Type = "damage resistance", Duration = "0", Amplifier = 0 }],
+                    Effects = [new PotionEffect { Type = "damage resistance", Duration = "0", Amplifier = 0 }],
                 },
             ],
         };
@@ -158,14 +158,14 @@ public sealed class XmlWriterTests
                 {
                     Id = "spawn-kit",
                     Clear = true,
-                    Items = [new KitItem { Slot = 0, Material = "iron sword" }],
-                    Armor = [new KitArmor { SlotName = "helmet", Material = "leather helmet" }],
+                    Items = [new KitItem { Slot = 0, Item = new() { Material = "iron sword" } }],
+                    Armor = [new KitArmor { SlotName = "helmet", Item = new() { Material = "leather helmet" } }],
                 },
                 new Kit
                 {
                     Id = "reset-resistance-kit",
                     Force = true,
-                    Effects = [new KitEffect { Type = "damage resistance", Duration = "0", Amplifier = 0 }],
+                    Effects = [new PotionEffect { Type = "damage resistance", Duration = "0", Amplifier = 0 }],
                 },
             ],
         };

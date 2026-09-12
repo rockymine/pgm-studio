@@ -58,6 +58,15 @@ public sealed class SymmetryExpanderCarryTests
             PadBox = new BlockBox(-3, 63, 27, 3, 63, 33),
             CaptureBox = new BlockBox(-3, 63, 27, 3, 65, 33),
         }],
+        Shops = [new ShopIntent
+        {
+            Id = "item-shop", Name = "Items", Keeper = new ShopkeeperIntent { Name = "Items", Mob = "Villager" },
+            Categories = [new ShopCategoryIntent
+            {
+                Id = "blocks", Material = "hard clay",
+                Items = [new ShopItemIntent { Material = "wood", Amount = 32, Price = 1, Currency = "gold nugget" }],
+            }],
+        }],
         ScoreLimit = ObjectiveDefaults.ControlPointScoreLimit,
         Modes = [new ModeIntent("15m", "gold block")],
         IslandTeams = new Dictionary<string, string> { ["1"] = "red-team" },

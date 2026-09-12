@@ -26,6 +26,9 @@ public static class IntentGenerator
         // After the two a mode acts on, and outside the ladder: a capture point is held rather than broken,
         // so nothing about it softens with time. It brings its own <score>, which is what makes it pay.
         ControlPointGenerator.Apply(doc, intent);
+        // After the objectives and before the zoning, because a keeper is placed from the spawns rather than
+        // from anything an objective decides, and it stamps nothing for a later pass to resolve.
+        ShopGenerator.Apply(doc, intent);
         // Water lanes before build: a lane is geometry the build slice must not see, and emitting it first
         // keeps the region ordering stable regardless of how many lanes a plan carries.
         WaterLaneGenerator.Apply(doc, intent);

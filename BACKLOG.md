@@ -363,6 +363,50 @@ experiment flag whose XML PGM says will change.
   counts as a goal in the set those three quantify over. One derivation, three readers.
 
 
+## The shop: buying things in the middle of a match
+
+PGM's economy module, and the one thing on a map that is not geometry. The codec and the authoring slice have
+landed (`FEATURES.md`) — a board states `shops` on its intent and gets a menu with a villager at every spawn —
+so what is left is where a keeper may stand, what an icon may cost, and the one thing an imported map can be
+wrong about. The contract and the corpus measurements behind every number below are `docs/pgm/shops.md`.
+
+- [ ] **PG11 — A keeper can only stand at a spawn.** `ShopGenerator` derives every keeper's position from
+  `intent.Spawns`, so a shop building in the middle of a board, a keeper at a wool room or one on a neutral
+  island has no way to be stated. What the intent wants is an optional place on `ShopkeeperIntent` — a world
+  point, or the id of a room the board already has — with the spawn remaining the default when it states
+  none. Evidence: 12 of the corpus's 298 keepers stand in a named region rather than at coordinates, and
+  `arcade/standard/balls_of_steel` states all twelve of its that way (`lime-spawn-shop-1` … `-6`).
+
+- [ ] **PG12 — An icon can only cost one currency and can only hand over its stack.** `ShopItemIntent` states
+  one `price`/`currency` pair and no action, so the two shapes the corpus uses most after the plain sale
+  cannot be authored: the upgrade ladder, which costs the previous tier **plus** a coin, and the team upgrade,
+  which triggers an action instead of giving an item. Both are read and re-emitted already; what is missing is
+  a `payments` list and an `action` field on the intent record, and the generator lines that write them.
+  Evidence: 105 of 907 corpus icons carry `<payment>` children and 555 name an action or a kit.
+
+- [ ] **PG13 — A keeper naming a shop nothing defines is a map PGM refuses, and nothing says so.**
+  `ShopModule.parse` throws *"No shop with id '…' could be found"* at load. The studio carries the reference
+  unresolved on purpose — 15 corpus maps take their menus from an `<include>` — so the check is not "the
+  document holds it" but "the document holds it **or** declares an include". Raise a finding where a keeper
+  names a shop no `<shop>` defines and the map states no `<include>` at all. Evidence: every one of the 15 is
+  under `other/bedwars/` and every one of them states `<include id="4-team-bedwars"/>` or `8-team-bedwars`.
+
+- [ ] **PG14 — A studio-authored shop board mints no currency.** Everything a player holds on a generated
+  board comes from two places, and neither can pay for anything: `TeamsGenerator`'s spawn kit, and the
+  kill reward `MapStandards` derives from that kit's own blocks. So a shop priced in the emerald, nugget or
+  ingot the corpus uses is a menu nobody can open an account with, and the only currency an authored board
+  has is the kit's wood — which is what `pgm-studio-mapgen/specs/opus5-coinfall` prices its shop in. Give
+  the intent a way to state where currency comes from: what a kill pays (`MapXml.KillRewards`, written today
+  only by `MapStandards`) or what a block drops (`BlockDropRule`, parsed and emitted but not authorable).
+  Evidence: of the corpus's 907 shop icons, 764 are priced in a material no spawn kit carries — emerald 225,
+  nether star 126, gold ingot 118, gold nugget 86.
+
+- [ ] **TC9 — The configure tool cannot place a shop.** The API is the way in — an agent adds `shops` to the
+  intent it already posts (`docs/pgm/shops.md` §9) — and the wizard has no step for it. What the step states
+  is the menu: a name, a currency, and a list of material/amount/price rows; where the keepers stand is
+  derived and is not the author's to fill in until `PG11` gives them somewhere else to be.
+
+
 ## The plan model: pieces, and the edges between them
 
 `PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,
@@ -632,6 +676,14 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   is worth removing rather than tolerating.
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **WE121 — A spawn room's door bay is a block out of place on its mirror image.** `RoomFrames` cuts the
+  opening in the shell's roof course from the piece's own corner, so the two images of one room under
+  `rot_180` disagree by a block: one team walks out under a roof and the other under sky. Cut the bay from
+  the frame's centre instead, so a room and its image open on the same columns. Evidence: on
+  `pgm-studio-mapgen/specs/opus5-coinfall`, the roof course is `y = 23`; red's bay spans `z −54…−51` at
+  `x = 0` and blue's spans `z 50…53`, where the image of red's is `51…54` — `column?at=0,-54` answers no
+  roof block and `column?at=0,54` answers one.
 
 - [ ] **TL15 — Anything can be filed as a `copied` tree.** `copied` means cut out of a world
   (`docs/tools/library.md`, the author's ruling) and `tools/seed-trees.cs` over

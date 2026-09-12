@@ -306,6 +306,13 @@ enforces.
 **Symmetric maps first.** The generator targets clean symmetric layouts; a highly irregular map may not be
 expressible, and the bar is "a valid map PGM can load" rather than "every map".
 
+**A shop is stated on the intent and its keepers are derived.** `shops` carries the menu — an id, a name, its
+categories and what each sells — and the keeper that opens it says only what it is called and what mob it is.
+Where it stands is the studio's: one keeper per shop at every team's spawn, beside the point players arrive
+on and facing them (`shops.md` §9). Nothing is stamped for one, because PGM spawns the entity itself from the
+element, so a shop board exports the moment the intent is stored. A keeper anywhere other than a spawn is
+`PG11`.
+
 **A capture point is stated on the intent, not on the plan.** `controlPoints` carries an anchor, a pad size,
 what holding it pays and how long it takes; everything else PGM reads off a hill is the studio's one
 convention and is written the same on every board (`control-points.md` §7). An agent authoring a KotH board

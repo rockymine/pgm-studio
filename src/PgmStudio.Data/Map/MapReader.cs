@@ -95,9 +95,9 @@ public sealed class MapReader(PgmDb db)
                 Id = kit.KitKey,
                 Force = kit.Force ?? false,
                 Clear = kit.Clear ?? false,
-                Items = items.Select(i => new KitItem { Slot = i.Slot ?? 0, Material = i.Material, Amount = i.Amount ?? 1, ItemDamage = i.Damage ?? 0, Unbreakable = i.Unbreakable ?? false, TeamColor = i.TeamColor ?? false, Enchantments = i.Enchantments ?? "" }).ToList(),
-                Armor = armor.Select(a => new KitArmor { SlotName = a.SlotName, Material = a.Material, Unbreakable = a.Unbreakable ?? false, TeamColor = a.TeamColor ?? false, Enchantments = a.Enchantments ?? "" }).ToList(),
-                Effects = ListOfDicts(kit.EffectsJson).Select(e => new KitEffect { Type = Str(e, "type"), Duration = Str(e, "duration"), Amplifier = Int(e, "amplifier") }).ToList(),
+                Items = items.Select(i => new KitItem { Slot = i.Slot ?? 0, Item = ItemSpec(i.SpecJson) }).ToList(),
+                Armor = armor.Select(a => new KitArmor { SlotName = a.SlotName, Item = ItemSpec(a.SpecJson) }).ToList(),
+                Effects = ListOfDicts(kit.EffectsJson).Select(e => new PotionEffect { Type = Str(e, "type"), Duration = Str(e, "duration"), Amplifier = Int(e, "amplifier") }).ToList(),
             });
         }
 
@@ -162,6 +162,21 @@ public sealed class MapReader(PgmDb db)
                 TimeMultiplier = p.TimeMultiplier, NeutralState = p.NeutralState, Permanent = p.Permanent,
                 Points = p.Points, OwnerPoints = p.OwnerPoints, PointsGrowth = p.PointsGrowth,
                 ShowProgress = p.ShowProgress, Required = p.Required, Show = p.Show,
+            });
+
+        foreach (var shop in await db.Shops.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.Shops.Add(Deserializer.DecodeShop(new Dict
+            {
+                ["id"] = shop.ShopKey, ["name"] = shop.Name ?? "",
+                ["categories"] = JsonTree.FromJson(shop.CategoriesJson),
+            }));
+
+        foreach (var keeper in await db.Shopkeepers.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.Shopkeepers.Add(new Shopkeeper
+            {
+                ShopId = keeper.ShopKey, Name = keeper.Name ?? "", Mob = keeper.Mob ?? "",
+                Location = keeper.LocationJson is { } at ? Xyz(at) : null,
+                RegionId = keeper.RegionKey ?? "", Yaw = keeper.Yaw,
             });
 
         if (await db.Scores.Where(x => x.MapId == id).FirstOrDefaultAsync(ct) is { } sc)
@@ -249,6 +264,11 @@ public sealed class MapReader(PgmDb db)
         if (json is null || JsonTree.FromJson(json) is not Dict d) return new Vec3(0, 0, 0);
         return new Vec3(Dbl(d, "x"), Dbl(d, "y"), Dbl(d, "z"));
     }
+
+    // One stored item stack, through the codec the doc tree uses: one shape for the kit column and the shop
+    // document, which is what stops the two from spelling an item differently.
+    private static ItemSpec ItemSpec(string json)
+        => Deserializer.ItemFromDict(JsonTree.FromJson(json) is Dict d ? d : new Dict());
 
     private static List<Dict> ListOfDicts(string? json)
         => json is not null && JsonTree.FromJson(json) is List<object?> list ? list.OfType<Dict>().ToList() : [];

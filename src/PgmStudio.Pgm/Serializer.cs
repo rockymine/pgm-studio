@@ -16,6 +16,8 @@ public static class Serializer
         if (m.Destroyables.Count > 0) d["destroyables"] = m.Destroyables.Select(EncodeDestroyable).ToList<object?>();
         if (m.Cores.Count > 0) d["cores"] = m.Cores.Select(EncodeCore).ToList<object?>();
         if (m.ControlPoints.Count > 0) d["control_points"] = m.ControlPoints.Select(EncodeControlPoint).ToList<object?>();
+        if (m.Shops.Count > 0) d["shops"] = m.Shops.Select(EncodeShop).ToList<object?>();
+        if (m.Shopkeepers.Count > 0) d["shopkeepers"] = m.Shopkeepers.Select(EncodeShopkeeper).ToList<object?>();
         if (m.Score is { } score) d["score"] = EncodeScore(score);
         if (m.Modes.Count > 0) d["modes"] = m.Modes.Select(EncodeMode).ToList<object?>();
         // The derived truth beside the declared label — `gamemode` is what the author wrote (often
@@ -135,31 +137,97 @@ public static class Serializer
         ["clear"] = k.Clear,
         ["items"] = k.Items.Select(EncodeKitItem).ToList<object?>(),
         ["armor"] = k.Armor.Select(EncodeKitArmor).ToList<object?>(),
-        ["effects"] = k.Effects.Select(EncodeKitEffect).ToList<object?>(),
+        ["effects"] = k.Effects.Select(EncodeEffect).ToList<object?>(),
     };
 
-    private static Dict EncodeKitEffect(KitEffect e) => new()
+    private static Dict EncodeEffect(PotionEffect e) => new()
     {
         ["type"] = e.Type, ["duration"] = e.Duration, ["amplifier"] = e.Amplifier,
     };
 
-    private static Dict EncodeKitItem(KitItem i)
+    /// <summary>
+    /// The item stack, flat on the dict it is written into rather than nested under an <c>item</c> key: a
+    /// kit item is a slot and a stack, and both read off one object. Only what the map stated is written, so
+    /// an item that says nothing but its material encodes as exactly that.
+    /// </summary>
+    public static Dict ItemToDict(ItemSpec item) { var d = new Dict(); EncodeItemSpec(d, item); return d; }
+
+    private static void EncodeItemSpec(Dict r, ItemSpec i)
     {
-        var r = new Dict { ["slot"] = i.Slot, ["material"] = i.Material };
+        r["material"] = i.Material;
         if (i.Amount != 1) r["amount"] = i.Amount;
-        if (i.ItemDamage != 0) r["damage"] = i.ItemDamage;
+        if (i.Damage != 0) r["damage"] = i.Damage;
+        if (i.Name.Length > 0) r["name"] = i.Name;
+        if (i.Lore.Length > 0) r["lore"] = i.Lore;
+        if (i.Color.Length > 0) r["color"] = i.Color;
+        if (i.Enchantments.Length > 0) r["enchantments"] = i.Enchantments;
+        if (i.StoredEnchantments.Length > 0) r["stored_enchantments"] = i.StoredEnchantments;
         if (i.Unbreakable) r["unbreakable"] = true;
         if (i.TeamColor) r["team_color"] = true;
-        if (i.Enchantments.Length > 0) r["enchantments"] = i.Enchantments;
+        if (i.PreventSharing) r["prevent_sharing"] = true;
+        if (i.Locked) r["locked"] = true;
+        if (i.Projectile.Length > 0) r["projectile"] = i.Projectile;
+        if (i.Consumable.Length > 0) r["consumable"] = i.Consumable;
+        if (i.Hidden.Count > 0) r["hidden"] = i.Hidden.Select(w => (object?)w).ToList();
+        if (i.Effects.Count > 0) r["effects"] = i.Effects.Select(EncodeEffect).ToList<object?>();
+        if (i.Attributes.Count > 0) r["attributes"] = i.Attributes
+            .Select(a => (object?)new Dict { ["attribute"] = a.Attribute, ["operation"] = a.Operation, ["amount"] = a.Amount }).ToList();
+        if (i.CanPlaceOn.Count > 0) r["can_place_on"] = i.CanPlaceOn.Select(w => (object?)w).ToList();
+        if (i.CanDestroy.Count > 0) r["can_destroy"] = i.CanDestroy.Select(w => (object?)w).ToList();
+    }
+
+    private static Dict EncodeKitItem(KitItem i)
+    {
+        var r = new Dict { ["slot"] = i.Slot };
+        EncodeItemSpec(r, i.Item);
         return r;
     }
 
     private static Dict EncodeKitArmor(KitArmor a)
     {
-        var r = new Dict { ["slot_name"] = a.SlotName, ["material"] = a.Material };
-        if (a.Unbreakable) r["unbreakable"] = true;
-        if (a.TeamColor) r["team_color"] = true;
-        if (a.Enchantments.Length > 0) r["enchantments"] = a.Enchantments;
+        var r = new Dict { ["slot_name"] = a.SlotName };
+        EncodeItemSpec(r, a.Item);
+        return r;
+    }
+
+    /// <summary>A shop and the tree under it. The categories nest rather than being keyed apart, because a
+    /// category has no life outside its shop and an icon none outside its category.</summary>
+    public static Dict EncodeShop(Shop shop)
+    {
+        var r = new Dict { ["id"] = shop.Id };
+        if (shop.Name.Length > 0) r["name"] = shop.Name;
+        r["categories"] = shop.Categories.Select(category =>
+        {
+            var c = new Dict { ["id"] = category.Id, ["icon"] = ItemToDict(category.Icon) };
+            if (category.FilterId.Length > 0) c["filter"] = category.FilterId;
+            c["icons"] = category.Icons.Select(icon =>
+            {
+                var i = new Dict { ["item"] = ItemToDict(icon.Item) };
+                if (icon.Payments.Count > 0) i["payments"] = icon.Payments.Select(pay =>
+                {
+                    var p = new Dict { ["price"] = pay.Price };
+                    if (pay.Currency.Length > 0) p["currency"] = pay.Currency;
+                    if (pay.Color.Length > 0) p["color"] = pay.Color;
+                    return (object?)p;
+                }).ToList();
+                if (icon.FilterId.Length > 0) i["filter"] = icon.FilterId;
+                if (icon.ActionId.Length > 0) i["action"] = icon.ActionId;
+                return (object?)i;
+            }).ToList();
+            return (object?)c;
+        }).ToList();
+        return r;
+
+    }
+
+    public static Dict EncodeShopkeeper(Shopkeeper k)
+    {
+        var r = new Dict { ["shop"] = k.ShopId };
+        if (k.Name.Length > 0) r["name"] = k.Name;
+        if (k.Mob.Length > 0) r["mob"] = k.Mob;
+        if (k.Location is { } at) r["location"] = new Dict { ["x"] = at.X, ["y"] = at.Y, ["z"] = at.Z };
+        if (k.RegionId.Length > 0) r["region"] = k.RegionId;
+        if (k.Yaw is { } yaw) r["yaw"] = yaw;
         return r;
     }
 

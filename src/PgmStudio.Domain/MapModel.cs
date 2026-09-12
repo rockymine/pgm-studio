@@ -20,24 +20,89 @@ public sealed class Author
     public string Name = "";                // resolved Mojang username — display cache; uuid is canonical
 }
 
+/// <summary>
+/// One item stack as PGM spells it — the statement <c>KitParser.parseItem</c> reads off an element, wherever
+/// that element sits. A kit item is this plus a slot, a kit's armour piece is this plus a slot name, and a
+/// shop icon is this plus a price: the stack itself is one shape and one reader
+/// (<c>MapParser.ParseItemSpec</c>), because a second copy of it is how a shop learns to spell
+/// <c>team-color</c> differently from a kit.
+/// <para><c>Material</c> is the only required field. Everything else is unset by default and is written back
+/// only when the map stated it.</para>
+/// </summary>
+public sealed class ItemSpec
+{
+    public string Material = "";
+    public int Amount = 1;
+    public int Damage;
+    /// <summary>The display name, colour codes and all (PGM colourises <c>`</c> escapes).</summary>
+    public string Name = "";
+    /// <summary>The lore, exactly as authored: PGM splits it on <c>|</c> into lines, so the separator is
+    /// part of the value rather than a list this reader has to rebuild.</summary>
+    public string Lore = "";
+    /// <summary>Leather-armour dye, as the hex PGM parses. Only leather carries one — on any other material
+    /// PGM never reads the attribute, which is what lets a shop icon use <c>color</c> for its price
+    /// (<see cref="ShopPayment.Color"/>).</summary>
+    public string Color = "";
+    public string Enchantments = "";        // comma-joined "name:level"
+    /// <summary>The enchantments stored <em>in</em> the item rather than applied to it — an enchanted book's
+    /// contents, spelled <c>stored-enchantment</c>. Same encoding as <see cref="Enchantments"/>.</summary>
+    public string StoredEnchantments = "";
+    public bool Unbreakable;
+    public bool TeamColor;
+    /// <summary>Whether the item cannot be dropped or handed to another player.</summary>
+    public bool PreventSharing;
+    /// <summary>Whether the item is fixed in its slot.</summary>
+    public bool Locked;
+    /// <summary>A <c>&lt;projectiles&gt;</c> feature id — an element the studio does not parse, kept so the
+    /// reference round-trips.</summary>
+    public string Projectile = "";
+    /// <summary>A <c>&lt;consumables&gt;</c> feature id, on the same terms as <see cref="Projectile"/>.</summary>
+    public string Consumable = "";
+    /// <summary>The item-flag words the map hid, each written <c>show-&lt;word&gt;="false"</c>:
+    /// <c>attributes</c>, <c>enchantments</c>, <c>unbreakable</c>, <c>can-destroy</c>, <c>can-place-on</c>,
+    /// <c>other</c>. PGM's own default is to show every one, so an empty list is a map that hid nothing.</summary>
+    public List<string> Hidden = [];
+    /// <summary>The potion effects the stack carries — a brewed potion's contents rather than anything the
+    /// holder gains for holding it.</summary>
+    public List<PotionEffect> Effects = [];
+    public List<ItemAttribute> Attributes = [];
+    /// <summary>What the item may be placed on, as PGM's material matcher spells it: a material name per
+    /// entry, or the single word <c>all-blocks</c> for <c>&lt;all-blocks/&gt;</c>. Empty = no restriction.</summary>
+    public List<string> CanPlaceOn = [];
+    /// <summary>What the item may break, on the same terms as <see cref="CanPlaceOn"/>.</summary>
+    public List<string> CanDestroy = [];
+}
+
+/// <summary>A potion effect, as <c>&lt;effect duration=… amplifier=…&gt;type&lt;/effect&gt;</c>. One shape
+/// for both subjects PGM applies it to: a kit grants one to the player, an item carries one in the bottle.</summary>
+public sealed class PotionEffect
+{
+    public string Type = "";        // potion effect, e.g. "damage resistance"
+    public string Duration = "";    // "oo" (infinite), "0", or a number of ticks/seconds
+    public int Amplifier;
+}
+
+/// <summary>An attribute modifier on an item — <c>&lt;attribute operation="add"
+/// amount="0.01"&gt;generic.movementSpeed&lt;/attribute&gt;</c>.</summary>
+public sealed class ItemAttribute
+{
+    public string Attribute = "";   // the modified attribute, e.g. "generic.movementSpeed"
+    public string Operation = "";   // add | base | multiply; "" = PGM's add
+    public double Amount;
+}
+
+/// <summary>One item of a kit: the stack, and the inventory slot it is put in.</summary>
 public sealed class KitItem
 {
     public int Slot;
-    public string Material = "";
-    public int Amount = 1;
-    public int ItemDamage;
-    public bool Unbreakable;
-    public bool TeamColor;
-    public string Enchantments = "";        // comma-joined "name:level"
+    public ItemSpec Item = new();
 }
 
+/// <summary>One armour piece of a kit: the stack, and which of the four slots wears it.</summary>
 public sealed class KitArmor
 {
     public string SlotName = "";            // helmet | chestplate | leggings | boots
-    public string Material = "";
-    public bool Unbreakable;
-    public bool TeamColor;
-    public string Enchantments = "";
+    public ItemSpec Item = new();
 }
 
 public sealed class Kit
@@ -47,14 +112,7 @@ public sealed class Kit
     public bool Clear;                        // <clear/> — empties inventory and armour before the kit is given
     public List<KitItem> Items = [];
     public List<KitArmor> Armor = [];
-    public List<KitEffect> Effects = [];      // <effect duration=… amplifier=…>type</effect>
-}
-
-public sealed class KitEffect
-{
-    public string Type = "";        // potion effect, e.g. "damage resistance"
-    public string Duration = "";    // "oo" (infinite), "0", or a number of ticks/seconds
-    public int Amplifier;
+    public List<PotionEffect> Effects = [];   // <effect duration=… amplifier=…>type</effect>
 }
 
 public sealed class Spawn
@@ -257,6 +315,117 @@ public sealed class ScoreConfig
 }
 
 /// <summary>
+/// A shop: a menu a player opens by right-clicking a <see cref="Shopkeeper"/>, holding one or more
+/// categories of things to buy. Nothing about it is geometry and nothing about it is an objective — PGM tags
+/// a map carrying one <c>shops</c> and plays it exactly as it would otherwise — but a map whose blocks are
+/// all bought loses everything if a shop is dropped, which is why the studio reads one rather than skipping
+/// it. <c>docs/pgm/shops.md</c> is the contract.
+/// <para>At least one category is required by PGM, and every shop is referenced by id: a
+/// <c>&lt;shopkeeper&gt;</c> names one and so does an <c>&lt;open-shop&gt;</c> action.</para>
+/// </summary>
+public sealed class Shop
+{
+    public string Id = "";
+    /// <summary>The menu's title. "" lets PGM fall back to the id, which is what it shows.</summary>
+    public string Name = "";
+    public List<ShopCategory> Categories = [];
+}
+
+/// <summary>
+/// One tab of a shop: the icon that selects it, the filter deciding who sees it, and up to 28 things to buy
+/// (<c>Category.MAX_ICONS</c>).
+/// <para>The category element <b>is</b> its own icon — PGM reads the item off the same element the id sits
+/// on — so the tab has no name of its own beyond the icon's display name.</para>
+/// </summary>
+public sealed class ShopCategory
+{
+    public string Id = "";
+    /// <summary>The stack drawn in the menu's category row. Required by PGM.</summary>
+    public ItemSpec Icon = new();
+    /// <summary>Who sees this tab. "" = everyone, which is PGM's default.</summary>
+    public string FilterId = "";
+    public List<ShopIcon> Icons = [];
+}
+
+/// <summary>
+/// One thing to buy: the stack shown in the menu, what it costs, who may see it, and what buying it does.
+/// <para><see cref="ActionId"/> is empty for the ordinary case, and that is not a missing value: an icon
+/// with no action is a <b>simple item</b>, which PGM hands over as an item kit and marks <em>stackable</em>
+/// so it can be bought a full stack at a time. An icon that names an action is not stackable, whatever it
+/// does.</para>
+/// </summary>
+public sealed class ShopIcon
+{
+    /// <summary>The stack the menu draws — and, for an icon with no <see cref="ActionId"/>, the stack the
+    /// buyer receives.</summary>
+    public ItemSpec Item = new();
+
+    /// <summary>What it costs. Every payment is taken, so several entries are a price in several currencies
+    /// at once; PGM refuses two payments in the same currency. Empty, or every price zero, is free.</summary>
+    public List<ShopPayment> Payments = [];
+
+    /// <summary>Who may see and buy it. "" = everyone.</summary>
+    public string FilterId = "";
+
+    /// <summary>What buying it does, as a feature id — an action or a kit, which PGM resolves through one
+    /// lookup: <c>parser.action(icon, "action", "kit")</c> takes either attribute, ids share one namespace,
+    /// and <c>KitDefinition</c> <i>is</i> an <c>ActionDefinition</c>. So the two attributes are one
+    /// reference under two spellings and this is the one field for it.</summary>
+    public string ActionId = "";
+}
+
+/// <summary>A price in one currency: how many of <see cref="Currency"/> the buyer pays.</summary>
+public sealed class ShopPayment
+{
+    public int Price;
+    /// <summary>The material paid in. Empty is legal only at a zero price, which is free.</summary>
+    public string Currency = "";
+    /// <summary>The chat colour the price is drawn in. "" = PGM's gold.
+    /// <para>On a shop icon <c>color</c> is <b>this</b> rather than the item's leather dye
+    /// (<see cref="ItemSpec.Color"/>), and not by choice: PGM parses the icon element as both an item and a
+    /// payment, reads the dye only when the stack is leather armour, and reads the payment colour as a
+    /// <c>ChatColor</c> name always — so a leather icon stating a hex would fail to load as a payment and
+    /// one stating a colour name would fail to load as a dye. All 326 corpus icons that state it state a
+    /// colour name.</para></summary>
+    public string Color = "";
+}
+
+/// <summary>
+/// A shopkeeper: the entity standing on the map that a player right-clicks to open a <see cref="Shop"/>.
+/// <b>The studio writes no blocks and no entity data for one</b> — PGM spawns it itself at match load, from
+/// this element, and freezes it: the keeper takes no damage, cannot be pushed, moved or entered, and is
+/// removed with the match. So the whole of a keeper is the XML.
+/// <para>Where it stands is a PGM <i>point provider</i>, which the corpus writes two ways: coordinates as
+/// the element's own text (<see cref="Location"/>), or a reference to a region to stand in
+/// (<see cref="RegionId"/>). <see cref="Yaw"/> is which way it faces and rides on the keeper either way,
+/// because PGM's point attributes descend from the element to the region inside it.</para>
+/// </summary>
+public sealed class Shopkeeper
+{
+    /// <summary>The shop this keeper opens, by id. <b>Not resolved here</b>: a map may take its shops from an
+    /// <c>&lt;include&gt;</c> the studio reads without splicing (15 corpus maps do), so a keeper naming a shop
+    /// this document does not hold is a complete map rather than a broken one.</summary>
+    public string ShopId = "";
+
+    /// <summary>The name floating over it. "" lets PGM label it with the shop's id in grey.</summary>
+    public string Name = "";
+
+    /// <summary>The entity to spawn, as a Bukkit entity type. "" = PGM's villager, which is what 222 of the
+    /// corpus's 298 keepers take.</summary>
+    public string Mob = "";
+
+    /// <summary>Where it stands, when the keeper states coordinates. Null when it names a region instead.</summary>
+    public Vec3? Location;
+
+    /// <summary>The region it stands in, when the keeper names one instead of coordinates.</summary>
+    public string RegionId = "";
+
+    /// <summary>Which way it faces, in degrees. Null = PGM's own default, which is not zero but whatever the
+    /// point provider resolves to, so it is never materialised here.</summary>
+    public double? Yaw;
+}
+
+/// <summary>
 /// A scheduled change to an objective's material at a match time. Declarative — no world or structure
 /// impact — but it is what makes a <c>show="false"</c> destroyable a timed block-swap rather than a goal.
 /// </summary>
@@ -412,6 +581,13 @@ public sealed class MapXml
     public List<Destroyable> Destroyables = [];
     public List<Core> Cores = [];
     public List<ControlPoint> ControlPoints = [];
+
+    /// <summary>The shops a player can buy from, and the keepers that open them. Two lists rather than one
+    /// nesting the other, because PGM keeps them apart and so does the XML: a shop is referenced by id from
+    /// a keeper, from an <c>&lt;open-shop&gt;</c> action, and from another map's <c>&lt;include&gt;</c> — and
+    /// 15 corpus maps state keepers whose shops arrive from outside the document altogether.</summary>
+    public List<Shop> Shops = [];
+    public List<Shopkeeper> Shopkeepers = [];
 
     /// <summary>The <c>&lt;score&gt;</c> module, or <c>null</c> when the map declares none — which is a
     /// different map, not an empty configuration: with no element PGM loads no score module at all and

@@ -181,14 +181,14 @@ public sealed class SchemaRoundTripTests
                 {
                     Id = "spawn-kit",
                     Clear = true,
-                    Items = [new PgmStudio.Domain.KitItem { Slot = 0, Material = "iron sword" }],
-                    Effects = [new PgmStudio.Domain.KitEffect { Type = "damage resistance", Duration = "oo", Amplifier = 100 }],
+                    Items = [new PgmStudio.Domain.KitItem { Slot = 0, Item = new() { Material = "iron sword" } }],
+                    Effects = [new PgmStudio.Domain.PotionEffect { Type = "damage resistance", Duration = "oo", Amplifier = 100 }],
                 },
                 new PgmStudio.Domain.Kit
                 {
                     Id = "reset-resistance-kit",
                     Force = true,
-                    Effects = [new PgmStudio.Domain.KitEffect { Type = "damage resistance", Duration = "0", Amplifier = 0 }],
+                    Effects = [new PgmStudio.Domain.PotionEffect { Type = "damage resistance", Duration = "0", Amplifier = 0 }],
                 },
             ],
         });
