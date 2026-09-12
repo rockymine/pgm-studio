@@ -326,6 +326,14 @@ smaller one is the scope. A shape stating a `height_mode` is outside the test bo
 terrain rather than being it, and the top it settles at is read against ground the relief has not yet made
 when the owners are resolved.
 
+**A stroke lying on ground has to state that ground's height, or it owns nothing.** A shape with no `floor`
+and no `base_height` is one course thick, so the top it is read at is 1 — below every terrace a board is cut
+at, and so never the surface of a cell it covers. A path, a worn patch or a road marking therefore states
+`floor: 0` and the `base_height` of the terrace it runs over: that ties it with the terrace and lets area
+decide, and where a group carries a relief the stated height changes nothing about where the stroke ends up,
+because the relief owns the ground. The failure is silent — the stroke rasterizes, the theme resolves, the
+census counts the theme at zero cells and the board paints as though the shape were not there.
+
 **A structural annotation is a scope over ground it did not place, and that is how a room's floor is stated.**
 A spawn, a wool room and the building footprint inside one reach the sketch as role-tagged rectangles: the
 plan's own pieces, drawn over terrain the fused island already holds so they stay visible while a plan is
