@@ -285,6 +285,75 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   fixes the derivation for maps imported after it and for none of the maps that exist.
 
 
+## The hill: a goal owned by standing on it
+
+PGM's fourth objective family, and the first the studio refuses outright. One module —
+`tc.oc.pgm.controlpoint` — serves three elements (`<control-points>`, `<king><hills>`, `<payloads>`) that
+differ only in their defaults, so there is one thing to build and three spellings of it. The contract, the
+state machine and the corpus measurements behind every number below are `docs/pgm/control-points.md`; read it
+before the first entry, because the group's shape comes from it. Payload stays out: it is behind a server
+experiment flag whose XML PGM says will change.
+
+- [ ] **PG5 — Read and re-emit the control-point module.** `MapParser.EnsureSupported` refuses any map
+  carrying `<control-points>`, `<king>` or `<payloads>` (`MapParser.cs:66` `ParsedObjectiveModules`), which
+  is 163 corpus slugs. Add a `ControlPoint` to `MapModel.cs` beside `Destroyable` and `Core` — the three
+  region refs (`capture-region`/`capture` required, `progress-display-region`/`progress` and
+  `owner-display-region`/`captured` optional), the tuning attributes, and which element it was written as, so
+  it round-trips in its own spelling. Two parser facts are not optional: any child of the container is a
+  point whatever its tag, and attributes descend `<king>` → `<hills>` → `<hill>` through
+  `InheritingElement`, which is how the corpus writes shared tuning once. Then `Gamemodes.From` gains `cp`
+  and `koth`, remembering that PGM tags a map carrying both elements `cp`. Evidence: `koth/rafiki`
+  `capture="base-middle"` = `<cuboid min="4,6,5" max="-3,9,-2"/>`, a 7×7 wool pad at `y=6`.
+
+- [ ] **PG6 — A point that scores needs a `<score>` element, and nothing says so.** `tickScore` reads
+  `ScoreMatchModule`, and `ScoreModule.parse` returns null when the document has no `<score>` child — so a
+  map with `points="1"` on every hill and no score module scores nothing, all match, with no error anywhere.
+  Raise a finding when a control point with a non-zero `points` or `owner-points` sits in a document with no
+  `<score>`. Evidence: `koth/qboid` carries `<score><kills>0</kills><deaths>0</deaths></score>` under the
+  comment *"placeholder so the score module will show up"*; 95 of the 103 corpus KotH maps declare a limit.
+
+- [ ] **PG7 — A pad in a material outside the colour-affected set never changes colour.** The display regions
+  are filtered to PGM's colourable materials — wool, carpet, stained clay, stained glass and panes, banners,
+  ink sack on 1.8 — and `hard clay` is not one of them while `stained clay` is. A hill built in hardened
+  clay, stone or planks parses, exports, loads and shows nothing, which is the map's only feedback that it
+  was captured. Raise a finding when a point's progress or owner display region holds no colour-affected
+  block, checked against the built world at the export gate where the blocks exist. Evidence: 246 of 359
+  corpus pads are stained clay, 71 wool, 42 stained glass.
+
+- [ ] **PG8 — `required` left off ends the match on first capture.** `SimpleGoal.isRequired()` defaults to
+  **true** at proto ≥ 1.4.0 — the studio's whole supported range — and `GoalsVictoryCondition` finishes the
+  match the instant one team completes every required goal it can complete. A one-hill map with the attribute
+  omitted ends on the first capture; a three-hill map ends when one team holds all three. Refuse a studio-
+  authored KotH board that omits it, and raise a finding on an imported one. The escape hatch belongs in the
+  same rule: `show="false"` clears the `stats` option, and `GoalMatchModule.addGoal` drops a goal without it,
+  so a hidden point never ends anything. Evidence: 275 of 316 corpus KotH points write `required="false"`.
+
+- [ ] **WE110 — The export builds no pad.** A hill is a one-layer disc or square of a colour-affected
+  material with the capture volume standing on it, and the stamper has neither. Add it beside the destroyable
+  and core stampers, with the footprint in `ObjectiveFootprint` so the plan validator and the stamper agree
+  the way `DC1`/`OB17` already require. Three measured invariants it must hold: the capture region's lowest
+  block is the pad's own top layer (221 of 344 corpus points; one above in 56 more), the column is three
+  blocks tall so the block a standing player occupies is inside it, and the capture footprint is the pad's or
+  exactly two blocks wider. Build it white — 263 of 359 corpus pads are white, and PGM restores the built
+  blocks when the point goes neutral, so what is laid *is* the neutral colour.
+
+- [ ] **TC7 — The configure tool cannot place a hill.** With `PG5` and `WE110` landed, the wizard needs the
+  step: how many points, where each stands, and the tuning, which is one shared block rather than per-point
+  (`docs/pgm/control-points.md` §7). The corpus default is the whole of it — `capture-time="5s"`,
+  `points="1"`, `time-multiplier="0"`, `neutral-state`/`incremental`/`show-progress` true,
+  `required="false"`, `<score><limit>750</limit></score>` — so the step states a count and three positions
+  and fills the rest. Fan the positions through `Symmetry` like every other goal, not by hand: 36 of the 48
+  measurable three-hill corpus maps put the middle hill at the midpoint of the outer pair.
+
+**Parked — three questions the corpus cannot answer** (`CLAUDE.md` § "Gameplay decisions have a human
+oracle"). The measurements are taken and written down; what is *correct* for a board as it is played is the
+author's. `TC7` is blocked on all three. **How many points** should a generated board carry — the corpus
+says three (61 of 103 maps), but a studio board is not a corpus board. **How far apart** — the corpus median
+is 31 blocks between neighbours, on maps whose size the studio does not share. **Square or round** — the
+corpus splits 174 solid rectangles (median side 5) against 120 discs (median diameter 9), so practice has no
+answer and the studio needs a default.
+
+
 ## The plan model: pieces, and the edges between them
 
 `PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,

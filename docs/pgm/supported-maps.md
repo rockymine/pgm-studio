@@ -26,6 +26,10 @@ than the goal and are not objectives, so they gate nothing. When a parser lands,
 `ParsedObjectiveModules` and its maps become readable. In the corpus this excludes `3084` and `lost_haven`
 (both `control-points`).
 
+`control-points`, `king` and `payloads` are one module wearing three names, so one parser clears all three
+tags at once (`PG5`). What it has to read — the three regions, the capture state machine, the defaults each
+element changes, and what the corpus actually builds — is `control-points.md`.
+
 **The gates read the map's own body, before any include is spliced**, and that ordering is load-bearing. A
 module arriving from an `<include>` is not at risk of being lost: the export re-emits the reference and the
 server resolves it again (`include-resolution.md`). Gating after the splice would reject 82 corpus maps that
