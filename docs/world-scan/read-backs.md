@@ -44,7 +44,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `reach` | — | which standing ground **no player can get to**, and why, as `text/plain`: the patches, their column counts, their lowest standing course and the box to stand in. The traversability picture's own partition read as numbers — the navigable components, less the one the board is played on, less every component a spawn or an objective sits on, less every component the map opens to bridging — plus ground above the map's `maxbuildheight`, which cannot be built up to. **It names nothing as wrong**: scenery, a side observer island and a shelf over the ceiling read exactly like a shape stranded by accident, and only the author can tell them apart |
 | `editability` | — | which columns a player may edit and **what makes each one editable**, as JSON: digit rows over a bounding box, the four `EditZone` words, a colour each, the counts, and `findings`. The zones are `build_zone` · `ground` · `filtered` · `sealed`, read by following PGM's own resolution — the first region-filter application that does not abstain settles the column, and place and break are the separate scopes PGM makes them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
-| `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one the map states |
+| `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one it was laid to |
 | `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort`, `team` whose walk it is |
 | `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells, places, steps, rises, falls, worstStep, beside}`. `?from=x,z&to=x,z`, `aim` and `team` as above; `?beside=N` (0–6) adds every distinct thing recorded within `N` cells of the route |
 | `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated. The header also carries the terrain's inclination at the cell, so a slope band can be checked against the angle that chose it |
@@ -290,7 +290,12 @@ tone: a neighbour's height is a subtraction rather than an estimate, and the hou
 and goals overprinted on it say what the relief carries rather than leaving a reader to guess from shape
 alone. `surface` answers whether a board's paint is the palette it was authored from — a whole tone family
 taken where two members were meant reads as the noise it is. `mirror` answers whether a board somebody
-believes is symmetric actually is.
+believes is symmetric actually is, and **the fold it compares against is the layout's own**
+`setup.mirror_mode` and centre — the mode the rasteriser fans every mirroring group by, so the turn the blocks
+actually took. The intent carries a symmetry of its own and it is the fallback rather than the first answer:
+that one fans the *intent* (a spawn, a goal) and a board compiled from a plan leaves it unset, so a read
+taking it first answers `none`, compares every column with itself and reports a board that does not fold as
+perfectly folded — the one read built to catch an asymmetry, silent on the boards it was built for.
 
 `slopes` answers where a relief is too steep to be crossed for free, the way `heightmap` answers its overall
 shape: a cliff reads as a line of `#`, a ramp as a band of `.` running through it, and ground graded past

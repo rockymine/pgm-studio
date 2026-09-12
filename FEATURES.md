@@ -2373,6 +2373,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   a ladder, a trapdoor and a fence gate read as blocking, since a block id does not carry the open state.
   (`Minecraft/Palette/BlockRoles.cs`, `Minecraft/Render/TraversabilityRender.cs`,
   `Minecraft/Render/WorldReadCatalog.cs`, `Api/Endpoints/WorldReadEndpoints.cs`, `BlockRolesTests.cs`)
+- **The mirror read folds a board the way its layout says it folds (WS63).** A board authored through the
+  plan states its fold in the **layout** — the compile writes `globals.symmetry` into `setup.mirror_mode`,
+  and that is the mode the rasteriser fans every mirroring group by, so it is the turn the blocks actually
+  took. `render/mirror` answered from the **intent's** symmetry instead, which fans intent objects rather
+  than terrain and which a plan-compiled board leaves unset: the read fell through to `none`, compared every
+  column with itself and captioned every picture `ALL MIRRORED`. The one read built to catch an asymmetry was
+  silent on every board it was built for. It reads the layout's mode and centre now, with the intent as the
+  fallback for a board that states one there and nothing in its layout, and `?mode` overriding both.
+  Measured on four boards whose every run report carried a blank verdict: `opus5-burgage-terrace` 261 of
+  13,269 columns not mirrored, `fable-saltwharf` 2,028 of 11,992, `opus5-heftfold` 206 of 9,492,
+  `opus5-glassmere` 9 of 12,871 — and on Burgage the unpaired columns draw a line straight across the
+  terrace front at z 50 and z −51, which is `WE121` seen from above. (`WorldReadEndpointTests`,
+  `docs/world-scan/read-backs.md`)
 - **The world read-backs answer over HTTP (`WS6`), withdrawing `B245`.** Everything a caller does runs
   through the API and the API describes itself — except the one thing done *after* building, which is looking
   at what was built. Eight renderers in `Minecraft/Render/` reached a caller only through
