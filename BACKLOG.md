@@ -336,6 +336,22 @@ experiment flag whose XML PGM says will change.
   maps with a usable spawn frame, 60 hill sets are closed under that rotation and 39 of 55 three-point maps
   are exactly a centre plus a mirrored pair.
 
+- [ ] **TN19 — `PL3` calls a capture board objectiveless.** The plan tier counts wools, destroyables and
+  cores, so a board played for hills is told "this plan has no objective — no wool, destroyable or core, so
+  nothing wins the match" on every compile and every evaluate. A plan carries no capture point today
+  (`TC8`), so the rule cannot count one there; what it can do is stop claiming the board wins on nothing
+  when the intent beside it names hills and a score limit. Either take the intent's `Gamemodes` into the
+  check or say the sentence the board's own case needs. Evidence: `specs/opus5-threap-edge`, a three-hill
+  board that exports as `<gamemode>koth</gamemode>` with `<limit>750</limit>`, scores 0 and valid, and
+  raises `PL3` twice per run.
+
+- [ ] **WS62 — Coverage, reach and the walk read are blind to a hill.** All three resolve a board's goals
+  from the wool/destroyable/core lists, so on a capture board `GET …/coverage` answers 71.8% dead with its
+  two largest dead patches centred on the two side hills, `04-routes.txt` prints "no route between a spawn
+  and a goal", and `/reach` reports the same ground unreached. The walks exist — `GET …/walk?from=0,-48&
+  to=-33,-1` on `opus5-threap-edge` is walked end to end — so what is missing is only that a control point
+  counts as a goal in the set those three quantify over. One derivation, three readers.
+
 
 ## The plan model: pieces, and the edges between them
 

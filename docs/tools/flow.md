@@ -164,7 +164,12 @@ drawing or its intent, and could never be re-planned. What the documents carry i
 
 **The authors ride in the body, and the operation applies them.** The three documents say what a map is
 made of and a compiled intent names nobody, so the credits are stated beside them and written as part of the
-load rather than in a second call the caller has to remember.
+load rather than in a second call the caller has to remember. A person is a bare pseudonym or
+`{uuid, name, role, contribution}`, and both forms go to the same two places: the map's author rows, and the
+stored intent's `meta.authors`/`meta.contributors`, split by role. Both, because the rows are the map's own
+record and the intent is what the export reads — the observer platform's board is stamped from `meta.authors`
+— so a load writing one without the other credits the map on its rows and exports it carrying `EX6` over a
+blank sign.
 
 **And the plain writes are not merges.** `PUT /api/map/{slug}/sketch` replaces the layout blob verbatim, which
 is what makes a deletion stick, and `PUT /api/map/{slug}/intent` replaces the stored intent wholesale for the

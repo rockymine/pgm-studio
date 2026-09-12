@@ -84,6 +84,42 @@ public sealed class MapFromDocumentsTests
         await Assert.That(authors.Count).IsEqualTo(1);
         // A bare string is a pseudonym: PGM takes a person as an account or a name, and this one has no uuid.
         await Assert.That(authors[0].GetProperty("name").GetString()).IsEqualTo("Opus 5");
+
+        // And into the intent, which is the half the world reads: the observer platform's board is stamped
+        // from meta.authors, so a map credited on its rows alone is exported carrying EX6 and no sign.
+        var intent = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/intent");
+        await Assert.That(intent.GetProperty("meta").GetProperty("authors")[0].GetProperty("name").GetString())
+            .IsEqualTo("Opus 5");
+    }
+
+    /// <summary>The other form a person is stated in. An entry arrives as JSON, so its fields are
+    /// <c>JsonElement</c>s rather than strings, and a reader that takes only the latter drops the whole
+    /// object form on a 200 — credited nowhere, complained about nowhere.</summary>
+    [Test]
+    public async Task An_author_stated_as_an_object_is_credited_with_their_contribution()
+    {
+        using var client = await FreshAsync();
+
+        var stated = new object[]
+        {
+            new { name = "Opus 5", contribution = "layout" },
+            new { name = "Fable 5", role = "contributor", contribution = "relief" },
+        };
+        var resp = await client.PostAsJsonAsync("/api/map/from-documents", Body(authors: stated));
+        await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
+
+        var doc = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate");
+        var rows = doc.GetProperty("authors").EnumerateArray()
+            .ToDictionary(a => a.GetProperty("name").GetString()!, a => a);
+        await Assert.That(rows.Count).IsEqualTo(2);
+        await Assert.That(rows["Opus 5"].GetProperty("contribution").GetString()).IsEqualTo("layout");
+        await Assert.That(rows["Fable 5"].GetProperty("role").GetString()).IsEqualTo("contributor");
+
+        // The role splits the two in the intent, which is the shape the export reads them in.
+        var meta = (await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/intent")).GetProperty("meta");
+        await Assert.That(meta.GetProperty("authors")[0].GetProperty("name").GetString()).IsEqualTo("Opus 5");
+        await Assert.That(meta.GetProperty("authors")[0].GetProperty("contribution").GetString()).IsEqualTo("layout");
+        await Assert.That(meta.GetProperty("contributors")[0].GetProperty("name").GetString()).IsEqualTo("Fable 5");
     }
 
     /// <summary>The documents name one map, so loading them twice is a reload rather than a second map.</summary>
