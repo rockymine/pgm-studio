@@ -284,7 +284,17 @@ shared `BucketContext`. The painter fills that context per cell from a `teamDama
 **canonical** islands (`IslandDetector`, the same 1-based ids `islands_json` and the configure canvas use)
 and gives each island its team: a stored `intent.IslandTeams` value wins, else a spawn's team on the island,
 else a wool's owner, else **neutral**. So a whole team landmass takes one colour and anchorless land (a mid
-island) stays neutral. `IslandTeams` is populated **once, when it's cheapest** — the `/plan/compile` endpoint
+island) stays neutral.
+
+**Which makes the tint a statement about islands and not about halves**, and that is the thing to know before
+reaching for it. Where two teams' spawns stand on **one** island, the first spawn read wins the whole of it —
+`anchor.TryAdd` keeps the first and drops the rest — so a board whose ground is one continuous landmass paints
+every tinted cell in one team's colour. That is the ordinary shape of a capture board, where the works are one
+piece of ground both teams walk onto, and the result is a map tinted red end to end with nothing anywhere
+saying so: the compile pre-fills `IslandTeams` with that single entry, the store and the export gate are
+silent, and `themes/census` counts the material rather than its colour. A board like that either wants its
+ownership stated per structure — a shape's own theme — or wants the tint left off its terrain, and `WE120` is
+the finding that would say which. `IslandTeams` is populated **once, when it's cheapest** — the `/plan/compile` endpoint
 pre-fills it on the canonical decomposition (so ownership is derived at plan time, not re-derived at export),
 and the **configure step** overwrites it when the author clicks islands onto teams. Because every side keys
 on the one `IslandDetector` id space, the tint the export paints is exactly what configure shows — no second

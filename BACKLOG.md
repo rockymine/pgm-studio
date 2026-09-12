@@ -345,6 +345,16 @@ experiment flag whose XML PGM says will change.
   board that exports as `<gamemode>koth</gamemode>` with `<limit>750</limit>`, scores 0 and valid, and
   raises `PL3` twice per run.
 
+- [ ] **WE120 — A team tint on a one-island board paints the whole map one colour, silently.**
+  `TeamTerritory.Ownership` resolves an owner per canonical island and `anchor.TryAdd(id, s.Team)` keeps the
+  first spawn read, so a board whose ground is one landmass — the ordinary shape of a capture board — gives
+  every tinted cell to whichever team compiled first. Raise a finding where a theme in play carries a
+  `TeamTintedMaterial` and an island carries spawns of more than one team, naming the island and the teams;
+  it belongs beside the other paint findings, at the point the painter resolves its themes. Evidence:
+  `specs/opus5-casemate` compiles to `islandTeams: {"1": "red"}` with spawns at `(0, −44)` red and `(0, 44)`
+  blue, and its world holds **678 red terrain blocks on blue's half against 74 blue**, all 74 of them the
+  gate house, which is a structure stamp and knows its own team.
+
 - [ ] **WS62 — Coverage, reach and the walk read are blind to a hill.** All three resolve a board's goals
   from the wool/destroyable/core lists, so on a capture board `GET …/coverage` answers 71.8% dead with its
   two largest dead patches centred on the two side hills, `04-routes.txt` prints "no route between a spawn
