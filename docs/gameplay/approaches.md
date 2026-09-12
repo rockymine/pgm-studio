@@ -147,6 +147,44 @@ one in 77%, two in 19%, three in a single map. The ordinary combined board is on
 **A large board with a single goal on it is not an underfilled board** — it is the most common destroy map
 there is.
 
+## A capture-point board is laid out around its own centre
+
+**[author]** A hill is a **square** pad. Round is legal, common and looks well, but what the studio authors
+is square, and a board that wants a disc says so rather than getting one by default.
+
+**[author]** The count follows the team count. **Two teams get two or three points**, and three is the
+ordinary board; **four teams get one per team plus a centre**, which is five. In the corpus this is the
+shape almost without exception: over the 103 KotH maps outside two arcade point-grids, the 90 two-team maps
+carry three points 61 times, two 14 times and one 8 times, and of the 10 four-team maps five carry exactly
+five points.
+
+**[author]** The arrangement is **one point dead centre and the rest to the sides** — and "the sides" means
+across the line between the spawns, not along it. That is the whole difference between a capture board and a
+destroy board: a destroyable belongs to the team behind it, so it sits forward of its own spawn and the pair
+of them defines a front; a capture point belongs to nobody, so it has to be the same walk for everyone, and
+the only positions that are the same walk for everyone lie on the map's own axis of symmetry.
+
+The corpus states it as symmetry rather than as distance. Of the 80 two-team maps with a usable spawn frame,
+**60 have a hill set closed under the 180° rotation that swaps the two spawns** — every point is either at the
+centre of that rotation or has a partner that is its image — and 51 have exactly one point at the centre
+itself. Among the three-point maps that is 43 of 55 with a centre point and 39 of 55 that are precisely a
+centre plus a mirrored pair. 167 of 217 points sit equidistant from both spawns. Four-team boards do the same
+thing one order up: every one of the seven with a usable frame is a ring of exactly four around nought, one or
+two centre points, and five of the seven put the ring at **45° to the spawns** — on the diagonals *between*
+neighbouring spawns, so each ring point is the same walk for two teams rather than the doorstep of one. The
+two exceptions are deliberate: `koth/yukoth` places its four in front of the spawns and hands each team its
+own with `initial-owner`, which is a different game.
+
+**[author]** Distance is stated against the board, not in blocks. An off-centre point sits at roughly
+**two-thirds of the way from the map centre to a spawn**, and anywhere from half to the whole of it is
+ordinary. Measured: 0.66 of the centre-to-spawn distance for two teams (quartiles 0.52 and 0.88) and 0.90 for
+four (quartiles 0.52 and 0.99). On the median corpus board — spawns 94 blocks apart — that is a point about
+30 blocks out from the middle, but the ratio is the rule and the block count is the consequence, because a
+board twice the size wants its points twice as far out.
+
+`docs/pgm/control-points.md` owns the mechanism these claims are about: what a point is, what it is built of
+and what PGM does with it.
+
 ## Two mechanisms whose use is narrower than they look
 
 **[author]** A **water lane** is a gap between islands that becomes bridgeable part-way through a match rather

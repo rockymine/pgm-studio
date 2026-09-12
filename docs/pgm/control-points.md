@@ -253,18 +253,40 @@ and 290 of 359 are a single colour throughout.
 `koth/`. Every number below is over those 105 less `koth/qboid` and `koth/grand_qboid`, which are arcade
 point-grids of 28 and 55 hidden cubes and skew every distribution they enter: **103 maps, 316 points**.
 
-**Shape and size.** The maps split almost evenly between the two elements — 59 use `<king>`, 44 use
-`<control-points>` — and the element says nothing about the structure. Three hills is the form: 61 of 103
-maps have exactly three, 14 have two, 9 have one. 86 of 103 are two-team maps. 48 of those 61 three-hill maps
-state all three centres in coordinates this survey could resolve; among them the middle hill is the midpoint
-of the outer pair 36 times and the spacing is even 39 times, with a median hill-to-hill distance of 31
-blocks: **three points on a line through the map's centre of symmetry.**
+**How many, and where.** The maps split almost evenly between the two elements — 59 use `<king>`, 44 use
+`<control-points>` — and the element says nothing about the structure. What does say something is the number
+of teams that spawn:
 
-The capture region is a cuboid 169 times, a cylinder 95, a union 30. The cuboids are square in plan 126 times
-of 153 measurable, with a **median footprint of 7 × 7** (quartiles 7 and 9) and a **median height of 4**
-(quartiles 3 and 5). The cylinders have a **median radius of 5.5** (quartiles 4.5 and 7) and a median height
-of 4; `radius="4"` and `radius="7"` are the two commonest values. These are the *capture* regions, which
-usually carry a block of margin, so they run a little larger than the pads below.
+| spawning teams | maps | points per map |
+|---|---|---|
+| two | 90 | one ×8, two ×14, **three ×61**, four ×3, five ×3, six ×1 |
+| three | 3 | one ×1, four ×2 |
+| four | 10 | four ×2, **five ×5**, six ×2, ten ×1 |
+
+The positions are not stated in blocks by anything in the corpus; they are stated by the board's own symmetry.
+Taking the two spawns of a two-team map as the frame, **60 of the 80 maps with a usable one carry a hill set
+closed under the 180° rotation that swaps the spawns** — each point is either at the centre of that rotation
+or has a partner that is its image — and 51 have exactly one point at the centre itself. Among three-point
+maps that is 43 of 55 with a centre point and 39 of 55 that are exactly a centre plus a mirrored pair. 167 of
+217 points are equidistant from both spawns, which is the same fact read per point rather than per map.
+
+Four-team boards repeat it one order up. Every one of the seven with a usable frame is a ring of exactly four
+around nought, one or two centre points, and five of the seven set the ring at **45° to the spawns** — on the
+diagonals between neighbouring spawns rather than in front of any one of them. The two that do not are
+`koth/toca` at 12° and `koth/yukoth` at 0°, and the second is the informative one: its four sit directly in
+front of the spawns and each carries `initial-owner` naming that team, so every team begins owning its own
+and the game is about taking somebody else's.
+
+An off-centre point sits at **0.66 of the centre-to-spawn distance** for two teams (quartiles 0.52 and 0.88)
+and 0.90 for four (quartiles 0.52 and 0.99). The median two-team board has its spawns 94 blocks apart, which
+puts an off-centre point about 30 blocks from the middle — but the ratio is what the corpus states and the
+block count is what falls out of it. `docs/gameplay/approaches.md` carries the author's ruling on all of this.
+
+**Shape and size.** The capture region is a cuboid 169 times, a cylinder 95, a union 30. The cuboids are
+square in plan 126 times of 153 measurable, with a **median footprint of 7 × 7** (quartiles 7 and 9) and a
+**median height of 4** (quartiles 3 and 5). The cylinders have a **median radius of 5.5** (quartiles 4.5
+and 7) and a median height of 4; `radius="4"` and `radius="7"` are the two commonest values. These are the
+*capture* regions, which usually carry a block of margin, so they run a little larger than the pads below.
 
 **The pad itself**, read out of the worlds as the colour-affected blocks inside each progress region:
 
@@ -290,7 +312,7 @@ cases. The capture region *is* the pad, extended upward into the air a player st
 **The owner display region** is present on 196 of 316 points. Where both it and the capture region are
 cuboids, it shares the pad's footprint 81 times of 97, sitting over or through the capture column — a banner
 strip, a roof, a beam. The rest put it somewhere visible from across the map instead, which is the whole of
-the mismatch noted in §2: `koth/beach_battles` captures at `y 9–12` and displays on a castle roof at `y 20–30`.
+the mismatch noted in §2: `koth/beach_battles` captures at `y 9–12` and shows on a castle roof at `y 20–30`.
 
 **Two worked examples, checkable in game.**
 
@@ -314,9 +336,9 @@ at block centres, and `3.5 ≤ 4 < 4.5`. A 7-wide pad is written as a span of 7,
 
 ## 7. The conventional hill, in one block
 
-Everything above, as the shape the corpus converges on. This is a description of practice, not a rule: what
-is *correct* for a map as it is played is the author's to say, and the three questions §8 parks are exactly
-the ones this section cannot answer.
+Everything above, as the shape the corpus converges on. What is *correct* for a map as it is played is the
+author's to say, and what has been said — square pads, two or three points on two teams and five on four, one
+dead centre and the rest to the sides — is `docs/gameplay/approaches.md`.
 
 ```xml
 <king>
@@ -331,8 +353,9 @@ the ones this section cannot answer.
 ```
 
 with each `*-capture` region a cuboid or cylinder — median 7 × 7, or radius ≈ 5.5 — standing on a one-layer
-white stained-clay pad of the same footprint or a block narrower all round, its lowest block the pad layer
-and three blocks of air above, and the three pads on a line through the map's centre about 31 blocks apart.
+white stained-clay pad of the same footprint or a block narrower all round, its lowest block the pad layer and
+three blocks of air above. "Middle" sits at the map's centre of symmetry and the other two are images of each
+other under the rotation that swaps the spawns, about two-thirds of the way out from the centre to one.
 
 ## 8. What the studio does not do yet
 
@@ -347,7 +370,9 @@ false when its task ships.
 - **`PG8`** — `required` left off ends the match on first capture, at every proto the studio reads.
 - **`WE110`** — the world export builds no pad.
 - **`TC7`** — the configure tool cannot place a hill.
+- **`TC8`** — nothing places the points from the board's symmetry.
 
-Three questions in that group are the author's rather than the corpus's, and are marked as blocked in
-`BACKLOG.md` rather than answered here: how many hills a generated board should carry, how far apart, and
-whether the studio's hill is square or round by default.
+What a generated board should *be* is not on that list. It is the author's rather than the corpus's, it has
+been ruled, and it is written down in `docs/gameplay/approaches.md`: square pads; two or three points on two
+teams and five on four; one point at the centre of symmetry and the rest to the sides, about two-thirds of
+the way out to a spawn.

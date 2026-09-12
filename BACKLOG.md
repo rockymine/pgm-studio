@@ -291,8 +291,10 @@ PGM's fourth objective family, and the first the studio refuses outright. One mo
 `tc.oc.pgm.controlpoint` — serves three elements (`<control-points>`, `<king><hills>`, `<payloads>`) that
 differ only in their defaults, so there is one thing to build and three spellings of it. The contract, the
 state machine and the corpus measurements behind every number below are `docs/pgm/control-points.md`; read it
-before the first entry, because the group's shape comes from it. Payload stays out: it is behind a server
-experiment flag whose XML PGM says will change.
+before the first entry, because the group's shape comes from it. What a board should *be* — square pads, the
+count per team count, one point dead centre and the rest to the sides — is the author's and is settled in
+`docs/gameplay/approaches.md`. Payload stays out: it is behind a server experiment flag whose XML PGM says
+will change.
 
 - [ ] **PG5 — Read and re-emit the control-point module.** `MapParser.EnsureSupported` refuses any map
   carrying `<control-points>`, `<king>` or `<payloads>` (`MapParser.cs:66` `ParsedObjectiveModules`), which
@@ -328,30 +330,33 @@ experiment flag whose XML PGM says will change.
   same rule: `show="false"` clears the `stats` option, and `GoalMatchModule.addGoal` drops a goal without it,
   so a hidden point never ends anything. Evidence: 275 of 316 corpus KotH points write `required="false"`.
 
-- [ ] **WE110 — The export builds no pad.** A hill is a one-layer disc or square of a colour-affected
+- [ ] **WE110 — The export builds no pad.** A hill is a **square** one-layer pad of a colour-affected
   material with the capture volume standing on it, and the stamper has neither. Add it beside the destroyable
   and core stampers, with the footprint in `ObjectiveFootprint` so the plan validator and the stamper agree
-  the way `DC1`/`OB17` already require. Three measured invariants it must hold: the capture region's lowest
-  block is the pad's own top layer (221 of 344 corpus points; one above in 56 more), the column is three
-  blocks tall so the block a standing player occupies is inside it, and the capture footprint is the pad's or
-  exactly two blocks wider. Build it white — 263 of 359 corpus pads are white, and PGM restores the built
-  blocks when the point goes neutral, so what is laid *is* the neutral colour.
+  the way `DC1`/`OB17` already require. Square is the author's ruling (`docs/gameplay/approaches.md`); a disc
+  is legal and is not what the studio lays. Three measured invariants it must hold: the capture region's
+  lowest block is the pad's own top layer (221 of 344 corpus points; one above in 56 more), the column is
+  three blocks tall so the block a standing player occupies is inside it, and the capture footprint is the
+  pad's or exactly two blocks wider. Build it white — 263 of 359 corpus pads are white, and PGM restores the
+  built blocks when the point goes neutral, so what is laid *is* the neutral colour.
 
 - [ ] **TC7 — The configure tool cannot place a hill.** With `PG5` and `WE110` landed, the wizard needs the
-  step: how many points, where each stands, and the tuning, which is one shared block rather than per-point
-  (`docs/pgm/control-points.md` §7). The corpus default is the whole of it — `capture-time="5s"`,
-  `points="1"`, `time-multiplier="0"`, `neutral-state`/`incremental`/`show-progress` true,
-  `required="false"`, `<score><limit>750</limit></score>` — so the step states a count and three positions
-  and fills the rest. Fan the positions through `Symmetry` like every other goal, not by hand: 36 of the 48
-  measurable three-hill corpus maps put the middle hill at the midpoint of the outer pair.
+  step: how many points and the tuning, which is one shared block rather than per-point
+  (`docs/pgm/control-points.md` §7). The corpus default is the whole of the tuning —
+  `capture-time="5s"`, `points="1"`, `time-multiplier="0"`,
+  `neutral-state`/`incremental`/`show-progress` true, `required="false"`,
+  `<score><limit>750</limit></score>` — so the step states a count and fills the rest. **Do not ask for
+  positions**: the count and the symmetry give them, which is `TC8`.
 
-**Parked — three questions the corpus cannot answer** (`CLAUDE.md` § "Gameplay decisions have a human
-oracle"). The measurements are taken and written down; what is *correct* for a board as it is played is the
-author's. `TC7` is blocked on all three. **How many points** should a generated board carry — the corpus
-says three (61 of 103 maps), but a studio board is not a corpus board. **How far apart** — the corpus median
-is 31 blocks between neighbours, on maps whose size the studio does not share. **Square or round** — the
-corpus splits 174 solid rectangles (median side 5) against 120 discs (median diameter 9), so practice has no
-answer and the studio needs a default.
+- [ ] **TC8 — Place the points from the board's symmetry, not by hand.** The author's rule
+  (`docs/gameplay/approaches.md`): one point at the map's centre of symmetry, the rest to the sides, at
+  **0.66 of the centre-to-spawn distance** on two teams and 0.90 on four. Two teams take three points — centre
+  plus a pair that are images under the 180° rotation that swaps the spawns; four teams take five — centre
+  plus a ring of four at 45° to the spawns, on the diagonals between them. Fan them through
+  `Geom.Symmetry.Cell` like every other goal (`ObjectiveFootprint.AnchorCell`), so a point and its image land
+  the same distance out rather than a block apart. Evidence: of the 80 two-team corpus maps with a usable
+  spawn frame, 60 hill sets are closed under that rotation and 39 of 55 three-point maps are exactly a centre
+  plus a mirrored pair.
 
 
 ## The plan model: pieces, and the edges between them
