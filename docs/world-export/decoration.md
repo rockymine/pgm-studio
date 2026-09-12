@@ -157,10 +157,9 @@ one stage rather than four:
 - **The fan (G162).** Every prop is placed once and stamped at **every image of its orbit**, in the prop's own
   local frame, with each offset **turned** by that image's transform. An author draws one half of a map and
   gets a fair one, which is the contract the layout itself has had all along — and the canvas draws the
-  images as ghosts, so half a map is never authored blind. Within a drawn area the one gameplay-affecting
-  species, two-block grass, is decided on the orbit representative (`OrbitScatter.Canonical`) so the same
-  ground is tall or bare for every team, while the flowers beside it stay free: two identical flower beds
-  read as a glitch and decide nothing.
+  images as ghosts, so half a map is never authored blind. Within a drawn area every field the overlay reads
+  is read on the orbit representative (`OrbitScatter.Canonical`) too, so the same ground is tall, short or
+  bare for every team — grass, fern and flowers alike, not the two-block cover alone (§3).
 
   Fanning the *site* alone is not enough and this is the mistake worth naming: mirroring only the anchor
   leaves both teams with the same unmirrored prop shape, so a boulder with a lobe to its east has a lobe to
@@ -252,10 +251,17 @@ density field, `Scale`/`Octaves` shaping it, and `FernShare`/`FlowerShare`/`Flow
 the species. `DressingPalette.SoilShare` is the eligibility read — sand takes a fraction of what grass does,
 quartz none.
 
-The split that matters here is not a species one. Grass, fern and flowers are one block tall and walked
-straight through, so they are **cosmetic** and scatter freely; the two-block `TallGrass` and `LargeFern`
-break a sight line and are marked **gameplay**, which routes them through the fan of §2. A plant's
-`PropClass` is declared on the palette row, not inferred at placement.
+**Every field the overlay reads is read at the cell folded into the board's primary image**, exactly as a
+terrain pattern is (`terrain-painting.md` TP21) — the density field, the flower field, the species shares and
+the tall share alike. A noise field is a function of position, so without the fold a cell and its image sample
+two different places and grow two different things: a meadow thick for one team and thin for the other, a fern
+on one side of a board and bare ground on its mirror. Folding asks the orbit's representative once, so a cell
+grows what its image grows. What the cell keeps for itself is what it is made of — `SoilShare` reads the paint
+actually under this block, which is symmetric already because it was painted through the same fold.
+
+The split that survives is not a symmetry one. Grass, fern and flowers are one block tall and walked straight
+through; the two-block `TallGrass` and `LargeFern` break a sight line, which is what keeps them off a goal's
+own ground (§3.1) and nothing else.
 
 ### 3.1 The ground a goal is read against
 

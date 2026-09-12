@@ -4,25 +4,6 @@ using PgmStudio.Minecraft.Painting;
 
 namespace PgmStudio.Minecraft.Dressing;
 
-/// <summary>
-/// Whether a prop changes how the map <em>plays</em> or only how it looks — the one distinction the whole
-/// dressing stage is arbitrated by (docs/world-export/ideas.md G162).
-///
-/// <para>A boulder is cover, a tree breaks a sightline, tall grass hides a footstep: place one of those on a
-/// map and not on its mirror and you have decided a fight. So <see cref="Gameplay"/> props are generated on
-/// the authored unit and re-fanned across the symmetry orbit, exactly as the layout itself is. A flower bed
-/// decides nothing, and mirroring it would make two halves of a map read as eerily identical, so
-/// <see cref="Cosmetic"/> props scatter freely — reproducibly, since the field is a hash of the cell, but not
-/// symmetrically.</para>
-/// </summary>
-public enum PropClass
-{
-    /// <summary>Decides nothing; free to scatter unmirrored.</summary>
-    Cosmetic,
-    /// <summary>Cover, collision or vision; must exist for every team or none.</summary>
-    Gameplay,
-}
-
 /// <summary>The ground cover a flora overlay scatters, and how thickly. Everything about it is a noise field
 /// evaluated per cell, so it adds no state and re-exports identically.</summary>
 /// <param name="Coverage">0–1; how much of the eligible ground carries anything at all.</param>
@@ -34,7 +15,7 @@ public enum PropClass
 /// <em>fields</em> rather than confetti, which is why they have a field of their own.</param>
 /// <param name="FlowerScale">The flower field's feature size — how big a patch of one colour gets.</param>
 /// <param name="TallShare">0–1; how much of the plain cover is tall (two-block) grass, which is the part of
-/// the overlay that hides a player and so classes as gameplay.</param>
+/// the overlay that hides a player and so stays off a goal's own ground.</param>
 public sealed record FloraSpec(
     double Coverage = 0.45,
     int Scale = 12,

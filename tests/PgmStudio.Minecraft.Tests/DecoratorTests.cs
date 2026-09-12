@@ -1101,6 +1101,37 @@ public sealed class DecoratorTests
         await Assert.That(unmirrored).IsEqualTo(0);
     }
 
+    /// <summary><b>A cell and its image grow the same thing.</b> Every field the overlay reads is a function
+    /// of position, so read at the cell itself a meadow comes out thick for one team and thin for the other
+    /// and a fern stands on one side of a board with bare ground on its mirror. The fields are read at the
+    /// orbit's representative instead, the way a terrain pattern is, so the fold decides once.
+    ///
+    /// <para>The area is drawn over one half and its image covers the other, which is how a board states one:
+    /// the two halves are grown by two turns of the placement loop, not by one pass over a symmetric ring.</para>
+    /// </summary>
+    [Test]
+    public async Task Cover_grows_the_same_plant_at_a_cell_and_at_its_image()
+    {
+        var (world, top) = Plateau(80, from: -40);
+        var tally = Decorator.Decorate(world, Context(top,
+            [new FloraProp
+            {
+                Id = "f", Points = [[-40, -40], [40, -40], [40, 0], [-40, 0]],
+                Spec = new FloraSpec(Coverage: 0.6, TallShare: 0.2), Seed = 7,
+            }], symmetry: "rot_180"));
+
+        // Both have to be there or the comparison below proves nothing: a board that grew nothing, or one
+        // that grew the same block everywhere, matches its own image for the wrong reason.
+        await Assert.That(tally.Plants).IsGreaterThan(500);
+        await Assert.That(top.Keys.Count(cell => world.GetBlock(cell.X, 8, cell.Z).Id == Blocks.Air))
+            .IsGreaterThan(500);
+
+        var differ = top.Keys.Count(cell =>
+            world.GetBlock(cell.X, 8, cell.Z) != world.GetBlock(-cell.X - 1, 8, -cell.Z - 1)
+            || world.GetBlock(cell.X, 9, cell.Z) != world.GetBlock(-cell.X - 1, 9, -cell.Z - 1));
+        await Assert.That(differ).IsEqualTo(0);
+    }
+
     // ── areas of cover ─────────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task Cover_grows_inside_the_drawn_area_and_stops_at_its_edge()

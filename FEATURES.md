@@ -1549,6 +1549,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   Everything else is compared as id and data both. A column's finish is one XOR-folded fingerprint over its
   blocks' heights and materials, so the sections may arrive in any order.
 
+- **The flora overlay folds too, and the whole of it (WE123).** A ground cover is noise, so the density
+  field, the flower field and the species shares are functions of position — read at the cell itself, a cell
+  and its image grow two different things, and a board comes out with a meadow thick for one team and thin
+  for the other. Only the two-block cover folded, on the argument that a flower bed decides nothing and two
+  identical ones read as a glitch; the author's ruling is that a board is fair or it is not, and this is a
+  pattern like any other. Every field `PickPlant` reads now goes through `OrbitScatter.Canonical`, the same
+  fold `WE42` paints through. What a cell still answers for itself is `SoilShare`, the paint actually under
+  the block, which is symmetric already for the same reason. `PropClass` is deleted with the rule it existed
+  to state — nothing read it, and `Plant.Tall` is what keeps two-block cover off a goal's own ground.
+  Measured on `fable-saltwharf`, the one board of four carrying a flora prop: **1,788 of 11,992 columns not
+  mirrored, and 32 after** — of which none is a plant the fold decides. Sixteen are a spawn's door-approach
+  keep-out landing a block off its mirror and the flora correctly refused under it, and sixteen are a loft
+  ladder and a doorway seated from the low end of their run. (`DecoratorTests`,
+  `docs/world-export/decoration.md` §3)
+
 - **A pattern samples the cell folded into the board's primary image (WE42).** Every terrain pattern is a
   function of position — a voronoi asks which site is nearest, a field asks what the noise reads — so on a
   mirrored board a cell and its image sampled two different places and resolved to two different blocks: a

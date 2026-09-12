@@ -8,8 +8,9 @@ namespace PgmStudio.Geom.Algorithms;
 /// <para>This is the whole of "fair by construction" for scattered dressing. A prop that affects play — a
 /// boulder giving cover, a tree breaking a sightline — must exist for both teams or neither, and filtering a
 /// free scatter afterwards cannot fix that: the images that survive are the ones that happened to agree.
-/// Deciding on the representative removes the question. Cosmetic dressing does not go through here at all,
-/// because two identical flower beds read as a rendering artefact and mirroring buys nothing.</para>
+/// Deciding on the representative removes the question. <b>Cosmetic dressing comes through here too</b>: a
+/// board is fair or it is not, and a ground cover that grows thick for one team and bare for the other is a
+/// difference a player sees whether or not it is one a player can use.</para>
 /// </summary>
 public static class OrbitScatter
 {

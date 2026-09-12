@@ -629,29 +629,33 @@ public static class Decorator
     /// <summary>What grows in one cell, or null for bare ground. Two fields decide it: a density field says
     /// whether anything grows at all — which is what turns an even speckle into meadows and clearings — and a
     /// second, coarser field paints flowers in <em>patches</em>, so an area gets fields of one colour rather
-    /// than confetti.</summary>
+    /// than confetti.
+    ///
+    /// <para><b>Every field is read at the cell folded into the board's primary image</b>, exactly as a
+    /// terrain pattern is (<c>terrain-painting.md</c> TP21). A noise field is a function of position, so a
+    /// cell and its image sample two different places and grow two different things — one team's meadow thick
+    /// where the other's is bare, a fern on one side of a board and nothing on the other. The fold asks the
+    /// orbit's representative once, so a cell grows what its image grows. What the cell itself still decides
+    /// is what it is made of: <paramref name="soilShare"/> is the paint actually under this block, which is
+    /// symmetric already because it was painted through the same fold.</para></summary>
     private static Plant? PickPlant(FloraSpec flora, uint seed, int x, int z, double soilShare, DressingSymmetry symmetry)
     {
-        var density = PatternNoise.Fbm(x, z, seed, flora.Scale, flora.Octaves);
+        var (fx, fz) = symmetry.Canonical(x, z);
+
+        var density = PatternNoise.Fbm(fx, fz, seed, flora.Scale, flora.Octaves);
         if (density < 1 - flora.Coverage * soilShare) return null;
 
-        // Tall cover hides a crouching player, so its cell is decided on the orbit representative — the same
-        // ground is tall or bare for every team. The rest of the overlay decides nothing and stays free.
-        if (flora.TallShare > 0)
-        {
-            var (rx, rz) = symmetry.Canonical(x, z);
-            if (PatternNoise.Unit(rx, rz, seed + 61) < flora.TallShare)
-                return PatternNoise.Unit(rx, rz, seed + 62) < flora.FernShare
-                    ? DressingPalette.LargeFern : DressingPalette.TallGrass;
-        }
+        if (flora.TallShare > 0 && PatternNoise.Unit(fx, fz, seed + 61) < flora.TallShare)
+            return PatternNoise.Unit(fx, fz, seed + 62) < flora.FernShare
+                ? DressingPalette.LargeFern : DressingPalette.TallGrass;
 
-        var flowerField = PatternNoise.Fbm(x, z, seed + 33, flora.FlowerScale, 2);
-        if (flowerField > 1 - flora.FlowerShare && PatternNoise.Unit(x, z, seed + 44) < 0.7)
+        var flowerField = PatternNoise.Fbm(fx, fz, seed + 33, flora.FlowerScale, 2);
+        if (flowerField > 1 - flora.FlowerShare && PatternNoise.Unit(fx, fz, seed + 44) < 0.7)
         {
-            var pick = PatternNoise.Unit(x, z, seed + 88);
+            var pick = PatternNoise.Unit(fx, fz, seed + 88);
             return DressingPalette.Flowers[(int)(pick * DressingPalette.Flowers.Length) % DressingPalette.Flowers.Length];
         }
-        return PatternNoise.Unit(x, z, seed + 21) < flora.FernShare
+        return PatternNoise.Unit(fx, fz, seed + 21) < flora.FernShare
             ? DressingPalette.Fern : DressingPalette.Grass;
     }
 
