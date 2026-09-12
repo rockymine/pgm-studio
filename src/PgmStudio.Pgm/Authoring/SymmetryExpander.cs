@@ -53,6 +53,7 @@ public static class SymmetryExpander
             Wools = FillWools(intent.Wools, teams, sym, order),
             Destroyables = FillDestroyables(intent.Destroyables, teams, sym, order),
             Cores = FillCores(intent.Cores, teams, sym, order),
+            ControlPoints = FillControlPoints(intent.ControlPoints, sym, order),
         };
     }
 
@@ -258,6 +259,52 @@ public static class SymmetryExpander
         }
         return result;
     }
+
+    /// <summary>
+    /// Fan the capture points across the orbit. <b>The one fan here that is not keyed on a team</b>: a point
+    /// belongs to nobody, so what is orbited is its position rather than its owner, and the orbit's order
+    /// rather than the team count decides how many images it has.
+    ///
+    /// <para>A point standing on the centre of symmetry is <b>its own image</b> and stays one point. That is
+    /// not a special case bolted on — it falls out of comparing each image to the points already placed — and
+    /// it is what makes the author's rule authorable: state the middle and one side, get a middle and a
+    /// matched pair on two teams, a middle and a ring of four on four.</para>
+    ///
+    /// <para>Images of a <em>named</em> point take the name with an index, because two rows reading "Side" in
+    /// the sidebar name one hill twice. An unnamed point stays unnamed on every image: PGM numbers those
+    /// itself, better than anything invented here.</para>
+    /// </summary>
+    private static List<ControlPointIntent>? FillControlPoints(
+        List<ControlPointIntent>? authored, SymmetryIntent sym, int order)
+    {
+        if (authored is null) return null;
+        var result = authored.Select((p, index) => p with { Stamp = Seed(p.Stamp, "controlpoint", index) }).ToList();
+        var placed = result.Select(p => (p.Anchor.X, p.Anchor.Z)).ToList();
+
+        foreach (var src in result.ToList())
+            for (var k = 1; k < order; k++)
+            {
+                var anchor = TransformPt(src.Anchor, sym, k);
+                // Its own image, or an image another authored point already occupies: either way the board
+                // has this point already, and adding it again would stack two goals on one pad.
+                if (placed.Any(seen => SamePoint(seen, (anchor.X, anchor.Z)))) continue;
+                placed.Add((anchor.X, anchor.Z));
+                result.Add(src with
+                {
+                    Stamp = src.Stamp.At(k),
+                    Name = src.Name.Length > 0 ? $"{src.Name} {k + 1}" : "",
+                    Anchor = anchor,
+                    PadBox = TransformBox(src.PadBox, sym, k),
+                    CaptureBox = TransformBox(src.CaptureBox, sym, k),
+                });
+            }
+        return result;
+    }
+
+    // Half a block: an anchor is authored on the half-block lattice, so two anchors nearer than that are the
+    // same column and the same pad.
+    private static bool SamePoint((double X, double Z) a, (double X, double Z) b)
+        => Math.Abs(a.X - b.X) < 0.5 && Math.Abs(a.Z - b.Z) < 0.5;
 
     /// <summary>Orbit a resolved block volume: its footprint reflects/rotates, its height does not.</summary>
     private static BlockBox? TransformBox(BlockBox? box, SymmetryIntent sym, int k)

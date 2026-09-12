@@ -51,6 +51,43 @@ public static class ObjectiveDefaults
     public const string SecondMode = "glass";
     public const string SecondModeAfter = "20m";
 
+    // ── control point (CP/KotH) ────────────────────────────────────────────────────────────────────────
+    //
+    // A hill is not a structure that floats: it is ground players stand on, so the pad replaces the top
+    // course of the terrain and the capture volume is the air above it. Everything below is the corpus's
+    // own centre, measured in docs/pgm/control-points.md §6, except the square — that is the author's
+    // ruling (docs/gameplay/approaches.md), and round is legal but not what the studio lays.
+
+    /// <summary>The pad's side, in blocks. The corpus capture footprint is 7 × 7 at the median, and the
+    /// footprint a capture region covers is the pad's own in more than half of it, so one number answers
+    /// both.</summary>
+    public const int ControlPointSize = 7;
+
+    /// <summary>The closed range a pad's side may take. Below 3 there is no pad to read the pie on; above 15
+    /// a point stops being a place and becomes an area, and the corpus's widest square pad is 19.</summary>
+    public const int MinControlPointSize = 3;
+    public const int MaxControlPointSize = 15;
+
+    /// <summary>How many blocks of the air over the pad count as standing on it. Three is the corpus median,
+    /// and it is what makes the point capturable at all: a player on the pad occupies the block one above
+    /// it, so a volume that does not reach there is a hill nobody can take.</summary>
+    public const int ControlPointCaptureHeight = 3;
+
+    /// <summary>What a point pays its owner per second, and how long a team must hold it to take it. The
+    /// corpus is emphatic on both — 151 of 316 points score 1, and 193 of 316 capture in 5 seconds.</summary>
+    public const double ControlPointPoints = 1;
+    public const string ControlPointCaptureTime = "5s";
+
+    /// <summary>The score that ends a capture match. 750 is the modal corpus limit (44 of the 95 KotH maps
+    /// that state one) and pairs with the rest of these: three points at 1/s is roughly eight minutes of a
+    /// team holding two of them.</summary>
+    public const int ControlPointScoreLimit = 750;
+
+    /// <summary>The colour a pad is laid in, and therefore the colour it returns to whenever the point goes
+    /// neutral — PGM restores the blocks it found rather than choosing one. White is what 263 of 359 corpus
+    /// pads are, and it is the only neutral that reads as neutral against sixteen team dyes.</summary>
+    public const string ControlPointColor = "white";
+
     // ── core (DTC) ─────────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>The lava's own footprint, in blocks — <b>what an author states</b>, and one of the three

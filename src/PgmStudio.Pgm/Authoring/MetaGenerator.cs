@@ -8,7 +8,7 @@ using Dict = Dictionary<string, object?>;
 /// Map-identity slice of the declarative generator (new-map-authoring.md): sets the map name and the
 /// auto-derived fields — version, phase, gamemode, and the objective text. Version and phase are fixed;
 /// gamemode and the objective both follow which objective modules the intent actually carries (wools,
-/// destroyables, cores), the same rule <see cref="Gamemodes"/> applies to a parsed map
+/// destroyables, cores, capture points), the same rule <see cref="Gamemodes"/> applies to a parsed map
 /// (destroyables-and-cores.md OB7), so a destroy or core board is labelled by what it carries rather than by
 /// whatever the boilerplate names first.
 /// <para>The creation date is the one identity field the studio cannot derive: it is whatever the intent
@@ -62,6 +62,9 @@ public static class MetaGenerator
         var wools = PerTeam(intent.Wools?.Count ?? 0);
         var destroyables = PerTeam(intent.Destroyables?.Count ?? 0);
         var cores = PerTeam(intent.Cores?.Count ?? 0);
+        // Not per team: a capture point belongs to nobody, so every player on the board attacks all of them
+        // and the count is the count.
+        var points = intent.ControlPoints?.Count ?? 0;
 
         var clauses = new List<string>();
         if (wools == 1) clauses.Add("capture the wool");
@@ -72,6 +75,9 @@ public static class MetaGenerator
 
         if (cores == 1) clauses.Add("leak the enemy's core");
         else if (cores > 1) clauses.Add("leak the enemy's cores");
+
+        if (points == 1) clauses.Add("hold the hill");
+        else if (points > 1) clauses.Add("hold the hills");
 
         if (clauses.Count == 0) return "";
 

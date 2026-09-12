@@ -65,6 +65,7 @@ null `cores` and nothing about cores is generated or cleared.
 | `wools` | per wool: owner, colour, room rects, the source point, and one monument per capturing team |
 | `cores` | per core: owner, anchor, the casing's measurements, and `leak` |
 | `destroyables` | per destroyable: owner, name, anchor, its shape, what it is built of and its float |
+| `controlPoints` · `scoreLimit` | per capture point: name, anchor, pad size, what holding it pays and how long it takes — and the score the match ends at. Owned by nobody, so unlike every other objective they carry no team. **The tool has no step for these** (`TC7`): they are stated through the API (`docs/pgm/control-points.md` §9), carried here, and projected like any other slice |
 | `waterLanes` | the late-opening gaps — carried, never authored here (below) |
 | `structures` · `spawns[].piece` · `wools[].piece`/`entries` | written only by the plan compiler; consumed by the world export |
 
@@ -144,9 +145,10 @@ no symmetry the intent passes through as authored and every team's units must be
 ## What a save produces
 
 `IntentGenerator.Apply` runs the slices in a fixed order, and the order is load-bearing: symmetry expands
-first, then meta, teams, wools, destroyables, cores, water lanes, and **build last** — because the build
-slice's broad "not a void block" rule allows editing any solid block and PGM stops at the first apply-rule
-that decides, so a build rule emitted before the spawn and wool-room protections would short-circuit them.
+first, then meta, teams, wools, destroyables, cores, capture points, water lanes, and **build last** — because
+the build slice's broad "not a void block" rule allows editing any solid block and PGM stops at the first
+apply-rule that decides, so a build rule emitted before the spawn and wool-room protections would
+short-circuit them.
 
 The output is a real PGM document. The intent above generates **19 regions, 20 filters and 11 apply-rules**
 from its 2 teams and 2 wools. The Review phase's tree shows the eight of those regions that carry a name —

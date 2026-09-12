@@ -98,6 +98,7 @@ public static class WorldBuilder
             Wools = intent.Wools?.Select((w, i) => w with { Stamp = Seed(w.Stamp, "wool", i) }).ToList(),
             Destroyables = intent.Destroyables?.Select((d, i) => d with { Stamp = Seed(d.Stamp, "destroyable", i) }).ToList(),
             Cores = intent.Cores?.Select((c, i) => c with { Stamp = Seed(c.Stamp, "core", i) }).ToList(),
+            ControlPoints = intent.ControlPoints?.Select((p, i) => p with { Stamp = Seed(p.Stamp, "controlpoint", i) }).ToList(),
             Structures = intent.Structures is not { } structures ? null : new StructureIntent
             {
                 RedstoneLines = [.. structures.RedstoneLines.Select((l, i) => l with { Stamp = Seed(l.Stamp, "redstoneline", i) })],
@@ -309,6 +310,9 @@ public static class WorldBuilder
         var resolvedCores = StampCores(
             world, terrain, intent.Cores, teams, pendingMarkers, pendingCeiling, provenance,
             built);
+        // Before the terrain finish, like the two above it: the finish paints stone and the pad is clay, so a
+        // pad already laid is a pad the finish leaves alone. Laid after it, the pad would be painted over.
+        var resolvedPoints = StampControlPoints(world, terrain, intent.ControlPoints, provenance);
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
@@ -484,6 +488,7 @@ public static class WorldBuilder
             Wools = resolvedWools,
             Destroyables = resolvedDestroyables,
             Cores = resolvedCores,
+            ControlPoints = resolvedPoints,
         };
 
         // One list, in build order: what the build could not raise as authored — a goal over the ceiling, a
@@ -692,6 +697,40 @@ public static class WorldBuilder
                 Owner = b.Owner, Name = b.Name, Style = b.Style, Materials = materials,
                 Anchor = b.Anchor, Float = b.Float, Box = box,
             });
+        }
+        return resolved;
+    }
+
+    /// <summary>
+    /// Lay each capture point's pad and return the intent with its two boxes resolved — the same one-box rule
+    /// the other objectives keep (OB8): the blocks laid here are the blocks the generator scopes its regions
+    /// to, so the pad PGM recolours cannot miss the pad a player stands on.
+    ///
+    /// <para>No goal marker and no build-ceiling entry, and both for the same reason: a hill is <b>ground</b>.
+    /// A marker names the team a goal belongs to and a point belongs to nobody; the ceiling catches a
+    /// structure raised over what a player can reach, and a pad cut into the terrain is by construction under
+    /// it. What it does take is the provenance claim, so the dressing pass does not stand a tree on the
+    /// hill.</para>
+    /// </summary>
+    private static List<ControlPointIntent>? StampControlPoints(
+        VoxelWorld world, BuiltTerrain terrain, List<ControlPointIntent>? points, WorldProvenance provenance)
+    {
+        if (points is null) return null;
+        var resolved = new List<ControlPointIntent>(points.Count);
+        foreach (var point in points)
+        {
+            var surface = terrain.SurfaceFor(point.Layer);
+            var (ax, az) = ObjectiveFootprint.AnchorCell(point.Anchor.X, point.Anchor.Z);
+            var size = Math.Clamp(point.Size, ObjectiveDefaults.MinControlPointSize, ObjectiveDefaults.MaxControlPointSize);
+
+            var pad = ControlPointStamper.PadBox(surface, ax, az, size);
+            var capture = ControlPointStamper.CaptureBox(pad);
+            ControlPointStamper.StampPad(world, pad, surface, Blocks.StainedClay,
+                                         BlockColors.BlockDamage(ObjectiveDefaults.ControlPointColor));
+            ControlPointStamper.ClearCaptureVolume(world, capture);
+            provenance.ClaimRect(pad.MinX, pad.MinZ, pad.MaxX, pad.MaxZ, ProvenancePass.Structure, point.Stamp);
+
+            resolved.Add(point with { Size = size, PadBox = pad, CaptureBox = capture });
         }
         return resolved;
     }

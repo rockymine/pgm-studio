@@ -3044,6 +3044,26 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   37 proto, 27 modern-world and 9 `payloads` maps), and all **286** carrying a control point or a score
   module survive the XML round trip with every point and knob unchanged. `docs/pgm/control-points.md`.
   (PG5, OB10)
+- **KotH boards are authorable: the pad, the intent slice, and the score it pays into.** An agent adds one
+  array to the intent it already posts — `PUT /api/map/{slug}/intent` with `controlPoints` — and the export
+  does the rest. No second endpoint and no new document. **The stamper is the one that differs from every
+  other objective's**: a destroyable and a core float, so the gap is what a raid climbs, but a hill is
+  *ground* — `ControlPointStamper` replaces the terrain's top course over a square footprint with white
+  stained clay and makes the three blocks of air above it the capture volume, because a pad that floated
+  would be a hill nobody could stand on. It is laid **level** (the progress pie is drawn about the centre of
+  the blocks PGM finds, so a pad following a slope draws it across several courses), skirts down a bounded
+  fall where the ground drops away, and clears the volume over it. Both emitted regions are the stamper's own
+  boxes (OB8) — the capture volume, and the pad course alone as the progress display, which is one block
+  thick and entirely colour-affected; no owner-display region, since at zero progress PGM already paints the
+  progress region in the controller's colour. `ControlPointGenerator` writes the studio's convention out in
+  full rather than trusting either element's defaults, and `required="false"` above all: PGM defaults it to
+  **true**, and a point that keeps that default ends the match for whoever captures first. It brings its own
+  `<score>` (750, the corpus mode) because without one PGM builds no score module and every point pays
+  nothing, silently, all match. **Capture points fan by position, not by team** — the one orbit here that
+  does — so a point on the centre of symmetry is its own image and stays one point: state the middle and one
+  side and a two-team board comes back a middle and a matched pair, a four-team board a middle and a ring of
+  four. Proven end to end over HTTP: compile, sketch, finish, state the points, and `GET …/xml` answers a
+  three-hill KotH map with every region resolved. `docs/pgm/control-points.md` §9. (WE110, PG5)
 - **DTM: destroyables + objective modes — parse, write, codec.** `<destroyables>` and `<modes>` now
   round-trip: `Destroyable` (owner · region · materials · completion · show · mode membership) and
   `ObjectiveMode` (after · material · show-before · filter · action) on `MapXml`, through `Serializer`/

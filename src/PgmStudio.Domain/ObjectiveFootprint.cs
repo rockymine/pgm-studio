@@ -42,6 +42,10 @@ public static class ObjectiveFootprint
     /// <summary>A core's casing is square in plan, so its footprint is its size both ways.</summary>
     public static (int Width, int Depth) Core(int size) => (size, size);
 
+    /// <summary>A control point's pad is square too, by the author's ruling — the ground the capture volume
+    /// stands on, and the same rect the capture region scopes.</summary>
+    public static (int Width, int Depth) ControlPoint(int size) => (size, size);
+
     /// <summary>
     /// The cell a goal's anchor stands in. An anchor is authored as a position — a piece-relative half-cell
     /// offset resolves to whole or half values — and every rule that reads a goal reads the block it lands

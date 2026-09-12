@@ -55,6 +55,20 @@ public sealed record MapIntent
     /// Null/empty leaves them untouched.</summary>
     public List<CoreIntent>? Cores { get; init; }
 
+    /// <summary>The capture points (CP/KotH). <b>Unlike every other objective these are owned by nobody</b>,
+    /// so they do not fan by team: a point at the board's centre of symmetry is one point, and a point off it
+    /// is fanned onto its own orbit images (<see cref="SymmetryExpander"/>). An author states the centre and
+    /// one side; the expander produces the rest. Null/empty leaves them untouched.</summary>
+    public List<ControlPointIntent>? ControlPoints { get; init; }
+
+    /// <summary>The score that ends the match. Null takes
+    /// <see cref="ObjectiveDefaults.ControlPointScoreLimit"/> on a board that carries a scoring capture
+    /// point, which is the corpus's own answer, and nothing at all on a board that does not — and that
+    /// difference is load-bearing rather than cosmetic: with no <c>&lt;score&gt;</c> element PGM builds no
+    /// score module, and a point's <c>points</c> rate then pays nothing for the whole match. Zero is an
+    /// author saying they want no limit, and is left alone.</summary>
+    public int? ScoreLimit { get; init; }
+
     /// <summary><b>When each objective stops being what it is made of.</b> A destroy map whose monuments and
     /// cores stay obsidian for the whole match is a map that does not end: the material is what makes a goal
     /// a goal, and the ladder is what makes it winnable. Null takes
@@ -73,8 +87,12 @@ public sealed record MapIntent
         hasWools: Wools is { Count: > 0 },
         hasRealDestroyable: Destroyables is { Count: > 0 },
         hasCores: Cores is { Count: > 0 },
-        // The intent authors no capture objective and no score module (`TC7`), so neither can be carried.
-        hasControlPoints: false, hasKing: false, scoresKillsOrDeaths: false);
+        // What the studio authors is a hill, so the board is KotH rather than CP: one PGM module, and the
+        // spelling is the choice. Kills and deaths are never scored — a capture board's <score> states the
+        // limit it ends at and nothing else, which is what keeps it off the deathmatch tag.
+        hasControlPoints: false,
+        hasKing: ControlPoints is { Count: > 0 },
+        scoresKillsOrDeaths: false);
 
     /// <summary>Map identity: name + authors/contributors. Version (1.0.0) and proto (1.5.0) are fixed; the
     /// gamemode and the objective text are auto-derived from which objective modules the intent carries
@@ -593,6 +611,62 @@ public sealed record CoreIntent
     /// <summary>How many blocks players must dig into the terrain under the core before its lava can leak.
     /// Zero when breaching the casing is enough on its own.</summary>
     public int DigDepth => ObjectiveDefaults.DigDepth(Leak, Float);
+}
+
+/// <summary>
+/// One capture point (CP/KotH): a square pad of ground a team owns by standing on it, paying out score for
+/// as long as it holds. <c>docs/pgm/control-points.md</c> is the contract; what a board should look like is
+/// the author's and is in <c>docs/gameplay/approaches.md</c>.
+///
+/// <para><b>It has no owner, and that is the difference from every other objective here.</b> A wool, a
+/// destroyable and a core each belong to a team and are fanned by team; a point belongs to nobody and is
+/// fanned by <em>position</em>. A point standing at the board's centre of symmetry is its own orbit image
+/// and stays one point; one off the centre becomes as many as the symmetry has images.</para>
+///
+/// <para>Only the four fields above <see cref="Anchor"/> are knobs. The rest of what PGM will read off the
+/// point — that it is not <c>required</c>, that it keeps partial progress, passes through a neutral state,
+/// shows its progress and gives a crowd no bonus — is the studio's one convention, written the same on every
+/// board by <see cref="ControlPointGenerator"/>. <c>required</c> especially is not a knob: PGM defaults it to
+/// true, and a point that keeps that default ends the match for whoever first captures it.</para>
+/// </summary>
+public sealed record ControlPointIntent
+{
+    /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
+    /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
+    /// meant.</summary>
+    public string? Layer { get; init; }
+
+    /// <summary>Which authored unit this is an image of, and which image — set by whoever fanned the orbit
+    /// and carried through to the stamper, which receives an already-fanned list and can only count.</summary>
+    public StampId Stamp { get; init; }
+
+    /// <summary>What the sidebar calls it. Empty lets PGM name it: "Hill", "Hill 2", "Hill 3", off one
+    /// counter running across the document — which is a better default than anything invented here, so an
+    /// unnamed point is left unnamed rather than given a name the author never chose.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>The marker column the pad is centred on. No Y: the pad is cut into whatever ground the world
+    /// build solves under it, so its height is the terrain's answer rather than the author's.</summary>
+    public Pt Anchor { get; init; }
+
+    /// <summary>The pad's side, in blocks — square by the author's ruling, and bounded by
+    /// <see cref="ObjectiveDefaults.MinControlPointSize"/>/<see cref="ObjectiveDefaults.MaxControlPointSize"/>.</summary>
+    public int Size { get; init; } = ObjectiveDefaults.ControlPointSize;
+
+    /// <summary>What holding it pays its owner, per second.</summary>
+    public double Points { get; init; } = ObjectiveDefaults.ControlPointPoints;
+
+    /// <summary>How long a team must hold it alone to take it, as a PGM duration.</summary>
+    public string CaptureTime { get; init; } = ObjectiveDefaults.ControlPointCaptureTime;
+
+    /// <summary>The pad's resolved block course — one block tall, filled by the world-export path, the only
+    /// place that knows the terrain it was cut into. The generator emits it as the point's progress display
+    /// region, so the blocks PGM recolours are the blocks the stamper laid (OB8).</summary>
+    public BlockBox? PadBox { get; init; }
+
+    /// <summary>The resolved volume a player stands in to hold it — the pad's footprint and the air over it.
+    /// Emitted verbatim as the capture region.</summary>
+    public BlockBox? CaptureBox { get; init; }
 }
 
 /// <summary>

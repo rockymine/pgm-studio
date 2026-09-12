@@ -363,7 +363,7 @@ other under the rotation that swaps the spawns, about two-thirds of the way out 
 
 ## 8. What the studio does with one
 
-**It reads it, stores it and writes it back.** `MapParser.ParseControlPoints` reads both spellings into
+**It reads one, stores it and writes it back.** `MapParser.ParseControlPoints` reads both spellings into
 `Domain.ControlPoint`, carrying the element rather than resolving it; `ParseScore` reads `<score>` into
 `ScoreConfig`, or `null` where the map declares none. `XmlWriter` re-emits each point under the element it
 arrived in, `control_point` and `map_score` store it, and `Gamemodes.From` derives `cp`, `koth` and `tdm`
@@ -375,17 +375,54 @@ its nullable column, because PGM's default for it depends on the element — a h
 progress and a control point discards it, from the same unwritten `incremental` — so materialising one
 stores a different map.
 
+## 9. And what it builds
+
+An agent authors a capture board by adding one array to the intent it already posts to
+`PUT /api/map/{slug}/intent`. There is no second endpoint and no new document:
+
+```json
+"controlPoints": [
+  { "name": "North",  "anchor": { "x": 0, "y": 0, "z": -24 } },
+  { "name": "Middle", "anchor": { "x": 0, "y": 0, "z": 0 } },
+  { "name": "South",  "anchor": { "x": 0, "y": 0, "z": 24 } }
+]
+```
+
+Four fields are knobs — `name`, `anchor`, `size` and `points`, plus `captureTime` — and everything else PGM
+will read off the point is §7's convention, written the same on every board. `scoreLimit` sits beside them on
+the intent and defaults to 750 on a board carrying a point that pays.
+
+**The pad is cut into the ground rather than raised over it**, and that is the one way the stamper differs
+from every other objective's. A destroyable and a core float — the gap is what a raid climbs and what a core's
+lava falls through — but a hill is ground: `ControlPointStamper` replaces the terrain's top course over a
+square footprint with white stained clay, and the capture volume is the three blocks of air starting at that
+course. A pad that floated would be a hill nobody could stand on.
+
+Two properties the flat pad still has to hold. It is **level** across its whole footprint, because the
+progress pie is drawn about the centre of the blocks PGM finds and a pad following a slope draws that pie
+across several courses; where the ground falls away it skirts down to meet it, bounded, so it reads as a
+plinth cut into a hillside rather than a sheet hanging off one. And the volume over it is **cleared**, so a
+pad laid under a tree is still somewhere a player can stand.
+
+The two emitted regions are the stamper's own boxes (OB8): the capture region is the volume, the progress
+display region is the pad course alone — one block thick, every block of it colour-affected. No owner-display
+region is written, because at zero progress PGM paints the whole progress region in the controller's colour
+(§5) and a second region over the same blocks would be subtracted away to nothing.
+
 **What is not built** is on the board in `BACKLOG.md` under *"The hill: a goal owned by standing on it"*.
 Each sentence becomes false when its task ships:
 
-- **`PG6`** — a scoring point with no `<score>` element scores nothing; nothing says so.
-- **`PG7`** — a pad built in a material outside the colour-affected set never changes colour.
-- **`PG8`** — `required` left off ends the match on first capture, at every proto the studio reads.
-- **`WE110`** — the world export builds no pad.
-- **`TC7`** — the configure tool cannot place a hill.
-- **`TC8`** — nothing places the points from the board's symmetry.
+- **`PG6`** — a scoring point with no `<score>` element scores nothing; nothing says so for an **imported**
+  map. A studio-authored board always writes one.
+- **`PG7`** — an **imported** pad built in a material outside the colour-affected set never changes colour,
+  and nothing says so. The stamper only ever lays stained clay.
+- **`PG8`** — `required` left off ends the match on first capture, and an imported map that leaves it off is
+  not flagged. Every point the studio writes states `required="false"`.
+- **`TC7`** — the configure tool has no step for placing one; the API is the way in.
+- **`TC8`** — the plan model has no capture-point placement, so a plan-compiled intent states each point
+  rather than one side. An intent that carries a symmetry does fan them.
 
-What a generated board should *be* is not on that list. It is the author's rather than the corpus's, it has
-been ruled, and it is written down in `docs/gameplay/approaches.md`: square pads; two or three points on two
-teams and five on four; one point at the centre of symmetry and the rest to the sides, about two-thirds of
-the way out to a spawn.
+What a board should *be* is not on that list. It is the author's rather than the corpus's, it has been ruled,
+and it is written down in `docs/gameplay/approaches.md`: square pads; two or three points on two teams and
+five on four; one point at the centre of symmetry and the rest to the sides, about two-thirds of the way out
+to a spawn.

@@ -23,6 +23,9 @@ public static class IntentGenerator
         ModesGenerator.Apply(doc, intent);
         DestroyableGenerator.Apply(doc, intent);
         CoreGenerator.Apply(doc, intent);
+        // After the two a mode acts on, and outside the ladder: a capture point is held rather than broken,
+        // so nothing about it softens with time. It brings its own <score>, which is what makes it pay.
+        ControlPointGenerator.Apply(doc, intent);
         // Water lanes before build: a lane is geometry the build slice must not see, and emitting it first
         // keeps the region ordering stable regardless of how many lanes a plan carries.
         WaterLaneGenerator.Apply(doc, intent);
