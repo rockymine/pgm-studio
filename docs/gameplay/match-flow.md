@@ -942,7 +942,28 @@ floor can be left but not re-entered: a player drops out of it onto the objectiv
 One-way ground is how a board makes an approach committing — it is cheap to build, it costs a step of relief,
 and it turns a route into a decision.
 
-### 10.6 What this asks of an author
+### 10.6 The middle is worth more than the flanks
+
+**[author] Where a board carries a centre point and a pair of flank points, the centre pays a higher rate
+— often double.** A board whose points all pay the same is a board two teams settle by taking one each and
+standing on them: each side holds what is nearest, the score runs level, and nothing on the map is worth
+crossing it for. Making the middle worth two a second against the flanks' one puts a reason to leave a held
+point back into the match, and it is the rate rather than the geometry that does it.
+
+The corpus agrees and is narrower than it looks. **13 of the 83 KotH boards with two to six points vary the
+rate at all**, and in **10 of those 13 the highest-paying point is the one named for the middle** — `Centre`,
+`Middle`, `Mid`, `Center`, `Market Plaza`. The shape is a ratio of roughly two to one and it is written at
+every scale: `koth/catre_koth` and `koth/abaddon_koth` are both exactly **1 / 2 / 1** across three points,
+`koth/artext` is 1.4 / 2 / 1.4, `koth/downtown` 2.5 / 4 / 2.5, `koth/quadrival` 2.25 on four flanks against
+3.5 in the middle, `koth/toca` 4 against 7. The seventy that do not vary the rate are mostly boards with no
+distinguished centre to pay for.
+
+**[author] And the flanks want pushing out.** A pair of points close to the middle is a pair a team holding
+the middle also covers, which collapses the three back into one place. The corpus's own range for an
+off-centre point is 0.52 to 0.88 of the centre-to-spawn distance; a board that means its flanks to be
+separately fought for belongs at the top of it rather than at the median.
+
+### 10.7 What this asks of an author
 
 **[author]** These boards carry **more detail and more finesse** than a destroy board, and most of it has to
 be planned before anything is drawn. The order is the reverse of a landscape board's: the routes and the
