@@ -64,9 +64,9 @@ override-subtracts remove theirs last, so an override-add is how ground is put b
 override-subtract is how a hole is cut through ground that was itself an override.
 
 The **intent** is what the map is *for*: teams, spawns with yaw and protection, wools with rooms and
-monuments, destroyables, cores, capture points with the score they pay into, the build region and its holes,
-water lanes, and `structures` — entrance redstone, iron cubes and approach walls. It is the only layer that
-knows the objective.
+monuments, destroyables, cores, capture points with the score they pay into, the shops a board sells from and
+the keepers that open them, the build region and its holes, water lanes, and `structures` — entrance redstone,
+iron cubes and approach walls. It is the only layer that knows the objective.
 
 ## A worked example
 

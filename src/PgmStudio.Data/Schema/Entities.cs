@@ -62,18 +62,17 @@ public sealed class KitRow
     [Column("effects_json")] public string? EffectsJson { get; set; }   // [{type,duration,amplifier}]
 }
 
+// An item of a kit: the slot, and the stack in it. The stack is one JSON object rather than a column per
+// attribute because an ItemSpec is one statement with nineteen parts, nothing queries inside it, and a
+// shop icon stores the identical object (see `shop.categories_json`) — a second column layout for the same
+// type is how the two would come to disagree about what an item is.
 [Table("kit_item")]
 public sealed class KitItemRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("kit_id"), NotNull] public long KitId { get; set; }
     [Column("slot")] public int? Slot { get; set; }
-    [Column("material"), NotNull] public string Material { get; set; } = "";
-    [Column("amount")] public int? Amount { get; set; }
-    [Column("damage")] public int? Damage { get; set; }
-    [Column("unbreakable")] public bool? Unbreakable { get; set; }
-    [Column("team_color")] public bool? TeamColor { get; set; }
-    [Column("enchantments")] public string? Enchantments { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
 }
 
 [Table("kit_armor")]
@@ -82,10 +81,7 @@ public sealed class KitArmorRow
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("kit_id"), NotNull] public long KitId { get; set; }
     [Column("slot_name"), NotNull] public string SlotName { get; set; } = "";
-    [Column("material"), NotNull] public string Material { get; set; } = "";
-    [Column("unbreakable")] public bool? Unbreakable { get; set; }
-    [Column("team_color")] public bool? TeamColor { get; set; }
-    [Column("enchantments")] public string? Enchantments { get; set; }
+    [Column("spec_json"), NotNull] public string SpecJson { get; set; } = "{}";
 }
 
 [Table("region")]
@@ -222,6 +218,36 @@ public sealed class ScoreRow
     [Column("display")] public string? Display { get; set; }
     [Column("scoreboard_filter_key")] public string? ScoreboardFilterKey { get; set; }
     [Column("king"), NotNull] public bool King { get; set; }
+}
+
+// A shop and the whole tree under it. The categories are one JSON document rather than two more tables:
+// a category has no life outside its shop and an icon none outside its category, nothing queries into
+// either, and the studio's UI does not edit them.
+[Table("shop")]
+public sealed class ShopRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("shop_key"), NotNull] public string ShopKey { get; set; } = "";
+    [Column("name")] public string? Name { get; set; }
+    [Column("categories_json"), NotNull] public string CategoriesJson { get; set; } = "[]";
+}
+
+// A shopkeeper. `shop_key` is a reference and deliberately NOT a foreign key: a map may take its shops from
+// an <include> the studio reads without splicing, so a keeper naming a shop no row holds is a whole map.
+// Location and region are alternatives — the two forms PGM's point provider takes — and `yaw` is null where
+// the map stated no facing.
+[Table("shopkeeper")]
+public sealed class ShopkeeperRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("shop_key"), NotNull] public string ShopKey { get; set; } = "";
+    [Column("name")] public string? Name { get; set; }
+    [Column("mob")] public string? Mob { get; set; }             // NULL = PGM's villager
+    [Column("location_json")] public string? LocationJson { get; set; }
+    [Column("region_key")] public string? RegionKey { get; set; }
+    [Column("yaw")] public double? Yaw { get; set; }
 }
 
 [Table("mode")]

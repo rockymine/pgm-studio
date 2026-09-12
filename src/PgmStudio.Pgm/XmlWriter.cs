@@ -87,6 +87,11 @@ public static partial class XmlWriter
         }
         foreach (var r in m.Renewables) { Add(r.RenewFilter); Add(r.ReplaceFilter); }
         foreach (var p in m.ControlPoints) { Add(p.VisualMaterialsFilterId); Add(p.CaptureFilterId); Add(p.PlayerFilterId); }
+        foreach (var category in m.Shops.SelectMany(shop => shop.Categories))
+        {
+            Add(category.FilterId);
+            foreach (var icon in category.Icons) Add(icon.FilterId);
+        }
         if (m.Score is { } score) Add(score.ScoreboardFilterId);
         return refs;
     }
@@ -104,6 +109,8 @@ public static partial class XmlWriter
         foreach (var p in m.ControlPoints)
             foreach (var id in new[] { p.CaptureRegionId, p.ProgressRegionId, p.OwnerRegionId })
                 if (id.Length > 0 && !IsSynthetic(id)) refs.Add(id);
+        foreach (var keeper in m.Shopkeepers)
+            if (keeper.RegionId.Length > 0 && !IsSynthetic(keeper.RegionId)) refs.Add(keeper.RegionId);
         return refs;
     }
 
@@ -138,6 +145,8 @@ public static partial class XmlWriter
         WriteCores(root, m.Cores, m.Regions);
         WriteControlPoints(root, m.ControlPoints, m.Regions);
         WriteScore(root, m.Score);
+        WriteShops(root, m.Shops);
+        WriteShopkeepers(root, m.Shopkeepers);
 
         if (m.Filters.Count > 0) WriteFiltersBlock(root, m.Filters, ExternalFilterRefs(m));
         if (m.Regions.Count > 0 || m.ApplyRules.Count > 0)
@@ -248,31 +257,71 @@ public static partial class XmlWriter
             if (kit.Clear) ke.Add(new XElement("clear"));
             foreach (var item in kit.Items)
             {
-                var e = new XElement("item"); Set(e, "slot", item.Slot.ToString()); Set(e, "material", item.Material);
-                if (item.Amount != 1) Set(e, "amount", item.Amount.ToString());
-                if (item.ItemDamage != 0) Set(e, "damage", item.ItemDamage.ToString());
-                if (item.Unbreakable) Set(e, "unbreakable", "true");
-                if (item.TeamColor) Set(e, "team-color", "true");
-                WriteEnchantments(e, item.Enchantments); ke.Add(e);
+                var e = new XElement("item"); Set(e, "slot", item.Slot.ToString());
+                WriteItemSpec(e, item.Item); ke.Add(e);
             }
             foreach (var armor in kit.Armor)
             {
-                var e = new XElement(armor.SlotName); Set(e, "material", armor.Material);
-                if (armor.Unbreakable) Set(e, "unbreakable", "true");
-                if (armor.TeamColor) Set(e, "team-color", "true");
-                WriteEnchantments(e, armor.Enchantments); ke.Add(e);
+                var e = new XElement(armor.SlotName); WriteItemSpec(e, armor.Item); ke.Add(e);
             }
-            foreach (var eff in kit.Effects)
-            {
-                var e = new XElement("effect", eff.Type);
-                if (eff.Duration.Length > 0) Set(e, "duration", eff.Duration);
-                Set(e, "amplifier", eff.Amplifier.ToString());
-                ke.Add(e);
-            }
+            foreach (var eff in kit.Effects) ke.Add(EffectElem(eff));
         }
     }
 
-    private static void WriteEnchantments(XElement parent, string enchantments)
+    /// <summary>
+    /// One item stack onto the element that carries it — the shape a kit item, an armour piece and a shop
+    /// icon all state (<see cref="ItemSpec"/>). Attributes first and children after, and nothing written
+    /// that the map did not state: an unwritten attribute is PGM's default, and materialising one is a
+    /// different stack.
+    /// </summary>
+    private static void WriteItemSpec(XElement e, ItemSpec item)
+    {
+        Set(e, "material", item.Material);
+        if (item.Amount != 1) Set(e, "amount", item.Amount.ToString(CultureInfo.InvariantCulture));
+        if (item.Damage != 0) Set(e, "damage", item.Damage.ToString(CultureInfo.InvariantCulture));
+        if (item.Name.Length > 0) Set(e, "name", item.Name);
+        if (item.Lore.Length > 0) Set(e, "lore", item.Lore);
+        if (item.Color.Length > 0) Set(e, "color", item.Color);
+        if (item.Unbreakable) Set(e, "unbreakable", "true");
+        if (item.TeamColor) Set(e, "team-color", "true");
+        if (item.PreventSharing) Set(e, "prevent-sharing", "true");
+        if (item.Locked) Set(e, "locked", "true");
+        if (item.Projectile.Length > 0) Set(e, "projectile", item.Projectile);
+        if (item.Consumable.Length > 0) Set(e, "consumable", item.Consumable);
+        foreach (var word in item.Hidden) Set(e, $"show-{word}", "false");
+        WriteEnchantments(e, item.Enchantments);
+        WriteEnchantments(e, item.StoredEnchantments, "stored-");
+        foreach (var effect in item.Effects) e.Add(EffectElem(effect));
+        foreach (var attribute in item.Attributes)
+        {
+            var a = new XElement("attribute", attribute.Attribute);
+            if (attribute.Operation.Length > 0) Set(a, "operation", attribute.Operation);
+            Set(a, "amount", C(attribute.Amount));
+            e.Add(a);
+        }
+        WriteMatcher(e, "can-place-on", item.CanPlaceOn);
+        WriteMatcher(e, "can-destroy", item.CanDestroy);
+    }
+
+    private static XElement EffectElem(PotionEffect effect)
+    {
+        var e = new XElement("effect", effect.Type);
+        if (effect.Duration.Length > 0) Set(e, "duration", effect.Duration);
+        Set(e, "amplifier", effect.Amplifier.ToString(CultureInfo.InvariantCulture));
+        return e;
+    }
+
+    // A material matcher: the class words as their own empty element, everything else as one <material>.
+    private static void WriteMatcher(XElement parent, string name, List<string> words)
+    {
+        if (words.Count == 0) return;
+        var block = new XElement(name);
+        foreach (var word in words)
+            block.Add(word is "all-blocks" or "all-materials" ? new XElement(word) : new XElement("material", word));
+        parent.Add(block);
+    }
+
+    private static void WriteEnchantments(XElement parent, string enchantments, string prefix = "")
     {
         if (enchantments.Length == 0) return;
         foreach (var raw in enchantments.Split(','))
@@ -280,8 +329,8 @@ public static partial class XmlWriter
             var token = raw.Trim();
             if (token.Length == 0) continue;
             var idx = token.LastIndexOf(':');
-            if (idx >= 0) { var e = new XElement("enchantment", token[..idx]); Set(e, "level", token[(idx + 1)..]); parent.Add(e); }
-            else parent.Add(new XElement("enchantment", token));
+            if (idx >= 0) { var e = new XElement($"{prefix}enchantment", token[..idx]); Set(e, "level", token[(idx + 1)..]); parent.Add(e); }
+            else parent.Add(new XElement($"{prefix}enchantment", token));
         }
     }
 
@@ -503,6 +552,84 @@ public static partial class XmlWriter
         void Child(string tag, int? value)
         {
             if (value is { } v) block.Add(new XElement(tag, v.ToString(CultureInfo.InvariantCulture)));
+        }
+    }
+
+    /// <summary>
+    /// The <c>&lt;shops&gt;</c> catalogue. Flat and explicit, like every other block this writer emits:
+    /// authors nest containers to state a shared attribute once and a writer has nothing to share.
+    /// <para>A category's element <b>is</b> its icon, so the stack is written onto the category element
+    /// itself — which is where PGM reads it from.</para>
+    /// </summary>
+    private static void WriteShops(XElement parent, List<Shop> shops)
+    {
+        if (shops.Count == 0) return;
+        var block = new XElement("shops"); parent.Add(block);
+        foreach (var shop in shops)
+        {
+            var se = new XElement("shop"); Set(se, "id", shop.Id);
+            if (shop.Name.Length > 0) Set(se, "name", shop.Name);
+            block.Add(se);
+            foreach (var category in shop.Categories)
+            {
+                var ce = new XElement("category"); Set(ce, "id", category.Id);
+                WriteItemSpec(ce, category.Icon);
+                if (category.FilterId.Length > 0) Set(ce, "filter", category.FilterId);
+                se.Add(ce);
+                foreach (var icon in category.Icons) ce.Add(ShopIconElem(icon));
+            }
+        }
+    }
+
+    /// <summary>
+    /// One purchasable. A single payment is written onto the icon element, which is the spelling 766 of the
+    /// corpus's 907 icons use and what PGM falls back to reading when an icon carries no
+    /// <c>&lt;payment&gt;</c> child; several become children, because an icon can only state one of each
+    /// attribute.
+    /// <para>The purchase effect is written as <c>action</c> whichever attribute it arrived in. PGM resolves
+    /// <c>action</c> and <c>kit</c> through one call against one feature namespace, and a kit is an action
+    /// there (<see cref="ShopIcon.ActionId"/>), so the two are one reference under two spellings.</para>
+    /// </summary>
+    private static XElement ShopIconElem(ShopIcon icon)
+    {
+        var e = new XElement("item");
+        WriteItemSpec(e, icon.Item);
+        if (icon.FilterId.Length > 0) Set(e, "filter", icon.FilterId);
+        if (icon.ActionId.Length > 0) Set(e, "action", icon.ActionId);
+        if (icon.Payments.Count == 1) WritePayment(e, icon.Payments[0]);
+        else foreach (var payment in icon.Payments)
+        {
+            var pe = new XElement("payment"); WritePayment(pe, payment); e.Add(pe);
+        }
+        return e;
+    }
+
+    private static void WritePayment(XElement e, ShopPayment payment)
+    {
+        Set(e, "price", payment.Price.ToString(CultureInfo.InvariantCulture));
+        if (payment.Currency.Length > 0) Set(e, "currency", payment.Currency);
+        if (payment.Color.Length > 0) Set(e, "color", payment.Color);
+    }
+
+    /// <summary>
+    /// The keepers. Each states where it stands in the form it holds: coordinates as the element's own text,
+    /// or a <c>&lt;region&gt;</c> naming the one to stand in. The facing goes on the keeper element in both
+    /// cases, because PGM's point attributes descend into the child.
+    /// </summary>
+    private static void WriteShopkeepers(XElement parent, List<Shopkeeper> keepers)
+    {
+        if (keepers.Count == 0) return;
+        var block = new XElement("shopkeepers"); parent.Add(block);
+        foreach (var keeper in keepers)
+        {
+            var e = new XElement("shopkeeper");
+            Set(e, "shop", keeper.ShopId);
+            if (keeper.Name.Length > 0) Set(e, "name", keeper.Name);
+            if (keeper.Mob.Length > 0) Set(e, "mob", keeper.Mob);
+            if (keeper.Yaw is { } yaw) Set(e, "yaw", C(yaw));
+            if (keeper.RegionId.Length > 0) e.Add(new XElement("region", new XAttribute("id", keeper.RegionId)));
+            else if (keeper.Location is { } at) e.Value = $"{C(at.X)},{C(at.Y)},{C(at.Z)}";
+            block.Add(e);
         }
     }
 

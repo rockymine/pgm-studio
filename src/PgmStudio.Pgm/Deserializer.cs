@@ -35,6 +35,8 @@ public static class Deserializer
             Destroyables = ListOf(d, "destroyables").Select(x => DecodeDestroyable(AsDict(x))).ToList(),
             Cores = ListOf(d, "cores").Select(x => DecodeCore(AsDict(x))).ToList(),
             ControlPoints = ListOf(d, "control_points").Select(x => DecodeControlPoint(AsDict(x))).ToList(),
+            Shops = ListOf(d, "shops").Select(x => DecodeShop(AsDict(x))).ToList(),
+            Shopkeepers = ListOf(d, "shopkeepers").Select(x => DecodeShopkeeper(AsDict(x))).ToList(),
             Score = Val(d, "score") is Dict score ? DecodeScore(score) : null,
             Modes = ListOf(d, "modes").Select(x => DecodeMode(AsDict(x))).ToList(),
             Spawners = ListOf(d, "spawners").Select(s => DecodeSpawner(AsDict(s))).ToList(),
@@ -203,28 +205,82 @@ public static class Deserializer
         Clear = AsBool(Val(d, "clear"), false),
         Items = ListOf(d, "items").Select(i => DecodeKitItem(AsDict(i))).ToList(),
         Armor = ListOf(d, "armor").Select(a => DecodeKitArmor(AsDict(a))).ToList(),
-        Effects = ListOf(d, "effects").Select(e => DecodeKitEffect(AsDict(e))).ToList(),
+        Effects = ListOf(d, "effects").Select(e => DecodeEffect(AsDict(e))).ToList(),
     };
 
-    private static KitEffect DecodeKitEffect(Dict d) => new()
+    private static PotionEffect DecodeEffect(Dict d) => new()
     {
         Type = Str(d, "type"), Duration = Str(d, "duration"), Amplifier = AsInt(Val(d, "amplifier"), 0),
     };
 
-    private static KitItem DecodeKitItem(Dict d) => new()
+    /// <summary>The item stack, read off the dict it was written flat into
+    /// (<see cref="Serializer.ItemToDict"/>).</summary>
+    public static ItemSpec ItemFromDict(Dict d) => DecodeItemSpec(d);
+
+    private static ItemSpec DecodeItemSpec(Dict d) => new()
     {
-        Slot = AsInt(Val(d, "slot"), 0), Material = Str(d, "material"),
-        Amount = AsInt(Val(d, "amount"), 1), ItemDamage = AsInt(Val(d, "damage"), 0),
-        Unbreakable = AsBool(Val(d, "unbreakable"), false), TeamColor = AsBool(Val(d, "team_color"), false),
+        Material = Str(d, "material"),
+        Amount = AsInt(Val(d, "amount"), 1),
+        Damage = AsInt(Val(d, "damage"), 0),
+        Name = Str(d, "name"),
+        Lore = Str(d, "lore"),
+        Color = Str(d, "color"),
         Enchantments = Str(d, "enchantments"),
+        StoredEnchantments = Str(d, "stored_enchantments"),
+        Unbreakable = AsBool(Val(d, "unbreakable"), false),
+        TeamColor = AsBool(Val(d, "team_color"), false),
+        PreventSharing = AsBool(Val(d, "prevent_sharing"), false),
+        Locked = AsBool(Val(d, "locked"), false),
+        Projectile = Str(d, "projectile"),
+        Consumable = Str(d, "consumable"),
+        Hidden = Words(d, "hidden"),
+        Effects = ListOf(d, "effects").Select(e => DecodeEffect(AsDict(e))).ToList(),
+        Attributes = ListOf(d, "attributes").Select(a => AsDict(a)).Select(a => new ItemAttribute
+        {
+            Attribute = Str(a, "attribute"), Operation = Str(a, "operation"), Amount = AsDouble(Val(a, "amount"), 0),
+        }).ToList(),
+        CanPlaceOn = Words(d, "can_place_on"),
+        CanDestroy = Words(d, "can_destroy"),
     };
 
-    private static KitArmor DecodeKitArmor(Dict d) => new()
+    private static List<string> Words(Dict d, string key) => ListOf(d, key).Select(w => w as string ?? "").ToList();
+
+    private static KitItem DecodeKitItem(Dict d) => new() { Slot = AsInt(Val(d, "slot"), 0), Item = DecodeItemSpec(d) };
+
+    private static KitArmor DecodeKitArmor(Dict d) => new() { SlotName = Str(d, "slot_name"), Item = DecodeItemSpec(d) };
+
+    public static Shop DecodeShop(Dict d) => new()
     {
-        SlotName = Str(d, "slot_name"), Material = Str(d, "material"),
-        Unbreakable = AsBool(Val(d, "unbreakable"), false), TeamColor = AsBool(Val(d, "team_color"), false),
-        Enchantments = Str(d, "enchantments"),
+        Id = Str(d, "id"), Name = Str(d, "name"),
+        Categories = ListOf(d, "categories").Select(c => AsDict(c)).Select(c => new ShopCategory
+        {
+            Id = Str(c, "id"),
+            Icon = DecodeItemSpec(Val(c, "icon") is Dict icon ? icon : new Dict()),
+            FilterId = Str(c, "filter"),
+            Icons = ListOf(c, "icons").Select(i => AsDict(i)).Select(i => new ShopIcon
+            {
+                Item = DecodeItemSpec(Val(i, "item") is Dict item ? item : new Dict()),
+                FilterId = Str(i, "filter"),
+                ActionId = Str(i, "action"),
+                Payments = ListOf(i, "payments").Select(pay => AsDict(pay)).Select(pay => new ShopPayment
+                {
+                    Price = AsInt(Val(pay, "price"), 0), Currency = Str(pay, "currency"), Color = Str(pay, "color"),
+                }).ToList(),
+            }).ToList(),
+        }).ToList(),
     };
+
+    public static Shopkeeper DecodeShopkeeper(Dict d)
+    {
+        var keeper = new Shopkeeper
+        {
+            ShopId = Str(d, "shop"), Name = Str(d, "name"), Mob = Str(d, "mob"),
+            RegionId = Str(d, "region"), Yaw = AsDoubleN(Val(d, "yaw")),
+        };
+        if (Val(d, "location") is Dict at)
+            keeper.Location = new Vec3(AsDouble(Val(at, "x"), 0), AsDouble(Val(at, "y"), 0), AsDouble(Val(at, "z"), 0));
+        return keeper;
+    }
 
     private static Team DecodeTeam(Dict d) => new()
     {

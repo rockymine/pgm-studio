@@ -61,6 +61,12 @@ public sealed record MapIntent
     /// one side; the expander produces the rest. Null/empty leaves them untouched.</summary>
     public List<ControlPointIntent>? ControlPoints { get; init; }
 
+    /// <summary>The shops this board sells from, each with the keeper that opens it. <b>They do not fan by
+    /// team and they carry no coordinates</b>: a shop is one catalogue for the whole map, and its keeper is
+    /// placed by <see cref="ShopGenerator"/> at every team's spawn — one per shop per spawn, standing on the
+    /// spawn's own floor beside the point players arrive on. Null/empty leaves the map's shops untouched.</summary>
+    public List<ShopIntent>? Shops { get; init; }
+
     /// <summary>The score that ends the match. Null takes
     /// <see cref="ObjectiveDefaults.ControlPointScoreLimit"/> on a board that carries a scoring capture
     /// point, which is the corpus's own answer, and nothing at all on a board that does not — and that
@@ -673,6 +679,98 @@ public sealed record ControlPointIntent
     /// the marker is white while the point is neutral and takes the holder's dye the moment it is captured —
     /// which is what makes a marker on a goal nobody owns mean something.</summary>
     public BlockBox? MarkerBox { get; init; }
+}
+
+/// <summary>
+/// One shop the board sells from: a menu with at least one category in it, and the keeper that opens it.
+///
+/// <para><b>It has no position, and that is deliberate.</b> Every other thing on this intent says where it
+/// goes; a shop is a catalogue rather than a place, and where it is <em>opened</em> is the keeper's answer —
+/// which the studio derives from the spawns rather than taking from the author
+/// (<see cref="ShopkeeperIntent"/>). An author who wants a keeper somewhere else has no way to say so yet,
+/// and the board on `BACKLOG.md` says which task that is.</para>
+/// </summary>
+public sealed record ShopIntent
+{
+    /// <summary>The id every reference to this shop uses — a keeper's <c>shop</c>, and an
+    /// <c>&lt;open-shop&gt;</c> action's. Required.</summary>
+    public string Id { get; init; } = "";
+
+    /// <summary>The menu's title. Empty lets PGM show the id, which is what it falls back to.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>The tabs, in the order the menu draws them. PGM requires at least one, and a shop that
+    /// states none is left out rather than written as a menu that cannot open.</summary>
+    public List<ShopCategoryIntent> Categories { get; init; } = new();
+
+    /// <summary>The keeper that opens it. Null is a shop with no keeper — legal, and what a board that opens
+    /// its shop some other way states.</summary>
+    public ShopkeeperIntent? Keeper { get; init; }
+}
+
+/// <summary>One tab of a shop: what selects it, and what is in it.</summary>
+public sealed record ShopCategoryIntent
+{
+    /// <summary>The tab's id. Required by PGM, and unique within the shop.</summary>
+    public string Id { get; init; } = "";
+
+    /// <summary>The material of the stack drawn in the category row. Required: PGM refuses a category with
+    /// no item on it.</summary>
+    public string Material { get; init; } = "";
+
+    /// <summary>What the tab is called, which is the icon's display name. Empty leaves the stack unnamed and
+    /// the menu shows the material.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>What is in the tab, in the order the menu draws them — seven to a row, at most
+    /// twenty-eight, which is PGM's own cap.</summary>
+    public List<ShopItemIntent> Items { get; init; } = new();
+}
+
+/// <summary>
+/// One thing to buy: the stack, and what it costs.
+/// <para>The price is a count of one currency, which is the shape 766 of the corpus's 907 icons use. An icon
+/// that costs two currencies at once, or that triggers an action instead of handing over the stack, is a
+/// shop the studio reads and re-emits but does not yet author.</para>
+/// </summary>
+public sealed record ShopItemIntent
+{
+    /// <summary>The stack's material, which is the whole of what the buyer receives. Required.</summary>
+    public string Material { get; init; } = "";
+
+    /// <summary>How many of it a purchase hands over.</summary>
+    public int Amount { get; init; } = 1;
+
+    /// <summary>What it is called in the menu. Empty leaves the stack unnamed.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>Its price, in <see cref="Currency"/>. Zero is free.</summary>
+    public int Price { get; init; }
+
+    /// <summary>The material paid in. Empty is only legal at a zero price.</summary>
+    public string Currency { get; init; } = "";
+
+    /// <summary>Whether the stack is dyed to the buyer's team — the blocks a team builds with.</summary>
+    public bool TeamColor { get; init; }
+}
+
+/// <summary>
+/// The keeper that opens a shop: what it is called and what it is.
+///
+/// <para><b>Where it stands is not on it.</b> The studio places one keeper per shop at every team's spawn,
+/// on the spawn's own floor and beside the point players arrive on, because that is where a keeper a whole
+/// team has to reach belongs and because nothing else on a plan-compiled intent says where else it could go.
+/// PGM spawns the entity itself and freezes it, so the studio writes no blocks and no entity data for one —
+/// the keeper is entirely the XML.</para>
+/// </summary>
+public sealed record ShopkeeperIntent
+{
+    /// <summary>The label floating over it. Empty lets PGM label it with the shop's id.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>What to spawn, as a Bukkit entity type. Empty takes PGM's villager, which is what 222 of the
+    /// corpus's 298 keepers are.</summary>
+    public string Mob { get; init; } = "";
 }
 
 /// <summary>

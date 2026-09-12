@@ -168,6 +168,11 @@ public sealed partial class MapParser
         data.Cores = ParseCores();
         data.ControlPoints = ParseControlPoints();
         data.Score = ParseScore();
+        // After the variants and constants are resolved, because the gate reads the shop content itself and
+        // the corpus writes whole categories inside an <if variant>.
+        EnsureShopsReadable();
+        data.Shops = ParseShops();
+        data.Shopkeepers = ParseShopkeepers();
         data.Spawners = ParseSpawners();
         data.Renewables = ParseRenewables();
         data.BlockDropRules = ParseBlockDropRules();
@@ -367,18 +372,10 @@ public sealed partial class MapParser
             var items = new List<KitItem>();
             foreach (var itemElem in kitElem.Elements("item"))
             {
-                var material = Xml.Get(itemElem, "material", "").Trim();
-                if (material.Length == 0) continue;
+                var item = ParseItemSpec(itemElem);
+                if (item.Material.Length == 0) continue;
                 if (!int.TryParse(Xml.Get(itemElem, "slot", "0"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var slot)) continue;
-                items.Add(new KitItem
-                {
-                    Slot = slot, Material = material,
-                    Amount = Xml.IntAttr(itemElem, "amount", 1),
-                    ItemDamage = Xml.IntAttr(itemElem, "damage", 0),
-                    Unbreakable = Xml.BoolAttr(itemElem, "unbreakable"),
-                    TeamColor = Xml.BoolAttr(itemElem, "team-color"),
-                    Enchantments = CollectEnchantments(itemElem),
-                });
+                items.Add(new KitItem { Slot = slot, Item = item });
             }
 
             var armor = new List<KitArmor>();
@@ -386,24 +383,14 @@ public sealed partial class MapParser
             {
                 var armorElem = kitElem.Elements(slotName).FirstOrDefault();
                 if (armorElem is null) continue;
-                var material = Xml.Get(armorElem, "material", "").Trim();
-                if (material.Length == 0) continue;
-                armor.Add(new KitArmor
-                {
-                    SlotName = slotName, Material = material,
-                    Unbreakable = Xml.BoolAttr(armorElem, "unbreakable"),
-                    TeamColor = Xml.BoolAttr(armorElem, "team-color"),
-                    Enchantments = CollectEnchantments(armorElem),
-                });
+                var piece = ParseItemSpec(armorElem);
+                if (piece.Material.Length == 0) continue;
+                armor.Add(new KitArmor { SlotName = slotName, Item = piece });
             }
 
-            var effects = new List<KitEffect>();
-            foreach (var effElem in kitElem.Elements("effect"))
-            {
-                var type = effElem.Value.Trim();
-                if (type.Length == 0) continue;
-                effects.Add(new KitEffect { Type = type, Duration = Xml.Get(effElem, "duration", ""), Amplifier = Xml.IntAttr(effElem, "amplifier", 0) });
-            }
+            // The kit's OWN effects: what the player gains for being given the kit, which is a different
+            // subject from the effects a potion item in it carries (those are on the item).
+            var effects = ParsePotionEffects(kitElem);
 
             var clear = kitElem.Element("clear") is not null;
             if (clear || items.Count > 0 || armor.Count > 0 || effects.Count > 0)
@@ -412,10 +399,99 @@ public sealed partial class MapParser
         return kits;
     }
 
-    private static string CollectEnchantments(XElement elem)
+    // PGM's item flags, each hidden by writing show-<word>="false" and shown by default.
+    private static readonly string[] ItemFlagWords =
+        ["attributes", "enchantments", "unbreakable", "can-destroy", "can-place-on", "other"];
+
+    // The material-matcher children that name a whole class of blocks rather than one material. PGM treats
+    // all-materials and all-items as one thing and material and item as another, so each pair collapses to
+    // the first spelling and the writer emits that.
+    private static readonly Dictionary<string, string> MatcherWords = new()
+    {
+        ["all-materials"] = "all-materials", ["all-items"] = "all-materials", ["all-blocks"] = "all-blocks",
+    };
+
+    /// <summary>
+    /// One item stack off whatever element carries it — a kit item, a kit's armour piece, a shop category's
+    /// icon or a shop icon. One reader, because the stack is one statement wherever it is written
+    /// (<see cref="ItemSpec"/>); what differs between the four is the element around it.
+    /// <para>The material is taken from the attribute first and the element's own text second, which is
+    /// PGM's order and what lets <c>&lt;item&gt;gold ingot&lt;/item&gt;</c> and
+    /// <c>&lt;item material="gold ingot"/&gt;</c> both be a stack.</para>
+    /// </summary>
+    private static ItemSpec ParseItemSpec(XElement e)
+    {
+        var spec = new ItemSpec
+        {
+            Material = (Xml.GetOrNull(e, "material") ?? Xml.Text(e)).Trim(),
+            Amount = Xml.IntAttr(e, "amount", 1),
+            Damage = Xml.IntAttr(e, "damage", 0),
+            Name = Xml.Get(e, "name"),
+            Lore = Xml.Get(e, "lore"),
+            Color = Xml.Get(e, "color"),
+            Enchantments = CollectEnchantments(e),
+            StoredEnchantments = CollectEnchantments(e, "stored-"),
+            Unbreakable = Xml.BoolAttr(e, "unbreakable"),
+            TeamColor = Xml.BoolAttr(e, "team-color"),
+            PreventSharing = Xml.BoolAttr(e, "prevent-sharing"),
+            Locked = Xml.BoolAttr(e, "locked"),
+            Projectile = Xml.Get(e, "projectile"),
+            Consumable = Xml.Get(e, "consumable"),
+            Effects = ParsePotionEffects(e),
+            CanPlaceOn = MaterialMatcher(e, "can-place-on"),
+            CanDestroy = MaterialMatcher(e, "can-destroy"),
+        };
+        foreach (var word in ItemFlagWords)
+            if (Xml.GetOrNull(e, $"show-{word}") is { } raw && !Xml.BoolAttr(e, $"show-{word}", true)) spec.Hidden.Add(word);
+        foreach (var attr in e.Elements("attribute"))
+            spec.Attributes.Add(new ItemAttribute
+            {
+                Attribute = Xml.Text(attr).Trim(),
+                Operation = Xml.Get(attr, "operation"),
+                Amount = double.TryParse(Xml.Get(attr, "amount", "0"), NumberStyles.Float, CultureInfo.InvariantCulture, out var amount) ? amount : 0,
+            });
+        return spec;
+    }
+
+    // <effect duration=… amplifier=…>type</effect> children, direct only: a kit's are the kit's and an
+    // item's are the item's, and neither inherits the other's.
+    private static List<PotionEffect> ParsePotionEffects(XElement e)
+    {
+        var effects = new List<PotionEffect>();
+        foreach (var effElem in e.Elements("effect"))
+        {
+            var type = Xml.Text(effElem).Trim();
+            if (type.Length == 0) continue;
+            effects.Add(new PotionEffect { Type = type, Duration = Xml.Get(effElem, "duration"), Amplifier = Xml.IntAttr(effElem, "amplifier", 0) });
+        }
+        return effects;
+    }
+
+    // A material matcher child (<can-place-on>, <can-destroy>): each entry is a material pattern, or one of
+    // the words naming a whole class (MatcherWords). An unrecognised child is left out here and refuses the
+    // map where the element is a shop's (EnsureShopsReadable).
+    private static List<string> MaterialMatcher(XElement e, string name)
+    {
+        var words = new List<string>();
+        foreach (var wrapper in e.Elements(name))
+            foreach (var child in wrapper.Elements())
+            {
+                var tag = child.Name.LocalName;
+                if (MatcherWords.TryGetValue(tag, out var word)) words.Add(word);
+                else if (tag is "material" or "item" && Xml.Text(child).Trim() is { Length: > 0 } material) words.Add(material);
+            }
+        return words;
+    }
+
+    /// <summary>
+    /// The enchantments an element states, in either spelling, as a comma-joined <c>name:level</c> list.
+    /// PGM reads a <c>;</c>-separated attribute and repeated child elements and merges them, under a prefix
+    /// that is empty for what is applied to the item and <c>stored-</c> for what an enchanted book holds.
+    /// </summary>
+    private static string CollectEnchantments(XElement elem, string prefix = "")
     {
         var parts = new List<string>();
-        var attr = Xml.Get(elem, "enchantment", "").Trim();
+        var attr = Xml.Get(elem, $"{prefix}enchantment", "").Trim();
         if (attr.Length > 0)
             foreach (var rawToken in attr.Split(';'))
             {
@@ -431,7 +507,7 @@ public sealed partial class MapParser
                 else { name = token.Replace(' ', '_'); level = 1; }
                 parts.Add($"{name}:{level}");
             }
-        foreach (var child in elem.Elements("enchantment"))
+        foreach (var child in elem.Elements($"{prefix}enchantment"))
         {
             var name = Xml.Text(child).Trim().Replace(' ', '_');
             var level = int.TryParse(Xml.Get(child, "level", "1"), out var lv) ? lv : 1;
@@ -690,6 +766,188 @@ public sealed partial class MapParser
     /// document. That is left to PGM: an empty name here is a name the map did not state, and inventing one
     /// would write a name the author never chose into the export.</para>
     /// </summary>
+    // ── shops ──────────────────────────────────────────────────────────────────────
+    // What a shop element may hold, by the element it hangs off. PGM reads exactly these; a child outside
+    // the set is something it would act on and this reader would drop, so it refuses the map instead.
+    private static readonly string[] ItemChildren =
+        ["payment", "effect", "enchantment", "stored-enchantment", "attribute", "can-place-on", "can-destroy"];
+
+    private static readonly Dictionary<string, string[]> ShopChildren = new()
+    {
+        ["shop"] = ["category"],
+        // A category element IS an item — PGM reads the icon's stack off it — so it carries an item's own
+        // children as well as the icons under it.
+        ["category"] = [.. ItemChildren, "item"],
+        ["item"] = ItemChildren,
+        ["payment"] = [],
+    };
+
+    // Item attributes PGM acts on and this reader does not carry: the grenade behaviour, the modern
+    // component syntax, the legacy potion list, the class-picker tag, and the four that turn an element into
+    // a written book, a player head, a firework or a banner instead of a plain stack.
+    private static readonly string[] UnreadItemAttributes =
+        ["grenade", "grenade-power", "grenade-fire", "grenade-destroy", "class-menu", "components", "potions",
+         "skin", "uuid", "title", "power", "base-color"];
+
+    /// <summary>
+    /// Refuse a map whose shops state something this reader cannot carry, rather than exporting the shop
+    /// with the statement quietly missing. A shop is not an objective — a map keeps its goal either way —
+    /// but on the 15 corpus maps whose blocks are all bought, a dropped icon is a map that cannot be played,
+    /// which is the same silent failure <see cref="EnsureObjectivesReadable"/> exists against.
+    /// </summary>
+    private void EnsureShopsReadable()
+    {
+        var refused = new List<string>();
+        foreach (var shop in Xml.Flatten(_root, "shops", "shop").Select(leaf => leaf.Element))
+        {
+            if (Xml.Get(shop, "id").Trim().Length == 0) refused.Add("<shop> with no id");
+            Check(shop, "shop");
+            foreach (var category in shop.Elements("category"))
+            {
+                Check(category, "category");
+                CheckItem(category, "category");
+                foreach (var icon in category.Elements("item")) { Check(icon, "item"); CheckItem(icon, "item"); }
+            }
+        }
+        foreach (var keeper in Xml.Flatten(_root, "shopkeepers", "shopkeeper"))
+            if (KeeperLocation(keeper) is null)
+                refused.Add("<shopkeeper> whose location is neither coordinates nor one region reference");
+
+        if (refused.Count == 0) return;
+        throw new UnsupportedMapException(
+            $"map declares a shop the studio cannot read: {string.Join(", ", refused.Distinct())}. "
+            + "Parsing it would drop what the shop states on round-trip.");
+
+        void Check(XElement e, string kind)
+        {
+            foreach (var child in e.Elements())
+                if (!ShopChildren[kind].Contains(child.Name.LocalName))
+                    refused.Add($"<{child.Name.LocalName}> inside a <{kind}>");
+        }
+
+        void CheckItem(XElement e, string kind)
+        {
+            foreach (var name in UnreadItemAttributes)
+                if (e.Attribute(name) is not null) refused.Add($"a <{kind}>'s {name}");
+            foreach (var payment in e.Elements("payment")) Check(payment, "payment");
+        }
+    }
+
+    /// <summary>
+    /// The <c>&lt;shops&gt;</c> catalogue. Attributes cascade through nested containers the way every other
+    /// group's do, and a shop's own element carries nothing but its id and its title — everything a player
+    /// sees is on the categories and the icons under it.
+    /// </summary>
+    private List<Shop> ParseShops()
+    {
+        var shops = new List<Shop>();
+        foreach (var leaf in Xml.Flatten(_root, "shops", "shop"))
+        {
+            var shop = new Shop { Id = leaf.Get("id").Trim(), Name = leaf.Get("name") };
+            foreach (var categoryElem in leaf.Element.Elements("category"))
+            {
+                var category = new ShopCategory
+                {
+                    Id = Xml.Get(categoryElem, "id").Trim(),
+                    // The category element IS its icon: PGM reads the stack off the same element the id
+                    // sits on, so there is no inner element to look into.
+                    Icon = ParseItemSpec(categoryElem),
+                    FilterId = Xml.Get(categoryElem, "filter"),
+                };
+                foreach (var iconElem in categoryElem.Elements("item")) category.Icons.Add(ParseShopIcon(iconElem));
+                shop.Categories.Add(category);
+            }
+            shops.Add(shop);
+        }
+        return shops;
+    }
+
+    /// <summary>
+    /// One purchasable. Its price is stated either as <c>&lt;payment&gt;</c> children or, for the single-
+    /// currency case, on the icon element itself — PGM falls back to reading the icon as a payment when it
+    /// carries no payment child, so a bare <c>price</c>/<c>currency</c> pair is one payment.
+    /// <para><c>color</c> is read as the payment's rather than the item's, which is PGM's own reading for
+    /// every stack that is not leather armour (<see cref="ShopPayment.Color"/>).</para>
+    /// </summary>
+    private static ShopIcon ParseShopIcon(XElement e)
+    {
+        var icon = new ShopIcon
+        {
+            Item = ParseItemSpec(e),
+            FilterId = Xml.Get(e, "filter"),
+            ActionId = NonEmpty(Xml.Get(e, "action"), Xml.Get(e, "kit")),
+        };
+        icon.Item.Color = "";       // the icon's colour is its price's, not the stack's
+        foreach (var payment in e.Elements("payment")) icon.Payments.Add(ParsePayment(payment));
+        if (icon.Payments.Count == 0 && (Xml.GetOrNull(e, "price") is not null || Xml.GetOrNull(e, "currency") is not null))
+            icon.Payments.Add(ParsePayment(e));
+        return icon;
+    }
+
+    private static ShopPayment ParsePayment(XElement e) => new()
+    {
+        Price = Xml.IntAttr(e, "price", 0),
+        Currency = Xml.Get(e, "currency"),
+        Color = Xml.Get(e, "color"),
+    };
+
+    /// <summary>
+    /// The <c>&lt;shopkeepers&gt;</c> block. Every keeper is one entity PGM spawns itself, so the whole of
+    /// one is its shop, its label, its mob and where it stands — and the shop is <b>not</b> resolved against
+    /// <see cref="MapXml.Shops"/>, because 15 corpus maps take theirs from an include this reader does not
+    /// splice.
+    /// </summary>
+    private List<Shopkeeper> ParseShopkeepers()
+    {
+        var keepers = new List<Shopkeeper>();
+        foreach (var leaf in Xml.Flatten(_root, "shopkeepers", "shopkeeper"))
+        {
+            if (KeeperLocation(leaf) is not { } where) continue;
+            var (location, regionId, yaw) = where;
+            keepers.Add(new Shopkeeper
+            {
+                ShopId = leaf.Get("shop"), Name = leaf.Get("name"), Mob = leaf.Get("mob"),
+                Location = location, RegionId = regionId, Yaw = yaw,
+            });
+        }
+        return keepers;
+    }
+
+    /// <summary>
+    /// Where a keeper stands, in the two forms the corpus writes: coordinates as the element's own text or
+    /// inside a <c>&lt;point&gt;</c>, and a reference to a region to stand in. Null is a keeper stating
+    /// something else — several children, an inline region, a text that is not a vector — which refuses the
+    /// map rather than placing the entity at the origin.
+    /// <para>The facing rides on whichever element states it, nearest first: PGM's point attributes descend
+    /// from the keeper into the child, so a yaw on the child overrides the keeper's and one on the keeper
+    /// reaches a child that states none.</para>
+    /// </summary>
+    private static (Vec3? Location, string RegionId, double? Yaw)? KeeperLocation(InheritedElement leaf)
+    {
+        var children = leaf.Element.Elements().ToList();
+        var inherited = leaf.DoubleOrNull("yaw");
+        if (children.Count == 0)
+            return Vector(Xml.Text(leaf.Element)) is { } here ? (here, "", inherited) : null;
+        if (children.Count > 1) return null;
+
+        var child = children[0];
+        var yaw = double.TryParse(Xml.Get(child, "yaw"), NumberStyles.Float, CultureInfo.InvariantCulture, out var own) ? own : inherited;
+        return child.Name.LocalName switch
+        {
+            "point" when Vector(Xml.Text(child)) is { } there => (there, "", yaw),
+            "region" when Xml.Get(child, "id").Trim() is { Length: > 0 } reference => (null, reference, yaw),
+            _ => null,
+        };
+
+        static Vec3? Vector(string raw)
+        {
+            var parts = raw.Split(',');
+            if (parts.Length != 3) return null;
+            var read = parts.Select(part => double.TryParse(part.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : (double?)null).ToList();
+            return read.Any(v => v is null) ? null : new Vec3(read[0]!.Value, read[1]!.Value, read[2]!.Value);
+        }
+    }
+
     private List<ControlPoint> ParseControlPoints()
     {
         var points = new List<ControlPoint>();
