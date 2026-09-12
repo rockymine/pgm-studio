@@ -182,6 +182,12 @@ four (quartiles 0.52 and 0.99). On the median corpus board — spawns 94 blocks 
 30 blocks out from the middle, but the ratio is the rule and the block count is the consequence, because a
 board twice the size wants its points twice as far out.
 
+**[author] This section settles where the points go, and it settles nothing about what is around them.** A
+capture board is a control game before it is anything else — its ground is built rather than landscape, its
+points are entered from a decided number of directions, and a point raised high over open ground is a point
+whose first holder keeps it. That law is `match-flow.md` §10, and it governs the board this one places the
+points on.
+
 `docs/pgm/control-points.md` owns the mechanism these claims are about: what a point is, what it is built of
 and what PGM does with it.
 

@@ -1,10 +1,12 @@
-# Match flow — how a CTW map is played, and how a plan is read for it
+# Match flow — how a map is played, and how a plan is read for it
 
 The generator settles geometry. A match is what that geometry produces once two teams of up to thirty
 players are standing on it for forty minutes, and almost none of it is visible in a rectangle partition.
-This document holds both halves. The first is the **flow reading**: the three fidelities a route has, what
+This document holds three parts. The first is the **flow reading**: the three fidelities a route has, what
 is measured on each, and what the generator's own vocabulary does to movement. The second is the **played
 account**: how a match actually unfolds on a CTW map, in order, from the opening rush to the second wool.
+The third, §10, is the **capture board**, which is played for a place rather than for a thing and is
+therefore built to a different law from beginning to end.
 
 The played account is authored knowledge from matches, not a derivation. It is the thing the derivations
 are checked against — where a measure and the account disagree, the account is the evidence and the measure
@@ -845,3 +847,105 @@ The right reading is that the mode's shape is established and the per-map number
 stands 13 blocks out on the maps measured; that it stands *somewhere*, that the pit goes in front of it,
 that the ceiling carries the late game, that the captured room is held and leads nowhere — those are the
 claims the corpus supports, and they are the ones the generator should be built against.
+
+---
+
+## 10. The capture board
+
+Everything above is a board played for a **thing**: a wool carried, a monument broken, a core leaked. The
+objective leaves the map or the map leaves the objective, and the match is a sequence of one-way errands
+with a front between them. A capture board has no such thing in it. Its objective is a **place**, it never
+moves and never breaks, and the only way to score is to be standing on it while nobody else is. That one
+difference reorganises the whole board, and every claim in this section is the author's.
+
+### 10.1 It is a control game, and more of one than any of the three above
+
+**[author]** A capture board is about **control and combat** — more so than CTW, DTM or DTC. On those, the
+fight is instrumental: players fight because a wool has to be carried through them. On a capture board the
+fight *is* the objective, because the score is paid out for occupying ground and the only way to take ground
+is to remove whoever is on it. So the questions that decide a capture board are not the ones §4 asks about a
+funnel and a return walk. They are: from how many directions can this point be entered, what can be seen
+from it, where can a player stand that is not in the open, and what does a team that has just lost it do
+next.
+
+**[author] The ground is built, not landscape.** Capture maps are **structural** — plazas, yards, decks,
+vaults, gantries, walls — where a destroy map can be a valley with two forts in it. A board that answers the
+gamemode's name literally and stands its hills on a hill has already lost the game the mode is about: relief
+decides the fight, and relief is a blunt instrument beside a wall somebody placed on purpose.
+
+### 10.2 Height is a trap, and so is a sightline
+
+**[author] A point raised high is a point nobody gets back.** The team holding a high pad shoots down on
+every player climbing toward it, and the climb is the only approach there is; the pad is not contested, it is
+owned. The higher the pad stands over the ground around it, the closer the board gets to *first team there
+wins*, which is the failure a capture board can have that no measure in this document reports — the pad is
+reachable, the walk is connected, the export gate opens, and the match is over at minute two.
+
+**[author] And a raised centre can see the spawns.** A high point in the middle of a two-team board looks
+down the length of it in both directions, so whoever holds it shoots into the ground players spawn onto.
+That is a second, separate fault from the first and it is fixed differently: the first wants the pad lower
+or its approaches more numerous, the second wants something **between** the pad and each spawn — a wall, a
+lid, a bend in the route — so that no standing position on the point has a line to where a team arrives.
+
+`opus5-threap-edge` in `pgm-studio-mapgen` has both faults and is the worked example of them: its summit
+pad stands twenty blocks over the moor either side, reached by a crest walk from one of two nabs, and the
+moor it overlooks runs unbroken to both spawn buildings.
+
+### 10.3 No dead space, and the reason is flanking
+
+**[author] A capture board uses all of its ground.** Where a destroy board can carry a quiet flank nobody
+walks, a capture board has **almost none** — every part of it is there to offer a different way toward a
+point. The board is read as *path options toward a hill*, and ground that offers none is ground that should
+have been a route.
+
+That is measurable and the studio already measures it: `GET /api/map/{slug}/coverage` answers the share of
+cells no journey covers, and `GET /api/plan/flow` answers the same question before a world exists. On a
+destroy board a dead share is a note; on a capture board it is a fault.
+
+**[author] The options are often stacked.** Stairs, tunnels and bridges, so that two players heading for the
+same point are on different storeys and do not meet until one of them arrives. A tunnel is **narrow** — five
+or six blocks wide is ordinary — and even a tunnel that narrow carries cover inside it, because a straight
+five-wide run is a firing line with two ends.
+
+### 10.4 Cover is placed, and it comes in two sizes
+
+**[author] A shape makes better cover than a scattered boulder.** Cover on a capture board is built:
+boxes, blocks, pillars, walls — things with faces, placed where a sightline needs breaking. Natural dressing
+strewn across open ground looks like cover and works like decoration, because nothing decided where it went.
+
+It comes in two sizes and they do different jobs.
+
+**Small cover is two or three blocks tall** — a box a player crouches behind, stands on, or shoots over.
+It is what makes a plaza survivable: an open square with nothing on it is a square nobody crosses. These go
+*inside* the spaces, including inside the tunnels.
+
+**Large cover blocks a section off.** A pillar ten blocks wide that a player goes around **from two sides**
+is not an obstacle, it is a decision: it splits one space into two approaches and hides each from the other.
+A wall does the same along a line. This is the instrument for cutting a board into the path options §10.3
+asks for, and it is the one a relief mark cannot imitate.
+
+### 10.5 Where a point sits
+
+**[author] A point can be underground, and one point can stand over another.** A vault, an undercroft, a
+sump — ground under the board is a legitimate place for a hill, and a board can stack one hill directly over
+another so that the same footprint is fought for at two levels by players who cannot see each other.
+
+**[author] A point is often in a corner, or blocked off from two sides.** Tucking a pad into a corner of the
+built geometry, or walling two of its four sides, is how a board decides where the fight happens: it takes
+approaches away deliberately, so the ones that remain are the ones the author wants players in. That does
+not contradict the symmetry rule in `approaches.md` — a pad can be tucked into a corner of the *structure*
+and still be the same walk from both spawns, because the structure is mirrored too. Fairness is a property
+of the board's symmetry; control is a property of the pad's own walls.
+
+**[author] Some sections are one-way.** A tunnel running toward a point whose exit is two blocks above its
+floor can be left but not re-entered: a player drops out of it onto the objective and cannot climb back in.
+One-way ground is how a board makes an approach committing — it is cheap to build, it costs a step of relief,
+and it turns a route into a decision.
+
+### 10.6 What this asks of an author
+
+**[author]** These boards carry **more detail and more finesse** than a destroy board, and most of it has to
+be planned before anything is drawn. The order is the reverse of a landscape board's: the routes and the
+sections they run through are decided first, the cover that breaks their sightlines second, and the ground's
+look last. A capture board authored the other way round — relief first, objectives placed on it afterwards —
+produces §10.2's board every time, because the relief has already decided who can see and reach what.
