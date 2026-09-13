@@ -182,8 +182,9 @@ public sealed class ReliefReadbackTests
 
         await Assert.That(ReliefReadback.Read(fair, "mirror_x", 30, 20).SymmetryError).IsEqualTo(0);
         await Assert.That(ReliefReadback.Read(tilted, "mirror_x", 30, 20).SymmetryError).IsGreaterThan(0);
-        // With no symmetry declared there is nothing to be unfair about.
+        // With no symmetry declared there is nothing to be unfair about, and `none` declares exactly that.
         await Assert.That(ReliefReadback.Read(tilted).SymmetryError).IsEqualTo(0);
+        await Assert.That(ReliefReadback.Read(tilted, "none", 30, 20).SymmetryError).IsEqualTo(0);
     }
 
     [Test]

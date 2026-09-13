@@ -47,7 +47,7 @@ shape whether a layout was hand-drawn or compiled from a plan.
 
 | Key | Holds |
 |---|---|
-| `setup` | `mirror_mode`, the symmetry `center`, and the `bbox` the canvas frames on open |
+| `setup` | `mirror_mode` — `none` for a board with no symmetry, whose relief is then solved unfolded, and `rot_180` when unstated — the symmetry `center`, and the `bbox` the canvas frames on open |
 | `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, groups}}`, plus `kind`, `part_of` and `seat` where the layer holds a made thing. Always at least one; a flat board is a stack of one, called `ground` |
 | `themes` · `themeSources` · `mapTheme` | the terrain-paint registry, which library row each of its themes was copied from, and the map-wide default |
 | `roomStyles` | the two bound room shells — `wool` and `spawn` |
@@ -704,6 +704,9 @@ a step of two is the one setting here that can break a map, and there is deliber
 it; a mark may state its own and fall back to this one), `landform` (what kind of
 ground this is meant to be — one of `plain`, `rolling`, `hills`, `mountain` — which the readback measures
 the solved surface against) and `grain` (a wobble applied after the solve: amplitude, feature scale, seed).
+A relief carries no grain until an author sets one: with none stated, or an amplitude of 0, the surface is
+exactly what the marks and pushes solved, and the panel shows the amount as 0 and the feature size as the 9
+blocks a grain takes when its scale is left unset.
 A word outside those four is a `SK3` complaint on the stored document: `RL1` judges a group only against a
 landform it recognises, so an unknown word or the wrong case turns that gate off rather than failing it.
 

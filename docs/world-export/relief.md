@@ -543,6 +543,11 @@ discipline a dressing prop's material already follows when it resolves in its ow
 is folded the same way before it is snapped to blocks, which costs one pass and turns a guarantee that is close
 into one that is exact.
 
+**A board with no symmetry is not folded.** `mirror_mode: "none"` is one unit with no image — `Symmetry.Order`
+answers 1 — so the solver copies nothing across the centre, grain is sampled at every cell's own coordinate, and
+the relief read reports a symmetry error of 0. A relief on such a board is solved as drawn on every side of the
+centre. A layout that states no `mirror_mode` at all takes the default, `rot_180`, and folds.
+
 Both fold on the cell's **centre**, not its corner. Reflecting the corner pairs each cell with its image's
 *neighbour* — a one-cell shear that looks like symmetry and measures as a full block of unfairness.
 
