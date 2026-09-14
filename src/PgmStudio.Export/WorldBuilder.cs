@@ -332,6 +332,7 @@ public static class WorldBuilder
         // about which layer may address it: a ground theme filling in plain stone hands its whole column to
         // whatever is drawn above. A layer's limit is its own shapes, so that is what it is given.
         var themeAt = TerrainThemeScope.ThemeAt(layoutJson);
+        built.AddRange(TintOverSharedGround(terrain.SurfaceTop.Keys, intent, themeAt));
         TerrainPainter.Paint(world, PaintSurface(terrain.SurfaceByLayer, plinths),
                              themeAt,
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
@@ -778,6 +779,32 @@ public static class WorldBuilder
                     Severity.Complaint, Field: "control_points",
                     Subjects: point.Name.Length > 0 ? [point.Name] : null);
             }
+        }
+    }
+
+    /// <summary><b><c>PT5</c> — a team tint painted over land more than one team enters.</b> The tint is one
+    /// colour per canonical island, which is what makes it readable at all; an island two teams' spawns stand
+    /// on therefore wears one team's colour everywhere, and on a board whose land is a single island that is
+    /// the whole map.
+    ///
+    /// <para>Asked of the themes the painter <b>resolves</b>, on the shared island's own cells, rather than of
+    /// the registry: a theme nothing applies paints nothing, and the ground layer is the one the island
+    /// decomposition is of. The walk stops at the first tinting cell, and a board with no shared island never
+    /// takes it.</para></summary>
+    private static IEnumerable<Finding> TintOverSharedGround(
+        IEnumerable<(int X, int Z)> footprint, MapIntent intent,
+        Func<string, int, int, TerrainTheme> themeAt)
+    {
+        foreach (var island in TeamTerritory.Shared(footprint, intent))
+        {
+            if (!island.Cells.Any(cell => Materials.TintsByTeam(themeAt(SketchLayer.GroundId, cell.X, cell.Z))))
+                continue;
+            yield return new Finding(TerrainThemeRules.TintOverSharedGround,
+                $"island {island.Island} carries the spawns of {string.Join(" and ", island.Teams)} and its "
+                + $"paint tints by team, so all {island.Cells.Count} cells of it wear "
+                + (island.Owner == TeamTerritory.Neutral ? "no team's colour" : $"{island.Owner}'s colour")
+                + " — a tint is one colour per island, and this island is ground they share",
+                Severity.Complaint, Field: $"islandTeams.{island.Island}", Subjects: [.. island.Teams]);
         }
     }
 

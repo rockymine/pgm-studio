@@ -265,12 +265,12 @@ own ground (§3.1) and nothing else.
 
 ### 3.1 The ground a goal is read against
 
-A destroyable and a core are the two objectives with no room and no protection region, so nothing else holds
-ground around them — and what they need held is not the same thing a spawn needs. A spawn's ground is
-**forbidden**: a prop there breaks play. A goal's ground is **kept open**, which is a narrower claim. Grass,
-fern and flowers grow across it and under a floating monument exactly as they grow anywhere, because none of
-them changes what a player can see or reach, and a monument standing in a ring of bare dirt reads as a
-diagram rather than as a place.
+A destroyable, a core and a capture point are the three objectives with no room and no protection region, so
+nothing else holds ground around them — and what they need held is not the same thing a spawn needs. A
+spawn's ground is **forbidden**: a prop there breaks play. A goal's ground is **kept open**, which is a
+narrower claim. Grass, fern and flowers grow across it and under a floating monument exactly as they grow
+anywhere, because none of them changes what a player can see or reach, and a monument standing in a ring of
+bare dirt reads as a diagram rather than as a place.
 
 What may not stand there is **cover**. `DressingScope.GoalGroundAt` is every block the structure covers grown
 by `GoalClearance` (**4**), and the flora pass declines to raise a tall plant inside it — growing its short
@@ -291,7 +291,9 @@ is why the refusal is wanted at all: an objective is the one thing on a map that
 so a defender can see what is coming and an attacker pays something visible for arriving. For those three
 props the kept-open ground reaches further than the cover clearance: never nearer than **ten blocks to the
 goal's marker** (`DressingScope.GoalStandoff`, the author's radius) — the ring a fight happens on, measured
-from the marker rather than from however wide the structure under it happens to be.
+from the marker rather than from however wide the structure under it happens to be. A capture point is the
+one goal wider than that ring, and the union is what answers for it: a pad of any size keeps `GoalClearance`
+beyond its own edge through `GoalGroundAt`, and the standoff square holds the rest.
 
 **A door's approach is kept clear, and it stops a prop rather than refusing a map**
 (`DressingScope.ApproachAt`, part of `KeptClearAt`). The ground in front of a spawn room's door — **twenty
@@ -803,7 +805,8 @@ route, on five boards, and **3** sit at the end of one and stand.
 is ground beside the building, and a building can leave five clear blocks on every side and still cork the
 one leg the map is walked down, because the ground it corks is a hundred blocks away and shaped like a neck.
 So the board is walked. Between every pair of the cells the map is **played between** — its spawns, its wool
-rooms and monuments, its destroyables and cores — the shortest route over the bare terrain is taken once, and
+rooms and monuments, its destroyables, its cores and its capture points — the shortest route over the bare
+terrain is taken once, and
 the building is then admitted to that board: its whole orbit's footprint comes out of the ground and every
 route it stood on is walked again. A pair that had a route and now has none is a way closed. A pair whose
 route survives more than **ten blocks** longer is the same fault at a lesser degree — ten is `Walk.Detour`,

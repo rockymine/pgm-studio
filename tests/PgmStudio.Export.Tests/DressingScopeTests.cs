@@ -198,6 +198,100 @@ public sealed class DressingScopeTests
         await Assert.That(clearance(20, 20)).IsFalse();
     }
 
+    // ── a capture point is a goal, and the pass reads it as one ───────────────────────────────────────
+    // A point is the one goal that is ground rather than a small thing floating over it, so the two halves
+    // of the clearance swap which one reaches further as the pad grows.
+    private static MapIntent PointAt20(int size, BlockBox? pad = null) => new()
+    {
+        ControlPoints = [new ControlPointIntent { Anchor = new Pt(20, 0, 20), Size = size, PadBox = pad }],
+    };
+
+    /// <summary>A pad narrower than the standoff is answered by the standoff, exactly as a monument is: the
+    /// ring a fight happens on is the same ring whatever the goal is built of.</summary>
+    [Test]
+    public async Task A_narrow_pads_clearance_is_the_markers_standoff()
+    {
+        var clearance = DressingScope.GoalClearanceAt(PointAt20(3));
+
+        await Assert.That(clearance(30, 20)).IsTrue();     // the last block of the standoff square
+        await Assert.That(clearance(31, 20)).IsFalse();
+    }
+
+    /// <summary>And a pad wider than the ring keeps its own margin, because the footprint half of the
+    /// clearance grows with it — a prop never stands on a pad's edge however large the pad was authored.</summary>
+    [Test]
+    public async Task A_wide_pads_clearance_reaches_past_its_own_edge()
+    {
+        // Size 15 centred on (20,20) covers 13..27, so the footprint clearance ends at 31 and the standoff
+        // square — which ends at 30 — is the narrower of the two.
+        var clearance = DressingScope.GoalClearanceAt(PointAt20(ObjectiveDefaults.MaxControlPointSize));
+
+        await Assert.That(clearance(27, 20)).IsTrue();     // the pad's own far edge
+        await Assert.That(clearance(31, 20)).IsTrue();     // footprint + GoalClearance
+        await Assert.That(clearance(32, 20)).IsFalse();
+    }
+
+    /// <summary>The pad the stamper cut is what the clearance is measured from where there is one, the same
+    /// rule a monument's box states (OB8) — so a pad the orbit moved is not two derivations agreeing.</summary>
+    [Test]
+    public async Task A_pads_ground_is_the_course_the_stamper_cut()
+    {
+        var goalGround = DressingScope.GoalGroundAt(PointAt20(7, new BlockBox(30, 64, 30, 36, 64, 36)));
+
+        await Assert.That(goalGround(40, 40)).IsTrue();    // the stamped course grown by GoalClearance
+        await Assert.That(goalGround(41, 41)).IsFalse();
+        await Assert.That(goalGround(20, 20)).IsFalse();   // and nothing at the anchor the box overrides
+    }
+
+    // ── the cells the map is played between ───────────────────────────────────────────────────────────
+    /// <summary>Every objective family is a place the board is walked to (<c>DR-WAY</c>), a capture point
+    /// included — the same set the coverage read walks its journeys over, because a corridor is only a
+    /// corridor because someone travels it.</summary>
+    [Test]
+    public async Task The_cells_the_map_is_played_between_hold_a_point_beside_the_other_three_families()
+    {
+        var intent = new MapIntent
+        {
+            Spawns = [new SpawnIntent { Team = "red", Point = new Pt(0, 8, -60), Yaw = 0 }],
+            Destroyables =
+            [
+                new DestroyableIntent
+                {
+                    Owner = "red", Name = "red's monument", Style = "pillar-1", Materials = "obsidian",
+                    Anchor = new Pt(-30, 8, 0),
+                },
+            ],
+            Cores = [new CoreIntent { Owner = "blue", Anchor = new Pt(30, 8, 0), Lava = 5, LavaHeight = 5 }],
+            ControlPoints = [new ControlPointIntent { Anchor = new Pt(0, 0, 0) }],
+        };
+
+        await Assert.That(DressingScope.WaypointsOf(intent))
+            .IsEquivalentTo(new[] { (0, -60), (-30, 0), (30, 0), (0, 0) });
+    }
+
+    /// <summary>A board played only for hills is still a board with places in it, so the walk has pairs to
+    /// take rather than one spawn and nowhere to go.</summary>
+    [Test]
+    public async Task A_capture_board_is_played_between_its_spawns_and_its_hills()
+    {
+        var intent = new MapIntent
+        {
+            Spawns =
+            [
+                new SpawnIntent { Team = "red", Point = new Pt(0, 8, -60), Yaw = 0 },
+                new SpawnIntent { Team = "blue", Point = new Pt(0, 8, 60), Yaw = 180 },
+            ],
+            ControlPoints =
+            [
+                new ControlPointIntent { Anchor = new Pt(0, 0, 0) },
+                new ControlPointIntent { Anchor = new Pt(-40, 0, 0) },
+                new ControlPointIntent { Anchor = new Pt(40, 0, 0) },
+            ],
+        };
+
+        await Assert.That(DressingScope.WaypointsOf(intent).Count).IsEqualTo(5);
+    }
+
     // ── a door's approach is part of the keep-out mask ────────────────────────────────────────────────
     // A spawn at (0,0) with yaw 0 faces +Z, and with no piece it resolves the legacy marker-anchored room
     // ([-5,5] on both axes) — so the approach lane is that face's width, twenty blocks out: z 6..25.

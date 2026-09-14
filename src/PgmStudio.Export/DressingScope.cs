@@ -127,9 +127,10 @@ public static class DressingScope
     }
 
     /// <summary>The cells the map is <b>played between</b>: every spawn, every wool room and its monuments,
-    /// and every destroyable and core at its anchor. What the ways through the board are measured between
-    /// (<c>DR-WAY</c>), and deliberately the same set a coverage read walks its journeys over — a corridor is
-    /// only a corridor because someone travels it, so the two must not disagree about who travels.</summary>
+    /// and every destroyable, core and capture point at its anchor. What the ways through the board are
+    /// measured between (<c>DR-WAY</c>), and deliberately the same set a coverage read walks its journeys over
+    /// (<c>NavPoints</c>) — a corridor is only a corridor because someone travels it, so the two must not
+    /// disagree about who travels.</summary>
     public static IReadOnlyList<(int X, int Z)> WaypointsOf(MapIntent intent)
     {
         var cells = new List<(int X, int Z)>();
@@ -143,6 +144,7 @@ public static class DressingScope
         }
         foreach (var destroyable in intent.Destroyables ?? []) At(destroyable.Anchor.X, destroyable.Anchor.Z);
         foreach (var core in intent.Cores ?? []) At(core.Anchor.X, core.Anchor.Z);
+        foreach (var point in intent.ControlPoints ?? []) At(point.Anchor.X, point.Anchor.Z);
         return [.. cells.Distinct()];
     }
 
@@ -152,8 +154,8 @@ public static class DressingScope
     /// goal a place rather than a thing hidden in a wood.</summary>
     public const int GoalClearance = 4;
 
-    /// <summary>The ground read against a destroyable or a core: every block its structure covers, grown by
-    /// <see cref="GoalClearance"/>.
+    /// <summary>The ground read against a destroyable, a core or a capture point: every block its structure
+    /// covers, grown by <see cref="GoalClearance"/>.
     ///
     /// <para>Every rect comes from the box the stamper wrote where there is one, for the same reason the
     /// emitted region does (OB8) — the ground kept open is then the ground the structure occupies, by
@@ -178,6 +180,11 @@ public static class DressingScope
             var (width, depth) = ObjectiveFootprint.Core(core.Size);
             rects.Add(Ground(core.Box, core.Anchor, width, depth));
         }
+        foreach (var point in intent.ControlPoints ?? [])
+        {
+            var (width, depth) = ObjectiveFootprint.ControlPoint(point.Size);
+            rects.Add(Ground(point.PadBox, point.Anchor, width, depth));
+        }
 
         // Held as rects rather than expanded into a cell set: a goal's clearance is a handful of boxes, and the
         // question is asked once per candidate cell rather than per block of ground.
@@ -194,9 +201,10 @@ public static class DressingScope
 
     /// <summary>How far a tree, boulder or building keeps from a goal's <b>marker</b>, beyond the
     /// footprint-grown <see cref="GoalClearance"/> that turns cover away: ten blocks (the author's number).
-    /// A goal is a small floating thing, so the ground that makes it playable is the ring a fight happens
-    /// on, and that ring is measured from the marker rather than from however wide the structure under it
-    /// happens to be.</summary>
+    /// The ring a fight happens on is the same ring whatever the goal is built of, so it is measured from the
+    /// marker rather than from however wide the structure under it happens to be; a goal wider than the ring
+    /// — a capture point's pad — keeps its own margin through <see cref="GoalGroundAt"/>, the other half of
+    /// <see cref="GoalClearanceAt"/>.</summary>
     public const int GoalStandoff = 10;
 
     /// <summary>How far the ground in front of a spawn room's door stays clear of props: twenty blocks out
@@ -261,6 +269,8 @@ public static class DressingScope
             rects.Add(Disc(destroyable.Anchor));
         foreach (var core in intent.Cores ?? [])
             rects.Add(Disc(core.Anchor));
+        foreach (var point in intent.ControlPoints ?? [])
+            rects.Add(Disc(point.Anchor));
         return (x, z) => rects.Any(r => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ);
 
         static (int, int, int, int) Disc(Pt anchor)

@@ -25,14 +25,11 @@ Payload stays out: it is a furnace minecart players push, behind a server experi
 will change.
 
 **The foundation is one sentence: what a board is played for is derived in several places and a control point
-is in none of them.** The playability half and the plan half have landed (`FEATURES.md`) — `NavPoints`,
-`DeclaredGoals` and `PL3` now know all four objective families, and a plan can state the capture points a
-board is played for. `MapIntent.HasDestroyGoal` and `FrontlineTerms` are not this: both are about destroy
-goals specifically and are right as they stand.
-
-The contract gates have landed with them. What is left of the cause is the **dressing** half, which walks
-the intent's goals one family at a time in three more places (`DressingScope.WaypointsOf`, `.GoalGroundAt`,
-`.GoalClearanceAt`) and so plants props on a pad and routes the board between everything except its hills.
+is in none of them.** It is settled (`FEATURES.md`): `NavPoints`, `DeclaredGoals`, `PL3` and the three
+dressing walks read all four objective families, a plan states the capture points a board is played for, and
+three gates say what PGM makes of one. `MapIntent.HasDestroyGoal` and `FrontlineTerms` are not this — both are
+about destroy goals specifically and are right as they stand. What remains is the surface, which the author
+takes last.
 
 - [ ] **TC7 — The configure tool cannot place a hill.** The API is the way in — an agent adds
   `controlPoints` to the intent it already posts (`docs/pgm/control-points.md` §9) — and the wizard has no
@@ -41,12 +38,3 @@ the intent's goals one family at a time in three more places (`DressingScope.Way
   it rather than asking. The anchors are the plan's to derive and it does (`FEATURES.md`), so the step asks
   for a count on a board with no plan behind it and shows what the plan already worked out on one with.
 
-- [ ] **WE120 — A team tint on a one-island board paints the whole map one colour, silently.**
-  `TeamTerritory.Ownership` resolves an owner per canonical island and `anchor.TryAdd(id, s.Team)` keeps the
-  first spawn read, so a board whose ground is one landmass — the ordinary shape of a capture board — gives
-  every tinted cell to whichever team compiled first. Raise a finding where a theme in play carries a
-  `TeamTintedMaterial` and an island carries spawns of more than one team, naming the island and the teams;
-  it belongs beside the other paint findings, at the point the painter resolves its themes. Evidence:
-  `specs/opus5-casemate` compiles to `islandTeams: {"1": "red"}` with spawns at `(0, −44)` red and `(0, 44)`
-  blue, and its world holds **678 red terrain blocks on blue's half against 74 blue**, all 74 of them the
-  gate house, which is a structure stamp and knows its own team.

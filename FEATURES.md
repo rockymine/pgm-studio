@@ -9034,6 +9034,34 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **A team tint says which land it cannot tell apart (`WE120` — `PT5`).** A tint is one colour per canonical
+  island, which is what makes it readable: a player standing anywhere on a landmass knows whose it is. On an
+  island more than one team's spawns stand on the ownership keeps the first spawn read, so the whole of it
+  wears that team's colour — and on a board whose ground is a single landmass, which is the ordinary shape of
+  a capture board, that is the entire map in one colour with nothing anywhere saying so.
+  `TeamTerritory.Shared` reads the same decomposition for those islands and `Materials.TintsByTeam` walks a
+  material tree for the tint, since one sits as readily inside a pattern or a band as at a bucket's root and a
+  bucket its own toggle turns off states no colour at all. The complaint names the island, the teams that
+  enter it, the colour all of it wears and how many cells that is. Asked of the themes the painter
+  **resolves**, on that island's own cells, so a registry theme no shape applies never raises it and a board
+  with no shared island never takes the walk. A complaint because the answer is the author's: state ownership
+  per structure with a shape's own theme, split the land, or leave the tint off the terrain. *On a one-island
+  board with red at (−25, 0) and blue at (25, 0), the corner of blue's half at (38, 28) is painted red's
+  stained clay — damage 14.* (`TeamTerritory.Shared`, `Materials.TintsByTeam`,
+  `WorldBuilder.TintOverSharedGround`, `TeamTerritoryTests`, `TintsByTeamTests`, `TeamTintWorldTests`,
+  `docs/world-export/terrain-painting.md` §3)
+- **The dressing pass reads a hill as a goal (`WE125`).** `DressingScope` walked the intent's goals one family
+  at a time in three places and a capture point was in none of them, so a board played for hills was routed
+  between everything except its hills and had trees planted on its pads. All three read the fourth family now:
+  `WaypointsOf` seats a point's anchor beside the spawns, the wool monuments and the destroy goals, which is
+  what `DR-WAY` walks the board between and the same set the coverage read journeys over — the two are
+  documented as one set and are now one set. `GoalGroundAt` grows the pad the stamper cut by `GoalClearance`,
+  so tall cover stops at its edge, and `GoalDiscsAt` puts the marker's `GoalStandoff` square on it like any
+  other goal, which together make a tree, a boulder or a building inside it `OB19`. A point is the one goal
+  wider than the standoff ring, and the union is what answers for it: the ring holds a narrow pad and the
+  footprint holds a wide one. *A default 7-wide pad at (20, 20) keeps those three props out of
+  [10, 10]–[30, 30] and a 15-wide one out of [9, 9]–[31, 31].* (`DressingScope`, `DressingScopeTests`,
+  `docs/world-export/decoration.md` §3.1)
 - **Three gates for what a capture board will not do (`PG6`, `PG7`, `PG8` — `OB27`, `OB28`, `OB29`).** Each is
   a fact about what PGM makes of the document rather than about any ground, and all three are complaints: the
   map builds either way, and every point the studio authors already passes all three. **`OB27`** — a point

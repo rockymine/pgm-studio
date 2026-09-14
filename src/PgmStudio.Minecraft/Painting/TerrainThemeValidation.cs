@@ -42,6 +42,16 @@ public static class TerrainThemeRules
     [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string FlatFieldOnAFace = "PT4";
 
+    /// <summary>A theme tints its ground by team over land more than one team enters. The tint is one colour
+    /// per canonical island, which is what makes it readable — a player standing anywhere on a landmass knows
+    /// whose it is — and an island two teams' spawns stand on has one colour for both, so the whole of it wears
+    /// whichever team the ownership resolved. A board whose land is a single island is the whole map painted
+    /// one team's colour, which is the ordinary shape of a capture board and of any board with no void in
+    /// it.</summary>
+    /// <remarks>Either split the land the tint is meant to distinguish — the decomposition is the canonical `islands_json` one, so two teams on separate landmasses each take their own colour — or drop the `teamTinted` material from the buckets the shared island paints through and say whose ground it is some other way. A theme whose tint is deliberate on shared ground states it by assigning the island in the configure step, which is what the finding names.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
+    public const string TintOverSharedGround = "PT5";
+
     /// <summary>The finest period a sampled pattern may vary over, in blocks — <see cref="BrushTooFine"/>'s
     /// one number (author).</summary>
     public const int BrushFloor = 2;

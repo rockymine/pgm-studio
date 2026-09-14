@@ -268,6 +268,33 @@ public static class Materials
     /// the 34 authored themes that do state it, which run 18° to 45°; the other 191 say nothing and this is
     /// what they are read at.</summary>
     public const int DefaultCliffAngle = 30;
+
+    /// <summary>Whether this material paints the owning team's colour anywhere in it — a
+    /// <see cref="TeamTintedMaterial"/> at any depth of the tree, including inside the neutral a shallower one
+    /// names. What makes a theme's ground say whose land it is, and therefore what makes the ownership it
+    /// reads worth checking (<c>PT5</c>).</summary>
+    public static bool TintsByTeam(TerrainMaterial? material) => material switch
+    {
+        TeamTintedMaterial => true,
+        LayeredMaterial layered => (layered.Stack?.Bands ?? []).Any(band => TintsByTeam(band.Material))
+                                   || TintsByTeam(layered.Beyond),
+        VoronoiMaterial voronoi => (voronoi.Bands ?? []).Any(band => TintsByTeam(band.Material)),
+        CellMaterial cell => (cell.Palette ?? []).Any(TintsByTeam),
+        NoiseMaterial noise => (noise.Stops ?? []).Any(TintsByTeam),
+        TurbulenceMaterial turbulence => (turbulence.Stops ?? []).Any(TintsByTeam),
+        ElectricMaterial electric => (electric.Stops ?? []).Any(TintsByTeam),
+        CheckerMaterial checker => TintsByTeam(checker.Even) || TintsByTeam(checker.Odd),
+        _ => false,
+    };
+
+    /// <summary>Whether any bucket this theme actually paints tints by team. A bucket its own toggle turns
+    /// off writes nothing, so it states no colour; the fill has no toggle and always claims what the rest
+    /// left.</summary>
+    public static bool TintsByTeam(TerrainTheme theme) =>
+        (theme.Rim.Enabled && TintsByTeam(theme.Rim.Material))
+        || (theme.Surface.Enabled && TintsByTeam(theme.Surface.Material))
+        || (theme.WallEnabled && TintsByTeam(theme.Wall))
+        || TintsByTeam(theme.Fill);
 }
 
 /// <summary> A <see cref="BandStack"/> read along a distance — grass over two dirt, a wall's banded riser (TP11),
