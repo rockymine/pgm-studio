@@ -445,6 +445,21 @@ and what a `subtract` takes away.
   wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
   from 2 isolated markers to **0** — the direction that reads as an improvement.*
 
+- [ ] **G263 — `WL2`'s "different lane" clause has no term, so a wool room may abut its spawn.** The rule
+  reads *"on a different lane than the spawn; wool↔spawn ≥ 20"* and only the distance half is built:
+  `SpawnWoolFloor` (hard, `MinBlocks = 20`) and `SpawnWoolDistance` (soft, `[27, 170]`) in
+  `src/PgmStudio.Pgm/Evaluate/Terms/SpawnTerms.cs`, both measuring the walk from the spawn **point** to the
+  wool **block**. `WL6` — one wool to a lane — has no term at all. Add a hard term beside them indicting a
+  wool-room piece that shares an edge with, or lies within a few cells of, a spawn piece; `PieceInterfaces`
+  already answers that seam. The composer cannot emit the shape — every composed wool unit is `boxes: 2`,
+  the room plus its lane, against a spawn's 1 — so only a hand-authored plan reaches it, which
+  `AUTHORING-BRIEF.md` asks authors for. `docs/generator/rules.md`.
+
+  *`opus5-redmarl` places `dye-w [-13,-26,5,4]`, `yard` (spawn) `[-8,-26,7,4]` and `dye-e [-1,-26,5,4]` in
+  one row with their edges touching, 8 blocks apart in the built world. `POST /plan/evaluate` answers
+  `score 0, valid true`, because the walk it measures is 33. `opus5-mirkholt` and `opus5-flintwick` are the
+  same shape; `opus5-coinfall` is the counter-example, with a 15-cell `run` piece between the two.*
+
 ## Distance, and the walk every measure is taken with
 
 `Geom.Walk` is the traversal now — eight-connected and octile, charging a climb in the blocks a player places,
