@@ -24,26 +24,17 @@ point dead centre and the rest to the sides — is the author's and is settled i
 Payload stays out: it is a furnace minecart players push, behind a server experiment flag whose XML PGM says
 will change.
 
-**The foundation, and it is one sentence: what a board is played for is derived eighteen times and a control
-point is in none of them.** `DeclaredGoals` already claims the job — its docstring says it is "the one reading
-of it, so the playability reads and the export gate answer over the same set" — and it cannot be, because it
-sits in `Api/Services` where `Export`, `Pgm` and `Analysis` cannot reach it, and it walks wools, destroyables
-and cores and stops. So every consumer kept its own walk: `DressingScope.WaypointsOf`, `.GoalGroundAt` and
-`.GoalClearanceAt`, `MapExportComposer:523` and `:536`, `PlanValidator:166` (`PL3`), `MapIntent:811`
-(`HasObjectives`), `FrontlineTerms:38`, and the three playability reads. Eighteen sites walk the intent's goals
-one family at a time.
+**The foundation is one sentence: what a board is played for is derived in several places and a control point
+is in none of them.** The playability half has landed (`FEATURES.md`) — `NavPoints` and `DeclaredGoals` now
+resolve all four objective families, and the reads that quantify over goals take that one set. What is left of
+the cause is the **dressing** half, which walks the intent's goals one family at a time in three more places
+(`DressingScope.WaypointsOf`, `.GoalGroundAt`, `.GoalClearanceAt`) and so plants props on a pad and routes the
+board between everything except its hills, and the **plan** half (`TN19`), where the tier counts placements the
+plan cannot yet carry. `MapIntent.HasDestroyGoal` and `FrontlineTerms` are not this: both are about destroy
+goals specifically and are right as they stand.
 
-Fixing that is what makes the entries below small, and it is what the first two *are*: a goal set in the lowest
-project every consumer reaches, control points in it, and every caller moved in the same commit. The contract
-gates after it each land with a test that fails on the old behaviour; the authoring pair is the half that lets
-a board be drawn with hills at all.
-
-- [ ] **WS62 — Coverage, reach and the walk read are blind to a hill.** All three resolve a board's goals
-  from the wool/destroyable/core lists, so on a capture board `GET …/coverage` answers 71.8% dead with its
-  two largest dead patches centred on the two side hills, `04-routes.txt` prints "no route between a spawn
-  and a goal", and `/reach` reports the same ground unreached. The walks exist — `GET …/walk?from=0,-48&
-  to=-33,-1` on `opus5-threap-edge` is walked end to end — so what is missing is only that a control point
-  counts as a goal in the set those three quantify over. One derivation, three readers.
+The contract gates each land with a test that fails on the old behaviour; the authoring pair is what lets a
+board be drawn with hills at all, and `TC8` is what gives `TN19` something to count.
 
 - [ ] **TN19 — `PL3` calls a capture board objectiveless.** The plan tier counts wools, destroyables and
   cores, so a board played for hills is told "this plan has no objective — no wool, destroyable or core, so

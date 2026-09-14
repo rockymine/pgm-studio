@@ -9034,6 +9034,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **A control point is a goal the reads count (`WS62`).** `NavPoints` resolved the places a match is played
+  between from three objective families and a document's `control_points` was not one of them, so on a capture
+  board every journey to a hill went unmeasured: `traversability` named two spawns and called the chain fine,
+  `coverage` walked three journeys and reported the middle of the board dead, and `reach` agreed. All four
+  families are resolved now — from the document in `NavPoints` and from the intent in `DeclaredGoals` — and
+  `Traversability`'s gating list, a closed set of four kinds that silently dropped the fifth, counts a point
+  with them. A hill carries **no owner**, which is the one difference the family has: it belongs to whoever is
+  standing on it, so every team is simply required to reach it and none gets the weaker "walk up to your own
+  goal" question a defended wool room earns. Its name is PGM's own — the author's, else `Hill`, `Hill 2` off a
+  counter only an unnamed point advances — stated once in `Domain.ControlPointNaming` because the document
+  side and the intent side merge by name and two copies would count one point as two.
+  *Measured on `opus5-sparholt`, three hills at (0, 0), (−27, 0) and (27, 0): coverage went from 3 journeys and
+  **72.1%** of the ground dead to 15 and **31.4%**, and the walk read from two points to five, each hill named.*
+  (`NavPoints`, `DeclaredGoals`, `ControlPointNaming`, `NavPointsTests`, `docs/world-scan/read-backs.md`,
+  `docs/pgm/control-points.md`)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a
   solid cell that blocks placement, over the `SegmentIndex`), `POST /wool-sources` (wool colours summarised

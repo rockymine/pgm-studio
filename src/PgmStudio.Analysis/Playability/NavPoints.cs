@@ -1,5 +1,6 @@
 namespace PgmStudio.Analysis.Playability;
 
+using PgmStudio.Domain;
 using PgmStudio.Analysis.Region;
 using PgmStudio.Geom;
 
@@ -94,6 +95,19 @@ public static class NavPoints
             var box = Region(core.GetValueOrDefault("region"), regions);
             if (Centre(box, regions, bounds) is { } at)
                 points.Add(new NavPoint("core", owner, owner, at.x, at.z, Height(box)));
+        }
+
+        // A control point is a goal nobody owns: it belongs to whoever is standing on it, so it carries no
+        // owner and every team is simply required to reach it. Seated on its capture region, which is the
+        // ground a player holds it from — the pad under it and the air a body occupies.
+        var hills = MapDoc.AsList(data.GetValueOrDefault("control_points")).OfType<Dict>().ToList();
+        foreach (var (hill, name) in hills.Zip(
+                     ControlPointNaming.Displayed(hills.Select(h => h.GetValueOrDefault("name") as string))))
+        {
+            var box = Region(hill.GetValueOrDefault("capture_region"), regions)
+                      ?? Region(hill.GetValueOrDefault("progress_region"), regions);
+            if (Centre(box, regions, bounds) is { } at)
+                points.Add(new NavPoint("point", name, "", at.x, at.z, Height(box)));
         }
 
         if (declared is { Count: > 0 })

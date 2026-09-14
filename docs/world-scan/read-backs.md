@@ -128,6 +128,17 @@ question there, since its own wool room bars it by design: the walk only has to 
 border. Both ends are snapped on the shared ground before the team's is walked, so a barred
 objective answers unreachable rather than sliding sideways to the nearest cell the team may stand on.
 
+**A control point is a goal the reads count, and it is the one nobody owns.** `NavPoints` resolves the places
+a match is played between from all four objective families — a wool, a destroyable, a core and a control
+point — and the reads that quantify over goals (`traversability`, `coverage`, `reach`, the export gate's
+`EX1`) take that one set, so a capture board is measured rather than being read as two spawns and a dead
+field. A hill belongs to whoever is standing on it, so it carries **no owner**: the weaker question above is
+a defender's, and every team is simply required to reach a point. It is seated on its capture region, which
+is the pad and the air a body occupies, falling back to the pad alone on a map that states only that. Its
+name is PGM's own — the author's where they wrote one, and `Hill`, `Hill 2`, `Hill 3` off a counter only an
+unnamed point advances (`ControlPointNaming`), so the document's points and an intent's are recognised as
+the same points rather than counted twice.
+
 The bound is what keeps it honest in both directions. Unbounded, a standoff route wanders; ordered after
 distance, it never moves. And the exposure term is the route's **worst** shortfall rather than its total,
 because a sum charges a longer route for its own length and would rank a safe detour below the edge it

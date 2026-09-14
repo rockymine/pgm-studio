@@ -379,6 +379,15 @@ arrived in, `control_point` and `map_score` store it, and `Gamemodes.From` deriv
 from what is there. Over both corpora, 286 maps carry one or the other; all 286 parse and survive the XML
 round trip unchanged.
 
+**And the reads count one as a goal.** `NavPoints` resolves a point out of a document's `control_points`
+and `DeclaredGoals` out of an intent's, so `traversability`, `coverage`, `reach` and the export gate quantify
+over all four objective families rather than three. A point carries no owner — a hill belongs to whoever
+stands on it — which is the one difference from the other three: every team is required to reach it, and
+none of them gets the weaker "walk up to your own goal" question a defended wool room earns. *Measured on
+`opus5-sparholt`, a three-hill board: coverage went from 3 journeys and **72.1%** of the ground dead to 15
+journeys and **31.4%**, and the walk read from naming two spawns to naming the two spawns and the three
+points.*
+
 **Nothing states a knob the map did not.** Every optional attribute is `null` or `""` all the way down to
 its nullable column, because PGM's default for it depends on the element — a hill keeps partial capture
 progress and a control point discards it, from the same unwritten `incremental` — so materialising one
@@ -435,7 +444,7 @@ All three emitted regions are the stamper's own boxes (OB8): the capture region 
 display region is the pad course alone — one block thick, every block of it colour-affected — and the owner
 display region is the sky marker's box.
 
-**What is not built** is on the board in `BACKLOG.md` under *"The hill: a goal owned by standing on it"*.
+**What is not built** is on the board in `TODO.md` under *"The hill: a goal owned by standing on it"*.
 Each sentence becomes false when its task ships:
 
 - **`PG6`** — a scoring point with no `<score>` element scores nothing; nothing says so for an **imported**
