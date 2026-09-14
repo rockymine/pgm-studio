@@ -5600,6 +5600,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   studio's remaining fractional query knob. (`docs/world-export/decoration.md`,
   `docs/world-export/tree-corpus.md`, `docs/tools/sketch.md`, `docs/tools/library.md`,
   `docs/tools/mapgen-review.md`)
+- **A rock is not cut from the ground it stands on (`WE64`, `DR-TONE`).** A boulder reads as a rock by not
+  being made of the field it sits in, so the question is asked in `TerrainPalette` tone families rather than
+  in blocks — a sandstone rock on sand is two different blocks and one tone, and it has no silhouette at any
+  size. What fires is *built wholly from* the field: a rock keeping one family the ground lacks is a rock
+  however much else it shares. The ground it is judged against is the ground it can **rest** on
+  (`Materials.Resting` — a depth stack's top course, a slope stack's shallowest band), because a meadow whose
+  steep faces are bare stone is a meadow and a boulder stands on the meadow. The rock a placement naming no
+  recipe gets is now stone, cobblestone and andesite in shards a few blocks across, stone taking half
+  (`BoulderStyle.DefaultRock`), which is what the four seeded recipes carry and what reads against sand,
+  grass, dirt, red sand and any single clay. *Swept through the live gate over the 26 authored boards the
+  studio will store — four are refused by `PT4`, which predates this — 15 boulders raise it on three:
+  `opus5-basaltmere` six, `opus5-blackden-sough` six (its `edge-rock`s are grey stone and cobble on grey stone
+  and cobble, from (−30, 25)), `opus5-flintwick` three.* The material walk both this and `PT1` use is one method now
+  (`Materials.BlocksOf`). (`RockTone`, `RockToneTests`, `LibrarySeed`, `docs/world-export/decoration.md`,
+  `docs/refusals.md`)
 - **`DR-PASS` measures the passage from the roof, not from the wall (`WE45`, first of three faults).** A roof
   oversails its wall by at least one block whatever the style says (`HouseStamper.StampedCells`), and the
   blocks a player has to walk under are the ones that were written — so the five-block band now starts where
@@ -7750,6 +7765,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
+  several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
+  `{component}-{surface}` and each addressable — so a theme scoped per plateau paints one hillside as two or
+  three grounds with a hard line at every riser, which is the plan leaking into the paint. The complaint names
+  the component, the surfaces it climbs and what each plateau paints, so the riser is findable on the canvas.
+  A plateau is told from a shape somebody drew by the compiler's own naming — the number the id ends in is the
+  shape's own thickness, and a drawn shape sits on a stated `floor` where a compiled one never does — so
+  `opus5-slipway`'s 1,760 numbered sculpture parts are outside it and a component whose own name ends in a
+  number keeps it. *Swept through the live gate, nine boards raise it, one component
+  each: `fable-mossgill`'s `apron` climbs 14 → 27 in four themes, `opus5-mirkholt`'s 13 → 16 in three.* A local predicate rather than
+  the registry count the entry was filed on, which would have fired on 23 of 51 boards for a symptom.
+  (`SketchRules`, `SketchLayoutCheck.PlateausPaintedApart`, `SketchLayoutCheckTests`, `docs/tools/sketch.md`,
+  `docs/refusals.md`)
 - **A pattern's brush is not finer than the blocks it paints (`WE48`, `PT3`).** A `cell`'s and a `voronoi`'s
   `cellSize`, and a `noise`, `turbulence` or `electric` field's `scale`, are the period a pattern varies over
   in blocks; under **2** it changes faster than the ground can show it, every block is its own feature and the

@@ -36,7 +36,7 @@ public static class SketchPartWrite
         var layout = SketchLayout.Stated(layoutJson);
         Complaints.Unread(http, layoutJson, layout);
         Complaints.Add(http, SketchLayoutCheck.Check(layout, LayoutReading.Document).AsComplaints());
-        Complaints.Unwalked(http, SketchLayoutCheck.GroundRules);
+        Complaints.Unwalked(http, SketchMaterialGate.GroundRules);
 
         var written = await DocumentWrite.StoreAsync(artifacts, mapId, ArtifactKind.SketchLayoutJson,
             "sketch layout", Encoding.UTF8.GetBytes(layoutJson), Revisions.Expected(http), ct);

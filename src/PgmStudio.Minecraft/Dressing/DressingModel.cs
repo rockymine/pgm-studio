@@ -242,7 +242,22 @@ public sealed record BoulderStyle : PropStyle
     /// <summary>What the rock is cut from — a full terrain material, resolved in the boulder's <em>own</em>
     /// frame rather than the map's, so a mottled rock carries the same mottling to every image of its orbit
     /// instead of sampling whatever the world pattern happens to say where each image landed.</summary>
-    public TerrainMaterial Rock { get; init; } = new SolidMaterial(Palette.Blocks.Stone);
+    public TerrainMaterial Rock { get; init; } = DefaultRock;
+
+    /// <summary>The rock a placement naming no recipe is cut from: stone, cobblestone and andesite in shards
+    /// a few blocks across, stone taking half of them. Two tone families — grey stone and cobble — so it
+    /// reads against sand, grass, dirt, red sand and any single clay, which is what keeps a rock a rock
+    /// (<see cref="DressingRules.RockInTheGroundsTone"/>). Fixed rather than seeded per prop, so every
+    /// boulder on a board is cut from the same rock and the mottling lines up across an orbit.</summary>
+    public static readonly TerrainMaterial DefaultRock = new CellMaterial(
+        Seed: 53, CellSize: 4, Jitter: 2, Warp: 3,
+        Palette:
+        [
+            new SolidMaterial(Palette.Blocks.Stone),
+            new SolidMaterial(Palette.Blocks.Cobblestone),
+            new SolidMaterial(Palette.Blocks.Stone, 5),
+            new SolidMaterial(Palette.Blocks.Stone),
+        ]);
 
     /// <summary>Whether moss creeps onto the sky-lit faces — the rock's own micro-flora, laid over whatever
     /// <see cref="Rock"/> resolved.</summary>

@@ -1,8 +1,9 @@
 using PgmStudio.Vocabulary;
 namespace PgmStudio.Minecraft.Dressing;
 
-/// <summary>The dressing pass's own placement rules — the ids its census reasons cite, served by
-/// <c>GET /api/rules</c> from the docstrings here the way every gate family's are.</summary>
+/// <summary>The dressing pass's own rules — where a prop may stand, what it may take from the ground and what
+/// it may be made of — served by <c>GET /api/rules</c> from the docstrings here the way every gate family's
+/// are.</summary>
 public static class DressingRules
 {
     /// <summary>A prop rests nearer to the road than its kind's standoff allows: a tree 3 blocks, a boulder 2,
@@ -180,6 +181,20 @@ public static class DressingRules
     /// <remarks>Draw the body inside ground that is already level — the finding names the wall's own cell and its two courses, which is where to read the fall — or state a `level` and let the water fill the hollow that is there instead of making one. A complaint: the world is built and the water is in it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string SteepBank = "DR-BANK";
+
+    /// <summary>A boulder built out of nothing but the tones of the ground it stands on. A rock is an
+    /// erratic — a mass carried here and left — so it reads as a rock by not being made of the field it sits
+    /// in, and one whose every tone family the ground already states has no silhouette at any size: it is a
+    /// patch of the same ground standing up. Measured against the ground where something can <b>rest</b>, so a
+    /// meadow whose steep faces are bare stone is a meadow and a stone rock on it stands out as intended.
+    ///
+    /// <para>Tone families are <c>TerrainPalette</c>'s — the unit a pattern is filled from, which is what an
+    /// author reaches for and what a player reads at a distance. A rock keeping one family the ground does not
+    /// have is a rock, however much else it shares: what disappears is the one built wholly from the
+    /// field.</para></summary>
+    /// <remarks>Cut the rock from stone, andesite and cobblestone, which is what a placement naming no recipe already gets: it reads against sand, grass, dirt and red sand, and against any single clay, since no two clay colours are close. Where the ground is itself grey stone, take the rock the other way — a clay, a dark block or a sand — rather than deepening the grey. A complaint: the world is built and the rock is in it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Material, RuleConcern.Terrain)]
+    public const string RockInTheGroundsTone = "DR-TONE";
 
     /// <summary>How much of a prop the clip has to block before <see cref="PropCut"/> is raised on the share
     /// alone. A rock tucked against a wall is flattened along it and measures about a third, which is a rock;

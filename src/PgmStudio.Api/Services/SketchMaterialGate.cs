@@ -21,11 +21,19 @@ namespace PgmStudio.Api.Services;
 ///
 /// <para><b>The themes</b> answer for what their own materials cannot do at the depth a bucket claims
 /// (<c>PT*</c>), and — where the caller is paying for the ground anyway — for what a theme cannot do on the
-/// shape it was scoped to (<c>SK23</c>), which is the one theme question that needs the board rasterized and
-/// so rides the same <see cref="LayoutReading"/> the sketch check is taking at the same call site. Neither
-/// half is read anywhere else before the world is built.</para></summary>
+/// shape it was scoped to (<c>SK23</c>) and what the ground it paints does to a rock standing on it
+/// (<c>DR-TONE</c>). Those two are the theme questions that need the board rasterized, so they ride the same
+/// <see cref="LayoutReading"/> the sketch check is taking at the same call site. None of it is read anywhere
+/// else before the world is built.</para></summary>
 public static class SketchMaterialGate
 {
+    /// <summary>Every rule a <see cref="LayoutReading.Document"/> check does not answer — the layout check's
+    /// own, plus the one this gate skips with them. The two gates run at one call site and a caller asks one
+    /// question, so the whole answer is here; each half is still stated beside the code that skips it, and
+    /// <c>DR-TONE</c>'s id stays with the rest of the dressing family, which <c>Pgm</c> cannot see.</summary>
+    public static readonly string[] GroundRules =
+        [.. SketchLayoutCheck.GroundRules, DressingRules.RockInTheGroundsTone];
+
     public static Findings Check(string layoutJson, LayoutReading reading = LayoutReading.Ground)
     {
         // A layout the room-style shape does not parse against is not this gate's business — the blob is
@@ -47,10 +55,14 @@ public static class SketchMaterialGate
         findings.AddRange(RoomStyleScope.Check(styles.Spawn, "roomStyles.spawn"));
         findings.AddRange(Themes(layoutJson));
         findings.AddRange(Materials(layoutJson));
-        // SK23 walks every column of the board's extent to ask which of a shape's are edges, so it is a
-        // ground rule and a partial write skips it exactly as it skips the sketch check's own — and says so
-        // through `SketchLayoutCheck.GroundRules`, which names it.
-        if (reading == LayoutReading.Ground) findings.AddRange(TerrainThemeScope.Check(layoutJson));
+        // Both walk every column of the board's extent — SK23 to ask which of a shape's are edges, DR-TONE to
+        // ask which theme is under a boulder — so both are ground rules, a partial write skips them exactly as
+        // it skips the sketch check's own, and `GroundRules` above is what names them to such a caller.
+        if (reading == LayoutReading.Ground)
+        {
+            findings.AddRange(TerrainThemeScope.Check(layoutJson));
+            findings.AddRange(RockTone.Check(layoutJson));
+        }
         return findings;
     }
 

@@ -295,21 +295,8 @@ public static class TerrainThemeValidation
             + "course thick and what is under it is soil — put it at the top of a layered stack instead.",
             Field: bucket);
 
-    /// <summary>Every surfacing block a material can resolve to, patterns walked to their leaves. The data
-    /// travels with the id because podzol is a variant of dirt and nothing else tells the two apart.</summary>
+    /// <summary>Every surfacing block a material can resolve to, patterns walked to their leaves by
+    /// <see cref="Materials.BlocksOf"/>.</summary>
     private static IEnumerable<(int Id, int Data)> Surfacing(TerrainMaterial material) =>
-        Blocks(material).Where(block => BlockRoles.IsSurfacing(block.Id, block.Data));
-
-    private static IEnumerable<(int Id, int Data)> Blocks(TerrainMaterial material) => material switch
-    {
-        SolidMaterial solid => [(solid.Id, solid.Data)],
-        LayeredMaterial layered => layered.Stack.Bands.SelectMany(band => Blocks(band.Material)),
-        VoronoiMaterial voronoi => voronoi.Bands.SelectMany(band => Blocks(band.Material)),
-        CellMaterial cell => cell.Palette.SelectMany(Blocks),
-        NoiseMaterial noise => noise.Stops.SelectMany(Blocks),
-        TurbulenceMaterial turbulence => turbulence.Stops.SelectMany(Blocks),
-        ElectricMaterial electric => electric.Stops.SelectMany(Blocks),
-        CheckerMaterial checker => Blocks(checker.Even).Concat(Blocks(checker.Odd)),
-        _ => [],
-    };
+        Materials.BlocksOf(material).Where(block => BlockRoles.IsSurfacing(block.Id, block.Data));
 }

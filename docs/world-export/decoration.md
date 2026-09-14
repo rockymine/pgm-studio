@@ -432,6 +432,26 @@ turns over every block chews the whole surface at once — the result is lumpy r
 amplitude, and at the amplitude an angular rock wants it detaches chips: an `angular` rock of size 7 came
 out in three pieces with two blocks standing in mid-air at (−308, 10, 48) and (−312, 11, 51).
 
+**A rock reads as a rock by not being made of the field it sits in** (the author's ruling). Tone families are
+`TerrainPalette`'s — the unit a pattern is filled from, and what a player reads at a distance — so the
+question is asked in families rather than in blocks: a sandstone rock on sand is two different blocks and one
+tone, and it has no silhouette at any size. `DR-TONE` complains where every family a boulder is cut from is
+one the ground under it already states, which is *built wholly from* the field rather than merely touching
+it — a rock keeping one family the ground does not have is a rock however much else it shares.
+
+The ground a rock is judged against is the ground it can **rest** on. A theme whose surface is a slope stack
+paints its steep faces bare stone and its flat ground meadow, and a boulder stands on the meadow; reading
+every block such a theme can produce would take a cliff nothing rests on as the ground under the rock, and
+would fire on the very recipe the rule recommends. `Materials.Resting` is that narrowing — a depth stack's
+top course, a slope stack's shallowest band — and `Materials.BlocksOf` is the whole-tree walk the rock itself
+is read with.
+
+So the rock a placement naming no recipe is cut from is **stone, cobblestone and andesite** in shards a few
+blocks across, stone taking half of them (`BoulderStyle.DefaultRock`, and what the four seeded recipes carry).
+Two families, grey stone and cobble, which reads against sand, grass, dirt and red sand, and against any
+single clay, since no two clay colours are close. Where the ground is itself grey stone the rock has to go the
+other way — a clay, a dark block, a sand — rather than deeper into the grey.
+
 A `BoulderProp` is placed at a cell and carries its own form (round, angular, outcrop, cairn), size, rock
 material, moss flag and seed. Round and angular are the same erratic at two erosion amplitudes. The rock is a
 full `TerrainMaterial` like the stroke's pave and the channel's bank, resolved in the boulder's **own frame**

@@ -73,8 +73,10 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
                  })
         {
             if (rocks.Contains(name)) continue;
+            // Cut from the kind's own default rather than from a literal here: the rock that reads against
+            // ordinary ground is stated once, on the type the export stamps (DR-TONE).
             await props.CreateBoulderAsync(PropStyleLibrary.RowOf(new BoulderStyleSaveRequest(
-                name, form, size, Mossy: true, """{"kind":"solid","id":1,"data":0}""")), ct);
+                name, form, size, Mossy: true, TerrainThemeJson.Serialize(BoulderStyle.DefaultRock))), ct);
         }
     }
 

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
+using PgmStudio.Api.Services;
 using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Api.Tests;
@@ -223,7 +224,7 @@ public sealed class SketchGeometryEndpointsTests
             .Because("a write that did not walk the ground says so");
         var named = string.Join(" ", unwalked!).Split(' ');
         await Assert.That(named.Order(StringComparer.Ordinal))
-            .IsEquivalentTo(SketchLayoutCheck.GroundRules.Order(StringComparer.Ordinal));
+            .IsEquivalentTo(SketchMaterialGate.GroundRules.Order(StringComparer.Ordinal));
     }
 
     /// <summary>And the rules a write leaves out are answered where it says they are. The stack below is

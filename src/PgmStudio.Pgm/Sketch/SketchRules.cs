@@ -292,4 +292,13 @@ public static class SketchRules
     /// <remarks>Take one off. `theme` is for ground, whose top, face and body are three different materials chosen per column; `material` is for a thing that is made of something, painted over its whole span.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string PaintStatedTwice = "SK24";
+
+    /// <summary>One landform painted a theme per step. A plan component spanning several surfaces compiles to
+    /// one shape per surface — a stepped island becomes stacked plateaus, each addressable by its own id — and
+    /// a theme scoped per plateau paints one hillside as two or three grounds with a hard line at every riser.
+    /// A theme is a <b>place</b>: the ground a board changes character at is where a player crosses from one
+    /// part of the map to another, not where the plan happened to step.</summary>
+    /// <remarks>Paint the component's plateaus with one theme, and say what changes between them with the theme's own bands — a `slope` stack tells a riser from a tread by its angle, a `height` stack cuts at the surfaces the steps already sit at. Where the steps really are two places, the answer is two components in the plan rather than two themes on one.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain, RuleConcern.Theme)]
+    public const string PlateausPaintedApart = "SK27";
 }

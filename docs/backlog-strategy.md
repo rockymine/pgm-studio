@@ -240,7 +240,7 @@ What is left is the seam itself. `B213`.
 **A convention is measured and nothing complains.** Four entries in one section each name a predicate, a
 corpus number and the document that would carry the rule, and none of them is a gate: a building walled in
 the ground's own family (`WE46`, 9 of 50 buildings), a board wearing a theme per piece (`WE47`, 24 themes on
-one board), a pattern brushed smaller than what it dresses (`WE48`), and a pattern showing off a family
+one board — shipped), a pattern brushed smaller than what it dresses (`WE48`), and a pattern showing off a family
 rather than being a ground (`WE41`). `WE45` is the same cause from the other end — a rule that exists,
 measures the wrong rectangle and asks for the widest side instead of every side.
 
@@ -248,7 +248,8 @@ measures the wrong rectangle and asks for the widest side instead of every side.
 when its **domain** closes: a house has a fixed parts list, which is why `HS1`–`HS10` is a rule set that could
 be finished, and terrain has none, so a catalogue over every pair of blocks against every pattern scale never
 closes. `WE48` and `WE45` were the closable kind — a number on a bounded field and a geometric measurement —
-and both landed (`FEATURES.md`). `WE47`'s local half is the same kind. `WE46` and `WE41` are not: both reduce
+and both landed (`FEATURES.md`), as did `WE47`'s local half: a compiled component's plateaus measured against
+each other rather than a board's theme count measured against a number. `WE46` and `WE41` are not: both reduce
 to *do these two blocks read as one?*, and `TerrainPalette` answers only in a mean RGB, which puts stone and
 cobblestone four points apart per channel and andesite and its polished variant the same. They are parked on
 a measurement — texture variance per block — rather than filed as more complaints, because a complaint fires

@@ -150,6 +150,47 @@ public static class Materials
     /// under-reserving is a stamp clipped at the ceiling.</para></summary>
     public static bool IsAir(this TerrainMaterial? material) =>
         material is null or SolidMaterial { Id: Blocks.Air };
+
+    /// <summary>Every block this material can resolve to, patterns walked to their leaves. The data travels
+    /// with the id because a variant is a block — podzol is a dirt and andesite is a stone, and nothing else
+    /// tells either pair apart.
+    ///
+    /// <para>The patterns that <b>pick</b> from a set answer that set; the ones that <b>draw</b> geometry — a
+    /// wall run's stripes, a diagonal's, a frame's edge, a laid or checkered log — answer nothing, because
+    /// what they place is a fixture rather than a ground a question about tone is asked of.</para></summary>
+    public static IEnumerable<(int Id, int Data)> BlocksOf(TerrainMaterial? material) => material switch
+    {
+        SolidMaterial solid => [(solid.Id, solid.Data)],
+        LayeredMaterial layered => (layered.Stack?.Bands ?? []).SelectMany(band => BlocksOf(band.Material))
+                                                              .Concat(BlocksOf(layered.Beyond)),
+        TeamTintedMaterial tinted => BlocksOf(tinted.Neutral),
+        VoronoiMaterial voronoi => (voronoi.Bands ?? []).SelectMany(band => BlocksOf(band.Material)),
+        CellMaterial cell => (cell.Palette ?? []).SelectMany(BlocksOf),
+        NoiseMaterial noise => (noise.Stops ?? []).SelectMany(BlocksOf),
+        TurbulenceMaterial turbulence => (turbulence.Stops ?? []).SelectMany(BlocksOf),
+        ElectricMaterial electric => (electric.Stops ?? []).SelectMany(BlocksOf),
+        CheckerMaterial checker => BlocksOf(checker.Even).Concat(BlocksOf(checker.Odd)),
+        _ => [],
+    };
+
+    /// <summary>Every block this material can resolve to <b>where something can rest on it</b> — the answer a
+    /// shallow, ordinary column gets.
+    ///
+    /// <para>The two axes that select by where a column is cut narrow to their first band: a depth stack's is
+    /// the top course, which is the only one anything stands on, and a slope stack's is the shallowest angle,
+    /// the steeper ones being the face of a cliff that nothing rests against. An inward or a height stack
+    /// answers all of its bands — a ring in from the edge and a course at a stated Y are both ground a prop
+    /// can sit on.</para></summary>
+    public static IEnumerable<(int Id, int Data)> Resting(TerrainMaterial? material) => material switch
+    {
+        LayeredMaterial { Axis: BandAxis.Depth or BandAxis.Slope } stacked
+            when stacked.Stack?.Bands is { Count: > 0 } bands => Resting(bands[0].Material),
+        LayeredMaterial layered => (layered.Stack?.Bands ?? []).SelectMany(band => Resting(band.Material))
+                                                              .Concat(Resting(layered.Beyond)),
+        TeamTintedMaterial tinted => Resting(tinted.Neutral),
+        CheckerMaterial checker => Resting(checker.Even).Concat(Resting(checker.Odd)),
+        _ => BlocksOf(material),
+    };
 }
 
 /// <summary> A <see cref="BandStack"/> read along a distance — grass over two dirt, a wall's banded riser (TP11),

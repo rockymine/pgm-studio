@@ -1463,6 +1463,21 @@ names it among the rules it did not walk.
 grains; a shape carrying both builds with the material, being the narrower statement, and the theme is read by
 nothing. `SK24` is a refusal — the world is fine and it is the document that says two things.
 
+**It complains where one landform is painted a theme per step.** A plan component spanning several surfaces
+compiles to one shape per surface — a stepped island becomes stacked plateaus, each `{component}-{surface}`
+and each addressable — so a theme scoped per plateau paints one hillside as two or three grounds with a hard
+line at every riser. A theme is a **place**: the ground a board changes character at is where a player crosses
+from one part of the map to another, not where the plan happened to step. `SK27` names the component, the
+surfaces it climbs through and what each plateau paints, so the riser can be found on the canvas; the fix is
+one theme over the flight with the change stated inside it — a `slope` stack tells a riser from a tread by its
+angle, a `height` stack cuts at the surfaces the steps already sit at — or two components in the plan where
+the steps really are two places.
+
+A plateau is told from a shape somebody drew by the compiler's own naming: the number the id ends in is the
+shape's own thickness, and a drawn shape sits on a stated `floor` where a compiled one never does. So a
+sculpture's numbered parts are outside it, and a component whose own name ends in a number keeps it. Nine
+authored boards raise it, one component each.
+
 **Two silences an override add can meet, and both are named.** An override add is what a made thing is drawn
 as — a wall, a flight of stairs, a crop bed, a stepped mound — and it states two things at once: the column is
 its own, and this is its top. Each can be taken away by something that raises no other finding.
@@ -1630,18 +1645,19 @@ says so on the way past.
 And two things are silently **dropped on load** rather than carried: a prop whose kind the client does not
 know, and a relief mark whose kind it cannot draw. A shape nothing can edit is worse than an absence.
 
-**A write reads the document; a read walks the ground.** Seven of the rules above — `SK9`, `SK10`, `SK11`,
-`SK13`, `SK14`, `SK15`, `SK16` — are answered off the **rasterized spans** rather than off the JSON: what
-stacks over what, what a layer's slab drives into, what is standable and unreached. Answering them walks every
-column of the board's extent, which on a played-size board is seconds. So a **partial write** — a shape, a
-vertex, a layer, a group, a prop, a theme — takes the document reading and leaves those seven for a read that
-asks: on `opus5-millrace` (274×268 columns, 312 shapes) that is **48 ms a moved vertex against 1,291 ms**, and
+**A write reads the document; a read walks the ground.** Nine of the rules above — `SK9`, `SK10`, `SK11`,
+`SK13`, `SK14`, `SK15`, `SK16`, `SK23` and `DR-TONE` — are answered off the **rasterized spans** rather than
+off the JSON: what stacks over what, what a layer's slab drives into, what is standable and unreached, which
+theme paints a given cell. Answering them walks every column of the board's extent, which on a played-size
+board is seconds. So a **partial write** — a shape, a vertex, a layer, a group, a prop, a theme — takes the
+document reading and leaves those nine for a read that asks: on `opus5-millrace` (274×268 columns, 312 shapes) that is **48 ms a moved vertex against 1,291 ms**, and
 the nine calls that reshape a compiled rectangle drop from twelve seconds to under one.
 
-What a write leaves out it **names**, on its own header. `Pgm-Unwalked: SK9 SK10 SK11 SK13 SK14 SK15 SK16` is
-on every partial write, and it is deliberately not folded into `Pgm-Warnings`: that key means *these were
-found* and its absence means *nothing was*, which is the one rule that makes it readable, so a rule that was
-never asked cannot ride there. `GET /map/{slug}/findings` walks the ground and answers all of them, and so
+What a write leaves out it **names**, on its own header.
+`Pgm-Unwalked: SK9 SK10 SK11 SK13 SK14 SK15 SK16 SK23 DR-TONE` is on every partial
+write, and it is deliberately not folded into `Pgm-Warnings`: that key means *these were found* and its
+absence means *nothing was*, which is the one rule that makes it readable, so a rule that was never asked
+cannot ride there. `GET /map/{slug}/findings` walks the ground and answers all of them, and so
 does the **finish**, which is where a board carrying one is stopped. `SK2` is outside the split and answers
 under either reading — a board too large to realize is measured off the shapes' own boxes, and must refuse
 before anything walks a column of it.

@@ -13,45 +13,17 @@ blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smalle
 it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room building's 20×20 measure the same
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
-## Which face a bucket paints, and what a block is chosen against
+## Between programmes
 
-Four findings the author read off ten painted boards. `BlockLook` states the division the group turns on — the
-surface and rim buckets write what a player sees **from above**, the wall and fill buckets what they see **from
-the side** — and a material that resolves without asking which of the two it landed in is the cause the first
-two shared. That half has shipped (`FEATURES.md`): `PT4` names a sampled field with no `rise` on either tall
-bucket — the wall, which the gate had never walked, and the fill, which is the face every cut through a board
-leaves — and the eight committed presets were the first thing it caught. Both log patterns now stand a log up
-where there is no run to lay it along.
+The board is empty. *Which face a bucket paints* and *A convention is measured and nothing complains* both
+drained, and `FEATURES.md` carries what they shipped: a rock now has a default it reads against and `DR-TONE`
+complains where one is cut from its own ground, and `SK27` holds one landform to one theme, complained per
+compiled component rather than per board.
 
-The one that remains is about what a block is chosen *against* — the ground it stands on. It carries a
-threshold that is the author's and is not yet stated: it is measured before it is asked.
+What is left of the convention group is parked rather than open, and sits in `BACKLOG.md` on a measurement —
+texture variance per block — that has not been taken. Two entries there both reduce to *do these two blocks
+read as one?*, and `TerrainPalette` answers only in a mean RGB.
 
-- [ ] **WE64 — A boulder in the ground's own tone family disappears.** The author's ruling, from three boards:
-  a rock must not be built from the family it sits on. Sandstone rocks on sand vanish into the sandstone
-  structures behind them (`specs/probe-desert-1`, `specs/probe-desert-2`), and red clay against hardened clay
-  on one rock is noise rather than variation (`specs/probe-badlands-2`). The stated fallback is stone, andesite
-  and cobblestone, which works against sand, grass, dirt and red sand, or a single clay, since no two clay
-  colours are close. Seed that rock as the library's default so a placement naming nothing gets it, and raise a
-  finding where a boulder's blocks and the theme under it share a tone family.
-
-## A convention is measured and nothing complains
-
-The group `docs/backlog-strategy.md` names as the next one up. Its measurements are taken and its numbers are
-the author's, so each entry is a predicate and a threshold rather than an investigation. Two have landed
-(`FEATURES.md`): `WE48`'s brush floor and the first of `WE45`'s three faults.
-
-**The line the group is worked against.** A complaint closes when its domain closes — a house has a fixed
-parts list, which is why `HS1`–`HS10` could be finished — and terrain has none, so a catalogue over every pair
-of blocks never closes. What is built here is the closable half: a number on a bounded field, a geometric
-measurement, a local predicate over one compiled object. `WE46` and `WE41` are the other half and are parked
-below on the palette rather than filed as more complaints.
-
-- [ ] **WE47 — A board wears a theme per piece.** A theme is a *place* and a board has two or three; giving
-  every piece of the plan its own is the plan leaking into the paint. The half worth building is the **local**
-  one: complain where a flight of steps compiled from a plan does not share one theme with itself. The
-  registry count is a proxy for "the paint is incoherent" and would fire on 23 of 51 boards, which is a
-  symptom rather than a fault — `CLAUDE.md`'s reporting rule prefers a local predicate to a proxy measure.
-  `docs/tools/sketch.md`.
-
-  *51 boards carry a registry: 16 hold three, but 11 hold five, 7 hold six, and five hold between sixteen and
-  twenty-four — `opus5-interchange` has 24.*
+`docs/backlog-strategy.md` § *The order the board empties in* names what to pull up next, in the order that
+maximises what each closes: the read that reports a symptom, the layer word, the client reading its own
+schema, the compiler's lost identity, the live findings feed. A group is pulled up whole.

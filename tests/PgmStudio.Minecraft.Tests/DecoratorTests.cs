@@ -611,11 +611,15 @@ public sealed class DecoratorTests
             [new BoulderProp { Id = "b", X = 20, Z = 20, Seed = 3, Style = new BoulderStyle { Size = 5, Mossy = false } }]));
 
         await Assert.That(tally.Boulders).IsEqualTo(1);
-        var rock = Placed(world, top.Keys, 4, 20).Where(b => b.Id == Blocks.Stone && b.Y >= 8).ToList();
+        // The blocks the rock is cut from, whatever its recipe says — the seating is what is being measured,
+        // and a rock made of one block and a rock made of three are bedded alike.
+        var cut = Materials.BlocksOf(BoulderStyle.DefaultRock).Select(block => block.Id).ToHashSet();
+        var rock = Placed(world, top.Keys, 4, 20).Where(b => cut.Contains(b.Id) && b.Y >= 8).ToList();
         // An erratic is a mass left standing on a surface, so its bulk is over the ground …
         await Assert.That(rock.Max(b => b.Y)).IsGreaterThanOrEqualTo(13);
         // … and only its foot is under, which is what stops a course of turf showing daylight beneath it.
-        await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Stone);
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsNotEqualTo(Blocks.Grass);
+        await Assert.That(cut).Contains(world.GetBlock(20, 7, 20).Id);
     }
 
     [Test]
