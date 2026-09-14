@@ -16,10 +16,10 @@ namespace PgmStudio.Export;
 /// rather than touching it.</para>
 ///
 /// <para>The ground a rock is judged against is the ground it can <b>rest</b> on
-/// (<see cref="Materials.Resting"/>): a theme whose surface is a slope stack paints its steep faces bare stone
-/// and its flat ground meadow, and a boulder stands on the meadow. Taking every block such a theme can produce
-/// would read a cliff nothing rests on as the ground under the rock, and would fire on the very recipe that
-/// answers this rule.</para>
+/// (<see cref="Materials.Resting"/>): a theme grading its surface by angle paints its steep faces bare rock,
+/// nothing stands on a face — <c>DR-STEEP</c> is the rule that says so — and what a board paints there is not
+/// what a rock standing on the meadow below meets. The bands under the theme's own cliff angle are, and they
+/// are every band it grades, not only the shallowest: ground the middle band paints is ground.</para>
 ///
 /// <para>Which theme is under a cell is <see cref="TerrainThemeScope"/>'s answer, so this rides the same
 /// rasterize the ground reading already pays for and is asked at the same gate. A rock is judged where it was

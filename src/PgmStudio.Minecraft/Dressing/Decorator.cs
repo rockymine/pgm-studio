@@ -54,7 +54,8 @@ public sealed record DressingContext(
     Func<int, int, bool>? IsGoalGround = null,
     Func<int, int, bool>? IsGoalClearance = null,
     IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? SurfaceByLayer = null,
-    IReadOnlyList<(int X, int Z)>? Waypoints = null)
+    IReadOnlyList<(int X, int Z)>? Waypoints = null,
+    Func<string?, int, int, int>? CliffAngleAt = null)
 {
     public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IReadOnlyList<PlacedProp> props)
         : this(surfaceTop, props, (_, _) => null, DressingSymmetry.None) { }
@@ -87,6 +88,17 @@ public sealed record DressingContext(
     /// (<see cref="WayThrough"/>). Null where the caller named no waypoints — a preview, a fixture — which is
     /// a board with nothing to close.</summary>
     public WayThrough? Ways() => Waypoints is { Count: > 1 } points ? WayThrough.Of(SurfaceTop, points) : null;
+
+    /// <summary>How steeply the ground under a prop is inclined, and the angle the theme painting that cell
+    /// calls a face (<c>DR-STEEP</c>). Null where the caller stated no paint — a preview, a fixture — which is
+    /// a board whose ground has no cliff to be on.</summary>
+    public (int Degrees, int Cliff)? Incline(PlacedProp prop, int x, int z)
+    {
+        if (CliffAngleAt is null) return null;
+        var ground = GroundFor(prop);
+        return ground.Count == 0 ? null
+            : (Geom.Algorithms.SurfaceGradient.Degrees(ground, x, z), CliffAngleAt(prop.Layer, x, z));
+    }
 }
 
 /// <summary> What one pass placed, for a caller that wants to report, claim or preview it rather than only write
@@ -1068,6 +1080,20 @@ public static class Decorator
         VoxelWorld world, DressingContext context, BoulderProp boulder, GroundClaims.Storey claims,
         List<Finding> declined)
     {
+        // DR-STEEP — a rock standing on ground the board paints as a face. Read at the placement rather than
+        // at every image of its orbit: the orbit is the same ground turned, and the cell an author moves is
+        // the one they wrote.
+        if (context.Incline(boulder, boulder.X, boulder.Z) is { } incline && incline.Degrees >= incline.Cliff)
+        {
+            var named = boulder.Id.Length > 0 ? boulder.Id : $"boulder@{boulder.X},{boulder.Z}";
+            declined.Add(new Finding(DressingRules.RockOnAFace,
+                $"boulder '{named}' stands at ({boulder.X}, {boulder.Z}) on ground inclined "
+                + $"{incline.Degrees}°, and the theme painting that cell calls the ground a face from "
+                + $"{incline.Cliff}° — the slope is already the feature there and a rock pinned to it reads as "
+                + "neither. Move it onto the flat, or onto the graded band below the face",
+                Severity.Complaint, Field: "dressing.props", Subjects: [named]));
+        }
+
         var lobes = BoulderShapes.Of(boulder.Style.Form, boulder.Style.Reach, boulder.Seed);
         return Fan(world, context, context.GroundFor(boulder), (boulder.X, boulder.Z), BoulderCells(lobes, boulder), claims, boulder.RouteStandoff, boulder.Id, "boulder", declined);
     }

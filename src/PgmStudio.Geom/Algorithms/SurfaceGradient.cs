@@ -28,6 +28,11 @@ public static class SurfaceGradient
     /// the incline read prints in, and a rise of less than one block in five cells.</summary>
     public const int Level = 10;
 
+    /// <summary>The steepest ground a reading answers, in degrees — the clamp <see cref="Degrees(Func{int, int, int}, int)"/>
+    /// returns at. A vertical face is 90° and no gradient over a heightmap reaches it, so the last degree a
+    /// surface can be graded at is what a band covering the steepest ground has to span.</summary>
+    public const int Steepest = 89;
+
     /// <summary>The inclination at one cell, in whole degrees from level, 0..89. <paramref name="topAt"/>
     /// answers the surface top at an offset from the cell, and answers the cell's own top where there is
     /// nothing there: the void is not a slope, and a coastline is level ground that stops.</summary>
@@ -42,7 +47,7 @@ public static class SurfaceGradient
         // The 1-2-1 weighting sums to 4 a side and the two sides are 2*step apart, so 8*step is what turns the
         // weighted difference back into blocks of rise per block of run.
         var rise = Math.Sqrt((double)alongX * alongX + (double)alongZ * alongZ) / (8.0 * step);
-        return Math.Min(89, (int)Math.Round(Math.Atan(rise) * 180.0 / Math.PI));
+        return Math.Min(Steepest, (int)Math.Round(Math.Atan(rise) * 180.0 / Math.PI));
     }
 
     /// <summary>The same reading over a surface map. A cell the surface does not carry reads as level with the

@@ -439,12 +439,23 @@ tone, and it has no silhouette at any size. `DR-TONE` complains where every fami
 one the ground under it already states, which is *built wholly from* the field rather than merely touching
 it — a rock keeping one family the ground does not have is a rock however much else it shares.
 
-The ground a rock is judged against is the ground it can **rest** on. A theme whose surface is a slope stack
-paints its steep faces bare stone and its flat ground meadow, and a boulder stands on the meadow; reading
-every block such a theme can produce would take a cliff nothing rests on as the ground under the rock, and
-would fire on the very recipe the rule recommends. `Materials.Resting` is that narrowing — a depth stack's
-top course, a slope stack's shallowest band — and `Materials.BlocksOf` is the whole-tree walk the rock itself
-is read with.
+**A rock does not stand on a face either, and the board says where its faces are.** A surface graded by angle
+(`BandAxis.Slope`) is an angle mask: each band claims a span of degrees, the gradient under a cell decides
+which one paints it, and the band covering the steepest ground is the board's own statement of where it stopped
+calling the ground a meadow. `Materials.CliffAngle` reads that boundary back — under `repeat` the last band
+carries into the steepest ground, under `handOver` whatever the stack sits over does — and `DR-STEEP` complains
+where a boulder's cell is inclined at least that far. The slope is `SurfaceGradient.Degrees` over the surface
+the pass seats on, which is the same reading the bands themselves are cut by, so a rule and a band cannot
+disagree about one cell. Ground the middle band paints is still ground: a rock on the coarse dirt of a gentle
+hillside stands, and only the band that means *bare rock face* is complained about. A surface grading by
+nothing states no angle and is read at `Materials.DefaultCliffAngle` — 30°, the median of the 34 authored
+themes that do state it, which run 18° to 45°.
+
+That boundary is what the tone rule reads the ground through. `Materials.Resting` answers the bands under the
+cliff — a depth stack's top course, a slope stack's graded bands short of its face — because nothing rests on
+a face and what a board paints there is not what a rock standing on the meadow below meets; `Materials.BlocksOf`
+is the whole-tree walk the rock itself is read with. Taking every block a graded theme can produce would read a
+cliff as the ground under the rock, and would fire on the very recipe the tone rule recommends.
 
 So the rock a placement naming no recipe is cut from is **stone, cobblestone and andesite** in shards a few
 blocks across, stone taking half of them (`BoulderStyle.DefaultRock`, and what the four seeded recipes carry).

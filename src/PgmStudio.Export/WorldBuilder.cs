@@ -331,8 +331,9 @@ public static class WorldBuilder
         // stone-only invariant stood between the two, and that invariant is about what a block IS rather than
         // about which layer may address it: a ground theme filling in plain stone hands its whole column to
         // whatever is drawn above. A layer's limit is its own shapes, so that is what it is given.
+        var themeAt = TerrainThemeScope.ThemeAt(layoutJson);
         TerrainPainter.Paint(world, PaintSurface(terrain.SurfaceByLayer, plinths),
-                             TerrainThemeScope.ThemeAt(layoutJson),
+                             themeAt,
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
                              terrain.FloorByLayer);
 
@@ -358,7 +359,11 @@ public static class WorldBuilder
             DressingScope.GoalGroundAt(goals),
             DressingScope.GoalClearanceAt(goals),
             terrain.SurfaceByLayer,
-            DressingScope.WaypointsOf(goals)));
+            DressingScope.WaypointsOf(goals),
+            // Where the ground a cell is painted from stops being a meadow and becomes a face (DR-STEEP). The
+            // paint is what states it, so the pass is handed the same resolver the painter just ran.
+            (layer, x, z) => Materials.CliffAngle(
+                themeAt(layer is { Length: > 0 } named ? named : SketchLayer.GroundId, x, z).Surface.Material)));
         // A dressing-placed building is a structure the author chose, not scenery the way a tree or a boulder
         // is (docs/world-export/decoration.md) — its footprint claims Structure last, over whatever ground
         // provenance the terrain under it carried, the same "later pass wins" rule every stamp above follows.

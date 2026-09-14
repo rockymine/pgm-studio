@@ -196,6 +196,22 @@ public static class DressingRules
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Material, RuleConcern.Terrain)]
     public const string RockInTheGroundsTone = "DR-TONE";
 
+    /// <summary>A boulder standing on a face rather than on ground. An erratic is a mass left where the ice
+    /// dropped it, which is ground flat enough to hold one; a rock pinned to a steep hillside reads as neither
+    /// — the slope is already the feature there, and the rock sitting on it only interrupts a line that was
+    /// doing the work. Measured as the terrain's own inclination under the placement
+    /// (<c>SurfaceGradient.Degrees</c>, the same reading the paint is banded by) against the angle at which the
+    /// theme painting that cell stops calling the ground a meadow.
+    ///
+    /// <para><b>The board states the angle, not this rule.</b> A surface graded by slope has already said
+    /// where its cliff begins — the band that paints the steepest ground there is — and that boundary is the
+    /// one an author drew. Ground the middle band paints is still ground, so a rock on the coarse dirt of a
+    /// gentle hillside stands; only the band that means <em>bare rock face</em> is refused. A theme grading by
+    /// nothing is read at <c>Materials.DefaultCliffAngle</c>.</para></summary>
+    /// <remarks>Move the rock onto ground the board does not paint as a face — the flat, or the graded band under it. The finding names the cell, the angle measured there and the angle the theme calls a cliff, so the three can be compared against the incline read. A complaint: the world is built and the rock is in it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
+    public const string RockOnAFace = "DR-STEEP";
+
     /// <summary>How much of a prop the clip has to block before <see cref="PropCut"/> is raised on the share
     /// alone. A rock tucked against a wall is flattened along it and measures about a third, which is a rock;
     /// over half of the body inside something already standing is not the prop the author placed, whether or

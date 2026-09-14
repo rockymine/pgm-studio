@@ -5610,10 +5610,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe gets is now stone, cobblestone and andesite in shards a few blocks across, stone taking half
   (`BoulderStyle.DefaultRock`), which is what the four seeded recipes carry and what reads against sand,
   grass, dirt, red sand and any single clay. *Swept through the live gate over the 26 authored boards the
-  studio will store — four are refused by `PT4`, which predates this — 15 boulders raise it on three:
+  studio will store — four are refused by `PT4`, which predates this — 20 boulders raise it on four:
   `opus5-basaltmere` six, `opus5-blackden-sough` six (its `edge-rock`s are grey stone and cobble on grey stone
-  and cobble, from (−30, 25)), `opus5-flintwick` three.* The material walk both this and `PT1` use is one method now
-  (`Materials.BlocksOf`). (`RockTone`, `RockToneTests`, `LibrarySeed`, `docs/world-export/decoration.md`,
+  and cobble, from (−30, 25)), `opus5-grykefell` five, `opus5-flintwick` three.* The material walk both this and
+  `PT1` use is one method now (`Materials.BlocksOf`). (`RockTone`, `RockToneTests`, `LibrarySeed`,
+  `docs/world-export/decoration.md`, `docs/refusals.md`)
+- **A rock does not stand on a face, and the board says where its faces are (`WE64`, `DR-STEEP`).** An erratic
+  is a mass left where the ice dropped it; a rock pinned to a steep hillside reads as neither, the slope being
+  the feature there already. The angle is `SurfaceGradient.Degrees` over the surface the dressing pass seats
+  on — the same reading the paint's own bands are cut by, so a rule and a band cannot disagree about one cell —
+  and the angle it is judged against is **the board's**: a surface graded by `BandAxis.Slope` has already said
+  where its cliff begins, being the band that covers the steepest ground, and `Materials.CliffAngle` reads that
+  boundary back under either ending. Ground the middle band paints is still ground, so a rock on the coarse
+  dirt of a gentle hillside stands and only the band meaning *bare rock face* is complained about; a surface
+  grading by nothing takes `Materials.DefaultCliffAngle`, 30°, the median of the 34 authored themes that state
+  one against 191 that do not. The same boundary is what `DR-TONE` reads its ground through, so the two rules
+  share one definition of a face rather than each keeping a threshold. *7 boulders on 5 of the 26 boards,
+  measured by differencing each build against the same board with its rocks taken out:
+  `opus5-braidwater-ford`'s `erratic-0` at (−44, −48) and `erratic-1` at (12, −46) stand at 40–49° and 30–39°
+  against `silt`'s stated 34° cliff, confirmed on that board's own incline read.* (`DressingContext.Incline`,
+  `Decorator.PlaceBoulder`, `CliffAngleTests`, `RockOnAFaceTests`, `docs/world-export/decoration.md`,
   `docs/refusals.md`)
 - **`DR-PASS` measures the passage from the roof, not from the wall (`WE45`, first of three faults).** A roof
   oversails its wall by at least one block whatever the style says (`HouseStamper.StampedCells`), and the
