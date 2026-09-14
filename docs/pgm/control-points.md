@@ -92,7 +92,7 @@ document makes:
 
 **Hardened clay is not in it; stained clay is.** A pad built out of `hard clay` parses, exports, loads and
 never changes colour. So does one built of stone, brick or planks. This is the single easiest way to build a
-hill that looks finished and shows nothing, and nothing yet says so (`PG7`).
+hill that looks finished and shows nothing, which `OB29` names.
 
 ## 3. The capture state machine
 
@@ -191,7 +191,7 @@ on every hill and no score module scores nothing at all, for the whole match, si
 it: `koth/qboid` carries `<score><kills>0</kills><deaths>0</deaths></score>` under the comment *"placeholder
 so the score module will show up"*. 95 of the 103 corpus KotH maps declare a score limit. The studio reads
 the element and the difference — a map with no `<score>` gets a null `ScoreConfig` and writes no element back
-— but raises no finding over a point that scores into nothing (`PG6`).
+— and `OB28` names a point that scores into nothing.
 
 `<score><king/></score>` appears in a handful of maps. It is a legacy marker that zeroes the default kill and
 death scores; at proto ≥ 1.3.6 those already default to zero, so on every map the studio will ever read it is
@@ -372,6 +372,13 @@ other under the rotation that swaps the spawns, about two-thirds of the way out 
 
 ## 8. What the studio does with one
 
+**And a plan places them.** `plan.placements.controlPoints` is a count and nothing else: a point belongs to
+nobody, so its position is the board's answer rather than a piece's, and the count plus the spawn frame gives
+every anchor through `ControlPointLayout` — the centre of symmetry, and a side point on the bisector between
+two neighbouring spawns at the author's share of the way out. The orbit fans that one primary into the pair
+or the ring, so a plan-compiled intent carries the whole set. The counts a board's symmetry lays out are 1,
+one per team, or one per team plus a centre; any other is `PL16`.
+
 **It reads one, stores it and writes it back.** `MapParser.ParseControlPoints` reads both spellings into
 `Domain.ControlPoint`, carrying the element rather than resolving it; `ParseScore` reads `<score>` into
 `ScoreConfig`, or `null` where the map declares none. `XmlWriter` re-emits each point under the element it
@@ -387,6 +394,29 @@ none of them gets the weaker "walk up to your own goal" question a defended wool
 `opus5-sparholt`, a three-hill board: coverage went from 3 journeys and **72.1%** of the ground dead to 15
 journeys and **31.4%**, and the walk read from naming two spawns to naming the two spawns and the three
 points.*
+
+**And three gates say what a document will not do.** Each is a fact about what PGM will make of the map
+rather than about any ground, and all three are complaints: the map compiles, builds and loads either way, and
+every point the studio authors already passes all three.
+
+`OB27` names a point that leaves `required` off. PGM reads the attribute as **true** at proto 1.4.0 and above,
+which is every map the studio supports, and `GoalsVictoryCondition` ends the match the instant a competitor
+holds all of its required goals — so a one-hill map finishes on the first capture. A point PGM never registers
+is outside it: `show="false"` clears the `stats` option and `GoalMatchModule.addGoal` returns early without
+that. *66 points across 20 corpus maps leave it off, against 2,441 of 2,527 shown points that write
+`required="false"` — read with PGM's attribute inheritance, since the corpus writes it on the `<hills>` or
+`<control-points>` parent and the children take it from there.*
+
+`OB28` names a point that pays into no score module. *20 points across 11 corpus maps do it.*
+
+`OB29` names a point whose display regions hold no block PGM recolours — `ColorUtils`'s closed set, which is
+`BlockRoles.ColorAffected`: wool, carpet, stained clay, stained glass and its pane, a banner. Hardened clay is
+the trap, being stained clay's plain sibling and outside the set, so a pad built from it parses, exports,
+loads and shows nothing. Asked **last**, over the finished world, because the pad is a course of ground like
+any other and the finish, a road or a made thing can write over it after the stamp; and asked of the pad and
+the sky marker **separately**, since one is the progress pie and the other the flat owner colour. One block is
+enough for either — PGM filters the region rather than requiring all of it, so a pad a road has partly paved
+still draws its pie over the clay that is left.
 
 **Nothing states a knob the map did not.** Every optional attribute is `null` or `""` all the way down to
 its nullable column, because PGM's default for it depends on the element — a hill keeps partial capture
@@ -447,15 +477,7 @@ display region is the sky marker's box.
 **What is not built** is on the board in `TODO.md` under *"The hill: a goal owned by standing on it"*.
 Each sentence becomes false when its task ships:
 
-- **`PG6`** — a scoring point with no `<score>` element scores nothing; nothing says so for an **imported**
-  map. A studio-authored board always writes one.
-- **`PG7`** — an **imported** pad built in a material outside the colour-affected set never changes colour,
-  and nothing says so. The stamper only ever lays stained clay.
-- **`PG8`** — `required` left off ends the match on first capture, and an imported map that leaves it off is
-  not flagged. Every point the studio writes states `required="false"`.
-- **`TC7`** — the configure tool has no step for placing one; the API is the way in.
-- **`TC8`** — the plan model has no capture-point placement, so a plan-compiled intent states each point
-  rather than one side. An intent that carries a symmetry does fan them.
+- **`TC7`** — the configure tool has no step for placing one; the API and a plan's own count are the ways in.
 
 What a board should *be* is not on that list. It is the author's rather than the corpus's, it has been ruled,
 and it is written down in `docs/gameplay/approaches.md`: square pads; two or three points on two teams and

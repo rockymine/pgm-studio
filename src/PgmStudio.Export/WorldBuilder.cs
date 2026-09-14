@@ -501,8 +501,9 @@ public static class WorldBuilder
         // One list, in build order: what the build could not raise as authored — a goal over the ceiling, a
         // made thing standing in something stamped — then what the dressing pass did not place. All of them
         // are complaints on a world that exists, so a caller reads one channel.
-        List<Finding>? complaints = built.Count > 0 || dressed.Declines.Count > 0
-            ? [.. built, .. dressed.Declines]
+        var colourless = CapturePointsShowColour(world, resolved.ControlPoints).ToList();
+        List<Finding>? complaints = built.Count > 0 || dressed.Declines.Count > 0 || colourless.Count > 0
+            ? [.. built, .. dressed.Declines, .. colourless]
             : null;
         return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, shells, complaints, columns,
                               dressed, groundTop);
@@ -742,6 +743,54 @@ public static class WorldBuilder
             resolved.Add(point with { Size = size, PadBox = pad, CaptureBox = capture });
         }
         return resolved;
+    }
+
+    /// <summary><b><c>OB29</c> — every capture point whose display regions PGM will not recolour.</b> Colour
+    /// is the map's only signal that a point was captured, and PGM leaves a block outside
+    /// <c>ColorUtils</c>'s set exactly as it found it, so such a point works and shows nothing.
+    ///
+    /// <para>Asked <b>last</b>, over the finished world, because the pad is a course of ground like any other
+    /// and everything after the stamp can write over it — the terrain finish, a road the dressing pass paved,
+    /// a made thing laid across it. What PGM reads is the world, so that is what this reads.</para>
+    ///
+    /// <para><b>The two regions are asked separately</b>, because they are two signals rather than one. The
+    /// pad is the progress pie — who is taking the point, and how far along — and the marker is the flat
+    /// owner colour a player reads from across the board. A board keeping one and losing the other has lost
+    /// exactly half of what a point tells anybody.</para>
+    ///
+    /// <para>Public for the reason <see cref="MapExportComposer.CheckGoalPlacement"/> is: the question is
+    /// about a world and a set of resolved points, and the build is not the only place worth asking it.</para></summary>
+    public static IEnumerable<Finding> CapturePointsShowColour(
+        VoxelWorld world, IReadOnlyList<ControlPointIntent>? points)
+    {
+        foreach (var point in points ?? [])
+        {
+            foreach (var (region, box, shows) in new[]
+                     {
+                         ("pad", point.PadBox, "who is taking it and how far along"),
+                         ("sky marker", point.MarkerBox, "who holds it, from across the board"),
+                     })
+            {
+                if (box is not { } display || ColourShows(world, display)) continue;
+                yield return new Finding(ObjectiveRules.PointNeverChangesColour,
+                    $"the capture point at ({display.MinX}, {display.MinZ})–({display.MaxX}, {display.MaxZ}) "
+                    + $"has a {region} holding no block PGM recolours, so nothing on the board shows {shows}",
+                    Severity.Complaint, Field: "control_points",
+                    Subjects: point.Name.Length > 0 ? [point.Name] : null);
+            }
+        }
+    }
+
+    /// <summary>Whether a display region holds anything PGM will recolour. One block is enough: PGM filters
+    /// the region rather than requiring all of it, so a pad of stained clay with a stone kerb still draws its
+    /// pie over the clay.</summary>
+    private static bool ColourShows(VoxelWorld world, BlockBox box)
+    {
+        for (var y = box.MinY; y <= box.MaxY; y++)
+        for (var z = box.MinZ; z <= box.MaxZ; z++)
+        for (var x = box.MinX; x <= box.MaxX; x++)
+            if (BlockRoles.IsColorAffected(world.GetBlock(x, y, z).Id)) return true;
+        return false;
     }
 
     /// <summary>

@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 using System.Text.Json;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
@@ -54,6 +55,84 @@ public sealed class ControlPointWorldTests
         for (var x = pad.MinX; x <= pad.MaxX; x++)
         for (var z = pad.MinZ; z <= pad.MaxZ; z++)
             await Assert.That(built.World.GetBlock(x, pad.MinY, z).Id).IsEqualTo(Blocks.StainedClay);
+    }
+
+    /// <summary><c>OB29</c> — and the build says so rather than leaving it to the eye. Colour is the map's
+    /// only signal that a point was captured, so a pad of blocks PGM does not recolour is a hill that shows
+    /// nothing; the board the studio lays passes, which is what the complaint's silence here means.</summary>
+    [Test]
+    public async Task A_pad_PGM_recolours_raises_nothing()
+    {
+        await Assert.That(Build(At(0, 0)).Declines
+            .Any(finding => finding.Rule == ObjectiveRules.PointNeverChangesColour)).IsFalse();
+    }
+
+    /// <summary><c>OB29</c> fires where a display region holds nothing PGM recolours, and it asks the pad and
+    /// the sky marker <b>separately</b>: they are two signals, the pie that says who is taking the point and
+    /// the flat colour that says who holds it, so a board keeping one and losing the other has lost half of
+    /// what a point tells anybody.</summary>
+    [Test]
+    public async Task A_display_region_PGM_leaves_alone_is_OB29()
+    {
+        // Hardened clay is the trap the rule is named for: stained clay's plain sibling, outside the set.
+        await Assert.That(BlockRoles.IsColorAffected(Blocks.HardenedClay)).IsFalse();
+        await Assert.That(BlockRoles.IsColorAffected(Blocks.StainedClay)).IsTrue();
+
+        var built = Build(At(0, 0));
+        var point = built.ResolvedIntent.ControlPoints!.Single();
+        var pad = point.PadBox!.Value;
+        for (var x = pad.MinX; x <= pad.MaxX; x++)
+        for (var z = pad.MinZ; z <= pad.MaxZ; z++)
+            built.World.SetBlock(x, pad.MinY, z, Blocks.HardenedClay);
+
+        var finding = WorldBuilder.CapturePointsShowColour(built.World, [point]).Single();
+        await Assert.That(finding.Rule).IsEqualTo(ObjectiveRules.PointNeverChangesColour);
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(finding.Message).Contains("has a pad holding no block PGM recolours");
+        await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "Middle" });
+        // The marker is wool and survives, so only the pie is lost — which is why the two are asked apart.
+        await Assert.That(finding.Message).DoesNotContain("sky marker");
+    }
+
+    /// <summary>One block is enough, because PGM filters the display region rather than requiring all of it:
+    /// a pad a road has partly paved still draws its pie over the clay that is left. Measured on the board a
+    /// road actually makes — a stroke's coverage is holes by design, so it never takes a whole pad.</summary>
+    [Test]
+    public async Task A_pad_a_road_only_partly_paves_still_shows_its_pie()
+    {
+        var built = Paved(At(0, 0));
+        var pad = built.ResolvedIntent.ControlPoints!.Single().PadBox!.Value;
+
+        var laid = new List<int>();
+        for (var x = pad.MinX; x <= pad.MaxX; x++)
+        for (var z = pad.MinZ; z <= pad.MaxZ; z++) laid.Add(built.World.GetBlock(x, pad.MinY, z).Id);
+
+        await Assert.That(laid).Contains(Blocks.HardenedClay).Because("the road paves part of the pad");
+        await Assert.That(laid).Contains(Blocks.StainedClay).Because("and a worn road leaves the rest");
+        await Assert.That(built.Declines.Any(f => f.Rule == ObjectiveRules.PointNeverChangesColour)).IsFalse();
+    }
+
+    /// <summary>The board with a road straight across <paramref name="acrossZ"/>, paved in a block PGM leaves
+    /// alone — which is what an ordinary road is.</summary>
+    private static BuiltWorld Paved(ControlPointIntent point, int acrossZ = 0)
+    {
+        var plan = PlanModel.Parse(Json)!;
+        var (layout, intent) = PlanCompiler.Compile(plan);
+        layout.Dressing = JsonSerializer.Deserialize<JsonElement>(Minecraft.Dressing.DressingJson.Serialize(
+            new Minecraft.Dressing.DressingDoc
+            {
+                Props =
+                [
+                    new Minecraft.Dressing.StrokeProp
+                    {
+                        Id = "road", Radius = 6, ClaimsGround = true,
+                        Points = [[-20, acrossZ], [20, acrossZ]],
+                        Pave = new Minecraft.Painting.SolidMaterial(Blocks.HardenedClay),
+                    },
+                ],
+            }));
+        return WorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json),
+                                  intent with { ControlPoints = [point] });
     }
 
     // What a hill is: ground. If the pad floated the way a destroyable does, nobody could stand on it.

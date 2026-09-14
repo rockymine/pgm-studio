@@ -242,6 +242,25 @@ public static class BlockRoles
     public static bool IsSurfacing(int blockId, int blockData) =>
         IsSurfacing(blockId) || (blockId == 3 && BlockVariants.Normalize(3, blockData) == 2);
 
+    /// <summary>The blocks PGM recolours — <c>ColorUtils.COLOR_AFFECTED</c>, which is what a control point's
+    /// display regions are filtered through and therefore the whole of what a pad may be built from: wool,
+    /// carpet, stained clay, stained glass and its pane, and a banner. (Ink sack is in PGM's set and is an
+    /// item rather than a block, so no pad is ever made of it.)
+    ///
+    /// <para><b>Hardened clay is not in it and stained clay is</b>, which is the trap: the two look alike, PGM
+    /// maps one to the other when it <em>dyes an item</em> and never when it asks whether a block is
+    /// colour-affected, so a pad laid in hardened clay parses, exports, loads and then never changes colour —
+    /// and colour is the map's only signal that the point was captured.</para></summary>
+    public static readonly IReadOnlySet<int> ColorAffected = new HashSet<int>
+    {
+        Blocks.Wool, 171 /* carpet */, Blocks.StainedClay, Blocks.StainedGlass, Blocks.StainedGlassPane,
+        176 /* standing banner */, 177 /* wall banner */,
+    };
+
+    /// <summary>Whether PGM will recolour this block — the one question a control point's pad and marker have
+    /// to answer yes to.</summary>
+    public static bool IsColorAffected(int blockId) => ColorAffected.Contains(blockId);
+
     /// <summary>The blocks whose data nibble is a <b>dye colour</b> — the sixteen-shade families a team's own
     /// colour is written into. What makes them a set is that their id says what the block is and their data
     /// says only whose it is, so two boards' halves painted in one of these differ by design wherever the

@@ -1,6 +1,7 @@
 ﻿using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Derive;
+using PgmStudio.Pgm.Authoring;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Plan;
@@ -25,8 +26,15 @@ public static class PlanRules
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Spawn)]
     public const string NoSpawn = "PL2";
 
-    /// <summary>No objective of any kind — a complaint, since which goal a map carries is the author's.</summary>
-    /// <remarks>Add a wool, destroyable or core placement. Nothing is blocked without one — the map compiles, builds and loads; it just cannot be won, so this is only worth acting on when the board is meant to be finished.</remarks>
+    /// <summary>The plan states no objective of any kind — a complaint, since which goal a map carries is the
+    /// author's. All four families count: a wool, a destroyable, a core, and the capture points a board states
+    /// a count of.
+    ///
+    /// <para>It is a statement about the <b>plan</b> and says nothing about the match. A board can state its
+    /// goals downstream instead, on the intent the configure tool and the API write, and a plan-tier rule
+    /// cannot see that — so what this reports is a plan with nothing in it to win on, not a map that cannot be
+    /// won.</para></summary>
+    /// <remarks>Add a wool, destroyable or core placement, or state how many capture points the board is played for (`placements.controlPoints`). Nothing is blocked without one — the map compiles, builds and loads — and a board whose goals are stated on its intent instead is answered by the export gate rather than here.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Objective)]
     public const string NoObjective = "PL3";
 
@@ -96,6 +104,16 @@ public static class PlanRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
     public const string StaleVersion = "PL15";
 
+    /// <summary>A capture-point count the board's own symmetry cannot lay out. A point belongs to nobody, so
+    /// it has to be the same walk for every team, and the only positions that are lie on the board's axes:
+    /// the centre of symmetry, which is one point, and a ring the orbit fans from a single side point, which
+    /// is as many as the orbit has images. So a board of <c>n</c> teams builds <b>1</b>, <b>n</b> or
+    /// <b>n + 1</b> points and no other number — two on a four-team board would have to sit somewhere no
+    /// ruling covers, and inventing a position for them is what this refuses to do.</summary>
+    /// <remarks>State 1, one per team, or one per team plus a centre. On two teams that is 1, 2 or 3 — three being the ordinary board — and on four it is 1, 4 or 5.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Objective)]
+    public const string ControlPointCount = "PL16";
+
     /// <summary>Two pieces meet at a single point and along no edge, and nothing else joins them. A corner is
     /// never a connection — a point has no walkable corridor mouth — so the board reads as one area where
     /// players find two, and the diagonal is the sneaky crossing that is not there. Suppressed where the pair
@@ -161,11 +179,24 @@ public static class PlanValidator
                 "this plan has no spawn — a map with nowhere to put a player cannot be loaded"));
 
         // No objective of any kind. A complaint, not a block: which goal a map carries is the author's, all
-        // three are authorable here, and one can still be set downstream when the map is configured.
+        // four are authorable here, and one can still be set downstream when the map is configured.
         var p = plan.Placements;
-        if (p.Wools.Count == 0 && p.Destroyables.Count == 0 && p.Cores.Count == 0)
+        if (p.Wools.Count == 0 && p.Destroyables.Count == 0 && p.Cores.Count == 0
+            && (p.ControlPoints ?? 0) <= 0)
             findings.Add(new Finding(PlanRules.NoObjective,
-                "this plan has no objective — no wool, destroyable or core, so nothing wins the match",
+                "this plan states no objective — no wool, destroyable, core or capture point — so nothing in "
+                + "it wins the match. A board stating its goals on the intent instead is answered there",
+                Severity.Complaint));
+
+        // A count the board's symmetry cannot lay out. The compiler places none rather than rounding to a
+        // number it can, so the plan would compile to a capture board with no points on it.
+        if (p.ControlPoints is { } count && count > 0
+            && !ControlPointLayout.Fans(count, Symmetry.Order(plan.Globals.Symmetry)))
+            findings.Add(new Finding(PlanRules.ControlPointCount,
+                $"this plan states {count} capture point(s), which a board of "
+                + $"{Symmetry.Order(plan.Globals.Symmetry)} team(s) cannot lay out — a point is the centre of "
+                + "symmetry or one of a ring the orbit fans, so the counts that work are 1, one per team, or "
+                + "one per team plus a centre",
                 Severity.Complaint));
 
         return findings;

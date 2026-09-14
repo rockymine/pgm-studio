@@ -436,12 +436,52 @@ public static class PlanCompiler
             Wools = wools,
             Destroyables = destroyables.Count > 0 ? destroyables : null,
             Cores = cores.Count > 0 ? cores : null,
+            ControlPoints = ControlPoints(plan, d, spawns),
             Observer = new ObserverIntent { Point = new Pt(0, observerY, 0), Yaw = 0 },
             Build = build,
             WaterLanes = waterLanes,
             Meta = new MetaIntent { Name = plan.Meta?.Name ?? "", Authors = [] },
             Structures = structures.IsEmpty ? null : structures,
         };
+    }
+
+    /// <summary>The capture points the plan is played for, placed. The plan states a count and nothing else,
+    /// because a point belongs to nobody and its position is therefore the board's answer rather than a
+    /// piece's (<see cref="ControlPointLayout"/>): the centre of symmetry, and a side point on the bisector
+    /// between two neighbouring spawns, fanned round the orbit the way every other marker here is.
+    ///
+    /// <para>Null where the plan asks for none, and where it asks for a count the orbit cannot build — which
+    /// the plan gate names rather than this silently rounding to one it can.</para></summary>
+    private static List<ControlPointIntent>? ControlPoints(PlanModel plan, ContactGraph d, List<SpawnIntent> spawns)
+    {
+        if (plan.Placements.ControlPoints is not { } count) return null;
+        if (spawns.FirstOrDefault() is not { } entry) return null;
+        if (ControlPointLayout.Primaries(count, d.Order, entry.Point.X, entry.Point.Z) is not { Count: > 0 } primaries)
+            return null;
+
+        var points = new List<ControlPointIntent>();
+        var seen = new List<(double X, double Z)>();
+        var index = 0;
+        foreach (var (primaryX, primaryZ) in primaries)
+        {
+            for (var k = 0; k < d.Order; k++)
+            {
+                var (x, z) = d.FanPoint(primaryX, primaryZ, k);
+                // The centre is its own image and every side point after the first is another's, so a fan
+                // that lands where a point already stands is the board saying it has this one already.
+                if (seen.Any(at => Math.Abs(at.X - x) < 0.5 && Math.Abs(at.Z - z) < 0.5)) continue;
+                seen.Add((x, z));
+                points.Add(new ControlPointIntent
+                {
+                    Stamp = Stamp("controlpoint", $"point{index}", index, k),
+                    // The plan's own flat nominal height, as every anchor here carries: a pad is cut into
+                    // whatever ground the build solves under it, and this is never read as its Y.
+                    Anchor = new Pt(x, plan.Globals.Surface, z),
+                });
+            }
+            index++;
+        }
+        return points.Count > 0 ? points : null;
     }
 
     // ── structures: entrance redstone, iron cubes, approach walls (ST1–ST4) ─────────────────────────────

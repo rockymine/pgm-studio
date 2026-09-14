@@ -287,6 +287,22 @@ default removes the key rather than freezing the number.
 | `destroyables` | `style`, `materials`, `float`, `layer`, `name` | `pillar-3`, `obsidian`, 4, the top surface, `<Team> Monument` |
 | `cores` | `lava`, `lavaHeight`, `openTop`, `float`, `leak`, `layer`, `name` | 3, 3, false, 6, 5, the top surface, PGM names it |
 
+**`controlPoints` is a count and names no piece**, which makes it the one placement here that is not a
+marker. Every other one belongs to a team and therefore to that team's ground; a capture point belongs to
+nobody, so it has to be the same walk for everyone and the only positions that are lie on the board's own
+axes of symmetry (`docs/gameplay/approaches.md`). The count and the spawn frame give every anchor: the
+centre of symmetry, which is its own orbit image and stays one point, and a side point on the **bisector
+between two neighbouring spawns** — 90° off the spawn direction on two teams, 45° on four — at the author's
+share of the way out, **0.66** of the centre-to-spawn distance on two teams and **0.90** on four. The orbit
+fans that single side primary into the matched pair or the ring of four, the same way it fans every other
+marker.
+
+So the counts a board can state are the ones its own symmetry lays out: **1, one per team, or one per team
+plus a centre** — 1, 2 or 3 on two teams, with three the ordinary board, and 1, 4 or 5 on four. Any other
+count is `PL16`, and the compiler places none rather than rounding to a number it can. A board carrying a
+count is a capture board to `PL3` like any other objective, and the score limit the export writes beside the
+points defaults to 750 (`docs/pgm/control-points.md`).
+
 **`layer` is which storey the goal stands on**, and it is the one field here that is not a knob on the
 structure but a statement about where the structure is. A stacked board carries a surface per layer, so a
 goal that names none resolves against the topmost one — which puts a monument stated for a hall on the deck

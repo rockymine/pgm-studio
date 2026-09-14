@@ -317,6 +317,6 @@ element, so a shop board exports the moment the intent is stored. A keeper anywh
 what holding it pays and how long it takes; everything else PGM reads off a hill is the studio's one
 convention and is written the same on every board (`control-points.md` §7). An agent authoring a KotH board
 therefore adds one array to the intent it already posts, and the export does the rest — the pad is cut into
-whatever ground the world build solved, and the regions are that pad's own boxes. The plan model has no
-capture-point placement, so on a plan-compiled intent — which carries no symmetry, above — the agent states
-every point rather than one side; making the plan place them is `TC8`.
+whatever ground the world build solved, and the regions are that pad's own boxes. A plan states a **count**
+instead, under `placements.controlPoints`, and the compiler derives every anchor from it and the spawn frame
+— which is what a plan-compiled intent needs, carrying no symmetry of its own to fan one side with.

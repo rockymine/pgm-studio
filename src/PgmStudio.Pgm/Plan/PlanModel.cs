@@ -427,6 +427,18 @@ public sealed class PlanPlacements
     /// <summary>The DTC goals this team defends, each an anchor column the structure floats above.</summary>
     [JsonPropertyName("cores")]        public List<CorePlacement> Cores { get; set; } = [];
 
+    /// <summary>How many capture points the board is played for, or absent for a board played for none.
+    ///
+    /// <para><b>A count rather than a list, and the only placement here that names no piece.</b> Every other
+    /// marker belongs to a team and therefore to that team's ground; a capture point belongs to nobody, so it
+    /// has to be the same walk for everyone and the only positions that are lie on the board's own axes of
+    /// symmetry. The count and the spawn frame give every anchor (<see cref="Authoring.ControlPointLayout"/>),
+    /// which is why there is nothing per point to state.</para>
+    ///
+    /// <para>Not in <see cref="All"/>: that walks the markers ids are minted for, and a count is not one.</para>
+    /// </summary>
+    [JsonPropertyName("controlPoints")] public int? ControlPoints { get; set; }
+
     /// <summary>Every marker with the word for its kind — the order ids are minted in, and the one place a
     /// pass over "all the markers" is written.</summary>
     public IEnumerable<(string Kind, IPlanMarker Marker)> All()

@@ -185,4 +185,91 @@ public sealed class MapExportComposerPlayabilityTests
         await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
                                            .Any(f => f.Rule == ObjectiveRules.NoModeLadder)).IsFalse();
     }
+
+    // ── OB27/OB28: the two ways a capture board does not play as written ───────────────────────────────
+
+    /// <summary>A board of shown capture points, each carrying what the test names.</summary>
+    private static Dict Hills(params (string Key, object? Value)[] stated)
+    {
+        var doc = Doc(("spawns", 2), ("teams", 2));
+        var point = new Dict { ["id"] = "hill", ["capture_region"] = "hill-capture" };
+        foreach (var (key, value) in stated) point[key] = value;
+        doc["control_points"] = new List<object?> { point };
+        return doc;
+    }
+
+    /// <summary><b>A point that leaves <c>required</c> off ends the match on the first capture.</b> PGM reads
+    /// the attribute as true at proto 1.4.0 and above, which is every map the studio supports, and
+    /// <c>GoalsVictoryCondition</c> finishes the match the instant a competitor holds all of its required
+    /// goals. 66 points across 20 corpus maps leave it off.</summary>
+    [Test]
+    public async Task A_point_with_no_required_is_OB27()
+    {
+        var findings = MapExportComposer.Playable(Intent(spawns: 2), Hills(("points", 1d)));
+
+        var ends = findings.Single(finding => finding.Rule == ObjectiveRules.PointEndsTheMatch);
+        await Assert.That(ends.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(ends.Message).Contains("1 of the map's 1 capture point(s) state no `required`");
+    }
+
+    /// <summary>And the convention silences it — which is what every point the studio authors writes.</summary>
+    [Test]
+    public async Task A_point_stating_required_false_is_not_OB27()
+    {
+        var doc = Hills(("required", false), ("points", 1d));
+        doc["score"] = new Dict { ["limit"] = 750L };
+
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Any(finding => finding.Rule == ObjectiveRules.PointEndsTheMatch)).IsFalse();
+    }
+
+    /// <summary>A point PGM never registers as a goal cannot end anything: <c>show="false"</c> clears every
+    /// show option including <c>stats</c>, and <c>GoalMatchModule.addGoal</c> returns early without it. That
+    /// is why an arcade grid of hidden cubes does not win on first touch.</summary>
+    [Test]
+    public async Task A_hidden_point_is_asked_neither_question()
+    {
+        var doc = Hills(("show", false), ("points", 1d));
+
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Any(finding => finding.Rule == ObjectiveRules.PointEndsTheMatch
+                         || finding.Rule == ObjectiveRules.PointScoresIntoNothing)).IsFalse();
+    }
+
+    /// <summary><b>A point that pays into no score module pays nothing.</b> <c>ControlPoint.tickScore</c>
+    /// looks up <c>ScoreMatchModule</c> every tick and PGM builds one only for a document carrying a
+    /// <c>&lt;score&gt;</c> element, so the whole match scores zero with no error anywhere. 20 points across
+    /// 11 corpus maps do it.</summary>
+    [Test]
+    public async Task A_paying_point_with_no_score_element_is_OB28()
+    {
+        var findings = MapExportComposer.Playable(Intent(spawns: 2), Hills(("required", false), ("points", 1d)));
+
+        var paid = findings.Single(finding => finding.Rule == ObjectiveRules.PointScoresIntoNothing);
+        await Assert.That(paid.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(paid.Field).IsEqualTo("score");
+    }
+
+    /// <summary>The element is what matters rather than anything in it — which is why corpus authors carry an
+    /// empty one as a placeholder.</summary>
+    [Test]
+    public async Task An_empty_score_element_is_enough()
+    {
+        var doc = Hills(("required", false), ("points", 1d));
+        doc["score"] = new Dict { ["kills"] = 0L, ["deaths"] = 0L };
+
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Any(finding => finding.Rule == ObjectiveRules.PointScoresIntoNothing)).IsFalse();
+    }
+
+    /// <summary>A point that pays nothing is not asked: <c>points="0"</c> is a payload's shape, and scoring is
+    /// not what it is for.</summary>
+    [Test]
+    public async Task A_point_that_pays_nothing_needs_no_score()
+    {
+        var doc = Hills(("required", false), ("points", 0d));
+
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Any(finding => finding.Rule == ObjectiveRules.PointScoresIntoNothing)).IsFalse();
+    }
 }

@@ -259,8 +259,57 @@ public static class MapExportComposer
             }
 
         findings.AddRange(ModeLadder(doc));
+        findings.AddRange(CapturePoints(doc));
         return findings;
     }
+
+    /// <summary><b><c>OB27</c> and <c>OB28</c> — the two ways a capture board does not play as written.</b>
+    /// Both are read off the document alone, because both are facts about what PGM will do with it rather
+    /// than about any ground.
+    ///
+    /// <para>A point that leaves <c>required</c> off is a goal PGM requires, at every proto this studio reads,
+    /// and a competitor holding all of its required goals ends the match — so a one-hill map finishes on the
+    /// first capture. A point PGM never registers is outside it: <c>show="false"</c> clears the <c>stats</c>
+    /// option and <c>GoalMatchModule.addGoal</c> returns early without that, so a hidden point ends
+    /// nothing.</para>
+    ///
+    /// <para>A point that pays and has no <c>&lt;score&gt;</c> beside it pays nothing, because PGM builds the
+    /// score module only for a document carrying that element. Asked of the points that <em>pay</em>: a point
+    /// at <c>points="0"</c> is a payload's shape and scoring is not what it is for.</para>
+    ///
+    /// <para>Complaints on <c>OB26</c>'s precedent: the map compiles, builds and loads, and every point the
+    /// studio authors already carries both — so the only way to reach either is an imported map or a hand
+    /// edit.</para></summary>
+    private static IEnumerable<Finding> CapturePoints(Dict doc)
+    {
+        var points = Entries(doc, "control_points").OfType<Dict>()
+            .Where(point => point.GetValueOrDefault("show") is not false).ToList();
+        if (points.Count == 0) yield break;
+
+        var ends = points.Count(point => point.GetValueOrDefault("required") is null);
+        if (ends > 0)
+            yield return new Finding(ObjectiveRules.PointEndsTheMatch,
+                $"{ends} of the map's {points.Count} capture point(s) state no `required`, which PGM reads as "
+                + "**true** at every proto the studio supports — so the match ends the moment one team holds "
+                + "all of them, rather than running to the score limit. Write `required=\"false\"`",
+                Severity.Complaint, Field: "control_points");
+
+        var pays = points.Count(point => Num(point.GetValueOrDefault("points")) > 0
+                                      || Num(point.GetValueOrDefault("owner_points")) > 0);
+        if (pays > 0 && doc.GetValueOrDefault("score") is null)
+            yield return new Finding(ObjectiveRules.PointScoresIntoNothing,
+                $"{pays} of the map's capture point(s) pay their owner and the map declares no `score`, so PGM "
+                + "builds no score module and they pay nothing at all, for the whole match. Declare `score`",
+                Severity.Complaint, Field: "score");
+    }
+
+    private static double Num(object? value) => value switch
+    {
+        double number => number,
+        long number => number,
+        int number => number,
+        _ => 0,
+    };
 
     /// <summary><b><c>OB26</c> — a destroy map with no way to end.</b> A monument or a core is obsidian
     /// because obsidian reads as a goal, and that same slowness is what lets the defending team hold one for

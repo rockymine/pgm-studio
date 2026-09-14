@@ -9034,6 +9034,51 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **Three gates for what a capture board will not do (`PG6`, `PG7`, `PG8` — `OB27`, `OB28`, `OB29`).** Each is
+  a fact about what PGM makes of the document rather than about any ground, and all three are complaints: the
+  map builds either way, and every point the studio authors already passes all three. **`OB27`** — a point
+  that leaves `required` off. PGM reads it as **true** at proto 1.4.0 and above, which is the studio's whole
+  supported range, and `GoalsVictoryCondition` ends the match the instant a competitor holds all its required
+  goals, so a one-hill map finishes on the first capture; a point `show="false"` hides is outside it, since
+  `GoalMatchModule.addGoal` never registers one without the `stats` option. **`OB28`** — a point that pays and
+  a document with no `<score>`, which is a match that scores nothing at all, silently, because PGM builds the
+  score module only for a document carrying that element. **`OB29`** — a display region holding no block PGM
+  recolours. The colour-affected set is `ColorUtils`'s, read off PGM's own source into
+  `BlockRoles.ColorAffected`, which replaces the same rule written out in three docstrings and enforced by
+  nothing; hardened clay is the trap, being stained clay's plain sibling and outside the set. Asked **last**,
+  over the finished world, because the pad is a course of ground the finish or a road can write over after the
+  stamp, and asked of the pad and the sky marker **separately** — one is the progress pie, the other the flat
+  owner colour, and losing one is losing half of what a point tells anybody. One block is enough for either,
+  so a pad a road has partly paved still draws its pie.
+  *Measured over both corpora with PGM's attribute inheritance — the corpus writes `required` on the
+  `<hills>`/`<control-points>` parent and the children take it from there: `OB27` fires on 66 points across 20
+  maps against 2,441 of 2,527 shown points that state `required="false"`, and `OB28` on 20 points across 11.*
+  (`ObjectiveRules`, `MapExportComposer.CapturePoints`, `WorldBuilder.CapturePointsShowColour`,
+  `BlockRoles.ColorAffected`, `MapExportComposerPlayabilityTests`, `ControlPointWorldTests`,
+  `docs/pgm/control-points.md`)
+- **A plan places a board's capture points from a count (`TC8`).** Every other placement belongs to a team
+  and therefore to that team's ground; a capture point belongs to nobody, so it has to be the same walk for
+  everyone and the only positions that are lie on the board's own axes of symmetry. So the plan states a
+  **count** and nothing else, and `ControlPointLayout` derives every anchor from it and the spawn frame: the
+  centre of symmetry, which is its own orbit image and stays one point, and a side point on the **bisector
+  between two neighbouring spawns** — 90° off the spawn direction on two teams, 45° on four, which is
+  `180°/order` either way — at the author's share of the way out, 0.66 of the centre-to-spawn distance on two
+  teams and 0.90 on four. The orbit fans that single primary into the matched pair or the ring of four, the
+  same fan every other marker takes. The counts a board's symmetry lays out are 1, one per team, or one per
+  team plus a centre, and any other is `PL16`: the compiler places none rather than rounding to a number it
+  can. *Compiled live from `opus5-sparholt`'s plan, spawns at (0, ±67): `3` gives (0, 0) and (±44, 0) —
+  44/67 = **0.657**, the author's ratio derived rather than stated — `2` gives the pair alone, `1` the centre,
+  and `4` on two teams gives none and `PL16`.* (`ControlPointLayout`, `PlanCompiler.ControlPoints`,
+  `ControlPointLayoutTests`, `docs/tools/plan.md`, `docs/pgm/control-points.md`,
+  `docs/pgm/new-map-authoring.md`)
+- **`PL3` counts all four objective families, and claims only what the plan tier knows (`TN19`).** The rule
+  counted wools, destroyables and cores, so a board played for hills was told "nothing wins the match" on
+  every compile and every evaluate. A stated capture-point count is an objective like the other three now. The
+  second half was the sentence: "nothing wins the match" is a claim about the **match**, which is the intent's
+  business and not a plan-tier rule's — a board can state its goals downstream, on the intent the configure
+  tool and the API write, and `PlanValidator` cannot see that. It reports a plan with nothing in it to win on
+  and says where such a board is answered instead. (`PlanValidator`, `PlanValidatorTests`,
+  `docs/tools/plan.md`)
 - **A control point is a goal the reads count (`WS62`).** `NavPoints` resolved the places a match is played
   between from three objective families and a document's `control_points` was not one of them, so on a capture
   board every journey to a hill went unmeasured: `traversability` named two spawns and called the chain fine,

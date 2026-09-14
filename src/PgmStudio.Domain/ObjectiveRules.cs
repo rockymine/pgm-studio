@@ -104,4 +104,48 @@ public static class ObjectiveRules
     /// <remarks>Give the map a `modes` ladder, and make sure each destroyable and core carries `mode-changes="true"` or names the modes it takes. The corpus's own answer is two rungs — gold block at 15m and glass at 20m — which is what the studio writes when a map states nothing. A complaint: the map compiles, builds and loads, and how long a match may run is the author's.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Intent)]
     public const string NoModeLadder = "OB26";
+
+    /// <summary>A capture point that ends the match the moment somebody takes it. <c>required</c> is a
+    /// <see cref="Goal"/>'s attribute and PGM defaults it to <b>true</b> at proto 1.4.0 and above, which is
+    /// every map the studio reads, so a point that leaves it off is a goal a competitor completes by standing
+    /// on it — and <c>GoalsVictoryCondition</c> ends the match the instant one competitor holds all of its
+    /// required goals. A one-hill map finishes on the first capture; a three-hill map finishes when one team
+    /// holds all three at once.
+    ///
+    /// <para>A KotH match is won on <b>score</b>, not on goals, and the corpus says so: 275 of 316 points
+    /// write <c>required="false"</c>. The maps that leave it off and mean it hold everything to win
+    /// immediately, which is a different game.</para>
+    ///
+    /// <para>A point PGM never registers as a goal is outside this: <c>show="false"</c> clears every show
+    /// option including <c>stats</c>, and <c>GoalMatchModule.addGoal</c> returns early without it, so a hidden
+    /// point cannot end anything however <c>required</c> reads.</para></summary>
+    /// <remarks>Write `required="false"` on the point. Every point the studio authors carries it, so this is an imported map's fault; leave it off only for a board meant to be won by holding every point at once.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective)]
+    public const string PointEndsTheMatch = "OB27";
+
+    /// <summary>A capture point that pays into no score. <c>ControlPoint.tickScore</c> looks up
+    /// <c>ScoreMatchModule</c> every tick, and PGM builds one only for a document carrying a
+    /// <c>&lt;score&gt;</c> element — so a point naming a <c>points</c> rate or an <c>owner-points</c> bonus on
+    /// a map that declares no score pays nothing at all, for the whole match, with no error anywhere.
+    ///
+    /// <para>The element is what matters rather than anything in it: corpus authors carry
+    /// <c>&lt;score&gt;&lt;kills&gt;0&lt;/kills&gt;&lt;deaths&gt;0&lt;/deaths&gt;&lt;/score&gt;</c> as a
+    /// placeholder for exactly this reason, and 95 of the 103 corpus KotH maps declare a limit.</para></summary>
+    /// <remarks>Declare a `score` element. A `limit` is the ending a KotH map actually uses — 750 is the corpus's modal value and what the studio writes — and an empty `score` is enough to make the points pay at all.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective)]
+    public const string PointScoresIntoNothing = "OB28";
+
+    /// <summary>A capture point built out of blocks PGM will not recolour. A point's display regions are
+    /// filtered through <c>ColorUtils</c>'s colour-affected set — wool, carpet, stained clay, stained glass
+    /// and its pane, a banner — and a block outside it is left exactly as it was found. Colour is the map's
+    /// only signal that a point was captured, so a pad of hardened clay, stone or planks parses, exports,
+    /// loads and shows nothing at all.
+    ///
+    /// <para><b>Hardened clay is the one that catches people</b>, because it reads as stained clay's plain
+    /// sibling and PGM maps one to the other when it dyes an <em>item</em> — never when it asks whether a
+    /// block is colour-affected. 246 of the 359 corpus pads are stained clay, 71 wool and 42 stained
+    /// glass.</para></summary>
+    /// <remarks>Build the pad and the marker from a block PGM recolours: stained clay is what the corpus and the studio both use, wool and stained glass are the other two common answers. A complaint: the map builds and loads, and the point works — it just never shows who holds it.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Material)]
+    public const string PointNeverChangesColour = "OB29";
 }
