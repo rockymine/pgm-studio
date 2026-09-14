@@ -1,8 +1,8 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 41 open entries and `TODO.md` none, the board standing between programmes. This document is the
-reading that says which of them are defects, which are questions, which share a cause, and what order drains
-them. Its subject is the board itself, and it expires when the board it describes is gone. It is the one
+`BACKLOG.md` holds 46 open entries and `TODO.md` 8, the hill being the programme the board is working. This
+document is the reading that says which of them are defects, which are questions, which share a cause, and what
+order drains them. Its subject is the board itself, and it expires when the board it describes is gone. It is the one
 document this work adds: `CLAUDE.md`'s standing rule is that a change updates the document that already covers
 its subject rather than growing a new one, and the board had no such document.
 
@@ -11,11 +11,11 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **41 open entries over 7,359 words**: a median entry of 168 words and **6 above 250** —
+The two boards carry **54 open entries over 9,039 words**: a median entry of 157 words and **6 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
-is the longest at 436 words, then `WS3` at 356, `B169` at 281 and `WE28` at 266. The prefix spread is `WE` 9,
-`B` 7, `G` 6, `TS` 4, `S` 4, and eight others in ones and twos. **None of them is on `TODO.md`**, which is
-what a board looks like between groups.
+is the longest at 436 words, then `WS3` at 356, `B169` at 281 and `WE28` at 266. The prefix spread is `WE` 10,
+`B` 7, `PG` 7, `G` 7, `TC` 4, `S` 4, and eight others in ones and twos. **Eight of them are on `TODO.md`** —
+the hill group, pulled up whole.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -472,13 +472,22 @@ left it by being withdrawn: the ruling it needed says a sketch cannot judge reac
 reading it wanted shipped as `WS61` (`FEATURES.md`) at the tier that holds the build zones — and as
 information rather than as a defect, which is the disposition the whole question turned on.
 
-**Phase 2 — fix the causes, not the entries.** The building's one model (3 entries) was `TODO.md`'s programme
-and is drained (`FEATURES.md`); the mapgen-authoring group it rode beside is what `TODO.md` now holds alone.
-Then, in the order that maximises what each closes: the measured convention with no complaint (5), the read
-that reports a symptom (6), the layer word (5), the client reading its own schema (5), the compiler's lost
-identity (3), the live findings feed (2). This is `CLAUDE.md`'s own doctrine — *"the board is emptied concept
-by concept"* — applied to groups the board has already named, and the building programme is the worked
-example: one foundation named, three entries, each small because the cause was settled first.
+**Phase 2 — fix the causes, not the entries.** The building's one model (3 entries) and the measured
+convention with no complaint are both drained (`FEATURES.md`), the second leaving only the two entries parked
+on a palette measurement. `TODO.md` now holds **the hill** (8 entries), pulled up whole, and its cause is the
+one this phase is about: what a board is played for is derived eighteen times and a control point is in none of
+them. `DeclaredGoals` already carries a docstring claiming to be "the one reading of it" and cannot be — it
+sits in `Api/Services`, which `Export`, `Pgm` and `Analysis` cannot reach — so every consumer kept its own
+walk over wools, destroyables and cores.
+
+Four of the causes this section named have since drained to one or two entries each and no longer stand as
+programmes: the read that reports a symptom is `WS3` alone, the client reading its own schema is `C51`, the
+compiler's lost identity is `B213`. What is left whole, after the hill, is **the layer word** (`B263`, `B264`,
+`WE28`, `TS64` — a layer is first-class in the export and an afterthought everywhere else) and **the shop** (5
+entries, which are five independent extensions of a landed slice rather than one cause, and are therefore
+roadmap rather than programme). This is `CLAUDE.md`'s own doctrine — *"the board is emptied concept by
+concept"* — applied to groups the board has already named, and the building programme is the worked example:
+one foundation named, three entries, each small because the cause was settled first.
 
 **The rule over Phases 1 and 2.** A programme pulled up from `BACKLOG.md` is worked to its end before
 anything above interrupts it, except a Phase 1 defect in the surface it is building. The board runs one
