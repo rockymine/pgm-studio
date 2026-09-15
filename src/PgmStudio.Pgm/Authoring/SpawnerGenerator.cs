@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Editing;
 
 namespace PgmStudio.Pgm.Authoring;
@@ -12,8 +13,13 @@ using Dict = Dictionary<string, object?>;
 /// the stack itself, so the slice writes elements and no blocks. It runs beside the shop slice for the same
 /// reason that one does.</para>
 ///
+/// <para><b>Everything is measured from the pad</b> (<see cref="SpawnPad"/>, <see cref="PadUse.Marker"/>):
+/// the square of ground the stack lands on, covering the block <c>at</c> is the centre of or the four it
+/// corners. Its centre is the drop, which is the discipline every other marked place follows — the world is
+/// the ground truth and the XML agrees with it (<c>WX5</c>).</para>
+///
 /// <para><b>Three regions per spawner, because PGM's element names them by id rather than taking
-/// coordinates.</b> The drop is a <c>point</c> on the block's centre; the reach is a <c>cylinder</c> based
+/// coordinates.</b> The drop is a <c>point</c> at the pad's centre; the reach is a <c>cylinder</c> based
 /// there, so the clock runs while somebody is standing by rather than all match; and the keep is a
 /// <c>cuboid</c> around it, unioned with every other spawner's into one <c>&lt;apply block="never"&gt;</c> —
 /// a generator whose block can be mined out or walled in is a generator anyone can switch off.</para>
@@ -69,7 +75,8 @@ public static class SpawnerGenerator
         foreach (var spawner in stated)
         {
             var id = IntentNaming.Slug(spawner.Id);
-            double x = Centre(spawner.At.X), y = spawner.At.Y, z = Centre(spawner.At.Z);
+            var (x, z) = Drop(spawner.At);
+            var y = spawner.At.Y;
 
             foreach (var suffix in new[] { DropSuffix, ReachSuffix, KeepSuffix }) regions.Remove(id + suffix);
             RegionEditor.CreateRegion(doc, new Dict
@@ -87,20 +94,20 @@ public static class SpawnerGenerator
                 },
             });
 
-            // A cuboid's corners are block indices and both ends are inside it, so a box of N blocks reaches
-            // (N−1)/2 either side of the drop's own block centre — which lands the corners on whole
-            // coordinates and puts the drop in the middle, the way the corpus writes one.
+            // Centred on the drop the way every other box on a marker is (ObjectiveFootprint), so an
+            // even-sided one leans the same block further along +X/+Z rather than landing on half
+            // coordinates — a cuboid's corners are block indices and both ends are inside it.
             if (spawner.Protect > 0)
             {
-                var half = (spawner.Protect - 1) / 2.0;
-                var rise = (SpawnerIntent.ProtectHeight - 1) / 2.0;
+                var (minX, minZ, maxX, maxZ) = ObjectiveFootprint.Centred(x, z, spawner.Protect, spawner.Protect);
+                var rise = (SpawnerIntent.ProtectHeight - 1) / 2;
                 RegionEditor.CreateRegion(doc, new Dict
                 {
                     ["type"] = "cuboid", ["id"] = id + KeepSuffix, ["category"] = "spawner",
                     ["coords"] = new Dict
                     {
-                        ["min_x"] = x - half, ["min_y"] = y - rise, ["min_z"] = z - half,
-                        ["max_x"] = x + half, ["max_y"] = y + rise, ["max_z"] = z + half,
+                        ["min_x"] = minX, ["min_y"] = Math.Floor(y) - rise, ["min_z"] = minZ,
+                        ["max_x"] = maxX, ["max_y"] = Math.Floor(y) + rise, ["max_z"] = maxZ,
                     },
                 });
                 kept.Add(id + KeepSuffix);
@@ -142,6 +149,24 @@ public static class SpawnerGenerator
             ? id[..^DropSuffix.Length]
             : null;
 
-    /// <summary>The centre of the block a coordinate falls in, so a stack lands in the middle of a block.</summary>
-    private static double Centre(double value) => Math.Floor(value) + 0.5;
+    /// <summary>Where a spawner's stack lands: the centre of the pad its marker asks for. A marker whose two
+    /// axes disagree is nudged onto one parity first, the same half-block the composer moves a room's marker
+    /// by — a pad is square and there is no pad for a mixed one.</summary>
+    public static (double X, double Z) Drop(Pt at)
+    {
+        var (markerX, markerZ) = SpawnPad.SameParity(at.X, at.Z);
+        var pad = SpawnPad.Fit(markerX, markerZ, allowed: null, PadUse.Marker)!.Value;
+        return (pad.CenterX, pad.CenterZ);
+    }
+
+    /// <summary>The pad a spawner's stack lands on, or null where the board lays none — the square and the
+    /// block it is made of, for the world build to stamp under the drop.</summary>
+    public static (SpawnPad Pad, int BlockId, int Data)? Ground(SpawnerIntent spawner)
+    {
+        if (MaterialIds.Block(spawner.Pad) is not { } block) return null;
+        var (markerX, markerZ) = SpawnPad.SameParity(spawner.At.X, spawner.At.Z);
+        return SpawnPad.Fit(markerX, markerZ, allowed: null, PadUse.Marker) is { } pad
+            ? (pad, block.Id, block.Data)
+            : null;
+    }
 }

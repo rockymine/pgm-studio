@@ -3,14 +3,34 @@ using PgmStudio.Geom;
 namespace PgmStudio.Domain;
 
 /// <summary>
+/// What a pad is <b>for</b>, which is the whole of what decides its size at block-centre parity.
+///
+/// <para>A pad marking a place covers only the blocks its marker touches — one where the marker is a block's
+/// centre, four where it is the corner they share. A pad a player arrives on is grown past that, because a
+/// team standing on a single block is a team standing in each other.</para>
+/// </summary>
+public enum PadUse
+{
+    /// <summary>The smallest square the parity allows. What marks a place: the block a generator's stack
+    /// lands on, where the ground beside it is nobody's business.</summary>
+    Marker,
+
+    /// <summary>Grown to the square somebody arrives on, where the ground it is fitted into holds one. What a
+    /// spawn room and a wool room lay.</summary>
+    Standing,
+}
+
+/// <summary>
 /// The marked square of floor something enters the match on: a player, a wool, a spawner's stack. A pad is
 /// laid <b>into</b> the floor rather than standing on it, and its centre is the point the exported element
 /// names (<c>WX5</c>) — so the pad is the ground truth and the marker only asks for one.
 ///
-/// <para><b>The size is the marker's parity</b> (<c>WX3</c>). A marker on a block grid line straddles it and
-/// takes <see cref="Straddling"/>; one at a block centre sits on it and takes <see cref="Centred"/>, narrowing
-/// to <see cref="Narrow"/> where the ground it is fitted into cannot hold the larger square. The pad is always
-/// square, which is why a marker whose two axes disagree has no pad at all — <see cref="MixedParity"/>.</para>
+/// <para><b>The size is the marker's parity and what the pad is for</b> (<c>WX3</c>). A marker on a block
+/// grid line straddles it and takes <see cref="Straddling"/> either way. A marker at a block centre takes
+/// <see cref="Narrow"/> — its own block and nothing else — where the pad marks a place, and
+/// <see cref="Centred"/> where somebody stands on it, narrowing back where the ground cannot hold that. The
+/// pad is always square, which is why a marker whose two axes disagree has no pad at all —
+/// <see cref="MixedParity"/>.</para>
 ///
 /// <para><b>It belongs to no structure.</b> Ground that constrains a pad — a room's interior, inset by the
 /// clearance it keeps to its walls — is passed to <see cref="Fit"/>; open ground passes none, and the pad then
@@ -26,11 +46,13 @@ public readonly record struct SpawnPad(int MinX, int MinZ, int Size, bool Shifte
     /// <summary>The side of a pad whose marker stands on a grid line, which it straddles.</summary>
     public const int Straddling = 2;
 
-    /// <summary>The side of a pad whose marker stands at a block centre, which it is centred on.</summary>
+    /// <summary>The side a <see cref="PadUse.Standing"/> pad takes at block-centre parity: the marker's own
+    /// block and the ring around it.</summary>
     public const int Centred = 3;
 
-    /// <summary>What a <see cref="Centred"/> pad narrows to where the ground cannot hold it: the marker's own
-    /// block and nothing around it.</summary>
+    /// <summary>The marker's own block and nothing around it — what a <see cref="PadUse.Marker"/> pad is at
+    /// block-centre parity, and what a <see cref="PadUse.Standing"/> one narrows to where the ground cannot
+    /// hold the ring.</summary>
     public const int Narrow = 1;
 
     /// <summary>The pad's centre — the point the export emits. A whole block coordinate for a
@@ -49,15 +71,16 @@ public readonly record struct SpawnPad(int MinX, int MinZ, int Size, bool Shifte
     public static bool MixedParity(double markerX, double markerZ) =>
         IsGridLine(markerX) != IsGridLine(markerZ);
 
-    /// <summary>The nearest offset whose two axes share a parity (<c>WX3</c>). A marker centred in ground that
+    /// <summary>The nearest marker whose two axes share a parity (<c>WX3</c>). A marker centred in ground that
     /// is odd across one axis only lands mixed, so the block-centre axis moves half a block onto the grid line
-    /// below it. Offsets are piece-relative and never negative, which is what the floor holds.</summary>
+    /// below it. Read in whatever frame the caller states its marker in — a piece-relative offset or a world
+    /// coordinate — so it never clamps.</summary>
     public static (double X, double Z) SameParity(double markerX, double markerZ)
     {
         if (!MixedParity(markerX, markerZ)) return (markerX, markerZ);
         return IsGridLine(markerX)
-            ? (markerX, Math.Max(0, markerZ - 0.5))
-            : (Math.Max(0, markerX - 0.5), markerZ);
+            ? (markerX, markerZ - 0.5)
+            : (markerX - 0.5, markerZ);
     }
 
     /// <summary>
@@ -71,14 +94,14 @@ public readonly record struct SpawnPad(int MinX, int MinZ, int Size, bool Shifte
     ///
     /// <para>Null where the ground is too small for any pad, which is the caller's to report.</para>
     /// </summary>
-    public static SpawnPad? Fit(double markerX, double markerZ, BlockRect? allowed)
+    public static SpawnPad? Fit(double markerX, double markerZ, BlockRect? allowed, PadUse use)
     {
         // Open ground holds any square, so it never narrows; ground that holds the centred one on only a
         // single axis narrows both, because the pad is square.
         var holdsCentred = allowed is not { } ground
             || (Centred <= ground.MaxX - ground.MinX && Centred <= ground.MaxZ - ground.MinZ);
         var size = IsGridLine(markerX) ? Straddling
-            : holdsCentred ? Centred
+            : use == PadUse.Standing && holdsCentred ? Centred
             : Narrow;
 
         int IdealMin(double marker) => IsGridLine(marker)

@@ -44,19 +44,39 @@ public sealed class SpawnerGeneratorTests
         await Assert.That(drop["amount"]).IsEqualTo(1);
     }
 
-    /// <summary>The drop lands on the centre of the block it was stated in, because PGM spawns the stack
-    /// exactly where the point says and a whole number puts it on a corner.</summary>
+    /// <summary><b>The drop is the centre of the pad the stack lands on</b> (<c>WX5</c>): the marker names a
+    /// square of ground and the point follows it, rather than the two being derived apart. A whole number is
+    /// the corner four blocks share, so the pad is those four and its centre is the corner itself.</summary>
     [Test]
-    public async Task The_drop_is_a_point_region_on_the_blocks_centre()
+    public async Task The_drop_is_the_centre_of_the_pad_the_stack_lands_on()
     {
         var regions = Regions(Generate(Mint("iron", x: 30, z: -18)));
         var drop = (Dict)regions["iron" + SpawnerGenerator.DropSuffix]!;
 
         await Assert.That(drop["type"]).IsEqualTo("point");
         var position = (Dict)drop["position"]!;
-        await Assert.That(position["x"]).IsEqualTo(30.5);
+        await Assert.That(position["x"]).IsEqualTo(30d);
         await Assert.That(position["y"]).IsEqualTo(12d);
+        await Assert.That(position["z"]).IsEqualTo(-18d);
+    }
+
+    /// <summary>And a marker at a block's own centre names that one block, so the drop stays on it.</summary>
+    [Test]
+    public async Task A_marker_at_a_blocks_centre_drops_onto_that_block()
+    {
+        var regions = Regions(Generate(Mint("iron", x: 30.5, z: -17.5)));
+        var position = (Dict)((Dict)regions["iron" + SpawnerGenerator.DropSuffix]!)["position"]!;
+
+        await Assert.That(position["x"]).IsEqualTo(30.5);
         await Assert.That(position["z"]).IsEqualTo(-17.5);
+    }
+
+    /// <summary>A marker whose axes disagree has no square pad, so it is nudged onto one parity first — the
+    /// same half-block the composer moves a room's marker by.</summary>
+    [Test]
+    public async Task A_mixed_parity_marker_is_nudged_onto_one_parity()
+    {
+        await Assert.That(SpawnerGenerator.Drop(new Pt(30, 12, -17.5))).IsEqualTo((30d, -18d));
     }
 
     /// <summary>The clock runs while somebody is standing by rather than all match: the reach is a cylinder
@@ -71,8 +91,8 @@ public sealed class SpawnerGeneratorTests
         await Assert.That(reach["radius"]).IsEqualTo(SpawnerIntent.TypicalReach);
         await Assert.That(reach["height"]).IsEqualTo((double)SpawnerIntent.ReachHeight);
         var at = (Dict)reach["base"]!;
-        await Assert.That(at["x"]).IsEqualTo(30.5);
-        await Assert.That(at["z"]).IsEqualTo(-17.5);
+        await Assert.That(at["x"]).IsEqualTo(30d);
+        await Assert.That(at["z"]).IsEqualTo(-18d);
     }
 
     /// <summary>Each spawner names its own reach, so two generators on one board are two places to stand
@@ -98,8 +118,9 @@ public sealed class SpawnerGeneratorTests
         await Assert.That(keep["type"]).IsEqualTo("cuboid");
         var low = (Dict)keep["min"]!;
         var high = (Dict)keep["max"]!;
-        // Six blocks a side about the drop's block centre 0.5 — x −2…3 — and five tall about its own y, both
-        // ends inside, which is the span `mame_i_shrunk_the_pvpers` writes around its gold-nugget drops.
+        // Six blocks a side about the drop, leaning one further along +X the way every even-sided box on a
+        // marker does, and five tall about its own y — both ends inside, which is the span
+        // `mame_i_shrunk_the_pvpers` writes around its gold-nugget drops.
         await Assert.That(low["x"]).IsEqualTo(-2d);
         await Assert.That(high["x"]).IsEqualTo(3d);
         await Assert.That(low["y"]).IsEqualTo(10d);

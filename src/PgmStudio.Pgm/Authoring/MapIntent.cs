@@ -875,6 +875,15 @@ public sealed record SpawnerIntent
     /// as a generator that produces nothing.</summary>
     public List<SpawnerDrop> Drops { get; init; } = new();
 
+    /// <summary>The block the stack lands on, laid into the floor under the drop as a
+    /// <see cref="PadUse.Marker"/> pad — one block where <see cref="At"/> is a block's centre, the four it
+    /// corners where <see cref="At"/> is a grid line. A generator is a place before it is a clock, and the
+    /// pad is what says so on the ground.
+    ///
+    /// <para>Stated as a material name, optionally <c>:data</c>. Empty lays nothing, for a board that has
+    /// already built the ground the stack falls on.</para></summary>
+    public string Pad { get; init; } = "";
+
     /// <summary>The median delay of the 276 corpus spawners that drop one of the eight commonest shop
     /// currencies, whose rates run from one second to a minute.</summary>
     public const string MedianDelay = "10s";

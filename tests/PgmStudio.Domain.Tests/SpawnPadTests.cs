@@ -19,7 +19,7 @@ public sealed class SpawnPadTests
     [Test]
     public async Task A_marker_on_a_grid_line_straddles_it()
     {
-        var pad = SpawnPad.Fit(10, 10, Open)!.Value;
+        var pad = SpawnPad.Fit(10, 10, Open, PadUse.Standing)!.Value;
 
         await Assert.That(pad.Size).IsEqualTo(SpawnPad.Straddling);
         await Assert.That((pad.CenterX, pad.CenterZ)).IsEqualTo((10d, 10d));
@@ -30,7 +30,7 @@ public sealed class SpawnPadTests
     [Test]
     public async Task A_marker_on_a_block_centre_sits_on_it()
     {
-        var pad = SpawnPad.Fit(10.5, 10.5, Open)!.Value;
+        var pad = SpawnPad.Fit(10.5, 10.5, Open, PadUse.Standing)!.Value;
 
         await Assert.That(pad.Size).IsEqualTo(SpawnPad.Centred);
         await Assert.That((pad.CenterX, pad.CenterZ)).IsEqualTo((10.5, 10.5));
@@ -42,7 +42,7 @@ public sealed class SpawnPadTests
     [Test]
     public async Task Ground_that_cannot_hold_the_centred_square_narrows_the_pad()
     {
-        var pad = SpawnPad.Fit(10.5, 10.5, new BlockRect(8, 9, 13, 11))!.Value;
+        var pad = SpawnPad.Fit(10.5, 10.5, new BlockRect(8, 9, 13, 11), PadUse.Standing)!.Value;
 
         await Assert.That(pad.Size).IsEqualTo(SpawnPad.Narrow);
         await Assert.That((pad.CenterX, pad.CenterZ)).IsEqualTo((10.5, 10.5));
@@ -53,7 +53,7 @@ public sealed class SpawnPadTests
     [Test]
     public async Task A_pad_pushed_off_its_marker_is_flagged()
     {
-        var pad = SpawnPad.Fit(1, 10, new BlockRect(4, 4, 20, 20))!.Value;
+        var pad = SpawnPad.Fit(1, 10, new BlockRect(4, 4, 20, 20), PadUse.Standing)!.Value;
 
         await Assert.That(pad.Shifted).IsTrue();
         await Assert.That(pad.MinX).IsEqualTo(4);
@@ -63,7 +63,7 @@ public sealed class SpawnPadTests
     [Test]
     public async Task Ground_too_small_for_any_pad_has_none()
     {
-        await Assert.That(SpawnPad.Fit(10, 10, new BlockRect(10, 10, 11, 11))).IsNull();
+        await Assert.That(SpawnPad.Fit(10, 10, new BlockRect(10, 10, 11, 11), PadUse.Standing)).IsNull();
     }
 
     // ── open ground ─────────────────────────────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ public sealed class SpawnPadTests
     [Arguments(10.5, SpawnPad.Centred, 10.5)]
     public async Task Open_ground_lands_the_pad_on_its_marker(double marker, int size, double centre)
     {
-        var pad = SpawnPad.Fit(marker, marker, allowed: null)!.Value;
+        var pad = SpawnPad.Fit(marker, marker, allowed: null, PadUse.Standing)!.Value;
 
         await Assert.That(pad.Size).IsEqualTo(size);
         await Assert.That((pad.CenterX, pad.CenterZ)).IsEqualTo((centre, centre));
@@ -86,7 +86,43 @@ public sealed class SpawnPadTests
     [Test]
     public async Task Open_ground_never_refuses_a_pad()
     {
-        await Assert.That(SpawnPad.Fit(-200.5, 4000.5, allowed: null)).IsNotNull();
+        await Assert.That(SpawnPad.Fit(-200.5, 4000.5, allowed: null, PadUse.Standing)).IsNotNull();
+    }
+
+    // ── a pad that marks rather than stands ─────────────────────────────────────────────────────────────
+    /// <summary><b>A marking pad covers exactly the blocks its marker touches</b> — one where the marker is a
+    /// block's own centre, the four it corners where the marker is a grid line. Either way the pad's centre
+    /// *is* the marker, which is what makes it the place the stack lands on.</summary>
+    [Test]
+    [Arguments(10.0, SpawnPad.Straddling, 9)]
+    [Arguments(10.5, SpawnPad.Narrow, 10)]
+    public async Task A_marking_pad_covers_the_blocks_its_marker_touches(double marker, int size, int min)
+    {
+        var pad = SpawnPad.Fit(marker, marker, Open, PadUse.Marker)!.Value;
+
+        await Assert.That(pad.Size).IsEqualTo(size);
+        await Assert.That((pad.MinX, pad.MinZ)).IsEqualTo((min, min));
+        await Assert.That((pad.CenterX, pad.CenterZ)).IsEqualTo((marker, marker));
+    }
+
+    /// <summary>And the ring around it is nobody's business: a marking pad on a block centre stays one block
+    /// however much ground it is given, where a standing one would grow.</summary>
+    [Test]
+    public async Task A_marking_pad_never_grows_to_the_standing_square()
+    {
+        await Assert.That(SpawnPad.Fit(10.5, 10.5, Open, PadUse.Marker)!.Value.Size)
+            .IsEqualTo(SpawnPad.Narrow);
+        await Assert.That(SpawnPad.Fit(10.5, 10.5, Open, PadUse.Standing)!.Value.Size)
+            .IsEqualTo(SpawnPad.Centred);
+    }
+
+    /// <summary>Grid-line parity is the same square for both, because there is no smaller one centred on a
+    /// corner than the four blocks that share it.</summary>
+    [Test]
+    public async Task Grid_line_parity_is_the_same_square_either_way()
+    {
+        await Assert.That(SpawnPad.Fit(10, 10, Open, PadUse.Marker))
+            .IsEqualTo(SpawnPad.Fit(10, 10, Open, PadUse.Standing));
     }
 
     // ── the parity the size is read off ─────────────────────────────────────────────────────────────────
@@ -102,12 +138,13 @@ public sealed class SpawnPadTests
         await Assert.That(SpawnPad.MixedParity(markerX, markerZ)).IsEqualTo(mixed);
     }
 
-    /// <summary>And the nearest offset that agrees moves the block-centre axis down onto the grid line,
-    /// never below nought — offsets are piece-relative and a negative one is off the piece.</summary>
+    /// <summary>And the nearest marker that agrees moves the block-centre axis down onto the grid line, in
+    /// whatever frame it was stated in — a world coordinate is as legal below nought as above it.</summary>
     [Test]
     [Arguments(10.0, 10.5, 10.0, 10.0)]
     [Arguments(10.5, 10.0, 10.0, 10.0)]
     [Arguments(0.5, 4.0, 0.0, 4.0)]
+    [Arguments(30.0, -17.5, 30.0, -18.0)]
     public async Task The_nearest_agreeing_offset_moves_one_axis_down(
         double markerX, double markerZ, double expectedX, double expectedZ)
     {

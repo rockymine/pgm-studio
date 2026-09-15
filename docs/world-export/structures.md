@@ -130,13 +130,21 @@ clearance it keeps to its walls, and everything in WX3–WX5 then reads as writt
 room — a generator standing on open terrain — passes none, and the pad lands on its marker at the
 size its parity asks for, with nothing to clamp against and nothing to narrow it.
 
+**What the pad is for picks its size beside the parity** (`PadUse`). A pad somebody **arrives on** —
+a spawn room's, a wool room's — is grown past the blocks its marker touches, because a team standing
+on one block is a team standing in each other. A pad that only **marks** a place — a generator's
+drop, where the ground beside it is nobody's business — covers exactly the blocks its marker touches
+and no more: the one it is the centre of, or the four it corners. The two agree on a grid line,
+because there is no smaller square centred on a corner than the four blocks sharing it.
+
 - **WX3** *Parity picks the pad class, and the pad is always square.* A marker on a block
-  **grid line** takes the **2×2** pad straddling it — the only size for that parity. A marker on a
-  **block centre** takes a **3×3** pad when the room affords it (WX4), else **1×1** — the degrade
-  applies to both axes together, so a 1×3 never exists. Nothing larger than 3×3 exists. Parity must
-  match on both axes: a mixed-parity marker (a grid line in x, a block centre in z) has no square
-  pad and is **refused at validation**, pointing at the two legal lattice choices. The composer
-  never emits one: a room an odd number of blocks across on one axis has a mixed centre, so
+  **grid line** takes the **2×2** pad straddling it — the only size for that parity, whatever the
+  pad is for. A marker on a **block centre** takes a **3×3** pad where somebody stands on it and the
+  room affords it (WX4), and **1×1** otherwise — which is what a marking pad takes there outright.
+  The degrade applies to both axes together, so a 1×3 never exists. Nothing larger than 3×3 exists.
+  Parity must match on both axes: a mixed-parity marker (a grid line in x, a block centre in z) has
+  no square pad and is **refused at validation**, pointing at the two legal lattice choices. The
+  composer never emits one: a room an odd number of blocks across on one axis has a mixed centre, so
   assembly nudges that axis half a block onto a grid line (`Composer.MarkerOffset`).
 
 - **WX4** *Clearance and minimal shift.* The pad keeps **at least one block of clear floor to every

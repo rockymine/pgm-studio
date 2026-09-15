@@ -338,6 +338,13 @@ public static class WorldBuilder
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
                              terrain.FloorByLayer);
 
+        // ── The generators' ground — the block each spawner's stack lands on, laid into the course under its
+        // drop. After the finish for the reason a room's pad is stamped after its shell: the pad is the floor
+        // the point sits on rather than whatever the painter laid, and a generator is a place before it is a
+        // clock. Nothing is claimed for it — a pad is one course of ground, which the dressing pass may still
+        // grow flora beside.
+        StampSpawnerPads(world, intent);
+
         // ── Dressing — the terrain's life on top of its finish: flora over the soil, boulders bedded into
         // it, trees standing on it (docs/world-export/decoration.md). Runs after the painter because the one
         // fact it needs is what the surface now *is* — soil takes flora, a plaza's quartz does not — and the
@@ -806,6 +813,18 @@ public static class WorldBuilder
                 + " — a tint is one colour per island, and this island is ground they share",
                 Severity.Complaint, Field: $"islandTeams.{island.Island}", Subjects: [.. island.Teams]);
         }
+    }
+
+    /// <summary>Every spawner's pad: the square of ground its stack lands on, in the block the board named,
+    /// laid into the course below the drop so the stack rests on the pad rather than beside it.
+    ///
+    /// <para>A spawner that names no block lays nothing, which is a board that has already built the ground
+    /// its generator stands on.</para></summary>
+    private static void StampSpawnerPads(VoxelWorld world, MapIntent intent)
+    {
+        foreach (var spawner in intent.Spawners ?? [])
+            if (SpawnerGenerator.Ground(spawner) is { } laid)
+                PadStamp.Lay(world, laid.Pad, (int)Math.Floor(spawner.At.Y) - 1, laid.BlockId, laid.Data);
     }
 
     /// <summary>Whether a display region holds anything PGM will recolour. One block is enough: PGM filters

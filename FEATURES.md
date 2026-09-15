@@ -9034,6 +9034,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **A generator's drop is a pad, and the pad is what the point follows (`RP70`).** A spawner's `at` named a
+  coordinate and the slice wrote the centre of the block containing it, so a generator had no pad and its
+  place was a number rather than ground — where `WX5`'s discipline is that the square is the truth and the
+  exported point follows it. `at` names a **square of ground** now: the block it is the centre of, or the
+  four blocks it corners, and the drop is that square's own centre. What a pad is **for** sizes it beside
+  the parity (`PadUse`) — a pad somebody arrives on grows to the 3×3 a team can stand on, a pad that only
+  marks a place covers exactly the blocks its marker touches. So a whole-number `at` drops on the grid line
+  rather than half a block off it. `SpawnerIntent.Pad` names the block the square is laid in,
+  `MaterialIds.Block` resolves a `name:data` material to the one block to write — where `Resolve` answers a
+  match, which is a set of ids and carries no data value — and
+  `WorldBuilder.StampSpawnerPads` lays it into the course under the drop, after the finish, so the stack rests
+  on it. A spawner naming no block lays none. The keep box is centred by `ObjectiveFootprint.Centred`, the
+  one convention this repo has for an even-sided box on a marker, which is also the asymmetric span
+  `mame_i_shrunk_the_pvpers` writes around its own drops. (`SpawnPad`, `SpawnerGenerator`, `MaterialIds`,
+  `WorldBuilder`, `SpawnerPadWorldTests`, `docs/pgm/shops.md` §10, `docs/world-export/structures.md` §3)
 - **A pad is its own thing, and it is not made of wool (`RP69`).** The square something enters the match on
   was a field of `RoomFrame`, sized by a private `PlacePad` that had to be handed a room's interior, and laid
   by a `PadStamp` that hardcoded `Blocks.Wool`. So a marked place could not exist without a building around

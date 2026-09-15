@@ -292,7 +292,8 @@ An agent states them as a second array on the same intent:
 "spawners": [
   {
     "id": "mid-emeralds",
-    "at": { "x": 0, "y": 12, "z": 0 },
+    "at": { "x": 0.5, "y": 12, "z": 0.5 },
+    "pad": "gold block",
     "reach": 5,
     "protect": 6,
     "delay": "30s",
@@ -302,12 +303,20 @@ An agent states them as a second array on the same intent:
 ]
 ```
 
+**Everything is measured from the pad.** A generator is a place before it is a clock, so `at` names a square
+of ground rather than a coordinate: the block it is the centre of where it is a block centre, the four blocks
+it corners where it is a whole number. The drop is that square's own centre, which is the discipline every
+marked place on a board follows — the world is the ground truth and the XML agrees with it (`WX5`). `pad`
+names the block it is laid in, and the world build writes it into the course under the drop so the stack
+rests on it; a spawner naming none lays none, for a board that already built the ground its generator stands
+on. A marker whose two axes disagree has no square pad, so it is nudged half a block onto one parity first —
+the same nudge a room's marker takes.
+
 **Three regions are minted rather than authored**, because PGM's element names two of them by id and takes no
-coordinates, and the third is a rule rather than an attribute. `SpawnerGenerator` writes a `point` on the
-centre of the block `at` names — the drop lands exactly where the point says, and a whole number would put it
-on a corner — a `cylinder` based there as the ground a player has to be standing on, and a `cuboid` around it
-as the ground nobody may take. All three are named for the spawner, so regenerating replaces them and leaves
-the wool rooms' own spawners, which share the document's one `<spawners>` list, exactly where they stand.
+coordinates, and the third is a rule rather than an attribute: a `point` at the pad's centre, a `cylinder`
+based there as the ground a player has to be standing on, and a `cuboid` around it as the ground nobody may
+take. All three are named for the spawner, so regenerating replaces them and leaves the wool rooms' own
+spawners, which share the document's one `<spawners>` list, exactly where they stand.
 
 **The reach is local rather than the whole map.** 1,004 of the corpus's 1,335 stated player-regions resolve to
 a region of the map's own — 374 rectangles, 271 cuboids, 162 cylinders, and the rest unions, spheres and
@@ -331,9 +340,10 @@ second to a minute. The cap is **5**, their mode — 54 state it, 44 state eight
 spawner with nothing to drop is left out rather than written as a generator that fires forever and hands over
 nothing.
 
-**The drop's height is the author's.** `at.y` is written verbatim, so the coordinate comes from a `column`
-read of the ground it is meant to sit on — there is no way yet to say *on the ground here* and have the
-export solve it, the way a capture point's pad is cut into whatever the world build found (`PG16`).
+**The drop's height is the author's.** `at.y` is written verbatim and the pad is laid one course under it, so
+the coordinate comes from a `column` read of the ground it is meant to sit on — there is no way yet to say
+*on the ground here* and have the export solve it, the way a capture point's pad is cut into whatever the
+world build found (`PG16`).
 
 **And a spawner cannot yet state a filter.** `mame_i_shrunk_the_pvpers` states its two generators four
 times each, on the same regions, with a shorter delay behind `after-30m`, `after-60m` and `after-90m` — a

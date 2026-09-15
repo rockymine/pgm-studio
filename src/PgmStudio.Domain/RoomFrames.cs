@@ -280,7 +280,8 @@ public static class RoomFrames
     {
         var inset = (walled ? 1 : 0) * (1 + PadWallClearance);
         var pad = SpawnPad.Fit(markerX, markerZ, new BlockRect(
-            footprint.MinX + inset, footprint.MinZ + inset, footprint.MaxX - inset, footprint.MaxZ - inset));
+            footprint.MinX + inset, footprint.MinZ + inset, footprint.MaxX - inset, footprint.MaxZ - inset),
+            PadUse.Standing);
         return pad is { Shifted: false };
     }
 
@@ -385,7 +386,7 @@ public static class RoomFrames
         // where no wall stands, since there is nothing to clear.
         var padInset = wall * (1 + PadWallClearance);
         var pad = SpawnPad.Fit(markerX, markerZ, new BlockRect(
-            minX + padInset, minZ + padInset, maxX - padInset, maxZ - padInset));
+            minX + padInset, minZ + padInset, maxX - padInset, maxZ - padInset), PadUse.Standing);
         if (pad is null)
         {
             refusal = new Finding(RoomFrameRules.PadClearance,
