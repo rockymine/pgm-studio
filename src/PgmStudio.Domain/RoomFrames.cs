@@ -9,19 +9,6 @@ namespace PgmStudio.Domain;
 /// <see cref="Width"/> in blocks.</summary>
 public readonly record struct RoomDoor(RoomEdge Edge, int Lo, int Width);
 
-/// <summary>The spawn/wool floor pad: a <see cref="Size"/>×<see cref="Size"/> square of wool at
-/// (<see cref="MinX"/>, <see cref="MinZ"/>). <see cref="Shifted"/> flags a pad moved off its marker to keep
-/// the wall clearance — the exported spawn/wool point follows the pad, so the shift is author-visible.</summary>
-public readonly record struct RoomPad(int MinX, int MinZ, int Size, bool Shifted)
-{
-    /// <summary>The pad's centre — the point the export emits as the spawn/wool location. A whole block
-    /// coordinate for a 2×2 pad (the marker's grid line), a block centre (.5) for a 1×1 or 3×3.</summary>
-    public double CenterX => MinX + Size / 2.0;
-
-    /// <inheritdoc cref="CenterX"/>
-    public double CenterZ => MinZ + Size / 2.0;
-}
-
 /// <summary>A monument seat inside a spawn room: the interior floor cell and the <see cref="Wall"/> the
 /// pedestal hugs (which side its label sign hangs toward the room centre from).</summary>
 public readonly record struct MonumentSlot(int X, int Z, RoomEdge Wall);
@@ -182,7 +169,7 @@ public sealed record ResolvedRoom(RoomFrame Frame, IReadOnlyList<IronResolution>
 /// </summary>
 public sealed record RoomFrame(
     int MinX, int MinZ, int MaxX, int MaxZ,
-    RoomPad Pad,
+    SpawnPad Pad,
     IReadOnlyList<RoomDoor> Doors,
     int Wall = 1)
 {
@@ -292,26 +279,9 @@ public static class RoomFrames
     private static bool Seats(BlockRect footprint, double markerX, double markerZ, bool walled)
     {
         var inset = (walled ? 1 : 0) * (1 + PadWallClearance);
-        var pad = PlacePad(markerX, markerZ, footprint.MinX + inset, footprint.MinZ + inset,
-            footprint.MaxX - inset, footprint.MaxZ - inset);
+        var pad = SpawnPad.Fit(markerX, markerZ, new BlockRect(
+            footprint.MinX + inset, footprint.MinZ + inset, footprint.MaxX - inset, footprint.MaxZ - inset));
         return pad is { Shifted: false };
-    }
-
-    /// <summary>Whether a marker's block-lattice parity differs between axes (WX3). The pad is always
-    /// square, so a grid-line x with a block-centre z has no pad and refuses at validation.</summary>
-    public static bool MixedParity(double markerX, double markerZ) =>
-        IsGridLine(markerX) != IsGridLine(markerZ);
-
-    /// <summary>The nearest offset whose two axes share a parity (WX3). A marker centred in a room that is
-    /// odd across one axis only lands mixed, and the pad is always square, so the block-centre axis moves
-    /// half a block onto the grid line below it. Offsets are piece-relative and never negative, which is what
-    /// the floor holds.</summary>
-    public static (double X, double Z) SameParity(double markerX, double markerZ)
-    {
-        if (!MixedParity(markerX, markerZ)) return (markerX, markerZ);
-        return IsGridLine(markerX)
-            ? (markerX, Math.Max(0, markerZ - 0.5))
-            : (Math.Max(0, markerX - 0.5), markerZ);
     }
 
     /// <summary>The door width for a wall whose interior runs <paramref name="interiorAcross"/> blocks along
@@ -396,7 +366,7 @@ public static class RoomFrames
                 + $"([{pieceMinX}, {pieceMinZ}]–[{pieceMaxX}, {pieceMaxZ}])");
             return null;
         }
-        if (MixedParity(markerX, markerZ))
+        if (SpawnPad.MixedParity(markerX, markerZ))
         {
             refusal = new Finding(RoomFrameRules.MarkerParity,
                 "marker parity differs between axes; the pad is always square — place the marker on a "
@@ -414,8 +384,8 @@ public static class RoomFrames
         // The pad's allowed region is the interior inset by the wall clearance (WX4) — the whole footprint
         // where no wall stands, since there is nothing to clear.
         var padInset = wall * (1 + PadWallClearance);
-        var pad = PlacePad(markerX, markerZ,
-            minX + padInset, minZ + padInset, maxX - padInset, maxZ - padInset);
+        var pad = SpawnPad.Fit(markerX, markerZ, new BlockRect(
+            minX + padInset, minZ + padInset, maxX - padInset, maxZ - padInset));
         if (pad is null)
         {
             refusal = new Finding(RoomFrameRules.PadClearance,
@@ -547,35 +517,6 @@ public static class RoomFrames
         for (var along = alongLo + 1; along < alongHi - 1; along++)
             if (!InDoorSpan(along)) slots.Add(Seat(along, near, nearWall));
         return slots;
-    }
-
-    /// <summary>Whether <paramref name="coordinate"/> sits on a block grid line (integer) as opposed to a
-    /// block centre (.5) — the parity that picks the pad class (WX3).</summary>
-    public static bool IsGridLine(double coordinate) => coordinate == Math.Floor(coordinate);
-
-    // WX3/WX4 — the square pad: parity picks 2 (straddling a grid line) or 3 (centred on a block, degrading
-    // to 1 jointly when either axis lacks the clearance), then clamp into the interior keeping one block of
-    // clear floor to every wall, flagging any shift.
-    private static RoomPad? PlacePad(
-        double markerX, double markerZ, int allowedMinX, int allowedMinZ, int allowedMaxX, int allowedMaxZ)
-    {
-        int size;
-        if (IsGridLine(markerX)) size = 2;
-        else
-        {
-            var fitsLarge = 3 <= allowedMaxX - allowedMinX && 3 <= allowedMaxZ - allowedMinZ;
-            size = fitsLarge ? 3 : 1;
-        }
-        if (size > allowedMaxX - allowedMinX || size > allowedMaxZ - allowedMinZ) return null;
-
-        int IdealMin(double marker) => IsGridLine(marker)
-            ? (int)marker - size / 2
-            : (int)Math.Floor(marker) - (size - 1) / 2;
-        var idealX = IdealMin(markerX);
-        var idealZ = IdealMin(markerZ);
-        var placedX = Math.Min(Math.Max(idealX, allowedMinX), allowedMaxX - size);
-        var placedZ = Math.Min(Math.Max(idealZ, allowedMinZ), allowedMaxZ - size);
-        return new RoomPad(placedX, placedZ, size, placedX != idealX || placedZ != idealZ);
     }
 
     // An entry rect (degenerate on the seam axis) classified against the piece boundary: which edge it lies

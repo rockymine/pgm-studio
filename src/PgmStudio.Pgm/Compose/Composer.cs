@@ -163,11 +163,11 @@ public static class Composer
     // The emitters work in cells; a placement states blocks, so the conversion happens here, at the one
     // boundary where an emitted point becomes a stored offset.
     //
-    // A marker must land on the block lattice with one parity on both axes (WX3), which RoomFrames.SameParity
+    // A marker must land on the block lattice with one parity on both axes (WX3), which SpawnPad.SameParity
     // is the one statement of.
     internal static double[] MarkerOffset(double[] atCells, int cell)
     {
-        var (x, z) = RoomFrames.SameParity(atCells[0] * cell, atCells[1] * cell);
+        var (x, z) = SpawnPad.SameParity(atCells[0] * cell, atCells[1] * cell);
         return [x, z];
     }
 }

@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Houses;
 
@@ -50,7 +51,7 @@ public sealed record WoolStructure
 /// <summary>Stamps a <see cref="WoolStructure"/> (docs/world-export/sketch-world-export.md §2).</summary>
 public static class WoolStructureStamper
 {
-    public static PlacedWoolSpawn Stamp(VoxelWorld world, WoolStructure room)
+    public static PlacedPad Stamp(VoxelWorld world, WoolStructure room)
     {
         var frame = room.Frame;
         StructureStamper.StampFoundation(world, room.Ground, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ);
@@ -62,7 +63,8 @@ public static class WoolStructureStamper
             HouseStamper.Stamp(world, frame, room.FloorY, shell, BlockColors.BlockDamage(room.WoolSlug));
 
         // After the shell, so the pad is the floor the room's point sits on rather than whatever a style laid.
-        var placed = WoolSpawnStamper.Place(world, frame.Pad, room.FloorY, room.WoolSlug);
+        var placed = PadStamp.Lay(world, frame.Pad, room.FloorY, Blocks.Wool,
+            BlockColors.BlockDamage(room.WoolSlug));
 
         if (room.Chests) WoolChests.Stamp(world, frame, room.FloorY);
         if (room.Entrance is { } line)

@@ -119,9 +119,16 @@ rounding it away.
 
 ## 3. The marker and the pad
 
-The marker is not the structure anchor; it is what it semantically reads as — the wool/player spawn
-point inside the room, realized as the floor pad. Placement lives on the half-cell lattice; the
-marker is never freely placeable.
+The marker is not the structure anchor; it is what it semantically reads as — the point something
+enters the match at, realized as the floor pad. Placement lives on the half-cell lattice; the marker
+is never freely placeable.
+
+**The pad belongs to no structure** (`SpawnPad`, `PgmStudio.Domain`). It is a marker, a square and a
+block: the parity below picks the square, the caller states the block, and the ground the square has
+to stay inside is *passed in* rather than implied. A room passes its interior already inset by the
+clearance it keeps to its walls, and everything in WX3–WX5 then reads as written. A caller with no
+room — a generator standing on open terrain — passes none, and the pad lands on its marker at the
+size its parity asks for, with nothing to clamp against and nothing to narrow it.
 
 - **WX3** *Parity picks the pad class, and the pad is always square.* A marker on a block
   **grid line** takes the **2×2** pad straddling it — the only size for that parity. A marker on a
@@ -242,14 +249,16 @@ the preview both call, so the stamped volume, the emitted region and the drawn b
 
 1. **The frame** — `RoomFrames.Resolve` (`PgmStudio.Domain`), a pure resolver
    `(piece rect, marker, entry rects | yaw edge) → RoomFrame`: the inset footprint, the interior,
-   the pad (after WX3/WX4), and the doors. `WorldBuilder.WoolFrame`/`SpawnFrame` derive it
+   the pad (`SpawnPad.Fit`, handed the interior after WX3/WX4), and the doors. `WorldBuilder.WoolFrame`/`SpawnFrame` derive it
    (with the legacy default for piece-less markers) and `PlanStructurePreview` consumes the same
    derivation — the preview cannot lie. The floor is the highest surface over the footprint
    (`WorldBuilder.FrameFloor`), which is its own mirror, so orbit images rest level.
 2. **The shell template** — `CubeStamper` stamps the frame's footprint: floor + perimeter walls +
    roof, each a course stack its `RoomStyle` supplies (§7), the roof hole proportional with a cap
    (`RoofHoleSpan` — the 8-wide shell keeps its 4×4 hole), then the pad and the doors stamped over
-   them.
+   them. `PadStamp.Lay` writes the pad: one square of the block the caller names — the team's wool
+   for a spawn, the objective's for a wool room — and it answers the point that square resolves to
+   (WX5), which is the whole of what a caller gets back.
 3. **The furnishers** — `RoomFrames.InteriorCorners` seats the chest stacks and
    `RoomFrames.MonumentSlots` the monuments (door-wall corners, back-wall corners, then the walls
    fill, skipping the door opening). A larger spawn room gains monument capacity from its longer

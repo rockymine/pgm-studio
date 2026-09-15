@@ -42,7 +42,7 @@ public static class PieceRoom
         // already the room, so it is its own probe and its own answer.
         var probe = stated ?? RoomFrames.DefaultFootprint(piece, doors, Centre(piece.MinX, piece.MaxX),
             Centre(piece.MinZ, piece.MaxZ), walled: true);
-        var (markerX, markerZ) = RoomFrames.SameParity(
+        var (markerX, markerZ) = SpawnPad.SameParity(
             Centre(probe.MinX, probe.MaxX) - piece.MinX, Centre(probe.MinZ, probe.MaxZ) - piece.MinZ);
 
         // The footprint the marker actually seats in. The parity nudge can move the marker half a block off

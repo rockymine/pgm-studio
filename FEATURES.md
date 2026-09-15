@@ -9034,6 +9034,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **A pad is its own thing, and it is not made of wool (`RP69`).** The square something enters the match on
+  was a field of `RoomFrame`, sized by a private `PlacePad` that had to be handed a room's interior, and laid
+  by a `PadStamp` that hardcoded `Blocks.Wool`. So a marked place could not exist without a building around
+  it, and could not be made of anything else. `SpawnPad` is the type now (`PgmStudio.Domain`), carrying the
+  parity rule and the `WX3`/`WX4` fit; `Fit`'s ground is **nullable**, and null is open ground — nothing to
+  clamp to and nothing to narrow against, so the pad lands on its marker at the size its parity asks for.
+  `PadStamp.Lay` takes a block and a data value rather than a wool colour, and answers one `PlacedPad`.
+  `PlayerSpawnStamper` and `WoolSpawnStamper` are gone: one called the other's own docstring *"built exactly
+  like"* this one, and the fields their two result records did not share — a team colour, a wool slug — were
+  the caller's own input echoed back and read by nobody. No behaviour moved; the whole existing suite is the
+  net. (`SpawnPad`, `PadStamp`, `RoomFrames`, `SpawnPadTests`, `docs/world-export/structures.md` §3)
 - **An intent's optional words survive the wire (`RP68`).** A positional record **struct** has an implicit
   parameterless constructor, and `System.Text.Json` takes that one in preference to the primary constructor —
   so a member the body left out arrived as `default`, which for a string is **null** rather than the empty
