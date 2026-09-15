@@ -107,12 +107,13 @@ public static class PlanFlow
     /// built world's blocks.</summary>
     public const int CrossingFloor = 2;
 
-    /// <summary>Dead stretches smaller than this are slivers between corridors, not places.</summary>
+    /// <summary>Dead stretches smaller than this are slivers between corridors, not places — counted, in
+    /// <see cref="Result.UnnamedDeadPlaces"/>, but not named.</summary>
     public const int PlaceFloor = 100;
 
     public sealed record Result(
         string Gamemode, IReadOnlyList<FlowLeg> Legs,
-        int GroundBlocks, int DeadBlocks, IReadOnlyList<DeadPlace> DeadPlaces, int Cell)
+        int GroundBlocks, int DeadBlocks, IReadOnlyList<DeadPlace> DeadPlaces, int UnnamedDeadPlaces, int Cell)
     {
         public double DeadShare => GroundBlocks <= 0 ? 0 : DeadBlocks / (double)GroundBlocks;
     }
@@ -143,28 +144,23 @@ public static class PlanFlow
                     if (nav.Navigable.Contains((w.X + dx, w.Z + dz))) used.Add((w.X + dx, w.Z + dz));
 
         var dead = nav.Ground.Where(c => !used.Contains(c)).ToHashSet();
-        var places = new List<DeadPlace>();
-        var seen = new HashSet<(int X, int Z)>();
-        foreach (var start in dead)
-        {
-            if (!seen.Add(start)) continue;
-            var patch = Cells.Flood([start], dead);
-            seen.UnionWith(patch);
-            if (patch.Count * cell * cell < PlaceFloor) continue;
-            places.Add(new DeadPlace(
-                patch.Count * cell * cell,
-                (int)patch.Average(c => (double)c.Item1) * cell,
-                (int)patch.Average(c => (double)c.Item2) * cell,
-                // named by how much of the patch each piece is, so the first one read is the one to act on
-                [.. patch.Select(c => PlanNav.BaseId(nav.PieceAt.GetValueOrDefault(c, "—")))
-                    .Where(n => n != "—")
-                    .GroupBy(n => n).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal)
-                    .Select(g => $"{g.Key} ({g.Count() * cell * cell})")]));
-        }
-        places.Sort((a, b) => b.Area.CompareTo(a.Area));
+        // The floor is stated in blocks and the stretches are found in cells, so it crosses over by the area
+        // one cell covers; the ceiling keeps exactly the stretches worth PlaceFloor blocks.
+        var perCell = cell * cell;
+        var (stretches, unnamed) = Cells.Stretches(dead, (PlaceFloor + perCell - 1) / perCell);
+        var places = stretches.Select(stretch => new DeadPlace(
+            stretch.Area * perCell,
+            stretch.CentroidX * cell,
+            stretch.CentroidZ * cell,
+            // named by how much of the stretch each piece is, so the first one read is the one to act on
+            [.. stretch.Cells.Select(c => PlanNav.BaseId(nav.PieceAt.GetValueOrDefault(c, "—")))
+                .Where(n => n != "—")
+                .GroupBy(n => n).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal)
+                .Select(g => $"{g.Key} ({g.Count() * perCell})")])).ToList();
 
         var legs = gamemode == "ctw" ? Legs(nav, plan, cell) : [];
-        return new Result(gamemode, legs, nav.Ground.Count * cell * cell, dead.Count * cell * cell, places, cell);
+        return new Result(gamemode, legs, nav.Ground.Count * perCell, dead.Count * perCell,
+            places, unnamed, cell);
     }
 
     /// <summary>How far it is between two cells at the plan fidelity, in blocks — zero where either end is
@@ -400,8 +396,10 @@ public static class PlanFlow
             + "Reachable, and on the way to nothing.");
         if (flow.DeadPlaces.Count == 0)
         {
-            text.AppendLine($"    None of it is a place — every stretch is under {PlaceFloor} blocks, which is a "
-                + "sliver between corridors rather than ground anyone would notice.");
+            text.AppendLine("    None of it is a place: "
+                + (flow.UnnamedDeadPlaces == 1 ? "the one stretch is" : $"all {flow.UnnamedDeadPlaces} stretches are")
+                + $" under {PlaceFloor} blocks, which is a sliver between corridors rather than ground anyone "
+                + "would notice.");
             return text.ToString();
         }
         foreach (var place in flow.DeadPlaces.Take(6))
@@ -409,6 +407,10 @@ public static class PlanFlow
                 + (place.Pieces.Count == 0 ? "" : $" — {string.Join(", ", place.Pieces)}"));
         if (flow.DeadPlaces.Count > 6)
             text.AppendLine($"    and {flow.DeadPlaces.Count - 6} smaller.");
+        if (flow.UnnamedDeadPlaces > 0)
+            text.AppendLine("    "
+                + (flow.UnnamedDeadPlaces == 1 ? "One further stretch is" : $"{flow.UnnamedDeadPlaces} further stretches are")
+                + $" under {PlaceFloor} blocks: a sliver between corridors rather than a place.");
         text.AppendLine();
         text.AppendLine("  Ground is dead because no journey passes it, not because it is far out. Bring an "
             + "objective to it, put a route through it, or take it off the board — decorating it only means "

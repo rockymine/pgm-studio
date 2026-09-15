@@ -1,4 +1,12 @@
+using PgmStudio.Geom.Algorithms;
+
 namespace PgmStudio.Geom;
+
+/// <summary>One contiguous stretch of a cell set — the cells it holds, how many that is, and the cell
+/// its centre falls in. The cells travel with the measure because the fact a caller adds is read off
+/// them: which pieces lie under a stretch of plan, how far a stretch of world stands from ground a match
+/// uses.</summary>
+public sealed record Stretch(IReadOnlyList<(int X, int Z)> Cells, int Area, int CentroidX, int CentroidZ);
 
 /// <summary>
 /// Rectilinear cell-set substrate — the shared 4-connected raster primitives (neighbour iteration, flood fill,
@@ -62,6 +70,30 @@ public static class Cells
         foreach (var s in seeds) if (within.Contains(s) && comp.Add(s)) q.Enqueue(s);
         while (q.Count > 0) { var c = q.Dequeue(); foreach (var n in N4(c)) if (within.Contains(n) && comp.Add(n)) q.Enqueue(n); }
         return comp;
+    }
+
+    /// <summary>The stretches of <paramref name="cells"/> worth naming — every 4-connected component holding at
+    /// least <paramref name="floor"/> cells, largest first and then by position — and, beside them, how many fell
+    /// under the floor. A stretch too small to name is still a stretch, so a read that drops one silently cannot
+    /// be told from a read that found nothing. Ordering is total, so the same set always reads in the same
+    /// order.</summary>
+    public static (IReadOnlyList<Stretch> Named, int Unnamed) Stretches(
+        IEnumerable<(int X, int Z)> cells, int floor)
+    {
+        var named = new List<Stretch>();
+        var unnamed = 0;
+        foreach (var component in GridComponents.Label(cells, connectivity: 4))
+        {
+            if (component.Count < floor) { unnamed++; continue; }
+            named.Add(new Stretch(component, component.Count,
+                (int)component.Average(cell => (double)cell.X),
+                (int)component.Average(cell => (double)cell.Z)));
+        }
+        named.Sort((a, b) =>
+            a.Area != b.Area ? b.Area.CompareTo(a.Area)
+            : a.CentroidX != b.CentroidX ? a.CentroidX.CompareTo(b.CentroidX)
+            : a.CentroidZ.CompareTo(b.CentroidZ));
+        return (named, unnamed);
     }
 
     /// <summary>Whether a route from <paramref name="from"/> to <paramref name="to"/> may pass on

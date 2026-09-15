@@ -481,14 +481,13 @@ what a board is played for was derived in several places and a control point was
 was that every entry named a thing the codec already carried and the intent could not state. Both left their
 wizard step behind, which is why `TC7` and `TC9` sit with the configure surface rather than here.
 
-`TODO.md` now holds **the walk** (6 entries), pulled up whole. Its cause is the other half of a consolidation
-that only went halfway: `Geom.Walk` became the one traversal, and the *answers* taken with it did not follow.
-Dead ground is derived by `PlanFlow.DeadPlace` and again by `GroundCoverage.Patch`, in two sibling projects
-neither of which can reach the other, so the shared half has nowhere to live but `Geom`. And a fork is one
-pair of cells in `RouteFork` where a board carries a set — the singular baked into seven fields of `FlowLeg`
-and into the prose `PlanFlow.Describe` writes. Adjacency was the third and is settled (`FEATURES.md`): one
-rule, `ContactGraph.Connects`, which the fanned graph asks rather than answering its own. This is `CLAUDE.md`'s *"a shape is not consolidated until the callers ask it the
-same question by the same name"*, read against a traversal whose callers each still ask their own.
+`TODO.md` holds **the walk**, pulled up whole. Its cause was the other half of a consolidation that had only
+gone halfway: `Geom.Walk` became the one traversal, and the *answers* taken with it did not follow. Three of
+them are now one each — adjacency is `ContactGraph.Connects`, a fork belongs to a demand set and a door, and
+dead ground is `Cells.Stretches`, which the plan tier and the built-world tier ask at their own floors
+(`FEATURES.md`). That is `CLAUDE.md`'s *"a shape is not consolidated until the callers ask it the same
+question by the same name"*, applied; what the group still holds are the readings that ground was settled
+for.
 
 Of the causes this section named earlier, the client reading its own schema is `C51` alone and the compiler's
 lost identity is `B213`, so neither stands as a programme. What is left whole, after the walk, is **the layer

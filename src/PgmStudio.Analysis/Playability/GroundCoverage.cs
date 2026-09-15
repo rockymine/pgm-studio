@@ -1,6 +1,5 @@
 ﻿using PgmStudio.Analysis.Scan;
 using PgmStudio.Geom;
-using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Analysis.Playability;
 
@@ -192,21 +191,13 @@ public static class GroundCoverage
         var distances = DistanceToReached(cells, nx, nz);
         var deadCells = new List<(int X, int Z)>();
         for (var i = 0; i < cells.Length; i++)
-            if (cells[i] is Dead or Decorated) deadCells.Add((i % nx, i / nx));
-        var patches = new List<Patch>();
-        var unnamed = 0;
-        foreach (var component in GridComponents.Label(
-                     [.. deadCells.Where(cell => cells[cell.Z * nx + cell.X] == Dead)], connectivity: 4))
-        {
-            if (component.Count < PatchFloor) { unnamed++; continue; }
-            var nearest = component.Min(cell => distances[cell.Z * nx + cell.X]);
-            patches.Add(new Patch(
-                component.Count,
-                minX + (int)component.Average(cell => cell.X),
-                minZ + (int)component.Average(cell => cell.Z),
-                nearest));
-        }
-        patches.Sort((a, b) => b.Area.CompareTo(a.Area));
+            if (cells[i] == Dead) deadCells.Add((i % nx, i / nx));
+        var (stretches, unnamed) = Cells.Stretches(deadCells, PatchFloor);
+        var patches = stretches.Select(stretch => new Patch(
+            stretch.Area,
+            minX + stretch.CentroidX,
+            minZ + stretch.CentroidZ,
+            stretch.Cells.Min(cell => distances[cell.Z * nx + cell.X]))).ToList();
 
         // The route, painted last so it reads over the fill, and only where the read already found ground: a
         // route runs over the navigable set, which carries bridgeable void the classification does not, and

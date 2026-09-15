@@ -9066,6 +9066,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **A dead place is one stretch, found once (`WS67`).** The two tiers each cut their dead ground into
+  components, filtered slivers out of it and measured what was left: `PlanFlow` looping `Cells.Flood` over its
+  own visited set, `GroundCoverage` calling `GridComponents.Label`, in sibling projects neither of which can
+  reach the other. `Cells.Stretches` is the one verb — every 4-connected component above a floor, measured as
+  area and centre, largest first and then by position, beside a count of the ones that fell under it — and each
+  stretch carries its own cells, which is what lets the plan tier name the pieces under it and the world tier
+  measure its walk to reached ground off the same answer. The floor stays each tier's: 100 blocks at plan
+  fidelity, 25 cells over a built world. The plan read now reports what it drops, as the world read already
+  did, so "no dead place" can be told from "forty slivers and no place", and the total order means two
+  equal-area stretches do not swap between runs. (`Geom/Cells`, `PlanFlow`, `GroundCoverage`, `CellsTests`,
+  `PlanFlowTests`, `docs/world-scan/ground-coverage.md`, `docs/generator/vocabulary.md`)
 - **A fork belongs to a door, and a door belongs to a side (`WS3`).** `RouteFork` named one split and one fuse
   for a whole journey — the earliest anyone parted and the latest anyone rejoined, measured against the shortest
   route alone. On an approach with two choices that is an envelope over both and describes neither: on townside

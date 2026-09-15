@@ -79,6 +79,21 @@ public sealed class PlanFlowTests
         await Assert.That(PlanFlow.Describe(read)).Contains("sit off every route");
     }
 
+    /// <summary>A stretch too small to be a place is reported as a count. A read naming three places and
+    /// dropping forty slivers must not read the same as one that found three places and nothing else.</summary>
+    [Test]
+    public async Task Stretches_too_small_to_name_are_counted_rather_than_dropped()
+    {
+        // a stub arm off the lane, reaching past the corridor's detour tolerance but not far enough for its
+        // tip to be worth 100 blocks
+        var read = PlanFlow.Read(Board(P("arm", -5, -5, 3, 1)));
+
+        await Assert.That(read.DeadBlocks).IsGreaterThan(0);
+        await Assert.That(read.DeadPlaces).IsEmpty().Because("no stretch of it clears the floor");
+        await Assert.That(read.UnnamedDeadPlaces).IsGreaterThan(0);
+        await Assert.That(PlanFlow.Describe(read)).Contains("under 100 blocks");
+    }
+
     [Test]
     public async Task A_board_every_journey_covers_says_so_plainly()
     {

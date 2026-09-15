@@ -219,15 +219,46 @@ public sealed class CellsTests
         await Assert.That(cut!).IsEmpty();
     }
 
-    /// <summary>A cut actually separates: removing it leaves the two ends in different components, which is
-    /// the property rather than the cell list.</summary>
+    /// <summary>A stretch under the floor is still reported — as a count. A read that named three places
+    /// and dropped forty slivers must not read the same as one that found three places and nothing else.</summary>
     [Test]
-    public async Task Removing_the_cut_separates_the_ends()
+    public async Task A_stretch_under_the_floor_is_counted_rather_than_dropped()
     {
-        var cells = Dumbbell(3);
-        var open = new HashSet<(int, int)>(cells);
-        open.ExceptWith(Cells.MinVertexCut(Column(0), Column(13), cells)!);
+        var cells = Rect(0, 0, 4, 4);          // 16 cells, the one place
+        cells.Add((10, 0));                     // two slivers, far off and apart from each other
+        cells.Add((10, 5));
 
-        await Assert.That(Cells.Flood([(0, 0)], open).Contains((13, 0))).IsFalse();
+        var (named, unnamed) = Cells.Stretches(cells, floor: 9);
+
+        await Assert.That(named.Count).IsEqualTo(1);
+        await Assert.That(named[0].Area).IsEqualTo(16);
+        await Assert.That(unnamed).IsEqualTo(2);
+    }
+
+    /// <summary>Corner contact does not join a stretch: two cells meeting at a diagonal are two places to
+    /// stand, not one, and the areas a caller reports follow from that.</summary>
+    [Test]
+    public async Task A_diagonal_touch_is_two_stretches()
+    {
+        var (named, unnamed) = Cells.Stretches(Set((0, 0), (1, 1)), floor: 1);
+
+        await Assert.That(named.Count).IsEqualTo(2);
+        await Assert.That(unnamed).IsEqualTo(0);
+    }
+
+    /// <summary>The order is total, so two equal stretches do not swap between runs — largest first, then
+    /// by centre. The centre is the cell the average falls in.</summary>
+    [Test]
+    public async Task Stretches_read_largest_first_and_then_by_position()
+    {
+        var cells = Rect(20, 0, 2, 2);          // equal area, further along x
+        cells.UnionWith(Rect(0, 0, 2, 2));      // equal area, nearer the origin
+        cells.UnionWith(Rect(0, 10, 3, 3));     // the largest
+
+        var (named, _) = Cells.Stretches(cells, floor: 1);
+
+        await Assert.That(string.Join(" ", named.Select(
+                stretch => $"{stretch.Area}@({stretch.CentroidX},{stretch.CentroidZ})")))
+            .IsEqualTo("9@(1,11) 4@(0,0) 4@(20,0)");
     }
 }

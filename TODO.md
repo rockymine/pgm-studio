@@ -20,12 +20,11 @@ counting a fall, slowing through water, narrowed per team where an `enter` rule 
 set that reads a surface as somewhere a player can stand rather than as any column holding a block.
 
 **The walk is one; what is asked of it is not, and that is the ground this group spends.** Three answers taken
-with it are each written twice or written in a shape that cannot carry the truth. *Adjacent* is settled
-(`FEATURES.md`): one predicate, `ContactGraph.Connects`, which the fanned graph asks rather than answering its
-own. Two are left. *Dead ground* is derived by `PlanFlow.DeadPlace` at plan tier and `GroundCoverage.Patch`
-over a built world — the same four fields in two projects that cannot see each other, so the only place the
-shared half can go is `Geom`. And *a fork* is one pair of cells in `RouteFork` where a board carries a set,
-with the singular baked into seven fields of `FlowLeg` and into the prose `PlanFlow.Describe` writes.
+with it are settled and shared (`FEATURES.md`): *adjacent* is one predicate, `ContactGraph.Connects`, which the
+fanned graph asks rather than answering its own; *a fork* belongs to a demand set and a door, because the same
+hole answers differently to a side walking in and a side walking back out; and *dead ground* is one verb,
+`Cells.Stretches`, which the plan tier and the built-world tier each ask at their own floor. What remains here
+is the work that ground was settled for.
 
 - [ ] **WE45 — `DR-PASS` still takes the widest side, and its width is absolute.** *Parked on a ruling: the
   number, and what "every side" exempts.* The wrong-rectangle fault is fixed (`FEATURES.md`). What is left is
