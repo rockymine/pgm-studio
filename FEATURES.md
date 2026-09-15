@@ -9066,6 +9066,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
+  pass's five *seat* rules over every cell of a board so a placement is found rather than guessed at, and left
+  the four a building meets after it seats to the pass because they read the built world. `DR-PASS` no longer
+  does — it is a predicate over the terrain surface and a footprint box, which is what `ClaimRaster`'s own
+  grid already carries — so the mask answers it: a building's `width`/`depth` are its **walls**, the passage
+  is measured from the roof over them, and the candidate joins the group of any building standing within a
+  passage of it. The standing ones are labelled off the raster's `structure` cells, one building to a run of
+  them (two are never adjacent, since a building holds a ring and a second stamping into it is `DR-CLAIM`),
+  and grouped once for the board rather than once per anchor. **One reading serves both directions**:
+  `Passage.Clears` takes the two cell lookups its callers differ in, so the pass and the mask cannot disagree
+  — a test asks every anchor of a board with a coast, a hole and a building on it both ways and requires the
+  same answer. A 15-block lane seats a 5×5 house at four anchors, two at each wall, because the band runs
+  along the walls and a roof may oversail the coast by its eave. (`Minecraft/Dressing/Passage`, `Decorator`,
+  `Export/ClaimRaster`, `SketchEndpoints`, `ClaimRasterTests`, `docs/tools/sketch.md`,
+  `docs/world-export/decoration.md`)
 - **A village is one block of buildings, and the passage goes round it (`WE126`).** The eight-block passage
   read a building against terrain and against other buildings alike, so a village street was a row of
   refusals: two buildings needed eleven blocks between their walls, and every interior house of a row failed.

@@ -1742,9 +1742,11 @@ one kind and one footprint, so finding a spot for a tree is one call rather than
 Two things keep the answer the pass's own. The standoff is the kind's — a tree keeps three blocks off a
 route, a boulder two — and a claim only refuses a kind that places at or before the claimant's own turn, so
 a bed of flora does not stop a tree while a tree stops the flora (`docs/world-export/decoration.md` § 8). And
-a building gets a seat rather than a verdict: `DR-CROSS`, `DR-WAY` and `DR-SLOPE` read the built world, and
-the pass raises them. `DR-PASS` is the one of the four that asks only about terrain and a footprint, so it
-could be run forwards here and is not yet (`WE127`).
+a building gets a seat rather than a verdict. `DR-PASS` is asked here too: a building's `width`/`depth` are
+its **walls**, the passage is measured from the roof over them, and a candidate joins the group of any
+building standing within a passage of it — the standing ones are read off the raster's own structure cells,
+one building to a run of them, and grouped once for the board rather than once per anchor. `DR-CROSS`,
+`DR-WAY` and `DR-SLOPE` read the built world and stay the pass's to raise.
 
 ```json POST /api/map/{slug}/sketch/seats?kind=tree&width=3
 {"setup": {"mirror_mode": "none", "center": {"cx": 0, "cz": 0}},

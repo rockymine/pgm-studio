@@ -900,8 +900,8 @@ keeps clear or one already claimed, or breaks its kind's road standoff — each 
 `DressingPlacement.Declined`: a rule id (`DR-KEEP`, `DR-CLAIM`, `DR-SITE`, `DR-ROAD`, `DR-PASS`, `DR-CROSS`,
 `DR-WAY`, `DR-SIZE`, or
 the building rule that refused a plan), one sentence naming the prop, the cell and the cause, the prop's id
-as its subject, and `Severity.Complaint` — the world was built, and some of what was authored is not standing
-in it.
+as its subject, and a severity — a decline for a prop the world was built without, a complaint for one that
+is in it and worth looking at.
 
 The sentence names **what** stopped the prop, not merely that something did: `KeepOut` says whether a cell is
 held for a spawn, a wool room, a stated structure, built ground or a door's approach, and `GroundClaims`
@@ -922,14 +922,22 @@ places at or before the claimant's own turn**: cover goes down last, so a bed of
 tree, while a tree's claim does stop the flora. `PlacedProp.PlacementOrder` is where that order is stated and
 `DecoratorTests` pins it against the pass, since the pass records a claim as it places it.
 
-What the mask does not run is the four rules a **building** meets after it seats — `DR-PASS`, `DR-CROSS`,
-`DR-WAY` and `DR-SLOPE` — each of which reads the built world rather than the ground under the footprint. A
-seat is a seat the pass will not decline for a cell the prop rests on; a house still has to leave a way past
-itself.
+**A building is asked about the way past it too**, which is what makes the mask worth reading for the one
+prop that keeps failing on it. A building's `width`/`depth` are its **walls**; the passage is measured from
+the roof over them, and the candidate joins the group of any building standing within a passage of it, so a
+seat beside a village is judged the way the pass will judge it. The buildings already on the board are read
+off the raster's own `structure` cells — one building to a run of them, since two of them are never adjacent
+— and grouped once for the board rather than once per anchor. `Passage.Clears` is the one reading both
+directions take, which is what keeps the mask and the pass from disagreeing about a cell; a test asks every
+anchor of a board both ways and requires the same answer.
+
+What is left to the pass is the three that read the built world rather than the ground under the footprint:
+`DR-CROSS`, `DR-WAY` and `DR-SLOPE`.
 
 Each one is a **`decline`**, the severity between a refusal and a complaint: the world was built, so nothing
-stopped, and this prop is not in it, so there is nothing for the author to ignore. That is what a caller reads
-off a 2xx to answer *did what I posted survive* — a complaint beside a success would say the opposite.
+stopped, and this prop is not in it, so there is nothing for the author to ignore — except `DR-PASS`, which is
+a complaint, the building standing where it was put. That is what a caller reads off a 2xx to answer *did what
+I posted survive*.
 
 The declines travel three ways. Back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under
 `warnings` beside the payload, which is the loop an agent actually drives. As `region/dressing-report.json`

@@ -480,8 +480,10 @@ internal static class DressedBoard
 ///
 /// <para>The footprint is a box, <c>width</c> by <c>depth</c> blocks, and a cell answers for the box laid
 /// with its minimum corner there. A tree or a boulder is 1×1 at its trunk and needs no more; a building
-/// states its own, and for one the answer is a seat rather than a verdict — <c>DR-PASS</c>, <c>DR-CROSS</c>,
-/// <c>DR-WAY</c> and <c>DR-SLOPE</c> read the built world and are still the pass's to raise.</para>
+/// states its <b>walls</b>, and the way past it is asked too (<c>DR-PASS</c>): the passage is measured from
+/// the roof over those walls, and a candidate joins the group of any building standing within a passage of
+/// it, exactly as the pass groups them. What is still the pass's to raise is the three that read the built
+/// world — <c>DR-CROSS</c>, <c>DR-WAY</c> and <c>DR-SLOPE</c>.</para>
 ///
 /// <para>Body: the layout, as <c>sketch/dressing</c> takes it. The cost is the same build.</para></summary>
 public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore artifacts)
@@ -497,7 +499,9 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
         Description(b => b.Accepts<SketchLayout>("application/json").AlsoText().Refuses(400, 404, 422).Reads(
             new QueryWord("kind", "Whose placement rules to run — the standoff a route is kept at is the "
                 + "kind's own. Absent runs `tree`'s.", [.. PlacedProp.Kinds]),
-            new QueryWord("width", $"The footprint across, in blocks, 1 to {WidestFootprint}. Absent is 1.",
+            new QueryWord("width", $"The footprint across, in blocks, 1 to {WidestFootprint}. Absent is 1. "
+                + "For a building this is its walls: the roof over them reaches a block further, and the "
+                + "passage beside it is measured from there.",
                 Min: 1, Max: WidestFootprint),
             new QueryWord("depth", $"The footprint down, in blocks, 1 to {WidestFootprint}. Absent is "
                 + "`width`, so one number asks about a square.", Min: 1, Max: WidestFootprint)));

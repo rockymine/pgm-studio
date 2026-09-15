@@ -1,4 +1,5 @@
 using System.Text;
+using PgmStudio.Geom.Algorithms;
 using PgmStudio.Geom.Render;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft.Anvil;
@@ -109,10 +110,11 @@ public static class ClaimRaster
     /// measured the way <see cref="GroundClaims.Storey.NearerThan"/> measures it: a route cell strictly
     /// nearer than the standoff in Chebyshev blocks refuses, so a cell exactly at the distance stands.</para>
     ///
-    /// <para>What it does not run is the four rules a <b>building</b> is judged by after it seats —
-    /// <c>DR-PASS</c>, <c>DR-CROSS</c>, <c>DR-WAY</c> and <c>DR-SLOPE</c> — each of which reads the built
-    /// world rather than the ground. A seat here is a seat the pass will not decline for a cell it rests on;
-    /// a house also has to leave a way past itself.</para>
+    /// <para>For a <b>building</b> the way past it is asked too (<c>DR-PASS</c>): the footprint is the walls,
+    /// the passage is measured from the roof over them, and a candidate joins the group of any building
+    /// standing within a passage of it, exactly as the pass groups them. The three that are left to the pass
+    /// read the built world rather than the ground — <c>DR-CROSS</c>, <c>DR-WAY</c> and
+    /// <c>DR-SLOPE</c>.</para>
     /// </summary>
     public static Seating Seat(Grid grid, string kind, int standoff, int width, int depth)
     {
@@ -120,6 +122,8 @@ public static class ClaimRaster
         depth = Math.Max(1, depth);
         var near = NearRoute(grid, standoff);
         var after = PlacedProp.PlacementOrderOf(kind) ?? int.MaxValue;
+        // Only a building has a way past to leave; a tree is asked nothing about its flanks.
+        var standing = kind == "house" ? Standing(grid) : null;
 
         var rows = new List<string>(grid.Height);
         var refused = new Dictionary<string, int>();
@@ -130,7 +134,9 @@ public static class ClaimRaster
             for (var column = 0; column < grid.Width; column++)
             {
                 if (grid.Rows[row][column] == ' ') { line[column] = ' '; continue; }
-                var stopped = Stops(grid, near, after, column, row, width, depth);
+                var stopped = Stops(grid, near, after, column, row, width, depth)
+                    ?? (standing is null || Passes(grid, standing, column, row, width, depth)
+                        ? null : DressingRules.PassAround);
                 if (stopped is null) { line[column] = '1'; seats++; continue; }
                 line[column] = '0';
                 refused[stopped] = refused.GetValueOrDefault(stopped) + 1;
@@ -166,6 +172,38 @@ public static class ClaimRaster
                 if (stopped is not null) return stopped;
             }
         return null;
+    }
+
+    /// <summary>How far a roof reaches past the walls under it, at the least — the eave every style has
+    /// whatever it states, which is what the footprint asked about here is grown by.</summary>
+    private const int Eave = 1;
+
+    /// <summary>The buildings already on the board, grouped among themselves: every run of
+    /// <see cref="Structure"/> cells is one building's stamped extent, since two of them are never adjacent
+    /// (a building holds a ring beyond its stamp, and a second stamping into it is <c>DR-CLAIM</c>). Read once
+    /// per board rather than once per anchor.</summary>
+    private static List<Footing> Standing(Grid grid)
+    {
+        var built = new List<(int X, int Z)>();
+        for (var row = 0; row < grid.Height; row++)
+        for (var column = 0; column < grid.Width; column++)
+            if (At(grid.Rows[row][column]) == Structure) built.Add((column, row));
+
+        var footings = GridComponents.Label(built).Select(component => Footing.OfStamp(
+            component.Min(cell => cell.X), component.Min(cell => cell.Z),
+            component.Max(cell => cell.X), component.Max(cell => cell.Z), Eave)).ToList();
+        return [.. Passage.Grouped(footings).Select(pair => pair.Group).Distinct()];
+    }
+
+    /// <summary>Whether a building anchored here leaves a way past itself, it and whatever it stands with.
+    /// The footprint asked about is the <b>walls</b>; the passage is measured from the roof over them, which
+    /// is the extent the pass judges.</summary>
+    private static bool Passes(Grid grid, IReadOnlyList<Footing> standing, int column, int row, int width, int depth)
+    {
+        var candidate = Footing.OfWalls(column, row, column + width - 1, row + depth - 1, Eave);
+        return Passage.Clears(Passage.JoinedTo(candidate, standing),
+            (x, z) => x >= 0 && x < grid.Width && z >= 0 && z < grid.Height && grid.Rows[z][x] != ' ',
+            (x, z) => x >= 0 && x < grid.Width && z >= 0 && z < grid.Height && At(grid.Rows[z][x]) == Structure);
     }
 
     /// <summary>Where the kind that claimed a cell stands in the pass's order — the claim classes are the
