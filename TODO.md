@@ -55,11 +55,13 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   against the demand set it was read for — attack, defend, or the back-run — and the same hole can answer
   differently for each.
 
-  **The demand set states its own ground, and two rulings fix it** (author). The back-run is its own journey
-  rather than the attack reversed. And a **defender never leaves their own half**: the defend walk runs over
-  the board with the enemy's piece images removed, their own build zones kept, so a hole the enemy owns is not
-  a door of theirs. On the author's eight example plans that drops example 8's defend from three routes to two
-  and example 7's from two to one — the ones that crossed mid and came back.
+  **The demand set states its own ground** (author). The back-run is its own journey rather than the attack
+  reversed. A **defender never leaves their own half**: the defend walk runs over the board with the enemy's
+  piece images removed and their own build zones kept, so a hole the enemy owns is not a door of theirs — on
+  the eight example plans that drops example 8's defend from three routes to two and example 7's from two to
+  one. And a room is crossed only by whoever may: an **attacker** may run in one side of a corner wool room
+  and out the other, a **defender** may not cross the room they defend, and a **spawn** is walked through by
+  nobody. The last two already hold on those plans; the first keeps 12 of example 3's 36 attack ways.
 
   *measured: townside's per-team lateral spread across the attack runs 41 · 49 | 5 · 5 · 11 · 3 | 14 · 41 · 33
   | 7 — wide, narrow, wide. The single split reads (3,−8), inside the narrow stretch that is neither of the
@@ -74,6 +76,17 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   (210 = 165 + 45) and exceeds it on kanto (115 against 95), which is the difference between the two sides
   sharing an approach and the defender arriving from behind the objective. That test rests on a fuse position
   this entry says is wrong on townside, so it wants re-checking once the forks are per pair.*
+
+- [ ] **WS65 — A plan-tier walk ignores the `enter` rules the map states.** `WorldWalk.For(shared, data, team)`
+  narrows a built world's walk to one team's own ground; `PlanNav.Walkable()` has no twin, so every plan-tier
+  read walks ground a team is barred from. The defining case is a team's own wool room —
+  `docs/pgm/filter-patterns.md` §1.2, the `enter` filter `BuildGenerator` writes itself — which makes a
+  defender's journey end somewhere they may not stand. It lands as a per-team narrowing beside
+  `PlanNav.Walkable()`, read off the plan's own rooms rather than off a compiled document, and `WS3`'s demand
+  sets take it as their ground.
+
+  *All eight of the author's example plans walk the defence two cells inside the room it defends, so every
+  defender distance is long by that, and `DefenderRatio` is what the corpus reads match length off first.*
 
 - [ ] **B169 — Complain about spawn ground that carries nothing and contests nothing.** Raw size is not the
   test (author): a spawn seated on a large rectangle that *is* the map is fine, and Mirefast's 92-wide
