@@ -9056,6 +9056,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **A fork belongs to a door, and a door belongs to a side (`WS3`).** `RouteFork` named one split and one fuse
+  for a whole journey — the earliest anyone parted and the latest anyone rejoined, measured against the shortest
+  route alone. On an approach with two choices that is an envelope over both and describes neither: on townside
+  it spanned 177 blocks of a 266-block walk. It is **one fork per door** now, each naming the hole it is about,
+  where the choice is made, where the two ways meet, how long it stays open and what the other way costs —
+  townside's attack reads two, 123 blocks live at the crossing and 59 by the wool. A door whose two sides walk
+  the same route reports nothing rather than a span of zero, which is the honest answer at that reference.
+  **And a journey is one side's**: `FlowLeg` carries an `Approach` per demand set — attack, back-run, defend,
+  chase — each read over the ground that side walks, so the same hole answers differently to a player carrying
+  the wool out than to one walking in (townside chooses at (20, 110) against (−5, 60)) and a defence that may
+  not round the crossing reads one decision where the attack reads two. A defence's route ends at the door of
+  the room it holds, the target its distance already used. Nothing is hidden for being unlikely: exclusion is
+  for ground a side cannot walk, and everything else is ranked by distance. (`PlanRoutes`, `PlanFlow`,
+  `PlanRoutesTests`, `PlanFlowTests`, `docs/tools/plan.md`, `docs/world-scan/read-backs.md`)
 - **A defence has a second origin, and it is the crossing (`WS66`).** `PlanFlow` walked the defender from
   their spawn alone, so every defend answer was the respawn case — but a player already at the frontline who
   sees the attack and turns is defending too, from somewhere a respawn never starts. `FlowLeg.Chase` is that

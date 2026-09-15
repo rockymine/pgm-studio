@@ -258,11 +258,11 @@ after the choice and the palette is what made the choice wrong. This is the larg
 the board and the one closest to being work, because the measurements are already taken and the shape of the
 answer — a complaint pass over a themed board, with the floor stated by the author — is common to all five.
 
-**A read answers the picture and not the knob that made it.** This is the cause the relief track has been
-draining: a wall between two marks reported as terrain with nothing's name on it shipped as `WE33`, a push's
-two gradients as `WE32`, and a declared route walked back as `WS14` (`FEATURES.md`). What is left of it is
-`WS3` alone — `RouteFork` reports one fork where a board has several, and reports it against no demand set.
-The two entries that read as this cause and were not it left the board on the reading below.
+**A read answers the picture and not the knob that made it.** This cause is drained. A wall between two marks
+reported as terrain with nothing's name on it shipped as `WE33`, a push's two gradients as `WE32`, a declared
+route walked back as `WS14`, and the last of it as `WS3`: a fork is one per door now and belongs to the demand
+set it was read for (`FEATURES.md`). The two entries that read as this cause and were not it left the board on
+the reading below.
 
 **A gate's verdict reaches the author under a name they cannot look up.** This cause is drained. It was
 never that `PlanValidator` ran only at the compile gate — `/plan/evaluate` builds its context from the same

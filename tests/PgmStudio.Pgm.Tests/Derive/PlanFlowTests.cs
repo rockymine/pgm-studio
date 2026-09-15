@@ -161,4 +161,52 @@ public sealed class PlanFlowTests
         await Assert.That(PlanFlow.Describe(PlanFlow.Read(Board())))
             .Contains("already at the crossing");
     }
+
+    /// <summary><b>A fork belongs to a demand set.</b> Each side reads the same objective over the ground it
+    /// walks, so the leg carries one approach apiece rather than one reading the others are subtracted from —
+    /// and a defence's is shorter, on its own ground, ending at the door of the room it holds.</summary>
+    [Test]
+    public async Task Each_side_reads_the_same_objective_over_its_own_ground()
+    {
+        var leg = PlanFlow.Read(Board()).Legs.Single();
+
+        await Assert.That(leg.Of(PlanFlow.Attacking)).IsNotNull();
+        await Assert.That(leg.Of(PlanFlow.Defending)).IsNotNull();
+        await Assert.That(leg.Of(PlanFlow.Returning)).IsNotNull();
+        await Assert.That(leg.Attack).IsEqualTo(leg.Of(PlanFlow.Attacking)!.Distance);
+        await Assert.That(leg.Defend).IsEqualTo(leg.Of(PlanFlow.Defending)!.Distance);
+        await Assert.That(leg.Approaches.Select(one => one.Demand).Distinct().Count())
+            .IsEqualTo(leg.Approaches.Count).Because("one reading per demand set");
+    }
+
+    /// <summary><b>A board with two doors reports two decisions, not one span across both.</b> The old single
+    /// fork ran from the first parting to the last merge, which on a two-choice approach describes neither of
+    /// them; the leg's own split and merge are the <em>last</em> choice, the one still open on arrival.</summary>
+    [Test]
+    public async Task Two_doors_on_an_approach_are_two_decisions()
+    {
+        // two holes on the way in: one framed by a loop off the lane, one by a loop nearer the room
+        var twin = Board(
+            P("loop-a", -6, -4, 2, 4), P("cap-a", -6, -4, 5, 1), P("foot-a", -6, -1, 5, 1),
+            P("loop-b", -6, -9, 2, 4), P("cap-b", -6, -9, 5, 1), P("foot-b", -6, -6, 5, 1));
+        var leg = PlanFlow.Read(twin).Legs.Single();
+        var attack = leg.Of(PlanFlow.Attacking)!;
+
+        await Assert.That(attack.Forks.Count).IsGreaterThanOrEqualTo(2);
+        await Assert.That(attack.Forks.Select(fork => fork.Hole).Distinct().Count())
+            .IsEqualTo(attack.Forks.Count).Because("one decision per door");
+        await Assert.That(attack.Forks.Any(fork => fork.Merge == leg.Fuse)).IsTrue()
+            .Because("the leg's merge is one of the decisions, not an envelope over them");
+    }
+
+    /// <summary>And the account names each of them, with the hole it is about and how long the choice stays
+    /// open — a reader should not have to match coordinates to holes by eye.</summary>
+    [Test]
+    public async Task The_account_names_each_decision_and_its_door()
+    {
+        var said = PlanFlow.Describe(PlanFlow.Read(Board()));
+
+        await Assert.That(said).Contains("Walking attack");
+        await Assert.That(said).Contains("Walking defend");
+    }
 }

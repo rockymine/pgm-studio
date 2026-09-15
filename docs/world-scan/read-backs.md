@@ -72,6 +72,14 @@ answers four things at once, each in its own unit and **none of them weighed aga
 | `blocks` | **blocks placed** | the climb and the bridging — the number a kit budget is compared against |
 | `drops` · `worstDrop` | **falls, and blocks** | a fall is free, and still a delay |
 
+**A choice belongs to a door, and a door belongs to a side.** A journey's decisions are read one per hole it
+may pass either side of, measured against its own shortest route: where the choice is made, where the two ways
+meet again, how far apart they run and what the other costs. One span from the first parting to the last merge
+is an envelope over all of them and describes none — on townside it covers 177 blocks of a 266-block walk
+where the approach has two decisions, 123 blocks apart at the crossing and 59 by the wool. And the same hole
+answers differently to each side: townside's run home chooses at (20, 110) where the walk in chose at (−5, 60),
+and a defence that may not round the crossing has one decision where the attack has two.
+
 **Two sides arrive together somewhere, and that somewhere is an origin.** The places both sides reach at the
 same cost are the line they meet on; it breaks into one stretch per way across, and each stretch's widest cell
 is the seat players actually use rather than the corner where the line clips a wall (`Walk.Crossings`). A

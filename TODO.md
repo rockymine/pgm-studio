@@ -43,51 +43,6 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   *122 buildings on 32 boards: 4 fail today. A side with ground and under 3 clear blocks fails 51, under 5
   fails 76. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*
 
-- [ ] **WS3 — A board has fork points, plural, they belong to a demand set, and `RouteFork` reports one.**
-  `PlanRoutes.Fork` takes the last cell common to *every* option and the first common to every option from the
-  target, so a journey with several decision points lands a split between them and describes none of them.
-  Compute a branch point **per option pair** — the last cell that pair shares — and report the set, each with
-  the pair it separates and how long the choice is live.
-
-  **And a fork is not a property of the board.** townside carries three (author): one leaving spawn, round the
-  hole the build zone frames; one at the second hole by the wool; and a third at *that same hole* for the run
-  back out with the wool, which is a different choice over the same ground. So a fork has to be reported
-  against the demand set it was read for — attack, defend, or the back-run — and the same hole can answer
-  differently for each.
-
-  **The demand set states its own ground** (author). The back-run is its own journey rather than the attack
-  reversed. A **defender never leaves their own half**: the defend walk runs over the board with the enemy's
-  piece images removed and their own build zones kept, so a hole the enemy owns is not a door of theirs — on
-  the eight example plans that drops example 8's defend from three routes to two and example 7's from two to
-  one. And a room is crossed only by whoever may: an **attacker** may run in one side of a corner wool room
-  and out the other, a **defender** may not cross the room they defend, and a **spawn** is walked through by
-  nobody. The last two already hold on those plans; the first keeps 12 of example 3's 36 attack ways.
-
-  **A defender rounds only a hole that is theirs**, which `BoardDeriver` already classifies: `encased` (a
-  bubble in one team's landmass) and `gap` (their own isolation cut) are theirs; `frontline` and `middle` are
-  rounded by walking the neutral crossing and are not. Filtering the doors by that class and confining the
-  ground to their own pieces plus non-crossing build agree on all eight plans, so either states it — example
-  1's defend drops from two ways to one at 79 blocks, example 7's from two to one.
-
-  **Exclusion is for what cannot happen; everything else is ranked** (author). A long way round on a team's
-  own ground stays in the report, sorted by distance, because **a defender is not only someone who just
-  spawned** — a player at the frontline who sees an attacker and gives chase is defending from a different
-  origin. So the read weighs example 5's 133 and example 3's 103, and never hides them.
-
-  *measured on townside: the attack passes three holes and the one fork spans (25,−40) → (15,105), 177 blocks
-  of a 266-block walk. Read per door it is two decisions — the mid crossing at (0,0) live over 123 blocks at
-  1.12×, and the hole by the wool at (0,85) live over 59 at 1.08× — and the third door is moot against the
-  shortest, which is the reference question below.*
-
-  **The narrow middle is not a funnel and must not be scored as one.** The two teams' median lines run 35–50
-  blocks apart through it and converge only at the objective: the crossing carries two ways and neither team
-  chooses between them, the same one-per-team partition ingwaz shows. Per-team spread cannot separate *one
-  way* from *two ways, one each*.
-
-  **The defend journey has no route read at all.** `PlanRoutes.Read` walks to the objective, and a defence may
-  not enter the room it defends, so a defend read answers nothing where the distance answers a doorstep
-  (`PlanFlow.ReachDoorstep`). The route read wants the same target: the nearest cell of their own ground
-  touching the room.
 
 - [ ] **B169 — Complain about spawn ground that carries nothing and contests nothing.** Raw size is not the
   test (author): a spawn seated on a large rectangle that *is* the map is fine, and Mirefast's 92-wide

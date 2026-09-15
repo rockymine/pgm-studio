@@ -20,18 +20,33 @@ public sealed record RouteOption(
 public sealed record HoleRead(
     int Index, int Area, int CentroidX, int CentroidZ, bool OnCorridor, int Ways, string RayAxis);
 
-/// <summary>Where a journey stops being one way and where it becomes one again.
+/// <summary>One decision on a journey: a hole it may pass either side of, where the choice is made, where
+/// the two ways meet again, and what the other way costs.
 ///
-/// <para><see cref="Split"/> is the last cell every option shares walking out from the origin — the point a
-/// player actually chooses at. <see cref="Fuse"/> is the first cell they share again walking back from the
-/// target — past it there is one way in whatever was decided. The two are different questions and a board
-/// answers them separately: kanto's approach splits early and fuses in front of the wool, townside's does the
-/// same thing over a shorter run, and a board with one option has neither.</para>
+/// <para><b>A journey has one of these per door, not one in total.</b> A board offering two choices offers
+/// them at two places, and an envelope from the first parting to the last merge describes neither — on
+/// townside it spans 177 blocks of a 266-block walk. <see cref="Live"/> is how far the choice stays open: a
+/// split and a merge a cell apart is a formality, a hundred blocks of it is two lanes.</para>
 ///
-/// <para><see cref="Between"/> is how far apart they stand along the shortest walk — the length of the stretch
-/// the choice is live over. A split and a fuse one cell apart is a formality; a hundred blocks of it is two
-/// lanes.</para></summary>
-public sealed record RouteFork((int X, int Z) Split, (int X, int Z) Fuse, int Between);
+/// <para>Which side the journey is measured from is the <b>shortest</b> route, so a door that changes nothing
+/// against it reports nothing rather than a span of zero.</para></summary>
+/// <param name="Hole">The hole this decision is about, indexed into the board's own list.</param>
+/// <param name="Area">How big that hole is, in cells.</param>
+/// <param name="At">Where it sits.</param>
+/// <param name="Split">The last cell both ways share walking out — the cell a player chooses at.</param>
+/// <param name="Merge">The first cell they share again.</param>
+/// <param name="Live">How far apart those two stand along the walk.</param>
+/// <param name="Shortest">What the shortest way costs.</param>
+/// <param name="Other">What the other side of this door costs.</param>
+public sealed record RouteFork(
+    int Hole, int Area, (int X, int Z) At,
+    (int X, int Z) Split, (int X, int Z) Merge, int Live,
+    int Shortest, int Other)
+{
+    /// <summary>What the other way costs against the shortest — 1.0 where they are the same length. The
+    /// corpus's own second ways sit at a median 1.31× and never past 1.92×.</summary>
+    public double Ratio => Shortest <= 0 ? 1 : (double)Other / Shortest;
+}
 
 /// <summary>Everything one journey answers: how far, along which ways, through how much of the board.</summary>
 public sealed record StrokeRead(
@@ -40,7 +55,7 @@ public sealed record StrokeRead(
     IReadOnlySet<(int X, int Z)> Corridor,
     double CorridorShare,
     IReadOnlyList<HoleRead> Holes,
-    RouteFork? Fork);
+    IReadOnlyList<RouteFork> Forks);
 
 /// <summary>
 /// A journey across a plan, read before anything is built: from any cell of the board to any other, how far it
@@ -70,17 +85,20 @@ public static class PlanRoutes
     /// <param name="walker">The orbit image making the journey, whose own ground it is then read over —
     /// another team's spawn and the wool room this one defends are shut to it. Null asks about the board
     /// rather than about a side, which is what a shape with no team on it can answer.</param>
+    /// <param name="over">The ground this journey runs on, where the demand set narrows it further than the
+    /// walker's own — a defence rotating behind its own hole does not bridge the neutral crossing to do it.
+    /// Null walks the walker's whole ground.</param>
     public static StrokeRead Read(PlanNav nav, (int X, int Z) from, (int X, int Z) to,
-        int? walker = null, double slack = CorridorSlack)
+        int? walker = null, WalkGround? over = null, double slack = CorridorSlack)
     {
-        var ground = walker is { } team ? nav.For(team) : nav.Walkable();
+        var ground = over ?? (walker is { } team ? nav.For(team) : nav.Walkable());
         var within = ground.Footprint;
         var seat = ground.Stand(from);
         var target = ground.Stand(to);
         var direct = seat is { } a && target is { } b ? Walk.Between(a, b, ground) : null;
         if (direct is null)
             return new StrokeRead(from, to, null, [], new HashSet<(int X, int Z)>(), 0,
-                ReadHoles(nav, new HashSet<(int X, int Z)>(), from, to, within), null);
+                ReadHoles(nav, new HashSet<(int X, int Z)>(), from, to, within), []);
 
         var (start, goal) = (seat!.Value, target!.Value);
         var shortest = direct.Cost.Distance;
@@ -105,39 +123,57 @@ public static class PlanRoutes
         }
 
         options.Sort((a, b) => a.Length.CompareTo(b.Length));
-        return new StrokeRead(from, to, shortest, options, corridor, share, holes, Fork(options, ground));
+        return new StrokeRead(from, to, shortest, options, corridor, share, holes,
+            Forks(nav, ground, holes, start, goal, direct, within, from, to));
     }
 
-    /// <summary>Where the options part company and where they meet again. The split is the end of the run
-    /// every option walks identically out of the origin; the fuse is the start of the run they all walk
-    /// identically into the target. Null when there is only one way, which is the common case — over 490
-    /// recorded approach bundles the flow reading found 63% single-corridor end to end.</summary>
-    private static RouteFork? Fork(List<RouteOption> options, WalkGround ground)
+    /// <summary>Every decision the journey carries, one per door it may pass either side of. The shortest
+    /// route is what each door is measured against: its ray is cut on whichever side changes that route, and
+    /// the stretch the two walk apart is the choice. A door whose two sides walk the same route reports
+    /// nothing, which is the honest answer at that reference rather than a span of zero.
+    ///
+    /// <para>A door separating the route in two places answers twice, because it is two choices over one
+    /// hole.</para></summary>
+    private static List<RouteFork> Forks(PlanNav nav, WalkGround ground, IReadOnlyList<HoleRead> holes,
+        WalkPlace start, WalkPlace goal, WalkPath direct, IReadOnlySet<(int X, int Z)> within,
+        (int X, int Z) from, (int X, int Z) to)
     {
-        if (options.Count < 2) return null;
+        var forks = new List<RouteFork>();
+        var lead = direct.Cells.Select(cell => (cell.X, cell.Z)).ToList();
 
-        var shortestPath = options[0].Path;
-        var prefix = options.Min(o => Common(o.Path, shortestPath, fromEnd: false));
-        var suffix = options.Min(o => Common(o.Path, shortestPath, fromEnd: true));
-
-        // A path that shares everything with the shortest is not a second way; the caller deduped by piece
-        // sequence, so this only guards a degenerate walk.
-        if (prefix == 0 || suffix == 0 || prefix + suffix > shortestPath.Count) return null;
-
-        var split = shortestPath[prefix - 1];
-        var fuse = shortestPath[^suffix];
-        var between = ground.Stand(split) is { } from && ground.Stand(fuse) is { } to
-            ? Walk.Between(from, to, ground)?.Cost.Distance ?? 0
-            : 0;
-        return new RouteFork(split, fuse, between);
-
-        static int Common(IReadOnlyList<(int X, int Z)> a, IReadOnlyList<(int X, int Z)> b, bool fromEnd)
+        foreach (var hole in holes.Where(read => read.OnCorridor && read.Ways == 2))
         {
-            var n = 0;
-            while (n < a.Count && n < b.Count
-                   && (fromEnd ? a[a.Count - 1 - n] == b[b.Count - 1 - n] : a[n] == b[n])) n++;
-            return n;
+            var cells = nav.Holes[hole.Index];
+            var horizontal = hole.RayAxis == "x";
+            WalkPath? other = null;
+            foreach (var forward in (bool[])[true, false])
+            {
+                var open = Without(within, Cells.RayCut(cells, nav.Bounds, horizontal, forward), from, to);
+                if (Walk.Between(start, goal, ground.Narrowed(open)) is not { } walked) continue;
+                if (walked.Cells.Select(cell => (cell.X, cell.Z)).SequenceEqual(lead)) continue;
+                other = walked;
+                break;
+            }
+            if (other is null) continue;
+
+            var apart = other.Cells.Select(cell => (cell.X, cell.Z)).ToHashSet();
+            var run = -1;
+            for (var step = 0; step <= lead.Count; step++)
+            {
+                var shared = step < lead.Count && apart.Contains(lead[step]);
+                if (!shared && run < 0 && step < lead.Count) run = step;
+                if (!shared || run < 0) continue;
+                var split = lead[Math.Max(0, run - 1)];
+                var merge = lead[Math.Min(step, lead.Count - 1)];
+                var live = ground.Stand(split) is { } one && ground.Stand(merge) is { } two
+                    ? Walk.Between(one, two, ground)?.Cost.Distance ?? 0
+                    : 0;
+                forks.Add(new RouteFork(hole.Index, hole.Area, (hole.CentroidX, hole.CentroidZ),
+                    split, merge, live, direct.Cost.Distance, other.Cost.Distance));
+                run = -1;
+            }
         }
+        return forks;
     }
 
     /// <summary>Every hole the board carries, read against this journey. A hole is <em>on</em> the corridor
