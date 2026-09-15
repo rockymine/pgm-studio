@@ -28,12 +28,16 @@ public sealed record Approach(string Demand, int Distance, int Ways, IReadOnlyLi
 /// <param name="FuseWidth">How wide it is at the merge — the frontage a defender has to hold.</param>
 /// <param name="MergeToGoal">Blocks from that merge to the objective: how far in the last shared stretch runs.</param>
 /// <param name="MergeDetour">What bypassing the merge saves the defender. Zero is a shared road.</param>
+/// <param name="Interference">How much of the ground a defence crosses to reach this objective is ground the
+/// attack is already on — the share of the defender's corridor the attacker's also covers. A board whose two
+/// ways collide everywhere offers the attack no approach that misses the reinforcement lane, whatever its
+/// route count says; one where the share falls is a board on which going round buys something.</param>
 public sealed record FlowLeg(
     string Goal,
     IReadOnlyList<Approach> Approaches,
     (int X, int Z)? Split, (int X, int Z)? Fuse,
     int SplitWidth, int FuseWidth, int MergeToGoal,
-    bool SharedRoad, int MergeDetour)
+    bool SharedRoad, int MergeDetour, double Interference)
 {
     /// <summary>One side's reading, or null where this board gives them none.</summary>
     public Approach? Of(string demand) => Approaches.FirstOrDefault(one => one.Demand == demand);
@@ -116,6 +120,11 @@ public static class PlanFlow
         int GroundBlocks, int DeadBlocks, IReadOnlyList<DeadPlace> DeadPlaces, int UnnamedDeadPlaces, int Cell)
     {
         public double DeadShare => GroundBlocks <= 0 ? 0 : DeadBlocks / (double)GroundBlocks;
+
+        /// <summary>The board's collision, over its objectives: how much of a defence's ground the attack is
+        /// already on, averaged across the legs. A board with no leg has no two routes to lay over each
+        /// other and reads zero.</summary>
+        public double Interference => Legs.Count == 0 ? 0 : Legs.Average(leg => leg.Interference);
     }
 
     public static Result Read(PlanModel plan)
@@ -247,8 +256,9 @@ public static class PlanFlow
 
             // A defence ends at the door of the room it defends, so that is what its route read walks to.
             var homeward = Homeward(nav, board, defender.K);
-            if (Doorstep(nav, homeward, den, to) is { } door
-                && PlanRoutes.Read(nav, den, door, defender.K, homeward) is { Shortest: { } held } rotation)
+            var door = Doorstep(nav, homeward, den, to);
+            if (door is { } stop0
+                && PlanRoutes.Read(nav, den, stop0, defender.K, homeward) is { Shortest: { } held } rotation)
                 approaches.Add(new Approach(Defending, held, rotation.Options.Count, rotation.Forks));
 
             // A defence is not only somebody who just spawned: whoever was at the crossing when the attack
@@ -276,6 +286,13 @@ public static class PlanFlow
                 ? Reach(theirs, den, meeting) + ReachDoorstep(nav, theirs, meeting, to) : 0;
             var detour = fuse is null ? 0 : Math.Max(0, viaMerge - defend);
 
+            // The two sides' ribbons laid over each other. Each is walked over the ground its own side has,
+            // at the same detour tolerance the coverage read uses, and the attack starts where the attack
+            // starts — the attacker's own spawn, which is where it starts in both game states.
+            var collision = door is { } defended
+                ? Overlap(Ribbon(ours, from, to), Ribbon(homeward, den, defended))
+                : 0;
+
             legs.Add(new FlowLeg(
                 $"{goal.Kind} at ({goal.X * cell}, {goal.Z * cell})",
                 approaches,
@@ -283,10 +300,24 @@ public static class PlanFlow
                 split is { } parting ? Width(nav, parting) * cell : 0,
                 fuse is { } meeting2 ? Width(nav, meeting2) * cell : 0,
                 fuse is { } shared ? Reach(ours, shared, to) : 0,
-                fuse is not null && detour == 0, detour));
+                fuse is not null && detour == 0, detour, collision));
         }
         return legs;
     }
+
+    /// <summary>The cells a side's route can reach without spending more than <see cref="Walk.Detour"/>
+    /// beyond the shortest — the ribbon rather than one geodesic, because a board offering a way round is
+    /// walked on both sides of it. Empty where the side cannot stand at either end.</summary>
+    private static HashSet<(int X, int Z)> Ribbon(WalkGround ground, (int X, int Z) from, (int X, int Z) to)
+        => ground.Stand(from) is { } start && ground.Stand(to) is { } goal
+            ? [.. Walk.Corridor(start, goal, ground, Walk.Detour).Select(place => place.Cell)]
+            : [];
+
+    /// <summary>The share of <paramref name="defence"/> that <paramref name="attack"/> also covers. A defence
+    /// with no ground to cross reads zero, which is the honest answer for a ratio with no denominator.</summary>
+    private static double Overlap(
+        IReadOnlySet<(int X, int Z)> attack, IReadOnlyCollection<(int X, int Z)> defence)
+        => defence.Count == 0 ? 0 : defence.Count(attack.Contains) / (double)defence.Count;
 
     /// <summary>How wide the ground is where a journey passes through it: the narrower of the cell's own
     /// horizontal and vertical run. A split or a merge is a place players meet, and one no wider than a
@@ -354,6 +385,15 @@ public static class PlanFlow
                             text.AppendLine($"      The {what} is {width} blocks across. Everyone meets at one point "
                                 + $"and there is no room to fight over it — widen ({at.X * cell}, {at.Z * cell}) or move it.");
                 }
+
+                text.AppendLine($"    The attack covers {100 * leg.Interference:F0}% of the ground the defence "
+                    + "crosses to get here. " + (leg.Interference >= 0.6
+                        ? "The two sides are on the same ground almost the whole way, so however many ways in this "
+                          + "board counts, none of them misses the reinforcement lane."
+                        : leg.Interference <= 0.2
+                            ? "The attack barely touches the defence's ground, so it can arrive without having "
+                              + "spent the approach inside the lane reinforcements come down."
+                            : "The two sides share some of the approach and not all of it."));
 
                 // Every side's decisions, each on the ground that side walks: the same hole is a different
                 // choice to a player carrying the wool out than to one walking in.

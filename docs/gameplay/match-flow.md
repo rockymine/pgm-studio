@@ -82,9 +82,11 @@ with no second route anywhere, and a genuine second way is missed whenever the c
 
 **Interference.** Two routes belonging to opposing sides, and how much ground they share. A single route
 says nothing about tension; tension is two corridors laid over each other, so the measure is the fraction of
-one team's lane that the other team's lane also covers. This is the quantity behind §4.9, and it is not the
-same as either route's proximity to a box — two routes can collide for their whole length without either
-one entering a third box at all.
+the defence's own corridor that the attack's also covers, each walked over the ground its side has and from
+that side's own spawn. This is the quantity behind §4.9, and it is not the same as either route's proximity
+to a box — two routes can collide for their whole length without either one entering a third box at all. It
+is the `route-interference` term; across the 31 teaching maps it reads a median of **46%**, a band of 0 to
+**87.5%**, and only one board — a traced real map — at zero.
 
 ---
 
@@ -765,16 +767,16 @@ route runs through the enemy's respawn point, so nobody takes it. Centring the s
 mirror-seated board the centring comes free, which is why it looked like one. It belongs beside the two
 arrangement rules already filed as **G166** and **G167**.
 
-**G164**'s interference term is vindicated and its gap is now visible. Measured traffic sits at 28.6%
-against a predicted 34%, so the term measures what it claims. Its *origin* needs correcting: the task
-defines the attacker's route as starting from a captured wool room, and the logs put four fifths of the
-players who reach the remaining objective at their own spawn instead. Interference should be measured from
-wherever the attack actually starts, which is the same origin in both game states.
+The interference term is vindicated and built (`FEATURES.md`). Measured traffic sits at 28.6% against a
+predicted 34%, so the term measures what it claims. Its origin is the attacker's **own spawn**: the logs put
+four fifths of the players who reach the remaining objective there rather than at a captured room, and it is
+the same origin in both game states, so nothing about it waits on a post-capture reading.
 
-The remaining gap is the generator's rather than the term's. 18% of real team-frames have zero overlap where
-no generated board has any — built maps offer an approach that misses the defender's lane and generated
-boards do not. Whatever produces that option, the far side of a hub void being one candidate and an outer
-flank another, interference is the term that would show it arriving.
+The remaining gap is the generator's rather than the term's. 18% of real team-frames have zero overlap; over
+the 31 teaching maps the term scores against, the one board reading zero is a traced real map and every
+authored seed collides — built maps offer an approach that misses the defender's lane and generated boards do
+not. Whatever produces that option, the far side of a hub void being one candidate and an outer flank
+another, interference is the term that shows it arriving.
 
 The **sky terminus** is a measurable the plan does not carry. Nothing in the model says how close to an
 objective a bridge gets before the ground game takes over, and the logs put the wall line at a median 13

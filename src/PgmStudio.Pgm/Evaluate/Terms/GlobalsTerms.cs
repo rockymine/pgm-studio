@@ -96,3 +96,25 @@ public sealed class DeadShare : SoftTerm
         ctx.Flow.Gamemode == "none" || ctx.Flow.GroundBlocks == 0 ? null : ctx.Flow.DeadShare;
 }
 
+/// <summary>How much of the ground a defence crosses to reach an objective is ground the attack is already
+/// on — the share of the defender's corridor the attacker's corridor also covers, averaged over the board's
+/// objectives. Both ribbons are walked over the ground their own side has, at the detour tolerance the
+/// coverage read uses, from each side's own spawn.
+///
+/// <para><c>CT8</c> claims a hole gives alternative routes between lanes; counting those routes does not say
+/// whether taking one buys anything, and this does. A board whose ways in all collide with the reinforcement
+/// lane offers no approach that misses it, whatever its route count reads; a board where the share falls is
+/// one on which going round is worth its distance. A global scalar, so there is no single rectangle to point
+/// at — <c>PlanFlow</c>'s own read gives it per objective, which is what an author acts on.</para>
+///
+/// <para>Null where the plan states no leg to read: both spawns and an enemy wool are needed before two
+/// routes can be laid over each other, and a board with one route has no collision rather than a collision
+/// of zero.</para></summary>
+public sealed class RouteInterference : SoftTerm
+{
+    public override string Id => "route-interference";
+    public override string RuleId => "CT8";
+
+    public override double? Value(EvalContext ctx) =>
+        ctx.Flow.Legs.Count == 0 ? null : ctx.Flow.Interference;
+}

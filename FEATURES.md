@@ -9066,6 +9066,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **Interference: what a second way in is worth (`G164`).** Every flow measure read one traversal at a time,
+  and a single route cannot express tension. `FlowLeg.Interference` lays two over each other — the share of the
+  defence's own corridor that the attack's corridor also covers, each ribbon walked at `Walk.Detour` over the
+  ground its own side has — and `route-interference` scores the board's mean over its objectives, citing
+  **`CT8`**: that rule claims a hole gives alternative routes between lanes, and counting those routes never
+  said whether taking one buys anything. **The origin is each side's own spawn**, not a captured room. The
+  logs put four fifths of the players who reach the remaining objective at their spawn (`match-flow.md`
+  §6.9), and it is the same origin before a capture and after one, so the term waits on no post-capture
+  reading. Over the 31 teaching maps: median **46%**, band **[0, 0.875]**, and the only board reading zero is
+  a traced real map — every authored seed collides, which is §6.6's gap stated as a number the evaluator now
+  carries. Null where the plan states no leg, since two routes are needed before either can be laid over the
+  other. (`PlanFlow`, `GlobalsTerms`, `LayoutEvaluator`, `PlanFlowTests`, `SoftTermsTests`,
+  `docs/generator/evaluator.md`, `docs/gameplay/match-flow.md`)
 - **A dead place is one stretch, found once (`WS67`).** The two tiers each cut their dead ground into
   components, filtered slivers out of it and measured what was left: `PlanFlow` looping `Cells.Flood` over its
   own visited set, `GroundCoverage` calling `GridComponents.Label`, in sibling projects neither of which can

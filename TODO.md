@@ -59,18 +59,3 @@ is the work that ground was settled for.
   *author, 2026-08-14 · Weirgate's `yard` spans `x −40…40` against a spawn piece of `x −10…10`; Mirefast's
   `steading` is 92 wide for a 20-block spawn. The corpus does not support a spawn-isolation rule: `dtcm` puts a
   spawn a median 7.5 blocks from the board edge and the generated ones sit 5–15 out.*
-
-- [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow
-  measure so far reads one traversal at a time, and a single route cannot express tension. Tension is two
-  corridors laid over each other: the attacker pushing from a captured wool room toward the remaining
-  objective, and the defender travelling from spawn to the same objective. The measurable is the fraction of
-  the defender's corridor that the attacker's corridor also covers, computed on the cell mask the same way
-  the corridors already are. Measured over 453 two-wool boards at `marker-id-1`: median **34%**, half or more
-  on 27%, and **no board reaches zero** — passing the reinforcement lane is unavoidable on generated output.
-  This is the term that gives a hub void a purpose the ways-round-a-void count cannot: on a holed hub the
-  near way leaves 76% interference and the far way 37%, and the far way measurably reduces the collision on
-  74% of the boards offering one, so a layout whose two ways collide equally has bought nothing. Derive side
-  belongs beside `BoardDeriver`; the term belongs in `Evaluate/Terms`. It reads a pair of routes rather than
-  one, so the origin "a captured wool room" comes from G168's post-capture state — until that exists,
-  computing it once per wool treated as captured is the honest stand-in. Background and the full numbers:
-  `docs/gameplay/match-flow.md` §2, §4.9.

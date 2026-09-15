@@ -94,6 +94,22 @@ public sealed class PlanFlowTests
         await Assert.That(PlanFlow.Describe(read)).Contains("under 100 blocks");
     }
 
+    /// <summary>Counting ways in does not say whether taking one buys anything, and this does. A defence with
+    /// a road of its own to the objective crosses less ground the attack is already on than one that has only
+    /// the lane the attack comes up.</summary>
+    [Test]
+    public async Task A_defence_with_its_own_road_collides_less_with_the_attack()
+    {
+        var oneLane = PlanFlow.Read(Board()).Legs.Single();
+        // a back road off the defenders' spawn onto the far side of the room they hold, so the rotation no
+        // longer has to come up the lane the attack arrives on
+        var withBack = PlanFlow.Read(Board(P("back", -6, -14, 4, 3))).Legs.Single();
+
+        await Assert.That(oneLane.Interference).IsGreaterThan(0)
+            .Because("with one lane the attack is on the ground the defence crosses");
+        await Assert.That(withBack.Interference).IsLessThan(oneLane.Interference);
+    }
+
     [Test]
     public async Task A_board_every_journey_covers_says_so_plainly()
     {

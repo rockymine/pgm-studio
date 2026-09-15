@@ -336,7 +336,8 @@ landed, the rest is the idea.
   deliver two ways on 163 of 224 spawn-to-wool crossings, and the ones that do not are dead by seating rather
   than by shape — the same body form with both docks on one side is a wide room with a decorative hole in it.
   When the sampled hub body encloses a void, prefer opposite walls for the two docks. The value is not the
-  extra distance but what G164 measures: the far way round drops interference from 76% to 37%, which is
+  extra distance but what the `route-interference` term measures: the far way round drops interference from
+  76% to 37%, which is
   the difference between an alternative and an alternative worth taking. Geometry change, so the same
   fingerprint and gallery costs as G166, and the two should land together or in a known order since both
   touch the same seat choice.
@@ -347,7 +348,8 @@ landed, the rest is the idea.
   emits — and the wool-to-wool route becomes the live one. Terms that are vacuous in the first state carry
   the whole second phase, so evaluating only the opening scores half a match. This is a change to the
   evaluator's shape rather than a new term: `EvalContext` carries which state is being read, and the terms
-  that only apply post-capture (G164's interference, rotation between objectives) declare it. Decide
+  that only apply post-capture (rotation between objectives) declare it. Interference is not one of them:
+  its origin is each side's own spawn in both states. Decide
   early whether the two states produce two scores or one combined figure — a single number that averages a
   strong opening against a hopeless second phase describes neither. The played account is in
   `docs/gameplay/match-flow.md` §4.8.

@@ -370,4 +370,19 @@ public sealed class SoftTermsTests
 
         await Assert.That(new DeadShare().Value(Ctx(aimless, SeedEnvelopes.Empty))).IsNull();
     }
+
+    /// <summary>Two routes are needed before either can be laid over the other, so a board with no leg to
+    /// read measures nothing here — silence, not a collision of zero.</summary>
+    [Test]
+    public async Task A_board_with_no_leg_measures_no_interference()
+    {
+        const string oneSided = """
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
+             "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,10]}],
+             "placements":{"spawns":[{"piece":"lane","at":[5,2.5],"facing":"front"}],
+                           "wools":[{"piece":"lane","at":[5,47.5]}]}}
+            """;
+
+        await Assert.That(new RouteInterference().Value(Ctx(oneSided, SeedEnvelopes.Empty))).IsNull();
+    }
 }

@@ -29,6 +29,7 @@ public static class LayoutEvaluator
         // soft terms — feel metrics scored against the authored seed envelopes
         new FillRatio(),
         new DeadShare(),
+        new RouteInterference(),
         new EnclosedVoidCount(),
         new NeutralSteppingCount(),
         new TeamSteppingCount(),
