@@ -20,13 +20,12 @@ counting a fall, slowing through water, narrowed per team where an `enter` rule 
 set that reads a surface as somewhere a player can stand rather than as any column holding a block.
 
 **The walk is one; what is asked of it is not, and that is the ground this group spends.** Three answers taken
-with it are each written twice or written in a shape that cannot carry the truth. *Dead ground* is derived by
-`PlanFlow.DeadPlace` at plan tier and `GroundCoverage.Patch` over a built world — the same four fields in two
-projects that cannot see each other, so the only place the shared half can go is `Geom`. *Adjacent* is
-answered by `FannedGraph.LandAdjacent` and by `ContactGraph.Classify`, and they disagree on the overlap case,
-so a route count depends on which was asked. And *a fork* is one pair of cells in `RouteFork` where a board
-carries a set, with the singular baked into seven fields of `FlowLeg` and into the prose `PlanFlow.Describe`
-writes. Settle those three and the entries below are each a paragraph.
+with it are each written twice or written in a shape that cannot carry the truth. *Adjacent* is settled
+(`FEATURES.md`): one predicate, `ContactGraph.Connects`, which the fanned graph asks rather than answering its
+own. Two are left. *Dead ground* is derived by `PlanFlow.DeadPlace` at plan tier and `GroundCoverage.Patch`
+over a built world — the same four fields in two projects that cannot see each other, so the only place the
+shared half can go is `Geom`. And *a fork* is one pair of cells in `RouteFork` where a board carries a set,
+with the singular baked into seven fields of `FlowLeg` and into the prose `PlanFlow.Describe` writes.
 
 - [ ] **WE45 — `DR-PASS` still takes the widest side, and its width is absolute.** *Parked on a ruling: the
   number, and what "every side" exempts.* The wrong-rectangle fault is fixed (`FEATURES.md`). What is left is
@@ -87,19 +86,6 @@ writes. Settle those three and the entries below are each a paragraph.
   *author, 2026-08-14 · Weirgate's `yard` spans `x −40…40` against a spawn piece of `x −10…10`; Mirefast's
   `steading` is 92 wide for a 20-block spawn. The corpus does not support a spawn-isolation rule: `dtcm` puts a
   spawn a median 7.5 blocks from the board edge and the generated ones sit 5–15 out.*
-
-- [ ] **G65 — FannedGraph ↔ ContactGraph adjacency reconcile (deferred from G59).** `FannedGraph.LandAdjacent`
-  (reachability) still diverges from the rect-layer authority `ContactGraph` on one count: any area overlap
-  connects regardless of surface delta, while `Components` unions an overlap only at `SurfaceDelta == 0`.
-  (The corridor-width half was reconciled — `LandAdjacent` now accepts Narrow seams, matching `Components`.)
-  Pick one rule for the overlap case and add a test; needs per-node surface carried into the fanned graph and
-  validation against the traversability harness (`tools/PgmStudio.RoundTrip --traversability`).
-
-  **It gates route enumeration, which raises it from a consistency chore.** `G127`'s flow read counts attack
-  routes at piece fidelity — four on `p30-s374`, from two frontline legs × two wool doors — and a route count
-  is an enumeration over piece adjacency. While the two graphs disagree about what "adjacent" means for an
-  overlap, the count depends on which one was asked, and nothing at the call site would say so. Whichever
-  rule is picked, the route reader must name the graph it read.
 
 - [ ] **G187 — The funnel capacity, and a flow term the evaluator can fire.** Plan-tier flow is read
   already: `PlanFlow.Read(plan)` takes a `PlanModel` and `GET /map/{slug}/plan/flow` serves it, `PlanRoutes`

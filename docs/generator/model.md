@@ -1465,7 +1465,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 |---|---|---|
 | `ContactGraph` | `Derive/ContactGraph.cs` | connectivity primitives (rect layer): `ContactKind`, `Contact`, `BuildRegion` (with `Holes`), `GapLink`, `InterfaceSegment`, `FrontlineEdge`, islands. |
 | `BoardDeriver` | `Derive/BoardDeriver.cs` → `BoardStructure` | the board reader (raster layer): hole classes, build-zone kinds, intra/self, wool lanes, the CT mid-form. |
-| `FannedGraph` | `Plan/FannedGraph.cs` | fanned-board reachability (looser than the straight-span gap links; its `LandAdjacent` differs from `ContactGraph` on different-surface overlaps — reconcile pending). |
+| `FannedGraph` | `Plan/FannedGraph.cs` | fanned-board reachability. Land edges are `ContactGraph.Connects` asked of fanned rects, so the two graphs answer one question; its **gap** links stay looser than the straight-span ones, since a player routes through a buildable region freely. |
 
 **The composer**
 

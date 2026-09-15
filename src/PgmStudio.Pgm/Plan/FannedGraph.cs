@@ -3,13 +3,17 @@ namespace PgmStudio.Pgm.Plan;
 
 /// <summary>
 /// The whole symmetric board as a reachability graph: every piece fanned to each orbit image is a node, edges
-/// are land interfaces (walkable adjacency) and gap links (a shared build zone spans the void). Reachability
-/// checks — capturing spawn → wool, and frontline → wool avoiding spawn pieces — run over it. Built from a
-/// <see cref="ContactGraph"/>; pure.
+/// are land interfaces — the rect layer's own rule (<see cref="ContactGraph.Connects"/>) asked of fanned
+/// rects — and gap links, where a shared build zone spans the void. Reachability checks — capturing spawn →
+/// wool, and frontline → wool avoiding spawn pieces — run over it. Built from a <see cref="ContactGraph"/>;
+/// pure.
 /// </summary>
 public sealed class FannedGraph
 {
-    public readonly record struct Node(int Team, string PieceId, BlockRect Rect)
+    /// <summary>One piece fanned to one orbit image. <see cref="Surface"/> is the piece's own plateau height,
+    /// carried because it is half of what decides whether two nodes are one landmass
+    /// (<see cref="ContactGraph.Connects"/>).</summary>
+    public readonly record struct Node(int Team, string PieceId, BlockRect Rect, int Surface)
     {
         public (int, string) Key => (Team, PieceId);
     }
@@ -34,7 +38,7 @@ public sealed class FannedGraph
             for (var k = 0; k < d.Order; k++)
             {
                 var key = (k, p.Id);
-                if (seen.Add(key)) nodes.Add(new Node(k, p.Id, d.FanRect(p.Rect, k)));
+                if (seen.Add(key)) nodes.Add(new Node(k, p.Id, d.FanRect(p.Rect, k), p.Surface));
             }
 
         var zones = d.Plan.BuildZones
@@ -44,9 +48,13 @@ public sealed class FannedGraph
         var adj = nodes.ToDictionary(n => n.Key, _ => new List<(int, string)>());
         void Link(Node a, Node b) { adj[a.Key].Add(b.Key); adj[b.Key].Add(a.Key); }
 
+        // Land edges are the rect layer's own rule (ContactGraph.Connects), asked of fanned rects: an orbit
+        // image keeps the surface of the piece it copies, so the question is the same one at every k.
         for (var i = 0; i < nodes.Count; i++)
             for (var j = i + 1; j < nodes.Count; j++)
-                if (LandAdjacent(nodes[i].Rect, nodes[j].Rect)) Link(nodes[i], nodes[j]);
+                if (ContactGraph.Connects(ContactGraph.Meeting(nodes[i].Rect, nodes[j].Rect).Kind,
+                                          nodes[j].Surface - nodes[i].Surface))
+                    Link(nodes[i], nodes[j]);
 
         // Gap links over buildable REGIONS, not single zones. A player builds through one zone and continues
         // into an overlapping/adjacent one without landing on terrain, so the fanned zones first merge into
@@ -95,23 +103,6 @@ public sealed class FannedGraph
             }
         }
         return false;
-    }
-
-    // Reachability adjacency on bare fanned rects: any positive edge border connects — Narrow seams included,
-    // matching ContactGraph.Components. A full-corridor-width floor would read a lane docking across the SEAM
-    // of two host pieces (a 10-block mouth split 5+5 over two slot pieces whose joint edge is one straight
-    // interface) as disconnected, and the walkable surface has no such per-piece-pair cut. NOTE the one
-    // remaining divergence from the rect-layer authority (review 6.5): any
-    // area overlap connects here regardless of surface delta, whereas Components unions an overlap only when
-    // SurfaceDelta == 0 — settling that needs per-node surface, not carried here yet.
-    private static bool LandAdjacent(BlockRect a, BlockRect b)
-    {
-        int ix = Math.Min(a.MaxX, b.MaxX) - Math.Max(a.MinX, b.MinX);
-        int iz = Math.Min(a.MaxZ, b.MaxZ) - Math.Max(a.MinZ, b.MinZ);
-        if (ix > 0 && iz > 0) return true;                                  // area overlap → same landmass
-        if (ix < 0 || iz < 0) return false;                                 // disjoint
-        int border = ix == 0 ? iz : ix;
-        return border > 0;
     }
 
     private static bool Touches(BlockRect a, BlockRect b)

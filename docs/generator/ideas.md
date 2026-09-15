@@ -141,9 +141,8 @@ landed, the rest is the idea.
   **ribbon** (every cell on a route ≤130% of the shortest) needs the *distance field* `PathLength` computes
   and throws away. The **choke** needs unit-capacity vertex max-flow, which exists nowhere. **Ways round a
   void** has half of what it needs — `Cells.EnclosedVoid` finds the hole — and wants the ray-cut test.
-  Route enumeration wants piece adjacency, which `ContactGraph` is, and therefore inherits **`G65`**: while
-  `FannedGraph.LandAdjacent` and `ContactGraph` disagree on the overlap case, a route count depends on which
-  graph was asked.
+  Route enumeration wants piece adjacency, which `ContactGraph` is — and one rule states it
+  (`ContactGraph.Connects`), the fanned graph included, so a count does not depend on which graph was asked.
 
   *One negative result is worth carrying into the code when it lands.* Counting the connected components of
   the minimum cut is **not** the ways-round test and gives opposite answers in both directions — it reported

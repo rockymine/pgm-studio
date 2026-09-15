@@ -4083,6 +4083,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wizard. (`9f645dc` → `45209a1`)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
+- **Two graphs, one question about whether a board's pieces touch (`G65`).** Reachability and the rect layer
+  each carried their own adjacency predicate, and they disagreed on exactly one case: an overlap at two
+  surfaces, which `FannedGraph` walked across and `ContactGraph.Components` kept apart. The rule was never
+  really open — `PL4` refuses a plan whose pieces claim the same ground at incompatible heights, because there
+  is no coherent surface over the shared cells — so what was missing was one predicate stating it.
+  `ContactGraph.Meeting` is the geometry (the kind two rects meet by, and the border length);
+  `ContactGraph.Connects` is the rule over it (any positive border, or an overlap the two agree the height
+  of); and `FannedGraph.Node` carries the piece's surface so it can ask. The gap links stay looser than the
+  straight-span ones on purpose — a player routes through a buildable region freely — and that is now the only
+  deliberate difference between the two. Measured: no seed of the 49 has an overlapping piece pair at all, so
+  nothing on the corpus moves, and the net is synthetic — a two-piece board at one height and at two.
+  (`ContactGraph`, `FannedGraph`, `FannedGraphTests`, `docs/generator/model.md`) (`G59` deferred it)
 - **`G8`'s fill ratio frames on the ground and not on a build zone reaching past it (`B150`).** The frame was
   the bounding box of the filled cells **union the build zones**, so buildable void — which fills nothing —
   divided the same ground by a bigger box and reported a sparser board than the one that exists. Both halves
@@ -4949,8 +4961,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   routes through `Geom.Cells` (N4 / components); `ClosureAnalysis` documented as a deliberate fast-path twin of
   `BoardStructure.Voids` (kept dense-grid for the composer's 60-attempt hunt loop). Pure refactor:
   `derive-gallery` output **byte-identical** over all base + generated cases; Pgm 410 pass (5 pre-existing
-  failures unchanged), Api builds clean. Canonical doc §1.3/§6.2 now name the classes, not the script. The one
-  deferred slice — `FannedGraph.LandAdjacent` ↔ `ContactGraph` surface-overlap reconcile — is G65.
+  failures unchanged), Api builds clean. Canonical doc §1.3/§6.2 now name the classes, not the script. Its one
+  deferred slice, the surface-overlap reconcile between the two graphs, shipped as G65.
   (G59)
 - **Composer evaluator engine — foundation (M2 groundwork)** — `Pgm/Evaluate/`: the one place layout rules are
   scored. `LayoutEvaluator.Evaluate(ctx | plan, profile) → Evaluation` (`Score = Σ hard-penalty + Σ w·distance`,

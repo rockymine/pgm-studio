@@ -483,11 +483,10 @@ wizard step behind, which is why `TC7` and `TC9` sit with the configure surface 
 `TODO.md` now holds **the walk** (6 entries), pulled up whole. Its cause is the other half of a consolidation
 that only went halfway: `Geom.Walk` became the one traversal, and the *answers* taken with it did not follow.
 Dead ground is derived by `PlanFlow.DeadPlace` and again by `GroundCoverage.Patch`, in two sibling projects
-neither of which can reach the other, so the shared half has nowhere to live but `Geom`. Adjacency is answered
-by `FannedGraph.LandAdjacent` and by `ContactGraph.Classify`, which disagree on the overlap case, so a route
-count depends on which was asked and no call site says which. And a fork is one pair of cells in `RouteFork`
-where a board carries a set — the singular baked into seven fields of `FlowLeg` and into the prose
-`PlanFlow.Describe` writes. This is `CLAUDE.md`'s *"a shape is not consolidated until the callers ask it the
+neither of which can reach the other, so the shared half has nowhere to live but `Geom`. And a fork is one
+pair of cells in `RouteFork` where a board carries a set — the singular baked into seven fields of `FlowLeg`
+and into the prose `PlanFlow.Describe` writes. Adjacency was the third and is settled (`FEATURES.md`): one
+rule, `ContactGraph.Connects`, which the fanned graph asks rather than answering its own. This is `CLAUDE.md`'s *"a shape is not consolidated until the callers ask it the
 same question by the same name"*, read against a traversal whose callers each still ask their own.
 
 Of the causes this section named earlier, the client reading its own schema is `C51` alone and the compiler's
