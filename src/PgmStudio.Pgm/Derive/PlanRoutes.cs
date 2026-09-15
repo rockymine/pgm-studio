@@ -67,11 +67,14 @@ public static class PlanRoutes
     /// <summary>Holes smaller than this are gaps between rectangles, not places a route goes round.</summary>
     public const int HoleFloor = 2;
 
+    /// <param name="walker">The orbit image making the journey, whose own ground it is then read over —
+    /// another team's spawn and the wool room this one defends are shut to it. Null asks about the board
+    /// rather than about a side, which is what a shape with no team on it can answer.</param>
     public static StrokeRead Read(PlanNav nav, (int X, int Z) from, (int X, int Z) to,
-        double slack = CorridorSlack)
+        int? walker = null, double slack = CorridorSlack)
     {
-        var within = nav.Navigable;
-        var ground = nav.Walkable();
+        var ground = walker is { } team ? nav.For(team) : nav.Walkable();
+        var within = ground.Footprint;
         var seat = ground.Stand(from);
         var target = ground.Stand(to);
         var direct = seat is { } a && target is { } b ? Walk.Between(a, b, ground) : null;

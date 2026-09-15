@@ -168,7 +168,9 @@ public static class PlanFlow
         foreach (var goal in nav.Waypoints().Where(w => w.Kind == "wool" && w.K == 1))
         {
             if (nav.Snap(goal.Cell) is not { } to) continue;
-            var read = PlanRoutes.Read(nav, from, to);
+            // The attack is read over the attacker's own ground: the enemy's spawn is shut to them and so is
+            // the room their own side defends, which is not a way through however the geometry reads.
+            var read = PlanRoutes.Read(nav, from, to, attacker.K);
             if (read.Shortest is not { } attack) continue;
             // The defence walks its own ground: the enemy's spawn is shut to it and so is the room it
             // defends, which is where its walk stops.
@@ -192,7 +194,7 @@ public static class PlanFlow
                 split, fuse,
                 split is { } s ? Width(nav, s) * cell : 0,
                 fuse is { } g ? Width(nav, g) * cell : 0,
-                fuse is { } h ? Reach(ground, h, to) : 0,
+                fuse is { } h ? Reach(nav.For(attacker.K), h, to) : 0,
                 fuse is not null && detour == 0, detour));
         }
         return legs;

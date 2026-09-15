@@ -13,7 +13,9 @@ public sealed class PlanFlowTests
     private static PlanPiece P(string id, int x, int z, int w, int h, string role = PlanRoles.Piece) =>
         new() { Id = id, Role = role, Rect = new CellRect(x, z, w, h) };
 
-    // A lane from spawn to the enemy wool, with the two ends mirrored by rot_180.
+    // A lane from spawn to the enemy wool, with the two ends mirrored by rot_180. The spawn hangs off the
+    // lane rather than sitting on the way to the room, because a route to a wool never crosses a spawn (SP1)
+    // and a board whose only way in does is one no side can walk.
     private static PlanModel Board(params PlanPiece[] extra)
     {
         var plan = new PlanModel { Globals = new PlanGlobals { Cell = 5, Symmetry = "rot_180", Surface = 9 } };
@@ -21,8 +23,7 @@ public sealed class PlanFlowTests
         [
             P("spawn", -2, -14, 4, 3, PlanRoles.Spawn),
             P("lane", -2, -11, 4, 11),
-            P("room", -6, -18, 4, 4, PlanRoles.WoolRoom),
-            P("neck", -4, -14, 2, 3),
+            P("room", -6, -11, 4, 4, PlanRoles.WoolRoom),
             .. extra,
         ];
         plan.Placements.Spawns = [new SpawnPlacement { Piece = "spawn", At = [2, 1] }];

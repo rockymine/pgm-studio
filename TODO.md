@@ -74,19 +74,20 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   spawned** — a player at the frontline who sees an attacker and gives chase is defending from a different
   origin. So the read weighs example 5's 133 and example 3's 103, and never hides them.
 
-  *measured: townside's per-team lateral spread across the attack runs 41 · 49 | 5 · 5 · 11 · 3 | 14 · 41 · 33
-  | 7 — wide, narrow, wide. The single split reads (3,−8), inside the narrow stretch that is neither of the
-  two the attack actually has.*
+  *measured on townside: the attack passes three holes and the one fork spans (25,−40) → (15,105), 177 blocks
+  of a 266-block walk. Read per door it is two decisions — the mid crossing at (0,0) live over 123 blocks at
+  1.12×, and the hole by the wool at (0,85) live over 59 at 1.08× — and the third door is moot against the
+  shortest, which is the reference question below.*
 
   **The narrow middle is not a funnel and must not be scored as one.** The two teams' median lines run 35–50
   blocks apart through it and converge only at the objective: the crossing carries two ways and neither team
   chooses between them, the same one-per-team partition ingwaz shows. Per-team spread cannot separate *one
   way* from *two ways, one each*.
 
-  *Blocks the same-road read: `d(defender→fuse) + d(fuse→wool)` equals the defender's own walk on townside
-  (210 = 165 + 45) and exceeds it on kanto (115 against 95), which is the difference between the two sides
-  sharing an approach and the defender arriving from behind the objective. That test rests on a fuse position
-  this entry says is wrong on townside, so it wants re-checking once the forks are per pair.*
+  **The defend journey has no route read at all.** `PlanRoutes.Read` walks to the objective, and a defence may
+  not enter the room it defends, so a defend read answers nothing where the distance answers a doorstep
+  (`PlanFlow.ReachDoorstep`). The route read wants the same target: the nearest cell of their own ground
+  touching the room.
 
 - [ ] **B169 — Complain about spawn ground that carries nothing and contests nothing.** Raw size is not the
   test (author): a spawn seated on a large rectangle that *is* the map is fine, and Mirefast's 92-wide
