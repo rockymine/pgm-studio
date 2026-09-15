@@ -9066,6 +9066,25 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **A village is one block of buildings, and the passage goes round it (`WE126`).** The eight-block passage
+  read a building against terrain and against other buildings alike, so a village street was a row of
+  refusals: two buildings needed eleven blocks between their walls, and every interior house of a row failed.
+  Buildings standing within a passage of each other — the eight plus the block of ring a building holds past
+  its stamp — are now **one block of buildings**, grouped transitively before any of them is judged, and the
+  eight is owed round what they make together. A player walks round a village rather than between every pair
+  of its houses, so the floor inside one is `DR-CLAIM`'s ring alone: **three blocks between two walls**. The
+  reach is the passage plus that ring exactly, so at one block further apart each building clears the passage
+  on its own and no gap between two of them is one the rule has no reading of. A group's own ring is a way
+  past it — a ring is held so nothing *seats* under an eave, not so nobody passes — which is what stopped a
+  row of five houses complaining about the ground between its own members. Five 5×5 houses on open ground now
+  stand at every spacing from three blocks up. (`Decorator`, `DecoratorTests`,
+  `docs/world-export/decoration.md`, `docs/refusals.md`)
+- **A crowded building is a complaint, not a decline (`WE45`).** `DR-PASS` dropped the building from the
+  exported world. Where a building stands is something an author or an agent moves (the author's ruling), and
+  a board that loses its houses silently is harder to fix than one that says which of them is crowding a lane
+  — so the building is in the world, standing where it was put, and the finding says so. Raised once for the
+  whole orbit, like every other verdict the pass makes. (`Decorator`, `GroundClaims`, `DecoratorTests`,
+  `docs/refusals.md`)
 - **A building leaves eight blocks past every side of it (`WE45`).** `DR-PASS` asked whether *one* of a
   building's four sides carried five blocks of passable ground, which on a corridor board is a question about
   where the house sits rather than about the room it leaves: a house eleven blocks wide in a fifteen-block lane

@@ -23,8 +23,14 @@ public static class DressingRules
     /// map's own edge or a hole in it, and a building may stand against one — a coast house is a house — but
     /// not against two facing each other, which is a building spanning the land rather than seated at its
     /// edge. Measured from what the building <b>stamps</b> rather than from its walls: a roof oversails its
-    /// wall by at least one block, and the blocks a player walks under are the ones that were written.</summary>
-    /// <remarks>Move the building against the edge of the ground it stands on and keep an eight-block passage along every other side, or widen that ground. The eight are counted from the roof's edge, not the wall's, so a lane 15 blocks across takes a building 7 blocks across including its eaves. Passable here means terrain with nothing built on it; a road or a channel beside the wall still counts as a way past, an earlier building does not. The whole building is declined and is not in the exported world.</remarks>
+    /// wall by at least one block, and the blocks a player walks under are the ones that were written.
+    ///
+    /// <para><b>Asked of a group of buildings, not of each one.</b> Buildings standing within a passage of
+    /// each other are one block of buildings, and the eight is owed round what they make together — a player
+    /// walks round a village rather than between every pair of its houses, so the ground inside it is the
+    /// claim ring's to keep. Grouping is transitive, and at exactly the passage two buildings answer for
+    /// themselves, so no gap between them is one the rule has no reading of.</para></summary>
+    /// <remarks>Move the building against the edge of the ground it stands on and keep an eight-block passage along every other side, or widen that ground, or bring it close enough to its neighbours to be one block of buildings with them. The eight are counted from the roof's edge, not the wall's, so a lane 15 blocks across takes a building 7 blocks across including its eaves. Passable here means terrain with nothing built on it; a road or a channel beside the wall still counts as a way past, a building outside this one's group does not. A complaint: the building is in the exported world, standing where it was put, because where a building stands is something an author moves.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string PassAround = "DR-PASS";
 

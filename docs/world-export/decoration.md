@@ -791,16 +791,31 @@ two facing each other, which is a building spanning the land rather than one sea
 a house across the full width of a land leg reads as. Half a side over a hole is a broken passage rather than a
 coast, and is the fault.
 
+**The passage is owed round a group of buildings, not round each one.** Buildings standing within a passage
+of each other — the eight, plus the block of ring a building holds past its stamp — are one block of
+buildings, and the eight is asked round what they make together. A player walks *round* a village rather than
+between every pair of its houses, so the ground inside one is the claim ring's to keep and nothing else's:
+the floor between two houses in a street is `DR-CLAIM`'s, which is **three blocks between their walls**. The
+grouping is transitive, and at one block further apart than the reach each building clears the passage on its
+own, so there is no gap between two buildings the rule has no reading of. The ring a group holds past its own
+stamp is a way past it, since a ring is held so that nothing *seats* under an eave rather than so that nobody
+passes.
+
 Passable means terrain with nothing *built* on it: a road or a channel alongside the wall still counts as a
-way past, an earlier building does not. A breach declines the whole prop with the rule id in its census
-reason, decided once for the orbit like every other refusal here.
+way past, a building outside this one's group does not.
+
+**It is a complaint, not a decline** (the author's ruling): the building is in the exported world, standing
+where it was put. Where a building stands is something an author or an agent moves, and a board that loses
+its houses silently is harder to fix than one that says which of them is crowding a lane. Raised once for the
+whole orbit, like every other verdict here.
 
 The arithmetic is what an author feels. A lane **15 blocks** across takes a building **7 across including its
 eaves** — a 5-block wall footprint, which is exactly `DR-SIZE`'s floor — and only hugged to one wall; nothing
-stands in the middle of it. Two buildings in a row need **eleven blocks between their walls**: eight of
-passage, an eave each, and the block of ring the first one holds. On `example-3`, a board whose lanes are all
-fifteen wide, **1,072 of the 4,510 sites** a 5×5 building can seat on leave a passage, and the largest square
-that fits anywhere on it is **15×15**.
+stands in the middle of it. Two buildings that are *not* one block of buildings need **eleven blocks between
+their walls**: eight of passage, an eave each, and the block of ring the first one holds. Two that are need
+**three**, which is the ring alone. On `example-3`, a board whose lanes are all fifteen wide, **1,072 of the
+4,510 sites** a lone 5×5 building can seat on leave a passage, and the largest square that fits anywhere on it
+is **15×15**.
 
 **It may end a road but never stand across one (`DR-CROSS`).** A road is meant to run to a porch or a door,
 so a building taking the ground a road covers is ordinary: the road ends at its wall and the building wins the

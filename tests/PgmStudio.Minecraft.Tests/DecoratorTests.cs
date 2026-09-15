@@ -1372,8 +1372,11 @@ public sealed class DecoratorTests
         var tight = Decorator.Decorate(world, Context(top,
             [new HouseProp { Id = "hall", Wings = [new AuthoredWing([[10, 15], [18, 25]])],
                              Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } } }]));
-        await Assert.That(tight.Houses).IsEqualTo(0);
-        await Assert.That(tight.Declines.Single().Rule).IsEqualTo(DressingRules.PassAround);
+        await Assert.That(tight.Houses).IsEqualTo(1);
+        var tooTight = tight.Declines.Single();
+        await Assert.That(tooTight.Rule).IsEqualTo(DressingRules.PassAround);
+        await Assert.That(tooTight.Severity).IsEqualTo(Severity.Complaint)
+            .Because("where a building stands is something an author moves, so the world keeps it");
 
         // The same house on a plateau that runs well past it on every side. The rule is about the ground
         // beside the building, so widening the ground is what answers it.
@@ -1389,7 +1392,7 @@ public sealed class DecoratorTests
     /// ground players arrive on is not a way round the thing blocking them. Every side is asked, so the lane
     /// no longer answers for the two flanks that have nothing beside them.</summary>
     [Test]
-    public async Task A_house_in_the_middle_of_a_lane_is_refused_however_long_the_lane_is()
+    public async Task A_house_in_the_middle_of_a_lane_is_complained_of_however_long_the_lane_is()
     {
         // A 15-block lane running the whole board, and an 11-block house in the middle of it: a block of
         // ground each side, and forty blocks of lane in front and behind.
@@ -1407,7 +1410,6 @@ public sealed class DecoratorTests
         var corking = Decorator.Decorate(world, Context(top,
             [new HouseProp { Id = "h", Wings = [new AuthoredWing([[12, 35], [22, 45]])], Style = style }]));
 
-        await Assert.That(corking.Houses).IsEqualTo(0);
         await Assert.That(corking.Declines.Single().Rule).IsEqualTo(DressingRules.PassAround);
     }
 
@@ -1437,17 +1439,17 @@ public sealed class DecoratorTests
         var stands = Decorator.Decorate(fits, Context(fitsTop,
             [new HouseProp { Id = "h", Wings = [new AuthoredWing([[11, 35], [15, 41]])], Style = style }]));
         await Assert.That(stands.Houses).IsEqualTo(1);
+        await Assert.That(stands.Declines).IsEmpty();
 
         // One block wider and the passage is seven.
         var (tight, tightTop) = Lane();
         var refused = Decorator.Decorate(tight, Context(tightTop,
             [new HouseProp { Id = "h", Wings = [new AuthoredWing([[11, 35], [16, 41]])], Style = style }]));
-        await Assert.That(refused.Houses).IsEqualTo(0);
         await Assert.That(refused.Declines.Single().Rule).IsEqualTo(DressingRules.PassAround);
     }
 
     [Test]
-    public async Task A_house_that_corks_its_leg_is_refused_and_a_coast_house_stands()
+    public async Task A_house_that_corks_its_leg_is_complained_of_and_a_coast_house_is_not()
     {
         // The generation failure this rule closes: a house across the full width of a land leg, void on both
         // flanks — players would have to dig through the building to reach the other side. A side the ground
@@ -1471,7 +1473,6 @@ public sealed class DecoratorTests
                     Door = DoorMaterial.Air,
                 },
             } }]));
-        await Assert.That(corked.Houses).IsEqualTo(0);
         var drop = corked.Declines.Single();
         await Assert.That(drop.Message).Contains("no way past");
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.PassAround);
@@ -1520,33 +1521,30 @@ public sealed class DecoratorTests
     }
 
     [Test]
-    public async Task Two_buildings_flush_against_each_other_collide_and_two_a_passage_apart_stand()
+    public async Task Two_buildings_collide_only_over_the_ring_and_no_spacing_past_it_is_crowded()
     {
         // A building holds what it stamps plus one block outward, and is *tested* on what it stamps, so two
-        // that merely fail to overlap are refused. What separates two that stand is the passage between them:
-        // eight clear blocks, plus each building's eave and the block of ring the first one holds — eleven
-        // between their walls.
-        var (world, top) = Plateau(60);
+        // that merely fail to overlap collide. Past that ring there is no gap that refuses: closer than the
+        // passage plus the ring they are one block of buildings and the passage goes round the pair, and at
+        // that reach each of them clears the passage on its own. The village street is the case.
         var open = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } };
         HouseProp At(string id, int minX, int maxX) =>
             new() { Id = id, Wings = [new AuthoredWing([[minX, 20], [maxX, 28]])], Style = open };
 
         // Overhang 1, so the first stamps x9…19 and the second x20…30 — adjacent, with nothing between them.
+        var (world, top) = Plateau(60);
         var flush = Decorator.Decorate(world, Context(top, [At("h1", 10, 18), At("h2", 21, 29)]));
         await Assert.That(flush.Houses).IsEqualTo(1);
         var drop = flush.Declines.Single(d => d.SubjectIds.Contains("h2"));
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.GroundTaken);
 
-        var (clean, cleanTop) = Plateau(60);
-        var spaced = Decorator.Decorate(clean, Context(cleanTop, [At("h1", 10, 18), At("h2", 30, 38)]));
-        await Assert.That(spaced.Houses).IsEqualTo(2);
-        await Assert.That(spaced.Declines).IsEmpty();
-
-        // Ten between the walls leaves the second one a band short, and it is turned away.
-        var (tight, tightTop) = Plateau(60);
-        var crowded = Decorator.Decorate(tight, Context(tightTop, [At("h1", 10, 18), At("h2", 29, 37)]));
-        await Assert.That(crowded.Houses).IsEqualTo(1);
-        await Assert.That(crowded.Declines.Single().Rule).IsEqualTo(DressingRules.PassAround);
+        for (var apart = 3; apart <= 16; apart++)
+        {
+            var (field, fieldTop) = Plateau(60);
+            var pair = Decorator.Decorate(field, Context(fieldTop, [At("h1", 10, 18), At("h2", 19 + apart, 27 + apart)]));
+            await Assert.That(pair.Houses).IsEqualTo(2).Because($"{apart} blocks between the walls");
+            await Assert.That(pair.Declines).IsEmpty().Because($"{apart} blocks between the walls");
+        }
     }
 
     [Test]

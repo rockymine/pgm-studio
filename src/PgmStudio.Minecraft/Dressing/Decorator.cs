@@ -234,9 +234,20 @@ public static class Decorator
         // admitted to it. Read only where there is a building to judge, since it walks every waypoint pair.
         var houses = context.Props.OfType<HouseProp>().ToList();
         var ways = houses.Count > 0 ? context.Ways() : null;
+        // Buildings standing within a passage of each other are one block of buildings, and the passage is
+        // owed round what they make together (DR-PASS). Read before any of them is judged, since a building
+        // cannot be grouped with one that has not been placed yet.
+        var footings = new List<Footing>();
+        foreach (var prop in houses)
+            if (prop.Plan() is { } drawn)
+                for (var k = 0; k < context.Symmetry.Order; k++)
+                    if (TurnedFootprint(drawn, context.Symmetry, k) is { } image)
+                        footings.Add(Footing.Of(image, prop.Style));
+        var groups = Grouped(footings).DistinctBy(pair => pair.Own).ToDictionary(pair => pair.Own, pair => pair.Group);
+
         foreach (var prop in houses)
         {
-            var raised = PlaceHouse(world, context, prop, claims.On(prop.Layer), declined, ways, roads);
+            var raised = PlaceHouse(world, context, prop, claims.On(prop.Layer), declined, ways, roads, groups);
             structures.AddRange(raised);
             placed = placed with { Houses = placed.Houses + raised.Count };
         }
@@ -707,7 +718,8 @@ public static class Decorator
     private static List<PlacementClaim> PlaceHouse(
         VoxelWorld world, DressingContext context, HouseProp house, GroundClaims.Storey claims,
         List<Finding> declined, WayThrough? ways,
-        IReadOnlyList<(string Id, IReadOnlyList<(int X, int Z)> Cells)> roads)
+        IReadOnlyList<(string Id, IReadOnlyList<(int X, int Z)> Cells)> roads,
+        IReadOnlyDictionary<Footing, Footing> groups)
     {
         var ground = context.GroundFor(house);
         if (house.Plan() is not { } plan)
@@ -737,6 +749,7 @@ public static class Decorator
         }
 
         var images = new List<(BuildingPlan Plan, RoomEdge? Front, int FloorY)>(context.Symmetry.Order);
+        var cramped = false;
         for (var k = 0; k < context.Symmetry.Order; k++)
         {
             if (TurnedFootprint(plan, context.Symmetry, k) is not { } image) return [];
@@ -805,14 +818,23 @@ public static class Decorator
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
-            if (!HasPassage(ground, claims, image, house.Style))
+            // The passage is owed around the group this building stands in — itself alone where it stands
+            // alone. A complaint, not a decline: the building is in the world and where it stands is
+            // something an author or an agent moves, which `sketch/seats` answers forwards.
+            var own = Footing.Of(image, house.Style);
+            var group = groups.GetValueOrDefault(own, own);
+            if (!cramped && !HasPassage(ground, claims, group))
             {
+                cramped = true;
+                var together = group.Holds(own)
+                    ? " — measured round the group of buildings it stands in, "
+                      + $"x {group.StampMinX}…{group.StampMaxX}, z {group.StampMinZ}…{group.StampMaxZ}"
+                    : "";
                 declined.Add(new Finding(DressingRules.PassAround,
-                    $"building '{house.Id}' leaves no way past it: a side of it has fewer than "
+                    $"building '{house.Id}' leaves no way past it: a side has fewer than "
                     + $"{DressingRules.PassAroundWidth} blocks of passable ground along its whole run, and is "
-                    + "not the edge of the ground the building stands on",
-                    Severity.Decline, Subjects: [house.Id]));
-                return [];
+                    + $"not the edge of the ground it stands on{together}",
+                    Severity.Complaint, Subjects: [house.Id]));
             }
 
             var front = house.Front is { } edge ? context.Symmetry.TurnEdge(edge, k) : (RoomEdge?)null;
@@ -979,7 +1001,7 @@ public static class Decorator
     private enum Flank
     {
         /// <summary>The full band is passable — terrain with nothing <em>built</em> on it, so a road or a
-        /// channel alongside the wall is a way past and an earlier building is not.</summary>
+        /// channel alongside the wall is a way past and a building outside this one's group is not.</summary>
         Clear,
         /// <summary>No ground at all beside that side: the building stands flush against the board's edge or
         /// a hole in it.</summary>
@@ -988,31 +1010,93 @@ public static class Decorator
         Short,
     }
 
-    /// <summary>Whether a building leaves a way past itself: <b>every</b> side carries a band of passable
-    /// ground <see cref="DressingRules.PassAroundWidth"/> blocks deep along the building's run, and a side
-    /// the ground stops flush against is a coast the building may stand on — but not two facing each other,
-    /// which is a building spanning the land it stands on rather than one seated at its edge.
-    ///
-    /// <para><b>Measured from what the building stamps, along what it stands on.</b> A roof overhangs its
-    /// wall by the style's eave and the blocks a player has to walk under are the ones that were written, so
-    /// the band starts where the building physically stops — the same <see cref="ClaimedCells"/> the claim
-    /// test and the route crossing read. It runs along the <em>walls</em>, because an eave may oversail the
-    /// void at a coast and a column the building does not stand on says nothing about the ground beside it.
-    /// Over the bounding run: the notch of an L is the building's own ground, not a public route through
-    /// it.</para></summary>
-    private static bool HasPassage(IReadOnlyDictionary<(int X, int Z), int> ground, GroundClaims.Storey claims,
-        BuildingPlan plan, HouseStyle style)
+    /// <summary>What a building takes up, as the passage rule reads it: the extent it <b>stamps</b>, which is
+    /// where the band starts, and the run of its <b>walls</b>, which is what the band runs along — an eave may
+    /// oversail the void at a coast, and a column the building does not stand on says nothing about the ground
+    /// beside it. <see cref="Join"/> makes one of these out of two, which is how a group of buildings is
+    /// measured as the one block of buildings a player walks round.</summary>
+    private readonly record struct Footing(
+        int StampMinX, int StampMinZ, int StampMaxX, int StampMaxZ,
+        int WallMinX, int WallMinZ, int WallMaxX, int WallMaxZ)
     {
-        var stamped = ClaimedCells(plan, style);
-        int minX = stamped.Min(cell => cell.X), maxX = stamped.Max(cell => cell.X);
-        int minZ = stamped.Min(cell => cell.Z), maxZ = stamped.Max(cell => cell.Z);
-        int runX0 = plan.Wings.Min(wing => wing.MinX), runX1 = plan.Wings.Max(wing => wing.MaxX);
-        int runZ0 = plan.Wings.Min(wing => wing.MinZ), runZ1 = plan.Wings.Max(wing => wing.MaxZ);
+        public static Footing Of(BuildingPlan image, HouseStyle style)
+        {
+            var stamped = ClaimedCells(image, style);
+            return new(stamped.Min(cell => cell.X), stamped.Min(cell => cell.Z),
+                       stamped.Max(cell => cell.X), stamped.Max(cell => cell.Z),
+                       image.Wings.Min(wing => wing.MinX), image.Wings.Min(wing => wing.MinZ),
+                       image.Wings.Max(wing => wing.MaxX), image.Wings.Max(wing => wing.MaxZ));
+        }
+
+        public Footing Join(Footing other) => new(
+            Math.Min(StampMinX, other.StampMinX), Math.Min(StampMinZ, other.StampMinZ),
+            Math.Max(StampMaxX, other.StampMaxX), Math.Max(StampMaxZ, other.StampMaxZ),
+            Math.Min(WallMinX, other.WallMinX), Math.Min(WallMinZ, other.WallMinZ),
+            Math.Max(WallMaxX, other.WallMaxX), Math.Max(WallMaxZ, other.WallMaxZ));
+
+        /// <summary>Whether two buildings stand near enough that a player goes round the pair rather than
+        /// between them. The reach is the passage plus the ring a building holds beyond its stamp, which is
+        /// exactly what two standing side by side have to leave each other: at one block further apart each
+        /// answers for itself and clears the passage on its own, so no gap between two buildings is one the
+        /// rule has no reading of.</summary>
+        public bool Neighbours(Footing other) =>
+            Near(StampMinX, other.StampMaxX) && Near(other.StampMinX, StampMaxX)
+            && Near(StampMinZ, other.StampMaxZ) && Near(other.StampMinZ, StampMaxZ);
+
+        private static bool Near(int from, int to) =>
+            from - to <= DressingRules.PassAroundWidth + DressingRules.StructureClearance;
+
+        public bool Holds(Footing one) =>
+            StampMinX <= one.StampMinX && StampMaxX >= one.StampMaxX
+            && StampMinZ <= one.StampMinZ && StampMaxZ >= one.StampMaxZ && !Equals(one);
+    }
+
+    /// <summary>Each building's own footing paired with the group's it belongs to — every building it stands
+    /// within a passage of, and every building those stand within a passage of, as one extent. A village is a
+    /// block of buildings players walk round rather than a row of corridors between them, so the passage is
+    /// owed around what they make together and the ground between them is the claim ring's to keep.</summary>
+    private static List<(Footing Own, Footing Group)> Grouped(IReadOnlyList<Footing> footings)
+    {
+        var owner = Enumerable.Range(0, footings.Count).ToArray();
+        var groups = footings.ToList();
+        for (var again = true; again;)
+        {
+            again = false;
+            for (var i = 0; i < footings.Count && !again; i++)
+            for (var j = 0; j < footings.Count; j++)
+            {
+                if (owner[i] == owner[j] || !groups[owner[i]].Neighbours(groups[owner[j]])) continue;
+                int keep = owner[i], drop = owner[j];
+                groups[keep] = groups[keep].Join(groups[drop]);
+                for (var k = 0; k < owner.Length; k++) if (owner[k] == drop) owner[k] = keep;
+                again = true;
+                break;
+            }
+        }
+        return [.. footings.Select((footing, i) => (footing, groups[owner[i]]))];
+    }
+
+    /// <summary>Whether a building — or the group of buildings it stands in — leaves a way past itself:
+    /// <b>every</b> side carries a band of passable ground <see cref="DressingRules.PassAroundWidth"/> blocks
+    /// deep along the run of its walls, and a side the ground stops flush against is a coast it may stand on
+    /// — but not two facing each other, which is a building spanning the land it stands on rather than one
+    /// seated at its edge.
+    ///
+    /// <para><b>Measured from what the building stamps.</b> A roof overhangs its wall by the style's eave and
+    /// the blocks a player has to walk under are the ones that were written, so the band starts where the
+    /// building physically stops — the same <see cref="ClaimedCells"/> the claim test and the route crossing
+    /// read. Over the bounding run: the notch of an L is the building's own ground, not a public route through
+    /// it, and the same holds of the yard inside a ring of houses.</para></summary>
+    private static bool HasPassage(IReadOnlyDictionary<(int X, int Z), int> ground, GroundClaims.Storey claims,
+        Footing footing)
+    {
         var depth = DressingRules.PassAroundWidth;
+        var (sx0, sz0, sx1, sz1) = (footing.StampMinX, footing.StampMinZ, footing.StampMaxX, footing.StampMaxZ);
+        var (wx0, wz0, wx1, wz1) = (footing.WallMinX, footing.WallMinZ, footing.WallMaxX, footing.WallMaxZ);
 
         // Each side is grown outward from the step just off the stamp, along the run of the walls.
-        return Across(Side(maxX + 1, runZ0, maxX + 1, runZ1, 1, 0), Side(minX - 1, runZ0, minX - 1, runZ1, -1, 0))
-            && Across(Side(runX0, maxZ + 1, runX1, maxZ + 1, 0, 1), Side(runX0, minZ - 1, runX1, minZ - 1, 0, -1));
+        return Across(Side(sx1 + 1, wz0, sx1 + 1, wz1, 1, 0), Side(sx0 - 1, wz0, sx0 - 1, wz1, -1, 0))
+            && Across(Side(wx0, sz1 + 1, wx1, sz1 + 1, 0, 1), Side(wx0, sz0 - 1, wx1, sz0 - 1, 0, -1));
 
         // One side of a facing pair may be a coast; the other still has to be a way past.
         static bool Across(Flank near, Flank far) =>
@@ -1027,10 +1111,17 @@ public static class Decorator
             {
                 if (!ground.ContainsKey((x, z))) { clear = false; continue; }
                 if (step == 0) flush = false;
-                if (claims.HoldsKind(x, z, ClaimKind.Structure)) clear = false;
+                if (claims.HoldsKind(x, z, ClaimKind.Structure) && !Own(x, z)) clear = false;
             }
             return clear ? Flank.Clear : flush ? Flank.Edge : Flank.Short;
         }
+
+        // The ring a building holds past its stamp is ground a player walks on — it is held so that nothing
+        // seats under an eave, not so that nobody passes — so the group's own ring is a way past it. Another
+        // group's is not, and cannot reach here: a building a passage away holds no cell the band covers.
+        bool Own(int x, int z) =>
+            x >= sx0 - DressingRules.StructureClearance && x <= sx1 + DressingRules.StructureClearance
+            && z >= sz0 - DressingRules.StructureClearance && z <= sz1 + DressingRules.StructureClearance;
     }
 
     /// <summary>The course a building's floor sits at — one below the lowest ground its plan covers — or no

@@ -15,21 +15,27 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 
 ## What a building may stand on
 
-`DR-PASS` is the author's ruling as of this board: **eight blocks** of passable ground along the whole run of
-**every** side, measured from what the building stamps, along the run of its walls. A side the ground stops
-flush against is the map's edge or a hole, and a building may stand against one of those but not against two
-facing each other. The lane a building stands in is the ground players arrive on, not a way round it, which is
-why every side is asked (`FEATURES.md`).
+`DR-PASS` is the author's ruling as of this board (`FEATURES.md`): **eight blocks** of passable ground along
+the whole run of **every** side, measured from what the building stamps, along the run of its walls. A side the
+ground stops flush against is the map's edge or a hole, and a building may stand against one of those but not
+against two facing each other. The lane a building stands in is the ground players arrive on, not a way round
+it, which is why every side is asked. It is owed round the **group** of buildings a building stands in, so a
+village is a block of buildings rather than a row of corridors, and it is a **complaint**: the building is in
+the world and where it stands is something an author or an agent moves.
 
-- [ ] **WE126 — a village is a row of declines.** *Parked on a ruling: whether the passage is owed around each
-  building or around the block of them.* Two buildings in a row now need **eleven blocks between their walls**
-  — eight of passage, an eave each, and the block of ring the first one holds — so a village street or a
-  town square is a row of `DR-PASS` declines. The rule reads a building against terrain and other buildings
-  alike, and a player walks *round* a village rather than between every pair of its houses, so the unit the
-  passage is owed around may be the **cluster**: buildings whose stamps lie within the passage of each other
-  are one block of buildings, and the eight is asked around what they make together. That lands in
-  `Decorator.HasPassage`, which would grow a pre-pass grouping the images before it judges them, and in
-  `docs/world-export/decoration.md`.
+What is left is the other half of that last sentence — a mover needs to be told where a building may go.
 
-  *Five 5×5 houses in a row on open ground: at 12 blocks between walls all five stand, at 10 only the two
-  ends do. `opus5-automaton` and the other mapgen boards carrying rows are where this bites.*
+- [ ] **WE127 — `sketch/seats` does not answer `DR-PASS`, and now it can.** The forward read runs the pass's
+  five *seat* rules over the whole board so a placement is found rather than guessed at, and leaves the four a
+  building meets after it seats to the pass. Three of those read the built world. `DR-PASS` no longer does:
+  it is a predicate over the terrain surface and a footprint box, which is exactly what `ClaimRaster`'s grid
+  already carries. It lands in `ClaimRaster.Stops`, gated on the asked kind being a building, with the box
+  taken as the walls and grown by the minimum eave. `docs/tools/sketch.md` § seats and
+  `docs/world-scan/read-backs.md` both say today that it is not answered.
+
+  **Decide first:** a candidate joins the group of any building within a passage of it, and the forward read
+  has only per-cell classes rather than each standing building's extent. Either it labels the grid's structure
+  cells into groups once per request, or it answers for a building standing alone and says so.
+
+  *`DR-PASS` is a complaint now, so an agent that cannot find where a house may go leaves it where it is.
+  On `example-3`, 1,072 of 4,510 seats admit a lone 5×5 building.*
