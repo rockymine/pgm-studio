@@ -9046,6 +9046,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **A diagonal needs ground on both sides of the corner it cuts (`WS64`).** `Walk` refused a diagonal only
+  where **both** squeezed cells were void, so one void side and one solid one was a legal step — a player
+  slipping past a corner over a drop. It is the whole of what made an eastern approach exist on the author's
+  example 3: `(7,−12)` to `(8,−11)`, squeezing between the wool room at `(8,−12)` and nothing at `(7,−11)`,
+  and six more cuts on the same route. The rule is `||` now: ground on both, or the step is not taken. **It
+  cannot disconnect a board** — the solid side gives an L of two ordinary orthogonal steps — so what changes
+  is a price, never a verdict: that route goes from 223 blocks to 241, and 0 corner cuts remain across the
+  eight boards' 24 journeys. Nothing in the ten suites moved, which is why the net is a new one: the pair of
+  cases, one void side and two, with the first failing on the old rule. (`Walk`, `WalkTests`,
+  `docs/world-scan/read-backs.md`)
 - **A generator's drop is a pad, and the pad is what the point follows (`RP70`).** A spawner's `at` named a
   coordinate and the slice wrote the centre of the block containing it, so a generator had no pad and its
   place was a number rather than ground — where `WX5`'s discipline is that the square is the truth and the

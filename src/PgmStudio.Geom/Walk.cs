@@ -306,11 +306,12 @@ public static class Walk
         {
             var side = (X: place.X + dx, Z: place.Z + dz);
             if (!ground.Stacks.TryGetValue(side, out var stack)) continue;
-            // A diagonal squeezes between two cells; where both of those are void the route would be
-            // cutting a corner across nothing, which is not a step a player takes.
+            // A diagonal squeezes between two cells, and a player walks it only where there is ground on
+            // both. One void side is a corner cut over a drop: the two ends are joined by the L through the
+            // solid side, which is the route and costs what it costs.
             if (dx != 0 && dz != 0
-                && !ground.Footprint.Contains((place.X + dx, place.Z))
-                && !ground.Footprint.Contains((place.X, place.Z + dz))) continue;
+                && (!ground.Footprint.Contains((place.X + dx, place.Z))
+                    || !ground.Footprint.Contains((place.X, place.Z + dz)))) continue;
 
             foreach (var next in stack)
                 if (ground.Steps(place, next)) yield return (next, dx != 0 && dz != 0);

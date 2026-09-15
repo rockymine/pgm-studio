@@ -55,6 +55,12 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   against the demand set it was read for — attack, defend, or the back-run — and the same hole can answer
   differently for each.
 
+  **The demand set states its own ground, and two rulings fix it** (author). The back-run is its own journey
+  rather than the attack reversed. And a **defender never leaves their own half**: the defend walk runs over
+  the board with the enemy's piece images removed, their own build zones kept, so a hole the enemy owns is not
+  a door of theirs. On the author's eight example plans that drops example 8's defend from three routes to two
+  and example 7's from two to one — the ones that crossed mid and came back.
+
   *measured: townside's per-team lateral spread across the attack runs 41 · 49 | 5 · 5 · 11 · 3 | 14 · 41 · 33
   | 7 — wide, narrow, wide. The single split reads (3,−8), inside the narrow stretch that is neither of the
   two the attack actually has.*

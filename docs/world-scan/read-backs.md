@@ -72,6 +72,13 @@ answers four things at once, each in its own unit and **none of them weighed aga
 | `blocks` | **blocks placed** | the climb and the bridging — the number a kit budget is compared against |
 | `drops` · `worstDrop` | **falls, and blocks** | a fall is free, and still a delay |
 
+**A diagonal step needs ground on both of the cells it squeezes between.** One of them being a drop makes it
+a corner the player goes round rather than across, so the step is refused and the L through the solid side is
+the route — at the two blocks that L costs rather than the diagonal's 1.41. The refusal never disconnects a
+board, because that L is made of two ordinary orthogonal steps; what it removes is a way past a corner nobody
+walks. Where *both* squeezed cells are void there is no L either, and two cells touching only at their corner
+are not joined at all.
+
 **A column offers a place for every surface in it carrying two clear blocks above, and the walk's node is a
 place rather than a cell.** A cell is `(x, z)`, a column seen from above; a place is `(x, z, y)`, a cell and
 the storey of it. A gallery under a deck is one cell and two places, and they are different somewhere to be —
