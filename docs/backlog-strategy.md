@@ -435,9 +435,10 @@ of them is the same thing: a document, a route or a solver that already answers,
 asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
-`S34`, `TS51`, `TS63`, `G164`, `B54`, `B9`. `G187` left this population by being read against the
-code rather than built: plan-tier flow is served and `Cells.WaysRound` is in use, so what its entry called a
-project is one missing primitive and one term. Four left it by shipping —
+`S34`, `TS51`, `TS63`, `G164`, `B54`, `B9`. `G187` left this population by being read against the code rather
+than built — plan-tier flow was already served and `Cells.WaysRound` already in use, so what its entry called
+a project was one missing primitive and one term — and then shipped as both (`FEATURES.md`). Four more left it
+by shipping —
 `B221` and `B258`, the library's pictures, `WE34`, the seat read, and `TS30`, the bend — which is the
 population behaving as intended: a roadmap entry is drained by being built, not by being triaged again.
 `B58` left it the same way, with `N12`: the destroyable suggester and the Configure phase that confirms from
@@ -452,7 +453,7 @@ relocation. What went instead was the hygiene population — `C12`, `C14`, `CV12
 
 The reorganisation that followed supersedes the relocation and is the better answer. Each roadmap entry now
 sits under the foundation it spends rather than in a bucket of its own, so `S46` reads beside the relief
-entries whose model it needs and `G187` beside the walk it would run on. A capability with no end condition is
+entries whose model it needs and `G164` beside the walk it would run on. A capability with no end condition is
 legible when it is filed against the thing that would make it possible, and unreadable in a list of its peers.
 The cost is that a section's length no longer says how much *work* is in it, which is what the split above is
 for.

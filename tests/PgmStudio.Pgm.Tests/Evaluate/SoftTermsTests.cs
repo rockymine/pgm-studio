@@ -324,4 +324,50 @@ public sealed class SoftTermsTests
         foreach (var term in LayoutEvaluator.AllTerms.OfType<SoftTerm>())
             await Assert.That(term.Measure(ctx).Violation).IsNull();
     }
+
+    /// <summary><b>The dead share is ground no journey reaches, and a spur is what makes it move.</b> A board
+    /// whose every piece is on somebody's way answers nothing; hang a spur off it that leads to no objective
+    /// and the same board answers a share of itself. That is the measure the term scores — how much of a board
+    /// the match actually spends, which is <c>G8</c>'s land-per-player read from the other side.</summary>
+    [Test]
+    public async Task The_dead_share_moves_when_a_spur_leads_nowhere()
+    {
+        // a lane with a spawn at one end and a wool at the other: every cell is on the one journey
+        const string spent = """
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
+             "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,10]}],
+             "placements":{"spawns":[{"piece":"lane","at":[5,2.5],"facing":"front"}],
+                           "wools":[{"piece":"lane","at":[5,47.5]}]}}
+            """;
+        // the same board with a wide spur hanging off it, leading to nothing
+        const string wasted = """
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
+             "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,10]},
+                       {"id":"spur","role":"piece","rect":[2,2,8,6]}],
+             "placements":{"spawns":[{"piece":"lane","at":[5,2.5],"facing":"front"}],
+                           "wools":[{"piece":"lane","at":[5,47.5]}]}}
+            """;
+        var term = new DeadShare();
+
+        var tight = term.Value(Ctx(spent, SeedEnvelopes.Empty));
+        var loose = term.Value(Ctx(wasted, SeedEnvelopes.Empty));
+
+        await Assert.That(tight).IsNotNull();
+        await Assert.That(loose).IsNotNull();
+        await Assert.That(loose!.Value).IsGreaterThan(tight!.Value)
+            .Because("the spur is reachable ground on the way to nothing");
+    }
+
+    /// <summary>And a board with nowhere to go measures nothing: there is no journey for ground to be off,
+    /// which is silence rather than a share of zero.</summary>
+    [Test]
+    public async Task A_board_with_no_objective_measures_no_dead_share()
+    {
+        const string aimless = """
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
+             "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,10]}]}
+            """;
+
+        await Assert.That(new DeadShare().Value(Ctx(aimless, SeedEnvelopes.Empty))).IsNull();
+    }
 }

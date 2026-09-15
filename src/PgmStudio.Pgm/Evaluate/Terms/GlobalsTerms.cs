@@ -75,3 +75,24 @@ public sealed class GapHopBand : ILayoutTerm
         return TermScores.Clean(this);
     }
 }
+
+/// <summary>The share of a board's ground that <b>no journey reaches</b> — reachable, and on the way to
+/// nothing. Every pair of places the board has claims a corridor and every place claims a ring around itself;
+/// what neither covers is ground a player walks past at most and stands on never.
+///
+/// <para>It reads the same concern <c>G8</c> states from the other side. Land per player says how much board
+/// there is for the people on it; this says how much of that board the match actually spends, and a high
+/// share is a board bigger than the thing it plays rather than a board with a big number in its globals.</para>
+///
+/// <para>A global scalar, so there is no one rectangle to point at — <c>PlanFlow</c>'s own read names the
+/// patches with their coordinates, which is what an author acts on. Null where the plan states no objective,
+/// since a board with nowhere to go has no journey to be off.</para></summary>
+public sealed class DeadShare : SoftTerm
+{
+    public override string Id => "dead-share";
+    public override string RuleId => "G8";
+
+    public override double? Value(EvalContext ctx) =>
+        ctx.Flow.Gamemode == "none" || ctx.Flow.GroundBlocks == 0 ? null : ctx.Flow.DeadShare;
+}
+

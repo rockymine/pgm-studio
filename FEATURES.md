@@ -4083,6 +4083,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wizard. (`9f645dc` → `45209a1`)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
+- **A flow reading the evaluator can fire (`G187`).** `PlanFlow` computed how much of a board no journey
+  reaches and served it as prose, and the evaluator's terms walked the surface for distances and cited neither
+  `PlanRoutes` nor `PlanFlow` — so no flow answer scored anything. `DeadShare` scores it, at `POST
+  /plan/evaluate`, the first call in an authoring loop and before a map row exists. It cites **`G8`**, which is
+  the same concern from the other side: land per player says how much board there is for the people on it, and
+  the dead share says how much of that board the match spends. `EvalContext.Flow` derives the read once and
+  lazily, beside `Board`, so a hard-only gate never pays for a traversal it does not read. Null where the plan
+  states no objective, since a board with nowhere to go has no journey to be off. Band learned over the 31
+  teaching maps: **[0, 0.12]**. (`GlobalsTerms`, `EvalContext`, `LayoutEvaluator`, `SoftTermsTests`,
+  `docs/generator/evaluator.md`, `seed-envelopes.md`)
 - **The funnel capacity, and why its ends are sets (`G187`).** `match-flow.md` §2 asks for the minimum vertex
   cut — the cheapest cells that, held, keep two pieces of ground apart — and says its **size** is the reading a
   bare "chokepoint" label loses, since ten blocks of frontage admits a different number of players than twenty.

@@ -417,6 +417,12 @@ it applies to and from no others.
   `GoalDistances`, which walks one field out of each goal and reads it at the spawns and at the other goals,
   so a board cannot answer them in two geometries. Bare reachability is the export gate's refusal, never a
   soft term.
+- **What the match spends** — the share of a board's ground no journey reaches (`dead-share`, G8), read off
+  `PlanFlow`: every pair of places claims a corridor and every place a ring around itself, and what neither
+  covers is ground a player walks past at most and stands on never. It states from the other side what G8's
+  land-per-player states from this one — a high share is a board bigger than the thing it plays rather than a
+  board with a big number in its globals. A global scalar, so the term points at nothing; `PlanFlow`'s own read
+  names each patch with its coordinates, which is what an author acts on.
 - **Height (purposeful, not random)** — surface deltas are multiples of 2 (EL1); ≤2 raised sections per
   island (EL4); **wool room ≥ its
   approach** (a real climb, WL5); a **tower** is a tall tile on the frontline edge that clears the void; and the

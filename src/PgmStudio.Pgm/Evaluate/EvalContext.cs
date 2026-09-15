@@ -22,6 +22,13 @@ public sealed class EvalContext
     private readonly Lazy<BoardStructure> _board;
     public BoardStructure Board => _board.Value;
 
+    private readonly Lazy<PlanFlow.Result> _flow;
+
+    /// <summary>What the board asks of the two sides: each demand set's walk, its decisions, and the ground no
+    /// journey reaches. Lazy for the same reason <see cref="Board"/> is — a hard-only gate never pays for a
+    /// traversal it does not read.</summary>
+    public PlanFlow.Result Flow => _flow.Value;
+
     private EvalContext(PlanModel plan, ContactGraph contacts, Findings findings, SeedEnvelopes envelopes)
     {
         Plan = plan;
@@ -29,6 +36,7 @@ public sealed class EvalContext
         Findings = findings;
         Envelopes = envelopes;
         _board = new Lazy<BoardStructure>(() => BoardDeriver.Derive(plan));
+        _flow = new Lazy<PlanFlow.Result>(() => PlanFlow.Read(plan));
     }
 
     /// <summary>Build the context for a plan, deriving the contact graph and running the structural validator

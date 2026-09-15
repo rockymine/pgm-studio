@@ -43,7 +43,6 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   *122 buildings on 32 boards: 4 fail today. A side with ground and under 3 clear blocks fails 51, under 5
   fails 76. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*
 
-
 - [ ] **B169 — Complain about spawn ground that carries nothing and contests nothing.** Raw size is not the
   test (author): a spawn seated on a large rectangle that *is* the map is fine, and Mirefast's 92-wide
   `steading` at least carries nine houses and two ramps. What fails is flat dead area around a spawn placed at
@@ -61,14 +60,6 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   *author, 2026-08-14 · Weirgate's `yard` spans `x −40…40` against a spawn piece of `x −10…10`; Mirefast's
   `steading` is 92 wide for a 20-block spawn. The corpus does not support a spawn-isolation rule: `dtcm` puts a
   spawn a median 7.5 blocks from the board edge and the generated ones sit 5–15 out.*
-
-- [~] **G187 — A flow reading the evaluator can fire.** The evaluator's 29 terms walk the surface for
-  distances (`SurfaceNav`), and `Evaluate/` cites neither `PlanRoutes` nor `PlanFlow` — so no flow answer
-  scores anything. A **dead-share** term wants writing over the answer `PlanFlow.Read` already gives, at
-  `POST /plan/evaluate`: the first call in the loop, before a map row exists. It lands in `Evaluate/Terms`
-  beside the others, and it is what makes `G164` a short consumer rather than a project.
-
-  *`PlanFlow.Result.DeadShare` is computed and served as prose today, and nothing reads the number.*
 
 - [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow
   measure so far reads one traversal at a time, and a single route cannot express tension. Tension is two
