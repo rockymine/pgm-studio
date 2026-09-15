@@ -115,6 +115,24 @@ public static class PlanFlow
             ? Walk.Between(start, goal, ground)?.Cost.Distance ?? 0
             : 0;
 
+    /// <summary>The same distance for a side that may not stand where it is going. A team cannot enter the
+    /// wool room it defends (<c>docs/pgm/filter-patterns.md</c> §1.2), so a defence's walk ends at the room's
+    /// <b>doorstep</b> — the nearest cell of its own ground touching the room — and that is the number the
+    /// side is read at. Where the objective is not barred this is <see cref="Reach"/>.</summary>
+    private static int ReachDoorstep(PlanNav nav, WalkGround theirs, (int X, int Z) from, (int X, int Z) to)
+    {
+        if (theirs.Stand(from) is not { } start) return 0;
+        if (theirs.Stand(to) is { } inside) return Walk.Between(start, inside, theirs)?.Cost.Distance ?? 0;
+
+        var room = nav.PieceAt.GetValueOrDefault(to, "");
+        var doorstep = Walk.Field(start, theirs)
+            .Where(place => Cells.N4(place.Key.Cell)
+                .Any(side => nav.PieceAt.GetValueOrDefault(side, "") == room))
+            .Select(place => place.Value.Distance)
+            .ToList();
+        return doorstep.Count > 0 ? doorstep.Min() : 0;
+    }
+
     private static List<FlowLeg> Legs(PlanNav nav, PlanModel plan, int cell)
     {
         var legs = new List<FlowLeg>();
@@ -129,11 +147,14 @@ public static class PlanFlow
             if (nav.Snap(goal.Cell) is not { } to) continue;
             var read = PlanRoutes.Read(nav, from, to);
             if (read.Shortest is not { } attack) continue;
-            var defend = Reach(ground, den, to);
+            // The defence walks its own ground: the enemy's spawn is shut to it and so is the room it
+            // defends, which is where its walk stops.
+            var theirs = nav.For(defender.K);
+            var defend = ReachDoorstep(nav, theirs, den, to);
 
             var split = read.Fork?.Split;
             var fuse = read.Fork?.Fuse;
-            var viaMerge = fuse is { } f ? Reach(ground, den, f) + Reach(ground, f, to) : 0;
+            var viaMerge = fuse is { } f ? Reach(theirs, den, f) + ReachDoorstep(nav, theirs, f, to) : 0;
             var detour = fuse is null ? 0 : Math.Max(0, viaMerge - defend);
 
             legs.Add(new FlowLeg(

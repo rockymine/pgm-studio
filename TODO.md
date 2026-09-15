@@ -88,17 +88,6 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   sharing an approach and the defender arriving from behind the objective. That test rests on a fuse position
   this entry says is wrong on townside, so it wants re-checking once the forks are per pair.*
 
-- [ ] **WS65 — A plan-tier walk ignores the `enter` rules the map states.** `WorldWalk.For(shared, data, team)`
-  narrows a built world's walk to one team's own ground; `PlanNav.Walkable()` has no twin, so every plan-tier
-  read walks ground a team is barred from. The defining case is a team's own wool room —
-  `docs/pgm/filter-patterns.md` §1.2, the `enter` filter `BuildGenerator` writes itself — which makes a
-  defender's journey end somewhere they may not stand. It lands as a per-team narrowing beside
-  `PlanNav.Walkable()`, read off the plan's own rooms rather than off a compiled document, and `WS3`'s demand
-  sets take it as their ground.
-
-  *All eight of the author's example plans walk the defence two cells inside the room it defends, so every
-  defender distance is long by that, and `DefenderRatio` is what the corpus reads match length off first.*
-
 - [ ] **WS66 — A defence has more than one origin, and the read knows only the spawn.** `PlanFlow.Legs`
   walks the defender from their spawn alone, so every defend answer is the respawn case. A player already at
   the frontline who turns to chase is defending from there, which is a different distance to the same

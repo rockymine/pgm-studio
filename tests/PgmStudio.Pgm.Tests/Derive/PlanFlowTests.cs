@@ -105,4 +105,27 @@ public sealed class PlanFlowTests
         await Assert.That(leg.Attack).IsGreaterThan(11 * plan.Globals.Cell);
         await Assert.That(PlanFlow.Read(plan).GroundBlocks % (plan.Globals.Cell * plan.Globals.Cell)).IsEqualTo(0);
     }
+
+    /// <summary><b>A defence is read at the door of the room it defends, not at the wool inside it.</b> A team
+    /// cannot enter its own wool room — the defining rule of the mode — so a walk that ends on the wool is a
+    /// walk that team cannot make. The doorstep is nearer, so the number falls, and `DefenderRatio` falls with
+    /// it: that ratio is what match length is read off before anything else geometric.</summary>
+    [Test]
+    public async Task A_defence_is_read_at_the_door_of_the_room_it_defends()
+    {
+        var plan = Board();
+        var nav = PlanNav.Of(plan);
+        var leg = PlanFlow.Read(plan).Legs.Single();
+
+        // the wool, and the walk that ignores whose ground it is
+        var defenderSpawn = nav.Snap(nav.Waypoints().First(w => w.Kind == "spawn" && w.K == 1).Cell)!.Value;
+        var wool = nav.Snap(nav.Waypoints().First(w => w.Kind == "wool" && w.K == 1).Cell)!.Value;
+        var shared = nav.Walkable();
+        var through = Walk.Between(shared.Stand(defenderSpawn)!.Value, shared.Stand(wool)!.Value, shared)!;
+
+        await Assert.That(leg.Defend).IsLessThan(through.Cost.Distance)
+            .Because("the walk through the room is one the defence is not allowed to make");
+        await Assert.That(leg.Defend).IsGreaterThan(0);
+        await Assert.That(nav.For(1).Stand(wool)).IsNull();
+    }
 }

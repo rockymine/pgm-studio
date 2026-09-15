@@ -9056,6 +9056,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **A plan-tier walk knows who is walking (`WS65`).** `WorldWalk.For` narrows a built world's walk by the
+  `enter` rules a map states; the plan tier had no twin, so every plan-tier read walked ground the side making
+  the journey is barred from. `PlanNav.Barred(team)` reads the two patterns the studio writes into every map it
+  compiles — a team may not enter another team's **spawn**, and may not enter the **wool room it defends**
+  (`docs/pgm/filter-patterns.md` §1.1 at 80% of the corpus, §1.2 at 96%, the defining rule of the mode) — and
+  `PlanNav.For(team)` hands back that team's own ground. A room belongs to the orbit image it is fanned to, so
+  the rule is the image and never the name. `PlanFlow` walks the defence on it and stops at the **doorstep** of
+  the room it defends, since a walk ending on the wool is one that side cannot make: on the author's eight
+  example plans every defence was 12 blocks long, and `DefenderRatio` — what match length is read off before
+  anything else geometric — moved with it. A marker is still snapped on the shared ground, because snapping on
+  the narrowed one slides a barred objective sideways and reports the walk to wherever it landed as the walk to
+  the objective. (`PlanNav`, `PlanFlow`, `PlanNavTests`, `PlanFlowTests`, `docs/world-scan/read-backs.md`)
 - **A diagonal needs ground on both sides of the corner it cuts (`WS64`).** `Walk` refused a diagonal only
   where **both** squeezed cells were void, so one void side and one solid one was a legal step — a player
   slipping past a corner over a drop. It is the whole of what made an eastern approach exist on the author's

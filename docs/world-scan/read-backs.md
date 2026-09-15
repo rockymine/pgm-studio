@@ -72,6 +72,15 @@ answers four things at once, each in its own unit and **none of them weighed aga
 | `blocks` | **blocks placed** | the climb and the bridging — the number a kit budget is compared against |
 | `drops` · `worstDrop` | **falls, and blocks** | a fall is free, and still a delay |
 
+**A walk is narrowed to the side making it.** An `enter` rule keeps a team off ground, so the ground one
+side walks is not the ground another does: `WorldWalk.For` narrows a built world's walk by the rules the map
+states, and `PlanNav.For` narrows the plan tier's by the two the studio writes into every map it compiles —
+a team may not enter another team's **spawn**, and may not enter the **wool room it defends**
+(`docs/pgm/filter-patterns.md` §1.1, §1.2). A marker is snapped on the shared ground and looked up on the
+narrowed one, because snapping on the narrowed one slides a barred objective sideways and reports the walk to
+wherever it landed as the walk to the objective. So a defence's walk ends at the door of the room it defends,
+which is the distance that side can actually make.
+
 **A diagonal step needs ground on both of the cells it squeezes between.** One of them being a drop makes it
 a corner the player goes round rather than across, so the step is refused and the L through the solid side is
 the route — at the two blocks that L costs rather than the diagonal's 1.41. The refusal never disconnects a
