@@ -63,6 +63,12 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   and out the other, a **defender** may not cross the room they defend, and a **spawn** is walked through by
   nobody. The last two already hold on those plans; the first keeps 12 of example 3's 36 attack ways.
 
+  **A defender rounds only a hole that is theirs**, which `BoardDeriver` already classifies: `encased` (a
+  bubble in one team's landmass) and `gap` (their own isolation cut) are theirs; `frontline` and `middle` are
+  rounded by walking the neutral crossing and are not. Filtering the doors by that class and confining the
+  ground to their own pieces plus non-crossing build agree on all eight plans, so either states it — example
+  1's defend drops from two ways to one at 79 blocks, example 7's from two to one.
+
   *measured: townside's per-team lateral spread across the attack runs 41 · 49 | 5 · 5 · 11 · 3 | 14 · 41 · 33
   | 7 — wide, narrow, wide. The single split reads (3,−8), inside the narrow stretch that is neither of the
   two the attack actually has.*
