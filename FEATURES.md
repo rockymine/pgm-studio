@@ -9056,6 +9056,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **A defence has a second origin, and it is the crossing (`WS66`).** `PlanFlow` walked the defender from
+  their spawn alone, so every defend answer was the respawn case — but a player already at the frontline who
+  sees the attack and turns is defending too, from somewhere a respawn never starts. `FlowLeg.Chase` is that
+  walk, from the nearest seat the two sides meet on, and which of the two is shorter is a fact about the board:
+  on the author's eight example plans the chase is **longer** than a respawn on five (a room at the back) and
+  **shorter** on three (a room at the front), so a spawn-only read cannot tell those shapes apart. The account
+  says which it is rather than leaving a reader to subtract. **The seat derivation moved to `Geom`**
+  (`Walk.Crossings`) beside `Corridor`, the other answer that sums two fields: `GroundCoverage` had it and
+  `PlanFlow` is in a sibling project that cannot reach it, so a second copy was the alternative. Its slack and
+  stretch floor are the caller's, since a cell is one block at the built tier and several at the plan tier —
+  passing the built tier's slack unconverted found seats on half the boards and none on the other half.
+  (`Walk`, `PlanFlow`, `GroundCoverage`, `PlanFlowTests`, `docs/world-scan/read-backs.md`)
 - **A plan-tier walk knows who is walking (`WS65`).** `WorldWalk.For` narrows a built world's walk by the
   `enter` rules a map states; the plan tier had no twin, so every plan-tier read walked ground the side making
   the journey is barred from. `PlanNav.Barred(team)` reads the two patterns the studio writes into every map it

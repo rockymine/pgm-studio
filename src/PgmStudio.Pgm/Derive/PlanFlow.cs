@@ -8,6 +8,9 @@ namespace PgmStudio.Pgm.Derive;
 /// <param name="Goal">The objective this leg is come at — the id the plan names it by.</param>
 /// <param name="Attack">The attacker's walk from their own spawn.</param>
 /// <param name="Defend">The defender's walk from theirs — the same goal, from the other side.</param>
+/// <param name="Chase">The same walk from the nearest crossing instead: a player already at the frontline who
+/// sees the attack and turns is defending too, and starts from somewhere a respawn never does. Zero on a board
+/// with no middle to stand on.</param>
 /// <param name="Ways">Distinct routes in, kept when the piece sequence differs.</param>
 /// <param name="SharedRoad">True when the defender's own shortest walk runs through the attackers' merge, so both
 /// sides come up the same road; false when going round it is shorter, which is a defence arriving from behind the
@@ -19,7 +22,7 @@ namespace PgmStudio.Pgm.Derive;
 /// <param name="MergeToGoal">Blocks from that merge to the objective: how far in the last shared stretch runs.</param>
 /// <param name="MergeDetour">What bypassing the merge saves the defender. Zero is a shared road.</param>
 public sealed record FlowLeg(
-    string Goal, int Attack, int Defend, int Ways,
+    string Goal, int Attack, int Defend, int Chase, int Ways,
     (int X, int Z)? Split, (int X, int Z)? Fuse,
     int SplitWidth, int FuseWidth, int MergeToGoal,
     bool SharedRoad, int MergeDetour)
@@ -47,6 +50,20 @@ public static class PlanFlow
     /// <summary>Under this, a split or a merge is a doorway rather than a place: everyone arrives at one
     /// point and the fight has no room. Stated in blocks across the narrower axis.</summary>
     public const int TightPassage = 8;
+
+    /// <summary>How far apart the two sides' walks may be and still count as ground they arrive at together,
+    /// in <b>cells</b> — an octile diagonal and a little, so the meeting line stays connected across a diagonal
+    /// run. It is multiplied by the board's cell size where it is used, because the walk answers in blocks.
+    ///
+    /// <para>Measured on the author's eight example plans: at one cell the line is thin enough to fragment
+    /// into four stretches on a board with one way across, and at two it reads one seat per way — one on the
+    /// five boards whose middle is a single band, two on the two that carry a pair.</para></summary>
+    public const int MeetingSlack = 2;
+
+    /// <summary>A meeting stretch under this many <b>cells</b> is the line clipping a corner rather than a way
+    /// across. Plan cells are several blocks each, so this is a smaller number than the same rule takes over a
+    /// built world's blocks.</summary>
+    public const int CrossingFloor = 2;
 
     /// <summary>Dead stretches smaller than this are slivers between corridors, not places.</summary>
     public const int PlaceFloor = 100;
@@ -142,6 +159,12 @@ public static class PlanFlow
         if (nav.Snap(attacker.Cell) is not { } from || nav.Snap(defender.Cell) is not { } den) return legs;
         var ground = nav.Walkable();
 
+        // The seats the two sides meet on — the origins a chase starts from, derived once for the board.
+        var crossings = Walk.Crossings(
+            [.. ground.Stand(from) is { } one ? new[] { one } : []],
+            [.. ground.Stand(den) is { } other ? new[] { other } : []],
+            ground, MeetingSlack * cell, CrossingFloor);
+
         foreach (var goal in nav.Waypoints().Where(w => w.Kind == "wool" && w.K == 1))
         {
             if (nav.Snap(goal.Cell) is not { } to) continue;
@@ -151,6 +174,12 @@ public static class PlanFlow
             // defends, which is where its walk stops.
             var theirs = nav.For(defender.K);
             var defend = ReachDoorstep(nav, theirs, den, to);
+            // A defence is not only somebody who just spawned: whoever was at the crossing when the attack
+            // came is defending from there, and that is the shortest of the seats rather than the spawn.
+            var chase = crossings
+                .Select(seat => ReachDoorstep(nav, theirs, seat.Cell, to))
+                .Where(walked => walked > 0)
+                .DefaultIfEmpty(0).Min();
 
             var split = read.Fork?.Split;
             var fuse = read.Fork?.Fuse;
@@ -159,7 +188,7 @@ public static class PlanFlow
 
             legs.Add(new FlowLeg(
                 $"{goal.Kind} at ({goal.X * cell}, {goal.Z * cell})",
-                attack, defend, read.Options.Count,
+                attack, defend, chase, read.Options.Count,
                 split, fuse,
                 split is { } s ? Width(nav, s) * cell : 0,
                 fuse is { } g ? Width(nav, g) * cell : 0,
@@ -199,6 +228,12 @@ public static class PlanFlow
                 text.AppendLine($"  {leg.Goal}");
                 text.AppendLine($"    The attacker walks {leg.Attack} blocks to it; the defender {leg.Defend}, "
                     + $"a ratio of {leg.DefenderRatio:F2}.");
+                if (leg.Chase > 0)
+                    text.AppendLine($"    A player already at the crossing is {leg.Chase} blocks from it — "
+                        + (leg.Chase < leg.Defend
+                            ? "nearer than a respawn, so the defence that matters is whoever was already out."
+                            : "further than a respawn, so this objective is defended from the back rather than "
+                              + "from the front."));
                 text.AppendLine("      " + (leg.DefenderRatio <= 0.25
                     ? "A defence that close is on the objective long before the attack is, which is the shape of a long match."
                     : leg.DefenderRatio >= 0.6

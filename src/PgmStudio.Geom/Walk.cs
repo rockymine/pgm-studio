@@ -455,6 +455,63 @@ public static class Walk
         return ribbon;
     }
 
+    /// <summary>
+    /// Where two sides arrive together, as <b>one seat per way across</b> — the places a player is already
+    /// standing when the other side reaches them, which is an origin rather than a destination.
+    ///
+    /// <para>Nothing names the middle of a board, so it is derived: the places both sides reach at the same
+    /// cost, within <paramref name="slack"/>, are the line they meet on. That line breaks into one stretch per
+    /// way across, and each stretch answers with its <b>widest</b> cell — the crossing players use, rather
+    /// than the corner where the line clips a wall. A stretch under <paramref name="floor"/> cells is the line
+    /// clipping something in passing and is not a way across.</para>
+    ///
+    /// <para><paramref name="slack"/> and <paramref name="floor"/> are the caller's because they are stated in
+    /// the caller's grid: a cell is a block at one fidelity and several at another, so a shared number would
+    /// mean two different distances.</para>
+    ///
+    /// <para>Two sides, because that is what a middle is. A caller with one has no meeting line and a caller
+    /// with four has six of them, none of which describes one crossing.</para>
+    /// </summary>
+    public static List<WalkPlace> Crossings(IEnumerable<WalkPlace> near, IEnumerable<WalkPlace> far,
+        WalkGround ground, int slack, int floor)
+    {
+        var seats = new List<WalkPlace>();
+        var reachNear = Cheapest(near, ground);
+        var reachFar = Cheapest(far, ground);
+        var meeting = new Dictionary<(int X, int Z), WalkPlace>();
+        foreach (var (place, fromNear) in reachNear)
+            if (reachFar.TryGetValue(place, out var fromFar) && Math.Abs(fromNear - fromFar) <= slack)
+                // One seat a cell: the storey the two sides meet lowest on is the one they meet on.
+                if (!meeting.TryGetValue(place.Cell, out var known) || place.Y < known.Y)
+                    meeting[place.Cell] = place;
+        if (meeting.Count == 0) return seats;
+
+        var clearance = Cells.Clearance(ground.Footprint, ground.Bounds);
+        var line = meeting.Keys.ToHashSet();
+        var seen = new HashSet<(int X, int Z)>();
+        foreach (var cell in line)
+        {
+            if (!seen.Add(cell)) continue;
+            var stretch = Cells.Flood([cell], line);
+            seen.UnionWith(stretch);
+            if (stretch.Count < floor) continue;
+            seats.Add(meeting[stretch.OrderByDescending(one => clearance.GetValueOrDefault(one, 0))
+                .ThenBy(one => one.Item2).ThenBy(one => one.Item1).First()]);
+        }
+        return seats;
+    }
+
+    /// <summary>The cheapest walk to each place from any of <paramref name="origins"/>, in blocks — one field
+    /// per origin, kept at the best each place answers.</summary>
+    private static Dictionary<WalkPlace, double> Cheapest(IEnumerable<WalkPlace> origins, WalkGround ground)
+    {
+        var best = new Dictionary<WalkPlace, double>();
+        foreach (var origin in origins)
+            foreach (var (place, cost) in Field(origin, ground))
+                if (cost.Distance < best.GetValueOrDefault(place, double.MaxValue)) best[place] = cost.Distance;
+        return best;
+    }
+
     /// <summary>The same ribbon with the slack stated as a share of the journey rather than in blocks — what
     /// a reader wants when the question is how far out of their way a player goes <em>relative to</em> a walk,
     /// rather than the absolute tolerance a corridor is claimed with.</summary>

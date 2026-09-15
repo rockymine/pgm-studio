@@ -72,6 +72,14 @@ answers four things at once, each in its own unit and **none of them weighed aga
 | `blocks` | **blocks placed** | the climb and the bridging — the number a kit budget is compared against |
 | `drops` · `worstDrop` | **falls, and blocks** | a fall is free, and still a delay |
 
+**Two sides arrive together somewhere, and that somewhere is an origin.** The places both sides reach at the
+same cost are the line they meet on; it breaks into one stretch per way across, and each stretch's widest cell
+is the seat players actually use rather than the corner where the line clips a wall (`Walk.Crossings`). A
+coverage read starts an attacker's journey there, and a flow read starts a **chase** there — the defence that
+was already out when the attack came, which is a different origin from the one a respawn starts at and on half
+a corpus of boards a nearer one. The slack and the stretch floor are the caller's, because a cell is one block
+at the built tier and several at the plan tier, so one number would mean two distances.
+
 **A walk is narrowed to the side making it.** An `enter` rule keeps a team off ground, so the ground one
 side walks is not the ground another does: `WorldWalk.For` narrows a built world's walk by the rules the map
 states, and `PlanNav.For` narrows the plan tier's by the two the studio writes into every map it compiles —

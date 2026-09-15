@@ -88,16 +88,6 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   sharing an approach and the defender arriving from behind the objective. That test rests on a fuse position
   this entry says is wrong on townside, so it wants re-checking once the forks are per pair.*
 
-- [ ] **WS66 — A defence has more than one origin, and the read knows only the spawn.** `PlanFlow.Legs`
-  walks the defender from their spawn alone, so every defend answer is the respawn case. A player already at
-  the frontline who turns to chase is defending from there, which is a different distance to the same
-  objective and the reason a long way round is weighed rather than dropped (`WS3`). `GroundCoverage` already
-  seats one origin on each way across the middle for exactly this reason (`PoiRadius`, the crossing seats) —
-  the defend demand set wants the same seats, read against the objective rather than against coverage.
-
-  *On the author's eight plans every defend distance is the spawn's: example 3 reads 69 from spawn, and the
-  frontline it would be chased from is 40-odd blocks nearer the wool.*
-
 - [ ] **B169 — Complain about spawn ground that carries nothing and contests nothing.** Raw size is not the
   test (author): a spawn seated on a large rectangle that *is* the map is fine, and Mirefast's 92-wide
   `steading` at least carries nine houses and two ramps. What fails is flat dead area around a spawn placed at

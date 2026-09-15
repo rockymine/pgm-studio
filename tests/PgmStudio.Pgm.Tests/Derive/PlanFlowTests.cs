@@ -128,4 +128,36 @@ public sealed class PlanFlowTests
         await Assert.That(leg.Defend).IsGreaterThan(0);
         await Assert.That(nav.For(1).Stand(wool)).IsNull();
     }
+
+    /// <summary><b>A defence has a second origin, and which one is nearer is a fact about the board.</b> The
+    /// board above puts the room behind the spawn, so a player at the crossing is further from it than a
+    /// respawn — and moving the room to the front flips that. A read that knew only the spawn could not tell
+    /// the two boards apart.</summary>
+    [Test]
+    public async Task A_chase_starts_at_the_crossing_and_may_beat_a_respawn_or_not()
+    {
+        var behind = PlanFlow.Read(Board()).Legs.Single();
+
+        // the same board with the room in front of the spawn instead of behind it
+        var forward = Board();
+        forward.Pieces = [.. forward.Pieces.Select(piece => piece.Id == "room"
+            ? P("room", -6, -6, 4, 4, PlanRoles.WoolRoom) : piece)];
+        var ahead = PlanFlow.Read(forward).Legs.Single();
+
+        await Assert.That(behind.Chase).IsGreaterThan(0);
+        await Assert.That(ahead.Chase).IsGreaterThan(0);
+        await Assert.That(behind.Chase).IsGreaterThan(behind.Defend)
+            .Because("a room at the back is reached sooner from the spawn than from the middle");
+        await Assert.That(ahead.Chase).IsLessThan(ahead.Defend)
+            .Because("a room at the front is reached sooner from the middle than from the spawn");
+    }
+
+    /// <summary>And the account says which it is, since the number alone does not tell a reader whether the
+    /// defence that matters is the one already out.</summary>
+    [Test]
+    public async Task The_account_names_where_the_defence_comes_from()
+    {
+        await Assert.That(PlanFlow.Describe(PlanFlow.Read(Board())))
+            .Contains("already at the crossing");
+    }
 }
