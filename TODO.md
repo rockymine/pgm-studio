@@ -69,6 +69,11 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   ground to their own pieces plus non-crossing build agree on all eight plans, so either states it — example
   1's defend drops from two ways to one at 79 blocks, example 7's from two to one.
 
+  **Exclusion is for what cannot happen; everything else is ranked** (author). A long way round on a team's
+  own ground stays in the report, sorted by distance, because **a defender is not only someone who just
+  spawned** — a player at the frontline who sees an attacker and gives chase is defending from a different
+  origin. So the read weighs example 5's 133 and example 3's 103, and never hides them.
+
   *measured: townside's per-team lateral spread across the attack runs 41 · 49 | 5 · 5 · 11 · 3 | 14 · 41 · 33
   | 7 — wide, narrow, wide. The single split reads (3,−8), inside the narrow stretch that is neither of the
   two the attack actually has.*
@@ -93,6 +98,16 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
 
   *All eight of the author's example plans walk the defence two cells inside the room it defends, so every
   defender distance is long by that, and `DefenderRatio` is what the corpus reads match length off first.*
+
+- [ ] **WS66 — A defence has more than one origin, and the read knows only the spawn.** `PlanFlow.Legs`
+  walks the defender from their spawn alone, so every defend answer is the respawn case. A player already at
+  the frontline who turns to chase is defending from there, which is a different distance to the same
+  objective and the reason a long way round is weighed rather than dropped (`WS3`). `GroundCoverage` already
+  seats one origin on each way across the middle for exactly this reason (`PoiRadius`, the crossing seats) —
+  the defend demand set wants the same seats, read against the objective rather than against coverage.
+
+  *On the author's eight plans every defend distance is the spawn's: example 3 reads 69 from spawn, and the
+  frontline it would be chased from is 40-odd blocks nearer the wool.*
 
 - [ ] **B169 — Complain about spawn ground that carries nothing and contests nothing.** Raw size is not the
   test (author): a spawn seated on a large rectangle that *is* the map is fine, and Mirefast's 92-wide
