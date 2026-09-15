@@ -410,7 +410,7 @@ public static class Deserializer
         ActionId = Str(d, "action"),
     };
 
-    private static WoolSpawner DecodeSpawner(Dict d) => new()
+    private static Spawner DecodeSpawner(Dict d) => new()
     {
         SpawnRegion = Str(d, "spawn_region"), PlayerRegion = Str(d, "player_region"),
         Delay = Str(d, "delay"), MaxEntities = AsIntN(Val(d, "max_entities")),

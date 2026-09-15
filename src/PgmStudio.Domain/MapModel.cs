@@ -440,6 +440,7 @@ public sealed class ObjectiveMode
     public string ActionId = "";        // refs an <actions> feature we do not parse; kept so it round-trips
 }
 
+/// <summary>One stack a <see cref="Spawner"/> drops.</summary>
 public sealed class SpawnerItem
 {
     public string Material = "";
@@ -447,12 +448,31 @@ public sealed class SpawnerItem
     public int Amount = 1;
 }
 
-public sealed class WoolSpawner
+/// <summary>
+/// A <c>&lt;spawner&gt;</c>: a place on the map that drops items on a clock while somebody is near enough to
+/// collect them. <see cref="SpawnRegion"/> is where the stack lands and <see cref="PlayerRegion"/> is who has
+/// to be standing there for the clock to run; <see cref="MaxEntities"/> caps how many of its drops may lie
+/// uncollected, which is what stops an unattended generator carpeting the ground.
+///
+/// <para><b>It is the map's mint.</b> A shop is priced in a material no spawn kit carries, and a spawner is
+/// where that material comes from: 374 of the 429 corpus entries yielding one of the eight commonest shop
+/// currencies are a spawner's items, against 31 block-drop rules and 24 kill-rewards.</para>
+/// </summary>
+public sealed class Spawner
 {
+    /// <summary>The region the stack lands in. Required by PGM.</summary>
     public string SpawnRegion = "";
+
+    /// <summary>The region a player must stand in for the clock to run. Required by PGM.</summary>
     public string PlayerRegion = "";
+
+    /// <summary>How long between drops, as a PGM duration. Empty takes PGM's own default.</summary>
     public string Delay = "";
+
+    /// <summary>How many of its drops may lie uncollected at once. Null takes PGM's default.</summary>
     public int? MaxEntities;
+
+    /// <summary>What it drops, every entry every time.</summary>
     public List<SpawnerItem> Items = [];
 }
 
@@ -594,7 +614,7 @@ public sealed class MapXml
     /// nothing on the map can score.</summary>
     public ScoreConfig? Score;
     public List<ObjectiveMode> Modes = [];
-    public List<WoolSpawner> Spawners = [];
+    public List<Spawner> Spawners = [];
     public List<Renewable> Renewables = [];
     public List<BlockDropRule> BlockDropRules = [];
     public Dictionary<string, Filter> Filters = new();

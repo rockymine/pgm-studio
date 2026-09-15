@@ -1143,9 +1143,9 @@ public sealed partial class MapParser
     [GeneratedRegex(@"\s+")]
     private static partial Regex WhitespaceRun();
 
-    private List<WoolSpawner> ParseSpawners()
+    private List<Spawner> ParseSpawners()
     {
-        var spawners = new List<WoolSpawner>();
+        var spawners = new List<Spawner>();
         foreach (var elem in _root.Descendants("spawners").SelectMany(s => s.Elements("spawner")))
         {
             var spawnRegion = Xml.Get(elem, "spawn-region", "").Trim();
@@ -1163,7 +1163,7 @@ public sealed partial class MapParser
                 var amtOk = int.TryParse(Xml.Get(itemElem, "amount", "1"), out var amount);
                 items.Add(new SpawnerItem { Material = material, Damage = dmgOk ? damage : 0, Amount = amtOk ? amount : 1 });
             }
-            spawners.Add(new WoolSpawner { SpawnRegion = spawnRegion, PlayerRegion = playerRegion, Delay = Xml.Get(elem, "delay", ""), MaxEntities = maxEntities, Items = items });
+            spawners.Add(new Spawner { SpawnRegion = spawnRegion, PlayerRegion = playerRegion, Delay = Xml.Get(elem, "delay", ""), MaxEntities = maxEntities, Items = items });
         }
         return spawners;
     }

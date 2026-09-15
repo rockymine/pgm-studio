@@ -272,4 +272,100 @@ public sealed class MapExportComposerPlayabilityTests
         await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
             .Any(finding => finding.Rule == ObjectiveRules.PointScoresIntoNothing)).IsFalse();
     }
+
+    // ── SH1 — a shop reference the document does not define ─────────────────────────────────────────────
+    // A board that sells things: one menu, one tab, one icon, and one keeper that opens it. Every reference
+    // resolves, which is what a studio-authored board always produces.
+    private static Dict Selling(Dict? icon = null, Dict? keeper = null)
+    {
+        var doc = Doc(("spawns", 2), ("teams", 2));
+        doc["shops"] = new List<object?>
+        {
+            new Dict
+            {
+                ["id"] = "item-shop",
+                ["categories"] = new List<object?>
+                {
+                    new Dict
+                    {
+                        ["id"] = "blocks",
+                        ["icon"] = new Dict { ["material"] = "hard clay" },
+                        ["icons"] = new List<object?> { icon ?? new Dict { ["item"] = new Dict { ["material"] = "wood" } } },
+                    },
+                },
+            },
+        };
+        doc["shopkeepers"] = new List<object?> { keeper ?? new Dict { ["shop"] = "item-shop" } };
+        return doc;
+    }
+
+    /// <summary>The board the studio writes says nothing: every id it names it also defines.</summary>
+    [Test]
+    public async Task A_board_whose_shop_references_all_resolve_is_silent()
+    {
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), Selling())
+            .Any(finding => finding.Rule == ShopRules.ReferenceNotDefined)).IsFalse();
+    }
+
+    /// <summary><b>A keeper naming a menu nothing defines is a map PGM will not load</b> —
+    /// <c>ShopModule.parse</c> throws <i>"No shop with id '…' could be found"</i> — so it is refused rather
+    /// than complained about, beside the other questions of whether this is a map at all.</summary>
+    [Test]
+    public async Task A_keeper_naming_no_menu_refuses_the_export()
+    {
+        var findings = MapExportComposer.Playable(
+            Intent(spawns: 2), Selling(keeper: new Dict { ["shop"] = "upgrade-shop" }));
+
+        var dangling = findings.Single(finding => finding.Rule == ShopRules.ReferenceNotDefined);
+        await Assert.That(dangling.Refuses).IsTrue();
+        await Assert.That(dangling.SubjectIds).IsEquivalentTo(new[] { "upgrade-shop" });
+    }
+
+    /// <summary>And the place it stands in is the same kind of reference: PGM resolves it against the map's
+    /// own regions and refuses when nothing answers.</summary>
+    [Test]
+    public async Task A_keeper_naming_no_region_refuses_the_export()
+    {
+        var doc = Selling(keeper: new Dict { ["shop"] = "item-shop", ["region"] = "market-floor" });
+
+        var dangling = MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Single(finding => finding.Rule == ShopRules.ReferenceNotDefined);
+        await Assert.That(dangling.SubjectIds).IsEquivalentTo(new[] { "market-floor" });
+    }
+
+    /// <summary>A region the map holds answers it, so a keeper standing in one says nothing.</summary>
+    [Test]
+    public async Task A_keeper_standing_in_a_region_the_map_holds_is_silent()
+    {
+        var doc = Selling(keeper: new Dict { ["shop"] = "item-shop", ["region"] = "market-floor" });
+        doc["regions"] = new Dict { ["market-floor"] = new Dict { ["id"] = "market-floor", ["type"] = "everywhere" } };
+
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Any(finding => finding.Rule == ShopRules.ReferenceNotDefined)).IsFalse();
+    }
+
+    /// <summary>An icon's action is a feature reference, and the studio authors no <c>&lt;actions&gt;</c>
+    /// block — so any id there names nothing on a studio-built board and the map would not load.</summary>
+    [Test]
+    public async Task An_icon_naming_an_action_nothing_defines_refuses_the_export()
+    {
+        var upgrade = new Dict
+        {
+            ["item"] = new Dict { ["material"] = "anvil" },
+            ["action"] = "add-protection",
+        };
+
+        var dangling = MapExportComposer.Playable(Intent(spawns: 2), Selling(icon: upgrade))
+            .Single(finding => finding.Rule == ShopRules.ReferenceNotDefined);
+        await Assert.That(dangling.Refuses).IsTrue();
+        await Assert.That(dangling.SubjectIds).IsEquivalentTo(new[] { "add-protection" });
+    }
+
+    /// <summary>A board with no shop at all is not asked, so the walk costs nothing on every other map.</summary>
+    [Test]
+    public async Task A_board_that_sells_nothing_is_not_asked()
+    {
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), Doc(("spawns", 2), ("teams", 2)))
+            .Any(finding => finding.Rule == ShopRules.ReferenceNotDefined)).IsFalse();
+    }
 }

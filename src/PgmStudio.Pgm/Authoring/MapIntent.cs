@@ -67,6 +67,13 @@ public sealed record MapIntent
     /// spawn's own floor beside the point players arrive on. Null/empty leaves the map's shops untouched.</summary>
     public List<ShopIntent>? Shops { get; init; }
 
+    /// <summary>What the board <b>mints</b>: the generators that drop items on a clock for players to pick up
+    /// (<c>docs/pgm/shops.md</c> §10). A spawn kit and the kill reward derived from it are the only other item
+    /// sources a generated board has, so a shop priced in anything else — which is 764 of the corpus's 907
+    /// icons — needs one of these. Null/empty is a board that mints nothing, which is every map with no
+    /// economy. They do not fan: a board's mints differ in place, rate and tier, so each is stated.</summary>
+    public List<SpawnerIntent>? Spawners { get; init; }
+
     /// <summary>The score that ends the match. Null takes
     /// <see cref="ObjectiveDefaults.ControlPointScoreLimit"/> on a board that carries a scoring capture
     /// point, which is the corpus's own answer, and nothing at all on a board that does not — and that
@@ -727,15 +734,31 @@ public sealed record ShopCategoryIntent
     public List<ShopItemIntent> Items { get; init; } = new();
 }
 
+/// <summary>One price in one currency, and the colour the menu draws it in.</summary>
+/// <param name="Price">How many of <paramref name="Currency"/> a purchase costs. Zero is free.</param>
+/// <param name="Currency">The material paid in. Empty is only legal at a zero price.</param>
+/// <param name="Color">The chat colour the price is drawn in, as a colour <b>name</b>. Empty takes PGM's
+/// gold, which is what 581 of the corpus's 907 icons leave it at.</param>
+[method: JsonConstructor]
+public readonly record struct ShopPaymentIntent(int Price, string Currency, string Color = "");
+
 /// <summary>
-/// One thing to buy: the stack, and what it costs.
-/// <para>The price is a count of one currency, which is the shape 766 of the corpus's 907 icons use. An icon
-/// that costs two currencies at once, or that triggers an action instead of handing over the stack, is a
-/// shop the studio reads and re-emits but does not yet author.</para>
+/// One thing to buy: the stack, what it costs, and what buying it does.
+///
+/// <para><b>A price is a list, because PGM takes every entry in it.</b> Two payments are a cost in two
+/// currencies <em>at once</em> rather than a choice between them, which is the upgrade ladder — a tier costs
+/// the previous tier plus a coin, so buying the diamond pickaxe consumes the gold one. PGM refuses two
+/// payments in one currency, since its affordability check walks the storage slots once per payment.</para>
+///
+/// <para><b><see cref="Action"/> empty is the ordinary icon and not a missing value.</b> An icon with no
+/// action <em>is</em> its stack: PGM hands it over as an item kit and marks it stackable, so shift-buying
+/// takes as many as a stack holds. An icon that names one is not stackable whatever the action does, because
+/// running it twice need not mean twice as much.</para>
 /// </summary>
 public sealed record ShopItemIntent
 {
-    /// <summary>The stack's material, which is the whole of what the buyer receives. Required.</summary>
+    /// <summary>The stack's material — the whole of what the buyer receives on an icon with no
+    /// <see cref="Action"/>, and the icon the menu draws either way. Required.</summary>
     public string Material { get; init; } = "";
 
     /// <summary>How many of it a purchase hands over.</summary>
@@ -744,24 +767,39 @@ public sealed record ShopItemIntent
     /// <summary>What it is called in the menu. Empty leaves the stack unnamed.</summary>
     public string Name { get; init; } = "";
 
-    /// <summary>Its price, in <see cref="Currency"/>. Zero is free.</summary>
-    public int Price { get; init; }
+    /// <summary>What it costs. Empty, or every price zero, is free — which is what PGM makes of an icon
+    /// stating no payment at all.</summary>
+    public List<ShopPaymentIntent> Payments { get; init; } = new();
 
-    /// <summary>The material paid in. Empty is only legal at a zero price.</summary>
-    public string Currency { get; init; } = "";
+    /// <summary>What buying it does, as a feature id — an action or a kit, which PGM resolves through one
+    /// lookup against one namespace, so this is the one field for both spellings. Empty hands over the stack.
+    ///
+    /// <para>It is a <b>reference</b>, and PGM refuses at load a map whose references do not resolve. The
+    /// studio authors no <c>&lt;actions&gt;</c> block, so an id here means a document that declares an
+    /// <c>&lt;include&gt;</c> defining it — and <c>SH1</c> is the complaint when it does not.</para></summary>
+    public string Action { get; init; } = "";
 
     /// <summary>Whether the stack is dyed to the buyer's team — the blocks a team builds with.</summary>
     public bool TeamColor { get; init; }
 }
 
 /// <summary>
-/// The keeper that opens a shop: what it is called and what it is.
+/// The keeper that opens a shop: what it is called, what it is, and where it stands.
 ///
-/// <para><b>Where it stands is not on it.</b> The studio places one keeper per shop at every team's spawn,
-/// on the spawn's own floor and beside the point players arrive on, because that is where a keeper a whole
-/// team has to reach belongs and because nothing else on a plan-compiled intent says where else it could go.
-/// PGM spawns the entity itself and freezes it, so the studio writes no blocks and no entity data for one —
-/// the keeper is entirely the XML.</para>
+/// <para><b>A keeper that says nothing about where it stands gets one per team spawn</b> —
+/// <see cref="ShopGenerator"/> puts it on the spawn's own floor beside the point players arrive on, because
+/// that is where a keeper a whole team has to reach belongs and because a plan-compiled intent carries no
+/// other place that is reliably indoors, level and the team's own. A keeper that <em>does</em> state one
+/// stands there, once: a shop building in the middle of a board is one shop for everybody, not a villager
+/// per spawn.</para>
+///
+/// <para>Where it stands is stated in either of PGM's two spellings, the same pair
+/// <see cref="Domain.Shopkeeper"/> reads back — coordinates, or the id of a region to stand in.
+/// <see cref="At"/> wins where a keeper carries both, because a coordinate resolves on its own and a region
+/// id is a reference that has to be found.</para>
+///
+/// <para>PGM spawns the entity itself and freezes it, so the studio writes no blocks and no entity data for
+/// one — the keeper is entirely the XML.</para>
 /// </summary>
 public sealed record ShopkeeperIntent
 {
@@ -771,6 +809,67 @@ public sealed record ShopkeeperIntent
     /// <summary>What to spawn, as a Bukkit entity type. Empty takes PGM's villager, which is what 222 of the
     /// corpus's 298 keepers are.</summary>
     public string Mob { get; init; } = "";
+
+    /// <summary>The block it stands on. Null derives a place per team spawn; stated, it is the one place and
+    /// the studio writes one keeper. The coordinates are moved to the block's centre, because PGM spawns the
+    /// entity exactly where the point says and a whole number leaves half of it in the next block.</summary>
+    public Pt? At { get; init; }
+
+    /// <summary>The region it stands in, for a board that would rather name a place than measure one. Empty
+    /// is a keeper placed by <see cref="At"/> or by the spawn derivation. The id has to be one the document
+    /// holds — PGM resolves it at load and refuses the map when it cannot (<c>SH1</c>).</summary>
+    public string Region { get; init; } = "";
+
+    /// <summary>Which way it faces, in degrees. Null leaves the facing to PGM on a stated place, and takes
+    /// the derived one — looking back at the spawn point — on a derived place.</summary>
+    public double? Yaw { get; init; }
+
+    /// <summary>Whether this keeper names its own place rather than taking one per team spawn.</summary>
+    [JsonIgnore] public bool Stands => At is not null || Region.Trim().Length > 0;
+}
+
+/// <summary>One stack a <see cref="SpawnerIntent"/> drops, every time it fires.</summary>
+/// <param name="Material">The block or item name, optionally <c>:data</c>. Required.</param>
+/// <param name="Amount">How many of it lands per drop.</param>
+[method: JsonConstructor]
+public readonly record struct SpawnerDrop(string Material, int Amount = 1);
+
+/// <summary>
+/// A generator: a place that drops items on a clock while somebody is near enough to collect them, and the
+/// only thing on a studio-authored board that mints a currency a spawn kit does not carry.
+///
+/// <para><b>It states a place, and the generator mints the regions PGM's element references</b> — a point
+/// where the stack lands, and the whole map as the ground a player has to be standing on for the clock to
+/// run, which is what 444 of the corpus's stated player-regions are. PGM takes region ids there rather than
+/// coordinates, so a spawner naming its own regions would be naming something the intent cannot define.</para>
+/// </summary>
+public sealed record SpawnerIntent
+{
+    /// <summary>What to call it. The regions are minted from this — <c>&lt;id&gt;-drop</c> and
+    /// <c>&lt;id&gt;-reach</c> — so it has to be unique among the board's spawners. Required.</summary>
+    public string Id { get; init; } = "";
+
+    /// <summary>The block the stack lands on. The coordinates are moved to the block's centre, so a drop
+    /// falls in the middle of a block rather than on a corner.</summary>
+    public Pt At { get; init; }
+
+    /// <summary>How long between drops, as a PGM duration (<c>30s</c>, <c>1m</c>).</summary>
+    public string Delay { get; init; } = MedianDelay;
+
+    /// <summary>How many of its drops may lie uncollected at once — what stops an unattended generator
+    /// carpeting the ground. Null states nothing and takes PGM's own default.</summary>
+    public int? MaxEntities { get; init; } = TypicalMaxEntities;
+
+    /// <summary>What it drops, every entry every time. A spawner stating none is left out rather than written
+    /// as a generator that produces nothing.</summary>
+    public List<SpawnerDrop> Drops { get; init; } = new();
+
+    /// <summary>The median delay of the 276 corpus spawners that drop one of the eight commonest shop
+    /// currencies, whose rates run from one second to a minute.</summary>
+    public const string MedianDelay = "10s";
+
+    /// <summary>The modal cap on those same 276 — 54 state five, 44 state eight, and 40 state none.</summary>
+    public const int TypicalMaxEntities = 5;
 }
 
 /// <summary>
@@ -783,6 +882,7 @@ public sealed record ShopkeeperIntent
 /// <param name="Material">What every opted-in objective becomes: a block name, optionally <c>:data</c>.</param>
 /// <param name="Name">What the boss bar and the announcement call it. Empty lets PGM name it off the
 /// material, which is what most of the corpus does.</param>
+[method: JsonConstructor]
 public readonly record struct ModeIntent(string After, string Material, string Name = "");
 
 /// <summary>

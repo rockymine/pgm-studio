@@ -64,8 +64,12 @@ public sealed class SymmetryExpanderCarryTests
             Categories = [new ShopCategoryIntent
             {
                 Id = "blocks", Material = "hard clay",
-                Items = [new ShopItemIntent { Material = "wood", Amount = 32, Price = 1, Currency = "gold nugget" }],
+                Items = [new ShopItemIntent { Material = "wood", Amount = 32, Payments = [new ShopPaymentIntent(1, "gold nugget")] }],
             }],
+        }],
+        Spawners = [new SpawnerIntent
+        {
+            Id = "mid", At = new Pt(0, 12, 0), Drops = [new SpawnerDrop("emerald")],
         }],
         ScoreLimit = ObjectiveDefaults.ControlPointScoreLimit,
         Modes = [new ModeIntent("15m", "gold block")],

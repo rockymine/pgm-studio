@@ -38,3 +38,19 @@ takes last.
   it rather than asking. The anchors are the plan's to derive and it does (`FEATURES.md`), so the step asks
   for a count on a board with no plan behind it and shows what the plan already worked out on one with.
 
+## The shop: buying things in the middle of a match
+
+PGM's economy module, and the one thing on a map that is not geometry. The codec and the authoring slice have
+landed (`FEATURES.md`) — a board states `shops` on its intent and gets a menu with a villager at every spawn.
+The contract and the corpus measurements behind every number below are `docs/pgm/shops.md`.
+
+**The foundation was one sentence: every entry here was a thing the codec already carried and the intent could
+not state.** It is settled (`FEATURES.md`): an icon carries every payment it costs and the action it triggers,
+a keeper names its own place, a board states the spawners that mint its currency, and `SH1` refuses a
+reference PGM would refuse at load. What remains is the surface, which the author takes last.
+
+- [ ] **TC9 — The configure tool cannot place a shop.** The API is the way in — an agent adds `shops` to the
+  intent it already posts (`docs/pgm/shops.md` §9) — and the wizard has no step for it. What the step states
+  is the menu: a name, a currency, and a list of material/amount/price rows. Where the keepers stand is
+  derived unless one names a place of its own (`docs/pgm/shops.md` §9), so the step offers the place and
+  fills nothing in where the board says nothing.

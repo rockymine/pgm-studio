@@ -9034,6 +9034,61 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **An intent's optional words survive the wire (`RP68`).** A positional record **struct** has an implicit
+  parameterless constructor, and `System.Text.Json` takes that one in preference to the primary constructor —
+  so a member the body left out arrived as `default`, which for a string is **null** rather than the empty
+  string its parameter states. `ModeIntent.Name` was the live one: `{"after":"15m","material":"gold block"}`
+  is what nearly every corpus map's ladder writes, and `ModesGenerator` read `.Length` off it, so posting one
+  answered `RQ2` — an unhandled fault on a documented shape. `[method: JsonConstructor]` names the constructor
+  that fills them, on `ModeIntent`, `StampId`, `ShopPaymentIntent` and `SpawnerDrop`, and
+  `IntentWireShapeTests` walks the whole record graph reachable from `MapIntent` so the next struct cannot
+  slip through: a value type on the wire whose constructor carries a string has to name it.
+  (`MapIntent`, `StampId`, `IntentWireShapeTests`, `docs/pgm/new-map-authoring.md`)
+- **A board mints what its shop is priced in (`PG14`).** 764 of the corpus's 907 shop icons are priced in a
+  material no spawn kit carries, and a generated board had two item sources — the kit, and the kill reward
+  `MapStandards` derives from it — neither of which is one. The corpus's answer is a **spawner**: of the 429
+  entries yielding one of the eight commonest shop currencies, 374 are `<spawner>` items against 31
+  block-drops and 24 kill-rewards. So the intent states them, and `SpawnerGenerator` mints the regions PGM's
+  element references rather than taking coordinates — a `point` on the centre of the block named, and one
+  shared `everywhere` for who has to be standing near, which is what 444 of the corpus's stated
+  player-regions are. Both are named for the slice, so regenerating replaces them and the wool rooms' own
+  spawners, which share the document's one `<spawners>` list, are left where they stand. The rates a board
+  takes when it says nothing are measured over the 276 currency spawners: a `10s` delay, their median, and a
+  cap of 5, their mode. *`Domain.WoolSpawner` is `Spawner` now — it drops emeralds, potions and golden apples
+  in the corpus and wool nowhere, and the name is what hid it from this entry.*
+  (`SpawnerIntent`, `SpawnerGenerator`, `Domain.Spawner`, `SpawnerGeneratorTests`, `docs/pgm/shops.md` §10)
+- **A shop reference PGM cannot resolve refuses the export (`PG13` — `SH1`).** Three of them load a map or
+  fail it: a keeper's `shop`, which `ShopModule.parse` throws *"No shop with id '…' could be found"* on by
+  name, and a keeper's `region` and an icon's `action`, which are feature references whose `resolve()` throws.
+  A map that will not load is not a map, so it refuses beside `EX2` rather than complaining beside `OB27`.
+  Asked only of an intent-authored board — whose menus are exactly what its intent stated, so anything outside
+  that set resolves to nothing — which is also why the include exemption needs no code: an imported map may
+  take its menus from an `<include>` the parser reads without splicing, and never reaches this gate.
+  *Measured with PGM's attribute inheritance, since the corpus writes `shop` on the `<shopkeepers>` parent:
+  all 15 corpus maps whose keepers name a menu they do not define are under `other/bedwars/` and every one
+  declares its include; no corpus icon names an action its own document lacks.*
+  (`ShopRules`, `MapExportComposer.ShopReferences`, `MapExportComposerPlayabilityTests`, `docs/refusals.md`)
+- **A keeper stands where the board says (`PG11`).** Every keeper's position was derived from the spawns, so a
+  shop building in the middle of a board had no way to be stated. `ShopkeeperIntent` now carries the pair
+  `Domain.Shopkeeper` reads back — a block, or the id of a region the map holds — plus a facing, and a keeper
+  naming one stands there **once**, because a shop in the middle of a board is one shop for everybody rather
+  than a villager per spawn. A coordinate answers a keeper carrying both, since it resolves on its own where a
+  region id has to be found. Saying nothing keeps the derivation: one per shop at every team's spawn, on the
+  spawn's floor, turned to face the point players arrive on. *12 of the corpus's 298 keepers stand in a named
+  region, all twelve of them `arcade/standard/balls_of_steel`'s.* (`ShopkeeperIntent`, `ShopGenerator`,
+  `ShopGeneratorTests`, `docs/pgm/shops.md` §9)
+- **An icon costs what it costs and does what it does (`PG12`).** `ShopItemIntent` stated one price, one
+  currency and no action, which is the plain sale and neither of the two shapes the corpus uses next. A
+  `payments` **list** replaces the pair — the same list `Domain.ShopIcon`, the intermediate document and the
+  store already held, so there is one shape rather than a shorthand beside it — and PGM takes every entry in
+  it, which is what makes the upgrade ladder authorable: a tier costs the previous tier *plus* a coin. The
+  writer decides the spelling, one payment on the icon element and several as `<payment>` children, because an
+  element can state one of each attribute. `Action` is the feature id under the one name PGM resolves both of
+  its spellings through. And nothing unloadable is written: PGM refuses a category with no icon and a shop
+  with no category, so a tab whose items all fall away is left out, a shop left with no tab goes with it, and
+  its keeper goes too. *105 of 907 corpus icons carry `<payment>` children and 555 name an action or a kit.*
+  (`ShopItemIntent`, `ShopPaymentIntent`, `ShopGenerator`, `ShopGeneratorTests`, `ShopIntentTests`,
+  `docs/pgm/shops.md` §3 §9)
 - **A team tint says which land it cannot tell apart (`WE120` — `PT5`).** A tint is one colour per canonical
   island, which is what makes it readable: a player standing anywhere on a landmass knows whose it is. On an
   island more than one team's spawns stand on the ownership keeps the first spawn read, so the whole of it

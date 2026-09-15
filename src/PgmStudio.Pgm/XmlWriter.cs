@@ -881,7 +881,7 @@ public static partial class XmlWriter
         return e;
     }
 
-    private static void WriteSpawners(XElement parent, List<WoolSpawner> spawners)
+    private static void WriteSpawners(XElement parent, List<Spawner> spawners)
     {
         var block = new XElement("spawners"); parent.Add(block);
         foreach (var s in spawners)

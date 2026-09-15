@@ -35,12 +35,29 @@ public sealed class ShopIntentTests
                 "material": "hard clay",
                 "name": "`aBuilding",
                 "items": [
-                  { "material": "wood", "amount": 32, "price": 1, "currency": "gold nugget" },
-                  { "material": "stained clay", "amount": 16, "price": 1, "currency": "gold nugget", "teamColor": true },
-                  { "material": "golden apple", "name": "`6Golden Apple", "price": 2, "currency": "gold nugget" }
+                  { "material": "wood", "amount": 32, "payments": [{ "price": 1, "currency": "gold nugget" }] },
+                  { "material": "stained clay", "amount": 16, "teamColor": true,
+                    "payments": [{ "price": 1, "currency": "gold nugget" }] },
+                  { "material": "diamond pickaxe", "name": "`6Diamond Pickaxe",
+                    "payments": [{ "price": 1, "currency": "gold pickaxe" },
+                                 { "price": 8, "currency": "gold nugget", "color": "green" }] }
                 ]
               }
             ]
+          }
+        ]
+        """;
+
+    // What mints what the menu is priced in: `docs/pgm/shops.md` §10, verbatim. The board above sells for
+    // gold nuggets, which no spawn kit carries, so without one of these it is a menu nobody can pay at.
+    private const string Spawners = """
+        [
+          {
+            "id": "mid-emeralds",
+            "at": { "x": 0, "y": 12, "z": 0 },
+            "delay": "30s",
+            "maxEntities": 8,
+            "drops": [{ "material": "emerald", "amount": 1 }]
           }
         ]
         """;
@@ -80,7 +97,11 @@ public sealed class ShopIntentTests
         var meta = node["meta"]?.AsObject() ?? [];
         meta["authors"] = new JsonArray(new JsonObject { ["name"] = "rockymine" });
         node["meta"] = meta;
-        if (shops is not null) node["shops"] = JsonNode.Parse(shops);
+        if (shops is not null)
+        {
+            node["shops"] = JsonNode.Parse(shops);
+            node["spawners"] = JsonNode.Parse(Spawners);
+        }
         return node.ToJsonString();
     }
 
@@ -128,10 +149,17 @@ public sealed class ShopIntentTests
         await Assert.That(category.Icon.Material).IsEqualTo("hard clay");
         await Assert.That(category.Icons.Count).IsEqualTo(3);
         await Assert.That(category.Icons.Select(i => i.Item.Material))
-            .IsEquivalentTo(new[] { "wood", "stained clay", "golden apple" });
+            .IsEquivalentTo(new[] { "wood", "stained clay", "diamond pickaxe" });
         await Assert.That(category.Icons.Single(i => i.Item.Material == "stained clay").Item.TeamColor).IsTrue();
         await Assert.That(category.Icons.Single(i => i.Item.Material == "wood").Payments.Single().Currency)
             .IsEqualTo("gold nugget");
+
+        // The upgrade ladder: PGM takes every payment in the list, so a tier costs the previous tier AND a
+        // coin. Several payments become <payment> children, since one element can state one of each attribute.
+        var ladder = category.Icons.Single(i => i.Item.Material == "diamond pickaxe").Payments;
+        await Assert.That(ladder.Select(pay => pay.Currency))
+            .IsEquivalentTo(new[] { "gold pickaxe", "gold nugget" });
+        await Assert.That(ladder.Single(pay => pay.Currency == "gold nugget").Color).IsEqualTo("green");
 
         // One keeper per team, each naming the shop it opens. PGM spawns the entity itself, so this element
         // is the whole of it — there is nothing in the world to check.
@@ -149,6 +177,25 @@ public sealed class ShopIntentTests
         // apart as the spawns are.
         var byZ = map.Shopkeepers.Select(k => k.Location!.Value.Z).ToList();
         await Assert.That(byZ.Distinct().Count()).IsEqualTo(map.Spawns.Count);
+    }
+
+    /// <summary>The other half of an economy: the generator that mints what the menu is priced in. The
+    /// element PGM reads names two regions rather than taking coordinates, so what is asserted is that both
+    /// were minted and that the spawner points at them.</summary>
+    [Test]
+    public async Task The_board_exports_with_the_spawner_that_mints_its_currency()
+    {
+        var (client, slug) = await ShopBoardAsync();
+        using var _ = client;
+
+        var map = MapParser.ParseXmlString(await XmlAsync(client, slug));
+        var spawner = map.Spawners.Single(s => s.Items.Any(item => item.Material == "emerald"));
+
+        await Assert.That(spawner.Delay).IsEqualTo("30s");
+        await Assert.That(spawner.MaxEntities).IsEqualTo(8);
+        await Assert.That(map.Regions.ContainsKey(spawner.SpawnRegion)).IsTrue();
+        await Assert.That(map.Regions.ContainsKey(spawner.PlayerRegion)).IsTrue();
+        await Assert.That(map.Regions[spawner.SpawnRegion].Type).IsEqualTo("point");
     }
 
     /// <summary>A board stating no shop is the board it was before — the slice is opt-in, and a plain wool

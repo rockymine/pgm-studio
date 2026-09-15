@@ -40,47 +40,88 @@ public static class ShopGenerator
         doc.Remove("shopkeepers");
         if (intent.Shops is not { Count: > 0 } shops) return;
 
-        var stated = shops.Where(shop => shop.Id.Trim().Length > 0 && shop.Categories.Count > 0).ToList();
+        // A menu is written only where it can load: PGM refuses a shop with no category and a category with
+        // no icon, so a shop whose tabs all fall away is left out rather than written unloadable.
+        var stated = shops
+            .Where(shop => shop.Id.Trim().Length > 0)
+            .Select(shop => (Shop: shop, Categories: Categories(shop)))
+            .Where(menu => menu.Categories.Count > 0)
+            .ToList();
         if (stated.Count == 0) return;
 
-        doc["shops"] = stated.Select(Shop).ToList<object?>();
+        doc["shops"] = stated.Select(menu => (object?)Shop(menu.Shop, menu.Categories)).ToList();
 
         var keepers = new List<object?>();
+        // A keeper naming its own place stands there once; the rest are derived, one per shop per spawn, and
+        // rank apart at each spawn so two menus do not share a block.
+        foreach (var (shop, _) in stated)
+            if (shop.Keeper is { Stands: true } placed) keepers.Add(Standing(shop, placed));
         foreach (var spawn in intent.Spawns)
         {
             var rank = 0;
-            foreach (var shop in stated)
+            foreach (var (shop, _) in stated)
             {
-                if (shop.Keeper is not { } keeper) continue;
+                if (shop.Keeper is not { Stands: false } keeper) continue;
                 keepers.Add(Keeper(shop, keeper, spawn, rank++));
             }
         }
         if (keepers.Count > 0) doc["shopkeepers"] = keepers;
     }
 
-    private static Dict Shop(ShopIntent shop)
+    private static Dict Shop(ShopIntent shop, List<object?> categories)
     {
-        var categories = shop.Categories
-            .Where(category => category.Id.Trim().Length > 0 && category.Material.Trim().Length > 0)
-            .Select(category =>
-            {
-                var icon = new Dict { ["material"] = category.Material.Trim() };
-                if (category.Name.Length > 0) icon["name"] = category.Name;
-                return (object?)new Dict
-                {
-                    ["id"] = IntentNaming.Slug(category.Id),
-                    ["icon"] = icon,
-                    ["icons"] = category.Items
-                        .Where(item => item.Material.Trim().Length > 0)
-                        .Select(Icon).ToList<object?>(),
-                };
-            }).ToList();
-
         var menu = new Dict { ["id"] = IntentNaming.Slug(shop.Id), ["categories"] = categories };
         if (shop.Name.Length > 0) menu["name"] = shop.Name;
         return menu;
     }
 
+    /// <summary>A keeper standing where the board said: on the centre of the block it named, or in the region
+    /// it named. One keeper, because a place is a place — a shop building in the middle of a board is one
+    /// shop for everybody rather than a villager per spawn.</summary>
+    private static Dict Standing(ShopIntent shop, ShopkeeperIntent keeper)
+    {
+        var entry = new Dict { ["shop"] = IntentNaming.Slug(shop.Id) };
+        if (keeper.At is { } at)
+            entry["location"] = new Dict { ["x"] = Centre(at.X), ["y"] = at.Y, ["z"] = Centre(at.Z) };
+        else
+            entry["region"] = keeper.Region.Trim();
+        if (keeper.Yaw is { } yaw) entry["yaw"] = yaw;
+        Label(entry, keeper);
+        return entry;
+    }
+
+    /// <summary>The tabs a shop is written with: those carrying an id, a stack to draw and at least one thing
+    /// to buy. PGM refuses a category with no <c>&lt;item&gt;</c> child, so a tab whose icons all fall away is
+    /// left out for the same reason a shop with no tab is — a menu that cannot load is worse than one that is
+    /// not there.</summary>
+    private static List<object?> Categories(ShopIntent shop) =>
+    [
+        .. shop.Categories
+            .Where(category => category.Id.Trim().Length > 0 && category.Material.Trim().Length > 0)
+            .Select(category => (Category: category, Icons: category.Items
+                .Where(item => item.Material.Trim().Length > 0).Select(Icon).ToList<object?>()))
+            .Where(tab => tab.Icons.Count > 0)
+            .Select(tab =>
+            {
+                var icon = new Dict { ["material"] = tab.Category.Material.Trim() };
+                if (tab.Category.Name.Length > 0) icon["name"] = tab.Category.Name;
+                return (object?)new Dict
+                {
+                    ["id"] = IntentNaming.Slug(tab.Category.Id),
+                    ["icon"] = icon,
+                    ["icons"] = tab.Icons,
+                };
+            }),
+    ];
+
+    /// <summary>
+    /// One purchasable: the stack the menu draws, every payment it costs, and what buying it does.
+    ///
+    /// <para>Payments are written as stated and in order. PGM takes every one of them, so two entries are a
+    /// price in two currencies at once; the writer decides the spelling — one payment rides on the icon
+    /// element and several become <c>&lt;payment&gt;</c> children — because an element can only state one of
+    /// each attribute. An icon with no payment is free, which is what an empty list already means to PGM.</para>
+    /// </summary>
     private static object? Icon(ShopItemIntent item)
     {
         var stack = new Dict { ["material"] = item.Material.Trim() };
@@ -89,13 +130,17 @@ public static class ShopGenerator
         if (item.TeamColor) stack["team_color"] = true;
 
         var icon = new Dict { ["item"] = stack };
-        // A price is one payment even when it is free: an icon that states neither price nor currency is one
-        // PGM hands over for nothing, and that is what an empty payment list already says.
-        if (item.Price > 0 || item.Currency.Trim().Length > 0)
-            icon["payments"] = new List<object?>
+        if (item.Action.Trim().Length > 0) icon["action"] = item.Action.Trim();
+
+        var payments = item.Payments
+            .Where(payment => payment.Price > 0 || payment.Currency.Trim().Length > 0)
+            .Select(payment =>
             {
-                new Dict { ["price"] = item.Price, ["currency"] = item.Currency.Trim() },
-            };
+                var paid = new Dict { ["price"] = payment.Price, ["currency"] = payment.Currency.Trim() };
+                if (payment.Color.Trim().Length > 0) paid["color"] = payment.Color.Trim();
+                return (object?)paid;
+            }).ToList();
+        if (payments.Count > 0) icon["payments"] = payments;
         return icon;
     }
 
@@ -121,16 +166,25 @@ public static class ShopGenerator
         var entry = new Dict
         {
             ["shop"] = IntentNaming.Slug(shop.Id),
-            // Facing back along the offset, so the keeper looks at the player who has just arrived.
-            ["yaw"] = Yaw(-stepX, -stepZ),
+            // Facing back along the offset, so the keeper looks at the player who has just arrived — unless
+            // the board stated a facing of its own.
+            ["yaw"] = keeper.Yaw ?? Yaw(-stepX, -stepZ),
             ["location"] = new Dict
             {
                 ["x"] = baseX + stepX * blocks, ["y"] = spawn.Point.Y, ["z"] = baseZ + stepZ * blocks,
             },
         };
+        Label(entry, keeper);
+        return entry;
+    }
+
+    /// <summary>What the entity is called and what it is — the two statements every keeper makes wherever it
+    /// stands. Each is left off where the board says nothing, so PGM's own defaults answer: the shop's id in
+    /// grey, on a villager.</summary>
+    private static void Label(Dict entry, ShopkeeperIntent keeper)
+    {
         if (keeper.Name.Length > 0) entry["name"] = keeper.Name;
         if (keeper.Mob.Trim().Length > 0) entry["mob"] = keeper.Mob.Trim();
-        return entry;
     }
 
     /// <summary>

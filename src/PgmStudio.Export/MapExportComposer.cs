@@ -260,7 +260,56 @@ public static class MapExportComposer
 
         findings.AddRange(ModeLadder(doc));
         findings.AddRange(CapturePoints(doc));
+        findings.AddRange(ShopReferences(doc));
         return findings;
+    }
+
+    /// <summary><b><c>SH1</c> — a shop reference the document does not define.</b> PGM resolves three of them
+    /// at load and refuses the whole map on any that fails: a keeper's <c>shop</c> throws <i>"No shop with id
+    /// '…' could be found"</i> by name, and a keeper's <c>region</c> and an icon's <c>action</c> are feature
+    /// references whose <c>resolve()</c> throws when nothing answers. A map that will not load is not a map,
+    /// which is why this refuses beside <c>EX2</c> rather than complaining beside <c>OB27</c>.
+    ///
+    /// <para>Asked only of an intent-authored board, which is the whole of this gate's reach: such a board's
+    /// menus are exactly what its intent stated, so a reference outside that set resolves to nothing. An
+    /// imported map may take its menus from an <c>&lt;include&gt;</c> the parser reads without splicing —
+    /// fifteen corpus boards do, all under <c>other/bedwars/</c> — and never reaches here.</para>
+    ///
+    /// <para>The action half is the one an author can trip. The studio writes no <c>&lt;actions&gt;</c> block,
+    /// so any id on a shop icon names something no studio-built document holds.</para></summary>
+    private static IEnumerable<Finding> ShopReferences(Dict doc)
+    {
+        var shops = Entries(doc, "shops").OfType<Dict>().ToList();
+        var keepers = Entries(doc, "shopkeepers").OfType<Dict>().ToList();
+        if (shops.Count == 0 && keepers.Count == 0) yield break;
+
+        var menus = shops.Select(shop => shop.GetValueOrDefault("id") as string ?? "").ToHashSet();
+        var regions = (doc.GetValueOrDefault("regions") as Dict)?.Keys.ToHashSet() ?? [];
+
+        foreach (var missing in Named(keepers, "shop").Where(id => !menus.Contains(id)).Distinct())
+            yield return Dangling("a shopkeeper", "shop", missing,
+                "PGM refuses the map at load rather than spawning a keeper with nothing to open");
+
+        foreach (var missing in Named(keepers, "region").Where(id => !regions.Contains(id)).Distinct())
+            yield return Dangling("a shopkeeper", "region", missing,
+                "PGM resolves the place it stands in against the map's own regions and finds none");
+
+        var actions = shops
+            .SelectMany(shop => Entries(shop, "categories").OfType<Dict>())
+            .SelectMany(category => Entries(category, "icons").OfType<Dict>())
+            .ToList();
+        foreach (var missing in Named(actions, "action").Distinct())
+            yield return Dangling("a shop icon", "action", missing,
+                "the studio authors no <actions> block, so nothing on this map defines it");
+
+        static IEnumerable<string> Named(IEnumerable<Dict> entries, string key) =>
+            entries.Select(entry => (entry.GetValueOrDefault(key) as string ?? "").Trim())
+                   .Where(id => id.Length > 0);
+
+        static Finding Dangling(string subject, string field, string id, string because) =>
+            new(ShopRules.ReferenceNotDefined,
+                $"{subject} names {field} \"{id}\" and the map defines no such thing — {because}",
+                Field: "shops", Subjects: [id]);
     }
 
     /// <summary><b><c>OB27</c> and <c>OB28</c> — the two ways a capture board does not play as written.</b>

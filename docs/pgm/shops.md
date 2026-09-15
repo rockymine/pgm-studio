@@ -63,6 +63,11 @@ any, and **otherwise the icon element itself**, whose own `price`/`currency` are
 `isFree` is "no payments, or none with a price above zero", and a free icon is affordable without looking at
 the inventory at all.
 
+A payment can also be a **stack** rather than a material: `parsePayment` reads an `<item>` child beside the
+`price`, and refuses a payment with a price above zero that carries neither that child nor a `currency`. No
+corpus payment uses it — 0 of the 156 `<payment>` elements in the two corpora — and the studio refuses a map
+that does, on the rule §8 states for every unread child.
+
 **`color` on an icon is the price's colour, not the item's.** The same element is read as an item and as a
 payment, and the two both want `color` — but `KitParser.parseItemMeta` reads it only when the stack's meta is
 `LeatherArmorMeta`, and `parsePayment` reads it always, as a `ChatColor` name defaulting to gold. A leather
@@ -195,7 +200,7 @@ refused by gates that have nothing to do with shops: three carry a scorebox and 
 
 ## 9. And what it builds
 
-An agent authors a board that sells things by adding one array to the intent it already posts to
+An agent authors a board that sells things by adding an array to the intent it already posts to
 `PUT /api/map/{slug}/intent`. There is no second endpoint and no new document:
 
 ```json
@@ -210,9 +215,12 @@ An agent authors a board that sells things by adding one array to the intent it 
         "material": "hard clay",
         "name": "`aBuilding",
         "items": [
-          { "material": "wood", "amount": 32, "price": 1, "currency": "gold nugget" },
-          { "material": "stained clay", "amount": 16, "price": 1, "currency": "gold nugget", "teamColor": true },
-          { "material": "golden apple", "name": "`6Golden Apple", "price": 2, "currency": "gold nugget" }
+          { "material": "wood", "amount": 32, "payments": [{ "price": 1, "currency": "gold nugget" }] },
+          { "material": "stained clay", "amount": 16, "teamColor": true,
+            "payments": [{ "price": 1, "currency": "gold nugget" }] },
+          { "material": "diamond pickaxe", "name": "`6Diamond Pickaxe",
+            "payments": [{ "price": 1, "currency": "gold pickaxe" },
+                         { "price": 8, "currency": "gold nugget", "color": "green" }] }
         ]
       }
     ]
@@ -220,11 +228,30 @@ An agent authors a board that sells things by adding one array to the intent it 
 ]
 ```
 
-**The keeper carries no position, and that is the whole of the placement rule.** `ShopGenerator` puts one
-keeper per shop at **every team's spawn** — on the spawn's own floor, beside the point players arrive on, and
-turned to face them. A team that has to reach a shop between lives reaches it at its spawn; a plan-compiled
-intent carries no other place that is reliably indoors, reliably level and reliably the team's own; and the
-corpus builds the same thing by hand on every board with more than one keeper (§6).
+**A price is a list, because PGM takes every entry in it.** Two payments are a cost in two currencies at once
+rather than a choice between them, which is the upgrade ladder the third icon above writes: the diamond
+pickaxe costs the gold one plus eight nuggets, so buying it consumes the tier below. The intent holds the
+same list `Domain.ShopIcon` reads back, and the writer decides the spelling — a single payment rides on the
+icon element, several become `<payment>` children, because an element can only state one of each attribute.
+An icon stating no payment is free, which is what an empty list already means to PGM.
+
+**An icon can trigger an action instead of handing over its stack.** `"action"` is the feature id, under the
+one name PGM resolves both of its spellings through, and the stack stays what the menu draws — an anvil
+labelled *Protection I* that buys a team enchantment rather than an anvil. An icon with no action **is** its
+stack and PGM marks it stackable; one that names an action is never stackable, because running it twice need
+not mean twice as much. The studio authors no `<actions>` block, so an id here names something only an
+`<include>` can define, and `SH1` refuses a board where nothing does.
+
+**A keeper that names no place is derived, and one that names a place stands there.** With neither `at` nor
+`region`, `ShopGenerator` puts one keeper per shop at **every team's spawn** — on the spawn's own floor,
+beside the point players arrive on, and turned to face them. A team that has to reach a shop between lives
+reaches it at its spawn; a plan-compiled intent carries no other place that is reliably indoors, reliably
+level and reliably the team's own; and the corpus builds the same thing by hand on every board with more
+than one keeper (§6). A keeper stating `at` — a block, moved to its centre — or `region` — an id the map
+already holds — is one keeper standing there, because a shop building in the middle of a board is one shop
+for everybody rather than a villager per spawn. A keeper carrying both is answered by `at`, which resolves on
+its own where a region id has to be found. `yaw` is the facing either way, and on a derived keeper it
+overrides the look back at the spawn point.
 
 Three details make the derived position land where it should. Blocks are counted **from the block the spawn
 point stands in**, so a keeper lands on a block centre and the two sides of the spawn are the same distance
@@ -240,19 +267,52 @@ entity data and nothing the world build has to resolve — which is why it runs 
 instead of waiting for the terrain the way a capture point's pad does. A shop board exports the moment the
 intent is stored.
 
-The catalogue is written as stated, with two rules of its own. A shop with **no category** is left out rather
-than written as a menu PGM refuses to load. And an item that states neither a price nor a currency is **free**,
-written with no payment at all, because that is what an empty payment list already means to PGM.
+The catalogue is written as stated, under one rule: **nothing is written that cannot load.** PGM refuses a
+shop with no category and a category with no icon, so a tab whose items all fall away is left out, a shop
+left with no tab goes with it, and a shop dropped that way takes its keeper too. A menu that is not there is
+better than one that fails the map at load.
 
-**What is not built** is on the board in `BACKLOG.md`. Each sentence becomes false when its task ships:
+## 10. Where the money comes from
 
-- **`PG11`** — a keeper can only stand at a spawn. A shop building in the middle of a board, or a keeper at a
-  wool room, has no way to be stated.
-- **`PG12`** — an icon that costs two currencies at once, or that triggers an action or a kit instead of
-  handing over its stack, is read and re-emitted but cannot be authored.
-- **`PG13`** — a keeper naming a shop no document holds is a map PGM refuses at load unless an include
-  provides it, and nothing says so.
-- **`PG14`** — a studio-authored board mints no currency. The spawn kit and the kill reward derived from it
-  are the only item sources a generated board has, so the only thing a shop can be priced in is the kit's own
-  wood.
+A shop is priced in a material nobody starts with. **764 of the corpus's 907 icons are priced in something no
+spawn kit carries** — emerald 225, nether star 126, gold ingot 118, gold nugget 86 — and a board that mints
+none of it is a menu nobody can open an account with. A generated board has two item sources of its own, and
+neither is one: the spawn kit `TeamsGenerator` writes, and the kill reward `MapStandards` derives from that
+kit's own blocks.
+
+**What mints it is a spawner.** Of the 429 corpus entries that yield one of the eight commonest shop
+currencies, **374 are `<spawner>` items** — against 31 block-drop rules and 24 kill-rewards — and 17 of the 39
+shop-carrying maps carry spawners. A `<spawner>` is a clock and a place: it drops its items into a region
+every so often while a player stands in another, up to a cap on how many may lie uncollected. PGM spawns the
+stack itself, so the studio writes no blocks for one.
+
+An agent states them as a second array on the same intent:
+
+```json
+"spawners": [
+  {
+    "id": "mid-emeralds",
+    "at": { "x": 0, "y": 12, "z": 0 },
+    "delay": "30s",
+    "maxEntities": 8,
+    "drops": [{ "material": "emerald", "amount": 1 }]
+  }
+]
+```
+
+**The regions are minted rather than authored**, because PGM's element names them by id and takes no
+coordinates. `SpawnerGenerator` writes a `point` region on the centre of the block `at` names — the drop lands
+exactly where the point says, and a whole number would put it on a corner — and gives every spawner on the
+board one shared `everywhere` region as the ground a player has to be standing on, which is what 444 of the
+corpus's stated player-regions are. Both are named for the slice, so regenerating replaces them and leaves
+the wool rooms' own spawners, which share the document's one `<spawners>` list, exactly where they stand.
+
+The two numbers a spawner takes when the board says nothing are the corpus's, measured over the 276 spawners
+that drop one of those currencies. The delay is **`10s`**, their median, against a spread running from a
+second to a minute. The cap is **5**, their mode — 54 state it, 44 state eight, and 40 state none at all. A
+spawner with nothing to drop is left out rather than written as a generator that fires forever and hands over
+nothing.
+
+**What is not built** is on the board. Each sentence becomes false when its task ships:
+
 - **`TC9`** — the configure tool has no step for a shop; the API is the way in.

@@ -26,8 +26,8 @@ public sealed class ShopGeneratorTests
                 Id = "blocks", Material = "hard clay", Name = "`aBlocks",
                 Items =
                 [
-                    new ShopItemIntent { Material = "wood", Amount = 32, Price = 1, Currency = "gold nugget" },
-                    new ShopItemIntent { Material = "stained clay", Amount = 16, Price = 1, Currency = "gold nugget", TeamColor = true },
+                    new ShopItemIntent { Material = "wood", Amount = 32, Payments = [new ShopPaymentIntent(1, "gold nugget")] },
+                    new ShopItemIntent { Material = "stained clay", Amount = 16, Payments = [new ShopPaymentIntent(1, "gold nugget")], TeamColor = true },
                 ],
             },
         ],
@@ -97,6 +97,86 @@ public sealed class ShopGeneratorTests
         await Assert.That(doc.ContainsKey("shopkeepers")).IsFalse();
     }
 
+    /// <summary>PGM refuses a category with no icon, so a tab whose every item falls away is left out — and a
+    /// shop left with no tab goes with it, which is the same rule one level up.</summary>
+    [Test]
+    public async Task A_tab_with_nothing_to_buy_is_not_written_and_takes_an_empty_shop_with_it()
+    {
+        var hollow = new ShopCategoryIntent { Id = "blocks", Material = "hard clay", Items = [] };
+        var doc = Generate(Board(Shop() with { Categories = [hollow] }));
+
+        await Assert.That(doc.ContainsKey("shops")).IsFalse();
+        await Assert.That(doc.ContainsKey("shopkeepers")).IsFalse();
+    }
+
+    /// <summary>A shop keeping one good tab and losing another writes the one that loads.</summary>
+    [Test]
+    public async Task A_shop_writes_the_tabs_that_can_load_and_drops_the_rest()
+    {
+        var hollow = new ShopCategoryIntent { Id = "empty", Material = "stone", Items = [] };
+        var shop = Shop();
+        var doc = Generate(Board(shop with { Categories = [.. shop.Categories, hollow] }));
+
+        var categories = (List<object?>)At(Shops(doc), 0)["categories"]!;
+        await Assert.That(categories.Count).IsEqualTo(1);
+        await Assert.That(((Dict)categories[0]!)["id"]).IsEqualTo("blocks");
+    }
+
+    // ── what an icon costs, and what buying it does ─────────────────────────────────
+    /// <summary>Two payments are a price in two currencies at once — the upgrade ladder, where a tier costs
+    /// the previous tier plus a coin. Both are written, in order.</summary>
+    [Test]
+    public async Task An_icon_carries_every_payment_it_states()
+    {
+        var ladder = new ShopItemIntent
+        {
+            Material = "diamond pickaxe",
+            Payments = [new ShopPaymentIntent(1, "gold pickaxe"), new ShopPaymentIntent(8, "emerald", "green")],
+        };
+        var doc = Generate(Board(WithItems(ladder)));
+
+        var payments = (List<object?>)At(Icons(doc), 0)["payments"]!;
+        await Assert.That(payments.Count).IsEqualTo(2);
+        await Assert.That(((Dict)payments[0]!)["currency"]).IsEqualTo("gold pickaxe");
+        await Assert.That(((Dict)payments[1]!)["price"]).IsEqualTo(8);
+        await Assert.That(((Dict)payments[1]!)["color"]).IsEqualTo("green");
+    }
+
+    /// <summary>An icon that names an action triggers it instead of handing over the stack, and the stack is
+    /// still what the menu draws.</summary>
+    [Test]
+    public async Task An_icon_carries_the_action_it_triggers()
+    {
+        var upgrade = new ShopItemIntent
+        {
+            Material = "anvil", Name = "`e`lProtection I", Action = "add-protection",
+            Payments = [new ShopPaymentIntent(4, "emerald")],
+        };
+        var icon = At(Icons(Generate(Board(WithItems(upgrade)))), 0);
+
+        await Assert.That(icon["action"]).IsEqualTo("add-protection");
+        await Assert.That(((Dict)icon["item"]!)["material"]).IsEqualTo("anvil");
+    }
+
+    /// <summary>An icon that states no payment at all is free, which is what an empty payment list already
+    /// means to PGM — so nothing is written rather than a price of nought.</summary>
+    [Test]
+    public async Task An_icon_with_no_payment_is_written_free()
+    {
+        var gift = new ShopItemIntent { Material = "golden apple" };
+        var icon = At(Icons(Generate(Board(WithItems(gift)))), 0);
+
+        await Assert.That(icon.ContainsKey("payments")).IsFalse();
+    }
+
+    private static ShopIntent WithItems(params ShopItemIntent[] items) => Shop() with
+    {
+        Categories = [new ShopCategoryIntent { Id = "blocks", Material = "hard clay", Items = [.. items] }],
+    };
+
+    private static List<object?> Icons(Dict doc) =>
+        (List<object?>)((Dict)((List<object?>)At(Shops(doc), 0)["categories"]!)[0]!)["icons"]!;
+
     // ── the keepers ─────────────────────────────────────────────────────────────────
     [Test]
     public async Task One_keeper_stands_at_every_spawn()
@@ -164,6 +244,60 @@ public sealed class ShopGeneratorTests
         var doc = Generate(Board(Shop() with { Keeper = null }));
         await Assert.That(Shops(doc).Count).IsEqualTo(1);
         await Assert.That(doc.ContainsKey("shopkeepers")).IsFalse();
+    }
+
+    // ── a keeper that names its own place ───────────────────────────────────────────
+    /// <summary>A keeper standing somewhere the board named stands there <b>once</b>: a shop building in the
+    /// middle of a map is one shop for everybody, not a villager per spawn. The coordinates land on the
+    /// block's centre, because PGM spawns the entity exactly where the point says.</summary>
+    [Test]
+    public async Task A_keeper_with_a_place_of_its_own_stands_there_once()
+    {
+        var market = new ShopkeeperIntent { Name = "Market", At = new Pt(12, 70, -6), Yaw = 135 };
+        var keepers = Keepers(Generate(Board(Shop(keeper: market))));
+
+        await Assert.That(keepers.Count).IsEqualTo(1);
+        var at = (Dict)At(keepers, 0)["location"]!;
+        await Assert.That(at["x"]).IsEqualTo(12.5);
+        await Assert.That(at["y"]).IsEqualTo(70d);
+        await Assert.That(at["z"]).IsEqualTo(-5.5);
+        await Assert.That(At(keepers, 0)["yaw"]).IsEqualTo(135d);
+    }
+
+    /// <summary>The other spelling: a region the map already holds, which is how twelve of the corpus's
+    /// keepers state where they stand.</summary>
+    [Test]
+    public async Task A_keeper_can_name_the_region_it_stands_in()
+    {
+        var named = new ShopkeeperIntent { Region = "lime-spawn-shop-1" };
+        var keeper = At(Keepers(Generate(Board(Shop(keeper: named)))), 0);
+
+        await Assert.That(keeper["region"]).IsEqualTo("lime-spawn-shop-1");
+        await Assert.That(keeper.ContainsKey("location")).IsFalse();
+    }
+
+    /// <summary>A keeper carrying both is answered by the coordinate, which resolves on its own where a
+    /// region id is a reference that has to be found.</summary>
+    [Test]
+    public async Task A_coordinate_answers_a_keeper_that_states_both()
+    {
+        var both = new ShopkeeperIntent { At = new Pt(4, 64, 4), Region = "somewhere" };
+        var keeper = At(Keepers(Generate(Board(Shop(keeper: both)))), 0);
+
+        await Assert.That(keeper.ContainsKey("location")).IsTrue();
+        await Assert.That(keeper.ContainsKey("region")).IsFalse();
+    }
+
+    /// <summary>A stated facing wins on a derived place too — the board keeps the spawn-side placement and
+    /// says which way the villager looks.</summary>
+    [Test]
+    public async Task A_stated_facing_wins_over_the_derived_one()
+    {
+        var facing = new ShopkeeperIntent { Name = "Shop", Yaw = 45 };
+        var keepers = Keepers(Generate(Board(Shop(keeper: facing))));
+
+        await Assert.That(keepers.Count).IsEqualTo(2);
+        await Assert.That(At(keepers, 0)["yaw"]).IsEqualTo(45d);
     }
 
     /// <summary>

@@ -389,7 +389,7 @@ public static class Serializer
         return r;
     }
 
-    private static Dict EncodeSpawner(WoolSpawner s)
+    private static Dict EncodeSpawner(Spawner s)
     {
         var r = new Dict { ["spawn_region"] = s.SpawnRegion, ["player_region"] = s.PlayerRegion };
         if (s.Delay.Length > 0) r["delay"] = s.Delay;

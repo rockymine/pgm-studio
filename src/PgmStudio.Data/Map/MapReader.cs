@@ -194,7 +194,7 @@ public sealed class MapReader(PgmDb db)
         }
 
         foreach (var sp in await db.MapSpawners.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
-            m.Spawners.Add(new WoolSpawner
+            m.Spawners.Add(new Spawner
             {
                 SpawnRegion = sp.SpawnRegionKey ?? "", PlayerRegion = sp.PlayerRegionKey ?? "",
                 Delay = sp.Delay ?? "", MaxEntities = sp.MaxEntities,

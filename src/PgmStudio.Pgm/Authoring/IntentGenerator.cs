@@ -29,6 +29,9 @@ public static class IntentGenerator
         // After the objectives and before the zoning, because a keeper is placed from the spawns rather than
         // from anything an objective decides, and it stamps nothing for a later pass to resolve.
         ShopGenerator.Apply(doc, intent);
+        // After the wool rooms, whose own spawners share the document's one <spawners> list: this slice
+        // replaces only the entries naming a region of its own, so the order decides nothing but reading.
+        SpawnerGenerator.Apply(doc, intent);
         // Water lanes before build: a lane is geometry the build slice must not see, and emitting it first
         // keeps the region ordering stable regardless of how many lanes a plan carries.
         WaterLaneGenerator.Apply(doc, intent);
