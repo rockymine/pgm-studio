@@ -9066,6 +9066,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **A building leaves eight blocks past every side of it (`WE45`).** `DR-PASS` asked whether *one* of a
+  building's four sides carried five blocks of passable ground, which on a corridor board is a question about
+  where the house sits rather than about the room it leaves: a house eleven blocks wide in a fifteen-block lane
+  with one block of ground either side stood, because the lane running on ahead of it counted as a way past,
+  while the same house shoved against a wall was declined at four. **The lane a building stands in is the
+  ground players arrive on, not a way round it** (the author's ruling), so every side is asked, at **eight**
+  blocks. A side the ground stops flush against is the map's own edge or a hole and a building may stand
+  against one — a coast house is a house — but not against two facing each other, which is a building spanning
+  the land rather than seated at its edge; half a side over a hole is a broken passage rather than a coast. The
+  band runs along the **walls** while its depth is counted from the **stamp**, because an eave may oversail the
+  void at a coast and a column the building does not stand on says nothing about the ground beside it — which
+  is what stopped a house in the middle of a sixty-block bar reading as a house on a cliff. A 15-block lane now
+  takes a building 7 across including its eaves, hugged to one wall; on `example-3`, 1,072 of the 4,510 sites a
+  5×5 building can seat on leave a passage. (`GroundClaims`, `Decorator`, `DecoratorTests`,
+  `DressingProvenanceTests`, `docs/world-export/decoration.md`, `docs/refusals.md`)
 - **Interference: what a second way in is worth (`G164`).** Every flow measure read one traversal at a time,
   and a single route cannot express tension. `FlowLeg.Interference` lays two over each other — the share of the
   defence's own corridor that the attack's corridor also covers, each ribbon walked at `Walk.Detour` over the

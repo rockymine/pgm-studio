@@ -76,7 +76,7 @@ public sealed class DressingProvenanceTests
             new HouseProp
             {
                 Id = "h1",
-                Wings = [new AuthoredWing([[10, 10], [18, 18]])],
+                Wings = [new AuthoredWing([[0, 0], [8, 8]])],
                 Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
             },
             new TreeProp { Id = "t1", X = -10, Z = -10, Seed = 5 },

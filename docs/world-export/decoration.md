@@ -770,19 +770,37 @@ crevasse — declined by nothing, because every cell had ground under it. The fi
 same one an objective's ground gets: an `area` relief mark under the footprint, which states the plateau
 rather than hoping for one.
 
-**It must leave a way past itself (`DR-PASS`).** Beside a building there must be **five blocks** of passable
-ground along at least one of its four sides — the whole run of that side, extended one step past each
-corner, which is the cell a player turns in from and exactly what separates a flank that can be entered from
-one walled off at both ends. The five are counted from **what the building stamps, not from its walls**: a
-roof oversails its wall by at least one block whatever the style says (`HouseStamper.StampedCells`), and the
-blocks a player has to walk under are the ones that were written, so the band starts where the building
-physically stops. It is the same extent the claim test and the route crossing already read, which is what
-keeps one account of how much ground a building takes. The failure this closes was generated for real: a house across the full width
-of a land leg, void on both flanks, so the only way to the other side was through the building. A house
-against the map's own edge is fine — a coast house is a house — as long as the other side keeps the passage.
+**It must leave a way past itself (`DR-PASS`).** Beside a building there must be **eight blocks** of passable
+ground along the whole run of **every** one of its four sides. The eight are counted from **what the building
+stamps, not from its walls**: a roof oversails its wall by at least one block whatever the style says
+(`HouseStamper.StampedCells`), and the blocks a player has to walk under are the ones that were written, so
+the band starts where the building physically stops. It is the same extent the claim test and the route
+crossing already read, which is what keeps one account of how much ground a building takes. The band runs
+along the **walls** rather than along the stamp, because an eave may oversail the void at a coast and a column
+the building does not stand on says nothing about the ground beside it.
+
+Every side is asked, and that is the load-bearing half. **The lane a building stands in is the ground players
+arrive on, not a way round the thing blocking them** (the author's ruling): a house eleven blocks wide in a
+fifteen-block lane, a block of ground either side and forty blocks of lane running on ahead, corks that lane
+as surely as one built wall to wall. Asking one side let it through on the strength of the corridor it was
+blocking.
+
+A side the ground stops **flush** against — no ground at all at the first step off the stamp — is the map's own
+edge or a hole in it, and a building may stand against one: a coast house is a house. It may not stand against
+two facing each other, which is a building spanning the land rather than one seated at its edge, and is what
+a house across the full width of a land leg reads as. Half a side over a hole is a broken passage rather than a
+coast, and is the fault.
+
 Passable means terrain with nothing *built* on it: a road or a channel alongside the wall still counts as a
 way past, an earlier building does not. A breach declines the whole prop with the rule id in its census
 reason, decided once for the orbit like every other refusal here.
+
+The arithmetic is what an author feels. A lane **15 blocks** across takes a building **7 across including its
+eaves** — a 5-block wall footprint, which is exactly `DR-SIZE`'s floor — and only hugged to one wall; nothing
+stands in the middle of it. Two buildings in a row need **eleven blocks between their walls**: eight of
+passage, an eave each, and the block of ring the first one holds. On `example-3`, a board whose lanes are all
+fifteen wide, **1,072 of the 4,510 sites** a 5×5 building can seat on leave a passage, and the largest square
+that fits anywhere on it is **15×15**.
 
 **It may end a road but never stand across one (`DR-CROSS`).** A road is meant to run to a porch or a door,
 so a building taking the ground a road covers is ordinary: the road ends at its wall and the building wins the
@@ -802,8 +820,9 @@ Measured over the thirty-two boards `pgm-studio-mapgen` has built: **7 of 122** 
 route, on five boards, and **3** sit at the end of one and stand.
 
 **It must not close a way the board is played along (`DR-WAY`).** `DR-PASS` is local: it asks whether there
-is ground beside the building, and a building can leave five clear blocks on every side and still cork the
-one leg the map is walked down, because the ground it corks is a hundred blocks away and shaped like a neck.
+is ground beside the building, and a building can leave eight clear blocks on every side and still cork the
+one leg the map is walked down, because the ground it leaves open is not ground a player can reach — a house
+sealing a spawn room's whole face has open board on the far side of itself and passes.
 So the board is walked. Between every pair of the cells the map is **played between** — its spawns, its wool
 rooms and monuments, its destroyables, its cores and its capture points — the shortest route over the bare
 terrain is taken once, and

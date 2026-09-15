@@ -242,8 +242,8 @@ What is left is the seam itself. `B213`.
 corpus number and the document that would carry the rule, and none of them is a gate: a building walled in
 the ground's own family (`WE46`, 9 of 50 buildings), a board wearing a theme per piece (`WE47`, 24 themes on
 one board — shipped), a pattern brushed smaller than what it dresses (`WE48`), and a pattern showing off a family
-rather than being a ground (`WE41`). `WE45` is the same cause from the other end — a rule that exists,
-measures the wrong rectangle and asks for the widest side instead of every side.
+rather than being a ground (`WE41`). `WE45` was the same cause from the other end — a rule that existed and
+measured the wrong thing, which is drained by measuring it right rather than by filing a fifth complaint.
 
 **Working it split the cause in two, and the split is what the group is now ordered by.** A complaint closes
 when its **domain** closes: a house has a fixed parts list, which is why `HS1`–`HS10` is a rule set that could

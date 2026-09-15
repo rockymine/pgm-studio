@@ -805,11 +805,12 @@ public static class Decorator
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
-            if (!HasPassage(context, ground, claims, image, house.Style))
+            if (!HasPassage(ground, claims, image, house.Style))
             {
                 declined.Add(new Finding(DressingRules.PassAround,
-                    $"building '{house.Id}' leaves no way past it: fewer than "
-                    + $"{DressingRules.PassAroundWidth} blocks of passable ground beside every side",
+                    $"building '{house.Id}' leaves no way past it: a side of it has fewer than "
+                    + $"{DressingRules.PassAroundWidth} blocks of passable ground along its whole run, and is "
+                    + "not the edge of the ground the building stands on",
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
@@ -972,40 +973,63 @@ public static class Decorator
         return null;
     }
 
-    /// <summary>Whether a building leaves a way past itself: at least one of its four sides carries a band of
-    /// passable ground <see cref="DressingRules.PassAroundWidth"/> blocks deep along its whole run — extended
-    /// one step past each corner, because that step is where the passage turns in from, and it is exactly the
-    /// cell that separates a flank a player can enter from a flank walled off at both ends. A house corking a
-    /// leg fails all four: its flanks are void, and the ground beyond its gable ends fails the corner step.
-    /// Passable is terrain with nothing <em>built</em> on it — a road or a channel alongside the wall is
-    /// still a way past, an earlier building is not.
+    /// <summary>What one side of a building has beside it: a passage
+    /// <see cref="DressingRules.PassAroundWidth"/> blocks deep along the building's whole run, the map's own
+    /// edge, or too little of either.</summary>
+    private enum Flank
+    {
+        /// <summary>The full band is passable — terrain with nothing <em>built</em> on it, so a road or a
+        /// channel alongside the wall is a way past and an earlier building is not.</summary>
+        Clear,
+        /// <summary>No ground at all beside that side: the building stands flush against the board's edge or
+        /// a hole in it.</summary>
+        Edge,
+        /// <summary>Ground, and not enough of it — the case the rule exists for.</summary>
+        Short,
+    }
+
+    /// <summary>Whether a building leaves a way past itself: <b>every</b> side carries a band of passable
+    /// ground <see cref="DressingRules.PassAroundWidth"/> blocks deep along the building's run, and a side
+    /// the ground stops flush against is a coast the building may stand on — but not two facing each other,
+    /// which is a building spanning the land it stands on rather than one seated at its edge.
     ///
-    /// <para><b>Measured from what the building stamps, not from its walls.</b> A roof overhangs its wall by
-    /// the style's eave, and the blocks a player has to walk under are the ones that were written — so the
-    /// band starts where the building physically stops. The same <see cref="ClaimedCells"/> the claim test and
-    /// the route crossing already read, which is what keeps one account of a building's extent. Over its
-    /// bounding box: the notch of an L is the building's own ground, not a public route through it.</para></summary>
-    private static bool HasPassage(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, GroundClaims.Storey claims, BuildingPlan plan, HouseStyle style)
+    /// <para><b>Measured from what the building stamps, along what it stands on.</b> A roof overhangs its
+    /// wall by the style's eave and the blocks a player has to walk under are the ones that were written, so
+    /// the band starts where the building physically stops — the same <see cref="ClaimedCells"/> the claim
+    /// test and the route crossing read. It runs along the <em>walls</em>, because an eave may oversail the
+    /// void at a coast and a column the building does not stand on says nothing about the ground beside it.
+    /// Over the bounding run: the notch of an L is the building's own ground, not a public route through
+    /// it.</para></summary>
+    private static bool HasPassage(IReadOnlyDictionary<(int X, int Z), int> ground, GroundClaims.Storey claims,
+        BuildingPlan plan, HouseStyle style)
     {
         var stamped = ClaimedCells(plan, style);
         int minX = stamped.Min(cell => cell.X), maxX = stamped.Max(cell => cell.X);
         int minZ = stamped.Min(cell => cell.Z), maxZ = stamped.Max(cell => cell.Z);
+        int runX0 = plan.Wings.Min(wing => wing.MinX), runX1 = plan.Wings.Max(wing => wing.MaxX);
+        int runZ0 = plan.Wings.Min(wing => wing.MinZ), runZ1 = plan.Wings.Max(wing => wing.MaxZ);
         var depth = DressingRules.PassAroundWidth;
 
-        return Band(maxX + 1, maxX + depth, minZ - 1, maxZ + 1)      // east flank
-            || Band(minX - depth, minX - 1, minZ - 1, maxZ + 1)      // west flank
-            || Band(minX - 1, maxX + 1, maxZ + 1, maxZ + depth)      // south flank
-            || Band(minX - 1, maxX + 1, minZ - depth, minZ - 1);     // north flank
+        // Each side is grown outward from the step just off the stamp, along the run of the walls.
+        return Across(Side(maxX + 1, runZ0, maxX + 1, runZ1, 1, 0), Side(minX - 1, runZ0, minX - 1, runZ1, -1, 0))
+            && Across(Side(runX0, maxZ + 1, runX1, maxZ + 1, 0, 1), Side(runX0, minZ - 1, runX1, minZ - 1, 0, -1));
 
-        bool Band(int fromX, int toX, int fromZ, int toZ)
+        // One side of a facing pair may be a coast; the other still has to be a way past.
+        static bool Across(Flank near, Flank far) =>
+            near != Flank.Short && far != Flank.Short && (near == Flank.Clear || far == Flank.Clear);
+
+        Flank Side(int x0, int z0, int x1, int z1, int dx, int dz)
         {
-            for (var z = fromZ; z <= toZ; z++)
-            for (var x = fromX; x <= toX; x++)
+            bool clear = true, flush = true;
+            for (var step = 0; step < depth; step++)
+            for (var z = z0 + step * dz; z <= z1 + step * dz; z++)
+            for (var x = x0 + step * dx; x <= x1 + step * dx; x++)
             {
-                if (!ground.ContainsKey((x, z))) return false;
-                if (claims.HoldsKind(x, z, ClaimKind.Structure)) return false;
+                if (!ground.ContainsKey((x, z))) { clear = false; continue; }
+                if (step == 0) flush = false;
+                if (claims.HoldsKind(x, z, ClaimKind.Structure)) clear = false;
             }
-            return true;
+            return clear ? Flank.Clear : flush ? Flank.Edge : Flank.Short;
         }
     }
 
