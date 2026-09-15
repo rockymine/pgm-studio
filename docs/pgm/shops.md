@@ -293,6 +293,8 @@ An agent states them as a second array on the same intent:
   {
     "id": "mid-emeralds",
     "at": { "x": 0, "y": 12, "z": 0 },
+    "reach": 5,
+    "protect": 6,
     "delay": "30s",
     "maxEntities": 8,
     "drops": [{ "material": "emerald", "amount": 1 }]
@@ -300,18 +302,44 @@ An agent states them as a second array on the same intent:
 ]
 ```
 
-**The regions are minted rather than authored**, because PGM's element names them by id and takes no
-coordinates. `SpawnerGenerator` writes a `point` region on the centre of the block `at` names — the drop lands
-exactly where the point says, and a whole number would put it on a corner — and gives every spawner on the
-board one shared `everywhere` region as the ground a player has to be standing on, which is what 444 of the
-corpus's stated player-regions are. Both are named for the slice, so regenerating replaces them and leaves
+**Three regions are minted rather than authored**, because PGM's element names two of them by id and takes no
+coordinates, and the third is a rule rather than an attribute. `SpawnerGenerator` writes a `point` on the
+centre of the block `at` names — the drop lands exactly where the point says, and a whole number would put it
+on a corner — a `cylinder` based there as the ground a player has to be standing on, and a `cuboid` around it
+as the ground nobody may take. All three are named for the spawner, so regenerating replaces them and leaves
 the wool rooms' own spawners, which share the document's one `<spawners>` list, exactly where they stand.
 
-The two numbers a spawner takes when the board says nothing are the corpus's, measured over the 276 spawners
+**The reach is local rather than the whole map.** 1,004 of the corpus's 1,335 stated player-regions resolve to
+a region of the map's own — 374 rectangles, 271 cuboids, 162 cylinders, and the rest unions, spheres and
+transforms — against 331 naming `everywhere`, an id defined in an include. So a generator runs while somebody
+is standing by, which is also what stops one nobody visits burying its own ground in what nobody collected.
+The cylinder is **radius 5, height 3**: the modal radius of the corpus's 162 cylindrical player-regions and
+the modal height of the same set, and exactly what `ctw/mame_i_shrunk_the_pvpers` keeps its gold-nugget
+generators at.
+
+**The ground around the drop is kept.** A generator whose block can be mined out, or walled in so nobody can
+reach the stack, is one any player can switch off — so the slice writes a cuboid around each drop and one
+`<apply block="never">` over the union of them. The box is **six blocks a side and five tall**, centred on the
+drop with both ends inside it: 72 dedicated protection boxes across 45 corpus maps cluster at two, four and
+six a side and three to five tall, and six by five is the widest of those clusters and
+`mame_i_shrunk_the_pvpers`'s exactly. A board holding that ground some other way states `"protect": 0` and
+gets the generator without the rule.
+
+The two rates a spawner takes when the board says nothing are the corpus's, measured over the 276 spawners
 that drop one of those currencies. The delay is **`10s`**, their median, against a spread running from a
 second to a minute. The cap is **5**, their mode — 54 state it, 44 state eight, and 40 state none at all. A
 spawner with nothing to drop is left out rather than written as a generator that fires forever and hands over
 nothing.
+
+**The drop's height is the author's.** `at.y` is written verbatim, so the coordinate comes from a `column`
+read of the ground it is meant to sit on — there is no way yet to say *on the ground here* and have the
+export solve it, the way a capture point's pad is cut into whatever the world build found (`PG16`).
+
+**And a spawner cannot yet state a filter.** `mame_i_shrunk_the_pvpers` states its two generators four
+times each, on the same regions, with a shorter delay behind `after-30m`, `after-60m` and `after-90m` — a
+rate that climbs as the match runs. 369 of the corpus's 1,432 spawners carry a `filter`, and it is a
+reference to a `<filters>` feature the intent does not author, so a ladder like that is hand-written XML
+(`PG15`).
 
 **What is not built** is on the board. Each sentence becomes false when its task ships:
 

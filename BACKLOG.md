@@ -285,6 +285,27 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   fixes the derivation for maps imported after it and for none of the maps that exist.
 
 
+## The shop: buying things in the middle of a match
+
+- [ ] **PG16 — A spawner's drop height is the author's and nothing checks it.** `SpawnerIntent.At` carries a
+  `Y` and the slice writes it verbatim, so a generator stated a few blocks low drops into rock and one stated
+  high rains its stack down a cliff — neither says anything. A capture point has the opposite shape and the
+  right one for ground: `ControlPointIntent.Anchor` states no `Y` at all, and the pad is cut into whatever the
+  world build solved under it. A spawner cannot take that wholesale, because a generator on a built plinth is
+  a real shape, so what it wants is a way to say *on the ground here* — an absent `Y` resolved against
+  `terrain.SurfaceTop` at export, beside where the capture point's pad is cut
+  (`WorldBuilder.StampControlPoints`). Evidence: `SpawnerGenerator` runs in the document pass, before the
+  terrain exists, and `docs/pgm/shops.md` §10's worked example has to state `"y": 12` from a `column` read.
+
+- [ ] **PG15 — A spawner's rate cannot climb as the match runs.** `SpawnerIntent` states one delay, so the
+  corpus's commonest generator shape after the plain one cannot be authored: the same drop on the same region,
+  restated with a shorter delay behind a time filter. It wants a list of rungs on the spawner — a delay and
+  the minutes it starts after — with the slice writing one `<spawner>` per rung over the one pair of regions
+  and minting the `<after>` filter each names, since a filter id is a feature the intent does not author
+  either. Evidence: 369 of the corpus's 1,432 spawners carry a `filter`, and
+  `ctw/mame_i_shrunk_the_pvpers` states each of its two gold-nugget generators four times — `8s` plain, then
+  `5s` behind `after-30m`, `after-60m` and `after-90m`.
+
 ## The plan model: pieces, and the edges between them
 
 `PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,

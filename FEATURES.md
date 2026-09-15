@@ -9048,15 +9048,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   material no spawn kit carries, and a generated board had two item sources — the kit, and the kill reward
   `MapStandards` derives from it — neither of which is one. The corpus's answer is a **spawner**: of the 429
   entries yielding one of the eight commonest shop currencies, 374 are `<spawner>` items against 31
-  block-drops and 24 kill-rewards. So the intent states them, and `SpawnerGenerator` mints the regions PGM's
-  element references rather than taking coordinates — a `point` on the centre of the block named, and one
-  shared `everywhere` for who has to be standing near, which is what 444 of the corpus's stated
-  player-regions are. Both are named for the slice, so regenerating replaces them and the wool rooms' own
-  spawners, which share the document's one `<spawners>` list, are left where they stand. The rates a board
-  takes when it says nothing are measured over the 276 currency spawners: a `10s` delay, their median, and a
-  cap of 5, their mode. *`Domain.WoolSpawner` is `Spawner` now — it drops emeralds, potions and golden apples
-  in the corpus and wool nowhere, and the name is what hid it from this entry.*
-  (`SpawnerIntent`, `SpawnerGenerator`, `Domain.Spawner`, `SpawnerGeneratorTests`, `docs/pgm/shops.md` §10)
+  block-drops and 24 kill-rewards. So the intent states them, and `SpawnerGenerator` mints the three regions
+  around each drop, because PGM's element names two of them by id rather than taking coordinates and the third
+  is a rule: a `point` on the centre of the block named, a `cylinder` based there for who has to be standing
+  near, and a `cuboid` around it under one `<apply block="never">` — a generator whose block can be mined out
+  or walled in is one any player can switch off. All three are named for the spawner, so regenerating replaces
+  them and the wool rooms' own spawners, which share the document's one `<spawners>` list, are left where they
+  stand. Every number is the corpus's: a `10s` delay and a cap of 5 (the median and mode of the 276 currency
+  spawners), a reach of radius 5 and height 3 (the modes of its 162 cylindrical player-regions), and a kept box
+  six a side and five tall (the widest of the three clusters among 72 dedicated protections across 45 maps).
+  `ctw/mame_i_shrunk_the_pvpers` writes that reach and that box exactly. *`Domain.WoolSpawner` is `Spawner`
+  now — it drops emeralds, potions and golden apples in the corpus and wool nowhere, and the name is what hid
+  it from this entry.* (`SpawnerIntent`, `SpawnerGenerator`, `Domain.Spawner`, `SpawnerGeneratorTests`,
+  `docs/pgm/shops.md` §10)
 - **A shop reference PGM cannot resolve refuses the export (`PG13` — `SH1`).** Three of them load a map or
   fail it: a keeper's `shop`, which `ShopModule.parse` throws *"No shop with id '…' could be found"* on by
   name, and a keeper's `region` and an icon's `action`, which are feature references whose `resolve()` throws.

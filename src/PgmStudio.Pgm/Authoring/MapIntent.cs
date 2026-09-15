@@ -838,10 +838,11 @@ public readonly record struct SpawnerDrop(string Material, int Amount = 1);
 /// A generator: a place that drops items on a clock while somebody is near enough to collect them, and the
 /// only thing on a studio-authored board that mints a currency a spawn kit does not carry.
 ///
-/// <para><b>It states a place, and the generator mints the regions PGM's element references</b> — a point
-/// where the stack lands, and the whole map as the ground a player has to be standing on for the clock to
-/// run, which is what 444 of the corpus's stated player-regions are. PGM takes region ids there rather than
-/// coordinates, so a spawner naming its own regions would be naming something the intent cannot define.</para>
+/// <para><b>It states a place, and the generator mints the three regions around it</b> — where the stack
+/// lands, how near a player has to be standing for the clock to run, and the ground nobody may build in or
+/// dig out. PGM's element names the first two by region id rather than taking coordinates, and the third is
+/// an apply rule over a region of its own, so a spawner naming them itself would be naming something the
+/// intent cannot define.</para>
 /// </summary>
 public sealed record SpawnerIntent
 {
@@ -852,6 +853,16 @@ public sealed record SpawnerIntent
     /// <summary>The block the stack lands on. The coordinates are moved to the block's centre, so a drop
     /// falls in the middle of a block rather than on a corner.</summary>
     public Pt At { get; init; }
+
+    /// <summary>How near a player must be standing, in blocks, for the clock to run — the radius of the
+    /// cylinder minted as PGM's <c>player-region</c>, based at the drop and <see cref="ReachHeight"/>
+    /// tall. A generator nobody is near does not fill the ground it stands on with what nobody collected.</summary>
+    public double Reach { get; init; } = TypicalReach;
+
+    /// <summary>The side, in blocks, of the square nobody may build in or dig out around the drop — what
+    /// stops a player mining the block the stack lands on or walling the generator in. Zero writes no
+    /// protection, for a board that holds the ground some other way.</summary>
+    public int Protect { get; init; } = TypicalProtection;
 
     /// <summary>How long between drops, as a PGM duration (<c>30s</c>, <c>1m</c>).</summary>
     public string Delay { get; init; } = MedianDelay;
@@ -870,6 +881,23 @@ public sealed record SpawnerIntent
 
     /// <summary>The modal cap on those same 276 — 54 state five, 44 state eight, and 40 state none.</summary>
     public const int TypicalMaxEntities = 5;
+
+    /// <summary>The modal radius of the corpus's cylindrical player-regions (41 of 162 state five, then three
+    /// and two), and what <c>ctw/mame_i_shrunk_the_pvpers</c> keeps its gold-nugget generators at.</summary>
+    public const double TypicalReach = 5;
+
+    /// <summary>How tall the reach cylinder stands over the drop — the modal height of those same cylinders,
+    /// 57 of 162. A reach is about standing near the generator rather than about being anywhere above
+    /// it.</summary>
+    public const int ReachHeight = 3;
+
+    /// <summary>The side of the protected square, and its height. 72 dedicated protection boxes across 45
+    /// corpus maps cluster at two, four and six blocks a side and three to five tall; six by five is the
+    /// widest of the three and is <c>mame_i_shrunk_the_pvpers</c>'s exactly.</summary>
+    public const int TypicalProtection = 6;
+
+    /// <summary>How tall the protected box stands, centred on the drop.</summary>
+    public const int ProtectHeight = 5;
 }
 
 /// <summary>

@@ -314,8 +314,8 @@ once, which is how a shop building in the middle of a board is stated. Nothing i
 PGM spawns the entity itself from the element, so a shop board exports the moment the intent is stored.
 
 **A board's currency is stated on the intent too.** `spawners` carries the generators that mint what a shop
-is priced in — a place, a rate, a cap and what drops — and the slice mints the regions PGM's element
-references (`shops.md` §10). A spawn kit and the kill reward derived from it are the only other item sources
+is priced in — a place, a reach, a rate, a cap and what drops — and the slice mints the three regions around
+each drop plus the one rule that keeps its ground from being built in or dug out (`shops.md` §10). A spawn kit and the kill reward derived from it are the only other item sources
 a generated board has, so a menu priced in anything else needs one.
 
 **A capture point is stated on the intent, not on the plan.** `controlPoints` carries an anchor, a pad size,
