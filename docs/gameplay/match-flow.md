@@ -64,7 +64,7 @@ calibrated on boards of the size this corpus holds; a map with lanes materially 
 again.
 
 **The choke.** The minimum vertex cut between two ends — the cheapest set of cells that, if held, separates
-them. Its position says where a clash happens; its **size is the funnel capacity**, which is the more
+them, answered by `Cells.MinVertexCut` over ends stated as cell **sets** rather than as points. Its position says where a clash happens; its **size is the funnel capacity**, which is the more
 important reading and the one a bare "chokepoint" label loses. Ten blocks of frontage admits a different
 number of players than twenty, and the count does not scale with the team size.
 

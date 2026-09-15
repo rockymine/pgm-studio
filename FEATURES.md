@@ -4083,6 +4083,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wizard. (`9f645dc` → `45209a1`)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
+- **The funnel capacity, and why its ends are sets (`G187`).** `match-flow.md` §2 asks for the minimum vertex
+  cut — the cheapest cells that, held, keep two pieces of ground apart — and says its **size** is the reading a
+  bare "chokepoint" label loses, since ten blocks of frontage admits a different number of players than twenty.
+  `Cells.MinVertexCut` answers it: unit-capacity vertex max-flow over the split grid, every cell an arrival and
+  a departure joined by one unit, the grid's own edges and the two ends unbounded. **The ends are cell sets,
+  and that is the whole of what makes the count mean anything** — a cut against a single cell is never more
+  than the four ways out of it, so a point-ended version reports 4 on every board wider than that and measures
+  nothing. Null where the ends touch, which is unanswerable; empty where they are already apart, which is an
+  answer. Counting this cut's components is still not `WaysRound` and still answers that question wrongly.
+  (`Cells`, `CellsTests`, `docs/generator/vocabulary.md`, `docs/gameplay/match-flow.md` §2)
 - **Two graphs, one question about whether a board's pieces touch (`G65`).** Reachability and the rect layer
   each carried their own adjacency predicate, and they disagreed on exactly one case: an overlap at two
   surfaces, which `FannedGraph` walked across and `ContactGraph.Components` kept apart. The rule was never

@@ -127,23 +127,13 @@ with the singular baked into seven fields of `FlowLeg` and into the prose `PlanF
   `steading` is 92 wide for a 20-block spawn. The corpus does not support a spawn-isolation rule: `dtcm` puts a
   spawn a median 7.5 blocks from the board edge and the generated ones sit 5–15 out.*
 
-- [ ] **G187 — The funnel capacity, and a flow term the evaluator can fire.** Plan-tier flow is read
-  already: `PlanFlow.Read(plan)` takes a `PlanModel` and `GET /map/{slug}/plan/flow` serves it, `PlanRoutes`
-  reads one journey's corridor and the holes on it, and `Cells.WaysRound` is built and called from
-  `PlanRoutes.cs:169`. Two things are left. **`MinVertexCut`** — unit-capacity vertex max-flow, the funnel
-  capacity `match-flow.md` §2 asks for — is the one `Geom.Cells` primitive still missing. And no flow
-  reading reaches the evaluator: its 29 terms walk the surface for distances (`SurfaceNav`) and `Evaluate/`
-  cites neither `PlanRoutes` nor `PlanFlow`, so a dead-share term wants writing over the answer `PlanFlow`
-  already gives — at `POST /plan/evaluate`, the first call in the loop, before a map row exists. That
-  second half is what makes `G164` a short consumer rather than a project.
+- [~] **G187 — A flow reading the evaluator can fire.** The evaluator's 29 terms walk the surface for
+  distances (`SurfaceNav`), and `Evaluate/` cites neither `PlanRoutes` nor `PlanFlow` — so no flow answer
+  scores anything. A **dead-share** term wants writing over the answer `PlanFlow.Read` already gives, at
+  `POST /plan/evaluate`: the first call in the loop, before a map row exists. It lands in `Evaluate/Terms`
+  beside the others, and it is what makes `G164` a short consumer rather than a project.
 
-  **`WaysRound` cuts with a ray, and `MinVertexCut` is a capacity rather than a second way count.** Counting
-  the cut's components answers the opposite question on the same corpus — "rotation never splits on any ring
-  board" against "splits on nearly all of them" — because an uncuttable door cell inside one barrier splits
-  it into two fragments with no second route.
-
-  *Two-legged frontlines: 265 objectives, **97%** reachable more than one way; a plain bar, 375 objectives,
-  **38%**. Second ways are a median 1.31× the first and never worse than 1.92× — routes, not escape hatches.*
+  *`PlanFlow.Result.DeadShare` is computed and served as prose today, and nothing reads the number.*
 
 - [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow
   measure so far reads one traversal at a time, and a single route cannot express tension. Tension is two

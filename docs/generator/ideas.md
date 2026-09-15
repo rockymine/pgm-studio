@@ -139,7 +139,8 @@ landed, the rest is the idea.
   *Three of its four measures need a primitive the repo does not have.* Traversal today is
   `Cells.ShortestPath`/`PathLength` over `SurfaceNav.Walkable` — how far, and whether connected. The
   **ribbon** (every cell on a route ≤130% of the shortest) needs the *distance field* `PathLength` computes
-  and throws away. The **choke** needs unit-capacity vertex max-flow, which exists nowhere. **Ways round a
+  and throws away. The **choke** is `Cells.MinVertexCut`, unit-capacity vertex max-flow over the split grid;
+  its ends are cell **sets**, because a cut against one cell is never more than the four ways out of it. **Ways round a
   void** has half of what it needs — `Cells.EnclosedVoid` finds the hole — and wants the ray-cut test.
   Route enumeration wants piece adjacency, which `ContactGraph` is — and one rule states it
   (`ContactGraph.Connects`), the fanned graph included, so a count does not depend on which graph was asked.
