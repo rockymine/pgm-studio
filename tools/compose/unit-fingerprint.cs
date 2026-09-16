@@ -12,20 +12,21 @@ using System.Text;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 
-var presets = new (string Label, int Players, double Land)[]
+// one preset per size band, plus a second count inside the wide ones — the envelope is derived the way a
+// compose derives it, so the land and the corridor are the band's rather than a number picked here
+var presets = new (string Label, int Players)[]
 {
-    ("tiny", 4, 400), ("small", 6, 700), ("small+", 6, 900), ("mid", 8, 1600),
-    ("mid+", 10, 2000), ("big", 12, 2800), ("big+", 16, 3200), ("huge", 20, 3800),
+    ("nano", 8), ("nano+", 12), ("micro", 16), ("micro+", 20),
+    ("milli", 24), ("centi", 32), ("centi+", 40), ("hecto", 48),
 };
 var symmetries = new[] { "mirror_z", "mirror_x", "rot_180" };
 const int seeds = 400;
 
 var all = new StringBuilder();
 foreach (var sym in symmetries)
-foreach (var (label, players, land) in presets)
+foreach (var (label, players) in presets)
 {
-    var env = new ComposeEnvelope(sym, Teams: 2, players, Cell: 5, Surface: 9,
-        BoardWidthBlocks: 300, BoardLengthBlocks: 300, land, UnitMinX: 0, UnitMinZ: 0, UnitMaxX: 60, UnitMaxZ: 60);
+    var env = Envelope.Derive(new ComposeRequest(players, 2, sym), new ComposeRng(0));
     var sb = new StringBuilder();
     int alloc = 0, filled = 0;
 

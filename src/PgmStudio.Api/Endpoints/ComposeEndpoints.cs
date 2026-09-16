@@ -106,10 +106,10 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
         await Send.OkAsync(new ComposePage(cards, seed, exhausted, seed - seedStart, observed.ToDto()), ct);
     }
 
-    /// <summary>What the unit spent, from the partition the box pipeline already produced (G148). Both
-    /// currencies per box kind: the <b>footprint</b> is the box rect, fixed when the box was seated; the
-    /// <b>land</b> is the walkable terrain inside it, which is what the fill actually spends. The budget is the
-    /// envelope's own <see cref="ComposeEnvelope.LandPerTeam"/> — the one this board was built to, not a
+    /// <summary>What the unit spent, from the partition the box pipeline already produced (G148). The
+    /// per-kind rows are box footprints, which is the only currency a box carries before it is filled; the
+    /// unit's <b>land</b> is read off the filled pieces, the same reading the spend gate takes. The budget is
+    /// the envelope's own <see cref="ComposeEnvelope.LandPerTeam"/> — the one this board was built to, not a
     /// re-derived one (the envelope samples, so re-deriving would answer about a different board) — converted
     /// from blocks² to cells here so the client never has to know the cell size.</summary>
     private static LandSpendDto Spend(ComposedStages stages)
@@ -124,11 +124,11 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
                 g.Sum(b => b.Rect.Width * b.Rect.Height)))
             .OrderByDescending(k => k.LandCells)
             .ToList();
-        var cell = (double)stages.Envelope.Cell;
         return new LandSpendDto(
-            byKind.Sum(k => k.LandCells),
+            stages.Envelope.Band,
+            Composer.LandCells(stages.Unit),
             byKind.Sum(k => k.FootprintCells),
-            stages.Envelope.LandPerTeam / (cell * cell),
+            stages.Envelope.BudgetCells,
             byKind);
     }
 

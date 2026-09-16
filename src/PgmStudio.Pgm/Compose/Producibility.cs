@@ -71,7 +71,7 @@ public sealed record PlanProducibility(
 /// <para>The <b>why</b> comes from three sources, all of them existing: the emitters' own
 /// <see cref="FillRejection"/> reasons; a measurement of the mask against the same constants the emitters read
 /// (<see cref="Cells.MinRunWidthRaw"/> vs <see cref="FillProfiles.HubWallCells"/> /
-/// <see cref="UnitTuning.WoolLaneCells"/>); and the <b>nearest miss</b>, which the enumeration produces
+/// <see cref="UnitTuning.WoolLaneFloorCells"/>); and the <b>nearest miss</b>, which the enumeration produces
 /// for free.</para>
 ///
 /// <para>Terrain and room are compared <b>separately</b>: a box whose corridor the emitters reproduce but whose
@@ -84,9 +84,13 @@ public sealed record PlanProducibility(
 /// </summary>
 public static class Producibility
 {
-    /// <summary>The lane widths a board may run at (<see cref="TeamUnitAllocator"/> picks 2 or 3 from the land
-    /// budget). A standalone box read does not know its board's choice, so both are tried.</summary>
-    private static readonly int[] LaneWidths = [2, 3];
+    /// <summary>The corridor widths a box is searched at. A standalone box read does not know its board's
+    /// size band or its grid scale, so the search covers the widths the composer emits at on the grids the
+    /// studio draws on (<see cref="UnitTuning.CorridorCells"/> over the bands at cell 4 and cell 5), plus the
+    /// width the body itself <b>measures</b> — its narrowest cross-section, which is what a holed form built on
+    /// any other grid reads as.</summary>
+    private static int[] SearchWidths(int measuredCw) =>
+        new[] { 2, 3, 4, Math.Max(UnitTuning.WoolLaneFloorCells, measuredCw) }.Distinct().ToArray();
 
     /// <summary>How many seeds to draw a composer sampler with when enumerating what it can produce — the
     /// frontline's arm layouts, the hub's ring walls and leg layouts. The sampler is the only thing that knows its
@@ -205,14 +209,14 @@ public static class Producibility
             var f = frame.FromRect(front.Rect);
             var patches = FrontPatches(plan, hub, front, frame);
             var weakest = patches.Count == 0 ? 0 : patches.Min();
-            if (weakest < UnitTuning.WoolLaneCells)
+            if (weakest < UnitTuning.WoolLaneFloorCells)
                 findings.Add(new Finding("frontline-shoulder-too-narrow",
                     patches.Count == 0
                         ? $"The frontline's {f.VSpan}-cell face never meets the hub's front terrain, so its " +
                           "spine has nothing to dock through."
                         : $"The frontline's {f.VSpan}-cell face meets the hub's front terrain in " +
                           $"{patches.Count} patch(es) ({string.Join(", ", patches)} cell(s)); the narrowest is " +
-                          $"{weakest}, under the {UnitTuning.WoolLaneCells}-cell lane. A face may be " +
+                          $"{weakest}, under the {UnitTuning.WoolLaneFloorCells}-cell lane. A face may be " +
                           "narrower than the edge or overhang it, and may reach across a bay — but every " +
                           "shoulder it lands on has to be a corridor's width, or the face is cantilevered " +
                           "over the hole.", Cites: "G2"));
@@ -226,9 +230,9 @@ public static class Producibility
         var seats = plan.Boxes.Where(b => b.Kind is PlanBoxKinds.Wool or PlanBoxKinds.Spawn).ToList();
         for (var i = 0; i < seats.Count; i++)
             for (var j = i + 1; j < seats.Count; j++)
-                if (SeatGeometry.TooClose(seats[i].Rect, seats[j].Rect, UnitTuning.WoolLaneCells))
+                if (SeatGeometry.TooClose(seats[i].Rect, seats[j].Rect, UnitTuning.WoolLaneFloorCells))
                     findings.Add(new Finding("seats-within-separation-gap",
-                        $"Boxes '{seats[i].Id}' and '{seats[j].Id}' sit within the {UnitTuning.WoolLaneCells}-cell " +
+                        $"Boxes '{seats[i].Id}' and '{seats[j].Id}' sit within the {UnitTuning.WoolLaneFloorCells}-cell " +
                         "separation gap, which the allocator never seats through. Measured on the box " +
                         "envelopes (corner-inclusive) — the emitted terrain may keep more room than the " +
                         "envelopes suggest, which is the measurand question G124 parks.", Cites: "WL7"));
@@ -256,7 +260,7 @@ public static class Producibility
 
         // The measurement, against the same constant the emitter reads. Independent of the search: a corridor
         // narrower than any lane the vocabulary has is worth saying even when a nearest miss also fires.
-        var cwFloor = box.Kind == PlanBoxKinds.Wool ? UnitTuning.WoolLaneCells : FillProfiles.HubWallCells;
+        var cwFloor = box.Kind == PlanBoxKinds.Wool ? UnitTuning.WoolLaneFloorCells : FillProfiles.HubWallCells;
         var measured = Cells.MinRunWidthRaw(all, all);
         if (measured < cwFloor)
             findings.Add(new Finding("corridor-below-minimum",
@@ -267,7 +271,7 @@ public static class Producibility
         // enumerated lazily and kept as they come: an exact match ends the search, so the producible case — the
         // common one — never pays for the rest of the space. Only a real miss enumerates it all, to report against.
         var candidates = new List<Candidate>();
-        foreach (var c in Candidates(box, all))
+        foreach (var c in Candidates(box, all, measured))
         {
             candidates.Add(c);
             if (c.Mask is not null && c.Mask.SetEquals(all))    // exact terrain+room match — the box is producible
@@ -324,20 +328,20 @@ public static class Producibility
 
     /// <summary>Every tuple the declared production menus admit for this box kind, emitted into the box's own
     /// footprint by the real emitters. The menus are read as data — nothing here restates them.</summary>
-    private static IEnumerable<Candidate> Candidates(PlanBox box, IReadOnlySet<(int, int)> target) =>
+    private static IEnumerable<Candidate> Candidates(PlanBox box, IReadOnlySet<(int, int)> target, int measuredCw) =>
         box.Kind switch
         {
-            PlanBoxKinds.Hub => HubCandidates(box),
-            PlanBoxKinds.Frontline => FrontlineCandidates(box),
-            PlanBoxKinds.Wool => ApproachCandidates(box, BoxKind.Wool),
-            PlanBoxKinds.Spawn => ApproachCandidates(box, BoxKind.Spawn),
+            PlanBoxKinds.Hub => HubCandidates(box, measuredCw),
+            PlanBoxKinds.Frontline => FrontlineCandidates(box, measuredCw),
+            PlanBoxKinds.Wool => ApproachCandidates(box, BoxKind.Wool, measuredCw),
+            PlanBoxKinds.Spawn => ApproachCandidates(box, BoxKind.Spawn, measuredCw),
             _ => [],
         };
 
-    private static IEnumerable<Candidate> HubCandidates(PlanBox box)
+    private static IEnumerable<Candidate> HubCandidates(PlanBox box, int measuredCw)
     {
         var b = new Box(box.Id, BoxKind.Hub, box.Rect, box.Rect.Width * box.Rect.Height);
-        var cw = FillProfiles.HubWallCells;
+        foreach (var cw in SearchWidths(measuredCw))
         foreach (var form in FillProfiles.HubForms)
             foreach (var walls in HubWallVectors(form, box, cw))
                 foreach (var arms in HubArmLayouts(form, box, cw))
@@ -402,10 +406,10 @@ public static class Producibility
     private static string Widened(RingWalls? walls, int cw) => walls is not { } v ? ""
         : $" walls {v.Top}/{v.Right}/{v.Bottom}/{v.Left}";
 
-    private static IEnumerable<Candidate> FrontlineCandidates(PlanBox box)
+    private static IEnumerable<Candidate> FrontlineCandidates(PlanBox box, int measuredCw)
     {
         var b = new Box(box.Id, BoxKind.Frontline, box.Rect, box.Rect.Width * box.Rect.Height);
-        foreach (var cw in LaneWidths)
+        foreach (var cw in SearchWidths(measuredCw))
             foreach (var form in FillProfiles.FrontlineForms)
                 foreach (var mouth in AllEdges)
                     foreach (var grouping in new[] { OfferGrouping.Joint, OfferGrouping.Several })
@@ -434,13 +438,11 @@ public static class Producibility
             yield return layout;
     }
 
-    private static IEnumerable<Candidate> ApproachCandidates(PlanBox box, BoxKind kind)
+    private static IEnumerable<Candidate> ApproachCandidates(PlanBox box, BoxKind kind, int measuredCw)
     {
         var b = new Box(box.Id, kind, box.Rect, box.Rect.Width * box.Rect.Height);
-        // the wool lane is fixed at w2; a spawn reads the map's lane width, which a standalone box does not know
-        var widths = kind == BoxKind.Wool ? new[] { UnitTuning.WoolLaneCells } : LaneWidths;
-        foreach (var cw in widths)
-            foreach (var family in FillProfiles.Families(kind, cw))
+        foreach (var cw in SearchWidths(measuredCw))
+            foreach (var family in FillProfiles.Families(kind, cw, cw))
                 foreach (var mouth in AllEdges)
                     foreach (var flip in new[] { false, true })
                         foreach (var (placement, atEnd, attachW) in ApproachKnobs(kind, family, cw))

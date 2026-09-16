@@ -25,6 +25,48 @@ public sealed class ComposerTests
                 yield return (players, seed);
     }
 
+    /// <summary>The land a plan's pieces cover, in cells — the distinct cells, so a shared run counts once.
+    /// The same reading the spend gate takes off the grown unit, read back off the assembled plan.</summary>
+    private static int UnitLandCells(PlanModel plan)
+    {
+        var cells = new HashSet<(int, int)>();
+        foreach (var piece in plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)))
+            for (var x = piece.Rect.X; x < piece.Rect.X + piece.Rect.Width; x++)
+                for (var z = piece.Rect.Z; z < piece.Rect.Z + piece.Rect.Height; z++)
+                    cells.Add((x, z));
+        return cells.Count;
+    }
+
+    [Test]
+    public async Task Every_composed_board_spends_its_bands_budget()
+    {
+        // the spend gate is the budget's teeth: a unit that left land unplaced, or built a board bigger than
+        // its band, is resampled rather than shipped
+        foreach (var (players, seed) in Sweep())
+        {
+            var stages = Composer.ComposeStages(new ComposeRequest(players, seed: seed));
+            var built = UnitLandCells(stages.Plan);
+            var budget = stages.Envelope.BudgetCells;
+            await Assert.That(built >= budget * UnitTuning.SpendFloor && built <= budget * UnitTuning.SpendCeiling)
+                .IsTrue().Because($"built {built} of {budget:F0} cells @ {players}p seed {seed}");
+        }
+    }
+
+    [Test]
+    public async Task A_bigger_band_builds_more_land()
+    {
+        // the band is what the budget keys on, so the ladder must show in what comes out
+        double last = 0;
+        foreach (var players in new[] { 8, 16, 24, 32 })
+        {
+            var land = Enumerable.Range(0, 8)
+                .Select(seed => (double)UnitLandCells(Composer.Compose(new ComposeRequest(players, seed: (ulong)seed))))
+                .Average();
+            await Assert.That(land > last).IsTrue().Because($"{players} players built {land:F0} against {last:F0}");
+            last = land;
+        }
+    }
+
     [Test]
     public async Task Compose_is_deterministic_for_the_same_request()
     {
@@ -151,11 +193,15 @@ public sealed class ComposerTests
                 var ownR = fronts.Max(p => p.Rect.X + p.Rect.Width);
                 var hullL = Math.Min(ownL, -ownR);          // rot_180 mirrors x about the axis
                 var hullR = Math.Max(ownR, -ownL);
-                await Assert.That(bandRect.X == hullL && bandRect.X + bandRect.Width == hullR).IsTrue()
-                    .Because($"band [{bandRect.X}..{bandRect.X + bandRect.Width}] != front hull [{hullL}..{hullR}] @ {players}p seed {seed}");
-                // and the band is symmetric about the axis, so it fans onto itself
-                await Assert.That(bandRect.X).IsEqualTo(-(bandRect.X + bandRect.Width))
-                    .Because($"band not axis-symmetric @ {players}p seed {seed}");
+                var bandR = bandRect.X + bandRect.Width;
+                // one band spans the hull; a split band spans one leg and its own image spans the other, so
+                // what both owe is that band ∪ image covers the hull and reaches no further
+                var split = bandRect.X != -bandR;
+                var coverL = split ? Math.Min(bandRect.X, -bandR) : bandRect.X;
+                var coverR = split ? Math.Max(bandR, -bandRect.X) : bandR;
+                await Assert.That(coverL == hullL && coverR == hullR).IsTrue()
+                    .Because($"band [{bandRect.X}..{bandR}]{(split ? " + image" : "")} covers [{coverL}..{coverR}], "
+                             + $"front hull [{hullL}..{hullR}] @ {players}p seed {seed}");
 
                 var again = Composer.ComposeStages(new ComposeRequest(players, seed: seed));
                 await Assert.That(again.Plan.Pieces.Select(p => p.Rect)

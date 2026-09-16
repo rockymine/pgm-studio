@@ -84,7 +84,7 @@ public static class ShapeCatalog
     /// <see cref="WoolBoxEmitter.Fill"/> does not forward.</summary>
     private static IEnumerable<CatalogShape> WoolEntries()
     {
-        var lane = UnitTuning.WoolLaneCells;
+        var lane = UnitTuning.WoolLaneFloorCells;
         var seen = new HashSet<ulong>();            // dedupe by cell pattern across every tier
         var entries = new List<CatalogShape>();
         var sampled = new HashSet<ShapeFamily>();
@@ -210,12 +210,12 @@ public static class ShapeCatalog
             foreach (var share in BudgetShares)
                 for (ulong seed = 1; seed <= SweepSeeds; seed++)
                 {
-                    var (fill, along, depth) = UnitRequests.WoolRequest(new ComposeRng(seed), edgeLen, share);
+                    var (fill, along, depth) = UnitRequests.WoolRequest(new ComposeRng(seed), UnitTuning.WoolLaneFloorCells, edgeLen, share);
                     Keep(fill, along, depth);
                     // the seat step's fallback: any request that finds no placement is re-dispatched compact
                     var compact = UnitRequests.Compact(
                         new NeighbourRequest(UnitSide.Back, BoxKind.Wool, depth, along, "w", fill),
-                        UnitTuning.WoolLaneCells);
+                        UnitTuning.WoolLaneFloorCells);
                     if (compact.Wool is { } cw) Keep(cw, compact.Along, compact.Depth);
                 }
 

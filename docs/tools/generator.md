@@ -44,7 +44,7 @@ A compose takes five values and no geometry.
 
 | Field | Default | Is |
 |---|---|---|
-| `players` | 12 | Players per team, clamped 5–32. The only size input: the land budget and every structural ladder derive from it. |
+| `players` | 12 | Players per team, clamped 6–64. The only size input, and its job is to name a **size band** — nano 6–13, micro 14–21, milli 22–31, centi 32–47, hecto 48+ — which is what the land budget and every structural ladder read. Two counts in one band compose to the same budget. |
 | `teams` | 2 | 2 or 4. Fixed at 2 by the browse endpoint. |
 | `symmetry` | `rot_180` | `rot_180` or `mirror_z` through the feed. `mirror_x` and `rot_90` are legal `ComposeRequest` values but the endpoint answers 400. |
 | `cell` | 5 | Blocks per proxy cell — the plan grid's scale. No control writes it; it is honoured as a query parameter. |
@@ -139,11 +139,11 @@ validator and the derivers ignore it — and it is what the Plan tool's feasibil
 
 ## The board a request produces
 
-The four numbers do not scale a board smoothly; they cross thresholds, and a threshold changes its shape. Land
-above 2500 widens every non-wool corridor from two cells to three; below 800 there is no budget for a
-frontline at all and the hub fronts the mid directly; below 600 the unit carries a single wool; sixteen
-players or more makes it a full team, two or three wools rather than one or two. Beside the ladders sit
-roughly a dozen sampling weights — how often a wool bends, how often a bent wool is a donut, how often a big
+The four numbers do not scale a board smoothly; the player count lands in a band and the band is what changes
+the board's shape. Each band carries its measured land per team — 2250 blocks² at nano, 4025 at micro, 7075 at
+milli, 8730 at centi, 20190 at hecto — its corridor width in blocks — 12 · 14 · 16 · 16 · 22, with the wool
+approach one rung under — and its wool count: one a team at nano, two from micro up, sometimes three. Beside
+the ladders sit roughly a dozen sampling weights — how often a wool bends, how often a bent wool is a donut, how often a big
 square hub takes the ring — which steer the output's character more than anything else in the generator and
 are, by `docs/generator/audit.md`'s own account, the least principled part of the model.
 
@@ -176,7 +176,7 @@ on the Apply button and start the seed walk over. The structural filters — woo
 form — apply the moment a chip is clicked. Wool families are **must-include**: every family named has to be
 present on the board. Hub and frontline are **any-of**. Max score is a slider to 8 where 8 means *any* and the
 bound is simply not sent; wool count is a min/max pair where 0 means unset. The player slider runs 6 to 30 in
-steps of two, which is narrower than the request's own 5–32 clamp, and a script is not bound by it.
+steps of two, which is narrower than the request's own 6–64 clamp, and a script is not bound by it.
 
 The Z and scythe chips render disabled with the reason on the tooltip, because neither is in the production
 mix — the Z is on the fill menu and asked for by no sampler, the scythe is off the menu outright. That is the
@@ -213,10 +213,13 @@ in a drawer, with the score to two places, the per-box spend table, the top thre
 and the descriptor as copyable JSON.
 
 **Land spend is two currencies and the card says so.** *Footprint* is the box rectangle, fixed when the box
-was seated; *land* is the walkable terrain inside it, which is what a fill actually spends. Both are reported
-per box kind, for **one team unit** — the board is that unit fanned — against the envelope's own per-team land
-budget converted from blocks² to cells. Seed 0 above spends 52 land cells against a budget of 50.4, so its
-card reads `52/50 · 103%`, split hub 24, frontline 16, spawn 6, wool 6.
+was seated; *land* is what the filled pieces actually cover, which is what the spend gate holds against the
+budget. The per-box rows are footprints — a box does not know what its body left standing until it is filled —
+and the total land is the unit's own, for **one team unit**, the board being that unit fanned. The budget is
+the band's land converted from blocks² to cells, and the card leads with the band: a twelve-player board reads
+`nano 98/90 · 109%`. **The budget is eaten.** The spawn, the frontline and each wool claim a fixed share as
+they are sized and the hub takes what is left, never under a third; a unit whose built land falls outside
+70–130% of the budget is resampled rather than shipped.
 
 **The score is a distance, not a grade.** Zero means the board sits inside every envelope the authored corpus
 occupies, which is most of them — of 240 boards each at twelve, twenty and thirty players, 167, 131 and 109

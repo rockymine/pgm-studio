@@ -39,11 +39,22 @@ and a fall counted but not charged, routing around voids — never the straight 
   fundamentally: the plan is a **mini layout** — the checkered-paper scale *proxy* map authors
   already draw, not block-true dimensions. Grid-born "artificial" distances are expected and are
   resolved downstream by the scale + roughen passes (design doc §2, "the plan is a mini layout").
-- **G2 [expert]** Minimum corridor width **10**; larger maps trend toward **15**.
-- **G3 [corpus, revised]** The v2 width band (40–60) fit almost none of the authored corpus:
-  measured 2-team fanned boards run **30–130 wide × 100–280 long** (elaborated seeds typically
-  80–130 wide; `mirror-big-board` 280×130), 4-team squares **130–180**. Wide-frontline designs
-  legitimately exceed the old cap. All twelve seeds carry **honest per-team counts** (stored =
+- **G2 [corpus, revised]** The map's corridor width is the **size band's**, stated in blocks:
+  **12** at nano, **14** at micro, **16** at milli and centi, **22** at hecto — and the wool approach one
+  rung under it at **10 · 12 · 14 · 14 · 18**. Measured over 359 built CTW maps
+  (`docs/world-scan/map-size-ladder.md`): the modal local thickness of a map's ground runs
+  8 · 10 · 14 · 16 · 16 from the smallest maps up, the quartile a working lane sits at runs
+  8 · 12 · 14 · 16 · 17, and ground narrower than **8 blocks** is 1.5–4% of a map at every size, which is
+  the floor authors build to. A width in blocks divided by the grid's cell is what lets the scale move: at
+  cell 4 the reachable widths are 4/8/12/16/20 and the measured ladder's ends both land on one, at cell 5
+  they are 5/10/15/20 and neither does.
+- **G3 [corpus, revised]** Measured over 359 built CTW maps, 2-team boards run **50–300 wide ×
+  95–620 long** at the quartile extremes, with the median rising by band — 78×166 at nano, 106×210 at
+  micro, 138×288 at milli, 161×304 at centi — and an aspect of **2.0** at the median, 1.4–2.6 at the
+  quartiles. 4-team boards are **square at all three quartiles**, side 165 / **222** / 279. Coverage —
+  the share of the bounding box that is land — is **32–41%** at every band, so the board follows the land
+  budget through it rather than being clamped to a size of its own. Wide-frontline designs legitimately
+  exceed the old cap. All twelve seeds carry **honest per-team counts** (stored =
   the comfortable cap; the author notes maps play fine ± a few players): tiny 5 · base-2island
   10 · base-4team 10 · base-2wool 12 · wool-two-sided 12 · approaches 12 · isolated-spawn 14 ·
   odd-facing 16 · towers 18 · rotate 20 (XML-defined 16) · trace 30 · mirror-big-board 32. The
@@ -66,23 +77,26 @@ and a fall counted but not charged, routing around voids — never the straight 
   **~5 above the build cap**, or off to the side beyond any build zone.
 - **G7 [expert]** Follows G5: a single required-path hop stays ≤ **~20**; anything longer is a
   chain of hops (stones) summing to the 40–60 total crossing.
-- **G8 [corpus, derived]** Map size is driven by the intended player count — `maxPlayers` is an
-  *input* to the board envelope, not an afterthought. With all twelve author counts the coupling
-  is: **land area per player rises with per-team land**, saturating around ~175–185 b/p:
+- **G8 [corpus, revised]** Map size is driven by the intended player count — `maxPlayers` is an
+  *input* to the board envelope, not an afterthought — and the count's job is to name a **size band**. A
+  map is not built for one count: it works across a range, and the ranges are the author's — **nano**
+  6–13 players a team, **micro** 14–21, **milli** 22–31, **centi** 32–47, **hecto** 48+. Two counts inside
+  one band compose to the same budget, because they are the same map.
 
-  | land/team | players/team | b/p | seeds |
-  |---|---|---|---|
-  | 325 | 5 | 65 | mirror-tiny-map-cliff |
-  | 950 | 10 | 95 | base-2island · base-4team |
-  | 1250 | 12 | 104 | base-2wool · isolated-spawn-approaches |
-  | 1500–1550 | 12–14 | 111–125 | four-team-wool-two-sided · isolated-spawn |
-  | 2500–2875 | 16–18 | 156–160 | odd-facing-three-wool · four-team-towers-big |
-  | 3500–5875 | 20–32 | 175–184 | rotate-wide-frontline · trace · mirror-big-board |
+  | band | players/team | land/team | land/player | maps measured |
+  |---|---|---|---|---|
+  | nano | 6–13 | **2250** | 225 | 77 |
+  | micro | 14–21 | **4025** | 242 | 90 |
+  | milli | 22–31 | **7075** | 270 | 65 |
+  | centi | 32–47 | **8730** | 256 | 84 |
+  | hecto | 48+ | **20190** | 404 | 3 |
 
-  Reading: bigger maps spend more land per player (elevation, longer crossings, rotation space).
-  Composer: target players/team → read land/team off the table (interpolate) → land budget =
-  teams × land/team. Counts tolerate ± a few players (author). Rotate's XML-defined 16 gives
-  219 b/p — defined counts sit below the comfort cap.
+  Measured over 331 CTW corpus maps with both a team count and a player cap
+  (`docs/world-scan/map-size-ladder.md`). Land per team fits `176 × players^1.12` (r = 0.83 on log–log),
+  and an exponent of one is exactly "constant land per player" — so the coefficient is about **250
+  blocks² a player at every size**, and the band is what quantizes a nearly linear law. The hecto row has
+  three witnesses and is the law extended, not a measurement. Composer: player count → band → land budget
+  = teams × the band's land/team.
 
 ## SP — Spawn
 
@@ -1026,6 +1040,17 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     `WX8`'s span for both and both resolve through `RoomFrames.PlaceIron`, so a cube that will not fit its
     piece resolves unplaceable and the export stamps nothing. `ST2` follows: it tests the cube rather than the
     marker block, and fires on a board with no spawn piece at all, where every cube is one a team mines once.
+
+34. **`G8` rebased on the size bands, `G2` and `G3` remeasured (2026-09-16).** Author's call. `G8`'s
+    anchors were calibrated against the twelve authored seed plans, and every traced plan carries
+    `maxPlayers: 12` whatever its real map's team size, so the ladder's slope could not have been read
+    off them. Scanning all 359 readable CTW maps in `CommunityMaps` and `PublicMaps` measures land per
+    team at about 250 blocks² a player at **every** size where the anchors ran 65 to 185, and per band
+    rather than per count, because a map is built for a range. `G2` gains the same treatment: the corridor
+    is the band's width in blocks, measured as the local thickness of a real map's ground, which is what
+    lets the grid scale move without moving the map. `G3`'s board bands are remeasured on the same 359.
+    The measurement is `docs/world-scan/map-size-ladder.md`; the composer now spends the budget
+    (`G265`, `G266`, `G267`).
 
 33. **`WL12` added (2026-09-16).** Author's call. A bay between a spawn and a wool room on a built board
     measured **six blocks** across, which a player clears from a one-block rise; the composer's own floor is

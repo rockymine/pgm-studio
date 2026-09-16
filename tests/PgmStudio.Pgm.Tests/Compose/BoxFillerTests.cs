@@ -19,33 +19,33 @@ public sealed class BoxFillerTests
     [Test]
     public async Task Wool_profile_is_the_width_menu_spawn_profile_is_I_and_L()
     {
-        await Assert.That(FillProfiles.Families(BoxKind.Wool, Cw)).IsEquivalentTo(FillMenu.FamiliesFor(Cw));
-        await Assert.That(FillProfiles.Families(BoxKind.Wool, Cw)).Contains(ShapeFamily.Donut);   // admitted since G79
-        await Assert.That(FillProfiles.Families(BoxKind.Spawn, Cw)).IsEquivalentTo(SpawnBoxEmitter.Families);
-        await Assert.That(FillProfiles.Families(BoxKind.Spawn, Cw)).IsEquivalentTo(new[] { ShapeFamily.I, ShapeFamily.L });
+        await Assert.That(FillProfiles.Families(BoxKind.Wool, Cw, Cw)).IsEquivalentTo(FillMenu.FamiliesFor(Cw, Cw));
+        await Assert.That(FillProfiles.Families(BoxKind.Wool, Cw, Cw)).Contains(ShapeFamily.Donut);   // admitted since G79
+        await Assert.That(FillProfiles.Families(BoxKind.Spawn, Cw, Cw)).IsEquivalentTo(SpawnBoxEmitter.Families);
+        await Assert.That(FillProfiles.Families(BoxKind.Spawn, Cw, Cw)).IsEquivalentTo(new[] { ShapeFamily.I, ShapeFamily.L });
     }
 
     [Test]
     public async Task Fits_gates_on_both_the_profile_and_the_footprint()
     {
         // I is in the wool profile and tiny, so a roomy box holds it; the donut needs a big footprint
-        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.I, Cw, 16, 20)).IsTrue();
-        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Donut, Cw, 16, 20)).IsTrue();
-        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Donut, Cw, 6, 6)).IsFalse();   // footprint too small
+        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.I, Cw, Cw, 16, 20)).IsTrue();
+        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Donut, Cw, Cw, 16, 20)).IsTrue();
+        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Donut, Cw, Cw, 6, 6)).IsFalse();   // footprint too small
         // the scythe is a valid shape but not in the wool production profile → not admitted
-        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Scythe, Cw, 20, 20)).IsFalse();
+        await Assert.That(FillProfiles.Fits(BoxKind.Wool, ShapeFamily.Scythe, Cw, Cw, 20, 20)).IsFalse();
         // U/H are not in the spawn profile
-        await Assert.That(FillProfiles.Fits(BoxKind.Spawn, ShapeFamily.U, Cw, 20, 20)).IsFalse();
-        await Assert.That(FillProfiles.Fits(BoxKind.Spawn, ShapeFamily.I, Cw, 6, 8)).IsTrue();
+        await Assert.That(FillProfiles.Fits(BoxKind.Spawn, ShapeFamily.U, Cw, Cw, 20, 20)).IsFalse();
+        await Assert.That(FillProfiles.Fits(BoxKind.Spawn, ShapeFamily.I, Cw, Cw, 6, 8)).IsTrue();
     }
 
     [Test]
     public async Task FittingFamilies_is_the_profile_intersect_footprint()
     {
-        var big = FillProfiles.FittingFamilies(BoxKind.Wool, Cw, 16, 22);
+        var big = FillProfiles.FittingFamilies(BoxKind.Wool, Cw, Cw, 16, 22);
         await Assert.That(big).Contains(ShapeFamily.Donut);
         // a footprint only a straight lane holds
-        var tiny = FillProfiles.FittingFamilies(BoxKind.Wool, Cw, 2, 4);
+        var tiny = FillProfiles.FittingFamilies(BoxKind.Wool, Cw, Cw, 2, 4);
         await Assert.That(tiny).IsEquivalentTo(new[] { ShapeFamily.I });
     }
 

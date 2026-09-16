@@ -14,7 +14,8 @@ public sealed class ComposeRequest
     public ulong Seed { get; }
     public int Cell { get; }
 
-    /// <param name="playersPerTeam">Clamped to 5..32 (the envelope's calibrated range).</param>
+    /// <param name="playersPerTeam">Clamped to the size ladder's own range, 6..64 — the bands the land
+    /// budget is measured for (<see cref="PgmStudio.Vocabulary.SizeBands"/>).</param>
     /// <param name="teams">2 or 4.</param>
     /// <param name="symmetry">Null selects the default for <paramref name="teams"/>: <c>rot_180</c> for 2,
     /// <c>rot_90</c> for 4. <c>mirror_x</c>/<c>mirror_z</c> are legal only for 2 teams.</param>
@@ -22,7 +23,7 @@ public sealed class ComposeRequest
     /// <param name="cell">Blocks per proxy cell (the plan grid scale).</param>
     public ComposeRequest(int playersPerTeam, int teams = 2, string? symmetry = null, ulong seed = 0, int cell = 5)
     {
-        PlayersPerTeam = Math.Clamp(playersPerTeam, 5, 32);
+        PlayersPerTeam = Math.Clamp(playersPerTeam, 6, 64);
 
         if (teams != 2 && teams != 4)
             throw new ArgumentException($"teams must be 2 or 4 (got {teams})", nameof(teams));

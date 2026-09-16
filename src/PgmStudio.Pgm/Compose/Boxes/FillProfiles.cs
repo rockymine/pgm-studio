@@ -18,9 +18,9 @@ public static class FillProfiles
     /// cells. Wool = the width-gated production menu; spawn = the straight/one-bend {I, L}. The hub is not here:
     /// it is a <b>terminal-free body</b>, so its profile is a <see cref="Compound"/> menu (<see cref="HubForms"/>),
     /// not the <see cref="ShapeFamily"/> approach taxonomy.</summary>
-    public static IReadOnlyList<ShapeFamily> Families(BoxKind kind, int cw) => kind switch
+    public static IReadOnlyList<ShapeFamily> Families(BoxKind kind, int cw, int laneCells) => kind switch
     {
-        BoxKind.Wool => FillMenu.FamiliesFor(cw),
+        BoxKind.Wool => FillMenu.FamiliesFor(cw, laneCells),
         BoxKind.Spawn => SpawnBoxEmitter.Families,
         _ => [],                                          // hub = HubForms (Compound-typed); frontline lands at G89
     };
@@ -44,17 +44,17 @@ public static class FillProfiles
     /// <summary>True when <paramref name="family"/> is admitted by <paramref name="kind"/> at
     /// <paramref name="cw"/> <b>and</b> its minimum box fits a footprint of <paramref name="w"/>×
     /// <paramref name="h"/> cells — the profile's footprint gate.</summary>
-    public static bool Fits(BoxKind kind, ShapeFamily family, int cw, int w, int h)
+    public static bool Fits(BoxKind kind, ShapeFamily family, int cw, int laneCells, int w, int h)
     {
-        if (!Families(kind, cw).Contains(family)) return false;
+        if (!Families(kind, cw, laneCells).Contains(family)) return false;
         var (minW, minH) = ShapeEmitter.MinBox(family, cw);
         return w >= minW && h >= minH;
     }
 
     /// <summary>The families <paramref name="kind"/> admits at <paramref name="cw"/> whose minimum box fits a
     /// footprint of <paramref name="w"/>×<paramref name="h"/> cells — the legal fill set for that box.</summary>
-    public static IReadOnlyList<ShapeFamily> FittingFamilies(BoxKind kind, int cw, int w, int h) =>
-        Families(kind, cw).Where(f => Fits(kind, f, cw, w, h)).ToList();
+    public static IReadOnlyList<ShapeFamily> FittingFamilies(BoxKind kind, int cw, int laneCells, int w, int h) =>
+        Families(kind, cw, laneCells).Where(f => Fits(kind, f, cw, laneCells, w, h)).ToList();
 
     /// <summary>
     /// The spawn box's allowed footprints — the <b>size rule as data</b>, the size facet of the profile (the

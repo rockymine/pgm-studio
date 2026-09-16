@@ -45,7 +45,7 @@ landed, the rest is the idea.
   rate is capped by chance rather than by budget.
 - **G131** — **per-part width beyond the ring.** G129 generalized the four walls of a ring; the rest of a board is
   still one lane width (`w` = 2 or 3 from the land budget) with the wool lane and hub wall as fixed constants
-  (`WoolLaneCells`, `FillProfiles.HubWallCells`). The remaining cases are the parts *docked onto* a ring, which
+  (`UnitTuning.WoolCorridorCells`, `Box.HubCorridor`). The remaining cases are the parts *docked onto* a ring, which
   deliberately kept a plain `cw` — the P's overhanging bar, the G's L-upright, the DoubleHole's U — plus the
   approach lanes and the frontline's spine. **Relation to its neighbours:** G105 owns the per-piece width knob for
   hub bodies, G82/G83 own entry widening for wool approaches; this is the generalization those are special cases
@@ -457,7 +457,7 @@ so the labeled corpus cannot be contaminated after the fact. Browse votes (absol
   made per consumer kind. What remains is the behaviour question the rename deliberately did not answer.
   Today the two are entirely unlinked: `Seat` reads the hub's offers, keeps only `(Start, LengthCells)` as its
   **runs** and drops the published width, then `HubJoint` grants a width taken from the demand's kind
-  (`WoolLaneCells` for a wool, `w` otherwise). So a hub can grant a corridor **wider than the run it sits on
+  (the band's wool corridor for a wool, its map corridor otherwise). So a hub can grant a corridor **wider than the run it sits on
   claims to support** and nothing objects. Either that is intended — capacity is advisory, the consumer knows
   its own lane — or the grant should be clamped to the offer, in which case a narrow run would demote a
   consumer's `cw` and some docks that succeed today would not.

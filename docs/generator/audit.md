@@ -47,26 +47,11 @@ from a band**? LN1 is the case in point — it records a measured corpus frequen
 15 ×15), which is exactly a band over the same choice the allocator makes with a hard threshold.
 → **G108**
 
-**The ladders — budget→structure thresholds.** `WideLaneLand`, `FrontlineMinLand`, `TinyBoardLand`,
-`FullTeamPlayers`, `HubCapCells`/`HubWideCap`. Not facts (nothing is read off geometry), not menus,
-not fit gates. The closest declared kind is **target** — "a per-request, prescriptive constraint a
-compose holds and verifies" — and that is what they should become; they differ from a target only
-in that nothing verifies them afterwards. → **G109**
-
-Their **range** is the second fault and the larger one. Every rung tops out at 3000 land and bottoms
-at 800, while `LandPerTeam` runs 325 at five players per team to 5920 at thirty-two: twenty players
-already clears the top rung of all of them, and eight never reaches the bottom one. Measured over 24
-seeds a row at cell 5, a 20-player board and a 32-player board come out the same size — 88×73 against
-87×72 blocks, 2735 against 2719 land built — and 5, 6 and 8 players likewise share one board. The
-player count therefore steers composition only between about nine and seventeen. → **G265**
-
-The **budget itself** is the third fault, and it is the one the ladders sit on. `LandPerPlayerAnchors` runs
-65 blocks² a player at five to 185 at thirty-two; 331 CTW corpus maps measure about 250 a player at every
-size, fitting `176 × players^1.12` (`docs/world-scan/map-size-ladder.md`, 2026-09-16). So the anchor table is
-low everywhere and curved where the corpus is flat, and a composed board holds 0.59× a real one's land at
-five players and 0.18× at forty. Element width is the same fault in the other unit: every width the composer
-states is a cell count, so the tenth percentile of a composed board's local thickness is 10 blocks at every
-player count while the corpus runs 8 · 10 · 14 · 16 · 16 by mode. → **G266**, **G267**
+**The ladders — budget→structure thresholds.** `UnitTuning`'s shares and the hub box they size. Not
+facts (nothing is read off geometry), not menus, not fit gates. The closest declared kind is **target**
+— "a per-request, prescriptive constraint a compose holds and verifies" — and the spend gate now
+verifies the one that matters, the land a unit must come out holding; the shares beneath it still
+differ from a target in that nothing checks them one by one. → **G109**
 
 ## 3. The trace to law — which constants are grounded
 
@@ -74,17 +59,18 @@ Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved 
 
 | allocator rule | law | verdict |
 |---|---|---|
-| `WoolLaneCells = 2` | LN1 + `model.md` §2 ("the lane to the wool is simple, w2") | **grounded** |
-| `w = 3` above `WideLaneLand` | LN1 (10 base, 15 larger; corpus 81:15) | values grounded, **threshold invented** — LN1 states a *distribution*, the code makes it deterministic |
+| `WoolLaneFloorCells = 2` | LN1 + `model.md` §2 ("the lane to the wool is simple, w2") | **grounded** as a producible floor |
+| `CorridorBlocks` / `WoolCorridorBlocks` per band | G2, measured as the local thickness of 359 built maps | **grounded** |
 | `WoolLengthRatio = 3` | LN2 (20–50 blocks before a junction/dead end) | **grounded** on the lower bound; the 50 cap is unimplemented |
 | `CornerClearanceCells = 0` | the mass-level corner law | **vestigial** — it documents rather than acts (see below) |
 | the frontline joint's `faceWidth` | FR6 (split vs wide, band docks flush) | right kind (**offer**), law partially served |
-| `RingFitCells = 5` | geometry (`BodyEmitter.Ring` guards itself) | now used as a **form-choice threshold** in `ChooseHubForm`, which is a legitimate menu decision — not the duplicated fit gate it was once flagged as |
-| `HubCapCells` / `HubWideCap` | none — HB1 constrains *width*, not box size | **ungrounded** |
-| `FrontlineMinLand` | none | **ungrounded** |
-| `TinyBoardLand`, `FullTeamPlayers` | WL6 gives 1–3; G8 couples players↔land | range grounded, **thresholds invented** |
+| `RingFitCells(cw)`, `WideHubCells(cw)` | geometry (a ring is two walls and a hole; a docked bar keeps one beside it) | **grounded** — derived from the corridor rather than stated |
+| `HubBoxCells` — area from the share, aspect sampled | none — HB1 constrains *width*, not box size | area **grounded** in G8 through the share; the 1.3–2.4 aspect is **invented** |
+| the box shares (`FrontlineShare`, `WoolShare`, `HubMinShare`) | G8 gives the total, nothing splits it | total **grounded**, the split **invented** |
+| `WoolCount` per band | WL6 gives 1–3; the corpus gives 1 at nano and 2 above | **grounded** |
+| `SpendFloor` / `SpendCeiling` | none — G8 gives a number, not a tolerance | **invented**, and the one the author has said to tune on what the boards look like |
 | the shape-mix weights | WL8 governs wool approach routes | **ungrounded** — the donut *is* WL8's alternative-route case, but `0.25` derives from nothing |
-| `RingChance`, `ThirdWoolChance`, `NoFrontlineInN` | none | **ungrounded** |
+| `RingChance`, `ThirdWoolChance`, `SecondWoolChance`, `NoFrontlineInN` | none | **ungrounded** |
 
 **On the corner law.** `Cells.HasDiagonalPinch` is the mass-level pinch test, and it is real — but
 it is invoked **only from tests and the unit gallery**, never from `src/`. The invariant is

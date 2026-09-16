@@ -23,7 +23,7 @@ public static class UnitSeating
     /// seated neighbour boxes and their hub joints, or <c>null</c> when the box is too small for the form or a
     /// request finds no free run to dock (the directed signal the caller answers by falling back / resampling).</summary>
     internal static (List<Box> Boxes, List<BoxJoint> Joints)? Seat(
-        CompoundRead form, CellRect hubRect, Frame frame, int laneWidthCells, int seatGapCells,
+        CompoundRead form, CellRect hubRect, Frame frame, int laneWidthCells, int woolLaneCells, int seatGapCells,
         IReadOnlyList<NeighbourRequest> requests, ComposeRng rng,
         bool noFront, RingWalls? walls = null, IReadOnlyList<(int Start, int Width)>? arms = null)
     {
@@ -34,8 +34,8 @@ public static class UnitSeating
         // symmetric forms (Rectangle, Ring) are unaffected, so this is safe to apply uniformly
         var flipV = frontEdge == BoxEdge.Top;
         var hubBox = new Box("hub", BoxKind.Hub, hubRect, boxW * boxH, form, flipV,
-            HubWalls: walls, HubArms: arms);
-        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, flipV: flipV, ringWalls: walls,
+            HubWalls: walls, HubArms: arms, HubCorridorCells: laneWidthCells);
+        if (HubBoxEmitter.Fill(hubBox, form, hubBox.HubCorridor, flipV: flipV, ringWalls: walls,
                 armLayout: arms) is not { } hub)
             return null;   // too small
 
@@ -74,7 +74,7 @@ public static class UnitSeating
             var edge = SeatGeometry.SideEdge(frame, request.Side);
             var edgeLen = edge is BoxEdge.Top or BoxEdge.Bottom ? boxW : boxH;
             if (!runsByEdge.TryGetValue(edge, out var runs)) return null;      // the form leaves this edge empty
-            var grantedWidthCells = request.Kind == BoxKind.Wool ? UnitTuning.WoolLaneCells : laneWidthCells;           // the wool lane is w2; spawn/frontline read the map lane width
+            var grantedWidthCells = request.Kind == BoxKind.Wool ? woolLaneCells : laneWidthCells;   // each reads its own band corridor
             var style = UnitRequests.StyleOf(request);
 
             if (style is DockStyle.Overhang && request.Wool is { } rich)
@@ -122,7 +122,7 @@ public static class UnitSeating
         // rectangle itself keeps the flush seat, the flagged residue of a truly saturated hub.
         if (flushSeats.Count > 0)
         {
-            var (rBoxes, rJoints, residue) = FrontGuard.Resolve(boxes, joints, flushSeats, hubRect, frontEdge, seatGapCells, runsByEdge);
+            var (rBoxes, rJoints, residue) = FrontGuard.Resolve(boxes, joints, flushSeats, hubRect, frontEdge, seatGapCells, woolLaneCells, runsByEdge);
             if (residue > 0 && form.Form != Compound.Rectangle) return null;
             (boxes, joints) = (rBoxes, rJoints);
         }

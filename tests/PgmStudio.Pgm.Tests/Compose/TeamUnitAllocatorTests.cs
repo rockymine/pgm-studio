@@ -1,6 +1,7 @@
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Shapes;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests.Compose;
 
@@ -8,9 +9,8 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// wools are assigned around it (the free sides first, back preferred, a third doubling on the spawn's side).</summary>
 public class TeamUnitAllocatorTests
 {
-    private static ComposeEnvelope Env(int players = 8, double land = 1600) =>
-        new("mirror_z", Teams: 2, players, Cell: 5, Surface: 9,
-            BoardWidthBlocks: 200, BoardLengthBlocks: 200, land, UnitMinX: 0, UnitMinZ: 0, UnitMaxX: 40, UnitMaxZ: 40);
+    private static ComposeEnvelope Env(int players = 8, double land = 2250, string band = SizeBands.Nano) =>
+        new("mirror_z", 2, players, band, 5, 9, 2, 2, 200, 200, land, 0, 0, 40, 40);
 
     [Test]
     public async Task Spawn_on_the_back_puts_wools_on_the_sides_then_a_back_wool_c()
@@ -169,18 +169,18 @@ public class TeamUnitAllocatorTests
     public async Task Neighbour_spawn_and_wool_bodies_keep_the_lane_width_gap()
     {
         // the seat-step separation law: no spawn/wool neighbour touches (or corner-touches) another spawn/wool —
-        // they stay at least the map lane width apart (w2 = 10 blocks, w3 = 15 on wide boards). A third wool
-        // doubling onto the spawn's own edge (the huge preset) was the reported regression: a wool flush against
-        // the spawn with no gap. The wide presets (land > 2500) exercise the 15-block (w3) jump. One narrowing:
-        // on a no-frontline unit the front guard may, as its last tier before a flush front, reseat a wool at
-        // the wool-lane gap (2 cells, 10 blocks) — so a pair involving a wool there keeps that floor instead;
-        // the full gap still binds every with-frontline unit and every spawn↔spawn pair.
-        foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0), (20, 3800.0) })
+        // they stay at least the band's own corridor width apart. One narrowing: on a no-frontline unit the
+        // front guard may, as its last tier before a flush front, reseat a wool at the wool lane's width — so a
+        // pair involving a wool there keeps that floor instead; the full gap still binds every with-frontline
+        // unit and every spawn↔spawn pair.
+        foreach (var players in new[] { 8, 12, 16, 24, 32 })
         {
-            var w = land > 2500 ? 3 : 2;                             // the map-wide lane width, and so the gap
+            var env = Envelope.Derive(new ComposeRequest(players), new ComposeRng(1));
+            var w = env.CorridorCells;                               // the map-wide lane width, and so the gap
+            var land = env.LandPerTeam;
             for (ulong seed = 0; seed < 64; seed++)
             {
-                var alloc = TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed));
+                var alloc = TeamUnitAllocator.Allocate(env, new ComposeRng(seed));
                 if (alloc is not { } a) continue;
                 var noFront = a.Partition.Boxes.All(b => b.Kind != BoxKind.Frontline);
                 var nbs = a.Partition.Boxes.Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool).ToList();
@@ -188,7 +188,7 @@ public class TeamUnitAllocatorTests
                     for (var j = i + 1; j < nbs.Count; j++)
                     {
                         var woolPair = nbs[i].Kind == BoxKind.Wool || nbs[j].Kind == BoxKind.Wool;
-                        var gap = noFront && woolPair ? Math.Min(w, 2) : w;
+                        var gap = noFront && woolPair ? Math.Min(w, env.WoolCorridorCells) : w;
                         await Assert.That(Separated(nbs[i].Rect, nbs[j].Rect, gap)).IsTrue()
                             .Because($"{nbs[i].Id}<->{nbs[j].Id} @ {players}p/{land:0} seed {seed}");
                     }

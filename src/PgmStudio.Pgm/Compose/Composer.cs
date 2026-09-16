@@ -69,6 +69,21 @@ public static class Composer
             // was thrown away. Centring the unit on its face is what that guard was reaching for, so it now has
             // nothing left to catch — the residual offset is half a cell at most. The rule still binds authored
             // plans, which may draw a front anywhere; it is read back there (BZ9).
+
+            // the spend gate: what the unit actually built, against the band's budget. The allocator aims in box
+            // footprints, which is all it has before a fill exists, and a holed body's land is a fifth less than
+            // its footprint — so the contract is read here, off the pieces, and an attempt that left land
+            // unplaced or overran the band is resampled rather than shipped.
+            var built = LandCells(filled.Unit);
+            if (built < envelope.BudgetCells * UnitTuning.SpendFloor
+                || built > envelope.BudgetCells * UnitTuning.SpendCeiling)
+            {
+                rejects?.Reject(new RejectRecord(
+                    request.Seed, request.PlayersPerTeam, request.Teams, request.Symmetry, attempt, "spend",
+                    "spend", "G8", [$"built {built:F0} of {envelope.BudgetCells:F0} cells"]));
+                continue;
+            }
+
             var mid = MidCarver.TryCarve(envelope, crossing, filled.Unit);
             if (mid is null) continue;
 
@@ -86,6 +101,19 @@ public static class Composer
         throw new ComposeException(
             $"composition could not assemble an acceptable plan within {ComposeAttempts} attempts " +
             $"(players {request.PlayersPerTeam}, teams {request.Teams}, symmetry '{request.Symmetry}', seed {request.Seed})");
+    }
+
+    /// <summary>The land a grown unit holds, in cells — the distinct cells its pieces cover, so two pieces
+    /// meeting on a shared run count the overlap once. This is the currency the band's budget is stated in and
+    /// the one the corpus was measured in: ground a player stands on, not the boxes it was seated in.</summary>
+    public static int LandCells(GrownUnit unit)
+    {
+        var cells = new HashSet<(int X, int Z)>();
+        foreach (var piece in unit.Pieces)
+            for (var x = piece.Rect.X; x < piece.Rect.X + piece.Rect.Width; x++)
+                for (var z = piece.Rect.Z; z < piece.Rect.Z + piece.Rect.Height; z++)
+                    cells.Add((x, z));
+        return cells.Count;
     }
 
     /// <summary>

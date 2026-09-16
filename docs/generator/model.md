@@ -130,7 +130,7 @@ from there to the widths that decide what may be built where.
 
 | Parameter | Range | Means |
 |---|---|---|
-| `playersPerTeam` | clamped **5–32** | the only size input — the land budget and every structural ladder derive from it |
+| `playersPerTeam` | clamped **6–64** | the only size input — it selects a size band, and the band is what the land budget and every structural ladder read |
 | `teams` | **2** or **4** | 4 teams force `rot_90` |
 | `symmetry` | `rot_180` · `mirror_x` · `mirror_z` (2 teams) · `rot_90` (4) | which orbit fans the authored unit; defaults to `rot_180` / `rot_90` |
 | `seed` | any `ulong` | drives **every** draw — the same request reproduces the same plan byte-for-byte |
@@ -148,19 +148,28 @@ never the platform's, whose algorithm carries no stability guarantee and could s
 seed means between runtimes. No wall clock and no identifiers enter it: the same seed produces the
 same sequence, permanently.
 
-### 2.2 From players to a budget
+### 2.2 From players to a band, and from a band to a budget
 
-Everything is sized once, before any geometry exists, from the player count alone.
+Everything is sized once, before any geometry exists, from the player count alone — and the player
+count's whole job is to name a **size band**. A CTW map is not built for one count: it works across a
+range, and the ranges have names. **Nano** serves 6 to 13 players a team, **micro** 14 to 21, **milli**
+22 to 31, **centi** 32 to 47, **hecto** 48 and up. Two counts inside one band compose to the same
+budget, because they are the same map.
 
-**Land per player** is a piecewise-linear interpolation over corpus anchors — five players want about
-sixty-five square blocks each, rising to a hundred and eighty-five at thirty-two — so a team's land
-budget is its player count times that. This is the **land** currency, and it counts terrain area only.
+**Land per team** is the band's, measured over 331 CTW corpus maps
+(`docs/world-scan/map-size-ladder.md`): 2250 blocks² at nano, 4025 at micro, 7075 at milli, 8730 at
+centi, 20190 at hecto. Read per player it is about 250 blocks² at every size — the corpus fits
+`land/team = 176 × players^1.12`, and an exponent of one is exactly "constant land per player", so the
+ladder is nearly linear and the band is what quantizes it. This is the **land** currency, and it counts
+terrain area only.
 
 **The board's extent** comes from land plus a sampled **coverage ratio**, the fraction of the fanned
-board that is actually walkable. The corpus measures it between roughly 0.28 and 0.42, and dividing
-total land by it gives the fanned area. A four-team board is square with its side clamped to a
-sensible range; a two-team board additionally samples an aspect ratio between one and three, clamping
-width and length separately, which is what makes some maps long corridors and others broad arenas.
+board that is actually walkable. The corpus measures it between 0.32 and 0.41 across every band and the
+sample runs 0.30 to 0.42; dividing total land by it gives the fanned area. A four-team board is square
+— measured, at all three quartiles; a two-team board additionally samples an aspect ratio between 1.4
+and 2.6, the corpus's own quartiles, clamping width and length separately, which is what makes some
+maps long corridors and others broad arenas. Because coverage is stable, the board follows the budget:
+a board too small is a budget too small, never a second fault.
 
 **The unit bounds** follow: the authored unit takes half the doubled axis, less a margin between its
 frontmost piece and the symmetry axis.
@@ -181,20 +190,28 @@ than being tuned against each other.
 
 ### 2.3 The ladders, and the weights beside them
 
-Some structure changes discontinuously with the budget. How many objectives a team gets, whether it
-has a frontline at all, and how wide its corridors run are not interpolated — they are thresholds,
-and crossing one changes the map's shape:
+Two things change with the band rather than with the land continuously: how wide the map's corridors
+run, and how many objectives a team gets.
 
-| Ladder | Effect |
-|---|---|
-| land > 2500 | the map-wide lane width is 3 cells rather than 2 |
-| land < 800 | no frontline — there is no budget for one, so the hub fronts the mid directly |
-| land < 600 | a single wool; a tiny board cannot hold two |
-| players ≥ 16 | a full team: 2–3 wools rather than 1–2 |
+**The corridor width is stated in blocks**, which is what lets a grid scale move without moving the
+map. The corpus measures where a CTW map's ground actually sits — the modal local thickness runs
+8 · 10 · 14 · 16 · 16 from the smallest maps up, and the quartile a working lane sits at is
+8 · 12 · 14 · 16 · 17 — so the map's lane is 12 blocks at nano, 14 at micro, 16 at milli and centi, 22
+at hecto, and the wool approach is one rung under it at 10 · 12 · 14 · 14 · 18. Each is divided by the
+cell where the grid is laid, rounded to the nearest whole cell and never under two. A width stated in
+cells cannot carry a ladder at all: moving the cell from 5 to 4 would shrink every element by a fifth
+rather than offering a finer rung, and the measured ladder's ends — the 8-block floor the whole corpus
+builds to and the 16 that milli and centi sit on — are reachable at cell 4 and at neither rung of cell 5.
+
+**The wool count** is the band's too: one wool a team at nano, sometimes two; two from micro up,
+sometimes three (the third doubles onto the spawn's side). That is what 57% of nano maps and 56–82% of
+the rest carry.
+
+The frontline is not a ladder. Every band affords one, so it is present unless the one-in-seven
+sampled exception withholds it.
 
 These are what the allocator turns into requests: the wool count fixes how many neighbours must be
-seated, the frontline threshold decides whether a whole box kind exists, and the lane width is the
-figure every corridor and every clearance test is measured in.
+seated, and the lane width is the figure every corridor and every clearance test is measured in.
 
 Beside the ladders sit roughly a dozen **sampling weights** — how often a wool is bent rather than
 straight, how often a bent wool is a donut, how often a big square hub takes the ring, how often the
@@ -216,9 +233,12 @@ picked and sets how things connect. **Read-width** is identity, and a family is 
 width-free. Width chooses which family is *legal* and how it *joins*; it never changes what a shape
 *is*.
 
-The reference frame is fixed: a **cell** is 5 blocks, a **lane** is 2 cells, and `wN` means N cells —
-so `w2` is one lane at 10 blocks, `w4` two lanes, `w6` three. Widths are not strictly quantized; a
-touch of 15 or 25 blocks is valid and tapers toward the nearest rung.
+The rungs are counted in **lanes**, not cells, so the same table reads the same on any grid scale: one
+lane is a chokepoint, two the unstable middle, three multi-access. A lane is the band's own corridor
+width, which is where the grid scale enters and the only place it does. The names `w2`/`w4`/`w6` are
+those rungs read in the reference frame — a **cell** of 5 blocks and a **lane** of 2 cells, so `w2` is
+one lane at 10 blocks. Widths are not strictly quantized; a touch of 15 or 25 blocks is valid and
+tapers toward the nearest rung.
 
 The interface width is called the master variable because it does **three things at once**. It **sets
 connectivity**: a one-lane touch is a single funnel, a chokepoint, while wider touches admit parallel
@@ -227,20 +247,21 @@ as a bridge, three lanes or more is an area and reads as a hub, and two lanes is
 that has to resolve one way or the other. And it **gates the fill menu** — what may be built behind
 that touch at all:
 
-| touch | lanes | reads as | legal fills |
-|---|---|---|---|
-| **w2 (10)** | 1 | chokepoint | one I / L / Z lane; or a pure drain |
-| **w4 (20)** | 2 | too wide to stay straight | 10 terrain + 10 build-lane; or a 20 stub that twists to L/I |
-| **w6 (30)** | 3 | multi-access | two 10-strands with a hole; terrain-build-terrain; or a funnel splitting into a hole with two approaches |
+| touch | reads as | legal fills |
+|---|---|---|
+| **one lane** | chokepoint | one I / L / Z lane; or a pure drain |
+| **two lanes** | too wide to stay straight | terrain + build-lane; or one stub that twists to L/I |
+| **three lanes** | multi-access | two strands with a hole; terrain-build-terrain; or a funnel splitting into a hole with two approaches |
 
 The w4 and w6 rows resolve into multi-shape patterns the emitters cannot yet build. They are written
 down anyway, so the table does not pretend a wide touch is merely a wide lane.
 
 This is also why a wool box carries **two** widths rather than one. There is the width where it docks
-its host, which is the interface width above, and the width of the lane running to the wool, which
-stays simple. A wide entry tapers or splits into that narrow lane instead of dragging its width along
-behind it, which is why the emitter keeps attachment width separate from corridor width. A lane is not
-an approach: the lane is the corridor, the approach is the whole shape it belongs to.
+its host, which is the interface width above, and the width of the lane running to the wool, which is
+the band's wool corridor — one rung under the map's. A wide entry tapers or splits into that narrower
+lane instead of dragging its width along behind it, which is why the emitter keeps attachment width
+separate from corridor width. A lane is not an approach: the lane is the corridor, the approach is the
+whole shape it belongs to.
 
 ---
 
@@ -888,24 +909,43 @@ gap from one team's front to the other's is settled while the board is still emp
 *is* the margin the allocator must leave against the axis. Allocation therefore starts with the axis
 already spoken for, and the unit grows back from a boundary it does not get to move.
 
-### 5.2 The hub goes down first
+### 5.2 The budget is eaten, and the hub eats what is left
+
+The land budget is a ledger, opened once per attempt and debited as each box is sized. The spawn, the
+frontline and each wool claim a **fixed share** of it — a frontline is the ground the mid is met on and
+takes about a fifth, each wool about an eighth, and a spawn is not a share at all but a box, costing
+what a room and a run-up cost at the map's corridor width. **The hub takes what is left**, never under
+a third: it is the junction every lane originates from, so a unit that spent itself on its edges has no
+middle. That is what makes a bigger band buy a bigger junction rather than the same one on a bigger
+board.
+
+The allocator can only aim in **footprints** — a box's rectangle is all it has before anything is
+filled — so the allowance the boxes share out is the land budget over the share of a footprint that
+survives as land once a body with a hole in it is emitted into it. What the unit actually built is read
+back off its filled pieces and held against the budget: an attempt that left land unplaced, or overran
+the band, is resampled rather than shipped. The band is wide, because footprint and land are different
+readings and only the second is the contract.
+
+### 5.3 The hub goes down first
 
 The hub is the only box in the unit that ever receives absolute coordinates. Its rectangle is drawn in
 the symmetry frame — so many cells out from the axis, so many across — and every other box is
 positioned relative to it. Nothing downstream re-opens that decision.
 
-Its depth toward the axis and its lateral span are drawn from different caps, so a hub grows wider
-rather than squarer. The long lateral edge is what gives the spawn and the wools room to attach with a
-gap between them, and past nine cells it affords the wide holed bodies, whose bar and ring runs are
-long stretches of free surface. Where the plan carries a frontline, the frontline's reach pushes the
-hub's front edge back, so the frontline ends up between the hub and the axis rather than beside it.
+Its **area** is what its share bought and its **aspect** is what varies between boards, sampled between
+1.3 and 2.4 wider than deep — so a hub spends what it was given whatever shape it comes out, and always
+grows wider rather than squarer. The long lateral edge is what gives the spawn and the wools room to
+attach with a gap between them, and past four corridors wide it affords the wide holed bodies, whose
+bar and ring runs are long stretches of free surface. Where the plan carries a frontline, the
+frontline's reach pushes the hub's front edge back, so the frontline ends up between the hub and the
+axis rather than beside it.
 
 The allocator, not the filler, owns the choice of hub form, because the form decides where neighbours
 can sit. It emits the body once to read what that body offers, and the chosen form — with its wall
 widths and arm layout, where it has them — rides on the hub box so the filler re-emits exactly the
 same body. A body sampled twice would not agree with itself.
 
-### 5.3 The form decides where anything may dock
+### 5.4 The form decides where anything may dock
 
 Emitting is what turns a footprint into material. The form decides which cells inside the hub's
 rectangle are terrain and which are holes, and that distinction matters immediately, because the next
@@ -922,7 +962,7 @@ Each run is published as an **offer**, carrying the width that run can support �
 from its own length. The offer bounds the search rather than filtering its output: a seat that would
 put a neighbour where the hub has no material is never proposed, not proposed and rejected.
 
-### 5.4 What the unit asks for
+### 5.5 What the unit asks for
 
 Independently of the hub, and before any position exists, the allocator works out what the unit needs.
 It does not decide the counts: how many wool boxes there are, whether there is a frontline at all, and
@@ -949,7 +989,7 @@ demotes into the overhang path — while an L or a donut may be born wider than 
 because the overhang rule only ever needs its entry to land. This exemption is the whole permission
 for a box to exceed the run it sits on, and it is one negation in one condition.
 
-### 5.5 The seat
+### 5.6 The seat
 
 Seating's entire job is to turn a request into a position, and the position is a single integer: the
 **seat**, the offset in the hub's edge-local coordinates at which the neighbour's along-extent begins.
@@ -971,7 +1011,7 @@ rectangle is derived once, at the end, from the value that survived.
 What a seat produces is an envelope, not terrain. What goes inside it — and how much of it is left
 empty — is settled later, by a filler that cannot move the rectangle it was handed.
 
-### 5.6 The three dock rules
+### 5.7 The three dock rules
 
 Which seats are legal depends on the dock style, and the style is never sampled. It follows from the
 family roll that has already happened, which makes it a derived property of the request rather than a
@@ -1028,7 +1068,7 @@ heads stay flush under a shift, so the combined edge moves intact. A host touchi
 contrast, is a hard rejection in every case: that is the flush dock that would seal the bay and make the
 room itself the door.
 
-### 5.7 What keeps neighbours apart
+### 5.8 What keeps neighbours apart
 
 The runs constrain a neighbour against its host. A second, independent constraint holds neighbours
 apart from each other, and a seat must satisfy both.
@@ -1057,7 +1097,7 @@ unit and its own mirror image turns two islands into one and quietly deletes the
 is built around. The same measurement also supplies the length of a straight unbroken run, which is the
 unit of account for the rule against long flat frontiers.
 
-### 5.8 When a seat cannot be found
+### 5.9 When a seat cannot be found
 
 Failure is a ladder, not a cliff, and each rung is a different answer.
 
@@ -1077,7 +1117,7 @@ deterministically, consuming no draw — to the nearest position that clears the
 backward position can hold are collected and resolved after every neighbour is placed, when the full
 set is known and an earlier drop may have freed the very blocker.
 
-### 5.9 What a joint records
+### 5.10 What a joint records
 
 A box allocates a **budget, not exclusive area**, so two footprints are free to overlap — the
 partition is a set of claims on land and space, not a tiling. What that costs is that adjacency can no
@@ -1101,7 +1141,7 @@ exactly the two docks worth understanding — an overhang wool, whose entry is n
 and the frontline, whose face may exceed the hub's edge so the abutment is clipped narrower than the
 box. Of the four, the abutment is the only one describing something a player can walk through.
 
-### 5.10 What the filler still decides
+### 5.11 What the filler still decides
 
 Allocation settles structure and position; filling puts terrain inside what it settled. The seam
 between them is not a formality, because a decision taken on the wrong side of it is taken without the
@@ -1124,7 +1164,7 @@ dock. Its offer **grouping** — one consumer spanning every tip against one con
 FR6, an authored law — is part of an offer, and an offer is the allocator's plan. Both are made in the
 filler today, the grouping by coin flip. Tracked in `audit.md` as G111.
 
-### 5.11 Placing the finished unit
+### 5.12 Placing the finished unit
 
 Building the unit and placing it across the axis are two steps, and the second one exists because the
 first anchors on the wrong thing. Everything above is laid out around the hub, whose lateral span is

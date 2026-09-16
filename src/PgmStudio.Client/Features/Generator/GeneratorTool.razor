@@ -199,7 +199,7 @@
         {
           <div class="gen-spend">
             <div class="gen-spend-head">
-              <span>land <strong>@sp.LandCells</strong> / @sp.BudgetCells.ToString("0") cells</span>
+              <span><strong>@sp.Band</strong> · land <strong>@sp.LandCells</strong> / @sp.BudgetCells.ToString("0") cells</span>
               <span class="gen-spend-pct">@SpendPercent(sp)</span>
             </div>
             <table class="gen-spend-table">
@@ -217,9 +217,10 @@
               <tfoot><tr><td>total</td><td>@sp.LandCells</td><td>@sp.FootprintCells</td></tr></tfoot>
             </table>
             <p class="section-desc">
-              Cells, for <strong>one team unit</strong> — the board is this unit fanned. Footprint is the box
-              rectangle; land is the walkable terrain inside it, which is what the fill spends. The budget is
-              the envelope's per-team land target, converted from blocks².
+              Cells, for <strong>one team unit</strong> — the board is this unit fanned. The per-box rows are
+              footprints, the only currency a box carries before it is filled; the total land is what the
+              pieces actually cover, which is what the spend gate holds against the budget. The budget is the
+              size band's land for one team, converted from blocks².
             </p>
           </div>
         }

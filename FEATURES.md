@@ -4083,6 +4083,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wizard. (`9f645dc` → `45209a1`)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
+- **The budget is a size band, and composing eats it (`G265`, `G266`, `G267`).** The player count named a
+  land budget nothing enforced: `LandPerPlayerAnchors` ran 65 blocks² a player at five to 185 at thirty-two
+  where 331 corpus maps measure about **250 at every size**, and every consumer of it was a step function
+  topping out at 3000 land, so twenty players and thirty-two composed the same board. The count now names a
+  **size band** — `PgmStudio.Vocabulary.SizeBands`, nano 6–13 · micro 14–21 · milli 22–31 · centi 32–47 ·
+  hecto 48+ — and the band carries its measured land (2250 · 4025 · 7075 · 8730 · 20190), its corridor width
+  in **blocks** (12 · 14 · 16 · 16 · 22, the wool approach one rung under) and its wool count. `LandBudget` is
+  the ledger: the spawn, the frontline and each wool take a fixed share as they are sized, `HubBoxCells` gives
+  the hub whatever is left at a sampled aspect, and the composer **gates on what the unit actually built** —
+  outside 70–130% of the budget the attempt is resampled. Every width the emitters read is now a lane count
+  rather than a cell count (`FillMenu`'s rungs, `RingFitCells`, `WideHubCells`, the hub's own wall on
+  `Box.HubCorridor`), which is what lets a grid scale move without moving the map. Land built rises 1.2× →
+  5.6× across the ladder where it rose 1.6× before; `LandSpendDto` leads with the band. (`SizeBands`,
+  `Envelope`, `LandBudget`, `UnitTuning`, `TeamUnitAllocator`, `UnitRequests`, `Composer`, `FillMenu`,
+  `Producibility`, `docs/world-scan/map-size-ladder.md`, `docs/generator/model.md` §2, `rules.md` `G2`/`G3`/`G8`)
 - **A flow reading the evaluator can fire (`G187`).** `PlanFlow` computed how much of a board no journey
   reaches and served it as prose, and the evaluator's terms walked the surface for distances and cited neither
   `PlanRoutes` nor `PlanFlow` — so no flow answer scored anything. `DeadShare` scores it, at `POST

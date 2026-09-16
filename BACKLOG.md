@@ -325,6 +325,19 @@ height. That is exactly what a made thing needs, and none of it has to be invent
 
 ## The plan model: pieces, and the edges between them
 
+- [ ] **G268 — A frontline spine docked flush on a solid hub wall makes one slab twice the corridor deep.**
+  The frontline's spine is one corridor deep and the hub's front wall is another, and the band docks them
+  edge to edge, so the two read as a single solid run of `2 × corridor`. Measured over 132 composed boards
+  (`docs/world-scan/map-size-ladder.md`): the modal local thickness of a micro board is **30 blocks** where
+  the corpus sits at 14, and micro is worst because cell 5 rounds its 14-block corridor up to 3 cells.
+  `TeamUnitFiller` already prefers a strand frontline over the solid bar on a holed hub; what is missing is
+  the same preference read off the **edge the spine actually docks** rather than off the hub's form.
+  `docs/generator/model.md` §5 and `rules.md` `FR6`.
+
+  *Evidence: `p16 rot_180 seed 1`, corridor 3 — `hub-t2 x[-4,4) z[7,10)` solid across the hub front, and
+  `frontline-t1 x[-4,4) z[4,7)` flush against it: 40 × 30 blocks of unbroken ground.*
+
+
 `PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,
 each side's frontline share, the straits between bridged islands — and the lint table quantifies over it
 (`SP8`/`SP9`/`ST8`/`ST9`/`BZ11`/`FR8`/`CT12`). What is left is one number nobody has stated, one read the

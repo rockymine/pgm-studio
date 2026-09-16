@@ -2,19 +2,21 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>One row of the width→fill production rule: what an interface of this width reads as, and which
-/// fills it makes legal (docs/generator/model.md §2). Widths are not strictly quantized — a touch
-/// tapers to the nearest rung.</summary>
-public sealed record FillMenuRow(int WidthCells, string Reads, IReadOnlyList<ShapeFamily> Families, string Note);
+/// <summary>One row of the width→fill production rule: what an interface this many <see cref="Lanes"/> wide
+/// reads as, and which fills it makes legal (docs/generator/model.md §2). Widths are not strictly quantized —
+/// a touch tapers to the nearest rung.</summary>
+public sealed record FillMenuRow(int Lanes, string Reads, IReadOnlyList<ShapeFamily> Families, string Note);
 
 /// <summary>
 /// The fill menu — the §4 <c>w2/w4/w6</c> table as data: an interface width gates what may fill the box
-/// behind it. The reference frame is <c>cell = 5 blocks</c>, <c>lane = 2 cells</c>, so w2 = 1 lane = 10
-/// blocks (G2's corridor minimum). A w2 touch is a chokepoint continuing a single lane, which admits every
-/// terminal-capped family (each docks through a one-lane entry); w4 is the unstable middle that must resolve
-/// (split into lane + build-lane, or twist); w6 is multi-access. The w4/w6 rows resolve into multi-shape
-/// patterns, which are not emittable yet — they are recorded so the data does not pretend a wide touch is
-/// just a wide lane.
+/// behind it. The rungs are counted in <b>lanes</b>, not cells, so the table reads the same however wide a
+/// lane is on the board being composed: a <b>one-lane</b> touch is a chokepoint continuing a single lane,
+/// which admits every terminal-capped family (each docks through a one-lane entry); two lanes is the
+/// unstable middle that must resolve (split into lane + build-lane, or twist); three is multi-access. The
+/// two- and three-lane rows resolve into multi-shape patterns, which are not emittable yet — they are
+/// recorded so the data does not pretend a wide touch is just a wide lane. The names <c>w2/w4/w6</c> are the
+/// same rungs read in the reference frame, <c>cell = 5 blocks</c> and <c>lane = 2 cells</c>, where one lane
+/// is 10 blocks (G2's corridor minimum).
 /// </summary>
 public static class FillMenu
 {
@@ -50,12 +52,14 @@ public static class FillMenu
             "three lanes: two 10-strands with a hole / terrain-build-terrain — patterns over several shapes"),
     ];
 
-    /// <summary>The families an interface of <paramref name="widthCells"/> admits (taper to the nearest
-    /// rung). Wider rungs return empty until multi-shape patterns are emittable — the caller treats an empty
-    /// menu as a directed signal, never a crash.</summary>
-    public static IReadOnlyList<ShapeFamily> FamiliesFor(int widthCells)
+    /// <summary>The families an interface of <paramref name="widthCells"/> admits where one lane is
+    /// <paramref name="laneCells"/> cells, tapering to the nearest rung. A touch one lane wide is a
+    /// chokepoint on any grid; wider rungs return empty until multi-shape patterns are emittable — the caller
+    /// treats an empty menu as a directed signal, never a crash.</summary>
+    public static IReadOnlyList<ShapeFamily> FamiliesFor(int widthCells, int laneCells)
     {
-        var row = Rows.OrderBy(r => Math.Abs(r.WidthCells - widthCells)).ThenBy(r => r.WidthCells).First();
+        var lane = Math.Max(1, laneCells);
+        var row = Rows.OrderBy(r => Math.Abs(r.Lanes * lane - widthCells)).ThenBy(r => r.Lanes).First();
         return row.Families;
     }
 }

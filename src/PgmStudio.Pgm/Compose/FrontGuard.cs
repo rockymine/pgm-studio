@@ -83,7 +83,7 @@ public static class FrontGuard
     /// flagged residue of a truly saturated hub).</summary>
     public static (List<Box> Boxes, List<BoxJoint> Joints, int Residue) Resolve(
         List<Box> boxes, List<BoxJoint> joints, IReadOnlyList<FlushSeat> flushSeats,
-        CellRect hubRect, BoxEdge frontEdge, int seatGapCells,
+        CellRect hubRect, BoxEdge frontEdge, int seatGapCells, int woolLaneCells,
         IReadOnlyDictionary<BoxEdge, IReadOnlyList<(int Start, int Len)>> runsByEdge)
     {
         int boxW = hubRect.Width, boxH = hubRect.Height;
@@ -100,7 +100,7 @@ public static class FrontGuard
             bs[i] = bs[i] with { Rect = SeatGeometry.NeighbourRect(e, seat, depth, along, hubRect) };
             var ji = js.FindIndex(j => j.BoxB == id);
             js[ji] = SeatGeometry.HubJoint("hub", id, e, seat, along,
-                kind == BoxKind.Wool ? UnitTuning.WoolLaneCells : seatGapCells);
+                kind == BoxKind.Wool ? woolLaneCells : seatGapCells);
         }
 
         (List<Box> B, List<BoxJoint> J, int Residue) ResolveOrder(
@@ -113,11 +113,10 @@ public static class FrontGuard
             {
                 var self = bs.First(b => b.Id == f.Id);
                 var cur = f.Edge is BoxEdge.Top or BoxEdge.Bottom ? self.Rect.X - hubRect.X : self.Rect.Z - hubRect.Z;
-                // separation tiers: the full gap first; a wool may fall to the wool-lane gap (2 cells,
-                // 10 blocks — the very separation the narrower boards seat with, still no-touch) as the last tier
-                // before a flush residue, trading separation ideal for the flush law
-                var gaps = f.Kind == BoxKind.Wool && f.Gap > UnitTuning.WoolLaneCells
-                    ? new[] { f.Gap, UnitTuning.WoolLaneCells } : new[] { f.Gap };
+                // separation tiers: the full gap first; a wool may fall to its own lane width as the last tier
+                // before a flush residue — still no-touch — trading the separation ideal for the flush law
+                var gaps = f.Kind == BoxKind.Wool && f.Gap > woolLaneCells
+                    ? new[] { f.Gap, woolLaneCells } : new[] { f.Gap };
                 var resolved = false;
                 foreach (var separation in gaps)
                 {

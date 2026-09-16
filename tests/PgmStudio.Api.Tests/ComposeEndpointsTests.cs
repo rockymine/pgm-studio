@@ -93,16 +93,16 @@ public sealed class ComposeEndpointsTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var page = await client.GetFromJsonAsync<ComposePage>(
-            "/api/compose?players=8&symmetry=rot_180&seedStart=0&count=8&hub=twin");
+            "/api/compose?players=8&symmetry=rot_180&seedStart=0&count=8&wools=scythe");
         var observed = page!.Observed!;
 
         await Assert.That(page.Cards).IsEmpty();
         await Assert.That(observed.Boards).IsGreaterThan(100).Because("the structural scan budget ran");
-        await Assert.That(observed.Hubs.GetValueOrDefault("twin")).IsEqualTo(0)
-            .Because($"an 8-player hub has no room for two legs and a bay; saw {string.Join(", ",
-                observed.Hubs.Select(h => $"{h.Key}:{h.Value}"))}");
-        await Assert.That(observed.Hubs.GetValueOrDefault("single")).IsGreaterThan(0)
-            .Because("the one-legged branch is the form that size does produce");
+        await Assert.That(observed.Wools.GetValueOrDefault("scythe")).IsEqualTo(0)
+            .Because($"the scythe is off the production menu at every size; saw {string.Join(", ",
+                observed.Wools.Select(w => $"{w.Key}:{w.Value}"))}");
+        await Assert.That(observed.Wools.Values.Sum()).IsGreaterThan(0)
+            .Because("the census still records the families the sieve rejected boards for");
     }
 
     [Test]

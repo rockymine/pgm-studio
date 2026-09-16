@@ -48,13 +48,16 @@ public static class UnitRequests
         : DockStyle.FullMouth;
 
     /// <summary>The neighbour boxes to seat: the spawn (a straight I for now — cross = entry width, seats
-    /// cleanly; the L's overhanging foot lands next), the budget-share-sized wools, each on its planned side
-    /// (the free sides first, a third doubling into the spawn's edge), and — when the plan carries one — the
-    /// frontline join on the front side (reach × a face spanning the hub front). The spawn size is the one RNG
-    /// draw here; the wool sizes read the budget (generic, no per-family solve), so the whole set is fixed before
-    /// the form is chosen and is identical across a fallback re-seat.</summary>
+    /// cleanly; the L's overhanging foot lands next), the wools, each on its planned side (the free sides
+    /// first, a third doubling into the spawn's edge), and — when the plan carries one — the frontline join on
+    /// the front side (reach × a face spanning the hub front). Each takes its share out of
+    /// <paramref name="budget"/> as it is sized, so what the unit leaves unspent is a number rather than an
+    /// assumption. The spawn size is the one RNG draw here; the wool sizes read the budget (generic, no
+    /// per-family solve), so the whole set is fixed before the form is chosen and is identical across a
+    /// fallback re-seat.</summary>
     internal static IReadOnlyList<NeighbourRequest> Sample(
-        ComposeEnvelope env, ComposeRng rng, UnitPlan plan, int laneWidthCells, int hubU, int hubV, int frontReach)
+        ComposeEnvelope env, ComposeRng rng, LandBudget budget, UnitPlan plan,
+        int laneWidthCells, int hubU, int hubV, int frontReach)
     {
         var requests = new List<NeighbourRequest>();
 
@@ -62,17 +65,18 @@ public static class UnitRequests
         var size = iSizes[rng.NextInt(0, iSizes.Count)];
         var (spW, spH) = SpawnBoxEmitter.Box(size.Family, laneWidthCells, size.RunCells, size.TurnCells);
         requests.Add(new NeighbourRequest(plan.Spawn, BoxKind.Spawn, spH, spW, "spawn"));
+        budget.Spend(spW * (double)spH);
 
-        // the flexible budget left after the hub, split into a rough share per wool (the spawn takes one too)
-        var budgetCells = env.LandPerTeam / (env.Cell * (double)env.Cell);
-        var flexible = Math.Max(0.0, budgetCells - hubU * hubV);
-        var woolShare = flexible / (plan.Wools.Count + 1.0);
+        // each wool grows into its own share of the whole budget rather than into whatever the hub happened to
+        // leave — the shares are what the hub was sized against, so reading them back here is the same statement
+        var woolShare = budget.Share(UnitTuning.WoolShare);
         for (var i = 0; i < plan.Wools.Count; i++)
         {
             var side = plan.Wools[i];
             var edgeLen = side is UnitSide.Front or UnitSide.Back ? hubV : hubU;
-            var (fill, along, depth) = WoolRequest(rng, edgeLen, woolShare);
+            var (fill, along, depth) = WoolRequest(rng, env.WoolCorridorCells, edgeLen, woolShare);
             requests.Add(new NeighbourRequest(side, BoxKind.Wool, depth, along, $"wool-{(char)('a' + i)}", fill));
+            budget.Spend(along * (double)depth);
         }
 
         // the frontline join: it docks the hub's front edge with a face spanning it (corner clearance aside) and
@@ -94,6 +98,7 @@ public static class UnitRequests
             // rule reads the same in blocks as in cells because the cell size is odd.
             if (MidCarver.LateralFlip(env.Symmetry) && faceWidth % 2 != 0) faceWidth--;
             requests.Add(new NeighbourRequest(front, BoxKind.Frontline, frontReach, faceWidth, "frontline"));
+            budget.Spend(faceWidth * (double)frontReach);
         }
         return requests;
     }
@@ -109,10 +114,11 @@ public static class UnitRequests
     /// <item><b>back-room lane</b> — a short inline <c>I</c>, its depth the budget share capped under the same
     /// length rule.</item>
     /// </list>
-    /// The wool lane is always <see cref="UnitTuning.WoolLaneCells"/> (§4), never the map's <c>w</c>.</summary>
-    internal static (WoolFill Fill, int Along, int Depth) WoolRequest(ComposeRng rng, int edgeLen, double woolShare)
+    /// The wool lane is the band's own <paramref name="woolLaneCells"/> (§4), one rung under the map's
+    /// <c>w</c>.</summary>
+    internal static (WoolFill Fill, int Along, int Depth) WoolRequest(
+        ComposeRng rng, int woolLaneCells, int edgeLen, double woolShare)
     {
-        var woolLaneCells = UnitTuning.WoolLaneCells;
         if (rng.NextBool(UnitTuning.BentWoolChance))
         {
             var family = rng.NextBool(UnitTuning.DonutChance) ? ShapeFamily.Donut
@@ -138,6 +144,12 @@ public static class UnitRequests
                 depth += holeDeep - woolLaneCells;
                 along = Math.Max(along, Math.Max(2 * woolLaneCells + holeAlong, attachW + woolLaneCells));
             }
+            // the family's minimum box is a floor, not a size: grow it into the wool's share of the budget, which
+            // the emitter absorbs as a longer run, a wider ring or deeper legs. Without this a rich wool costs its
+            // minimum whatever band it is built at, and the budget buys nothing on three wools in five.
+            (along, depth) = GrowToShare(along, depth, woolShare,
+                                         Overhangs(family) ? MaxAlongCells(woolLaneCells) : edgeLen,
+                                         MaxDepthCells(woolLaneCells));
             if (!Overhangs(family) && along > edgeLen)
                 (family, woolAtEnd, (along, depth)) = (ShapeFamily.L, false, WoolBoxEmitter.MouthBox(ShapeFamily.L, woolLaneCells));
             return (new WoolFill(family, RoomPlacement.Inline, false, woolAtEnd, attachW), along, depth);
@@ -145,8 +157,8 @@ public static class UnitRequests
 
         // the budget's rough lane: the share spread over a narrow along-extent, the rest becoming depth
         var rd = ShapeEmitter.RoomDepthCells;
-        var maxDepth = UnitTuning.WoolLengthRatio * Math.Max(woolLaneCells, rd) - 1;
-        var narrowAlong = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), woolLaneCells, Math.Min(UnitTuning.WoolAlongCapLanes * woolLaneCells, edgeLen));
+        var maxDepth = MaxDepthCells(woolLaneCells);
+        var narrowAlong = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), woolLaneCells, Math.Min(MaxAlongCells(woolLaneCells), edgeLen));
         var budgetDepth = (int)Math.Round(woolShare / narrowAlong);
 
         // NB the short-circuit is load-bearing: a lane that would run long side-tucks WITHOUT consuming a draw
@@ -159,6 +171,32 @@ public static class UnitRequests
 
         return (new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false),
             woolLaneCells, Math.Clamp(budgetDepth, rd + 1, maxDepth));
+    }
+
+    /// <summary>The deepest a wool box may run outward from the hub, in cells — the wool length rule, over
+    /// whichever is larger of its corridor and its room depth.</summary>
+    private static int MaxDepthCells(int woolLaneCells) =>
+        UnitTuning.WoolLengthRatio * Math.Max(woolLaneCells, ShapeEmitter.RoomDepthCells) - 1;
+
+    /// <summary>The widest a wool box may run along the hub edge, in cells — the along-extent a share is spread
+    /// over before it turns into depth.</summary>
+    private static int MaxAlongCells(int woolLaneCells) => UnitTuning.WoolAlongCapLanes * woolLaneCells;
+
+    /// <summary>Grow an <paramref name="along"/> × <paramref name="depth"/> box until it holds
+    /// <paramref name="share"/> cells or meets a cap, adding to whichever side is shorter so the box spreads
+    /// rather than stretching into a corridor. Both caps bind: a box that cannot reach its share leaves the
+    /// difference unspent, which the spend gate reads.</summary>
+    private static (int Along, int Depth) GrowToShare(
+        int along, int depth, double share, int alongCap, int depthCap)
+    {
+        while (along * (double)depth < share)
+        {
+            if (along <= depth && along < alongCap) along++;
+            else if (depth < depthCap) depth++;
+            else if (along < alongCap) along++;
+            else break;
+        }
+        return (along, depth);
     }
 
     /// <summary>Demote a wool request to the <b>compact inline <c>I</c></b> — the always-seatable shape: a

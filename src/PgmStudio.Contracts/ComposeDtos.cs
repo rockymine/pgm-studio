@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 namespace PgmStudio.Contracts;
 
 /// <summary>The wire form of a generated plan's canonical versioned request descriptor — a browse card's
@@ -56,18 +57,20 @@ public sealed record StructureSummaryDto(
 /// <param name="FootprintCells">The box rectangles, which are fixed once the boxes are seated.</param>
 public sealed record BoxSpendDto(string Kind, int Boxes, int LandCells, int FootprintCells);
 
-/// <summary>What a composed unit spent against the budget it was built to. <paramref name="BudgetCells"/> is
-/// the envelope's per-team land target converted to cells — <b>per team unit</b>, not per board, because the
-/// board is the unit fanned; and converted from the blocks² the envelope works in, which is why it is carried
-/// already-converted rather than leaving the client to guess the cell size. <paramref name="ByKind"/> is the
-/// breakdown, ordered largest-land first.</summary>
-/// <param name="LandCells">The walkable terrain the unit spent in total.</param>
-/// <param name="FootprintCells">The rectangles it seated in total.</param>
-/// <param name="BudgetCells">The envelope's land target for one team unit, already converted from the
-/// blocks² the envelope works in — carried converted rather than leaving a caller to guess the cell
-/// size.</param>
-/// <param name="ByKind">The breakdown, largest-land first.</param>
+/// <summary>What a composed unit spent against the budget it was built to. Every number is <b>per team
+/// unit</b>, not per board, because the board is the unit fanned; and every one is in cells, converted from
+/// the blocks² the envelope works in so a caller never has to guess the cell size. <paramref name="ByKind"/>
+/// is the breakdown, ordered largest-land first.</summary>
+/// <param name="Band">The size band the budget came from.</param>
+/// <param name="LandCells">The walkable terrain the unit actually built — the distinct cells its pieces
+/// cover, which is what the spend gate holds against the budget.</param>
+/// <param name="FootprintCells">The rectangles it seated in total. Larger than the land wherever a body has
+/// a hole in it.</param>
+/// <param name="BudgetCells">The band's land for one team unit.</param>
+/// <param name="ByKind">The breakdown, largest-land first. Both currencies here are per-box footprints —
+/// a box does not know what its body left standing until it is filled.</param>
 public sealed record LandSpendDto(
+    [property: WordSet(typeof(SizeBands))] string Band,
     int LandCells,
     int FootprintCells,
     double BudgetCells,

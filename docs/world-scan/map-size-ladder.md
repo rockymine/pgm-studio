@@ -138,79 +138,77 @@ square — aspect 1.00 at all three quartiles over 30 maps — with a side of 16
 21 / 29 / 38%. Thirty of the 360 measured maps are four-team, and they are small maps: 15 nano, 11 micro, 2 milli,
 none above.
 
-## What the composer emits against it
+## What the composer builds against it
 
-Twelve boards a row, `rot_180` and `mirror_z`, cell 5, measured the same way: the fanned ASCII board
-rasterised to blocks and put through the same local thickness. Land is terrain only — a build zone, a water
-lane and an enclosed void are not ground, which is what makes the number comparable with an island count.
-The corpus column beside it is the median over every map within four players of the row, so the two are read
-at the same count rather than through a group boundary.
+Twelve boards a row, `rot_180` and `mirror_z`, cell 5, measured the same way: the fanned board rasterised to
+blocks and put through the same local thickness. Land is terrain only — a build zone, a water lane and an
+enclosed void are not ground, which is what makes the number comparable with an island count. The corpus
+column beside it is the median over every map within four players of the row, so the two are read at the same
+count rather than through a group boundary.
 
-| players | composed board | land/team | budget/team | built ÷ budget | corpus land/team | built ÷ corpus | corpus board |
-|---|---|---|---|---|---|---|---|
-| 5 | 55×95 | 875 | 325 | 2.7× | 1486 | 0.59× | 64×138 |
-| 6 | 55×95 | 875 | 426 | 2.1× | 1590 | 0.55× | 72×140 |
-| 8 | 62×100 | 1000 | 664 | 1.5× | 2127 | 0.47× | 77×156 |
-| 10 | 82×115 | 1250 | 950 | 1.3× | 2359 | 0.53× | 80×167 |
-| 12 | 82×115 | 1250 | 1260 | 0.99× | 2810 | 0.44× | 87×177 |
-| 14 | 75×130 | 1325 | 1610 | 0.82× | 3245 | 0.41× | 97×196 |
-| 16 | 75×130 | 1450 | 2480 | 0.58× | 3621 | 0.40× | 105×203 |
-| 20 | 85×150 | 2025 | 3500 | 0.58× | 4648 | 0.44× | 112×235 |
-| 24 | 85×145 | 2050 | 4280 | 0.48× | 6105 | 0.34× | 127×258 |
-| 32 | 85×145 | 2050 | 5920 | 0.35× | 8422 | 0.24× | 156×301 |
-| 40 | 85×145 | 2050 | 5920 | 0.35× | 11676 | 0.18× | 176×408 |
+| players | band | land bbox | land/team | budget | built ÷ budget | coverage | corpus land/team | built ÷ corpus |
+|---|---|---|---|---|---|---|---|---|
+| 6 | nano | 102×150 | 2450 | 2250 | 1.09× | 32% | 1590 | 1.54× |
+| 10 | nano | 102×150 | 2450 | 2250 | 1.09× | 32% | 2359 | 1.04× |
+| 12 | nano | 102×150 | 2450 | 2250 | 1.09× | 32% | 2810 | 0.87× |
+| 16 | micro | 132×180 | 4050 | 4025 | 1.01× | 35% | 3628 | 1.12× |
+| 20 | micro | 132×180 | 4050 | 4025 | 1.01× | 35% | 4784 | 0.85× |
+| 24 | milli | 170×215 | 6875 | 7075 | 0.97× | 37% | 6105 | 1.13× |
+| 32 | centi | 200×230 | 7900 | 8730 | 0.90× | 34% | 8422 | 0.94× |
+| 40 | centi | 200×230 | 7900 | 8730 | 0.90× | 34% | 11676 | 0.68× |
+| 48 | hecto | 275×335 | 16200 | 20190 | 0.80× | 35% | 13015 | 1.24× |
 
-Three readings. The **budget is not a contract in either direction**: overspent 2.7-fold at five players,
-under-spent to a third from twenty-four up, and crossing the land actually built at twelve — the one count
-where the two agree. The **board stops growing at twenty-four**, where the corpus is only halfway up its own
-range, and starts growing only at ten. And land per team rises 2.3× across a range over which the corpus
-rises 7.9×, so a composed board is 0.59× a real one at five players and 0.18× at forty.
+The budget is a contract now: what a unit built sits between 0.80 and 1.09 of what its band bought, and an
+attempt outside 0.70–1.30 is resampled rather than shipped. Against the corpus the ratio runs 0.68 to 1.54
+and sits within a sixth of parity at every band's own centre, which is what a band means — a nano board is a
+little large for six a side and a little small for twelve, because it is one map serving both. Coverage
+lands at 32–37% against the measured 32–41%, so the board follows the land rather than being sized beside it.
 
-Coverage is the one thing that lands. A composed board is 28–33% land against the corpus's 32–41%, so the
-board extent follows the land budget at about the right ratio: the boards are too small because the land is,
-not because the emptiness is wrong.
+Width is the reading that still has an outlier. The modal local thickness of a composed board is 10 blocks at
+nano, 16 at milli and centi and 20 at hecto, against a corpus of 10 · 16 · 16 · 18 — but **30 at micro**,
+where the corpus sits at 14.
 
-Width is the third reading and the flattest. The tenth percentile of a composed board's local thickness is
-**exactly 10 blocks at every player count from five to forty** — two cells at cell 5, and nothing moves it.
-Below that there is effectively nothing: 0.5% of a composed board is under 10 blocks, against 2.9% of a centi
-map and 9% of a nano one. Above it the composed ground sits on a few discrete steps rather than a spread.
+| band | source | <6 | <8 | <10 | <12 | <14 | <16 | <20 | <24 | modal width |
+|---|---|---|---|---|---|---|---|---|---|---|
+| nano | corpus | 1.3 | 4.0 | 9.0 | 26.4 | 39.9 | 57.3 | 77.6 | 85.8 | 10 |
+| | composer | 0.0 | 0.4 | 0.4 | 33.6 | 63.8 | 65.1 | 72.5 | 85.7 | 10 |
+| micro | corpus | 1.4 | 3.0 | 5.2 | 14.6 | 25.8 | 40.4 | 61.3 | 75.0 | 14 |
+| | composer | 0.0 | 0.3 | 0.3 | 9.3 | 12.0 | 13.1 | 45.1 | 57.6 | 30 |
+| milli | corpus | 1.0 | 2.1 | 3.6 | 7.6 | 17.2 | 27.6 | 49.1 | 61.0 | 16 |
+| | composer | 0.0 | 0.2 | 0.2 | 0.5 | 1.0 | 1.3 | 42.4 | 52.7 | 16 |
+| centi | corpus | 0.5 | 1.5 | 2.9 | 6.9 | 11.9 | 19.1 | 39.0 | 53.0 | 16 |
+| | composer | 0.0 | 0.1 | 0.1 | 0.4 | 0.8 | 1.1 | 43.5 | 53.4 | 16 |
+| hecto | corpus | 1.7 | 3.8 | 5.4 | 7.1 | 15.3 | 16.9 | 30.4 | 39.6 | 18 |
+| | composer | 0.0 | 0.1 | 0.1 | 0.2 | 0.4 | 0.6 | 0.9 | 38.6 | 20 |
 
-| group | source | <6 | <8 | <10 | <12 | <14 | <16 | <20 | modal width |
-|---|---|---|---|---|---|---|---|---|---|
-| *(below nano)* | corpus | 3.1 | 9.7 | 35.4 | 55.7 | 61.9 | 69.1 | 82.9 | 8 |
-| | composer | 0.0 | 0.6 | 0.6 | 38.5 | 48.0 | 50.5 | 52.3 | 20 |
-| nano | corpus | 1.3 | 4.0 | 9.0 | 26.4 | 39.9 | 57.3 | 77.6 | 10 |
-| | composer | 0.0 | 0.6 | 0.6 | 26.2 | 32.1 | 34.7 | 36.8 | 20 |
-| micro | corpus | 1.4 | 3.0 | 5.2 | 14.6 | 25.8 | 40.4 | 61.3 | 14 |
-| | composer | 0.0 | 0.6 | 0.6 | 25.7 | 50.7 | 52.8 | 59.3 | 20 |
-| milli | corpus | 1.0 | 2.1 | 3.6 | 7.6 | 17.2 | 27.6 | 49.1 | 16 |
-| | composer | 0.0 | 0.5 | 0.5 | 19.8 | 43.2 | 45.7 | 62.4 | 12 |
-| centi | corpus | 0.5 | 1.5 | 2.9 | 6.9 | 11.9 | 19.1 | 39.0 | 16 |
-| | composer | 0.0 | 0.5 | 0.5 | 19.8 | 43.2 | 45.7 | 62.4 | 12 |
-
-The two failures are opposite and they are both quantisation. At five players the composed ground is too
-**wide** — its mode is 20 where the corpus's is 8, because a hub is four cells across and a cell is five
-blocks. At thirty-two it is too **narrow** — a mode of 12 against the corpus's 16, and 43% of it under 14
-blocks against the corpus's 12%. One grid emits one ladder of widths, and the player count does not reach it.
+Two differences survive, and they are the same one read twice. A composed board carries almost nothing under
+10 blocks where a real one carries 3–9% — the emitters build to the band's corridor and never under it, while
+an author lays a ledge or a bridge approach. And a composed board is **flat-tailed**: its ground sits on a
+few discrete widths rather than spreading, because everything is emitted at one corridor or at a multiple of
+it. Micro is where that costs most: its corridor is three cells on the cell-5 grid, so the frontline's spine
+and the hub's own front wall are three cells each and dock flush into a six-cell slab — thirty blocks, the
+band's mode.
 
 ## What this says about the cell
 
-Every width the composer states is a cell count — the wool lane is `WoolLaneCells = 2`, the map lane is 2 or
-3, the frontline face is at least `FaceMinCells = 4` — so the grid scale, not the player count, is what sets
-which widths exist. At cell 5 they are 5, 10, 15, 20; at cell 4 they are 4, 8, 12, 16, 20.
+Every width the composer builds to is now the band's own, stated in **blocks** and divided by the cell where
+the grid is laid: the map's corridor is 12 · 14 · 16 · 16 · 22 and the wool approach's is 10 · 12 · 14 · 14 ·
+18. What the grid decides is which of those a board can actually express. At cell 5 the reachable widths are
+5, 10, 15, 20; at cell 4 they are 4, 8, 12, 16, 20.
 
 The measured ladder is 8 · 10 · 14 · 16 by mode, or 8 · 12 · 14 · 16 by the quartile a working lane sits at.
 Cell 4 reaches both ends of it — the 8-block floor the whole corpus builds to, and the 16 that milli and
 centi sit on — and cell 5 reaches neither: its 2-cell floor is 10, two blocks over the floor authors use, and
-its next rung is 15 where the corpus sits at 14 and 16. Cell 5's one exact hit is nano's mode of 10, which is
-also the one width a composed board has at every player count.
+its next rung is 15 where the corpus sits at 14 and 16. So cell 5 rounds micro's 14 up to 15 and centi's 16
+down to 15, which is why a composed micro board's ground stacks into six-cell slabs while nano's, whose 12
+rounds to a clean 2, comes out at the corpus's own mode.
 
 The gap floors run on the same arithmetic. A bay beside a goal is 16 blocks (`docs/gameplay/approaches.md`),
 which is four cells at cell 4 and 3.2 at cell 5 — so at cell 5 the floor is either broken or rounded up to 20,
 and rounding a clearance up by a quarter is what refused every 8-player board when the seat gap was given one
 (`G264`).
 
-This is why a width stated in cells cannot carry a ladder at all: moving the cell from 5 to 4 shrinks every
-element by a fifth rather than giving the composer a finer rung to choose from. A ladder needs the widths
-stated in **blocks** and divided by the cell where the grid is laid, and then the cell is free to be a
-drawing scale rather than a design decision.
+This is why a width stated in cells cannot carry a ladder at all: moving the cell from 5 to 4 would shrink
+every element by a fifth rather than offering the composer a finer rung to choose from. A ladder needs the
+widths stated in blocks and divided by the cell, which is what leaves the cell free to be a drawing scale
+rather than a design decision — and what makes cell 4 worth having.
