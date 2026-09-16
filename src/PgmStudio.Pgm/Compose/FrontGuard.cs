@@ -83,7 +83,7 @@ public static class FrontGuard
     /// flagged residue of a truly saturated hub).</summary>
     public static (List<Box> Boxes, List<BoxJoint> Joints, int Residue) Resolve(
         List<Box> boxes, List<BoxJoint> joints, IReadOnlyList<FlushSeat> flushSeats,
-        CellRect hubRect, BoxEdge frontEdge, int laneWidthCells,
+        CellRect hubRect, BoxEdge frontEdge, int seatGapCells,
         IReadOnlyDictionary<BoxEdge, IReadOnlyList<(int Start, int Len)>> runsByEdge)
     {
         int boxW = hubRect.Width, boxH = hubRect.Height;
@@ -91,7 +91,7 @@ public static class FrontGuard
 
         List<(int Start, int Len)> BlockedFor(List<Box> bs, string selfId, BoxEdge e, int depth) => bs
             .Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool && b.Id != selfId)
-            .Select(b => SeatGeometry.ProjectOntoEdge(e, hubRect, depth, b.Rect, laneWidthCells))
+            .Select(b => SeatGeometry.ProjectOntoEdge(e, hubRect, depth, b.Rect, seatGapCells))
             .Where(iv => iv is not null).Select(iv => iv!.Value).ToList();
 
         void MoveTo(List<Box> bs, List<BoxJoint> js, string id, BoxKind kind, int depth, int along, BoxEdge e, int seat)
@@ -100,7 +100,7 @@ public static class FrontGuard
             bs[i] = bs[i] with { Rect = SeatGeometry.NeighbourRect(e, seat, depth, along, hubRect) };
             var ji = js.FindIndex(j => j.BoxB == id);
             js[ji] = SeatGeometry.HubJoint("hub", id, e, seat, along,
-                kind == BoxKind.Wool ? UnitTuning.WoolLaneCells : laneWidthCells);
+                kind == BoxKind.Wool ? UnitTuning.WoolLaneCells : seatGapCells);
         }
 
         (List<Box> B, List<BoxJoint> J, int Residue) ResolveOrder(
@@ -175,7 +175,7 @@ public static class FrontGuard
             {
                 if (cand == spSeat) continue;
                 if (!backRuns.Any(r => r.Start <= cand && cand + spAlong <= r.Start + r.Len)) continue;
-                if (spBlocked.Any(o => o.Start - laneWidthCells < cand + spAlong && o.Start + o.Len + laneWidthCells > cand)) continue;
+                if (spBlocked.Any(o => o.Start - seatGapCells < cand + spAlong && o.Start + o.Len + seatGapCells > cand)) continue;
                 spawnSlides.Add(cand);
             }
         }

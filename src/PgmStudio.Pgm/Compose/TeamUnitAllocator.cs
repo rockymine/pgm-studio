@@ -44,6 +44,10 @@ public static class TeamUnitAllocator
     {
         var frame = Frame.For(env.Symmetry);
         var laneWidthCells = env.LandPerTeam > UnitTuning.WideLaneLand ? 3 : 2;               // the map-wide lane width
+        // what a goal keeps clear of its neighbour. Held apart from the lane width because they are different
+        // quantities — one is how wide a corridor is, the other how much ground a goal keeps around it — and
+        // only the second is a distance a floor in blocks can be stated over (G264).
+        var seatGapCells = laneWidthCells;
         // the frontline is the default when there is budget for it; none is the sampled exception
         var hasFrontline = env.LandPerTeam >= UnitTuning.FrontlineMinLand && rng.NextInt(0, UnitTuning.NoFrontlineInN) > 0;
         var plan = UnitTuning.SamplePlan(env, rng, hasFrontline);
@@ -79,9 +83,9 @@ public static class TeamUnitAllocator
         var arms = sampled.Form == Compound.SpineArms
             ? HubBoxEmitter.SampleArms(rng, hubRect.Width, sampled.Arms, FillProfiles.HubWallCells)
             : null;
-        var seating = UnitSeating.Seat(sampled, hubRect, frame, laneWidthCells, requests, rng, noFront: !hasFrontline, walls, arms);
+        var seating = UnitSeating.Seat(sampled, hubRect, frame, laneWidthCells, seatGapCells, requests, rng, noFront: !hasFrontline, walls, arms);
         if (seating is null && sampled.Form != Compound.Rectangle)
-            seating = UnitSeating.Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, laneWidthCells, requests, rng, noFront: !hasFrontline);
+            seating = UnitSeating.Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, laneWidthCells, seatGapCells, requests, rng, noFront: !hasFrontline);
         if (seating is not { } s) return null;
 
         return (new BoxPartition(s.Boxes, s.Joints), frame.TowardAxis);
