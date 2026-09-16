@@ -376,6 +376,35 @@ and what a `subtract` takes away.
   `score 0, valid true`, because the walk it measures is 33. `opus5-mirkholt` and `opus5-flintwick` are the
   same shape; `opus5-coinfall` is the counter-example, with a 15-cell `run` piece between the two.*
 
+- [ ] **TN20 — Nothing measures how narrow a negative space is, so a jumpable bay passes every gate.** A gap
+  between two plan pieces is crossed by jumping long before it is crossed by building, and no read answers
+  its width. `BoardStructure.Voids` walks **enclosed** voids only (`outside` is excluded) and classes them by
+  ownership — encased/gap/frontline/middle — with no width; `IslandGaps` measures between islands, so a bay
+  inside one team's ground is in neither. The `Open`/`Notch`/`Bay`/`Hole` vocabulary exists in
+  `src/PgmStudio.Pgm/Shapes/BodyEdges.cs` but is the composer's emit-time body classing and never sees an
+  authored plan. Add the narrowest-crossing measure to the deriver beside `Voids`, and a hard term over it:
+  **a space adjoining a wool room, a spawn or a frontline is at least 16 blocks across**, a plain hole at
+  least 12 (`docs/gameplay/approaches.md`, author). State the floor in **blocks** — a cell count moves with
+  the grid. `docs/tools/plan.md`.
+
+  *`opus5-quadrangle` leaves 5 cells-worth between `spawn-room` and `wool-b-n`; the built world reads void at
+  `(70, 49..54)` — 6 blocks, y10 one side and y11 the other. `opus5-medlock-drift` `clamp-head`↔`wool-a-room`
+  builds 7 flat at y12; `opus5-sallyport` `hub-back`↔`wool-a-s` builds 5 with a 2-block rise. All three
+  evaluate `score 0, valid` and pre-flight OPEN.*
+
+- [ ] **G264 — The composer's goal-gap floor is two cells, so it moves with the grid instead of holding a
+  distance.** Measured over composed boards at four scales, the minimum gap between a wool room or spawn and
+  its neighbour is exactly 2 cells every time: **10 blocks at cell 5, 12 at 6, 16 at 8, 20 at 10** — and 8 at
+  cell 4. The author's floor is 16 blocks for a bay touching a goal or a spawn, so the constant belongs in
+  blocks, converted to cells per request, the way `FR9` (15-block frontline) and `SP9` (15 blocks ahead of a
+  spawn door) already state theirs. `docs/generator/rules.md` and `model.md`.
+
+  *A cell below 5 composes nothing today: 0/40 seeds at cell 3 and 4, ~1050 of 1200 attempts refused by the
+  plan validator (`structural-integrity`), subjects always the wool rooms. The same geometry at cell 4
+  evaluates `valid=false, score 1000.4` with `FR9` naming an 8-block frontline against its 15. Converting the
+  cell-count ladders to block distances is what a smaller grid needs first — and cell is a scale factor for
+  the composer, not a granularity knob: board and land scale with it (99×161 at cell 5, 155×230 at cell 8).*
+
 ## User Experience
 
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the

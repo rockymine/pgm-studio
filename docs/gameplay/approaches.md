@@ -114,6 +114,38 @@ has to find, is the failure this exists to prevent.
 attack down and give the defence a prepared line to hold — which is why it is authored on the interface
 between two pieces rather than derived, and why nothing generated ever asks for one (`mapgen-review.md` MG21).
 
+**[author]** **The wall is meant to be in the way, and that is the whole of it.** A wall standing across a
+wool's approach is not a fault to be routed around: blocking the way in is the device's purpose, giving the
+defence something prepared before it has built anything and costing a tunneller the shortcut. A report that
+reads a walled approach as a wool nobody can reach has read the wall as damage rather than as the line. Two
+things bound it. **One wall, on one interface** — a wool behind two or three of them is not a prepared line,
+it is a sealed room. And it is **narrow enough to be a line rather than a barricade**: twenty blocks of
+bedrock across a lane is a wall players go round instead of through, and a wall nobody engages with is only in
+the defence's way.
+
+**[author]** **Ground pulled out past the wall's ends is what breaks it.** The wall spans the interface it is
+authored on, so terrain widened beyond that interface leaves an open shoulder beside it — and a wall with a
+walk around it has stopped being a decision and become an obstacle to the team it was built for. A skilled
+player jumping the wall is the device working; a player strolling past its end is the device gone. When an
+approach is reshaped, the wall's interface is reshaped with it.
+
+**[author]** **A wool room is defended from its corner, not from inside a field.** The room wants **two of
+its faces on void** — it sits in a corner, so a defender holds two lines and an attacker has two to choose
+from. Three faces on void is the ordinary composed shape, one connecting piece and the rest open, and that is
+fine. What is not is a room with ground on every side: terrain added all the way round a room leaves nothing
+to hold and nowhere for the fight to happen, and the room stops being a place and becomes a spot in a field.
+Adding area around a room while reshaping the ground near it is the way this happens, and the room being
+central to its own terrain is the tell. A room at the end of a spur is the other failure and a milder one —
+it is defensible and it is one queue.
+
+**[author]** **A bay is at least sixteen blocks across where it touches a goal or a spawn.** Negative space
+between two pieces is crossed by jumping long before it is crossed by building: a short gap between a
+frontline and a wool room, or between a spawn and a wool room, lets a player tower at the near edge and jump
+in, which deletes the approach the board was built around. Sixteen blocks is the floor for such a bay, and a
+plain hole in the middle of a team's own ground may be twelve. The distance is in **blocks** and not in
+cells — a floor stated as a cell count moves with the grid scale, and the crossing does not care what the
+grid was.
+
 **[author]** The capture side of this is already law and the destroy side is not. `rules.md` WL8 records that
 a wool's default is a **single chokepoint route** and that real maps add alternative routes — and, usefully
 for a river or a drop, that an approach crossing a sealed zone counts as an approach even when it must be
