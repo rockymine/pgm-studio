@@ -30,6 +30,32 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
   **8 players first**, which is where the budget is tightest, and the same run must decide whether the wool
   lane stays `w2` — the model states it does — while the room moves further out along it.*
 
+- [ ] **G265 — The land budget's ladders saturate at 20 players and floor below 10, so most of the player
+  range composes the same board.** Every consumer of `LandPerTeam` is a step function
+  (`TeamUnitAllocator.cs:46-56`, `UnitTuning.HubCapCells`/`HubWideCap`/`WoolCount`), and the top rung of all
+  of them is **3000** land while the bottom is **800**. `land/team` is 3500 at 20 players and 5920 at 32, so
+  those two sit on identical rungs; 325 at 5 players and 664 at 8 sit on identical rungs too. Give the
+  ladders a continuous basis, or rungs that reach the ends of the range. `docs/generator/rules.md`,
+  `model.md` and `audit.md`'s ladder note (`G109` is the same ladders, as targets).
+
+  *Measured, 24 seeds a row, `rot_180`, cell 5 — board extent and land built are the composed unit's own:*
+
+  | players | land/team | board | land built | vs budget | thinnest piece |
+  |---|---|---|---|---|---|
+  | 5 | 325 | 45×38 | 842 | **2.6×** | 5b |
+  | 8 | 664 | 45×39 | 840 | 1.3× | 5b |
+  | 12 | 1260 | 58×57 | 1512 | 1.2× | 5b |
+  | 16 | 2480 | 73×59 | 1866 | 0.75× | 5b |
+  | 20 | 3500 | 88×73 | 2735 | 0.78× | 5b |
+  | 30 | 5500 | 87×72 | 2719 | **0.49×** | 5b |
+  | 32 | 5920 | 87×72 | 2719 | 0.46× | 5b |
+
+  *Three readings in one table. The board stops growing after 20 and does not start before 10. The budget is
+  overspent 2.6× at the bottom and half-spent at the top, so it is not one number's worth of contract in
+  either direction — `G149` measured the overshoot at 12 players alone and did not see it invert. And the
+  **thinnest piece is one cell at every count**: nothing scales a minimum element width, which is what a
+  lane-width ladder in blocks would be (the author's shape: ~8 blocks at 5 players, ~12 by 8).*
+
 ## Nothing else is on the board
 
 The walk drained, and so did what a building may stand on — `DR-PASS` is the author's ruling, the passage is

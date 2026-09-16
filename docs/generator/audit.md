@@ -53,6 +53,13 @@ not fit gates. The closest declared kind is **target** — "a per-request, presc
 compose holds and verifies" — and that is what they should become; they differ from a target only
 in that nothing verifies them afterwards. → **G109**
 
+Their **range** is the second fault and the larger one. Every rung tops out at 3000 land and bottoms
+at 800, while `LandPerTeam` runs 325 at five players per team to 5920 at thirty-two: twenty players
+already clears the top rung of all of them, and eight never reaches the bottom one. Measured over 24
+seeds a row at cell 5, a 20-player board and a 32-player board come out the same size — 88×73 against
+87×72 blocks, 2735 against 2719 land built — and 5, 6 and 8 players likewise share one board. The
+player count therefore steers composition only between about nine and seventeen. → **G265**
+
 ## 3. The trace to law — which constants are grounded
 
 Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved to `UnitTuning`/`UnitRequests`/`UnitSeating`/`SeatGeometry` in B42 without changing behaviour.
