@@ -1547,6 +1547,23 @@ relief and its keep-clear fan, so an unlisted shape takes neither of those eithe
 all is outside this — the whole of that layer mirrors — and so is a role-tagged room piece, which is never
 listed by design.
 
+**And it complains where a group lists its shapes and declines to be fanned.** `mirrors: false` is a legitimate
+statement — a landmark seated on the symmetry centre is already every one of its images, and fanning it would
+stamp it onto itself — so the flag alone is not the fault. What decides is where the group stands. `SK28` reads
+the group's own bounds against each of its orbit images: bounds that meet an image straddle the centre and may
+well be that image, and are left alone; bounds disjoint from every image cannot be, and that group is built
+once, on one team's ground and nowhere else. On a half-turn board one side has the curtain wall and the other
+does not; on a quarter-turn board three of the four teams have nothing there.
+
+Nothing else reports it, which is what makes it worth a rule. The store answers 200, the export gate opens,
+and pre-flight's mirror check reads spawns, wool rooms and build zones rather than made geometry, so a board
+with one castle and three bare quadrants passes every gate the pipeline has. `GET /map/{slug}/column` is what
+confirms either way, and the image coordinate has to be exact: the reflection of block `z` is `−z−1`, so
+probing `−z` lands one block off the image and reports a difference on a board that is exactly symmetric.
+Where a group really is its own image, its own shapes have to be symmetric too — eight causeway trestles whose
+offsets have no partner under the half-turn prop a neutral crossing at different spacings for the two teams,
+and the deck above them, being one centred rectangle, says nothing about it.
+
 **What separates that from a donut is the order, and only within one layer.** A body and the hole cut out of
 it are written in that order — an exterior ring then its interior rings, a compiled footprint then the buffers
 stating its negative space — so a subtract *following* an add on that add's own layer is its hole and says

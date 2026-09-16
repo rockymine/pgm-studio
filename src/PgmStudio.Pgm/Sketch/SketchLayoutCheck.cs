@@ -372,6 +372,34 @@ public static class SketchLayoutCheck
                 }
             }
 
+        // SK28 — a group that declines the fan while standing wholly inside one orbit image. The orbit is
+        // fanned per group, so `mirrors: false` builds the group once. That is correct for a landmark on the
+        // symmetry centre, which is already its own image, so the footprint decides rather than the flag: a
+        // group whose bounds meet any of their images straddles the centre and is left alone, and one
+        // disjoint from every image cannot be its own and is built for one team only.
+        if (Symmetry.OrbitAxes(mode) is { Length: > 0 } orbit)
+            foreach (var (layer, index) in SketchLayout.Stack(layout).Select((layer, at) => (layer, at)))
+                foreach (var (group, at) in layer.Groups.Select((group, at) => (group, at)))
+                {
+                    if (group.Mirrors) continue;
+                    var listed = new HashSet<string>(group.ShapeIds, StringComparer.Ordinal);
+                    var boxes = layer.Shapes.Where(shape => listed.Contains(shape.Id))
+                                            .Select(Bounds).OfType<(double MinX, double MinZ, double MaxX, double MaxZ)>()
+                                            .ToList();
+                    if (boxes.Count == 0) continue;
+                    var body = (MinX: boxes.Min(b => b.MinX), MinZ: boxes.Min(b => b.MinZ),
+                                MaxX: boxes.Max(b => b.MaxX), MaxZ: boxes.Max(b => b.MaxZ));
+                    if (orbit.Select(axis => Turned(body, axis, centerX, centerZ)).Any(image => Meets(body, image)))
+                        continue;
+                    findings.Add(new Finding(SketchRules.BuiltOnOneImage,
+                        $"group '{group.Id}' on layer '{layer.Id}' states mirrors false and stands clear of "
+                        + $"every one of its {orbit.Length} orbit image(s), so its {boxes.Count} shape(s) are "
+                        + "built once, on one team's ground and nowhere else. Set mirrors true, or move it "
+                        + "onto the symmetry centre if it is meant to belong to nobody",
+                        Severity.Complaint, Field: $"layers[{index}].layout.groups[{at}].mirrors",
+                        Subjects: group.Id is { Length: > 0 } id ? [id] : null));
+                }
+
         // SK12 — one id, two groups. The relief is stored under the id and so is a placement's group, so a
         // board carrying it twice has no single answer to either. The layers are named because they decide
         // which way it goes wrong: within one layer the last of them takes the terrain and the rest build
@@ -666,6 +694,13 @@ public static class SketchLayoutCheck
             : null,
         _ => null,
     };
+
+    // Whether two boxes share any ground. Touching along an edge counts: a footprint that meets its own
+    // image at the centre line straddles it, which is the case SK28 leaves alone.
+    private static bool Meets(
+        (double MinX, double MinZ, double MaxX, double MaxZ) a,
+        (double MinX, double MinZ, double MaxX, double MaxZ) b) =>
+        a.MinX <= b.MaxX && b.MinX <= a.MaxX && a.MinZ <= b.MaxZ && b.MinZ <= a.MaxZ;
 
     // One orbit image of a box: transform its four corners about the centre and re-bound, since a rotation
     // turns a rectangle into a new axis-aligned one.

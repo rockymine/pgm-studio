@@ -84,6 +84,61 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(finding.Message).Contains("no image on the other side");
     }
 
+    // A layer whose one group states its own mirror flag, for the SK28 cases. The shape is the whole of the
+    // group, so where it stands decides whether declining the fan can be right.
+    private static string Unmirrored(string shape, bool mirrors = false, string mode = "rot_180") =>
+        "{\"setup\":{\"mirror_mode\":\"" + mode + "\",\"center\":{\"cx\":0,\"cz\":0}},"
+        + "\"layers\":[{\"base_y\":0,\"kind\":\"made\",\"layout\":{\"shapes\":[" + shape + "],"
+        + "\"groups\":[{\"id\":\"wall\",\"name\":\"Wall\",\"mirrors\":"
+        + (mirrors ? "true" : "false") + ",\"shapeIds\":[\"w1\"]}]}}]}";
+
+    private const string OffCentre =
+        """{"id":"w1","type":"rectangle","operation":"add","min_x":10,"max_x":55,"min_z":10,"max_z":12,"floor":14,"base_height":4}""";
+
+    [Test]
+    [Arguments("rot_180")]
+    [Arguments("rot_90")]
+    [Arguments("mirror_z")]
+    public async Task A_group_that_declines_the_fan_off_the_centre_is_named_because_one_team_gets_it(string mode)
+    {
+        // The orbit is fanned per group, so mirrors false builds the group once. Standing clear of every one
+        // of its own images, it cannot be its own image, so it is one team's and no other's.
+        var findings = SketchLayoutCheck.Check(Unmirrored(OffCentre, mode: mode));
+
+        var finding = findings.Single(f => f.Rule == SketchRules.BuiltOnOneImage);
+        await Assert.That(findings.Refuses).IsFalse();
+        await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "wall" });
+        await Assert.That(finding.Field).IsEqualTo("layers[0].layout.groups[0].mirrors");
+        await Assert.That(finding.Message).Contains("one team's ground and nowhere else");
+    }
+
+    [Test]
+    public async Task A_group_on_the_symmetry_centre_may_decline_the_fan_because_it_is_its_own_image()
+    {
+        // A landmark seated on the centre is already every one of its images, and fanning it would stamp it
+        // onto itself. The footprint is what says so, which is why the flag alone is not the fault.
+        var centred =
+            """{"id":"w1","type":"circle","operation":"add","center_x":0,"center_z":0,"radius":8,"floor":14,"base_height":12}""";
+
+        await Assert.That(SketchLayoutCheck.Check(Unmirrored(centred))
+                                           .Where(f => f.Rule == SketchRules.BuiltOnOneImage)).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_group_that_mirrors_is_not_asked_where_it_stands()
+    {
+        await Assert.That(SketchLayoutCheck.Check(Unmirrored(OffCentre, mirrors: true))
+                                           .Where(f => f.Rule == SketchRules.BuiltOnOneImage)).IsEmpty();
+    }
+
+    [Test]
+    public async Task An_unmirrored_group_on_an_unfanned_board_has_no_image_to_be_missing_from()
+    {
+        // Order one: there is no orbit, so nothing is built twice and declining the fan costs nothing.
+        await Assert.That(SketchLayoutCheck.Check(Unmirrored(OffCentre, mode: "none"))
+                                           .Where(f => f.Rule == SketchRules.BuiltOnOneImage)).IsEmpty();
+    }
+
     [Test]
     public async Task An_unlisted_subtract_over_ground_no_add_reaches_takes_nothing_away()
     {

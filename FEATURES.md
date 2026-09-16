@@ -8356,6 +8356,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   rather than a refusal, because a thing drawn deliberately around a structure is a board somebody meant and
   which of the two moves is the author's call.
   (`Export/WorldBuilder`, `Pgm/Sketch/SketchRules`; `MadeThingInBuiltTests`) (`TS70`)
+- **A group that declines the fan off the symmetry centre is named (`TS108`, `SK28`).** The orbit is fanned
+  per group, so `mirrors: false` builds a group's shapes once. That is the right statement for a landmark
+  seated on the centre, which is already every one of its images, so the **footprint** decides rather than the
+  flag: bounds that meet any of their orbit images straddle the centre and are left alone, bounds disjoint
+  from every image cannot be their own and are one team's alone. Nothing else reaches it — the store answers
+  200, the export gate opens, and pre-flight's mirror check reads spawns, wool rooms and build zones, never
+  made geometry. Evidence: `opus5-quadrangle`, a four-team `rot_90` board whose curtain, angle tower, crown
+  and cloister all carried the sculpt library's `mirrors=False` default. Its curtain stood in
+  `x[10..12] z[16..60]` and in none of the three images, so **one quadrant of four** had a castle; `column`
+  read 18 solid at `(11, 30)` against 14 at each image. The same default cost `opus5-revetment` 14 of its 15
+  made layers, `opus5-portway` 8 of 10 and `opus5-sallyport` all 9. Posted against the pre-fix document the
+  gate names all five groups on a 200 with `Pgm-Warnings`, and stays silent on Portway's beacon, which is
+  centred on the mirror line and is its own image.
+
 - **A shape that reaches no group is named, and stops being written (`TS66`, `C61`, `SK17`).** Group
   membership is what the build fans across the symmetry orbit, what a relief is keyed by and what carries a
   `keepClear` mark — and it is derived in the browser, where `polygon-clipping` has inputs it cannot answer
