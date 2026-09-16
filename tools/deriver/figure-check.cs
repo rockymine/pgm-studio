@@ -2,7 +2,7 @@
 // Figure check for the shape model's ASCII catalogs: every labelled grid drawn in the shape-model section of
 // docs/generator/model.md is parsed back out of the doc and pushed through the real classifier for its kind.
 // A body figure must read as its Compound (ClassifyBody), a family figure as its ShapeFamily
-// (ShapeClassifier.Classify), a negative-space figure as its NegativeSpaceKind (BodyEdges.Classify).
+// (ShapeClassifier.Classify), a negative-space figure as its NegativeSpaceKinds word (BodyEdges.Classify).
 //
 // The figures are READ FROM THE DOC, never duplicated here, so this cannot drift from what a reader sees.
 // Three of the figures were wrong when
@@ -18,6 +18,7 @@
 // Run: dotnet run tools/deriver/figure-check.cs
 // Exits non-zero naming every figure that does not classify as drawn.
 using PgmStudio.Pgm.Shapes;
+using PgmStudio.Vocabulary;
 
 var docPath = Path.Combine(AppContext.BaseDirectory, "../../../../../docs/generator/model.md");
 if (!File.Exists(docPath)) docPath = "docs/generator/model.md";
@@ -139,12 +140,13 @@ foreach (var (label, grid) in figures)
             read = got.Form + (got.Form == Compound.SpineArms ? $"({got.Arms})" : "");
             ok = got.Form == compound && armsOk;
         }
-        else if (Enum.TryParse<NegativeSpaceKind>(name, ignoreCase: true, out var kind))
+        else if (NegativeSpaceKinds.All.Contains(name.ToLowerInvariant()))
         {
             // the drawn body's negative spaces must include one of the claimed class
+            var kind = name.ToLowerInvariant();
             var spaces = BodyEdges.Classify(Cells(grid, 't')).Spaces;
             var kinds = spaces.Select(s => s.Kind).ToList();
-            claim = kind.ToString();
+            claim = kind;
             read = kinds.Count == 0 ? "(no space)" : string.Join("/", kinds.Distinct());
             ok = kinds.Contains(kind);
         }

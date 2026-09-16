@@ -376,22 +376,6 @@ and what a `subtract` takes away.
   `score 0, valid true`, because the walk it measures is 33. `opus5-mirkholt` and `opus5-flintwick` are the
   same shape; `opus5-coinfall` is the counter-example, with a 15-cell `run` piece between the two.*
 
-- [ ] **TN20 — Nothing measures how narrow a negative space is, so a jumpable bay passes every gate.** A gap
-  between two plan pieces is crossed by jumping long before it is crossed by building, and no read answers
-  its width. `BoardStructure.Voids` walks **enclosed** voids only (`outside` is excluded) and classes them by
-  ownership — encased/gap/frontline/middle — with no width; `IslandGaps` measures between islands, so a bay
-  inside one team's ground is in neither. The `Open`/`Notch`/`Bay`/`Hole` vocabulary exists in
-  `src/PgmStudio.Pgm/Shapes/BodyEdges.cs` but is the composer's emit-time body classing and never sees an
-  authored plan. Add the narrowest-crossing measure to the deriver beside `Voids`, and a hard term over it:
-  **a space adjoining a wool room, a spawn or a frontline is at least 16 blocks across**, a plain hole at
-  least 12 (`docs/gameplay/approaches.md`, author). State the floor in **blocks** — a cell count moves with
-  the grid. `docs/tools/plan.md`.
-
-  *`opus5-quadrangle` leaves 5 cells-worth between `spawn-room` and `wool-b-n`; the built world reads void at
-  `(70, 49..54)` — 6 blocks, y10 one side and y11 the other. `opus5-medlock-drift` `clamp-head`↔`wool-a-room`
-  builds 7 flat at y12; `opus5-sallyport` `hub-back`↔`wool-a-s` builds 5 with a 2-block rise. All three
-  evaluate `score 0, valid` and pre-flight OPEN.*
-
 - [ ] **G264 — The composer's goal-gap floor is two cells, so it moves with the grid instead of holding a
   distance.** Measured over composed boards at four scales, the minimum gap between a wool room or spawn and
   its neighbour is exactly 2 cells every time: **10 blocks at cell 5, 12 at 6, 16 at 8, 20 at 10** — and 8 at

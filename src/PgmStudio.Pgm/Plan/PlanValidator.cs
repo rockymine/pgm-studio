@@ -1,6 +1,7 @@
 ﻿using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Derive;
+using PgmStudio.Pgm.Shapes;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Vocabulary;
 
@@ -999,6 +1000,15 @@ public static class PlanValidator
     /// see.</summary>
     public const int MinFrontlineBlocks = 15;
 
+    /// <summary>How wide a negative space beside a wool room or a spawn must be, in blocks — the floor
+    /// <c>WL12</c> measures against. A gap is crossed by jumping long before it is crossed by building, so a
+    /// short one beside a goal deletes the approach the board was drawn around.</summary>
+    public const int MinGoalSpaceBlocks = 16;
+
+    /// <summary>The same floor for a space touching neither, in blocks: a hole in a team's own ground is
+    /// crossed on purpose and may be tighter than one beside a goal.</summary>
+    public const int MinPlainSpaceBlocks = 12;
+
     // FR8, FR9 and CT12 — the three reads that need the fanned raster board: a crossing spanning the face it
     // docks against, a frontline at least MinFrontlineBlocks wide, and every bridged pair of islands 15–40
     // blocks apart on a wool board. One delegate so the board is derived once; a plan the deriver cannot
@@ -1034,6 +1044,47 @@ public static class PlanValidator
                     + $"under the {MinFrontlineBlocks} a crossing wants — players read a front that narrow "
                     + "as a funnel rather than as somewhere to cross",
                     face.Piece);
+        }
+
+        // WL12 — how narrow a gap beside a goal is. The space reader measures every straight run the terrain
+        // closes at both ends, which is the line a player jumps, and names the piece at each end. A run any
+        // build zone covers is not asked: building over it is what the zone states. Two floors, both in
+        // blocks so they hold at any grid scale — a crossing touching a wool room or a spawn, and the
+        // narrowest crossing of a hole, which is crossed on purpose and may be tighter.
+        var goalPieces = new HashSet<string>(
+            plan.Pieces.Where(piece => piece.Role is PlanRoles.WoolRoom or PlanRoles.Spawn).Select(piece => piece.Id),
+            StringComparer.Ordinal);
+        var reported = new HashSet<(string, string, int)>();
+        foreach (var space in board.Spaces)
+        {
+            var hole = space.Kind == NegativeSpaceKinds.Hole;
+            var narrowest = space.Crossings.Count > 0 ? space.Crossings.Min(run => run.Cells) : 0;
+            foreach (var run in space.Crossings)
+            {
+                var beside = new[] { run.From, run.To }.Where(goalPieces.Contains).Distinct().ToList();
+                var floor = beside.Count > 0 ? MinGoalSpaceBlocks
+                    : hole && run.Cells == narrowest ? MinPlainSpaceBlocks
+                    : 0;
+                if (floor == 0) continue;
+                var crossing = run.Cells * board.Cell;
+                if (crossing >= floor) continue;
+                // a run any build zone reaches is a crossing the board states, and building over it is the point
+                if (Enumerable.Range(0, run.Cells).Any(step => board.Build.Contains(
+                        (run.X + (run.AlongX ? step : 0), run.Z + (run.AlongX ? 0 : step))))) continue;
+                var pair = string.CompareOrdinal(run.From, run.To) <= 0 ? (run.From, run.To) : (run.To, run.From);
+                if (!reported.Add((pair.Item1, pair.Item2, crossing))) continue;
+
+                var what = beside.Count > 0
+                    ? $"the gap between '{run.From}' and '{run.To}'"
+                    : $"the {space.Kind} between '{run.From}' and '{run.To}'";
+                var wants = beside.Count > 0 ? "a gap beside a goal wants" : "a hole wants";
+                yield return Lint("WL12",
+                    $"{what} is {crossing} blocks across, under the {floor} {wants} — a "
+                    + "player towers at one edge and jumps it, and the approach the board is drawn around is "
+                    + $"not walked. Narrowest at cell ({run.X}, {run.Z}), running along "
+                    + (run.AlongX ? "x" : "z"),
+                    [.. new[] { run.From, run.To }.Where(name => name.Length > 0).Distinct()]);
+            }
         }
 
         // CT12 judges the CTW strait: the direct crossing between the two team islands of a two-team wool

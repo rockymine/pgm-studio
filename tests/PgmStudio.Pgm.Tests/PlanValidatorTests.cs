@@ -906,6 +906,52 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
+    public async Task A_gap_beside_a_wool_room_narrower_than_sixteen_blocks_fires_WL12()
+    {
+        // two cells of void between the room and the ground beside it: ten blocks, which a player crosses by
+        // towering at one edge, so the approach the board states is not the one walked.
+        var tight = Plan("""
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"hub","role":"lane","rect":[-4,2,8,4]},
+                     {"id":"lane","role":"lane","rect":[-4,6,2,4]},
+                     {"id":"room","role":"wool-room","rect":[-4,10,2,2]},
+                     {"id":"far","role":"lane","rect":[0,6,4,6]} ],
+          "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
+                         "wools":[ {"piece":"room","at":[5,5]} ] } }
+        """);
+        await Assert.That(Lint(tight, "WL12")).IsTrue().Because("ten blocks is under the sixteen a gap beside a goal wants");
+
+        // the same arrangement with the far ground pushed a cell further out: twenty blocks, and quiet.
+        var clear = Plan("""
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"hub","role":"lane","rect":[-4,2,8,4]},
+                     {"id":"lane","role":"lane","rect":[-4,6,2,4]},
+                     {"id":"room","role":"wool-room","rect":[-4,10,2,2]},
+                     {"id":"far","role":"lane","rect":[2,6,4,6]} ],
+          "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
+                         "wools":[ {"piece":"room","at":[5,5]} ] } }
+        """);
+        await Assert.That(Lint(clear, "WL12")).IsFalse();
+    }
+
+    [Test]
+    public async Task A_gap_a_build_zone_covers_is_a_crossing_the_board_states_and_is_not_WL12()
+    {
+        // building over it is what the zone is for, so the gap's width is not a jump the rule judges.
+        var bridged = Plan("""
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"hub","role":"lane","rect":[-4,2,8,4]},
+                     {"id":"lane","role":"lane","rect":[-4,6,2,4]},
+                     {"id":"room","role":"wool-room","rect":[-4,10,2,2]},
+                     {"id":"far","role":"lane","rect":[0,6,4,6]} ],
+          "zones":[ {"id":"hop","rect":[-2,6,2,6]} ],
+          "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
+                         "wools":[ {"piece":"room","at":[5,5]} ] } }
+        """);
+        await Assert.That(Lint(bridged, "WL12")).IsFalse();
+    }
+
+    [Test]
     public async Task Team_islands_bridged_across_a_narrow_strait_fire_CT12()
     {
         // rot_180 fans the authored team island opposite itself: a 10-block strait under one zone → too close

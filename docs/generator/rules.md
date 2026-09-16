@@ -185,6 +185,19 @@ and a fall counted but not charged, routing around voids — never the straight 
   room reached only over a build zone states no land seam and is not this rule's business but
   `BZ5`'s.
 
+- **WL12 [author]** **A bay or a hole beside a goal is at least 16 blocks across.** Negative space is
+  crossed by **jumping** long before it is crossed by building: a short gap between a frontline and a
+  wool room, or between a spawn and a wool room, lets a player tower at the near edge and jump in, and
+  the approach the board was drawn around stops being walked at all. The measure is the **narrowest
+  straight crossing** — the shortest line over the space with terrain on **both** ends, a run open at
+  one end being a way out rather than a gap over. A space walled on three sides or enclosed (a `bay` or
+  a `hole`, `NegativeSpaceKinds`) is asked; a space any **build zone** covers is not, since building
+  over it is what the zone states. The floor is **16 blocks** where the space touches a wool-room or
+  spawn piece and **12** where it touches neither — a hole in a team's own ground is crossed on purpose.
+  Stated in **blocks**, never in cells: a floor stated as a cell count moves with the grid scale, and a
+  jump does not care what the grid was.
+
+
 ## LN — Lane
 
 - **LN1 [corpus]** Width **10** base — piece min-dims across 150 corpus pieces: 5-wide ×54 (the
@@ -1013,6 +1026,17 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     `WX8`'s span for both and both resolve through `RoomFrames.PlaceIron`, so a cube that will not fit its
     piece resolves unplaceable and the export stamps nothing. `ST2` follows: it tests the cube rather than the
     marker block, and fires on a board with no spawn piece at all, where every cube is one a team mines once.
+
+33. **`WL12` added (2026-09-16).** Author's call. A bay between a spawn and a wool room on a built board
+    measured **six blocks** across, which a player clears from a one-block rise; the composer's own floor is
+    two cells, so it is ten blocks at the default scale and eight at cell 4. Nothing measured how narrow a
+    negative space was: the deriver's void walk reports **enclosed** voids only and classes them by ownership
+    with no width, `IslandGaps` measures between islands rather than within one, and the
+    notch/bay/hole classification lived in the shape emitter and never saw an authored plan. The
+    classification is now `PgmStudio.Vocabulary.NegativeSpaceKinds`, the reader carries a
+    `NarrowestCrossing`, and `BoardStructure.Spaces` runs it over the board's own terrain. Composed boards
+    trip the new rule at ten blocks, which is what `G264` is for; the rule is lint, so composition is
+    unaffected.
 
 32. **`ST7`: a capture point's marker is the one that changes colour (2026-09-12).** Author's call. A hill
     carried no marker at all, on the reading that a marker names the team a goal belongs to and a point

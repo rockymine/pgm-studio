@@ -1,3 +1,5 @@
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Contracts;
 
 /// <summary>
@@ -20,6 +22,7 @@ namespace PgmStudio.Contracts;
 /// <param name="Structures">The boxes the world build will stamp, which the iso view draws.</param>
 /// <param name="GoalDistances">Each destroy goal's walk from its own spawn and from the enemy's.</param>
 /// <param name="GoalPairs">The walk between each pair of destroy goals — a team's own, and across the axis.</param>
+/// <param name="Spaces">Every gap the pieces leave between them, with what a player would cross it by.</param>
 public sealed record PlanInspectDto(
     IReadOnlyList<PlanInterfaceDto> Interfaces,
     IReadOnlyList<PlanGapLinkDto> GapLinks,
@@ -29,7 +32,26 @@ public sealed record PlanInspectDto(
     IReadOnlyList<PlanIslandGapDto> IslandGaps,
     IReadOnlyList<PlanStructureBoxDto> Structures,
     IReadOnlyList<PlanGoalWalkDto> GoalDistances,
-    IReadOnlyList<PlanGoalPairDto> GoalPairs);
+    IReadOnlyList<PlanGoalPairDto> GoalPairs,
+    IReadOnlyList<PlanSpaceDto> Spaces);
+
+/// <summary>One patch of empty ground the pieces leave, and the narrowest line a player crosses it by. The
+/// kind is the wall count — outside space along a flat side is <c>open</c> and no feature of the board, a
+/// corner two pieces wrap is a <c>notch</c>, a recess with one mouth a <c>bay</c>, and a void the board rings
+/// a <c>hole</c>. A crossing is measured only where terrain closes both ends, a run open at one end being a
+/// way out of the space rather than a gap over it.</summary>
+/// <param name="Kind">Which of the four the space is.</param>
+/// <param name="Cells">How many proxy cells of ground it covers.</param>
+/// <param name="NarrowestBlocks">The shortest crossing, in blocks — null where nothing closes both ends.</param>
+/// <param name="Between">The pieces walling the narrowest crossing, each end named.</param>
+/// <param name="X">The cell the narrowest crossing starts at, east–west.</param>
+/// <param name="Z">That cell, north–south.</param>
+/// <param name="AlongX">Whether the crossing runs east–west rather than north–south.</param>
+/// <param name="Walls">Every piece walling the space, first-encounter order.</param>
+public sealed record PlanSpaceDto(
+    [property: WordSet(typeof(NegativeSpaceKinds))] string Kind,
+    int Cells, int? NarrowestBlocks, IReadOnlyList<string> Between,
+    int X, int Z, bool AlongX, IReadOnlyList<string> Walls);
 
 /// <summary>Where two pieces meet: the seam as a segment, how the surface steps across it, and what the seam
 /// carries — a wool room, a wall, the chest piece of one.</summary>

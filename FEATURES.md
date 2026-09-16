@@ -8356,6 +8356,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   rather than a refusal, because a thing drawn deliberately around a structure is a board somebody meant and
   which of the two moves is the author's call.
   (`Export/WorldBuilder`, `Pgm/Sketch/SketchRules`; `MadeThingInBuiltTests`) (`TS70`)
+- **A gap beside a goal is measured, and a short one is named (`TN20`, `WL12`).** The pieces a plan states
+  leave empty ground between them, and nothing answered how narrow it was: the deriver's void walk reports
+  **enclosed** voids only and classes them by ownership with no width, `IslandGaps` measures between islands
+  rather than within one, and the notch/bay/hole classification was the shape emitter's, box-local, and never
+  saw an authored plan. The classification is now `PgmStudio.Vocabulary.NegativeSpaceKinds` — words rather
+  than an enum, since the composer, the lint and the wire all spell them — the reader carries `SpaceCrossing`
+  (every straight run terrain closes at **both** ends, with the piece at each end), `BoardStructure.Spaces`
+  runs it over the board's own terrain, and `POST /plan/inspect` answers `spaces`. `WL12` reads it against
+  **16 blocks** where a crossing touches a wool room or a spawn and **12** for a hole's narrowest, both in
+  blocks so they hold at any grid scale; a crossing a build zone reaches is not asked. Evidence:
+  `opus5-quadrangle`'s `wool-b-n`↔`spawn-room` reads 5 blocks (6 in the built world), and the composer's own
+  floor is two cells — 10 blocks at the default scale, which `G264` is for. Composer output is unmoved: the
+  determinism gate reads 72 boards, 0 moved.
+
 - **A group that declines the fan off the symmetry centre is named (`TS108`, `SK28`).** The orbit is fanned
   per group, so `mirrors: false` builds a group's shapes once. That is the right statement for a landmark
   seated on the centre, which is already every one of its images, so the **footprint** decides rather than the
