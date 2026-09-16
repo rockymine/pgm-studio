@@ -60,6 +60,14 @@ seeds a row at cell 5, a 20-player board and a 32-player board come out the same
 87×72 blocks, 2735 against 2719 land built — and 5, 6 and 8 players likewise share one board. The
 player count therefore steers composition only between about nine and seventeen. → **G265**
 
+The **budget itself** is the third fault, and it is the one the ladders sit on. `LandPerPlayerAnchors` runs
+65 blocks² a player at five to 185 at thirty-two; 331 CTW corpus maps measure about 250 a player at every
+size, fitting `176 × players^1.12` (`docs/world-scan/map-size-ladder.md`, 2026-09-16). So the anchor table is
+low everywhere and curved where the corpus is flat, and a composed board holds 0.59× a real one's land at
+five players and 0.18× at forty. Element width is the same fault in the other unit: every width the composer
+states is a cell count, so the tenth percentile of a composed board's local thickness is 10 blocks at every
+player count while the corpus runs 8 · 10 · 14 · 16 · 16 by mode. → **G266**, **G267**
+
 ## 3. The trace to law — which constants are grounded
 
 Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved to `UnitTuning`/`UnitRequests`/`UnitSeating`/`SeatGeometry` in B42 without changing behaviour.
