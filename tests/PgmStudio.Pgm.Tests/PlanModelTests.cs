@@ -106,7 +106,7 @@ public sealed class PlanModelTests
     {
         var plan = PlanModel.Parse("""{ "plan": 2, "placements": { "wools": [ { "piece": "a", "at": [0, 0] } ] } }""")!;
         await Assert.That(plan.Placements.Wools[0].Color).IsNull();
-        await Assert.That(plan.Globals.Cell).IsEqualTo(5);              // default cell
+        await Assert.That(plan.Globals.Cell).IsEqualTo(4);              // default cell
         await Assert.That(plan.Globals.Symmetry).IsEqualTo("rot_180");
     }
 

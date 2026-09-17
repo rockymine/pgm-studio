@@ -126,9 +126,10 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
             .ToList();
         return new LandSpendDto(
             stages.Envelope.Band,
-            Composer.LandCells(stages.Unit),
+            new LandAgainstBudgetDto(Composer.LandCells(stages.Unit), stages.Envelope.UnitBudgetCells),
+            new LandAgainstBudgetDto(
+                MidCarver.StoneLandCells(stages.Envelope, stages.Mid.Stones), stages.Envelope.MidLandCells),
             byKind.Sum(k => k.FootprintCells),
-            stages.Envelope.BudgetCells,
             byKind);
     }
 

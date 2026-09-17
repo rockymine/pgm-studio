@@ -43,9 +43,17 @@ public sealed record ComposeEnvelope(
     int UnitMaxX,
     int UnitMaxZ)
 {
-    /// <summary>The land budget in cells — the currency every box is sized in and the
-    /// <see cref="LandBudget"/> is opened at.</summary>
+    /// <summary>The land budget in cells — the band's whole measured land for one team's half of a board.</summary>
     public double BudgetCells => LandPerTeam / (Cell * (double)Cell);
+
+    /// <summary>The land the <b>team unit</b> may spend, in cells, and what the
+    /// <see cref="LandBudget"/> is opened at: the band's budget less the mid's share
+    /// (<see cref="MidCarver.MidShare"/>).</summary>
+    public double UnitBudgetCells => BudgetCells * (1 - MidCarver.MidShare);
+
+    /// <summary>The land the <b>mid</b> may spend on stones, in cells. Twice what one unit gave up, because
+    /// the mid is one piece of ground both units paid for.</summary>
+    public double MidLandCells => BudgetCells * 2 * MidCarver.MidShare;
 }
 
 /// <summary>

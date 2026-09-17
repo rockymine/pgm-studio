@@ -4103,9 +4103,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   composer builds to is stated in blocks and divided by the cell, so the cell is a drawing scale: on a
   four-block one the map's lane lands exactly at nano, milli and centi, where a five-block cell lands on none
   of the five bands. `ComposeRequest`'s default is 4 and `ComposerVersion` is `cell-four-1`. Two quantities
-  that had been stated in cells follow the scale now instead of capping it: `MidCarver.BandGapBlocks` is a
-  20-block gap laid on the grid through `HalfGapCells` and floored at the axis margin, where integer division
-  had silently made it 16 blocks at cell 4 and 12 at cell 6; and the donut's entry and hole-depth ceilings are
+  that had been stated in cells follow the scale now instead of capping it: `MidCarver.BandGapBlocks` is laid
+  on the grid through a rounding read floored at the axis margin, where integer division had silently made a
+  stated 20-block gap 16 blocks at cell 4 and 12 at cell 6; and the donut's entry and hole-depth ceilings are
   floored at the wool lane they are sampled from, where a 6-cell lane against a 5-cell cap threw an empty
   `NextInt` range out of composition rather than refusing the attempt. Composes 24/24 at every band on cells
   3 through 6, where cell 4 had composed nothing. The cell does not reach the slab a flush-docked frontline
@@ -4113,6 +4113,25 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`ComposeRequest`, `ComposeDescriptor`, `MidCarver`, `UnitTuning`, `UnitRequests`, `Producibility`,
   `tools/compose/composer-fingerprints.json`, `docs/world-scan/map-size-ladder.md`,
   `docs/generator/model.md` §2.3, `rules.md` `G2`, `docs/tools/generator.md`)
+
+- **The crossing is funded, and the ground in it is shared (`G116`).** `MidResult.Stones` had always been
+  empty and the band a fixed 20-block void, so a board's middle was ground neither team could stand on.
+  `MidCarver.MidShare` now takes a tenth of each team unit's budget — the mid's own allowance is a fifth of
+  one team's land, shared, and a board's total is unchanged because the land moves rather than leaves. A band
+  carrying a stone opens one `HopBlocks` (12) either side of it; one carrying none opens `BandGapBlocks` (30)
+  front to front. `MidCarver.Stones` lays the row: a stone stands **astride the axis**, symmetric about it, so
+  `CT11`'s abutment makes it and its own fanned image **one shared island** rather than a stone each — depth
+  16 · 24 · 24 · 24 · 32 blocks up the bands, laid on the grid as an even number of cells, each stone wider
+  than it is deep, clear of its neighbours by a hop and of the band's ends by a cell, and capped at three per
+  `MD6`. The row comes out 1 · 1 · 2 · 2 · 3 stones, spending 66–85% of its share; 17–33% of boards carry none
+  — about half of those split bands, whose bay is already the island. Composition yield is unchanged at 48/48
+  a band, and a team's half of a board now holds 0.86–1.11 of what the band bought against 0.86–1.16 before.
+  `MidCarver.IsStone` is what a reader that means *the authored unit* asks, because a stone is ordinary
+  generating terrain and the one piece across the axis — `Producibility`'s front-row read takes it. The spend
+  card reports both halves against their own shares: `nano 104/81 · 128% · mid 16`. (`MidCarver`,
+  `ComposeEnvelope`, `Composer`, `TeamUnitAllocator`, `Producibility`, `LandSpendDto`, `GeneratorTool`,
+  `docs/generator/model.md` §5.2/§5.13, `rules.md` `G8` + amendment 35, `vocabulary.md`,
+  `docs/world-scan/map-size-ladder.md`, `docs/tools/generator.md`)
 - **A flow reading the evaluator can fire (`G187`).** `PlanFlow` computed how much of a board no journey
   reaches and served it as prose, and the evaluator's terms walked the surface for distances and cited neither
   `PlanRoutes` nor `PlanFlow` — so no flow answer scored anything. `DeadShare` scores it, at `POST
@@ -4587,11 +4606,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wide-form mix (huge/200): Ring 115 · G 26 · Double-hole 23; no-alloc/no-fill/pinch 0. Pgm suite 692/692. (G105
   partial · `generator/model.md` §5.5)
 
-- **Map completion v0 — the box-model path closes the loop with a band-only mid** —
-  `Composer.ComposeBoxStages` + `MidCarver.BandOnly` + `tools/compose/board-gallery.cs`: the first full board off
-  the partition-first path. The crossing is the draw-free band-only design (a 20-block gap stated in blocks
-  and laid on the board's grid, no stones, no
-  centre island); the allocator takes it as its axis margin (`Allocate` gains an optional `CrossingDesign` — the
+- **Map completion v0 — the box-model path closes the loop with a carved mid** —
+  `Composer.ComposeBoxStages` + `MidCarver` + `tools/compose/board-gallery.cs`: the first full board off
+  the partition-first path. The crossing is draw-free; the allocator takes it as its axis margin (`Allocate` gains an optional `CrossingDesign` — the
   mid box arithmetic decides how far the unit's front sits from the axis); `MidCarver.TryCarve` consumes the
   filled unit as-is (its hub lateral extent now unions the box path's prefixed `hub-…` pieces; the grower's
   single `hub` piece is the degenerate case) and derives the band from the front faces — pinned <b>flush</b> on

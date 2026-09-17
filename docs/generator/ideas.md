@@ -13,10 +13,10 @@ landed, the rest is the idea.
 
 ## Mid enrichment (the crossing vocabulary, back on the box path)
 
-- **G116** *(partial — the split band shipped)* — richer mids: stone rows, the centre island (single/pair),
-  depth variation (the ≥20-player 30-block deep single). All re-enter as `CrossingDesign` forms; the retired
-  `SampleCrossing` arithmetic (hops 10..20, sum 30..60, CT7 column alignment, the MD6 lateral grid) is the
-  reference design, in git history.
+- **G116** *(partial — the split band and the stone row shipped)* — what is left of the richer mid: a stone
+  **raised or lowered** off the base terrain rather than level with it (`MD1`), and depth variation across a
+  row instead of one depth per band. Both re-enter as `CrossingDesign` forms; the retired `SampleCrossing`
+  arithmetic (hops 10..20, sum 30..60, CT7 column alignment) is the reference design, in git history.
 - **G100** — holed frontline forms (P, two-U-on-I): needs the "where does the mid meet a loop" face rule first.
 - **G81** — the declared-bay scythe via elevation (a flush host sealing the bay is legal only once height
   enforces the approach); parked until the elevation pass exists.

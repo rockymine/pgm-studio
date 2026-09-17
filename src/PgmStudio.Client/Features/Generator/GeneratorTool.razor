@@ -199,8 +199,13 @@
         {
           <div class="gen-spend">
             <div class="gen-spend-head">
-              <span><strong>@sp.Band</strong> · land <strong>@sp.LandCells</strong> / @sp.BudgetCells.ToString("0") cells</span>
-              <span class="gen-spend-pct">@SpendPercent(sp)</span>
+              <span><strong>@sp.Band</strong> · land <strong>@sp.Unit.Cells</strong> / @sp.Unit.BudgetCells.ToString("0") cells
+                @if (sp.Mid.Cells > 0)
+                {
+                  <text> · mid <strong>@sp.Mid.Cells</strong> / @sp.Mid.BudgetCells.ToString("0")</text>
+                }
+              </span>
+              <span class="gen-spend-pct">@SpendPercent(sp.Unit)</span>
             </div>
             <table class="gen-spend-table">
               <thead><tr><th>box</th><th>land</th><th>footprint</th></tr></thead>
@@ -214,7 +219,7 @@
                   </tr>
                 }
               </tbody>
-              <tfoot><tr><td>total</td><td>@sp.LandCells</td><td>@sp.FootprintCells</td></tr></tfoot>
+              <tfoot><tr><td>total</td><td>@sp.Unit.Cells</td><td>@sp.FootprintCells</td></tr></tfoot>
             </table>
             <p class="section-desc">
               Cells, for <strong>one team unit</strong> — the board is this unit fanned. The per-box rows are

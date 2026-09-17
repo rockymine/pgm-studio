@@ -1,4 +1,5 @@
 using PgmStudio.Geom;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Compose;
 
@@ -9,8 +10,8 @@ namespace PgmStudio.Pgm.Compose;
 /// request, not a guarantee, and a face that admits a split is equally valid crossed by one band.</summary>
 public sealed record CrossingDesign(int HalfGapCells, bool SplitBand = false);
 
-/// <summary>A mid stepping stone: an anonymous piece inside the band (MD1/MD4), fanned by symmetry. The
-/// band-only mid carves none; richer crossings that place them layer back onto <see cref="MidCarver"/>.</summary>
+/// <summary>A mid stepping stone: a piece standing astride the axis inside the band (MD1/MD4), fanned by
+/// symmetry into one shared island. <see cref="MidCarver.Stones"/> lays the row.</summary>
 public sealed record MidStone(string Id, CellRect Rect, int Surface);
 
 /// <summary>The carved mid: the band zone rect (cells) and the stones inside it.</summary>
@@ -26,26 +27,112 @@ public sealed record MidResult(CellRect BandRect, IReadOnlyList<MidStone> Stones
 /// a flat front edge takes the build zone straight against it, zero overlap). The band touches nothing else:
 /// not the hub behind the front, not the lanes, and never a wool-carrying piece, which it clears by two full
 /// cells across all orbit images (BZ6 — a mid-bridgeable wool would erase the map's gameplay direction).
-/// Deterministic — no draws.
+///
+/// <para>Inside the band it lays a row of <b>mid stones</b> (<see cref="Stones"/>) — the shared ground the
+/// crossing is fought over, funded by <see cref="MidShare"/> out of what the units would have spent on
+/// themselves. A split band carries none: the bay between its legs is already the island.</para>
+///
+/// <para>Deterministic — no draws.</para>
 /// </summary>
 public static class MidCarver
 {
-    /// <summary>The void a band-only crossing opens from one team's front to the other's, in blocks — half of
-    /// it each side of the axis.</summary>
-    public const int BandGapBlocks = 20;
+    /// <summary>The void a band opens from one team's front to the other's when it carries no stone, in blocks
+    /// — half of it each side of the axis. A crossing with nothing in it is walked or bridged in one go, so it
+    /// is a single distance rather than a sum of hops.</summary>
+    public const int BandGapBlocks = 30;
 
-    /// <summary>The <b>band-only</b> crossing: no stone rows, no centre island — the mid is one plain build band
-    /// spanning the axis. <see cref="BandGapBlocks"/> laid on this board's grid, half the gap a side, rounded to
-    /// a whole cell and floored at <see cref="Envelope.AxisMarginCells"/>, so the gap a board actually opens is
-    /// the stated blocks at whatever scale it is composed at. Draw-free, so it perturbs no RNG sequence. A
-    /// frontline bay the band's flush dock seals (the staple/U front) still rings an enclosed hole — that hole
-    /// is the terrain's, not the crossing's.</summary>
-    public static CrossingDesign BandOnly(ComposeEnvelope env) => new(HalfGapCells(env.Cell));
+    /// <summary>The share of <b>one</b> team's land budget the mid takes. A team's budget is half a whole map's
+    /// land, so the mid's own total is twice this — it is ground both teams gave up land for. It comes out of
+    /// what the units would otherwise have spent on themselves rather than on top of them, which is what keeps
+    /// a board's total land the band's own.</summary>
+    public const double MidShare = 0.10;
 
-    /// <summary>Half the band gap on a grid of <paramref name="cell"/>-block cells.</summary>
-    public static int HalfGapCells(int cell) => Math.Max(
+    /// <summary>The void between a mid stone and the ground it is reached from, in blocks — one hop, inside
+    /// G5's 10–20. A symmetric row may take one cell more than this between its stones (see
+    /// <see cref="Stones"/>).</summary>
+    public const int HopBlocks = 12;
+
+    /// <summary>The lateral void a stone keeps from the band's own ends, in cells, so the row reads as islands
+    /// in a crossing rather than as a bar across it.</summary>
+    public const int StoneInsetCells = 1;
+
+    /// <summary>MD6: two lateral columns of mid stones are the norm and three the hard maximum.</summary>
+    public const int StoneMaxCount = 3;
+
+    /// <summary>The id every mid stone carries in front of its index, so a reader of a composed plan can tell
+    /// the crossing's ground from the team unit's.</summary>
+    public const string StoneIdPrefix = "mid-stone-";
+
+    /// <summary>Whether a plan piece id names one of the crossing's own stones. A reader that means <em>the
+    /// authored unit</em> asks this and leaves them out: a stone is ordinary generating terrain to everything
+    /// that walks a board, and the one piece that sits across the axis, so a front-row read that counts it
+    /// measures the crossing instead of the unit.</summary>
+    public static bool IsStone(string? pieceId) =>
+        pieceId is not null && pieceId.StartsWith(StoneIdPrefix, StringComparison.Ordinal);
+
+    /// <summary>How deep a mid stone stands, per band, in blocks.</summary>
+    private static int StoneDeepBlocks(string band) => SizeBands.Canonical(band) switch
+    {
+        SizeBands.Micro or SizeBands.Milli or SizeBands.Centi => 24,
+        SizeBands.Hecto => 32,
+        _ => 16,
+    };
+
+    /// <summary>A mid stone's depth on this board, in cells — <b>even</b>, because a stone stands astride the
+    /// axis and spends half its depth each side, which is what makes its own fanned image abut it into one
+    /// shared island instead of landing as a second one across the gap (CT11).</summary>
+    public static int StoneDeepCells(ComposeEnvelope env) => 2 * Math.Max(1,
+        (int)Math.Round(StoneDeepBlocks(env.Band) / (2.0 * env.Cell), MidpointRounding.AwayFromZero));
+
+    /// <summary>One hop on a grid of <paramref name="cell"/>-block cells.</summary>
+    public static int HopCells(int cell) =>
+        Math.Max(1, (int)Math.Round(HopBlocks / (double)cell, MidpointRounding.AwayFromZero));
+
+    /// <summary>Half the gap a <b>stoneless</b> band opens, on a grid of <paramref name="cell"/>-block cells:
+    /// <see cref="BandGapBlocks"/> laid on the grid, rounded to a whole cell and floored at
+    /// <see cref="Envelope.AxisMarginCells"/>, so the gap a board actually opens is the stated blocks at
+    /// whatever scale it is composed at.</summary>
+    public static int EmptyHalfGapCells(int cell) => Math.Max(
         Envelope.AxisMarginCells,
         (int)Math.Round(BandGapBlocks / 2.0 / cell, MidpointRounding.AwayFromZero));
+
+    /// <summary>
+    /// The crossing this board is allocated against: how far from the axis the unit's front sits, and whether
+    /// the board asks for a split band. A band carrying a stone opens exactly one hop either side of it, so its
+    /// half-gap is the hop plus half the stone; a split band carries none — the bay between its legs is the
+    /// island — and takes <see cref="EmptyHalfGapCells"/>. Order-4 boards take the stoneless gap too: a
+    /// quarter-turn mid is four fanned images of one wedge rather than two halves meeting, and CT10's
+    /// archetypes are not this row.
+    ///
+    /// <para>Draw-free, so it perturbs no RNG sequence.</para>
+    /// </summary>
+    public static CrossingDesign Crossing(ComposeEnvelope env, bool splitBand) => new(
+        splitBand || Geom.Symmetry.Order(env.Symmetry) != 2
+            ? EmptyHalfGapCells(env.Cell)
+            : HopCells(env.Cell) + StoneDeepCells(env) / 2,
+        splitBand);
+
+    /// <summary>The land the crossing's stones hold on the <b>fanned</b> board, in cells. An authored stone
+    /// astride the axis and its own image are one island, so the count is taken over the fan: counting what
+    /// was authored would report half the ground on a board whose row is a mirrored pair, and all of it on one
+    /// whose stone is centred.</summary>
+    public static int StoneLandCells(ComposeEnvelope env, IReadOnlyList<MidStone> stones)
+    {
+        var order = Geom.Symmetry.Order(env.Symmetry);
+        var axes = Geom.Symmetry.OrbitAxes(env.Symmetry);
+        var cells = new HashSet<(int X, int Z)>();
+        foreach (var stone in stones)
+            for (var image = 0; image < order; image++)
+            {
+                var (x1, z1, x2, z2) = ComposeGeometry.FanImage(
+                    stone.Rect.X, stone.Rect.Z,
+                    stone.Rect.X + stone.Rect.Width, stone.Rect.Z + stone.Rect.Height, axes, image);
+                for (var x = (int)x1; x < (int)x2; x++)
+                    for (var z = (int)z1; z < (int)z2; z++)
+                        cells.Add((x, z));
+            }
+        return cells.Count;
+    }
 
     /// <summary>Of boards whose symmetry could carry one, how often the crossing <b>asks</b> for a split band.
     /// Most faces cannot host one, so the realised rate is far lower — this is the appetite, not the outcome.</summary>
@@ -78,7 +165,62 @@ public static class MidCarver
 
         var band = frame.ToRect(-h, 2 * h, bandL, bandR - bandL);
         if (!BandContactsOk(env, unit, band, frontIds)) return null;
-        return new MidResult(band, []);
+        return new MidResult(band, design.SplitBand || Geom.Symmetry.Order(env.Symmetry) != 2
+            ? []
+            : Stones(env, band));
+    }
+
+    /// <summary>
+    /// The stones a band carries: one lateral row of islands standing astride the axis inside it.
+    ///
+    /// <para>Each stone is <b>wider than it is deep</b> and stands clear of the band's own ends, so it reads as
+    /// an island in a crossing rather than a bar across it, and — standing astride the axis — its fanned image
+    /// abuts it into <b>one shared landmass</b> both teams reach at once rather than a stone each (CT11). Under
+    /// a laterally flipping symmetry the row's outer stones are each other's images, so only the centre stone
+    /// and the ones beyond it are authored; under a mirror every stone is its own image and all are.</para>
+    ///
+    /// <para>The count is the widest the hull affords at that aspect, capped at <see cref="StoneMaxCount"/>
+    /// (MD6). The gap between stones takes one cell more than <see cref="HopCells"/> where a symmetric row
+    /// needs it: a row spanning an odd number of cells cannot sit symmetric about the axis's own cell
+    /// boundary. Deterministic — no draws. A hull too narrow to hold one stone at the aspect rule carries
+    /// none, and the band is then wider than it needed to be rather than refused.</para>
+    /// </summary>
+    public static IReadOnlyList<MidStone> Stones(ComposeEnvelope env, CellRect band)
+    {
+        var frame = Frame.For(env.Symmetry);
+        var deep = StoneDeepCells(env);
+        var uv = frame.FromRect(band);
+        var lo = uv.VMin + StoneInsetCells;
+        var hi = uv.VMin + uv.VSpan - StoneInsetCells;
+        var flip = LateralFlip(env.Symmetry);
+
+        for (var count = StoneMaxCount; count >= 1; count--)
+            foreach (var hop in new[] { HopCells(env.Cell), HopCells(env.Cell) + 1 })
+            {
+                var byHull = (hi - lo - (count - 1) * hop) / count;
+                var byLand = (int)(env.MidLandCells / (count * (double)deep));
+                var wide = Math.Min(byHull, byLand);
+                if (count == 1 && wide % 2 != 0) wide--;       // a lone stone's own span carries the parity
+                if (wide < deep) continue;                     // wider than deep, or it is a line
+                var span = count * wide + (count - 1) * hop;
+                // where the image flips the cross axis the row has to sit symmetric about the axis's own cell
+                // boundary, which takes an even span and centres the row on zero; a mirror keeps the cross
+                // coordinate, so every stone is its own image wherever it sits and the row centres in its band
+                if (flip && span % 2 != 0) continue;
+                var rowLeft = flip ? -span / 2 : lo + (hi - lo - span) / 2;
+                if (rowLeft < lo || rowLeft + span > hi) continue;
+
+                var stones = new List<MidStone>();
+                for (var index = 0; index < count; index++)
+                {
+                    var vMin = rowLeft + index * (wide + hop);
+                    if (flip && 2 * vMin < -wide) continue;    // its image is another stone in this row
+                    stones.Add(new MidStone($"{StoneIdPrefix}{stones.Count}",
+                                            frame.ToRect(-deep / 2, deep, vMin, wide), env.Surface));
+                }
+                return stones;
+            }
+        return [];
     }
 
     // The band's contact discipline: it borders the frontline pieces it connects (flush — never a lap), it

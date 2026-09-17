@@ -97,7 +97,9 @@ and a fall counted but not charged, routing around voids — never the straight 
   and an exponent of one is exactly "constant land per player" — so the coefficient is about **250
   blocks² a player at every size**, and the band is what quantizes a nearly linear law. The hecto row has
   three witnesses and is the law extended, not a measurement. Composer: player count → band → land budget
-  = teams × the band's land/team.
+  = teams × the band's land/team, and that budget **buys two things**: nine tenths of a team's share is the
+  team unit's, and the tenth each unit gives up funds the crossing's own stones — a fifth of one team's
+  budget, shared, because both teams stand on it. A board's whole land is the band's either way.
 
 ## SP — Spawn
 
@@ -1023,6 +1025,20 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     footprint, filled **up** to the floor course in **stone** so the painter finishes it like the ground
     around it (`TP6` rewrites only stone); nothing is filled downward. No other rule changes — `ST2`'s spawn
     piece never laid a floor, and `ST4`'s wall keeps its bedrock, which is a barrier rather than a plinth.
+
+35. **The crossing is funded and carries stones (2026-09-17).** Author's call. `MD1`, `MD4`, `MD5` and `MD6`
+    described a mid nothing built: `MidResult.Stones` was always empty and the band was a fixed 20-block void.
+    `G8`'s budget now splits — a tenth off each team unit funds the crossing, so the mid's own allowance is a
+    fifth of one team's land and a board's total is unchanged. A band carrying a stone opens one **hop** either
+    side of it (12 blocks, `G5`'s near end); a band carrying none opens **30** blocks front to front, because an
+    empty crossing is walked in one go rather than in hops. A stone stands **astride the axis**, symmetric about
+    it, so `CT11`'s abutment makes it and its own image one shared island rather than a stone each; its depth is
+    16 · 24 · 24 · 24 · 32 blocks up the bands, laid on the grid as an even number of cells. The row is the
+    widest count the frontline hull affords with every stone wider than it is deep, capped at three per `MD6` —
+    one at nano and micro, two at milli and centi, three at hecto — each clear of its neighbours by a hop and of
+    the band's ends by a cell. A split band carries none (its bay is the island) and a hull too narrow for one
+    at that aspect carries none. `MD5` holds at every band but hecto, whose 1536-block stones sit above the
+    corpus's p90 of 884 on a band with three witnesses.
 
 30. **`ST9` split, `ST10` added (2026-09-01).** Author's call, closing `B178`. `ST9` had capped the *piece*
     at 20×20 as a workaround: the stamped building was sized by its piece, so one rectangle carried the

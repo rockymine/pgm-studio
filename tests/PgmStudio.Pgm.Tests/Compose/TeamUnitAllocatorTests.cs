@@ -133,7 +133,7 @@ public class TeamUnitAllocatorTests
                 var request = new ComposeRequest(players, 2, "rot_180", seed);
                 var rng = new ComposeRng(request.Seed);
                 var envelope = Envelope.Derive(request, rng);
-                var crossing = MidCarver.BandOnly(envelope);
+                var crossing = MidCarver.Crossing(envelope, splitBand: false);
                 if (TeamUnitAllocator.Allocate(envelope, rng, crossing) is not { } alloc) continue;
 
                 var hub = alloc.Partition.Boxes.FirstOrDefault(b => b.Kind == BoxKind.Hub);

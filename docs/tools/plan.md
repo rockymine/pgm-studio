@@ -53,25 +53,25 @@ compile ever answers anything else.
 {
   "plan": 2,
   "meta": { "name": "Example board" },
-  "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
+  "globals": { "cell": 4, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
   "pieces": [
-    { "id": "spawn",      "role": "spawn",     "rect": [1, 9, 2, 2] },
-    { "id": "lane",       "role": "piece",     "rect": [1, 5, 2, 4] },
-    { "id": "approach",   "role": "piece",     "rect": [-3, 4, 2, 7] },
-    { "id": "wool-room",  "role": "wool-room", "rect": [-3, 11, 2, 2] },
+    { "id": "spawn",      "role": "spawn",     "rect": [1, 9, 3, 2] },
+    { "id": "lane",       "role": "piece",     "rect": [1, 5, 3, 4] },
+    { "id": "approach",   "role": "piece",     "rect": [-4, 4, 3, 7] },
+    { "id": "wool-room",  "role": "wool-room", "rect": [-4, 11, 3, 2] },
     { "id": "plateau",    "role": "piece",     "rect": [5, 7, 4, 2], "surface": 13 },
     { "id": "bridgehead", "role": "piece",     "rect": [-1, 7, 2, 2] },
-    { "id": "gap",        "role": "buffer",    "rect": [3, 5, 2, 2] }
+    { "id": "gap",        "role": "buffer",    "rect": [4, 5, 2, 2] }
   ],
   "zones": [
     { "id": "mid-band", "rect": [-3, -5, 6, 10], "holes": [] },
     { "id": "lane-e",   "rect": [3, -1, 2, 4], "kind": "water-lane" }
   ],
   "placements": {
-    "spawns":       [ { "id": "spawn-1", "piece": "spawn", "at": [5, 5], "facing": "front",
-                        "footprint": [1, 2, 8, 7] } ],
-    "wools":        [ { "id": "wool-1", "piece": "wool-room", "at": [5, 5],
-                        "footprint": [1, 1, 8, 8] } ],
+    "spawns":       [ { "id": "spawn-1", "piece": "spawn", "at": [6, 4], "facing": "front",
+                        "footprint": [1, 1, 10, 6] } ],
+    "wools":        [ { "id": "wool-1", "piece": "wool-room", "at": [6, 4],
+                        "footprint": [1, 1, 10, 6] } ],
     "iron":         [ { "id": "iron-1", "piece": "spawn", "at": [2.5, 2.5] } ],
     "destroyables": [ { "id": "destroyable-1", "piece": "plateau", "at": [10, 5],
                         "style": "cube-3", "materials": "obsidian", "float": 4 } ],
@@ -682,7 +682,7 @@ and is why it is tagged `Diagnostics` and kept out of the list a driver iterates
 draws the board as characters.
 
 ```json POST /api/plan/inspect
-{"globals": {"cell": 5, "symmetry": "rot_180"}, "pieces": []}
+{"globals": {"cell": 4, "symmetry": "rot_180"}, "pieces": []}
 ```
 
 | Endpoint | Answers | Fails with |

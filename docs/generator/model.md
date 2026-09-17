@@ -915,7 +915,13 @@ already spoken for, and the unit grows back from a boundary it does not get to m
 
 ### 5.2 The budget is eaten, and the hub eats what is left
 
-The land budget is a ledger, opened once per attempt and debited as each box is sized. The spawn, the
+The band's land buys two things. A tenth of it is the **mid's**, held back before the unit is sized at all,
+and because both units give up the same tenth the crossing's own allowance is a fifth of one team's budget —
+one piece of ground both teams paid for and both stand on. What is left, nine tenths, is the unit's, and that
+is what the ledger below spends. The board's whole land is unchanged by the split: it moves from the halves
+into the middle rather than leaving the board.
+
+The unit's land budget is a ledger, opened once per attempt and debited as each box is sized. The spawn, the
 frontline and each wool claim a **fixed share** of it — a frontline is the ground the mid is met on and
 takes about a fifth, each wool about an eighth, and a spawn is not a share at all but a box, costing
 what a room and a run-up cost at the map's corridor width. **The hub takes what is left**, never under
@@ -926,9 +932,9 @@ board.
 The allocator can only aim in **footprints** — a box's rectangle is all it has before anything is
 filled — so the allowance the boxes share out is the land budget over the share of a footprint that
 survives as land once a body with a hole in it is emitted into it. What the unit actually built is read
-back off its filled pieces and held against the budget: an attempt that left land unplaced, or overran
-the band, is resampled rather than shipped. The band is wide, because footprint and land are different
-readings and only the second is the contract.
+back off its filled pieces and held against **its own** budget — the nine tenths, not the band's whole
+land: an attempt that left land unplaced, or overran its share, is resampled rather than shipped. The band is
+wide, because footprint and land are different readings and only the second is the contract.
 
 ### 5.3 The hub goes down first
 
@@ -1196,6 +1202,43 @@ declines to author. This measurement is deliberately a fast, narrow twin of the 
 void classification, kept separate because it runs inside the composer's attempt loop where re-deriving
 the entire board every attempt would be waste — and the two are required to agree, so a change to the
 board deriver's hole rules is a change to this twin.
+
+### 5.13 The crossing, and the ground in it
+
+The mid is the last thing the composer shapes and the first thing it decided. Its **half-gap** — how far from
+the axis the unit's front sits — is fixed before allocation, because the allocator takes it as the axis margin
+everything else is laid out behind. What that distance is depends on whether the crossing is going to carry a
+stone: a stone standing astride the axis spends half its depth each side, so the gap is that half plus one
+**hop** — twelve blocks, the near end of the range the corpus hops at. A crossing that carries nothing takes a
+single stated distance instead, thirty blocks from one front to the other, because an empty crossing is walked
+or bridged in one go rather than in hops.
+
+Then the band itself. Laterally it spans exactly the hull of the opposing front faces and it docks flush
+against them, so the crossing is one shape with the fronts it connects; in depth it is the gap. The band
+touches nothing else — not the hub behind the front, not a lane, and never a wool-carrying piece, which it
+clears by two full cells across every orbit image, because a mid that bridged to a goal would erase the
+direction the whole map is played in.
+
+**A stone is shared ground, and that is a property of where it sits.** The composer authors one unit and the
+symmetry supplies the other, so a stone's own image arrives whether it was asked for or not. A stone clear of
+the axis becomes two islands, one nearer each team — forward cover each side reaches first. A stone sitting
+**on** the axis, symmetric about it, has its image abut rather than land beside it, and the pair is a single
+island astride the centre line that both teams arrive at in the same moment. The second is what the crossing
+wants, so a stone's depth is laid on the grid as an even number of cells and the row is centred on the axis.
+Under a laterally flipping symmetry the row's outer stones are each other's images, so only the centre stone
+and the ones beyond it are authored; under a mirror every stone is its own image and all of them are.
+
+How many stones is what the hull affords. Each is **wider than it is deep** — otherwise it reads as a line
+drawn down the middle rather than an island — and each stands clear of its neighbours by a hop and of the
+band's own ends by a cell. The widest count meeting that, capped at three, is the row: one at the two smallest
+bands, whose fronts are too narrow to divide, two at the middle ones and three at the largest. Where the row
+needs it the gap between stones takes one cell more than a hop, because a row spanning an odd number of cells
+cannot sit symmetric about the axis's own cell boundary.
+
+Two things the crossing declines. A **split band** carries no stone: it is already two parallel crossings with
+the bay between its legs left as an island, and a stone in the bay would fill the thing that makes it a split.
+And a hull too narrow to hold one stone at the aspect rule carries none — the band is then simply wider than
+it needed to be, which is a thinner crossing rather than a refused board.
 
 ---
 
@@ -1515,7 +1558,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 
 | Piece | Path | What |
 |---|---|---|
-| `Composer` | `Compose/Composer.cs` | `Compose(ComposeRequest)` — the entry point: envelope → band-only crossing → allocate → fill → carve → assemble, gated by the evaluator's hard terms. |
+| `Composer` | `Compose/Composer.cs` | `Compose(ComposeRequest)` — the entry point: envelope → crossing → allocate → fill → carve → assemble, gated by the evaluator's hard terms. |
 | `TeamUnitAllocator` | `Compose/TeamUnitAllocator.cs` | the allocate entry point: hub size, hub position (the unit's only absolute rect) and hub-form choice → `BoxPartition` + spawn facing. |
 | `UnitTuning` | `Compose/UnitTuning.cs` | the size ladders, the shape mix, the seat clearances, and the placement plan (`UnitPlan`) they feed. |
 | `UnitRequests` · `NeighbourRequest` · `DockStyle` | `Compose/UnitRequests.cs` | what hangs off the hub, sized coordinate-free, and the dock style each request implies. |
@@ -1538,7 +1581,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span + the template slots on each edge) — it observes; the docking *rules* over the facts are the `DockingGate`. |
 | `DockingGate` | `Compose/Boxes/DockingGate.cs` | the compose-side docking gate: `SlotDockRole` (room→never-dock, entry→docking, rest→internal) + the verdict over the `BoxEdgeInterface` slots. A dock is legal iff it lands on an entry and seals no wool — no per-family imperative code, shape-relative. Every family now docks through a **single mouth**, so the verdict reads only the edge's slots, never a family name. Not an `ILayoutTerm`. |
 | `BoxPartition` | `Compose/Boxes/BoxPartition.cs` | the partition constraint graph: typed `Box`es + `BoxJoint`s, with hard invariants (`Valid`) and `Of` the derive-side mirror reading the partition a grown unit implies (`SharedEdge` finds the abutment intervals). The typed target the partition-first allocator (G63) emits; boxes may overlap, joints assert only real abutments. |
-| `MidCarver` | `Compose/MidCarver.cs` | the mid: the flush, hull-exact build band (band-only today; richer crossings layer back in here). |
+| `MidCarver` | `Compose/MidCarver.cs` | the mid: the crossing's half-gap, the flush hull-exact build band, and the row of shared stones standing astride the axis inside it. |
 | `ClosureAnalysis` | `Compose/ClosureAnalysis.cs` | closure hole raster (`HoleSizes`, `AnyHoleRingedBy`). |
 | `ComposeGeometry` | `Compose/ComposeGeometry.cs` | fanning + the fanned-separation invariant. |
 | `PlanModel` · `PlanRoles` | `Plan/PlanModel.cs` | the plan format + the authored role set. |

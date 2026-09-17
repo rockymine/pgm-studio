@@ -256,8 +256,11 @@ public sealed class PlanReference
 /// <see cref="Surface"/> stays exactly as it was — load-bearing and correct as a plan-space concept.</para></summary>
 public sealed class PlanGlobals
 {
-    /// <summary>Blocks per proxy cell — the scale every rect in the document is measured in.</summary>
-    [JsonPropertyName("cell")]       public int Cell { get; set; } = 5;
+    /// <summary>Blocks per proxy cell — the scale every rect in the document is measured in. Four when a
+    /// document does not say, which is the scale the plan tool starts a new board at and the composer draws
+    /// on: the widths a board is built to are stated in blocks, and a four-block cell carries three of the
+    /// five bands' lanes exactly.</summary>
+    [JsonPropertyName("cell")]       public int Cell { get; set; } = 4;
 
     /// <summary>How the authored unit is fanned into the rest of the board: <c>rot_180</c>, <c>rot_90</c>,
     /// <c>mirror_x</c> or <c>mirror_z</c>.</summary>

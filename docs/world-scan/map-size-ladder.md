@@ -147,24 +147,28 @@ enclosed void are not ground, which is what makes the number comparable with an 
 column beside it is the median over every map within four players of the row, so the two are read at the same
 count rather than through a group boundary.
 
-| players | band | land bbox | land/team | budget | built ÷ budget | coverage | corpus land/team | built ÷ corpus |
-|---|---|---|---|---|---|---|---|---|
-| 6 | nano | 80×168 | 2608 | 2250 | 1.16× | 39% | 1590 | 1.64× |
-| 10 | nano | 80×168 | 2608 | 2250 | 1.16× | 39% | 2359 | 1.11× |
-| 12 | nano | 80×168 | 2608 | 2250 | 1.16× | 39% | 2810 | 0.93× |
-| 16 | micro | 104×208 | 4208 | 4025 | 1.05× | 37% | 3628 | 1.16× |
-| 20 | micro | 104×208 | 4208 | 4025 | 1.05× | 37% | 4784 | 0.88× |
-| 24 | milli | 160×216 | 6720 | 7075 | 0.95× | 39% | 6105 | 1.10× |
-| 32 | centi | 176×240 | 7712 | 8730 | 0.88× | 37% | 8422 | 0.92× |
-| 40 | centi | 176×240 | 7712 | 8730 | 0.88× | 37% | 11676 | 0.66× |
-| 48 | hecto | 260×344 | 16944 | 20190 | 0.84× | 42% | 13015 | 1.30× |
+| players | band | land bbox | unit | mid | land/team | budget | ÷ budget | coverage | corpus land/team |
+|---|---|---|---|---|---|---|---|---|---|
+| 6 | nano | 76×184 | 2336 | 192 | 2496 | 2250 | 1.11× | 35% | 1590 |
+| 10 | nano | 76×184 | 2336 | 192 | 2496 | 2250 | 1.11× | 35% | 2359 |
+| 12 | nano | 76×184 | 2336 | 192 | 2496 | 2250 | 1.11× | 35% | 2810 |
+| 16 | micro | 96×224 | 3744 | 288 | 4096 | 4025 | 1.02× | 36% | 3628 |
+| 20 | micro | 96×224 | 3744 | 288 | 4096 | 4025 | 1.02× | 36% | 4784 |
+| 24 | milli | 144×232 | 6080 | 576 | 6528 | 7075 | 0.92× | 38% | 6105 |
+| 32 | centi | 168×248 | 6880 | 576 | 7488 | 8730 | 0.86× | 39% | 8422 |
+| 40 | centi | 168×248 | 6880 | 576 | 7488 | 8730 | 0.86× | 39% | 11676 |
+| 48 | hecto | 256×376 | 15760 | 1408 | 17488 | 20190 | 0.87× | 38% | 13015 |
 
-The budget is a contract: what a unit built sits between 0.84 and 1.16 of what its band bought, and an
-attempt outside 0.70–1.30 is resampled rather than shipped. Against the corpus the ratio runs 0.66 to 1.64
-and sits within a sixth of parity at every band's own centre, which is what a band means — a nano board is a
-little large for six a side and a little small for twelve, because it is one map serving both. Coverage lands
-at 37–42% against the measured 32–41%, so the board follows the land, tight against the top of the measured
-range and one point over it at hecto.
+The budget is a contract, and it buys two things. The **unit** column is one team's own ground, held against
+nine tenths of the band and resampled outside 0.70–1.30 of it; the **mid** column is a team's half of the
+crossing's shared stones, funded by the tenth each unit gave up. Their sum is what a team's half of the board
+actually holds, and it sits between 0.86 and 1.11 of what the band bought — a nano board a little large for
+six a side and a little small for twelve, because it is one map serving both. Coverage lands at 35–39%
+against the measured 32–41%.
+
+The mid spends 66–85% of its own share rather than all of it, because a stone's width is bounded by the
+frontline hull it has to divide and its depth is fixed before that hull is known. A narrow-fronted board
+therefore carries a smaller stone, or none at all.
 
 Width is the reading where the two halves still differ, and the difference sits in the narrow ground rather
 than in the mode. The table is both halves measured one way: every land block of every board in the band

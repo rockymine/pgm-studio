@@ -30,7 +30,8 @@ public sealed class ComposerTests
     private static int UnitLandCells(PlanModel plan)
     {
         var cells = new HashSet<(int, int)>();
-        foreach (var piece in plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)))
+        foreach (var piece in plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)
+                                                  && !MidCarver.IsStone(p.Id)))
             for (var x = piece.Rect.X; x < piece.Rect.X + piece.Rect.Width; x++)
                 for (var z = piece.Rect.Z; z < piece.Rect.Z + piece.Rect.Height; z++)
                     cells.Add((x, z));
@@ -46,7 +47,7 @@ public sealed class ComposerTests
         {
             var stages = Composer.ComposeStages(new ComposeRequest(players, seed: seed));
             var built = UnitLandCells(stages.Plan);
-            var budget = stages.Envelope.BudgetCells;
+            var budget = stages.Envelope.UnitBudgetCells;
             await Assert.That(built >= budget * UnitTuning.SpendFloor && built <= budget * UnitTuning.SpendCeiling)
                 .IsTrue().Because($"built {built} of {budget:F0} cells @ {players}p seed {seed}");
         }
@@ -96,13 +97,17 @@ public sealed class ComposerTests
     [Test]
     public async Task Composed_units_stay_on_their_side_of_the_axis()
     {
-        // rot_180 (the default): the authored unit sits wholly on the +z side, clear of the crossing gap
+        // rot_180 (the default): the authored unit sits wholly on the +z side, clear of the crossing gap.
+        // A mid stone is the one piece that may reach the axis, and it sits symmetric about it (CT11).
         foreach (var (players, seed) in Sweep())
         {
             var plan = Composer.Compose(new ComposeRequest(players, seed: seed));
-            foreach (var p in plan.Pieces)
+            foreach (var p in plan.Pieces.Where(p => !MidCarver.IsStone(p.Id)))
                 await Assert.That(p.Rect.Z > 0).IsTrue()
                     .Because($"piece {p.Id} crosses the axis @ {players}p seed {seed}");
+            foreach (var stone in plan.Pieces.Where(p => MidCarver.IsStone(p.Id)))
+                await Assert.That(stone.Rect.Z).IsEqualTo(-(stone.Rect.Z + stone.Rect.Height))
+                    .Because($"{stone.Id} straddles the axis symmetrically @ {players}p seed {seed}");
         }
     }
 
@@ -160,20 +165,21 @@ public sealed class ComposerTests
 
 
     [Test]
-    public async Task Box_composition_closes_the_loop_with_a_band_only_mid()
+    public async Task Box_composition_closes_the_loop_with_a_carved_mid()
     {
-        // every composed board carries a stone-free band-only mid, composes deterministically, and is
-        // CONNECTED — a flood from the spawn over land + band reaches every fanned spawn image (the
-        // loop-closed criterion the band exists to satisfy)
+        // every composed board carries a carved mid, composes deterministically, and is CONNECTED — a flood
+        // from the spawn over land + band reaches every fanned spawn image (the loop-closed criterion the
+        // band exists to satisfy)
         foreach (var players in new[] { 6, 8, 12, 20, 30 })
             for (ulong seed = 0; seed < 10; seed++)
             {
                 var stages = Composer.ComposeStages(new ComposeRequest(players, seed: seed));
-                await Assert.That(stages.Mid.Stones.Count).IsEqualTo(0);
 
-                // the flush law: the band docks straight against the front faces and overlaps no piece
+                // the flush law: the band docks straight against the front faces and overlaps no piece of the
+                // unit. The stones it carries are inside it by construction — BZ7's sanctioned encasing.
                 var bandRect = stages.Mid.BandRect;
-                foreach (var p in stages.Plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)))
+                foreach (var p in stages.Plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)
+                                                             && !MidCarver.IsStone(p.Id)))
                 {
                     var ox = Math.Min(p.Rect.X + p.Rect.Width, bandRect.X + bandRect.Width) - Math.Max(p.Rect.X, bandRect.X);
                     var oz = Math.Min(p.Rect.Z + p.Rect.Height, bandRect.Z + bandRect.Height) - Math.Max(p.Rect.Z, bandRect.Z);

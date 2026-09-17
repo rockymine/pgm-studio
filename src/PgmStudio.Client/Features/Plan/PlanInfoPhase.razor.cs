@@ -21,7 +21,7 @@ public partial class PlanInfoPhase
     // change callbacks so the live plan document + canvas update.
     [Parameter] public string Name { get; set; } = "Untitled plan";
     [Parameter] public string Symmetry { get; set; } = "rot_180";
-    [Parameter] public double Cell { get; set; } = 5;
+    [Parameter] public double Cell { get; set; } = 4;
     [Parameter] public double Surface { get; set; } = 9;
     [Parameter] public double SurfaceStep { get; set; } = 2;
     [Parameter] public double MaxPlayers { get; set; } = 12;

@@ -186,7 +186,11 @@ public static class Producibility
         if (plan.Boxes.Count == 0) return findings;
 
         var symmetry = plan.Globals.Symmetry;
-        var terrain = plan.Pieces.Where(p => PlanRoles.IsGenerating(p.Role)).Select(p => p.Rect).ToList();
+        // the authored unit's own ground: a mid stone is generating terrain but belongs to the crossing, and
+        // it sits across the axis, so a front-row read that counted it would measure the mid
+        var terrain = plan.Pieces
+            .Where(p => PlanRoles.IsGenerating(p.Role) && !MidCarver.IsStone(p.Id))
+            .Select(p => p.Rect).ToList();
         var frame = AuthoredFrame(symmetry, terrain);
 
         // the parallel-fronts guard: the mid band spans the hull of both images' front faces, so a front off the

@@ -26,9 +26,9 @@ costs footprint but not land; that difference is what fragmentation spends.
 
 | Type | What it means |
 |---|---|
-| `ComposeEnvelope` | The per-compose budget in one value: the size band, its land-per-team, the map and wool corridor widths in cells, the board extent, the symmetry mode and the cell size. Everything downstream is sized from it. |
+| `ComposeEnvelope` | The per-compose budget in one value: the size band, its land-per-team and that budget split into the unit's share and the mid's, the map and wool corridor widths in cells, the board extent, the symmetry mode and the cell size. Everything downstream is sized from it. |
 | `Envelope` | The step that *derives* a `ComposeEnvelope` from a request: player count → band → the band's measured land, coverage and aspect draws → board extent. |
-| `LandBudget` | The land a team unit may spend, as a **ledger**: opened at the band's land (over the footprint-to-land yield, because the allocator can only aim in footprints), debited as each box is sized, and left with whatever no box could take. |
+| `LandBudget` | The land a team unit may spend, as a **ledger**: opened at the unit's share of the band's land (over the footprint-to-land yield, because the allocator can only aim in footprints), debited as each box is sized, and left with whatever no box could take. |
 | `ComposeRequest` | The whole input to a compose: players, teams, symmetry, seed, cell size. |
 
 ## 2. The boxes — the coarse scaffold
@@ -182,7 +182,7 @@ The **composer** runs the pipeline: budget → grow one unit → carve the mid �
 | `FrontGuard` · `FlushSeat` | The **no-frontline seat post-pass**: a lateral seat left flush with the empty front is slid backward, relocated, or dropped — deterministically, no draws — so lanes do not spike across the no-man's-land in front of the hub. |
 | `UnitPlacement` | Re-anchors the finished unit on its **face** before the band is derived: the allocator anchors on the hub, but the face is what the mid docks. |
 | `ComposeDescriptor` · `ComposerFingerprint` · `ComposerVersion` | The **reproducibility set**: what a compose was asked for, the recorded structural fingerprint of what it produced, and the version stamp that must be bumped whenever composer geometry moves (a moved geometry with an unbumped version silently invalidates the reproduction gate). |
-| `MidCarver` · `MidResult` · `MidStone` · `CrossingDesign` | The **mid**: the neutral build band between frontlines — its form is `f(frontline)`, so it is structured, not carved from solid. Band-only today (flush, hull-exact, stone-free); stones / centre islands / the split band re-enter as richer `CrossingDesign` forms. |
+| `MidCarver` · `MidResult` · `MidStone` · `CrossingDesign` | The **mid**: the neutral build band between frontlines — its form is `f(frontline)`, so it is structured, not carved from solid. Flush and hull-exact, carrying a row of one to three `MidStone`s astride the axis, each one shared ground whose own fanned image abuts it; a `CrossingDesign` that split carries none, its bay being the island. |
 | `Frame` | The **growth frame**: the `(u, v)` axis-normal coordinate frame a symmetry mode grows its unit in — `u` outward from the axis, `v` cross — so one grower serves every symmetry mode. |
 | `ComposeGeometry` | The **fanned-separation rule**: pieces of different orbit images stay ≥ the minimum hop apart (team territories stay separate islands). |
 | `ComposeRng` | The **deterministic RNG**: a fixed draw order makes the same request reproduce byte-for-byte. |

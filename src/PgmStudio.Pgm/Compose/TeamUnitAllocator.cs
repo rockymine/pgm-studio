@@ -55,7 +55,7 @@ public static class TeamUnitAllocator
         // the budget, opened at the band's land for one team and debited as each box is sized. The hub is the
         // elastic box: the spawn, the frontline and the wools each claim a fixed share and the hub takes what
         // is left, so a bigger band buys a bigger junction rather than the same one on a bigger board.
-        var budget = new LandBudget(env.BudgetCells);
+        var budget = new LandBudget(env.UnitBudgetCells);
         // the spawn costs what a spawn box costs rather than a share of the board: it is a room and a run-up at
         // the map's corridor width, the same size on every band
         var (estW, estH) = SpawnBoxEmitter.Box(ShapeFamily.I, laneWidthCells, 2, 0);

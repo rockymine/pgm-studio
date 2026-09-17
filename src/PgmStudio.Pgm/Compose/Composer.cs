@@ -12,13 +12,13 @@ public sealed record ComposedStages(
 /// <summary>
 /// Composes a full <see cref="PlanModel"/> from nothing but a player count and team shape, through the
 /// partition-first box pipeline: derive the board envelope (<see cref="Envelope"/>), fix the crossing
-/// arithmetic (<see cref="MidCarver.BandOnly"/>), allocate the team unit's box partition under the front
+/// arithmetic (<see cref="MidCarver.Crossing"/>), allocate the team unit's box partition under the front
 /// guard (<see cref="TeamUnitAllocator"/>), fill it hub-first into labeled pieces + rooms
 /// (<see cref="TeamUnitFiller"/>), carve the mid band (<see cref="MidCarver.TryCarve"/>), and assemble the
-/// plan. The mid is one plain build band spanning the axis (uniform 20-block gap, no stones, no centre
-/// island), docked <b>flush</b> against the unit's front faces — a flat front edge takes the build zone
-/// straight against it — so the fanned board is two units connected by the band alone; richer mids (stones,
-/// centre islands, the split band) layer back in on this path. Every attempt's assembled plan must pass the
+/// plan. The mid is one build band spanning the axis, docked <b>flush</b> against the unit's front faces — a
+/// flat front edge takes the build zone straight against it — carrying a row of shared stones astride the
+/// axis where the front hull affords them, so the fanned board is two units connected by the crossing and
+/// the ground in it. Every attempt's assembled plan must pass the
 /// <see cref="LayoutEvaluator"/> hard-terms gate — no structural errors, no WL2/PC-C/G2 lint, every void hop
 /// in G5's band, the mid band clear of every wool by two cells (BZ6), and no closure hole ringed by a wool
 /// plateau (WL8) — or the whole attempt is resampled (an optional <see cref="IComposeRejectSink"/> captures
@@ -52,10 +52,8 @@ public static class Composer
         // whether this board wants a split mid, decided once for the board. Only drawn where the symmetry could
         // carry one, so a mirror board's sequence is untouched; the carve still grants it only if the face it
         // ends up with can host it, and a face that can is equally valid crossed by a single band.
-        var crossing = MidCarver.BandOnly(envelope) with
-        {
-            SplitBand = MidCarver.LateralFlip(envelope.Symmetry) && rng.NextBool(MidCarver.SplitBandChance),
-        };
+        var crossing = MidCarver.Crossing(
+            envelope, MidCarver.LateralFlip(envelope.Symmetry) && rng.NextBool(MidCarver.SplitBandChance));
 
         for (var attempt = 0; attempt < ComposeAttempts; attempt++)
         {
@@ -75,12 +73,12 @@ public static class Composer
             // its footprint — so the contract is read here, off the pieces, and an attempt that left land
             // unplaced or overran the band is resampled rather than shipped.
             var built = LandCells(filled.Unit);
-            if (built < envelope.BudgetCells * UnitTuning.SpendFloor
-                || built > envelope.BudgetCells * UnitTuning.SpendCeiling)
+            if (built < envelope.UnitBudgetCells * UnitTuning.SpendFloor
+                || built > envelope.UnitBudgetCells * UnitTuning.SpendCeiling)
             {
                 rejects?.Reject(new RejectRecord(
                     request.Seed, request.PlayersPerTeam, request.Teams, request.Symmetry, attempt, "spend",
-                    "spend", "G8", [$"built {built:F0} of {envelope.BudgetCells:F0} cells"]));
+                    "spend", "G8", [$"built {built:F0} of {envelope.UnitBudgetCells:F0} cells"]));
                 continue;
             }
 

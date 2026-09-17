@@ -319,22 +319,25 @@ public partial class GeneratorTool : IAsyncDisposable
     // the board is that unit fanned — so the card says "unit" rather than letting the number read as a
     // whole-board figure.
 
-    /// <summary>The card-sized readout: the band, land against budget, plus the share.</summary>
+    /// <summary>The card-sized readout: the band, the unit's land against its budget, the share, and the mid's
+    /// stones where the crossing carries any.</summary>
     private static string SpendShort(LandSpendDto spend) =>
-        $"{spend.Band} {spend.LandCells}/{spend.BudgetCells:0} · {SpendPercent(spend)}";
+        $"{spend.Band} {spend.Unit.Cells}/{spend.Unit.BudgetCells:0} · {SpendPercent(spend.Unit)}"
+        + (spend.Mid.Cells > 0 ? $" · mid {spend.Mid.Cells}" : string.Empty);
 
-    /// <summary>The share of the land budget the unit actually spent. Guards a zero budget rather than
-    /// rendering a NaN into the card.</summary>
-    private static string SpendPercent(LandSpendDto spend) =>
-        spend.BudgetCells > 0 ? $"{100 * spend.LandCells / spend.BudgetCells:0}%" : "—";
+    /// <summary>The share of a budget its land actually spent. Guards a zero budget rather than rendering a
+    /// NaN into the card.</summary>
+    private static string SpendPercent(LandAgainstBudgetDto land) =>
+        land.BudgetCells > 0 ? $"{100 * land.Cells / land.BudgetCells:0}%" : "—";
 
     /// <summary>The hover: the same numbers spelled out, with the per-kind split and the units named.</summary>
     private static string SpendTitle(LandSpendDto spend)
     {
         var kinds = string.Join(", ", spend.ByKind.Select(k =>
             $"{k.Kind}{(k.Boxes > 1 ? $" x{k.Boxes}" : string.Empty)} {k.LandCells}"));
-        return $"Band {spend.Band}: land {spend.LandCells} of {spend.BudgetCells:0} budget cells, one team " +
-               $"unit (footprint {spend.FootprintCells}). By box: {kinds}.";
+        return $"Band {spend.Band}: land {spend.Unit.Cells} of {spend.Unit.BudgetCells:0} budget cells, one "
+             + $"team unit (footprint {spend.FootprintCells}); mid stones {spend.Mid.Cells} of "
+             + $"{spend.Mid.BudgetCells:0}, shared. By box: {kinds}.";
     }
 
     public async ValueTask DisposeAsync()

@@ -78,9 +78,10 @@ still reads.
 
 `Composer.ComposeStages` runs one direction and never reopens what an earlier step settled. The **envelope**
 turns the player count into a land budget, a fanned board extent and the cell bounds one team unit may fill.
-The **crossing** fixes the gap between the two fronts while the board is still empty — a 20-block gap laid on
-the grid, which is three cells a side and so 24 blocks at the default scale — and decides once whether this
-board wants a split band. **Allocation** places the hub,
+The **crossing** fixes the gap between the two fronts while the board is still empty, because the allocator
+takes it as the axis margin everything else is laid out behind: one hop either side of the stone the band will
+carry, or a flat 30 blocks front to front where it will carry none. It decides once whether this board wants a
+split band, which is a crossing that carries none. **Allocation** places the hub,
 chooses its form, works out what hangs off it, and seats each neighbour on the hub's real free surface,
 producing typed boxes and the joints between them. **Filling** emits the hub first as the constraint source
 and each neighbour to the width its own joint was granted. The finished unit is then **re-anchored on its
@@ -216,11 +217,15 @@ and the descriptor as copyable JSON.
 **Land spend is two currencies and the card says so.** *Footprint* is the box rectangle, fixed when the box
 was seated; *land* is what the filled pieces actually cover, which is what the spend gate holds against the
 budget. The per-box rows are footprints — a box does not know what its body left standing until it is filled —
-and the total land is the unit's own, for **one team unit**, the board being that unit fanned. The budget is
-the band's land converted from blocks² to cells, and the card leads with the band: a twelve-player board reads
-`nano 98/90 · 109%`. **The budget is eaten.** The spawn, the frontline and each wool claim a fixed share as
-they are sized and the hub takes what is left, never under a third; a unit whose built land falls outside
-70–130% of the budget is resampled rather than shipped.
+and the total land is the unit's own, for **one team unit**, the board being that unit fanned.
+
+The band's land buys two things, and the card reports both against their own shares. The **unit** takes nine
+tenths of it; the **mid** takes the tenth each unit gave up, twice over, because the crossing's stones are one
+piece of ground both teams stand on. So a twelve-player board reads `nano 104/81 · 128% · mid 16`: the unit
+against the unit's budget, then the stones the crossing carries, counted once for the board. **The budget is
+eaten.** The spawn, the frontline and each wool claim a fixed share as they are sized and the hub takes what
+is left, never under a third; a unit whose built land falls outside 70–130% of *its* budget is resampled
+rather than shipped.
 
 **The score is a distance, not a grade.** Zero means the board sits inside every envelope the authored corpus
 occupies, which is most of them — of 240 boards each at twelve, twenty and thirty players, 167, 131 and 109

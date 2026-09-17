@@ -25,7 +25,7 @@ public sealed class PlanCompilerTests
     [Test]
     public async Task Rot_180_yields_two_teams_red_and_blue()
     {
-        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"cell":5,"symmetry":"rot_180"}, {{Unit}} }"""));
         await Assert.That(intent.Teams!.Select(t => t.Id)).IsEquivalentTo(new[] { "red", "blue" });
         await Assert.That(intent.Spawns.Count).IsEqualTo(2);
         await Assert.That(intent.Wools!.Count).IsEqualTo(2);
@@ -34,7 +34,7 @@ public sealed class PlanCompilerTests
     [Test]
     public async Task Protection_and_room_are_the_marker_pieces_full_footprint()
     {
-        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"cell":5,"symmetry":"rot_180"}, {{Unit}} }"""));
         // Spawn protection = the whole 'lane' piece (rect [1,5,2,6] → blocks x 5..15, z 25..55), not the
         // smaller stamped cube around the spawn point.
         var prot = intent.Spawns.Single(s => s.Team == "red").Protection.Single();
@@ -55,7 +55,7 @@ public sealed class PlanCompilerTests
     [Test]
     public async Task Front_facing_spawn_faces_the_centre()
     {
-        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"cell":5,"symmetry":"rot_180"}, {{Unit}} }"""));
         var red = intent.Spawns.Single(s => s.Team == "red");
         // team-0 spawn resolves to block (10,50); front (toward 0,0) quantizes to -Z → yaw 180
         await Assert.That(red.Point.X).IsEqualTo(10);
@@ -87,7 +87,7 @@ public sealed class PlanCompilerTests
     [Test]
     public async Task First_wool_takes_the_team_colour()
     {
-        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"cell":5,"symmetry":"rot_180"}, {{Unit}} }"""));
         await Assert.That(intent.Wools!.Single(w => w.Owner == "red").Color).IsEqualTo("red");
         await Assert.That(intent.Wools!.Single(w => w.Owner == "blue").Color).IsEqualTo("blue");
     }
@@ -96,7 +96,7 @@ public sealed class PlanCompilerTests
     public async Task An_explicit_wool_colour_is_respected()
     {
         var p = Plan("""
-        { "plan":2, "globals":{"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
           "pieces":[ {"id":"lane","role":"lane","rect":[1,5,2,6]} ],
           "placements":{ "wools":[ {"piece":"lane","at":[5,5],"color":"magenta"} ] } }
         """);

@@ -325,6 +325,19 @@ height. That is exactly what a made thing needs, and none of it has to be invent
 
 ## The plan model: pieces, and the edges between them
 
+- [ ] **G270 — A mid stone's depth is fixed before the hull that bounds its width is known, so a
+  narrow-fronted board under-spends the crossing.** `MidCarver.Crossing` sets the half-gap from
+  `StoneDeepCells` before allocation, because the allocator takes it as its axis margin; the width then comes
+  from the frontline hull the carve is handed. Where that hull is narrow the stone shrinks but the depth
+  cannot grow to compensate, so the mid spends **66–85%** of its share and 17–33% of boards carry no stone at
+  all — about half of those split bands, which want none, and half hulls too narrow for one stone at the
+  wider-than-deep rule. Either the crossing is designed twice (a provisional gap, then a re-carve once the
+  hull is known) or the depth reads a hull the envelope can predict. `docs/generator/model.md` §5.13 and
+  `rules.md` amendment 35.
+
+  *Evidence: at centi the mid's share is 109 cells and the row spends 72 — `p32 rot_180 seed 0`, hull 21
+  cells, two stones of 7×6 where the share would buy 9×6.*
+
 - [ ] **G268 — A frontline spine docked flush on a hub wall makes one slab twice the corridor deep.**
   The frontline's spine is one corridor deep and the hub's wall behind it is another, and the spine docks
   edge to edge across its whole width, so the two read as a single solid run of `2 × corridor`. Measured
