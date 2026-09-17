@@ -30,11 +30,22 @@ public sealed record MidResult(CellRect BandRect, IReadOnlyList<MidStone> Stones
 /// </summary>
 public static class MidCarver
 {
-    /// <summary>The <b>band-only</b> crossing: a uniform 20-block gap (a 10-block half-gap per side), no stone
-    /// rows, no centre island — the mid is one plain build band spanning the axis. Draw-free (uniform depth by
-    /// choice), so it perturbs no RNG sequence. A frontline bay the band's flush dock seals (the staple/U
-    /// front) still rings an enclosed hole — that hole is the terrain's, not the crossing's.</summary>
-    public static CrossingDesign BandOnly(ComposeEnvelope env) => new(20 / (2 * env.Cell));
+    /// <summary>The void a band-only crossing opens from one team's front to the other's, in blocks — half of
+    /// it each side of the axis.</summary>
+    public const int BandGapBlocks = 20;
+
+    /// <summary>The <b>band-only</b> crossing: no stone rows, no centre island — the mid is one plain build band
+    /// spanning the axis. <see cref="BandGapBlocks"/> laid on this board's grid, half the gap a side, rounded to
+    /// a whole cell and floored at <see cref="Envelope.AxisMarginCells"/>, so the gap a board actually opens is
+    /// the stated blocks at whatever scale it is composed at. Draw-free, so it perturbs no RNG sequence. A
+    /// frontline bay the band's flush dock seals (the staple/U front) still rings an enclosed hole — that hole
+    /// is the terrain's, not the crossing's.</summary>
+    public static CrossingDesign BandOnly(ComposeEnvelope env) => new(HalfGapCells(env.Cell));
+
+    /// <summary>Half the band gap on a grid of <paramref name="cell"/>-block cells.</summary>
+    public static int HalfGapCells(int cell) => Math.Max(
+        Envelope.AxisMarginCells,
+        (int)Math.Round(BandGapBlocks / 2.0 / cell, MidpointRounding.AwayFromZero));
 
     /// <summary>Of boards whose symmetry could carry one, how often the crossing <b>asks</b> for a split band.
     /// Most faces cannot host one, so the realised rate is far lower — this is the appetite, not the outcome.</summary>

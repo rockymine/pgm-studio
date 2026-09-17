@@ -169,7 +169,7 @@ The **composer** runs the pipeline: budget → grow one unit → carve the mid �
 
 | Type | What it means |
 |---|---|
-| `ComposeRequest` | The **input**: players per team (5–32), team count (2 or 4), symmetry, seed, cell size. Validated at construction — nothing else is given, and there is no geometry input (`model.md` §2.1). |
+| `ComposeRequest` | The **input**: players per team (6–64, clamped), team count (2 or 4), symmetry, seed, cell size (4 by default). Validated at construction — nothing else is given, and there is no geometry input (`model.md` §2.1). |
 | `Composer` | The **entry point** — composes a full `PlanModel` from a request, running the design-doc order and gating every attempt against the evaluator. |
 | `TeamUnitAllocator` | The **allocate half's entry point**: from the budget alone it sizes and places the hub — the only box in the unit ever given absolute coordinates — chooses the hub's **form**, and hands the rest to the three types below. Emits a `BoxPartition` + the spawn facing (`model.md` §5). Everything after the hub is positioned *relative to it*. (B42 split the other three out.) |
 | `UnitTuning` | The **numbers the structure turns on**: the band ladders (the map and wool corridor widths in blocks, the wool count), the budget shares each box kind claims and the band the built land must land in, the shape mix (how often a wool is bent, a donut, a staple), the clearances the seat step builds to, and the frame-independent **placement plan** they feed — the wool count and which hub side each neighbour takes. The ladders are corpus-measured; the shares and the mix are frozen taste judgements. |

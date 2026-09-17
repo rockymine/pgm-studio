@@ -140,54 +140,69 @@ none above.
 
 ## What the composer builds against it
 
-Twelve boards a row, `rot_180` and `mirror_z`, cell 5, measured the same way: the fanned board rasterised to
-blocks and put through the same local thickness. Land is terrain only — a build zone, a water lane and an
+Twelve boards a row in each of `rot_180` and `mirror_z`, on the composer's four-block cell, the median
+reported and measured the same way: the fanned board rasterised to blocks and put through the same local
+thickness. Land is terrain only — a build zone, a water lane and an
 enclosed void are not ground, which is what makes the number comparable with an island count. The corpus
 column beside it is the median over every map within four players of the row, so the two are read at the same
 count rather than through a group boundary.
 
 | players | band | land bbox | land/team | budget | built ÷ budget | coverage | corpus land/team | built ÷ corpus |
 |---|---|---|---|---|---|---|---|---|
-| 6 | nano | 102×150 | 2450 | 2250 | 1.09× | 32% | 1590 | 1.54× |
-| 10 | nano | 102×150 | 2450 | 2250 | 1.09× | 32% | 2359 | 1.04× |
-| 12 | nano | 102×150 | 2450 | 2250 | 1.09× | 32% | 2810 | 0.87× |
-| 16 | micro | 132×180 | 4050 | 4025 | 1.01× | 35% | 3628 | 1.12× |
-| 20 | micro | 132×180 | 4050 | 4025 | 1.01× | 35% | 4784 | 0.85× |
-| 24 | milli | 170×215 | 6875 | 7075 | 0.97× | 37% | 6105 | 1.13× |
-| 32 | centi | 200×230 | 7900 | 8730 | 0.90× | 34% | 8422 | 0.94× |
-| 40 | centi | 200×230 | 7900 | 8730 | 0.90× | 34% | 11676 | 0.68× |
-| 48 | hecto | 275×335 | 16200 | 20190 | 0.80× | 35% | 13015 | 1.24× |
+| 6 | nano | 80×168 | 2608 | 2250 | 1.16× | 39% | 1590 | 1.64× |
+| 10 | nano | 80×168 | 2608 | 2250 | 1.16× | 39% | 2359 | 1.11× |
+| 12 | nano | 80×168 | 2608 | 2250 | 1.16× | 39% | 2810 | 0.93× |
+| 16 | micro | 104×208 | 4208 | 4025 | 1.05× | 37% | 3628 | 1.16× |
+| 20 | micro | 104×208 | 4208 | 4025 | 1.05× | 37% | 4784 | 0.88× |
+| 24 | milli | 160×216 | 6720 | 7075 | 0.95× | 39% | 6105 | 1.10× |
+| 32 | centi | 176×240 | 7712 | 8730 | 0.88× | 37% | 8422 | 0.92× |
+| 40 | centi | 176×240 | 7712 | 8730 | 0.88× | 37% | 11676 | 0.66× |
+| 48 | hecto | 260×344 | 16944 | 20190 | 0.84× | 42% | 13015 | 1.30× |
 
-The budget is a contract now: what a unit built sits between 0.80 and 1.09 of what its band bought, and an
-attempt outside 0.70–1.30 is resampled rather than shipped. Against the corpus the ratio runs 0.68 to 1.54
+The budget is a contract: what a unit built sits between 0.84 and 1.16 of what its band bought, and an
+attempt outside 0.70–1.30 is resampled rather than shipped. Against the corpus the ratio runs 0.66 to 1.64
 and sits within a sixth of parity at every band's own centre, which is what a band means — a nano board is a
-little large for six a side and a little small for twelve, because it is one map serving both. Coverage
-lands at 32–37% against the measured 32–41%, so the board follows the land rather than being sized beside it.
+little large for six a side and a little small for twelve, because it is one map serving both. Coverage lands
+at 37–42% against the measured 32–41%, so the board follows the land, tight against the top of the measured
+range and one point over it at hecto.
 
-Width is the reading that still has an outlier. The modal local thickness of a composed board is 10 blocks at
-nano, 16 at milli and centi and 20 at hecto, against a corpus of 10 · 16 · 16 · 18 — but **30 at micro**,
-where the corpus sits at 14.
+Width is the reading where the two halves still differ, and the difference sits in the narrow ground rather
+than in the mode. The table is both halves measured one way: every land block of every board in the band
+pooled, so each column is a share of that band's ground, plus each board's **own** modal width reported as
+the median across boards. The second column earns its place because pooling lets the corridor runs every
+board shares outvote the slab each board carries on its own.
 
-| band | source | <6 | <8 | <10 | <12 | <14 | <16 | <20 | <24 | modal width |
-|---|---|---|---|---|---|---|---|---|---|---|
-| nano | corpus | 1.3 | 4.0 | 9.0 | 26.4 | 39.9 | 57.3 | 77.6 | 85.8 | 10 |
-| | composer | 0.0 | 0.4 | 0.4 | 33.6 | 63.8 | 65.1 | 72.5 | 85.7 | 10 |
-| micro | corpus | 1.4 | 3.0 | 5.2 | 14.6 | 25.8 | 40.4 | 61.3 | 75.0 | 14 |
-| | composer | 0.0 | 0.3 | 0.3 | 9.3 | 12.0 | 13.1 | 45.1 | 57.6 | 30 |
-| milli | corpus | 1.0 | 2.1 | 3.6 | 7.6 | 17.2 | 27.6 | 49.1 | 61.0 | 16 |
-| | composer | 0.0 | 0.2 | 0.2 | 0.5 | 1.0 | 1.3 | 42.4 | 52.7 | 16 |
-| centi | corpus | 0.5 | 1.5 | 2.9 | 6.9 | 11.9 | 19.1 | 39.0 | 53.0 | 16 |
-| | composer | 0.0 | 0.1 | 0.1 | 0.4 | 0.8 | 1.1 | 43.5 | 53.4 | 16 |
-| hecto | corpus | 1.7 | 3.8 | 5.4 | 7.1 | 15.3 | 16.9 | 30.4 | 39.6 | 18 |
-| | composer | 0.0 | 0.1 | 0.1 | 0.2 | 0.4 | 0.6 | 0.9 | 38.6 | 20 |
+| band | source | <6 | <8 | <10 | <12 | <14 | <16 | <20 | <24 | pooled mode | own mode |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| nano | corpus | 1.9 | 4.4 | 8.5 | 24.4 | 38.4 | 56.7 | 78.1 | 85.4 | 14 | 14 |
+| | composer | 0.0 | 0.4 | 1.0 | 2.0 | 26.5 | 56.2 | 67.2 | 76.5 | 14 | 14 |
+| micro | corpus | 1.1 | 2.6 | 4.2 | 11.9 | 21.2 | 35.7 | 56.7 | 68.4 | 14 | 16 |
+| | composer | 0.0 | 0.3 | 0.7 | 1.4 | 14.4 | 24.8 | 56.7 | 73.3 | 18 | 29 |
+| milli | corpus | 0.8 | 1.6 | 3.0 | 6.6 | 13.2 | 22.9 | 43.9 | 56.7 | 16 | 18 |
+| | composer | 0.0 | 0.2 | 0.3 | 0.7 | 1.4 | 1.8 | 43.4 | 62.7 | 16 | 19 |
+| centi | corpus | 0.4 | 1.3 | 2.6 | 5.7 | 9.6 | 15.8 | 33.7 | 47.9 | 16 | 24 |
+| | composer | 0.0 | 0.2 | 0.2 | 0.6 | 1.2 | 1.6 | 45.0 | 62.9 | 16 | 16 |
+| hecto | corpus | 0.6 | 2.2 | 3.4 | 5.4 | 6.4 | 8.2 | 15.0 | 23.1 | 58 | 58 |
+| | composer | 0.0 | 0.1 | 0.1 | 0.3 | 0.5 | 0.7 | 1.0 | 11.7 | 24 | 56 |
 
-Two differences survive, and they are the same one read twice. A composed board carries almost nothing under
-10 blocks where a real one carries 3–9% — the emitters build to the band's corridor and never under it, while
-an author lays a ledge or a bridge approach. And a composed board is **flat-tailed**: its ground sits on a
-few discrete widths rather than spreading, because everything is emitted at one corridor or at a multiple of
-it. Micro is where that costs most: its corridor is three cells on the cell-5 grid, so the frontline's spine
-and the hub's own front wall are three cells each and dock flush into a six-cell slab — thirty blocks, the
-band's mode.
+Corpus rows are the 2-team maps of each band — 62 · 79 · 63 · 84 · 3 of them; composed rows are 24 boards a
+band, `rot_180` and `mirror_z`, twelve seeds each, fanned and rasterised to blocks. Hecto's corpus row rests
+on three maps and is not a measurement.
+
+The mode is a fragile statistic on this data and the distribution is not. Nano's ground is spread almost
+evenly across 10–14 blocks, so its pooled mode moves between those on a change of sample while its
+cumulative shares hold to within a point either way. The shares are what to read.
+
+What they say is that **a composed board has almost no narrow ground**. A real map carries 5.7–24.4% of
+itself under 12 blocks — an author lays a ledge, a bridge approach, a one-cell shoulder — where a composed
+board carries 0.3–2.0%, because every emitter builds to the band's corridor and never under it. At nano the
+two agree closely, 56.2% of the board under 16 blocks against the corpus's 56.7%. From milli up they do not:
+a composed board is almost entirely 16 blocks and over, where a fifth of a real map is under it.
+
+The slab is the same fault at the other end. A frontline spine one corridor deep docks flush across the hub
+wall behind it, and the two read as one run of `2 × corridor` — 52×32 blocks at micro, 180×48 at hecto, on
+22 to 32 of every 48 boards. That is what carries a board's own mode to 29 at micro where the corpus sits at
+16, and it is `G268`. The grid does not reach it: the same measurement on a five-block cell gives 30.
 
 ## What this says about the cell
 
@@ -199,16 +214,17 @@ the grid is laid: the map's corridor is 12 · 14 · 16 · 16 · 22 and the wool 
 The measured ladder is 8 · 10 · 14 · 16 by mode, or 8 · 12 · 14 · 16 by the quartile a working lane sits at.
 Cell 4 reaches both ends of it — the 8-block floor the whole corpus builds to, and the 16 that milli and
 centi sit on — and cell 5 reaches neither: its 2-cell floor is 10, two blocks over the floor authors use, and
-its next rung is 15 where the corpus sits at 14 and 16. So cell 5 rounds micro's 14 up to 15 and centi's 16
-down to 15, which is why a composed micro board's ground stacks into six-cell slabs while nano's, whose 12
-rounds to a clean 2, comes out at the corpus's own mode.
+its next rung is 15 where the corpus sits at 14 and 16. Laid on a four-block cell the map's lane comes out
+exact at nano, milli and centi; on a five-block cell it is exact at none of the five. What the cell does not
+decide is how thick a board's ground comes out — that is the docking fault above, and it holds at either
+scale.
 
 The gap floors run on the same arithmetic. A bay beside a goal is 16 blocks (`docs/gameplay/approaches.md`),
 which is four cells at cell 4 and 3.2 at cell 5 — so at cell 5 the floor is either broken or rounded up to 20,
 and rounding a clearance up by a quarter is what refused every 8-player board when the seat gap was given one
 (`G264`).
 
-This is why a width stated in cells cannot carry a ladder at all: moving the cell from 5 to 4 would shrink
-every element by a fifth rather than offering the composer a finer rung to choose from. A ladder needs the
-widths stated in blocks and divided by the cell, which is what leaves the cell free to be a drawing scale
-rather than a design decision — and what makes cell 4 worth having.
+This is why a width stated in cells could not carry a ladder at all: the cell would be a design decision, so
+moving it would shrink every element rather than offer the composer a finer rung to choose from. Stated in
+blocks and divided by the cell, the cell is a drawing scale instead — which is what lets the composer draw on
+a four-block one.

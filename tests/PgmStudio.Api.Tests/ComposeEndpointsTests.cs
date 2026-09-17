@@ -69,8 +69,11 @@ public sealed class ComposeEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
+        // a minority form, so the sieve has to reject boards before it fills the page — a filter on the form
+        // the request draws most often would pass its first seeds straight through and leave the census with
+        // nothing to have counted
         var page = await client.GetFromJsonAsync<ComposePage>(
-            "/api/compose?players=20&symmetry=rot_180&seedStart=0&count=3&hub=ring");
+            "/api/compose?players=20&symmetry=rot_180&seedStart=0&count=1&hub=single");
         var observed = page!.Observed;
 
         await Assert.That(observed).IsNotNull();

@@ -15,8 +15,8 @@ public sealed record FillMenuRow(int Lanes, string Reads, IReadOnlyList<ShapeFam
 /// unstable middle that must resolve (split into lane + build-lane, or twist); three is multi-access. The
 /// two- and three-lane rows resolve into multi-shape patterns, which are not emittable yet — they are
 /// recorded so the data does not pretend a wide touch is just a wide lane. The names <c>w2/w4/w6</c> are the
-/// same rungs read in the reference frame, <c>cell = 5 blocks</c> and <c>lane = 2 cells</c>, where one lane
-/// is 10 blocks (G2's corridor minimum).
+/// same three rungs counted in cells at a two-cell lane, which is the narrowest lane the producibility floor
+/// admits; the rung a box lands on is computed from the board's own lane width, never from those names.
 /// </summary>
 public static class FillMenu
 {

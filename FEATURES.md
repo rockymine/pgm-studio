@@ -4098,6 +4098,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   5.6× across the ladder where it rose 1.6× before; `LandSpendDto` leads with the band. (`SizeBands`,
   `Envelope`, `LandBudget`, `UnitTuning`, `TeamUnitAllocator`, `UnitRequests`, `Composer`, `FillMenu`,
   `Producibility`, `docs/world-scan/map-size-ladder.md`, `docs/generator/model.md` §2, `rules.md` `G2`/`G3`/`G8`)
+
+- **The grid is four blocks, and a ceiling stated in cells knows it can move (`G269`).** Every width the
+  composer builds to is stated in blocks and divided by the cell, so the cell is a drawing scale: on a
+  four-block one the map's lane lands exactly at nano, milli and centi, where a five-block cell lands on none
+  of the five bands. `ComposeRequest`'s default is 4 and `ComposerVersion` is `cell-four-1`. Two quantities
+  that had been stated in cells follow the scale now instead of capping it: `MidCarver.BandGapBlocks` is a
+  20-block gap laid on the grid through `HalfGapCells` and floored at the axis margin, where integer division
+  had silently made it 16 blocks at cell 4 and 12 at cell 6; and the donut's entry and hole-depth ceilings are
+  floored at the wool lane they are sampled from, where a 6-cell lane against a 5-cell cap threw an empty
+  `NextInt` range out of composition rather than refusing the attempt. Composes 24/24 at every band on cells
+  3 through 6, where cell 4 had composed nothing. The cell does not reach the slab a flush-docked frontline
+  spine makes (`G268`): a board's own modal ground width is 29 blocks at micro here against 30 at cell 5.
+  (`ComposeRequest`, `ComposeDescriptor`, `MidCarver`, `UnitTuning`, `UnitRequests`, `Producibility`,
+  `tools/compose/composer-fingerprints.json`, `docs/world-scan/map-size-ladder.md`,
+  `docs/generator/model.md` §2.3, `rules.md` `G2`, `docs/tools/generator.md`)
 - **A flow reading the evaluator can fire (`G187`).** `PlanFlow` computed how much of a board no journey
   reaches and served it as prose, and the evaluator's terms walked the surface for distances and cited neither
   `PlanRoutes` nor `PlanFlow` — so no flow answer scored anything. `DeadShare` scores it, at `POST
@@ -4574,7 +4589,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **Map completion v0 — the box-model path closes the loop with a band-only mid** —
   `Composer.ComposeBoxStages` + `MidCarver.BandOnly` + `tools/compose/board-gallery.cs`: the first full board off
-  the partition-first path. The crossing is the draw-free band-only design (uniform 20-block gap, no stones, no
+  the partition-first path. The crossing is the draw-free band-only design (a 20-block gap stated in blocks
+  and laid on the board's grid, no stones, no
   centre island); the allocator takes it as its axis margin (`Allocate` gains an optional `CrossingDesign` — the
   mid box arithmetic decides how far the unit's front sits from the axis); `MidCarver.TryCarve` consumes the
   filled unit as-is (its hub lateral extent now unions the box path's prefixed `hub-…` pieces; the grower's
@@ -8382,7 +8398,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **16 blocks** where a crossing touches a wool room or a spawn and **12** for a hole's narrowest, both in
   blocks so they hold at any grid scale; a crossing a build zone reaches is not asked. Evidence:
   `opus5-quadrangle`'s `wool-b-n`↔`spawn-room` reads 5 blocks (6 in the built world), and the composer's own
-  floor is two cells — 10 blocks at the default scale, which `G264` is for. Composer output is unmoved: the
+  floor is two cells — 8 blocks at the default scale, which `G264` is for. Composer output is unmoved: the
   determinism gate reads 72 boards, 0 moved.
 
 - **A group that declines the fan off the symmetry centre is named (`TS108`, `SK28`).** The orbit is fanned

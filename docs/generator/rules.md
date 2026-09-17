@@ -47,7 +47,8 @@ and a fall counted but not charged, routing around voids — never the straight 
   8 · 12 · 14 · 16 · 17, and ground narrower than **8 blocks** is 1.5–4% of a map at every size, which is
   the floor authors build to. A width in blocks divided by the grid's cell is what lets the scale move: at
   cell 4 the reachable widths are 4/8/12/16/20 and the measured ladder's ends both land on one, at cell 5
-  they are 5/10/15/20 and neither does.
+  they are 5/10/15/20 and neither does. The composer draws on **cell 4**, which carries the map's lane
+  exactly at nano, milli and centi.
 - **G3 [corpus, revised]** Measured over 359 built CTW maps, 2-team boards run **50–300 wide ×
   95–620 long** at the quartile extremes, with the median rising by band — 78×166 at nano, 106×210 at
   micro, 138×288 at milli, 161×304 at centi — and an aspect of **2.0** at the median, 1.4–2.6 at the
@@ -1054,7 +1055,7 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
 
 33. **`WL12` added (2026-09-16).** Author's call. A bay between a spawn and a wool room on a built board
     measured **six blocks** across, which a player clears from a one-block rise; the composer's own floor is
-    two cells, so it is ten blocks at the default scale and eight at cell 4. Nothing measured how narrow a
+    two cells, so it is eight blocks at cell 4 and ten at cell 5. Nothing measured how narrow a
     negative space was: the deriver's void walk reports **enclosed** voids only and classes them by ownership
     with no width, `IslandGaps` measures between islands rather than within one, and the
     notch/bay/hole classification lived in the shape emitter and never saw an authored plan. The

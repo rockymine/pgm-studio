@@ -47,7 +47,7 @@ A compose takes five values and no geometry.
 | `players` | 12 | Players per team, clamped 6–64. The only size input, and its job is to name a **size band** — nano 6–13, micro 14–21, milli 22–31, centi 32–47, hecto 48+ — which is what the land budget and every structural ladder read. Two counts in one band compose to the same budget. |
 | `teams` | 2 | 2 or 4. Fixed at 2 by the browse endpoint. |
 | `symmetry` | `rot_180` | `rot_180` or `mirror_z` through the feed. `mirror_x` and `rot_90` are legal `ComposeRequest` values but the endpoint answers 400. |
-| `cell` | 5 | Blocks per proxy cell — the plan grid's scale. No control writes it; it is honoured as a query parameter. |
+| `cell` | 4 | Blocks per proxy cell — the plan grid's scale. No control writes it; it is honoured as a query parameter. |
 | `seed` | — | Any unsigned 64-bit integer. Drives every draw the composer makes. |
 
 The feed walks the seed axis and holds the other four fixed, so a request is really the first four values plus
@@ -67,7 +67,7 @@ its descriptor's claim to reproduce it, so re-composing that same request today 
 The descriptor is the card's identity and the whole of what a pin needs:
 
 ```json
-{ "players": 12, "teams": 2, "symmetry": "rot_180", "cell": 5, "seed": 0,
+{ "players": 12, "teams": 2, "symmetry": "rot_180", "cell": 4, "seed": 0,
   "composerVersion": "marker-id-1", "schema": 1 }
 ```
 
@@ -78,8 +78,9 @@ still reads.
 
 `Composer.ComposeStages` runs one direction and never reopens what an earlier step settled. The **envelope**
 turns the player count into a land budget, a fanned board extent and the cell bounds one team unit may fill.
-The **crossing** fixes the gap between the two fronts while the board is still empty — 20 blocks, four cells
-at the default scale — and decides once whether this board wants a split band. **Allocation** places the hub,
+The **crossing** fixes the gap between the two fronts while the board is still empty — a 20-block gap laid on
+the grid, which is three cells a side and so 24 blocks at the default scale — and decides once whether this
+board wants a split band. **Allocation** places the hub,
 chooses its form, works out what hangs off it, and seats each neighbour on the hub's real free surface,
 producing typed boxes and the joints between them. **Filling** emits the hub first as the constraint source
 and each neighbour to the width its own joint was granted. The finished unit is then **re-anchored on its
@@ -100,7 +101,7 @@ players under `rot_180`, exactly as `POST /api/compose/pin` stored it:
 {
   "plan": 2,
   "meta": { "name": "Composed p12 t2 #0" },
-  "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
+  "globals": { "cell": 4, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
   "pieces": [
     { "id": "hub-t1",       "role": "piece",     "rect": [-6, 6, 6, 4] },
     { "id": "spawn-t1",     "role": "piece",     "rect": [-7, 6, 1, 2] },

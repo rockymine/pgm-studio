@@ -199,9 +199,13 @@ map. The corpus measures where a CTW map's ground actually sits — the modal lo
 8 · 12 · 14 · 16 · 17 — so the map's lane is 12 blocks at nano, 14 at micro, 16 at milli and centi, 22
 at hecto, and the wool approach is one rung under it at 10 · 12 · 14 · 14 · 18. Each is divided by the
 cell where the grid is laid, rounded to the nearest whole cell and never under two. A width stated in
-cells cannot carry a ladder at all: moving the cell from 5 to 4 would shrink every element by a fifth
-rather than offering a finer rung, and the measured ladder's ends — the 8-block floor the whole corpus
-builds to and the 16 that milli and centi sit on — are reachable at cell 4 and at neither rung of cell 5.
+cells could not carry a ladder at all — it would make the cell a design decision rather than a drawing
+scale, so moving it would shrink every element instead of offering a finer rung. Stated in blocks, the cell
+is free, and the composer draws on a **four-block** one: the map's lane lands on a whole cell at nano, milli
+and centi where a five-block cell lands on none of the five, and the measured ladder's ends — the 8-block
+floor the whole corpus builds to and the 16 that milli and centi sit on — are reachable at cell 4 and at
+neither rung of cell 5. What the cell does not decide is how wide a board's ground comes out: a frontline
+spine docked flush on a hub wall reads as one run twice the corridor deep at either scale (`G268`).
 
 **The wool count** is the band's too: one wool a team at nano, sometimes two; two from micro up,
 sometimes three (the third doubles onto the spawn's side). That is what 57% of nano maps and 56–82% of

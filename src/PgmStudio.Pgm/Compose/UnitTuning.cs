@@ -194,15 +194,20 @@ public static class UnitTuning
     internal const int WoolLaneFloorCells = 2;
 
     /// <summary>The widest hub-entry a donut may sample, in cells — the min-only entry (one corridor) read as a
-    /// chokepoint, so the attachment stub varies up to this along the hub edge.</summary>
-    internal const int DonutEntryMaxCells = 5;
+    /// chokepoint, so the attachment stub varies up to this along the hub edge. Never under the wool lane it is
+    /// sampled from: the lane derives from the band and the grid, so a ceiling stated in cells can fall below it,
+    /// and an empty sample range throws rather than refusing the attempt.</summary>
+    internal static int DonutEntryMaxCells(int woolLaneCells) => Math.Max(woolLaneCells, 5);
 
-    /// <summary>The donut's enclosed hole caps, in cells: <b>along</b> the hub edge (the ring's mouth-side
-    /// extent) and <b>deep</b> (outward). The min box gives the 1×2 hole; the sampled growth reaches 3×5 — the
-    /// box grows and the emitter's ring absorbs it (its span derives from the box).</summary>
+    /// <summary>The donut's enclosed hole cap <b>along</b> the hub edge (the ring's mouth-side extent), in cells.
+    /// Sampled from one, so it needs no lane floor.</summary>
     internal const int DonutHoleAlongMaxCells = 3;
 
-    internal const int DonutHoleDeepMaxCells = 5;
+    /// <summary>The donut's enclosed hole cap <b>deep</b> (outward), in cells. The min box gives the 1×2 hole;
+    /// the sampled growth reaches 3×5 — the box grows and the emitter's ring absorbs it (its span derives from
+    /// the box). Floored at the wool lane for the same reason
+    /// <see cref="DonutEntryMaxCells"/> is.</summary>
+    internal static int DonutHoleDeepMaxCells(int woolLaneCells) => Math.Max(woolLaneCells, 5);
 
     /// <summary>The clearance kept between a docked neighbour and each hub <b>corner</b>, in cells. Zero under the
     /// mass-level corner law: two neighbours on adjacent hub sides meet only at the hub's own corner cell, which

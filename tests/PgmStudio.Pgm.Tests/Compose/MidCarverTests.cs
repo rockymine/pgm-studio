@@ -12,12 +12,31 @@ namespace PgmStudio.Pgm.Tests.Compose;
 public sealed class MidCarverTests
 {
     [Test]
-    public async Task The_band_only_crossing_is_a_uniform_20_block_gap()
+    [Arguments(2, 5)]    // 10 blocks a side, exactly
+    [Arguments(3, 3)]    // 3.33 cells rounds to 3 — 9 blocks
+    [Arguments(4, 3)]    // 2.5 cells rounds away from zero — 12 blocks
+    [Arguments(5, 2)]    // 10 blocks a side, exactly
+    [Arguments(8, 2)]    // 1.25 cells would be under the axis margin, which floors it
+    public async Task The_band_only_crossing_lays_its_stated_gap_on_this_grid(int cell, int expectedHalfGap)
     {
-        var request = new ComposeRequest(12, seed: 1);
-        var env = Envelope.Derive(request, new ComposeRng(1));
+        var env = Envelope.Derive(new ComposeRequest(12, cell: cell), new ComposeRng(1));
         var crossing = MidCarver.BandOnly(env);
-        await Assert.That(crossing.HalfGapCells * env.Cell).IsEqualTo(10);   // 10 blocks per side
+        await Assert.That(crossing.HalfGapCells).IsEqualTo(expectedHalfGap);
+        await Assert.That(crossing.HalfGapCells >= Envelope.AxisMarginCells).IsTrue()
+            .Because("the band never brings a front closer to the axis than the grower's own margin");
+    }
+
+    [Test]
+    public async Task The_stated_gap_is_within_half_a_cell_of_what_the_grid_can_carry()
+    {
+        // the gap is a number of blocks, and a symmetric band can only spend it in whole cells either side:
+        // the realised gap tracks the stated one to within one cell wherever the margin is not the binding floor
+        foreach (var cell in new[] { 2, 3, 4, 5 })
+        {
+            var realised = 2 * MidCarver.HalfGapCells(cell) * cell;
+            await Assert.That(Math.Abs(realised - MidCarver.BandGapBlocks) <= cell).IsTrue()
+                .Because($"cell {cell} realised {realised} against a stated {MidCarver.BandGapBlocks}");
+        }
     }
 
     [Test]

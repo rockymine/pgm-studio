@@ -138,9 +138,9 @@ public static class UnitRequests
             var attachW = 0;
             if (family == ShapeFamily.Donut)
             {
-                attachW = rng.NextInt(woolLaneCells, UnitTuning.DonutEntryMaxCells + 1);
+                attachW = rng.NextInt(woolLaneCells, UnitTuning.DonutEntryMaxCells(woolLaneCells) + 1);
                 var holeAlong = rng.NextInt(1, UnitTuning.DonutHoleAlongMaxCells + 1);
-                var holeDeep = rng.NextInt(woolLaneCells, UnitTuning.DonutHoleDeepMaxCells + 1);
+                var holeDeep = rng.NextInt(woolLaneCells, UnitTuning.DonutHoleDeepMaxCells(woolLaneCells) + 1);
                 depth += holeDeep - woolLaneCells;
                 along = Math.Max(along, Math.Max(2 * woolLaneCells + holeAlong, attachW + woolLaneCells));
             }

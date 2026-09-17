@@ -20,8 +20,11 @@ public sealed class ComposeRequest
     /// <param name="symmetry">Null selects the default for <paramref name="teams"/>: <c>rot_180</c> for 2,
     /// <c>rot_90</c> for 4. <c>mirror_x</c>/<c>mirror_z</c> are legal only for 2 teams.</param>
     /// <param name="seed">Drives every random draw the composer makes; the same seed reproduces the same plan.</param>
-    /// <param name="cell">Blocks per proxy cell (the plan grid scale).</param>
-    public ComposeRequest(int playersPerTeam, int teams = 2, string? symmetry = null, ulong seed = 0, int cell = 5)
+    /// <param name="cell">Blocks per proxy cell (the plan grid scale). Four by default: every width the
+    /// structure rules state is in blocks (<see cref="UnitTuning.CorridorBlocks"/> runs 12·14·16·16·22 up the
+    /// bands), and a four-block cell lands three of those five on a whole cell where a five-block cell lands
+    /// none.</param>
+    public ComposeRequest(int playersPerTeam, int teams = 2, string? symmetry = null, ulong seed = 0, int cell = 4)
     {
         PlayersPerTeam = Math.Clamp(playersPerTeam, 6, 64);
 

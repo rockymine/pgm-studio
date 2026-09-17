@@ -483,7 +483,7 @@ public static class Producibility
             {
                 if (family != ShapeFamily.Donut) { yield return (placement, atEnd, 0); continue; }
                 yield return (placement, atEnd, 0);          // the min-only one-corridor entry
-                for (var aw = cw; aw <= UnitTuning.DonutEntryMaxCells; aw++)
+                for (var aw = cw; aw <= UnitTuning.DonutEntryMaxCells(cw); aw++)
                     yield return (placement, atEnd, aw);
             }
     }
