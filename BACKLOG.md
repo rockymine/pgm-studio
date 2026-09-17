@@ -325,12 +325,23 @@ height. That is exactly what a made thing needs, and none of it has to be invent
 
 ## The plan model: pieces, and the edges between them
 
+- [ ] **G271 — A split band that is refused still carries no stone, so the crossing has neither an island
+  nor a bay.** `MidCarver.TryCarve` returns `[]` whenever `design.SplitBand` is set, on the reading that the
+  bay between the split's two legs is the island. But `SplitRun` grants the split only where the face admits
+  one, and the gap was already fixed at `EmptyHalfGapCells` when the request was made — so a refused split
+  spends the wide empty crossing and puts nothing in it. Carry the realised split out of the carve and lay
+  the row when it was refused. `docs/generator/model.md` §5.13.
+
+  *Evidence: `p8 rot_180 seed 2` (nano, `pgm-studio-mapgen/specs/opus5-cleftmoor`) — the band is
+  `x[-3,3) z[-4,4)`, exactly the 6-cell frontline hull and its own rot_180 image, so there are no two legs
+  and no bay; `mid 0/28` cells of the crossing's share, and 32 blocks of plain void from front to front.*
+
 - [ ] **G270 — A mid stone's depth is fixed before the hull that bounds its width is known, so a
   narrow-fronted board under-spends the crossing.** `MidCarver.Crossing` sets the half-gap from
   `StoneDeepCells` before allocation, because the allocator takes it as its axis margin; the width then comes
   from the frontline hull the carve is handed. Where that hull is narrow the stone shrinks but the depth
   cannot grow to compensate, so the mid spends **66–85%** of its share and 17–33% of boards carry no stone at
-  all — about half of those split bands, which want none, and half hulls too narrow for one stone at the
+  all — about half of those split bands (`G271`) and half hulls too narrow for one stone at the
   wider-than-deep rule. Either the crossing is designed twice (a provisional gap, then a re-carve once the
   hull is known) or the depth reads a hull the envelope can predict. `docs/generator/model.md` §5.13 and
   `rules.md` amendment 35.
@@ -523,6 +534,21 @@ and what a `subtract` takes away.
   is worth removing rather than tolerating.
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **WS68 — Every built board reads `bridgeable 0`, because the export grants building by forbidding it
+  everywhere else.** `BuildGenerator` wraps the buildable rectangles in the `not-build-area` negative and
+  applies `block-place=not(void)` to it — the corpus idiom `docs/pgm/template.xml` writes — so inside the
+  build region *nothing* applies. `Editability.Zones` sets `granted[i]` only on an explicit `Allow`, so those
+  cells come back `ground` rather than `build_zone`, and `WorldWalk`'s bridgeable set counts `build_zone` and
+  `filtered` only. The reads that stand on it — `reach`, `coverage`, the walk tiers — therefore treat a
+  crossing nobody is forbidden to bridge as unbridgeable. Read a void column inside a region whose only rule
+  is a negative void-deny as a grant, in `Editability.Zones`; `docs/world-scan/read-backs.md`.
+
+  *Evidence: `pgm-studio-mapgen/specs/opus5-stannerford` exports `<rectangle id="build-area-1"
+  min="-16,-20" max="16,20"/>` under `not-build-area`, and its `renders/04-reach.txt` reports
+  `bridgeable 0` while calling the mid stone at `x -12..11, z -8..7` (384 cells, floor y12) and the whole
+  opposing half at `x -24..39, z -92..-21` (2363 cells) `no-build-zone`.
+  `grep -o 'bridgeable [0-9]*' specs/*/renders/04-reach.txt` answers 0 on all 40 boards there.*
 
 - [ ] **WE124 — A room's stamp is a block out of place on its mirror image.** The frame a room is built out
   from is measured from the piece's own minimum corner, and `rot_180` maps one piece's minimum corner onto

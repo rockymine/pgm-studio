@@ -37,7 +37,7 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
     {
         var players = Query<int?>("players", isRequired: false) ?? 12;
         var symmetry = Query<string?>("symmetry", isRequired: false) ?? "rot_180";
-        var cell = Query<int?>("cell", isRequired: false) ?? 5;
+        var cell = Query<int?>("cell", isRequired: false) ?? ComposeRequest.DefaultCell;
         var seedStart = Math.Max(0, Query<int?>("seedStart", isRequired: false) ?? 0);
         var count = Math.Clamp(Query<int?>("count", isRequired: false) ?? 12, 1, 48);
         var maxScore = Query<double?>("maxScore", isRequired: false);

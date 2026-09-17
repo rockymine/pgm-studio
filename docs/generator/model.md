@@ -1230,15 +1230,18 @@ and the ones beyond it are authored; under a mirror every stone is its own image
 
 How many stones is what the hull affords. Each is **wider than it is deep** — otherwise it reads as a line
 drawn down the middle rather than an island — and each stands clear of its neighbours by a hop and of the
-band's own ends by a cell. The widest count meeting that, capped at three, is the row: one at the two smallest
-bands, whose fronts are too narrow to divide, two at the middle ones and three at the largest. Where the row
-needs it the gap between stones takes one cell more than a hop, because a row spanning an odd number of cells
-cannot sit symmetric about the axis's own cell boundary.
+band's own ends by a cell. The widest count meeting that, capped at three, is the row, and because the hull is
+the frontline's own the count moves with the front rather than with the band: measured over the seed range it
+runs one island at nano and micro, one or two at milli, up to three at centi and two or three at hecto. Where
+the row needs it the gap between stones takes one cell more than a hop, because a row spanning an odd number
+of cells cannot sit symmetric about the axis's own cell boundary.
 
-Two things the crossing declines. A **split band** carries no stone: it is already two parallel crossings with
-the bay between its legs left as an island, and a stone in the bay would fill the thing that makes it a split.
-And a hull too narrow to hold one stone at the aspect rule carries none — the band is then simply wider than
-it needed to be, which is a thinner crossing rather than a refused board.
+Two things the crossing declines. A board that **asked for a split band** carries no stone: a realised split
+is already two parallel crossings with the bay between its legs left as an island, and a stone in the bay
+would fill the thing that makes it a split. The carve declines on the request rather than on the grant,
+though, so a face that offered no split it would take spends the empty crossing and puts nothing in it
+either (`G271`). And a hull too narrow to hold one stone at the aspect rule carries none — the band is then
+simply wider than it needed to be, which is a thinner crossing rather than a refused board.
 
 ---
 
