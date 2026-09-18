@@ -976,9 +976,13 @@ put a neighbour where the hub has no material is never proposed, not proposed an
 
 ### 5.5 What the unit asks for
 
-Independently of the hub, and before any position exists, the allocator works out what the unit needs.
-It does not decide the counts: how many wool boxes there are, whether there is a frontline at all, and
-how large the spawn is all come off the budget ladders, and the allocator reads them as given. Its work
+With the body emitted and before any position exists, the allocator works out what the unit needs. It
+does not decide the counts: how many wool boxes there are, whether there is a frontline at all, and
+how large the spawn is all come off the budget ladders, and the allocator reads them as given. What the
+body buys it is the **runs** of §5.4: a neighbour is sized against the stretches the hub really offers
+rather than against its bounding box, which on a bay-fronted body are two different numbers — measured
+over the seed range, a `G` front is broken into runs on every board and a branch hub's on five in six,
+where a ring, a P, a double-hole and a solid rectangle are never broken at all. Its work
 here is to turn each into a `NeighbourRequest` — one per wool, one for the spawn, and one for the
 frontline where the budget affords it. The spawn is the one box whose size barely moves:
 roughly ten blocks square where it docks the hub directly, ten by twenty where it wants a run-up, and
@@ -994,6 +998,13 @@ in the first place.
 Depth and along are named from the edge, not from the world. The same pair means an x-extent on a
 neighbour docked to the hub's top and a z-extent on one docked to its left. That is inherent to an
 edge-relative frame, and it is the single most common source of confusion in the allocator.
+
+The one request the runs bound from **below** is the frontline's face. A body that leaves a bay in its
+own front is one the frontline is meant to close (§5.7), and the narrowest face that can is the one
+reaching a lane onto the shoulder each side of it — under that, no seat closes the bay however the face
+is slid, and the body's bay stays an open notch instead of becoming a hole. So the face's sample is
+floored there, rounded up to an even width first where the symmetry's parity law would otherwise round
+it back under. A solid front imposes no floor and the sample is the funnel's own.
 
 The along-extent is checked against the hub's edge length, and the overhang families are deliberately
 exempt from that check. A staple whose mouth is wider than the edge demotes to an L — which is to say,
@@ -1057,8 +1068,8 @@ hang almost entirely clear. And where the hub's own front edge carries a **bay**
 preferred over one that does not: a G, U or L is a body whose bay the frontline is meant to *close*,
 turning it into the declared hole that is CT8's rotation device, where a face seated to one side leaves it
 open as a notch and puts the whole crossing off the hub's flank. Preferred rather than required, because
-a face narrower than the bay and its two shoulders has no seat that could span it — the width is drawn
-before the body form is chosen, so it cannot know a bay is coming (`G274`).
+a face narrower than the bay and its two shoulders has no seat that could span it, which is why §5.5
+floors the face's own width there.
 
 | Style | Who | What must land on a run |
 |---|---|---|

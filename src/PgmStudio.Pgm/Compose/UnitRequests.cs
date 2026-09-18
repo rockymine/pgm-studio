@@ -38,6 +38,18 @@ public static class UnitRequests
     /// overhang (an overhang would strand the second entry off the hub — a pinch).</summary>
     internal static bool Overhangs(ShapeFamily family) => family is ShapeFamily.L or ShapeFamily.Donut;
 
+    /// <summary>The narrowest face that can close every bay in a front edge's free <paramref name="runs"/>:
+    /// from a lane onto the first run's far shoulder to a lane onto the last run's near one. Zero for an edge
+    /// with one run or none, which imposes no floor at all.</summary>
+    internal static int SealWidth(IReadOnlyList<(int Start, int Len)>? runs, int laneWidthCells)
+    {
+        if (runs is not { Count: > 1 }) return 0;
+        var ordered = runs.OrderBy(r => r.Start).ToList();
+        var from = ordered[0].Start + ordered[0].Len - laneWidthCells;
+        var to = ordered[^1].Start + laneWidthCells;
+        return Math.Max(0, to - from);
+    }
+
     /// <summary>The dock style a request implies. A single-entry rich wool overhangs; the frontline takes the
     /// contact patch; everything else takes the shape-agnostic full mouth. Note this is the style a request
     /// <em>starts</em> at: an overhang that finds no clear placement is demoted to the compact <c>I</c> and
@@ -53,11 +65,17 @@ public static class UnitRequests
     /// the front side (reach × a face spanning the hub front). Each takes its share out of
     /// <paramref name="budget"/> as it is sized, so what the unit leaves unspent is a number rather than an
     /// assumption. The spawn size is the one RNG draw here; the wool sizes read the budget (generic, no
-    /// per-family solve), so the whole set is fixed before the form is chosen and is identical across a
-    /// fallback re-seat.</summary>
+    /// per-family solve), and the set is identical across a fallback re-seat, because the fallback is always
+    /// toward a body offering more free surface than the one it replaces.
+    ///
+    /// <para><paramref name="frontRuns"/> is the hub body's own free runs on the front edge, read before this
+    /// is called. It is what lets the face be sized against the edge a neighbour will actually meet instead of
+    /// against the box: a body with a <b>bay</b> in its front hands the face a floor, and a face under it
+    /// cannot be seated so as to close the bay however it is slid.</para></summary>
     internal static IReadOnlyList<NeighbourRequest> Sample(
         ComposeEnvelope env, ComposeRng rng, LandBudget budget, UnitPlan plan,
-        int laneWidthCells, int hubU, int hubV, int frontReach)
+        int laneWidthCells, int hubU, int hubV, int frontReach,
+        IReadOnlyList<(int Start, int Len)>? frontRuns = null)
     {
         var requests = new List<NeighbourRequest>();
 
@@ -87,16 +105,27 @@ public static class UnitRequests
             // along the edge and free to overhang it — is the funnel: the mid meets only part of the hub front,
             // so the two onward routes around the front cost differently. The full face stays the common draw.
             var full = Math.Max(laneWidthCells, hubV - 2 * UnitTuning.CornerClearanceCells);
+            // the floor a bay-fronted body imposes: a face closing a bay has to reach a lane onto the shoulder
+            // each side of it, so the narrowest useful face spans from the near shoulder's lane to the far one's.
+            // Below that no seat can close the bay, and the body's own bay stays an open notch (CT8's rotation
+            // hole is a hole the frontline made). A solid front imposes nothing and the sample is the funnel's.
+            // the parity law below rounds an ODD face down a cell, which would take it back under a floor it
+            // has to clear — so a floor is rounded UP to even first, and a draw above an even floor stays
+            // above it however the parity falls
+            var flip = MidCarver.LateralFlip(env.Symmetry);
+            var seal = Math.Min(full, SealWidth(frontRuns, laneWidthCells));
+            if (flip && seal % 2 != 0) seal = Math.Min(full, seal + 1);
+            var floor = Math.Max(Math.Min(UnitTuning.FaceMinCells, full), seal);
             var faceWidth = rng.NextBool(UnitTuning.FullFaceChance)
                 ? full
-                : rng.NextInt(Math.Min(UnitTuning.FaceMinCells, full), full + UnitTuning.FaceOverhangMaxCells + 1);
+                : rng.NextInt(floor, Math.Max(floor, full + UnitTuning.FaceOverhangMaxCells) + 1);
             // the face-parity law. Under a laterally-flipping symmetry the opposing image reflects v about the
             // axis point, so a face spanning [lo, hi) meets its own image only where [lo, hi) and [-hi, -lo)
             // overlap — which is exact when lo = -hi, i.e. when the span is EVEN and the face is centred. The hub
             // is already forced even for this reason; an odd face lands half a cell off the centre the seat aims
             // at and the band has to reach past it. Parity is all that is required — no lane multiple, and the
             // rule reads the same in blocks as in cells because the cell size is odd.
-            if (MidCarver.LateralFlip(env.Symmetry) && faceWidth % 2 != 0) faceWidth--;
+            if (flip && faceWidth % 2 != 0) faceWidth--;
             requests.Add(new NeighbourRequest(front, BoxKind.Frontline, frontReach, faceWidth, "frontline"));
             budget.Spend(faceWidth * (double)frontReach);
         }

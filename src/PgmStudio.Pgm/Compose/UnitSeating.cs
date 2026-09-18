@@ -16,6 +16,46 @@ internal sealed record FullMouthDock(
 
 public static class UnitSeating
 {
+    /// <summary>Build the hub's body once and read what it offers: the box the filler re-emits, its per-edge
+    /// <b>free runs</b> in box-local along-coords, and which box edge faces the axis. One offer per free run, so
+    /// a bay in the body simply yields no run over its stretch — which is how a caller sizing a neighbour learns
+    /// there is one. Emitting is a pure function of the form, the walls and the arms, so the three readers of
+    /// this body (the request sizing, the seating, the filler) all see the same one without a draw between them.
+    /// A null box means the form does not fit the rect at all.</summary>
+    internal static (Box? Box, IReadOnlyDictionary<BoxEdge, IReadOnlyList<(int Start, int Len)>> Runs, BoxEdge Front)
+        Emit(CompoundRead form, CellRect hubRect, Frame frame, int laneWidthCells,
+             RingWalls? walls, IReadOnlyList<(int Start, int Width)>? arms)
+    {
+        var frontEdge = SeatGeometry.SideEdge(frame, UnitSide.Front);
+        var empty = (IReadOnlyDictionary<BoxEdge, IReadOnlyList<(int Start, int Len)>>)
+            new Dictionary<BoxEdge, IReadOnlyList<(int Start, int Len)>>();
+        // orient the form so its open feet face the unused front (SP: the frontline's side) and its solid edges
+        // cover the demanded back/laterals — a vertical flip when the front is the box's top edge (every z-frame);
+        // symmetric forms (Rectangle, Ring) are unaffected, so this is safe to apply uniformly
+        var flipV = frontEdge == BoxEdge.Top;
+        var hubBox = new Box("hub", BoxKind.Hub, hubRect, hubRect.Width * hubRect.Height, form, flipV,
+            HubWalls: walls, HubArms: arms, HubCorridorCells: laneWidthCells);
+        if (HubBoxEmitter.Fill(hubBox, form, hubBox.HubCorridor, flipV: flipV, ringWalls: walls,
+                armLayout: arms) is not { } hub)
+            return (null, empty, frontEdge);
+
+        var runs = hub.Offers.GroupBy(o => o.Edge).ToDictionary(
+            g => g.Key,
+            g => (IReadOnlyList<(int Start, int Len)>)g.Select(o => (o.Interval.Start, o.Interval.LengthCells)).ToList());
+        return (hubBox, runs, frontEdge);
+    }
+
+    /// <summary>The free runs on the edge a neighbour docking at the <b>front</b> would meet, which is what the
+    /// frontline's face has to span. Empty when the form does not fit — the caller then sizes as if the edge were
+    /// solid, which is what the rectangle it falls back to offers anyway.</summary>
+    internal static IReadOnlyList<(int Start, int Len)> FrontRuns(
+        CompoundRead form, CellRect hubRect, Frame frame, int laneWidthCells,
+        RingWalls? walls, IReadOnlyList<(int Start, int Width)>? arms)
+    {
+        var (box, runs, front) = Emit(form, hubRect, frame, laneWidthCells, walls, arms);
+        return box is not null && runs.TryGetValue(front, out var onFront) ? onFront : [];
+    }
+
     /// <summary>Seat every request on <paramref name="form"/>'s real free-edge intervals, seated on the hub
     /// <paramref name="hubRect"/>. Builds the body once (<see cref="HubBoxEmitter"/>) — the same body the filler
     /// re-emits, so both read the same runs — and reads its per-edge free runs off the emitted offers (the
@@ -27,23 +67,9 @@ public static class UnitSeating
         IReadOnlyList<NeighbourRequest> requests, ComposeRng rng,
         bool noFront, RingWalls? walls = null, IReadOnlyList<(int Start, int Width)>? arms = null)
     {
+        var (emitted, runsByEdge, frontEdge) = Emit(form, hubRect, frame, laneWidthCells, walls, arms);
+        if (emitted is not { } hubBox) return null;   // too small
         int boxW = hubRect.Width, boxH = hubRect.Height;
-        var frontEdge = SeatGeometry.SideEdge(frame, UnitSide.Front);
-        // orient the form so its open feet face the unused front (SP: the frontline's side) and its solid edges
-        // cover the demanded back/laterals — a vertical flip when the front is the box's top edge (every z-frame);
-        // symmetric forms (Rectangle, Ring) are unaffected, so this is safe to apply uniformly
-        var flipV = frontEdge == BoxEdge.Top;
-        var hubBox = new Box("hub", BoxKind.Hub, hubRect, boxW * boxH, form, flipV,
-            HubWalls: walls, HubArms: arms, HubCorridorCells: laneWidthCells);
-        if (HubBoxEmitter.Fill(hubBox, form, hubBox.HubCorridor, flipV: flipV, ringWalls: walls,
-                armLayout: arms) is not { } hub)
-            return null;   // too small
-
-        // the offerable surface: the contiguous free runs on each hub edge (box-local along-coords), read off the
-        // emitted body's per-edge offers — one offer per free run, so a bay simply yields no run over its stretch
-        var runsByEdge = hub.Offers.GroupBy(o => o.Edge).ToDictionary(
-            g => g.Key,
-            g => (IReadOnlyList<(int Start, int Len)>)g.Select(o => (o.Interval.Start, o.Interval.LengthCells)).ToList());
 
         var boxes = new List<Box> { hubBox };
         var joints = new List<BoxJoint>();

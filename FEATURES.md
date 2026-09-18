@@ -5622,6 +5622,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   holds through the change. On the hole-hub exemplar both of its G123 blockers clear, leaving only its unrelated
   scale anomalies. (G123)
 
+- **The hub's body is chosen before its neighbours are sized (`G274`)** — `Compose/TeamUnitAllocator.cs` +
+  `Compose/UnitSeating.cs` (`Emit`, `FrontRuns`) + `Compose/UnitRequests.cs` (`SealWidth`). A neighbour docks
+  onto the **runs** a hub offers and every request was sized against the hub's *bounding box* — two different
+  numbers on a bay-fronted body, and `model.md` §5.4 already described the form as decided first. `Allocate`
+  now picks the form, walls and arms, emits the body once, reads its front runs and sizes the requests against
+  those; the emit is extracted so the sizing, the seating and the filler all read one body with no draw
+  between them. The frontline's face is floored at the width that **closes a bay** — a lane onto the shoulder
+  each side — rounded up to even first, because `FR6`'s parity law rounds an odd face down and took two boards
+  back under the floor. Measured over 480 boards: 104 had a front edge whose longest run was shorter than the
+  box edge (median shortfall 32 blocks, max 96), all of it `G` at 100% and `SpineArms` at 85%; bay-fronted
+  hubs sealed by their frontline went **75% → 100%**. The fallback ladder is untouched — it demotes toward the
+  solid rectangle, which offers strictly more surface than any holed body. `ComposerVersion` `body-first-1`;
+  `rules.md` amendment 40. (`G274`)
+
 - **The spanning dock — a face anchored on every shoulder (G123)** — `Compose/TeamUnitAllocator.cs` (`Docks`) +
   `Compose/Producibility.cs` + `tools/seeds/shifted-frontline-spanning-dock.plan.json`. The contact-patch seat
   admitted a face if **some** patch was a lane wide; a face reaching across a bay-fronted hub's bay (a G, U or L)

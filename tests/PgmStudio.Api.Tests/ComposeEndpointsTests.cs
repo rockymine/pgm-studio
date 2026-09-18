@@ -69,18 +69,24 @@ public sealed class ComposeEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        // a minority form, so the sieve has to reject boards before it fills the page — a filter on the form
-        // the request draws most often would pass its first seeds straight through and leave the census with
-        // nothing to have counted
+        // The filter has to be on a form the sieve will REJECT boards to reach, or the page fills from its
+        // first seed and the census has nothing to have counted. Which form is rare moves with the composer, so
+        // the setup asks rather than assumes: survey a page, filter on the form it drew least, and start from a
+        // seed whose own board is a different one — that guarantees at least one rejection.
+        var survey = await client.GetFromJsonAsync<ComposePage>(
+            "/api/compose?players=20&symmetry=rot_180&seedStart=0&count=12");
+        var minority = survey!.Observed!.Hubs.OrderBy(h => h.Value).ThenBy(h => h.Key).First().Key;
+        var start = survey.Cards.First(c => c.Structure.Hub != minority).Descriptor.Seed;
+
         var page = await client.GetFromJsonAsync<ComposePage>(
-            "/api/compose?players=20&symmetry=rot_180&seedStart=0&count=1&hub=single");
+            $"/api/compose?players=20&symmetry=rot_180&seedStart={start}&count=1&hub={minority}");
         var observed = page!.Observed;
 
         await Assert.That(observed).IsNotNull();
         await Assert.That(observed!.Boards).IsGreaterThan(page.Cards.Count)
             .Because("the sieve rejected boards, and the census counted them anyway");
         await Assert.That(observed.Hubs.Keys.Count).IsGreaterThan(1)
-            .Because("filtering to ring must not erase the other hub forms from the census");
+            .Because("filtering to one form must not erase the others from the census");
         await Assert.That(observed.Hubs.Values.Sum()).IsEqualTo(observed.Boards)
             .Because("every board contributes exactly one hub form");
         await Assert.That(observed.Frontlines.Values.Sum()).IsEqualTo(observed.Boards);

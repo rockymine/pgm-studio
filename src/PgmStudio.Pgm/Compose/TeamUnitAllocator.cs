@@ -82,19 +82,25 @@ public static class TeamUnitAllocator
         var hubVMin = -(hubV / 2);
         var hubRect = frame.ToRect(hubUMin, hubU, hubVMin, hubV);
 
-        // the neighbour requests (spawn + wools + the frontline join), sized out of the budget the hub left
-        var requests = UnitRequests.Sample(env, rng, budget, plan, laneWidthCells, hubU, hubV, frontReach);
-
-        // pick the hub form from the box's real dims (frame-mapped — the wide axis afford the wide holed bodies),
-        // seat the requests on its free edges; fall back to the solid rectangle (four full edges) when the offerable
-        // surface can't host
+        // The body comes first, because a neighbour docks onto what the hub OFFERS rather than onto its
+        // bounding box. Pick the form from the box's real dims (frame-mapped — the wide axis affords the wide
+        // holed bodies), then its walls and, for a branch, its legs; the body is a pure function of those three,
+        // so reading it here and building it again downstream give the same runs without a draw between them.
         var sampled = ChooseHubForm(hubRect.Width, hubRect.Height, laneWidthCells, rng);
         var walls = ChooseHubWalls(sampled, hubRect.Width, hubRect.Height, laneWidthCells, rng);
-        // a branch hub's legs, drawn here rather than at fill time because the body is emitted twice — once to
-        // read the runs it offers, once to build it — and a second draw would not agree with the first
         var arms = sampled.Form == Compound.SpineArms
             ? HubBoxEmitter.SampleArms(rng, hubRect.Width, sampled.Arms, laneWidthCells)
             : null;
+
+        // the neighbour requests (spawn + wools + the frontline join), sized out of the budget the hub left and
+        // against the free runs its front edge actually presents — a bay-fronted body (a G, U or L) hands the
+        // frontline a floor its face has to reach, which is the width that closes the bay into a hole
+        var frontRuns = UnitSeating.FrontRuns(sampled, hubRect, frame, laneWidthCells, walls, arms);
+        var requests = UnitRequests.Sample(
+            env, rng, budget, plan, laneWidthCells, hubU, hubV, frontReach, frontRuns);
+        // seat them on that body; fall back to the solid rectangle (four full edges) when the offerable surface
+        // cannot host. The requests carry over unchanged: the fallback is always toward MORE free surface, so a
+        // request sized against a holed body's runs fits the rectangle that replaces it.
         var seating = UnitSeating.Seat(sampled, hubRect, frame, laneWidthCells, env.WoolCorridorCells, seatGapCells, requests, rng, noFront: !hasFrontline, walls, arms);
         if (seating is null && sampled.Form != Compound.Rectangle)
             seating = UnitSeating.Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, laneWidthCells, env.WoolCorridorCells, seatGapCells, requests, rng, noFront: !hasFrontline);
