@@ -1,3 +1,5 @@
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>
@@ -21,8 +23,9 @@ public sealed class ComposeRequest
     /// to supply a cell reads it here rather than restating the number.</summary>
     public const int DefaultCell = 4;
 
-    /// <param name="playersPerTeam">Clamped to the size ladder's own range, 6..64 — the bands the land
-    /// budget is measured for (<see cref="PgmStudio.Vocabulary.SizeBands"/>).</param>
+    /// <param name="playersPerTeam">Clamped to the size ladder's own range, 6..47 — the bands the land
+    /// budget is measured for (<see cref="PgmStudio.Vocabulary.SizeBands"/>). The ceiling is the top band's
+    /// own, so a request for a bigger side composes the biggest board there is rather than being refused.</param>
     /// <param name="teams">2 or 4.</param>
     /// <param name="symmetry">Null selects the default for <paramref name="teams"/>: <c>rot_180</c> for 2,
     /// <c>rot_90</c> for 4. <c>mirror_x</c>/<c>mirror_z</c> are legal only for 2 teams.</param>
@@ -32,7 +35,7 @@ public sealed class ComposeRequest
     public ComposeRequest(int playersPerTeam, int teams = 2, string? symmetry = null, ulong seed = 0,
                           int cell = DefaultCell)
     {
-        PlayersPerTeam = Math.Clamp(playersPerTeam, 6, 64);
+        PlayersPerTeam = Math.Clamp(playersPerTeam, 6, SizeBands.Players(SizeBands.Centi).High);
 
         if (teams != 2 && teams != 4)
             throw new ArgumentException($"teams must be 2 or 4 (got {teams})", nameof(teams));

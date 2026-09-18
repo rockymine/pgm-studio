@@ -4087,9 +4087,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   land budget nothing enforced: `LandPerPlayerAnchors` ran 65 blocks² a player at five to 185 at thirty-two
   where 331 corpus maps measure about **250 at every size**, and every consumer of it was a step function
   topping out at 3000 land, so twenty players and thirty-two composed the same board. The count now names a
-  **size band** — `PgmStudio.Vocabulary.SizeBands`, nano 6–13 · micro 14–21 · milli 22–31 · centi 32–47 ·
-  hecto 48+ — and the band carries its measured land (2250 · 4025 · 7075 · 8730 · 20190), its corridor width
-  in **blocks** (12 · 14 · 16 · 16 · 22, the wool approach one rung under) and its wool count. `LandBudget` is
+  **size band** — `PgmStudio.Vocabulary.SizeBands`, nano 6–13 · micro 14–21 · milli 22–31 · centi 32 and
+  up — and the band carries its measured land (2250 · 4025 · 7075 · 8730), its corridor width
+  in **blocks** (12 · 14 · 16 · 16, the wool approach one rung under) and its wool count. `LandBudget` is
   the ledger: the spawn, the frontline and each wool take a fixed share as they are sized, `HubBoxCells` gives
   the hub whatever is left at a sampled aspect, and the composer **gates on what the unit actually built** —
   outside 70–130% of the budget the attempt is resampled. Every width the emitters read is now a lane count

@@ -40,11 +40,11 @@ and a fall counted but not charged, routing around voids — never the straight 
   already draw, not block-true dimensions. Grid-born "artificial" distances are expected and are
   resolved downstream by the scale + roughen passes (design doc §2, "the plan is a mini layout").
 - **G2 [corpus, revised]** The map's corridor width is the **size band's**, stated in blocks:
-  **12** at nano, **14** at micro, **16** at milli and centi, **22** at hecto — and the wool approach one
-  rung under it at **10 · 12 · 14 · 14 · 18**. Measured over 359 built CTW maps
+  **12** at nano, **14** at micro, **16** at milli and centi — and the wool approach one
+  rung under it at **10 · 12 · 14 · 14**. Measured over 359 built CTW maps
   (`docs/world-scan/map-size-ladder.md`): the modal local thickness of a map's ground runs
-  8 · 10 · 14 · 16 · 16 from the smallest maps up, the quartile a working lane sits at runs
-  8 · 12 · 14 · 16 · 17, and ground narrower than **8 blocks** is 1.5–4% of a map at every size, which is
+  8 · 10 · 14 · 16 from the smallest maps up to the top of the ladder, the quartile a working lane sits at
+  runs 8 · 12 · 14 · 16, and ground narrower than **8 blocks** is 1.5–4% of a map at every size, which is
   the floor authors build to. A width in blocks divided by the grid's cell is what lets the scale move: at
   cell 4 the reachable widths are 4/8/12/16/20 and the measured ladder's ends both land on one, at cell 5
   they are 5/10/15/20 and neither does. The composer draws on **cell 4**, which carries the map's lane
@@ -81,22 +81,23 @@ and a fall counted but not charged, routing around voids — never the straight 
 - **G8 [corpus, revised]** Map size is driven by the intended player count — `maxPlayers` is an
   *input* to the board envelope, not an afterthought — and the count's job is to name a **size band**. A
   map is not built for one count: it works across a range, and the ranges are the author's — **nano**
-  6–13 players a team, **micro** 14–21, **milli** 22–31, **centi** 32–47, **hecto** 48+. Two counts inside
-  one band compose to the same budget, because they are the same map.
+  6–13 players a team, **micro** 14–21, **milli** 22–31, **centi** 32 and up. Two counts inside
+  one band compose to the same budget, because they are the same map. **Centi is the top of the ladder**:
+  the server these are built for fields at most 32 a side, so a request for a bigger side composes the
+  biggest board there is rather than a band nobody plays.
 
   | band | players/team | land/team | land/player | maps measured |
   |---|---|---|---|---|
   | nano | 6–13 | **2250** | 225 | 77 |
   | micro | 14–21 | **4025** | 242 | 90 |
   | milli | 22–31 | **7075** | 270 | 65 |
-  | centi | 32–47 | **8730** | 256 | 84 |
-  | hecto | 48+ | **20190** | 404 | 3 |
+  | centi | 32+ | **8730** | 256 | 84 |
 
   Measured over 331 CTW corpus maps with both a team count and a player cap
   (`docs/world-scan/map-size-ladder.md`). Land per team fits `176 × players^1.12` (r = 0.83 on log–log),
   and an exponent of one is exactly "constant land per player" — so the coefficient is about **250
-  blocks² a player at every size**, and the band is what quantizes a nearly linear law. The hecto row has
-  three witnesses and is the law extended, not a measurement. Composer: player count → band → land budget
+  blocks² a player at every size**, and the band is what quantizes a nearly linear law. Composer: player
+  count → band → land budget
   = teams × the band's land/team, and that budget **buys two things**: nine tenths of a team's share is the
   team unit's, and the tenth each unit gives up funds the crossing's own stones — a fifth of one team's
   budget, shared, because both teams stand on it. A board's whole land is the band's either way.
@@ -1026,6 +1027,16 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     around it (`TP6` rewrites only stone); nothing is filled downward. No other rule changes — `ST2`'s spawn
     piece never laid a floor, and `ST4`'s wall keeps its bedrock, which is a barrier rather than a plinth.
 
+36. **The ladder stops at centi (2026-09-18).** Author's call. The server these boards are built for fields
+    at most 32 players a side, so the **hecto** band is a size nobody plays and the composer no longer builds
+    it: `G8`'s ladder is nano · micro · milli · centi, centi's range is open at the top, and a request for a
+    bigger side is clamped to it rather than refused. Its land row was the one extended from three witnesses
+    rather than measured, and its corridor of 22 blocks and 32-block mid stone went with it. The corpus
+    measurement that produced all five rows is unchanged and stays in
+    `docs/world-scan/map-size-ladder.md` — what changed is which of its rows the composer reads. It also
+    takes the worst of the crossing's geometry off the board: the hole a player walks round ran over 40
+    blocks on 32% of hecto boards against 37% at centi and none at all below (`G272`).
+
 35. **The crossing is funded and carries stones (2026-09-17).** Author's call. `MD1`, `MD4`, `MD5` and `MD6`
     described a mid nothing built: `MidResult.Stones` was always empty and the band was a fixed 20-block void.
     `G8`'s budget now splits — a tenth off each team unit funds the crossing, so the mid's own allowance is a
@@ -1033,12 +1044,11 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     side of it (12 blocks, `G5`'s near end); a band carrying none opens **30** blocks front to front, because an
     empty crossing is walked in one go rather than in hops. A stone stands **astride the axis**, symmetric about
     it, so `CT11`'s abutment makes it and its own image one shared island rather than a stone each; its depth is
-    16 · 24 · 24 · 24 · 32 blocks up the bands, laid on the grid as an even number of cells. The row is the
+    16 · 24 · 24 · 24 blocks up the bands, laid on the grid as an even number of cells. The row is the
     widest count the frontline hull affords with every stone wider than it is deep, capped at three per `MD6` —
-    one at nano and micro, two at milli and centi, three at hecto — each clear of its neighbours by a hop and of
-    the band's ends by a cell. A split band carries none (its bay is the island) and a hull too narrow for one
-    at that aspect carries none. `MD5` holds at every band but hecto, whose 1536-block stones sit above the
-    corpus's p90 of 884 on a band with three witnesses.
+    one at nano and micro, one or two at milli, up to three at centi — each clear of its neighbours by a hop and
+    of the band's ends by a cell. A split band carries none (its bay is the island) and a hull too narrow for
+    one at that aspect carries none.
 
 30. **`ST9` split, `ST10` added (2026-09-01).** Author's call, closing `B178`. `ST9` had capped the *piece*
     at 20×20 as a workaround: the stamped building was sized by its piece, so one rectangle carried the

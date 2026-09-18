@@ -23,7 +23,6 @@ public sealed class EnvelopeTests
     [Arguments(31, SizeBands.Milli)]
     [Arguments(32, SizeBands.Centi)]
     [Arguments(47, SizeBands.Centi)]
-    [Arguments(48, SizeBands.Hecto)]
     public async Task The_player_count_selects_its_band_and_the_band_carries_the_land(int players, string band)
     {
         var env = Derive(players, seed: 1);
@@ -95,7 +94,7 @@ public sealed class EnvelopeTests
         foreach (var seed in new ulong[] { 1, 2, 3, 4 })
         {
             long last = 0;
-            foreach (var players in new[] { 8, 16, 24, 32, 48 })
+            foreach (var players in new[] { 8, 16, 24, 32 })     // one count per band, up the whole ladder
             {
                 var env = Derive(players, seed: seed);
                 long area = (long)env.BoardWidthBlocks * env.BoardLengthBlocks;

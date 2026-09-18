@@ -15,6 +15,20 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 
 ## The composer states distances in cells, and a grid scale moves them
 
+- [ ] **G272 — Bound the run a player walks around a hub's hole at 40 blocks.** A hole's job is rotation
+  (`CT8`): a loop round it gives an alternative route between lanes. Past a certain length it stops being a
+  loop and becomes a wall — two players on opposite sides never meet and neither can change direction. The
+  author's bar is **40 blocks on the hole's longest side**. `HubBoxCells` sizes the hub from its budget share
+  alone and the holed bodies build every wall one corridor thick, so the hole takes the whole difference as
+  the box grows. Either the ring's walls thicken with the box or the body splits the void — a `double-hole`
+  where one ring's hole would run long. Lands in `TeamUnitAllocator.ChooseHubBody`/`ChooseHubWalls`;
+  `docs/generator/model.md` and `rules.md` (`CT8` is the rule that states the envelope and measures nothing).
+
+  *Evidence: 12 seeds a band, cell 4 — the hole run's median is 16 · 16 · 18 · 24 blocks up the ladder and
+  **14 of 38 centi boards exceed 40**, none below it. The corpus of 359 CTW maps puts the run's median at 20
+  and its p90 at 43 (836 voids), so the bar is the corpus p90. `opus5-threapland` is the worked case: one
+  76×36 hole at cell (-10,-19), where a double-hole hub would have given two.*
+
 - [~] **G264 — The composer seats a wool room its own lane-width from the hub, so a goal's setback is the
   band's corridor and not a distance.** On a composed board the gap `WL12` names is the **inside corner of a
   bent wool**: `wool-a-room` sits at the far side of the wool lane, so the void between the room and `hub-t1`

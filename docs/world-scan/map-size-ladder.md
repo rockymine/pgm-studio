@@ -15,6 +15,10 @@ Maps are not built for a single count. They work across a band, and the bands ha
 players per team, **micro** 14–21, **milli** 22–31, **centi** 32–47, **hecto** 48 and up. A budget is owed
 per band, not per count.
 
+The measurement covers all five. **The composer builds four of them**: centi is the top of its ladder and
+its range is open there, because the server these boards are built for fields at most 32 a side
+(`rules.md` amendment 36). The hecto rows below stay because nothing else can re-derive them.
+
 ## What was read, and how
 
 363 CTW maps were scanned with `PgmStudio.RoundTrip --scan-out-all`; 359 finished. Four did not, and each

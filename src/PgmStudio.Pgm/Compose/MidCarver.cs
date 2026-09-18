@@ -74,7 +74,6 @@ public static class MidCarver
     private static int StoneDeepBlocks(string band) => SizeBands.Canonical(band) switch
     {
         SizeBands.Micro or SizeBands.Milli or SizeBands.Centi => 24,
-        SizeBands.Hecto => 32,
         _ => 16,
     };
 

@@ -13,14 +13,13 @@ public static class UnitTuning
 
     /// <summary>The map-wide corridor width in <b>blocks</b>, per size band — measured as where a CTW map's
     /// ground actually sits (<c>docs/world-scan/map-size-ladder.md</c>): the modal local thickness runs
-    /// 8 · 10 · 14 · 16 · 16 from the smallest maps up, and the quartile a working lane sits at is
-    /// 8 · 12 · 14 · 16 · 17. Every non-wool box builds to this width (LN1).</summary>
+    /// 8 · 10 · 14 · 16 from the smallest maps up to the top of the ladder, and the quartile a working lane
+    /// sits at is 8 · 12 · 14 · 16. Every non-wool box builds to this width (LN1).</summary>
     internal static int CorridorBlocks(string band) => band switch
     {
         SizeBands.Micro => 14,
         SizeBands.Milli => 16,
         SizeBands.Centi => 16,
-        SizeBands.Hecto => 22,
         _ => 12,
     };
 
@@ -41,7 +40,6 @@ public static class UnitTuning
         SizeBands.Micro => 12,
         SizeBands.Milli => 14,
         SizeBands.Centi => 14,
-        SizeBands.Hecto => 18,
         _ => 10,
     };
 

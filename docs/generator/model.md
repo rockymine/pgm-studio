@@ -130,7 +130,7 @@ from there to the widths that decide what may be built where.
 
 | Parameter | Range | Means |
 |---|---|---|
-| `playersPerTeam` | clamped **6–64** | the only size input — it selects a size band, and the band is what the land budget and every structural ladder read |
+| `playersPerTeam` | clamped **6–47** | the only size input — it selects a size band, and the band is what the land budget and every structural ladder read; the ceiling is the top band's own |
 | `teams` | **2** or **4** | 4 teams force `rot_90` |
 | `symmetry` | `rot_180` · `mirror_x` · `mirror_z` (2 teams) · `rot_90` (4) | which orbit fans the authored unit; defaults to `rot_180` / `rot_90` |
 | `seed` | any `ulong` | drives **every** draw — the same request reproduces the same plan byte-for-byte |
@@ -153,12 +153,14 @@ same sequence, permanently.
 Everything is sized once, before any geometry exists, from the player count alone — and the player
 count's whole job is to name a **size band**. A CTW map is not built for one count: it works across a
 range, and the ranges have names. **Nano** serves 6 to 13 players a team, **micro** 14 to 21, **milli**
-22 to 31, **centi** 32 to 47, **hecto** 48 and up. Two counts inside one band compose to the same
-budget, because they are the same map.
+22 to 31, and **centi** 32 and up. Two counts inside one band compose to the same
+budget, because they are the same map. Centi is the top of the ladder: the server these boards are built
+for fields at most 32 a side, so a count above it composes the biggest board there is rather than a
+larger band nobody plays.
 
 **Land per team** is the band's, measured over 331 CTW corpus maps
-(`docs/world-scan/map-size-ladder.md`): 2250 blocks² at nano, 4025 at micro, 7075 at milli, 8730 at
-centi, 20190 at hecto. Read per player it is about 250 blocks² at every size — the corpus fits
+(`docs/world-scan/map-size-ladder.md`): 2250 blocks² at nano, 4025 at micro, 7075 at milli and 8730 at
+centi. Read per player it is about 250 blocks² at every size — the corpus fits
 `land/team = 176 × players^1.12`, and an exponent of one is exactly "constant land per player", so the
 ladder is nearly linear and the band is what quantizes it. This is the **land** currency, and it counts
 terrain area only.
@@ -195,9 +197,9 @@ run, and how many objectives a team gets.
 
 **The corridor width is stated in blocks**, which is what lets a grid scale move without moving the
 map. The corpus measures where a CTW map's ground actually sits — the modal local thickness runs
-8 · 10 · 14 · 16 · 16 from the smallest maps up, and the quartile a working lane sits at is
-8 · 12 · 14 · 16 · 17 — so the map's lane is 12 blocks at nano, 14 at micro, 16 at milli and centi, 22
-at hecto, and the wool approach is one rung under it at 10 · 12 · 14 · 14 · 18. Each is divided by the
+8 · 10 · 14 · 16 from the smallest maps up to the top of the ladder, and the quartile a working lane sits
+at is 8 · 12 · 14 · 16 — so the map's lane is 12 blocks at nano, 14 at micro and 16 at milli and centi,
+and the wool approach is one rung under it at 10 · 12 · 14 · 14. Each is divided by the
 cell where the grid is laid, rounded to the nearest whole cell and never under two. A width stated in
 cells could not carry a ladder at all — it would make the cell a design decision rather than a drawing
 scale, so moving it would shrink every element instead of offering a finer rung. Stated in blocks, the cell
@@ -1232,7 +1234,7 @@ How many stones is what the hull affords. Each is **wider than it is deep** — 
 drawn down the middle rather than an island — and each stands clear of its neighbours by a hop and of the
 band's own ends by a cell. The widest count meeting that, capped at three, is the row, and because the hull is
 the frontline's own the count moves with the front rather than with the band: measured over the seed range it
-runs one island at nano and micro, one or two at milli, up to three at centi and two or three at hecto. Where
+runs one island at nano and micro, one or two at milli and up to three at centi. Where
 the row needs it the gap between stones takes one cell more than a hop, because a row spanning an odd number
 of cells cannot sit symmetric about the axis's own cell boundary.
 

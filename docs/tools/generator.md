@@ -44,7 +44,7 @@ A compose takes five values and no geometry.
 
 | Field | Default | Is |
 |---|---|---|
-| `players` | 12 | Players per team, clamped 6–64. The only size input, and its job is to name a **size band** — nano 6–13, micro 14–21, milli 22–31, centi 32–47, hecto 48+ — which is what the land budget and every structural ladder read. Two counts in one band compose to the same budget. |
+| `players` | 12 | Players per team, clamped 6–47. The only size input, and its job is to name a **size band** — nano 6–13, micro 14–21, milli 22–31, centi 32 and up — which is what the land budget and every structural ladder read. Two counts in one band compose to the same budget, and a count above centi's range is clamped into it because centi is the top of the ladder. |
 | `teams` | 2 | 2 or 4. Fixed at 2 by the browse endpoint. |
 | `symmetry` | `rot_180` | `rot_180` or `mirror_z` through the feed. `mirror_x` and `rot_90` are legal `ComposeRequest` values but the endpoint answers 400. |
 | `cell` | 4 | Blocks per proxy cell — the plan grid's scale. No control writes it; it is honoured as a query parameter. |
@@ -143,7 +143,7 @@ validator and the derivers ignore it — and it is what the Plan tool's feasibil
 
 The four numbers do not scale a board smoothly; the player count lands in a band and the band is what changes
 the board's shape. Each band carries its measured land per team — 2250 blocks² at nano, 4025 at micro, 7075 at
-milli, 8730 at centi, 20190 at hecto — its corridor width in blocks — 12 · 14 · 16 · 16 · 22, with the wool
+milli and 8730 at centi — its corridor width in blocks — 12 · 14 · 16 · 16, with the wool
 approach one rung under — and its wool count: one a team at nano, two from micro up, sometimes three. Beside
 the ladders sit roughly a dozen sampling weights — how often a wool bends, how often a bent wool is a donut, how often a big
 square hub takes the ring — which steer the output's character more than anything else in the generator and
@@ -177,8 +177,9 @@ the hold tray sits above them when anything is pinned.
 on the Apply button and start the seed walk over. The structural filters — wool families, hub form, frontline
 form — apply the moment a chip is clicked. Wool families are **must-include**: every family named has to be
 present on the board. Hub and frontline are **any-of**. Max score is a slider to 8 where 8 means *any* and the
-bound is simply not sent; wool count is a min/max pair where 0 means unset. The player slider runs 6 to 30 in
-steps of two, which is narrower than the request's own 6–64 clamp, and a script is not bound by it.
+bound is simply not sent; wool count is a min/max pair where 0 means unset. The player slider runs 6 to 32 in
+steps of two — 32 is the top band's floor, so the slider reaches every band — and a script is not bound
+by it: the request's own clamp is 6–47.
 
 The Z and scythe chips render disabled with the reason on the tooltip, because neither is in the production
 mix — the Z is on the fill menu and asked for by no sampler, the scythe is off the menu outright. That is the

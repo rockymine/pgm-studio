@@ -354,8 +354,8 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   edge to edge across its whole width, so the two read as a single solid run of `2 × corridor`. Measured
   over 48 composed boards a band (`docs/world-scan/map-size-ladder.md`): the fault appears on **22–32 of
   them at every band**, and its widest run grows with the corridor — 48×24 blocks at nano, 52×32 at micro,
-  100×32 at milli, 116×32 at centi, 180×48 at hecto — against a corpus whose own modal ground width is
-  10 · 14 · 16 · 16 · 18. The grid does not reach it: a board's modal width is 30 at micro on cell 5 and 29
+  100×32 at milli and 116×32 at centi — against a corpus whose own modal ground width is
+  10 · 14 · 16 · 16. The grid does not reach it: a board's modal width is 30 at micro on cell 5 and 29
   on cell 4. `TeamUnitFiller` already prefers a strand frontline over the solid bar on a holed hub; what is
   missing is the same preference read off the **edge the spine actually docks** rather than off the hub's
   form. `docs/generator/model.md` §5 and `rules.md` `FR6`.

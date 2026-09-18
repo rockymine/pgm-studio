@@ -17,7 +17,7 @@ using PgmStudio.Pgm.Plan;
 var presets = new (string Label, int Players)[]
 {
     ("nano", 8), ("nano+", 12), ("micro", 16), ("micro+", 20),
-    ("milli", 24), ("centi", 32), ("centi+", 40), ("hecto", 48),
+    ("milli", 24), ("centi", 32), ("centi+", 40),
 };
 var symmetries = new[] { "mirror_z", "mirror_x", "rot_180" };
 const int seeds = 400;

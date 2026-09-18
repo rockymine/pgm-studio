@@ -70,15 +70,13 @@ public static class Envelope
     // G8: the land a team's half of a board holds, per size band, measured over 331 CTW corpus maps
     // (docs/world-scan/map-size-ladder.md). A band rather than a per-count curve because a map is built for a
     // range of counts, not one; the medians sit at about 250 blocks² a player at every size, which is the
-    // reading `land/team = 176 × players^1.12` states continuously. Hecto extends the law — three maps carry
-    // that band and three is not a measurement.
+    // reading `land/team = 176 × players^1.12` states continuously.
     private static readonly Dictionary<string, double> LandPerTeamByBand = new()
     {
         [SizeBands.Nano] = 2250,
         [SizeBands.Micro] = 4025,
         [SizeBands.Milli] = 7075,
         [SizeBands.Centi] = 8730,
-        [SizeBands.Hecto] = 20190,
     };
 
     // The measured coverage of a CTW map's bounding box by its land: 32-41% across every band, sampled over
