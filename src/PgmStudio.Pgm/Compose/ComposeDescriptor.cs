@@ -13,7 +13,7 @@ namespace PgmStudio.Pgm.Compose;
 /// 2 rather than as cell offsets under version 1.</summary>
 public static class ComposerVersion
 {
-    public const string Current = "keyed-rows-1";
+    public const string Current = "front-seat-1";
 }
 
 /// <summary>

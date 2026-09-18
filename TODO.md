@@ -15,6 +15,19 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 
 ## The composer states distances in cells, and a grid scale moves them
 
+- [ ] **G274 — A frontline's width is drawn before the hub's body, so it cannot know a bay is coming.**
+  `TeamUnitAllocator.Allocate` samples the neighbour requests at line 86 and chooses the hub form at line 90,
+  so `UnitRequests`' face width is drawn against the hub's *box* and knows nothing of the body that will be
+  emitted into it. On a bay-fronted hub (G, U, L) a face narrower than the bay plus a lane on each shoulder
+  has no seat that can close it, and `UnitSeating.SeatFront`'s preference for a sealing seat then has nothing
+  to prefer. Either the form is chosen before the requests, or a face that cannot seal asks to be widened.
+  `docs/generator/model.md` §the three dock rules.
+
+  *Evidence: 61 bay-fronted hubs over 480 composed boards — 46 sealed, 15 not, and every one of the 15 is
+  width-bound. `p24 rot_180 seed 8`: front-edge runs `[-7,2)` and `[6,10)`, bay `[2,6)`, face 4 cells wide,
+  so no position spans the bay and its shoulders. `seed 37` is the near miss — face `[-7,3)` against a bay
+  ending at 4.*
+
 - [ ] **G273 — A fine row should key to the hub's legs where the front has none.** `MidCarver.Keyed` lines
   its stones up with the faces of the unit's **front row**, which is the right feature when there is more
   than one — but a front presents a single face on about two boards in three, so the keyed row lands on one

@@ -217,7 +217,8 @@ public static class UnitSeating
     /// by fitting wholly inside a free run; the frontline does not have to, because its face is what the mid
     /// meets rather than a corridor the hub must hold. So a position is legal when the face abuts the hub over at
     /// least <c>cw</c> contiguous cells of one free run — which admits a face narrower than the edge
-    /// (seated anywhere along it) and one wider than the edge (overhanging either end).
+    /// (seated anywhere along it) and one wider than the edge (overhanging either end) by at most
+    /// <see cref="UnitTuning.FaceOverhangMaxCells"/> across both ends together.
     ///
     /// <para>Returns the plan-cell box and the <b>real</b> hub↔frontline interface, clipped to the abutment and
     /// so narrower than the box whenever it overhangs — the filler reads the offer off this, not off the face
@@ -232,9 +233,15 @@ public static class UnitSeating
         IReadOnlyList<Box> seated, int laneWidthCells, int seatGapCells, ComposeRng rng)
     {
         var placements = new List<(int Seat, CellRect Box, BoxAbutment Abutment)>();
-        for (var seat = -(request.Along - laneWidthCells); seat <= edgeLen - laneWidthCells; seat++)
+        // the face may reach past the hub's corners, but only by what UnitTuning states: a seat is bounded by
+        // the overhang budget rather than by how much of the face still touches. Without the bound every seat
+        // that keeps one lane of contact is legal, a shifted face picks uniformly among them, and the far ones
+        // outnumber the near — which is a face hanging off the hub's end rather than a face slid along it.
+        var overhangBudget = UnitTuning.FaceOverhangMaxCells;
+        for (var seat = -overhangBudget; seat <= edgeLen - request.Along + overhangBudget; seat++)
         {
             int lo = seat, hi = seat + request.Along;
+            if (Math.Max(0, -lo) + Math.Max(0, hi - edgeLen) > overhangBudget) continue;
             if (!Docks(runs, lo, hi, laneWidthCells)) continue;
             if (PinchesAtEnd(runs, seat, seat + request.Along)) continue;
             var box = SeatGeometry.NeighbourRect(edge, seat, request.Depth, request.Along, hubRect);
@@ -247,6 +254,14 @@ public static class UnitSeating
 
         // (see PinchesAtEnd for the end-alignment law the loop above applies)
 
+        // A bay-fronted hub — a G, U or L, whose body leaves a gap in its own front edge — is meant to be
+        // CLOSED by the frontline: a face spanning the bay rests on a shoulder each side and turns the bay
+        // into a declared hole, which is the rotation device CT8 names. A face seated to one side of it leaves
+        // the bay open as a notch and puts the whole crossing off the hub's flank. So where the edge has a bay
+        // and any placement spans it, those are the placements; the sample is over them.
+        var sealing = placements.Where(p => Seals(runs, p.Seat, p.Seat + request.Along)).ToList();
+        if (sealing.Count > 0) placements = sealing;
+
         // Centred by default. Sliding the face along the edge is the funnel, and it costs the mid band slack
         // (Composer.FrontHullSlackCells) — so it is a sampled exception, not what every seat does. Without this
         // even a full-width face would land off-centre, since every overhanging position is legal too.
@@ -258,6 +273,20 @@ public static class UnitSeating
         }
         var pick = placements[rng.NextInt(0, placements.Count)];
         return (pick.Box, pick.Abutment);
+    }
+
+    /// <summary>Whether a face covering edge-local <c>[lo, hi)</c> closes every bay in the hub's own front
+    /// edge — each gap between two of its free <paramref name="runs"/>, which is edge the hub's body leaves
+    /// without terrain. True for an edge with no bay at all, so a solid front never prefers one seat over
+    /// another on this account.</summary>
+    internal static bool Seals(IReadOnlyList<(int Start, int Len)> runs, int lo, int hi)
+    {
+        var ordered = runs.OrderBy(r => r.Start).ToList();
+        for (var index = 1; index < ordered.Count; index++)
+            if (ordered[index].Start > ordered[index - 1].Start + ordered[index - 1].Len
+                && (lo > ordered[index - 1].Start + ordered[index - 1].Len || hi < ordered[index].Start))
+                return false;
+        return true;
     }
 
     /// <summary>

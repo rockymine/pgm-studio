@@ -1049,6 +1049,17 @@ on a shoulder each side of the hole, and a shoulder thinner than a corridor leav
 over the hole, held by one side. A second rule rejects a face whose end lands exactly where a run stops,
 because the face's end cell and the hub's last filled cell would then touch only at a corner.
 
+Two things bound where that face may sit, and both are about the hub's ends rather than its middle. The
+seat may carry the face past the hub's corners by **two cells across both ends together** and no further,
+which is the same allowance the sampled width is drawn with — a face is a front the mid meets, not a spur
+reaching off the hub's flank, and a seat bounded only by how much of the face still touches would let one
+hang almost entirely clear. And where the hub's own front edge carries a **bay**, a seat that spans it is
+preferred over one that does not: a G, U or L is a body whose bay the frontline is meant to *close*,
+turning it into the declared hole that is CT8's rotation device, where a face seated to one side leaves it
+open as a notch and puts the whole crossing off the hub's flank. Preferred rather than required, because
+a face narrower than the bay and its two shoulders has no seat that could span it — the width is drawn
+before the body form is chosen, so it cannot know a bay is coming (`G274`).
+
 | Style | Who | What must land on a run |
 |---|---|---|
 | full mouth | spawn, plain wools, the two-legged staples | the whole along-extent |

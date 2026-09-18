@@ -1027,6 +1027,22 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     around it (`TP6` rewrites only stone); nothing is filled downward. No other rule changes — `ST2`'s spawn
     piece never laid a floor, and `ST4`'s wall keeps its bedrock, which is a barrier rather than a plinth.
 
+39. **The frontline's seat is bounded, and a bay-fronted hub prefers the seat that closes it (2026-09-18).**
+    Author's call, off a board whose G hub had its frontline hanging 56 blocks past the hub's flank.
+    `G123`'s contact-patch dock admits a face narrower than the hub's edge or wider than it, and
+    `UnitTuning.FaceOverhangMaxCells` states the allowance as **two cells across both ends together** — but
+    only the sampled *width* read it. The **seat** ranged over every position keeping one lane of contact, a
+    shifted face sampled uniformly among them, and the far positions outnumber the near: measured over 428
+    boards carrying a frontline, **14% overhung the hub by more than a cell**, with a p99 of 60 blocks and a
+    worst of 88. The seat now reads the same allowance, which takes it to **1%** and a worst of 8 — the
+    budget itself — with `G`, `P`, `DoubleHole` and `Rectangle` hubs at none.
+
+    And a hub whose body leaves a **bay** in its own front edge is meant to have it **closed** by the
+    frontline, which turns the bay into the declared hole `CT8` calls the rotation device. Where any legal
+    seat spans the bay, those are now the seats the sample is taken over: 59% of bay-fronted hubs were
+    sealed, then 69% with the seat bounded and **75%** with the preference. The rest are faces too narrow to
+    span the bay and both its shoulders, which no seat can fix (`G274`).
+
 38. **A row has a grain, and a fine one keys to the front's own legs (2026-09-18).** Author's call. `MD6`
     asks for a **grid** of stepping stones and the composer built one column of it, centred on the band, so a
     front with two legs sent both at a single island between them. A crossing now also draws a **fine** row:
