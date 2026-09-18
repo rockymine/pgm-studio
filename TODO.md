@@ -15,18 +15,20 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 
 ## The composer states distances in cells, and a grid scale moves them
 
-- [ ] **G274 — A frontline's width is drawn before the hub's body, so it cannot know a bay is coming.**
-  `TeamUnitAllocator.Allocate` samples the neighbour requests at line 86 and chooses the hub form at line 90,
-  so `UnitRequests`' face width is drawn against the hub's *box* and knows nothing of the body that will be
-  emitted into it. On a bay-fronted hub (G, U, L) a face narrower than the bay plus a lane on each shoulder
-  has no seat that can close it, and `UnitSeating.SeatFront`'s preference for a sealing seat then has nothing
-  to prefer. Either the form is chosen before the requests, or a face that cannot seal asks to be widened.
-  `docs/generator/model.md` §the three dock rules.
+- [ ] **G274 — Choose the hub's body before its neighbours' requests, so a request is sized against what the
+  hub offers rather than its bounding box.** `TeamUnitAllocator.Allocate` samples the requests at line 86 and
+  picks the form at line 90, so every neighbour is sized against the hub *box* edge and must then fit a free
+  **run** of it. Hoist the emit out of `UnitSeating.Seat` into `Allocate` — form, walls, arms, emit, read the
+  runs, then size — and the order reads the way the dependency does. The fallback ladder survives the move
+  untouched: it demotes toward the solid rectangle, which offers strictly more free surface than any holed
+  body, so a request sized against a G's runs still fits it. `docs/generator/model.md` §the three dock rules.
 
-  *Evidence: 61 bay-fronted hubs over 480 composed boards — 46 sealed, 15 not, and every one of the 15 is
-  width-bound. `p24 rot_180 seed 8`: front-edge runs `[-7,2)` and `[6,10)`, bay `[2,6)`, face 4 cells wide,
-  so no position spans the bay and its shoulders. `seed 37` is the near miss — face `[-7,3)` against a bay
-  ending at 4.*
+  *Evidence: 104 of 480 composed boards have a front edge whose longest run is shorter than the box edge —
+  median shortfall 32 blocks, p90 72, max 96 — and it is two forms entirely: `G` 100% and `SpineArms` 85%,
+  against `Ring`/`P`/`DoubleHole`/`Rectangle` at 0%. The realised harm is 15 bay-fronted hubs whose face is
+  too narrow for any seat to close the bay (`p24 rot_180 seed 8`: runs `[-7,2)` and `[6,10)`, bay `[2,6)`,
+  face 4 cells). Widening the face at seat time instead is the wrong half of the fix — it spends land the
+  budget never allocated, 48 cells on that board against a unit budget of 398.*
 
 - [ ] **G273 — A fine row should key to the hub's legs where the front has none.** `MidCarver.Keyed` lines
   its stones up with the faces of the unit's **front row**, which is the right feature when there is more
