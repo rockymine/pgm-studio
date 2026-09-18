@@ -43,7 +43,7 @@ public sealed class MidCarverTests
         foreach (var players in new[] { 8, 16, 24, 32, 52 })
         {
             var env = Envelope.Derive(new ComposeRequest(players), new ComposeRng(1));
-            var crossing = MidCarver.Crossing(env, splitBand: false);
+            var crossing = MidCarver.Crossing(env, splitBand: false, doubleRank: false);
             var deep = MidCarver.StoneDeepCells(env);
             await Assert.That(deep % 2).IsEqualTo(0)
                 .Because("a stone astride the axis spends half its depth each side");
@@ -56,10 +56,10 @@ public sealed class MidCarverTests
     public async Task A_split_crossing_takes_the_stoneless_gap_because_its_bay_is_the_island()
     {
         var env = Envelope.Derive(new ComposeRequest(24), new ComposeRng(1));
-        await Assert.That(MidCarver.Crossing(env, splitBand: true).HalfGapCells)
+        await Assert.That(MidCarver.Crossing(env, splitBand: true, doubleRank: false).HalfGapCells)
             .IsEqualTo(MidCarver.EmptyHalfGapCells(env.Cell));
-        await Assert.That(MidCarver.Crossing(env, splitBand: true).HalfGapCells)
-            .IsNotEqualTo(MidCarver.Crossing(env, splitBand: false).HalfGapCells);
+        await Assert.That(MidCarver.Crossing(env, splitBand: true, doubleRank: false).HalfGapCells)
+            .IsNotEqualTo(MidCarver.Crossing(env, splitBand: false, doubleRank: false).HalfGapCells);
     }
 
     [Test]
@@ -108,8 +108,14 @@ public sealed class MidCarverTests
                     foreach (var span in spans)
                     {
                         carried++;
-                        await Assert.That(span.Near).IsEqualTo(-span.Far)
-                            .Because($"p{players} {symmetry} s{seed}: a stone sits symmetric about the axis");
+                        // one rank astride the axis is symmetric about it; a double rank stands wholly to one
+                        // side of it, a whole hop off, so its own image is the opposite rank rather than
+                        // itself. Which side is the frame's, so the test reads the distance and not the sign.
+                        var clear = span.Near * span.Far > 0
+                                    && Math.Min(Math.Abs(span.Near), Math.Abs(span.Far))
+                                       >= MidCarver.RankOffsetCells(env.Cell);
+                        await Assert.That(span.Near == -span.Far || clear).IsTrue()
+                            .Because($"p{players} {symmetry} s{seed}: a stone is astride the axis or a hop clear of it");
                         await Assert.That(span.Far - span.Near).IsEqualTo(deep);
                         await Assert.That(span.Hi - span.Lo).IsGreaterThanOrEqualTo(deep)
                             .Because($"p{players} {symmetry} s{seed}: wider than deep, or it is a line");
@@ -169,7 +175,7 @@ public sealed class MidCarverTests
     private static CellRect? Band(string symmetry, bool split, params (int X, int W)[] legs)
     {
         var env = Env(symmetry);
-        var design = MidCarver.Crossing(env, split);
+        var design = MidCarver.Crossing(env, split, doubleRank: false);
         var halfGap = design.HalfGapCells;
         var pieces = legs
             .Select((leg, index) => new GrownPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2)))

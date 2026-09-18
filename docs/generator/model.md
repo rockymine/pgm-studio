@@ -1209,11 +1209,13 @@ board deriver's hole rules is a change to this twin.
 
 The mid is the last thing the composer shapes and the first thing it decided. Its **half-gap** — how far from
 the axis the unit's front sits — is fixed before allocation, because the allocator takes it as the axis margin
-everything else is laid out behind. What that distance is depends on whether the crossing is going to carry a
-stone: a stone standing astride the axis spends half its depth each side, so the gap is that half plus one
-**hop** — twelve blocks, the near end of the range the corpus hops at. A crossing that carries nothing takes a
-single stated distance instead, thirty blocks from one front to the other, because an empty crossing is walked
-or bridged in one go rather than in hops.
+everything else is laid out behind. What that distance is depends on which of three middles the board drew.
+
+A **single rank** stands astride the axis and spends half its depth each side, so the gap is that half plus one
+**hop** — twelve blocks, the near end of the range the corpus hops at. A **double rank** stands a hop clear of
+the axis instead, so the gap is that offset plus a whole stone plus the hop to the front, and the crossing is
+half again as deep. A crossing that carries **nothing** takes a single stated distance, thirty blocks from one
+front to the other, because an empty crossing is walked or bridged in one go rather than in hops.
 
 Then the band itself. Laterally it spans exactly the hull of the opposing front faces and it docks flush
 against them, so the crossing is one shape with the fronts it connects; in depth it is the gap. The band
@@ -1222,13 +1224,23 @@ clears by two full cells across every orbit image, because a mid that bridged to
 direction the whole map is played in.
 
 **A stone is shared ground, and that is a property of where it sits.** The composer authors one unit and the
-symmetry supplies the other, so a stone's own image arrives whether it was asked for or not. A stone clear of
-the axis becomes two islands, one nearer each team — forward cover each side reaches first. A stone sitting
-**on** the axis, symmetric about it, has its image abut rather than land beside it, and the pair is a single
-island astride the centre line that both teams arrive at in the same moment. The second is what the crossing
-wants, so a stone's depth is laid on the grid as an even number of cells and the row is centred on the axis.
-Under a laterally flipping symmetry the row's outer stones are each other's images, so only the centre stone
-and the ones beyond it are authored; under a mirror every stone is its own image and all of them are.
+symmetry supplies the other, so a stone's own image arrives whether it was asked for or not, and the two
+middles are the two things that image can be. A stone sitting **on** the axis, symmetric about it, has its
+image abut rather than land beside it, and the pair is a single island astride the centre line that both teams
+arrive at in the same moment: the single rank's stone is shared ground, so its depth is laid on the grid as an
+even number of cells and the row is centred on the axis. Under a laterally flipping symmetry that row's outer
+stones are each other's images, so only the centre stone and the ones beyond it are authored; under a mirror
+every stone is its own image and all of them are.
+
+A stone **clear of the axis** has no such image. Its own lands on the far side, so the rank the composer
+authors comes back as a second rank facing it: each team meets the ground nearer itself first, and between the
+two ranks lies the **centre void** — two hops, the board's longest single jump and the one that crosses the
+centre line. Nothing in that rank is its own image and nothing in it is another's, so every stone is authored,
+and an odd row may sit a cell off centre because only a row astride the axis has a parity to keep. The double
+rank spends its share far better than the single: a pair is two ranks of ground, so the same allowance buys
+stones of half the width and twice the count — 95 to 99 per cent of the crossing's land against the single
+rank's 33 to 85. It is offered only where that allowance can pay for it, which is milli and centi; below them
+the narrowest stone the aspect rule admits would already be wider than the share.
 
 How many stones is what the hull affords. Each is **wider than it is deep** — otherwise it reads as a line
 drawn down the middle rather than an island — and each stands clear of its neighbours by a hop and of the

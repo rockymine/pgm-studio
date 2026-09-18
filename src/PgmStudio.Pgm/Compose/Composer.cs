@@ -49,11 +49,16 @@ public static class Composer
     {
         var rng = new ComposeRng(request.Seed);
         var envelope = Envelope.Derive(request, rng);
-        // whether this board wants a split mid, decided once for the board. Only drawn where the symmetry could
+        // what this board's middle is, decided once for it and before allocation, because the allocator takes
+        // the crossing's half-gap as its axis margin. The split draw is only made where the symmetry could
         // carry one, so a mirror board's sequence is untouched; the carve still grants it only if the face it
-        // ends up with can host it, and a face that can is equally valid crossed by a single band.
-        var crossing = MidCarver.Crossing(
-            envelope, MidCarver.LateralFlip(envelope.Symmetry) && rng.NextBool(MidCarver.SplitBandChance));
+        // ends up with can host it, and a face that can is equally valid crossed by a single band. The rank
+        // draw is only made where the crossing's share can pay for two, so a band that cannot is untouched
+        // as well.
+        var splitBand = MidCarver.LateralFlip(envelope.Symmetry) && rng.NextBool(MidCarver.SplitBandChance);
+        var doubleRank = !splitBand && MidCarver.AffordsTwoRanks(envelope)
+                         && rng.NextBool(MidCarver.DoubleRankChance);
+        var crossing = MidCarver.Crossing(envelope, splitBand, doubleRank);
 
         for (var attempt = 0; attempt < ComposeAttempts; attempt++)
         {

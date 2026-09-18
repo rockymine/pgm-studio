@@ -1027,6 +1027,24 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     around it (`TP6` rewrites only stone); nothing is filled downward. No other rule changes — `ST2`'s spawn
     piece never laid a floor, and `ST4`'s wall keeps its bedrock, which is a barrier rather than a plinth.
 
+37. **The crossing takes a second form: two ranks facing each other (2026-09-18).** Author's call. `MD4`'s
+    row was the only middle the composer could build, and one rank astride the axis is one shared island
+    however much of its share it leaves unspent. A board may now draw a **double rank** instead: the row
+    stands one hop clear of the axis, so no stone is its own image and the fan supplies a whole second rank
+    facing it — a stone each rather than a stone shared, with a **centre void of two hops** between them and
+    the ordinary hop to each front. The crossing is then half again as deep, which is the shape the corpus
+    keeps (a build area's width over its depth is 0.69 at the median over 241 CTW maps, and a double-rank
+    band comes out 0.67–0.83 against the single rank's 0.67–1.5). It is also the first thing the composer
+    builds that answers `MD6`'s own word: stepping stones sit in a **grid**, and one lateral row is a grid
+    one rank deep. The lateral count stays `MD6`'s — two the norm, three the maximum.
+
+    The pair is offered only where the crossing's share can pay for it — each rank is fanned, so a pair
+    spends twice one rank's land, and the narrowest stone `MD5`'s aspect rule admits is as wide as it is
+    deep. That is milli and centi and not nano or micro. Where it is drawn it spends **95–99%** of the mid's
+    allowance against the single rank's 33–85%, which is the same land buying more ground in the middle
+    rather than a larger share. Drawn at `MidCarver.DoubleRankChance`, after the split draw and only where
+    the split was not taken, so a board that cannot carry a pair keeps its sequence.
+
 36. **The ladder stops at centi (2026-09-18).** Author's call. The server these boards are built for fields
     at most 32 players a side, so the **hecto** band is a size nobody plays and the composer no longer builds
     it: `G8`'s ladder is nano · micro · milli · centi, centi's range is open at the top, and a request for a

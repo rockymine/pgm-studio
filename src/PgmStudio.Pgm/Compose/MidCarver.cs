@@ -8,7 +8,13 @@ namespace PgmStudio.Pgm.Compose;
 /// <see cref="SplitBand"/> asks for the <b>split band</b> — two parallel crossings around a centre island
 /// instead of one merged region — which the carve grants only where the face it is handed admits it. It is a
 /// request, not a guarantee, and a face that admits a split is equally valid crossed by one band.</summary>
-public sealed record CrossingDesign(int HalfGapCells, bool SplitBand = false);
+/// <summary>The row of stones a crossing carries. <see cref="SingleRank"/> stands one rank <b>astride</b> the
+/// axis, so each stone's own image abuts it into one shared island; <see cref="DoubleRank"/> stands the rank
+/// clear of the axis, so the image is a second rank facing it across the centre void and every team meets its
+/// own first. <see cref="None"/> is a crossing with nothing standing in it.</summary>
+public enum MidForm { None, SingleRank, DoubleRank }
+
+public sealed record CrossingDesign(int HalfGapCells, bool SplitBand, MidForm Form);
 
 /// <summary>A mid stepping stone: a piece standing astride the axis inside the band (MD1/MD4), fanned by
 /// symmetry into one shared island. <see cref="MidCarver.Stones"/> lays the row.</summary>
@@ -59,6 +65,11 @@ public static class MidCarver
     /// <summary>MD6: two lateral columns of mid stones are the norm and three the hard maximum.</summary>
     public const int StoneMaxCount = 3;
 
+    /// <summary>How often a crossing that can afford two ranks draws them rather than one. The single rank
+    /// astride the axis stays the common form — it is the one both teams arrive at together — and the facing
+    /// pair is the variation.</summary>
+    public const double DoubleRankChance = 0.4;
+
     /// <summary>The id every mid stone carries in front of its index, so a reader of a composed plan can tell
     /// the crossing's ground from the team unit's.</summary>
     public const string StoneIdPrefix = "mid-stone-";
@@ -95,21 +106,40 @@ public static class MidCarver
         Envelope.AxisMarginCells,
         (int)Math.Round(BandGapBlocks / 2.0 / cell, MidpointRounding.AwayFromZero));
 
+    /// <summary>How far a <b>double rank</b> stands off the axis, in cells: one hop, so the void between the
+    /// two facing ranks is two of them — the board's longest single jump, and the one that crosses the centre
+    /// line. A rank clear of the axis has its own image for the opposite rank, so a board carrying one is a
+    /// stone each rather than a stone shared.</summary>
+    public static int RankOffsetCells(int cell) => HopCells(cell);
+
+    /// <summary>Whether the crossing's share can pay for two ranks at all: each rank is fanned, so the pair
+    /// spends twice one rank's land, and the narrowest stone the aspect rule admits is as wide as it is deep.
+    /// Below this the draw is not offered and the single rank is the only form — a band that asked for a pair
+    /// it cannot afford would come out with nothing standing in it.</summary>
+    public static bool AffordsTwoRanks(ComposeEnvelope env) =>
+        env.MidLandCells >= 2 * StoneDeepCells(env) * (double)StoneDeepCells(env);
+
     /// <summary>
-    /// The crossing this board is allocated against: how far from the axis the unit's front sits, and whether
-    /// the board asks for a split band. A band carrying a stone opens exactly one hop either side of it, so its
-    /// half-gap is the hop plus half the stone; a split band carries none — the bay between its legs is the
-    /// island — and takes <see cref="EmptyHalfGapCells"/>. Order-4 boards take the stoneless gap too: a
-    /// quarter-turn mid is four fanned images of one wedge rather than two halves meeting, and CT10's
-    /// archetypes are not this row.
+    /// The crossing this board is allocated against: how far from the axis the unit's front sits, which row it
+    /// will carry and whether the board asks for a split band. A <b>single rank</b> stands astride the axis and
+    /// opens exactly one hop either side of it, so its half-gap is the hop plus half the stone; a <b>double
+    /// rank</b> stands one hop off the axis, so its half-gap is that offset plus a whole stone plus the hop to
+    /// the front. A split band carries none — the bay between its legs is the island — and takes
+    /// <see cref="EmptyHalfGapCells"/>. Order-4 boards take the stoneless gap too: a quarter-turn mid is four
+    /// fanned images of one wedge rather than two halves meeting, and CT10's archetypes are not this row.
     ///
-    /// <para>Draw-free, so it perturbs no RNG sequence.</para>
+    /// <para>Draw-free, so it perturbs no RNG sequence — <paramref name="doubleRank"/> is drawn by the caller
+    /// in the board's own fixed order.</para>
     /// </summary>
-    public static CrossingDesign Crossing(ComposeEnvelope env, bool splitBand) => new(
-        splitBand || Geom.Symmetry.Order(env.Symmetry) != 2
-            ? EmptyHalfGapCells(env.Cell)
-            : HopCells(env.Cell) + StoneDeepCells(env) / 2,
-        splitBand);
+    public static CrossingDesign Crossing(ComposeEnvelope env, bool splitBand, bool doubleRank)
+    {
+        if (splitBand || Geom.Symmetry.Order(env.Symmetry) != 2)
+            return new(EmptyHalfGapCells(env.Cell), splitBand, MidForm.None);
+        var deep = StoneDeepCells(env);
+        return doubleRank && AffordsTwoRanks(env)
+            ? new(RankOffsetCells(env.Cell) + deep + HopCells(env.Cell), false, MidForm.DoubleRank)
+            : new(HopCells(env.Cell) + deep / 2, false, MidForm.SingleRank);
+    }
 
     /// <summary>The land the crossing's stones hold on the <b>fanned</b> board, in cells. An authored stone
     /// astride the axis and its own image are one island, so the count is taken over the fan: counting what
@@ -164,30 +194,36 @@ public static class MidCarver
 
         var band = frame.ToRect(-h, 2 * h, bandL, bandR - bandL);
         if (!BandContactsOk(env, unit, band, frontIds)) return null;
-        return new MidResult(band, design.SplitBand || Geom.Symmetry.Order(env.Symmetry) != 2
-            ? []
-            : Stones(env, band));
+        return new MidResult(band, Stones(env, band, design.Form));
     }
 
     /// <summary>
-    /// The stones a band carries: one lateral row of islands standing astride the axis inside it.
+    /// The stones a band carries: one lateral row of islands inside it, standing at the depth
+    /// <paramref name="form"/> names.
     ///
     /// <para>Each stone is <b>wider than it is deep</b> and stands clear of the band's own ends, so it reads as
-    /// an island in a crossing rather than a bar across it, and — standing astride the axis — its fanned image
-    /// abuts it into <b>one shared landmass</b> both teams reach at once rather than a stone each (CT11). Under
-    /// a laterally flipping symmetry the row's outer stones are each other's images, so only the centre stone
-    /// and the ones beyond it are authored; under a mirror every stone is its own image and all are.</para>
+    /// an island in a crossing rather than a bar across it. Where the row stands decides what its fanned image
+    /// is. <b>Astride the axis</b> (<see cref="MidForm.SingleRank"/>) the image abuts it into <b>one shared
+    /// landmass</b> both teams reach at once (CT11), and under a laterally flipping symmetry the row's outer
+    /// stones are each other's images, so only the centre stone and the ones beyond it are authored. <b>Clear
+    /// of the axis</b> (<see cref="MidForm.DoubleRank"/>) no stone is its own image and none is another's, so
+    /// every one is authored and the fan supplies a whole second rank facing it across the centre void — a
+    /// stone each, met before the enemy's.</para>
     ///
     /// <para>The count is the widest the hull affords at that aspect, capped at <see cref="StoneMaxCount"/>
-    /// (MD6). The gap between stones takes one cell more than <see cref="HopCells"/> where a symmetric row
-    /// needs it: a row spanning an odd number of cells cannot sit symmetric about the axis's own cell
-    /// boundary. Deterministic — no draws. A hull too narrow to hold one stone at the aspect rule carries
-    /// none, and the band is then wider than it needed to be rather than refused.</para>
+    /// (MD6), and a pair of ranks pays twice for each because both are ground. The gap between stones takes one
+    /// cell more than <see cref="HopCells"/> where a symmetric row needs it: a row spanning an odd number of
+    /// cells cannot sit symmetric about the axis's own cell boundary. Deterministic — no draws. A hull too
+    /// narrow to hold one stone at the aspect rule carries none, and the band is then wider than it needed to
+    /// be rather than refused.</para>
     /// </summary>
-    public static IReadOnlyList<MidStone> Stones(ComposeEnvelope env, CellRect band)
+    public static IReadOnlyList<MidStone> Stones(ComposeEnvelope env, CellRect band, MidForm form)
     {
+        if (form == MidForm.None) return [];
         var frame = Frame.For(env.Symmetry);
         var deep = StoneDeepCells(env);
+        var pair = form == MidForm.DoubleRank;
+        var uMin = pair ? RankOffsetCells(env.Cell) : -deep / 2;
         var uv = frame.FromRect(band);
         var lo = uv.VMin + StoneInsetCells;
         var hi = uv.VMin + uv.VSpan - StoneInsetCells;
@@ -197,15 +233,17 @@ public static class MidCarver
             foreach (var hop in new[] { HopCells(env.Cell), HopCells(env.Cell) + 1 })
             {
                 var byHull = (hi - lo - (count - 1) * hop) / count;
-                var byLand = (int)(env.MidLandCells / (count * (double)deep));
+                var byLand = (int)(env.MidLandCells / ((pair ? 2 : 1) * count * (double)deep));
                 var wide = Math.Min(byHull, byLand);
-                if (count == 1 && wide % 2 != 0) wide--;       // a lone stone's own span carries the parity
+                if (count == 1 && !pair && wide % 2 != 0) wide--;  // a lone shared stone's span carries the parity
                 if (wide < deep) continue;                     // wider than deep, or it is a line
                 var span = count * wide + (count - 1) * hop;
-                // where the image flips the cross axis the row has to sit symmetric about the axis's own cell
-                // boundary, which takes an even span and centres the row on zero; a mirror keeps the cross
-                // coordinate, so every stone is its own image wherever it sits and the row centres in its band
-                if (flip && span % 2 != 0) continue;
+                // a row astride the axis under a cross-flipping image has to sit symmetric about the axis's
+                // own cell boundary, which takes an even span and centres the row on zero. A rank clear of the
+                // axis is under no such rule — its image is the opposite rank, which lands where it lands — so
+                // an odd span there only offsets the two ranks a cell from each other. A mirror keeps the
+                // cross coordinate either way, and its rows centre in the band.
+                if (!pair && flip && span % 2 != 0) continue;
                 var rowLeft = flip ? -span / 2 : lo + (hi - lo - span) / 2;
                 if (rowLeft < lo || rowLeft + span > hi) continue;
 
@@ -213,9 +251,11 @@ public static class MidCarver
                 for (var index = 0; index < count; index++)
                 {
                     var vMin = rowLeft + index * (wide + hop);
-                    if (flip && 2 * vMin < -wide) continue;    // its image is another stone in this row
+                    // in a row astride the axis the outer stones are each other's images; a rank clear of it
+                    // has the opposite rank for its image, so every stone in it is authored
+                    if (!pair && flip && 2 * vMin < -wide) continue;
                     stones.Add(new MidStone($"{StoneIdPrefix}{stones.Count}",
-                                            frame.ToRect(-deep / 2, deep, vMin, wide), env.Surface));
+                                            frame.ToRect(uMin, deep, vMin, wide), env.Surface));
                 }
                 return stones;
             }

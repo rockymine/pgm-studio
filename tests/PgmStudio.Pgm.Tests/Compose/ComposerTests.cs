@@ -98,7 +98,9 @@ public sealed class ComposerTests
     public async Task Composed_units_stay_on_their_side_of_the_axis()
     {
         // rot_180 (the default): the authored unit sits wholly on the +z side, clear of the crossing gap.
-        // A mid stone is the one piece that may reach the axis, and it sits symmetric about it (CT11).
+        // A mid stone is the one piece that may reach the axis, and it does so in exactly one of two ways —
+        // symmetric about it, so its own image abuts it (CT11), or wholly clear of it, so its image is the
+        // facing rank. What no stone may be is asymmetrically overlapping: that is an interior clash.
         foreach (var (players, seed) in Sweep())
         {
             var plan = Composer.Compose(new ComposeRequest(players, seed: seed));
@@ -106,8 +108,11 @@ public sealed class ComposerTests
                 await Assert.That(p.Rect.Z > 0).IsTrue()
                     .Because($"piece {p.Id} crosses the axis @ {players}p seed {seed}");
             foreach (var stone in plan.Pieces.Where(p => MidCarver.IsStone(p.Id)))
-                await Assert.That(stone.Rect.Z).IsEqualTo(-(stone.Rect.Z + stone.Rect.Height))
-                    .Because($"{stone.Id} straddles the axis symmetrically @ {players}p seed {seed}");
+            {
+                var (near, far) = (stone.Rect.Z, stone.Rect.Z + stone.Rect.Height);
+                await Assert.That(near == -far || near >= 0).IsTrue()
+                    .Because($"{stone.Id} is astride the axis or clear of it @ {players}p seed {seed}");
+            }
         }
     }
 
