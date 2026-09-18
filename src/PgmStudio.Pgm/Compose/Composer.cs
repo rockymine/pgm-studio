@@ -56,9 +56,15 @@ public static class Composer
         // draw is only made where the crossing's share can pay for two, so a band that cannot is untouched
         // as well.
         var splitBand = MidCarver.LateralFlip(envelope.Symmetry) && rng.NextBool(MidCarver.SplitBandChance);
-        var doubleRank = !splitBand && MidCarver.AffordsTwoRanks(envelope)
-                         && rng.NextBool(MidCarver.DoubleRankChance);
-        var crossing = MidCarver.Crossing(envelope, splitBand, doubleRank);
+        // both row draws are made whenever a band could carry stones at all, so the sequence does not depend
+        // on how they combine. A keyed row under a laterally flipping image needs the pair — its stones'
+        // images land on the enemy's own faces, which only a second rank keeps clear of them — so asking to
+        // key is also asking for two ranks wherever the share can pay for them.
+        var fine = !splitBand && rng.NextBool(MidCarver.FineRowChance);
+        var wantsPair = !splitBand && rng.NextBool(MidCarver.DoubleRankChance);
+        var doubleRank = MidCarver.AffordsTwoRanks(envelope)
+                         && (wantsPair || (fine && MidCarver.LateralFlip(envelope.Symmetry)));
+        var crossing = MidCarver.Crossing(envelope, splitBand, doubleRank, fine);
 
         for (var attempt = 0; attempt < ComposeAttempts; attempt++)
         {

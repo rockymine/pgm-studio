@@ -17,7 +17,7 @@ public sealed class WoolBoxGrowthTests
         var request = new ComposeRequest(players, seed: seed);
         var rng = new ComposeRng(seed);
         var env = Envelope.Derive(request, rng);
-        var crossing = MidCarver.Crossing(env, splitBand: false, doubleRank: false);
+        var crossing = MidCarver.Crossing(env, splitBand: false, doubleRank: false, fine: false);
         if (TeamUnitAllocator.Allocate(env, rng, crossing) is not { } alloc) return null;
         return TeamUnitFiller.Fill(alloc.Partition, alloc.SpawnFacing, rng)?.Unit;
     }

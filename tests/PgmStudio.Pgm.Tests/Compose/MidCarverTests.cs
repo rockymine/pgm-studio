@@ -43,7 +43,7 @@ public sealed class MidCarverTests
         foreach (var players in new[] { 8, 16, 24, 32, 52 })
         {
             var env = Envelope.Derive(new ComposeRequest(players), new ComposeRng(1));
-            var crossing = MidCarver.Crossing(env, splitBand: false, doubleRank: false);
+            var crossing = MidCarver.Crossing(env, splitBand: false, doubleRank: false, fine: false);
             var deep = MidCarver.StoneDeepCells(env);
             await Assert.That(deep % 2).IsEqualTo(0)
                 .Because("a stone astride the axis spends half its depth each side");
@@ -56,10 +56,10 @@ public sealed class MidCarverTests
     public async Task A_split_crossing_takes_the_stoneless_gap_because_its_bay_is_the_island()
     {
         var env = Envelope.Derive(new ComposeRequest(24), new ComposeRng(1));
-        await Assert.That(MidCarver.Crossing(env, splitBand: true, doubleRank: false).HalfGapCells)
+        await Assert.That(MidCarver.Crossing(env, splitBand: true, doubleRank: false, fine: false).HalfGapCells)
             .IsEqualTo(MidCarver.EmptyHalfGapCells(env.Cell));
-        await Assert.That(MidCarver.Crossing(env, splitBand: true, doubleRank: false).HalfGapCells)
-            .IsNotEqualTo(MidCarver.Crossing(env, splitBand: false, doubleRank: false).HalfGapCells);
+        await Assert.That(MidCarver.Crossing(env, splitBand: true, doubleRank: false, fine: false).HalfGapCells)
+            .IsNotEqualTo(MidCarver.Crossing(env, splitBand: false, doubleRank: false, fine: false).HalfGapCells);
     }
 
     [Test]
@@ -91,7 +91,9 @@ public sealed class MidCarverTests
                 {
                     var stages = Composer.ComposeStages(new ComposeRequest(players, 2, symmetry, seed));
                     var env = stages.Envelope;
-                    var deep = MidCarver.StoneDeepCells(env);
+                    // a keyed row is a corridor deep rather than the band's own stone depth, so the depth the
+                    // invariant holds against is the one the row it actually laid is measured in
+                    var deep = MidCarver.StoneDeepCells(env, stages.Mid.Grain);
                     var stones = stages.Mid.Stones;
                     await Assert.That(stones.Count).IsLessThanOrEqualTo(MidCarver.StoneMaxCount);
 
@@ -175,7 +177,7 @@ public sealed class MidCarverTests
     private static CellRect? Band(string symmetry, bool split, params (int X, int W)[] legs)
     {
         var env = Env(symmetry);
-        var design = MidCarver.Crossing(env, split, doubleRank: false);
+        var design = MidCarver.Crossing(env, split, doubleRank: false, fine: false);
         var halfGap = design.HalfGapCells;
         var pieces = legs
             .Select((leg, index) => new GrownPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2)))

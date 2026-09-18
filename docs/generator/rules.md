@@ -1027,6 +1027,26 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     around it (`TP6` rewrites only stone); nothing is filled downward. No other rule changes — `ST2`'s spawn
     piece never laid a floor, and `ST4`'s wall keeps its bedrock, which is a barrier rather than a plinth.
 
+38. **A row has a grain, and a fine one keys to the front's own legs (2026-09-18).** Author's call. `MD6`
+    asks for a **grid** of stepping stones and the composer built one column of it, centred on the band, so a
+    front with two legs sent both at a single island between them. A crossing now also draws a **fine** row:
+    its stone is one **corridor** deep rather than the band's own figure, which both shortens the crossing and
+    makes each stone small enough that several stand in one row — the author's checkpoints, against one large
+    meeting ground. Where the unit's front row presents more than one face, a fine row **keys** to them, one
+    stone centred on each, so a team steps straight forward off ground it already holds.
+
+    Two constraints came out of the geometry rather than the taste. Keying wants `MD4`'s double rank under a
+    laterally flipping image: a stone keyed to one of the unit's own faces has its image where the enemy's
+    face is, and on a row astride the axis those overlap, which is an interior clash and not `CT11`'s
+    abutment. And a stone spans its whole face only where the mid's share can pay for it — measured, a row
+    spanning two 40-block legs costs 128 cells against a share of 109 — so it is capped and centred on its
+    face instead, since keying is about where a stone stands and not how far it reaches.
+
+    The realised rate is the front's, not the draw's: a front presents **one face on about two boards in
+    three**, so the fine grain lands on roughly half of milli and centi boards and a row that truly keys to
+    the legs on one or two in twenty-four. Keying to the **hub's** legs where the front has none is the open
+    half (`G273`).
+
 37. **The crossing takes a second form: two ranks facing each other (2026-09-18).** Author's call. `MD4`'s
     row was the only middle the composer could build, and one rank astride the axis is one shared island
     however much of its share it leaves unspent. A board may now draw a **double rank** instead: the row

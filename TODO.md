@@ -15,6 +15,18 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 
 ## The composer states distances in cells, and a grid scale moves them
 
+- [ ] **G273 — A fine row should key to the hub's legs where the front has none.** `MidCarver.Keyed` lines
+  its stones up with the faces of the unit's **front row**, which is the right feature when there is more
+  than one — but a front presents a single face on about two boards in three, so the keyed row lands on one
+  or two boards in twenty-four and the rest centre. The hub always has a body, and the holed forms (ring, G,
+  P, twin, double-hole) all carry legs either side of a bay: those are the same kind of feature and they are
+  there on every board. Read them out of the hub box's pieces the way `TryCarve` reads the front's, and key
+  to them when the front offers nothing. `docs/generator/model.md` §5.13 and `rules.md` amendment 38.
+
+  *Evidence: `p24 rot_180 seed 3` (`opus5-stennerwath`) — `frontline-t1` is one 64-block bar, so nothing to
+  key to, while `hub-t2 x[-32,0)` and `hub-t3 x[16,36)` are two legs 16 blocks apart. Its stones sit centred
+  at `x[-12,16)`, in the hub's own bay rather than in front of either leg.*
+
 - [ ] **G272 — Bound the run a player walks around a hub's hole at 40 blocks.** A hole's job is rotation
   (`CT8`): a loop round it gives an alternative route between lanes. Past a certain length it stops being a
   loop and becomes a wall — two players on opposite sides never meet and neither can change direction. The

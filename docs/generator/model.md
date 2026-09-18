@@ -1217,6 +1217,12 @@ the axis instead, so the gap is that offset plus a whole stone plus the hop to t
 half again as deep. A crossing that carries **nothing** takes a single stated distance, thirty blocks from one
 front to the other, because an empty crossing is walked or bridged in one go rather than in hops.
 
+Cutting across that is the row's **grain**, which is the other thing the gap has to know before it is fixed. A
+**broad** row is a stone the band's own depth. A **fine** row is a stone one corridor deep — sixteen blocks at
+the two largest bands against twenty-four — so the crossing it opens is correspondingly shorter, and so is
+each stone, which is what lets more of them stand in one row. The grain is drawn for the board; what it is for
+is the next paragraph but one.
+
 Then the band itself. Laterally it spans exactly the hull of the opposing front faces and it docks flush
 against them, so the crossing is one shape with the fronts it connects; in depth it is the gap. The band
 touches nothing else — not the hub behind the front, not a lane, and never a wool-carrying piece, which it
@@ -1241,6 +1247,25 @@ rank spends its share far better than the single: a pair is two ranks of ground,
 stones of half the width and twice the count — 95 to 99 per cent of the crossing's land against the single
 rank's 33 to 85. It is offered only where that allowance can pay for it, which is milli and centi; below them
 the narrowest stone the aspect rule admits would already be wider than the share.
+
+**Where a row sits is the second thing a stone's image depends on, and the front is what it reads.** A broad
+row is centred on the band, so a front with two legs sends both of them at one piece of shared ground in the
+middle: the teams converge. A fine row instead **keys** to the faces of the unit's own front row — one stone
+on each, centred on it — so a player steps straight forward off the ground already held rather than sideways
+onto a common island. That is the grid form: checkpoints on the way across instead of one meeting ground, and
+the trade is that two fronts whose legs do not line up send their teams past each other rather than into each
+other. Keying wants the double rank under a laterally flipping image, because a stone keyed to one of the
+unit's own faces has its image where the **enemy's** face is, and on a row astride the axis those two overlap
+— an interior clash rather than CT11's abutment. Under a mirror the cross coordinate is kept and either row
+serves.
+
+A stone spans its whole face where the crossing's share can pay for that and sits centred on it where it
+cannot, because the face is what a stone is keyed to and keying is about where a stone stands rather than how
+far it reaches. The row forms only when every face it would key to carries a stone wider than it is deep and
+the faces clear each other by a hop; a front presenting a single face lays the centred row at the fine depth
+instead, which is still the shorter crossing with nothing to key to. Measured over the seed range that is
+what usually happens: a front presents **one face on about two boards in three**, so the fine grain is common
+at milli and centi and a row that truly lands on the legs is not.
 
 How many stones is what the hull affords. Each is **wider than it is deep** — otherwise it reads as a line
 drawn down the middle rather than an island — and each stands clear of its neighbours by a hop and of the
