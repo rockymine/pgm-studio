@@ -5,7 +5,7 @@ namespace PgmStudio.Pgm.Compose;
 
 /// <summary>The u-axis arithmetic of a mid crossing, fixed before the team unit is allocated (its half-gap is
 /// the allocator's axis margin): the void from one team's front to the other is <c>2 · HalfGapCells</c>.
-/// <see cref="SplitBand"/> asks for the <b>split band</b> — two parallel crossings around a centre island
+/// <see cref="CrossingDesign.SplitBand"/> asks for the <b>split band</b> — two parallel crossings around a centre island
 /// instead of one merged region — which the carve grants only where the face it is handed admits it. It is a
 /// request, not a guarantee, and a face that admits a split is equally valid crossed by one band.</summary>
 /// <summary>The row of stones a crossing carries. <see cref="SingleRank"/> stands one rank <b>astride</b> the
@@ -30,7 +30,7 @@ public sealed record CrossingDesign(int HalfGapCells, bool SplitBand, MidForm Fo
 public sealed record MidStone(string Id, CellRect Rect, int Surface);
 
 /// <summary>The carved mid: the band zone rect (cells), the stones inside it, and two facts about the row
-/// that the rects cannot be read back for. <see cref="Align"/> is what the crossing was <b>designed</b> at,
+/// that the rects cannot be read back for. <see cref="MidResult.Grain"/> is what the crossing was <b>designed</b> at,
 /// which is what its stones' depth follows — a keyed crossing is a corridor deep whether or not its row
 /// found faces to key to. <see cref="KeyedToFront"/> is whether the row <b>landed</b> on them: a keyed design
 /// whose front turns out to present one face lays the centred row at that same shallower depth, and a keyed
