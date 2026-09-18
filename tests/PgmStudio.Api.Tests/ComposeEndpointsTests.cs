@@ -43,6 +43,36 @@ public sealed class ComposeEndpointsTests
     }
 
     [Test]
+    [Arguments(1)]
+    [Arguments(3)]
+    [Arguments(4)]
+    public async Task A_team_count_the_composer_does_not_build_is_400(int teams)
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var resp = await client.GetAsync($"/api/compose?players=16&teams={teams}&symmetry=rot_180&count=1");
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest)
+            .Because("a team count the composer does not build is refused, not answered with a two-team board");
+
+        var body = await resp.Content.ReadAsStringAsync();
+        await Assert.That(body).Contains("teams")
+            .Because("the refusal names the field it is about, the way the symmetry refusal does");
+    }
+
+    [Test]
+    public async Task The_team_count_it_does_build_composes()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var page = await client.GetFromJsonAsync<ComposePage>(
+            "/api/compose?players=16&teams=2&symmetry=rot_180&seedStart=0&count=1");
+        await Assert.That(page!.Cards.Count).IsEqualTo(1);
+        await Assert.That(page.Cards[0].Descriptor.Teams).IsEqualTo(2);
+    }
+
+    [Test]
     public async Task Structural_sieve_wools_must_include_hub_any_of()
     {
         await ApiTestFactory.ResetSchemaAsync();

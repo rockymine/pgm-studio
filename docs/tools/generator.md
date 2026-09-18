@@ -45,7 +45,7 @@ A compose takes five values and no geometry.
 | Field | Default | Is |
 |---|---|---|
 | `players` | 12 | Players per team, clamped 6–47. The only size input, and its job is to name a **size band** — nano 6–13, micro 14–21, milli 22–31, centi 32 and up — which is what the land budget and every structural ladder read. Two counts in one band compose to the same budget, and a count above centi's range is clamped into it because centi is the top of the ladder. |
-| `teams` | 2 | 2 or 4. Fixed at 2 by the browse endpoint. |
+| `teams` | 2 | 2 or 4 at the plan tier. The browse endpoint composes two-team boards only and answers 400 `RQ1` on any other count, naming the field — a board that is not the one asked for is worse than no board. |
 | `symmetry` | `rot_180` | `rot_180` or `mirror_z` through the feed. `mirror_x` and `rot_90` are legal `ComposeRequest` values but the endpoint answers 400. |
 | `cell` | 4 | Blocks per proxy cell — the plan grid's scale. No control writes it; it is honoured as a query parameter. |
 | `seed` | — | Any unsigned 64-bit integer. Drives every draw the composer makes. |
@@ -325,8 +325,9 @@ same board a little wider. The unit of work is a whole board, and the only respo
 right is to author it and fix it in the Plan tool.
 
 **Two of the four symmetries and one of the two team counts are unreachable.** The feed composes `rot_180` and
-`mirror_z` at two teams. `mirror_x` and the four-team `rot_90` are legal at the type level and refused at the
-endpoint, so the four-team board the model describes cannot be produced through this tool at all.
+`mirror_z` at two teams. `mirror_x`, `rot_90` and every team count but two are legal at the type level and
+refused at the endpoint, so the four-team board the model describes cannot be produced through this tool at
+all — it is authored at the plan tier instead, which is where a four-team capture board is built.
 
 **The composer reaches less of the shape vocabulary than the emitter builds**, and the gap is plumbing rather
 than geometry. `ShapeEmitter.Emit` takes five placement knobs — a second donut attachment, a moved attachment,
