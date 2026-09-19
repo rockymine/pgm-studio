@@ -535,6 +535,30 @@ and what a `subtract` takes away.
 
 ## The remainder: work no concept above has claimed
 
+- [ ] **WE129 — A house excavates its footprint with no ceiling and nothing reports how much.**
+  `Decorator.Ground` seats a house at `lowest - 1`, the minimum first-air-Y over `plan.Cells()`
+  (`Dressing/Decorator.cs:1033`), and `Decorator.Excavate` then clears every footprint column from
+  `floorY + 1` to its own surface (`Decorator.cs:1051`). Both are deliberate and right on a slope. Neither
+  is bounded: a footprint whose lowest cell sits in a pit deletes that whole depth across the plan and the
+  building stands in the hole it dug. `DR-SLOPE` is the only guard and it tests the same `rise` against the
+  building's own height (`Decorator.cs:812`), so a shell tall enough to afford the rise excavates it in
+  silence. Raise a complaint carrying the courses removed and the columns they came off — `Excavate` holds
+  both numbers at the moment it removes them. Whether it should also *refuse* past some depth is the
+  author's call and is not assumed here. `docs/world-export/decoration.md` §the seating rule.
+
+  *Evidence: `opus5-whitegape`'s `works-shed` on a yard whose surface is y23–24 seated at y13, the quarry
+  floor. `column (2,-50)` reads the yard face as stone brick y19–23; `column (3,-50)` one block east reads
+  the shed's brickwork starting at y13. Rise 10 against a two-storey `buries` of about 13, so `DR-SLOPE`
+  stayed silent. `decoration.md:767` already records the same failure on `opus5-ravensmere`.*
+
+- [ ] **WE130 — `sketch/seats` answers a question it cannot answer for a house.** The seat query reports the
+  yard beside a quarry as a legal seat, because the three rules that read the built world — `DR-CROSS`,
+  `DR-WAY` and `DR-SLOPE` — are the dressing pass's to raise and not the query's
+  (`Api/Endpoints/SketchEndpoints.cs:483`). An author who asks `seats` before placing a building, which is
+  what the skill tells them to do, is told yes and then gets a building in a hole. Either the query runs the
+  seating arithmetic it is being asked about, or its answer says in terms which questions it did not ask.
+  `docs/tools/sketch.md` carries the endpoint.
+
 - [ ] **RP71 — A map cannot be deleted.** The API carries 26 `DELETE` routes and every part of a map is
   removable through one — layers, groups, shapes, vertices, props, relief, themes, biome, room styles, teams,
   wools, spawns, regions — and none removes the map row. `DELETE /map/{slug}/sketch/discard-if-empty` drops
