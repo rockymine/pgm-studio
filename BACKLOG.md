@@ -535,6 +535,32 @@ and what a `subtract` takes away.
 
 ## The remainder: work no concept above has claimed
 
+- [ ] **RP72 — One unbindable field discards the whole intent, at 200, and the export gate opens on it.**
+  `POST /map/from-documents` answers 200 and stores a map with **no teams, no spawns and no objectives**
+  when the intent carries one field the binder cannot read. Nothing is raised: no `RQ3`, no `warnings`
+  entry, no `Warning` header, and `GET /preflight` then answers `exportReady: true` on the result. The
+  binder's failure to read one property is taken as the whole object being absent, so the deserialized
+  intent is a default instance and every downstream reader agrees it is a valid empty one. A refusal
+  belongs where the binder gives up; an intent that states teams and comes back with none is the one
+  shape `RQ1` exists to catch. `docs/refusals.md` carries the gate catalogue.
+
+  *Evidence, reproducible on the running studio: post `opus5-fallowgate`'s own plan, layout and intent
+  under one slug, and the same three with `"modes": ["dtm"]` added to the intent under another. `modes`
+  is a real `MapIntent` field and takes `ModeIntent` objects rather than strings. Both answer 200 with no
+  warning header. `GET /map/probe-control/intent` reads `teams 2, spawns 2, destroyables 2`;
+  `GET /map/probe-badmodes/intent` reads `teams null, spawns 0, destroyables 0`. Both preflights read
+  `exportReady: true`.*
+
+- [ ] **RP73 — `crown` is signed in world space, so a positive crown fills a negative push back in.**
+  `ReliefSolver` adds the crown to the amount without regard to the amount's sign
+  (`Relief/ReliefSolver.cs:478`, `amount += push.Crown * PushMark.Ease(...)`), so on a push of amount −12
+  a crown of +12 returns the floor's centre to the surrounding level and only a negative crown dishes it.
+  The field's own docstring is written from a raising push — *"how much higher the middle of the push
+  stands than its edge"* (`Geom/Relief/Marks.cs:331`) — and says nothing about the other direction, which
+  is the direction a pit is made in. State it in the docstring and in `docs/world-export/relief.md`. The
+  editor's default of 2 against the record's 0 is the same fact with teeth: a pit knobbed up in the
+  inspector starts with a two-block mound in its floor.
+
 - [ ] **WE129 — A house excavates its footprint with no ceiling and nothing reports how much.**
   `Decorator.Ground` seats a house at `lowest - 1`, the minimum first-air-Y over `plan.Cells()`
   (`Dressing/Decorator.cs:1033`), and `Decorator.Excavate` then clears every footprint column from
