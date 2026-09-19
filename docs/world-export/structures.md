@@ -166,7 +166,10 @@ because there is no smaller square centred on a corner than the four blocks shar
 - **WX6** *Doors sit on the entry interfaces, and a build zone is one.* The wool cage's doors are
   cut where the room is actually entered: a terrain↔room **land seam**, or an **abutting build
   zone** — players bridge in through the build region, so that interface carries a door and the ST1
-  entrance redstone line exactly as a land seam does. Doors are never centred one per wall: a long
+  entrance redstone line exactly as a land seam does. A land seam here is what
+  `ContactGraph.IsLandInterface` calls one, which is `Land` **or** `Narrow`: an interface shorter
+  than the ten-block corridor minimum is a doorway rather than a wall, and a room reached only that
+  way is reached. Doors are never centred one per wall: a long
   room with four centred doors would open two of them into the bedrock ring. A room with **neither**
   interface is genuinely unreachable and is refused at validation.
 

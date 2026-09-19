@@ -495,10 +495,13 @@ public static class PlanCompiler
 
         // ST1 entrance redstone — the last block row inside the room along each entry interface: every
         // terrain↔wool-room land seam, and every build-zone frontline edge on a room piece (WX6 — bridging
-        // in through the build region is an entrance like any seam).
+        // in through the build region is an entrance like any seam). A land seam is what
+        // ContactGraph.IsLandInterface calls one, which is full-width or narrow: an interface under the
+        // band's corridor width is still the way into the room, and the segment's own WoolRoom flag is
+        // raised through that same predicate.
         var lineSeen = new HashSet<(int, int, int, int)>();
         var entranceSegments = new List<(BlockRect Room, int X1, int Z1, int X2, int Z2)>();
-        foreach (var seg in d.InterfaceSegments.Where(g => g is { WoolRoom: true, Kind: ContactKind.Land }))
+        foreach (var seg in d.InterfaceSegments.Where(g => g.WoolRoom && ContactGraph.IsLandInterface(g.Kind)))
         {
             var a = d.Piece(seg.A)!.Value;
             var b = d.Piece(seg.B)!.Value;
@@ -626,7 +629,8 @@ public static class PlanCompiler
     {
         var segments = new List<BlockRect>();
         foreach (var seg in d.InterfaceSegments)
-            if (seg is { WoolRoom: true, Kind: ContactKind.Land } && (seg.A == pieceId || seg.B == pieceId))
+            if (seg.WoolRoom && ContactGraph.IsLandInterface(seg.Kind)
+                && (seg.A == pieceId || seg.B == pieceId))
                 segments.Add(new BlockRect(Math.Min(seg.X1, seg.X2), Math.Min(seg.Z1, seg.Z2),
                     Math.Max(seg.X1, seg.X2), Math.Max(seg.Z1, seg.Z2)));
         foreach (var edge in d.FrontlineEdges)

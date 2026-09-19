@@ -5653,6 +5653,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A narrow seam is the way into a room, so it carries a door and an entrance line (`WE128`).**
+  `ContactGraph.IsLandInterface` answers `Land` **or** `Narrow` and the `WoolRoom` flag on a segment is
+  raised through it, but the entrance-redstone loop and `WoolEntrySegments` in `PlanCompiler` each tested
+  `Kind: ContactKind.Land` inline, so a segment was flagged by one reading and discarded by another. A room
+  whose only interface is under `CorridorMin`'s ten blocks therefore compiled with an empty entry set: no
+  `ST1` redstone line, and — since `WoolEntrySegments` is what the exporter cuts cage doors from — no door,
+  in a room the validator considers reachable. Both sites call the predicate. Measured on
+  `opus5-hushwater`: `wool-a-room` meets `wool-a-t1` on an 8-block flush seam and `wool-a-apron` on a
+  12-block one, and carried one line against the mirrored room's two. The composer's accept gate runs
+  `PlanValidator` through this path, so three of 120 recorded boards move and `ComposerVersion` is
+  `body-first-2`. (`Pgm/Plan/PlanCompiler`, `Pgm/Compose/ComposeDescriptor`,
+  `tools/compose/composer-fingerprints.json`, `docs/generator/rules.md` amendment 41,
+  `docs/world-export/structures.md` WX6; `PlanStructuresTests`)
 - **A stamp is one course, and the ground under it is painted (`WE63`).** `TerrainProfile` classified only
   columns whose top block was stone, so a single stated course — a room's `Foundation.Plate`, a wool pad, a
   `footing` ring one block proud — took the whole column out of the pass and left it raw stone from the floor

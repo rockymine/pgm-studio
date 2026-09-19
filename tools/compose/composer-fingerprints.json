@@ -1,5 +1,5 @@
 {
-  "composerVersion": "body-first-1",
+  "composerVersion": "body-first-2",
   "boards": {
     "12p/mirror_z/s1": "5E8DFD623817A8B7",
     "12p/mirror_z/s10": "EC0869F4BCCCD4F4",
@@ -43,7 +43,7 @@
     "20p/rot_180/s12": "664AC558E1ADB27A",
     "20p/rot_180/s2": "1CA3D9E2B9E8CEBD",
     "20p/rot_180/s3": "0ECD4F935A3D5DEB",
-    "20p/rot_180/s4": "451A2D2978EACF79",
+    "20p/rot_180/s4": "5447F7447DA97DE2",
     "20p/rot_180/s5": "19F9CA3F342714EB",
     "20p/rot_180/s6": "FDA0C9B4AE5689D4",
     "20p/rot_180/s7": "ED04C7B462011E85",
@@ -67,7 +67,7 @@
     "24p/rot_180/s12": "08EC8C4F5CD81460",
     "24p/rot_180/s2": "500172D5D856AB13",
     "24p/rot_180/s3": "D7E10FB441C39433",
-    "24p/rot_180/s4": "C93287A5755A64D3",
+    "24p/rot_180/s4": "5610A35EE1E49B7C",
     "24p/rot_180/s5": "C3173B1182920C4E",
     "24p/rot_180/s6": "BA912283059E03A3",
     "24p/rot_180/s7": "0998A63C973299C9",
@@ -91,7 +91,7 @@
     "32p/rot_180/s12": "B49F3F4109469A0D",
     "32p/rot_180/s2": "0F4E859AA52CA180",
     "32p/rot_180/s3": "117389AA7FABABBD",
-    "32p/rot_180/s4": "BF955DD326F6A38D",
+    "32p/rot_180/s4": "7A9E47978A54408D",
     "32p/rot_180/s5": "136E8810ED4BB2B5",
     "32p/rot_180/s6": "1858F55FBBB22AA9",
     "32p/rot_180/s7": "3929B86CE16AA578",

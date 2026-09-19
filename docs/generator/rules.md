@@ -645,9 +645,10 @@ disagree with the one that runs.
   stamped cage** — the shell footprint is the piece inset one block, per the WX rules
   (`docs/world-export/structures.md`). Nothing under it is sealed — the room region's own `enter`
   filter is what keeps an enemy out, at any depth; a **redstone line with a torch at either end** lies on the
-  last block row at each of the room's **entry interfaces** — every terrain↔room land seam and
-  every abutting build-zone edge (WX6) — the conventional marker for where entrance protection
-  begins. The editor renders terrain↔wool-room interfaces **red**. Each of the four corner chests
+  last block row at each of the room's **entry interfaces** — every terrain↔room land seam, whether
+  full-width or narrower than the corridor minimum, and every abutting build-zone edge (WX6) — the
+  conventional marker for where entrance protection begins. A seam under the corridor width is still
+  the way in, so it carries a line and a door like any other. The editor renders terrain↔wool-room interfaces **red**. Each of the four corner chests
   turns to open into the room rather than facing a wall: a corner touches two shell walls at once,
   and the room's own door breaks the tie — every chest faces away from whichever of its two walls
   sits on the door's axis (`WoolChests`).
@@ -1172,3 +1173,16 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     `koth/industrial`'s `north-signal` is a 12×6×9 slab at `y 35–40` over a capture volume at `y 5–9`, 578
     white stained clay and 16 white wool, every block of it colour-affected. No other marker changes: a wool
     room's stays the wool's colour and a destroyable's or a core's stays its team's.
+
+41. **`ST1`/`WX6`: a narrow seam is an entry (2026-09-19).** Wording correction, no change to what the rules
+    require. Both read "land seam", which names a `ContactKind` as well as a class of interface, and
+    `ContactGraph` had already settled which it meant: `IsLandInterface` answers `Land` **or** `Narrow`, and
+    the `WoolRoom` flag a segment carries is raised through that predicate. Two sites in `PlanCompiler` — the
+    entrance-redstone loop and `WoolEntrySegments` — re-derived the test inline as `Kind: ContactKind.Land`
+    and so read a flag they then disagreed with. A room whose only way in is under the ten-block corridor
+    minimum consequently stamped no entrance line and, because `WoolEntrySegments` is what the exporter cuts
+    cage doors from, no door either; `opus5-hushwater`'s `wool-a-room` is such a room, joined to `wool-a-t1`
+    by an 8-block flush seam and to `wool-a-apron` by a 12-block one, and it carried one line where the
+    board's other room carried two. Both rules now say full-width or narrower, both sites call the predicate,
+    and the composer's gate reads `PlanValidator` through the same path, so three of 120 recorded boards move
+    verdict and `ComposerVersion` is `body-first-2` (`WE128`).
