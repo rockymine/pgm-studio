@@ -535,6 +535,19 @@ and what a `subtract` takes away.
 
 ## The remainder: work no concept above has claimed
 
+- [ ] **RP71 — A map cannot be deleted.** The API carries 26 `DELETE` routes and every part of a map is
+  removable through one — layers, groups, shapes, vertices, props, relief, themes, biome, room styles, teams,
+  wools, spawns, regions — and none removes the map row. `DELETE /map/{slug}/sketch/discard-if-empty` drops
+  only a pristine never-drawn draft, so a map that stored once is permanent short of SQL. Every `map_id`
+  foreign key is already `ON DELETE CASCADE`, so the work is one endpoint over `MapRepository`, not a schema
+  change. It matters for a driver rather than for the browser: a spec re-driven under a corrected slug leaves
+  the old one behind, and a harness that builds a map per variant has no way to clean up after itself.
+  Lands beside the other whole-map routes; `docs/architecture.md` carries the route surface.
+
+  *Evidence: seven scratch maps (`stage-01-ground` … `stage-07-dressed`) were left in the dev database by a
+  staging harness that had no route to remove them, beside the two real maps.*
+
+
 - [ ] **WS68 — Every built board reads `bridgeable 0`, because the export grants building by forbidding it
   everywhere else.** `BuildGenerator` wraps the buildable rectangles in the `not-build-area` negative and
   applies `block-place=not(void)` to it — the corpus idiom `docs/pgm/template.xml` writes — so inside the
