@@ -59,14 +59,33 @@ public sealed class WalkTests
         await Assert.That(path!.Cost.Distance).IsEqualTo(14);
     }
 
+    /// <summary>Two cells touching only at their corner are not joined: the diagonal between them crosses
+    /// nothing on either side, so there is no route at all.</summary>
     [Test]
     public async Task A_diagonal_may_not_cut_a_corner_across_void()
     {
-        // Two cells touching only at their corner: passable, and not a step.
         var ground = new HashSet<(int X, int Z)> { (0, 0), (1, 1) };
         var walkable = Board(ground, new HashSet<(int X, int Z)>(),
             ground.ToDictionary(cell => cell, _ => 10), new CellRect(0, 0, 4, 4));
         await Assert.That(Walk.Between(At(walkable, (0, 0)), At(walkable, (1, 1)), walkable)).IsNull();
+    }
+
+    /// <summary><b>And a single void side refuses it too.</b> Ground on one side of the squeeze and a drop on
+    /// the other is a corner a player goes round rather than across, so the two ends stay joined — by the L
+    /// through the solid side, at what that L costs rather than at the diagonal's 1.41.</summary>
+    [Test]
+    public async Task A_diagonal_may_not_cut_a_corner_past_one_void()
+    {
+        //  (0,1) ground   (1,1) ground     the diagonal (0,0) → (1,1) squeezes between (1,0), which is
+        //  (0,0) ground   (1,0) VOID       void, and (0,1), which is not.
+        var ground = new HashSet<(int X, int Z)> { (0, 0), (0, 1), (1, 1) };
+        var walkable = Board(ground, new HashSet<(int X, int Z)>(),
+            ground.ToDictionary(cell => cell, _ => 10), new CellRect(0, 0, 4, 4));
+        var path = Walk.Between(At(walkable, (0, 0)), At(walkable, (1, 1)), walkable);
+
+        await Assert.That(path).IsNotNull();
+        await Assert.That(path!.Cost.Distance).IsEqualTo(2);
+        await Assert.That(path.Cells.Count).IsEqualTo(3);
     }
 
     [Test]

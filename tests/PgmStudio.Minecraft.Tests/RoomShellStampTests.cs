@@ -22,7 +22,7 @@ public sealed class RoomShellStampTests
     private static void Shell(VoxelWorld world, RoomFrame frame, int floorY, HouseStyle style)
     {
         HouseStamper.Stamp(world, frame, floorY, style, Red);
-        PadStamp.Lay(world, frame.Pad, floorY, Red);
+        PadStamp.Lay(world, frame.Pad, floorY, Blocks.Wool, Red);
     }
 
     private static readonly (double MinX, double MinZ, double MaxX, double MaxZ) TopEntry = (-5, -5, 5, -5);

@@ -1,4 +1,12 @@
+using PgmStudio.Geom.Algorithms;
+
 namespace PgmStudio.Geom;
+
+/// <summary>One contiguous stretch of a cell set — the cells it holds, how many that is, and the cell
+/// its centre falls in. The cells travel with the measure because the fact a caller adds is read off
+/// them: which pieces lie under a stretch of plan, how far a stretch of world stands from ground a match
+/// uses.</summary>
+public sealed record Stretch(IReadOnlyList<(int X, int Z)> Cells, int Area, int CentroidX, int CentroidZ);
 
 /// <summary>
 /// Rectilinear cell-set substrate — the shared 4-connected raster primitives (neighbour iteration, flood fill,
@@ -62,6 +70,30 @@ public static class Cells
         foreach (var s in seeds) if (within.Contains(s) && comp.Add(s)) q.Enqueue(s);
         while (q.Count > 0) { var c = q.Dequeue(); foreach (var n in N4(c)) if (within.Contains(n) && comp.Add(n)) q.Enqueue(n); }
         return comp;
+    }
+
+    /// <summary>The stretches of <paramref name="cells"/> worth naming — every 4-connected component holding at
+    /// least <paramref name="floor"/> cells, largest first and then by position — and, beside them, how many fell
+    /// under the floor. A stretch too small to name is still a stretch, so a read that drops one silently cannot
+    /// be told from a read that found nothing. Ordering is total, so the same set always reads in the same
+    /// order.</summary>
+    public static (IReadOnlyList<Stretch> Named, int Unnamed) Stretches(
+        IEnumerable<(int X, int Z)> cells, int floor)
+    {
+        var named = new List<Stretch>();
+        var unnamed = 0;
+        foreach (var component in GridComponents.Label(cells, connectivity: 4))
+        {
+            if (component.Count < floor) { unnamed++; continue; }
+            named.Add(new Stretch(component, component.Count,
+                (int)component.Average(cell => (double)cell.X),
+                (int)component.Average(cell => (double)cell.Z)));
+        }
+        named.Sort((a, b) =>
+            a.Area != b.Area ? b.Area.CompareTo(a.Area)
+            : a.CentroidX != b.CentroidX ? a.CentroidX.CompareTo(b.CentroidX)
+            : a.CentroidZ.CompareTo(b.CentroidZ));
+        return (named, unnamed);
     }
 
     /// <summary>Whether a route from <paramref name="from"/> to <paramref name="to"/> may pass on
@@ -309,5 +341,101 @@ public static class Cells
         int Hrun((int, int) c) { int n = 1; for (var x = c.Item1 - 1; cells.Contains((x, c.Item2)); x--) n++; for (var x = c.Item1 + 1; cells.Contains((x, c.Item2)); x++) n++; return n; }
         int Vrun((int, int) c) { int n = 1; for (var z = c.Item2 - 1; cells.Contains((c.Item1, z)); z--) n++; for (var z = c.Item2 + 1; cells.Contains((c.Item1, z)); z++) n++; return n; }
         return seeds.Min(c => Math.Min(Hrun(c), Vrun(c)));
+    }
+
+    /// <summary>
+    /// The cheapest set of cells that, held, keeps <paramref name="from"/> and <paramref name="to"/> apart —
+    /// the minimum vertex cut. Its <b>count is the funnel capacity</b>: how many players come through at once,
+    /// which is the reading a bare "chokepoint" label loses, since ten blocks of frontage admits a different
+    /// number than twenty and the count does not scale with the team size. Where it sits is where a clash
+    /// happens.
+    ///
+    /// <para><b>The ends are sets of cells, and that is what makes the count mean anything.</b> A cut against
+    /// a single cell is never more than the four ways out of it, whatever the board does in between; against a
+    /// spawn's ground and an objective's it is the frontage actually between them.</para>
+    ///
+    /// <para><b>Null where no cut exists</b> — the two ends share a cell or touch, and no ground held between
+    /// them separates ground that is already joined. An <b>empty</b> set is the other answer: the ends are
+    /// apart already and nothing need be held at all.</para>
+    ///
+    /// <para>Neither end is ever cut, because holding the ground somebody stands on separates nobody.
+    /// 4-connected like the rest of this file: what is asked is whether cells touch, not what a player walks
+    /// (<see cref="Walk"/>).</para>
+    ///
+    /// <para>This is not <see cref="WaysRound"/>, and counting this cut's components does not answer it: an
+    /// uncuttable cell inside one barrier splits it into fragments with no second route, and a real second way
+    /// is missed whenever the cheapest cut lies elsewhere. The two questions are different and both exist.</para>
+    /// </summary>
+    public static HashSet<(int X, int Z)>? MinVertexCut(IReadOnlyCollection<(int X, int Z)> from,
+        IReadOnlyCollection<(int X, int Z)> to, IReadOnlySet<(int X, int Z)> within)
+    {
+        var ends = from.Where(within.Contains).ToHashSet();
+        var far = to.Where(within.Contains).ToHashSet();
+        if (ends.Count == 0 || far.Count == 0 || ends.Overlaps(far)) return null;
+        if (ends.Any(cell => N4(cell).Any(far.Contains))) return null;
+
+        // Each cell is split in two — an arrival and a departure — joined by an edge of capacity one, so a
+        // unit of flow through a cell is the one time that cell may be used and the max flow is the cut size.
+        // The grid's own edges and the two ends carry no limit: an edge is not ground and an end is not held.
+        var index = new Dictionary<(int X, int Z), int>();
+        foreach (var cell in within) index[cell] = index.Count;
+        const int unbounded = int.MaxValue / 4;
+        var residual = new Dictionary<int, int>[index.Count * 2 + 2];   // the two ends' own nodes last
+        for (var node = 0; node < residual.Length; node++) residual[node] = [];
+        void Link(int tail, int head, int amount)
+        {
+            residual[tail][head] = residual[tail].GetValueOrDefault(head) + amount;
+            residual[head].TryAdd(tail, 0);
+        }
+        foreach (var (cell, id) in index)
+        {
+            Link(id * 2, id * 2 + 1, ends.Contains(cell) || far.Contains(cell) ? unbounded : 1);
+            foreach (var side in N4(cell))
+                if (index.TryGetValue(side, out var other)) Link(id * 2 + 1, other * 2, unbounded);
+        }
+        // One source over every starting cell and one sink over every target cell, so the answer is the
+        // frontage between two pieces of ground rather than the four ways out of a single cell.
+        var source = residual.Length - 2;
+        var sink = residual.Length - 1;
+        foreach (var cell in ends) Link(source, index[cell] * 2, unbounded);
+        foreach (var cell in far) Link(index[cell] * 2 + 1, sink, unbounded);
+        var parent = new int[residual.Length];
+        while (true)
+        {
+            Array.Fill(parent, -1);
+            parent[source] = source;
+            var queue = new Queue<int>();
+            queue.Enqueue(source);
+            while (queue.Count > 0 && parent[sink] < 0)
+            {
+                var node = queue.Dequeue();
+                foreach (var (next, left) in residual[node])
+                    if (left > 0 && parent[next] < 0) { parent[next] = node; queue.Enqueue(next); }
+            }
+            if (parent[sink] < 0) break;
+            var bottleneck = unbounded;
+            for (var node = sink; node != source; node = parent[node])
+                bottleneck = Math.Min(bottleneck, residual[parent[node]][node]);
+            for (var node = sink; node != source; node = parent[node])
+            {
+                residual[parent[node]][node] -= bottleneck;
+                residual[node][parent[node]] += bottleneck;
+            }
+        }
+
+        // The cut is where the residual graph stops: a cell whose arrival the source still reaches and whose
+        // departure it does not is a cell the flow saturated, which is a cell that has to be held.
+        var reached = new bool[residual.Length];
+        var walk = new Queue<int>();
+        reached[source] = true;
+        walk.Enqueue(source);
+        while (walk.Count > 0)
+        {
+            var node = walk.Dequeue();
+            foreach (var (next, left) in residual[node])
+                if (left > 0 && !reached[next]) { reached[next] = true; walk.Enqueue(next); }
+        }
+        return [.. index.Where(pair => reached[pair.Value * 2] && !reached[pair.Value * 2 + 1])
+                        .Select(pair => pair.Key)];
     }
 }

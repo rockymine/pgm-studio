@@ -47,7 +47,7 @@ shape whether a layout was hand-drawn or compiled from a plan.
 
 | Key | Holds |
 |---|---|
-| `setup` | `mirror_mode`, the symmetry `center`, and the `bbox` the canvas frames on open |
+| `setup` | `mirror_mode` — `none` for a board with no symmetry, whose relief is then solved unfolded, and `rot_180` when unstated — the symmetry `center`, and the `bbox` the canvas frames on open |
 | `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, groups}}`, plus `kind`, `part_of` and `seat` where the layer holds a made thing. Always at least one; a flat board is a stack of one, called `ground` |
 | `themes` · `themeSources` · `mapTheme` | the terrain-paint registry, which library row each of its themes was copied from, and the map-wide default |
 | `roomStyles` | the two bound room shells — `wool` and `spawn` |
@@ -704,6 +704,9 @@ a step of two is the one setting here that can break a map, and there is deliber
 it; a mark may state its own and fall back to this one), `landform` (what kind of
 ground this is meant to be — one of `plain`, `rolling`, `hills`, `mountain` — which the readback measures
 the solved surface against) and `grain` (a wobble applied after the solve: amplitude, feature scale, seed).
+A relief carries no grain until an author sets one: with none stated, or an amplitude of 0, the surface is
+exactly what the marks and pushes solved, and the panel shows the amount as 0 and the feature size as the 9
+blocks a grain takes when its scale is left unset.
 A word outside those four is a `SK3` complaint on the stored document: `RL1` judges a group only against a
 landform it recognises, so an unknown word or the wrong case turns that gate off rather than failing it.
 
@@ -1460,6 +1463,21 @@ names it among the rules it did not walk.
 grains; a shape carrying both builds with the material, being the narrower statement, and the theme is read by
 nothing. `SK24` is a refusal — the world is fine and it is the document that says two things.
 
+**It complains where one landform is painted a theme per step.** A plan component spanning several surfaces
+compiles to one shape per surface — a stepped island becomes stacked plateaus, each `{component}-{surface}`
+and each addressable — so a theme scoped per plateau paints one hillside as two or three grounds with a hard
+line at every riser. A theme is a **place**: the ground a board changes character at is where a player crosses
+from one part of the map to another, not where the plan happened to step. `SK27` names the component, the
+surfaces it climbs through and what each plateau paints, so the riser can be found on the canvas; the fix is
+one theme over the flight with the change stated inside it — a `slope` stack tells a riser from a tread by its
+angle, a `height` stack cuts at the surfaces the steps already sit at — or two components in the plan where
+the steps really are two places.
+
+A plateau is told from a shape somebody drew by the compiler's own naming: the number the id ends in is the
+shape's own thickness, and a drawn shape sits on a stated `floor` where a compiled one never does. So a
+sculpture's numbered parts are outside it, and a component whose own name ends in a number keeps it. Nine
+authored boards raise it, one component each.
+
 **Two silences an override add can meet, and both are named.** An override add is what a made thing is drawn
 as — a wall, a flight of stairs, a crop bed, a stepped mound — and it states two things at once: the column is
 its own, and this is its top. Each can be taken away by something that raises no other finding.
@@ -1528,6 +1546,23 @@ outline but absent from the list is drawn mirrored and built unmirrored. The sam
 relief and its keep-clear fan, so an unlisted shape takes neither of those either. A layer stating no groups at
 all is outside this — the whole of that layer mirrors — and so is a role-tagged room piece, which is never
 listed by design.
+
+**And it complains where a group lists its shapes and declines to be fanned.** `mirrors: false` is a legitimate
+statement — a landmark seated on the symmetry centre is already every one of its images, and fanning it would
+stamp it onto itself — so the flag alone is not the fault. What decides is where the group stands. `SK28` reads
+the group's own bounds against each of its orbit images: bounds that meet an image straddle the centre and may
+well be that image, and are left alone; bounds disjoint from every image cannot be, and that group is built
+once, on one team's ground and nowhere else. On a half-turn board one side has the curtain wall and the other
+does not; on a quarter-turn board three of the four teams have nothing there.
+
+Nothing else reports it, which is what makes it worth a rule. The store answers 200, the export gate opens,
+and pre-flight's mirror check reads spawns, wool rooms and build zones rather than made geometry, so a board
+with one castle and three bare quadrants passes every gate the pipeline has. `GET /map/{slug}/column` is what
+confirms either way, and the image coordinate has to be exact: the reflection of block `z` is `−z−1`, so
+probing `−z` lands one block off the image and reports a difference on a board that is exactly symmetric.
+Where a group really is its own image, its own shapes have to be symmetric too — eight causeway trestles whose
+offsets have no partner under the half-turn prop a neutral crossing at different spacings for the two teams,
+and the deck above them, being one centred rectangle, says nothing about it.
 
 **What separates that from a donut is the order, and only within one layer.** A body and the hole cut out of
 it are written in that order — an exterior ring then its interior rings, a compiled footprint then the buffers
@@ -1627,18 +1662,19 @@ says so on the way past.
 And two things are silently **dropped on load** rather than carried: a prop whose kind the client does not
 know, and a relief mark whose kind it cannot draw. A shape nothing can edit is worse than an absence.
 
-**A write reads the document; a read walks the ground.** Seven of the rules above — `SK9`, `SK10`, `SK11`,
-`SK13`, `SK14`, `SK15`, `SK16` — are answered off the **rasterized spans** rather than off the JSON: what
-stacks over what, what a layer's slab drives into, what is standable and unreached. Answering them walks every
-column of the board's extent, which on a played-size board is seconds. So a **partial write** — a shape, a
-vertex, a layer, a group, a prop, a theme — takes the document reading and leaves those seven for a read that
-asks: on `opus5-millrace` (274×268 columns, 312 shapes) that is **48 ms a moved vertex against 1,291 ms**, and
+**A write reads the document; a read walks the ground.** Nine of the rules above — `SK9`, `SK10`, `SK11`,
+`SK13`, `SK14`, `SK15`, `SK16`, `SK23` and `DR-TONE` — are answered off the **rasterized spans** rather than
+off the JSON: what stacks over what, what a layer's slab drives into, what is standable and unreached, which
+theme paints a given cell. Answering them walks every column of the board's extent, which on a played-size
+board is seconds. So a **partial write** — a shape, a vertex, a layer, a group, a prop, a theme — takes the
+document reading and leaves those nine for a read that asks: on `opus5-millrace` (274×268 columns, 312 shapes) that is **48 ms a moved vertex against 1,291 ms**, and
 the nine calls that reshape a compiled rectangle drop from twelve seconds to under one.
 
-What a write leaves out it **names**, on its own header. `Pgm-Unwalked: SK9 SK10 SK11 SK13 SK14 SK15 SK16` is
-on every partial write, and it is deliberately not folded into `Pgm-Warnings`: that key means *these were
-found* and its absence means *nothing was*, which is the one rule that makes it readable, so a rule that was
-never asked cannot ride there. `GET /map/{slug}/findings` walks the ground and answers all of them, and so
+What a write leaves out it **names**, on its own header.
+`Pgm-Unwalked: SK9 SK10 SK11 SK13 SK14 SK15 SK16 SK23 DR-TONE` is on every partial
+write, and it is deliberately not folded into `Pgm-Warnings`: that key means *these were found* and its
+absence means *nothing was*, which is the one rule that makes it readable, so a rule that was never asked
+cannot ride there. `GET /map/{slug}/findings` walks the ground and answers all of them, and so
 does the **finish**, which is where a board carrying one is stopped. `SK2` is outside the split and answers
 under either reading — a board too large to realize is measured off the shapes' own boxes, and must refuse
 before anything walks a column of it.
@@ -1723,8 +1759,11 @@ one kind and one footprint, so finding a spot for a tree is one call rather than
 Two things keep the answer the pass's own. The standoff is the kind's — a tree keeps three blocks off a
 route, a boulder two — and a claim only refuses a kind that places at or before the claimant's own turn, so
 a bed of flora does not stop a tree while a tree stops the flora (`docs/world-export/decoration.md` § 8). And
-a building gets a seat rather than a verdict: `DR-PASS`, `DR-CROSS`, `DR-WAY` and `DR-SLOPE` read the built
-world, and the pass still raises them.
+a building gets a seat rather than a verdict. `DR-PASS` is asked here too: a building's `width`/`depth` are
+its **walls**, the passage is measured from the roof over them, and a candidate joins the group of any
+building standing within a passage of it — the standing ones are read off the raster's own structure cells,
+one building to a run of them, and grouped once for the board rather than once per anchor. `DR-CROSS`,
+`DR-WAY` and `DR-SLOPE` read the built world and stay the pass's to raise.
 
 ```json POST /api/map/{slug}/sketch/seats?kind=tree&width=3
 {"setup": {"mirror_mode": "none", "center": {"cx": 0, "cz": 0}},

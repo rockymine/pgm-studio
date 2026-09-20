@@ -80,11 +80,11 @@ public static class MapStandards
             // blocks is prevented by the block-drops chance=0 rule below, not by removing them on death (which
             // would leave players without building material). Only the team armour is dropped — the kit
             // re-applies it — so <itemremove> is just the armour (+ the terrain drops added later).
-            var keep = kit.Items.Where(i => i.Amount <= 1).Select(i => i.Material).Where(s => s.Length > 0).ToList();
-            var blocks = kit.Items.Where(i => i.Amount > 1).Select(i => i.Material).Where(s => s.Length > 0).Distinct().ToList();
+            var keep = kit.Items.Where(i => i.Item.Amount <= 1).Select(i => i.Item.Material).Where(s => s.Length > 0).ToList();
+            var blocks = kit.Items.Where(i => i.Item.Amount > 1).Select(i => i.Item.Material).Where(s => s.Length > 0).Distinct().ToList();
             m.ItemKeep = keep.Concat(blocks).Distinct().ToList();
             m.ToolRepair = keep.Where(IsTool).Distinct().ToList();
-            m.ItemRemove = kit.Armor.Select(a => a.Material).Where(s => s.Length > 0).Distinct().ToList();
+            m.ItemRemove = kit.Armor.Select(a => a.Item.Material).Where(s => s.Length > 0).Distinct().ToList();
 
             // The place-and-break trick: a kit block breaks into nothing (a single drop at chance 0 replaces
             // its natural drop), so players can't mine fresh building material off what they place.
@@ -99,8 +99,8 @@ public static class MapStandards
             // team-coloured block) on top of the golden-apple include. Amounts match the corpus norm
             // (~24 blocks across ~2 items: a neutral block at 16, a team-coloured one at 8).
             var rewardItems = kit.Items
-                .Where(i => i.Amount > 1 && i.Material.Length > 0)
-                .Select(i => new KillRewardItem { Material = i.Material, TeamColor = i.TeamColor, Amount = i.TeamColor ? 8 : 16 })
+                .Where(i => i.Item.Amount > 1 && i.Item.Material.Length > 0)
+                .Select(i => new KillRewardItem { Material = i.Item.Material, TeamColor = i.Item.TeamColor, Amount = i.Item.TeamColor ? 8 : 16 })
                 .ToList();
             if (rewardItems.Count > 0) m.KillRewards = [new KillReward { Items = rewardItems }];
         }

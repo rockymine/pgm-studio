@@ -34,6 +34,10 @@ public static class Deserializer
             Wools = wools,
             Destroyables = ListOf(d, "destroyables").Select(x => DecodeDestroyable(AsDict(x))).ToList(),
             Cores = ListOf(d, "cores").Select(x => DecodeCore(AsDict(x))).ToList(),
+            ControlPoints = ListOf(d, "control_points").Select(x => DecodeControlPoint(AsDict(x))).ToList(),
+            Shops = ListOf(d, "shops").Select(x => DecodeShop(AsDict(x))).ToList(),
+            Shopkeepers = ListOf(d, "shopkeepers").Select(x => DecodeShopkeeper(AsDict(x))).ToList(),
+            Score = Val(d, "score") is Dict score ? DecodeScore(score) : null,
             Modes = ListOf(d, "modes").Select(x => DecodeMode(AsDict(x))).ToList(),
             Spawners = ListOf(d, "spawners").Select(s => DecodeSpawner(AsDict(s))).ToList(),
             Renewables = ListOf(d, "renewables").Select(r => DecodeRenewable(AsDict(r))).ToList(),
@@ -60,6 +64,8 @@ public static class Deserializer
     private static int AsInt(object? v, int def) => v is null ? def : Convert.ToInt32(v);
     private static int? AsIntN(object? v) => v is null ? null : Convert.ToInt32(v);
     private static double AsDouble(object? v, double def) => v is null ? def : Convert.ToDouble(v);
+    private static double? AsDoubleN(object? v) => v is null ? null : Convert.ToDouble(v);
+    private static bool? AsBoolN(object? v) => v is bool b ? b : null;
     private static bool AsBool(object? v, bool def) => v is bool b ? b : def;
     private static double Cd(object? v) => Coord.Decode(v);
     private static (double x, double y, double z) Xyz(object? v)
@@ -199,28 +205,82 @@ public static class Deserializer
         Clear = AsBool(Val(d, "clear"), false),
         Items = ListOf(d, "items").Select(i => DecodeKitItem(AsDict(i))).ToList(),
         Armor = ListOf(d, "armor").Select(a => DecodeKitArmor(AsDict(a))).ToList(),
-        Effects = ListOf(d, "effects").Select(e => DecodeKitEffect(AsDict(e))).ToList(),
+        Effects = ListOf(d, "effects").Select(e => DecodeEffect(AsDict(e))).ToList(),
     };
 
-    private static KitEffect DecodeKitEffect(Dict d) => new()
+    private static PotionEffect DecodeEffect(Dict d) => new()
     {
         Type = Str(d, "type"), Duration = Str(d, "duration"), Amplifier = AsInt(Val(d, "amplifier"), 0),
     };
 
-    private static KitItem DecodeKitItem(Dict d) => new()
+    /// <summary>The item stack, read off the dict it was written flat into
+    /// (<see cref="Serializer.ItemToDict"/>).</summary>
+    public static ItemSpec ItemFromDict(Dict d) => DecodeItemSpec(d);
+
+    private static ItemSpec DecodeItemSpec(Dict d) => new()
     {
-        Slot = AsInt(Val(d, "slot"), 0), Material = Str(d, "material"),
-        Amount = AsInt(Val(d, "amount"), 1), ItemDamage = AsInt(Val(d, "damage"), 0),
-        Unbreakable = AsBool(Val(d, "unbreakable"), false), TeamColor = AsBool(Val(d, "team_color"), false),
+        Material = Str(d, "material"),
+        Amount = AsInt(Val(d, "amount"), 1),
+        Damage = AsInt(Val(d, "damage"), 0),
+        Name = Str(d, "name"),
+        Lore = Str(d, "lore"),
+        Color = Str(d, "color"),
         Enchantments = Str(d, "enchantments"),
+        StoredEnchantments = Str(d, "stored_enchantments"),
+        Unbreakable = AsBool(Val(d, "unbreakable"), false),
+        TeamColor = AsBool(Val(d, "team_color"), false),
+        PreventSharing = AsBool(Val(d, "prevent_sharing"), false),
+        Locked = AsBool(Val(d, "locked"), false),
+        Projectile = Str(d, "projectile"),
+        Consumable = Str(d, "consumable"),
+        Hidden = Words(d, "hidden"),
+        Effects = ListOf(d, "effects").Select(e => DecodeEffect(AsDict(e))).ToList(),
+        Attributes = ListOf(d, "attributes").Select(a => AsDict(a)).Select(a => new ItemAttribute
+        {
+            Attribute = Str(a, "attribute"), Operation = Str(a, "operation"), Amount = AsDouble(Val(a, "amount"), 0),
+        }).ToList(),
+        CanPlaceOn = Words(d, "can_place_on"),
+        CanDestroy = Words(d, "can_destroy"),
     };
 
-    private static KitArmor DecodeKitArmor(Dict d) => new()
+    private static List<string> Words(Dict d, string key) => ListOf(d, key).Select(w => w as string ?? "").ToList();
+
+    private static KitItem DecodeKitItem(Dict d) => new() { Slot = AsInt(Val(d, "slot"), 0), Item = DecodeItemSpec(d) };
+
+    private static KitArmor DecodeKitArmor(Dict d) => new() { SlotName = Str(d, "slot_name"), Item = DecodeItemSpec(d) };
+
+    public static Shop DecodeShop(Dict d) => new()
     {
-        SlotName = Str(d, "slot_name"), Material = Str(d, "material"),
-        Unbreakable = AsBool(Val(d, "unbreakable"), false), TeamColor = AsBool(Val(d, "team_color"), false),
-        Enchantments = Str(d, "enchantments"),
+        Id = Str(d, "id"), Name = Str(d, "name"),
+        Categories = ListOf(d, "categories").Select(c => AsDict(c)).Select(c => new ShopCategory
+        {
+            Id = Str(c, "id"),
+            Icon = DecodeItemSpec(Val(c, "icon") is Dict icon ? icon : new Dict()),
+            FilterId = Str(c, "filter"),
+            Icons = ListOf(c, "icons").Select(i => AsDict(i)).Select(i => new ShopIcon
+            {
+                Item = DecodeItemSpec(Val(i, "item") is Dict item ? item : new Dict()),
+                FilterId = Str(i, "filter"),
+                ActionId = Str(i, "action"),
+                Payments = ListOf(i, "payments").Select(pay => AsDict(pay)).Select(pay => new ShopPayment
+                {
+                    Price = AsInt(Val(pay, "price"), 0), Currency = Str(pay, "currency"), Color = Str(pay, "color"),
+                }).ToList(),
+            }).ToList(),
+        }).ToList(),
     };
+
+    public static Shopkeeper DecodeShopkeeper(Dict d)
+    {
+        var keeper = new Shopkeeper
+        {
+            ShopId = Str(d, "shop"), Name = Str(d, "name"), Mob = Str(d, "mob"),
+            RegionId = Str(d, "region"), Yaw = AsDoubleN(Val(d, "yaw")),
+        };
+        if (Val(d, "location") is Dict at)
+            keeper.Location = new Vec3(AsDouble(Val(at, "x"), 0), AsDouble(Val(at, "y"), 0), AsDouble(Val(at, "z"), 0));
+        return keeper;
+    }
 
     private static Team DecodeTeam(Dict d) => new()
     {
@@ -295,6 +355,50 @@ public static class Deserializer
         Modes = d.ContainsKey("modes") ? ListOf(d, "modes").Select(m => m as string ?? "").ToList() : null,
     };
 
+    private static ControlPoint DecodeControlPoint(Dict d) => new()
+    {
+        Id = Str(d, "id"),
+        Name = Str(d, "name"),
+        Element = Str(d, "element") == "king" ? ControlPointElement.King : ControlPointElement.ControlPoints,
+        CaptureRegionId = Str(d, "capture_region"),
+        ProgressRegionId = Str(d, "progress_region"),
+        OwnerRegionId = Str(d, "owner_region"),
+        VisualMaterialsFilterId = Str(d, "visual_materials"),
+        InitialOwner = Str(d, "initial_owner"),
+        CaptureTime = Str(d, "capture_time"),
+        CaptureRule = Str(d, "capture_rule"),
+        CaptureFilterId = Str(d, "capture_filter"),
+        PlayerFilterId = Str(d, "player_filter"),
+        Incremental = AsBoolN(Val(d, "incremental")),
+        Recovery = AsDoubleN(Val(d, "recovery")),
+        Decay = AsDoubleN(Val(d, "decay")),
+        OwnedDecay = AsDoubleN(Val(d, "owned_decay")),
+        Contested = AsDoubleN(Val(d, "contested")),
+        TimeMultiplier = AsDoubleN(Val(d, "time_multiplier")),
+        NeutralState = AsBoolN(Val(d, "neutral_state")),
+        Permanent = Val(d, "permanent") is true,
+        Points = AsDoubleN(Val(d, "points")),
+        OwnerPoints = AsDoubleN(Val(d, "owner_points")),
+        PointsGrowth = AsDoubleN(Val(d, "points_growth")),
+        ShowProgress = AsBoolN(Val(d, "show_progress")),
+        Required = AsBoolN(Val(d, "required")),
+        Show = Val(d, "show") is not false,
+    };
+
+    private static ScoreConfig DecodeScore(Dict d) => new()
+    {
+        Initial = AsIntN(Val(d, "initial")),
+        Limit = AsIntN(Val(d, "limit")),
+        EnforceLimit = AsBoolN(Val(d, "enforce_limit")),
+        Kills = AsIntN(Val(d, "kills")),
+        Deaths = AsIntN(Val(d, "deaths")),
+        Mercy = AsIntN(Val(d, "mercy")),
+        MercyMin = AsIntN(Val(d, "mercy_min")),
+        Display = Str(d, "display"),
+        ScoreboardFilterId = Str(d, "scoreboard_filter"),
+        King = Val(d, "king") is true,
+    };
+
     private static ObjectiveMode DecodeMode(Dict d) => new()
     {
         Id = Str(d, "id"),
@@ -306,7 +410,7 @@ public static class Deserializer
         ActionId = Str(d, "action"),
     };
 
-    private static WoolSpawner DecodeSpawner(Dict d) => new()
+    private static Spawner DecodeSpawner(Dict d) => new()
     {
         SpawnRegion = Str(d, "spawn_region"), PlayerRegion = Str(d, "player_region"),
         Delay = Str(d, "delay"), MaxEntities = AsIntN(Val(d, "max_entities")),

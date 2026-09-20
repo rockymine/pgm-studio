@@ -84,6 +84,61 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(finding.Message).Contains("no image on the other side");
     }
 
+    // A layer whose one group states its own mirror flag, for the SK28 cases. The shape is the whole of the
+    // group, so where it stands decides whether declining the fan can be right.
+    private static string Unmirrored(string shape, bool mirrors = false, string mode = "rot_180") =>
+        "{\"setup\":{\"mirror_mode\":\"" + mode + "\",\"center\":{\"cx\":0,\"cz\":0}},"
+        + "\"layers\":[{\"base_y\":0,\"kind\":\"made\",\"layout\":{\"shapes\":[" + shape + "],"
+        + "\"groups\":[{\"id\":\"wall\",\"name\":\"Wall\",\"mirrors\":"
+        + (mirrors ? "true" : "false") + ",\"shapeIds\":[\"w1\"]}]}}]}";
+
+    private const string OffCentre =
+        """{"id":"w1","type":"rectangle","operation":"add","min_x":10,"max_x":55,"min_z":10,"max_z":12,"floor":14,"base_height":4}""";
+
+    [Test]
+    [Arguments("rot_180")]
+    [Arguments("rot_90")]
+    [Arguments("mirror_z")]
+    public async Task A_group_that_declines_the_fan_off_the_centre_is_named_because_one_team_gets_it(string mode)
+    {
+        // The orbit is fanned per group, so mirrors false builds the group once. Standing clear of every one
+        // of its own images, it cannot be its own image, so it is one team's and no other's.
+        var findings = SketchLayoutCheck.Check(Unmirrored(OffCentre, mode: mode));
+
+        var finding = findings.Single(f => f.Rule == SketchRules.BuiltOnOneImage);
+        await Assert.That(findings.Refuses).IsFalse();
+        await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "wall" });
+        await Assert.That(finding.Field).IsEqualTo("layers[0].layout.groups[0].mirrors");
+        await Assert.That(finding.Message).Contains("one team's ground and nowhere else");
+    }
+
+    [Test]
+    public async Task A_group_on_the_symmetry_centre_may_decline_the_fan_because_it_is_its_own_image()
+    {
+        // A landmark seated on the centre is already every one of its images, and fanning it would stamp it
+        // onto itself. The footprint is what says so, which is why the flag alone is not the fault.
+        var centred =
+            """{"id":"w1","type":"circle","operation":"add","center_x":0,"center_z":0,"radius":8,"floor":14,"base_height":12}""";
+
+        await Assert.That(SketchLayoutCheck.Check(Unmirrored(centred))
+                                           .Where(f => f.Rule == SketchRules.BuiltOnOneImage)).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_group_that_mirrors_is_not_asked_where_it_stands()
+    {
+        await Assert.That(SketchLayoutCheck.Check(Unmirrored(OffCentre, mirrors: true))
+                                           .Where(f => f.Rule == SketchRules.BuiltOnOneImage)).IsEmpty();
+    }
+
+    [Test]
+    public async Task An_unmirrored_group_on_an_unfanned_board_has_no_image_to_be_missing_from()
+    {
+        // Order one: there is no orbit, so nothing is built twice and declining the fan costs nothing.
+        await Assert.That(SketchLayoutCheck.Check(Unmirrored(OffCentre, mode: "none"))
+                                           .Where(f => f.Rule == SketchRules.BuiltOnOneImage)).IsEmpty();
+    }
+
     [Test]
     public async Task An_unlisted_subtract_over_ground_no_add_reaches_takes_nothing_away()
     {
@@ -759,5 +814,132 @@ public sealed class SketchRecipeGateTests
             """{"props":[{"kind":"boulder","x":0,"z":0,"style":"gone"}],"styles":{}}"""));
 
         await Assert.That(findings.Single(f => f.Rule == SketchRules.RecipeNotStated).Subjects).Contains("#0");
+    }
+
+    // ── SK27: one landform, a theme per step ──────────────────────────────────────────────────────────
+
+    /// <summary>A layout holding one component's plateaus, each with the paint it states. The ids are the
+    /// ones <c>PlanCompiler</c> mints — <c>{component}-{surface}</c> over a stated thickness and no floor —
+    /// so what is read back here is what a compiled board carries.</summary>
+    private static string Steps(string plateaus, string mapTheme = "moor") =>
+        "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
+        + "\"layers\":[{\"id\":\"ground\",\"base_y\":0,\"layout\":{\"shapes\":[" + plateaus + "],\"groups\":[]}}],"
+        + "\"themes\":{\"moor\":{},\"yard\":{},\"crag\":{}},\"mapTheme\":\"" + mapTheme + "\"}";
+
+    private static string Plateau(string id, int surface, string? theme = null, string? material = null) =>
+        $$"""{"id":"{{id}}","type":"polygon","operation":"add","vertices":[[-20,-20],[20,-20],[20,20],[-20,20]],"base_height":{{surface}}"""
+        + (theme is null ? "" : $",\"theme\":\"{theme}\"")
+        + (material is null ? "" : $",\"material\":{material}")
+        + "}";
+
+    [Test]
+    public async Task A_component_whose_plateaus_disagree_about_their_paint_is_one_landform_with_a_seam_at_every_riser()
+    {
+        var findings = SketchLayoutCheck.Check(Steps(
+            Plateau("bench-e-12", 12, "yard") + "," + Plateau("bench-e-26", 26, "crag")));
+
+        var finding = findings.Single(f => f.Rule == SketchRules.PlateausPaintedApart);
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(finding.Message).Contains("component 'bench-e'");
+        await Assert.That(finding.Message).Contains("from surface 12 to 26");
+        await Assert.That(finding.Message).Contains("bench-e-12 at 12 paints theme 'yard'");
+        await Assert.That(finding.Message).Contains("bench-e-26 at 26 paints theme 'crag'");
+        await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "bench-e-12", "bench-e-26" });
+    }
+
+    /// <summary>The whole point of the rule: plateaus agreeing say nothing, however many of them there are.</summary>
+    [Test]
+    public async Task A_component_painted_one_theme_the_whole_climb_says_nothing()
+    {
+        var findings = SketchLayoutCheck.Check(Steps(
+            Plateau("apron-13", 13, "crag") + "," + Plateau("apron-14", 14, "crag") + ","
+            + Plateau("apron-16", 16, "crag")));
+
+        await Assert.That(findings.Any(f => f.Rule == SketchRules.PlateausPaintedApart)).IsFalse();
+    }
+
+    /// <summary>A plateau naming no theme takes the map default, which is a paint like any other — so a
+    /// component where one step names the default by name and the other leaves it out agrees with itself.</summary>
+    [Test]
+    public async Task A_step_naming_the_map_default_and_one_naming_nothing_state_the_same_paint()
+    {
+        var findings = SketchLayoutCheck.Check(Steps(
+            Plateau("bar-12", 12, "moor") + "," + Plateau("bar-18", 18)));
+
+        await Assert.That(findings.Any(f => f.Rule == SketchRules.PlateausPaintedApart)).IsFalse();
+    }
+
+    /// <summary>A step that states what it is made of is painted differently from one that states a theme,
+    /// whatever the two resolve to: a material is one bucket over the whole span and a theme is five chosen
+    /// per column, so the riser between them is the hard line the rule is about.</summary>
+    [Test]
+    public async Task A_step_made_of_a_material_beside_one_wearing_a_theme_is_the_same_seam()
+    {
+        var findings = SketchLayoutCheck.Check(Steps(
+            Plateau("head-e-10", 10, "moor") + ","
+            + Plateau("head-e-22", 22, material: """{"kind":"solid","id":1,"data":0}""")));
+
+        var finding = findings.Single(f => f.Rule == SketchRules.PlateausPaintedApart);
+        await Assert.That(finding.Message).Contains("head-e-22 at 22 paints its own material");
+    }
+
+    /// <summary>A hand-drawn shape whose id ends in a number is not a compiled plateau. The two are told
+    /// apart by the number being the shape's own thickness and by a drawn shape sitting on a stated floor,
+    /// which is what keeps a sculpture's numbered parts out of this.</summary>
+    [Test]
+    public async Task A_drawn_shape_whose_id_ends_in_a_number_is_not_a_plateau()
+    {
+        var drawn = """{"id":"car-0-1-4","type":"rectangle","operation":"add","min_x":-60,"max_x":-55,"min_z":0,"max_z":4,"floor":23,"base_height":1,"theme":"yard"}""";
+        var beside = """{"id":"car-0-1-5","type":"rectangle","operation":"add","min_x":-59,"max_x":-56,"min_z":0,"max_z":4,"floor":23,"base_height":1,"theme":"crag"}""";
+
+        var findings = SketchLayoutCheck.Check(Steps(drawn + "," + beside));
+
+        await Assert.That(findings.Any(f => f.Rule == SketchRules.PlateausPaintedApart)).IsFalse();
+    }
+
+    /// <summary>A surface broken into several patches carries a ring number past the first, and the patches
+    /// of one surface belong to the same component as the plateaus above and below them.</summary>
+    [Test]
+    public async Task A_ringed_patch_is_read_back_onto_its_own_component()
+    {
+        var findings = SketchLayoutCheck.Check(Steps(
+            Plateau("apron-14", 14, "moor") + "," + Plateau("apron-14-2", 14, "yard")));
+
+        var finding = findings.Single(f => f.Rule == SketchRules.PlateausPaintedApart);
+        await Assert.That(finding.Message).Contains("component 'apron'");
+        await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "apron-14", "apron-14-2" });
+    }
+
+    /// <summary>A component whose own name ends in a number keeps it: the surface is read as the trailing
+    /// number that answers the shape's thickness, so <c>tier-2</c> at surface 14 is one component and not
+    /// <c>tier</c> at surface 2.</summary>
+    [Test]
+    public async Task A_component_whose_name_ends_in_a_number_keeps_it()
+    {
+        var findings = SketchLayoutCheck.Check(Steps(
+            Plateau("tier-2-14", 14, "moor") + "," + Plateau("tier-2-20", 20, "yard")));
+
+        await Assert.That(findings.Single(f => f.Rule == SketchRules.PlateausPaintedApart).Message)
+            .Contains("component 'tier-2'");
+    }
+
+    /// <summary>One plateau is a component that cannot disagree with itself.</summary>
+    [Test]
+    public async Task A_component_of_one_plateau_says_nothing()
+    {
+        var findings = SketchLayoutCheck.Check(Steps(Plateau("knoll-18", 18, "yard")));
+        await Assert.That(findings.Any(f => f.Rule == SketchRules.PlateausPaintedApart)).IsFalse();
+    }
+
+    /// <summary>A surface below zero carries its own minus sign into the name, so the cut is made before the
+    /// sign and not between it and the digits.</summary>
+    [Test]
+    public async Task A_component_standing_below_zero_is_read_back_whole()
+    {
+        var findings = SketchLayoutCheck.Check(Steps(
+            Plateau("sump--3", -3, "moor") + "," + Plateau("sump--1", -1, "yard")));
+
+        await Assert.That(findings.Single(f => f.Rule == SketchRules.PlateausPaintedApart).Message)
+            .Contains("component 'sump'");
     }
 }

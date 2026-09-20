@@ -100,6 +100,15 @@ and the map is a block asymmetric in play. That is what a goal's anchor and a bu
 did until `B250`; both now convert to the cell first and turn the cell, and `ObjectiveFootprint.AnchorCell` is
 the one conversion the compiler's fan and the world's stamper share so the two cannot round apart.
 
+**A capture point orbits by position, because it belongs to nobody.** Every other objective is fanned by
+*team* — the image takes the next team in list order and the position follows — but a hill is neutral, so the
+image is a position and the orbit's own order decides how many there are. One consequence makes the author's
+rule authorable and is worth stating plainly: a point standing on the centre of symmetry is **its own image**
+and stays one point, which falls out of comparing each image against the points already placed rather than
+being a case bolted on. State the middle and one side, and a two-team board comes back a middle and a matched
+pair, a four-team board a middle and a ring of four (`control-points.md` §6). A point whose image another
+authored point already occupies is likewise not added twice.
+
 The rule that keeps this coherent is that **coverage is a property of the entity, not of the tier**. Every
 objective orbits in all three, or the answer to "is this map fair?" changes depending on which tool the author
 happened to use. That rule was broken once and cost a whole class of map: `Expand` rebuilt the intent by
@@ -296,3 +305,23 @@ enforces.
 
 **Symmetric maps first.** The generator targets clean symmetric layouts; a highly irregular map may not be
 expressible, and the bar is "a valid map PGM can load" rather than "every map".
+
+**A shop is stated on the intent and its keepers are derived unless it says otherwise.** `shops` carries the
+menu — an id, a name, its categories, and per icon the stack, every payment it costs and the action buying it
+triggers. A keeper that names no place of its own is derived: one per shop at every team's spawn, beside the
+point players arrive on and facing them (`shops.md` §9). One that names a block or a region stands there,
+once, which is how a shop building in the middle of a board is stated. Nothing is stamped for one, because
+PGM spawns the entity itself from the element, so a shop board exports the moment the intent is stored.
+
+**A board's currency is stated on the intent too.** `spawners` carries the generators that mint what a shop
+is priced in — a place, a reach, a rate, a cap and what drops — and the slice mints the three regions around
+each drop plus the one rule that keeps its ground from being built in or dug out (`shops.md` §10). A spawn kit and the kill reward derived from it are the only other item sources
+a generated board has, so a menu priced in anything else needs one.
+
+**A capture point is stated on the intent, not on the plan.** `controlPoints` carries an anchor, a pad size,
+what holding it pays and how long it takes; everything else PGM reads off a hill is the studio's one
+convention and is written the same on every board (`control-points.md` §7). An agent authoring a KotH board
+therefore adds one array to the intent it already posts, and the export does the rest — the pad is cut into
+whatever ground the world build solved, and the regions are that pad's own boxes. A plan states a **count**
+instead, under `placements.controlPoints`, and the compiler derives every anchor from it and the spawn frame
+— which is what a plan-compiled intent needs, carrying no symmetry of its own to fan one side with.

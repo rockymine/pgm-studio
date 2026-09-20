@@ -39,11 +39,23 @@ and a fall counted but not charged, routing around voids — never the straight 
   fundamentally: the plan is a **mini layout** — the checkered-paper scale *proxy* map authors
   already draw, not block-true dimensions. Grid-born "artificial" distances are expected and are
   resolved downstream by the scale + roughen passes (design doc §2, "the plan is a mini layout").
-- **G2 [expert]** Minimum corridor width **10**; larger maps trend toward **15**.
-- **G3 [corpus, revised]** The v2 width band (40–60) fit almost none of the authored corpus:
-  measured 2-team fanned boards run **30–130 wide × 100–280 long** (elaborated seeds typically
-  80–130 wide; `mirror-big-board` 280×130), 4-team squares **130–180**. Wide-frontline designs
-  legitimately exceed the old cap. All twelve seeds carry **honest per-team counts** (stored =
+- **G2 [corpus, revised]** The map's corridor width is the **size band's**, stated in blocks:
+  **12** at nano, **14** at micro, **16** at milli and centi — and the wool approach one
+  rung under it at **10 · 12 · 14 · 14**. Measured over 359 built CTW maps
+  (`docs/world-scan/map-size-ladder.md`): the modal local thickness of a map's ground runs
+  8 · 10 · 14 · 16 from the smallest maps up to the top of the ladder, the quartile a working lane sits at
+  runs 8 · 12 · 14 · 16, and ground narrower than **8 blocks** is 1.5–4% of a map at every size, which is
+  the floor authors build to. A width in blocks divided by the grid's cell is what lets the scale move: at
+  cell 4 the reachable widths are 4/8/12/16/20 and the measured ladder's ends both land on one, at cell 5
+  they are 5/10/15/20 and neither does. The composer draws on **cell 4**, which carries the map's lane
+  exactly at nano, milli and centi.
+- **G3 [corpus, revised]** Measured over 359 built CTW maps, 2-team boards run **50–300 wide ×
+  95–620 long** at the quartile extremes, with the median rising by band — 78×166 at nano, 106×210 at
+  micro, 138×288 at milli, 161×304 at centi — and an aspect of **2.0** at the median, 1.4–2.6 at the
+  quartiles. 4-team boards are **square at all three quartiles**, side 165 / **222** / 279. Coverage —
+  the share of the bounding box that is land — is **32–41%** at every band, so the board follows the land
+  budget through it rather than being clamped to a size of its own. Wide-frontline designs legitimately
+  exceed the old cap. All twelve seeds carry **honest per-team counts** (stored =
   the comfortable cap; the author notes maps play fine ± a few players): tiny 5 · base-2island
   10 · base-4team 10 · base-2wool 12 · wool-two-sided 12 · approaches 12 · isolated-spawn 14 ·
   odd-facing 16 · towers 18 · rotate 20 (XML-defined 16) · trace 30 · mirror-big-board 32. The
@@ -66,23 +78,29 @@ and a fall counted but not charged, routing around voids — never the straight 
   **~5 above the build cap**, or off to the side beyond any build zone.
 - **G7 [expert]** Follows G5: a single required-path hop stays ≤ **~20**; anything longer is a
   chain of hops (stones) summing to the 40–60 total crossing.
-- **G8 [corpus, derived]** Map size is driven by the intended player count — `maxPlayers` is an
-  *input* to the board envelope, not an afterthought. With all twelve author counts the coupling
-  is: **land area per player rises with per-team land**, saturating around ~175–185 b/p:
+- **G8 [corpus, revised]** Map size is driven by the intended player count — `maxPlayers` is an
+  *input* to the board envelope, not an afterthought — and the count's job is to name a **size band**. A
+  map is not built for one count: it works across a range, and the ranges are the author's — **nano**
+  6–13 players a team, **micro** 14–21, **milli** 22–31, **centi** 32 and up. Two counts inside
+  one band compose to the same budget, because they are the same map. **Centi is the top of the ladder**:
+  the server these are built for fields at most 32 a side, so a request for a bigger side composes the
+  biggest board there is rather than a band nobody plays.
 
-  | land/team | players/team | b/p | seeds |
-  |---|---|---|---|
-  | 325 | 5 | 65 | mirror-tiny-map-cliff |
-  | 950 | 10 | 95 | base-2island · base-4team |
-  | 1250 | 12 | 104 | base-2wool · isolated-spawn-approaches |
-  | 1500–1550 | 12–14 | 111–125 | four-team-wool-two-sided · isolated-spawn |
-  | 2500–2875 | 16–18 | 156–160 | odd-facing-three-wool · four-team-towers-big |
-  | 3500–5875 | 20–32 | 175–184 | rotate-wide-frontline · trace · mirror-big-board |
+  | band | players/team | land/team | land/player | maps measured |
+  |---|---|---|---|---|
+  | nano | 6–13 | **2250** | 225 | 77 |
+  | micro | 14–21 | **4025** | 242 | 90 |
+  | milli | 22–31 | **7075** | 270 | 65 |
+  | centi | 32+ | **8730** | 256 | 84 |
 
-  Reading: bigger maps spend more land per player (elevation, longer crossings, rotation space).
-  Composer: target players/team → read land/team off the table (interpolate) → land budget =
-  teams × land/team. Counts tolerate ± a few players (author). Rotate's XML-defined 16 gives
-  219 b/p — defined counts sit below the comfort cap.
+  Measured over 331 CTW corpus maps with both a team count and a player cap
+  (`docs/world-scan/map-size-ladder.md`). Land per team fits `176 × players^1.12` (r = 0.83 on log–log),
+  and an exponent of one is exactly "constant land per player" — so the coefficient is about **250
+  blocks² a player at every size**, and the band is what quantizes a nearly linear law. Composer: player
+  count → band → land budget
+  = teams × the band's land/team, and that budget **buys two things**: nine tenths of a team's share is the
+  team unit's, and the tenth each unit gives up funds the crossing's own stones — a fifth of one team's
+  budget, shared, because both teams stand on it. A board's whole land is the band's either way.
 
 ## SP — Spawn
 
@@ -184,6 +202,19 @@ and a fall counted but not charged, routing around voids — never the straight 
   across is a door (`PlanCompiler.WoolEntrySegments`, the same set the cage cuts its doors on). A
   room reached only over a build zone states no land seam and is not this rule's business but
   `BZ5`'s.
+
+- **WL12 [author]** **A bay or a hole beside a goal is at least 16 blocks across.** Negative space is
+  crossed by **jumping** long before it is crossed by building: a short gap between a frontline and a
+  wool room, or between a spawn and a wool room, lets a player tower at the near edge and jump in, and
+  the approach the board was drawn around stops being walked at all. The measure is the **narrowest
+  straight crossing** — the shortest line over the space with terrain on **both** ends, a run open at
+  one end being a way out rather than a gap over. A space walled on three sides or enclosed (a `bay` or
+  a `hole`, `NegativeSpaceKinds`) is asked; a space any **build zone** covers is not, since building
+  over it is what the zone states. The floor is **16 blocks** where the space touches a wool-room or
+  spawn piece and **12** where it touches neither — a hole in a team's own ground is crossed on purpose.
+  Stated in **blocks**, never in cells: a floor stated as a cell count moves with the grid scale, and a
+  jump does not care what the grid was.
+
 
 ## LN — Lane
 
@@ -614,9 +645,10 @@ disagree with the one that runs.
   stamped cage** — the shell footprint is the piece inset one block, per the WX rules
   (`docs/world-export/structures.md`). Nothing under it is sealed — the room region's own `enter`
   filter is what keeps an enemy out, at any depth; a **redstone line with a torch at either end** lies on the
-  last block row at each of the room's **entry interfaces** — every terrain↔room land seam and
-  every abutting build-zone edge (WX6) — the conventional marker for where entrance protection
-  begins. The editor renders terrain↔wool-room interfaces **red**. Each of the four corner chests
+  last block row at each of the room's **entry interfaces** — every terrain↔room land seam, whether
+  full-width or narrower than the corridor minimum, and every abutting build-zone edge (WX6) — the
+  conventional marker for where entrance protection begins. A seam under the corridor width is still
+  the way in, so it carries a line and a door like any other. The editor renders terrain↔wool-room interfaces **red**. Each of the four corner chests
   turns to open into the room rather than facing a wall: a corner touches two shell walls at once,
   and the room's own door breaks the tie — every chest faces away from whichever of its two walls
   sits on the door's axis (`WoolChests`).
@@ -684,14 +716,22 @@ disagree with the one that runs.
   the monument, not in the space the plate opens under the terrain: the plate is what goes into the
   ground, and a chest three courses down under whole terrain is a supply nobody can see or reach
   (`StructureStamper.StampPlatform` and `StampDefenseChest`, called from `WorldBuilder`).
-- **ST7 [author]** *Goal sky marker*: every wool room, destroyable and core carries a small marker —
-  a solid 3×3×3 cube or a 3-D asterisk, the shape a per-call choice — floating clear of
+- **ST7 [author]** *Goal sky marker*: every wool room, destroyable, core and capture point carries a
+  small marker — a solid 3×3×3 cube or a 3-D asterisk, the shape a per-call choice — floating clear of
   `BuildIntent.MaxHeight` (a fixed clearance above it, or above the tallest built terrain when no cap
-  is authored), so it sits out of build reach by construction. Coloured to the goal: the wool's own
-  colour for a wool room, the owning team's colour for a destroyable or a core. One marker per
-  already-fanned goal entry — a wool room, a destroyable, a core are each one list entry per
-  symmetry-orbit image (`PlanCompiler` fans team-outer) — so a mirrored board's markers match without
-  the stamper (`GoalMarkerStamper`) doing any orbit math of its own.
+  is authored), so it sits out of build reach by construction. One marker per already-fanned goal
+  entry — a wool room, a destroyable, a core, a point are each one list entry per symmetry-orbit image
+  (`PlanCompiler` fans team-outer) — so a mirrored board's markers match without the stamper
+  (`GoalMarkerStamper`) doing any orbit math of its own.
+
+  **Three of the four are a constant colour and the fourth changes.** A wool room's marker is the
+  wool's own colour and a destroyable's or a core's is the owning team's, because those goals belong
+  to somebody for the whole match. A capture point belongs to nobody until it is taken, so its marker
+  is laid in **white wool** and the map recolours it: the marker's box is the point's
+  **owner display region**, which PGM paints flat in the holder's dye and restores from the world
+  snapshot when the point goes neutral. Wool because `ColorUtils` recolours only a closed set of
+  materials; the owner region rather than the progress one because the progress display is a pie swept
+  about the centre of its own bounds, and a marker inside it would move that centre off the pad.
 - **ST8 [author]** *Approach wall geometry*: the interface a wall bars is a **10–20 block lane
   mouth** (a wall across a 30-block face bars a room, not a lane), and the wall stands **about 15
   blocks in front of** the wool room's entrance — judged against the **nearest parallel** entry seam,
@@ -988,6 +1028,102 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     around it (`TP6` rewrites only stone); nothing is filled downward. No other rule changes — `ST2`'s spawn
     piece never laid a floor, and `ST4`'s wall keeps its bedrock, which is a barrier rather than a plinth.
 
+40. **The hub's body is chosen before its neighbours are sized (2026-09-18).** Author's call. A neighbour
+    docks onto the **runs** a hub offers, and the allocator sized every one of them against the hub's
+    *bounding box* — two different numbers on a bay-fronted body, and `model.md` §5.4 already described the
+    form as decided first. Measured over 480 boards, 104 have a front edge whose longest run is shorter than
+    that box edge (median shortfall 32 blocks, max 96), and it is two forms entirely: `G` at **100%** and
+    `SpineArms` at **85%**, against `Ring`, `P`, `DoubleHole` and `Rectangle` at none.
+
+    `Allocate` now picks the form, its walls and its arms, emits the body, reads its front runs, and sizes
+    the requests against those. Emitting is a pure function of those three, so the three readers of the body
+    — the sizing, the seating, the filler — see the same one with no draw between them. The fallback ladder
+    is untouched: it demotes toward the solid rectangle, which offers strictly more free surface than any
+    holed body, so a request sized against a `G`'s runs fits the rectangle that replaces it.
+
+    What the sizing does with the runs is floor the **frontline's face** at the width that closes a bay — a
+    lane onto the shoulder each side of it — since under that no seat closes it however the face is slid.
+    Bay-fronted hubs sealed by their frontline: **100%**, from 75%. Rounding that floor up to an even width
+    is part of it, because `FR6`'s parity law rounds an odd face down a cell and took two boards back under
+    it. Composition yield and the reproduction gate are unchanged, and every fingerprint moves because the
+    form's draws now precede the requests'.
+
+39. **The frontline's seat is bounded, and a bay-fronted hub prefers the seat that closes it (2026-09-18).**
+    Author's call, off a board whose G hub had its frontline hanging 56 blocks past the hub's flank.
+    `G123`'s contact-patch dock admits a face narrower than the hub's edge or wider than it, and
+    `UnitTuning.FaceOverhangMaxCells` states the allowance as **two cells across both ends together** — but
+    only the sampled *width* read it. The **seat** ranged over every position keeping one lane of contact, a
+    shifted face sampled uniformly among them, and the far positions outnumber the near: measured over 428
+    boards carrying a frontline, **14% overhung the hub by more than a cell**, with a p99 of 60 blocks and a
+    worst of 88. The seat now reads the same allowance, which takes it to **1%** and a worst of 8 — the
+    budget itself — with `G`, `P`, `DoubleHole` and `Rectangle` hubs at none.
+
+    And a hub whose body leaves a **bay** in its own front edge is meant to have it **closed** by the
+    frontline, which turns the bay into the declared hole `CT8` calls the rotation device. Where any legal
+    seat spans the bay, those are now the seats the sample is taken over: 59% of bay-fronted hubs were
+    sealed, then 69% with the seat bounded and **75%** with the preference. Amendment 40 takes the rest.
+
+38. **A row has a grain, and a fine one keys to the front's own legs (2026-09-18).** Author's call. `MD6`
+    asks for a **grid** of stepping stones and the composer built one column of it, centred on the band, so a
+    front with two legs sent both at a single island between them. A crossing now also draws a **fine** row:
+    its stone is one **corridor** deep rather than the band's own figure, which both shortens the crossing and
+    makes each stone small enough that several stand in one row — the author's checkpoints, against one large
+    meeting ground. Where the unit's front row presents more than one face, a fine row **keys** to them, one
+    stone centred on each, so a team steps straight forward off ground it already holds.
+
+    Two constraints came out of the geometry rather than the taste. Keying wants `MD4`'s double rank under a
+    laterally flipping image: a stone keyed to one of the unit's own faces has its image where the enemy's
+    face is, and on a row astride the axis those overlap, which is an interior clash and not `CT11`'s
+    abutment. And a stone spans its whole face only where the mid's share can pay for it — measured, a row
+    spanning two 40-block legs costs 128 cells against a share of 109 — so it is capped and centred on its
+    face instead, since keying is about where a stone stands and not how far it reaches.
+
+    The realised rate is the front's, not the draw's: a front presents **one face on about two boards in
+    three**, so the fine grain lands on roughly half of milli and centi boards and a row that truly keys to
+    the legs on one or two in twenty-four. Keying to the **hub's** legs where the front has none is the open
+    half (`G273`).
+
+37. **The crossing takes a second form: two ranks facing each other (2026-09-18).** Author's call. `MD4`'s
+    row was the only middle the composer could build, and one rank astride the axis is one shared island
+    however much of its share it leaves unspent. A board may now draw a **double rank** instead: the row
+    stands one hop clear of the axis, so no stone is its own image and the fan supplies a whole second rank
+    facing it — a stone each rather than a stone shared, with a **centre void of two hops** between them and
+    the ordinary hop to each front. The crossing is then half again as deep, which is the shape the corpus
+    keeps (a build area's width over its depth is 0.69 at the median over 241 CTW maps, and a double-rank
+    band comes out 0.67–0.83 against the single rank's 0.67–1.5). It is also the first thing the composer
+    builds that answers `MD6`'s own word: stepping stones sit in a **grid**, and one lateral row is a grid
+    one rank deep. The lateral count stays `MD6`'s — two the norm, three the maximum.
+
+    The pair is offered only where the crossing's share can pay for it — each rank is fanned, so a pair
+    spends twice one rank's land, and the narrowest stone `MD5`'s aspect rule admits is as wide as it is
+    deep. That is milli and centi and not nano or micro. Where it is drawn it spends **95–99%** of the mid's
+    allowance against the single rank's 33–85%, which is the same land buying more ground in the middle
+    rather than a larger share. Drawn at `MidCarver.DoubleRankChance`, after the split draw and only where
+    the split was not taken, so a board that cannot carry a pair keeps its sequence.
+
+36. **The ladder stops at centi (2026-09-18).** Author's call. The server these boards are built for fields
+    at most 32 players a side, so the **hecto** band is a size nobody plays and the composer no longer builds
+    it: `G8`'s ladder is nano · micro · milli · centi, centi's range is open at the top, and a request for a
+    bigger side is clamped to it rather than refused. Its land row was the one extended from three witnesses
+    rather than measured, and its corridor of 22 blocks and 32-block mid stone went with it. The corpus
+    measurement that produced all five rows is unchanged and stays in
+    `docs/world-scan/map-size-ladder.md` — what changed is which of its rows the composer reads. It also
+    takes the worst of the crossing's geometry off the board: the hole a player walks round ran over 40
+    blocks on 32% of hecto boards against 37% at centi and none at all below (`G272`).
+
+35. **The crossing is funded and carries stones (2026-09-17).** Author's call. `MD1`, `MD4`, `MD5` and `MD6`
+    described a mid nothing built: `MidResult.Stones` was always empty and the band was a fixed 20-block void.
+    `G8`'s budget now splits — a tenth off each team unit funds the crossing, so the mid's own allowance is a
+    fifth of one team's land and a board's total is unchanged. A band carrying a stone opens one **hop** either
+    side of it (12 blocks, `G5`'s near end); a band carrying none opens **30** blocks front to front, because an
+    empty crossing is walked in one go rather than in hops. A stone stands **astride the axis**, symmetric about
+    it, so `CT11`'s abutment makes it and its own image one shared island rather than a stone each; its depth is
+    16 · 24 · 24 · 24 blocks up the bands, laid on the grid as an even number of cells. The row is the
+    widest count the frontline hull affords with every stone wider than it is deep, capped at three per `MD6` —
+    one at nano and micro, one or two at milli, up to three at centi — each clear of its neighbours by a hop and
+    of the band's ends by a cell. A split band carries none (its bay is the island) and a hull too narrow for
+    one at that aspect carries none.
+
 30. **`ST9` split, `ST10` added (2026-09-01).** Author's call, closing `B178`. `ST9` had capped the *piece*
     at 20×20 as a workaround: the stamped building was sized by its piece, so one rectangle carried the
     protection region and the building alike and one number had to serve both. The intent now states them
@@ -1005,3 +1141,48 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     `WX8`'s span for both and both resolve through `RoomFrames.PlaceIron`, so a cube that will not fit its
     piece resolves unplaceable and the export stamps nothing. `ST2` follows: it tests the cube rather than the
     marker block, and fires on a board with no spawn piece at all, where every cube is one a team mines once.
+
+34. **`G8` rebased on the size bands, `G2` and `G3` remeasured (2026-09-16).** Author's call. `G8`'s
+    anchors were calibrated against the twelve authored seed plans, and every traced plan carries
+    `maxPlayers: 12` whatever its real map's team size, so the ladder's slope could not have been read
+    off them. Scanning all 359 readable CTW maps in `CommunityMaps` and `PublicMaps` measures land per
+    team at about 250 blocks² a player at **every** size where the anchors ran 65 to 185, and per band
+    rather than per count, because a map is built for a range. `G2` gains the same treatment: the corridor
+    is the band's width in blocks, measured as the local thickness of a real map's ground, which is what
+    lets the grid scale move without moving the map. `G3`'s board bands are remeasured on the same 359.
+    The measurement is `docs/world-scan/map-size-ladder.md`; the composer now spends the budget
+    (`G265`, `G266`, `G267`).
+
+33. **`WL12` added (2026-09-16).** Author's call. A bay between a spawn and a wool room on a built board
+    measured **six blocks** across, which a player clears from a one-block rise; the composer's own floor is
+    two cells, so it is eight blocks at cell 4 and ten at cell 5. Nothing measured how narrow a
+    negative space was: the deriver's void walk reports **enclosed** voids only and classes them by ownership
+    with no width, `IslandGaps` measures between islands rather than within one, and the
+    notch/bay/hole classification lived in the shape emitter and never saw an authored plan. The
+    classification is now `PgmStudio.Vocabulary.NegativeSpaceKinds`, the reader carries a
+    `NarrowestCrossing`, and `BoardStructure.Spaces` runs it over the board's own terrain. Composed boards
+    trip the new rule at ten blocks, which is what `G264` is for; the rule is lint, so composition is
+    unaffected.
+
+32. **`ST7`: a capture point's marker is the one that changes colour (2026-09-12).** Author's call. A hill
+    carried no marker at all, on the reading that a marker names the team a goal belongs to and a point
+    belongs to nobody. The reverse is the useful case: a point's marker is laid white and scoped by the
+    point's `owner-display-region`, so it is the board's one signal of who holds what, readable from a spawn.
+    The corpus builds the same thing by hand — 62 of the 189 KotH points with both regions resolvable put
+    their owner display **entirely above** the capture volume, a median 7 blocks over it and up to 26, and
+    `koth/industrial`'s `north-signal` is a 12×6×9 slab at `y 35–40` over a capture volume at `y 5–9`, 578
+    white stained clay and 16 white wool, every block of it colour-affected. No other marker changes: a wool
+    room's stays the wool's colour and a destroyable's or a core's stays its team's.
+
+41. **`ST1`/`WX6`: a narrow seam is an entry (2026-09-19).** Wording correction, no change to what the rules
+    require. Both read "land seam", which names a `ContactKind` as well as a class of interface, and
+    `ContactGraph` had already settled which it meant: `IsLandInterface` answers `Land` **or** `Narrow`, and
+    the `WoolRoom` flag a segment carries is raised through that predicate. Two sites in `PlanCompiler` — the
+    entrance-redstone loop and `WoolEntrySegments` — re-derived the test inline as `Kind: ContactKind.Land`
+    and so read a flag they then disagreed with. A room whose only way in is under the ten-block corridor
+    minimum consequently stamped no entrance line and, because `WoolEntrySegments` is what the exporter cuts
+    cage doors from, no door either; `opus5-hushwater`'s `wool-a-room` is such a room, joined to `wool-a-t1`
+    by an 8-block flush seam and to `wool-a-apron` by a 12-block one, and it carried one line where the
+    board's other room carried two. Both rules now say full-width or narrower, both sites call the predicate,
+    and the composer's gate reads `PlanValidator` through the same path, so three of 120 recorded boards move
+    verdict and `ComposerVersion` is `body-first-2` (`WE128`).

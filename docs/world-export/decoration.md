@@ -157,10 +157,9 @@ one stage rather than four:
 - **The fan (G162).** Every prop is placed once and stamped at **every image of its orbit**, in the prop's own
   local frame, with each offset **turned** by that image's transform. An author draws one half of a map and
   gets a fair one, which is the contract the layout itself has had all along — and the canvas draws the
-  images as ghosts, so half a map is never authored blind. Within a drawn area the one gameplay-affecting
-  species, two-block grass, is decided on the orbit representative (`OrbitScatter.Canonical`) so the same
-  ground is tall or bare for every team, while the flowers beside it stay free: two identical flower beds
-  read as a glitch and decide nothing.
+  images as ghosts, so half a map is never authored blind. Within a drawn area every field the overlay reads
+  is read on the orbit representative (`OrbitScatter.Canonical`) too, so the same ground is tall, short or
+  bare for every team — grass, fern and flowers alike, not the two-block cover alone (§3).
 
   Fanning the *site* alone is not enough and this is the mistake worth naming: mirroring only the anchor
   leaves both teams with the same unmirrored prop shape, so a boulder with a lobe to its east has a lobe to
@@ -252,19 +251,26 @@ density field, `Scale`/`Octaves` shaping it, and `FernShare`/`FlowerShare`/`Flow
 the species. `DressingPalette.SoilShare` is the eligibility read — sand takes a fraction of what grass does,
 quartz none.
 
-The split that matters here is not a species one. Grass, fern and flowers are one block tall and walked
-straight through, so they are **cosmetic** and scatter freely; the two-block `TallGrass` and `LargeFern`
-break a sight line and are marked **gameplay**, which routes them through the fan of §2. A plant's
-`PropClass` is declared on the palette row, not inferred at placement.
+**Every field the overlay reads is read at the cell folded into the board's primary image**, exactly as a
+terrain pattern is (`terrain-painting.md` TP21) — the density field, the flower field, the species shares and
+the tall share alike. A noise field is a function of position, so without the fold a cell and its image sample
+two different places and grow two different things: a meadow thick for one team and thin for the other, a fern
+on one side of a board and bare ground on its mirror. Folding asks the orbit's representative once, so a cell
+grows what its image grows. What the cell keeps for itself is what it is made of — `SoilShare` reads the paint
+actually under this block, which is symmetric already because it was painted through the same fold.
+
+The split that survives is not a symmetry one. Grass, fern and flowers are one block tall and walked straight
+through; the two-block `TallGrass` and `LargeFern` break a sight line, which is what keeps them off a goal's
+own ground (§3.1) and nothing else.
 
 ### 3.1 The ground a goal is read against
 
-A destroyable and a core are the two objectives with no room and no protection region, so nothing else holds
-ground around them — and what they need held is not the same thing a spawn needs. A spawn's ground is
-**forbidden**: a prop there breaks play. A goal's ground is **kept open**, which is a narrower claim. Grass,
-fern and flowers grow across it and under a floating monument exactly as they grow anywhere, because none of
-them changes what a player can see or reach, and a monument standing in a ring of bare dirt reads as a
-diagram rather than as a place.
+A destroyable, a core and a capture point are the three objectives with no room and no protection region, so
+nothing else holds ground around them — and what they need held is not the same thing a spawn needs. A
+spawn's ground is **forbidden**: a prop there breaks play. A goal's ground is **kept open**, which is a
+narrower claim. Grass, fern and flowers grow across it and under a floating monument exactly as they grow
+anywhere, because none of them changes what a player can see or reach, and a monument standing in a ring of
+bare dirt reads as a diagram rather than as a place.
 
 What may not stand there is **cover**. `DressingScope.GoalGroundAt` is every block the structure covers grown
 by `GoalClearance` (**4**), and the flora pass declines to raise a tall plant inside it — growing its short
@@ -285,7 +291,9 @@ is why the refusal is wanted at all: an objective is the one thing on a map that
 so a defender can see what is coming and an attacker pays something visible for arriving. For those three
 props the kept-open ground reaches further than the cover clearance: never nearer than **ten blocks to the
 goal's marker** (`DressingScope.GoalStandoff`, the author's radius) — the ring a fight happens on, measured
-from the marker rather than from however wide the structure under it happens to be.
+from the marker rather than from however wide the structure under it happens to be. A capture point is the
+one goal wider than that ring, and the union is what answers for it: a pad of any size keeps `GoalClearance`
+beyond its own edge through `GoalGroundAt`, and the standoff square holds the rest.
 
 **A door's approach is kept clear, and it stops a prop rather than refusing a map**
 (`DressingScope.ApproachAt`, part of `KeptClearAt`). The ground in front of a spawn room's door — **twenty
@@ -426,6 +434,37 @@ turns over every block chews the whole surface at once — the result is lumpy r
 amplitude, and at the amplitude an angular rock wants it detaches chips: an `angular` rock of size 7 came
 out in three pieces with two blocks standing in mid-air at (−308, 10, 48) and (−312, 11, 51).
 
+**A rock reads as a rock by not being made of the field it sits in** (the author's ruling). Tone families are
+`TerrainPalette`'s — the unit a pattern is filled from, and what a player reads at a distance — so the
+question is asked in families rather than in blocks: a sandstone rock on sand is two different blocks and one
+tone, and it has no silhouette at any size. `DR-TONE` complains where every family a boulder is cut from is
+one the ground under it already states, which is *built wholly from* the field rather than merely touching
+it — a rock keeping one family the ground does not have is a rock however much else it shares.
+
+**A rock does not stand on a face either, and the board says where its faces are.** A surface graded by angle
+(`BandAxis.Slope`) is an angle mask: each band claims a span of degrees, the gradient under a cell decides
+which one paints it, and the band covering the steepest ground is the board's own statement of where it stopped
+calling the ground a meadow. `Materials.CliffAngle` reads that boundary back — under `repeat` the last band
+carries into the steepest ground, under `handOver` whatever the stack sits over does — and `DR-STEEP` complains
+where a boulder's cell is inclined at least that far. The slope is `SurfaceGradient.Degrees` over the surface
+the pass seats on, which is the same reading the bands themselves are cut by, so a rule and a band cannot
+disagree about one cell. Ground the middle band paints is still ground: a rock on the coarse dirt of a gentle
+hillside stands, and only the band that means *bare rock face* is complained about. A surface grading by
+nothing states no angle and is read at `Materials.DefaultCliffAngle` — 30°, the median of the 34 authored
+themes that do state it, which run 18° to 45°.
+
+That boundary is what the tone rule reads the ground through. `Materials.Resting` answers the bands under the
+cliff — a depth stack's top course, a slope stack's graded bands short of its face — because nothing rests on
+a face and what a board paints there is not what a rock standing on the meadow below meets; `Materials.BlocksOf`
+is the whole-tree walk the rock itself is read with. Taking every block a graded theme can produce would read a
+cliff as the ground under the rock, and would fire on the very recipe the tone rule recommends.
+
+So the rock a placement naming no recipe is cut from is **stone, cobblestone and andesite** in shards a few
+blocks across, stone taking half of them (`BoulderStyle.DefaultRock`, and what the four seeded recipes carry).
+Two families, grey stone and cobble, which reads against sand, grass, dirt and red sand, and against any
+single clay, since no two clay colours are close. Where the ground is itself grey stone the rock has to go the
+other way — a clay, a dark block, a sand — rather than deeper into the grey.
+
 A `BoulderProp` is placed at a cell and carries its own form (round, angular, outcrop, cairn), size, rock
 material, moss flag and seed. Round and angular are the same erratic at two erosion amplitudes. The rock is a
 full `TerrainMaterial` like the stroke's pave and the channel's bank, resolved in the boulder's **own frame**
@@ -514,7 +553,7 @@ between radius 0.5 and 0.866 can fill no cell at all.
 
 ### 6.1 Read as a point, not a mass
 
-The category render (`TopDownRender`, §9 below and `docs/tools/capabilities.md`'s renderer section) paints
+The category render (`TopDownRender`, §9 below and `docs/world-scan/block-palette.md`) paints
 every leaf and log cell it finds, so a wood reads as one irregular violet mass whose internal structure means
 nothing: two crowns that touch become one blob, and the tree count — the measure that actually decides whether
 a board reads as wooded or as buried — cannot be read off it. A tree is authored as **one prop at one
@@ -731,19 +770,52 @@ crevasse — declined by nothing, because every cell had ground under it. The fi
 same one an objective's ground gets: an `area` relief mark under the footprint, which states the plateau
 rather than hoping for one.
 
-**It must leave a way past itself (`DR-PASS`).** Beside a building there must be **five blocks** of passable
-ground along at least one of its four sides — the whole run of that side, extended one step past each
-corner, which is the cell a player turns in from and exactly what separates a flank that can be entered from
-one walled off at both ends. The five are counted from **what the building stamps, not from its walls**: a
-roof oversails its wall by at least one block whatever the style says (`HouseStamper.StampedCells`), and the
-blocks a player has to walk under are the ones that were written, so the band starts where the building
-physically stops. It is the same extent the claim test and the route crossing already read, which is what
-keeps one account of how much ground a building takes. The failure this closes was generated for real: a house across the full width
-of a land leg, void on both flanks, so the only way to the other side was through the building. A house
-against the map's own edge is fine — a coast house is a house — as long as the other side keeps the passage.
+**It must leave a way past itself (`DR-PASS`).** Beside a building there must be **eight blocks** of passable
+ground along the whole run of **every** one of its four sides. The eight are counted from **what the building
+stamps, not from its walls**: a roof oversails its wall by at least one block whatever the style says
+(`HouseStamper.StampedCells`), and the blocks a player has to walk under are the ones that were written, so
+the band starts where the building physically stops. It is the same extent the claim test and the route
+crossing already read, which is what keeps one account of how much ground a building takes. The band runs
+along the **walls** rather than along the stamp, because an eave may oversail the void at a coast and a column
+the building does not stand on says nothing about the ground beside it.
+
+Every side is asked, and that is the load-bearing half. **The lane a building stands in is the ground players
+arrive on, not a way round the thing blocking them** (the author's ruling): a house eleven blocks wide in a
+fifteen-block lane, a block of ground either side and forty blocks of lane running on ahead, corks that lane
+as surely as one built wall to wall. Asking one side let it through on the strength of the corridor it was
+blocking.
+
+A side the ground stops **flush** against — no ground at all at the first step off the stamp — is the map's own
+edge or a hole in it, and a building may stand against one: a coast house is a house. It may not stand against
+two facing each other, which is a building spanning the land rather than one seated at its edge, and is what
+a house across the full width of a land leg reads as. Half a side over a hole is a broken passage rather than a
+coast, and is the fault.
+
+**The passage is owed round a group of buildings, not round each one.** Buildings standing within a passage
+of each other — the eight, plus the block of ring a building holds past its stamp — are one block of
+buildings, and the eight is asked round what they make together. A player walks *round* a village rather than
+between every pair of its houses, so the ground inside one is the claim ring's to keep and nothing else's:
+the floor between two houses in a street is `DR-CLAIM`'s, which is **three blocks between their walls**. The
+grouping is transitive, and at one block further apart than the reach each building clears the passage on its
+own, so there is no gap between two buildings the rule has no reading of. The ring a group holds past its own
+stamp is a way past it, since a ring is held so that nothing *seats* under an eave rather than so that nobody
+passes.
+
 Passable means terrain with nothing *built* on it: a road or a channel alongside the wall still counts as a
-way past, an earlier building does not. A breach declines the whole prop with the rule id in its census
-reason, decided once for the orbit like every other refusal here.
+way past, a building outside this one's group does not.
+
+**It is a complaint, not a decline** (the author's ruling): the building is in the exported world, standing
+where it was put. Where a building stands is something an author or an agent moves, and a board that loses
+its houses silently is harder to fix than one that says which of them is crowding a lane. Raised once for the
+whole orbit, like every other verdict here.
+
+The arithmetic is what an author feels. A lane **15 blocks** across takes a building **7 across including its
+eaves** — a 5-block wall footprint, which is exactly `DR-SIZE`'s floor — and only hugged to one wall; nothing
+stands in the middle of it. Two buildings that are *not* one block of buildings need **eleven blocks between
+their walls**: eight of passage, an eave each, and the block of ring the first one holds. Two that are need
+**three**, which is the ring alone. On `example-3`, a board whose lanes are all fifteen wide, **1,072 of the
+4,510 sites** a lone 5×5 building can seat on leave a passage, and the largest square that fits anywhere on it
+is **15×15**.
 
 **It may end a road but never stand across one (`DR-CROSS`).** A road is meant to run to a porch or a door,
 so a building taking the ground a road covers is ordinary: the road ends at its wall and the building wins the
@@ -763,10 +835,12 @@ Measured over the thirty-two boards `pgm-studio-mapgen` has built: **7 of 122** 
 route, on five boards, and **3** sit at the end of one and stand.
 
 **It must not close a way the board is played along (`DR-WAY`).** `DR-PASS` is local: it asks whether there
-is ground beside the building, and a building can leave five clear blocks on every side and still cork the
-one leg the map is walked down, because the ground it corks is a hundred blocks away and shaped like a neck.
+is ground beside the building, and a building can leave eight clear blocks on every side and still cork the
+one leg the map is walked down, because the ground it leaves open is not ground a player can reach — a house
+sealing a spawn room's whole face has open board on the far side of itself and passes.
 So the board is walked. Between every pair of the cells the map is **played between** — its spawns, its wool
-rooms and monuments, its destroyables and cores — the shortest route over the bare terrain is taken once, and
+rooms and monuments, its destroyables, its cores and its capture points — the shortest route over the bare
+terrain is taken once, and
 the building is then admitted to that board: its whole orbit's footprint comes out of the ground and every
 route it stood on is walked again. A pair that had a route and now has none is a way closed. A pair whose
 route survives more than **ten blocks** longer is the same fault at a lesser degree — ten is `Walk.Detour`,
@@ -826,8 +900,8 @@ keeps clear or one already claimed, or breaks its kind's road standoff — each 
 `DressingPlacement.Declined`: a rule id (`DR-KEEP`, `DR-CLAIM`, `DR-SITE`, `DR-ROAD`, `DR-PASS`, `DR-CROSS`,
 `DR-WAY`, `DR-SIZE`, or
 the building rule that refused a plan), one sentence naming the prop, the cell and the cause, the prop's id
-as its subject, and `Severity.Complaint` — the world was built, and some of what was authored is not standing
-in it.
+as its subject, and a severity — a decline for a prop the world was built without, a complaint for one that
+is in it and worth looking at.
 
 The sentence names **what** stopped the prop, not merely that something did: `KeepOut` says whether a cell is
 held for a spawn, a wool room, a stated structure, built ground or a door's approach, and `GroundClaims`
@@ -848,14 +922,22 @@ places at or before the claimant's own turn**: cover goes down last, so a bed of
 tree, while a tree's claim does stop the flora. `PlacedProp.PlacementOrder` is where that order is stated and
 `DecoratorTests` pins it against the pass, since the pass records a claim as it places it.
 
-What the mask does not run is the four rules a **building** meets after it seats — `DR-PASS`, `DR-CROSS`,
-`DR-WAY` and `DR-SLOPE` — each of which reads the built world rather than the ground under the footprint. A
-seat is a seat the pass will not decline for a cell the prop rests on; a house still has to leave a way past
-itself.
+**A building is asked about the way past it too**, which is what makes the mask worth reading for the one
+prop that keeps failing on it. A building's `width`/`depth` are its **walls**; the passage is measured from
+the roof over them, and the candidate joins the group of any building standing within a passage of it, so a
+seat beside a village is judged the way the pass will judge it. The buildings already on the board are read
+off the raster's own `structure` cells — one building to a run of them, since two of them are never adjacent
+— and grouped once for the board rather than once per anchor. `Passage.Clears` is the one reading both
+directions take, which is what keeps the mask and the pass from disagreeing about a cell; a test asks every
+anchor of a board both ways and requires the same answer.
+
+What is left to the pass is the three that read the built world rather than the ground under the footprint:
+`DR-CROSS`, `DR-WAY` and `DR-SLOPE`.
 
 Each one is a **`decline`**, the severity between a refusal and a complaint: the world was built, so nothing
-stopped, and this prop is not in it, so there is nothing for the author to ignore. That is what a caller reads
-off a 2xx to answer *did what I posted survive* — a complaint beside a success would say the opposite.
+stopped, and this prop is not in it, so there is nothing for the author to ignore — except `DR-PASS`, which is
+a complaint, the building standing where it was put. That is what a caller reads off a 2xx to answer *did what
+I posted survive*.
 
 The declines travel three ways. Back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under
 `warnings` beside the payload, which is the loop an agent actually drives. As `region/dressing-report.json`

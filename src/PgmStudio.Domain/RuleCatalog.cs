@@ -76,7 +76,7 @@ public static class RuleCatalog
         "LN1", "LN2",
         "SP1", "SP2", "SP8", "SP9",
         "ST1", "ST2", "ST8", "ST9", "ST10",
-        "WL1", "WL2", "WL7", "WL8", "WL9", "WL10", "WL11",
+        "WL1", "WL2", "WL7", "WL8", "WL9", "WL10", "WL11", "WL12",
     };
 
     /// <summary>A rule id: two or three letters, then a number or a single-letter suffix (<c>PC-C</c>).</summary>

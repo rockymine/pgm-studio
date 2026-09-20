@@ -55,6 +55,33 @@ public sealed record MapIntent
     /// Null/empty leaves them untouched.</summary>
     public List<CoreIntent>? Cores { get; init; }
 
+    /// <summary>The capture points (CP/KotH). <b>Unlike every other objective these are owned by nobody</b>,
+    /// so they do not fan by team: a point at the board's centre of symmetry is one point, and a point off it
+    /// is fanned onto its own orbit images (<see cref="SymmetryExpander"/>). An author states the centre and
+    /// one side; the expander produces the rest. Null/empty leaves them untouched.</summary>
+    public List<ControlPointIntent>? ControlPoints { get; init; }
+
+    /// <summary>The shops this board sells from, each with the keeper that opens it. <b>They do not fan by
+    /// team and they carry no coordinates</b>: a shop is one catalogue for the whole map, and its keeper is
+    /// placed by <see cref="ShopGenerator"/> at every team's spawn — one per shop per spawn, standing on the
+    /// spawn's own floor beside the point players arrive on. Null/empty leaves the map's shops untouched.</summary>
+    public List<ShopIntent>? Shops { get; init; }
+
+    /// <summary>What the board <b>mints</b>: the generators that drop items on a clock for players to pick up
+    /// (<c>docs/pgm/shops.md</c> §10). A spawn kit and the kill reward derived from it are the only other item
+    /// sources a generated board has, so a shop priced in anything else — which is 764 of the corpus's 907
+    /// icons — needs one of these. Null/empty is a board that mints nothing, which is every map with no
+    /// economy. They do not fan: a board's mints differ in place, rate and tier, so each is stated.</summary>
+    public List<SpawnerIntent>? Spawners { get; init; }
+
+    /// <summary>The score that ends the match. Null takes
+    /// <see cref="ObjectiveDefaults.ControlPointScoreLimit"/> on a board that carries a scoring capture
+    /// point, which is the corpus's own answer, and nothing at all on a board that does not — and that
+    /// difference is load-bearing rather than cosmetic: with no <c>&lt;score&gt;</c> element PGM builds no
+    /// score module, and a point's <c>points</c> rate then pays nothing for the whole match. Zero is an
+    /// author saying they want no limit, and is left alone.</summary>
+    public int? ScoreLimit { get; init; }
+
     /// <summary><b>When each objective stops being what it is made of.</b> A destroy map whose monuments and
     /// cores stay obsidian for the whole match is a map that does not end: the material is what makes a goal
     /// a goal, and the ladder is what makes it winnable. Null takes
@@ -70,7 +97,15 @@ public sealed record MapIntent
     /// the observer platform's own board are both written from, so the map and the sign in it cannot
     /// disagree.</summary>
     public IReadOnlyList<string> Gamemodes => Domain.Gamemodes.From(
-        Wools is { Count: > 0 }, Destroyables is { Count: > 0 }, Cores is { Count: > 0 });
+        hasWools: Wools is { Count: > 0 },
+        hasRealDestroyable: Destroyables is { Count: > 0 },
+        hasCores: Cores is { Count: > 0 },
+        // What the studio authors is a hill, so the board is KotH rather than CP: one PGM module, and the
+        // spelling is the choice. Kills and deaths are never scored — a capture board's <score> states the
+        // limit it ends at and nothing else, which is what keeps it off the deathmatch tag.
+        hasControlPoints: false,
+        hasKing: ControlPoints is { Count: > 0 },
+        scoresKillsOrDeaths: false);
 
     /// <summary>Map identity: name + authors/contributors. Version (1.0.0) and proto (1.5.0) are fixed; the
     /// gamemode and the objective text are auto-derived from which objective modules the intent carries
@@ -592,6 +627,289 @@ public sealed record CoreIntent
 }
 
 /// <summary>
+/// One capture point (CP/KotH): a square pad of ground a team owns by standing on it, paying out score for
+/// as long as it holds. <c>docs/pgm/control-points.md</c> is the contract; what a board should look like is
+/// the author's and is in <c>docs/gameplay/approaches.md</c>.
+///
+/// <para><b>It has no owner, and that is the difference from every other objective here.</b> A wool, a
+/// destroyable and a core each belong to a team and are fanned by team; a point belongs to nobody and is
+/// fanned by <em>position</em>. A point standing at the board's centre of symmetry is its own orbit image
+/// and stays one point; one off the centre becomes as many as the symmetry has images.</para>
+///
+/// <para>Only the four fields above <see cref="Anchor"/> are knobs. The rest of what PGM will read off the
+/// point — that it is not <c>required</c>, that it keeps partial progress, passes through a neutral state,
+/// shows its progress and gives a crowd no bonus — is the studio's one convention, written the same on every
+/// board by <see cref="ControlPointGenerator"/>. <c>required</c> especially is not a knob: PGM defaults it to
+/// true, and a point that keeps that default ends the match for whoever first captures it.</para>
+/// </summary>
+public sealed record ControlPointIntent
+{
+    /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
+    /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
+    /// meant.</summary>
+    public string? Layer { get; init; }
+
+    /// <summary>Which authored unit this is an image of, and which image — set by whoever fanned the orbit
+    /// and carried through to the stamper, which receives an already-fanned list and can only count.</summary>
+    public StampId Stamp { get; init; }
+
+    /// <summary>What the sidebar calls it. Empty lets PGM name it: "Hill", "Hill 2", "Hill 3", off one
+    /// counter running across the document — which is a better default than anything invented here, so an
+    /// unnamed point is left unnamed rather than given a name the author never chose.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>The marker column the pad is centred on. No Y: the pad is cut into whatever ground the world
+    /// build solves under it, so its height is the terrain's answer rather than the author's.</summary>
+    public Pt Anchor { get; init; }
+
+    /// <summary>The pad's side, in blocks — square by the author's ruling, and bounded by
+    /// <see cref="ObjectiveDefaults.MinControlPointSize"/>/<see cref="ObjectiveDefaults.MaxControlPointSize"/>.</summary>
+    public int Size { get; init; } = ObjectiveDefaults.ControlPointSize;
+
+    /// <summary>What holding it pays its owner, per second.</summary>
+    public double Points { get; init; } = ObjectiveDefaults.ControlPointPoints;
+
+    /// <summary>How long a team must hold it alone to take it, as a PGM duration.</summary>
+    public string CaptureTime { get; init; } = ObjectiveDefaults.ControlPointCaptureTime;
+
+    /// <summary>The pad's resolved block course — one block tall, filled by the world-export path, the only
+    /// place that knows the terrain it was cut into. The generator emits it as the point's progress display
+    /// region, so the blocks PGM recolours are the blocks the stamper laid (OB8).</summary>
+    public BlockBox? PadBox { get; init; }
+
+    /// <summary>The resolved volume a player stands in to hold it — the pad's footprint and the air over it.
+    /// Emitted verbatim as the capture region.</summary>
+    public BlockBox? CaptureBox { get; init; }
+
+    /// <summary>The resolved box of the sky marker over the pad, filled by the world-export path once the
+    /// board's build ceiling is known. The generator emits it as the point's <b>owner</b> display region, so
+    /// the marker is white while the point is neutral and takes the holder's dye the moment it is captured —
+    /// which is what makes a marker on a goal nobody owns mean something.</summary>
+    public BlockBox? MarkerBox { get; init; }
+}
+
+/// <summary>
+/// One shop the board sells from: a menu with at least one category in it, and the keeper that opens it.
+///
+/// <para><b>It has no position, and that is deliberate.</b> Every other thing on this intent says where it
+/// goes; a shop is a catalogue rather than a place, and where it is <em>opened</em> is the keeper's answer —
+/// which the studio derives from the spawns rather than taking from the author
+/// (<see cref="ShopkeeperIntent"/>). An author who wants a keeper somewhere else has no way to say so yet,
+/// and the board on `BACKLOG.md` says which task that is.</para>
+/// </summary>
+public sealed record ShopIntent
+{
+    /// <summary>The id every reference to this shop uses — a keeper's <c>shop</c>, and an
+    /// <c>&lt;open-shop&gt;</c> action's. Required.</summary>
+    public string Id { get; init; } = "";
+
+    /// <summary>The menu's title. Empty lets PGM show the id, which is what it falls back to.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>The tabs, in the order the menu draws them. PGM requires at least one, and a shop that
+    /// states none is left out rather than written as a menu that cannot open.</summary>
+    public List<ShopCategoryIntent> Categories { get; init; } = new();
+
+    /// <summary>The keeper that opens it. Null is a shop with no keeper — legal, and what a board that opens
+    /// its shop some other way states.</summary>
+    public ShopkeeperIntent? Keeper { get; init; }
+}
+
+/// <summary>One tab of a shop: what selects it, and what is in it.</summary>
+public sealed record ShopCategoryIntent
+{
+    /// <summary>The tab's id. Required by PGM, and unique within the shop.</summary>
+    public string Id { get; init; } = "";
+
+    /// <summary>The material of the stack drawn in the category row. Required: PGM refuses a category with
+    /// no item on it.</summary>
+    public string Material { get; init; } = "";
+
+    /// <summary>What the tab is called, which is the icon's display name. Empty leaves the stack unnamed and
+    /// the menu shows the material.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>What is in the tab, in the order the menu draws them — seven to a row, at most
+    /// twenty-eight, which is PGM's own cap.</summary>
+    public List<ShopItemIntent> Items { get; init; } = new();
+}
+
+/// <summary>One price in one currency, and the colour the menu draws it in.</summary>
+/// <param name="Price">How many of <paramref name="Currency"/> a purchase costs. Zero is free.</param>
+/// <param name="Currency">The material paid in. Empty is only legal at a zero price.</param>
+/// <param name="Color">The chat colour the price is drawn in, as a colour <b>name</b>. Empty takes PGM's
+/// gold, which is what 581 of the corpus's 907 icons leave it at.</param>
+[method: JsonConstructor]
+public readonly record struct ShopPaymentIntent(int Price, string Currency, string Color = "");
+
+/// <summary>
+/// One thing to buy: the stack, what it costs, and what buying it does.
+///
+/// <para><b>A price is a list, because PGM takes every entry in it.</b> Two payments are a cost in two
+/// currencies <em>at once</em> rather than a choice between them, which is the upgrade ladder — a tier costs
+/// the previous tier plus a coin, so buying the diamond pickaxe consumes the gold one. PGM refuses two
+/// payments in one currency, since its affordability check walks the storage slots once per payment.</para>
+///
+/// <para><b><see cref="Action"/> empty is the ordinary icon and not a missing value.</b> An icon with no
+/// action <em>is</em> its stack: PGM hands it over as an item kit and marks it stackable, so shift-buying
+/// takes as many as a stack holds. An icon that names one is not stackable whatever the action does, because
+/// running it twice need not mean twice as much.</para>
+/// </summary>
+public sealed record ShopItemIntent
+{
+    /// <summary>The stack's material — the whole of what the buyer receives on an icon with no
+    /// <see cref="Action"/>, and the icon the menu draws either way. Required.</summary>
+    public string Material { get; init; } = "";
+
+    /// <summary>How many of it a purchase hands over.</summary>
+    public int Amount { get; init; } = 1;
+
+    /// <summary>What it is called in the menu. Empty leaves the stack unnamed.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>What it costs. Empty, or every price zero, is free — which is what PGM makes of an icon
+    /// stating no payment at all.</summary>
+    public List<ShopPaymentIntent> Payments { get; init; } = new();
+
+    /// <summary>What buying it does, as a feature id — an action or a kit, which PGM resolves through one
+    /// lookup against one namespace, so this is the one field for both spellings. Empty hands over the stack.
+    ///
+    /// <para>It is a <b>reference</b>, and PGM refuses at load a map whose references do not resolve. The
+    /// studio authors no <c>&lt;actions&gt;</c> block, so an id here means a document that declares an
+    /// <c>&lt;include&gt;</c> defining it — and <c>SH1</c> is the complaint when it does not.</para></summary>
+    public string Action { get; init; } = "";
+
+    /// <summary>Whether the stack is dyed to the buyer's team — the blocks a team builds with.</summary>
+    public bool TeamColor { get; init; }
+}
+
+/// <summary>
+/// The keeper that opens a shop: what it is called, what it is, and where it stands.
+///
+/// <para><b>A keeper that says nothing about where it stands gets one per team spawn</b> —
+/// <see cref="ShopGenerator"/> puts it on the spawn's own floor beside the point players arrive on, because
+/// that is where a keeper a whole team has to reach belongs and because a plan-compiled intent carries no
+/// other place that is reliably indoors, level and the team's own. A keeper that <em>does</em> state one
+/// stands there, once: a shop building in the middle of a board is one shop for everybody, not a villager
+/// per spawn.</para>
+///
+/// <para>Where it stands is stated in either of PGM's two spellings, the same pair
+/// <see cref="Domain.Shopkeeper"/> reads back — coordinates, or the id of a region to stand in.
+/// <see cref="At"/> wins where a keeper carries both, because a coordinate resolves on its own and a region
+/// id is a reference that has to be found.</para>
+///
+/// <para>PGM spawns the entity itself and freezes it, so the studio writes no blocks and no entity data for
+/// one — the keeper is entirely the XML.</para>
+/// </summary>
+public sealed record ShopkeeperIntent
+{
+    /// <summary>The label floating over it. Empty lets PGM label it with the shop's id.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>What to spawn, as a Bukkit entity type. Empty takes PGM's villager, which is what 222 of the
+    /// corpus's 298 keepers are.</summary>
+    public string Mob { get; init; } = "";
+
+    /// <summary>The block it stands on. Null derives a place per team spawn; stated, it is the one place and
+    /// the studio writes one keeper. The coordinates are moved to the block's centre, because PGM spawns the
+    /// entity exactly where the point says and a whole number leaves half of it in the next block.</summary>
+    public Pt? At { get; init; }
+
+    /// <summary>The region it stands in, for a board that would rather name a place than measure one. Empty
+    /// is a keeper placed by <see cref="At"/> or by the spawn derivation. The id has to be one the document
+    /// holds — PGM resolves it at load and refuses the map when it cannot (<c>SH1</c>).</summary>
+    public string Region { get; init; } = "";
+
+    /// <summary>Which way it faces, in degrees. Null leaves the facing to PGM on a stated place, and takes
+    /// the derived one — looking back at the spawn point — on a derived place.</summary>
+    public double? Yaw { get; init; }
+
+    /// <summary>Whether this keeper names its own place rather than taking one per team spawn.</summary>
+    [JsonIgnore] public bool Stands => At is not null || Region.Trim().Length > 0;
+}
+
+/// <summary>One stack a <see cref="SpawnerIntent"/> drops, every time it fires.</summary>
+/// <param name="Material">The block or item name, optionally <c>:data</c>. Required.</param>
+/// <param name="Amount">How many of it lands per drop.</param>
+[method: JsonConstructor]
+public readonly record struct SpawnerDrop(string Material, int Amount = 1);
+
+/// <summary>
+/// A generator: a place that drops items on a clock while somebody is near enough to collect them, and the
+/// only thing on a studio-authored board that mints a currency a spawn kit does not carry.
+///
+/// <para><b>It states a place, and the generator mints the three regions around it</b> — where the stack
+/// lands, how near a player has to be standing for the clock to run, and the ground nobody may build in or
+/// dig out. PGM's element names the first two by region id rather than taking coordinates, and the third is
+/// an apply rule over a region of its own, so a spawner naming them itself would be naming something the
+/// intent cannot define.</para>
+/// </summary>
+public sealed record SpawnerIntent
+{
+    /// <summary>What to call it. The regions are minted from this — <c>&lt;id&gt;-drop</c> and
+    /// <c>&lt;id&gt;-reach</c> — so it has to be unique among the board's spawners. Required.</summary>
+    public string Id { get; init; } = "";
+
+    /// <summary>The block the stack lands on. The coordinates are moved to the block's centre, so a drop
+    /// falls in the middle of a block rather than on a corner.</summary>
+    public Pt At { get; init; }
+
+    /// <summary>How near a player must be standing, in blocks, for the clock to run — the radius of the
+    /// cylinder minted as PGM's <c>player-region</c>, based at the drop and <see cref="ReachHeight"/>
+    /// tall. A generator nobody is near does not fill the ground it stands on with what nobody collected.</summary>
+    public double Reach { get; init; } = TypicalReach;
+
+    /// <summary>The side, in blocks, of the square nobody may build in or dig out around the drop — what
+    /// stops a player mining the block the stack lands on or walling the generator in. Zero writes no
+    /// protection, for a board that holds the ground some other way.</summary>
+    public int Protect { get; init; } = TypicalProtection;
+
+    /// <summary>How long between drops, as a PGM duration (<c>30s</c>, <c>1m</c>).</summary>
+    public string Delay { get; init; } = MedianDelay;
+
+    /// <summary>How many of its drops may lie uncollected at once — what stops an unattended generator
+    /// carpeting the ground. Null states nothing and takes PGM's own default.</summary>
+    public int? MaxEntities { get; init; } = TypicalMaxEntities;
+
+    /// <summary>What it drops, every entry every time. A spawner stating none is left out rather than written
+    /// as a generator that produces nothing.</summary>
+    public List<SpawnerDrop> Drops { get; init; } = new();
+
+    /// <summary>The block the stack lands on, laid into the floor under the drop as a
+    /// <see cref="PadUse.Marker"/> pad — one block where <see cref="At"/> is a block's centre, the four it
+    /// corners where <see cref="At"/> is a grid line. A generator is a place before it is a clock, and the
+    /// pad is what says so on the ground.
+    ///
+    /// <para>Stated as a material name, optionally <c>:data</c>. Empty lays nothing, for a board that has
+    /// already built the ground the stack falls on.</para></summary>
+    public string Pad { get; init; } = "";
+
+    /// <summary>The median delay of the 276 corpus spawners that drop one of the eight commonest shop
+    /// currencies, whose rates run from one second to a minute.</summary>
+    public const string MedianDelay = "10s";
+
+    /// <summary>The modal cap on those same 276 — 54 state five, 44 state eight, and 40 state none.</summary>
+    public const int TypicalMaxEntities = 5;
+
+    /// <summary>The modal radius of the corpus's cylindrical player-regions (41 of 162 state five, then three
+    /// and two), and what <c>ctw/mame_i_shrunk_the_pvpers</c> keeps its gold-nugget generators at.</summary>
+    public const double TypicalReach = 5;
+
+    /// <summary>How tall the reach cylinder stands over the drop — the modal height of those same cylinders,
+    /// 57 of 162. A reach is about standing near the generator rather than about being anywhere above
+    /// it.</summary>
+    public const int ReachHeight = 3;
+
+    /// <summary>The side of the protected square, and its height. 72 dedicated protection boxes across 45
+    /// corpus maps cluster at two, four and six blocks a side and three to five tall; six by five is the
+    /// widest of the three and is <c>mame_i_shrunk_the_pvpers</c>'s exactly.</summary>
+    public const int TypicalProtection = 6;
+
+    /// <summary>How tall the protected box stands, centred on the drop.</summary>
+    public const int ProtectHeight = 5;
+}
+
+/// <summary>
 /// One rung of the mode ladder: what every opted-in objective becomes, and when.
 ///
 /// <para>It is a whole-map statement rather than a per-objective one. A mode is a clock — both teams play the
@@ -601,6 +919,7 @@ public sealed record CoreIntent
 /// <param name="Material">What every opted-in objective becomes: a block name, optionally <c>:data</c>.</param>
 /// <param name="Name">What the boss bar and the announcement call it. Empty lets PGM name it off the
 /// material, which is what most of the corpus does.</param>
+[method: JsonConstructor]
 public readonly record struct ModeIntent(string After, string Material, string Name = "");
 
 /// <summary>

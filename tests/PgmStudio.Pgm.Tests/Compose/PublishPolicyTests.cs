@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Shapes;
@@ -14,7 +15,7 @@ public sealed class PublishPolicyTests
 {
     private const int Cw = 3;
 
-    private static NegativeSpace SpaceOf(EdgeClassification c, NegativeSpaceKind kind) =>
+    private static NegativeSpace SpaceOf(EdgeClassification c, string kind) =>
         c.Spaces.Single(s => s.Kind == kind);
 
     [Test]
@@ -22,19 +23,19 @@ public sealed class PublishPolicyTests
     {
         // the scythe's bay (walled by the terminal's path) and its notch
         var scythe = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, Cw));
-        await Assert.That(PublishPolicy.Space(SpaceOf(scythe, NegativeSpaceKind.Bay), terminalCapped: true))
+        await Assert.That(PublishPolicy.Space(SpaceOf(scythe, NegativeSpaceKinds.Bay), terminalCapped: true))
             .IsEqualTo(PublishVerdict.Veto);
-        await Assert.That(PublishPolicy.Space(SpaceOf(scythe, NegativeSpaceKind.Notch), terminalCapped: true))
+        await Assert.That(PublishPolicy.Space(SpaceOf(scythe, NegativeSpaceKinds.Notch), terminalCapped: true))
             .IsEqualTo(PublishVerdict.Allow);
 
         // the U's entry-walled bay is vetoed alike — no room slot needed
         var u = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw));
-        await Assert.That(PublishPolicy.Space(SpaceOf(u, NegativeSpaceKind.Bay), terminalCapped: true))
+        await Assert.That(PublishPolicy.Space(SpaceOf(u, NegativeSpaceKinds.Bay), terminalCapped: true))
             .IsEqualTo(PublishVerdict.Veto);
 
         // the donut's hole is the shape's own device
         var donut = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Donut, 18, 15, Cw));
-        await Assert.That(PublishPolicy.Space(SpaceOf(donut, NegativeSpaceKind.Hole), terminalCapped: true))
+        await Assert.That(PublishPolicy.Space(SpaceOf(donut, NegativeSpaceKinds.Hole), terminalCapped: true))
             .IsEqualTo(PublishVerdict.Veto);
 
         // the Z's second notch is walled by the room-run and still publishes — proximity is the guard's job
@@ -47,12 +48,12 @@ public sealed class PublishPolicyTests
     public async Task Terminal_free_bodies_publish_their_bays_and_holes()
     {
         var u = BodyEdges.Classify(ShapeEmitter.Body(ShapeFamily.U, 15, 18, Cw));
-        var bay = SpaceOf(u, NegativeSpaceKind.Bay);
+        var bay = SpaceOf(u, NegativeSpaceKinds.Bay);
         await Assert.That(PublishPolicy.Space(bay, terminalCapped: false)).IsEqualTo(PublishVerdict.Allow);
         await Assert.That(PublishPolicy.PublishableParts(bay, terminalCapped: false).Count).IsEqualTo(1);
 
         var ring = BodyEdges.Classify(BodyEmitter.Ring(Cw, 5 * Cw, 5 * Cw));
-        var hole = SpaceOf(ring, NegativeSpaceKind.Hole);
+        var hole = SpaceOf(ring, NegativeSpaceKinds.Hole);
         await Assert.That(PublishPolicy.PublishableParts(hole, terminalCapped: false).Count).IsEqualTo(1);
     }
 
@@ -65,7 +66,7 @@ public sealed class PublishPolicyTests
         var l = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw), BodyEdges.DefaultClearanceCells);
         var offered = PublishPolicy.Publishable(l);
         await Assert.That(offered.Count).IsEqualTo(1);
-        await Assert.That(offered[0].Space.Kind).IsEqualTo(NegativeSpaceKind.Notch);
+        await Assert.That(offered[0].Space.Kind).IsEqualTo(NegativeSpaceKinds.Notch);
         await Assert.That(offered[0].Parts.Count).IsEqualTo(2);
         await Assert.That(offered[0].Parts.All(p => !p.Guarded && p.Front)).IsTrue();
 
@@ -73,7 +74,7 @@ public sealed class PublishPolicyTests
         var scythe = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, Cw));
         var scytheOffers = PublishPolicy.Publishable(scythe);
         await Assert.That(scytheOffers.Count).IsEqualTo(1);
-        await Assert.That(scytheOffers[0].Space.Kind).IsEqualTo(NegativeSpaceKind.Notch);
+        await Assert.That(scytheOffers[0].Space.Kind).IsEqualTo(NegativeSpaceKinds.Notch);
 
         // the degenerate E's covered slots stay back: only the front bay part is offered
         var e = BodyEdges.Classify(BodyEmitter.SpineArms(spineLen: 15, barThickness: 3, arms: [(0, 3, 12), (6, 3, 6), (12, 3, 12)]));

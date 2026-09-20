@@ -130,7 +130,7 @@ public static class ReliefSolver
         // a field that agrees with its own image to within the solver's tolerance, and a tolerance is exactly
         // what rounding turns into a whole block: two cells at 8.499 and 8.501 become 8 and 9, and one team
         // owns a step the other does not.
-        if (spec.FoldMode is not null)
+        if (Folds(spec))
         {
             var symmetric = (double[])field.Clone();
             // The quantum folds with the surface it finishes. A cell and its image that snapped by different
@@ -232,6 +232,10 @@ public static class ReliefSolver
             ReadPushes(footprint, spec));
     }
 
+    /// <summary>Whether the spec declares a symmetry with an image to fold onto. <c>none</c>, an empty mode
+    /// and no mode are one unit with no image, so nothing is copied across the centre.</summary>
+    private static bool Folds(ReliefSpec spec) => Symmetry.Order(spec.FoldMode) > 1;
+
     /// <summary>The coordinate a cell's grain is drawn from and the cell its solved height is copied from:
     /// itself, or — once a fold is declared — whichever of the cell and its mirror image lies in the canonical
     /// half. Both members of a mirrored pair then read the same lattice point and settle on the same block.
@@ -241,7 +245,7 @@ public static class ReliefSolver
     /// unfairness.</para></summary>
     private static (int X, int Z) Fold(int x, int z, ReliefSpec spec)
     {
-        if (spec.FoldMode is null) return (x, z);
+        if (!Folds(spec)) return (x, z);
         double centreX = x + 0.5, centreZ = z + 0.5;
         int mirroredX = (int)Math.Floor(2 * spec.FoldCentreX - centreX);
         int mirroredZ = (int)Math.Floor(2 * spec.FoldCentreZ - centreZ);

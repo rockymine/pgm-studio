@@ -103,8 +103,14 @@ public static class MapFromDocuments
                 return new(refused);
             }
 
+            // Both halves, or the map is credited on its rows and its own observer board says it names
+            // nobody: the export reads meta.authors and the projection above writes an empty one.
             if (request.Authors is { Count: > 0 } authors)
-                await MapAuthors.ReplaceAsync(db, mapId, authors.Select(Person), ct);
+            {
+                var people = authors.Cast<object?>().ToList();
+                await MapAuthors.ReplaceAsync(db, mapId, people, ct);
+                await MapAuthors.ProjectAsync(artifacts, mapId, people, ct);
+            }
 
             return new(null, slug, existing is not null,
                        finished.Cells, finished.Islands, finished.Complaints);
@@ -130,13 +136,6 @@ public static class MapFromDocuments
 
     /// <summary>An author as the metadata write states one: a bare pseudonym, or the four fields of a
     /// person.</summary>
-    private static object? Person(JsonElement entry) => entry.ValueKind switch
-    {
-        JsonValueKind.String => entry.GetString(),
-        JsonValueKind.Object => JsonSerializer.Deserialize<Dictionary<string, object?>>(entry.GetRawText()),
-        _ => null,
-    };
-
     private static string? StatedName(JsonElement intent) =>
         intent.ValueKind == JsonValueKind.Object
         && intent.TryGetProperty("meta", out var meta) && meta.ValueKind == JsonValueKind.Object

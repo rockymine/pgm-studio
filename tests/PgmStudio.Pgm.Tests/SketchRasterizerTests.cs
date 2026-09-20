@@ -498,6 +498,39 @@ public sealed class SketchRasterizerTests
         await Assert.That(SketchRasterizer.DetachedMasses(made)).IsEmpty();
     }
 
+    /// <summary>A shape a relief is told to leave alone keeps its own top on <b>both</b> sides of a mirrored
+    /// board. The field answers for the ground the group gave it and an excluded shape is a hole in that, so
+    /// the primary leaves those columns as the shape drew them; an image cell over the same shape is the same
+    /// statement, and reading the field for it instead hands the excluded column whatever the ground beside it
+    /// settled at — a made terrace keeping its top at one end of a board and dropping to the meadow's at the
+    /// other, one row deep along every boundary it has.</summary>
+    [Test]
+    public async Task An_excluded_shape_keeps_its_own_top_on_both_sides_of_a_mirror()
+    {
+        var columns = SketchRasterizer.RasterizeColumns("""
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layers":[{"id":"ground","base_y":0,"layout":{"shapes":[
+            {"id":"meadow","type":"rectangle","operation":"add","min_x":-20,"max_x":20,"min_z":10,"max_z":30,
+             "floor":0,"base_height":12},
+            {"id":"terrace","type":"rectangle","operation":"add","min_x":-20,"max_x":20,"min_z":30,"max_z":50,
+             "floor":0,"base_height":18,"relief_scope":"exclude"}],
+          "groups":[{"id":"team","name":"Team","mirrors":true,"shapeIds":["meadow","terrace"]}]}}],
+         "relief":{"team":{"base":12,"reach":0,"step":1}}}
+        """);
+
+        int Top(int x, int z) => columns.Single(column => column.X == x && column.Z == z).YTop;
+
+        // The terrace's front row and the row of meadow before it, and their rot_180 images: a cell covers
+        // [x, x+1), so the image of cell x is -1-x.
+        foreach (var x in new[] { -12, 0, 7 })
+        {
+            await Assert.That((x, Top(x, 30))).IsEqualTo((x, Top(-1 - x, -31)));
+            await Assert.That((x, Top(x, 29))).IsEqualTo((x, Top(-1 - x, -30)));
+            await Assert.That(Top(x, 30)).IsGreaterThan(Top(x, 29));
+            await Assert.That(Top(-1 - x, -31)).IsGreaterThan(Top(-1 - x, -30));
+        }
+    }
+
     /// <summary>A relief-bearing group under <c>rot_90</c> hands the same solved surface to all four of its
     /// orbit images. A quarter-turn is not its own inverse, so an image's heights are read back through the
     /// transform that undoes the one that placed it; reading them back through the same one lands on a

@@ -114,6 +114,38 @@ has to find, is the failure this exists to prevent.
 attack down and give the defence a prepared line to hold — which is why it is authored on the interface
 between two pieces rather than derived, and why nothing generated ever asks for one (`mapgen-review.md` MG21).
 
+**[author]** **The wall is meant to be in the way, and that is the whole of it.** A wall standing across a
+wool's approach is not a fault to be routed around: blocking the way in is the device's purpose, giving the
+defence something prepared before it has built anything and costing a tunneller the shortcut. A report that
+reads a walled approach as a wool nobody can reach has read the wall as damage rather than as the line. Two
+things bound it. **One wall, on one interface** — a wool behind two or three of them is not a prepared line,
+it is a sealed room. And it is **narrow enough to be a line rather than a barricade**: twenty blocks of
+bedrock across a lane is a wall players go round instead of through, and a wall nobody engages with is only in
+the defence's way.
+
+**[author]** **Ground pulled out past the wall's ends is what breaks it.** The wall spans the interface it is
+authored on, so terrain widened beyond that interface leaves an open shoulder beside it — and a wall with a
+walk around it has stopped being a decision and become an obstacle to the team it was built for. A skilled
+player jumping the wall is the device working; a player strolling past its end is the device gone. When an
+approach is reshaped, the wall's interface is reshaped with it.
+
+**[author]** **A wool room is defended from its corner, not from inside a field.** The room wants **two of
+its faces on void** — it sits in a corner, so a defender holds two lines and an attacker has two to choose
+from. Three faces on void is the ordinary composed shape, one connecting piece and the rest open, and that is
+fine. What is not is a room with ground on every side: terrain added all the way round a room leaves nothing
+to hold and nowhere for the fight to happen, and the room stops being a place and becomes a spot in a field.
+Adding area around a room while reshaping the ground near it is the way this happens, and the room being
+central to its own terrain is the tell. A room at the end of a spur is the other failure and a milder one —
+it is defensible and it is one queue.
+
+**[author]** **A bay is at least sixteen blocks across where it touches a goal or a spawn.** Negative space
+between two pieces is crossed by jumping long before it is crossed by building: a short gap between a
+frontline and a wool room, or between a spawn and a wool room, lets a player tower at the near edge and jump
+in, which deletes the approach the board was built around. Sixteen blocks is the floor for such a bay, and a
+plain hole in the middle of a team's own ground may be twelve. The distance is in **blocks** and not in
+cells — a floor stated as a cell count moves with the grid scale, and the crossing does not care what the
+grid was.
+
 **[author]** The capture side of this is already law and the destroy side is not. `rules.md` WL8 records that
 a wool's default is a **single chokepoint route** and that real maps add alternative routes — and, usefully
 for a river or a drop, that an approach crossing a sealed zone counts as an approach even when it must be
@@ -146,6 +178,50 @@ objective, per team: one destroyable in 55% of them, two in 37%, three in 5%; co
 one in 77%, two in 19%, three in a single map. The ordinary combined board is one destroyable and one core.
 **A large board with a single goal on it is not an underfilled board** — it is the most common destroy map
 there is.
+
+## A capture-point board is laid out around its own centre
+
+**[author]** A hill is a **square** pad. Round is legal, common and looks well, but what the studio authors
+is square, and a board that wants a disc says so rather than getting one by default.
+
+**[author]** The count follows the team count. **Two teams get two or three points**, and three is the
+ordinary board; **four teams get one per team plus a centre**, which is five. In the corpus this is the
+shape almost without exception: over the 103 KotH maps outside two arcade point-grids, the 90 two-team maps
+carry three points 61 times, two 14 times and one 8 times, and of the 10 four-team maps five carry exactly
+five points.
+
+**[author]** The arrangement is **one point dead centre and the rest to the sides** — and "the sides" means
+across the line between the spawns, not along it. That is the whole difference between a capture board and a
+destroy board: a destroyable belongs to the team behind it, so it sits forward of its own spawn and the pair
+of them defines a front; a capture point belongs to nobody, so it has to be the same walk for everyone, and
+the only positions that are the same walk for everyone lie on the map's own axis of symmetry.
+
+The corpus states it as symmetry rather than as distance. Of the 80 two-team maps with a usable spawn frame,
+**60 have a hill set closed under the 180° rotation that swaps the two spawns** — every point is either at the
+centre of that rotation or has a partner that is its image — and 51 have exactly one point at the centre
+itself. Among the three-point maps that is 43 of 55 with a centre point and 39 of 55 that are precisely a
+centre plus a mirrored pair. 167 of 217 points sit equidistant from both spawns. Four-team boards do the same
+thing one order up: every one of the seven with a usable frame is a ring of exactly four around nought, one or
+two centre points, and five of the seven put the ring at **45° to the spawns** — on the diagonals *between*
+neighbouring spawns, so each ring point is the same walk for two teams rather than the doorstep of one. The
+two exceptions are deliberate: `koth/yukoth` places its four in front of the spawns and hands each team its
+own with `initial-owner`, which is a different game.
+
+**[author]** Distance is stated against the board, not in blocks. An off-centre point sits at roughly
+**two-thirds of the way from the map centre to a spawn**, and anywhere from half to the whole of it is
+ordinary. Measured: 0.66 of the centre-to-spawn distance for two teams (quartiles 0.52 and 0.88) and 0.90 for
+four (quartiles 0.52 and 0.99). On the median corpus board — spawns 94 blocks apart — that is a point about
+30 blocks out from the middle, but the ratio is the rule and the block count is the consequence, because a
+board twice the size wants its points twice as far out.
+
+**[author] This section settles where the points go, and it settles nothing about what is around them.** A
+capture board is a control game before it is anything else — its ground is built rather than landscape, its
+points are entered from a decided number of directions, and a point raised high over open ground is a point
+whose first holder keeps it. That law is `match-flow.md` §10, and it governs the board this one places the
+points on.
+
+`docs/pgm/control-points.md` owns the mechanism these claims are about: what a point is, what it is built of
+and what PGM does with it.
 
 ## Two mechanisms whose use is narrower than they look
 

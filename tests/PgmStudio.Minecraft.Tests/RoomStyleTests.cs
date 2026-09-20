@@ -24,7 +24,7 @@ public sealed class RoomStyleTests
     private static void Shell(VoxelWorld world, RoomFrame frame, int floorY, HouseStyle style)
     {
         HouseStamper.Stamp(world, frame, floorY, style, Red);
-        PadStamp.Lay(world, frame.Pad, floorY, Red);
+        PadStamp.Lay(world, frame.Pad, floorY, Blocks.Wool, Red);
     }
 
     private static RoomFrame Baseline(RoomEdge? spawnDoor = null) =>

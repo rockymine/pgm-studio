@@ -13,7 +13,9 @@ public sealed class PlanFlowTests
     private static PlanPiece P(string id, int x, int z, int w, int h, string role = PlanRoles.Piece) =>
         new() { Id = id, Role = role, Rect = new CellRect(x, z, w, h) };
 
-    // A lane from spawn to the enemy wool, with the two ends mirrored by rot_180.
+    // A lane from spawn to the enemy wool, with the two ends mirrored by rot_180. The spawn hangs off the
+    // lane rather than sitting on the way to the room, because a route to a wool never crosses a spawn (SP1)
+    // and a board whose only way in does is one no side can walk.
     private static PlanModel Board(params PlanPiece[] extra)
     {
         var plan = new PlanModel { Globals = new PlanGlobals { Cell = 5, Symmetry = "rot_180", Surface = 9 } };
@@ -21,8 +23,7 @@ public sealed class PlanFlowTests
         [
             P("spawn", -2, -14, 4, 3, PlanRoles.Spawn),
             P("lane", -2, -11, 4, 11),
-            P("room", -6, -18, 4, 4, PlanRoles.WoolRoom),
-            P("neck", -4, -14, 2, 3),
+            P("room", -6, -11, 4, 4, PlanRoles.WoolRoom),
             .. extra,
         ];
         plan.Placements.Spawns = [new SpawnPlacement { Piece = "spawn", At = [2, 1] }];
@@ -78,6 +79,37 @@ public sealed class PlanFlowTests
         await Assert.That(PlanFlow.Describe(read)).Contains("sit off every route");
     }
 
+    /// <summary>A stretch too small to be a place is reported as a count. A read naming three places and
+    /// dropping forty slivers must not read the same as one that found three places and nothing else.</summary>
+    [Test]
+    public async Task Stretches_too_small_to_name_are_counted_rather_than_dropped()
+    {
+        // a stub arm off the lane, reaching past the corridor's detour tolerance but not far enough for its
+        // tip to be worth 100 blocks
+        var read = PlanFlow.Read(Board(P("arm", -5, -5, 3, 1)));
+
+        await Assert.That(read.DeadBlocks).IsGreaterThan(0);
+        await Assert.That(read.DeadPlaces).IsEmpty().Because("no stretch of it clears the floor");
+        await Assert.That(read.UnnamedDeadPlaces).IsGreaterThan(0);
+        await Assert.That(PlanFlow.Describe(read)).Contains("under 100 blocks");
+    }
+
+    /// <summary>Counting ways in does not say whether taking one buys anything, and this does. A defence with
+    /// a road of its own to the objective crosses less ground the attack is already on than one that has only
+    /// the lane the attack comes up.</summary>
+    [Test]
+    public async Task A_defence_with_its_own_road_collides_less_with_the_attack()
+    {
+        var oneLane = PlanFlow.Read(Board()).Legs.Single();
+        // a back road off the defenders' spawn onto the far side of the room they hold, so the rotation no
+        // longer has to come up the lane the attack arrives on
+        var withBack = PlanFlow.Read(Board(P("back", -6, -14, 4, 3))).Legs.Single();
+
+        await Assert.That(oneLane.Interference).IsGreaterThan(0)
+            .Because("with one lane the attack is on the ground the defence crosses");
+        await Assert.That(withBack.Interference).IsLessThan(oneLane.Interference);
+    }
+
     [Test]
     public async Task A_board_every_journey_covers_says_so_plainly()
     {
@@ -104,5 +136,108 @@ public sealed class PlanFlowTests
         // the lane alone is 11 cells of 5 blocks, so any honest walk to the far room is well past 11
         await Assert.That(leg.Attack).IsGreaterThan(11 * plan.Globals.Cell);
         await Assert.That(PlanFlow.Read(plan).GroundBlocks % (plan.Globals.Cell * plan.Globals.Cell)).IsEqualTo(0);
+    }
+
+    /// <summary><b>A defence is read at the door of the room it defends, not at the wool inside it.</b> A team
+    /// cannot enter its own wool room — the defining rule of the mode — so a walk that ends on the wool is a
+    /// walk that team cannot make. The doorstep is nearer, so the number falls, and `DefenderRatio` falls with
+    /// it: that ratio is what match length is read off before anything else geometric.</summary>
+    [Test]
+    public async Task A_defence_is_read_at_the_door_of_the_room_it_defends()
+    {
+        var plan = Board();
+        var nav = PlanNav.Of(plan);
+        var leg = PlanFlow.Read(plan).Legs.Single();
+
+        // the wool, and the walk that ignores whose ground it is
+        var defenderSpawn = nav.Snap(nav.Waypoints().First(w => w.Kind == "spawn" && w.K == 1).Cell)!.Value;
+        var wool = nav.Snap(nav.Waypoints().First(w => w.Kind == "wool" && w.K == 1).Cell)!.Value;
+        var shared = nav.Walkable();
+        var through = Walk.Between(shared.Stand(defenderSpawn)!.Value, shared.Stand(wool)!.Value, shared)!;
+
+        await Assert.That(leg.Defend).IsLessThan(through.Cost.Distance)
+            .Because("the walk through the room is one the defence is not allowed to make");
+        await Assert.That(leg.Defend).IsGreaterThan(0);
+        await Assert.That(nav.For(1).Stand(wool)).IsNull();
+    }
+
+    /// <summary><b>A defence has a second origin, and which one is nearer is a fact about the board.</b> The
+    /// board above puts the room behind the spawn, so a player at the crossing is further from it than a
+    /// respawn — and moving the room to the front flips that. A read that knew only the spawn could not tell
+    /// the two boards apart.</summary>
+    [Test]
+    public async Task A_chase_starts_at_the_crossing_and_may_beat_a_respawn_or_not()
+    {
+        var behind = PlanFlow.Read(Board()).Legs.Single();
+
+        // the same board with the room in front of the spawn instead of behind it
+        var forward = Board();
+        forward.Pieces = [.. forward.Pieces.Select(piece => piece.Id == "room"
+            ? P("room", -6, -6, 4, 4, PlanRoles.WoolRoom) : piece)];
+        var ahead = PlanFlow.Read(forward).Legs.Single();
+
+        await Assert.That(behind.Chase).IsGreaterThan(0);
+        await Assert.That(ahead.Chase).IsGreaterThan(0);
+        await Assert.That(behind.Chase).IsGreaterThan(behind.Defend)
+            .Because("a room at the back is reached sooner from the spawn than from the middle");
+        await Assert.That(ahead.Chase).IsLessThan(ahead.Defend)
+            .Because("a room at the front is reached sooner from the middle than from the spawn");
+    }
+
+    /// <summary>And the account says which it is, since the number alone does not tell a reader whether the
+    /// defence that matters is the one already out.</summary>
+    [Test]
+    public async Task The_account_names_where_the_defence_comes_from()
+    {
+        await Assert.That(PlanFlow.Describe(PlanFlow.Read(Board())))
+            .Contains("already at the crossing");
+    }
+
+    /// <summary><b>A fork belongs to a demand set.</b> Each side reads the same objective over the ground it
+    /// walks, so the leg carries one approach apiece rather than one reading the others are subtracted from —
+    /// and a defence's is shorter, on its own ground, ending at the door of the room it holds.</summary>
+    [Test]
+    public async Task Each_side_reads_the_same_objective_over_its_own_ground()
+    {
+        var leg = PlanFlow.Read(Board()).Legs.Single();
+
+        await Assert.That(leg.Of(PlanFlow.Attacking)).IsNotNull();
+        await Assert.That(leg.Of(PlanFlow.Defending)).IsNotNull();
+        await Assert.That(leg.Of(PlanFlow.Returning)).IsNotNull();
+        await Assert.That(leg.Attack).IsEqualTo(leg.Of(PlanFlow.Attacking)!.Distance);
+        await Assert.That(leg.Defend).IsEqualTo(leg.Of(PlanFlow.Defending)!.Distance);
+        await Assert.That(leg.Approaches.Select(one => one.Demand).Distinct().Count())
+            .IsEqualTo(leg.Approaches.Count).Because("one reading per demand set");
+    }
+
+    /// <summary><b>A board with two doors reports two decisions, not one span across both.</b> The old single
+    /// fork ran from the first parting to the last merge, which on a two-choice approach describes neither of
+    /// them; the leg's own split and merge are the <em>last</em> choice, the one still open on arrival.</summary>
+    [Test]
+    public async Task Two_doors_on_an_approach_are_two_decisions()
+    {
+        // two holes on the way in: one framed by a loop off the lane, one by a loop nearer the room
+        var twin = Board(
+            P("loop-a", -6, -4, 2, 4), P("cap-a", -6, -4, 5, 1), P("foot-a", -6, -1, 5, 1),
+            P("loop-b", -6, -9, 2, 4), P("cap-b", -6, -9, 5, 1), P("foot-b", -6, -6, 5, 1));
+        var leg = PlanFlow.Read(twin).Legs.Single();
+        var attack = leg.Of(PlanFlow.Attacking)!;
+
+        await Assert.That(attack.Forks.Count).IsGreaterThanOrEqualTo(2);
+        await Assert.That(attack.Forks.Select(fork => fork.Hole).Distinct().Count())
+            .IsEqualTo(attack.Forks.Count).Because("one decision per door");
+        await Assert.That(attack.Forks.Any(fork => fork.Merge == leg.Fuse)).IsTrue()
+            .Because("the leg's merge is one of the decisions, not an envelope over them");
+    }
+
+    /// <summary>And the account names each of them, with the hole it is about and how long the choice stays
+    /// open — a reader should not have to match coordinates to holes by eye.</summary>
+    [Test]
+    public async Task The_account_names_each_decision_and_its_door()
+    {
+        var said = PlanFlow.Describe(PlanFlow.Read(Board()));
+
+        await Assert.That(said).Contains("Walking attack");
+        await Assert.That(said).Contains("Walking defend");
     }
 }

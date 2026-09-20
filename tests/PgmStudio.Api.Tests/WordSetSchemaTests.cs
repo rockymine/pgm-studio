@@ -20,10 +20,10 @@ namespace PgmStudio.Api.Tests;
 [NotInParallel("api-db")]
 public sealed class WordSetSchemaTests
 {
-    /// <summary>The word sets the wire carries. All thirteen of them: <c>MapStage</c>, the nine in
-    /// <c>TerrainVocabulary</c>, <c>Landform</c>, <c>EditZone</c> and <c>WoolColors</c>. A set added to that
-    /// project and never marked on a field is a set the document says nothing about, so it is named here
-    /// rather than counted.</summary>
+    /// <summary>The word sets the wire carries: <c>MapStage</c>, the nine in <c>TerrainVocabulary</c>,
+    /// <c>Landform</c>, <c>EditZone</c>, <c>WoolColors</c>, the world-export sets, <c>NegativeSpaceKinds</c>
+    /// and <c>SizeBands</c>. A set added to that project and never marked on a field is a set the document
+    /// says nothing about, so it is named here rather than counted.</summary>
     private static readonly Type[] Sets =
     [
         typeof(MapStage), typeof(MaterialKind), typeof(ThemeBuckets), typeof(RimEdgeModes),
@@ -31,6 +31,7 @@ public sealed class WordSetSchemaTests
         typeof(DoorHeadForms), typeof(DoorHeadFills), typeof(Landform), typeof(EditZone),
         typeof(WoolColors), typeof(TreeForms), typeof(TreeSpeciesNames),
         typeof(BoulderForms), typeof(BlockKinds), typeof(BiomeKinds), typeof(StructuralRoles),
+        typeof(NegativeSpaceKinds), typeof(SizeBands),
     ];
 
     /// <summary>The fields marked today. Nothing in the compiler can say a field <em>ought</em> to be
@@ -42,7 +43,7 @@ public sealed class WordSetSchemaTests
     /// fields carries the mark once, on the base, and publishes it through <c>allOf</c> — so consolidating
     /// two records into one lowers this while the wire gains nothing and loses nothing. Lower it only for
     /// that reason, and never because a mark went missing.</para></summary>
-    private const int Published = 20;
+    private const int Published = 22;
 
     /// <summary>Every marked field publishes exactly the words its class declares, in that order — so a word
     /// added to a set reaches the document with no second edit, and one removed cannot linger there.</summary>

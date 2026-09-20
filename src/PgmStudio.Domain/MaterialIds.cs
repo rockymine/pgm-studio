@@ -85,6 +85,20 @@ public static class MaterialIds
             && patterns.All(pattern => ById.ContainsKey(Normalize(pattern.Split(':')[0])));
     }
 
+    /// <summary>The one block a material names, as an id and a data value — <c>stained clay:14</c>, or a bare
+    /// name at data nought. Null where the name is not one this vocabulary knows.
+    ///
+    /// <para><see cref="Resolve"/> answers a <em>match</em>, which is a set of ids and drops the data because
+    /// a match is about which blocks qualify. This answers the one block to write.</para></summary>
+    public static (int Id, int Data)? Block(string? material)
+    {
+        if (string.IsNullOrWhiteSpace(material)) return null;
+        var parts = material.Split(':', 2);
+        if (!ById.TryGetValue(Normalize(parts[0]), out var id)) return null;
+        var data = parts.Length > 1 && int.TryParse(parts[1].Trim(), out var stated) ? stated : 0;
+        return (id, data);
+    }
+
     private static string Normalize(string name) =>
         string.Join(' ', name.Replace('_', ' ').Replace('-', ' ')
                              .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));

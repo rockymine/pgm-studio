@@ -42,6 +42,16 @@ public static class TerrainThemeRules
     [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string FlatFieldOnAFace = "PT4";
 
+    /// <summary>A theme tints its ground by team over land more than one team enters. The tint is one colour
+    /// per canonical island, which is what makes it readable — a player standing anywhere on a landmass knows
+    /// whose it is — and an island two teams' spawns stand on has one colour for both, so the whole of it wears
+    /// whichever team the ownership resolved. A board whose land is a single island is the whole map painted
+    /// one team's colour, which is the ordinary shape of a capture board and of any board with no void in
+    /// it.</summary>
+    /// <remarks>Either split the land the tint is meant to distinguish — the decomposition is the canonical `islands_json` one, so two teams on separate landmasses each take their own colour — or drop the `teamTinted` material from the buckets the shared island paints through and say whose ground it is some other way. A theme whose tint is deliberate on shared ground states it by assigning the island in the configure step, which is what the finding names.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
+    public const string TintOverSharedGround = "PT5";
+
     /// <summary>The finest period a sampled pattern may vary over, in blocks — <see cref="BrushTooFine"/>'s
     /// one number (author).</summary>
     public const int BrushFloor = 2;
@@ -295,21 +305,8 @@ public static class TerrainThemeValidation
             + "course thick and what is under it is soil — put it at the top of a layered stack instead.",
             Field: bucket);
 
-    /// <summary>Every surfacing block a material can resolve to, patterns walked to their leaves. The data
-    /// travels with the id because podzol is a variant of dirt and nothing else tells the two apart.</summary>
+    /// <summary>Every surfacing block a material can resolve to, patterns walked to their leaves by
+    /// <see cref="Materials.BlocksOf"/>.</summary>
     private static IEnumerable<(int Id, int Data)> Surfacing(TerrainMaterial material) =>
-        Blocks(material).Where(block => BlockRoles.IsSurfacing(block.Id, block.Data));
-
-    private static IEnumerable<(int Id, int Data)> Blocks(TerrainMaterial material) => material switch
-    {
-        SolidMaterial solid => [(solid.Id, solid.Data)],
-        LayeredMaterial layered => layered.Stack.Bands.SelectMany(band => Blocks(band.Material)),
-        VoronoiMaterial voronoi => voronoi.Bands.SelectMany(band => Blocks(band.Material)),
-        CellMaterial cell => cell.Palette.SelectMany(Blocks),
-        NoiseMaterial noise => noise.Stops.SelectMany(Blocks),
-        TurbulenceMaterial turbulence => turbulence.Stops.SelectMany(Blocks),
-        ElectricMaterial electric => electric.Stops.SelectMany(Blocks),
-        CheckerMaterial checker => Blocks(checker.Even).Concat(Blocks(checker.Odd)),
-        _ => [],
-    };
+        Materials.BlocksOf(material).Where(block => BlockRoles.IsSurfacing(block.Id, block.Data));
 }

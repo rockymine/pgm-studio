@@ -13,45 +13,51 @@ blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smalle
 it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room building's 20×20 measure the same
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
-## Which face a bucket paints, and what a block is chosen against
+## The composer states distances in cells, and a grid scale moves them
 
-Four findings the author read off ten painted boards. `BlockLook` states the division the group turns on — the
-surface and rim buckets write what a player sees **from above**, the wall and fill buckets what they see **from
-the side** — and a material that resolves without asking which of the two it landed in is the cause the first
-two shared. That half has shipped (`FEATURES.md`): `PT4` names a sampled field with no `rise` on either tall
-bucket — the wall, which the gate had never walked, and the fill, which is the face every cut through a board
-leaves — and the eight committed presets were the first thing it caught. Both log patterns now stand a log up
-where there is no run to lay it along.
+- [ ] **G273 — A fine row should key to the hub's legs where the front has none.** `MidCarver.Keyed` lines
+  its stones up with the faces of the unit's **front row**, which is the right feature when there is more
+  than one — but a front presents a single face on about two boards in three, so the keyed row lands on one
+  or two boards in twenty-four and the rest centre. The hub always has a body, and the holed forms (ring, G,
+  P, twin, double-hole) all carry legs either side of a bay: those are the same kind of feature and they are
+  there on every board. Read them out of the hub box's pieces the way `TryCarve` reads the front's, and key
+  to them when the front offers nothing. `docs/generator/model.md` §5.13 and `rules.md` amendment 38.
 
-The one that remains is about what a block is chosen *against* — the ground it stands on. It carries a
-threshold that is the author's and is not yet stated: it is measured before it is asked.
+  *Evidence: `p24 rot_180 seed 3` (`opus5-stennerwath`) — `frontline-t1` is one 64-block bar, so nothing to
+  key to, while `hub-t2 x[-32,0)` and `hub-t3 x[16,36)` are two legs 16 blocks apart. Its stones sit centred
+  at `x[-12,16)`, in the hub's own bay rather than in front of either leg.*
 
-- [ ] **WE64 — A boulder in the ground's own tone family disappears.** The author's ruling, from three boards:
-  a rock must not be built from the family it sits on. Sandstone rocks on sand vanish into the sandstone
-  structures behind them (`specs/probe-desert-1`, `specs/probe-desert-2`), and red clay against hardened clay
-  on one rock is noise rather than variation (`specs/probe-badlands-2`). The stated fallback is stone, andesite
-  and cobblestone, which works against sand, grass, dirt and red sand, or a single clay, since no two clay
-  colours are close. Seed that rock as the library's default so a placement naming nothing gets it, and raise a
-  finding where a boulder's blocks and the theme under it share a tone family.
+- [ ] **G272 — Bound the run a player walks around a hub's hole at 40 blocks.** A hole's job is rotation
+  (`CT8`): a loop round it gives an alternative route between lanes. Past a certain length it stops being a
+  loop and becomes a wall — two players on opposite sides never meet and neither can change direction. The
+  author's bar is **40 blocks on the hole's longest side**. `HubBoxCells` sizes the hub from its budget share
+  alone and the holed bodies build every wall one corridor thick, so the hole takes the whole difference as
+  the box grows. Either the ring's walls thicken with the box or the body splits the void — a `double-hole`
+  where one ring's hole would run long. Lands in `TeamUnitAllocator.ChooseHubBody`/`ChooseHubWalls`;
+  `docs/generator/model.md` and `rules.md` (`CT8` is the rule that states the envelope and measures nothing).
 
-## A convention is measured and nothing complains
+  *Evidence: 12 seeds a band, cell 4 — the hole run's median is 16 · 16 · 18 · 24 blocks up the ladder and
+  **14 of 38 centi boards exceed 40**, none below it. The corpus of 359 CTW maps puts the run's median at 20
+  and its p90 at 43 (836 voids), so the bar is the corpus p90. `opus5-threapland` is the worked case: one
+  76×36 hole at cell (-10,-19), where a double-hole hub would have given two.*
 
-The group `docs/backlog-strategy.md` names as the next one up. Its measurements are taken and its numbers are
-the author's, so each entry is a predicate and a threshold rather than an investigation. Two have landed
-(`FEATURES.md`): `WE48`'s brush floor and the first of `WE45`'s three faults.
+- [~] **G264 — The composer seats a wool room its own lane-width from the hub, so a goal's setback is the
+  band's corridor and not a distance.** On a composed board the gap `WL12` names is the **inside corner of a
+  bent wool**: `wool-a-room` sits at the far side of the wool lane, so the void between the room and `hub-t1`
+  (or `frontline-t1`) is exactly that lane's width — 12 blocks at nano and 16 at milli and centi on the cell-4
+  grid, against the author's floor of 16 from the room to the frontline. The **room's setback along its lane**
+  takes a block basis of its own, in `WoolBoxEmitter` rather than in the seat clearance.
+  `docs/generator/rules.md` and `model.md`.
 
-**The line the group is worked against.** A complaint closes when its domain closes — a house has a fixed
-parts list, which is why `HS1`–`HS10` could be finished — and terrain has none, so a catalogue over every pair
-of blocks never closes. What is built here is the closable half: a number on a bounded field, a geometric
-measurement, a local predicate over one compiled object. `WE46` and `WE41` are the other half and are parked
-below on the palette rather than filed as more complaints.
+  *Evidence: `p8 rot_180 seed 0` at nano, wool lane 3 cells — `wool-a-room x[-1,1) z[20,23)` stands off
+  `hub-t1 x[-6,6) z[14,17)` by 12 blocks, the lane's own width and four under the floor. Nano is where it
+  binds: a 16-block floor is 4 cells against a 3-cell lane, so the room has to move rather than the lane widen.*
 
-- [ ] **WE47 — A board wears a theme per piece.** A theme is a *place* and a board has two or three; giving
-  every piece of the plan its own is the plan leaking into the paint. The half worth building is the **local**
-  one: complain where a flight of steps compiled from a plan does not share one theme with itself. The
-  registry count is a proxy for "the paint is incoherent" and would fire on 23 of 51 boards, which is a
-  symptom rather than a fault — `CLAUDE.md`'s reporting rule prefers a local predicate to a proxy measure.
-  `docs/tools/sketch.md`.
+## Nothing else is on the board
 
-  *51 boards carry a registry: 16 hold three, but 11 hold five, 7 hold six, and five hold between sixteen and
-  twenty-four — `opus5-interchange` has 24.*
+The walk drained, and so did what a building may stand on — `DR-PASS` is the author's ruling, the passage is
+owed round a group of buildings, and `sketch/seats` answers it forwards (`FEATURES.md`).
+
+`docs/backlog-strategy.md` names **the layer word** as the programme to pull next: `B263`, `B264`, `WE28`,
+`TS64`, in `BACKLOG.md`. Three of the four want something first — `B263` a ruling on how the canvas says which
+storey a prop is on, `B264` and `TS64` a surface — and `WE28` is the one that is settled and backend only.

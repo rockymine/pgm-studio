@@ -313,27 +313,31 @@ public partial class GeneratorTool : IAsyncDisposable
     private void OnWoolMax(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var v)) woolMax = Math.Max(0, v); }
     private void PickSymmetry(string s) => symmetry = s;
 
-    // ── land spend (G148) ────────────────────────────────────────────────────────
-    // Two currencies, never one: footprint is the box rect (fixed when the box was seated), land is the
-    // walkable terrain inside it (what the fill spends). The budget is per TEAM UNIT — the board is that unit
-    // fanned — so the card says "unit" rather than letting the number read as a whole-board figure.
+    // ── land spend ───────────────────────────────────────────────────────────────
+    // Two currencies, never one: footprint is the box rect (fixed when the box was seated), land is what the
+    // filled pieces cover, which is what the spend gate reads. The budget is the size band's, per TEAM UNIT —
+    // the board is that unit fanned — so the card says "unit" rather than letting the number read as a
+    // whole-board figure.
 
-    /// <summary>The card-sized readout: land against budget, plus the share.</summary>
+    /// <summary>The card-sized readout: the band, the unit's land against its budget, the share, and the mid's
+    /// stones where the crossing carries any.</summary>
     private static string SpendShort(LandSpendDto spend) =>
-        $"{spend.LandCells}/{spend.BudgetCells:0} · {SpendPercent(spend)}";
+        $"{spend.Band} {spend.Unit.Cells}/{spend.Unit.BudgetCells:0} · {SpendPercent(spend.Unit)}"
+        + (spend.Mid.Cells > 0 ? $" · mid {spend.Mid.Cells}" : string.Empty);
 
-    /// <summary>The share of the land budget the unit actually spent. Guards a zero budget rather than
-    /// rendering a NaN into the card.</summary>
-    private static string SpendPercent(LandSpendDto spend) =>
-        spend.BudgetCells > 0 ? $"{100 * spend.LandCells / spend.BudgetCells:0}%" : "—";
+    /// <summary>The share of a budget its land actually spent. Guards a zero budget rather than rendering a
+    /// NaN into the card.</summary>
+    private static string SpendPercent(LandAgainstBudgetDto land) =>
+        land.BudgetCells > 0 ? $"{100 * land.Cells / land.BudgetCells:0}%" : "—";
 
     /// <summary>The hover: the same numbers spelled out, with the per-kind split and the units named.</summary>
     private static string SpendTitle(LandSpendDto spend)
     {
         var kinds = string.Join(", ", spend.ByKind.Select(k =>
             $"{k.Kind}{(k.Boxes > 1 ? $" x{k.Boxes}" : string.Empty)} {k.LandCells}"));
-        return $"Land {spend.LandCells} of {spend.BudgetCells:0} budget cells, one team unit " +
-               $"(footprint {spend.FootprintCells}). By box: {kinds}.";
+        return $"Band {spend.Band}: land {spend.Unit.Cells} of {spend.Unit.BudgetCells:0} budget cells, one "
+             + $"team unit (footprint {spend.FootprintCells}); mid stones {spend.Mid.Cells} of "
+             + $"{spend.Mid.BudgetCells:0}, shared. By box: {kinds}.";
     }
 
     public async ValueTask DisposeAsync()

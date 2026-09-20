@@ -1,8 +1,9 @@
 using PgmStudio.Vocabulary;
 namespace PgmStudio.Minecraft.Dressing;
 
-/// <summary>The dressing pass's own placement rules — the ids its census reasons cite, served by
-/// <c>GET /api/rules</c> from the docstrings here the way every gate family's are.</summary>
+/// <summary>The dressing pass's own rules — where a prop may stand, what it may take from the ground and what
+/// it may be made of — served by <c>GET /api/rules</c> from the docstrings here the way every gate family's
+/// are.</summary>
 public static class DressingRules
 {
     /// <summary>A prop rests nearer to the road than its kind's standoff allows: a tree 3 blocks, a boulder 2,
@@ -15,18 +16,26 @@ public static class DressingRules
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string RoadStandoff = "DR-ROAD";
 
-    /// <summary>A building leaves no way past itself: none of its four sides has 5 blocks of passable ground
-    /// alongside its whole run (the author's number). A house may stand against the map's own edge on one
-    /// side — a coast house is a house — but a house with too little ground on every side corks the leg it
-    /// stands on, and a route players must dig through a building to walk is not a route. Measured from what
-    /// the building <b>stamps</b> rather than from its walls: a roof oversails its wall by at least one block,
-    /// and the blocks a player walks under are the ones that were written.</summary>
-    /// <remarks>Move the building so at least one side keeps a five-block passage alongside its whole length — including one step past each corner, which is where the passage turns in from — or widen the ground it stands on. The five are counted from the roof's edge, not the wall's, so a style with a deep overhang needs that much more room. Passable here means terrain with nothing built on it; a road or a channel beside the wall still counts as a way past. The whole building is declined and is not in the exported world.</remarks>
+    /// <summary>A building leaves no way past itself: a side of it carries fewer than 8 blocks of passable
+    /// ground alongside its whole run (the author's number). <b>Every</b> side is asked, because the lane a
+    /// building stands in is the ground players arrive on rather than a way round it — a house in the middle
+    /// of a route corks it however far the route runs on ahead. A side the ground stops flush against is the
+    /// map's own edge or a hole in it, and a building may stand against one — a coast house is a house — but
+    /// not against two facing each other, which is a building spanning the land rather than seated at its
+    /// edge. Measured from what the building <b>stamps</b> rather than from its walls: a roof oversails its
+    /// wall by at least one block, and the blocks a player walks under are the ones that were written.
+    ///
+    /// <para><b>Asked of a group of buildings, not of each one.</b> Buildings standing within a passage of
+    /// each other are one block of buildings, and the eight is owed round what they make together — a player
+    /// walks round a village rather than between every pair of its houses, so the ground inside it is the
+    /// claim ring's to keep. Grouping is transitive, and at exactly the passage two buildings answer for
+    /// themselves, so no gap between them is one the rule has no reading of.</para></summary>
+    /// <remarks>Move the building against the edge of the ground it stands on and keep an eight-block passage along every other side, or widen that ground, or bring it close enough to its neighbours to be one block of buildings with them. The eight are counted from the roof's edge, not the wall's, so a lane 15 blocks across takes a building 7 blocks across including its eaves. Passable here means terrain with nothing built on it; a road or a channel beside the wall still counts as a way past, a building outside this one's group does not. A complaint: the building is in the exported world, standing where it was put, because where a building stands is something an author moves. `POST /api/map/{slug}/sketch/seats` answers this same rule forwards over every cell of the board, so a placement is found rather than guessed at.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string PassAround = "DR-PASS";
 
     /// <summary>The passage's width in blocks — <see cref="PassAround"/>'s one number.</summary>
-    public const int PassAroundWidth = 5;
+    public const int PassAroundWidth = 8;
 
     /// <summary>A building stands <b>across</b> a route: the road it covers carries on out the other side, so
     /// what was one way through the board is now two dead ends at a wall. A road that simply <em>ends</em> at
@@ -180,6 +189,36 @@ public static class DressingRules
     /// <remarks>Draw the body inside ground that is already level — the finding names the wall's own cell and its two courses, which is where to read the fall — or state a `level` and let the water fill the hollow that is there instead of making one. A complaint: the world is built and the water is in it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string SteepBank = "DR-BANK";
+
+    /// <summary>A boulder built out of nothing but the tones of the ground it stands on. A rock is an
+    /// erratic — a mass carried here and left — so it reads as a rock by not being made of the field it sits
+    /// in, and one whose every tone family the ground already states has no silhouette at any size: it is a
+    /// patch of the same ground standing up. Measured against the ground where something can <b>rest</b>, so a
+    /// meadow whose steep faces are bare stone is a meadow and a stone rock on it stands out as intended.
+    ///
+    /// <para>Tone families are <c>TerrainPalette</c>'s — the unit a pattern is filled from, which is what an
+    /// author reaches for and what a player reads at a distance. A rock keeping one family the ground does not
+    /// have is a rock, however much else it shares: what disappears is the one built wholly from the
+    /// field.</para></summary>
+    /// <remarks>Cut the rock from stone, andesite and cobblestone, which is what a placement naming no recipe already gets: it reads against sand, grass, dirt and red sand, and against any single clay, since no two clay colours are close. Where the ground is itself grey stone, take the rock the other way — a clay, a dark block or a sand — rather than deepening the grey. A complaint: the world is built and the rock is in it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Material, RuleConcern.Terrain)]
+    public const string RockInTheGroundsTone = "DR-TONE";
+
+    /// <summary>A boulder standing on a face rather than on ground. An erratic is a mass left where the ice
+    /// dropped it, which is ground flat enough to hold one; a rock pinned to a steep hillside reads as neither
+    /// — the slope is already the feature there, and the rock sitting on it only interrupts a line that was
+    /// doing the work. Measured as the terrain's own inclination under the placement
+    /// (<c>SurfaceGradient.Degrees</c>, the same reading the paint is banded by) against the angle at which the
+    /// theme painting that cell stops calling the ground a meadow.
+    ///
+    /// <para><b>The board states the angle, not this rule.</b> A surface graded by slope has already said
+    /// where its cliff begins — the band that paints the steepest ground there is — and that boundary is the
+    /// one an author drew. Ground the middle band paints is still ground, so a rock on the coarse dirt of a
+    /// gentle hillside stands; only the band that means <em>bare rock face</em> is refused. A theme grading by
+    /// nothing is read at <c>Materials.DefaultCliffAngle</c>.</para></summary>
+    /// <remarks>Move the rock onto ground the board does not paint as a face — the flat, or the graded band under it. The finding names the cell, the angle measured there and the angle the theme calls a cliff, so the three can be compared against the incline read. A complaint: the world is built and the rock is in it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
+    public const string RockOnAFace = "DR-STEEP";
 
     /// <summary>How much of a prop the clip has to block before <see cref="PropCut"/> is raised on the share
     /// alone. A rock tucked against a wall is flattened along it and measures about a third, which is a rock;

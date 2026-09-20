@@ -21,11 +21,16 @@ namespace PgmStudio.Api.Endpoints;
 /// aborting attempts mid-loop), so the same seed yields the same board under every filter and the descriptor's
 /// reproduction promise — and the pin path — hold. Returns a page with the resume cursor, an exhausted flag,
 /// and the seeds scanned (matched = card count); a low match rate under a strict filter is the signal to
-/// promote it to a held target (G98). Teams fixed at 2 this pass; an unsupported symmetry is answered 400.
+/// promote it to a held target (G98). An unsupported symmetry and any team count but two are answered 400.
 /// </summary>
 public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
 {
     private static readonly string[] Supported = ["rot_180", "mirror_z"];
+
+    /// <summary>The only team count the browse feed composes for. A request naming another is refused
+    /// rather than answered with a two-team board, because a board that is not what was asked for is
+    /// worse than no board.</summary>
+    private const int ComposedTeams = 2;
 
     // A structural filter (donut ∧ L, say) can be a few percent of seeds, so bound the scan generously and
     // report what was scanned rather than hanging. Compose is milliseconds, so a few hundred stays responsive.
@@ -36,8 +41,9 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
     public override async Task HandleAsync(CancellationToken ct)
     {
         var players = Query<int?>("players", isRequired: false) ?? 12;
+        var teams = Query<int?>("teams", isRequired: false) ?? ComposedTeams;
         var symmetry = Query<string?>("symmetry", isRequired: false) ?? "rot_180";
-        var cell = Query<int?>("cell", isRequired: false) ?? 5;
+        var cell = Query<int?>("cell", isRequired: false) ?? ComposeRequest.DefaultCell;
         var seedStart = Math.Max(0, Query<int?>("seedStart", isRequired: false) ?? 0);
         var count = Math.Clamp(Query<int?>("count", isRequired: false) ?? 12, 1, 48);
         var maxScore = Query<double?>("maxScore", isRequired: false);
@@ -52,6 +58,14 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
             await Refusals.UnreadableAsync(HttpContext, "unsupported symmetry",
                 $"'{symmetry}' is not a symmetry the composer builds for; it takes "
                 + $"{string.Join(" or ", Supported)}", ct, field: "symmetry");
+            return;
+        }
+
+        if (teams != ComposedTeams)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "unsupported team count",
+                $"the composer builds {ComposedTeams}-team boards; '{teams}' is not a count it composes for",
+                ct, field: "teams");
             return;
         }
 
@@ -72,7 +86,7 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
             ct.ThrowIfCancellationRequested();
 
             ComposeRequest request;
-            try { request = new ComposeRequest(players, 2, symmetry, s, cell); }
+            try { request = new ComposeRequest(players, teams, symmetry, s, cell); }
             catch (ArgumentException fault)
             { await Refusals.UnreadableAsync(HttpContext, "invalid request parameters", fault.Message, ct); return; }
 
@@ -106,10 +120,10 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
         await Send.OkAsync(new ComposePage(cards, seed, exhausted, seed - seedStart, observed.ToDto()), ct);
     }
 
-    /// <summary>What the unit spent, from the partition the box pipeline already produced (G148). Both
-    /// currencies per box kind: the <b>footprint</b> is the box rect, fixed when the box was seated; the
-    /// <b>land</b> is the walkable terrain inside it, which is what the fill actually spends. The budget is the
-    /// envelope's own <see cref="ComposeEnvelope.LandPerTeam"/> — the one this board was built to, not a
+    /// <summary>What the unit spent, from the partition the box pipeline already produced (G148). The
+    /// per-kind rows are box footprints, which is the only currency a box carries before it is filled; the
+    /// unit's <b>land</b> is read off the filled pieces, the same reading the spend gate takes. The budget is
+    /// the envelope's own <see cref="ComposeEnvelope.LandPerTeam"/> — the one this board was built to, not a
     /// re-derived one (the envelope samples, so re-deriving would answer about a different board) — converted
     /// from blocks² to cells here so the client never has to know the cell size.</summary>
     private static LandSpendDto Spend(ComposedStages stages)
@@ -124,11 +138,12 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
                 g.Sum(b => b.Rect.Width * b.Rect.Height)))
             .OrderByDescending(k => k.LandCells)
             .ToList();
-        var cell = (double)stages.Envelope.Cell;
         return new LandSpendDto(
-            byKind.Sum(k => k.LandCells),
+            stages.Envelope.Band,
+            new LandAgainstBudgetDto(Composer.LandCells(stages.Unit), stages.Envelope.UnitBudgetCells),
+            new LandAgainstBudgetDto(
+                MidCarver.StoneLandCells(stages.Envelope, stages.Mid.Stones), stages.Envelope.MidLandCells),
             byKind.Sum(k => k.FootprintCells),
-            stages.Envelope.LandPerTeam / (cell * cell),
             byKind);
     }
 

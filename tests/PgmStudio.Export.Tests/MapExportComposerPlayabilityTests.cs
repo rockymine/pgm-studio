@@ -185,4 +185,187 @@ public sealed class MapExportComposerPlayabilityTests
         await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
                                            .Any(f => f.Rule == ObjectiveRules.NoModeLadder)).IsFalse();
     }
+
+    // ── OB27/OB28: the two ways a capture board does not play as written ───────────────────────────────
+
+    /// <summary>A board of shown capture points, each carrying what the test names.</summary>
+    private static Dict Hills(params (string Key, object? Value)[] stated)
+    {
+        var doc = Doc(("spawns", 2), ("teams", 2));
+        var point = new Dict { ["id"] = "hill", ["capture_region"] = "hill-capture" };
+        foreach (var (key, value) in stated) point[key] = value;
+        doc["control_points"] = new List<object?> { point };
+        return doc;
+    }
+
+    /// <summary><b>A point that leaves <c>required</c> off ends the match on the first capture.</b> PGM reads
+    /// the attribute as true at proto 1.4.0 and above, which is every map the studio supports, and
+    /// <c>GoalsVictoryCondition</c> finishes the match the instant a competitor holds all of its required
+    /// goals. 66 points across 20 corpus maps leave it off.</summary>
+    [Test]
+    public async Task A_point_with_no_required_is_OB27()
+    {
+        var findings = MapExportComposer.Playable(Intent(spawns: 2), Hills(("points", 1d)));
+
+        var ends = findings.Single(finding => finding.Rule == ObjectiveRules.PointEndsTheMatch);
+        await Assert.That(ends.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(ends.Message).Contains("1 of the map's 1 capture point(s) state no `required`");
+    }
+
+    /// <summary>And the convention silences it — which is what every point the studio authors writes.</summary>
+    [Test]
+    public async Task A_point_stating_required_false_is_not_OB27()
+    {
+        var doc = Hills(("required", false), ("points", 1d));
+        doc["score"] = new Dict { ["limit"] = 750L };
+
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Any(finding => finding.Rule == ObjectiveRules.PointEndsTheMatch)).IsFalse();
+    }
+
+    /// <summary>A point PGM never registers as a goal cannot end anything: <c>show="false"</c> clears every
+    /// show option including <c>stats</c>, and <c>GoalMatchModule.addGoal</c> returns early without it. That
+    /// is why an arcade grid of hidden cubes does not win on first touch.</summary>
+    [Test]
+    public async Task A_hidden_point_is_asked_neither_question()
+    {
+        var doc = Hills(("show", false), ("points", 1d));
+
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Any(finding => finding.Rule == ObjectiveRules.PointEndsTheMatch
+                         || finding.Rule == ObjectiveRules.PointScoresIntoNothing)).IsFalse();
+    }
+
+    /// <summary><b>A point that pays into no score module pays nothing.</b> <c>ControlPoint.tickScore</c>
+    /// looks up <c>ScoreMatchModule</c> every tick and PGM builds one only for a document carrying a
+    /// <c>&lt;score&gt;</c> element, so the whole match scores zero with no error anywhere. 20 points across
+    /// 11 corpus maps do it.</summary>
+    [Test]
+    public async Task A_paying_point_with_no_score_element_is_OB28()
+    {
+        var findings = MapExportComposer.Playable(Intent(spawns: 2), Hills(("required", false), ("points", 1d)));
+
+        var paid = findings.Single(finding => finding.Rule == ObjectiveRules.PointScoresIntoNothing);
+        await Assert.That(paid.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(paid.Field).IsEqualTo("score");
+    }
+
+    /// <summary>The element is what matters rather than anything in it — which is why corpus authors carry an
+    /// empty one as a placeholder.</summary>
+    [Test]
+    public async Task An_empty_score_element_is_enough()
+    {
+        var doc = Hills(("required", false), ("points", 1d));
+        doc["score"] = new Dict { ["kills"] = 0L, ["deaths"] = 0L };
+
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Any(finding => finding.Rule == ObjectiveRules.PointScoresIntoNothing)).IsFalse();
+    }
+
+    /// <summary>A point that pays nothing is not asked: <c>points="0"</c> is a payload's shape, and scoring is
+    /// not what it is for.</summary>
+    [Test]
+    public async Task A_point_that_pays_nothing_needs_no_score()
+    {
+        var doc = Hills(("required", false), ("points", 0d));
+
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Any(finding => finding.Rule == ObjectiveRules.PointScoresIntoNothing)).IsFalse();
+    }
+
+    // ── SH1 — a shop reference the document does not define ─────────────────────────────────────────────
+    // A board that sells things: one menu, one tab, one icon, and one keeper that opens it. Every reference
+    // resolves, which is what a studio-authored board always produces.
+    private static Dict Selling(Dict? icon = null, Dict? keeper = null)
+    {
+        var doc = Doc(("spawns", 2), ("teams", 2));
+        doc["shops"] = new List<object?>
+        {
+            new Dict
+            {
+                ["id"] = "item-shop",
+                ["categories"] = new List<object?>
+                {
+                    new Dict
+                    {
+                        ["id"] = "blocks",
+                        ["icon"] = new Dict { ["material"] = "hard clay" },
+                        ["icons"] = new List<object?> { icon ?? new Dict { ["item"] = new Dict { ["material"] = "wood" } } },
+                    },
+                },
+            },
+        };
+        doc["shopkeepers"] = new List<object?> { keeper ?? new Dict { ["shop"] = "item-shop" } };
+        return doc;
+    }
+
+    /// <summary>The board the studio writes says nothing: every id it names it also defines.</summary>
+    [Test]
+    public async Task A_board_whose_shop_references_all_resolve_is_silent()
+    {
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), Selling())
+            .Any(finding => finding.Rule == ShopRules.ReferenceNotDefined)).IsFalse();
+    }
+
+    /// <summary><b>A keeper naming a menu nothing defines is a map PGM will not load</b> —
+    /// <c>ShopModule.parse</c> throws <i>"No shop with id '…' could be found"</i> — so it is refused rather
+    /// than complained about, beside the other questions of whether this is a map at all.</summary>
+    [Test]
+    public async Task A_keeper_naming_no_menu_refuses_the_export()
+    {
+        var findings = MapExportComposer.Playable(
+            Intent(spawns: 2), Selling(keeper: new Dict { ["shop"] = "upgrade-shop" }));
+
+        var dangling = findings.Single(finding => finding.Rule == ShopRules.ReferenceNotDefined);
+        await Assert.That(dangling.Refuses).IsTrue();
+        await Assert.That(dangling.SubjectIds).IsEquivalentTo(new[] { "upgrade-shop" });
+    }
+
+    /// <summary>And the place it stands in is the same kind of reference: PGM resolves it against the map's
+    /// own regions and refuses when nothing answers.</summary>
+    [Test]
+    public async Task A_keeper_naming_no_region_refuses_the_export()
+    {
+        var doc = Selling(keeper: new Dict { ["shop"] = "item-shop", ["region"] = "market-floor" });
+
+        var dangling = MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Single(finding => finding.Rule == ShopRules.ReferenceNotDefined);
+        await Assert.That(dangling.SubjectIds).IsEquivalentTo(new[] { "market-floor" });
+    }
+
+    /// <summary>A region the map holds answers it, so a keeper standing in one says nothing.</summary>
+    [Test]
+    public async Task A_keeper_standing_in_a_region_the_map_holds_is_silent()
+    {
+        var doc = Selling(keeper: new Dict { ["shop"] = "item-shop", ["region"] = "market-floor" });
+        doc["regions"] = new Dict { ["market-floor"] = new Dict { ["id"] = "market-floor", ["type"] = "everywhere" } };
+
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
+            .Any(finding => finding.Rule == ShopRules.ReferenceNotDefined)).IsFalse();
+    }
+
+    /// <summary>An icon's action is a feature reference, and the studio authors no <c>&lt;actions&gt;</c>
+    /// block — so any id there names nothing on a studio-built board and the map would not load.</summary>
+    [Test]
+    public async Task An_icon_naming_an_action_nothing_defines_refuses_the_export()
+    {
+        var upgrade = new Dict
+        {
+            ["item"] = new Dict { ["material"] = "anvil" },
+            ["action"] = "add-protection",
+        };
+
+        var dangling = MapExportComposer.Playable(Intent(spawns: 2), Selling(icon: upgrade))
+            .Single(finding => finding.Rule == ShopRules.ReferenceNotDefined);
+        await Assert.That(dangling.Refuses).IsTrue();
+        await Assert.That(dangling.SubjectIds).IsEquivalentTo(new[] { "add-protection" });
+    }
+
+    /// <summary>A board with no shop at all is not asked, so the walk costs nothing on every other map.</summary>
+    [Test]
+    public async Task A_board_that_sells_nothing_is_not_asked()
+    {
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), Doc(("spawns", 2), ("teams", 2)))
+            .Any(finding => finding.Rule == ShopRules.ReferenceNotDefined)).IsFalse();
+    }
 }

@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
@@ -13,13 +14,13 @@ public sealed class BodyEdgesTests
 {
     private const int Cw = 3;
 
-    private static int Count(EdgeClassification c, NegativeSpaceKind kind) => c.Spaces.Count(s => s.Kind == kind);
+    private static int Count(EdgeClassification c, string kind) => c.Spaces.Count(s => s.Kind == kind);
 
     private static async Task AssertSpaces(EdgeClassification c, int notches, int bays, int holes)
     {
-        await Assert.That(Count(c, NegativeSpaceKind.Notch)).IsEqualTo(notches);
-        await Assert.That(Count(c, NegativeSpaceKind.Bay)).IsEqualTo(bays);
-        await Assert.That(Count(c, NegativeSpaceKind.Hole)).IsEqualTo(holes);
+        await Assert.That(Count(c, NegativeSpaceKinds.Notch)).IsEqualTo(notches);
+        await Assert.That(Count(c, NegativeSpaceKinds.Bay)).IsEqualTo(bays);
+        await Assert.That(Count(c, NegativeSpaceKinds.Hole)).IsEqualTo(holes);
     }
 
     [Test]
@@ -27,7 +28,7 @@ public sealed class BodyEdgesTests
     {
         var c = BodyEdges.Classify(BodyEmitter.Rectangle(6 * Cw, 4 * Cw));
         await Assert.That(c.Spaces).IsEmpty();
-        await Assert.That(c.Edges.All(e => e.Faces == NegativeSpaceKind.Open)).IsTrue();
+        await Assert.That(c.Edges.All(e => e.Faces == NegativeSpaceKinds.Open)).IsTrue();
     }
 
     // the branch family: the arm placement decides which negative spaces the same K yields
@@ -54,8 +55,8 @@ public sealed class BodyEdgesTests
         await AssertSpaces(BodyEdges.Classify(BodyEmitter.TwoUOnI(Cw, 5 * Cw)), notches: 0, bays: 1, holes: 2);
         // P: the loop's hole plus the wrapped corners where the long bar overhangs it
         var p = BodyEdges.Classify(BodyEmitter.P(Cw, 4 * Cw, 5 * Cw));
-        await Assert.That(Count(p, NegativeSpaceKind.Hole)).IsEqualTo(1);
-        await Assert.That(Count(p, NegativeSpaceKind.Notch)).IsEqualTo(2);
+        await Assert.That(Count(p, NegativeSpaceKinds.Hole)).IsEqualTo(1);
+        await Assert.That(Count(p, NegativeSpaceKinds.Notch)).IsEqualTo(2);
     }
 
     [Test]
@@ -70,8 +71,8 @@ public sealed class BodyEdgesTests
         await AssertSpaces(BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw)), notches: 2, bays: 1, holes: 0);
         // donut: the enclosed ring void (the stub and room wrap corners, never a bay)
         var donut = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Donut, 18, 15, Cw));
-        await Assert.That(Count(donut, NegativeSpaceKind.Hole)).IsEqualTo(1);
-        await Assert.That(Count(donut, NegativeSpaceKind.Bay)).IsEqualTo(0);
+        await Assert.That(Count(donut, NegativeSpaceKinds.Hole)).IsEqualTo(1);
+        await Assert.That(Count(donut, NegativeSpaceKinds.Bay)).IsEqualTo(0);
     }
 
     // the designation interplay: the same two bars read a bay with the room sealing the recess and a mere
@@ -80,11 +81,11 @@ public sealed class BodyEdgesTests
     public async Task Clamp_recess_is_a_bay_only_with_the_room()
     {
         var emission = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, Cw));
-        await Assert.That(Count(emission, NegativeSpaceKind.Bay)).IsEqualTo(1);
+        await Assert.That(Count(emission, NegativeSpaceKinds.Bay)).IsEqualTo(1);
 
         var bodyOnly = BodyEdges.Classify(ShapeEmitter.Body(ShapeFamily.Clamp, 12, 15, Cw));
-        await Assert.That(Count(bodyOnly, NegativeSpaceKind.Bay)).IsEqualTo(0);
-        await Assert.That(Count(bodyOnly, NegativeSpaceKind.Notch)).IsEqualTo(1);
+        await Assert.That(Count(bodyOnly, NegativeSpaceKinds.Bay)).IsEqualTo(0);
+        await Assert.That(Count(bodyOnly, NegativeSpaceKinds.Notch)).IsEqualTo(1);
     }
 
     // a straight lane: the box remainder beside it (a published emit-time vacancy) lies outside the shape's
@@ -94,7 +95,7 @@ public sealed class BodyEdgesTests
     {
         var c = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.I, 9, 15, Cw));
         await Assert.That(c.Spaces).IsEmpty();
-        await Assert.That(c.Edges.All(e => e.Faces == NegativeSpaceKind.Open)).IsTrue();
+        await Assert.That(c.Edges.All(e => e.Faces == NegativeSpaceKinds.Open)).IsTrue();
     }
 
     // the terminal seals its own wall: room-owned boundary runs carry Terminal, split from colinear terrain
@@ -105,20 +106,20 @@ public sealed class BodyEdgesTests
         // I 9x15 cw3: the room caps the lane — each side line splits into a free lane interval and a sealed
         // room interval, and the room's exposed wall is 3 of its 10-perimeter shared with the lane
         var i = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.I, 9, 15, Cw));
-        await Assert.That(i.Edges.Contains(new ClassifiedEdge(3, 0, 3, 13, NegativeSpaceKind.Open, 13))).IsTrue();
-        await Assert.That(i.Edges.Contains(new ClassifiedEdge(3, 13, 3, 15, NegativeSpaceKind.Open, 2, Terminal: true))).IsTrue();
+        await Assert.That(i.Edges.Contains(new ClassifiedEdge(3, 0, 3, 13, NegativeSpaceKinds.Open, 13))).IsTrue();
+        await Assert.That(i.Edges.Contains(new ClassifiedEdge(3, 13, 3, 15, NegativeSpaceKinds.Open, 2, Terminal: true))).IsTrue();
         await Assert.That(i.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(7);
 
         // L 15x18 cw3: the room caps the band's far end — sealed right/bottom walls, and its top wall faces
         // the notch (owner and faced space are independent axes)
         var l = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw));
         await Assert.That(l.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(7);
-        await Assert.That(l.Edges.Any(e => e.Terminal && e.Faces == NegativeSpaceKind.Notch)).IsTrue();
+        await Assert.That(l.Edges.Any(e => e.Terminal && e.Faces == NegativeSpaceKinds.Notch)).IsTrue();
 
         // clamp 12x15 cw3: the wool is clamped between the legs, its bottom wall facing the bay (the mouth
         // side) — a terminal wall on the bay
         var clamp = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, Cw));
-        await Assert.That(clamp.Edges.Any(e => e.Terminal && e.Faces == NegativeSpaceKind.Bay)).IsTrue();
+        await Assert.That(clamp.Edges.Any(e => e.Terminal && e.Faces == NegativeSpaceKinds.Bay)).IsTrue();
         await Assert.That(clamp.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(12);
     }
 
@@ -137,16 +138,16 @@ public sealed class BodyEdgesTests
     public async Task Uneven_branch_bay_decomposes_into_mouth_bar_plus_bay_and_notch_legs()
     {
         var f = BodyEdges.Classify(BodyEmitter.SpineArms(spineLen: 21, barThickness: 6, arms: [(0, 3, 18), (9, 6, 9)]));
-        var bay = f.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        var bay = f.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(bay.Parts.Count).IsEqualTo(3);
 
         static bool RectEq(CellRect a, CellRect b) => a == b;
         // the mouth bar: full width under the short arm, bordering its tip — notch-grade, not bay
-        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(3, 15, 18, 9)) && p.Kind == NegativeSpaceKind.Notch)).IsTrue();
+        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(3, 15, 18, 9)) && p.Kind == NegativeSpaceKinds.Notch)).IsTrue();
         // the slot between the arms — a true bay part
-        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(3, 6, 6, 9)) && p.Kind == NegativeSpaceKind.Bay)).IsTrue();
+        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(3, 6, 6, 9)) && p.Kind == NegativeSpaceKinds.Bay)).IsTrue();
         // the corner beyond the short arm — a notch part
-        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(15, 6, 6, 9)) && p.Kind == NegativeSpaceKind.Notch)).IsTrue();
+        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(15, 6, 6, 9)) && p.Kind == NegativeSpaceKinds.Notch)).IsTrue();
     }
 
     // the void is a body too: a decomposed space carries its own compound identity
@@ -154,7 +155,7 @@ public sealed class BodyEdgesTests
     public async Task Spaces_read_their_own_compound_form()
     {
         var f = BodyEdges.Classify(BodyEmitter.SpineArms(spineLen: 21, barThickness: 6, arms: [(0, 3, 18), (9, 6, 9)]));
-        var bay = f.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        var bay = f.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(bay.Form).IsEqualTo(new CompoundRead(Compound.SpineArms, 2));
 
         var ring = BodyEdges.Classify(BodyEmitter.Ring(Cw, 5 * Cw, 5 * Cw));
@@ -167,9 +168,9 @@ public sealed class BodyEdgesTests
     public async Task Degenerate_E_bay_decomposes_into_a_front_bay_covering_two_slots()
     {
         var e = BodyEdges.Classify(BodyEmitter.SpineArms(spineLen: 15, barThickness: 3, arms: [(0, 3, 12), (6, 3, 6), (12, 3, 12)]));
-        var bay = e.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        var bay = e.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(bay.Parts.Count).IsEqualTo(3);
-        await Assert.That(bay.Parts.All(p => p.Kind == NegativeSpaceKind.Bay)).IsTrue();
+        await Assert.That(bay.Parts.All(p => p.Kind == NegativeSpaceKinds.Bay)).IsTrue();
         // the front part spans the mouth, covering both slots behind the short middle arm
         await Assert.That(bay.Parts.Any(p => p.Rect == new CellRect(3, 9, 9, 6))).IsTrue();
         await Assert.That(bay.Form).IsEqualTo(new CompoundRead(Compound.SpineArms, 2));
@@ -183,14 +184,14 @@ public sealed class BodyEdgesTests
         var l = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw), BodyEdges.DefaultClearanceCells);
 
         // the band-top line: free terrain up to the margin, then a guarded interval before the room
-        await Assert.That(l.Edges.Contains(new ClassifiedEdge(3, 15, 11, 15, NegativeSpaceKind.Notch, 8))).IsTrue();
-        await Assert.That(l.Edges.Contains(new ClassifiedEdge(11, 15, 13, 15, NegativeSpaceKind.Notch, 2, Guarded: true))).IsTrue();
+        await Assert.That(l.Edges.Contains(new ClassifiedEdge(3, 15, 11, 15, NegativeSpaceKinds.Notch, 8))).IsTrue();
+        await Assert.That(l.Edges.Contains(new ClassifiedEdge(11, 15, 13, 15, NegativeSpaceKinds.Notch, 2, Guarded: true))).IsTrue();
         // the bottom line: free, guarded, then the sealed room wall
-        await Assert.That(l.Edges.Contains(new ClassifiedEdge(0, 18, 11, 18, NegativeSpaceKind.Open, 11))).IsTrue();
-        await Assert.That(l.Edges.Contains(new ClassifiedEdge(11, 18, 13, 18, NegativeSpaceKind.Open, 2, Guarded: true))).IsTrue();
+        await Assert.That(l.Edges.Contains(new ClassifiedEdge(0, 18, 11, 18, NegativeSpaceKinds.Open, 11))).IsTrue();
+        await Assert.That(l.Edges.Contains(new ClassifiedEdge(11, 18, 13, 18, NegativeSpaceKinds.Open, 2, Guarded: true))).IsTrue();
 
         // the notch splits against the margin: a guarded corner at the room, free remainders elsewhere
-        var notch = l.Spaces.Single(s => s.Kind == NegativeSpaceKind.Notch);
+        var notch = l.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Notch);
         await Assert.That(notch.Parts.Any(p => p.Guarded && p.Rect == new CellRect(11, 13, 4, 2))).IsTrue();
         await Assert.That(notch.Parts.Count(p => !p.Guarded)).IsEqualTo(2);
 
@@ -206,12 +207,12 @@ public sealed class BodyEdgesTests
     public async Task Spaces_know_their_mouths()
     {
         var scythe = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, Cw));
-        var bay = scythe.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        var bay = scythe.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(bay.Mouths.Count).IsEqualTo(1);
         await Assert.That(bay.Mouths[0]).IsEqualTo(new SpaceMouth(BoxEdge.Top, 6, 3, 2));
 
         var l = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw));
-        var notch = l.Spaces.Single(s => s.Kind == NegativeSpaceKind.Notch);
+        var notch = l.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Notch);
         await Assert.That(notch.Mouths.Count).IsEqualTo(2);
         await Assert.That(notch.Mouths.Any(m => m.Side == BoxEdge.Top)).IsTrue();
         await Assert.That(notch.Mouths.Any(m => m.Side == BoxEdge.Right)).IsTrue();
@@ -226,16 +227,16 @@ public sealed class BodyEdgesTests
     public async Task Spaces_know_their_wall_slots()
     {
         var scythe = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, Cw));
-        var bay = scythe.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        var bay = scythe.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(bay.WallSlots.Contains(ApproachSlots.RoomRun)).IsTrue();
 
         var u = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw));
-        var uBay = u.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        var uBay = u.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(uBay.WallSlots.Contains(ApproachSlots.Entry)).IsTrue();
         await Assert.That(uBay.WallSlots.Any(s => s is ApproachSlots.Room or ApproachSlots.RoomRun)).IsFalse();
 
         var clamp = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, Cw));
-        await Assert.That(clamp.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay).WallSlots
+        await Assert.That(clamp.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay).WallSlots
             .Contains(ApproachSlots.Room)).IsTrue();
 
         // a slot-free input (raw rects) carries no wall slots
@@ -248,13 +249,13 @@ public sealed class BodyEdgesTests
     public async Task Front_marks_the_mouth_touching_parts()
     {
         var e = BodyEdges.Classify(BodyEmitter.SpineArms(spineLen: 15, barThickness: 3, arms: [(0, 3, 12), (6, 3, 6), (12, 3, 12)]));
-        var bay = e.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        var bay = e.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(bay.Parts.Single(p => p.Front).Rect == new CellRect(3, 9, 9, 6)).IsTrue();
         await Assert.That(bay.Parts.Count(p => !p.Front)).IsEqualTo(2);
 
         // a single-part space is its own front
         var l = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw));
-        await Assert.That(l.Spaces.Single(s => s.Kind == NegativeSpaceKind.Notch).Parts.Single().Front).IsTrue();
+        await Assert.That(l.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Notch).Parts.Single().Front).IsTrue();
     }
 
     [Test]
@@ -271,14 +272,14 @@ public sealed class BodyEdgesTests
     public async Task Rectangular_spaces_are_their_own_single_part()
     {
         var u = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw));
-        var bay = u.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        var bay = u.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Bay);
         await Assert.That(bay.Parts.Count).IsEqualTo(1);
-        await Assert.That(bay.Parts[0].Kind).IsEqualTo(NegativeSpaceKind.Bay);
+        await Assert.That(bay.Parts[0].Kind).IsEqualTo(NegativeSpaceKinds.Bay);
 
         var ring = BodyEdges.Classify(BodyEmitter.Ring(Cw, 5 * Cw, 5 * Cw));
-        var hole = ring.Spaces.Single(s => s.Kind == NegativeSpaceKind.Hole);
+        var hole = ring.Spaces.Single(s => s.Kind == NegativeSpaceKinds.Hole);
         await Assert.That(hole.Parts.Count).IsEqualTo(1);
-        await Assert.That(hole.Parts[0].Kind).IsEqualTo(NegativeSpaceKind.Hole);
+        await Assert.That(hole.Parts[0].Kind).IsEqualTo(NegativeSpaceKinds.Hole);
     }
 
     // every filled↔empty seam is covered by exactly one classified run: the run lengths sum to the perimeter

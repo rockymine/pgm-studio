@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 namespace PgmStudio.Contracts;
 
 /// <summary>The wire form of a generated plan's canonical versioned request descriptor — a browse card's
@@ -56,21 +57,32 @@ public sealed record StructureSummaryDto(
 /// <param name="FootprintCells">The box rectangles, which are fixed once the boxes are seated.</param>
 public sealed record BoxSpendDto(string Kind, int Boxes, int LandCells, int FootprintCells);
 
-/// <summary>What a composed unit spent against the budget it was built to. <paramref name="BudgetCells"/> is
-/// the envelope's per-team land target converted to cells — <b>per team unit</b>, not per board, because the
-/// board is the unit fanned; and converted from the blocks² the envelope works in, which is why it is carried
-/// already-converted rather than leaving the client to guess the cell size. <paramref name="ByKind"/> is the
-/// breakdown, ordered largest-land first.</summary>
-/// <param name="LandCells">The walkable terrain the unit spent in total.</param>
-/// <param name="FootprintCells">The rectangles it seated in total.</param>
-/// <param name="BudgetCells">The envelope's land target for one team unit, already converted from the
-/// blocks² the envelope works in — carried converted rather than leaving a caller to guess the cell
-/// size.</param>
-/// <param name="ByKind">The breakdown, largest-land first.</param>
+/// <summary>Land built against land allowed, in cells — the one question asked of the team unit and of the
+/// shared mid alike.</summary>
+/// <param name="Cells">The walkable terrain actually built: the distinct cells its pieces cover.</param>
+/// <param name="BudgetCells">What it was allowed to spend.</param>
+public sealed record LandAgainstBudgetDto(int Cells, double BudgetCells);
+
+/// <summary>What a composed board spent against the band it was built to, in cells, converted from the
+/// blocks² the envelope works in so a caller never has to guess the cell size.
+///
+/// <para>The band's land buys two things and the card reports both. <paramref name="Unit"/> is <b>per team
+/// unit</b>, because the board is the unit fanned, and it is what the spend gate holds.
+/// <paramref name="Mid"/> is the crossing's own stones, counted <b>once for the board</b> — both units gave
+/// up the same share for it and both teams stand on it, so halving it between them would describe ground
+/// neither of them has.</para></summary>
+/// <param name="Band">The size band the budget came from.</param>
+/// <param name="Unit">The team unit's land against the unit's own budget.</param>
+/// <param name="Mid">The mid stones' land against the mid's share.</param>
+/// <param name="FootprintCells">The rectangles the unit seated in total. Larger than its land wherever a
+/// body has a hole in it.</param>
+/// <param name="ByKind">The unit's breakdown, largest-land first. Both currencies here are per-box
+/// footprints — a box does not know what its body left standing until it is filled.</param>
 public sealed record LandSpendDto(
-    int LandCells,
+    [property: WordSet(typeof(SizeBands))] string Band,
+    LandAgainstBudgetDto Unit,
+    LandAgainstBudgetDto Mid,
     int FootprintCells,
-    double BudgetCells,
     IReadOnlyList<BoxSpendDto> ByKind);
 
 /// <summary>One card in the browse feed: its <paramref name="Descriptor"/> (identity + reproduction key), the

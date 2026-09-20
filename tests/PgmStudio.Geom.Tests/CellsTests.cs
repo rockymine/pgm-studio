@@ -149,4 +149,116 @@ public sealed class CellsTests
         var within = Set((5, 5));
         await Assert.That(Cells.SnapToWalkable((0, 0), within, radius: 2)).IsNull();
     }
+
+    // ── the funnel capacity ─────────────────────────────────────────────────────────────────────────────
+    // Two rooms seven deep joined by one corridor of the stated width. The ends are each room's far column,
+    // not one cell: a cut against a single cell is never more than the four ways out of it, so a single-cell
+    // end would answer 4 on every board wider than that and measure nothing.
+    private static HashSet<(int, int)> Dumbbell(int corridorWidth)
+    {
+        var cells = Rect(0, 0, 4, 7);
+        cells.UnionWith(Rect(10, 0, 4, 7));
+        cells.UnionWith(Rect(4, 0, 6, corridorWidth));
+        return cells;
+    }
+
+    private static HashSet<(int, int)> Column(int x) => [.. Enumerable.Range(0, 7).Select(z => (x, z))];
+
+    /// <summary><b>The cut is the corridor, and its count is how many come through at once.</b> That count is
+    /// what a "chokepoint" label loses: one cell admits a different number of players than five, and five is
+    /// past what any cut against a single cell could ever report.</summary>
+    [Test]
+    [Arguments(1)]
+    [Arguments(2)]
+    [Arguments(3)]
+    [Arguments(5)]
+    public async Task The_minimum_vertex_cut_counts_the_corridor_it_holds(int corridorWidth)
+    {
+        var cut = Cells.MinVertexCut(Column(0), Column(13), Dumbbell(corridorWidth));
+
+        await Assert.That(cut).IsNotNull();
+        await Assert.That(cut!.Count).IsEqualTo(corridorWidth);
+    }
+
+    /// <summary>Two ways round means holding both: a cut is the cheapest way to separate the ends, not the
+    /// narrowest single place on the board.</summary>
+    [Test]
+    public async Task Two_corridors_are_both_held()
+    {
+        var cells = Rect(0, 0, 4, 9);
+        cells.UnionWith(Rect(10, 0, 4, 9));
+        cells.UnionWith(Rect(4, 0, 6, 1));       // a one-wide corridor
+        cells.UnionWith(Rect(4, 6, 6, 3));       // and a three-wide one
+        var left = Enumerable.Range(0, 9).Select(z => (0, z)).ToHashSet();
+        var right = Enumerable.Range(0, 9).Select(z => (13, z)).ToHashSet();
+
+        await Assert.That(Cells.MinVertexCut(left, right, cells)!.Count).IsEqualTo(4);
+    }
+
+    /// <summary>Ends that touch cannot be separated by holding ground between them, because there is none —
+    /// which is a different answer from "nothing needs holding" and is reported as one.</summary>
+    [Test]
+    public async Task Ends_that_touch_have_no_cut()
+    {
+        var ground = Rect(0, 0, 4, 4);
+
+        await Assert.That(Cells.MinVertexCut([(0, 0)], [(1, 0)], ground)).IsNull();
+        await Assert.That(Cells.MinVertexCut([(0, 0)], [(0, 0)], ground)).IsNull();
+    }
+
+    /// <summary>And ends already apart need nothing held: an empty cut, not a missing one.</summary>
+    [Test]
+    public async Task Ends_already_apart_need_nothing_held()
+    {
+        var cells = Rect(0, 0, 3, 3);
+        cells.UnionWith(Rect(9, 0, 3, 3));
+
+        var cut = Cells.MinVertexCut([(0, 0)], [(11, 2)], cells);
+
+        await Assert.That(cut).IsNotNull();
+        await Assert.That(cut!).IsEmpty();
+    }
+
+    /// <summary>A stretch under the floor is still reported — as a count. A read that named three places
+    /// and dropped forty slivers must not read the same as one that found three places and nothing else.</summary>
+    [Test]
+    public async Task A_stretch_under_the_floor_is_counted_rather_than_dropped()
+    {
+        var cells = Rect(0, 0, 4, 4);          // 16 cells, the one place
+        cells.Add((10, 0));                     // two slivers, far off and apart from each other
+        cells.Add((10, 5));
+
+        var (named, unnamed) = Cells.Stretches(cells, floor: 9);
+
+        await Assert.That(named.Count).IsEqualTo(1);
+        await Assert.That(named[0].Area).IsEqualTo(16);
+        await Assert.That(unnamed).IsEqualTo(2);
+    }
+
+    /// <summary>Corner contact does not join a stretch: two cells meeting at a diagonal are two places to
+    /// stand, not one, and the areas a caller reports follow from that.</summary>
+    [Test]
+    public async Task A_diagonal_touch_is_two_stretches()
+    {
+        var (named, unnamed) = Cells.Stretches(Set((0, 0), (1, 1)), floor: 1);
+
+        await Assert.That(named.Count).IsEqualTo(2);
+        await Assert.That(unnamed).IsEqualTo(0);
+    }
+
+    /// <summary>The order is total, so two equal stretches do not swap between runs — largest first, then
+    /// by centre. The centre is the cell the average falls in.</summary>
+    [Test]
+    public async Task Stretches_read_largest_first_and_then_by_position()
+    {
+        var cells = Rect(20, 0, 2, 2);          // equal area, further along x
+        cells.UnionWith(Rect(0, 0, 2, 2));      // equal area, nearer the origin
+        cells.UnionWith(Rect(0, 10, 3, 3));     // the largest
+
+        var (named, _) = Cells.Stretches(cells, floor: 1);
+
+        await Assert.That(string.Join(" ", named.Select(
+                stretch => $"{stretch.Area}@({stretch.CentroidX},{stretch.CentroidZ})")))
+            .IsEqualTo("9@(1,11) 4@(0,0) 4@(20,0)");
+    }
 }

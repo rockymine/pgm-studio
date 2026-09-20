@@ -4,10 +4,9 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Dressing;
 
 /// <summary>One plant the flora overlay may place: the block, and whether standing in it changes anything for a
-/// player. <see cref="Tall"/> plants occupy two blocks and are placed as a pair. <para><b>Class</b> — Cosmetic
-/// plants scatter freely; anything that hides a player is gameplay and gets mirrored across the
-/// orbit.</para></summary>
-public readonly record struct Plant(int Id, int Data, bool Tall, PropClass Class);
+/// player. <see cref="Tall"/> plants occupy two blocks, are placed as a pair, and hide a crouching player —
+/// which is what keeps them off a goal's own ground.</summary>
+public readonly record struct Plant(int Id, int Data, bool Tall);
 
 /// <summary>
 /// The blocks the dressing stage places, named once. It is the sibling of <see cref="Painting.TerrainPalette"/> for the
@@ -31,18 +30,18 @@ public static class DressingPalette
     /// plant, which is what stops it dropping on the next block update.</summary>
     public const int DoublePlantUpper = 8;
 
-    public static readonly Plant Grass = new(TallGrassBlock, 1, Tall: false, PropClass.Cosmetic);
-    public static readonly Plant Fern = new(TallGrassBlock, 2, Tall: false, PropClass.Cosmetic);
-    public static readonly Plant Dandelion = new(YellowFlower, 0, Tall: false, PropClass.Cosmetic);
-    public static readonly Plant Poppy = new(RedFlower, 0, Tall: false, PropClass.Cosmetic);
-    public static readonly Plant BlueOrchid = new(RedFlower, 1, Tall: false, PropClass.Cosmetic);
-    public static readonly Plant OxeyeDaisy = new(RedFlower, 8, Tall: false, PropClass.Cosmetic);
+    public static readonly Plant Grass = new(TallGrassBlock, 1, Tall: false);
+    public static readonly Plant Fern = new(TallGrassBlock, 2, Tall: false);
+    public static readonly Plant Dandelion = new(YellowFlower, 0, Tall: false);
+    public static readonly Plant Poppy = new(RedFlower, 0, Tall: false);
+    public static readonly Plant BlueOrchid = new(RedFlower, 1, Tall: false);
+    public static readonly Plant OxeyeDaisy = new(RedFlower, 8, Tall: false);
 
-    /// <summary>Two-block grass. It hides a crouching player, so unlike every other plant it is gameplay and is
-    /// mirrored across the orbit.</summary>
-    public static readonly Plant TallGrass = new(DoublePlant, 2, Tall: true, PropClass.Gameplay);
-    /// <summary>Two-block fern — gameplay for the same reason as tall grass.</summary>
-    public static readonly Plant LargeFern = new(DoublePlant, 3, Tall: true, PropClass.Gameplay);
+    /// <summary>Two-block grass. It hides a crouching player, which is why a goal's own ground refuses
+    /// it.</summary>
+    public static readonly Plant TallGrass = new(DoublePlant, 2, Tall: true);
+    /// <summary>Two-block fern — cover for the same reason as tall grass.</summary>
+    public static readonly Plant LargeFern = new(DoublePlant, 3, Tall: true);
 
     /// <summary>The flowers a flower field draws from, in the order a share noise picks between them.</summary>
     public static readonly Plant[] Flowers = [Poppy, Dandelion, BlueOrchid, OxeyeDaisy];

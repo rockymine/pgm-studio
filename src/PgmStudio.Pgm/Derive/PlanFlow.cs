@@ -4,26 +4,58 @@ using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Derive;
 
-/// <summary>How one objective is come at, and by whom. Distances are blocks. </summary>
+/// <summary>One side's reading of one objective: how far it is for them, how many ways they have, and where
+/// each choice is made. <b>A fork belongs to a demand set</b> — the same hole answers differently to a side
+/// walking in and a side walking back out with the wool, because those are different choices over one piece
+/// of ground.</summary>
+/// <param name="Demand">Who is walking and why — one of <see cref="PlanFlow.Attacking"/>,
+/// <see cref="PlanFlow.Defending"/>, <see cref="PlanFlow.Chasing"/>, <see cref="PlanFlow.Returning"/>.</param>
+/// <param name="Distance">How far it is for them, in blocks.</param>
+/// <param name="Ways">Distinct routes, kept when the piece sequence differs.</param>
+/// <param name="Forks">Their decisions, one per door, ordered as the walk meets them.</param>
+public sealed record Approach(string Demand, int Distance, int Ways, IReadOnlyList<RouteFork> Forks);
+
+/// <summary>How one objective is come at, and by whom. Distances are blocks.</summary>
 /// <param name="Goal">The objective this leg is come at — the id the plan names it by.</param>
-/// <param name="Attack">The attacker's walk from their own spawn.</param>
-/// <param name="Defend">The defender's walk from theirs — the same goal, from the other side.</param>
-/// <param name="Ways">Distinct routes in, kept when the piece sequence differs.</param>
-/// <param name="SharedRoad">True when the defender's own shortest walk runs through the attackers' merge, so both
-/// sides come up the same road; false when going round it is shorter, which is a defence arriving from behind the
-/// objective.</param>
-/// <param name="Split">Where the attackers' routes part, or null where they never do.</param>
-/// <param name="Fuse">Where they come back together on the way in, or null where they do not.</param>
+/// <param name="Approaches">One per demand set, each on the ground that side actually walks.</param>
+/// <param name="SharedRoad">True when the defender's own shortest walk runs through the attackers' last
+/// merge, so both sides come up the same road; false when going round it is shorter, which is a defence
+/// arriving from behind the objective.</param>
+/// <param name="Split">Where the attackers' routes part for the <b>last</b> time, or null where they never
+/// do — the choice still open when they arrive.</param>
+/// <param name="Fuse">Where that last choice comes back together, or null where there is none.</param>
 /// <param name="SplitWidth">How wide the ground is at the split, in blocks.</param>
 /// <param name="FuseWidth">How wide it is at the merge — the frontage a defender has to hold.</param>
 /// <param name="MergeToGoal">Blocks from that merge to the objective: how far in the last shared stretch runs.</param>
 /// <param name="MergeDetour">What bypassing the merge saves the defender. Zero is a shared road.</param>
+/// <param name="Interference">How much of the ground a defence crosses to reach this objective is ground the
+/// attack is already on — the share of the defender's corridor the attacker's also covers. A board whose two
+/// ways collide everywhere offers the attack no approach that misses the reinforcement lane, whatever its
+/// route count says; one where the share falls is a board on which going round buys something.</param>
 public sealed record FlowLeg(
-    string Goal, int Attack, int Defend, int Ways,
+    string Goal,
+    IReadOnlyList<Approach> Approaches,
     (int X, int Z)? Split, (int X, int Z)? Fuse,
     int SplitWidth, int FuseWidth, int MergeToGoal,
-    bool SharedRoad, int MergeDetour)
+    bool SharedRoad, int MergeDetour, double Interference)
 {
+    /// <summary>One side's reading, or null where this board gives them none.</summary>
+    public Approach? Of(string demand) => Approaches.FirstOrDefault(one => one.Demand == demand);
+
+    /// <summary>The attacker's walk from their own spawn.</summary>
+    public int Attack => Of(PlanFlow.Attacking)?.Distance ?? 0;
+
+    /// <summary>The defender's walk from theirs — the same goal, from the other side, ending at the door of
+    /// the room they defend because they may not enter it.</summary>
+    public int Defend => Of(PlanFlow.Defending)?.Distance ?? 0;
+
+    /// <summary>The same walk from the nearest crossing instead: a player already at the frontline who sees
+    /// the attack and turns is defending too, and starts from somewhere a respawn never does.</summary>
+    public int Chase => Of(PlanFlow.Chasing)?.Distance ?? 0;
+
+    /// <summary>Distinct routes in, kept when the piece sequence differs.</summary>
+    public int Ways => Of(PlanFlow.Attacking)?.Ways ?? 0;
+
     /// <summary>How far the defender travels against how far the attacker does. The corpus reads match length
     /// off this before anything else geometric: under a quarter runs a median 7.6 minutes against 3.9 over
     /// 0.6 (`match-flow.md` §6.10).</summary>
@@ -44,18 +76,55 @@ public sealed record DeadPlace(int Area, int CentroidX, int CentroidZ, IReadOnly
 /// </summary>
 public static class PlanFlow
 {
+    /// <summary>How far off its own ground a crossing seat may sit and still be somewhere a player of that
+    /// side was standing — the width of the crossing itself, in cells.</summary>
+    public const int SnapToOwn = 4;
+
+    /// <summary>Walking in to take the objective, from the attacker's own spawn.</summary>
+    public const string Attacking = "attack";
+
+    /// <summary>Walking to hold it, from the defender's spawn — a respawn turning round.</summary>
+    public const string Defending = "defend";
+
+    /// <summary>The same, from the crossing a player was already standing at.</summary>
+    public const string Chasing = "chase";
+
+    /// <summary>Carrying the wool home, which is its own journey rather than the attack reversed: the same
+    /// hole is a different choice with the wool in hand and the other side behind.</summary>
+    public const string Returning = "back-run";
+
     /// <summary>Under this, a split or a merge is a doorway rather than a place: everyone arrives at one
     /// point and the fight has no room. Stated in blocks across the narrower axis.</summary>
     public const int TightPassage = 8;
 
-    /// <summary>Dead stretches smaller than this are slivers between corridors, not places.</summary>
+    /// <summary>How far apart the two sides' walks may be and still count as ground they arrive at together,
+    /// in <b>cells</b> — an octile diagonal and a little, so the meeting line stays connected across a diagonal
+    /// run. It is multiplied by the board's cell size where it is used, because the walk answers in blocks.
+    ///
+    /// <para>Measured on the author's eight example plans: at one cell the line is thin enough to fragment
+    /// into four stretches on a board with one way across, and at two it reads one seat per way — one on the
+    /// five boards whose middle is a single band, two on the two that carry a pair.</para></summary>
+    public const int MeetingSlack = 2;
+
+    /// <summary>A meeting stretch under this many <b>cells</b> is the line clipping a corner rather than a way
+    /// across. Plan cells are several blocks each, so this is a smaller number than the same rule takes over a
+    /// built world's blocks.</summary>
+    public const int CrossingFloor = 2;
+
+    /// <summary>Dead stretches smaller than this are slivers between corridors, not places — counted, in
+    /// <see cref="Result.UnnamedDeadPlaces"/>, but not named.</summary>
     public const int PlaceFloor = 100;
 
     public sealed record Result(
         string Gamemode, IReadOnlyList<FlowLeg> Legs,
-        int GroundBlocks, int DeadBlocks, IReadOnlyList<DeadPlace> DeadPlaces, int Cell)
+        int GroundBlocks, int DeadBlocks, IReadOnlyList<DeadPlace> DeadPlaces, int UnnamedDeadPlaces, int Cell)
     {
         public double DeadShare => GroundBlocks <= 0 ? 0 : DeadBlocks / (double)GroundBlocks;
+
+        /// <summary>The board's collision, over its objectives: how much of a defence's ground the attack is
+        /// already on, averaged across the legs. A board with no leg has no two routes to lay over each
+        /// other and reads zero.</summary>
+        public double Interference => Legs.Count == 0 ? 0 : Legs.Average(leg => leg.Interference);
     }
 
     public static Result Read(PlanModel plan)
@@ -84,28 +153,23 @@ public static class PlanFlow
                     if (nav.Navigable.Contains((w.X + dx, w.Z + dz))) used.Add((w.X + dx, w.Z + dz));
 
         var dead = nav.Ground.Where(c => !used.Contains(c)).ToHashSet();
-        var places = new List<DeadPlace>();
-        var seen = new HashSet<(int X, int Z)>();
-        foreach (var start in dead)
-        {
-            if (!seen.Add(start)) continue;
-            var patch = Cells.Flood([start], dead);
-            seen.UnionWith(patch);
-            if (patch.Count * cell * cell < PlaceFloor) continue;
-            places.Add(new DeadPlace(
-                patch.Count * cell * cell,
-                (int)patch.Average(c => (double)c.Item1) * cell,
-                (int)patch.Average(c => (double)c.Item2) * cell,
-                // named by how much of the patch each piece is, so the first one read is the one to act on
-                [.. patch.Select(c => PlanNav.BaseId(nav.PieceAt.GetValueOrDefault(c, "—")))
-                    .Where(n => n != "—")
-                    .GroupBy(n => n).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal)
-                    .Select(g => $"{g.Key} ({g.Count() * cell * cell})")]));
-        }
-        places.Sort((a, b) => b.Area.CompareTo(a.Area));
+        // The floor is stated in blocks and the stretches are found in cells, so it crosses over by the area
+        // one cell covers; the ceiling keeps exactly the stretches worth PlaceFloor blocks.
+        var perCell = cell * cell;
+        var (stretches, unnamed) = Cells.Stretches(dead, (PlaceFloor + perCell - 1) / perCell);
+        var places = stretches.Select(stretch => new DeadPlace(
+            stretch.Area * perCell,
+            stretch.CentroidX * cell,
+            stretch.CentroidZ * cell,
+            // named by how much of the stretch each piece is, so the first one read is the one to act on
+            [.. stretch.Cells.Select(c => PlanNav.BaseId(nav.PieceAt.GetValueOrDefault(c, "—")))
+                .Where(n => n != "—")
+                .GroupBy(n => n).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal)
+                .Select(g => $"{g.Key} ({g.Count() * perCell})")])).ToList();
 
         var legs = gamemode == "ctw" ? Legs(nav, plan, cell) : [];
-        return new Result(gamemode, legs, nav.Ground.Count * cell * cell, dead.Count * cell * cell, places, cell);
+        return new Result(gamemode, legs, nav.Ground.Count * perCell, dead.Count * perCell,
+            places, unnamed, cell);
     }
 
     /// <summary>How far it is between two cells at the plan fidelity, in blocks — zero where either end is
@@ -115,8 +179,51 @@ public static class PlanFlow
             ? Walk.Between(start, goal, ground)?.Cost.Distance ?? 0
             : 0;
 
+    /// <summary>The same distance for a side that may not stand where it is going. A team cannot enter the
+    /// wool room it defends (<c>docs/pgm/filter-patterns.md</c> §1.2), so a defence's walk ends at the room's
+    /// <b>doorstep</b> — the nearest cell of its own ground touching the room — and that is the number the
+    /// side is read at. Where the objective is not barred this is <see cref="Reach"/>.</summary>
+    private static int ReachDoorstep(PlanNav nav, WalkGround theirs, (int X, int Z) from, (int X, int Z) to)
+        => Doorstep(nav, theirs, from, to) is { } door ? Reach(theirs, from, door) : 0;
+
+    /// <summary>The cell a side's walk to <paramref name="to"/> actually ends on: the objective itself where
+    /// they may stand there, and otherwise the nearest cell of their own ground touching the room it sits in.
+    /// Null where they can reach neither.</summary>
+    private static (int X, int Z)? Doorstep(PlanNav nav, WalkGround theirs,
+        (int X, int Z) from, (int X, int Z) to)
+    {
+        if (theirs.Stand(from) is not { } start) return null;
+        if (theirs.Stand(to) is not null) return to;
+
+        var room = nav.PieceAt.GetValueOrDefault(to, "");
+        var nearest = Walk.Field(start, theirs)
+            .Where(place => Cells.N4(place.Key.Cell)
+                .Any(side => nav.PieceAt.GetValueOrDefault(side, "") == room))
+            .OrderBy(place => place.Value.Distance)
+            .Select(place => (place.Key.Cell.X, place.Key.Cell.Z))
+            .ToList();
+        return nearest.Count > 0 ? nearest[0] : null;
+    }
+
+    /// <summary>The ground a defence rotates on: its own, less the neutral crossing. Bridging the middle to
+    /// come round behind its own hole is not a rotation, so a hole the crossing forms is not a door of
+    /// theirs — which is the same answer the deriver's <c>frontline</c> and <c>middle</c> classes give.</summary>
+    private static WalkGround Homeward(PlanNav nav, BoardStructure board, int team)
+    {
+        var theirs = nav.For(team);
+        var crossing = theirs.Footprint
+            .Where(cell => !nav.PieceAt.ContainsKey(cell)
+                && board.BuildKindOf.GetValueOrDefault(cell, "") is "front-front" or "neutral-neutral")
+            .ToHashSet();
+        return crossing.Count == 0 ? theirs
+            : theirs.Narrowed(theirs.Footprint.Where(cell => !crossing.Contains(cell)).ToHashSet());
+    }
+
     private static List<FlowLeg> Legs(PlanNav nav, PlanModel plan, int cell)
     {
+        // The deriver already classifies every enclosed void by what its boundary touches, which is what says
+        // whether a hole is one a defence may round or one the crossing forms.
+        var board = BoardDeriver.Derive(plan);
         var legs = new List<FlowLeg>();
         var attacker = nav.Waypoints().FirstOrDefault(w => w.Kind == "spawn" && w.K == 0);
         var defender = nav.Waypoints().FirstOrDefault(w => w.Kind == "spawn" && w.K == 1);
@@ -124,29 +231,93 @@ public static class PlanFlow
         if (nav.Snap(attacker.Cell) is not { } from || nav.Snap(defender.Cell) is not { } den) return legs;
         var ground = nav.Walkable();
 
+        // The seats the two sides meet on — the origins a chase starts from, derived once for the board.
+        var crossings = Walk.Crossings(
+            [.. ground.Stand(from) is { } one ? new[] { one } : []],
+            [.. ground.Stand(den) is { } other ? new[] { other } : []],
+            ground, MeetingSlack * cell, CrossingFloor);
+
         foreach (var goal in nav.Waypoints().Where(w => w.Kind == "wool" && w.K == 1))
         {
             if (nav.Snap(goal.Cell) is not { } to) continue;
-            var read = PlanRoutes.Read(nav, from, to);
-            if (read.Shortest is not { } attack) continue;
-            var defend = Reach(ground, den, to);
+            var theirs = nav.For(defender.K);
+            var ours = nav.For(attacker.K);
 
-            var split = read.Fork?.Split;
-            var fuse = read.Fork?.Fuse;
-            var viaMerge = fuse is { } f ? Reach(ground, den, f) + Reach(ground, f, to) : 0;
+            // Each side reads the same objective over the ground it walks. The attack and the run home cross
+            // to take and to carry; a rotation stays home and does not bridge the crossing to do it.
+            var approaches = new List<Approach>();
+            var attacking = PlanRoutes.Read(nav, from, to, attacker.K);
+            if (attacking.Shortest is not { } attack) continue;
+            approaches.Add(new Approach(Attacking, attack, attacking.Options.Count, attacking.Forks));
+
+            var home = Doorstep(nav, ours, to, from);
+            if (home is { } den2 && PlanRoutes.Read(nav, to, den2, attacker.K) is { Shortest: { } back } run)
+                approaches.Add(new Approach(Returning, back, run.Options.Count, run.Forks));
+
+            // A defence ends at the door of the room it defends, so that is what its route read walks to.
+            var homeward = Homeward(nav, board, defender.K);
+            var door = Doorstep(nav, homeward, den, to);
+            if (door is { } stop0
+                && PlanRoutes.Read(nav, den, stop0, defender.K, homeward) is { Shortest: { } held } rotation)
+                approaches.Add(new Approach(Defending, held, rotation.Options.Count, rotation.Forks));
+
+            // A defence is not only somebody who just spawned: whoever was at the crossing when the attack
+            // came is defending from there, which is a different origin to the same objective.
+            // The seat itself is the crossing, which is not ground a rotation walks — so the chase starts at
+            // the nearest cell of their own the player would already be standing on.
+            var chase = crossings
+                .Select(seat => Cells.SnapToWalkable(seat.Cell, homeward.Footprint, SnapToOwn))
+                .Where(seat => seat is not null)
+                .Select(seat => Doorstep(nav, homeward, seat!.Value, to) is { } stop
+                    ? PlanRoutes.Read(nav, seat.Value, stop, defender.K, homeward) : null)
+                .Where(read => read?.Shortest is > 0)
+                .OrderBy(read => read!.Shortest).FirstOrDefault();
+            if (chase is { Shortest: { } turned })
+                approaches.Add(new Approach(Chasing, turned, chase.Options.Count, chase.Forks));
+
+            // The decision still open when the attack arrives is the one a defence has to hold, so the leg's
+            // split and merge are the last fork's — the rest are named in full beside them.
+            var last = attacking.Forks.Count == 0 ? null
+                : attacking.Forks.MinBy(fork => Reach(ours, fork.Merge, to));
+            var split = last?.Split;
+            var fuse = last?.Merge;
+            var defend = approaches.FirstOrDefault(one => one.Demand == Defending)?.Distance ?? 0;
+            var viaMerge = fuse is { } meeting
+                ? Reach(theirs, den, meeting) + ReachDoorstep(nav, theirs, meeting, to) : 0;
             var detour = fuse is null ? 0 : Math.Max(0, viaMerge - defend);
+
+            // The two sides' ribbons laid over each other. Each is walked over the ground its own side has,
+            // at the same detour tolerance the coverage read uses, and the attack starts where the attack
+            // starts — the attacker's own spawn, which is where it starts in both game states.
+            var collision = door is { } defended
+                ? Overlap(Ribbon(ours, from, to), Ribbon(homeward, den, defended))
+                : 0;
 
             legs.Add(new FlowLeg(
                 $"{goal.Kind} at ({goal.X * cell}, {goal.Z * cell})",
-                attack, defend, read.Options.Count,
+                approaches,
                 split, fuse,
-                split is { } s ? Width(nav, s) * cell : 0,
-                fuse is { } g ? Width(nav, g) * cell : 0,
-                fuse is { } h ? Reach(ground, h, to) : 0,
-                fuse is not null && detour == 0, detour));
+                split is { } parting ? Width(nav, parting) * cell : 0,
+                fuse is { } meeting2 ? Width(nav, meeting2) * cell : 0,
+                fuse is { } shared ? Reach(ours, shared, to) : 0,
+                fuse is not null && detour == 0, detour, collision));
         }
         return legs;
     }
+
+    /// <summary>The cells a side's route can reach without spending more than <see cref="Walk.Detour"/>
+    /// beyond the shortest — the ribbon rather than one geodesic, because a board offering a way round is
+    /// walked on both sides of it. Empty where the side cannot stand at either end.</summary>
+    private static HashSet<(int X, int Z)> Ribbon(WalkGround ground, (int X, int Z) from, (int X, int Z) to)
+        => ground.Stand(from) is { } start && ground.Stand(to) is { } goal
+            ? [.. Walk.Corridor(start, goal, ground, Walk.Detour).Select(place => place.Cell)]
+            : [];
+
+    /// <summary>The share of <paramref name="defence"/> that <paramref name="attack"/> also covers. A defence
+    /// with no ground to cross reads zero, which is the honest answer for a ratio with no denominator.</summary>
+    private static double Overlap(
+        IReadOnlySet<(int X, int Z)> attack, IReadOnlyCollection<(int X, int Z)> defence)
+        => defence.Count == 0 ? 0 : defence.Count(attack.Contains) / (double)defence.Count;
 
     /// <summary>How wide the ground is where a journey passes through it: the narrower of the cell's own
     /// horizontal and vertical run. A split or a merge is a place players meet, and one no wider than a
@@ -178,6 +349,12 @@ public static class PlanFlow
                 text.AppendLine($"  {leg.Goal}");
                 text.AppendLine($"    The attacker walks {leg.Attack} blocks to it; the defender {leg.Defend}, "
                     + $"a ratio of {leg.DefenderRatio:F2}.");
+                if (leg.Chase > 0)
+                    text.AppendLine($"    A player already at the crossing is {leg.Chase} blocks from it — "
+                        + (leg.Chase < leg.Defend
+                            ? "nearer than a respawn, so the defence that matters is whoever was already out."
+                            : "further than a respawn, so this objective is defended from the back rather than "
+                              + "from the front."));
                 text.AppendLine("      " + (leg.DefenderRatio <= 0.25
                     ? "A defence that close is on the objective long before the attack is, which is the shape of a long match."
                     : leg.DefenderRatio >= 0.6
@@ -191,9 +368,10 @@ public static class PlanFlow
                 }
                 else
                 {
-                    text.AppendLine($"    {leg.Ways} ways in. They part at ({leg.Split.Value.X * cell}, "
-                        + $"{leg.Split.Value.Z * cell}) and meet again at ({leg.Fuse.Value.X * cell}, "
-                        + $"{leg.Fuse.Value.Z * cell}), {leg.MergeToGoal} blocks short of the objective.");
+                    text.AppendLine($"    {leg.Ways} ways in. The last choice is made at "
+                        + $"({leg.Split.Value.X * cell}, {leg.Split.Value.Z * cell}) and closes at "
+                        + $"({leg.Fuse.Value.X * cell}, {leg.Fuse.Value.Z * cell}), {leg.MergeToGoal} blocks "
+                        + "short of the objective.");
                     text.AppendLine("      " + (leg.SharedRoad
                         ? "The defender's own walk runs through that merge, so both sides come up the same road. "
                           + "A defence has to be pushed forward to hold it, and the further forward the merge sits "
@@ -207,6 +385,31 @@ public static class PlanFlow
                             text.AppendLine($"      The {what} is {width} blocks across. Everyone meets at one point "
                                 + $"and there is no room to fight over it — widen ({at.X * cell}, {at.Z * cell}) or move it.");
                 }
+
+                text.AppendLine($"    The attack covers {100 * leg.Interference:F0}% of the ground the defence "
+                    + "crosses to get here. " + (leg.Interference >= 0.6
+                        ? "The two sides are on the same ground almost the whole way, so however many ways in this "
+                          + "board counts, none of them misses the reinforcement lane."
+                        : leg.Interference <= 0.2
+                            ? "The attack barely touches the defence's ground, so it can arrive without having "
+                              + "spent the approach inside the lane reinforcements come down."
+                            : "The two sides share some of the approach and not all of it."));
+
+                // Every side's decisions, each on the ground that side walks: the same hole is a different
+                // choice to a player carrying the wool out than to one walking in.
+                foreach (var approach in leg.Approaches.Where(one => one.Forks.Count > 0))
+                {
+                    text.AppendLine($"    Walking {approach.Demand} — {approach.Distance} blocks, "
+                        + $"{approach.Ways} way{(approach.Ways == 1 ? "" : "s")}, "
+                        + $"{approach.Forks.Count} decision{(approach.Forks.Count == 1 ? "" : "s")}:");
+                    foreach (var fork in approach.Forks)
+                        text.AppendLine($"      round the {fork.Area}-cell hole at ({fork.At.X * cell}, "
+                            + $"{fork.At.Z * cell}): choose at ({fork.Split.X * cell}, {fork.Split.Z * cell}), "
+                            + $"live over {fork.Live} blocks, the other way {fork.Ratio:F2}× the shortest.");
+                }
+                foreach (var approach in leg.Approaches.Where(one => one.Forks.Count == 0))
+                    text.AppendLine($"    Walking {approach.Demand} — {approach.Distance} blocks, one way, "
+                        + "no choice to make.");
                 text.AppendLine();
             }
         }
@@ -233,8 +436,10 @@ public static class PlanFlow
             + "Reachable, and on the way to nothing.");
         if (flow.DeadPlaces.Count == 0)
         {
-            text.AppendLine($"    None of it is a place — every stretch is under {PlaceFloor} blocks, which is a "
-                + "sliver between corridors rather than ground anyone would notice.");
+            text.AppendLine("    None of it is a place: "
+                + (flow.UnnamedDeadPlaces == 1 ? "the one stretch is" : $"all {flow.UnnamedDeadPlaces} stretches are")
+                + $" under {PlaceFloor} blocks, which is a sliver between corridors rather than ground anyone "
+                + "would notice.");
             return text.ToString();
         }
         foreach (var place in flow.DeadPlaces.Take(6))
@@ -242,6 +447,10 @@ public static class PlanFlow
                 + (place.Pieces.Count == 0 ? "" : $" — {string.Join(", ", place.Pieces)}"));
         if (flow.DeadPlaces.Count > 6)
             text.AppendLine($"    and {flow.DeadPlaces.Count - 6} smaller.");
+        if (flow.UnnamedDeadPlaces > 0)
+            text.AppendLine("    "
+                + (flow.UnnamedDeadPlaces == 1 ? "One further stretch is" : $"{flow.UnnamedDeadPlaces} further stretches are")
+                + $" under {PlaceFloor} blocks: a sliver between corridors rather than a place.");
         text.AppendLine();
         text.AppendLine("  Ground is dead because no journey passes it, not because it is far out. Bring an "
             + "objective to it, put a route through it, or take it off the board — decorating it only means "

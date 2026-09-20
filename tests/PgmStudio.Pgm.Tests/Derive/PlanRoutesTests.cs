@@ -43,7 +43,7 @@ public sealed class PlanRoutesTests
         var bar = PlanRoutes.Read(PlanNav.Of(Plan(P("bar", -3, 0, 6, 1))), (-3, 0), (2, 0));
         await Assert.That(bar.Options.Count).IsEqualTo(1);
         await Assert.That(bar.Holes).IsEmpty();
-        await Assert.That(bar.Fork).IsNull().Because("one way has nowhere to diverge");
+        await Assert.That(bar.Forks).IsEmpty().Because("one way has nowhere to diverge");
     }
 
     [Test]
@@ -56,17 +56,40 @@ public sealed class PlanRoutesTests
         await Assert.That(read.Options.Any(o => o.Pieces.Contains("south"))).IsTrue();
     }
 
+    /// <summary><b>One decision per door, and it names the door.</b> A ring is one hole and so one choice: it
+    /// opens where the arms part and closes where they meet, and the fork carries the hole it is about so a
+    /// reader is not left matching coordinates to holes by eye.</summary>
     [Test]
-    public async Task The_fork_names_where_the_choice_opens_and_closes()
+    public async Task A_fork_names_the_door_it_is_about_and_where_the_choice_is_live()
     {
         var read = PlanRoutes.Read(PlanNav.Of(Ring()), (-3, 0), (2, 0));
-        await Assert.That(read.Fork).IsNotNull();
-        var fork = read.Fork!;
-        // both ends sit on the arms that every option shares, and the choice is live across the hole
+
+        await Assert.That(read.Forks.Count).IsEqualTo(1).Because("one hole is one choice");
+        var fork = read.Forks[0];
         await Assert.That(fork.Split.X).IsEqualTo(-3);
-        await Assert.That(fork.Fuse.X).IsEqualTo(2);
-        await Assert.That(fork.Between).IsGreaterThan(0);
-        await Assert.That(fork.Between).IsLessThanOrEqualTo(read.Shortest!.Value);
+        await Assert.That(fork.Merge.X).IsEqualTo(2);
+        await Assert.That(fork.Live).IsGreaterThan(0);
+        await Assert.That(fork.Live).IsLessThanOrEqualTo(read.Shortest!.Value);
+        await Assert.That(fork.Area).IsEqualTo(read.Holes.Single(h => h.Index == fork.Hole).Area);
+        await Assert.That(fork.Ratio).IsGreaterThanOrEqualTo(1.0);
+    }
+
+    /// <summary><b>Two doors are two decisions, not one span across both.</b> Two rings in a row each offer a
+    /// choice, and an envelope from the first parting to the last merge would describe neither.</summary>
+    [Test]
+    public async Task Two_doors_answer_twice()
+    {
+        // one north arm and one south arm spanning two holes, with a post between them: west to east is a
+        // choice at each hole
+        var twin = Plan(
+            P("north", -3, -3, 12, 1), P("south", -3, 2, 12, 1),
+            P("west", -3, -2, 1, 4), P("post", 2, -2, 1, 4), P("east", 8, -2, 1, 4));
+        var read = PlanRoutes.Read(PlanNav.Of(twin), (-3, 0), (8, 0));
+
+        await Assert.That(read.Shortest).IsNotNull();
+        await Assert.That(read.Forks.Count).IsEqualTo(2);
+        await Assert.That(read.Forks.Select(fork => fork.Hole).Distinct().Count()).IsEqualTo(2)
+            .Because("each names its own door");
     }
 
     [Test]
@@ -93,7 +116,7 @@ public sealed class PlanRoutesTests
         await Assert.That(read.Shortest).IsNull();
         await Assert.That(read.Options).IsEmpty();
         await Assert.That(read.Corridor).IsEmpty();
-        await Assert.That(read.Fork).IsNull();
+        await Assert.That(read.Forks).IsEmpty();
     }
 
     [Test]

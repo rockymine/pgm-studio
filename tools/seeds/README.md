@@ -1,7 +1,32 @@
 # Test seeds
 
-Reusable sketch maps for exercising the studio end-to-end — especially the **sketch world-folder
-export** (`docs/world-export/sketch-world-export.md`).
+Two different things live here. The three `base-*` **sketch layouts** below are fixtures for exercising the
+studio end to end, especially the **sketch world-folder export**
+(`docs/world-export/sketch-world-export.md`). Everything else is **plans**, and they are worked examples
+rather than fixtures.
+
+## The plans, which are where "how is a board actually stated" is answered
+
+Forty-nine `*.plan.json` files: sixteen here, sixteen under `traced/` and seventeen under `teaching/`.
+
+**Sixteen are real published maps traced into plan space** — `traced/acapulco`, `aether`, `ad-astra`,
+`after-hours`, `3084` and the rest. They are the ground truth for what a real board's structure looks like
+as pieces: how many, how large, how they connect, and — the part no generated board has reproduced —
+**how their heights step**. `traced/bridgid-ii.plan.json` carries 36 pieces across sixteen height tiers
+from 11 to 41.
+
+**Height is stated per piece, and the global stays where it is.** Every seed leaves `globals.surface` at 9
+and varies `PlanPiece.Surface` instead, which is what makes a step a step: `mirror-big-board` runs 39
+pieces over tiers 11·13·15·17·19, and `mirror-tiny-map-cliff` puts its pieces at 3·5·7·11 — at and **below**
+the global, which is how ground goes down rather than up. A relief dropped onto a board whose pieces all sit
+at the default has nowhere to cut to.
+
+**`teaching/` demonstrates structures rather than maps.** Seventeen plans built to show one thing each —
+build interfaces, build regions, a crammed frontline, a middle void with and without steps, mid rotations —
+with their own shopping list of what is covered. It is where to look for what a named structure is supposed
+to look like before authoring one.
+
+## The sketch fixtures
 
 ## Base 2-island map (`base-2island.*`)
 

@@ -177,7 +177,7 @@ public partial class PlanTool
     // Globals mirrored from the plan document (the JS bridge is the source of truth; these drive the form).
     private string planName = "Untitled plan";
     private string symmetry = "rot_180";
-    private double cell = 5, surface = 9, maxPlayers = 12;
+    private double cell = 4, surface = 9, maxPlayers = 12;
 
     // Surface-stepper increment (blocks per ± click on a piece's surface). An editor preference persisted by
     // the bridge (default 2 per EL1), not part of the plan.
@@ -1316,7 +1316,7 @@ public partial class PlanTool
 
     private sealed class GlobalsDto
     {
-        [JsonPropertyName("cell")] public int Cell { get; set; } = 5;
+        [JsonPropertyName("cell")] public int Cell { get; set; } = 4;
         [JsonPropertyName("symmetry")] public string? Symmetry { get; set; }
         [JsonPropertyName("maxPlayers")] public int MaxPlayers { get; set; } = 12;
         [JsonPropertyName("surface")] public int Surface { get; set; } = 9;

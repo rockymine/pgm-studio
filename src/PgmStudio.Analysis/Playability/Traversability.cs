@@ -66,12 +66,13 @@ public static class Traversability
         var owned = NavPoints.Of(data, (box.X, box.Z, box.MaxX, box.MaxZ), declared);
         var placed = owned.Select(point => new Landing(point, ComponentOf(point, ground, components))).ToList();
 
-        // Every goal gates the export refusal, destroyables and cores included (the author's ruling). The
-        // goal itself floats a few blocks above the terrain by design, so what is judged is not its own
-        // column but the ground around it — the seat below reads the nearest place a player stands on — and a
-        // goal whose approach ground is cut off from the spawns is a match nobody can finish, exactly as an
-        // unreachable wool is.
-        var gating = placed.Where(p => p.Point.Kind is "spawn" or "wool" or "destroyable" or "core").ToList();
+        // Every goal gates the export refusal — destroyables, cores and control points included (the author's
+        // ruling). A destroyable or a core floats a few blocks above the terrain by design, so what is judged
+        // is not its own column but the ground around it — the seat below reads the nearest place a player
+        // stands on — and a goal whose approach ground is cut off from the spawns is a match nobody can
+        // finish, exactly as an unreachable wool is. A control point is the one goal a player has to stand
+        // **on**, which is the same question asked of the pad itself.
+        var gating = placed.Where(p => p.Point.Kind is "spawn" or "wool" or "destroyable" or "core" or "point").ToList();
         var comps = gating.Where(p => p.Component > 0).Select(p => p.Component).ToList();
         var distinct = comps.ToHashSet();
         // most-common component; ties broken by first appearance in `comps` (matches Counter.most_common)

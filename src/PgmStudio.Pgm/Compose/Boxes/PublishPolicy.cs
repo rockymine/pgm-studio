@@ -1,4 +1,5 @@
 using PgmStudio.Pgm.Shapes;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Compose;
 
@@ -27,7 +28,7 @@ public static class PublishPolicy
     /// <summary>The space-level verdict: terminal-capped shapes veto their bays and holes; everything else is
     /// allowed through to the part filter.</summary>
     public static PublishVerdict Space(NegativeSpace space, bool terminalCapped) =>
-        terminalCapped && space.Kind is NegativeSpaceKind.Hole or NegativeSpaceKind.Bay
+        terminalCapped && space.Kind is NegativeSpaceKinds.Hole or NegativeSpaceKinds.Bay
             ? PublishVerdict.Veto
             : PublishVerdict.Allow;
 
@@ -35,10 +36,10 @@ public static class PublishPolicy
     /// its front, unguarded parts — a hole (no mouth, no front) offers all its unguarded parts.</summary>
     public static IReadOnlyList<NegativeSpacePart> PublishableParts(NegativeSpace space, bool terminalCapped)
     {
-        if (space.Kind == NegativeSpaceKind.Open) return [];
+        if (space.Kind == NegativeSpaceKinds.Open) return [];
         if (Space(space, terminalCapped) == PublishVerdict.Veto) return [];
         return space.Parts
-            .Where(p => !p.Guarded && (p.Front || space.Kind == NegativeSpaceKind.Hole))
+            .Where(p => !p.Guarded && (p.Front || space.Kind == NegativeSpaceKinds.Hole))
             .ToList();
     }
 

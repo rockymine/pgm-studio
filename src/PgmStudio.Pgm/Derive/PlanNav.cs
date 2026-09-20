@@ -94,6 +94,41 @@ public sealed class PlanNav
     /// answer, and it can answer it before a world exists.</summary>
     public WalkGround Walkable() => new(Seat(Ground), Seat(Bridge), Bounds, Cell);
 
+    /// <summary>
+    /// The ground a team is <b>barred from</b>, read off the plan's own rooms: the two <c>enter</c> patterns
+    /// the studio writes into every map it compiles (<c>docs/pgm/filter-patterns.md</c> §1.1, §1.2). A team
+    /// may not walk into another team's <b>spawn</b>, and may not walk into the <b>wool room it defends</b> —
+    /// the second being the defining rule of the mode, since a team that could stand in its own room would
+    /// never have to leave it.
+    ///
+    /// <para>A room belongs to the orbit image it is fanned to: image <c>k</c>'s wool is the one image
+    /// <c>k</c> defends and everyone else steals, so image <c>k</c>'s room bars image <c>k</c> and admits the
+    /// rest.</para>
+    /// </summary>
+    public IReadOnlySet<(int X, int Z)> Barred(int team) =>
+        Ground.Where(cell => PieceAt.TryGetValue(cell, out var piece)
+            && RoleOf.GetValueOrDefault(BaseId(piece), "") is var role
+            && (role == "spawn" ? ImageOf(piece) != team : role == "wool-room" && ImageOf(piece) == team))
+        .ToHashSet();
+
+    /// <summary>One team's own ground: the same walk with everything <see cref="Barred"/> takes out. The twin
+    /// of <c>Analysis.WorldWalk.For</c> at the tier below it, so a plan-tier read and a world-tier one narrow
+    /// by the same rules and a journey costs what the team walking it can actually walk.
+    ///
+    /// <para>A marker is still snapped on the shared ground and looked up here. Snapping on this one would
+    /// slide a barred objective sideways until it found a cell the team may stand on and report the walk to
+    /// that cell as the walk to the objective, which is a different number wearing the right name.</para>
+    /// </summary>
+    public WalkGround For(int team) =>
+        Barred(team) is { Count: > 0 } barred
+            ? Walkable().Narrowed(Navigable.Where(cell => !barred.Contains(cell)).ToHashSet())
+            : Walkable();
+
+    /// <summary>The orbit image a fanned piece name belongs to — <c>piece-7#1</c> is image 1, a bare
+    /// <c>piece-7</c> image 0.</summary>
+    public static int ImageOf(string piece) =>
+        piece.IndexOf('#') is var hash && hash < 0 ? 0 : int.Parse(piece[(hash + 1)..]);
+
     /// <summary>The cells at their stated surface. A plan states one level per cell, so a cell names exactly
     /// one place and the board is a stack of one the whole way through.</summary>
     private HashSet<WalkPlace> Seat(IEnumerable<(int X, int Z)> cells)

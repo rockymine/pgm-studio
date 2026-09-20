@@ -18,7 +18,7 @@ public sealed class PlanWaterLanesTests
         """;
 
     private static PlanModel WithZones(string zones) =>
-        Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_180"}, "zones":{{zones}}, {{Unit}} }""");
+        Plan($$"""{ "plan":2, "globals":{"cell":5,"symmetry":"rot_180"}, "zones":{{zones}}, {{Unit}} }""");
 
     [Test]
     public async Task A_zone_with_no_kind_is_a_build_zone()

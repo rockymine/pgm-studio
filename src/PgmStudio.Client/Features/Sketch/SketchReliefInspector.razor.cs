@@ -616,7 +616,7 @@ public partial class SketchReliefInspector
             var amount = GrainNum(GrainFields.Amplitude);
             return amount <= 0 ? "Off — the surface is exactly what the marks solved."
                  : $"Moves the solved surface up to {Span(amount)}, over features about "
-                   + $"{Span(GrainNum(GrainFields.Scale, 12))} across.";
+                   + $"{Span(GrainNum(GrainFields.Scale, 9))} across.";
         }
     }
 

@@ -154,7 +154,7 @@ public static class RoomStylePreview
         // The pad belongs to the structure stampers rather than the shell, but a preview is of the room and
         // not of the shell alone — and it is what a plan view sees through the roof hole, so without it a
         // holed roof and a sealed one draw the same picture.
-        PadStamp.Lay(world, sample.Pad, FloorY, SampleColor);
+        PadStamp.Lay(world, sample.Pad, FloorY, Blocks.Wool, SampleColor);
         return world;
     }
 

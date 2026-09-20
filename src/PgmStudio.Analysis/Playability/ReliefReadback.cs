@@ -428,7 +428,7 @@ public static class ReliefReadback
     /// one team owning a step the other does not, which nothing else in the report would show.</summary>
     private static int SymmetryError(HeightField field, string? mode, double centreX, double centreZ)
     {
-        if (mode is null) return 0;
+        if (Symmetry.Order(mode) == 1) return 0;
         var worst = 0;
         foreach (var (x, z) in field.Footprint.Land())
         {

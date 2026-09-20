@@ -53,25 +53,25 @@ compile ever answers anything else.
 {
   "plan": 2,
   "meta": { "name": "Example board" },
-  "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
+  "globals": { "cell": 4, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
   "pieces": [
-    { "id": "spawn",      "role": "spawn",     "rect": [1, 9, 2, 2] },
-    { "id": "lane",       "role": "piece",     "rect": [1, 5, 2, 4] },
-    { "id": "approach",   "role": "piece",     "rect": [-3, 4, 2, 7] },
-    { "id": "wool-room",  "role": "wool-room", "rect": [-3, 11, 2, 2] },
+    { "id": "spawn",      "role": "spawn",     "rect": [1, 9, 3, 2] },
+    { "id": "lane",       "role": "piece",     "rect": [1, 5, 3, 4] },
+    { "id": "approach",   "role": "piece",     "rect": [-4, 4, 3, 7] },
+    { "id": "wool-room",  "role": "wool-room", "rect": [-4, 11, 3, 2] },
     { "id": "plateau",    "role": "piece",     "rect": [5, 7, 4, 2], "surface": 13 },
     { "id": "bridgehead", "role": "piece",     "rect": [-1, 7, 2, 2] },
-    { "id": "gap",        "role": "buffer",    "rect": [3, 5, 2, 2] }
+    { "id": "gap",        "role": "buffer",    "rect": [4, 5, 2, 2] }
   ],
   "zones": [
     { "id": "mid-band", "rect": [-3, -5, 6, 10], "holes": [] },
     { "id": "lane-e",   "rect": [3, -1, 2, 4], "kind": "water-lane" }
   ],
   "placements": {
-    "spawns":       [ { "id": "spawn-1", "piece": "spawn", "at": [5, 5], "facing": "front",
-                        "footprint": [1, 2, 8, 7] } ],
-    "wools":        [ { "id": "wool-1", "piece": "wool-room", "at": [5, 5],
-                        "footprint": [1, 1, 8, 8] } ],
+    "spawns":       [ { "id": "spawn-1", "piece": "spawn", "at": [6, 4], "facing": "front",
+                        "footprint": [1, 1, 10, 6] } ],
+    "wools":        [ { "id": "wool-1", "piece": "wool-room", "at": [6, 4],
+                        "footprint": [1, 1, 10, 6] } ],
     "iron":         [ { "id": "iron-1", "piece": "spawn", "at": [2.5, 2.5] } ],
     "destroyables": [ { "id": "destroyable-1", "piece": "plateau", "at": [10, 5],
                         "style": "cube-3", "materials": "obsidian", "float": 4 } ],
@@ -139,6 +139,21 @@ the answer exists: **twenty blocks over the highest block the world actually bui
 air and never an objective, which floats by design. It is derived in `WorldBuilder`, after the dressing pass
 because the last building on the board is a house that pass places, and written onto the intent as
 `MaxHeight`. A plan-level number would be a second source for one value, and the one that gets overwritten.
+
+**A shape cannot put itself above that line, and this is the part an author has to know before drawing a
+tall one.** An erected shape is one of the columns the cap is measured over, so raising a wall of terrain
+raises the ceiling that would have capped it — by the same twenty blocks, and for the whole board. Measured
+on `pgm-studio-mapgen`'s `alabaster-rake`: five pillars topping at y43 over ground topping at y14 wrote
+`<maxbuildheight>64</maxbuildheight>`, twenty-one blocks of clear air over the picket they were meant to
+stand above.
+
+So what a tall shape buys is real and narrower than "a wall nobody passes": ground whose top clears a climb
+cannot be climbed or walked through, and it holds the line its outline is drawn along, which costs an
+attacker the material and the visible time a bridge takes. It is not a barrier bridging cannot answer. A
+made layer raises nothing and is the difference between drawing a wall and hanging a sculpture.
+
+Whether erected terrain should be left out of the derivation — which would make an unbridgeable blocker
+possible — is a question about how a map plays, and belongs to the author.
 
 `surface` stays exactly as it was, per piece and global: it is load-bearing and correct as a plan-space
 concept, and it is still what the observer's default height is measured from.
@@ -286,6 +301,22 @@ default removes the key rather than freezing the number.
 | `wools` | `color` | resolved from the team and the wools before it |
 | `destroyables` | `style`, `materials`, `float`, `layer`, `name` | `pillar-3`, `obsidian`, 4, the top surface, `<Team> Monument` |
 | `cores` | `lava`, `lavaHeight`, `openTop`, `float`, `leak`, `layer`, `name` | 3, 3, false, 6, 5, the top surface, PGM names it |
+
+**`controlPoints` is a count and names no piece**, which makes it the one placement here that is not a
+marker. Every other one belongs to a team and therefore to that team's ground; a capture point belongs to
+nobody, so it has to be the same walk for everyone and the only positions that are lie on the board's own
+axes of symmetry (`docs/gameplay/approaches.md`). The count and the spawn frame give every anchor: the
+centre of symmetry, which is its own orbit image and stays one point, and a side point on the **bisector
+between two neighbouring spawns** — 90° off the spawn direction on two teams, 45° on four — at the author's
+share of the way out, **0.66** of the centre-to-spawn distance on two teams and **0.90** on four. The orbit
+fans that single side primary into the matched pair or the ring of four, the same way it fans every other
+marker.
+
+So the counts a board can state are the ones its own symmetry lays out: **1, one per team, or one per team
+plus a centre** — 1, 2 or 3 on two teams, with three the ordinary board, and 1, 4 or 5 on four. Any other
+count is `PL16`, and the compiler places none rather than rounding to a number it can. A board carrying a
+count is a capture board to `PL3` like any other objective, and the score limit the export writes beside the
+points defaults to 750 (`docs/pgm/control-points.md`).
 
 **`layer` is which storey the goal stands on**, and it is the one field here that is not a knob on the
 structure but a statement about where the structure is. A stacked board carries a surface per layer, so a
@@ -608,7 +639,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `GET /map/{slug}/state` | — | `{stage, artifacts, moves[]}` — where the map has got to, which documents it holds, and what may be done to it from here. Each move is `{does, route, next}`; several are open at once and `next` marks the ones the stage is waiting on | 404 |
 | `GET /map/{slug}/findings` | — | `{stage, findings[], unasked[], refuses}` — everything wrong with the map right now, from every gate its stored documents can answer, plus the gates a read cannot reach and the route that does pay for them | 404 |
 | `GET /map/{slug}/plan/ascii[?every=N]` | — | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. `every` draws one character per N cells for a board wider than a terminal | 404 unknown map or no plan · 422 stored plan unreadable |
-| `GET /map/{slug}/plan/flow` | — | `text/plain` — how the board is come at and what that leaves unused: each objective's two walks and the ratio between them, where the ways in part and meet, whether the defence shares the attackers' road, and the ground no journey reaches, named with its pieces | 404 · 422 |
+| `GET /map/{slug}/plan/flow` | — | `text/plain` — how the board is come at and what that leaves unused: per objective, one reading per **demand set** (attack, back-run, defend, chase), each on the ground that side walks, with its distance, its ways and **one decision per door** — the hole, where the choice is made, how long it stays open, what the other way costs — plus whether the defence shares the attackers' road, and the ground no journey reaches, named with its pieces | 404 · 422 |
 | `GET /map/{slug}` · `PATCH /map/{slug}/metadata` | `{name, authors[]}` | the map's identity | 404 |
 
 **The candidate pool** (the bare `/plan-editor` route)
@@ -666,12 +697,12 @@ and is why it is tagged `Diagnostics` and kept out of the list a driver iterates
 draws the board as characters.
 
 ```json POST /api/plan/inspect
-{"globals": {"cell": 5, "symmetry": "rot_180"}, "pieces": []}
+{"globals": {"cell": 4, "symmetry": "rot_180"}, "pieces": []}
 ```
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `POST /plan/inspect` | `{interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps, structures, goalDistances, goalPairs}` — the derived geometry, already in block coordinates: each interface with its `delta` (the surface step across it) and wall mark; the per-piece-side `frontages` (exposed blocks, frontline blocks, share — FR8's read); the `frontlineRuns` with widths in blocks (`FR9`'s fifteen-block floor is read off the same frontages); the `islandGaps` (each bridged pair's strait in blocks, `direct` when no third landmass shares the region — CT12's read); plus the destroy-goal walks, all of them blocks over the fanned closure: `goalDistances` is each goal's walk to its own and the enemy's spawn with the enemy÷own ratio — the numbers `goal-spawn-ratio` scores against GO1's band [3.0, 4.0] and `goal-spawn-distance` against GO4's [40, 90] — and `goalPairs` is the walk between the goals themselves, each unordered pair once, `opposing` false for a pair one team defends (GO2, [35, 65]) and true for a goal against one the other team defends (GO3, [85, 150]), a monument against its own mirror being the pair every symmetric board carries. Never withholds over structural errors; a failure degrades `structures` and the board aggregations to empty rather than failing the feed | 400 malformed or unreadable |
+| `POST /plan/inspect` | `{interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps, structures, goalDistances, goalPairs, spaces}` — the derived geometry, already in block coordinates: each interface with its `delta` (the surface step across it) and wall mark; the per-piece-side `frontages` (exposed blocks, frontline blocks, share — FR8's read); the `frontlineRuns` with widths in blocks (`FR9`'s fifteen-block floor is read off the same frontages); the `islandGaps` (each bridged pair's strait in blocks, `direct` when no third landmass shares the region — CT12's read); plus the destroy-goal walks, all of them blocks over the fanned closure: `goalDistances` is each goal's walk to its own and the enemy's spawn with the enemy÷own ratio — the numbers `goal-spawn-ratio` scores against GO1's band [3.0, 4.0] and `goal-spawn-distance` against GO4's [40, 90] — and `goalPairs` is the walk between the goals themselves, each unordered pair once, `opposing` false for a pair one team defends (GO2, [35, 65]) and true for a goal against one the other team defends (GO3, [85, 150]), a monument against its own mirror being the pair every symmetric board carries; and `spaces`, every patch of empty ground the pieces leave — its `kind` (`open` · `notch` · `bay` · `hole`, the wall count), the pieces walling it, and `narrowestBlocks`, the shortest line across it that terrain closes at **both** ends, which is what a player crosses and what `WL12` measures. Never withholds over structural errors; a failure degrades `structures` and the board aggregations to empty rather than failing the feed | 400 malformed or unreadable |
 | `POST /plan/room?piece=<id>` | `{at, footprint, iron}` — the room a `spawn` or `wool-room` piece carries, as piece-relative block offsets ready to store on the placement: the marker inside the room, the footprint the building stands on, and on a spawn whose yard has room for one the iron cube, beside the door on the player's right as they leave. The answer is for the piece **as the document states it** — a placement already on it supplies the facing and the building, so a small hall stated inside a wide protection region is answered with that hall's own marker and its own iron; a piece with no placement yet takes the drawing defaults, a front door and the footprint the resolver would have defaulted to (`WX1`), sized for a shell since a plan states no room style | 404 the piece carries no room, is too small to hold one (`WX2`), or states a building that does not lie on it |
 | `POST /plan/evaluate` | `{score, valid, violations[], lint[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence, and `lint` the structural validator's complaints (an unplaceable iron `WX8`, a mid-lane spawn `SP2`, an odd elevation step `EL1`, …), which never move the score. The validator's **refusals** ride in `violations` under the `PL` id each was refused under, one entry per refusal pointing at its own subjects — so a board with four different overlaps answers four `PL4`s rather than a count, and the whole set arrives here rather than at the compile's 422 a phase later. They all carry `termId: "structural-integrity"`, the one measurement that noticed, and it is scored once however many fired. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed |
 | `POST /plan/feasibility` | **a diagnostic, not a verdict on the board.** `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why, and findings citing the task that would unblock each gap. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit`. Acting on one of these as though it were a fault in the plan means editing a board to satisfy a limitation that is the studio's | 400 malformed |
@@ -722,6 +753,20 @@ is what recompiling a map somebody has drawn on needs and what a first store doe
 
 `POST /api/plan/evaluate` and `POST /api/plan/feasibility` may be called on the document at any point before
 the compile, with no map in existence, and are the cheapest way to find out whether a board is well-formed.
+
+**A gap is measured by what closes it, not by how much of it there is.** The pieces a plan states leave empty
+ground between them, and `spaces` classes every connected patch of it by how many of the four directions
+terrain walls: `open` is outside space along a flat side and no feature of the board, a `notch` is the corner
+two pieces wrap, a `bay` a recess with one mouth, a `hole` a void the board rings. What a player actually
+crosses is narrower than any of that — the shortest straight line over the space with terrain closing **both**
+ends, since a run open at one end is a way out of the space rather than a gap over it — so that is the number
+`narrowestBlocks` carries, with the piece at each end named.
+
+`WL12` reads it against two floors, both in blocks so they hold at any grid scale: **16** where a crossing
+touches a wool room or a spawn, and **12** for the narrowest crossing of a hole, which is crossed on purpose
+and may be tighter. A crossing any build zone reaches is not asked at all — building over it is what the zone
+states. The fault it names is a short gap beside a goal: a player towers at one edge, jumps it, and the
+approach the board was drawn around is never walked.
 
 **A measure is printed beside the band the studio is enforcing, and the band is read rather than restated.**
 `inspect` answers `goalDistances` and `islandGaps` as bare numbers, and what makes one of them a fault is a

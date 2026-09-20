@@ -25,12 +25,22 @@ public sealed class WorldReadEndpointTests
           "groups":[{"id":"i1","name":"Island","mirrors":false,"shapeIds":["a","b"]}]} }]}
         """;
 
-    private static async Task<string> FinishedAsync(HttpClient client)
+    // The same island under a stated rot_180, with the plateau in one quadrant only — a board that says it
+    // folds and does not. Its intent states no symmetry, which is where a plan-compiled board leaves it.
+    private const string Lopsided = """
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
+            {"id":"a","type":"rectangle","operation":"add","min_x":-30,"max_x":30,"min_z":-30,"max_z":30,"base_height":6},
+            {"id":"b","type":"rectangle","operation":"add","min_x":5,"max_x":25,"min_z":5,"max_z":25,"base_height":14}],
+          "groups":[{"id":"i1","name":"Island","mirrors":false,"shapeIds":["a","b"]}]} }]}
+        """;
+
+    private static async Task<string> FinishedAsync(HttpClient client, string? board = null)
     {
         var create = await client.PostAsJsonAsync("/api/sketch", new { name = $"WS6 {Guid.NewGuid():N}" });
         var slug = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
         var put = await client.PutAsync($"/api/map/{slug}/sketch",
-            new StringContent(Board, Encoding.UTF8, "application/json"));
+            new StringContent(board ?? Board, Encoding.UTF8, "application/json"));
         await Assert.That(put.IsSuccessStatusCode).IsTrue();
         var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
         await Assert.That(finish.IsSuccessStatusCode).IsTrue();
@@ -71,6 +81,32 @@ public sealed class WorldReadEndpointTests
             await Assert.That(width).IsGreaterThan(0).Because($"{read} drew a picture of no width");
             await Assert.That(height).IsGreaterThan(0).Because($"{read} drew a picture of no height");
         }
+    }
+
+    /// <summary>
+    /// <b>The mirror read compares against the symmetry the board was laid to.</b> A board authored through
+    /// the plan states its fold in the <em>layout</em> — the compile writes <c>globals.symmetry</c> into
+    /// <c>setup.mirror_mode</c> — and leaves the intent's own symmetry unset, since that one fans intent
+    /// objects rather than terrain. Answered from the intent alone the read falls through to no symmetry at
+    /// all, compares every column with itself, and reports a board that does not fold as perfectly folded:
+    /// the one read built to catch an asymmetry, silent on every board it was meant for.
+    /// </summary>
+    [Test]
+    public async Task The_mirror_read_folds_a_board_the_way_its_layout_says_it_folds()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await FinishedAsync(client, Lopsided);
+
+        async Task<byte[]> Read(string query)
+        {
+            var resp = await client.GetAsync($"/api/map/{slug}/render/mirror{query}");
+            await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
+            return await resp.Content.ReadAsByteArrayAsync();
+        }
+
+        var stated = await Read("");
+        await Assert.That(stated).IsEquivalentTo(await Read("?mode=rot_180"));
+        await Assert.That(stated).IsNotEquivalentTo(await Read("?mode=none"));
     }
 
     [Test]

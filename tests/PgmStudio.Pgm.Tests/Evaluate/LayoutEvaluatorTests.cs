@@ -85,8 +85,11 @@ public sealed class LayoutEvaluatorTests
         }
         foreach (var r in sink.Records)
         {
-            await Assert.That(knownRules).Contains(r.RuleId);
-            await Assert.That(r.Stage).IsEqualTo("acceptance");
+            // two stages reject: the spend gate, which cites G8 because the budget is what it holds the unit
+            // to, and the acceptance gate, which cites the term that fired
+            await Assert.That(new[] { "spend", "acceptance" }).Contains(r.Stage);
+            if (r.Stage == "acceptance") await Assert.That(knownRules).Contains(r.RuleId);
+            else await Assert.That(r.RuleId).IsEqualTo("G8");
         }
     }
 

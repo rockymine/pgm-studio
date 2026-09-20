@@ -568,6 +568,10 @@ public sealed class PlanValidatorTests
         var findings = PlanValidator.Completeness(p);
         await Assert.That(findings.Any(f => f.Severity == Severity.Refusal)).IsFalse();
         await Assert.That(findings.Any(f => f.Severity == Severity.Complaint && f.Message.Contains("no objective"))).IsTrue();
+        // It is a statement about the plan, not about the match: a board can state its goals on the intent
+        // instead, which a plan-tier rule cannot see.
+        await Assert.That(findings.Single(f => f.Rule == PlanRules.NoObjective).Message)
+            .Contains("A board stating its goals on the intent instead is answered there");
     }
 
     [Test]
@@ -582,6 +586,53 @@ public sealed class PlanValidatorTests
           "placements":{"spawns":[{"piece":"a","at":[1,1]}],"{{kind}}":[{"piece":"a","at":[5,5]}]} }
         """);
         await Assert.That(PlanValidator.Completeness(p).Any(f => f.Message.Contains("no objective"))).IsFalse();
+    }
+
+    /// <summary>A capture board is played for something, so a stated count is an objective like the other
+    /// three. Nothing else in the plan changes — a point names no piece.</summary>
+    [Test]
+    public async Task A_capture_point_count_silences_the_complaint()
+    {
+        var p = Plan("""
+        { "plan":2, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ],
+          "placements":{"spawns":[{"piece":"a","at":[1,1]}],"controlPoints":3} }
+        """);
+        await Assert.That(PlanValidator.Completeness(p).Any(f => f.Message.Contains("no objective"))).IsFalse();
+    }
+
+    /// <summary>A count the board's own symmetry cannot lay out. The compiler places none rather than
+    /// rounding to a number it can, so the plan would compile to a capture board with no points on it.</summary>
+    [Test]
+    [Arguments(4, "rot_180")]
+    [Arguments(3, "rot_90")]
+    public async Task A_count_the_orbit_cannot_lay_out_is_named(int count, string symmetry)
+    {
+        var p = Plan($$"""
+        { "plan":2, "globals":{"cell":1,"symmetry":"{{symmetry}}"},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ],
+          "placements":{"spawns":[{"piece":"a","at":[1,1]}],"controlPoints":{{count}}} }
+        """);
+        var finding = PlanValidator.Completeness(p).Single(f => f.Rule == PlanRules.ControlPointCount);
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(finding.Message).Contains($"{count} capture point(s)");
+    }
+
+    /// <summary>And the counts a board's symmetry does lay out say nothing.</summary>
+    [Test]
+    [Arguments(1, "rot_180")]
+    [Arguments(2, "rot_180")]
+    [Arguments(3, "rot_180")]
+    [Arguments(4, "rot_90")]
+    [Arguments(5, "rot_90")]
+    public async Task A_count_the_orbit_lays_out_is_not_named(int count, string symmetry)
+    {
+        var p = Plan($$"""
+        { "plan":2, "globals":{"cell":1,"symmetry":"{{symmetry}}"},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ],
+          "placements":{"spawns":[{"piece":"a","at":[1,1]}],"controlPoints":{{count}}} }
+        """);
+        await Assert.That(PlanValidator.Completeness(p).Any(f => f.Rule == PlanRules.ControlPointCount)).IsFalse();
     }
 
     [Test]
@@ -852,6 +903,52 @@ public sealed class PlanValidatorTests
           "placements":{ "spawns":[ {"piece":"front","at":[10,5],"facing":"front"} ] } }
         """);
         await Assert.That(Lint(wide, "FR9")).IsFalse();
+    }
+
+    [Test]
+    public async Task A_gap_beside_a_wool_room_narrower_than_sixteen_blocks_fires_WL12()
+    {
+        // two cells of void between the room and the ground beside it: ten blocks, which a player crosses by
+        // towering at one edge, so the approach the board states is not the one walked.
+        var tight = Plan("""
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"hub","role":"lane","rect":[-4,2,8,4]},
+                     {"id":"lane","role":"lane","rect":[-4,6,2,4]},
+                     {"id":"room","role":"wool-room","rect":[-4,10,2,2]},
+                     {"id":"far","role":"lane","rect":[0,6,4,6]} ],
+          "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
+                         "wools":[ {"piece":"room","at":[5,5]} ] } }
+        """);
+        await Assert.That(Lint(tight, "WL12")).IsTrue().Because("ten blocks is under the sixteen a gap beside a goal wants");
+
+        // the same arrangement with the far ground pushed a cell further out: twenty blocks, and quiet.
+        var clear = Plan("""
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"hub","role":"lane","rect":[-4,2,8,4]},
+                     {"id":"lane","role":"lane","rect":[-4,6,2,4]},
+                     {"id":"room","role":"wool-room","rect":[-4,10,2,2]},
+                     {"id":"far","role":"lane","rect":[2,6,4,6]} ],
+          "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
+                         "wools":[ {"piece":"room","at":[5,5]} ] } }
+        """);
+        await Assert.That(Lint(clear, "WL12")).IsFalse();
+    }
+
+    [Test]
+    public async Task A_gap_a_build_zone_covers_is_a_crossing_the_board_states_and_is_not_WL12()
+    {
+        // building over it is what the zone is for, so the gap's width is not a jump the rule judges.
+        var bridged = Plan("""
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"hub","role":"lane","rect":[-4,2,8,4]},
+                     {"id":"lane","role":"lane","rect":[-4,6,2,4]},
+                     {"id":"room","role":"wool-room","rect":[-4,10,2,2]},
+                     {"id":"far","role":"lane","rect":[0,6,4,6]} ],
+          "zones":[ {"id":"hop","rect":[-2,6,2,6]} ],
+          "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
+                         "wools":[ {"piece":"room","at":[5,5]} ] } }
+        """);
+        await Assert.That(Lint(bridged, "WL12")).IsFalse();
     }
 
     [Test]

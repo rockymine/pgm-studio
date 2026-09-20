@@ -25,6 +25,49 @@ public sealed class ComposerTests
                 yield return (players, seed);
     }
 
+    /// <summary>The land a plan's pieces cover, in cells — the distinct cells, so a shared run counts once.
+    /// The same reading the spend gate takes off the grown unit, read back off the assembled plan.</summary>
+    private static int UnitLandCells(PlanModel plan)
+    {
+        var cells = new HashSet<(int, int)>();
+        foreach (var piece in plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)
+                                                  && !MidCarver.IsStone(p.Id)))
+            for (var x = piece.Rect.X; x < piece.Rect.X + piece.Rect.Width; x++)
+                for (var z = piece.Rect.Z; z < piece.Rect.Z + piece.Rect.Height; z++)
+                    cells.Add((x, z));
+        return cells.Count;
+    }
+
+    [Test]
+    public async Task Every_composed_board_spends_its_bands_budget()
+    {
+        // the spend gate is the budget's teeth: a unit that left land unplaced, or built a board bigger than
+        // its band, is resampled rather than shipped
+        foreach (var (players, seed) in Sweep())
+        {
+            var stages = Composer.ComposeStages(new ComposeRequest(players, seed: seed));
+            var built = UnitLandCells(stages.Plan);
+            var budget = stages.Envelope.UnitBudgetCells;
+            await Assert.That(built >= budget * UnitTuning.SpendFloor && built <= budget * UnitTuning.SpendCeiling)
+                .IsTrue().Because($"built {built} of {budget:F0} cells @ {players}p seed {seed}");
+        }
+    }
+
+    [Test]
+    public async Task A_bigger_band_builds_more_land()
+    {
+        // the band is what the budget keys on, so the ladder must show in what comes out
+        double last = 0;
+        foreach (var players in new[] { 8, 16, 24, 32 })
+        {
+            var land = Enumerable.Range(0, 8)
+                .Select(seed => (double)UnitLandCells(Composer.Compose(new ComposeRequest(players, seed: (ulong)seed))))
+                .Average();
+            await Assert.That(land > last).IsTrue().Because($"{players} players built {land:F0} against {last:F0}");
+            last = land;
+        }
+    }
+
     [Test]
     public async Task Compose_is_deterministic_for_the_same_request()
     {
@@ -54,13 +97,22 @@ public sealed class ComposerTests
     [Test]
     public async Task Composed_units_stay_on_their_side_of_the_axis()
     {
-        // rot_180 (the default): the authored unit sits wholly on the +z side, clear of the crossing gap
+        // rot_180 (the default): the authored unit sits wholly on the +z side, clear of the crossing gap.
+        // A mid stone is the one piece that may reach the axis, and it does so in exactly one of two ways —
+        // symmetric about it, so its own image abuts it (CT11), or wholly clear of it, so its image is the
+        // facing rank. What no stone may be is asymmetrically overlapping: that is an interior clash.
         foreach (var (players, seed) in Sweep())
         {
             var plan = Composer.Compose(new ComposeRequest(players, seed: seed));
-            foreach (var p in plan.Pieces)
+            foreach (var p in plan.Pieces.Where(p => !MidCarver.IsStone(p.Id)))
                 await Assert.That(p.Rect.Z > 0).IsTrue()
                     .Because($"piece {p.Id} crosses the axis @ {players}p seed {seed}");
+            foreach (var stone in plan.Pieces.Where(p => MidCarver.IsStone(p.Id)))
+            {
+                var (near, far) = (stone.Rect.Z, stone.Rect.Z + stone.Rect.Height);
+                await Assert.That(near == -far || near >= 0).IsTrue()
+                    .Because($"{stone.Id} is astride the axis or clear of it @ {players}p seed {seed}");
+            }
         }
     }
 
@@ -118,20 +170,21 @@ public sealed class ComposerTests
 
 
     [Test]
-    public async Task Box_composition_closes_the_loop_with_a_band_only_mid()
+    public async Task Box_composition_closes_the_loop_with_a_carved_mid()
     {
-        // every composed board carries a stone-free band-only mid, composes deterministically, and is
-        // CONNECTED — a flood from the spawn over land + band reaches every fanned spawn image (the
-        // loop-closed criterion the band exists to satisfy)
+        // every composed board carries a carved mid, composes deterministically, and is CONNECTED — a flood
+        // from the spawn over land + band reaches every fanned spawn image (the loop-closed criterion the
+        // band exists to satisfy)
         foreach (var players in new[] { 6, 8, 12, 20, 30 })
             for (ulong seed = 0; seed < 10; seed++)
             {
                 var stages = Composer.ComposeStages(new ComposeRequest(players, seed: seed));
-                await Assert.That(stages.Mid.Stones.Count).IsEqualTo(0);
 
-                // the flush law: the band docks straight against the front faces and overlaps no piece
+                // the flush law: the band docks straight against the front faces and overlaps no piece of the
+                // unit. The stones it carries are inside it by construction — BZ7's sanctioned encasing.
                 var bandRect = stages.Mid.BandRect;
-                foreach (var p in stages.Plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)))
+                foreach (var p in stages.Plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)
+                                                             && !MidCarver.IsStone(p.Id)))
                 {
                     var ox = Math.Min(p.Rect.X + p.Rect.Width, bandRect.X + bandRect.Width) - Math.Max(p.Rect.X, bandRect.X);
                     var oz = Math.Min(p.Rect.Z + p.Rect.Height, bandRect.Z + bandRect.Height) - Math.Max(p.Rect.Z, bandRect.Z);
@@ -151,11 +204,15 @@ public sealed class ComposerTests
                 var ownR = fronts.Max(p => p.Rect.X + p.Rect.Width);
                 var hullL = Math.Min(ownL, -ownR);          // rot_180 mirrors x about the axis
                 var hullR = Math.Max(ownR, -ownL);
-                await Assert.That(bandRect.X == hullL && bandRect.X + bandRect.Width == hullR).IsTrue()
-                    .Because($"band [{bandRect.X}..{bandRect.X + bandRect.Width}] != front hull [{hullL}..{hullR}] @ {players}p seed {seed}");
-                // and the band is symmetric about the axis, so it fans onto itself
-                await Assert.That(bandRect.X).IsEqualTo(-(bandRect.X + bandRect.Width))
-                    .Because($"band not axis-symmetric @ {players}p seed {seed}");
+                var bandR = bandRect.X + bandRect.Width;
+                // one band spans the hull; a split band spans one leg and its own image spans the other, so
+                // what both owe is that band ∪ image covers the hull and reaches no further
+                var split = bandRect.X != -bandR;
+                var coverL = split ? Math.Min(bandRect.X, -bandR) : bandRect.X;
+                var coverR = split ? Math.Max(bandR, -bandRect.X) : bandR;
+                await Assert.That(coverL == hullL && coverR == hullR).IsTrue()
+                    .Because($"band [{bandRect.X}..{bandR}]{(split ? " + image" : "")} covers [{coverL}..{coverR}], "
+                             + $"front hull [{hullL}..{hullR}] @ {players}p seed {seed}");
 
                 var again = Composer.ComposeStages(new ComposeRequest(players, seed: seed));
                 await Assert.That(again.Plan.Pieces.Select(p => p.Rect)

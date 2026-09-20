@@ -1,6 +1,5 @@
 ﻿using PgmStudio.Analysis.Scan;
 using PgmStudio.Geom;
-using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Analysis.Playability;
 
@@ -192,21 +191,13 @@ public static class GroundCoverage
         var distances = DistanceToReached(cells, nx, nz);
         var deadCells = new List<(int X, int Z)>();
         for (var i = 0; i < cells.Length; i++)
-            if (cells[i] is Dead or Decorated) deadCells.Add((i % nx, i / nx));
-        var patches = new List<Patch>();
-        var unnamed = 0;
-        foreach (var component in GridComponents.Label(
-                     [.. deadCells.Where(cell => cells[cell.Z * nx + cell.X] == Dead)], connectivity: 4))
-        {
-            if (component.Count < PatchFloor) { unnamed++; continue; }
-            var nearest = component.Min(cell => distances[cell.Z * nx + cell.X]);
-            patches.Add(new Patch(
-                component.Count,
-                minX + (int)component.Average(cell => cell.X),
-                minZ + (int)component.Average(cell => cell.Z),
-                nearest));
-        }
-        patches.Sort((a, b) => b.Area.CompareTo(a.Area));
+            if (cells[i] == Dead) deadCells.Add((i % nx, i / nx));
+        var (stretches, unnamed) = Cells.Stretches(deadCells, PatchFloor);
+        var patches = stretches.Select(stretch => new Patch(
+            stretch.Area,
+            minX + stretch.CentroidX,
+            minZ + stretch.CentroidZ,
+            stretch.Cells.Min(cell => distances[cell.Z * nx + cell.X]))).ToList();
 
         // The route, painted last so it reads over the fill, and only where the read already found ground: a
         // route runs over the navigable set, which carries bridgeable void the classification does not, and
@@ -236,69 +227,31 @@ public static class GroundCoverage
     }
 
     /// <summary>Where the two teams meet, as one seat per crossing — the origins an attacker's route starts
-    /// from rather than ends at.
-    ///
-    /// <para>A goal-to-goal demand set only ever walks between places a team defends, and the route that
-    /// decides a match is the one crossing the middle. At this tier no document field names the middle, so it
-    /// is derived: the cells a walk reaches from both teams' spawns at the <b>same</b> cost, within
-    /// <see cref="MeetingSlack"/> blocks, are the line the two sides arrive at together. That line breaks into
-    /// one stretch per way across, and each stretch answers with its <b>widest</b> cell, which is the crossing
-    /// players use rather than the corner where the line clips a wall.</para>
+    /// from rather than ends at. <see cref="Walk.Crossings"/> derives them; what is done here is the snapping,
+    /// since a marker is a named place and the walk runs over seats.
     ///
     /// <para>Empty unless exactly two teams hold spawns: with one team there is no middle, and with four the
     /// pairwise middles are six lines that no longer describe one crossing each.</para></summary>
     private static List<WalkPlace> Crossings(IReadOnlyList<NavPoint> points, WalkGround walked)
     {
-        var seats = new List<WalkPlace>();
         var byTeam = points.Where(point => point.Kind == "spawn" && point.Owner.Length > 0)
             .GroupBy(point => point.Owner).ToList();
-        if (byTeam.Count != 2) return seats;
+        if (byTeam.Count != 2) return [];
 
-        var sides = byTeam.Select(team => Reach(team, walked)).ToList();
-        var meeting = new Dictionary<(int X, int Z), WalkPlace>();
-        foreach (var (place, near) in sides[0])
-            if (sides[1].TryGetValue(place, out var far) && Math.Abs(near - far) <= MeetingSlack)
-                // One seat a cell: the storey the two sides meet lowest on is the one they meet on.
-                if (!meeting.TryGetValue(place.Cell, out var known) || place.Y < known.Y)
-                    meeting[place.Cell] = place;
-        if (meeting.Count == 0) return seats;
+        var sides = byTeam.Select(team => Seats(team, walked)).ToList();
+        return Walk.Crossings(sides[0], sides[1], walked, MeetingSlack, CrossingFloor);
+    }
 
-        var footprint = meeting.Keys.ToHashSet();
-        var clearance = Cells.Clearance(walked.Footprint, walked.Bounds);
-        foreach (var stretch in Stretches(footprint))
-            seats.Add(meeting[stretch.OrderByDescending(cell => clearance.GetValueOrDefault(cell, 0))
-                .ThenBy(cell => cell.Z).ThenBy(cell => cell.X).First()]);
+    /// <summary>The places a set of markers stand on, snapped onto the ground the walk runs over — a marker
+    /// names a cell and a walk starts at a storey of one.</summary>
+    private static List<WalkPlace> Seats(IEnumerable<NavPoint> points, WalkGround walked)
+    {
+        var seats = new List<WalkPlace>();
+        foreach (var point in points)
+            if (Cells.SnapToWalkable(point.Cell, walked.Footprint, SnapRadius) is { } cell
+                && (point with { X = cell.X, Z = cell.Z }).Seat(walked) is { } seat)
+                seats.Add(seat);
         return seats;
-    }
-
-    /// <summary>The cheapest walk to each place from any of <paramref name="from"/>, in blocks.</summary>
-    private static Dictionary<WalkPlace, double> Reach(IEnumerable<NavPoint> from, WalkGround walked)
-    {
-        var best = new Dictionary<WalkPlace, double>();
-        foreach (var point in from)
-        {
-            if (Cells.SnapToWalkable(point.Cell, walked.Footprint, SnapRadius) is not { } cell) continue;
-            if ((point with { X = cell.X, Z = cell.Z }).Seat(walked) is not { } start) continue;
-            foreach (var (place, cost) in Walk.Field(start, walked))
-                if (cost.Distance < best.GetValueOrDefault(place, double.MaxValue)) best[place] = cost.Distance;
-        }
-        return best;
-    }
-
-    /// <summary>The connected stretches of a cell set, largest first, keeping only those wide enough to be a
-    /// way across rather than a cell the meeting line clips in passing.</summary>
-    private static List<HashSet<(int X, int Z)>> Stretches(HashSet<(int X, int Z)> cells)
-    {
-        var stretches = new List<HashSet<(int X, int Z)>>();
-        var seen = new HashSet<(int X, int Z)>();
-        foreach (var cell in cells)
-        {
-            if (!seen.Add(cell)) continue;
-            var stretch = Cells.Flood([cell], cells);
-            seen.UnionWith(stretch);
-            if (stretch.Count >= CrossingFloor) stretches.Add(stretch);
-        }
-        return [.. stretches.OrderByDescending(stretch => stretch.Count)];
     }
 
     /// <summary>Per-cell cardinal step count over the ground to the nearest reached cell — one multi-source

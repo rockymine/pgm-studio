@@ -28,6 +28,7 @@ namespace PgmStudio.Domain;
 /// one kind do not.</param>
 /// <param name="Image">Which orbit image this is, <c>0</c> for the authored unit itself. A map with no
 /// symmetry has only image 0.</param>
+[method: JsonConstructor]
 public readonly record struct StampId(string Kind, string Unit, int Image)
 {
     /// <summary>What this is, with which image of it dropped — the key a reader groups on to find every image

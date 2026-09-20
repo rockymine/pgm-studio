@@ -53,6 +53,58 @@ public sealed class PlanStructuresTests
                     .Contains((-10, -21, -1, -21));
     }
 
+    // A room whose only way in is NARROWER than ContactGraph.CorridorMin: the room spans z 20..29 and the
+    // lane z 25..34, so they share five blocks of edge at x = 10. Five is under the ten-block minimum, so the
+    // seam classifies Narrow rather than Land — while being flush (delta 0), walked, and the only way in.
+    private const string NarrowEntryJson = """
+        {
+          "plan": 2,
+          "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9 },
+          "pieces": [
+            { "id": "wool", "role": "wool-room", "rect": [0, 4, 2, 2] },
+            { "id": "lane", "role": "lane",      "rect": [2, 5, 4, 2] },
+            { "id": "sp",   "role": "spawn",     "rect": [2, 0, 2, 3] }
+          ],
+          "placements": {
+            "spawns": [ { "piece": "sp", "at": [5, 5] } ],
+            "wools":  [ { "piece": "wool", "at": [5, 5] } ]
+          }
+        }
+        """;
+
+    [Test]
+    public async Task A_narrow_seam_is_still_the_way_into_a_room_and_carries_its_entrance()
+    {
+        var (_, intent) = PlanCompiler.Compile(PlanModel.Parse(NarrowEntryJson)!);
+        var s = intent.Structures!;
+
+        // The seam is Narrow, not Land: 2 cells of shared edge against a corridor minimum above it. It is
+        // nonetheless flush and walked, so ST1's entrance belongs on it. Filtering on ContactKind.Land alone
+        // answers nothing here, which leaves the room with no entrance row and no cage door cut.
+        // The seam is Narrow by width alone. Filtering the entry set on ContactKind.Land answers nothing
+        // here, which leaves the room with no entrance row at all.
+        await Assert.That(s.RedstoneLines).IsNotEmpty()
+            .Because("a room reachable only across a narrow seam still has an entrance");
+
+        // The row lies inside the room at the seam: x = 10 is the lane side, so the room's last column is 9,
+        // and it spans the five blocks the two actually share rather than the room's whole depth.
+        await Assert.That(s.RedstoneLines.Select(line => (line.X1, line.Z1, line.X2, line.Z2)))
+                    .Contains((9, 25, 9, 29));
+    }
+
+    [Test]
+    public async Task A_room_whose_only_seam_is_narrow_still_has_an_entry_to_cut_a_door_from()
+    {
+        var (_, intent) = PlanCompiler.Compile(PlanModel.Parse(NarrowEntryJson)!);
+
+        // A wool's Entries are the segments the cage cuts its doors on, and an empty set means the room is
+        // unreachable: the validator refuses on it and the stamper cuts nothing. A room whose only seam is
+        // narrow answering empty seals the wool inside a solid box.
+        foreach (var wool in intent.Wools)
+            await Assert.That(wool.Entries).IsNotEmpty()
+                .Because("an empty entry set seals the room, and this room is reachable");
+    }
+
     [Test]
     public async Task Spawn_piece_iron_rides_the_spawn_and_loose_iron_stays_a_directive()
     {

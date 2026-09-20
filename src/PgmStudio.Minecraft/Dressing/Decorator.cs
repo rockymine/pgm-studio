@@ -54,7 +54,8 @@ public sealed record DressingContext(
     Func<int, int, bool>? IsGoalGround = null,
     Func<int, int, bool>? IsGoalClearance = null,
     IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? SurfaceByLayer = null,
-    IReadOnlyList<(int X, int Z)>? Waypoints = null)
+    IReadOnlyList<(int X, int Z)>? Waypoints = null,
+    Func<string?, int, int, int>? CliffAngleAt = null)
 {
     public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IReadOnlyList<PlacedProp> props)
         : this(surfaceTop, props, (_, _) => null, DressingSymmetry.None) { }
@@ -87,6 +88,17 @@ public sealed record DressingContext(
     /// (<see cref="WayThrough"/>). Null where the caller named no waypoints — a preview, a fixture — which is
     /// a board with nothing to close.</summary>
     public WayThrough? Ways() => Waypoints is { Count: > 1 } points ? WayThrough.Of(SurfaceTop, points) : null;
+
+    /// <summary>How steeply the ground under a prop is inclined, and the angle the theme painting that cell
+    /// calls a face (<c>DR-STEEP</c>). Null where the caller stated no paint — a preview, a fixture — which is
+    /// a board whose ground has no cliff to be on.</summary>
+    public (int Degrees, int Cliff)? Incline(PlacedProp prop, int x, int z)
+    {
+        if (CliffAngleAt is null) return null;
+        var ground = GroundFor(prop);
+        return ground.Count == 0 ? null
+            : (Geom.Algorithms.SurfaceGradient.Degrees(ground, x, z), CliffAngleAt(prop.Layer, x, z));
+    }
 }
 
 /// <summary> What one pass placed, for a caller that wants to report, claim or preview it rather than only write
@@ -222,9 +234,21 @@ public static class Decorator
         // admitted to it. Read only where there is a building to judge, since it walks every waypoint pair.
         var houses = context.Props.OfType<HouseProp>().ToList();
         var ways = houses.Count > 0 ? context.Ways() : null;
+        // Buildings standing within a passage of each other are one block of buildings, and the passage is
+        // owed round what they make together (DR-PASS). Read before any of them is judged, since a building
+        // cannot be grouped with one that has not been placed yet.
+        var footings = new List<Footing>();
+        foreach (var prop in houses)
+            if (prop.Plan() is { } drawn)
+                for (var k = 0; k < context.Symmetry.Order; k++)
+                    if (TurnedFootprint(drawn, context.Symmetry, k) is { } image)
+                        footings.Add(Footing(image, prop.Style));
+        var groups = Passage.Grouped(footings).DistinctBy(pair => pair.Own)
+            .ToDictionary(pair => pair.Own, pair => pair.Group);
+
         foreach (var prop in houses)
         {
-            var raised = PlaceHouse(world, context, prop, claims.On(prop.Layer), declined, ways, roads);
+            var raised = PlaceHouse(world, context, prop, claims.On(prop.Layer), declined, ways, roads, groups);
             structures.AddRange(raised);
             placed = placed with { Houses = placed.Houses + raised.Count };
         }
@@ -629,29 +653,33 @@ public static class Decorator
     /// <summary>What grows in one cell, or null for bare ground. Two fields decide it: a density field says
     /// whether anything grows at all — which is what turns an even speckle into meadows and clearings — and a
     /// second, coarser field paints flowers in <em>patches</em>, so an area gets fields of one colour rather
-    /// than confetti.</summary>
+    /// than confetti.
+    ///
+    /// <para><b>Every field is read at the cell folded into the board's primary image</b>, exactly as a
+    /// terrain pattern is (<c>terrain-painting.md</c> TP21). A noise field is a function of position, so a
+    /// cell and its image sample two different places and grow two different things — one team's meadow thick
+    /// where the other's is bare, a fern on one side of a board and nothing on the other. The fold asks the
+    /// orbit's representative once, so a cell grows what its image grows. What the cell itself still decides
+    /// is what it is made of: <paramref name="soilShare"/> is the paint actually under this block, which is
+    /// symmetric already because it was painted through the same fold.</para></summary>
     private static Plant? PickPlant(FloraSpec flora, uint seed, int x, int z, double soilShare, DressingSymmetry symmetry)
     {
-        var density = PatternNoise.Fbm(x, z, seed, flora.Scale, flora.Octaves);
+        var (fx, fz) = symmetry.Canonical(x, z);
+
+        var density = PatternNoise.Fbm(fx, fz, seed, flora.Scale, flora.Octaves);
         if (density < 1 - flora.Coverage * soilShare) return null;
 
-        // Tall cover hides a crouching player, so its cell is decided on the orbit representative — the same
-        // ground is tall or bare for every team. The rest of the overlay decides nothing and stays free.
-        if (flora.TallShare > 0)
-        {
-            var (rx, rz) = symmetry.Canonical(x, z);
-            if (PatternNoise.Unit(rx, rz, seed + 61) < flora.TallShare)
-                return PatternNoise.Unit(rx, rz, seed + 62) < flora.FernShare
-                    ? DressingPalette.LargeFern : DressingPalette.TallGrass;
-        }
+        if (flora.TallShare > 0 && PatternNoise.Unit(fx, fz, seed + 61) < flora.TallShare)
+            return PatternNoise.Unit(fx, fz, seed + 62) < flora.FernShare
+                ? DressingPalette.LargeFern : DressingPalette.TallGrass;
 
-        var flowerField = PatternNoise.Fbm(x, z, seed + 33, flora.FlowerScale, 2);
-        if (flowerField > 1 - flora.FlowerShare && PatternNoise.Unit(x, z, seed + 44) < 0.7)
+        var flowerField = PatternNoise.Fbm(fx, fz, seed + 33, flora.FlowerScale, 2);
+        if (flowerField > 1 - flora.FlowerShare && PatternNoise.Unit(fx, fz, seed + 44) < 0.7)
         {
-            var pick = PatternNoise.Unit(x, z, seed + 88);
+            var pick = PatternNoise.Unit(fx, fz, seed + 88);
             return DressingPalette.Flowers[(int)(pick * DressingPalette.Flowers.Length) % DressingPalette.Flowers.Length];
         }
-        return PatternNoise.Unit(x, z, seed + 21) < flora.FernShare
+        return PatternNoise.Unit(fx, fz, seed + 21) < flora.FernShare
             ? DressingPalette.Fern : DressingPalette.Grass;
     }
 
@@ -691,7 +719,8 @@ public static class Decorator
     private static List<PlacementClaim> PlaceHouse(
         VoxelWorld world, DressingContext context, HouseProp house, GroundClaims.Storey claims,
         List<Finding> declined, WayThrough? ways,
-        IReadOnlyList<(string Id, IReadOnlyList<(int X, int Z)> Cells)> roads)
+        IReadOnlyList<(string Id, IReadOnlyList<(int X, int Z)> Cells)> roads,
+        IReadOnlyDictionary<Footing, Footing> groups)
     {
         var ground = context.GroundFor(house);
         if (house.Plan() is not { } plan)
@@ -721,6 +750,7 @@ public static class Decorator
         }
 
         var images = new List<(BuildingPlan Plan, RoomEdge? Front, int FloorY)>(context.Symmetry.Order);
+        var cramped = false;
         for (var k = 0; k < context.Symmetry.Order; k++)
         {
             if (TurnedFootprint(plan, context.Symmetry, k) is not { } image) return [];
@@ -789,13 +819,25 @@ public static class Decorator
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
-            if (!HasPassage(context, ground, claims, image, house.Style))
+            // The passage is owed around the group this building stands in — itself alone where it stands
+            // alone. A complaint, not a decline: the building is in the world and where it stands is
+            // something an author or an agent moves, which `sketch/seats` answers forwards.
+            var own = Footing(image, house.Style);
+            var group = groups.GetValueOrDefault(own, own);
+            if (!cramped && !Passage.Clears(group,
+                    (x, z) => ground.ContainsKey((x, z)),
+                    (x, z) => claims.HoldsKind(x, z, ClaimKind.Structure)))
             {
+                cramped = true;
+                var together = group.Holds(own)
+                    ? " — measured round the group of buildings it stands in, "
+                      + $"x {group.StampMinX}…{group.StampMaxX}, z {group.StampMinZ}…{group.StampMaxZ}"
+                    : "";
                 declined.Add(new Finding(DressingRules.PassAround,
-                    $"building '{house.Id}' leaves no way past it: fewer than "
-                    + $"{DressingRules.PassAroundWidth} blocks of passable ground beside every side",
-                    Severity.Decline, Subjects: [house.Id]));
-                return [];
+                    $"building '{house.Id}' leaves no way past it: a side has fewer than "
+                    + $"{DressingRules.PassAroundWidth} blocks of passable ground along its whole run, and is "
+                    + $"not the edge of the ground it stands on{together}",
+                    Severity.Complaint, Subjects: [house.Id]));
             }
 
             var front = house.Front is { } edge ? context.Symmetry.TurnEdge(edge, k) : (RoomEdge?)null;
@@ -853,6 +895,18 @@ public static class Decorator
                                           ClaimedCells(image, house.Style)));
         }
         return raised;
+    }
+
+    /// <summary>What a building image takes up, for the passage rule: its stamped extent and the run of its
+    /// walls, both read off the same <see cref="ClaimedCells"/> derivation the claim and the route crossing
+    /// use.</summary>
+    private static Footing Footing(BuildingPlan image, HouseStyle style)
+    {
+        var stamped = ClaimedCells(image, style);
+        return new(stamped.Min(cell => cell.X), stamped.Min(cell => cell.Z),
+                   stamped.Max(cell => cell.X), stamped.Max(cell => cell.Z),
+                   image.Wings.Min(wing => wing.MinX), image.Wings.Min(wing => wing.MinZ),
+                   image.Wings.Max(wing => wing.MaxX), image.Wings.Max(wing => wing.MaxZ));
     }
 
     /// <summary>Every column one raised image of a building covers: each wing's own rectangle grown by what
@@ -956,43 +1010,6 @@ public static class Decorator
         return null;
     }
 
-    /// <summary>Whether a building leaves a way past itself: at least one of its four sides carries a band of
-    /// passable ground <see cref="DressingRules.PassAroundWidth"/> blocks deep along its whole run — extended
-    /// one step past each corner, because that step is where the passage turns in from, and it is exactly the
-    /// cell that separates a flank a player can enter from a flank walled off at both ends. A house corking a
-    /// leg fails all four: its flanks are void, and the ground beyond its gable ends fails the corner step.
-    /// Passable is terrain with nothing <em>built</em> on it — a road or a channel alongside the wall is
-    /// still a way past, an earlier building is not.
-    ///
-    /// <para><b>Measured from what the building stamps, not from its walls.</b> A roof overhangs its wall by
-    /// the style's eave, and the blocks a player has to walk under are the ones that were written — so the
-    /// band starts where the building physically stops. The same <see cref="ClaimedCells"/> the claim test and
-    /// the route crossing already read, which is what keeps one account of a building's extent. Over its
-    /// bounding box: the notch of an L is the building's own ground, not a public route through it.</para></summary>
-    private static bool HasPassage(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, GroundClaims.Storey claims, BuildingPlan plan, HouseStyle style)
-    {
-        var stamped = ClaimedCells(plan, style);
-        int minX = stamped.Min(cell => cell.X), maxX = stamped.Max(cell => cell.X);
-        int minZ = stamped.Min(cell => cell.Z), maxZ = stamped.Max(cell => cell.Z);
-        var depth = DressingRules.PassAroundWidth;
-
-        return Band(maxX + 1, maxX + depth, minZ - 1, maxZ + 1)      // east flank
-            || Band(minX - depth, minX - 1, minZ - 1, maxZ + 1)      // west flank
-            || Band(minX - 1, maxX + 1, maxZ + 1, maxZ + depth)      // south flank
-            || Band(minX - 1, maxX + 1, minZ - depth, minZ - 1);     // north flank
-
-        bool Band(int fromX, int toX, int fromZ, int toZ)
-        {
-            for (var z = fromZ; z <= toZ; z++)
-            for (var x = fromX; x <= toX; x++)
-            {
-                if (!ground.ContainsKey((x, z))) return false;
-                if (claims.HoldsKind(x, z, ClaimKind.Structure)) return false;
-            }
-            return true;
-        }
-    }
-
     /// <summary>The course a building's floor sits at — one below the lowest ground its plan covers — or no
     /// floor and the first column of that plan with no ground under it.
     ///
@@ -1064,6 +1081,20 @@ public static class Decorator
         VoxelWorld world, DressingContext context, BoulderProp boulder, GroundClaims.Storey claims,
         List<Finding> declined)
     {
+        // DR-STEEP — a rock standing on ground the board paints as a face. Read at the placement rather than
+        // at every image of its orbit: the orbit is the same ground turned, and the cell an author moves is
+        // the one they wrote.
+        if (context.Incline(boulder, boulder.X, boulder.Z) is { } incline && incline.Degrees >= incline.Cliff)
+        {
+            var named = boulder.Id.Length > 0 ? boulder.Id : $"boulder@{boulder.X},{boulder.Z}";
+            declined.Add(new Finding(DressingRules.RockOnAFace,
+                $"boulder '{named}' stands at ({boulder.X}, {boulder.Z}) on ground inclined "
+                + $"{incline.Degrees}°, and the theme painting that cell calls the ground a face from "
+                + $"{incline.Cliff}° — the slope is already the feature there and a rock pinned to it reads as "
+                + "neither. Move it onto the flat, or onto the graded band below the face",
+                Severity.Complaint, Field: "dressing.props", Subjects: [named]));
+        }
+
         var lobes = BoulderShapes.Of(boulder.Style.Form, boulder.Style.Reach, boulder.Seed);
         return Fan(world, context, context.GroundFor(boulder), (boulder.X, boulder.Z), BoulderCells(lobes, boulder), claims, boulder.RouteStandoff, boulder.Id, "boulder", declined);
     }

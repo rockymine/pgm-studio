@@ -120,6 +120,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
         // the interface lints (FR8, CT12) quantify over, served raw so a caller sees the numbers behind
         // them. A board the deriver cannot read degrades to empty reads, same as structures below.
         List<PlanFrontageDto> frontages; List<PlanFrontlineRunDto> frontlineRuns; List<PlanIslandGapDto> islandGaps;
+        List<PlanSpaceDto> spaces;
         try
         {
             var board = BoardDeriver.Derive(plan);
@@ -129,11 +130,21 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
                 r.Team, r.WidthBlocks, r.Profile, r.X1, r.Z1, r.X2, r.Z2))];
             islandGaps = [.. PieceInterfaces.IslandGaps(board).Select(g => new PlanIslandGapDto(
                 g.PiecesA, g.PiecesB, g.RoleA, g.RoleB, g.Blocks))];
+            spaces = [.. board.Spaces.Select(space =>
+            {
+                var narrowest = space.Crossings.Count == 0 ? null
+                    : space.Crossings.MinBy(run => run.Cells);
+                return new PlanSpaceDto(
+                    space.Kind, space.Cells.Count, narrowest?.Cells * board.Cell,
+                    narrowest is null ? [] : [narrowest.From, narrowest.To],
+                    narrowest?.X ?? 0, narrowest?.Z ?? 0, narrowest?.AlongX ?? false,
+                    space.WallSlots);
+            })];
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException
                                        or IndexOutOfRangeException or KeyNotFoundException)
         {
-            frontages = []; frontlineRuns = []; islandGaps = [];
+            frontages = []; frontlineRuns = []; islandGaps = []; spaces = [];
         }
 
         // The boxes the world build will stamp (the iso view draws them). A plan mid-edit is routinely
@@ -158,7 +169,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
             interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps,
             [.. structures.Select(b => new PlanStructureBoxDto(
                 b.Kind, b.Color, b.MinX, b.MinZ, b.MaxX, b.MaxZ, b.Floor, b.Top))],
-            goalDistances, goalPairs), ct);
+            goalDistances, goalPairs, spaces), ct);
     }
 }
 

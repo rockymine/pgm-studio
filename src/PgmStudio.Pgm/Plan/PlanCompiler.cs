@@ -436,12 +436,52 @@ public static class PlanCompiler
             Wools = wools,
             Destroyables = destroyables.Count > 0 ? destroyables : null,
             Cores = cores.Count > 0 ? cores : null,
+            ControlPoints = ControlPoints(plan, d, spawns),
             Observer = new ObserverIntent { Point = new Pt(0, observerY, 0), Yaw = 0 },
             Build = build,
             WaterLanes = waterLanes,
             Meta = new MetaIntent { Name = plan.Meta?.Name ?? "", Authors = [] },
             Structures = structures.IsEmpty ? null : structures,
         };
+    }
+
+    /// <summary>The capture points the plan is played for, placed. The plan states a count and nothing else,
+    /// because a point belongs to nobody and its position is therefore the board's answer rather than a
+    /// piece's (<see cref="ControlPointLayout"/>): the centre of symmetry, and a side point on the bisector
+    /// between two neighbouring spawns, fanned round the orbit the way every other marker here is.
+    ///
+    /// <para>Null where the plan asks for none, and where it asks for a count the orbit cannot build — which
+    /// the plan gate names rather than this silently rounding to one it can.</para></summary>
+    private static List<ControlPointIntent>? ControlPoints(PlanModel plan, ContactGraph d, List<SpawnIntent> spawns)
+    {
+        if (plan.Placements.ControlPoints is not { } count) return null;
+        if (spawns.FirstOrDefault() is not { } entry) return null;
+        if (ControlPointLayout.Primaries(count, d.Order, entry.Point.X, entry.Point.Z) is not { Count: > 0 } primaries)
+            return null;
+
+        var points = new List<ControlPointIntent>();
+        var seen = new List<(double X, double Z)>();
+        var index = 0;
+        foreach (var (primaryX, primaryZ) in primaries)
+        {
+            for (var k = 0; k < d.Order; k++)
+            {
+                var (x, z) = d.FanPoint(primaryX, primaryZ, k);
+                // The centre is its own image and every side point after the first is another's, so a fan
+                // that lands where a point already stands is the board saying it has this one already.
+                if (seen.Any(at => Math.Abs(at.X - x) < 0.5 && Math.Abs(at.Z - z) < 0.5)) continue;
+                seen.Add((x, z));
+                points.Add(new ControlPointIntent
+                {
+                    Stamp = Stamp("controlpoint", $"point{index}", index, k),
+                    // The plan's own flat nominal height, as every anchor here carries: a pad is cut into
+                    // whatever ground the build solves under it, and this is never read as its Y.
+                    Anchor = new Pt(x, plan.Globals.Surface, z),
+                });
+            }
+            index++;
+        }
+        return points.Count > 0 ? points : null;
     }
 
     // ── structures: entrance redstone, iron cubes, approach walls (ST1–ST4) ─────────────────────────────
@@ -455,10 +495,13 @@ public static class PlanCompiler
 
         // ST1 entrance redstone — the last block row inside the room along each entry interface: every
         // terrain↔wool-room land seam, and every build-zone frontline edge on a room piece (WX6 — bridging
-        // in through the build region is an entrance like any seam).
+        // in through the build region is an entrance like any seam). A land seam is what
+        // ContactGraph.IsLandInterface calls one, which is full-width or narrow: an interface under the
+        // band's corridor width is still the way into the room, and the segment's own WoolRoom flag is
+        // raised through that same predicate.
         var lineSeen = new HashSet<(int, int, int, int)>();
         var entranceSegments = new List<(BlockRect Room, int X1, int Z1, int X2, int Z2)>();
-        foreach (var seg in d.InterfaceSegments.Where(g => g is { WoolRoom: true, Kind: ContactKind.Land }))
+        foreach (var seg in d.InterfaceSegments.Where(g => g.WoolRoom && ContactGraph.IsLandInterface(g.Kind)))
         {
             var a = d.Piece(seg.A)!.Value;
             var b = d.Piece(seg.B)!.Value;
@@ -586,7 +629,8 @@ public static class PlanCompiler
     {
         var segments = new List<BlockRect>();
         foreach (var seg in d.InterfaceSegments)
-            if (seg is { WoolRoom: true, Kind: ContactKind.Land } && (seg.A == pieceId || seg.B == pieceId))
+            if (seg.WoolRoom && ContactGraph.IsLandInterface(seg.Kind)
+                && (seg.A == pieceId || seg.B == pieceId))
                 segments.Add(new BlockRect(Math.Min(seg.X1, seg.X2), Math.Min(seg.Z1, seg.Z2),
                     Math.Max(seg.X1, seg.X2), Math.Max(seg.Z1, seg.Z2)));
         foreach (var edge in d.FrontlineEdges)

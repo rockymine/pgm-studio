@@ -52,6 +52,26 @@ public sealed class SymmetryExpanderCarryTests
             Owner = "red-team", Anchor = new Pt(40, 12, 40), Lava = 3, LavaHeight = 3,
             OpenTop = true, Float = 6, Leak = 9, Box = new BlockBox(37, 18, 37, 43, 21, 43),
         }],
+        ControlPoints = [new ControlPointIntent
+        {
+            Name = "Side", Anchor = new Pt(0, 12, 30), Size = 7,
+            PadBox = new BlockBox(-3, 63, 27, 3, 63, 33),
+            CaptureBox = new BlockBox(-3, 63, 27, 3, 65, 33),
+        }],
+        Shops = [new ShopIntent
+        {
+            Id = "item-shop", Name = "Items", Keeper = new ShopkeeperIntent { Name = "Items", Mob = "Villager" },
+            Categories = [new ShopCategoryIntent
+            {
+                Id = "blocks", Material = "hard clay",
+                Items = [new ShopItemIntent { Material = "wood", Amount = 32, Payments = [new ShopPaymentIntent(1, "gold nugget")] }],
+            }],
+        }],
+        Spawners = [new SpawnerIntent
+        {
+            Id = "mid", At = new Pt(0, 12, 0), Drops = [new SpawnerDrop("emerald")],
+        }],
+        ScoreLimit = ObjectiveDefaults.ControlPointScoreLimit,
         Modes = [new ModeIntent("15m", "gold block")],
         IslandTeams = new Dictionary<string, string> { ["1"] = "red-team" },
         Structures = new StructureIntent { IronCubes = [new IronCube(4, 4, true)] },

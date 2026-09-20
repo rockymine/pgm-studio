@@ -33,6 +33,10 @@ Monuments step for a sketch-origin map because there is nothing there to author.
 group is the **imported** map: the one the scan reads a monument off, or fails to, and the colour an author
 never gets to choose on either kind.
 
+**And a drained programme's last entry lands here.** The hill and the shop are both built and both
+answerable over the API; what neither has is a step, so `TC7` and `TC9` sit with the surface that owes
+them one rather than with the contract work that shipped them.
+
 
 
 - [ ] **TC6 — Per-side focus: framing one team's quadrant while its unit is being worked.** *Parked on a
@@ -50,10 +54,23 @@ never gets to choose on either kind.
   **`WorldCanvas` and `world-bridge` stay**: the Configure tool's build-layer, core-casing and core-objective
   steps mount the same canvas, so what goes is the tool, not the surface it draws on. Take the route out of
   the smoke sweep's list and the nav rail with it, and grep `docs/` for the tool's own name in the same
-  commit — `capabilities.md` and `routing-and-ia.md` both describe it as a surface an author can open, and
+  commit — `routing-and-ia.md` describes it as a surface an author can open, and
   `docs/tools/edit.md` is the document that goes. `TE2` went with it: the tool's wool picker spelling the
   sixteen dyes a second way is a defect in a surface with no future, and `WoolColors` is already the one list
   every other reader takes.
+
+- [ ] **TC7 — The configure tool cannot place a hill.** The API is the way in — an agent adds
+  `controlPoints` to the intent it already posts (`docs/pgm/control-points.md` §9) — and the wizard has no
+  step for it. What the step states is a count and the anchors; the tuning is one shared block and already
+  has its answer (`capture-time="5s"`, `points="1"`, `<score><limit>750</limit></score>`), so the step fills
+  it rather than asking. The anchors are the plan's to derive and it does (`FEATURES.md`), so the step asks
+  for a count on a board with no plan behind it and shows what the plan already worked out on one with.
+
+- [ ] **TC9 — The configure tool cannot place a shop.** The API is the way in — an agent adds `shops` to the
+  intent it already posts (`docs/pgm/shops.md` §9) — and the wizard has no step for it. What the step states
+  is the menu: a name, a currency, and a list of material/amount/price rows. Where the keepers stand is
+  derived unless one names a place of its own (`docs/pgm/shops.md` §9), so the step offers the place and
+  fills nothing in where the board says nothing.
 
 ## The sketch tool: shapes, islands, and the ground they become
 
@@ -285,7 +302,86 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   fixes the derivation for maps imported after it and for none of the maps that exist.
 
 
+## The shop: buying things in the middle of a match
+
+- [ ] **PG16 — A spawner's drop height is the author's and nothing checks it.** `SpawnerIntent.At` carries a
+  `Y` and the slice writes it verbatim, so a generator stated a few blocks low drops into rock and one stated
+  high rains its stack down a cliff — neither says anything. A capture point has the opposite shape and the
+  right one for ground: `ControlPointIntent.Anchor` states no `Y` at all, and the pad is cut into whatever the
+  world build solved under it. A spawner cannot take that wholesale, because a generator on a built plinth is
+  a real shape, so what it wants is a way to say *on the ground here* — an absent `Y` resolved against
+  `terrain.SurfaceTop` at export, beside where the capture point's pad is cut
+  (`WorldBuilder.StampControlPoints`). Evidence: `SpawnerGenerator` runs in the document pass, before the
+  terrain exists, and `docs/pgm/shops.md` §10's worked example has to state `"y": 12` from a `column` read.
+
+- [ ] **PG15 — A spawner's rate cannot climb as the match runs.** `SpawnerIntent` states one delay, so the
+  corpus's commonest generator shape after the plain one cannot be authored: the same drop on the same region,
+  restated with a shorter delay behind a time filter. It wants a list of rungs on the spawner — a delay and
+  the minutes it starts after — with the slice writing one `<spawner>` per rung over the one pair of regions
+  and minting the `<after>` filter each names, since a filter id is a feature the intent does not author
+  either. Evidence: 369 of the corpus's 1,432 spawners carry a `filter`, and
+  `ctw/mame_i_shrunk_the_pvpers` states each of its two gold-nugget generators four times — `8s` plain, then
+  `5s` behind `after-30m`, `after-60m` and `after-90m`.
+
 ## The plan model: pieces, and the edges between them
+
+- [ ] **TN21 — a plan's `meta.authors` does not survive the compile.** `POST /api/plan/compile` answers an
+  intent whose `meta` is `{name, created: "", authors: [], contributors: []}` however the plan's own `meta`
+  was filled in, so a board driven plan-first exports with `EX6` — the observer platform's authors board
+  gets a heading and nothing under it — and the names have to be written onto the intent by hand afterwards.
+  `PlanCompiler` is where the intent's `meta` is built; carry `name`, `authors` and `contributors` across
+  from `PlanModel.Meta`. Evidence: `pgm-studio-mapgen`'s `techniques/walls-and-iron` plan states
+  `meta.authors: ["the technique cards"]` and the compiled intent comes back with `authors: []`; its
+  `compiled.txt` prints both.
+
+- [ ] **PG17 — `DC3`'s own text describes a verbatim write the export does not do.** The rule says a
+  material naming nothing the studio builds "writes into the map.xml verbatim while the blocks come out
+  obsidian, and a declared material matching nothing in its own region is a goal at zero health (`OB3`)".
+  Measured, both ends move together: a destroyable authored `materials: "diamond block"` builds three
+  obsidian and the export writes `materials="obsidian"`, so the `OB3` case the sentence warns of cannot
+  arise this way. Correct the rule's `means` to say the word is resolved rather than passed through, and
+  check `docs/pgm/destroyables-and-cores.md` for the same claim. Evidence:
+  `pgm-studio-mapgen/techniques/destroy-goals/mismatch.txt`, which posts it and reads the world and the
+  document back.
+
+- [ ] **G271 — A split band that is refused still carries no stone, so the crossing has neither an island
+  nor a bay.** `MidCarver.TryCarve` returns `[]` whenever `design.SplitBand` is set, on the reading that the
+  bay between the split's two legs is the island. But `SplitRun` grants the split only where the face admits
+  one, and the gap was already fixed at `EmptyHalfGapCells` when the request was made — so a refused split
+  spends the wide empty crossing and puts nothing in it. Carry the realised split out of the carve and lay
+  the row when it was refused. `docs/generator/model.md` §5.13.
+
+  *Evidence: `p8 rot_180 seed 2` (nano, `pgm-studio-mapgen/specs/opus5-cleftmoor`) — the band is
+  `x[-3,3) z[-4,4)`, exactly the 6-cell frontline hull and its own rot_180 image, so there are no two legs
+  and no bay; `mid 0/28` cells of the crossing's share, and 32 blocks of plain void from front to front.*
+
+- [ ] **G270 — A mid stone's depth is fixed before the hull that bounds its width is known, so a
+  narrow-fronted board under-spends the crossing.** `MidCarver.Crossing` sets the half-gap from
+  `StoneDeepCells` before allocation, because the allocator takes it as its axis margin; the width then comes
+  from the frontline hull the carve is handed. Where that hull is narrow the stone shrinks but the depth
+  cannot grow to compensate, so the mid spends **66–85%** of its share and 17–33% of boards carry no stone at
+  all — about half of those split bands (`G271`) and half hulls too narrow for one stone at the
+  wider-than-deep rule. Either the crossing is designed twice (a provisional gap, then a re-carve once the
+  hull is known) or the depth reads a hull the envelope can predict. `docs/generator/model.md` §5.13 and
+  `rules.md` amendment 35.
+
+  *Evidence: at centi the mid's share is 109 cells and the row spends 72 — `p32 rot_180 seed 0`, hull 21
+  cells, two stones of 7×6 where the share would buy 9×6.*
+
+- [ ] **G268 — A frontline spine docked flush on a hub wall makes one slab twice the corridor deep.**
+  The frontline's spine is one corridor deep and the hub's wall behind it is another, and the spine docks
+  edge to edge across its whole width, so the two read as a single solid run of `2 × corridor`. Measured
+  over 48 composed boards a band (`docs/world-scan/map-size-ladder.md`): the fault appears on **22–32 of
+  them at every band**, and its widest run grows with the corridor — 48×24 blocks at nano, 52×32 at micro,
+  100×32 at milli and 116×32 at centi — against a corpus whose own modal ground width is
+  10 · 14 · 16 · 16. The grid does not reach it: a board's modal width is 30 at micro on cell 5 and 29
+  on cell 4. `TeamUnitFiller` already prefers a strand frontline over the solid bar on a holed hub; what is
+  missing is the same preference read off the **edge the spine actually docks** rather than off the hub's
+  form. `docs/generator/model.md` §5 and `rules.md` `FR6`.
+
+  *Evidence: `p16 mirror_z seed 1` — `frontline-t1 z[5,9)` docked on `hub-t2 z[9,13)` across `x[-6,7)`:
+  52 × 32 blocks of unbroken ground.*
+
 
 `PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,
 each side's frontline share, the straits between bridged islands — and the lint table quantifies over it
@@ -323,117 +419,20 @@ and what a `subtract` takes away.
   wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
   from 2 isolated markers to **0** — the direction that reads as an improvement.*
 
-## Distance, and the walk every measure is taken with
+- [ ] **G263 — `WL2`'s "different lane" clause has no term, so a wool room may abut its spawn.** The rule
+  reads *"on a different lane than the spawn; wool↔spawn ≥ 20"* and only the distance half is built:
+  `SpawnWoolFloor` (hard, `MinBlocks = 20`) and `SpawnWoolDistance` (soft, `[27, 170]`) in
+  `src/PgmStudio.Pgm/Evaluate/Terms/SpawnTerms.cs`, both measuring the walk from the spawn **point** to the
+  wool **block**. `WL6` — one wool to a lane — has no term at all. Add a hard term beside them indicting a
+  wool-room piece that shares an edge with, or lies within a few cells of, a spawn piece; `PieceInterfaces`
+  already answers that seam. The composer cannot emit the shape — every composed wool unit is `boxes: 2`,
+  the room plus its lane, against a spawn's 1 — so only a hand-authored plan reaches it, which
+  `AUTHORING-BRIEF.md` asks authors for. `docs/generator/rules.md`.
 
-`Geom.Walk` is the traversal now — eight-connected and octile, charging a climb in the blocks a player places,
-counting a fall, slowing through water, narrowed per team where an `enter` rule bars one — and it runs over a
-set that reads a surface as somewhere a player can stand rather than as any column holding a block. 
-
-- [ ] **WE45 — `DR-PASS` still takes the widest side, and its width is absolute.** *Parked on a ruling: the
-  number, and what "every side" exempts.* The wrong-rectangle fault is fixed (`FEATURES.md`). What is left is
-  that the rule passes on **one** clear flank, so a building with three sides open and a two-block ledge on the
-  fourth stands; and that five blocks is absolute, so a twenty-block passage with a fifteen-wide house in it
-  leaves five and passes, which the author has ruled is not a way past.
-  `docs/world-export/decoration.md`.
-
-  **Why it is parked.** `DR-PASS` is a `Decline` — the building is dropped from the exported world — and the
-  entry's own measurement says every-side at five fails 76 of 122 buildings. Ten would fail more. Three things
-  have to be settled together: the depth; whether a flank over **void** is exempt (the rule text promises "a
-  coast house is a house", and today `Band` fails a flank with any missing ground, so `&&` alone declines every
-  coast house); and whether the verdict stays a `Decline` at that hit rate or becomes a `Complaint`.
-
-  *122 buildings on 32 boards: 4 fail today. A side with ground and under 3 clear blocks fails 51, under 5
-  fails 76. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*
-
-- [ ] **WS3 — A board has fork points, plural, they belong to a demand set, and `RouteFork` reports one.**
-  `PlanRoutes.Fork` takes the last cell common to *every* option and the first common to every option from the
-  target, so a journey with several decision points lands a split between them and describes none of them.
-  Compute a branch point **per option pair** — the last cell that pair shares — and report the set, each with
-  the pair it separates and how long the choice is live.
-
-  **And a fork is not a property of the board.** townside carries three (author): one leaving spawn, round the
-  hole the build zone frames; one at the second hole by the wool; and a third at *that same hole* for the run
-  back out with the wool, which is a different choice over the same ground. So a fork has to be reported
-  against the demand set it was read for — attack, defend, or the back-run — and the same hole can answer
-  differently for each.
-
-  *measured: townside's per-team lateral spread across the attack runs 41 · 49 | 5 · 5 · 11 · 3 | 14 · 41 · 33
-  | 7 — wide, narrow, wide. The single split reads (3,−8), inside the narrow stretch that is neither of the
-  two the attack actually has.*
-
-  **The narrow middle is not a funnel and must not be scored as one.** The two teams' median lines run 35–50
-  blocks apart through it and converge only at the objective: the crossing carries two ways and neither team
-  chooses between them, the same one-per-team partition ingwaz shows. Per-team spread cannot separate *one
-  way* from *two ways, one each*.
-
-  *Blocks the same-road read: `d(defender→fuse) + d(fuse→wool)` equals the defender's own walk on townside
-  (210 = 165 + 45) and exceeds it on kanto (115 against 95), which is the difference between the two sides
-  sharing an approach and the defender arriving from behind the objective. That test rests on a fuse position
-  this entry says is wrong on townside, so it wants re-checking once the forks are per pair.*
-
-- [ ] **B169 — Complain about spawn ground that carries nothing and contests nothing.** Raw size is not the
-  test (author): a spawn seated on a large rectangle that *is* the map is fine, and Mirefast's 92-wide
-  `steading` at least carries nine houses and two ramps. What fails is flat dead area around a spawn placed at
-  the back. The rule id exists — **`SP2`**, "a spawn sits near the back of its lane, because the space behind
-  a spawn is dead space" — and it composes with `ST9` (piece ≤ 20×20) and the door's approach (the first
-  20×20 in front of the door kept clear), so the measure to add is *what is this ground for*, not how wide it is. The 15-block
-  figure is a rule of thumb for the common case, not the rule.
-
-  **`GroundCoverage` answers this directly once it is honest.** *Dead* is already exactly "ground with no
-  route through it, no objective near it and nothing on it", named per patch with an area, a centroid and a
-  walk to the nearest used ground — which is the measure this entry asks for, phrased as the picture rather
-  than as a width. The walk it draws corridors with now prices a climb and a crossing and knows which
-  ground is granted, so what remains is the picture itself rather than the measure under it.
-
-  *author, 2026-08-14 · Weirgate's `yard` spans `x −40…40` against a spawn piece of `x −10…10`; Mirefast's
-  `steading` is 92 wide for a 20-block spawn. The corpus does not support a spawn-isolation rule: `dtcm` puts a
-  spawn a median 7.5 blocks from the board edge and the generated ones sit 5–15 out.*
-
-- [ ] **G65 — FannedGraph ↔ ContactGraph adjacency reconcile (deferred from G59).** `FannedGraph.LandAdjacent`
-  (reachability) still diverges from the rect-layer authority `ContactGraph` on one count: any area overlap
-  connects regardless of surface delta, while `Components` unions an overlap only at `SurfaceDelta == 0`.
-  (The corridor-width half was reconciled — `LandAdjacent` now accepts Narrow seams, matching `Components`.)
-  Pick one rule for the overlap case and add a test; needs per-node surface carried into the fanned graph and
-  validation against the traversability harness (`tools/PgmStudio.RoundTrip --traversability`).
-
-  **It gates route enumeration, which raises it from a consistency chore.** `G127`'s flow read counts attack
-  routes at piece fidelity — four on `p30-s374`, from two frontline legs × two wool doors — and a route count
-  is an enumeration over piece adjacency. While the two graphs disagree about what "adjacent" means for an
-  overlap, the count depends on which one was asked, and nothing at the call site would say so. Whichever
-  rule is picked, the route reader must name the graph it read.
-
-- [ ] **G187 — The funnel capacity, and a flow term the evaluator can fire.** Plan-tier flow is read
-  already: `PlanFlow.Read(plan)` takes a `PlanModel` and `GET /map/{slug}/plan/flow` serves it, `PlanRoutes`
-  reads one journey's corridor and the holes on it, and `Cells.WaysRound` is built and called from
-  `PlanRoutes.cs:169`. Two things are left. **`MinVertexCut`** — unit-capacity vertex max-flow, the funnel
-  capacity `match-flow.md` §2 asks for — is the one `Geom.Cells` primitive still missing. And no flow
-  reading reaches the evaluator: its 29 terms walk the surface for distances (`SurfaceNav`) and `Evaluate/`
-  cites neither `PlanRoutes` nor `PlanFlow`, so a dead-share term wants writing over the answer `PlanFlow`
-  already gives — at `POST /plan/evaluate`, the first call in the loop, before a map row exists. That
-  second half is what makes `G164` a short consumer rather than a project.
-
-  **`WaysRound` cuts with a ray, and `MinVertexCut` is a capacity rather than a second way count.** Counting
-  the cut's components answers the opposite question on the same corpus — "rotation never splits on any ring
-  board" against "splits on nearly all of them" — because an uncuttable door cell inside one barrier splits
-  it into two fragments with no second route.
-
-  *Two-legged frontlines: 265 objectives, **97%** reachable more than one way; a plain bar, 375 objectives,
-  **38%**. Second ways are a median 1.31× the first and never worse than 1.92× — routes, not escape hatches.*
-
-- [ ] **G164 — interference: how much of one side's route the other side's route covers.** Every flow
-  measure so far reads one traversal at a time, and a single route cannot express tension. Tension is two
-  corridors laid over each other: the attacker pushing from a captured wool room toward the remaining
-  objective, and the defender travelling from spawn to the same objective. The measurable is the fraction of
-  the defender's corridor that the attacker's corridor also covers, computed on the cell mask the same way
-  the corridors already are. Measured over 453 two-wool boards at `marker-id-1`: median **34%**, half or more
-  on 27%, and **no board reaches zero** — passing the reinforcement lane is unavoidable on generated output.
-  This is the term that gives a hub void a purpose the ways-round-a-void count cannot: on a holed hub the
-  near way leaves 76% interference and the far way 37%, and the far way measurably reduces the collision on
-  74% of the boards offering one, so a layout whose two ways collide equally has bought nothing. Derive side
-  belongs beside `BoardDeriver`; the term belongs in `Evaluate/Terms`. It reads a pair of routes rather than
-  one, so the origin "a captured wool room" comes from G168's post-capture state — until that exists,
-  computing it once per wool treated as captured is the honest stand-in. Background and the full numbers:
-  `docs/gameplay/match-flow.md` §2, §4.9.
+  *`opus5-redmarl` places `dye-w [-13,-26,5,4]`, `yard` (spawn) `[-8,-26,7,4]` and `dye-e [-1,-26,5,4]` in
+  one row with their edges touching, 8 blocks apart in the built world. `POST /plan/evaluate` answers
+  `score 0, valid true`, because the walk it measures is 33. `opus5-mirkholt` and `opus5-flintwick` are the
+  same shape; `opus5-coinfall` is the counter-example, with a 15-cell `run` piece between the two.*
 
 ## User Experience
 
@@ -515,20 +514,6 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   `/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
   no home on a map-backed plan.
 
-- [~] **RP23 — `docs/tools/capabilities.md` is 707 lines answering "what can I ask for", which the API now
-  answers itself.** The schema names every route, its body and its failure codes; `GET /api/rules` names
-  every refusal with its fix; `GET /map/{slug}/state` puts the allowed moves on the map's own response.
-  What prose is good at and this file is not organised around is the other half: **how to make a good map** —
-  what an objective needs around it, what the corpus does — as against **what the system can be asked for**.
-  Split it on that line: the capability half goes, the craft half moves to where its subject lives under
-  `docs/gameplay/`.
-
-  The mapgen half landed: `pgm-studio-mapgen`'s six root documents became two, and `AUTHORING-BRIEF.md`
-  points at the four self-describing reads instead of restating them. This entry is the studio's own side.
-
-  *Five authored boards never opened it. What they read instead was `relief.md`, `decoration.md`,
-  `terrain-painting.md` and the endpoint tables inside them — the split this entry proposes, observed.*
-
 - [ ] **C51 — Nineteen selects outside the authoring surface are still hand-rolled.** `Select` and
   `StyleSelect` serve the library and the terrain components (`B259`, `FEATURES.md`), and the sketch tool's
   three inspectors have since adopted them. What is left is 25 raw `<select>` — the plan tool 10
@@ -555,9 +540,143 @@ set that reads a surface as somewhere a player can stand rather than as any colu
 
 ## The remainder: work no concept above has claimed
 
+- [ ] **RP72 — One unbindable field discards the whole intent, at 200, and the export gate opens on it.**
+  `POST /map/from-documents` answers 200 and stores a map with **no teams, no spawns and no objectives**
+  when the intent carries one field the binder cannot read. Nothing is raised: no `RQ3`, no `warnings`
+  entry, no `Warning` header, and `GET /preflight` then answers `exportReady: true` on the result. The
+  binder's failure to read one property is taken as the whole object being absent, so the deserialized
+  intent is a default instance and every downstream reader agrees it is a valid empty one. A refusal
+  belongs where the binder gives up; an intent that states teams and comes back with none is the one
+  shape `RQ1` exists to catch. `docs/refusals.md` carries the gate catalogue.
+
+  *Evidence, reproducible on the running studio: post `opus5-fallowgate`'s own plan, layout and intent
+  under one slug, and the same three with `"modes": ["dtm"]` added to the intent under another. `modes`
+  is a real `MapIntent` field and takes `ModeIntent` objects rather than strings. Both answer 200 with no
+  warning header. `GET /map/probe-control/intent` reads `teams 2, spawns 2, destroyables 2`;
+  `GET /map/probe-badmodes/intent` reads `teams null, spawns 0, destroyables 0`. Both preflights read
+  `exportReady: true`.*
+
+- [ ] **RP73 — `crown` is signed in world space, so a positive crown fills a negative push back in.**
+  `ReliefSolver` adds the crown to the amount without regard to the amount's sign
+  (`Relief/ReliefSolver.cs:478`, `amount += push.Crown * PushMark.Ease(...)`), so on a push of amount −12
+  a crown of +12 returns the floor's centre to the surrounding level and only a negative crown dishes it.
+  The field's own docstring is written from a raising push — *"how much higher the middle of the push
+  stands than its edge"* (`Geom/Relief/Marks.cs:331`) — and says nothing about the other direction, which
+  is the direction a pit is made in. State it in the docstring and in `docs/world-export/relief.md`. The
+  editor's default of 2 against the record's 0 is the same fact with teeth: a pit knobbed up in the
+  inspector starts with a two-block mound in its floor.
+
+- [ ] **WE129 — A house excavates its footprint with no ceiling and nothing reports how much.**
+  `Decorator.Ground` seats a house at `lowest - 1`, the minimum first-air-Y over `plan.Cells()`
+  (`Dressing/Decorator.cs:1033`), and `Decorator.Excavate` then clears every footprint column from
+  `floorY + 1` to its own surface (`Decorator.cs:1051`). Both are deliberate and right on a slope. Neither
+  is bounded: a footprint whose lowest cell sits in a pit deletes that whole depth across the plan and the
+  building stands in the hole it dug. `DR-SLOPE` is the only guard and it tests the same `rise` against the
+  building's own height (`Decorator.cs:812`), so a shell tall enough to afford the rise excavates it in
+  silence. Raise a complaint carrying the courses removed and the columns they came off — `Excavate` holds
+  both numbers at the moment it removes them. Whether it should also *refuse* past some depth is the
+  author's call and is not assumed here. `docs/world-export/decoration.md` §the seating rule.
+
+  *Evidence: `opus5-whitegape`'s `works-shed` on a yard whose surface is y23–24 seated at y13, the quarry
+  floor. `column (2,-50)` reads the yard face as stone brick y19–23; `column (3,-50)` one block east reads
+  the shed's brickwork starting at y13. Rise 10 against a two-storey `buries` of about 13, so `DR-SLOPE`
+  stayed silent. `decoration.md:767` already records the same failure on `opus5-ravensmere`.*
+
+- [ ] **WE130 — `sketch/seats` answers a question it cannot answer for a house.** The seat query reports the
+  yard beside a quarry as a legal seat, because the three rules that read the built world — `DR-CROSS`,
+  `DR-WAY` and `DR-SLOPE` — are the dressing pass's to raise and not the query's
+  (`Api/Endpoints/SketchEndpoints.cs:483`). An author who asks `seats` before placing a building, which is
+  what the skill tells them to do, is told yes and then gets a building in a hole. Either the query runs the
+  seating arithmetic it is being asked about, or its answer says in terms which questions it did not ask.
+  `docs/tools/sketch.md` carries the endpoint.
+
+- [ ] **RP71 — A map cannot be deleted.** The API carries 26 `DELETE` routes and every part of a map is
+  removable through one — layers, groups, shapes, vertices, props, relief, themes, biome, room styles, teams,
+  wools, spawns, regions — and none removes the map row. `DELETE /map/{slug}/sketch/discard-if-empty` drops
+  only a pristine never-drawn draft, so a map that stored once is permanent short of SQL. Every `map_id`
+  foreign key is already `ON DELETE CASCADE`, so the work is one endpoint over `MapRepository`, not a schema
+  change. It matters for a driver rather than for the browser: a spec re-driven under a corrected slug leaves
+  the old one behind, and a harness that builds a map per variant has no way to clean up after itself.
+  Lands beside the other whole-map routes; `docs/architecture.md` carries the route surface.
+
+  *Evidence: seven scratch maps (`stage-01-ground` … `stage-07-dressed`) were left in the dev database by a
+  staging harness that had no route to remove them, beside the two real maps.*
+
+
+- [ ] **WS68 — Every built board reads `bridgeable 0`, because the export grants building by forbidding it
+  everywhere else.** `BuildGenerator` wraps the buildable rectangles in the `not-build-area` negative and
+  applies `block-place=not(void)` to it — the corpus idiom `docs/pgm/template.xml` writes — so inside the
+  build region *nothing* applies. `Editability.Zones` sets `granted[i]` only on an explicit `Allow`, so those
+  cells come back `ground` rather than `build_zone`, and `WorldWalk`'s bridgeable set counts `build_zone` and
+  `filtered` only. The reads that stand on it — `reach`, `coverage`, the walk tiers — therefore treat a
+  crossing nobody is forbidden to bridge as unbridgeable. Read a void column inside a region whose only rule
+  is a negative void-deny as a grant, in `Editability.Zones`; `docs/world-scan/read-backs.md`.
+
+  *Evidence: `pgm-studio-mapgen/specs/opus5-stannerford` exports `<rectangle id="build-area-1"
+  min="-16,-20" max="16,20"/>` under `not-build-area`, and its `renders/04-reach.txt` reports
+  `bridgeable 0` while calling the mid stone at `x -12..11, z -8..7` (384 cells, floor y12) and the whole
+  opposing half at `x -24..39, z -92..-21` (2363 cells) `no-build-zone`.
+  `grep -o 'bridgeable [0-9]*' specs/*/renders/04-reach.txt` answers 0 on all 40 boards there.*
+
+- [ ] **WS69 — A stated bedrock wall is the walk's worst step, and a transect over the same two cells
+  disagrees.** A plan's `walls` entry stamps three bedrock courses and a cobweb cap across a wool-lane
+  interface (`PlanCompiler.BedrockCourses`), which is the feature and not an obstacle: bedrock cannot be
+  destroyed so a defender builds on it, and four courses is what an attacker bridges (author).
+  `WalkProfile.Events` words every rise from `Walk.StepWord` alone (`WalkProfile.cs:38`), so the climb onto
+  a wall reads `barrier` and sets `worstStep`, and a reader taking `worstStep` for the board's worst fault
+  condemns a wall the map states deliberately. The profile is the site: `Of` and `Events` take the path only
+  while the endpoint already holds `read.Built.Provenance` at the call (`WorldReadEndpoints.cs:904`) — pass
+  it, word a step landing on a `wall` claim as the wall it is, and keep it out of `WorstStep`.
+  `docs/world-scan/read-backs.md` §what a walk costs.
+
+  *Evidence: on `technique-composed-4-taken-over`, `walk?from=-14,60&to=-14,76` crosses with 3 blocks placed
+  and answers `worstStep 4` with `{"x":-14,"z":67,"rise":4,"word":"barrier"}`, while
+  `transect?points=-14,60;-14,76` over the same line reads the ground under the wall as 14→15, names both
+  stations `wall 0`, and answers `worst step 1: 0 barrier`.*
+
+- [ ] **WS70 — `walk?beside=` cannot name a wall, because its set is an allow-list documented as a
+  deny-list.** `WalkProfile.StandingKinds` lists nine kinds (`WalkProfile.cs:52`) under a docstring reading
+  "everything but the ambient cover (`flora`) and the paint (`stroke`)", and `StampId` documents thirteen —
+  so `wall`, `roomfloor` and `redstoneline` are absent from every `beside` answer without anyone having
+  decided they should be. A route that climbs a bedrock wall reports nothing beside it. Name the kinds a
+  player meets, `wall` first, and state the set as what it holds rather than as what it drops.
+  `docs/world-scan/read-backs.md` carries the query word.
+
+  *Evidence: `walk?from=-14,60&to=-14,76&beside=3` on `technique-composed-4-taken-over` answers `beside: []`
+  at every radius 1–3, while `transect` over the same line names `wall 0` at (−14, 67) and (−14, 68) — two
+  cells the route itself passes through.*
+
+- [ ] **WS71 — A crown over void is a standing place for the walk and a void column for every other
+  read.** `WalkGround.OfSpans` offers a place for any span top with `Walk.Headroom` clear over it, so the
+  top course of a canopy hanging past a piece's rim is ground the walk will route over and will seed
+  `WorldWalk.Level` from, while `column`, `transect` and the census all answer that the column has no
+  ground. Both answers cannot be right, and which one is wanted is the author's call — a player *can*
+  stand on leaves, and a route that climbs a tree to get somewhere still makes `worstStep` an answer about
+  the canopy rather than about the board. A crown over the void is not itself irregular: `template.xml`'s
+  `block-break-void-filter` allows breaking leaves and logs inside the void region, so the contract already
+  expects tree parts to hang past a board's edge (the author's ruling). **Blocking question: may a walk stand on a prop at all, or is a
+  prop's own volume out of the walk the way a house's interior is?** The fix follows from the answer and
+  not before it; `docs/world-scan/read-backs.md` §what a walk costs carries the walk's own account of a
+  place.
+
+  *Evidence: on `technique-composed-4-taken-over`, whose oaks stand on the back bar's outer rim,
+  `column?at=-4,57` answers four blocks of oak leaves over void and `transect` calls that station `void`
+  with `top 21, standing tree oak-path-c`. `walk?from=-2,54&to=-4,57` answers reachable, `barrier +8`,
+  `worstStep 8`, standing at `(-2, 56, 21)`, `(-3, 56, 22)` and `(-4, 57, 22)` — three places in the
+  canopy, none of them over ground.*
+
+- [ ] **WE124 — A room's stamp is a block out of place on its mirror image.** The frame a room is built out
+  from is measured from the piece's own minimum corner, and `rot_180` maps one piece's minimum corner onto
+  its image's maximum, so everything the stamp does not centre — the bay, the ridge, the storey posts —
+  lands a block off on the far team's copy. Measure the frame from its centre instead, so a room and its
+  image stand on the same columns. Evidence: on `pgm-studio-mapgen/specs/opus5-coinfall`, whose two camp
+  pieces are exact mirror rectangles (the mirror gate passes), the halls stamped in them are not —
+  `column?at=2,-72` tops out at `y 38` against `y 40` at its image `column?at=-2,72`, and `column?at=0,-68`
+  is open grass where `column?at=0,68` carries roof at `y 32`.
+
 - [ ] **TL15 — Anything can be filed as a `copied` tree.** `copied` means cut out of a world
   (`docs/tools/library.md`, the author's ruling) and `tools/seed-trees.cs` over
-  `pgm-studio-mapgen/showcase/tree-showcase` is the only thing that cuts one, but `PropStyleLibrary.Save`
+  `pgm-studio-mapgen/corpus/tree-showcase` is the only thing that cuts one, but `PropStyleLibrary.Save`
   takes `form: "copied"` with the request's own `Body` array, so a board can post a block list it made up and
   the row is indistinguishable from a cut one — which is how a dead-bush cluster, a log pile and a crate came
   to be filed as trees. What is wanted is the **refusal**, not a provenance card: give `TreeStyleRow` the cut

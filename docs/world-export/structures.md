@@ -17,9 +17,9 @@ alike. Read alongside:
 - `docs/pgm/destroyables-and-cores.md` — the style-as-data precedent (§5 below).
 - `docs/tools/sketch.md` — the tool that binds the shells (its Theme phase) and stamps the same house as a
   dressing prop.
-- `docs/tools/capabilities.md`'s renderer section — every structural stamp here, and the house `decoration.md`
-  §8 stamps, claims `WorldProvenance`'s `Structure` layer as it is placed, which is what lets a stage image
-  and `--structures` read "built" from a recorded fact rather than from a block's material (`B133`).
+- `docs/world-export/decoration.md` §9 — every structural stamp here, and the house `decoration.md` §8
+  stamps, claims `WorldProvenance`'s `Structure` layer as it is placed, which is what lets a stage image and
+  `--structures` read "built" from a recorded fact rather than from a block's material (`B133`).
 
 **Two stamp concepts, not one.** A *structural* stamp — the spawn building, the wool cage, the bedrock
 approach wall, an objective marker — is objective-defining and generator-emittable, so it is authored in the
@@ -119,17 +119,32 @@ rounding it away.
 
 ## 3. The marker and the pad
 
-The marker is not the structure anchor; it is what it semantically reads as — the wool/player spawn
-point inside the room, realized as the floor pad. Placement lives on the half-cell lattice; the
-marker is never freely placeable.
+The marker is not the structure anchor; it is what it semantically reads as — the point something
+enters the match at, realized as the floor pad. Placement lives on the half-cell lattice; the marker
+is never freely placeable.
+
+**The pad belongs to no structure** (`SpawnPad`, `PgmStudio.Domain`). It is a marker, a square and a
+block: the parity below picks the square, the caller states the block, and the ground the square has
+to stay inside is *passed in* rather than implied. A room passes its interior already inset by the
+clearance it keeps to its walls, and everything in WX3–WX5 then reads as written. A caller with no
+room — a generator standing on open terrain — passes none, and the pad lands on its marker at the
+size its parity asks for, with nothing to clamp against and nothing to narrow it.
+
+**What the pad is for picks its size beside the parity** (`PadUse`). A pad somebody **arrives on** —
+a spawn room's, a wool room's — is grown past the blocks its marker touches, because a team standing
+on one block is a team standing in each other. A pad that only **marks** a place — a generator's
+drop, where the ground beside it is nobody's business — covers exactly the blocks its marker touches
+and no more: the one it is the centre of, or the four it corners. The two agree on a grid line,
+because there is no smaller square centred on a corner than the four blocks sharing it.
 
 - **WX3** *Parity picks the pad class, and the pad is always square.* A marker on a block
-  **grid line** takes the **2×2** pad straddling it — the only size for that parity. A marker on a
-  **block centre** takes a **3×3** pad when the room affords it (WX4), else **1×1** — the degrade
-  applies to both axes together, so a 1×3 never exists. Nothing larger than 3×3 exists. Parity must
-  match on both axes: a mixed-parity marker (a grid line in x, a block centre in z) has no square
-  pad and is **refused at validation**, pointing at the two legal lattice choices. The composer
-  never emits one: a room an odd number of blocks across on one axis has a mixed centre, so
+  **grid line** takes the **2×2** pad straddling it — the only size for that parity, whatever the
+  pad is for. A marker on a **block centre** takes a **3×3** pad where somebody stands on it and the
+  room affords it (WX4), and **1×1** otherwise — which is what a marking pad takes there outright.
+  The degrade applies to both axes together, so a 1×3 never exists. Nothing larger than 3×3 exists.
+  Parity must match on both axes: a mixed-parity marker (a grid line in x, a block centre in z) has
+  no square pad and is **refused at validation**, pointing at the two legal lattice choices. The
+  composer never emits one: a room an odd number of blocks across on one axis has a mixed centre, so
   assembly nudges that axis half a block onto a grid line (`Composer.MarkerOffset`).
 
 - **WX4** *Clearance and minimal shift.* The pad keeps **at least one block of clear floor to every
@@ -151,7 +166,10 @@ marker is never freely placeable.
 - **WX6** *Doors sit on the entry interfaces, and a build zone is one.* The wool cage's doors are
   cut where the room is actually entered: a terrain↔room **land seam**, or an **abutting build
   zone** — players bridge in through the build region, so that interface carries a door and the ST1
-  entrance redstone line exactly as a land seam does. Doors are never centred one per wall: a long
+  entrance redstone line exactly as a land seam does. A land seam here is what
+  `ContactGraph.IsLandInterface` calls one, which is `Land` **or** `Narrow`: an interface shorter
+  than the ten-block corridor minimum is a doorway rather than a wall, and a room reached only that
+  way is reached. Doors are never centred one per wall: a long
   room with four centred doors would open two of them into the bedrock ring. A room with **neither**
   interface is genuinely unreachable and is refused at validation.
 
@@ -242,14 +260,16 @@ the preview both call, so the stamped volume, the emitted region and the drawn b
 
 1. **The frame** — `RoomFrames.Resolve` (`PgmStudio.Domain`), a pure resolver
    `(piece rect, marker, entry rects | yaw edge) → RoomFrame`: the inset footprint, the interior,
-   the pad (after WX3/WX4), and the doors. `WorldBuilder.WoolFrame`/`SpawnFrame` derive it
+   the pad (`SpawnPad.Fit`, handed the interior after WX3/WX4), and the doors. `WorldBuilder.WoolFrame`/`SpawnFrame` derive it
    (with the legacy default for piece-less markers) and `PlanStructurePreview` consumes the same
    derivation — the preview cannot lie. The floor is the highest surface over the footprint
    (`WorldBuilder.FrameFloor`), which is its own mirror, so orbit images rest level.
 2. **The shell template** — `CubeStamper` stamps the frame's footprint: floor + perimeter walls +
    roof, each a course stack its `RoomStyle` supplies (§7), the roof hole proportional with a cap
    (`RoofHoleSpan` — the 8-wide shell keeps its 4×4 hole), then the pad and the doors stamped over
-   them.
+   them. `PadStamp.Lay` writes the pad: one square of the block the caller names — the team's wool
+   for a spawn, the objective's for a wool room — and it answers the point that square resolves to
+   (WX5), which is the whole of what a caller gets back.
 3. **The furnishers** — `RoomFrames.InteriorCorners` seats the chest stacks and
    `RoomFrames.MonumentSlots` the monuments (door-wall corners, back-wall corners, then the walls
    fill, skipping the door opening). A larger spawn room gains monument capacity from its longer
@@ -463,30 +483,45 @@ exempts the wing the roof belongs to, and the wall pass stops under whatever cou
 claimed there. Wings never share a cell, so nothing else
 moves — a marched or projected column stands inside *another* wing and is clamped exactly as before.
 
-**Only the highest roof over a cell is written there**, and that one comparison is what makes the union a
-building rather than two roofs in the same place. Where two wings' plans overlap the lower surface stands
-*inside* the higher one, and a roof block inside a building is not a roof — it is an obstruction in the attic.
-So a wing lays nothing at a cell another wing's field crowns higher. This is the cut a projecting wing makes in
-the roof it pushes into: the hall's eave course stops at the wing's opening instead of running over the room
-behind it, and the two lofts are one space. It is not a max of crowns — no surface is blended and no field is
-touched; each wing still answers for itself, and the comparison decides only which of them is the one showing.
+**Only the highest roof over a cell is written there, and crowning higher is not on its own enough.** Over its
+own rectangle a wing's roof is the lid on a room, so a lower surface under it stands *inside* the building, and
+a roof block inside a building is not a roof — it is an obstruction in the attic. That much a wing gives way to
+whatever it is covering, and it is the cut a projecting wing makes in the roof it pushes into: the hall's eave
+course stops at the wing's opening instead of running over the room behind it, and the two lofts are one space.
+It is not a max of crowns — no surface is blended and no field is touched; each wing still answers for itself,
+and the comparison decides only which of them is the one showing.
 
-The same comparison keeps a gable's overhang open, which is the other thing it is for. **A verge climbs and an
-eave does not**: the cells beneath a verge overhang are air, because nothing sheds onto them, while an eave
-overhang is a solid course running the length. Where a wing's eave overhang reaches the column another wing's
-gable oversails, the verge crowns higher and the eave gives way. Laid the other way round — and it was — the
-eave fills the triangle and a gable end reads as a filled panel instead of a roof hanging past its wall.
+**Out past the walls there is no room to be inside, and two overhangs settle it differently.** A cell a roof
+covers beyond its own wall line is overhang and nothing else, and an overhang gives way only to a **verge**
+overhang. Both halves carry weight. *A verge climbs and an eave does not*: the cells beneath a verge overhang
+are air, because nothing sheds onto them, while an eave overhang is a solid course running the length — so
+where a wing's eave overhang reaches the column another wing's gable oversails, the verge crowns higher and the
+eave gives way, and the other way round the eave fills the triangle and a gable end reads as a filled panel
+instead of a roof hanging past its wall. And *a roof over its own walls is the cover on its own rooms*, which
+no neighbour's eave may hollow out: a lower wing running into a taller one meets that eave along the whole row
+where the two rectangles touch, and reading the crowns alone there takes the wing's roof out for the length of
+the joint and leaves its gable standing open under the eave.
 
 **A face rises only where the building is outside it.** The walls climbing to meet the roof are built on the
 **body's** perimeter, not on each wing's own rectangle: the side of a wing that stands against a neighbour is
 not an outside face but a doorway between two halves of one building, open at the storey and open above it.
 Filled anyway it walls the wing's loft off from the hall's. So **a marching T carries three gable faces and a
-projecting one carries four** — the difference between the two junctions, stated as something countable.
+projecting one carries four** — the difference between the two junctions, stated as something countable. The
+window in a gable is held to the same outline, because it is cut into that face: a window centred on the side a
+wing stands against its neighbour on has no gable to cut and comes out as a pane hanging in the air between two
+roofs.
 
-**A verge is the outer rim of a roof, so no cell inside the outline is one.** A building of several wings has a
-single outline however many rectangles drew it, and the rim is read from the roof plan as a whole — a cell with
-a neighbour outside it. Read from the wing instead, a march's first step lands exactly on that wing's own
-overhang line and stamps verge in the middle of the roof it has just run into.
+**A rim is where a roof stops, which is a question about height rather than about plan.** Two readings settle
+it, both asked of the column being laid. The first is whether this roof carries on: a neighbour the same wing's
+field covers, or its own march reaches, is no edge however far the slope falls, because the riser under the
+next column closes the step. Read from the wing's rectangle instead, a march's first step lands exactly on that
+wing's own overhang line and stamps verge in the middle of the roof it has just run into. The second is what
+stands beside it — a roof at the neighbour that reaches this column's own band, to within the course of slack a
+riser leaves, carries the surface on; one standing clear of it, below or above, leaves a face, and a face is
+what a verge covers. Two wings of one building share an outline and not a surface, so a taller wing
+looking out over a lower one, or a lower one running on under a taller one's eave, has a neighbour inside the
+plan and open air beside it all the same; answered from the plan alone that whole edge comes out in roof body,
+which reads as the fill bleeding through the border.
 
 **A wing may state which way its ridge runs, because its own proportions cannot know whether it crosses
 anything.** A roof pitches across the shorter side, so by default the ridge lies along the longer one — and

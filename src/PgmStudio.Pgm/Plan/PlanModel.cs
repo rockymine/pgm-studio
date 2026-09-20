@@ -256,8 +256,11 @@ public sealed class PlanReference
 /// <see cref="Surface"/> stays exactly as it was — load-bearing and correct as a plan-space concept.</para></summary>
 public sealed class PlanGlobals
 {
-    /// <summary>Blocks per proxy cell — the scale every rect in the document is measured in.</summary>
-    [JsonPropertyName("cell")]       public int Cell { get; set; } = 5;
+    /// <summary>Blocks per proxy cell — the scale every rect in the document is measured in. Four when a
+    /// document does not say, which is the scale the plan tool starts a new board at and the composer draws
+    /// on: the widths a board is built to are stated in blocks, and a four-block cell carries three of the
+    /// five bands' lanes exactly.</summary>
+    [JsonPropertyName("cell")]       public int Cell { get; set; } = 4;
 
     /// <summary>How the authored unit is fanned into the rest of the board: <c>rot_180</c>, <c>rot_90</c>,
     /// <c>mirror_x</c> or <c>mirror_z</c>.</summary>
@@ -426,6 +429,18 @@ public sealed class PlanPlacements
 
     /// <summary>The DTC goals this team defends, each an anchor column the structure floats above.</summary>
     [JsonPropertyName("cores")]        public List<CorePlacement> Cores { get; set; } = [];
+
+    /// <summary>How many capture points the board is played for, or absent for a board played for none.
+    ///
+    /// <para><b>A count rather than a list, and the only placement here that names no piece.</b> Every other
+    /// marker belongs to a team and therefore to that team's ground; a capture point belongs to nobody, so it
+    /// has to be the same walk for everyone and the only positions that are lie on the board's own axes of
+    /// symmetry. The count and the spawn frame give every anchor (<see cref="Authoring.ControlPointLayout"/>),
+    /// which is why there is nothing per point to state.</para>
+    ///
+    /// <para>Not in <see cref="All"/>: that walks the markers ids are minted for, and a count is not one.</para>
+    /// </summary>
+    [JsonPropertyName("controlPoints")] public int? ControlPoints { get; set; }
 
     /// <summary>Every marker with the word for its kind — the order ids are minted in, and the one place a
     /// pass over "all the markers" is written.</summary>

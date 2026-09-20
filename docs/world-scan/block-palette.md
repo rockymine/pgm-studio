@@ -17,8 +17,8 @@ the game, so a render that paints each its own true colour paints one indistingu
 and its per-layer isolations therefore read `PgmStudio.Minecraft.RenderCategories` by default — five
 deliberately unrealistic hues, one per coarse category, chosen for separation on the wheel rather than for
 resemblance to the game — and fall back to this table's real colours only on request (`--material`), for a
-caller checking a theme's actual paint rather than the map's shape (`docs/tools/capabilities.md`'s renderer
-section, `B98`). Every other consumer named above — the picker, the previews, the slice dump — keeps reading
+caller checking a theme's actual paint rather than the map's shape (`docs/world-scan/read-backs.md`'s reads
+table, `B98`). Every other consumer named above — the picker, the previews, the slice dump — keeps reading
 this table unconditionally, because showing an author a false colour for the material they are about to place
 would be the opposite mistake.
 
@@ -26,8 +26,8 @@ would be the opposite mistake.
 table answers "what does block X look like", which is a question about the block alone; it cannot answer
 "was this column built or is it terrain", because the same block — stone brick, quartz, stained clay — is
 worn by a cottage wall, a paved plaza, and a hillside an author painted to read as built. A built world
-carries the real answer beside its voxels (`PgmStudio.Minecraft.WorldProvenance`, `docs/tools/capabilities.md`'s
-renderer section, `B133`), and `RenderCategories.Of(blockId, provenance)` reads that instead of the block
+carries the real answer beside its voxels (`PgmStudio.Minecraft.WorldProvenance`, `docs/world-export/
+decoration.md` §9, `B133`), and `RenderCategories.Of(blockId, provenance)` reads that instead of the block
 whenever it is available; only a world the studio scanned rather than built — where nothing recorded what
 placed a block — falls back to this table's category guess for that pair.
 

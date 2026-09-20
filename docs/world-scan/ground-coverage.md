@@ -61,9 +61,11 @@ players decline.
 What remains is one of two things. Ground within `PropRadius` (4) of a placed tree, boulder or building is
 **decorated** — scenery a player at least looks at, which is a legitimate finish for a destroy board's
 edges. Everything else is **dead**: no route through it, no objective near it, nothing on it. Dead ground is
-clustered into 4-connected **patches**, each reported with its area, centroid and the walk from its nearest
-cell to the nearest reached ground — the numbers that say whether a patch wants a point of interest, a prop,
-or deleting. Patches under `PatchFloor` (25) cells are counted but not named.
+clustered into 4-connected **patches** by `Cells.Stretches`, each reported with its area, centroid and the
+walk from its nearest cell to the nearest reached ground — the numbers that say whether a patch wants a
+point of interest, a prop, or deleting. Patches under `PatchFloor` (25) cells are counted but not named.
+The plan tier asks the same verb at its own floor, so what counts as a place is one rule read at two
+fidelities rather than two rules that happen to agree.
 
 This is a **measurement, not a rule**: nothing refuses or scores on it yet. The dead *share* over the ground
 total is the number that says whether a board is too big for what it plays — the judgement the goal-ratio

@@ -1549,6 +1549,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   Everything else is compared as id and data both. A column's finish is one XOR-folded fingerprint over its
   blocks' heights and materials, so the sections may arrive in any order.
 
+- **The flora overlay folds too, and the whole of it (WE123).** A ground cover is noise, so the density
+  field, the flower field and the species shares are functions of position — read at the cell itself, a cell
+  and its image grow two different things, and a board comes out with a meadow thick for one team and thin
+  for the other. Only the two-block cover folded, on the argument that a flower bed decides nothing and two
+  identical ones read as a glitch; the author's ruling is that a board is fair or it is not, and this is a
+  pattern like any other. Every field `PickPlant` reads now goes through `OrbitScatter.Canonical`, the same
+  fold `WE42` paints through. What a cell still answers for itself is `SoilShare`, the paint actually under
+  the block, which is symmetric already for the same reason. `PropClass` is deleted with the rule it existed
+  to state — nothing read it, and `Plant.Tall` is what keeps two-block cover off a goal's own ground.
+  Measured on `fable-saltwharf`, the one board of four carrying a flora prop: **1,788 of 11,992 columns not
+  mirrored, and 32 after** — of which none is a plant the fold decides. Sixteen are a spawn's door-approach
+  keep-out landing a block off its mirror and the flora correctly refused under it, and sixteen are a loft
+  ladder and a doorway seated from the low end of their run. (`DecoratorTests`,
+  `docs/world-export/decoration.md` §3)
+
 - **A pattern samples the cell folded into the board's primary image (WE42).** Every terrain pattern is a
   function of position — a voronoi asks which site is nearest, a field asks what the noise reads — so on a
   mirrored board a cell and its image sampled two different places and resolved to two different blocks: a
@@ -2373,6 +2388,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   a ladder, a trapdoor and a fence gate read as blocking, since a block id does not carry the open state.
   (`Minecraft/Palette/BlockRoles.cs`, `Minecraft/Render/TraversabilityRender.cs`,
   `Minecraft/Render/WorldReadCatalog.cs`, `Api/Endpoints/WorldReadEndpoints.cs`, `BlockRolesTests.cs`)
+- **The mirror read folds a board the way its layout says it folds (WS63).** A board authored through the
+  plan states its fold in the **layout** — the compile writes `globals.symmetry` into `setup.mirror_mode`,
+  and that is the mode the rasteriser fans every mirroring group by, so it is the turn the blocks actually
+  took. `render/mirror` answered from the **intent's** symmetry instead, which fans intent objects rather
+  than terrain and which a plan-compiled board leaves unset: the read fell through to `none`, compared every
+  column with itself and captioned every picture `ALL MIRRORED`. The one read built to catch an asymmetry was
+  silent on every board it was built for. It reads the layout's mode and centre now, with the intent as the
+  fallback for a board that states one there and nothing in its layout, and `?mode` overriding both.
+  Measured on four boards whose every run report carried a blank verdict: `opus5-burgage-terrace` 261 of
+  13,269 columns not mirrored, `fable-saltwharf` 2,028 of 11,992, `opus5-heftfold` 206 of 9,492,
+  `opus5-glassmere` 9 of 12,871 — and on Burgage the unpaired columns draw a line straight across the
+  terrace front at z 50 and z −51, which is `WE121` seen from above. (`WorldReadEndpointTests`,
+  `docs/world-scan/read-backs.md`)
 - **The world read-backs answer over HTTP (`WS6`), withdrawing `B245`.** Everything a caller does runs
   through the API and the API describes itself — except the one thing done *after* building, which is looking
   at what was built. Eight renderers in `Minecraft/Render/` reached a caller only through
@@ -3026,6 +3054,88 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `flags`/`score`); auxiliary modules (`blitz`, `ffa`, `rage`) modify play rather than the goal and stay
   ignorable. Corpus-verified over the 350 slugs: 12 rejects, exactly the maps carrying an unread objective.
   (B22, OB10)
+- **CP/KotH: control points and the score module — parse, write, store.** `<control-points>`,
+  `<king><hills>` and `<score>` now round-trip. One PGM parser builds both spellings of a point, so one
+  reader does: `ControlPoint` carries the **element** it was written as rather than resolving it, because a
+  hill and a control point disagree about nearly every default — the same unwritten `incremental` keeps
+  partial capture progress on one and discards it on the other — so materialising a default would store a
+  different map. Every optional knob is `null`/`""` from `Domain.ControlPoint` down to its nullable
+  `control_point` column, and the writer emits only what the map stated. `ScoreConfig` is `null` for a
+  document with no `<score>`, which is the map PGM loads no score module for and on which a point's `points`
+  rate pays nothing. Attribute inheritance runs the full `<king>` → `<hills>` → `<hill>` chain
+  (`Xml.FlattenUnder`), and `<king><hill/></king>` with no `<hills>` parses the same. `Gamemodes.From` gains
+  `cp`, `koth` and `tdm` — CP and KotH share one PGM tag so a map spelling both is `cp`, and a bare score
+  limit is how a capture map ends rather than a mode of its own. **Payload stays refused** (a furnace
+  minecart, none of whose geometry is read), and so does a `<score>` carrying a `<box>` — a scorebox is its
+  own objective inside an element that is read, so the gate looks one level in. Corpus-verified over both
+  repositories: **1,329 of 1,622 map directories parse** (was 293 refused, now the 146 `flags`, 75 scorebox,
+  37 proto, 27 modern-world and 9 `payloads` maps), and all **286** carrying a control point or a score
+  module survive the XML round trip with every point and knob unchanged. `docs/pgm/control-points.md`.
+  (PG5, OB10)
+- **KotH boards are authorable: the pad, the intent slice, and the score it pays into.** An agent adds one
+  array to the intent it already posts — `PUT /api/map/{slug}/intent` with `controlPoints` — and the export
+  does the rest. No second endpoint and no new document. **The stamper is the one that differs from every
+  other objective's**: a destroyable and a core float, so the gap is what a raid climbs, but a hill is
+  *ground* — `ControlPointStamper` replaces the terrain's top course over a square footprint with white
+  stained clay and makes the three blocks of air above it the capture volume, because a pad that floated
+  would be a hill nobody could stand on. It is laid **level** (the progress pie is drawn about the centre of
+  the blocks PGM finds, so a pad following a slope draws it across several courses), skirts down a bounded
+  fall where the ground drops away, and clears the volume over it. All three emitted regions are the stamper's
+  own boxes (OB8) — the capture volume, the pad course alone as the progress display (one block thick and
+  entirely colour-affected), and the **sky marker as the owner display**. That last is what makes a hill's
+  marker different from every other goal's: a wool room's and a destroyable's name a team and never change,
+  but a point belongs to nobody until it is taken, so its marker is laid in **white wool** and PGM repaints it
+  to the holder's dye and restores the white when the point goes neutral (`ST7`). It is the owner region and
+  not the progress one because a progress display is a pie about the centre of its own bounds, and a marker
+  inside it would sweep about a point in the sky. `ControlPointGenerator` writes the studio's convention out in
+  full rather than trusting either element's defaults, and `required="false"` above all: PGM defaults it to
+  **true**, and a point that keeps that default ends the match for whoever captures first. It brings its own
+  `<score>` (750, the corpus mode) because without one PGM builds no score module and every point pays
+  nothing, silently, all match. **Capture points fan by position, not by team** — the one orbit here that
+  does — so a point on the centre of symmetry is its own image and stays one point: state the middle and one
+  side and a two-team board comes back a middle and a matched pair, a four-team board a middle and a ring of
+  four. Proven end to end over HTTP: compile, sketch, finish, state the points, and `GET …/xml` answers a
+  three-hill KotH map with every region resolved. `docs/pgm/control-points.md` §9. (WE110, PG5)
+- **Shops and shopkeepers — parse, write, store.** `<shops>` and `<shopkeepers>` now round-trip. A shop is a
+  menu — an id, a name, one or more categories each carrying its own icon and up to 28 things to buy — and a
+  keeper is an entity PGM spawns **itself** at match load from the element, frozen, undamageable and
+  unpushable, so the whole of one is XML and the studio writes no blocks and no entity data for it. Both
+  elements flatten with attribute inheritance the way every objective group does, which is how the corpus
+  writes one shop and one label over eight keepers. Three point forms are read — coordinates as the element's
+  text, a `<point>` child and a `<region id="…"/>` reference — with the facing riding on whichever element
+  states it. A keeper's shop id is **carried rather than resolved**: 15 corpus maps take their menus from an
+  `<include>` this parser reads without splicing, and a keeper naming a shop the document does not hold is a
+  whole map. `color` on an icon is read as the **price's** colour rather than the stack's dye, which is PGM's
+  own reading for every stack that is not leather armour. `action` and `kit` are one reference under two
+  spellings — one `parser.action` call, one feature namespace, and `KitDefinition` *is* an `ActionDefinition`
+  — so one field carries it. Storage is `shop` and `shopkeeper` (M0038). A fourth gate,
+  `EnsureShopsReadable`, refuses a map whose shop states something the reader cannot carry, because a
+  bedwars board whose every block is bought is unplayable with an icon missing. Corpus-verified: of the 39
+  maps carrying a shop or a keeper, 35 parse and all 35 survive both codecs — 45 shops, 99 categories, 877
+  icons and 272 keepers unchanged. `docs/pgm/shops.md`. (PG9)
+- **One item shape, everywhere an item is written.** A kit item, a kit's armour piece, a shop category's icon
+  and a shop icon are all `ItemSpec`: material, amount, damage, name, lore, leather dye, enchantments and
+  stored enchantments, the unbreakable/team-colour/prevent-sharing/locked flags, a projectile and a consumable
+  reference, the hidden item-flag words, potion effects, attribute modifiers and the can-place-on/can-destroy
+  matchers. One reader (`ParseItemSpec`), one writer (`WriteItemSpec`), one stored object — `kit_item.spec_json`
+  and the icons inside `shop.categories_json`. `KitItem` is a slot and a stack, `KitArmor` a slot name and a
+  stack, and `KitEffect` is `PotionEffect` because a kit grants one to the player and a potion carries one in
+  the bottle, which is the same statement about two subjects. Kits gain the six fields the columns never held
+  along the way. (PG9)
+- **Shop boards are authorable: the menu, and a keeper at every spawn.** An agent adds one array to the intent
+  it already posts — `PUT /api/map/{slug}/intent` with `shops` — and the export does the rest. No second
+  endpoint and no new document. **The keeper carries no position**, and that is the placement rule: a shop is
+  a catalogue rather than a place, so `ShopGenerator` puts one keeper per shop at every team's spawn, on the
+  spawn's own floor, beside the point players arrive on and turned to face them — which is what the corpus
+  builds by hand on every board with more than one keeper. Blocks are counted from the block the spawn point
+  stands in, so a keeper lands on a block centre and both sides of the spawn are the same distance out;
+  several shops flank the point alternately; and each keeper is held inside the spawn's room (the stated
+  footprint less its wall course, or the protection ground less that wall and the clean ring, `WX1`) so a
+  narrow hall pulls the villager in rather than putting it through a wall. **Nothing is stamped** — PGM spawns
+  the entity from the element — so the slice runs beside the objective generators rather than waiting for the
+  world build, and a shop board exports the moment the intent is stored. Proven end to end over HTTP:
+  compile, sketch, finish, state the shop, and `GET …/xml` answers a map with the menu in it and a villager
+  at each spawn. `docs/pgm/shops.md` §9. (PG10)
 - **DTM: destroyables + objective modes — parse, write, codec.** `<destroyables>` and `<modes>` now
   round-trip: `Destroyable` (owner · region · materials · completion · show · mode membership) and
   `ObjectiveMode` (after · material · show-before · filter · action) on `MapXml`, through `Serializer`/
@@ -3156,7 +3266,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   take the no-decay bit and lose the game's check bit, and a log's axis or a stair's facing turns with the body
   round the symmetry (`BlockGeometry.Turned`). The library row stores the body (`M0031`), the editor shows a
   copied recipe as its card and block count, and `tools/seed-trees.cs` files every tree standing in a world —
-  the 74 of `pgm-studio-mapgen/showcase/tree-showcase` — under `<world>-r<row>-<n>`, dropping bodies that hang
+  the 74 of `pgm-studio-mapgen/corpus/tree-showcase` — under `<world>-r<row>-<n>`, dropping bodies that hang
   in the air as fragments. `docs/world-export/decoration.md` §6, `docs/tools/library.md`.
 
 ## Pipeline / world import (M7)
@@ -3973,6 +4083,87 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wizard. (`9f645dc` → `45209a1`)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
+- **The budget is a size band, and composing eats it (`G265`, `G266`, `G267`).** The player count named a
+  land budget nothing enforced: `LandPerPlayerAnchors` ran 65 blocks² a player at five to 185 at thirty-two
+  where 331 corpus maps measure about **250 at every size**, and every consumer of it was a step function
+  topping out at 3000 land, so twenty players and thirty-two composed the same board. The count now names a
+  **size band** — `PgmStudio.Vocabulary.SizeBands`, nano 6–13 · micro 14–21 · milli 22–31 · centi 32 and
+  up — and the band carries its measured land (2250 · 4025 · 7075 · 8730), its corridor width
+  in **blocks** (12 · 14 · 16 · 16, the wool approach one rung under) and its wool count. `LandBudget` is
+  the ledger: the spawn, the frontline and each wool take a fixed share as they are sized, `HubBoxCells` gives
+  the hub whatever is left at a sampled aspect, and the composer **gates on what the unit actually built** —
+  outside 70–130% of the budget the attempt is resampled. Every width the emitters read is now a lane count
+  rather than a cell count (`FillMenu`'s rungs, `RingFitCells`, `WideHubCells`, the hub's own wall on
+  `Box.HubCorridor`), which is what lets a grid scale move without moving the map. Land built rises 1.2× →
+  5.6× across the ladder where it rose 1.6× before; `LandSpendDto` leads with the band. (`SizeBands`,
+  `Envelope`, `LandBudget`, `UnitTuning`, `TeamUnitAllocator`, `UnitRequests`, `Composer`, `FillMenu`,
+  `Producibility`, `docs/world-scan/map-size-ladder.md`, `docs/generator/model.md` §2, `rules.md` `G2`/`G3`/`G8`)
+
+- **The grid is four blocks, and a ceiling stated in cells knows it can move (`G269`).** Every width the
+  composer builds to is stated in blocks and divided by the cell, so the cell is a drawing scale: on a
+  four-block one the map's lane lands exactly at nano, milli and centi, where a five-block cell lands on none
+  of the five bands. `ComposeRequest`'s default is 4 and `ComposerVersion` is `cell-four-1`. Two quantities
+  that had been stated in cells follow the scale now instead of capping it: `MidCarver.BandGapBlocks` is laid
+  on the grid through a rounding read floored at the axis margin, where integer division had silently made a
+  stated 20-block gap 16 blocks at cell 4 and 12 at cell 6; and the donut's entry and hole-depth ceilings are
+  floored at the wool lane they are sampled from, where a 6-cell lane against a 5-cell cap threw an empty
+  `NextInt` range out of composition rather than refusing the attempt. Composes 24/24 at every band on cells
+  3 through 6, where cell 4 had composed nothing. The cell does not reach the slab a flush-docked frontline
+  spine makes (`G268`): a board's own modal ground width is 29 blocks at micro here against 30 at cell 5.
+  (`ComposeRequest`, `ComposeDescriptor`, `MidCarver`, `UnitTuning`, `UnitRequests`, `Producibility`,
+  `tools/compose/composer-fingerprints.json`, `docs/world-scan/map-size-ladder.md`,
+  `docs/generator/model.md` §2.3, `rules.md` `G2`, `docs/tools/generator.md`)
+
+- **The crossing is funded, and the ground in it is shared (`G116`).** `MidResult.Stones` had always been
+  empty and the band a fixed 20-block void, so a board's middle was ground neither team could stand on.
+  `MidCarver.MidShare` now takes a tenth of each team unit's budget — the mid's own allowance is a fifth of
+  one team's land, shared, and a board's total is unchanged because the land moves rather than leaves. A band
+  carrying a stone opens one `HopBlocks` (12) either side of it; one carrying none opens `BandGapBlocks` (30)
+  front to front. `MidCarver.Stones` lays the row: a stone stands **astride the axis**, symmetric about it, so
+  `CT11`'s abutment makes it and its own fanned image **one shared island** rather than a stone each — depth
+  16 · 24 · 24 · 24 · 32 blocks up the bands, laid on the grid as an even number of cells, each stone wider
+  than it is deep, clear of its neighbours by a hop and of the band's ends by a cell, and capped at three per
+  `MD6`. The row comes out 1 · 1 · 2 · 2 · 3 stones, spending 66–85% of its share; 17–33% of boards carry none
+  — about half of those split bands, whose bay is already the island. Composition yield is unchanged at 48/48
+  a band, and a team's half of a board now holds 0.86–1.11 of what the band bought against 0.86–1.16 before.
+  `MidCarver.IsStone` is what a reader that means *the authored unit* asks, because a stone is ordinary
+  generating terrain and the one piece across the axis — `Producibility`'s front-row read takes it. The spend
+  card reports both halves against their own shares: `nano 104/81 · 128% · mid 16`. (`MidCarver`,
+  `ComposeEnvelope`, `Composer`, `TeamUnitAllocator`, `Producibility`, `LandSpendDto`, `GeneratorTool`,
+  `docs/generator/model.md` §5.2/§5.13, `rules.md` `G8` + amendment 35, `vocabulary.md`,
+  `docs/world-scan/map-size-ladder.md`, `docs/tools/generator.md`)
+- **A flow reading the evaluator can fire (`G187`).** `PlanFlow` computed how much of a board no journey
+  reaches and served it as prose, and the evaluator's terms walked the surface for distances and cited neither
+  `PlanRoutes` nor `PlanFlow` — so no flow answer scored anything. `DeadShare` scores it, at `POST
+  /plan/evaluate`, the first call in an authoring loop and before a map row exists. It cites **`G8`**, which is
+  the same concern from the other side: land per player says how much board there is for the people on it, and
+  the dead share says how much of that board the match spends. `EvalContext.Flow` derives the read once and
+  lazily, beside `Board`, so a hard-only gate never pays for a traversal it does not read. Null where the plan
+  states no objective, since a board with nowhere to go has no journey to be off. Band learned over the 31
+  teaching maps: **[0, 0.12]**. (`GlobalsTerms`, `EvalContext`, `LayoutEvaluator`, `SoftTermsTests`,
+  `docs/generator/evaluator.md`, `seed-envelopes.md`)
+- **The funnel capacity, and why its ends are sets (`G187`).** `match-flow.md` §2 asks for the minimum vertex
+  cut — the cheapest cells that, held, keep two pieces of ground apart — and says its **size** is the reading a
+  bare "chokepoint" label loses, since ten blocks of frontage admits a different number of players than twenty.
+  `Cells.MinVertexCut` answers it: unit-capacity vertex max-flow over the split grid, every cell an arrival and
+  a departure joined by one unit, the grid's own edges and the two ends unbounded. **The ends are cell sets,
+  and that is the whole of what makes the count mean anything** — a cut against a single cell is never more
+  than the four ways out of it, so a point-ended version reports 4 on every board wider than that and measures
+  nothing. Null where the ends touch, which is unanswerable; empty where they are already apart, which is an
+  answer. Counting this cut's components is still not `WaysRound` and still answers that question wrongly.
+  (`Cells`, `CellsTests`, `docs/generator/vocabulary.md`, `docs/gameplay/match-flow.md` §2)
+- **Two graphs, one question about whether a board's pieces touch (`G65`).** Reachability and the rect layer
+  each carried their own adjacency predicate, and they disagreed on exactly one case: an overlap at two
+  surfaces, which `FannedGraph` walked across and `ContactGraph.Components` kept apart. The rule was never
+  really open — `PL4` refuses a plan whose pieces claim the same ground at incompatible heights, because there
+  is no coherent surface over the shared cells — so what was missing was one predicate stating it.
+  `ContactGraph.Meeting` is the geometry (the kind two rects meet by, and the border length);
+  `ContactGraph.Connects` is the rule over it (any positive border, or an overlap the two agree the height
+  of); and `FannedGraph.Node` carries the piece's surface so it can ask. The gap links stay looser than the
+  straight-span ones on purpose — a player routes through a buildable region freely — and that is now the only
+  deliberate difference between the two. Measured: no seed of the 49 has an overlapping piece pair at all, so
+  nothing on the corpus moves, and the net is synthetic — a two-piece board at one height and at two.
+  (`ContactGraph`, `FannedGraph`, `FannedGraphTests`, `docs/generator/model.md`) (`G59` deferred it)
 - **`G8`'s fill ratio frames on the ground and not on a build zone reaching past it (`B150`).** The frame was
   the bounding box of the filled cells **union the build zones**, so buildable void — which fills nothing —
   divided the same ground by a bigger box and reported a sparser board than the one that exists. Both halves
@@ -4415,10 +4606,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wide-form mix (huge/200): Ring 115 · G 26 · Double-hole 23; no-alloc/no-fill/pinch 0. Pgm suite 692/692. (G105
   partial · `generator/model.md` §5.5)
 
-- **Map completion v0 — the box-model path closes the loop with a band-only mid** —
-  `Composer.ComposeBoxStages` + `MidCarver.BandOnly` + `tools/compose/board-gallery.cs`: the first full board off
-  the partition-first path. The crossing is the draw-free band-only design (uniform 20-block gap, no stones, no
-  centre island); the allocator takes it as its axis margin (`Allocate` gains an optional `CrossingDesign` — the
+- **Map completion v0 — the box-model path closes the loop with a carved mid** —
+  `Composer.ComposeBoxStages` + `MidCarver` + `tools/compose/board-gallery.cs`: the first full board off
+  the partition-first path. The crossing is draw-free; the allocator takes it as its axis margin (`Allocate` gains an optional `CrossingDesign` — the
   mid box arithmetic decides how far the unit's front sits from the axis); `MidCarver.TryCarve` consumes the
   filled unit as-is (its hub lateral extent now unions the box path's prefixed `hub-…` pieces; the grower's
   single `hub` piece is the degenerate case) and derives the band from the front faces — pinned <b>flush</b> on
@@ -4839,8 +5029,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   routes through `Geom.Cells` (N4 / components); `ClosureAnalysis` documented as a deliberate fast-path twin of
   `BoardStructure.Voids` (kept dense-grid for the composer's 60-attempt hunt loop). Pure refactor:
   `derive-gallery` output **byte-identical** over all base + generated cases; Pgm 410 pass (5 pre-existing
-  failures unchanged), Api builds clean. Canonical doc §1.3/§6.2 now name the classes, not the script. The one
-  deferred slice — `FannedGraph.LandAdjacent` ↔ `ContactGraph` surface-overlap reconcile — is G65.
+  failures unchanged), Api builds clean. Canonical doc §1.3/§6.2 now name the classes, not the script. Its one
+  deferred slice, the surface-overlap reconcile between the two graphs, shipped as G65.
   (G59)
 - **Composer evaluator engine — foundation (M2 groundwork)** — `Pgm/Evaluate/`: the one place layout rules are
   scored. `LayoutEvaluator.Evaluate(ctx | plan, profile) → Evaluation` (`Score = Σ hard-penalty + Σ w·distance`,
@@ -5432,6 +5622,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   holds through the change. On the hole-hub exemplar both of its G123 blockers clear, leaving only its unrelated
   scale anomalies. (G123)
 
+- **The hub's body is chosen before its neighbours are sized (`G274`)** — `Compose/TeamUnitAllocator.cs` +
+  `Compose/UnitSeating.cs` (`Emit`, `FrontRuns`) + `Compose/UnitRequests.cs` (`SealWidth`). A neighbour docks
+  onto the **runs** a hub offers and every request was sized against the hub's *bounding box* — two different
+  numbers on a bay-fronted body, and `model.md` §5.4 already described the form as decided first. `Allocate`
+  now picks the form, walls and arms, emits the body once, reads its front runs and sizes the requests against
+  those; the emit is extracted so the sizing, the seating and the filler all read one body with no draw
+  between them. The frontline's face is floored at the width that **closes a bay** — a lane onto the shoulder
+  each side — rounded up to even first, because `FR6`'s parity law rounds an odd face down and took two boards
+  back under the floor. Measured over 480 boards: 104 had a front edge whose longest run was shorter than the
+  box edge (median shortfall 32 blocks, max 96), all of it `G` at 100% and `SpineArms` at 85%; bay-fronted
+  hubs sealed by their frontline went **75% → 100%**. The fallback ladder is untouched — it demotes toward the
+  solid rectangle, which offers strictly more surface than any holed body. `ComposerVersion` `body-first-1`;
+  `rules.md` amendment 40. (`G274`)
+
 - **The spanning dock — a face anchored on every shoulder (G123)** — `Compose/TeamUnitAllocator.cs` (`Docks`) +
   `Compose/Producibility.cs` + `tools/seeds/shifted-frontline-spanning-dock.plan.json`. The contact-patch seat
   admitted a face if **some** patch was a lane wide; a face reaching across a bay-fronted hub's bay (a G, U or L)
@@ -5449,6 +5653,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A narrow seam is the way into a room, so it carries a door and an entrance line (`WE128`).**
+  `ContactGraph.IsLandInterface` answers `Land` **or** `Narrow` and the `WoolRoom` flag on a segment is
+  raised through it, but the entrance-redstone loop and `WoolEntrySegments` in `PlanCompiler` each tested
+  `Kind: ContactKind.Land` inline, so a segment was flagged by one reading and discarded by another. A room
+  whose only interface is under `CorridorMin`'s ten blocks therefore compiled with an empty entry set: no
+  `ST1` redstone line, and — since `WoolEntrySegments` is what the exporter cuts cage doors from — no door,
+  in a room the validator considers reachable. Both sites call the predicate. Measured on
+  `opus5-hushwater`: `wool-a-room` meets `wool-a-t1` on an 8-block flush seam and `wool-a-apron` on a
+  12-block one, and carried one line against the mirrored room's two. The composer's accept gate runs
+  `PlanValidator` through this path, so three of 120 recorded boards move and `ComposerVersion` is
+  `body-first-2`. (`Pgm/Plan/PlanCompiler`, `Pgm/Compose/ComposeDescriptor`,
+  `tools/compose/composer-fingerprints.json`, `docs/generator/rules.md` amendment 41,
+  `docs/world-export/structures.md` WX6; `PlanStructuresTests`)
 - **A stamp is one course, and the ground under it is painted (`WE63`).** `TerrainProfile` classified only
   columns whose top block was stone, so a single stated course — a room's `Foundation.Plate`, a wool pad, a
   `footing` ring one block proud — took the whole column out of the pass and left it raw stone from the floor
@@ -5490,6 +5707,37 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   studio's remaining fractional query knob. (`docs/world-export/decoration.md`,
   `docs/world-export/tree-corpus.md`, `docs/tools/sketch.md`, `docs/tools/library.md`,
   `docs/tools/mapgen-review.md`)
+- **A rock is not cut from the ground it stands on (`WE64`, `DR-TONE`).** A boulder reads as a rock by not
+  being made of the field it sits in, so the question is asked in `TerrainPalette` tone families rather than
+  in blocks — a sandstone rock on sand is two different blocks and one tone, and it has no silhouette at any
+  size. What fires is *built wholly from* the field: a rock keeping one family the ground lacks is a rock
+  however much else it shares. The ground it is judged against is the ground it can **rest** on
+  (`Materials.Resting` — a depth stack's top course, a slope stack's shallowest band), because a meadow whose
+  steep faces are bare stone is a meadow and a boulder stands on the meadow. The rock a placement naming no
+  recipe gets is now stone, cobblestone and andesite in shards a few blocks across, stone taking half
+  (`BoulderStyle.DefaultRock`), which is what the four seeded recipes carry and what reads against sand,
+  grass, dirt, red sand and any single clay. *Swept through the live gate over the 26 authored boards the
+  studio will store — four are refused by `PT4`, which predates this — 20 boulders raise it on four:
+  `opus5-basaltmere` six, `opus5-blackden-sough` six (its `edge-rock`s are grey stone and cobble on grey stone
+  and cobble, from (−30, 25)), `opus5-grykefell` five, `opus5-flintwick` three.* The material walk both this and
+  `PT1` use is one method now (`Materials.BlocksOf`). (`RockTone`, `RockToneTests`, `LibrarySeed`,
+  `docs/world-export/decoration.md`, `docs/refusals.md`)
+- **A rock does not stand on a face, and the board says where its faces are (`WE64`, `DR-STEEP`).** An erratic
+  is a mass left where the ice dropped it; a rock pinned to a steep hillside reads as neither, the slope being
+  the feature there already. The angle is `SurfaceGradient.Degrees` over the surface the dressing pass seats
+  on — the same reading the paint's own bands are cut by, so a rule and a band cannot disagree about one cell —
+  and the angle it is judged against is **the board's**: a surface graded by `BandAxis.Slope` has already said
+  where its cliff begins, being the band that covers the steepest ground, and `Materials.CliffAngle` reads that
+  boundary back under either ending. Ground the middle band paints is still ground, so a rock on the coarse
+  dirt of a gentle hillside stands and only the band meaning *bare rock face* is complained about; a surface
+  grading by nothing takes `Materials.DefaultCliffAngle`, 30°, the median of the 34 authored themes that state
+  one against 191 that do not. The same boundary is what `DR-TONE` reads its ground through, so the two rules
+  share one definition of a face rather than each keeping a threshold. *7 boulders on 5 of the 26 boards,
+  measured by differencing each build against the same board with its rocks taken out:
+  `opus5-braidwater-ford`'s `erratic-0` at (−44, −48) and `erratic-1` at (12, −46) stand at 40–49° and 30–39°
+  against `silt`'s stated 34° cliff, confirmed on that board's own incline read.* (`DressingContext.Incline`,
+  `Decorator.PlaceBoulder`, `CliffAngleTests`, `RockOnAFaceTests`, `docs/world-export/decoration.md`,
+  `docs/refusals.md`)
 - **`DR-PASS` measures the passage from the roof, not from the wall (`WE45`, first of three faults).** A roof
   oversails its wall by at least one block whatever the style says (`HouseStamper.StampedCells`), and the
   blocks a player has to walk under are the ones that were written — so the five-block band now starts where
@@ -6588,8 +6836,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   against its neighbour, walling one loft off from the other. One comparison and one outline settle all four.
   **Only the highest roof over a cell is written there** — not a max of crowns, no surface blended and no field
   touched, each wing still answering for itself and the comparison deciding only which is the one showing — and
-  the **rim is read from the roof plan as a whole**, a cell with a neighbour outside it. Faces rise on the
-  **body's** perimeter, so the side of a wing against a neighbour is a doorway rather than an outside face.
+  the **rim is read from the building rather than from the wing**, so a march's own step is no edge (`WE122`
+  says what else it is asked). Faces rise on the **body's** perimeter, so the side of a wing against a
+  neighbour is a doorway rather than an outside face.
   `RoofField.OnBorder` is deleted: it was the predicate the conflation lived in, answering one thing for an
   eave, a verge and the edge of a rectangle that is the middle of a house, and nothing needs it now. What an
   eave and a verge each are is written where the geometry is. Measured after: one enclosed loft per course on
@@ -6598,6 +6847,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   test cannot stand in for — a seal passes happily on a roof with a hole in its body. Both `Ell()` fixtures had
   two **parallel** ridges and therefore no junction to test, which is how all four shipped unnoticed (`G182`);
   `EllMarch`/`EllProject` are the ones with crossing ridges, and `G186` redrew the rest.
+- **A junction of two unequal wings is one roof, read at the height each block is laid (WE122).** Three
+  defects of the same shape, all of them a question about a surface answered from a **plan**. A lower wing
+  running into a taller one lost its roof along the whole row where the two rectangles touch — the taller
+  wing's eave overhangs that row one block, crowns above it, and a roof giving way to whatever crowns higher
+  gives way to an eave hanging five courses clear of it. Out past the walls the rule is narrower now: an
+  overhang gives way to a **verge** overhang, whose triangle has to stay open, and never to an eave, because a
+  roof standing over its own walls is the cover on its own rooms. A taller wing's roof edge overlooking a
+  lower one came out trimmed in roof body, since the cell has a neighbour inside the building's outline: the
+  rim is measured instead — a neighbouring roof standing clear of this column, above or below, leaves a face,
+  and a face is what a verge covers, while a neighbour the same field or the same march reaches is no edge
+  however far the slope falls. And the window in a gable is held to the **body's** perimeter the gable itself
+  is laid on, so a wing no longer centres a pane on the side it stands against its neighbour, where there is
+  no gable to cut and the pane hangs in the air between two roofs. Measured on four boards. On
+  `opus5-burgage-terrace`, the two-storey hall at x −32…−20, z 58…67 with its one-storey cross wing at
+  x −29…−23, z 68…74: the wing's roof at z 68 present for its whole width, the hall's eave over it in verge,
+  and the pane at (−26, 68, y 23) gone. The same junction on `opus5-heftfold` and `opus5-glassmere`, and on
+  `fable-saltwharf`, whose flat-roofed warehouse now carries stone brick down the whole of x 40, z 34…42
+  instead of dark oak planks over the five cells its low wing abuts. `RoofField.PastVerge` names which two
+  sides of a roof are raked.
+  (`HouseStamperTests`, `docs/world-export/structures.md`)
 - **The eave falls with the slope and stops two courses down (WE2, author).** Distances are measured from the
   wall line and go negative outside it, so the overhang kept falling one course per unit of pitch: at a
   two-block overhang and a pitch of 4 the tip landed at y6 under a floor at y8 — two courses below the ground
@@ -6907,6 +7176,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   back where the step left them standing, the way the shape already was. And `renameMark` joins the mutator
   list: a verb that changes the document and is not in it is a verb undo cannot reach.
   (`docs/client/ui-conventions.md` § What a panel says)
+- **A hole in the relief is a hole in every image of it (WE121).** The field answers for the ground a group
+  gave it, and `relief_scope: exclude` takes cells out of that: the primary leaves those columns exactly as
+  their shape drew them. An image cell over the same shape is the same statement, but the copy asked the field
+  for every cell it held and the `TS98` fallback below answered for the excluded ones out of the ground beside
+  them — so the reading landed one row deep along every boundary an excluded shape has, on one team's half of
+  the board and not the other's. The image's holes are read from the **image's own shapes** now
+  (`SketchRasterizer.ReliefHoles`, which the solve itself uses for the primary, so the two cannot drift), and
+  a cell inside one is passed over before the fallback can touch it. Two boards measured it. On
+  `opus5-burgage-terrace` the made terrace kept its own top at z 50 and sat six courses down at its image
+  z −51, which took the docking course off the top of both flights of steps and left a one-block slot the
+  whole height of the face — 222 columns disagreeing with their own rot_180 image before, 4 after. On
+  `fable-saltwharf` the excluded quay met an erected pier, and the ring of cells around that pier's image rose
+  to the relief's own level: a nine-wide, nine-course wall standing on flat ground at x 34…42, z 20, and
+  nothing at its mirror z −21. (`docs/world-export/relief.md` § 15)
 - **A mirrored copy samples the field it misses by a cell, and a two-state control looks like one
   (`TS98`).** Two faults an author found by taking a `rot_180` board to the isometric.
   **Pillars in the shape's own base height.** A relief-bearing group is mirrored by mirroring its *polygons*
@@ -7605,6 +7888,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
+  several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
+  `{component}-{surface}` and each addressable — so a theme scoped per plateau paints one hillside as two or
+  three grounds with a hard line at every riser, which is the plan leaking into the paint. The complaint names
+  the component, the surfaces it climbs and what each plateau paints, so the riser is findable on the canvas.
+  A plateau is told from a shape somebody drew by the compiler's own naming — the number the id ends in is the
+  shape's own thickness, and a drawn shape sits on a stated `floor` where a compiled one never does — so
+  `opus5-slipway`'s 1,760 numbered sculpture parts are outside it and a component whose own name ends in a
+  number keeps it. *Swept through the live gate, nine boards raise it, one component
+  each: `fable-mossgill`'s `apron` climbs 14 → 27 in four themes, `opus5-mirkholt`'s 13 → 16 in three.* A local predicate rather than
+  the registry count the entry was filed on, which would have fired on 23 of 51 boards for a symptom.
+  (`SketchRules`, `SketchLayoutCheck.PlateausPaintedApart`, `SketchLayoutCheckTests`, `docs/tools/sketch.md`,
+  `docs/refusals.md`)
 - **A pattern's brush is not finer than the blocks it paints (`WE48`, `PT3`).** A `cell`'s and a `voronoi`'s
   `cellSize`, and a `noise`, `turbulence` or `electric` field's `scale`, are the period a pattern varies over
   in blocks; under **2** it changes faster than the ground can show it, every block is its own feature and the
@@ -7758,7 +8054,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   also make a board legible: `ruediger.plan.json` compiles to `hub-t2-7` through `hub-t6-16`, which says two
   components at ten surfaces without opening the file. Behaviour-preserving across the corpus — `opus5-quatrefoil`,
   the fourteen-key board, re-drives to a byte-identical theme census, and `opus5-scarrow-delph` to its
-  committed three numbers. (`Pgm/Plan/PlanCompiler`, `docs/tools/plan.md`, `docs/tools/capabilities.md`)
+  committed three numbers. (`Pgm/Plan/PlanCompiler`, `docs/tools/plan.md`)
 - **A relief the merge replaces is named, not dropped (`SK1`).** `PUT .../sketch/from-plan` carries the
   stored relief onto fresh geometry, which is what the route is for — a compiled layout carries none, because
   a plan cannot express one. A caller that compiled, patched a relief onto the result and posted it lost that
@@ -8135,6 +8431,34 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   rather than a refusal, because a thing drawn deliberately around a structure is a board somebody meant and
   which of the two moves is the author's call.
   (`Export/WorldBuilder`, `Pgm/Sketch/SketchRules`; `MadeThingInBuiltTests`) (`TS70`)
+- **A gap beside a goal is measured, and a short one is named (`TN20`, `WL12`).** The pieces a plan states
+  leave empty ground between them, and nothing answered how narrow it was: the deriver's void walk reports
+  **enclosed** voids only and classes them by ownership with no width, `IslandGaps` measures between islands
+  rather than within one, and the notch/bay/hole classification was the shape emitter's, box-local, and never
+  saw an authored plan. The classification is now `PgmStudio.Vocabulary.NegativeSpaceKinds` — words rather
+  than an enum, since the composer, the lint and the wire all spell them — the reader carries `SpaceCrossing`
+  (every straight run terrain closes at **both** ends, with the piece at each end), `BoardStructure.Spaces`
+  runs it over the board's own terrain, and `POST /plan/inspect` answers `spaces`. `WL12` reads it against
+  **16 blocks** where a crossing touches a wool room or a spawn and **12** for a hole's narrowest, both in
+  blocks so they hold at any grid scale; a crossing a build zone reaches is not asked. Evidence:
+  `opus5-quadrangle`'s `wool-b-n`↔`spawn-room` reads 5 blocks (6 in the built world), and the composer's own
+  floor is two cells — 8 blocks at the default scale, which `G264` is for. Composer output is unmoved: the
+  determinism gate reads 72 boards, 0 moved.
+
+- **A group that declines the fan off the symmetry centre is named (`TS108`, `SK28`).** The orbit is fanned
+  per group, so `mirrors: false` builds a group's shapes once. That is the right statement for a landmark
+  seated on the centre, which is already every one of its images, so the **footprint** decides rather than the
+  flag: bounds that meet any of their orbit images straddle the centre and are left alone, bounds disjoint
+  from every image cannot be their own and are one team's alone. Nothing else reaches it — the store answers
+  200, the export gate opens, and pre-flight's mirror check reads spawns, wool rooms and build zones, never
+  made geometry. Evidence: `opus5-quadrangle`, a four-team `rot_90` board whose curtain, angle tower, crown
+  and cloister all carried the sculpt library's `mirrors=False` default. Its curtain stood in
+  `x[10..12] z[16..60]` and in none of the three images, so **one quadrant of four** had a castle; `column`
+  read 18 solid at `(11, 30)` against 14 at each image. The same default cost `opus5-revetment` 14 of its 15
+  made layers, `opus5-portway` 8 of 10 and `opus5-sallyport` all 9. Posted against the pre-fix document the
+  gate names all five groups on a 200 with `Pgm-Warnings`, and stays silent on Portway's beacon, which is
+  centred on the mirror line and is its own image.
+
 - **A shape that reaches no group is named, and stops being written (`TS66`, `C61`, `SK17`).** Group
   membership is what the build fans across the symmetry orbit, what a relief is keyed by and what carries a
   `keepClear` mark — and it is derived in the browser, where `polygon-clipping` has inputs it cannot answer
@@ -8845,6 +9169,300 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
+  pass's five *seat* rules over every cell of a board so a placement is found rather than guessed at, and left
+  the four a building meets after it seats to the pass because they read the built world. `DR-PASS` no longer
+  does — it is a predicate over the terrain surface and a footprint box, which is what `ClaimRaster`'s own
+  grid already carries — so the mask answers it: a building's `width`/`depth` are its **walls**, the passage
+  is measured from the roof over them, and the candidate joins the group of any building standing within a
+  passage of it. The standing ones are labelled off the raster's `structure` cells, one building to a run of
+  them (two are never adjacent, since a building holds a ring and a second stamping into it is `DR-CLAIM`),
+  and grouped once for the board rather than once per anchor. **One reading serves both directions**:
+  `Passage.Clears` takes the two cell lookups its callers differ in, so the pass and the mask cannot disagree
+  — a test asks every anchor of a board with a coast, a hole and a building on it both ways and requires the
+  same answer. A 15-block lane seats a 5×5 house at four anchors, two at each wall, because the band runs
+  along the walls and a roof may oversail the coast by its eave. (`Minecraft/Dressing/Passage`, `Decorator`,
+  `Export/ClaimRaster`, `SketchEndpoints`, `ClaimRasterTests`, `docs/tools/sketch.md`,
+  `docs/world-export/decoration.md`)
+- **A village is one block of buildings, and the passage goes round it (`WE126`).** The eight-block passage
+  read a building against terrain and against other buildings alike, so a village street was a row of
+  refusals: two buildings needed eleven blocks between their walls, and every interior house of a row failed.
+  Buildings standing within a passage of each other — the eight plus the block of ring a building holds past
+  its stamp — are now **one block of buildings**, grouped transitively before any of them is judged, and the
+  eight is owed round what they make together. A player walks round a village rather than between every pair
+  of its houses, so the floor inside one is `DR-CLAIM`'s ring alone: **three blocks between two walls**. The
+  reach is the passage plus that ring exactly, so at one block further apart each building clears the passage
+  on its own and no gap between two of them is one the rule has no reading of. A group's own ring is a way
+  past it — a ring is held so nothing *seats* under an eave, not so nobody passes — which is what stopped a
+  row of five houses complaining about the ground between its own members. Five 5×5 houses on open ground now
+  stand at every spacing from three blocks up. (`Decorator`, `DecoratorTests`,
+  `docs/world-export/decoration.md`, `docs/refusals.md`)
+- **A crowded building is a complaint, not a decline (`WE45`).** `DR-PASS` dropped the building from the
+  exported world. Where a building stands is something an author or an agent moves (the author's ruling), and
+  a board that loses its houses silently is harder to fix than one that says which of them is crowding a lane
+  — so the building is in the world, standing where it was put, and the finding says so. Raised once for the
+  whole orbit, like every other verdict the pass makes. (`Decorator`, `GroundClaims`, `DecoratorTests`,
+  `docs/refusals.md`)
+- **A building leaves eight blocks past every side of it (`WE45`).** `DR-PASS` asked whether *one* of a
+  building's four sides carried five blocks of passable ground, which on a corridor board is a question about
+  where the house sits rather than about the room it leaves: a house eleven blocks wide in a fifteen-block lane
+  with one block of ground either side stood, because the lane running on ahead of it counted as a way past,
+  while the same house shoved against a wall was declined at four. **The lane a building stands in is the
+  ground players arrive on, not a way round it** (the author's ruling), so every side is asked, at **eight**
+  blocks. A side the ground stops flush against is the map's own edge or a hole and a building may stand
+  against one — a coast house is a house — but not against two facing each other, which is a building spanning
+  the land rather than seated at its edge; half a side over a hole is a broken passage rather than a coast. The
+  band runs along the **walls** while its depth is counted from the **stamp**, because an eave may oversail the
+  void at a coast and a column the building does not stand on says nothing about the ground beside it — which
+  is what stopped a house in the middle of a sixty-block bar reading as a house on a cliff. A 15-block lane now
+  takes a building 7 across including its eaves, hugged to one wall; on `example-3`, 1,072 of the 4,510 sites a
+  5×5 building can seat on leave a passage. (`GroundClaims`, `Decorator`, `DecoratorTests`,
+  `DressingProvenanceTests`, `docs/world-export/decoration.md`, `docs/refusals.md`)
+- **Interference: what a second way in is worth (`G164`).** Every flow measure read one traversal at a time,
+  and a single route cannot express tension. `FlowLeg.Interference` lays two over each other — the share of the
+  defence's own corridor that the attack's corridor also covers, each ribbon walked at `Walk.Detour` over the
+  ground its own side has — and `route-interference` scores the board's mean over its objectives, citing
+  **`CT8`**: that rule claims a hole gives alternative routes between lanes, and counting those routes never
+  said whether taking one buys anything. **The origin is each side's own spawn**, not a captured room. The
+  logs put four fifths of the players who reach the remaining objective at their spawn (`match-flow.md`
+  §6.9), and it is the same origin before a capture and after one, so the term waits on no post-capture
+  reading. Over the 31 teaching maps: median **46%**, band **[0, 0.875]**, and the only board reading zero is
+  a traced real map — every authored seed collides, which is §6.6's gap stated as a number the evaluator now
+  carries. Null where the plan states no leg, since two routes are needed before either can be laid over the
+  other. (`PlanFlow`, `GlobalsTerms`, `LayoutEvaluator`, `PlanFlowTests`, `SoftTermsTests`,
+  `docs/generator/evaluator.md`, `docs/gameplay/match-flow.md`)
+- **A dead place is one stretch, found once (`WS67`).** The two tiers each cut their dead ground into
+  components, filtered slivers out of it and measured what was left: `PlanFlow` looping `Cells.Flood` over its
+  own visited set, `GroundCoverage` calling `GridComponents.Label`, in sibling projects neither of which can
+  reach the other. `Cells.Stretches` is the one verb — every 4-connected component above a floor, measured as
+  area and centre, largest first and then by position, beside a count of the ones that fell under it — and each
+  stretch carries its own cells, which is what lets the plan tier name the pieces under it and the world tier
+  measure its walk to reached ground off the same answer. The floor stays each tier's: 100 blocks at plan
+  fidelity, 25 cells over a built world. The plan read now reports what it drops, as the world read already
+  did, so "no dead place" can be told from "forty slivers and no place", and the total order means two
+  equal-area stretches do not swap between runs. (`Geom/Cells`, `PlanFlow`, `GroundCoverage`, `CellsTests`,
+  `PlanFlowTests`, `docs/world-scan/ground-coverage.md`, `docs/generator/vocabulary.md`)
+- **A fork belongs to a door, and a door belongs to a side (`WS3`).** `RouteFork` named one split and one fuse
+  for a whole journey — the earliest anyone parted and the latest anyone rejoined, measured against the shortest
+  route alone. On an approach with two choices that is an envelope over both and describes neither: on townside
+  it spanned 177 blocks of a 266-block walk. It is **one fork per door** now, each naming the hole it is about,
+  where the choice is made, where the two ways meet, how long it stays open and what the other way costs —
+  townside's attack reads two, 123 blocks live at the crossing and 59 by the wool. A door whose two sides walk
+  the same route reports nothing rather than a span of zero, which is the honest answer at that reference.
+  **And a journey is one side's**: `FlowLeg` carries an `Approach` per demand set — attack, back-run, defend,
+  chase — each read over the ground that side walks, so the same hole answers differently to a player carrying
+  the wool out than to one walking in (townside chooses at (20, 110) against (−5, 60)) and a defence that may
+  not round the crossing reads one decision where the attack reads two. A defence's route ends at the door of
+  the room it holds, the target its distance already used. Nothing is hidden for being unlikely: exclusion is
+  for ground a side cannot walk, and everything else is ranked by distance. (`PlanRoutes`, `PlanFlow`,
+  `PlanRoutesTests`, `PlanFlowTests`, `docs/tools/plan.md`, `docs/world-scan/read-backs.md`)
+- **A defence has a second origin, and it is the crossing (`WS66`).** `PlanFlow` walked the defender from
+  their spawn alone, so every defend answer was the respawn case — but a player already at the frontline who
+  sees the attack and turns is defending too, from somewhere a respawn never starts. `FlowLeg.Chase` is that
+  walk, from the nearest seat the two sides meet on, and which of the two is shorter is a fact about the board:
+  on the author's eight example plans the chase is **longer** than a respawn on five (a room at the back) and
+  **shorter** on three (a room at the front), so a spawn-only read cannot tell those shapes apart. The account
+  says which it is rather than leaving a reader to subtract. **The seat derivation moved to `Geom`**
+  (`Walk.Crossings`) beside `Corridor`, the other answer that sums two fields: `GroundCoverage` had it and
+  `PlanFlow` is in a sibling project that cannot reach it, so a second copy was the alternative. Its slack and
+  stretch floor are the caller's, since a cell is one block at the built tier and several at the plan tier —
+  passing the built tier's slack unconverted found seats on half the boards and none on the other half.
+  (`Walk`, `PlanFlow`, `GroundCoverage`, `PlanFlowTests`, `docs/world-scan/read-backs.md`)
+- **A plan-tier walk knows who is walking (`WS65`).** `WorldWalk.For` narrows a built world's walk by the
+  `enter` rules a map states; the plan tier had no twin, so every plan-tier read walked ground the side making
+  the journey is barred from. `PlanNav.Barred(team)` reads the two patterns the studio writes into every map it
+  compiles — a team may not enter another team's **spawn**, and may not enter the **wool room it defends**
+  (`docs/pgm/filter-patterns.md` §1.1 at 80% of the corpus, §1.2 at 96%, the defining rule of the mode) — and
+  `PlanNav.For(team)` hands back that team's own ground. A room belongs to the orbit image it is fanned to, so
+  the rule is the image and never the name. `PlanFlow` walks the defence on it and stops at the **doorstep** of
+  the room it defends, since a walk ending on the wool is one that side cannot make: on the author's eight
+  example plans every defence was 12 blocks long, and `DefenderRatio` — what match length is read off before
+  anything else geometric — moved with it. A marker is still snapped on the shared ground, because snapping on
+  the narrowed one slides a barred objective sideways and reports the walk to wherever it landed as the walk to
+  the objective. (`PlanNav`, `PlanFlow`, `PlanNavTests`, `PlanFlowTests`, `docs/world-scan/read-backs.md`)
+- **A diagonal needs ground on both sides of the corner it cuts (`WS64`).** `Walk` refused a diagonal only
+  where **both** squeezed cells were void, so one void side and one solid one was a legal step — a player
+  slipping past a corner over a drop. It is the whole of what made an eastern approach exist on the author's
+  example 3: `(7,−12)` to `(8,−11)`, squeezing between the wool room at `(8,−12)` and nothing at `(7,−11)`,
+  and six more cuts on the same route. The rule is `||` now: ground on both, or the step is not taken. **It
+  cannot disconnect a board** — the solid side gives an L of two ordinary orthogonal steps — so what changes
+  is a price, never a verdict: that route goes from 223 blocks to 241, and 0 corner cuts remain across the
+  eight boards' 24 journeys. Nothing in the ten suites moved, which is why the net is a new one: the pair of
+  cases, one void side and two, with the first failing on the old rule. (`Walk`, `WalkTests`,
+  `docs/world-scan/read-backs.md`)
+- **A generator's drop is a pad, and the pad is what the point follows (`RP70`).** A spawner's `at` named a
+  coordinate and the slice wrote the centre of the block containing it, so a generator had no pad and its
+  place was a number rather than ground — where `WX5`'s discipline is that the square is the truth and the
+  exported point follows it. `at` names a **square of ground** now: the block it is the centre of, or the
+  four blocks it corners, and the drop is that square's own centre. What a pad is **for** sizes it beside
+  the parity (`PadUse`) — a pad somebody arrives on grows to the 3×3 a team can stand on, a pad that only
+  marks a place covers exactly the blocks its marker touches. So a whole-number `at` drops on the grid line
+  rather than half a block off it. `SpawnerIntent.Pad` names the block the square is laid in,
+  `MaterialIds.Block` resolves a `name:data` material to the one block to write — where `Resolve` answers a
+  match, which is a set of ids and carries no data value — and
+  `WorldBuilder.StampSpawnerPads` lays it into the course under the drop, after the finish, so the stack rests
+  on it. A spawner naming no block lays none. The keep box is centred by `ObjectiveFootprint.Centred`, the
+  one convention this repo has for an even-sided box on a marker, which is also the asymmetric span
+  `mame_i_shrunk_the_pvpers` writes around its own drops. (`SpawnPad`, `SpawnerGenerator`, `MaterialIds`,
+  `WorldBuilder`, `SpawnerPadWorldTests`, `docs/pgm/shops.md` §10, `docs/world-export/structures.md` §3)
+- **A pad is its own thing, and it is not made of wool (`RP69`).** The square something enters the match on
+  was a field of `RoomFrame`, sized by a private `PlacePad` that had to be handed a room's interior, and laid
+  by a `PadStamp` that hardcoded `Blocks.Wool`. So a marked place could not exist without a building around
+  it, and could not be made of anything else. `SpawnPad` is the type now (`PgmStudio.Domain`), carrying the
+  parity rule and the `WX3`/`WX4` fit; `Fit`'s ground is **nullable**, and null is open ground — nothing to
+  clamp to and nothing to narrow against, so the pad lands on its marker at the size its parity asks for.
+  `PadStamp.Lay` takes a block and a data value rather than a wool colour, and answers one `PlacedPad`.
+  `PlayerSpawnStamper` and `WoolSpawnStamper` are gone: one called the other's own docstring *"built exactly
+  like"* this one, and the fields their two result records did not share — a team colour, a wool slug — were
+  the caller's own input echoed back and read by nobody. No behaviour moved; the whole existing suite is the
+  net. (`SpawnPad`, `PadStamp`, `RoomFrames`, `SpawnPadTests`, `docs/world-export/structures.md` §3)
+- **An intent's optional words survive the wire (`RP68`).** A positional record **struct** has an implicit
+  parameterless constructor, and `System.Text.Json` takes that one in preference to the primary constructor —
+  so a member the body left out arrived as `default`, which for a string is **null** rather than the empty
+  string its parameter states. `ModeIntent.Name` was the live one: `{"after":"15m","material":"gold block"}`
+  is what nearly every corpus map's ladder writes, and `ModesGenerator` read `.Length` off it, so posting one
+  answered `RQ2` — an unhandled fault on a documented shape. `[method: JsonConstructor]` names the constructor
+  that fills them, on `ModeIntent`, `StampId`, `ShopPaymentIntent` and `SpawnerDrop`, and
+  `IntentWireShapeTests` walks the whole record graph reachable from `MapIntent` so the next struct cannot
+  slip through: a value type on the wire whose constructor carries a string has to name it.
+  (`MapIntent`, `StampId`, `IntentWireShapeTests`, `docs/pgm/new-map-authoring.md`)
+- **A board mints what its shop is priced in (`PG14`).** 764 of the corpus's 907 shop icons are priced in a
+  material no spawn kit carries, and a generated board had two item sources — the kit, and the kill reward
+  `MapStandards` derives from it — neither of which is one. The corpus's answer is a **spawner**: of the 429
+  entries yielding one of the eight commonest shop currencies, 374 are `<spawner>` items against 31
+  block-drops and 24 kill-rewards. So the intent states them, and `SpawnerGenerator` mints the three regions
+  around each drop, because PGM's element names two of them by id rather than taking coordinates and the third
+  is a rule: a `point` on the centre of the block named, a `cylinder` based there for who has to be standing
+  near, and a `cuboid` around it under one `<apply block="never">` — a generator whose block can be mined out
+  or walled in is one any player can switch off. All three are named for the spawner, so regenerating replaces
+  them and the wool rooms' own spawners, which share the document's one `<spawners>` list, are left where they
+  stand. Every number is the corpus's: a `10s` delay and a cap of 5 (the median and mode of the 276 currency
+  spawners), a reach of radius 5 and height 3 (the modes of its 162 cylindrical player-regions), and a kept box
+  six a side and five tall (the widest of the three clusters among 72 dedicated protections across 45 maps).
+  `ctw/mame_i_shrunk_the_pvpers` writes that reach and that box exactly. *`Domain.WoolSpawner` is `Spawner`
+  now — it drops emeralds, potions and golden apples in the corpus and wool nowhere, and the name is what hid
+  it from this entry.* (`SpawnerIntent`, `SpawnerGenerator`, `Domain.Spawner`, `SpawnerGeneratorTests`,
+  `docs/pgm/shops.md` §10)
+- **A shop reference PGM cannot resolve refuses the export (`PG13` — `SH1`).** Three of them load a map or
+  fail it: a keeper's `shop`, which `ShopModule.parse` throws *"No shop with id '…' could be found"* on by
+  name, and a keeper's `region` and an icon's `action`, which are feature references whose `resolve()` throws.
+  A map that will not load is not a map, so it refuses beside `EX2` rather than complaining beside `OB27`.
+  Asked only of an intent-authored board — whose menus are exactly what its intent stated, so anything outside
+  that set resolves to nothing — which is also why the include exemption needs no code: an imported map may
+  take its menus from an `<include>` the parser reads without splicing, and never reaches this gate.
+  *Measured with PGM's attribute inheritance, since the corpus writes `shop` on the `<shopkeepers>` parent:
+  all 15 corpus maps whose keepers name a menu they do not define are under `other/bedwars/` and every one
+  declares its include; no corpus icon names an action its own document lacks.*
+  (`ShopRules`, `MapExportComposer.ShopReferences`, `MapExportComposerPlayabilityTests`, `docs/refusals.md`)
+- **A keeper stands where the board says (`PG11`).** Every keeper's position was derived from the spawns, so a
+  shop building in the middle of a board had no way to be stated. `ShopkeeperIntent` now carries the pair
+  `Domain.Shopkeeper` reads back — a block, or the id of a region the map holds — plus a facing, and a keeper
+  naming one stands there **once**, because a shop in the middle of a board is one shop for everybody rather
+  than a villager per spawn. A coordinate answers a keeper carrying both, since it resolves on its own where a
+  region id has to be found. Saying nothing keeps the derivation: one per shop at every team's spawn, on the
+  spawn's floor, turned to face the point players arrive on. *12 of the corpus's 298 keepers stand in a named
+  region, all twelve of them `arcade/standard/balls_of_steel`'s.* (`ShopkeeperIntent`, `ShopGenerator`,
+  `ShopGeneratorTests`, `docs/pgm/shops.md` §9)
+- **An icon costs what it costs and does what it does (`PG12`).** `ShopItemIntent` stated one price, one
+  currency and no action, which is the plain sale and neither of the two shapes the corpus uses next. A
+  `payments` **list** replaces the pair — the same list `Domain.ShopIcon`, the intermediate document and the
+  store already held, so there is one shape rather than a shorthand beside it — and PGM takes every entry in
+  it, which is what makes the upgrade ladder authorable: a tier costs the previous tier *plus* a coin. The
+  writer decides the spelling, one payment on the icon element and several as `<payment>` children, because an
+  element can state one of each attribute. `Action` is the feature id under the one name PGM resolves both of
+  its spellings through. And nothing unloadable is written: PGM refuses a category with no icon and a shop
+  with no category, so a tab whose items all fall away is left out, a shop left with no tab goes with it, and
+  its keeper goes too. *105 of 907 corpus icons carry `<payment>` children and 555 name an action or a kit.*
+  (`ShopItemIntent`, `ShopPaymentIntent`, `ShopGenerator`, `ShopGeneratorTests`, `ShopIntentTests`,
+  `docs/pgm/shops.md` §3 §9)
+- **A team tint says which land it cannot tell apart (`WE120` — `PT5`).** A tint is one colour per canonical
+  island, which is what makes it readable: a player standing anywhere on a landmass knows whose it is. On an
+  island more than one team's spawns stand on the ownership keeps the first spawn read, so the whole of it
+  wears that team's colour — and on a board whose ground is a single landmass, which is the ordinary shape of
+  a capture board, that is the entire map in one colour with nothing anywhere saying so.
+  `TeamTerritory.Shared` reads the same decomposition for those islands and `Materials.TintsByTeam` walks a
+  material tree for the tint, since one sits as readily inside a pattern or a band as at a bucket's root and a
+  bucket its own toggle turns off states no colour at all. The complaint names the island, the teams that
+  enter it, the colour all of it wears and how many cells that is. Asked of the themes the painter
+  **resolves**, on that island's own cells, so a registry theme no shape applies never raises it and a board
+  with no shared island never takes the walk. A complaint because the answer is the author's: state ownership
+  per structure with a shape's own theme, split the land, or leave the tint off the terrain. *On a one-island
+  board with red at (−25, 0) and blue at (25, 0), the corner of blue's half at (38, 28) is painted red's
+  stained clay — damage 14.* (`TeamTerritory.Shared`, `Materials.TintsByTeam`,
+  `WorldBuilder.TintOverSharedGround`, `TeamTerritoryTests`, `TintsByTeamTests`, `TeamTintWorldTests`,
+  `docs/world-export/terrain-painting.md` §3)
+- **The dressing pass reads a hill as a goal (`WE125`).** `DressingScope` walked the intent's goals one family
+  at a time in three places and a capture point was in none of them, so a board played for hills was routed
+  between everything except its hills and had trees planted on its pads. All three read the fourth family now:
+  `WaypointsOf` seats a point's anchor beside the spawns, the wool monuments and the destroy goals, which is
+  what `DR-WAY` walks the board between and the same set the coverage read journeys over — the two are
+  documented as one set and are now one set. `GoalGroundAt` grows the pad the stamper cut by `GoalClearance`,
+  so tall cover stops at its edge, and `GoalDiscsAt` puts the marker's `GoalStandoff` square on it like any
+  other goal, which together make a tree, a boulder or a building inside it `OB19`. A point is the one goal
+  wider than the standoff ring, and the union is what answers for it: the ring holds a narrow pad and the
+  footprint holds a wide one. *A default 7-wide pad at (20, 20) keeps those three props out of
+  [10, 10]–[30, 30] and a 15-wide one out of [9, 9]–[31, 31].* (`DressingScope`, `DressingScopeTests`,
+  `docs/world-export/decoration.md` §3.1)
+- **Three gates for what a capture board will not do (`PG6`, `PG7`, `PG8` — `OB27`, `OB28`, `OB29`).** Each is
+  a fact about what PGM makes of the document rather than about any ground, and all three are complaints: the
+  map builds either way, and every point the studio authors already passes all three. **`OB27`** — a point
+  that leaves `required` off. PGM reads it as **true** at proto 1.4.0 and above, which is the studio's whole
+  supported range, and `GoalsVictoryCondition` ends the match the instant a competitor holds all its required
+  goals, so a one-hill map finishes on the first capture; a point `show="false"` hides is outside it, since
+  `GoalMatchModule.addGoal` never registers one without the `stats` option. **`OB28`** — a point that pays and
+  a document with no `<score>`, which is a match that scores nothing at all, silently, because PGM builds the
+  score module only for a document carrying that element. **`OB29`** — a display region holding no block PGM
+  recolours. The colour-affected set is `ColorUtils`'s, read off PGM's own source into
+  `BlockRoles.ColorAffected`, which replaces the same rule written out in three docstrings and enforced by
+  nothing; hardened clay is the trap, being stained clay's plain sibling and outside the set. Asked **last**,
+  over the finished world, because the pad is a course of ground the finish or a road can write over after the
+  stamp, and asked of the pad and the sky marker **separately** — one is the progress pie, the other the flat
+  owner colour, and losing one is losing half of what a point tells anybody. One block is enough for either,
+  so a pad a road has partly paved still draws its pie.
+  *Measured over both corpora with PGM's attribute inheritance — the corpus writes `required` on the
+  `<hills>`/`<control-points>` parent and the children take it from there: `OB27` fires on 66 points across 20
+  maps against 2,441 of 2,527 shown points that state `required="false"`, and `OB28` on 20 points across 11.*
+  (`ObjectiveRules`, `MapExportComposer.CapturePoints`, `WorldBuilder.CapturePointsShowColour`,
+  `BlockRoles.ColorAffected`, `MapExportComposerPlayabilityTests`, `ControlPointWorldTests`,
+  `docs/pgm/control-points.md`)
+- **A plan places a board's capture points from a count (`TC8`).** Every other placement belongs to a team
+  and therefore to that team's ground; a capture point belongs to nobody, so it has to be the same walk for
+  everyone and the only positions that are lie on the board's own axes of symmetry. So the plan states a
+  **count** and nothing else, and `ControlPointLayout` derives every anchor from it and the spawn frame: the
+  centre of symmetry, which is its own orbit image and stays one point, and a side point on the **bisector
+  between two neighbouring spawns** — 90° off the spawn direction on two teams, 45° on four, which is
+  `180°/order` either way — at the author's share of the way out, 0.66 of the centre-to-spawn distance on two
+  teams and 0.90 on four. The orbit fans that single primary into the matched pair or the ring of four, the
+  same fan every other marker takes. The counts a board's symmetry lays out are 1, one per team, or one per
+  team plus a centre, and any other is `PL16`: the compiler places none rather than rounding to a number it
+  can. *Compiled live from `opus5-sparholt`'s plan, spawns at (0, ±67): `3` gives (0, 0) and (±44, 0) —
+  44/67 = **0.657**, the author's ratio derived rather than stated — `2` gives the pair alone, `1` the centre,
+  and `4` on two teams gives none and `PL16`.* (`ControlPointLayout`, `PlanCompiler.ControlPoints`,
+  `ControlPointLayoutTests`, `docs/tools/plan.md`, `docs/pgm/control-points.md`,
+  `docs/pgm/new-map-authoring.md`)
+- **`PL3` counts all four objective families, and claims only what the plan tier knows (`TN19`).** The rule
+  counted wools, destroyables and cores, so a board played for hills was told "nothing wins the match" on
+  every compile and every evaluate. A stated capture-point count is an objective like the other three now. The
+  second half was the sentence: "nothing wins the match" is a claim about the **match**, which is the intent's
+  business and not a plan-tier rule's — a board can state its goals downstream, on the intent the configure
+  tool and the API write, and `PlanValidator` cannot see that. It reports a plan with nothing in it to win on
+  and says where such a board is answered instead. (`PlanValidator`, `PlanValidatorTests`,
+  `docs/tools/plan.md`)
+- **A control point is a goal the reads count (`WS62`).** `NavPoints` resolved the places a match is played
+  between from three objective families and a document's `control_points` was not one of them, so on a capture
+  board every journey to a hill went unmeasured: `traversability` named two spawns and called the chain fine,
+  `coverage` walked three journeys and reported the middle of the board dead, and `reach` agreed. All four
+  families are resolved now — from the document in `NavPoints` and from the intent in `DeclaredGoals` — and
+  `Traversability`'s gating list, a closed set of four kinds that silently dropped the fifth, counts a point
+  with them. A hill carries **no owner**, which is the one difference the family has: it belongs to whoever is
+  standing on it, so every team is simply required to reach it and none gets the weaker "walk up to your own
+  goal" question a defended wool room earns. Its name is PGM's own — the author's, else `Hill`, `Hill 2` off a
+  counter only an unnamed point advances — stated once in `Domain.ControlPointNaming` because the document
+  side and the intent side merge by name and two copies would count one point as two.
+  *Measured on `opus5-sparholt`, three hills at (0, 0), (−27, 0) and (27, 0): coverage went from 3 journeys and
+  **72.1%** of the ground dead to 15 and **31.4%**, and the walk read from two points to five, each hill named.*
+  (`NavPoints`, `DeclaredGoals`, `ControlPointNaming`, `NavPointsTests`, `docs/world-scan/read-backs.md`,
+  `docs/pgm/control-points.md`)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a
   solid cell that blocks placement, over the `SegmentIndex`), `POST /wool-sources` (wool colours summarised
@@ -9100,7 +9718,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   anything softer → iron) — the corpus norm for a fast raid, now stated as a generation choice rather than a
   legality check. `MiningTiers`'s docstring is corrected to say what its table actually encodes: the tier
   required to *drop* a material, not to break it. Every restatement of the false claim — `DestroyKitPairing`,
-  `MiningTiers`, `docs/pgm/destroyables-and-cores.md`, `docs/tools/capabilities.md`,
+  `MiningTiers`, `docs/pgm/destroyables-and-cores.md`,
   `docs/tools/configure.md`, `mapgen-review.md`'s `MG18` row, and this section's own `B81`/`B116` entries —
   is corrected in the same commit.
 - **A destroy or core board no longer claims to be a capture map (B131).** `MetaGenerator.Objective` used to
@@ -9867,7 +10485,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   question it was never built to answer. Rather than exempt a tool nobody opens, the tool goes: the library's
   own 3-D preview shows a piece better than walking to its plot does. **`IslandGrid` goes with it** — the
   script was its only caller, and an emitter nothing drives is a second way to state a board that no board is
-  stated by; `Pgm/Sketch/IslandGrid.cs`, `GridPlot`, `IslandGridTests` and `capabilities.md`'s grid section
+  stated by; `Pgm/Sketch/IslandGrid.cs`, `GridPlot` and `IslandGridTests`
   are removed, leaving `compose` and `plan` as the two ways. `POST /map/from-documents` is untouched and
   `pgm-studio-mapgen`'s `drive.py` is the worked example of authoring a map as two documents. `tools/` is
   seven file-based scripts, which is what `build-scripts.sh` builds.
@@ -10030,18 +10648,14 @@ these are the ones that shipped a map that could not be played as intended, and 
   correct for the corpus houses it was measured against; it simply no longer runs where a better answer is
   free. A region with no sidecar is unaffected: `ashen_quarry` still finds its 18 spruce/dark-oak house
   roofs, four of them full-cornered, exactly as before.
-- **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
-  mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
-  pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's
-  material and the four words the stamper can actually build from, the defence wall and iron cube the composer
-  never asks for, a `TerrainTheme`'s five buckets against the spec's four words (nineteen tone families crossed
-  with six of fourteen pattern kinds), the relief's five constraint marks against the separately-composing push,
-  and a `HouseStyle`'s course bands, window styles, door head, beams and storey stack with `Footprint`'s wings.
-  Written for an agent that reads before it writes, which is the fault it answers: the tool reached for a random
-  answer wherever an author would have reached for a deliberate one, because the format it was written against
-  could only say one theme and a rim. Two claims were dropped for disagreeing with the code — a **core**'s
-  material is not a knob (no field on `CorePlacement`/`CoreIntent`; obsidian fixed by DC1), and a wing-carrying
-  `Footprint` is buildable but unreachable from a placed prop.
+- **The capability surface is the API, not a handbook (B91, RP23).** What the system can be asked for is
+  answered by the system: `/api/openapi/v1.json` names every route with its body and its failure codes,
+  `GET /api/rules` names every refusal with its fix, `GET /api/map/{slug}/state` names the moves one map has
+  open, and `GET /api/objectives/vocabulary` and `GET /api/terrain/patterns` name the closed sets an author
+  picks from. `docs/tools/capabilities.md` had answered the same question in 9,400 words of prose and is
+  retired; what only it held moved to the documents whose subjects they are — the document stack and its
+  addresses to `flow.md`, the build ceiling's consequence for a tall shape to `plan.md`, and the forty-nine
+  worked plans to `tools/seeds/README.md`.
 - **Map XML refresh** — `--refresh-xml` re-derives every map's entities via the editor write path
   (preserves world features/artifacts); recovered annealing_iv's missing region, which fixed the
   former stale-DB symptom. (D1, closed C10)

@@ -1,4 +1,5 @@
 using PgmStudio.Analysis.Playability;
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Analysis.Tests;
@@ -7,8 +8,8 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// The places a match is played between. The invariant every playability read rests on is that a wool, a
-/// destroyable and a core are always among them — a goal missing here is a journey nobody measures, and the
-/// read answers over the spawns alone while calling the rest of the board dead.
+/// destroyable, a core and a control point are always among them — a goal missing here is a journey nobody
+/// measures, and the read answers over the spawns alone while calling the rest of the board dead.
 /// </summary>
 public sealed class NavPointsTests
 {
@@ -177,5 +178,63 @@ public sealed class NavPointsTests
         ];
 
         await Assert.That(NavPoints.Of(data, Bounds, declared).Count).IsEqualTo(2);
+    }
+
+    // ── a control point is a goal, and it is the one nobody owns ─────────────────────────────────────────
+
+    /// <summary>A document carrying hills yields one point each, seated on the capture region a player holds
+    /// them from. Before this the four families were read and the fifth was not, so every journey to a hill
+    /// went unmeasured and the ground round it read as dead.</summary>
+    [Test]
+    public async Task A_control_point_is_one_of_the_places_a_match_is_played_between()
+    {
+        var data = new Dict
+        {
+            ["regions"] = new Dict
+            {
+                ["red-spawn"] = Rect(-40, -40, -36, -36),
+                ["centre-capture"] = Cuboid(-3, 12, -3, 3, 15, 3),
+                ["east-capture"] = Cuboid(20, 12, -3, 26, 15, 3),
+            },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red-team", ["region"] = "red-spawn" } },
+            ["control_points"] = new List<object?>
+            {
+                new Dict { ["id"] = "hill", ["capture_region"] = "centre-capture" },
+                new Dict { ["id"] = "east", ["name"] = "The Quarry", ["capture_region"] = "east-capture" },
+            },
+        };
+
+        var points = NavPoints.Of(data, Bounds);
+        var hills = points.Where(point => point.Kind == "point").ToList();
+
+        await Assert.That(hills.Select(hill => hill.Name)).IsEquivalentTo(new[] { "Hill", "The Quarry" });
+        // Nobody owns a hill: it belongs to whoever stands on it, so every team must simply reach it.
+        await Assert.That(hills.All(hill => hill.Owner.Length == 0)).IsTrue();
+        await Assert.That(hills.Single(hill => hill.Name == "Hill").Cell).IsEqualTo((0, 0));
+        await Assert.That(hills.Single(hill => hill.Name == "The Quarry").Cell).IsEqualTo((23, 0));
+    }
+
+    /// <summary>A point states its pad where it states no capture volume — an imported map may carry either —
+    /// so the progress region answers where the capture region is absent.</summary>
+    [Test]
+    public async Task A_point_carrying_only_its_pad_is_seated_on_the_pad()
+    {
+        var data = new Dict
+        {
+            ["regions"] = new Dict { ["pad"] = Rect(8, 8, 14, 14) },
+            ["control_points"] = new List<object?> { new Dict { ["id"] = "hill", ["progress_region"] = "pad" } },
+        };
+
+        await Assert.That(NavPoints.Of(data, Bounds).Single(point => point.Kind == "point").Cell)
+            .IsEqualTo((11, 11));
+    }
+
+    /// <summary>PGM's own naming, which two parties have to spell identically: only an unnamed point advances
+    /// the counter, so a named one between two unnamed ones does not consume a number.</summary>
+    [Test]
+    public async Task Only_an_unnamed_point_advances_the_counter()
+    {
+        await Assert.That(ControlPointNaming.Displayed(["", "The Quarry", null, "  "]))
+            .IsEquivalentTo(new[] { "Hill", "The Quarry", "Hill 2", "  " });
     }
 }

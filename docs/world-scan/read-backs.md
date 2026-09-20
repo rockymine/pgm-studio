@@ -44,7 +44,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `reach` | — | which standing ground **no player can get to**, and why, as `text/plain`: the patches, their column counts, their lowest standing course and the box to stand in. The traversability picture's own partition read as numbers — the navigable components, less the one the board is played on, less every component a spawn or an objective sits on, less every component the map opens to bridging — plus ground above the map's `maxbuildheight`, which cannot be built up to. **It names nothing as wrong**: scenery, a side observer island and a shelf over the ceiling read exactly like a shape stranded by accident, and only the author can tell them apart |
 | `editability` | — | which columns a player may edit and **what makes each one editable**, as JSON: digit rows over a bounding box, the four `EditZone` words, a colour each, the counts, and `findings`. The zones are `build_zone` · `ground` · `filtered` · `sealed`, read by following PGM's own resolution — the first region-filter application that does not abstain settles the column, and place and break are the separate scopes PGM makes them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
-| `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one the map states |
+| `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one it was laid to |
 | `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort`, `team` whose walk it is |
 | `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells, places, steps, rises, falls, worstStep, beside}`. `?from=x,z&to=x,z`, `aim` and `team` as above; `?beside=N` (0–6) adds every distinct thing recorded within `N` cells of the route |
 | `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated. The header also carries the terrain's inclination at the cell, so a slope band can be checked against the angle that chose it |
@@ -71,6 +71,38 @@ answers four things at once, each in its own unit and **none of them weighed aga
 | `distance` | **blocks** | how far it is, and so how long it takes |
 | `blocks` | **blocks placed** | the climb and the bridging — the number a kit budget is compared against |
 | `drops` · `worstDrop` | **falls, and blocks** | a fall is free, and still a delay |
+
+**A choice belongs to a door, and a door belongs to a side.** A journey's decisions are read one per hole it
+may pass either side of, measured against its own shortest route: where the choice is made, where the two ways
+meet again, how far apart they run and what the other costs. One span from the first parting to the last merge
+is an envelope over all of them and describes none — on townside it covers 177 blocks of a 266-block walk
+where the approach has two decisions, 123 blocks apart at the crossing and 59 by the wool. And the same hole
+answers differently to each side: townside's run home chooses at (20, 110) where the walk in chose at (−5, 60),
+and a defence that may not round the crossing has one decision where the attack has two.
+
+**Two sides arrive together somewhere, and that somewhere is an origin.** The places both sides reach at the
+same cost are the line they meet on; it breaks into one stretch per way across, and each stretch's widest cell
+is the seat players actually use rather than the corner where the line clips a wall (`Walk.Crossings`). A
+coverage read starts an attacker's journey there, and a flow read starts a **chase** there — the defence that
+was already out when the attack came, which is a different origin from the one a respawn starts at and on half
+a corpus of boards a nearer one. The slack and the stretch floor are the caller's, because a cell is one block
+at the built tier and several at the plan tier, so one number would mean two distances.
+
+**A walk is narrowed to the side making it.** An `enter` rule keeps a team off ground, so the ground one
+side walks is not the ground another does: `WorldWalk.For` narrows a built world's walk by the rules the map
+states, and `PlanNav.For` narrows the plan tier's by the two the studio writes into every map it compiles —
+a team may not enter another team's **spawn**, and may not enter the **wool room it defends**
+(`docs/pgm/filter-patterns.md` §1.1, §1.2). A marker is snapped on the shared ground and looked up on the
+narrowed one, because snapping on the narrowed one slides a barred objective sideways and reports the walk to
+wherever it landed as the walk to the objective. So a defence's walk ends at the door of the room it defends,
+which is the distance that side can actually make.
+
+**A diagonal step needs ground on both of the cells it squeezes between.** One of them being a drop makes it
+a corner the player goes round rather than across, so the step is refused and the L through the solid side is
+the route — at the two blocks that L costs rather than the diagonal's 1.41. The refusal never disconnects a
+board, because that L is made of two ordinary orthogonal steps; what it removes is a way past a corner nobody
+walks. Where *both* squeezed cells are void there is no L either, and two cells touching only at their corner
+are not joined at all.
 
 **A column offers a place for every surface in it carrying two clear blocks above, and the walk's node is a
 place rather than a cell.** A cell is `(x, z)`, a column seen from above; a place is `(x, z, y)`, a cell and
@@ -127,6 +159,17 @@ refuses under `EX1` where the goal is one that team must take. A goal the team *
 question there, since its own wool room bars it by design: the walk only has to reach the barred ground's
 border. Both ends are snapped on the shared ground before the team's is walked, so a barred
 objective answers unreachable rather than sliding sideways to the nearest cell the team may stand on.
+
+**A control point is a goal the reads count, and it is the one nobody owns.** `NavPoints` resolves the places
+a match is played between from all four objective families — a wool, a destroyable, a core and a control
+point — and the reads that quantify over goals (`traversability`, `coverage`, `reach`, the export gate's
+`EX1`) take that one set, so a capture board is measured rather than being read as two spawns and a dead
+field. A hill belongs to whoever is standing on it, so it carries **no owner**: the weaker question above is
+a defender's, and every team is simply required to reach a point. It is seated on its capture region, which
+is the pad and the air a body occupies, falling back to the pad alone on a map that states only that. Its
+name is PGM's own — the author's where they wrote one, and `Hill`, `Hill 2`, `Hill 3` off a counter only an
+unnamed point advances (`ControlPointNaming`), so the document's points and an intent's are recognised as
+the same points rather than counted twice.
 
 The bound is what keeps it honest in both directions. Unbounded, a standoff route wanders; ordered after
 distance, it never moves. And the exposure term is the route's **worst** shortfall rather than its total,
@@ -290,7 +333,12 @@ tone: a neighbour's height is a subtraction rather than an estimate, and the hou
 and goals overprinted on it say what the relief carries rather than leaving a reader to guess from shape
 alone. `surface` answers whether a board's paint is the palette it was authored from — a whole tone family
 taken where two members were meant reads as the noise it is. `mirror` answers whether a board somebody
-believes is symmetric actually is.
+believes is symmetric actually is, and **the fold it compares against is the layout's own**
+`setup.mirror_mode` and centre — the mode the rasteriser fans every mirroring group by, so the turn the blocks
+actually took. The intent carries a symmetry of its own and it is the fallback rather than the first answer:
+that one fans the *intent* (a spawn, a goal) and a board compiled from a plan leaves it unset, so a read
+taking it first answers `none`, compares every column with itself and reports a board that does not fold as
+perfectly folded — the one read built to catch an asymmetry, silent on the boards it was built for.
 
 `slopes` answers where a relief is too steep to be crossed for free, the way `heightmap` answers its overall
 shape: a cliff reads as a line of `#`, a ramp as a band of `.` running through it, and ground graded past

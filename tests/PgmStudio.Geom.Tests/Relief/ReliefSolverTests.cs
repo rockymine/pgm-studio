@@ -165,6 +165,26 @@ public sealed class ReliefSolverTests
     }
 
     [Test]
+    public async Task A_board_with_no_symmetry_is_not_folded()
+    {
+        // `none` is one unit with no image, so nothing is copied across the centre: a hill on the far half keeps
+        // its whole outline instead of being cut off where the fold would have replaced it.
+        var footprint = Board(60, 48);
+        var spec = new ReliefSpec
+        {
+            Base = 5, Marks = [new RimMark(5), new PointMark(45, 30, 15, 4)], Grain = 1.2, GrainScale = 9, Seed = 3,
+            FoldCentreX = 30, FoldCentreZ = 24,
+        };
+
+        var none = ReliefSolver.Solve(footprint, spec with { FoldMode = "none" });
+        var unset = ReliefSolver.Solve(footprint, spec with { FoldMode = null });
+        var halfTurn = ReliefSolver.Solve(footprint, spec with { FoldMode = "rot_180" });
+
+        await Assert.That(none.Blocks.SequenceEqual(unset.Blocks)).IsTrue();
+        await Assert.That(halfTurn.Blocks.SequenceEqual(unset.Blocks)).IsFalse();
+    }
+
+    [Test]
     public async Task The_cascade_agrees_with_a_single_grid()
     {
         var footprint = Board(70, 70);

@@ -98,6 +98,7 @@ public static class WorldBuilder
             Wools = intent.Wools?.Select((w, i) => w with { Stamp = Seed(w.Stamp, "wool", i) }).ToList(),
             Destroyables = intent.Destroyables?.Select((d, i) => d with { Stamp = Seed(d.Stamp, "destroyable", i) }).ToList(),
             Cores = intent.Cores?.Select((c, i) => c with { Stamp = Seed(c.Stamp, "core", i) }).ToList(),
+            ControlPoints = intent.ControlPoints?.Select((p, i) => p with { Stamp = Seed(p.Stamp, "controlpoint", i) }).ToList(),
             Structures = intent.Structures is not { } structures ? null : new StructureIntent
             {
                 RedstoneLines = [.. structures.RedstoneLines.Select((l, i) => l with { Stamp = Seed(l.Stamp, "redstoneline", i) })],
@@ -309,6 +310,10 @@ public static class WorldBuilder
         var resolvedCores = StampCores(
             world, terrain, intent.Cores, teams, pendingMarkers, pendingCeiling, provenance,
             built);
+        // Before the terrain finish, like the two above it: the finish paints stone and the pad is clay, so a
+        // pad already laid is a pad the finish leaves alone. Laid after it, the pad would be painted over.
+        List<ControlPointIntent>? resolvedPoints =
+            StampControlPoints(world, terrain, intent.ControlPoints, provenance);
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
@@ -326,10 +331,19 @@ public static class WorldBuilder
         // stone-only invariant stood between the two, and that invariant is about what a block IS rather than
         // about which layer may address it: a ground theme filling in plain stone hands its whole column to
         // whatever is drawn above. A layer's limit is its own shapes, so that is what it is given.
+        var themeAt = TerrainThemeScope.ThemeAt(layoutJson);
+        built.AddRange(TintOverSharedGround(terrain.SurfaceTop.Keys, intent, themeAt));
         TerrainPainter.Paint(world, PaintSurface(terrain.SurfaceByLayer, plinths),
-                             TerrainThemeScope.ThemeAt(layoutJson),
+                             themeAt,
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
                              terrain.FloorByLayer);
+
+        // ── The generators' ground — the block each spawner's stack lands on, laid into the course under its
+        // drop. After the finish for the reason a room's pad is stamped after its shell: the pad is the floor
+        // the point sits on rather than whatever the painter laid, and a generator is a place before it is a
+        // clock. Nothing is claimed for it — a pad is one course of ground, which the dressing pass may still
+        // grow flora beside.
+        StampSpawnerPads(world, intent);
 
         // ── Dressing — the terrain's life on top of its finish: flora over the soil, boulders bedded into
         // it, trees standing on it (docs/world-export/decoration.md). Runs after the painter because the one
@@ -353,7 +367,11 @@ public static class WorldBuilder
             DressingScope.GoalGroundAt(goals),
             DressingScope.GoalClearanceAt(goals),
             terrain.SurfaceByLayer,
-            DressingScope.WaypointsOf(goals)));
+            DressingScope.WaypointsOf(goals),
+            // Where the ground a cell is painted from stops being a meadow and becomes a face (DR-STEEP). The
+            // paint is what states it, so the pass is handed the same resolver the painter just ran.
+            (layer, x, z) => Materials.CliffAngle(
+                themeAt(layer is { Length: > 0 } named ? named : SketchLayer.GroundId, x, z).Surface.Material)));
         // A dressing-placed building is a structure the author chose, not scenery the way a tree or a boulder
         // is (docs/world-export/decoration.md) — its footprint claims Structure last, over whatever ground
         // provenance the terrain under it carried, the same "later pass wins" rule every stamp above follows.
@@ -426,6 +444,7 @@ public static class WorldBuilder
             maxBuildHeight + BuildCeiling.MarkerOver, 0, VoxelWorld.MaxHeight - GoalMarkerStamper.Size);
         foreach (var (mx, mz, data, shape) in pendingMarkers)
             GoalMarkerStamper.Stamp(world, mx, mz, markerFloor, data, shape);
+        resolvedPoints = StampControlPointMarkers(world, resolvedPoints, markerFloor);
         foreach (var (kind, name, owner, box) in pendingCeiling)
             OverCeiling(built, kind, name, owner, box, maxBuildHeight);
 
@@ -484,13 +503,15 @@ public static class WorldBuilder
             Wools = resolvedWools,
             Destroyables = resolvedDestroyables,
             Cores = resolvedCores,
+            ControlPoints = resolvedPoints,
         };
 
         // One list, in build order: what the build could not raise as authored — a goal over the ceiling, a
         // made thing standing in something stamped — then what the dressing pass did not place. All of them
         // are complaints on a world that exists, so a caller reads one channel.
-        List<Finding>? complaints = built.Count > 0 || dressed.Declines.Count > 0
-            ? [.. built, .. dressed.Declines]
+        var colourless = CapturePointsShowColour(world, resolved.ControlPoints).ToList();
+        List<Finding>? complaints = built.Count > 0 || dressed.Declines.Count > 0 || colourless.Count > 0
+            ? [.. built, .. dressed.Declines, .. colourless]
             : null;
         return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, shells, complaints, columns,
                               dressed, groundTop);
@@ -692,6 +713,159 @@ public static class WorldBuilder
                 Owner = b.Owner, Name = b.Name, Style = b.Style, Materials = materials,
                 Anchor = b.Anchor, Float = b.Float, Box = box,
             });
+        }
+        return resolved;
+    }
+
+    /// <summary>
+    /// Lay each capture point's pad and return the intent with its two boxes resolved — the same one-box rule
+    /// the other objectives keep (OB8): the blocks laid here are the blocks the generator scopes its regions
+    /// to, so the pad PGM recolours cannot miss the pad a player stands on.
+    ///
+    /// <para>No build-ceiling entry: the ceiling catches a structure raised over what a player can reach, and
+    /// a pad cut into the terrain is by construction under it. The provenance claim it does take, so the
+    /// dressing pass does not stand a tree on the hill.</para>
+    ///
+    /// <para>The marker is not stamped here. Every goal on a board hangs its marker at one altitude and that
+    /// altitude is the build ceiling's, which is not known until the last house is standing — so a point's
+    /// marker is laid with the rest of them, and its box comes back onto the intent there.</para>
+    /// </summary>
+    private static List<ControlPointIntent>? StampControlPoints(
+        VoxelWorld world, BuiltTerrain terrain, List<ControlPointIntent>? points, WorldProvenance provenance)
+    {
+        if (points is null) return null;
+        var resolved = new List<ControlPointIntent>(points.Count);
+        foreach (var point in points)
+        {
+            var surface = terrain.SurfaceFor(point.Layer);
+            var (ax, az) = ObjectiveFootprint.AnchorCell(point.Anchor.X, point.Anchor.Z);
+            var size = Math.Clamp(point.Size, ObjectiveDefaults.MinControlPointSize, ObjectiveDefaults.MaxControlPointSize);
+
+            var pad = ControlPointStamper.PadBox(surface, ax, az, size);
+            var capture = ControlPointStamper.CaptureBox(pad);
+            ControlPointStamper.StampPad(world, pad, surface, Blocks.StainedClay,
+                                         BlockColors.BlockDamage(ObjectiveDefaults.ControlPointColor));
+            ControlPointStamper.ClearCaptureVolume(world, capture);
+            provenance.ClaimRect(pad.MinX, pad.MinZ, pad.MaxX, pad.MaxZ, ProvenancePass.Structure, point.Stamp);
+
+            resolved.Add(point with { Size = size, PadBox = pad, CaptureBox = capture });
+        }
+        return resolved;
+    }
+
+    /// <summary><b><c>OB29</c> — every capture point whose display regions PGM will not recolour.</b> Colour
+    /// is the map's only signal that a point was captured, and PGM leaves a block outside
+    /// <c>ColorUtils</c>'s set exactly as it found it, so such a point works and shows nothing.
+    ///
+    /// <para>Asked <b>last</b>, over the finished world, because the pad is a course of ground like any other
+    /// and everything after the stamp can write over it — the terrain finish, a road the dressing pass paved,
+    /// a made thing laid across it. What PGM reads is the world, so that is what this reads.</para>
+    ///
+    /// <para><b>The two regions are asked separately</b>, because they are two signals rather than one. The
+    /// pad is the progress pie — who is taking the point, and how far along — and the marker is the flat
+    /// owner colour a player reads from across the board. A board keeping one and losing the other has lost
+    /// exactly half of what a point tells anybody.</para>
+    ///
+    /// <para>Public for the reason <see cref="MapExportComposer.CheckGoalPlacement"/> is: the question is
+    /// about a world and a set of resolved points, and the build is not the only place worth asking it.</para></summary>
+    public static IEnumerable<Finding> CapturePointsShowColour(
+        VoxelWorld world, IReadOnlyList<ControlPointIntent>? points)
+    {
+        foreach (var point in points ?? [])
+        {
+            foreach (var (region, box, shows) in new[]
+                     {
+                         ("pad", point.PadBox, "who is taking it and how far along"),
+                         ("sky marker", point.MarkerBox, "who holds it, from across the board"),
+                     })
+            {
+                if (box is not { } display || ColourShows(world, display)) continue;
+                yield return new Finding(ObjectiveRules.PointNeverChangesColour,
+                    $"the capture point at ({display.MinX}, {display.MinZ})–({display.MaxX}, {display.MaxZ}) "
+                    + $"has a {region} holding no block PGM recolours, so nothing on the board shows {shows}",
+                    Severity.Complaint, Field: "control_points",
+                    Subjects: point.Name.Length > 0 ? [point.Name] : null);
+            }
+        }
+    }
+
+    /// <summary><b><c>PT5</c> — a team tint painted over land more than one team enters.</b> The tint is one
+    /// colour per canonical island, which is what makes it readable at all; an island two teams' spawns stand
+    /// on therefore wears one team's colour everywhere, and on a board whose land is a single island that is
+    /// the whole map.
+    ///
+    /// <para>Asked of the themes the painter <b>resolves</b>, on the shared island's own cells, rather than of
+    /// the registry: a theme nothing applies paints nothing, and the ground layer is the one the island
+    /// decomposition is of. The walk stops at the first tinting cell, and a board with no shared island never
+    /// takes it.</para></summary>
+    private static IEnumerable<Finding> TintOverSharedGround(
+        IEnumerable<(int X, int Z)> footprint, MapIntent intent,
+        Func<string, int, int, TerrainTheme> themeAt)
+    {
+        foreach (var island in TeamTerritory.Shared(footprint, intent))
+        {
+            if (!island.Cells.Any(cell => Materials.TintsByTeam(themeAt(SketchLayer.GroundId, cell.X, cell.Z))))
+                continue;
+            yield return new Finding(TerrainThemeRules.TintOverSharedGround,
+                $"island {island.Island} carries the spawns of {string.Join(" and ", island.Teams)} and its "
+                + $"paint tints by team, so all {island.Cells.Count} cells of it wear "
+                + (island.Owner == TeamTerritory.Neutral ? "no team's colour" : $"{island.Owner}'s colour")
+                + " — a tint is one colour per island, and this island is ground they share",
+                Severity.Complaint, Field: $"islandTeams.{island.Island}", Subjects: [.. island.Teams]);
+        }
+    }
+
+    /// <summary>Every spawner's pad: the square of ground its stack lands on, in the block the board named,
+    /// laid into the course below the drop so the stack rests on the pad rather than beside it.
+    ///
+    /// <para>A spawner that names no block lays nothing, which is a board that has already built the ground
+    /// its generator stands on.</para></summary>
+    private static void StampSpawnerPads(VoxelWorld world, MapIntent intent)
+    {
+        foreach (var spawner in intent.Spawners ?? [])
+            if (SpawnerGenerator.Ground(spawner) is { } laid)
+                PadStamp.Lay(world, laid.Pad, (int)Math.Floor(spawner.At.Y) - 1, laid.BlockId, laid.Data);
+    }
+
+    /// <summary>Whether a display region holds anything PGM will recolour. One block is enough: PGM filters
+    /// the region rather than requiring all of it, so a pad of stained clay with a stone kerb still draws its
+    /// pie over the clay.</summary>
+    private static bool ColourShows(VoxelWorld world, BlockBox box)
+    {
+        for (var y = box.MinY; y <= box.MaxY; y++)
+        for (var z = box.MinZ; z <= box.MaxZ; z++)
+        for (var x = box.MinX; x <= box.MaxX; x++)
+            if (BlockRoles.IsColorAffected(world.GetBlock(x, y, z).Id)) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Hang each point's marker at the board's one marker altitude and carry its box back onto the intent,
+    /// which the generator emits as the owner display region.
+    ///
+    /// <para><b>A hill's marker is the one that changes colour.</b> A wool room's and a destroyable's name the
+    /// team the goal belongs to and are stamped in that team's dye for the whole match; a point belongs to
+    /// nobody until somebody takes it, so its marker is laid in <b>white</b> — the neutral the corpus's own
+    /// pads are built in — and PGM repaints it to the holder's colour and restores the white when the point
+    /// goes neutral. That only happens because the marker's blocks are inside a region the point displays
+    /// through, and it is the owner display region rather than the progress one: the progress display is a
+    /// pie swept about the centre of its <em>own</em> bounds, so a marker sharing that region would move the
+    /// centre off the pad and wipe the wrong point.</para>
+    ///
+    /// <para>Wool, because <c>ColorUtils</c> only recolours a closed set of materials and the marker has to
+    /// be in it. Every other block in the box is air, so the region PGM enumerates is exactly the marker.</para>
+    /// </summary>
+    private static List<ControlPointIntent>? StampControlPointMarkers(
+        VoxelWorld world, List<ControlPointIntent>? points, int markerFloor)
+    {
+        if (points is null) return null;
+        var neutral = BlockColors.BlockDamage(ObjectiveDefaults.ControlPointColor);
+        var resolved = new List<ControlPointIntent>(points.Count);
+        foreach (var point in points)
+        {
+            var (ax, az) = ObjectiveFootprint.AnchorCell(point.Anchor.X, point.Anchor.Z);
+            GoalMarkerStamper.Stamp(world, ax, az, markerFloor, neutral, GoalMarkerShape.Cross);
+            resolved.Add(point with { MarkerBox = GoalMarkerStamper.Box(ax, az, markerFloor) });
         }
         return resolved;
     }

@@ -13,10 +13,10 @@ landed, the rest is the idea.
 
 ## Mid enrichment (the crossing vocabulary, back on the box path)
 
-- **G116** *(partial — the split band shipped)* — richer mids: stone rows, the centre island (single/pair),
-  depth variation (the ≥20-player 30-block deep single). All re-enter as `CrossingDesign` forms; the retired
-  `SampleCrossing` arithmetic (hops 10..20, sum 30..60, CT7 column alignment, the MD6 lateral grid) is the
-  reference design, in git history.
+- **G116** *(partial — the split band and the stone row shipped)* — what is left of the richer mid: a stone
+  **raised or lowered** off the base terrain rather than level with it (`MD1`), and depth variation across a
+  row instead of one depth per band. Both re-enter as `CrossingDesign` forms; the retired `SampleCrossing`
+  arithmetic (hops 10..20, sum 30..60, CT7 column alignment) is the reference design, in git history.
 - **G100** — holed frontline forms (P, two-U-on-I): needs the "where does the mid meet a loop" face rule first.
 - **G81** — the declared-bay scythe via elevation (a flush host sealing the bay is legal only once height
   enforces the approach); parked until the elevation pass exists.
@@ -45,7 +45,7 @@ landed, the rest is the idea.
   rate is capped by chance rather than by budget.
 - **G131** — **per-part width beyond the ring.** G129 generalized the four walls of a ring; the rest of a board is
   still one lane width (`w` = 2 or 3 from the land budget) with the wool lane and hub wall as fixed constants
-  (`WoolLaneCells`, `FillProfiles.HubWallCells`). The remaining cases are the parts *docked onto* a ring, which
+  (`UnitTuning.WoolCorridorCells`, `Box.HubCorridor`). The remaining cases are the parts *docked onto* a ring, which
   deliberately kept a plain `cw` — the P's overhanging bar, the G's L-upright, the DoubleHole's U — plus the
   approach lanes and the frontline's spine. **Relation to its neighbours:** G105 owns the per-piece width knob for
   hub bodies, G82/G83 own entry widening for wool approaches; this is the generalization those are special cases
@@ -139,11 +139,11 @@ landed, the rest is the idea.
   *Three of its four measures need a primitive the repo does not have.* Traversal today is
   `Cells.ShortestPath`/`PathLength` over `SurfaceNav.Walkable` — how far, and whether connected. The
   **ribbon** (every cell on a route ≤130% of the shortest) needs the *distance field* `PathLength` computes
-  and throws away. The **choke** needs unit-capacity vertex max-flow, which exists nowhere. **Ways round a
+  and throws away. The **choke** is `Cells.MinVertexCut`, unit-capacity vertex max-flow over the split grid;
+  its ends are cell **sets**, because a cut against one cell is never more than the four ways out of it. **Ways round a
   void** has half of what it needs — `Cells.EnclosedVoid` finds the hole — and wants the ray-cut test.
-  Route enumeration wants piece adjacency, which `ContactGraph` is, and therefore inherits **`G65`**: while
-  `FannedGraph.LandAdjacent` and `ContactGraph` disagree on the overlap case, a route count depends on which
-  graph was asked.
+  Route enumeration wants piece adjacency, which `ContactGraph` is — and one rule states it
+  (`ContactGraph.Connects`), the fanned graph included, so a count does not depend on which graph was asked.
 
   *One negative result is worth carrying into the code when it lands.* Counting the connected components of
   the minimum cut is **not** the ways-round test and gives opposite answers in both directions — it reported
@@ -268,9 +268,8 @@ landed, the rest is the idea.
   `attachments`, `woolExtend`, `entryShift`, `woolShift` and `attachmentOffset`, and `WoolBoxEmitter.Emit`
   passes all five through — but `WoolBoxEmitter.Fill`, the only path `BoxFiller` and therefore the whole
   compose pipeline uses, forwards none of them (`WoolBoxEmitter.cs`, the `ShapeEmitter.Emit` call inside
-  `Fill`). Their only callers in the tree are `tools/compose/box-gallery.cs` (the two-attachment and
-  moved-attachment donut cards). So the two-attachment donut, the extended-wool donut and both scythe
-  endpoint shifts are built, tested, drawn in the galleries, and **cannot appear on a generated board**.
+  `Fill`). Nothing in the tree calls them, so the two-attachment donut, the extended-wool donut and both
+  scythe endpoint shifts are built, tested, and **cannot appear on a generated board**.
   Decide per knob rather than in bulk: the donut's second attachment is a genuine multi-access shape the
   hub could dock twice and is the strongest candidate to plumb; the scythe shifts are moot until the
   scythe itself is admitted (G146). Plumbing one means widening `WoolFill` (it already carries
@@ -336,7 +335,8 @@ landed, the rest is the idea.
   deliver two ways on 163 of 224 spawn-to-wool crossings, and the ones that do not are dead by seating rather
   than by shape — the same body form with both docks on one side is a wide room with a decorative hole in it.
   When the sampled hub body encloses a void, prefer opposite walls for the two docks. The value is not the
-  extra distance but what G164 measures: the far way round drops interference from 76% to 37%, which is
+  extra distance but what the `route-interference` term measures: the far way round drops interference from
+  76% to 37%, which is
   the difference between an alternative and an alternative worth taking. Geometry change, so the same
   fingerprint and gallery costs as G166, and the two should land together or in a known order since both
   touch the same seat choice.
@@ -347,7 +347,8 @@ landed, the rest is the idea.
   emits — and the wool-to-wool route becomes the live one. Terms that are vacuous in the first state carry
   the whole second phase, so evaluating only the opening scores half a match. This is a change to the
   evaluator's shape rather than a new term: `EvalContext` carries which state is being read, and the terms
-  that only apply post-capture (G164's interference, rotation between objectives) declare it. Decide
+  that only apply post-capture (rotation between objectives) declare it. Interference is not one of them:
+  its origin is each side's own spawn in both states. Decide
   early whether the two states produce two scores or one combined figure — a single number that averages a
   strong opening against a hopeless second phase describes neither. The played account is in
   `docs/gameplay/match-flow.md` §4.8.
@@ -455,7 +456,7 @@ so the labeled corpus cannot be contaminated after the fact. Browse votes (absol
   made per consumer kind. What remains is the behaviour question the rename deliberately did not answer.
   Today the two are entirely unlinked: `Seat` reads the hub's offers, keeps only `(Start, LengthCells)` as its
   **runs** and drops the published width, then `HubJoint` grants a width taken from the demand's kind
-  (`WoolLaneCells` for a wool, `w` otherwise). So a hub can grant a corridor **wider than the run it sits on
+  (the band's wool corridor for a wool, its map corridor otherwise). So a hub can grant a corridor **wider than the run it sits on
   claims to support** and nothing objects. Either that is intended — capacity is advisory, the consumer knows
   its own lane — or the grant should be clamped to the offer, in which case a narrow run would demote a
   consumer's `cw` and some docks that succeed today would not.

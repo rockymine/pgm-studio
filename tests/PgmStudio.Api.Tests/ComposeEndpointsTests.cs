@@ -43,6 +43,36 @@ public sealed class ComposeEndpointsTests
     }
 
     [Test]
+    [Arguments(1)]
+    [Arguments(3)]
+    [Arguments(4)]
+    public async Task A_team_count_the_composer_does_not_build_is_400(int teams)
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var resp = await client.GetAsync($"/api/compose?players=16&teams={teams}&symmetry=rot_180&count=1");
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest)
+            .Because("a team count the composer does not build is refused, not answered with a two-team board");
+
+        var body = await resp.Content.ReadAsStringAsync();
+        await Assert.That(body).Contains("teams")
+            .Because("the refusal names the field it is about, the way the symmetry refusal does");
+    }
+
+    [Test]
+    public async Task The_team_count_it_does_build_composes()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var page = await client.GetFromJsonAsync<ComposePage>(
+            "/api/compose?players=16&teams=2&symmetry=rot_180&seedStart=0&count=1");
+        await Assert.That(page!.Cards.Count).IsEqualTo(1);
+        await Assert.That(page.Cards[0].Descriptor.Teams).IsEqualTo(2);
+    }
+
+    [Test]
     public async Task Structural_sieve_wools_must_include_hub_any_of()
     {
         await ApiTestFactory.ResetSchemaAsync();
@@ -69,15 +99,24 @@ public sealed class ComposeEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
+        // The filter has to be on a form the sieve will REJECT boards to reach, or the page fills from its
+        // first seed and the census has nothing to have counted. Which form is rare moves with the composer, so
+        // the setup asks rather than assumes: survey a page, filter on the form it drew least, and start from a
+        // seed whose own board is a different one — that guarantees at least one rejection.
+        var survey = await client.GetFromJsonAsync<ComposePage>(
+            "/api/compose?players=20&symmetry=rot_180&seedStart=0&count=12");
+        var minority = survey!.Observed!.Hubs.OrderBy(h => h.Value).ThenBy(h => h.Key).First().Key;
+        var start = survey.Cards.First(c => c.Structure.Hub != minority).Descriptor.Seed;
+
         var page = await client.GetFromJsonAsync<ComposePage>(
-            "/api/compose?players=20&symmetry=rot_180&seedStart=0&count=3&hub=ring");
+            $"/api/compose?players=20&symmetry=rot_180&seedStart={start}&count=1&hub={minority}");
         var observed = page!.Observed;
 
         await Assert.That(observed).IsNotNull();
         await Assert.That(observed!.Boards).IsGreaterThan(page.Cards.Count)
             .Because("the sieve rejected boards, and the census counted them anyway");
         await Assert.That(observed.Hubs.Keys.Count).IsGreaterThan(1)
-            .Because("filtering to ring must not erase the other hub forms from the census");
+            .Because("filtering to one form must not erase the others from the census");
         await Assert.That(observed.Hubs.Values.Sum()).IsEqualTo(observed.Boards)
             .Because("every board contributes exactly one hub form");
         await Assert.That(observed.Frontlines.Values.Sum()).IsEqualTo(observed.Boards);
@@ -93,16 +132,16 @@ public sealed class ComposeEndpointsTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var page = await client.GetFromJsonAsync<ComposePage>(
-            "/api/compose?players=8&symmetry=rot_180&seedStart=0&count=8&hub=twin");
+            "/api/compose?players=8&symmetry=rot_180&seedStart=0&count=8&wools=scythe");
         var observed = page!.Observed!;
 
         await Assert.That(page.Cards).IsEmpty();
         await Assert.That(observed.Boards).IsGreaterThan(100).Because("the structural scan budget ran");
-        await Assert.That(observed.Hubs.GetValueOrDefault("twin")).IsEqualTo(0)
-            .Because($"an 8-player hub has no room for two legs and a bay; saw {string.Join(", ",
-                observed.Hubs.Select(h => $"{h.Key}:{h.Value}"))}");
-        await Assert.That(observed.Hubs.GetValueOrDefault("single")).IsGreaterThan(0)
-            .Because("the one-legged branch is the form that size does produce");
+        await Assert.That(observed.Wools.GetValueOrDefault("scythe")).IsEqualTo(0)
+            .Because($"the scythe is off the production menu at every size; saw {string.Join(", ",
+                observed.Wools.Select(w => $"{w.Key}:{w.Value}"))}");
+        await Assert.That(observed.Wools.Values.Sum()).IsGreaterThan(0)
+            .Because("the census still records the families the sieve rejected boards for");
     }
 
     [Test]

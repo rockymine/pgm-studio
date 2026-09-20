@@ -3,6 +3,14 @@
     0.200721,
     0.541667
   ],
+  "dead-share": [
+    0,
+    0.120438
+  ],
+  "route-interference": [
+    0,
+    0.875
+  ],
   "enclosed-void-count": [
     0,
     15
@@ -45,34 +53,34 @@
   ],
   "wool-wool-distance": [
     50,
-    216
+    227
   ],
   "spawn-wool-distance": [
-    27,
-    170
+    29,
+    176
   ],
   "spawn-wool-spread": [
     0,
     73
   ],
   "wool-front-distance": [
-    19,
-    144
+    22,
+    147
   ],
   "wool-front-balance": [
     0,
-    110
+    116
   ],
   "spawn-wool-ratio": [
-    1,
-    1.232143
+    1.03125,
+    1.220339
   ],
   "wool-front-ratio": [
     1,
-    1.473685
+    1.439025
   ],
   "wool-front-remoteness": [
-    22,
-    118
+    25,
+    130
   ]
 }

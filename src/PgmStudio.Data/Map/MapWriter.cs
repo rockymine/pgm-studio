@@ -123,6 +123,10 @@ public sealed class MapWriter(PgmDb db)
         await db.Wools.Where(x => x.MapId == mapId).DeleteAsync(ct);           // cascades monument
         await db.Destroyables.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Cores.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.ControlPoints.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.Shops.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.Shopkeepers.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.Scores.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Modes.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Spawns.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.MapSpawners.Where(x => x.MapId == mapId).DeleteAsync(ct);
@@ -149,9 +153,9 @@ public sealed class MapWriter(PgmDb db)
                     : Json(kit.Effects.Select(e => (object?)new Dict { ["type"] = e.Type, ["duration"] = e.Duration, ["amplifier"] = e.Amplifier }).ToList()),
             });
             foreach (var it in kit.Items)
-                await db.InsertAsync(new KitItemRow { KitId = kitId, Slot = it.Slot, Material = it.Material, Amount = it.Amount, Damage = it.ItemDamage, Unbreakable = it.Unbreakable, TeamColor = it.TeamColor, Enchantments = NullIfEmpty(it.Enchantments) }, token: ct);
+                await db.InsertAsync(new KitItemRow { KitId = kitId, Slot = it.Slot, SpecJson = Json(Serializer.ItemToDict(it.Item)) }, token: ct);
             foreach (var ar in kit.Armor)
-                await db.InsertAsync(new KitArmorRow { KitId = kitId, SlotName = ar.SlotName, Material = ar.Material, Unbreakable = ar.Unbreakable, TeamColor = ar.TeamColor, Enchantments = NullIfEmpty(ar.Enchantments) }, token: ct);
+                await db.InsertAsync(new KitArmorRow { KitId = kitId, SlotName = ar.SlotName, SpecJson = Json(Serializer.ItemToDict(ar.Item)) }, token: ct);
         }
 
         foreach (var (rid, region) in m.Regions)
@@ -208,6 +212,53 @@ public sealed class MapWriter(PgmDb db)
                 RegionKey = NullIfEmpty(c.RegionId), Material = NullIfEmpty(c.Material), Leak = c.Leak,
                 ModeChanges = c.ModeChanges,
                 ModesJson = c.Modes is { Count: > 0 } ? Json(c.Modes.Select(x => (object?)x).ToList()) : null,
+            }, token: ct);
+
+        foreach (var p in m.ControlPoints)
+            await db.InsertAsync(new ControlPointRow
+            {
+                MapId = mapId, ControlPointKey = p.Id, Name = NullIfEmpty(p.Name),
+                Element = p.Element == ControlPointElement.King ? "king" : "control-points",
+                CaptureRegionKey = NullIfEmpty(p.CaptureRegionId),
+                ProgressRegionKey = NullIfEmpty(p.ProgressRegionId),
+                OwnerRegionKey = NullIfEmpty(p.OwnerRegionId),
+                VisualMaterialsKey = NullIfEmpty(p.VisualMaterialsFilterId),
+                InitialOwner = NullIfEmpty(p.InitialOwner),
+                CaptureTime = NullIfEmpty(p.CaptureTime),
+                CaptureRule = NullIfEmpty(p.CaptureRule),
+                CaptureFilterKey = NullIfEmpty(p.CaptureFilterId),
+                PlayerFilterKey = NullIfEmpty(p.PlayerFilterId),
+                Incremental = p.Incremental, Recovery = p.Recovery, Decay = p.Decay,
+                OwnedDecay = p.OwnedDecay, Contested = p.Contested,
+                TimeMultiplier = p.TimeMultiplier, NeutralState = p.NeutralState, Permanent = p.Permanent,
+                Points = p.Points, OwnerPoints = p.OwnerPoints, PointsGrowth = p.PointsGrowth,
+                ShowProgress = p.ShowProgress, Required = p.Required, Show = p.Show,
+            }, token: ct);
+
+        foreach (var shop in m.Shops)
+            await db.InsertAsync(new ShopRow
+            {
+                MapId = mapId, ShopKey = shop.Id, Name = NullIfEmpty(shop.Name),
+                CategoriesJson = Json(Serializer.EncodeShop(shop).GetValueOrDefault("categories")),
+            }, token: ct);
+
+        foreach (var keeper in m.Shopkeepers)
+            await db.InsertAsync(new ShopkeeperRow
+            {
+                MapId = mapId, ShopKey = keeper.ShopId, Name = NullIfEmpty(keeper.Name), Mob = NullIfEmpty(keeper.Mob),
+                LocationJson = keeper.Location is { } at
+                    ? Json(new Dict { ["x"] = at.X, ["y"] = at.Y, ["z"] = at.Z })
+                    : null,
+                RegionKey = NullIfEmpty(keeper.RegionId), Yaw = keeper.Yaw,
+            }, token: ct);
+
+        if (m.Score is { } score)
+            await db.InsertAsync(new ScoreRow
+            {
+                MapId = mapId, Initial = score.Initial, Limit = score.Limit, EnforceLimit = score.EnforceLimit,
+                Kills = score.Kills, Deaths = score.Deaths, Mercy = score.Mercy, MercyMin = score.MercyMin,
+                Display = NullIfEmpty(score.Display), ScoreboardFilterKey = NullIfEmpty(score.ScoreboardFilterId),
+                King = score.King,
             }, token: ct);
 
         foreach (var s in m.Spawns)

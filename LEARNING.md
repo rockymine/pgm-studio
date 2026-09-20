@@ -18,24 +18,14 @@ Entries are dated and cite `file:line`. Debt entries are `[ ]` open / `[>]` grad
 
 ## Debt
 
-- [ ] **`AxisMarginCells` and the mid band's half-gap are two constants that only agree by accident.**
-  `MidCarver`'s own docstring states the invariant as fact — *"its half-gap is the allocator's axis
-  margin"* — but nothing enforces it. `Envelope.AxisMarginCells` is a hardcoded `2` (cells);
-  `MidCarver.BandOnly` computes `20 / (2 * cell)` (`MidCarver.cs:35`). In integer arithmetic those agree
-  only for `cell` ∈ {4, 5}, and the documented "uniform 20-block gap" is only true at `cell = 5`
-  (at `cell = 4` it is 16 blocks). `ComposeRequest` accepts any positive `cell` (`ComposeRequest.cs:40`).
-  At `cell = 6` the band would span 1 cell per side while the unit keeps 2, so the band no longer reaches
-  the front it is documented to dock flush against — and `BandContactsOk` won't catch it, because it
-  rejects overlap and rejects touching a non-front piece, but a band touching **nothing** falls through
-  the `continue` on `MidCarver.cs:83`. **Open question: which of the two is the source of truth?**
-  The two are not even the same kind of thing: `AxisMarginCells` is a declared `const int = 2`, while
-  `HalfGapCells` has no declaration at all — it is a positional property of `CrossingDesign`
-  (`MidCarver.cs:8`) whose value exists only as the expression `20 / (2 * env.Cell)` at its single
-  construction site, with the `20` a block quantity divided into cells in place. And the `??` fallback at
-  `TeamUnitAllocator.cs:243` is **live, not defensive**: `Composer` always passes a crossing, but
-  `tools/compose/unit-gallery.cs`, `seat-probe.cs`, `unit-fingerprint.cs` and four sites in
-  `TeamUnitAllocatorTests` call `Allocate` without one — so those run on `AxisMarginCells` while production
-  runs on `HalfGapCells`, and only their accidental equality keeps the two paths agreeing. (2026-07-27)
+- [ ] **`Allocate`'s crossing is optional, so the tools and the tests seat a unit at a different margin
+  from production.** `Composer` always passes a `CrossingDesign`, but `tools/compose/unit-gallery.cs`,
+  `seat-probe.cs`, `unit-fingerprint.cs` and four sites in `TeamUnitAllocatorTests` call `Allocate` without
+  one and take the `??` at `TeamUnitAllocator.cs:81` down to `Envelope.AxisMarginCells`. The band's half-gap
+  is floored at that margin, so the two no longer collide — but on the four-block grid production seats its
+  front at 3 cells from the axis and those callers at 2, so a tool measuring seats is measuring a board one
+  cell tighter than any the composer ships. Either the parameter is required or the fallback is the crossing
+  the composer would have built.
 
 - [ ] **The frontline's depth has zero variance — a floor argument implemented as a constant.**
   `frontReach = w + 2` (`TeamUnitAllocator.cs:240`) is computed once and passed straight through as the

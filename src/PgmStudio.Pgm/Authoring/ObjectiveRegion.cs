@@ -18,9 +18,9 @@ internal static class ObjectiveRegion
     /// (OB8) and is written out with an exclusive max, because a PGM cuboid spans blocks <c>[min, max)</c> —
     /// an inclusive max would scope a region the structure's far face falls outside of (OB13).
     /// </summary>
-    public static string Emit(Dict doc, string objectiveId, BlockBox box)
+    public static string Emit(Dict doc, string objectiveId, BlockBox box, string suffix = "region")
     {
-        var regionId = $"{objectiveId}-region";
+        var regionId = $"{objectiveId}-{suffix}";
         var max = box.CuboidMax;
         RegionEditor.CreateRegion(doc, new Dict
         {
@@ -47,13 +47,17 @@ internal static class ObjectiveRegion
     }
 
     /// <summary>Drop the objectives a previous run emitted, and the regions they owned, so regenerating is a
-    /// replace rather than an append.</summary>
-    public static void Clear(Dict doc, List<object?> list)
+    /// replace rather than an append. An objective naming more than one region — a capture point names the
+    /// ground and the display separately — passes every key it owns, or the ones left unnamed survive as
+    /// orphans that each regeneration adds another of.</summary>
+    public static void Clear(Dict doc, List<object?> list, params string[] regionKeys)
     {
+        if (regionKeys.Length == 0) regionKeys = ["region"];
         var regions = DocAccess.Regions(doc);
         foreach (var d in list.OfType<Dict>())
-            if (d.GetValueOrDefault("region") as string is { } r)
-                regions.Remove(r);
+            foreach (var key in regionKeys)
+                if (d.GetValueOrDefault(key) as string is { } r)
+                    regions.Remove(r);
         list.Clear();
     }
 

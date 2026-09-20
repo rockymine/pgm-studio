@@ -36,9 +36,10 @@ namespace PgmStudio.Api.Endpoints;
 /// draws on top of the terrain — and going through the export would lose the world to the first gate that
 /// fired.</para>
 /// <para><b>Doc</b> — The projected map document as read, which the walk needs for the <c>enter</c> rules a named
-/// team is barred by — the same projection <paramref name="Map"/> is deserialized from.</para></summary>
+/// team is barred by — the same projection <paramref name="Map"/> is deserialized from.</para>
+/// <para><b>LaidTo</b> — The symmetry the world was built to, or null where nothing states one.</para></summary>
 internal sealed record BuiltRead(BuiltWorld Built, MapXml? Map, string Name,
-    Dictionary<string, object?>? Doc = null);
+    Dictionary<string, object?>? Doc = null, SymmetryIntent? LaidTo = null);
 
 /// <summary>How a world read is loaded, once, for the endpoints below to draw from.</summary>
 internal static class WorldReads
@@ -52,8 +53,9 @@ internal static class WorldReads
         var layout = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         if (layout is null) return null;
 
+        var layoutJson = System.Text.Encoding.UTF8.GetString(layout);
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
-        var built = WorldBuilder.Build(System.Text.Encoding.UTF8.GetString(layout), intent);
+        var built = WorldBuilder.Build(layoutJson, intent);
 
         // The overlays read a map document, and the one that describes this world is the projection of the
         // intent the build just resolved — spawns snapped to the structures it placed, goal locations filled
@@ -75,7 +77,23 @@ internal static class WorldReads
             // was asked for; the markers on top of it are the part that needs a readable document.
         }
 
-        return new BuiltRead(built, projected, map.Slug, asRead);
+        return new BuiltRead(built, projected, map.Slug, asRead, LaidTo(layoutJson, built.ResolvedIntent));
+    }
+
+    /// <summary>The symmetry the world was built to.
+    ///
+    /// <para><b>The layout's own setup answers it.</b> That is the mode and centre the rasteriser fans every
+    /// mirroring group by, so it is the turn the blocks actually took — and it is where a board authored
+    /// through the plan states its symmetry, since the compile writes the plan's <c>globals.symmetry</c>
+    /// there. The intent's <see cref="SymmetryIntent"/> is what fans the <em>intent</em> — a spawn, a goal —
+    /// and a board can carry one without the other, so it answers where the layout states nothing. Null
+    /// where neither does, which reads as a board laid to no symmetry at all.</para></summary>
+    private static SymmetryIntent? LaidTo(string layoutJson, MapIntent intent)
+    {
+        var setup = SketchLayout.Stated(layoutJson)?.Setup;
+        return setup?.MirrorMode is { Length: > 0 } mode
+            ? new SymmetryIntent { Mode = mode, CenterX = setup.Center?.Cx ?? 0, CenterZ = setup.Center?.Cz ?? 0 }
+            : intent.Symmetry;
     }
 }
 
@@ -624,7 +642,8 @@ internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, M
         AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/mirror"));
         Description(b => b.Png().Refuses(404, 422).Reads(
-            new QueryWord("mode", "Which symmetry to compare against. Absent uses the one the map states.",
+            new QueryWord("mode", "Which symmetry to compare against. Absent uses the one the board was laid "
+                                + "to — its layout's, or its intent's where the layout states none.",
                 ["none", "mirror_x", "mirror_z", "mirror_d1", "mirror_d2", "rot_90", "rot_180"]),
             new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
     }
@@ -633,9 +652,9 @@ internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, M
 
     protected override byte[]? Draw(BuiltRead read) => MirrorReport.Png(
         read.Built.World, Scale,
-        Query<string?>("mode", isRequired: false) ?? read.Built.ResolvedIntent.Symmetry?.Mode,
-        read.Built.ResolvedIntent.Symmetry?.CenterX ?? 0,
-        read.Built.ResolvedIntent.Symmetry?.CenterZ ?? 0);
+        Query<string?>("mode", isRequired: false) ?? read.LaidTo?.Mode,
+        read.LaidTo?.CenterX ?? 0,
+        read.LaidTo?.CenterZ ?? 0);
 }
 
 /// <summary>

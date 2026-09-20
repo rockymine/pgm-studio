@@ -29,10 +29,14 @@ public static class ComposerFingerprint
     /// one 20-player board in sixteen carries, so a handful of boards had none to move. Widening it to
     /// <see cref="SeedsPerCohort"/> seeds puts the rarer wide-board forms in range. A change that moves only a
     /// form rarer still can slip through; the answer to that is more seeds, and the cost is linear.</para>
+    ///
+    /// <para>The counts span every band, because a ladder keyed on the band is a place a change hides: the
+    /// crossing's double rank is offered only where the mid's share can pay for it, so a set stopping at 20
+    /// players would never draw one.</para>
     /// </summary>
     public static IEnumerable<ComposeRequest> Requests()
     {
-        foreach (var players in new[] { 8, 12, 20 })
+        foreach (var players in new[] { 8, 12, 20, 24, 32 })
             foreach (var symmetry in new[] { "rot_180", "mirror_z" })
                 for (ulong seed = 1; seed <= SeedsPerCohort; seed++)
                     yield return new ComposeRequest(players, 2, symmetry, seed);

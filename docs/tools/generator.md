@@ -44,10 +44,10 @@ A compose takes five values and no geometry.
 
 | Field | Default | Is |
 |---|---|---|
-| `players` | 12 | Players per team, clamped 5–32. The only size input: the land budget and every structural ladder derive from it. |
-| `teams` | 2 | 2 or 4. Fixed at 2 by the browse endpoint. |
+| `players` | 12 | Players per team, clamped 6–47. The only size input, and its job is to name a **size band** — nano 6–13, micro 14–21, milli 22–31, centi 32 and up — which is what the land budget and every structural ladder read. Two counts in one band compose to the same budget, and a count above centi's range is clamped into it because centi is the top of the ladder. |
+| `teams` | 2 | 2 or 4 at the plan tier. The browse endpoint composes two-team boards only and answers 400 `RQ1` on any other count, naming the field — a board that is not the one asked for is worse than no board. |
 | `symmetry` | `rot_180` | `rot_180` or `mirror_z` through the feed. `mirror_x` and `rot_90` are legal `ComposeRequest` values but the endpoint answers 400. |
-| `cell` | 5 | Blocks per proxy cell — the plan grid's scale. No control writes it; it is honoured as a query parameter. |
+| `cell` | 4 | Blocks per proxy cell — the plan grid's scale. No control writes it; it is honoured as a query parameter. |
 | `seed` | — | Any unsigned 64-bit integer. Drives every draw the composer makes. |
 
 The feed walks the seed axis and holds the other four fixed, so a request is really the first four values plus
@@ -67,7 +67,7 @@ its descriptor's claim to reproduce it, so re-composing that same request today 
 The descriptor is the card's identity and the whole of what a pin needs:
 
 ```json
-{ "players": 12, "teams": 2, "symmetry": "rot_180", "cell": 5, "seed": 0,
+{ "players": 12, "teams": 2, "symmetry": "rot_180", "cell": 4, "seed": 0,
   "composerVersion": "marker-id-1", "schema": 1 }
 ```
 
@@ -78,8 +78,10 @@ still reads.
 
 `Composer.ComposeStages` runs one direction and never reopens what an earlier step settled. The **envelope**
 turns the player count into a land budget, a fanned board extent and the cell bounds one team unit may fill.
-The **crossing** fixes the gap between the two fronts while the board is still empty — 20 blocks, four cells
-at the default scale — and decides once whether this board wants a split band. **Allocation** places the hub,
+The **crossing** fixes the gap between the two fronts while the board is still empty, because the allocator
+takes it as the axis margin everything else is laid out behind: one hop either side of the stone the band will
+carry, or a flat 30 blocks front to front where it will carry none. It decides once whether this board wants a
+split band, which is a crossing that carries none. **Allocation** places the hub,
 chooses its form, works out what hangs off it, and seats each neighbour on the hub's real free surface,
 producing typed boxes and the joints between them. **Filling** emits the hub first as the constraint source
 and each neighbour to the width its own joint was granted. The finished unit is then **re-anchored on its
@@ -100,7 +102,7 @@ players under `rot_180`, exactly as `POST /api/compose/pin` stored it:
 {
   "plan": 2,
   "meta": { "name": "Composed p12 t2 #0" },
-  "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
+  "globals": { "cell": 4, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
   "pieces": [
     { "id": "hub-t1",       "role": "piece",     "rect": [-6, 6, 6, 4] },
     { "id": "spawn-t1",     "role": "piece",     "rect": [-7, 6, 1, 2] },
@@ -139,11 +141,11 @@ validator and the derivers ignore it — and it is what the Plan tool's feasibil
 
 ## The board a request produces
 
-The four numbers do not scale a board smoothly; they cross thresholds, and a threshold changes its shape. Land
-above 2500 widens every non-wool corridor from two cells to three; below 800 there is no budget for a
-frontline at all and the hub fronts the mid directly; below 600 the unit carries a single wool; sixteen
-players or more makes it a full team, two or three wools rather than one or two. Beside the ladders sit
-roughly a dozen sampling weights — how often a wool bends, how often a bent wool is a donut, how often a big
+The four numbers do not scale a board smoothly; the player count lands in a band and the band is what changes
+the board's shape. Each band carries its measured land per team — 2250 blocks² at nano, 4025 at micro, 7075 at
+milli and 8730 at centi — its corridor width in blocks — 12 · 14 · 16 · 16, with the wool
+approach one rung under — and its wool count: one a team at nano, two from micro up, sometimes three. Beside
+the ladders sit roughly a dozen sampling weights — how often a wool bends, how often a bent wool is a donut, how often a big
 square hub takes the ring — which steer the output's character more than anything else in the generator and
 are, by `docs/generator/audit.md`'s own account, the least principled part of the model.
 
@@ -175,8 +177,9 @@ the hold tray sits above them when anything is pinned.
 on the Apply button and start the seed walk over. The structural filters — wool families, hub form, frontline
 form — apply the moment a chip is clicked. Wool families are **must-include**: every family named has to be
 present on the board. Hub and frontline are **any-of**. Max score is a slider to 8 where 8 means *any* and the
-bound is simply not sent; wool count is a min/max pair where 0 means unset. The player slider runs 6 to 30 in
-steps of two, which is narrower than the request's own 5–32 clamp, and a script is not bound by it.
+bound is simply not sent; wool count is a min/max pair where 0 means unset. The player slider runs 6 to 32 in
+steps of two — 32 is the top band's floor, so the slider reaches every band — and a script is not bound
+by it: the request's own clamp is 6–47.
 
 The Z and scythe chips render disabled with the reason on the tooltip, because neither is in the production
 mix — the Z is on the fill menu and asked for by no sampler, the scythe is off the menu outright. That is the
@@ -213,10 +216,17 @@ in a drawer, with the score to two places, the per-box spend table, the top thre
 and the descriptor as copyable JSON.
 
 **Land spend is two currencies and the card says so.** *Footprint* is the box rectangle, fixed when the box
-was seated; *land* is the walkable terrain inside it, which is what a fill actually spends. Both are reported
-per box kind, for **one team unit** — the board is that unit fanned — against the envelope's own per-team land
-budget converted from blocks² to cells. Seed 0 above spends 52 land cells against a budget of 50.4, so its
-card reads `52/50 · 103%`, split hub 24, frontline 16, spawn 6, wool 6.
+was seated; *land* is what the filled pieces actually cover, which is what the spend gate holds against the
+budget. The per-box rows are footprints — a box does not know what its body left standing until it is filled —
+and the total land is the unit's own, for **one team unit**, the board being that unit fanned.
+
+The band's land buys two things, and the card reports both against their own shares. The **unit** takes nine
+tenths of it; the **mid** takes the tenth each unit gave up, twice over, because the crossing's stones are one
+piece of ground both teams stand on. So a twelve-player board reads `nano 104/81 · 128% · mid 16`: the unit
+against the unit's budget, then the stones the crossing carries, counted once for the board. **The budget is
+eaten.** The spawn, the frontline and each wool claim a fixed share as they are sized and the hub takes what
+is left, never under a third; a unit whose built land falls outside 70–130% of *its* budget is resampled
+rather than shipped.
 
 **The score is a distance, not a grade.** Zero means the board sits inside every envelope the authored corpus
 occupies, which is most of them — of 240 boards each at twelve, twenty and thirty players, 167, 131 and 109
@@ -315,8 +325,9 @@ same board a little wider. The unit of work is a whole board, and the only respo
 right is to author it and fix it in the Plan tool.
 
 **Two of the four symmetries and one of the two team counts are unreachable.** The feed composes `rot_180` and
-`mirror_z` at two teams. `mirror_x` and the four-team `rot_90` are legal at the type level and refused at the
-endpoint, so the four-team board the model describes cannot be produced through this tool at all.
+`mirror_z` at two teams. `mirror_x`, `rot_90` and every team count but two are legal at the type level and
+refused at the endpoint, so the four-team board the model describes cannot be produced through this tool at
+all — it is authored at the plan tier instead, which is where a four-team capture board is built.
 
 **The composer reaches less of the shape vocabulary than the emitter builds**, and the gap is plumbing rather
 than geometry. `ShapeEmitter.Emit` takes five placement knobs — a second donut attachment, a moved attachment,

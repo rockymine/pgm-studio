@@ -8,6 +8,10 @@ namespace PgmStudio.Pgm.Tests;
 /// The fanned reachability board. Its gap connectivity runs over buildable REGIONS (zones merged by overlap or
 /// shared edge), not single zones, so a crossing may chain through a row of adjacent zones without landing on
 /// terrain. A tiled void connects its two ends; a broken chain (a missing link) does not.
+///
+/// <para>Its <b>land</b> connectivity is the rect layer's, asked of fanned rects — so the overlap cases below
+/// assert the agreement rather than a second rule, and a plan cannot answer one thing to a component read and
+/// another to a reachability one.</para>
 /// </summary>
 public sealed class FannedGraphTests
 {
@@ -56,5 +60,44 @@ public sealed class FannedGraphTests
         var reachErrors = PlanValidator.Check(plan)
             .Count(f => f.Severity == Severity.Refusal && f.Message.Contains("unreachable"));
         await Assert.That(reachErrors).IsEqualTo(0);
+    }
+
+    // ── land edges: the rule the rect layer states ──────────────────────────────────────────────────────
+    // Two pieces overlapping by two blocks in x, at the surfaces given. `none` symmetry holds the fan to one
+    // image, so what is asserted is the land edge itself and not an orbit copy of it.
+    private static string Overlapping(int surfaceA, int surfaceB) => $$"""
+    { "plan":2, "globals":{"cell":1,"symmetry":"none","surface":0},
+      "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10],"surface":{{surfaceA}}},
+                 {"id":"b","role":"lane","rect":[8,0,10,10],"surface":{{surfaceB}}} ] }
+    """;
+
+    /// <summary>Two pieces claiming the same ground at the same height are one landmass: the shared cells have
+    /// a surface both agree on, so a player walks across them.</summary>
+    [Test]
+    public async Task An_overlap_at_one_height_is_one_landmass()
+    {
+        await Assert.That(Reaches(Overlapping(0, 0), "a", "b")).IsTrue();
+    }
+
+    /// <summary><b>And at two heights it joins nothing.</b> The shared cells have no coherent surface — a plan
+    /// stating one is refused <c>PL4</c> — so there is no land edge to walk and reachability says so.</summary>
+    [Test]
+    public async Task An_overlap_at_two_heights_joins_nothing()
+    {
+        await Assert.That(Reaches(Overlapping(0, 4), "a", "b")).IsFalse();
+    }
+
+    /// <summary>And the rect layer answers that same pair the same way, which is the invariant worth holding:
+    /// one question, one answer, whichever graph a caller happens to be holding.</summary>
+    [Test]
+    [Arguments(0, 0, 1)]
+    [Arguments(0, 4, 2)]
+    public async Task The_two_graphs_answer_one_pair_alike(int surfaceA, int surfaceB, int landmasses)
+    {
+        var plan = Overlapping(surfaceA, surfaceB);
+        var rects = ContactGraph.Build(PlanModel.Parse(plan)!);
+
+        await Assert.That(rects.Components.Count).IsEqualTo(landmasses);
+        await Assert.That(Reaches(plan, "a", "b")).IsEqualTo(landmasses == 1);
     }
 }

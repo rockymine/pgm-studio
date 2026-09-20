@@ -28,7 +28,7 @@ public static class BoxFiller
         RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false, int attachmentWidth = 0,
         RingWalls? ringWalls = null)
     {
-        var menu = FillProfiles.Families(box.Kind, corridorWidth);
+        var menu = FillProfiles.Families(box.Kind, corridorWidth, corridorWidth);
         if (!menu.Contains(family)) return new FillResult.NoFamilyFits(menu);
         var result = box.Kind switch
         {
@@ -82,7 +82,7 @@ public static class BoxFiller
     /// <summary>The families the box's profile admits that <b>actually fill</b> its footprint (the emit
     /// succeeds) — the legal fill set for this box, footprint gate included.</summary>
     public static IReadOnlyList<ShapeFamily> FittingFamilies(Box box, BoxEdge mouth, int corridorWidth) =>
-        FillProfiles.Families(box.Kind, corridorWidth)
+        FillProfiles.Families(box.Kind, corridorWidth, corridorWidth)
             .Where(f => Fill(box, mouth, corridorWidth, f) is FillResult.Ok)
             .ToList();
 
@@ -92,7 +92,7 @@ public static class BoxFiller
     public static FillResult Fill(Box box, BoxEdge mouth, int corridorWidth, int roll, bool flip = false, string? roomId = null)
     {
         var fitting = FittingFamilies(box, mouth, corridorWidth);
-        if (fitting.Count == 0) return new FillResult.NoFamilyFits(FillProfiles.Families(box.Kind, corridorWidth));
+        if (fitting.Count == 0) return new FillResult.NoFamilyFits(FillProfiles.Families(box.Kind, corridorWidth, corridorWidth));
         return Fill(box, mouth, corridorWidth, fitting[((roll % fitting.Count) + fitting.Count) % fitting.Count], flip, roomId);
     }
 

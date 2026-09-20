@@ -32,10 +32,17 @@ public sealed class PlanBoardPngTests
     public async Task Render_draws_a_larger_canvas_for_a_bigger_board()
     {
         var small = Composer.Compose(new ComposeRequest(6, seed: 2));
-        var large = Composer.Compose(new ComposeRequest(20, seed: 2));
+        var large = Composer.Compose(new ComposeRequest(32, seed: 2));
 
-        // More players fan a wider board, which a raster spends as more pixels rather than a bigger viewBox.
-        await Assert.That(PlanBoardPng.Render(large).Length).IsGreaterThan(PlanBoardPng.Render(small).Length);
+        // A bigger band fans a wider board, which a raster spends as more pixels rather than a bigger viewBox.
+        // Read the canvas off the PNG header rather than the file's length: the bytes are compressed, so an
+        // emptier canvas can be the shorter file however much bigger it is.
+        static (int W, int H) Canvas(byte[] png) =>
+            (System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(16, 4)),
+             System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(20, 4)));
+        var (smallW, smallH) = Canvas(PlanBoardPng.Render(small));
+        var (largeW, largeH) = Canvas(PlanBoardPng.Render(large));
+        await Assert.That((long)largeW * largeH).IsGreaterThan((long)smallW * smallH);
     }
 
     [Test]

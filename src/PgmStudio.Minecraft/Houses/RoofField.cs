@@ -232,6 +232,14 @@ public sealed class RoofField
     /// ridge that is the whole roof is not a ridge.</summary>
     public bool OnRidge(int x, int z) => form != RoofForm.Flat && Crown(x, z) == Peak;
 
+    /// <summary>Whether the cell lies past a wall line the <b>ridge</b> runs out to — the raked end of the
+    /// roof, whose overhang is the triangle that stands open beneath. The other two sides are the eaves,
+    /// whose overhang is a solid level course, and a cell inside the wall line is neither. A lid and a hip
+    /// answer no everywhere: neither has a raked end for a ridge to reach.</summary>
+    public bool PastVerge(int x, int z) =>
+        form is not (RoofForm.Flat or RoofForm.Hip)
+        && (acrossZ ? x < wallMinX || x > wallMaxX : z < wallMinZ || z > wallMaxZ);
+
     /// <summary>A barn roof: steep for the first courses in from the eave, then shallow to the ridge. The break
     /// sits a quarter of the span in, so the steep skirt is half of each slope and the shallow cap the other
     /// half — the proportion that reads as a gambrel rather than as a gable with a kink.</summary>

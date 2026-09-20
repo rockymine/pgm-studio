@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Stamping;
@@ -28,6 +29,17 @@ public static class GoalMarkerStamper
 {
     /// <summary>Cube edge / cross arm span, in blocks.</summary>
     public const int Size = 3;
+
+    /// <summary>The blocks a marker occupies, for a caller that has to scope a region to it. Both shapes
+    /// fill the same <see cref="Size"/>³ box, so the box does not depend on which one is stamped — and a
+    /// caller taking it from here rather than re-deriving it cannot scope a region the marker falls outside
+    /// of (OB8).</summary>
+    public static BlockBox Box(int centerX, int centerZ, int floorY)
+    {
+        const int half = Size / 2;
+        return new BlockBox(centerX - half, floorY, centerZ - half,
+                            centerX + half, floorY + Size - 1, centerZ + half);
+    }
 
     /// <summary>Stamp the marker centred on (<paramref name="centerX"/>, <paramref name="centerZ"/>), its
     /// lowest block at <paramref name="floorY"/>, in <paramref name="woolDamage"/> wool. <paramref

@@ -157,4 +157,62 @@ public sealed class PlanNavTests
         await Assert.That(nav.Holes).IsEmpty();
         await Assert.That(nav.Waypoints()).IsEmpty();
     }
+
+    // ── whose ground it is ──────────────────────────────────────────────────────────────────────────────
+    // A lane running west to east: each team spawns at its own end and defends the room at the other, which
+    // rot_180 gives the mirror of. Everything is one row, so a barred room is a wall across the only way.
+    private static PlanModel Lane()
+    {
+        var plan = new PlanModel { Globals = new PlanGlobals { Cell = 5, Symmetry = "rot_180", Surface = 9 } };
+        plan.Pieces =
+        [
+            new PlanPiece { Id = "home",  Role = PlanRoles.Spawn,    Rect = new CellRect(-6, -1, 2, 1) },
+            new PlanPiece { Id = "road",  Role = PlanRoles.Piece,    Rect = new CellRect(-4, -1, 6, 1) },
+            new PlanPiece { Id = "vault", Role = PlanRoles.WoolRoom, Rect = new CellRect(-8, -1, 2, 1) },
+        ];
+        return plan;   // the rule reads the pieces' roles, so no placement is needed to state it
+
+    }
+
+    /// <summary><b>A team is barred from the enemy's spawn and from the room it defends</b>, which are the two
+    /// <c>enter</c> patterns the studio writes into every map it compiles. Its own spawn and the room it is
+    /// stealing from are open, or it could neither start nor win.</summary>
+    [Test]
+    public async Task A_team_is_barred_from_the_enemy_spawn_and_its_own_wool_room()
+    {
+        var nav = PlanNav.Of(Lane());
+        var barred = nav.Barred(0);
+        string Named((int X, int Z) cell) => nav.PieceAt[cell];
+
+        await Assert.That(barred.All(cell => Named(cell) is "home#1" or "vault")).IsTrue();
+        await Assert.That(barred.Any(cell => Named(cell) == "home")).IsFalse();
+        await Assert.That(barred.Any(cell => Named(cell) == "vault#1")).IsFalse();
+    }
+
+    /// <summary>And the mirror image is barred from the mirror rooms — the rule is the piece's orbit image,
+    /// not its name.</summary>
+    [Test]
+    public async Task The_other_image_is_barred_from_the_other_rooms()
+    {
+        var nav = PlanNav.Of(Lane());
+
+        await Assert.That(nav.Barred(1).All(cell => nav.PieceAt[cell] is "home" or "vault#1")).IsTrue();
+        await Assert.That(nav.Barred(1).Count).IsEqualTo(nav.Barred(0).Count);
+    }
+
+    /// <summary><b>The narrowed ground is what that team can walk.</b> The room a team defends sits across
+    /// this lane, so on the shared ground a walk runs straight through it and on the team's own it cannot
+    /// stand there at all.</summary>
+    [Test]
+    public async Task A_teams_own_ground_has_the_rooms_it_may_not_enter_taken_out()
+    {
+        var nav = PlanNav.Of(Lane());
+        var shared = nav.Walkable();
+        var theirs = nav.For(0);
+        var inVault = (-7, -1);
+
+        await Assert.That(shared.Stand(inVault)).IsNotNull();
+        await Assert.That(theirs.Stand(inVault)).IsNull();
+        await Assert.That(theirs.Footprint.Count).IsEqualTo(shared.Footprint.Count - nav.Barred(0).Count);
+    }
 }

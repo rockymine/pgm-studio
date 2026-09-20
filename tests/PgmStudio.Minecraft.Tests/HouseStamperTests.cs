@@ -1337,11 +1337,11 @@ public sealed class HouseStamperTests
     }
 
     /// <summary>
-    /// <b>A verge is the outer rim of a roof, so no cell inside the outline is one.</b> A building of several
-    /// wings has a single outline however many rectangles drew it, and a march's first step lands exactly on
-    /// the wing's own overhang line — asked of the wing rather than of the building it stamps verge in the
-    /// middle of the roof it has just run into. Counted at the ridge course, where a gable's verge is one cell
-    /// per end that stands in the open: <b>three</b> on a marching T and four on a projecting one.
+    /// <b>A verge is the outer rim of a roof, and a march is the roof carrying on rather than stopping.</b> A
+    /// march's first step lands exactly on the wing's own overhang line, so a rim asked of the wing's own
+    /// rectangle stamps verge in the middle of the roof it has just run into. Counted at the ridge course,
+    /// where a gable's verge is one cell per end that stands in the open: <b>three</b> on a marching T and
+    /// four on a projecting one.
     /// </summary>
     [Test]
     [Arguments("T marched", 3)]
@@ -1403,6 +1403,113 @@ public sealed class HouseStamperTests
 
         // The hall's gable has to actually oversail this column, or nothing above was asserted.
         await Assert.That(checkedCells).IsGreaterThan(0);
+    }
+
+    // ── a junction of two unequal wings ─────────────────────────────────────────────────────────────
+
+    /// <summary>A hall of two storeys with a one-storey cross wing running out of the middle of its far side:
+    /// the hall's ridge lies <b>along</b> the edge they share and the wing's runs <b>into</b> it, so the wing
+    /// marches, and the wing stands far enough below that the hall's eave overhangs its roof rather than
+    /// meeting it.</summary>
+    private static BuildingPlan LowWing() =>
+        new([new Wing(0, 0, 12, 9, new WingSpec(StoreysHigh: 2)),
+             new Wing(3, 10, 9, 16, new WingSpec(StoreysHigh: 1, Ridge: RidgeAxis.AlongZ))]);
+
+    private static HouseStyle TwoStorey(RoofStyle roof) => new()
+    {
+        Storeys = [new Storey { Clear = 4 }, new Storey { Clear = 4 }],
+        Roof = roof,
+    };
+
+    /// <summary>
+    /// <b>A roof over its own walls is the cover on its own rooms, and a neighbour's eave may not hollow it
+    /// out.</b> The row where a lower wing meets a taller one falls under that wing's overhang, which crowns
+    /// several courses above it — and a roof that gives way to whatever crowns higher gives way there, all the
+    /// way across, leaving the wing's gable standing open under an eave.
+    ///
+    /// <para>Read against the wing stamped <b>alone</b>, on its own stated ridge, which is the only oracle
+    /// for where its own roof belongs that does not ask the junction what it did.</para>
+    /// </summary>
+    [Test]
+    public async Task A_lower_wings_roof_covers_its_own_walls_under_the_halls_eave()
+    {
+        var roof = new RoofStyle { Form = RoofForm.Gable, Pitch = 2, Overhang = 1 };
+        var world = Built(LowWing(), TwoStorey(roof));
+
+        var lone = new VoxelWorld();
+        HouseStamper.Stamp(lone, new BuildingPlan([new Wing(3, 10, 9, 16, new WingSpec(Ridge: RidgeAxis.AlongZ))]),
+                           FloorY, new HouseStyle { Storeys = [new Storey { Clear = 4 }], Roof = roof });
+
+        var covered = 0;
+        for (var x = 3; x <= 9; x++)
+        {
+            var crown = FloorY - 1;
+            for (var y = FloorY + 24; y >= FloorY; y--)
+                if (lone.GetBlock(x, y, 10).Id != Blocks.Air) { crown = y; break; }
+            await Assert.That((x, world.GetBlock(x, crown, 10).Id)).IsNotEqualTo((x, Blocks.Air));
+            covered++;
+        }
+
+        await Assert.That(covered).IsEqualTo(7);
+    }
+
+    /// <summary>
+    /// <b>An edge is a question about height, not about plan.</b> Two wings of one building share an outline
+    /// and not a surface, so a taller wing's roof looking out over a lower one has a neighbour inside the
+    /// building's outline and a drop beside it all the same — and the trim belongs on that edge as much as it
+    /// does over open ground.
+    ///
+    /// <para>Flat lids with no overhang, so the two plans do not touch and nothing turns on which roof is
+    /// showing: the edge is the whole of what is asked.</para>
+    /// </summary>
+    [Test]
+    public async Task A_taller_wings_roof_is_trimmed_where_it_looks_out_over_a_lower_one()
+    {
+        var style = TwoStorey(new RoofStyle { Form = RoofForm.Flat, Overhang = 0 });
+        var plan = new BuildingPlan([new Wing(0, 0, 9, 9, new WingSpec(StoreysHigh: 2)),
+                                     new Wing(10, 2, 15, 7, new WingSpec(StoreysHigh: 1))]);
+        var world = Built(plan, style);
+        var verge = (SolidMaterial)style.Roof.Verge;
+        var body = (SolidMaterial)style.Roof.Body;
+
+        var crown = FloorY - 1;
+        for (var y = FloorY + 24; y >= FloorY; y--)
+            if (world.GetBlock(0, y, 0).Id != Blocks.Air) { crown = y; break; }
+
+        // The hall's own lid is body in the middle and trimmed all the way round, the side the wing abuts
+        // included — that side stands five courses over the wing's lid and is as much an edge as any other.
+        await Assert.That(world.GetBlock(4, crown, 4)).IsEqualTo((body.Id, body.Data));
+        for (var z = 2; z <= 7; z++)
+            await Assert.That((z, world.GetBlock(9, crown, z))).IsEqualTo((z, (verge.Id, verge.Data)));
+    }
+
+    /// <summary>A gable window is cut into a gable, so it is held to the same outline the gable itself rises
+    /// on: the <b>body's</b> perimeter. The side a wing stands against its neighbour on is a doorway between
+    /// two halves of one building rather than an outside face, and a window centred there has no gable to cut
+    /// — it is a pane hanging in the air between two roofs.</summary>
+    [Test]
+    public async Task A_gable_window_is_cut_only_into_a_face_the_building_is_outside()
+    {
+        var style = TwoStorey(new RoofStyle
+        {
+            Form = RoofForm.Gable, Pitch = 2, Overhang = 1,
+            Gable = new SolidMaterial(Blocks.HardenedClay, 0),
+            GableWindows = new WindowStyle { Form = WindowForm.Pane, Sill = 1, Width = 1, Height = 1 },
+        });
+        var world = Built(LowWing(), style);
+        var pane = style.Roof.GableWindows.Block;
+
+        var open = 0;
+        for (var x = 3; x <= 9; x++)
+            for (var y = FloorY; y <= FloorY + 24; y++)
+            {
+                // z 10 is the wing's end against the hall: inside the building, and no face at all.
+                await Assert.That((x, y, world.GetBlock(x, y, 10).Id)).IsNotEqualTo((x, y, pane));
+                if (world.GetBlock(x, y, 16).Id == pane) open++;
+            }
+
+        // And its other end stands in the open, where a gable window is exactly what belongs.
+        await Assert.That(open).IsGreaterThan(0);
     }
 
     /// <summary>The T's wing carrying its roof across the hall, so the cell past its second gable end is

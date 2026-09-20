@@ -17,6 +17,8 @@
 // Rows are named <name>-r<row>-<n>: trees are sorted into rows by the z they stand at (a new row opens where the
 // gap between one foot and the next is over 20 blocks) and numbered along x inside the row, so a re-run over
 // the same world names the same trees, and a row keyed on that name is updated rather than duplicated.
+// A row opens for a wool tree as well, whether or not --wool files it, so the numbering is the world's rows
+// rather than the run's and one flag does not renumber every row behind it.
 // The connection string falls back to PGM_STUDIO_DB, then to the local dev database.
 using System.Text.Json;
 using PgmStudio.Data;
@@ -43,63 +45,80 @@ var dry = args.Contains("--dry");
 // ── the world's tree blocks ─────────────────────────────────────────────────────────────────────────
 var regionDir = Directory.Exists(Path.Combine(worldDir, "region")) ? Path.Combine(worldDir, "region") : worldDir;
 var body = new Dictionary<(int X, int Y, int Z), (int Id, int Data)>();
+var wool = new Dictionary<(int X, int Y, int Z), (int Id, int Data)>();
 var solid = new HashSet<(int X, int Y, int Z)>();
 foreach (var chunk in Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks))
     foreach (var block in AnvilRegion.Blocks(chunk))
     {
         if (IsTreeBlock(block.Id, withWool)) body[(block.X, block.Y, block.Z)] = (block.Id, block.Data);
-        else solid.Add((block.X, block.Y, block.Z));
+        else
+        {
+            solid.Add((block.X, block.Y, block.Z));
+            // Wool the run does not file is ground, and is kept apart so a wool tree can still open its row.
+            if (block.Id == Blocks.Wool) wool[(block.X, block.Y, block.Z)] = (block.Id, block.Data);
+        }
     }
 Console.WriteLine($"{name}: {body.Count} tree blocks in {regionDir}");
 
 // ── one tree per connected component ────────────────────────────────────────────────────────────────
-var seen = new HashSet<(int X, int Y, int Z)>();
-var trees = new List<List<(int X, int Y, int Z)>>();
-foreach (var start in body.Keys)
+List<List<(int X, int Y, int Z)>> Bodies(Dictionary<(int X, int Y, int Z), (int Id, int Data)> blocks)
 {
-    if (!seen.Add(start)) continue;
-    var cells = new List<(int X, int Y, int Z)>();
-    var queue = new Queue<(int X, int Y, int Z)>();
-    queue.Enqueue(start);
-    while (queue.Count > 0)
+    var seen = new HashSet<(int X, int Y, int Z)>();
+    var found = new List<List<(int X, int Y, int Z)>>();
+    foreach (var start in blocks.Keys)
     {
-        var cell = queue.Dequeue();
-        cells.Add(cell);
-        for (var dx = -1; dx <= 1; dx++)
-        for (var dy = -1; dy <= 1; dy++)
-        for (var dz = -1; dz <= 1; dz++)
+        if (!seen.Add(start)) continue;
+        var cells = new List<(int X, int Y, int Z)>();
+        var queue = new Queue<(int X, int Y, int Z)>();
+        queue.Enqueue(start);
+        while (queue.Count > 0)
         {
-            var next = (cell.X + dx, cell.Y + dy, cell.Z + dz);
-            if (body.ContainsKey(next) && seen.Add(next)) queue.Enqueue(next);
+            var cell = queue.Dequeue();
+            cells.Add(cell);
+            for (var dx = -1; dx <= 1; dx++)
+            for (var dy = -1; dy <= 1; dy++)
+            for (var dz = -1; dz <= 1; dz++)
+            {
+                var next = (cell.X + dx, cell.Y + dy, cell.Z + dz);
+                if (blocks.ContainsKey(next) && seen.Add(next)) queue.Enqueue(next);
+            }
         }
+        found.Add(cells);
     }
-    var logs = cells.Count(cell => IsLog(body[cell].Id));
-    if (logs > 0 || cells.Count >= 20) trees.Add(cells);
+    return found;
 }
+
+var trees = Bodies(body)
+    .Where(cells => cells.Any(cell => IsLog(body[cell].Id)) || cells.Count >= 20)
+    .Select(cells => (Cells: cells, Filed: true));
+var woolTrees = Bodies(wool).Where(cells => cells.Count >= 20).Select(cells => (Cells: cells, Filed: false));
 
 // ── rows by z, numbered along x ─────────────────────────────────────────────────────────────────────
 var fragments = 0;
-var cut = trees.Select(cells =>
+var cut = trees.Concat(woolTrees).Select(tree =>
 {
-    var wood = cells.Where(cell => IsLog(body[cell].Id)).ToList();
-    var foot = (wood.Count > 0 ? wood : cells).MinBy(cell => (cell.Y, cell.X, cell.Z));
-    return (Foot: foot, Cells: cells);
+    var blocks = tree.Filed ? body : wool;
+    var logs = tree.Cells.Where(cell => IsLog(blocks[cell].Id)).ToList();
+    var foot = (logs.Count > 0 ? logs : tree.Cells).MinBy(cell => (cell.Y, cell.X, cell.Z));
+    return (Foot: foot, tree.Cells, tree.Filed);
 }).Where(tree =>
 {
     var rests = solid.Contains((tree.Foot.X, tree.Foot.Y - 1, tree.Foot.Z))
                 || solid.Contains((tree.Foot.X, tree.Foot.Y - 2, tree.Foot.Z));
-    if (!rests) fragments++;
+    if (!rests && tree.Filed) fragments++;
     return rests;
 }).OrderBy(tree => tree.Foot.Z).ThenBy(tree => tree.Foot.X).ToList();
 if (fragments > 0) Console.WriteLine($"  {fragments} body(ies) hang in the air and are left as fragments");
+var unfiled = cut.Count(tree => !tree.Filed);
+if (unfiled > 0) Console.WriteLine($"  {unfiled} wool tree(s) hold a row of their own; --wool files them");
 
-var rows = new List<List<(int X, int Y, int Z)>>();
 var row = 0; var last = int.MinValue; var index = 0;
 var named = new List<(string Name, (int X, int Y, int Z) Foot, int[][] Body)>();
 foreach (var tree in cut)
 {
     if (tree.Foot.Z - last > 20) { row++; index = 0; }
     last = tree.Foot.Z;
+    if (!tree.Filed) continue;
     index++;
     var rowsOfTree = tree.Cells
         .OrderBy(cell => cell.Y).ThenBy(cell => cell.Z).ThenBy(cell => cell.X)

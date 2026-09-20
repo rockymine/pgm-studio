@@ -480,7 +480,14 @@ public static class BoardDeriver
         var zones = Enumerable.Range(0, regionCount)
             .Select(r => (Kind: zoneKind[r], Neutrals: zoneNeutral[r], Width: zoneWidth[r], IfaceMin: zoneIfaceMin[r], IfaceMax: zoneIfaceMax[r]))
             .ToList();
-        return new BoardStructure(plan.Globals.Cell, filled, build, buildKindOf, zones, midForm, islands, islandOf, roles, steppingKind, approaches, woolShapes, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids, frontlineRuns);
+        // the negative spaces the pieces leave between them, classed and measured by the one reader that does
+        // it — the same classification a composed body publishes a vacancy from, run over the board's own
+        // terrain with the piece ids as the owners, so a space names the pieces it lies between.
+        var spaces = BodyEdges.Classify(
+            (IReadOnlySet<(int, int)>)filled.Keys.ToHashSet(),
+            filled.ToDictionary(entry => entry.Key, entry => entry.Value.PieceId)).Spaces;
+
+        return new BoardStructure(plan.Globals.Cell, filled, build, buildKindOf, zones, midForm, islands, islandOf, roles, steppingKind, approaches, woolShapes, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids, frontlineRuns, spaces);
     }
 
     // group frontline segments into runs — a run is one island's contiguous void-facing face (segments joined by

@@ -36,14 +36,22 @@ public sealed record BoxRef(string Id, BoxKind Kind)
 /// half of that directive for a ring-bodied form — the four wall widths when one is widened, in the
 /// <b>pre-flip</b> frame; <c>null</c> = every wall at the corridor width. <see cref="HubArms"/> is the branch
 /// forms' counterpart — each leg's <c>(Start, Width)</c> on the spine, <c>null</c> = every leg one corridor wide
-/// at the spine's ends. Both are carried for the same reason as the form itself: the allocator emits the hub to
+/// at the spine's ends. <see cref="HubCorridorCells"/> is the width those walls and legs are built to — the
+/// band's map corridor, so a big hub is a wide loop rather than a thin ring round a huge void; <c>null</c>
+/// takes <see cref="FillProfiles.HubWallCells"/>, the narrowest a body is producible at. All are carried for
+/// the same reason as the form itself: the allocator emits the hub to
 /// read the runs it offers and the filler re-emits it, so a body sampled twice would diverge. <see cref="Wool"/> is the wool box's
 /// fill directive (family + room placement + handedness), likewise carried so the filler re-emits what the
 /// allocator seated; <c>null</c> for a non-wool box.</summary>
 public sealed record Box(
     string Id, BoxKind Kind, CellRect Rect, int LandTargetCells,
     CompoundRead? Form = null, bool FlipV = false, WoolFill? Wool = null, RingWalls? HubWalls = null,
-    IReadOnlyList<(int Start, int Width)>? HubArms = null)
+    IReadOnlyList<(int Start, int Width)>? HubArms = null, int? HubCorridorCells = null)
 {
     public BoxRef Ref => new(Id, Kind);
+
+    /// <summary>The width a hub body's walls and legs are emitted at — <see cref="HubCorridorCells"/> when the
+    /// allocator stated one, else the producible floor. The allocator and the filler both read it here, so the
+    /// body emitted twice is the same body.</summary>
+    public int HubCorridor => HubCorridorCells ?? FillProfiles.HubWallCells;
 }

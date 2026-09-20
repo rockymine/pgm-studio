@@ -128,12 +128,12 @@ public sealed class DecoratorTests
         [
             new StrokeProp
             {
-                Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, ClaimsGround = true,
+                Id = "p", Points = [[16, 20], [35, 20]], Radius = 2, Seed = 5, ClaimsGround = true,
                 Pave = new SolidMaterial(Blocks.Gravel),
             },
             new HouseProp
             {
-                Id = "h", Wings = [new AuthoredWing([[2, 16], [10, 24]])],
+                Id = "h", Wings = [new AuthoredWing([[12, 16], [20, 24]])],
                 Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
             },
             new TreeProp { Id = "t", X = 30, Z = 20, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } },
@@ -611,11 +611,15 @@ public sealed class DecoratorTests
             [new BoulderProp { Id = "b", X = 20, Z = 20, Seed = 3, Style = new BoulderStyle { Size = 5, Mossy = false } }]));
 
         await Assert.That(tally.Boulders).IsEqualTo(1);
-        var rock = Placed(world, top.Keys, 4, 20).Where(b => b.Id == Blocks.Stone && b.Y >= 8).ToList();
+        // The blocks the rock is cut from, whatever its recipe says — the seating is what is being measured,
+        // and a rock made of one block and a rock made of three are bedded alike.
+        var cut = Materials.BlocksOf(BoulderStyle.DefaultRock).Select(block => block.Id).ToHashSet();
+        var rock = Placed(world, top.Keys, 4, 20).Where(b => cut.Contains(b.Id) && b.Y >= 8).ToList();
         // An erratic is a mass left standing on a surface, so its bulk is over the ground …
         await Assert.That(rock.Max(b => b.Y)).IsGreaterThanOrEqualTo(13);
         // … and only its foot is under, which is what stops a course of turf showing daylight beneath it.
-        await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Stone);
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsNotEqualTo(Blocks.Grass);
+        await Assert.That(cut).Contains(world.GetBlock(20, 7, 20).Id);
     }
 
     [Test]
@@ -1101,6 +1105,37 @@ public sealed class DecoratorTests
         await Assert.That(unmirrored).IsEqualTo(0);
     }
 
+    /// <summary><b>A cell and its image grow the same thing.</b> Every field the overlay reads is a function
+    /// of position, so read at the cell itself a meadow comes out thick for one team and thin for the other
+    /// and a fern stands on one side of a board with bare ground on its mirror. The fields are read at the
+    /// orbit's representative instead, the way a terrain pattern is, so the fold decides once.
+    ///
+    /// <para>The area is drawn over one half and its image covers the other, which is how a board states one:
+    /// the two halves are grown by two turns of the placement loop, not by one pass over a symmetric ring.</para>
+    /// </summary>
+    [Test]
+    public async Task Cover_grows_the_same_plant_at_a_cell_and_at_its_image()
+    {
+        var (world, top) = Plateau(80, from: -40);
+        var tally = Decorator.Decorate(world, Context(top,
+            [new FloraProp
+            {
+                Id = "f", Points = [[-40, -40], [40, -40], [40, 0], [-40, 0]],
+                Spec = new FloraSpec(Coverage: 0.6, TallShare: 0.2), Seed = 7,
+            }], symmetry: "rot_180"));
+
+        // Both have to be there or the comparison below proves nothing: a board that grew nothing, or one
+        // that grew the same block everywhere, matches its own image for the wrong reason.
+        await Assert.That(tally.Plants).IsGreaterThan(500);
+        await Assert.That(top.Keys.Count(cell => world.GetBlock(cell.X, 8, cell.Z).Id == Blocks.Air))
+            .IsGreaterThan(500);
+
+        var differ = top.Keys.Count(cell =>
+            world.GetBlock(cell.X, 8, cell.Z) != world.GetBlock(-cell.X - 1, 8, -cell.Z - 1)
+            || world.GetBlock(cell.X, 9, cell.Z) != world.GetBlock(-cell.X - 1, 9, -cell.Z - 1));
+        await Assert.That(differ).IsEqualTo(0);
+    }
+
     // ── areas of cover ─────────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task Cover_grows_inside_the_drawn_area_and_stops_at_its_edge()
@@ -1323,7 +1358,7 @@ public sealed class DecoratorTests
         // under are the ones that were written — so the band is measured from what the building stamps.
         //
         // The island is tight on all four sides: x 5..23 and z 10..30, with a house at x 10..18, z 15..25.
-        // Every flank is exactly five clear of the WALL, and four clear of the roof over it.
+        // The east flank is five clear of the WALL and four clear of the roof over it.
         var world = new VoxelWorld();
         var top = new Dictionary<(int X, int Z), int>();
         for (var z = 10; z <= 30; z++)
@@ -1337,11 +1372,14 @@ public sealed class DecoratorTests
         var tight = Decorator.Decorate(world, Context(top,
             [new HouseProp { Id = "hall", Wings = [new AuthoredWing([[10, 15], [18, 25]])],
                              Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } } }]));
-        await Assert.That(tight.Houses).IsEqualTo(0);
-        await Assert.That(tight.Declines.Single().Rule).IsEqualTo(DressingRules.PassAround);
+        await Assert.That(tight.Houses).IsEqualTo(1);
+        var tooTight = tight.Declines.Single();
+        await Assert.That(tooTight.Rule).IsEqualTo(DressingRules.PassAround);
+        await Assert.That(tooTight.Severity).IsEqualTo(Severity.Complaint)
+            .Because("where a building stands is something an author moves, so the world keeps it");
 
-        // One more block of island on every side, and the roof itself clears five. The rule is about the
-        // ground beside the building, so widening the ground is what answers it.
+        // The same house on a plateau that runs well past it on every side. The rule is about the ground
+        // beside the building, so widening the ground is what answers it.
         var (wider, widerTop) = Plateau();
         var stands = Decorator.Decorate(wider, Context(widerTop,
             [new HouseProp { Id = "hall", Wings = [new AuthoredWing([[10, 15], [18, 25]])],
@@ -1350,13 +1388,73 @@ public sealed class DecoratorTests
         await Assert.That(stands.Declines.Where(f => f.Rule == DressingRules.PassAround)).IsEmpty();
     }
 
+    /// <summary>A house clear of both walls of a lane is corking it, however far the lane runs on ahead: the
+    /// ground players arrive on is not a way round the thing blocking them. Every side is asked, so the lane
+    /// no longer answers for the two flanks that have nothing beside them.</summary>
     [Test]
-    public async Task A_house_that_corks_its_leg_is_refused_and_a_coast_house_stands()
+    public async Task A_house_in_the_middle_of_a_lane_is_complained_of_however_long_the_lane_is()
+    {
+        // A 15-block lane running the whole board, and an 11-block house in the middle of it: a block of
+        // ground each side, and forty blocks of lane in front and behind.
+        var world = new VoxelWorld();
+        var top = new Dictionary<(int X, int Z), int>();
+        for (var z = 0; z < 80; z++)
+        for (var x = 10; x < 25; x++)
+        {
+            for (var y = 0; y < 7; y++) world.SetBlock(x, y, z, Blocks.Stone);
+            world.SetBlock(x, 7, z, Blocks.Grass);
+            top[(x, z)] = 8;
+        }
+        var style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } };
+
+        var corking = Decorator.Decorate(world, Context(top,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[12, 35], [22, 45]])], Style = style }]));
+
+        await Assert.That(corking.Declines.Single().Rule).IsEqualTo(DressingRules.PassAround);
+    }
+
+    /// <summary>Against one wall of that lane the passage is what is left on the other side, and the number
+    /// is the author’s eight measured from the roof — so a 15-block lane takes a building seven across
+    /// including its eaves, and not eight.</summary>
+    [Test]
+    public async Task A_lane_takes_a_house_that_leaves_eight_beside_it_and_not_seven()
+    {
+        static (VoxelWorld, Dictionary<(int X, int Z), int>) Lane()
+        {
+            var world = new VoxelWorld();
+            var top = new Dictionary<(int X, int Z), int>();
+            for (var z = 0; z < 80; z++)
+            for (var x = 10; x < 25; x++)
+            {
+                for (var y = 0; y < 7; y++) world.SetBlock(x, y, z, Blocks.Stone);
+                world.SetBlock(x, 7, z, Blocks.Grass);
+                top[(x, z)] = 8;
+            }
+            return (world, top);
+        }
+        var style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } };
+
+        // Walls x 11..15, so the roof stamps x 10..16 against the lane’s west edge and leaves x 17..24 — eight.
+        var (fits, fitsTop) = Lane();
+        var stands = Decorator.Decorate(fits, Context(fitsTop,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[11, 35], [15, 41]])], Style = style }]));
+        await Assert.That(stands.Houses).IsEqualTo(1);
+        await Assert.That(stands.Declines).IsEmpty();
+
+        // One block wider and the passage is seven.
+        var (tight, tightTop) = Lane();
+        var refused = Decorator.Decorate(tight, Context(tightTop,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[11, 35], [16, 41]])], Style = style }]));
+        await Assert.That(refused.Declines.Single().Rule).IsEqualTo(DressingRules.PassAround);
+    }
+
+    [Test]
+    public async Task A_house_that_corks_its_leg_is_complained_of_and_a_coast_house_is_not()
     {
         // The generation failure this rule closes: a house across the full width of a land leg, void on both
-        // flanks — players would have to dig through the building to reach the other side. Beside a house
-        // there must be five blocks of passable ground along at least one side (the author's number). A
-        // house against the map's own edge is fine as long as the other side keeps the passage.
+        // flanks — players would have to dig through the building to reach the other side. A side the ground
+        // stops flush against is a coast a house may stand on, but not two facing each other, which is what
+        // spanning a leg is.
         var leg = new VoxelWorld();
         var legTop = new Dictionary<(int X, int Z), int>();
         for (var z = 0; z < 40; z++)
@@ -1375,12 +1473,11 @@ public sealed class DecoratorTests
                     Door = DoorMaterial.Air,
                 },
             } }]));
-        await Assert.That(corked.Houses).IsEqualTo(0);
         var drop = corked.Declines.Single();
         await Assert.That(drop.Message).Contains("no way past");
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.PassAround);
 
-        // The same house on the same leg, hugging the west edge: the east flank keeps a five-block passage.
+        // The same house hugging a west coast: one flank is the edge and the other three keep the passage.
         var (coast, coastTop) = Plateau();
         for (var z = 0; z < 40; z++)
         for (var x = 0; x < 10; x++) coastTop.Remove((x, z));   // void west of x=10
@@ -1424,27 +1521,30 @@ public sealed class DecoratorTests
     }
 
     [Test]
-    public async Task Two_buildings_keep_a_block_of_clear_ground_between_their_eaves()
+    public async Task Two_buildings_collide_only_over_the_ring_and_no_spacing_past_it_is_crowded()
     {
-        // A building holds what it stamps plus one block outward, and is *tested* on what it stamps — so two
-        // that merely fail to overlap are refused and two with a block between them both stand. Before the
-        // ring, the claim was the wall rectangle: a verge overhung ground the pass believed free.
-        var (world, top) = Plateau();
+        // A building holds what it stamps plus one block outward, and is *tested* on what it stamps, so two
+        // that merely fail to overlap collide. Past that ring there is no gap that refuses: closer than the
+        // passage plus the ring they are one block of buildings and the passage goes round the pair, and at
+        // that reach each of them clears the passage on its own. The village street is the case.
         var open = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } };
         HouseProp At(string id, int minX, int maxX) =>
-            new() { Id = id, Wings = [new AuthoredWing([[minX, 10], [maxX, 18]])], Style = open };
+            new() { Id = id, Wings = [new AuthoredWing([[minX, 20], [maxX, 28]])], Style = open };
 
         // Overhang 1, so the first stamps x9…19 and the second x20…30 — adjacent, with nothing between them.
+        var (world, top) = Plateau(60);
         var flush = Decorator.Decorate(world, Context(top, [At("h1", 10, 18), At("h2", 21, 29)]));
         await Assert.That(flush.Houses).IsEqualTo(1);
         var drop = flush.Declines.Single(d => d.SubjectIds.Contains("h2"));
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.GroundTaken);
 
-        // One block further out and the eaves have a course of ground between them.
-        var (clean, cleanTop) = Plateau();
-        var spaced = Decorator.Decorate(clean, Context(cleanTop, [At("h1", 10, 18), At("h2", 22, 30)]));
-        await Assert.That(spaced.Houses).IsEqualTo(2);
-        await Assert.That(spaced.Declines).IsEmpty();
+        for (var apart = 3; apart <= 16; apart++)
+        {
+            var (field, fieldTop) = Plateau(60);
+            var pair = Decorator.Decorate(field, Context(fieldTop, [At("h1", 10, 18), At("h2", 19 + apart, 27 + apart)]));
+            await Assert.That(pair.Houses).IsEqualTo(2).Because($"{apart} blocks between the walls");
+            await Assert.That(pair.Declines).IsEmpty().Because($"{apart} blocks between the walls");
+        }
     }
 
     [Test]
@@ -1902,7 +2002,7 @@ public sealed class DecoratorTests
             new BoulderProp { Id = "b", X = 30, Z = 20, Seed = 3, Style = new BoulderStyle { Size = 1, Mossy = false } },
             new HouseProp
             {
-                Id = "h", Wings = [new AuthoredWing([[2, 2], [10, 10]])],
+                Id = "h", Wings = [new AuthoredWing([[12, 12], [20, 20]])],
                 Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
             },
             new StrokeProp

@@ -1,8 +1,8 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 41 open entries and `TODO.md` none, the board standing between programmes. This document is the
-reading that says which of them are defects, which are questions, which share a cause, and what order drains
-them. Its subject is the board itself, and it expires when the board it describes is gone. It is the one
+`BACKLOG.md` holds 39 open entries and `TODO.md` 6, the walk being the programme the board is working. This
+document is the reading that says which of them are defects, which are questions, which share a cause, and what
+order drains them. Its subject is the board itself, and it expires when the board it describes is gone. It is the one
 document this work adds: `CLAUDE.md`'s standing rule is that a change updates the document that already covers
 its subject rather than growing a new one, and the board had no such document.
 
@@ -11,11 +11,12 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **41 open entries over 7,359 words**: a median entry of 168 words and **6 above 250** —
+The two boards carry **45 open entries over 7,989 words**: a median entry of 167 words and **6 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `WE77`
-is the longest at 436 words, then `WS3` at 356, `B169` at 281 and `WE28` at 266. The prefix spread is `WE` 9,
-`B` 7, `G` 6, `TS` 4, `S` 4, and eight others in ones and twos. **None of them is on `TODO.md`**, which is
-what a board looks like between groups.
+is the longest at 436 words, then `WS3` at 356, `B169` at 281, `WE28` at 266 and `S46` at 262. The prefix
+spread is `WE` 9, `B` 7, `G` 7, `S` 4, and ten others in ones, twos and threes. **Six of them are on
+`TODO.md`** — the walk group, pulled up whole, and four of those six are over or near the length cap, which is
+the tell that this group's entries were filed from readings rather than from work.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -240,15 +241,16 @@ What is left is the seam itself. `B213`.
 **A convention is measured and nothing complains.** Four entries in one section each name a predicate, a
 corpus number and the document that would carry the rule, and none of them is a gate: a building walled in
 the ground's own family (`WE46`, 9 of 50 buildings), a board wearing a theme per piece (`WE47`, 24 themes on
-one board), a pattern brushed smaller than what it dresses (`WE48`), and a pattern showing off a family
-rather than being a ground (`WE41`). `WE45` is the same cause from the other end — a rule that exists,
-measures the wrong rectangle and asks for the widest side instead of every side.
+one board — shipped), a pattern brushed smaller than what it dresses (`WE48`), and a pattern showing off a family
+rather than being a ground (`WE41`). `WE45` was the same cause from the other end — a rule that existed and
+measured the wrong thing, which is drained by measuring it right rather than by filing a fifth complaint.
 
 **Working it split the cause in two, and the split is what the group is now ordered by.** A complaint closes
 when its **domain** closes: a house has a fixed parts list, which is why `HS1`–`HS10` is a rule set that could
 be finished, and terrain has none, so a catalogue over every pair of blocks against every pattern scale never
 closes. `WE48` and `WE45` were the closable kind — a number on a bounded field and a geometric measurement —
-and both landed (`FEATURES.md`). `WE47`'s local half is the same kind. `WE46` and `WE41` are not: both reduce
+and both landed (`FEATURES.md`), as did `WE47`'s local half: a compiled component's plateaus measured against
+each other rather than a board's theme count measured against a number. `WE46` and `WE41` are not: both reduce
 to *do these two blocks read as one?*, and `TerrainPalette` answers only in a mean RGB, which puts stone and
 cobblestone four points apart per channel and andesite and its polished variant the same. They are parked on
 a measurement — texture variance per block — rather than filed as more complaints, because a complaint fires
@@ -256,11 +258,11 @@ after the choice and the palette is what made the choice wrong. This is the larg
 the board and the one closest to being work, because the measurements are already taken and the shape of the
 answer — a complaint pass over a themed board, with the floor stated by the author — is common to all five.
 
-**A read answers the picture and not the knob that made it.** This is the cause the relief track has been
-draining: a wall between two marks reported as terrain with nothing's name on it shipped as `WE33`, a push's
-two gradients as `WE32`, and a declared route walked back as `WS14` (`FEATURES.md`). What is left of it is
-`WS3` alone — `RouteFork` reports one fork where a board has several, and reports it against no demand set.
-The two entries that read as this cause and were not it left the board on the reading below.
+**A read answers the picture and not the knob that made it.** This cause is drained. A wall between two marks
+reported as terrain with nothing's name on it shipped as `WE33`, a push's two gradients as `WE32`, a declared
+route walked back as `WS14`, and the last of it as `WS3`: a fork is one per door now and belongs to the demand
+set it was read for (`FEATURES.md`). The two entries that read as this cause and were not it left the board on
+the reading below.
 
 **A gate's verdict reaches the author under a name they cannot look up.** This cause is drained. It was
 never that `PlanValidator` ran only at the compile gate — `/plan/evaluate` builds its context from the same
@@ -433,9 +435,10 @@ of them is the same thing: a document, a route or a solver that already answers,
 asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
-`S34`, `TS51`, `TS63`, `G164`, `B54`, `B9`. `G187` left this population by being read against the
-code rather than built: plan-tier flow is served and `Cells.WaysRound` is in use, so what its entry called a
-project is one missing primitive and one term. Four left it by shipping —
+`S34`, `TS51`, `TS63`, `B54`, `B9`. `G187` and `G164` left this population by being read against the code
+rather than built — plan-tier flow was already served and `Cells.WaysRound` already in use, so what one entry
+called a project was a primitive and a term, and the other was a term over two corridors that read itself
+(`FEATURES.md`). Four more left it by shipping —
 `B221` and `B258`, the library's pictures, `WE34`, the seat read, and `TS30`, the bend — which is the
 population behaving as intended: a roadmap entry is drained by being built, not by being triaged again.
 `B58` left it the same way, with `N12`: the destroyable suggester and the Configure phase that confirms from
@@ -450,8 +453,8 @@ relocation. What went instead was the hygiene population — `C12`, `C14`, `CV12
 
 The reorganisation that followed supersedes the relocation and is the better answer. Each roadmap entry now
 sits under the foundation it spends rather than in a bucket of its own, so `S46` reads beside the relief
-entries whose model it needs and `G187` beside the walk it would run on. A capability with no end condition is
-legible when it is filed against the thing that would make it possible, and unreadable in a list of its peers.
+entries whose model it needs. A capability with no end condition is legible when it is filed against the
+thing that would make it possible, and unreadable in a list of its peers.
 The cost is that a section's length no longer says how much *work* is in it, which is what the split above is
 for.
 
@@ -471,13 +474,26 @@ left it by being withdrawn: the ruling it needed says a sketch cannot judge reac
 reading it wanted shipped as `WS61` (`FEATURES.md`) at the tier that holds the build zones — and as
 information rather than as a defect, which is the disposition the whole question turned on.
 
-**Phase 2 — fix the causes, not the entries.** The building's one model (3 entries) was `TODO.md`'s programme
-and is drained (`FEATURES.md`); the mapgen-authoring group it rode beside is what `TODO.md` now holds alone.
-Then, in the order that maximises what each closes: the measured convention with no complaint (5), the read
-that reports a symptom (6), the layer word (5), the client reading its own schema (5), the compiler's lost
-identity (3), the live findings feed (2). This is `CLAUDE.md`'s own doctrine — *"the board is emptied concept
-by concept"* — applied to groups the board has already named, and the building programme is the worked
-example: one foundation named, three entries, each small because the cause was settled first.
+**Phase 2 — fix the causes, not the entries.** The building's one model (3 entries), the measured convention
+with no complaint, the hill (8) and the shop's contract half are all drained (`FEATURES.md`), and each drained
+the same way: the cause was named first and the entries then fitted in a paragraph each. The hill's was that
+what a board is played for was derived in several places and a control point was in none of them; the shop's
+was that every entry named a thing the codec already carried and the intent could not state. Both left their
+wizard step behind, which is why `TC7` and `TC9` sit with the configure surface rather than here.
+
+`TODO.md` holds **the walk**, pulled up whole. Its cause was the other half of a consolidation that had only
+gone halfway: `Geom.Walk` became the one traversal, and the *answers* taken with it did not follow. Three of
+them are now one each — adjacency is `ContactGraph.Connects`, a fork belongs to a demand set and a door, and
+dead ground is `Cells.Stretches`, which the plan tier and the built-world tier ask at their own floors
+(`FEATURES.md`). That is `CLAUDE.md`'s *"a shape is not consolidated until the callers ask it the same
+question by the same name"*, applied; what the group still holds are the readings that ground was settled
+for.
+
+Of the causes this section named earlier, the client reading its own schema is `C51` alone and the compiler's
+lost identity is `B213`, so neither stands as a programme. What is left whole, after the walk, is **the layer
+word** (`B263`, `B264`, `WE28`, `TS64` — a layer is first-class in the export and an afterthought everywhere
+else), and it is the one to pull next. The two shop entries that remain (`PG15`, `PG16`) are independent
+extensions of a landed slice rather than one cause, and are therefore roadmap rather than programme.
 
 **The rule over Phases 1 and 2.** A programme pulled up from `BACKLOG.md` is worked to its end before
 anything above interrupts it, except a Phase 1 defect in the surface it is building. The board runs one

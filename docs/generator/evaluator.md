@@ -417,6 +417,21 @@ it applies to and from no others.
   `GoalDistances`, which walks one field out of each goal and reads it at the spawns and at the other goals,
   so a board cannot answer them in two geometries. Bare reachability is the export gate's refusal, never a
   soft term.
+- **What the match spends** — the share of a board's ground no journey reaches (`dead-share`, G8), read off
+  `PlanFlow`: every pair of places claims a corridor and every place a ring around itself, and what neither
+  covers is ground a player walks past at most and stands on never. It states from the other side what G8's
+  land-per-player states from this one — a high share is a board bigger than the thing it plays rather than a
+  board with a big number in its globals. A global scalar, so the term points at nothing; `PlanFlow`'s own read
+  names each patch with its coordinates, which is what an author acts on.
+- **What the two sides collide over** — how much of the ground a defence crosses to reach an objective is
+  ground the attack is already on (`route-interference`, CT8), read off `PlanFlow` as the share of the
+  defender's corridor the attacker's also covers, averaged over the board's objectives. Both ribbons are
+  walked over the ground their own side has, at the detour tolerance the coverage read uses, from each side's
+  own spawn — which is where an attack starts before a capture and after one alike. CT8 claims a hole gives
+  alternative routes between lanes; counting those routes does not say whether taking one buys anything, and
+  this does: a board whose ways in all collide with the reinforcement lane offers no approach that misses it,
+  whatever its route count reads. Null where the plan states no leg, since two routes are needed before either
+  can be laid over the other.
 - **Height (purposeful, not random)** — surface deltas are multiples of 2 (EL1); ≤2 raised sections per
   island (EL4); **wool room ≥ its
   approach** (a real climb, WL5); a **tower** is a tall tile on the frontline edge that clears the void; and the

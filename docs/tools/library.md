@@ -404,7 +404,9 @@ reads a world where every tree stands clear of every other, takes each connected
 carpentry — wooden slabs and stairs, fences, vines — that rests on something, and files it here as
 `<name>-r<row>-<n>`, rows by the z the trees stand at and numbered along x, so a re-run over the same world
 updates the same rows. A body hanging in the air is a fragment of a tree that broke and is reported rather
-than filed. The 74 trees of `pgm-studio-mapgen/showcase/tree-showcase` are the corpus it was written for, and
+than filed. A wool tree opens a row of its own whether or not `--wool` files it, so one flag does not
+renumber every row behind it. The 84 trees of `pgm-studio-mapgen/corpus/tree-showcase` are the corpus it was
+written for, and
 cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the six vanilla species
 and four erratics, and knows nothing about any world.
 

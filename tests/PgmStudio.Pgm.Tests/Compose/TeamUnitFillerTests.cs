@@ -83,7 +83,7 @@ public class TeamUnitFillerTests
     {
         var hub = Hub();
         // wool production is w2-only, so the wool's joint grants w2
-        var family = FillMenu.FamiliesFor(2)[0];
+        var family = FillMenu.FamiliesFor(2, 2)[0];
         // docks the hub's Right (vertical) edge with its Left mouth: the lane runs rightward into the box width
         var woolBox = new Box("wool-a", BoxKind.Wool, new(8, 0, 12, 6), 40);
         var wool = TeamUnitFiller.FillWool(hub, Joint(BoxEdge.Right, 2), BoxEdge.Right, woolBox, BoxEdge.Left,

@@ -2,6 +2,8 @@ using PgmStudio.Domain;
 using PgmStudio.Export;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Stamping;
 
 namespace PgmStudio.Export.Tests;
@@ -159,6 +161,89 @@ public sealed class ClaimRasterTests
         await Assert.That(ClaimRaster.Seat(tree, "flora", standoff: 0, width: 1, depth: 1).Rows[0]).IsEqualTo("101");
         await Assert.That(ClaimRaster.Seat(tree, "tree", standoff: 0, width: 1, depth: 1).Rows[0]).IsEqualTo("101")
             .Because("a prop of the same kind is an exclusion like any other");
+    }
+
+    private static HouseProp House(string id, int minX, int minZ, int maxX, int maxZ) =>
+        new()
+        {
+            Id = id, Wings = [new AuthoredWing([[minX, minZ], [maxX, maxZ]])],
+            Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
+        };
+
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> Top) World(
+        IReadOnlyDictionary<(int X, int Z), int> surface)
+    {
+        var world = new VoxelWorld();
+        var top = new Dictionary<(int X, int Z), int>();
+        foreach (var (cell, _) in surface)
+        {
+            for (var y = 0; y < 7; y++) world.SetBlock(cell.X, y, cell.Z, Blocks.Stone);
+            world.SetBlock(cell.X, 7, cell.Z, Blocks.Grass);
+            top[cell] = 8;
+        }
+        return (world, top);
+    }
+
+    /// <summary>A building is asked about the way past it too, and a 15-block lane is the case that says so:
+    /// a 5×5 house stamps 7 across, so it seats only where eight blocks of lane are left beside it — which on
+    /// a lane with void either side means hugged to a wall. Two anchors at each wall rather than one, because
+    /// the band runs along the walls and a roof may oversail the coast by its eave.</summary>
+    [Test]
+    public async Task A_building_seats_in_a_lane_only_where_it_leaves_the_passage()
+    {
+        // A lane 15 across and long enough that its ends never decide anything.
+        var surface = Ground(0, 0, 14, 39);
+        var grid = ClaimRaster.Read([], surface, (_, _) => null, (_, _) => false);
+
+        var seats = ClaimRaster.Seat(grid, "house", standoff: 0, width: 5, depth: 5);
+
+        await Assert.That(seats.Rows[20]).IsEqualTo("110000000110000")
+            .Because("eight of lane are left only from the two anchors at each wall");
+        await Assert.That(ClaimRaster.Seat(grid, "tree", standoff: 0, width: 5, depth: 5).Rows[20])
+            .IsEqualTo("111111111110000").Because("a tree has no way past to leave");
+    }
+
+    /// <summary>The forward read and the pass answer one question. Every anchor on a board with a coast, a
+    /// hole in it and a building already standing is asked both ways: the raster offers a seat exactly where
+    /// the pass raises no <c>DR-PASS</c> complaint about a building put there — the grouping included, since a
+    /// candidate beside the standing one is judged as the block of buildings they make.</summary>
+    [Test]
+    public async Task Every_seat_the_raster_offers_is_one_the_pass_does_not_complain_about()
+    {
+        const int size = 30;
+        var surface = Ground(0, 0, size - 1, size - 1);
+        for (var z = 12; z <= 17; z++)
+        for (var x = 12; x <= 17; x++)
+            surface.Remove((x, z));                              // a hole through the middle
+        for (var z = 0; z < 6; z++)
+        for (var x = size - 6; x < size; x++)
+            surface.Remove((x, z));                              // a bite out of one corner
+
+        var standing = House("old", 2, 22, 8, 27);
+        var (built, builtTop) = World(surface);
+        var already = Decorator.Decorate(built, new DressingContext(builtTop, [standing]));
+        var grid = ClaimRaster.Read(already.Placements, surface, (_, _) => null, (_, _) => false);
+        var seats = ClaimRaster.Seat(grid, "house", standoff: 0, width: 5, depth: 5);
+
+        var offered = 0;
+        var disagreed = new List<string>();
+        for (var row = 0; row + 4 < grid.Height; row++)
+        for (var column = 0; column + 4 < grid.Width; column++)
+        {
+            var raster = seats.Rows[row][column] == '1';
+            if (raster) offered++;
+
+            var (world, top) = World(surface);
+            var tally = Decorator.Decorate(world, new DressingContext(top,
+                [standing, House("new", column, row, column + 4, row + 4)]));
+            var refused = tally.Declines.Any(finding => finding.SubjectIds.Contains("new"));
+            if (raster == !refused) continue;
+            disagreed.Add($"({column}, {row}) raster {(raster ? "seats" : "refuses")}, pass "
+                + string.Join("/", tally.Declines.Where(f => f.SubjectIds.Contains("new")).Select(f => f.Rule)));
+        }
+
+        await Assert.That(offered).IsGreaterThan(0).Because("a board with no seat proves nothing");
+        await Assert.That(string.Join("; ", disagreed.Take(6))).IsEqualTo("");
     }
 
     [Test]

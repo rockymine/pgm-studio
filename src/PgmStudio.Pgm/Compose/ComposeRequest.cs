@@ -1,3 +1,5 @@
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>
@@ -14,15 +16,26 @@ public sealed class ComposeRequest
     public ulong Seed { get; }
     public int Cell { get; }
 
-    /// <param name="playersPerTeam">Clamped to 5..32 (the envelope's calibrated range).</param>
+    /// <summary>Blocks per proxy cell when a request does not name one — the scale the composer draws on.
+    /// Four because every width the structure rules state is in blocks
+    /// (<see cref="UnitTuning.CorridorBlocks"/> runs 12·14·16·16·22 up the bands), and a four-block cell
+    /// lands three of those five on a whole cell where a five-block cell lands none. Every caller that has
+    /// to supply a cell reads it here rather than restating the number.</summary>
+    public const int DefaultCell = 4;
+
+    /// <param name="playersPerTeam">Clamped to the size ladder's own range, 6..47 — the bands the land
+    /// budget is measured for (<see cref="PgmStudio.Vocabulary.SizeBands"/>). The ceiling is the top band's
+    /// own, so a request for a bigger side composes the biggest board there is rather than being refused.</param>
     /// <param name="teams">2 or 4.</param>
     /// <param name="symmetry">Null selects the default for <paramref name="teams"/>: <c>rot_180</c> for 2,
     /// <c>rot_90</c> for 4. <c>mirror_x</c>/<c>mirror_z</c> are legal only for 2 teams.</param>
     /// <param name="seed">Drives every random draw the composer makes; the same seed reproduces the same plan.</param>
-    /// <param name="cell">Blocks per proxy cell (the plan grid scale).</param>
-    public ComposeRequest(int playersPerTeam, int teams = 2, string? symmetry = null, ulong seed = 0, int cell = 5)
+    /// <param name="cell">Blocks per proxy cell (the plan grid scale); <see cref="DefaultCell"/> when the
+    /// caller does not name one.</param>
+    public ComposeRequest(int playersPerTeam, int teams = 2, string? symmetry = null, ulong seed = 0,
+                          int cell = DefaultCell)
     {
-        PlayersPerTeam = Math.Clamp(playersPerTeam, 5, 32);
+        PlayersPerTeam = Math.Clamp(playersPerTeam, 6, SizeBands.Players(SizeBands.Centi).High);
 
         if (teams != 2 && teams != 4)
             throw new ArgumentException($"teams must be 2 or 4 (got {teams})", nameof(teams));

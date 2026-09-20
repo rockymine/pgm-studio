@@ -53,7 +53,9 @@ public static class SketchLayoutCheck
 {
     /// <summary>The rules read off the rasterized spans, which a <see cref="LayoutReading.Document"/> check
     /// does not answer. Stated here, beside the code that skips them, because it is what the answer names to
-    /// a caller who took the shallower reading.</summary>
+    /// a caller who took the shallower reading. What the caller is actually handed is
+    /// <c>SketchMaterialGate.GroundRules</c>, which is this list and the one rule that gate skips with them —
+    /// a rule id in <c>Minecraft</c>, which this project does not see.</summary>
     public static readonly string[] GroundRules =
     [
         SketchRules.StackedInOneLayer, SketchRules.LayersOverlap, SketchRules.MassUnreached,
@@ -370,6 +372,34 @@ public static class SketchLayoutCheck
                 }
             }
 
+        // SK28 — a group that declines the fan while standing wholly inside one orbit image. The orbit is
+        // fanned per group, so `mirrors: false` builds the group once. That is correct for a landmark on the
+        // symmetry centre, which is already its own image, so the footprint decides rather than the flag: a
+        // group whose bounds meet any of their images straddles the centre and is left alone, and one
+        // disjoint from every image cannot be its own and is built for one team only.
+        if (Symmetry.OrbitAxes(mode) is { Length: > 0 } orbit)
+            foreach (var (layer, index) in SketchLayout.Stack(layout).Select((layer, at) => (layer, at)))
+                foreach (var (group, at) in layer.Groups.Select((group, at) => (group, at)))
+                {
+                    if (group.Mirrors) continue;
+                    var listed = new HashSet<string>(group.ShapeIds, StringComparer.Ordinal);
+                    var boxes = layer.Shapes.Where(shape => listed.Contains(shape.Id))
+                                            .Select(Bounds).OfType<(double MinX, double MinZ, double MaxX, double MaxZ)>()
+                                            .ToList();
+                    if (boxes.Count == 0) continue;
+                    var body = (MinX: boxes.Min(b => b.MinX), MinZ: boxes.Min(b => b.MinZ),
+                                MaxX: boxes.Max(b => b.MaxX), MaxZ: boxes.Max(b => b.MaxZ));
+                    if (orbit.Select(axis => Turned(body, axis, centerX, centerZ)).Any(image => Meets(body, image)))
+                        continue;
+                    findings.Add(new Finding(SketchRules.BuiltOnOneImage,
+                        $"group '{group.Id}' on layer '{layer.Id}' states mirrors false and stands clear of "
+                        + $"every one of its {orbit.Length} orbit image(s), so its {boxes.Count} shape(s) are "
+                        + "built once, on one team's ground and nowhere else. Set mirrors true, or move it "
+                        + "onto the symmetry centre if it is meant to belong to nobody",
+                        Severity.Complaint, Field: $"layers[{index}].layout.groups[{at}].mirrors",
+                        Subjects: group.Id is { Length: > 0 } id ? [id] : null));
+                }
+
         // SK12 — one id, two groups. The relief is stored under the id and so is a placement's group, so a
         // board carrying it twice has no single answer to either. The layers are named because they decide
         // which way it goes wrong: within one layer the last of them takes the terrain and the rest build
@@ -434,7 +464,99 @@ public static class SketchLayoutCheck
                 + "cell no shape scope claims takes unthemed stone instead",
                 Severity.Complaint, Field: "mapTheme"));
 
+        findings.AddRange(PlateausPaintedApart(layout));
+
         return findings;
+    }
+
+    /// <summary>SK27 — every compiled component whose plateaus do not agree on what paints them. A plan
+    /// component spanning several surfaces compiles to one shape per surface, each carrying the component's
+    /// own name, so the set of shapes sharing a component name is one landform and a theme stated per shape
+    /// paints it as several.
+    ///
+    /// <para>Reported per component and not per shape: the fix is one decision over the whole flight, and the
+    /// shapes are named in the finding so the riser can be found on the canvas. A component whose plateaus all
+    /// state the same paint — or state none, and so all take the map default — says nothing.</para></summary>
+    private static IEnumerable<Finding> PlateausPaintedApart(SketchLayout layout)
+    {
+        var mapDefault = layout.MapTheme is { Length: > 0 } stated ? stated : "";
+
+        foreach (var (layer, index) in SketchLayout.Stack(layout).Select((layer, index) => (layer, index)))
+        {
+            var plateaus = new SortedDictionary<string, List<(string Shape, Paint Paint, int Surface)>>(StringComparer.Ordinal);
+            foreach (var shape in layer.Shapes)
+            {
+                if (Component(shape) is not ({ } anchor, var surface)) continue;
+                var paint = shape.Material is not null ? new Paint(true, "")
+                    : new Paint(false, shape.Theme is { Length: > 0 } named ? named : mapDefault);
+                (plateaus.TryGetValue(anchor, out var steps) ? steps : plateaus[anchor] = [])
+                    .Add((shape.Id, paint, surface));
+            }
+
+            foreach (var (anchor, steps) in plateaus)
+            {
+                if (steps.Count < 2) continue;
+                var painted = steps.Select(step => step.Paint).Distinct().ToList();
+                if (painted.Count < 2) continue;
+
+                var climb = steps.OrderBy(step => step.Surface).ToList();
+                yield return new Finding(SketchRules.PlateausPaintedApart,
+                    $"component '{anchor}' on layer '{layer.Id}' compiles to {steps.Count} plateaus from "
+                    + $"surface {climb[0].Surface} to {climb[^1].Surface} and they state "
+                    + $"{painted.Count} different paints ("
+                    + string.Join(", ", climb.Select(step =>
+                        $"{step.Shape} at {step.Surface} paints {step.Paint}"))
+                    + ") — one landform with a hard line at every riser, where a theme is a place",
+                    Severity.Complaint, Field: $"layers[{index}].layout.shapes",
+                    Subjects: [.. climb.Select(step => step.Shape).Where(id => id.Length > 0)]);
+            }
+        }
+    }
+
+    /// <summary>What one plateau states it is painted with — a registry id, the empty id standing for the map
+    /// default, or its own material instead of a theme. A shape holding both is <c>SK24</c>'s, so the two are
+    /// exclusive here and the flag is enough to keep a material apart from a theme that shares its name.</summary>
+    private readonly record struct Paint(bool OwnMaterial, string Theme)
+    {
+        /// <summary>How it reads in a finding.</summary>
+        public override string ToString() =>
+            OwnMaterial ? "its own material" : Theme.Length == 0 ? "the map default" : $"theme '{Theme}'";
+    }
+
+    /// <summary>The plan component a compiled terrain shape belongs to and the surface it stands at, or null
+    /// for a shape the compiler did not emit.
+    ///
+    /// <para>The compiler names a terrain shape <c>{component}-{surface}</c>, numbered past the first where
+    /// one surface breaks into several patches, and gives it that surface as its thickness over a floor it
+    /// states nothing about. So the component is read back by requiring the name's trailing number to be the
+    /// shape's own <see cref="SketchShape.BaseHeight"/>: a drawn shape whose id happens to end in a number
+    /// agrees with it only by coincidence, and a drawn shape sits on a stated <see cref="SketchShape.Floor"/>
+    /// where a compiled one never does. The ringed form is tried second, so a component whose own name ends in
+    /// a number keeps it.</para></summary>
+    private static (string Anchor, int Surface)? Component(SketchShape shape)
+    {
+        if (shape.Type != ShapeKinds.Polygon || shape.Operation != "add") return null;
+        if (shape.Role is not null || shape.Floor is not null || shape.Vertices is not { Length: > 0 }) return null;
+        if (shape.BaseHeight is not { } thickness || thickness != Math.Floor(thickness)) return null;
+
+        var surface = (int)thickness;
+        return Trailing(shape.Id, surface) is { } anchor ? (anchor, surface)
+            : Trailing(Trailing(shape.Id) ?? "", surface) is { } ringed ? (ringed, surface)
+            : null;
+    }
+
+    /// <summary>The part of an id before its final <c>-number</c>, or null where it does not end in one. A
+    /// number's own minus sign is part of it, so an id ending <c>--3</c> is that id cut before a surface of
+    /// −3 rather than before a ring of 3. <paramref name="expected"/> is the number the caller is looking for;
+    /// absent, any number matches, which is how a ring suffix is taken off before the surface underneath it is
+    /// read.</summary>
+    private static string? Trailing(string id, int? expected = null)
+    {
+        var cut = id.LastIndexOf('-');
+        if (cut <= 0 || cut == id.Length - 1) return null;
+        if (id[cut - 1] == '-') cut--;
+        if (cut <= 0 || !int.TryParse(id.AsSpan(cut + 1), out var number)) return null;
+        return expected is null || number == expected ? id[..cut] : null;
     }
 
     /// <summary>The one refusal, measured before any ground is walked: a board whose extent across the
@@ -572,6 +694,13 @@ public static class SketchLayoutCheck
             : null,
         _ => null,
     };
+
+    // Whether two boxes share any ground. Touching along an edge counts: a footprint that meets its own
+    // image at the centre line straddles it, which is the case SK28 leaves alone.
+    private static bool Meets(
+        (double MinX, double MinZ, double MaxX, double MaxZ) a,
+        (double MinX, double MinZ, double MaxX, double MaxZ) b) =>
+        a.MinX <= b.MaxX && b.MinX <= a.MaxX && a.MinZ <= b.MaxZ && b.MinZ <= a.MaxZ;
 
     // One orbit image of a box: transform its four corners about the centre and re-bound, since a rotation
     // turns a rectangle into a new axis-aligned one.

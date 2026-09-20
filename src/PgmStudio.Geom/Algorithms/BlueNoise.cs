@@ -35,7 +35,7 @@ public static class BlueNoise
     /// <para><paramref name="representativeOf"/> is what makes a scatter symmetric: it maps a cell to the cell
     /// whose site-ness decides for the whole orbit (<see cref="OrbitScatter.Canonical"/>). Every image of an
     /// orbit then answers the same question and they are placed or skipped together. Left null, each cell
-    /// answers for itself — the free scatter, correct for anything that does not affect play.</para></summary>
+    /// answers for itself — the free scatter, for a board with no symmetry to fold into.</para></summary>
     public static IEnumerable<(int X, int Z)> Sites(
         IEnumerable<(int X, int Z)> cells, uint seed, int radius, Func<int, int, (int X, int Z)>? representativeOf = null)
     {

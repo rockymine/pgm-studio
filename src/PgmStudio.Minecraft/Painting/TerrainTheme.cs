@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Painting;
@@ -150,6 +151,150 @@ public static class Materials
     /// under-reserving is a stamp clipped at the ceiling.</para></summary>
     public static bool IsAir(this TerrainMaterial? material) =>
         material is null or SolidMaterial { Id: Blocks.Air };
+
+    /// <summary>Every block this material can resolve to, patterns walked to their leaves. The data travels
+    /// with the id because a variant is a block — podzol is a dirt and andesite is a stone, and nothing else
+    /// tells either pair apart.
+    ///
+    /// <para>The patterns that <b>pick</b> from a set answer that set; the ones that <b>draw</b> geometry — a
+    /// wall run's stripes, a diagonal's, a frame's edge, a laid or checkered log — answer nothing, because
+    /// what they place is a fixture rather than a ground a question about tone is asked of.</para></summary>
+    public static IEnumerable<(int Id, int Data)> BlocksOf(TerrainMaterial? material) => material switch
+    {
+        SolidMaterial solid => [(solid.Id, solid.Data)],
+        LayeredMaterial layered => (layered.Stack?.Bands ?? []).SelectMany(band => BlocksOf(band.Material))
+                                                              .Concat(BlocksOf(layered.Beyond)),
+        TeamTintedMaterial tinted => BlocksOf(tinted.Neutral),
+        VoronoiMaterial voronoi => (voronoi.Bands ?? []).SelectMany(band => BlocksOf(band.Material)),
+        CellMaterial cell => (cell.Palette ?? []).SelectMany(BlocksOf),
+        NoiseMaterial noise => (noise.Stops ?? []).SelectMany(BlocksOf),
+        TurbulenceMaterial turbulence => (turbulence.Stops ?? []).SelectMany(BlocksOf),
+        ElectricMaterial electric => (electric.Stops ?? []).SelectMany(BlocksOf),
+        CheckerMaterial checker => BlocksOf(checker.Even).Concat(BlocksOf(checker.Odd)),
+        _ => [],
+    };
+
+    /// <summary>Every block this material can resolve to <b>where something can rest on it</b> — the answer a
+    /// column a prop may stand on gets.
+    ///
+    /// <para>A depth stack narrows to its top course, which is the only one anything stands on. A slope stack
+    /// narrows to the bands under its <see cref="CliffAngle"/>: ground graded past that is a face, nothing
+    /// rests against a face, and what a board paints there says nothing about what a rock standing on the
+    /// meadow below meets. An inward or a height stack answers all of its bands — a ring in from the edge and
+    /// a course at a stated Y are both ground a prop can sit on.</para></summary>
+    public static IEnumerable<(int Id, int Data)> Resting(TerrainMaterial? material) => material switch
+    {
+        LayeredMaterial { Axis: BandAxis.Depth } stacked
+            when stacked.Stack?.Bands is { Count: > 0 } bands => Resting(bands[0].Material),
+        LayeredMaterial { Axis: BandAxis.Slope } graded =>
+            StoodOn(graded).SelectMany(band => Resting(band.Material)),
+        LayeredMaterial layered => (layered.Stack?.Bands ?? []).SelectMany(band => Resting(band.Material))
+                                                              .Concat(Resting(layered.Beyond)),
+        TeamTintedMaterial tinted => Resting(tinted.Neutral),
+        CheckerMaterial checker => Resting(checker.Even).Concat(Resting(checker.Odd)),
+        _ => BlocksOf(material),
+    };
+
+    /// <summary>The bands of a slope stack that paint ground a prop may stand on — every band beginning under
+    /// the stack's <see cref="CliffAngle"/>. At least the first, so a stack whose every band is a face still
+    /// answers the shallowest of them rather than nothing.</summary>
+    private static IEnumerable<Band> StoodOn(LayeredMaterial graded)
+    {
+        var bands = graded.Stack?.Bands ?? [];
+        var cliff = CliffAngle(graded);
+        var at = 0;
+        for (var index = 0; index < bands.Count; index++)
+        {
+            if (index > 0 && at >= cliff) yield break;
+            yield return bands[index];
+            at += Math.Max(1, bands[index].Thickness);
+        }
+    }
+
+    /// <summary>The angle, in degrees from level, at which this ground stops being something a prop stands on
+    /// and becomes a face — the start of the band that paints the steepest ground there is.
+    ///
+    /// <para>A board that grades its surface by angle has already answered this: the band spanning 89° is its
+    /// cliff, whether the stack reaches that far itself or hands over to its <see cref="LayeredMaterial.Beyond"/>,
+    /// and where that band begins is where the board stopped calling the ground a meadow. A material that
+    /// grades by nothing states no angle and takes <see cref="DefaultCliffAngle"/>.</para>
+    ///
+    /// <para>Read through the material tree rather than off its root, because a surface is commonly a slope
+    /// stack of depth stacks and as commonly a pattern with one inside it; the outermost grading found is the
+    /// one that decided the block.</para></summary>
+    public static int CliffAngle(TerrainMaterial? material)
+    {
+        if (Graded(material) is not { } graded) return DefaultCliffAngle;
+
+        var bands = graded.Stack?.Bands ?? [];
+        var ending = graded.Stack?.Ending ?? BandEnding.Repeat;
+        var span = bands.Sum(band => Math.Max(1, band.Thickness));
+
+        // One region is no grading: a single band that repeats paints every angle alike, and so does one that
+        // hands over past ground no gradient reaches. Such a stack states nothing about where a face begins.
+        var handsOver = ending == BandEnding.HandOver && span <= SurfaceGradient.Steepest;
+        if (bands.Count + (handsOver ? 1 : 0) < 2) return DefaultCliffAngle;
+
+        int at = 0, start = 0;
+        foreach (var band in bands)
+        {
+            start = at;
+            at += Math.Max(1, band.Thickness);
+            if (at > SurfaceGradient.Steepest) return start;
+        }
+        // Nothing spans the steepest ground: under Repeat the last band carries on into it, under HandOver
+        // whatever the stack sits over takes it from where the bands run out.
+        return ending == BandEnding.Repeat ? start : at;
+    }
+
+    /// <summary>The outermost slope-axis stack in a material tree, or null where nothing grades by angle.</summary>
+    private static LayeredMaterial? Graded(TerrainMaterial? material) => material switch
+    {
+        LayeredMaterial { Axis: BandAxis.Slope } graded => graded,
+        LayeredMaterial layered =>
+            (layered.Stack?.Bands ?? []).Select(band => Graded(band.Material)).FirstOrDefault(found => found is not null)
+            ?? Graded(layered.Beyond),
+        TeamTintedMaterial tinted => Graded(tinted.Neutral),
+        VoronoiMaterial voronoi => (voronoi.Bands ?? []).Select(band => Graded(band.Material)).FirstOrDefault(found => found is not null),
+        CellMaterial cell => (cell.Palette ?? []).Select(Graded).FirstOrDefault(found => found is not null),
+        NoiseMaterial noise => (noise.Stops ?? []).Select(Graded).FirstOrDefault(found => found is not null),
+        TurbulenceMaterial turbulence => (turbulence.Stops ?? []).Select(Graded).FirstOrDefault(found => found is not null),
+        ElectricMaterial electric => (electric.Stops ?? []).Select(Graded).FirstOrDefault(found => found is not null),
+        CheckerMaterial checker => Graded(checker.Even) ?? Graded(checker.Odd),
+        _ => null,
+    };
+
+    /// <summary>What ground grading by nothing is taken to call a cliff, in degrees from level. The median of
+    /// the 34 authored themes that do state it, which run 18° to 45°; the other 191 say nothing and this is
+    /// what they are read at.</summary>
+    public const int DefaultCliffAngle = 30;
+
+    /// <summary>Whether this material paints the owning team's colour anywhere in it — a
+    /// <see cref="TeamTintedMaterial"/> at any depth of the tree, including inside the neutral a shallower one
+    /// names. What makes a theme's ground say whose land it is, and therefore what makes the ownership it
+    /// reads worth checking (<c>PT5</c>).</summary>
+    public static bool TintsByTeam(TerrainMaterial? material) => material switch
+    {
+        TeamTintedMaterial => true,
+        LayeredMaterial layered => (layered.Stack?.Bands ?? []).Any(band => TintsByTeam(band.Material))
+                                   || TintsByTeam(layered.Beyond),
+        VoronoiMaterial voronoi => (voronoi.Bands ?? []).Any(band => TintsByTeam(band.Material)),
+        CellMaterial cell => (cell.Palette ?? []).Any(TintsByTeam),
+        NoiseMaterial noise => (noise.Stops ?? []).Any(TintsByTeam),
+        TurbulenceMaterial turbulence => (turbulence.Stops ?? []).Any(TintsByTeam),
+        ElectricMaterial electric => (electric.Stops ?? []).Any(TintsByTeam),
+        CheckerMaterial checker => TintsByTeam(checker.Even) || TintsByTeam(checker.Odd),
+        _ => false,
+    };
+
+    /// <summary>Whether any bucket this theme actually paints tints by team. A bucket its own toggle turns
+    /// off writes nothing, so it states no colour; the fill has no toggle and always claims what the rest
+    /// left.</summary>
+    public static bool TintsByTeam(TerrainTheme theme) =>
+        (theme.Rim.Enabled && TintsByTeam(theme.Rim.Material))
+        || (theme.Surface.Enabled && TintsByTeam(theme.Surface.Material))
+        || (theme.WallEnabled && TintsByTeam(theme.Wall))
+        || TintsByTeam(theme.Fill);
 }
 
 /// <summary> A <see cref="BandStack"/> read along a distance — grass over two dirt, a wall's banded riser (TP11),

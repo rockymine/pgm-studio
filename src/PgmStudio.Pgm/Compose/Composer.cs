@@ -12,13 +12,13 @@ public sealed record ComposedStages(
 /// <summary>
 /// Composes a full <see cref="PlanModel"/> from nothing but a player count and team shape, through the
 /// partition-first box pipeline: derive the board envelope (<see cref="Envelope"/>), fix the crossing
-/// arithmetic (<see cref="MidCarver.BandOnly"/>), allocate the team unit's box partition under the front
+/// arithmetic (<see cref="MidCarver.Crossing"/>), allocate the team unit's box partition under the front
 /// guard (<see cref="TeamUnitAllocator"/>), fill it hub-first into labeled pieces + rooms
 /// (<see cref="TeamUnitFiller"/>), carve the mid band (<see cref="MidCarver.TryCarve"/>), and assemble the
-/// plan. The mid is one plain build band spanning the axis (uniform 20-block gap, no stones, no centre
-/// island), docked <b>flush</b> against the unit's front faces — a flat front edge takes the build zone
-/// straight against it — so the fanned board is two units connected by the band alone; richer mids (stones,
-/// centre islands, the split band) layer back in on this path. Every attempt's assembled plan must pass the
+/// plan. The mid is one build band spanning the axis, docked <b>flush</b> against the unit's front faces — a
+/// flat front edge takes the build zone straight against it — carrying a row of shared stones astride the
+/// axis where the front hull affords them, so the fanned board is two units connected by the crossing and
+/// the ground in it. Every attempt's assembled plan must pass the
 /// <see cref="LayoutEvaluator"/> hard-terms gate — no structural errors, no WL2/PC-C/G2 lint, every void hop
 /// in G5's band, the mid band clear of every wool by two cells (BZ6), and no closure hole ringed by a wool
 /// plateau (WL8) — or the whole attempt is resampled (an optional <see cref="IComposeRejectSink"/> captures
@@ -49,13 +49,22 @@ public static class Composer
     {
         var rng = new ComposeRng(request.Seed);
         var envelope = Envelope.Derive(request, rng);
-        // whether this board wants a split mid, decided once for the board. Only drawn where the symmetry could
+        // what this board's middle is, decided once for it and before allocation, because the allocator takes
+        // the crossing's half-gap as its axis margin. The split draw is only made where the symmetry could
         // carry one, so a mirror board's sequence is untouched; the carve still grants it only if the face it
-        // ends up with can host it, and a face that can is equally valid crossed by a single band.
-        var crossing = MidCarver.BandOnly(envelope) with
-        {
-            SplitBand = MidCarver.LateralFlip(envelope.Symmetry) && rng.NextBool(MidCarver.SplitBandChance),
-        };
+        // ends up with can host it, and a face that can is equally valid crossed by a single band. The rank
+        // draw is only made where the crossing's share can pay for two, so a band that cannot is untouched
+        // as well.
+        var splitBand = MidCarver.LateralFlip(envelope.Symmetry) && rng.NextBool(MidCarver.SplitBandChance);
+        // both row draws are made whenever a band could carry stones at all, so the sequence does not depend
+        // on how they combine. A keyed row under a laterally flipping image needs the pair — its stones'
+        // images land on the enemy's own faces, which only a second rank keeps clear of them — so asking to
+        // key is also asking for two ranks wherever the share can pay for them.
+        var fine = !splitBand && rng.NextBool(MidCarver.FineRowChance);
+        var wantsPair = !splitBand && rng.NextBool(MidCarver.DoubleRankChance);
+        var doubleRank = MidCarver.AffordsTwoRanks(envelope)
+                         && (wantsPair || (fine && MidCarver.LateralFlip(envelope.Symmetry)));
+        var crossing = MidCarver.Crossing(envelope, splitBand, doubleRank, fine);
 
         for (var attempt = 0; attempt < ComposeAttempts; attempt++)
         {
@@ -69,6 +78,21 @@ public static class Composer
             // was thrown away. Centring the unit on its face is what that guard was reaching for, so it now has
             // nothing left to catch — the residual offset is half a cell at most. The rule still binds authored
             // plans, which may draw a front anywhere; it is read back there (BZ9).
+
+            // the spend gate: what the unit actually built, against the band's budget. The allocator aims in box
+            // footprints, which is all it has before a fill exists, and a holed body's land is a fifth less than
+            // its footprint — so the contract is read here, off the pieces, and an attempt that left land
+            // unplaced or overran the band is resampled rather than shipped.
+            var built = LandCells(filled.Unit);
+            if (built < envelope.UnitBudgetCells * UnitTuning.SpendFloor
+                || built > envelope.UnitBudgetCells * UnitTuning.SpendCeiling)
+            {
+                rejects?.Reject(new RejectRecord(
+                    request.Seed, request.PlayersPerTeam, request.Teams, request.Symmetry, attempt, "spend",
+                    "spend", "G8", [$"built {built:F0} of {envelope.UnitBudgetCells:F0} cells"]));
+                continue;
+            }
+
             var mid = MidCarver.TryCarve(envelope, crossing, filled.Unit);
             if (mid is null) continue;
 
@@ -86,6 +110,19 @@ public static class Composer
         throw new ComposeException(
             $"composition could not assemble an acceptable plan within {ComposeAttempts} attempts " +
             $"(players {request.PlayersPerTeam}, teams {request.Teams}, symmetry '{request.Symmetry}', seed {request.Seed})");
+    }
+
+    /// <summary>The land a grown unit holds, in cells — the distinct cells its pieces cover, so two pieces
+    /// meeting on a shared run count the overlap once. This is the currency the band's budget is stated in and
+    /// the one the corpus was measured in: ground a player stands on, not the boxes it was seated in.</summary>
+    public static int LandCells(GrownUnit unit)
+    {
+        var cells = new HashSet<(int X, int Z)>();
+        foreach (var piece in unit.Pieces)
+            for (var x = piece.Rect.X; x < piece.Rect.X + piece.Rect.Width; x++)
+                for (var z = piece.Rect.Z; z < piece.Rect.Z + piece.Rect.Height; z++)
+                    cells.Add((x, z));
+        return cells.Count;
     }
 
     /// <summary>
@@ -163,11 +200,11 @@ public static class Composer
     // The emitters work in cells; a placement states blocks, so the conversion happens here, at the one
     // boundary where an emitted point becomes a stored offset.
     //
-    // A marker must land on the block lattice with one parity on both axes (WX3), which RoomFrames.SameParity
+    // A marker must land on the block lattice with one parity on both axes (WX3), which SpawnPad.SameParity
     // is the one statement of.
     internal static double[] MarkerOffset(double[] atCells, int cell)
     {
-        var (x, z) = RoomFrames.SameParity(atCells[0] * cell, atCells[1] * cell);
+        var (x, z) = SpawnPad.SameParity(atCells[0] * cell, atCells[1] * cell);
         return [x, z];
     }
 }

@@ -292,4 +292,29 @@ public static class SketchRules
     /// <remarks>Take one off. `theme` is for ground, whose top, face and body are three different materials chosen per column; `material` is for a thing that is made of something, painted over its whole span.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string PaintStatedTwice = "SK24";
+
+    /// <summary>One landform painted a theme per step. A plan component spanning several surfaces compiles to
+    /// one shape per surface — a stepped island becomes stacked plateaus, each addressable by its own id — and
+    /// a theme scoped per plateau paints one hillside as two or three grounds with a hard line at every riser.
+    /// A theme is a <b>place</b>: the ground a board changes character at is where a player crosses from one
+    /// part of the map to another, not where the plan happened to step.</summary>
+    /// <remarks>Paint the component's plateaus with one theme, and say what changes between them with the theme's own bands — a `slope` stack tells a riser from a tread by its angle, a `height` stack cuts at the surfaces the steps already sit at. Where the steps really are two places, the answer is two components in the plan rather than two themes on one.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain, RuleConcern.Theme)]
+    public const string PlateausPaintedApart = "SK27";
+
+    /// <summary>A group that declines the fan while standing wholly inside one orbit image. The orbit is
+    /// fanned per group, so a group stating <c>mirrors: false</c> is built once, where it was drawn — which
+    /// is right for a landmark on the symmetry centre, because such a thing is already its own image, and
+    /// wrong for anything a team owns. A curtain wall, a gatehouse or an undercroft drawn on one team's
+    /// ground and not mirrored is that team's alone: on a half-turn board one side has it and the other does
+    /// not, and on a quarter-turn board three of the four teams have nothing there.
+    ///
+    /// <para>Asked of the footprint rather than the flag, because the flag on its own is not a fault. A
+    /// group whose own bounds meet any of their orbit images straddles the centre and may well be its own
+    /// image, so it is left alone; one whose bounds are disjoint from every image cannot be, and is the
+    /// case this names. Nothing else reports it — the store answers 200, the export gate opens, and the
+    /// mirror check reads spawns, wool rooms and build zones rather than made geometry.</para></summary>
+    /// <remarks>Set `mirrors` true on the group, which is what a structure standing on one team's ground wants. Keep it false only where the thing really is its own image — centred on the symmetry centre, or on the mirror line — and then make its own shapes symmetric too, or the two teams meet it propped at different spacings. `GET /api/map/{slug}/column` is what confirms either way, at the reflected block: the image of block `z` is `−z−1`, so probing `−z` lands one block off and reports a difference on a board that is exactly symmetric.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
+    public const string BuiltOnOneImage = "SK28";
 }

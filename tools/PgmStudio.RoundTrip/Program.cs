@@ -1727,6 +1727,16 @@ static Dictionary<string, object?> Semantic(PgmStudio.Domain.MapXml m) => new()
     ["filters"] = m.Filters.Keys.Where(k => !k.Contains("__")).OrderBy(x => x, StringComparer.Ordinal).ToList<object?>(),
     ["applies"] = (long)m.ApplyRules.Count,
     ["spawns"] = (long)m.Spawns.Count,
+    // A shop's id with the shape of the menu under it, and each keeper's shop with where it stands. Counts
+    // rather than contents, like the rest of this summary: what check #1 already proves is that every field
+    // survives the JSON codec, and what this adds is that the XML writer does not lose a category, an icon
+    // or a keeper on the way out.
+    ["shops"] = m.Shops
+        .Select(s => $"{s.Id}/{s.Categories.Count}/{s.Categories.Sum(c => c.Icons.Count)}")
+        .OrderBy(x => x, StringComparer.Ordinal).ToList<object?>(),
+    ["shopkeepers"] = m.Shopkeepers
+        .Select(k => $"{k.ShopId}@{(k.Location is { } at ? $"{at.X},{at.Y},{at.Z}" : k.RegionId)}")
+        .OrderBy(x => x, StringComparer.Ordinal).ToList<object?>(),
 };
 
 readonly record struct SuggestEval(

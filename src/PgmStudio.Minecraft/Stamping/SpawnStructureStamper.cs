@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Houses;
 
@@ -40,7 +41,7 @@ public sealed record SpawnStructure
 }
 
 /// <summary>What one spawn structure placed: where the team comes in, and every monument it carries.</summary>
-public sealed record PlacedSpawn(PlacedPlayerSpawn Point, IReadOnlyList<PlacedMonument> Monuments);
+public sealed record PlacedSpawn(PlacedPad Point, IReadOnlyList<PlacedMonument> Monuments);
 
 /// <summary>Stamps a <see cref="SpawnStructure"/> (docs/world-export/sketch-world-export.md §2–3).</summary>
 public static class SpawnStructureStamper
@@ -59,7 +60,7 @@ public static class SpawnStructureStamper
                 shell with { Doorway = shell.Doorway with { Door = DoorMaterial.Air } }, room.TeamColor);
 
         // After the shell, so the pad is the floor the spawn point sits on rather than whatever a style laid.
-        var point = PlayerSpawnStamper.Place(world, frame.Pad, room.FloorY, room.TeamColor);
+        var point = PadStamp.Lay(world, frame.Pad, room.FloorY, Blocks.Wool, room.TeamColor);
 
         var slots = frame.Doors.Count > 0 ? RoomFrames.MonumentSlots(frame, frame.Doors[0]) : [];
         var monuments = new List<PlacedMonument>();

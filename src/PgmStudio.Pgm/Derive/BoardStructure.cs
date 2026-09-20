@@ -1,8 +1,11 @@
+using PgmStudio.Pgm.Shapes;
+
 namespace PgmStudio.Pgm.Derive;
 
 /// <summary>The structure a plan's fanned board implies — the raster-layer derivation: islands + anchor
 /// roles, stepping-stone kinds, build-zone kinds/widths/interfaces, per-wool approaches + lane shapes, the
-/// frontline/intra/self edges, frontline runs (per-team faces), wool-lane cells, the mid form, and enclosed
+/// frontline/intra/self edges, frontline runs (per-team faces), wool-lane cells, the mid form, the negative
+/// spaces the pieces leave between them (each with the pieces walling it and its narrowest crossing), and enclosed
 /// voids classified by boundary. Computed by <see cref="BoardDeriver.Derive"/>; consumed by the deriver gallery,
 /// the evaluator, and the conformance sweep. All cell coordinates (×Cell = blocks).</summary>
 public sealed record BoardStructure(
@@ -24,4 +27,5 @@ public sealed record BoardStructure(
     HashSet<(int, int)> LaneCells,
     List<(int X1, int Z1, int X2, int Z2)> RedstoneEdges,
     List<(HashSet<(int, int)> Cells, bool Declared, string Class, int CrossRoutes)> Voids,
-    List<(int Team, int Width, string Profile, int X1, int Z1, int X2, int Z2)> FrontlineRuns);
+    List<(int Team, int Width, string Profile, int X1, int Z1, int X2, int Z2)> FrontlineRuns,
+    IReadOnlyList<NegativeSpace> Spaces);

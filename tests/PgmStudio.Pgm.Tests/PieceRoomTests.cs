@@ -52,7 +52,7 @@ public sealed class PieceRoomTests
         {
             var piece = new BlockRect(0, 0, w, d);
             if (PieceRoom.ForPiece(piece, role, Doors("front"), "front") is not { } seed) continue;
-            await Assert.That(RoomFrames.MixedParity(seed.At[0], seed.At[1])).IsFalse();
+            await Assert.That(SpawnPad.MixedParity(seed.At[0], seed.At[1])).IsFalse();
         }
     }
 

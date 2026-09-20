@@ -143,7 +143,7 @@ public sealed class IncludeLibraryTests
         // The unread-objective gate stops a goal being lost in silence on round-trip. A module arriving from a
         // fragment is not at risk of that — the export re-emits the reference — so gating after the splice
         // would reject maps that parse and re-export perfectly.
-        Fragment("bridge", "<score><limit>10</limit></score>");
+        Fragment("bridge", """<payloads><payload id="cart" location="0,0,0" radius="4"/></payloads>""");
         var map = ParseResolved("""<include id="bridge"/><regions/>""");
 
         await Assert.That(map.ResolvedIncludes).Contains("bridge");

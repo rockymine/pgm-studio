@@ -4,25 +4,6 @@ using PgmStudio.Minecraft.Painting;
 
 namespace PgmStudio.Minecraft.Dressing;
 
-/// <summary>
-/// Whether a prop changes how the map <em>plays</em> or only how it looks — the one distinction the whole
-/// dressing stage is arbitrated by (docs/world-export/ideas.md G162).
-///
-/// <para>A boulder is cover, a tree breaks a sightline, tall grass hides a footstep: place one of those on a
-/// map and not on its mirror and you have decided a fight. So <see cref="Gameplay"/> props are generated on
-/// the authored unit and re-fanned across the symmetry orbit, exactly as the layout itself is. A flower bed
-/// decides nothing, and mirroring it would make two halves of a map read as eerily identical, so
-/// <see cref="Cosmetic"/> props scatter freely — reproducibly, since the field is a hash of the cell, but not
-/// symmetrically.</para>
-/// </summary>
-public enum PropClass
-{
-    /// <summary>Decides nothing; free to scatter unmirrored.</summary>
-    Cosmetic,
-    /// <summary>Cover, collision or vision; must exist for every team or none.</summary>
-    Gameplay,
-}
-
 /// <summary>The ground cover a flora overlay scatters, and how thickly. Everything about it is a noise field
 /// evaluated per cell, so it adds no state and re-exports identically.</summary>
 /// <param name="Coverage">0–1; how much of the eligible ground carries anything at all.</param>
@@ -34,7 +15,7 @@ public enum PropClass
 /// <em>fields</em> rather than confetti, which is why they have a field of their own.</param>
 /// <param name="FlowerScale">The flower field's feature size — how big a patch of one colour gets.</param>
 /// <param name="TallShare">0–1; how much of the plain cover is tall (two-block) grass, which is the part of
-/// the overlay that hides a player and so classes as gameplay.</param>
+/// the overlay that hides a player and so stays off a goal's own ground.</param>
 public sealed record FloraSpec(
     double Coverage = 0.45,
     int Scale = 12,
@@ -261,7 +242,22 @@ public sealed record BoulderStyle : PropStyle
     /// <summary>What the rock is cut from — a full terrain material, resolved in the boulder's <em>own</em>
     /// frame rather than the map's, so a mottled rock carries the same mottling to every image of its orbit
     /// instead of sampling whatever the world pattern happens to say where each image landed.</summary>
-    public TerrainMaterial Rock { get; init; } = new SolidMaterial(Palette.Blocks.Stone);
+    public TerrainMaterial Rock { get; init; } = DefaultRock;
+
+    /// <summary>The rock a placement naming no recipe is cut from: stone, cobblestone and andesite in shards
+    /// a few blocks across, stone taking half of them. Two tone families — grey stone and cobble — so it
+    /// reads against sand, grass, dirt, red sand and any single clay, which is what keeps a rock a rock
+    /// (<see cref="DressingRules.RockInTheGroundsTone"/>). Fixed rather than seeded per prop, so every
+    /// boulder on a board is cut from the same rock and the mottling lines up across an orbit.</summary>
+    public static readonly TerrainMaterial DefaultRock = new CellMaterial(
+        Seed: 53, CellSize: 4, Jitter: 2, Warp: 3,
+        Palette:
+        [
+            new SolidMaterial(Palette.Blocks.Stone),
+            new SolidMaterial(Palette.Blocks.Cobblestone),
+            new SolidMaterial(Palette.Blocks.Stone, 5),
+            new SolidMaterial(Palette.Blocks.Stone),
+        ]);
 
     /// <summary>Whether moss creeps onto the sky-lit faces — the rock's own micro-flora, laid over whatever
     /// <see cref="Rock"/> resolved.</summary>

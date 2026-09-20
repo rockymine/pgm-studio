@@ -58,6 +58,15 @@ public sealed class ContactGraph
     /// land or a narrow seam. Corner (point) and disjoint contacts do not connect.</summary>
     public static bool IsLandInterface(ContactKind kind) => kind is ContactKind.Land or ContactKind.Narrow;
 
+    /// <summary>Whether two pieces meeting this way are <b>one walkable landmass</b>: any positive shared
+    /// border, or an overlap the two agree the height of. Two pieces claiming the same ground at different
+    /// heights have no coherent surface — <c>PL4</c> refuses such a plan — so that overlap joins nothing.
+    ///
+    /// <para>Every reader of piece adjacency asks this, <see cref="FannedGraph"/> included, so a board cannot
+    /// answer one way to the component read and another to the reachability one.</para></summary>
+    public static bool Connects(ContactKind kind, int surfaceDelta) =>
+        IsLandInterface(kind) || (kind == ContactKind.Overlap && surfaceDelta == 0);
+
     public PlanModel Plan { get; }
     public int Cell { get; }
     public string Mode { get; }
@@ -141,20 +150,26 @@ public sealed class ContactGraph
         return list;
     }
 
+    /// <summary>How two rects meet, by geometry alone: the kind and the shared border length, which is 0 for
+    /// an overlap, a corner and a gap alike. Whether that meeting <em>connects</em> is <see cref="Connects"/>,
+    /// because it takes the surfaces as well and a rect does not carry one.</summary>
+    public static (ContactKind Kind, int BorderLength) Meeting(BlockRect a, BlockRect b)
+    {
+        int ix = Math.Min(a.MaxX, b.MaxX) - Math.Max(a.MinX, b.MinX);   // x overlap (blocks)
+        int iz = Math.Min(a.MaxZ, b.MaxZ) - Math.Max(a.MinZ, b.MinZ);   // z overlap
+
+        if (ix > 0 && iz > 0)       return (ContactKind.Overlap, 0);
+        if (ix < 0 || iz < 0)       return (ContactKind.None, 0);       // disjoint (a gap)
+        if (ix == 0 && iz == 0)     return (ContactKind.Corner, 0);
+        int border = ix == 0 ? iz : ix;                                 // touch along one axis
+        return (border >= CorridorMin ? ContactKind.Land : ContactKind.Narrow, border);
+    }
+
     /// <summary>Classify how two pieces meet (see <see cref="ContactKind"/>).</summary>
     public static Contact Classify(DerivedPiece a, DerivedPiece b)
     {
-        var (ra, rb) = (a.Rect, b.Rect);
-        int ix = Math.Min(ra.MaxX, rb.MaxX) - Math.Max(ra.MinX, rb.MinX);   // x overlap (blocks)
-        int iz = Math.Min(ra.MaxZ, rb.MaxZ) - Math.Max(ra.MinZ, rb.MinZ);   // z overlap
-        int delta = b.Surface - a.Surface;
-
-        if (ix > 0 && iz > 0)       return new Contact(a.Id, b.Id, ContactKind.Overlap, 0, delta);
-        if (ix < 0 || iz < 0)       return new Contact(a.Id, b.Id, ContactKind.None, 0, 0);   // disjoint (a gap)
-        if (ix == 0 && iz == 0)     return new Contact(a.Id, b.Id, ContactKind.Corner, 0, delta);
-        int border = ix == 0 ? iz : ix;                                    // touch along one axis
-        var kind = border >= CorridorMin ? ContactKind.Land : ContactKind.Narrow;   // any positive border connects
-        return new Contact(a.Id, b.Id, kind, border, delta);
+        var (kind, border) = Meeting(a.Rect, b.Rect);
+        return new Contact(a.Id, b.Id, kind, border, kind == ContactKind.None ? 0 : b.Surface - a.Surface);
     }
 
     // ── frontline + gap links (over build zones) ────────────────────────────────────────────────────────
@@ -176,9 +191,9 @@ public sealed class ContactGraph
     // across a chain of merged zones. Two pieces gap-link only across DIFFERENT land components (walkably
     // connected pieces need no void crossing) and only when a STRAIGHT nearest-edge span between them lies
     // inside the region's rectilinear area (union of the merged rects, minus holes) and crosses no third
-    // piece's interior. The straight-span rule keeps hop distance well-defined and the overlay drawable; the
-    // FannedGraph reachability split off of this (FannedGraph.Build) is looser — it connects any two pieces the
-    // region touches without a straight-span test, since a player routes through the region interior freely.
+    // piece's interior. The straight-span rule keeps hop distance well-defined and the overlay drawable, and
+    // FannedGraph.Build's gap links are looser than it — they connect any two pieces the region touches with
+    // no straight-span test, since a player routes through the region interior freely.
     private static List<GapLink> ComputeGapLinks(
         IReadOnlyList<BuildRegion> regions, IReadOnlyList<DerivedPiece> pieces, IReadOnlyList<IReadOnlyList<string>> components)
     {
@@ -498,7 +513,7 @@ public sealed class ContactGraph
         void Union(string a, string b) { parent[Find(a)] = Find(b); }
 
         foreach (var c in contacts)
-            if (IsLandInterface(c.Kind) || (c.Kind == ContactKind.Overlap && c.SurfaceDelta == 0))
+            if (Connects(c.Kind, c.SurfaceDelta))
                 Union(c.A, c.B);
 
         var order = new List<string>();
