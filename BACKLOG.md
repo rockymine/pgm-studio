@@ -647,7 +647,9 @@ and what a `subtract` takes away.
   `WorldWalk.Level` from, while `column`, `transect` and the census all answer that the column has no
   ground. Both answers cannot be right, and which one is wanted is the author's call — a player *can*
   stand on leaves, and a route that climbs a tree to get somewhere still makes `worstStep` an answer about
-  the canopy rather than about the board. **Blocking question: may a walk stand on a prop at all, or is a
+  the canopy rather than about the board. A crown over the void is not itself irregular: `template.xml`'s
+  `block-break-void-filter` allows breaking leaves and logs inside the void region, so the contract already
+  expects tree parts to hang past a board's edge (the author's ruling). **Blocking question: may a walk stand on a prop at all, or is a
   prop's own volume out of the walk the way a house's interior is?** The fix follows from the answer and
   not before it; `docs/world-scan/read-backs.md` §what a walk costs carries the walk's own account of a
   place.
