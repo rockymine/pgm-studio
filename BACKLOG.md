@@ -613,6 +613,50 @@ and what a `subtract` takes away.
   opposing half at `x -24..39, z -92..-21` (2363 cells) `no-build-zone`.
   `grep -o 'bridgeable [0-9]*' specs/*/renders/04-reach.txt` answers 0 on all 40 boards there.*
 
+- [ ] **WS69 — A stated bedrock wall is the walk's worst step, and a transect over the same two cells
+  disagrees.** A plan's `walls` entry stamps three bedrock courses and a cobweb cap across a wool-lane
+  interface (`PlanCompiler.BedrockCourses`), which is the feature and not an obstacle: bedrock cannot be
+  destroyed so a defender builds on it, and four courses is what an attacker bridges (author).
+  `WalkProfile.Events` words every rise from `Walk.StepWord` alone (`WalkProfile.cs:38`), so the climb onto
+  a wall reads `barrier` and sets `worstStep`, and a reader taking `worstStep` for the board's worst fault
+  condemns a wall the map states deliberately. The profile is the site: `Of` and `Events` take the path only
+  while the endpoint already holds `read.Built.Provenance` at the call (`WorldReadEndpoints.cs:904`) — pass
+  it, word a step landing on a `wall` claim as the wall it is, and keep it out of `WorstStep`.
+  `docs/world-scan/read-backs.md` §what a walk costs.
+
+  *Evidence: on `technique-composed-4-taken-over`, `walk?from=-14,60&to=-14,76` crosses with 3 blocks placed
+  and answers `worstStep 4` with `{"x":-14,"z":67,"rise":4,"word":"barrier"}`, while
+  `transect?points=-14,60;-14,76` over the same line reads the ground under the wall as 14→15, names both
+  stations `wall 0`, and answers `worst step 1: 0 barrier`.*
+
+- [ ] **WS70 — `walk?beside=` cannot name a wall, because its set is an allow-list documented as a
+  deny-list.** `WalkProfile.StandingKinds` lists nine kinds (`WalkProfile.cs:52`) under a docstring reading
+  "everything but the ambient cover (`flora`) and the paint (`stroke`)", and `StampId` documents thirteen —
+  so `wall`, `roomfloor` and `redstoneline` are absent from every `beside` answer without anyone having
+  decided they should be. A route that climbs a bedrock wall reports nothing beside it. Name the kinds a
+  player meets, `wall` first, and state the set as what it holds rather than as what it drops.
+  `docs/world-scan/read-backs.md` carries the query word.
+
+  *Evidence: `walk?from=-14,60&to=-14,76&beside=3` on `technique-composed-4-taken-over` answers `beside: []`
+  at every radius 1–3, while `transect` over the same line names `wall 0` at (−14, 67) and (−14, 68) — two
+  cells the route itself passes through.*
+
+- [ ] **WS71 — A bridge is levelled from a treetop, because a crown over void counts as a shore.**
+  `WorldWalk.Level` gives every cell of a build zone the height of the ground nearest it and takes its
+  shores from `floor`, which holds the lowest standing place of every column (`WorldWalk.cs:167`). A crown
+  leaning over a build zone is the only standing place in its column, so that cell enters `floor` at canopy
+  height and `Level` spreads the canopy height across the zone — a crossing a player makes at the rim reads
+  as a climb of seven to eleven blocks, and `worstStep` says so. Level a zone from the ground a player can
+  leave from: a column whose only standing place is a prop's is not a shore, and the provenance already
+  names it (`transect` prints `standing: tree` at exactly those cells). `docs/world-scan/read-backs.md`
+  §what a walk costs.
+
+  *Evidence: on `technique-composed-4-taken-over`, whose far lane is a declared build zone at
+  `x -32..-20, z 32..44`, `transect` along `z 43` reads `(-25, 43)`, `(-21, 43)` and `(-20, 43)` as
+  `ground 20, standing tree` over void. `walk?from=-29,45&to=-26,38` then answers `barrier +7` onto
+  `(-26, 38, 20)`, while `walk?from=-29,25&to=-26,34` into the same lane from the front bar answers
+  `worst step 0`, level at 9, 3 blocks placed.*
+
 - [ ] **WE124 — A room's stamp is a block out of place on its mirror image.** The frame a room is built out
   from is measured from the piece's own minimum corner, and `rot_180` maps one piece's minimum corner onto
   its image's maximum, so everything the stamp does not centre — the bay, the ridge, the storey posts —
