@@ -1174,6 +1174,24 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     white stained clay and 16 white wool, every block of it colour-affected. No other marker changes: a wool
     room's stays the wool's colour and a destroyable's or a core's stays its team's.
 
+42. **The build ceiling is the terrain's average, and nothing standing on it counts (2026-09-20).**
+    Author's call, amending 25. That amendment raised the cap for the buildings, so a two-storey spawn hall
+    lifted the sky over the whole board; the cap then tracked whatever the tallest thing an author placed
+    happened to be. `G6` asks for twenty blocks of clearance over the island surface and warns in the same
+    breath that a generous cap is the sky-layer smell, and a cap pinned to one roof — or to one peak — is how
+    a board gets one.
+
+    The rule is now: the cap is **twenty blocks over the mean top of the built terrain columns**. The measure
+    is the ground the match is played on, taken whole; nothing resting on it is in it — not a house, not a
+    tree, not a spawn hall or a wool cage, not a made thing, not an objective. A goal is still out for
+    amendment 25's reason: a cap derived from one could never be beneath it and `OB23` could never fire.
+
+    The measurement moves with the rule and moves earlier. It is `BuildCeiling.Surface` over
+    `BuiltTerrain.Ground`, read in `WorldBuilder` as soon as the terrain is laid rather than after the
+    dressing pass, because no building is in the answer any more; the goal markers still collect and stamp
+    once, since where a marker stands waits on the goal under it. On `opus5-mirkholt` the cap reads **35**
+    and the markers y40, against 51 and y56 before — the wood's floor averages 15 and its brow tops at 31.
+
 41. **`ST1`/`WX6`: a narrow seam is an entry (2026-09-19).** Wording correction, no change to what the rules
     require. Both read "land seam", which names a `ContactKind` as well as a class of interface, and
     `ContactGraph` had already settled which it meant: `IsLandInterface` answers `Land` **or** `Narrow`, and

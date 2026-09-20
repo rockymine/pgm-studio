@@ -2697,7 +2697,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   because a room stamped on a deck is a room. `subject=made` isolates them over the terrain they fly above,
   with nothing the dressing placed in the way. (WE62)
 - **A made thing is not the ground under it (WE61).** `BuiltTerrain.SurfaceTop` answers the highest thing
-  standing at a cell, which is the build ceiling's question and nobody else's: a balloon flying thirty
+  standing at a cell, which is nobody's question on a finished board: a balloon flying thirty
   blocks over a field was that field's elevation, so the dressing pass seated a tree at the envelope, the
   keep-out mask read every column beneath it as built and declined everything on it, and `WX11` reported a
   shed under it as standing on a fifty-block plinth. `BuiltTerrain.SurfaceExcept` answers the tops of
@@ -9635,8 +9635,8 @@ these are the ones that shipped a map that could not be played as intended, and 
   terrain — and nothing stated the other end, so one authored number put a goal wherever it was typed. The cap
   is the author's twelve, refused at the compile gate against the **stated** value, for a destroyable and a
   core alike. The derived half needs terrain a plan has not solved yet, so it is asked at the build against
-  the goal's own box (the same one the region declares, OB8): a structure topping out over
-  `BuildCeiling.Of(highestGround)` is a **complaint** carrying its own top course and the ceiling it passed —
+  the goal's own box (the same one the region declares, OB8): a structure topping out over the ceiling
+  `BuildCeiling` derives from the terrain is a **complaint** carrying its own top course and the line it passed —
   the blocks above the line can still be broken, so nothing is unwinnable; what is wrong is a goal contested
   from ground nobody may build up to reach. It takes both knobs to get there, which is the point of having
   both rules: at the most a goal may float, only a casing taller than the clearance leaves can cross the line.

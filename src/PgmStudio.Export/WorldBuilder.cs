@@ -135,12 +135,18 @@ public static class WorldBuilder
         var (woolStyle, spawnStyle) = shells;
 
         // ── The build ceiling, and the one altitude every goal marker hangs at ──────────────────────
-        // Both are the author's rule (BuildCeiling): twenty blocks over the highest thing the map builds and
-        // a player meets, and the markers five over that. **The answer is not known here.** The ceiling
-        // clears the buildings as well as the terrain, and the last of them is a house the dressing pass has
-        // not placed yet — so the markers are collected as they are decided and stamped once the world is
-        // finished, and the goals that top out over the ceiling are complained about at the same point.
-        // Every marker on a board hangs at one altitude, so collecting them costs nothing but the order.
+        // Both are the author's rule (BuildCeiling): twenty blocks over the terrain's mean surface, and the
+        // markers five over that. The terrain is laid, so the number is known here and written back onto the
+        // intent, which is what makes the <max-build-height> the XML declares and the altitude the markers
+        // are stamped at one number rather than two agreeing by habit. Where each marker stands is not known
+        // here — a marker hangs over a goal nothing has placed yet — so they are collected as they are
+        // decided and stamped once the world is finished, and the goals that top out over the ceiling are
+        // complained about at the same point.
+        var maxBuildHeight = Math.Min(BuildCeiling.Of(BuildCeiling.Surface(terrain.Ground.Values)),
+                                      VoxelWorld.MaxHeight - 1);
+        intent = intent with { Build = (intent.Build ?? new BuildIntent()) with { MaxHeight = maxBuildHeight } };
+        var markerFloor = Math.Clamp(
+            maxBuildHeight + BuildCeiling.MarkerOver, 0, VoxelWorld.MaxHeight - GoalMarkerStamper.Size);
         var pendingMarkers = new List<(int X, int Z, int Data, GoalMarkerShape Shape)>();
         var pendingCeiling = new List<(string Kind, string Name, StampId Owner, BlockBox Box)>();
 
@@ -431,17 +437,8 @@ public static class WorldBuilder
                 + "other. Raise or move the made thing, or move what it is standing in",
                 Severity.Complaint, Subjects: key.Unit.Length > 0 ? [key.Layer, key.Unit] : [key.Layer]));
 
-        // ── The build ceiling, now that everything a player meets is standing ───────────────────────
-        // Read here because here is the first place the answer exists: the terrain was laid at the top of
-        // this method, the rooms and the goals were stamped in the middle, and the last building on the
-        // board is a house the dressing pass has just placed. The number is written back onto the intent, so
-        // the <max-build-height> the XML declares and the altitude the markers are stamped at are one number
-        // rather than two agreeing by habit.
-        var maxBuildHeight = Math.Min(BuildCeiling.Of(HighestBuilt(world, groundTop, provenance, columns, madeLayers)),
-                                      VoxelWorld.MaxHeight - 1);
-        intent = intent with { Build = (intent.Build ?? new BuildIntent()) with { MaxHeight = maxBuildHeight } };
-        var markerFloor = Math.Clamp(
-            maxBuildHeight + BuildCeiling.MarkerOver, 0, VoxelWorld.MaxHeight - GoalMarkerStamper.Size);
+        // ── The sky signs, now that every goal is placed ────────────────────────────────────────────
+        // The altitude was decided with the terrain; what waited was where each marker stands.
         foreach (var (mx, mz, data, shape) in pendingMarkers)
             GoalMarkerStamper.Stamp(world, mx, mz, markerFloor, data, shape);
         resolvedPoints = StampControlPointMarkers(world, resolvedPoints, markerFloor);
@@ -517,46 +514,6 @@ public static class WorldBuilder
                               dressed, groundTop);
     }
 
-    /// <summary>The highest block the map built that a player meets — what the ceiling clears
-    /// (<see cref="BuildCeiling"/>). The terrain answers for itself: <paramref name="groundTop"/> is already
-    /// every column's top with the made things taken out. A building answers by its own column, which is why
-    /// the provenance is read rather than the world — a stamp is exactly the pass that claimed a column, so
-    /// the buildings are the <see cref="ProvenancePass.Structure"/> claims less the ones
-    /// <see cref="BuildCeiling.Floating"/> names.
-    ///
-    /// <para>A column is read top-down and a course inside a made thing is stepped over, because the two can
-    /// share one: a house standing under a balloon is claimed Structure and carries the envelope's blocks
-    /// over its own roof. Stepping over them finds the ridge, which is the building's answer and the one
-    /// wanted.</para></summary>
-    private static int HighestBuilt(
-        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> groundTop, WorldProvenance provenance,
-        IReadOnlyList<ColumnSegment> columns, IReadOnlySet<string> madeLayers)
-    {
-        var highest = groundTop.Count > 0 ? groundTop.Values.Max() : 0;
-
-        var made = new Dictionary<(int X, int Z), List<(int Floor, int Top)>>();
-        foreach (var segment in columns)
-        {
-            if (!madeLayers.Contains(segment.Layer)) continue;
-            if (!made.TryGetValue(segment.Cell, out var spans)) made[segment.Cell] = spans = [];
-            spans.Add((segment.YFloor, segment.YTop));
-        }
-
-        foreach (var (cell, pass, owner) in provenance.Claims)
-        {
-            if (pass != ProvenancePass.Structure) continue;
-            if (owner is { } stamp && BuildCeiling.Floating.Contains(stamp.Kind)) continue;
-            made.TryGetValue(cell, out var spans);
-            for (var y = VoxelWorld.MaxHeight - 1; y > highest; y--)
-            {
-                if (world.GetBlock(cell.X, y, cell.Z).Id == 0) continue;
-                if (spans is not null && spans.Any(span => y >= span.Floor && y < span.Top)) continue;
-                highest = y;
-                break;
-            }
-        }
-        return highest;
-    }
 
     /// <summary>Every made layer's spans, keyed by the layer and the cell — the floor and top the rasterizer
     /// laid each segment at. It is the made thing's own record rather than a read of the world, which matters

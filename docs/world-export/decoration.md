@@ -66,12 +66,11 @@ everything on the board that is not a made thing.
 
 **A made thing is not ground, and nothing that rests on the board treats it as one.** `BuiltTerrain.SurfaceTop`
 answers the highest thing standing at a cell, and by now that is nobody's question: this pass reads
-`BuiltTerrain.Ground`, the build ceiling reads the buildings and steps over the made things (`G6` amendment
-25), and every placement that *seats* — a room's floor, a goal's box and the buried plate beneath it, a wall,
+`BuiltTerrain.Ground`, the build ceiling reads `Ground` too and averages it (`G6` amendment 42), and every
+placement that *seats* — a room's floor, a goal's box and the buried plate beneath it, a wall,
 a build-region marker, the world spawn — reads `Ground` through `SurfaceFor`, whose fallback it is. That last
 one was the half left undone: a cloud drawn at y78 over a car park is the top of every column beneath it, so
-the goal there read the cloud and was stamped at **y83**, over a build ceiling of 68 that it had not itself
-raised. A balloon flying
+the goal there read the cloud and was stamped at **y83**, over a build ceiling it had not itself raised. A balloon flying
 thirty blocks over a field is that field's answer, so a tree stated on it would seat at the envelope and
 every column under it would read as built and take nothing at all. The ground beneath a floating thing is
 exactly the ground an author decorates, so the surface the pass reads leaves the prop layers out. The same

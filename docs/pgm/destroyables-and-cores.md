@@ -584,8 +584,8 @@ contains mostly air — a 3×3×3 region holding a 1×3×1 pillar is correct and
 reject most of the corpus.
 
 **OB23 — a goal standing over the height players may build to.** The build ceiling is twenty blocks over the
-highest block the map *actually builds* that a player meets — the terrain and the buildings on it, and
-deliberately not the goal itself, or this complaint could never fire (`BuildCeiling`). It is a number the
+*mean* top of the terrain the map builds — the ground alone, and deliberately nothing standing on it, the
+goal included, or this complaint could never fire (`BuildCeiling`). It is a number the
 plan does not have: it comes
 from the terrain the rasterizer produced, after the relief solve. So this is asked at the build rather than at
 the compile gate, against the goal's own bounding box — the same box the stamper used and the region declares

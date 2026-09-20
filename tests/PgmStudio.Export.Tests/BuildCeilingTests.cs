@@ -11,12 +11,10 @@ namespace PgmStudio.Export.Tests;
 /// <b>How high a player may build, and how far above that a goal marker hangs</b> — the author's rule, and
 /// the one measurement that makes it right.
 ///
-/// <para>The cap is twenty blocks over the highest thing the map builds that a player meets: the terrain,
-/// and the buildings standing on it. Every assertion here is about which of those words is in and which is
-/// out. Measuring the <em>built</em> ground rather than the plan's nominal surface is what stops a board
-/// coming out with a ceiling under its own terrain; clearing the roofs is what stops one coming out with a
-/// ceiling a player cannot build over the town in; and leaving out the made things and the objectives is
-/// what stops a balloon or a floating monument deciding it.</para>
+/// <para>The cap is twenty blocks over the <em>mean</em> top of the built terrain columns. Every assertion
+/// here is about what is in that measure and what is not: the ground the relief actually built is in, taken
+/// whole rather than at its highest point, and nothing standing on it is — not a cage, not a house, not a
+/// balloon, not a goal.</para>
 /// </summary>
 public sealed class BuildCeilingTests
 {
@@ -64,32 +62,44 @@ public sealed class BuildCeilingTests
 
     /// <summary>
     /// <b>The measurement, and the assertion this file exists for.</b> The map stamps wool cages, a spawn
-    /// cube and an observer platform on ground at y=1, and the cap clears the tallest of them. A cap read
-    /// off the terrain alone would sit under the roofs, which is a map a player cannot build over the town
-    /// in.
+    /// cube and an observer platform on ground at y=1, and the cap sits twenty over the ground rather than
+    /// over their roofs. A cap that climbed for every building would follow the tallest thing an author
+    /// happened to place.
     /// </summary>
     [Test]
-    public async Task The_cap_clears_the_buildings_standing_on_the_ground()
+    public async Task A_building_standing_on_the_ground_does_not_raise_the_cap()
     {
         var built = WorldBuilder.Build(Flat, Intent());
         var cap = built.ResolvedIntent.Build!.MaxHeight!.Value;
 
         // The fixture is only meaningful if something really does stand above the ground.
         await Assert.That(CageTop(built)).IsGreaterThan(1);
-        await Assert.That(cap).IsEqualTo(BuildCeiling.Of(CageTop(built)));
-        await Assert.That(cap).IsGreaterThan(BuildCeiling.Of(1));
+        await Assert.That(cap).IsEqualTo(BuildCeiling.Of(1));
     }
 
-    /// <summary>And where the terrain is the tallest thing, the cap follows the ground the relief actually
-    /// built rather than a number the plan asserted. The second plate sits thirty blocks up in a corner
-    /// nothing stands on — this is the case the old <c>surface + headroom</c> got wrong, where the ceiling
-    /// stayed at the nominal ground the relief solve had already left behind.</summary>
+    /// <summary>And where the terrain itself rises, the cap follows the ground's <em>average</em> rather
+    /// than its peak. The second plate stands thirty blocks up over a small corner of the board and its
+    /// rot_180 image over another, so the mean is a little over the plain: the cap clears the plain by more
+    /// than twenty and the plateau by far less, which is the shape asked for.</summary>
     [Test]
-    public async Task The_cap_follows_the_terrain_the_relief_actually_built()
+    public async Task The_cap_follows_the_terrain_average_rather_than_its_peak()
     {
         var built = WorldBuilder.Build(Stepped, Intent());
+        var cap = built.ResolvedIntent.Build!.MaxHeight!.Value;
 
-        await Assert.That(built.ResolvedIntent.Build!.MaxHeight).IsEqualTo(BuildCeiling.Of(31));
+        await Assert.That(cap).IsGreaterThan(BuildCeiling.Of(1));
+        await Assert.That(cap).IsLessThan(BuildCeiling.Of(31));
+    }
+
+    /// <summary>The mean is taken over the terrain columns and rounded to the nearest block, so a board of
+    /// one height answers that height and nothing standing on it moves the answer.</summary>
+    [Test]
+    public async Task The_surface_is_the_mean_of_the_terrain_columns()
+    {
+        await Assert.That(BuildCeiling.Surface([])).IsEqualTo(0);
+        await Assert.That(BuildCeiling.Surface([7, 7, 7])).IsEqualTo(7);
+        await Assert.That(BuildCeiling.Surface([1, 1, 1, 31])).IsEqualTo(9);    // 34 / 4 = 8.5, rounded up
+        await Assert.That(BuildCeiling.Surface([1, 31])).IsEqualTo(16);
     }
 
     /// <summary><b>A made thing does not decide it.</b> A balloon, a ship, a sculpture drawn out of layers is

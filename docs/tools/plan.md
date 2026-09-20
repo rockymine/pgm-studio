@@ -134,11 +134,11 @@ can.
 **The build ceiling is not a global, and that is the correction.** It was `headroom`, a slack added to
 `surface`, so the cap was computed from the plan's flat nominal world — a ground level the relief solve then
 abandons, which produced boards whose ceiling sat below their own terrain. The author's rule measures it where
-the answer exists: **twenty blocks over the highest block the world actually builds and a player meets**
-(`G6`, amendments 14 and 25) — the terrain and the buildings standing on it, never a made thing hung in the
-air and never an objective, which floats by design. It is derived in `WorldBuilder`, after the dressing pass
-because the last building on the board is a house that pass places, and written onto the intent as
-`MaxHeight`. A plan-level number would be a second source for one value, and the one that gets overwritten.
+the answer exists: **twenty blocks over the mean top of the built terrain columns** (`G6`, amendments 14, 25
+and 42) — the ground the match is played on, taken whole rather than at its highest point, with nothing
+standing on it in the measure: not a house, not a tree, not a made thing hung in the air, not an objective.
+It is derived in `WorldBuilder` as soon as the terrain is laid, and written onto the intent as `MaxHeight`.
+A plan-level number would be a second source for one value, and the one that gets overwritten.
 
 **A shape cannot put itself above that line, and this is the part an author has to know before drawing a
 tall one.** An erected shape is one of the columns the cap is measured over, so raising a wall of terrain
