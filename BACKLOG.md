@@ -54,7 +54,7 @@ them one rather than with the contract work that shipped them.
   **`WorldCanvas` and `world-bridge` stay**: the Configure tool's build-layer, core-casing and core-objective
   steps mount the same canvas, so what goes is the tool, not the surface it draws on. Take the route out of
   the smoke sweep's list and the nav rail with it, and grep `docs/` for the tool's own name in the same
-  commit — `capabilities.md` and `routing-and-ia.md` both describe it as a surface an author can open, and
+  commit — `routing-and-ia.md` describes it as a surface an author can open, and
   `docs/tools/edit.md` is the document that goes. `TE2` went with it: the tool's wool picker spelling the
   sixteen dyes a second way is a defect in a surface with no future, and `WoolColors` is already the one list
   every other reader takes.
@@ -325,6 +325,25 @@ height. That is exactly what a made thing needs, and none of it has to be invent
 
 ## The plan model: pieces, and the edges between them
 
+- [ ] **TN21 — a plan's `meta.authors` does not survive the compile.** `POST /api/plan/compile` answers an
+  intent whose `meta` is `{name, created: "", authors: [], contributors: []}` however the plan's own `meta`
+  was filled in, so a board driven plan-first exports with `EX6` — the observer platform's authors board
+  gets a heading and nothing under it — and the names have to be written onto the intent by hand afterwards.
+  `PlanCompiler` is where the intent's `meta` is built; carry `name`, `authors` and `contributors` across
+  from `PlanModel.Meta`. Evidence: `pgm-studio-mapgen`'s `techniques/walls-and-iron` plan states
+  `meta.authors: ["the technique cards"]` and the compiled intent comes back with `authors: []`; its
+  `compiled.txt` prints both.
+
+- [ ] **PG17 — `DC3`'s own text describes a verbatim write the export does not do.** The rule says a
+  material naming nothing the studio builds "writes into the map.xml verbatim while the blocks come out
+  obsidian, and a declared material matching nothing in its own region is a goal at zero health (`OB3`)".
+  Measured, both ends move together: a destroyable authored `materials: "diamond block"` builds three
+  obsidian and the export writes `materials="obsidian"`, so the `OB3` case the sentence warns of cannot
+  arise this way. Correct the rule's `means` to say the word is resolved rather than passed through, and
+  check `docs/pgm/destroyables-and-cores.md` for the same claim. Evidence:
+  `pgm-studio-mapgen/techniques/destroy-goals/mismatch.txt`, which posts it and reads the world and the
+  document back.
+
 - [ ] **G271 — A split band that is refused still carries no stone, so the crossing has neither an island
   nor a bay.** `MidCarver.TryCarve` returns `[]` whenever `design.SplitBand` is set, on the reading that the
   bay between the split's two legs is the island. But `SplitRun` grants the split only where the face admits
@@ -494,20 +513,6 @@ and what a `subtract` takes away.
   hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routing candidates through
   `/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
   no home on a map-backed plan.
-
-- [~] **RP23 — `docs/tools/capabilities.md` is 707 lines answering "what can I ask for", which the API now
-  answers itself.** The schema names every route, its body and its failure codes; `GET /api/rules` names
-  every refusal with its fix; `GET /map/{slug}/state` puts the allowed moves on the map's own response.
-  What prose is good at and this file is not organised around is the other half: **how to make a good map** —
-  what an objective needs around it, what the corpus does — as against **what the system can be asked for**.
-  Split it on that line: the capability half goes, the craft half moves to where its subject lives under
-  `docs/gameplay/`.
-
-  The mapgen half landed: `pgm-studio-mapgen`'s six root documents became two, and `AUTHORING-BRIEF.md`
-  points at the four self-describing reads instead of restating them. This entry is the studio's own side.
-
-  *Five authored boards never opened it. What they read instead was `relief.md`, `decoration.md`,
-  `terrain-painting.md` and the endpoint tables inside them — the split this entry proposes, observed.*
 
 - [ ] **C51 — Nineteen selects outside the authoring surface are still hand-rolled.** `Select` and
   `StyleSelect` serve the library and the terrain components (`B259`, `FEATURES.md`), and the sketch tool's

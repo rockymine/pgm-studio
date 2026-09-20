@@ -8054,7 +8054,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   also make a board legible: `ruediger.plan.json` compiles to `hub-t2-7` through `hub-t6-16`, which says two
   components at ten surfaces without opening the file. Behaviour-preserving across the corpus — `opus5-quatrefoil`,
   the fourteen-key board, re-drives to a byte-identical theme census, and `opus5-scarrow-delph` to its
-  committed three numbers. (`Pgm/Plan/PlanCompiler`, `docs/tools/plan.md`, `docs/tools/capabilities.md`)
+  committed three numbers. (`Pgm/Plan/PlanCompiler`, `docs/tools/plan.md`)
 - **A relief the merge replaces is named, not dropped (`SK1`).** `PUT .../sketch/from-plan` carries the
   stored relief onto fresh geometry, which is what the route is for — a compiled layout carries none, because
   a plan cannot express one. A caller that compiled, patched a relief onto the result and posted it lost that
@@ -9718,7 +9718,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   anything softer → iron) — the corpus norm for a fast raid, now stated as a generation choice rather than a
   legality check. `MiningTiers`'s docstring is corrected to say what its table actually encodes: the tier
   required to *drop* a material, not to break it. Every restatement of the false claim — `DestroyKitPairing`,
-  `MiningTiers`, `docs/pgm/destroyables-and-cores.md`, `docs/tools/capabilities.md`,
+  `MiningTiers`, `docs/pgm/destroyables-and-cores.md`,
   `docs/tools/configure.md`, `mapgen-review.md`'s `MG18` row, and this section's own `B81`/`B116` entries —
   is corrected in the same commit.
 - **A destroy or core board no longer claims to be a capture map (B131).** `MetaGenerator.Objective` used to
@@ -10485,7 +10485,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   question it was never built to answer. Rather than exempt a tool nobody opens, the tool goes: the library's
   own 3-D preview shows a piece better than walking to its plot does. **`IslandGrid` goes with it** — the
   script was its only caller, and an emitter nothing drives is a second way to state a board that no board is
-  stated by; `Pgm/Sketch/IslandGrid.cs`, `GridPlot`, `IslandGridTests` and `capabilities.md`'s grid section
+  stated by; `Pgm/Sketch/IslandGrid.cs`, `GridPlot` and `IslandGridTests`
   are removed, leaving `compose` and `plan` as the two ways. `POST /map/from-documents` is untouched and
   `pgm-studio-mapgen`'s `drive.py` is the worked example of authoring a map as two documents. `tools/` is
   seven file-based scripts, which is what `build-scripts.sh` builds.
@@ -10648,18 +10648,14 @@ these are the ones that shipped a map that could not be played as intended, and 
   correct for the corpus houses it was measured against; it simply no longer runs where a better answer is
   free. A region with no sidecar is unaffected: `ashen_quarry` still finds its 18 spruce/dark-oak house
   roofs, four of them full-cornered, exactly as before.
-- **The capability handbook — what the system can be asked for, and where to say it (B91).** `docs/tools/capabilities.md`
-  mapped the four documents a map is made of; it now also states the surface underneath the spec's shorthand, in
-  pipeline order, every claim naming the type that carries it and the endpoint that answers it: the destroyable's
-  material and the four words the stamper can actually build from, the defence wall and iron cube the composer
-  never asks for, a `TerrainTheme`'s five buckets against the spec's four words (nineteen tone families crossed
-  with six of fourteen pattern kinds), the relief's five constraint marks against the separately-composing push,
-  and a `HouseStyle`'s course bands, window styles, door head, beams and storey stack with `Footprint`'s wings.
-  Written for an agent that reads before it writes, which is the fault it answers: the tool reached for a random
-  answer wherever an author would have reached for a deliberate one, because the format it was written against
-  could only say one theme and a rim. Two claims were dropped for disagreeing with the code — a **core**'s
-  material is not a knob (no field on `CorePlacement`/`CoreIntent`; obsidian fixed by DC1), and a wing-carrying
-  `Footprint` is buildable but unreachable from a placed prop.
+- **The capability surface is the API, not a handbook (B91, RP23).** What the system can be asked for is
+  answered by the system: `/api/openapi/v1.json` names every route with its body and its failure codes,
+  `GET /api/rules` names every refusal with its fix, `GET /api/map/{slug}/state` names the moves one map has
+  open, and `GET /api/objectives/vocabulary` and `GET /api/terrain/patterns` name the closed sets an author
+  picks from. `docs/tools/capabilities.md` had answered the same question in 9,400 words of prose and is
+  retired; what only it held moved to the documents whose subjects they are — the document stack and its
+  addresses to `flow.md`, the build ceiling's consequence for a tall shape to `plan.md`, and the forty-nine
+  worked plans to `tools/seeds/README.md`.
 - **Map XML refresh** — `--refresh-xml` re-derives every map's entities via the editor write path
   (preserves world features/artifacts); recovered annealing_iv's missing region, which fixed the
   former stale-DB symptom. (D1, closed C10)

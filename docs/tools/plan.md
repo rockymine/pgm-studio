@@ -140,6 +140,21 @@ air and never an objective, which floats by design. It is derived in `WorldBuild
 because the last building on the board is a house that pass places, and written onto the intent as
 `MaxHeight`. A plan-level number would be a second source for one value, and the one that gets overwritten.
 
+**A shape cannot put itself above that line, and this is the part an author has to know before drawing a
+tall one.** An erected shape is one of the columns the cap is measured over, so raising a wall of terrain
+raises the ceiling that would have capped it — by the same twenty blocks, and for the whole board. Measured
+on `pgm-studio-mapgen`'s `alabaster-rake`: five pillars topping at y43 over ground topping at y14 wrote
+`<maxbuildheight>64</maxbuildheight>`, twenty-one blocks of clear air over the picket they were meant to
+stand above.
+
+So what a tall shape buys is real and narrower than "a wall nobody passes": ground whose top clears a climb
+cannot be climbed or walked through, and it holds the line its outline is drawn along, which costs an
+attacker the material and the visible time a bridge takes. It is not a barrier bridging cannot answer. A
+made layer raises nothing and is the difference between drawing a wall and hanging a sculpture.
+
+Whether erected terrain should be left out of the derivation — which would make an unbridgeable blocker
+possible — is a question about how a map plays, and belongs to the author.
+
 `surface` stays exactly as it was, per piece and global: it is load-bearing and correct as a plan-space
 concept, and it is still what the observer's default height is measured from.
 

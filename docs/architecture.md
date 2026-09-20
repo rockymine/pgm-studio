@@ -232,10 +232,10 @@ product statement rather than a gap: a stage is a progress marker, so the one-wa
 back up and not that a built map may never be re-planned.
 
 **What a map at a stage may be asked for is answered by the map**, on `GET /map/{slug}/state`: the stage,
-the artifacts it holds, and the moves those allow, each with the route that performs it. `capabilities.md` is
-709 lines answering the same question in prose, and `flow.md` states the four levels and the hand-offs
-between them well — but a driver reads the map rather than the markdown now, and what the markdown says is
-checked against the routes the moves name.
+the artifacts it holds, and the moves those allow, each with the route that performs it. `flow.md` states
+the four levels and the hand-offs between them, and `/api/openapi/v1.json` names every route with its body —
+but a driver reads the map rather than the markdown, and what the markdown says is checked against the routes
+the moves name.
 
 That was also what made the export gates expensive, and the fix there is the shape the lifecycle wants at
 scale: `OB17` is asked at the preview that already paid for the build, and `OB19` stopped being a gate at all
@@ -412,7 +412,7 @@ answer already and stopped one step short of the form that makes it machine-read
 | a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | a step of the pipeline reachable only through its own door, and the 37-fold load-or-404 prologue |
 | a fault category beside the fault id | a closed category set carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that had to learn 77 ids to branch once — **shipped**, as `category` and `concerns` on `/api/rules` |
 | a refusal envelope that is a standard | RFC 9457 Problem Details — `type` as a URI that dereferences to the rule, `title`, `status`, `detail`, findings as an extension | nothing here: **declined**, because the interoperability it buys needs a caller outside this deployment and there is none, while the dereference is already reachable from the `rule` a finding carries (`docs/design-decisions.md`) |
-| a lifecycle a caller can read | the stage, the artifacts and the moves they allow, on the map's own read — a marker rather than a lock, since nothing reading back up is not the same as nothing going back | **shipped** on `GET /map/{slug}/state`; `capabilities.md` had been the only answer to a runtime question |
+| a lifecycle a caller can read | the stage, the artifacts and the moves they allow, on the map's own read — a marker rather than a lock, since nothing reading back up is not the same as nothing going back | **shipped** on `GET /map/{slug}/state`, which is where a runtime question is answered |
 | a pre-flight for a late gate | run each gate at the earliest stage that has the facts, and report it as a complaint there | the build an agent paid to hear a refusal — **shipped**, for the two objective gates at their own steps and for every readable gate at once on `GET /map/{slug}/findings` |
 
 **They depend on each other in one order, and the first of them is in place.** The surface is described, so

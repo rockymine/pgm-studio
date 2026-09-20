@@ -210,6 +210,36 @@ instead of learning them from this document. Its pair is `GET /api/map/{slug}/fi
 wrong with the map right now from every gate the stored documents can reach, and names the gates it did not
 ask along with the route that does pay for them.
 
+### Where each document lives, and what it nests inside
+
+A map is a short stack of documents rather than one, each with a C# type that owns its shape and an address
+of its own. The four levels above are the stack's spine; these are the parts of the layout that are
+separately addressable.
+
+| Document | Type | Where it lives | Read · written at |
+|---|---|---|---|
+| plan | `PlanModel` | its own layer | `GET·PUT /map/{slug}/plan`, `POST /plan/compile`, the `/plans` store |
+| sketch layout | `SketchLayout` | its own layer, whole | `GET·PUT /map/{slug}/sketch` |
+| layers | `SketchLayer` | under the layout's `layers` | `GET /sketch/layers`, `GET·PUT·DELETE /sketch/layers/{layerId}` |
+| groups | `SketchGroup` | under a layer's `groups` | `GET /sketch/groups`, `PUT·DELETE /sketch/layers/{layerId}/groups/{groupId}` |
+| shapes | `SketchShape` | under a layer's `shapes` | `GET·POST /sketch/layers/{layerId}/shapes`, `GET·PATCH·DELETE /sketch/shapes/{shapeId}`, and `…/bend` and `…/vertices` on one |
+| relief | `SketchReliefJson` | under `relief`, **keyed by group id** | `GET·PUT·DELETE /sketch/relief/{groupId}` |
+| themes | `TerrainTheme` | under `themes`, which a shape names | `GET /sketch/themes`, `GET·PUT·DELETE /sketch/themes/{themeId}`, `PUT /sketch/map-theme`; library at `/themes` |
+| dressing | `DressingDoc` | under `dressing` | `GET·POST /sketch/props`, `PATCH·DELETE /sketch/props/{propId}` |
+| biome | `BiomeField` | under `biome` | `GET·PUT·DELETE /sketch/biome` |
+| room styles | `HouseStyle` | under `roomStyles` | `GET·PUT·DELETE /sketch/room-styles/{part}`, library at `/room-styles` |
+| intent | `MapIntent` | its own layer | `GET·PUT /map/{slug}/intent` |
+| map.xml | `MapXml` | written, never stored | `GET /map/{slug}/xml`; `MapParser` reads one back |
+
+**The relief rides beside the shapes rather than inside them.** It is keyed by group id because a plan
+recompile replaces every shape it produced, and a relief is hand work a plan cannot express.
+
+**A shape is addressed twice over.** It is created under the layer that holds it and edited by its own id
+alone, which is why a `PATCH` needs no layer and a `POST` does.
+
+**Two documents are the whole interface for a caller with no browser.** `POST /api/map/from-documents`
+takes `{slug, name, layout, intent}` and answers the map; `GET /api/map/{slug}/export` answers the world.
+
 ## What nothing owns
 
 Worth knowing before looking for a control that is not there.
@@ -275,10 +305,11 @@ once rather than one per round trip. `docs/refusals.md` has the envelope.
 | `library.md` | materials, themes, house parts and room styles — the fourteen material kinds |
 | `edit.md` | the inspector for maps that already exist |
 
-Two documents outside this folder carry the rest. `docs/generator/model.md` is the canonical model of layout
-generation and governs on any disagreement about it. `capabilities.md` beside this file is the capability
-reference — what the system can be asked for at each stage, in far more detail than a tool document goes into
-— and is the one to read when the question is *what could this look like* rather than *how do I drive it*.
+One document outside this folder carries the rest: `docs/generator/model.md` is the canonical model of
+layout generation and governs on any disagreement about it. What the system can be **asked** for is not a
+document at all — `/api/openapi/v1.json` names every route with its body and its failure codes,
+`GET /api/rules` names every refusal with its fix, and `GET /api/map/{slug}/state` names the moves one map
+has open.
 
 `docs/gameplay/approaches.md` answers the question neither of those can: what the ground around an objective
 does to a match, and therefore what a board should be composed *for*. It is kept separate because every claim

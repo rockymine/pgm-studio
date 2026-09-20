@@ -110,7 +110,7 @@ document rather than what a reader is looking for.
 
 | Folder | Holds |
 |---|---|
-| `tools/` | one document per studio tool, end to end — `flow.md` first, then `plan`, `sketch`, `configure`, `edit`, `generator`, `shapes`, `library`. Written from the code and usable as agent input, which is why each carries its endpoints. Beside them: `capabilities.md`, what the system can be *asked* for at each stage, and `mapgen-review.md`, the `MG` fault pool behind it. |
+| `tools/` | one document per studio tool, end to end — `flow.md` first, then `plan`, `sketch`, `configure`, `edit`, `generator`, `shapes`, `library`. Written from the code and usable as agent input, which is why each carries its endpoints. Beside them: `mapgen-review.md`, the `MG` fault pool behind it. **What the system can be *asked* for is not a document**: the schema at `/api/openapi/v1.json` names every route, `GET /api/rules` every refusal, `GET /api/map/{slug}/state` the moves one map has open. |
 | `generator/` | the layout-generation track — eight files, no others (below). |
 | `world-export/` | what the export **writes** into a world: `relief`, `terrain-painting`, `structures`, `decoration`, `tree-corpus`, `sketch-world-export`, `ideas`. |
 | `world-scan/` | what the studio **reads** out of a world — `read-backs.md` is every read of a built world, the pictures, their text twins and the numbers, over HTTP and at the CLI, and `answer-shapes.md` which of them a model can subtract from; beside it, what it reads out of a world it did *not* build: monument and objective suggestion, terrain ground truth, the block palette, the corpus studies behind them. |

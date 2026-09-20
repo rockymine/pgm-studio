@@ -26,7 +26,8 @@ their heights, the themes on each, the relief, the dressing, the objective and i
 exactly this way — described in prose and built from the description, down to "seven courses between spruce
 log posts that stand the full height, the bottom two cobble and andesite mixed" — and they work. Their
 docstrings are the briefs they came from. So the method is not a proposal; the gap is that it was applied to
-a building and never to a board. The surfaces exist — `capabilities.md` beside this file is the map of them — and
+a building and never to a board. The surfaces exist — the tool documents beside this file describe them and
+`/api/openapi/v1.json` names every route — and
 nothing above needs a capability that has not been built. What it needs is an author that knows the surfaces
 it is touching. An MCP head would make it a first-class loop with the validator and evaluator answering in
 rule ids, and nothing is building one, but the shortfall today is not the machinery.
@@ -288,8 +289,7 @@ the five kinds; a `MapIntent` fragment reaching whatever the plan it compiled fr
 also what a prose-described map needs: a description names intent — *a stepped plateau in coursed stone,
 natural ground falling away west* — and the author turns it into shapes, heights and themes through the
 document that already has the words for them, not through a spec that renamed a handful.
-`capabilities.md` beside this file is the reference `MapSpec` should have been written against from the
-start, and `tools/seeds/ruediger.layout.json` is a hand-drawn map that uses the layout format to its width —
+The layout and the intent are the reference `MapSpec` should have been written against from the start, and `tools/seeds/ruediger.layout.json` is a hand-drawn map that uses the layout format to its width —
 three themes chosen per shape, ten `base_height` tiers stepping the ground with no relief block at all,
 Bézier outlines, a subtract, and the defence walls of MG21 actually authored.
 
@@ -361,8 +361,7 @@ spec had no word for a shape at all — and now does: a subtract is a `layout` f
 way any other is.
 
 So the honest reading was never that the system could not say these things. **Everything in the brief was
-expressible**, and three of the six only one layer down, in documents `capabilities.md` maps and the studio's
-own tools author. What the run measured is narrower and more useful, and it outlives the fix: **a surface
+expressible**, and three of the six only one layer down, in the documents the studio's own tools author. What the run measured is narrower and more useful, and it outlives the fix: **a surface
 that exposes a reduction teaches the reduction as the boundary.** Handed a format whose vocabulary was one
 theme, a scatter and a rim, an author took the vocabulary for the system — reporting a wall where a paragraph
 of the README stood, and reporting the absence of a shape against the feature next to it. That was the cost

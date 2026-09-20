@@ -553,7 +553,7 @@ between radius 0.5 and 0.866 can fill no cell at all.
 
 ### 6.1 Read as a point, not a mass
 
-The category render (`TopDownRender`, §9 below and `docs/tools/capabilities.md`'s renderer section) paints
+The category render (`TopDownRender`, §9 below and `docs/world-scan/block-palette.md`) paints
 every leaf and log cell it finds, so a wood reads as one irregular violet mass whose internal structure means
 nothing: two crowns that touch become one blob, and the tree count — the measure that actually decides whether
 a board reads as wooded or as buried — cannot be read off it. A tree is authored as **one prop at one

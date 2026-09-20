@@ -268,9 +268,8 @@ landed, the rest is the idea.
   `attachments`, `woolExtend`, `entryShift`, `woolShift` and `attachmentOffset`, and `WoolBoxEmitter.Emit`
   passes all five through — but `WoolBoxEmitter.Fill`, the only path `BoxFiller` and therefore the whole
   compose pipeline uses, forwards none of them (`WoolBoxEmitter.cs`, the `ShapeEmitter.Emit` call inside
-  `Fill`). Their only callers in the tree are `tools/compose/box-gallery.cs` (the two-attachment and
-  moved-attachment donut cards). So the two-attachment donut, the extended-wool donut and both scythe
-  endpoint shifts are built, tested, drawn in the galleries, and **cannot appear on a generated board**.
+  `Fill`). Nothing in the tree calls them, so the two-attachment donut, the extended-wool donut and both
+  scythe endpoint shifts are built, tested, and **cannot appear on a generated board**.
   Decide per knob rather than in bulk: the donut's second attachment is a genuine multi-access shape the
   hub could dock twice and is the strongest candidate to plumb; the scythe shifts are moot until the
   scythe itself is admitted (G146). Plumbing one means widening `WoolFill` (it already carries
