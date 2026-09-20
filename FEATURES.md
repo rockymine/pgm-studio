@@ -3266,7 +3266,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   take the no-decay bit and lose the game's check bit, and a log's axis or a stair's facing turns with the body
   round the symmetry (`BlockGeometry.Turned`). The library row stores the body (`M0031`), the editor shows a
   copied recipe as its card and block count, and `tools/seed-trees.cs` files every tree standing in a world —
-  the 74 of `pgm-studio-mapgen/showcase/tree-showcase` — under `<world>-r<row>-<n>`, dropping bodies that hang
+  the 74 of `pgm-studio-mapgen/corpus/tree-showcase` — under `<world>-r<row>-<n>`, dropping bodies that hang
   in the air as fragments. `docs/world-export/decoration.md` §6, `docs/tools/library.md`.
 
 ## Pipeline / world import (M7)

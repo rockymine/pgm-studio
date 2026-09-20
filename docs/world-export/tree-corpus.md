@@ -3,7 +3,7 @@
 The tree-showcase world holds 75 author-built trees, one per 19×19 platform, sorted into 14 families by
 platform band plus a single wool tree. It is the measured ground truth for what a tree on a board should read
 like, and the thresholds it supports are what any generated foliage is judged against. The world is committed
-at `pgm-studio-mapgen/showcase/tree-showcase`, and it is read by one operational tool: `tools/seed-trees.cs`
+at `pgm-studio-mapgen/corpus/tree-showcase`, and it is read by one operational tool: `tools/seed-trees.cs`
 cuts every tree standing in it into the library as a **copied** recipe (`decoration.md` §6), which is how a
 board plants the author's own trees rather than a generated one. The numbers below are still the artifact —
 re-taking a reading means a scratch pass over that world against today's code (`CLAUDE.md`, *Investigation

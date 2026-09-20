@@ -671,7 +671,7 @@ and what a `subtract` takes away.
 
 - [ ] **TL15 — Anything can be filed as a `copied` tree.** `copied` means cut out of a world
   (`docs/tools/library.md`, the author's ruling) and `tools/seed-trees.cs` over
-  `pgm-studio-mapgen/showcase/tree-showcase` is the only thing that cuts one, but `PropStyleLibrary.Save`
+  `pgm-studio-mapgen/corpus/tree-showcase` is the only thing that cuts one, but `PropStyleLibrary.Save`
   takes `form: "copied"` with the request's own `Body` array, so a board can post a block list it made up and
   the row is indistinguishable from a cut one — which is how a dead-bush cluster, a log pile and a crate came
   to be filed as trees. What is wanted is the **refusal**, not a provenance card: give `TreeStyleRow` the cut
