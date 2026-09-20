@@ -17,23 +17,21 @@ using PgmStudio.Geom;
 /// editable. Breaking is the same rule with an exception: <c>block-break=block-break-void-filter</c> also
 /// admits what the dressing stage leaves hanging over the void, so a canopy past a coast can still be cut
 /// down instead of standing there for the match. The pair is the shape <c>docs/pgm/template.xml</c> writes,
-/// down to the two ids. And, separately,
-/// <see cref="BuildIntent.VoidEnforcement"/> — the corpus idiom
-/// (<c>block-place=deny(void)</c> over everywhere minus its exclusions) — which fires whether or not
-/// <see cref="BuildIntent.Areas"/> is declared, because a map with no buildable rectangles can still want the
-/// void permanent. Sets the build height cap regardless of either.
+/// down to the two ids, and it is the whole of what a board says about the void: one rule, scoped to the
+/// ground outside the buildable region, ordered last. Sets the build height cap regardless.
 /// <para>Mirror of <c>RegionCategorizer</c>'s build derivation (<c>DeriveBuildIds</c> walks the
 /// negative/complement subtree under a void rule): the areas, the union, the complement and the holes all
-/// read back as <c>build</c>; the negative as <c>other</c> + <c>rule_container</c>. The standalone
-/// enforcement's exclusions read back the same way, mirroring how the categorizer already reads
-/// <c>alpine_mining_ii</c>'s own <c>obs-spawn</c> exclusion.</para>
+/// read back as <c>build</c>; the negative as <c>other</c> + <c>rule_container</c>.</para>
 /// <para>Idempotent clear-then-build (the entity-replace save path rebuilds anyway).</para>
 /// </summary>
 public static class BuildGenerator
 {
     private const string VoidMessage = "You may not edit the void!";
-    private const string VoidEnforcementAreaId = "void-enforcement-area";
-    private const string VoidEnforcementExclusionPrefix = "void-enforcement-exclusion";
+
+    // A region this generator does not write. A stored document carrying one is scrubbed on re-apply, so a
+    // board cannot hold a second void rule beside the template's — and an `everywhere` rule beside it is not
+    // a second opinion but the deciding one, because PGM stops at the first apply rule that decides.
+    private const string ScrubbedVoidAreaId = "void-enforcement-area";
 
     // The two ids docs/pgm/template.xml uses, and they are the template's for a reason: the pair is what a
     // loading PGM has been seen to accept, and the corpus writes nothing else.
@@ -76,7 +74,6 @@ public static class BuildGenerator
         if (b.MaxHeight is { } h) doc["max_build_height"] = Math.Min(h, MaxBuildHeight);
 
         if (b.Areas.Count > 0) ApplyBuildAreas(doc, b);
-        if (b.VoidEnforcement is { } voidEnforcement) ApplyVoidEnforcement(doc, voidEnforcement);
     }
 
     private static void ApplyBuildAreas(Dict doc, BuildIntent b)
@@ -116,37 +113,6 @@ public static class BuildGenerator
         {
             ["block_place"] = PlaceVoidFilter, ["block_break"] = BreakVoidFilter,
             ["region"] = "not-build-area", ["message"] = VoidMessage,
-        });
-    }
-
-    /// <summary>The corpus idiom, standalone: deny placing (not breaking) over the void, applied everywhere
-    /// except the stated exclusions — no build area required. No exclusions → the region is the PGM builtin
-    /// <c>everywhere</c> region itself, materialised under <see cref="VoidEnforcementAreaId"/> so a re-apply
-    /// can find and clear exactly what it wrote (<c>region="everywhere"</c> bare would also work, since PGM
-    /// pre-registers it, but then two calls to this method couldn't tell "no exclusions" apart from "an
-    /// unrelated rule some other feature also scoped to everywhere").</summary>
-    private static void ApplyVoidEnforcement(Dict doc, VoidEnforcementIntent voidEnforcement)
-    {
-        if (voidEnforcement.Exclusions.Count > 0)
-        {
-            // negative(exclusion…) = not(union(exclusion…)) = everywhere minus the exclusions — the same
-            // region alpine_mining_ii spells complement(everywhere, union(exclusion…)), with no explicit
-            // `everywhere` node needed (PGM's <negative> already unions its children before negating).
-            var exclusionIds = CreateRects(doc, voidEnforcement.Exclusions, VoidEnforcementExclusionPrefix, "other");
-            RegionEditor.GroupRegions(doc, new Dict { ["type"] = "negative", ["id"] = VoidEnforcementAreaId, ["child_ids"] = exclusionIds });
-        }
-        else
-        {
-            DocAccess.Regions(doc)[VoidEnforcementAreaId] = new Dict { ["id"] = VoidEnforcementAreaId, ["type"] = "everywhere" };
-        }
-
-        // block-place, not block: a player may still break a block hanging over the void (alpine_mining_ii's
-        // own comment states this is deliberate), only placing new blocks out there is denied. Breaking is
-        // left unstated rather than granted, which is the same permission by PGM's default and the shape the
-        // corpus writes.
-        ApplyRuleEditor.CreateApplyRule(doc, new Dict
-        {
-            ["block_place"] = "deny(void)", ["region"] = VoidEnforcementAreaId, ["message"] = VoidMessage,
         });
     }
 
@@ -215,11 +181,11 @@ public static class BuildGenerator
         DocAccess.Filters(doc).Remove("over-void-breakable");
         foreach (var (filterId, _) in OverVoidMaterials) DocAccess.Filters(doc).Remove(filterId);
         if (doc.GetValueOrDefault("apply_rules") is List<object?> rules)
-            rules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string is "not-build-area" or VoidEnforcementAreaId);
+            rules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string is "not-build-area" or ScrubbedVoidAreaId);
     }
 
     private static bool IsGenerated(string k) =>
-        k is "build-area" or "not-build-area" or "buildable" or VoidEnforcementAreaId
+        k is "build-area" or "not-build-area" or "buildable" or ScrubbedVoidAreaId
         || Regex.IsMatch(k, @"^build-area-\d+$") || Regex.IsMatch(k, @"^build-hole-\d+$")
         || Regex.IsMatch(k, @"^void-enforcement-exclusion-\d+$");
 }

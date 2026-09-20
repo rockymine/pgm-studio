@@ -7,7 +7,7 @@ using Dict = Dictionary<string, object?>;
 using PgmStudio.Geom;
 
 /// <summary>
-/// Build-slice generator (declarative authoring). Asserts the void-enforcement structure and the
+/// Build-slice generator (declarative authoring). Asserts the not-build-area structure and the
 /// mirror property: the generated rectangles read back as <c>build</c>. See
 /// docs/pgm/new-map-authoring.md §5 and filter-region-wiring.md template 1.
 /// </summary>
@@ -243,71 +243,13 @@ public sealed class BuildGeneratorTests
         await Assert.That(Regions(doc).Keys.Count(k => k == "buildable")).IsEqualTo(1);
     }
 
-    // ── void enforcement independent of any declared build area ────────────────────────────────
+    // ── what a board says about the void, and what it may not say twice ────────────────────────
 
     [Test]
-    public async Task Void_enforcement_with_no_build_area_still_wires_a_rule()
+    public async Task No_build_area_writes_no_region_and_no_rule()
     {
-        // The defect this closes: BuildGenerator used to return at `Areas.Count == 0`, before it ever
-        // reached the void-enforcement wiring, so a map with no declared build area got no `no-void` rule
-        // at all. Proof this fails on the old behaviour: the pre-fix `Apply` returned immediately here
-        // (`if (b.Areas.Count == 0) return;` came before any void-enforcement code ran), so `Rules(doc)`
-        // would have been empty and this assertion would have failed.
-        var doc = Map();
-        BuildGenerator.Apply(doc, new MapIntent { Build = new BuildIntent { VoidEnforcement = new VoidEnforcementIntent() } });
-
-        await Assert.That(Regions(doc).ContainsKey("build-area")).IsFalse();   // no build area declared
-        var area = (Dict)Regions(doc)["void-enforcement-area"]!;
-        await Assert.That(area["type"]).IsEqualTo("everywhere");
-
-        var rule = Rules(doc).OfType<Dict>().Single();
-        await Assert.That(rule["region"]).IsEqualTo("void-enforcement-area");
-        await Assert.That(rule["block_place"]).IsEqualTo("deny(void)");
-        await Assert.That(rule.ContainsKey("block")).IsFalse();   // place is denied, not the broader "block"
-    }
-
-    [Test]
-    public async Task Void_enforcement_exclusions_negate_everywhere()
-    {
-        var doc = Map();
-        BuildGenerator.Apply(doc, new MapIntent
-        {
-            Build = new BuildIntent { VoidEnforcement = new VoidEnforcementIntent { Exclusions = [new Rect(0, 0, 10, 10)] } },
-        });
-
-        await Assert.That(Regions(doc).Keys.Count(k => k.StartsWith("void-enforcement-exclusion-"))).IsEqualTo(1);
-        var area = (Dict)Regions(doc)["void-enforcement-area"]!;
-        await Assert.That(area["type"]).IsEqualTo("negative");
-        await Assert.That(((List<object?>)area["children"]!).Single()).IsEqualTo("void-enforcement-exclusion-1");
-
-        var rule = Rules(doc).OfType<Dict>().Single();
-        await Assert.That(rule["region"]).IsEqualTo("void-enforcement-area");
-        await Assert.That(rule["block_place"]).IsEqualTo("deny(void)");
-    }
-
-    [Test]
-    public async Task Void_enforcement_multiple_exclusions_union_first()
-    {
-        var doc = Map();
-        BuildGenerator.Apply(doc, new MapIntent
-        {
-            Build = new BuildIntent
-            {
-                VoidEnforcement = new VoidEnforcementIntent { Exclusions = [new Rect(0, 0, 10, 10), new Rect(20, 20, 30, 30)] },
-            },
-        });
-
-        var area = (Dict)Regions(doc)["void-enforcement-area"]!;
-        await Assert.That(area["type"]).IsEqualTo("negative");
-        var kids = ((List<object?>)area["children"]!).Cast<string>().ToList();
-        await Assert.That(kids).IsEquivalentTo(["void-enforcement-exclusion-1", "void-enforcement-exclusion-2"]);
-    }
-
-    [Test]
-    public async Task No_build_area_does_not_imply_void_enforcement()
-    {
-        // The permissive default is unchanged: a map that states no build area and asks for no void
-        // enforcement gets none, exactly as before this capability existed.
+        // The void boundary is the edge of the buildable region, so a board that declares none states
+        // nothing about the void: no region, no apply rule, and the height cap regardless.
         var doc = Map();
         BuildGenerator.Apply(doc, new MapIntent { Build = new BuildIntent { MaxHeight = 40 } });
 
@@ -317,52 +259,34 @@ public sealed class BuildGeneratorTests
     }
 
     [Test]
-    public async Task Void_enforcement_and_build_areas_coexist_independently()
+    public async Task A_build_area_writes_exactly_one_void_rule()
     {
-        // A map may declare both: the legacy `not-build-area`/`no-void` wiring over the buildable union,
-        // and the standalone `deny(void)` enforcement over its own (differently scoped) region — two
-        // independent apply rules, neither one replacing the other.
+        // One rule, over not-build-area, in the shape template.xml writes. A second rule scoped wider
+        // would be the deciding one rather than a second opinion: PGM stops at the first that decides.
         var doc = Map();
-        BuildGenerator.Apply(doc, new MapIntent
-        {
-            Build = new BuildIntent
-            {
-                Areas = [new Rect(0, 0, 10, 10)],
-                VoidEnforcement = new VoidEnforcementIntent { Exclusions = [new Rect(20, 20, 25, 25)] },
-            },
-        });
+        BuildGenerator.Apply(doc, Intent());
 
-        await Assert.That(Rules(doc).Count).IsEqualTo(2);
-        var legacyRule = Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "not-build-area");
-        await Assert.That(legacyRule["block_place"]).IsEqualTo("block-place-void-filter");
-        var standaloneRule = Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "void-enforcement-area");
-        await Assert.That(standaloneRule["block_place"]).IsEqualTo("deny(void)");
+        var rule = Rules(doc).OfType<Dict>().Single();
+        await Assert.That(rule["region"]).IsEqualTo("not-build-area");
+        await Assert.That(rule["block_place"]).IsEqualTo("block-place-void-filter");
+        await Assert.That(rule["block_break"]).IsEqualTo("block-break-void-filter");
     }
 
     [Test]
-    public async Task Void_enforcement_reapply_is_idempotent()
+    public async Task A_stored_everywhere_void_region_is_scrubbed_on_apply()
     {
+        // A document carrying the wider region keeps it otherwise, and then holds two void rules of which
+        // the wider one decides — denying placement inside the very rectangles the board declared buildable.
         var doc = Map();
-        var intent = new MapIntent { Build = new BuildIntent { VoidEnforcement = new VoidEnforcementIntent { Exclusions = [new Rect(0, 0, 10, 10)] } } };
-        BuildGenerator.Apply(doc, intent);
-        BuildGenerator.Apply(doc, intent);
+        Regions(doc)["void-enforcement-area"] = new Dict { ["id"] = "void-enforcement-area", ["type"] = "everywhere" };
+        Regions(doc)["void-enforcement-exclusion-1"] = new Dict { ["id"] = "void-enforcement-exclusion-1", ["type"] = "rectangle" };
+        Rules(doc).Add(new Dict { ["block_place"] = "deny(void)", ["region"] = "void-enforcement-area" });
 
-        await Assert.That(Regions(doc).Keys.Count(k => k.StartsWith("void-enforcement-exclusion-"))).IsEqualTo(1);
-        await Assert.That(Regions(doc).Keys.Count(k => k == "void-enforcement-area")).IsEqualTo(1);
+        BuildGenerator.Apply(doc, Intent());
+
+        await Assert.That(Regions(doc).ContainsKey("void-enforcement-area")).IsFalse();
+        await Assert.That(Regions(doc).ContainsKey("void-enforcement-exclusion-1")).IsFalse();
         await Assert.That(Rules(doc).Count).IsEqualTo(1);
-    }
-
-    [Test]
-    public async Task Void_enforcement_exclusion_reads_back_as_build()   // mirror property, matching alpine_mining_ii
-    {
-        var doc = Map();
-        BuildGenerator.Apply(doc, new MapIntent
-        {
-            Build = new BuildIntent { VoidEnforcement = new VoidEnforcementIntent { Exclusions = [new Rect(0, 0, 10, 10)] } },
-        });
-        var facets = RegionCategorizer.DeriveFacets(doc);
-
-        await Assert.That(facets["void-enforcement-exclusion-1"].Category).IsEqualTo("build");
-        await Assert.That(facets["void-enforcement-area"].Category).IsEqualTo("other");
+        await Assert.That(Rules(doc).OfType<Dict>().Single()["region"]).IsEqualTo("not-build-area");
     }
 }

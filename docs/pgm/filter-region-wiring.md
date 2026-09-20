@@ -74,12 +74,12 @@ the void only, the log, leaves and plants the dressing palette writes. Terrain m
 absent — a crag or a sea stack is a shape the author built, and admitting stone out there would let a team
 mine the board apart. `EZ1` is the read-back that finds the columns this is for.
 
-The **declarative** generator wires the same shape from the other direction, unprompted: an intent
-carrying `BuildIntent.VoidEnforcement` (`new-map-authoring.md` §5b) emits `block-place="deny(void)"` over
-`everywhere` minus its stated exclusions whether or not the map has any positive build region for this
-template to detect from. The two paths produce the same wiring family — a void-marked filter ruled onto a
-`negative`/`complement`/`everywhere` wrapper — but the declarative one runs unconditionally from a stated
-intent field rather than from a signal an editor session offers up for confirmation.
+The **declarative** generator wires the same shape from the other direction, unprompted: an intent carrying
+`BuildIntent.Areas` emits the pair over `not-build-area`, the negative of what those rectangles leave
+(`new-map-authoring.md` §5b). Both paths produce one void-marked filter ruled onto a `negative`/`complement`
+wrapper and nothing wider, because PGM stops at the first apply rule that decides — the difference is that
+the declarative one runs from a stated intent field rather than from a signal an editor session offers up
+for confirmation.
 
 ## Interaction stance
 

@@ -218,8 +218,8 @@ Caveat: a `lane` with **no** void parent and **no** rule (e.g. `ad_astra`'s `wat
 naming alone would not.
 
 **A void-enforcement wrapper carved from `everywhere` rather than from a declared build area** — the
-`alpine_mining_ii` idiom `BuildGenerator` also emits, void enforcement stated independently of any
-`BuildIntent.Areas` — reads the same way whenever it has a subtracted child: a `negative` wrapping one
+`alpine_mining_ii` idiom, which the studio reads but does not write — reads the same way whenever it has a
+subtracted child: a `negative` wrapping one
 region (an authored exclusion, or a union of several) still promotes that child to `build`, matching an
 authored map's `obs-spawn` exclusion. The one shape this section's rule does not carve anything out of is
 a wrapper with **no children at all** — a bare `everywhere` ruled directly (`block-place="deny(void)"`,

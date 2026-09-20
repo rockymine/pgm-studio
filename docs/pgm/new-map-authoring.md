@@ -204,50 +204,31 @@ map the studio did **not** build the location is authoritative: `GET /xml` rende
 there a monument naming a region carries its position in that region, so `WoolEditor` moves the `<block>` with
 it.
 
-## 5b. Void enforcement, decoupled from the build area (B132)
+## 5b. One void rule, and it is the template's
 
-`BuildIntent.Areas` and void enforcement look like one decision — declare where a player may build, and the
-void everywhere else follows — but `BuildGenerator.Apply` used to make that literal: it returned before it
-ever reached the void-filter wiring when `Areas` was empty, so a map that declared no buildable rectangles at
-all got **no void enforcement of any kind**. `approaches.md` states the intended behaviour as settled law — a
-void gap with no build region over it is permanent, which is what makes a channel a control on flow rather
-than a delay — so the empty-`Areas` case was exercising exactly the opposite of what the void is for, silently,
-on every board that never thought to draw a build rectangle.
+**What a board says about the void is a single apply rule scoped to `not-build-area`.** `BuildGenerator`
+writes the negative of the buildable region and applies `block-place="block-place-void-filter"` with
+`block-break="block-break-void-filter"` over it, which is `docs/pgm/template.xml`'s shape down to the two
+filter ids. A board that declares no buildable rectangle writes no void rule at all, because the boundary
+the rule is scoped to is the edge of the buildable region and there is none.
 
-The corpus says the fix is not "enforce by default". Measured over the 112 `dtcm` maps in `CommunityMaps`: 102
-declare a `maxbuildheight`, 68 enforce the void somewhere (56 by the inline `deny(void)` idiom — 31 as
-`block-place`, 25 as `block` — the rest through a named `not(void)` filter referenced indirectly), 82 carry a
-hard `block="never"` region, and 100 of 112 carry one or the other. Nearly every real destroy map restricts
-building somewhere, but by a hard `never` region about as often as by the void — so a studio default of
-"enforce the void everywhere a map states nothing" would ship boards stricter than a meaningful slice of the
-corpus and change every existing map's behaviour at once. What the enforcing maps show instead is a *stated*
-idiom, `alpine_mining_ii`'s own:
+**Nothing wider may ride beside it, because PGM stops at the first apply rule that decides.** A second rule
+over `everywhere` is not a second opinion but the deciding one: it denies placing over the void *inside* the
+rectangles the board declared buildable, which is what a build area exists to permit, and it precedes the
+spawn and wool-room protections in the rule list. `IntentGenerator` emits the build slice last for the same
+reason — the broad `not-build-area` rule allows editing any solid block, so it must come after the
+protections that sit outside the build area.
 
-```xml
-<complement id="build-filter"><everywhere/><union id="obs-spawn">…</union></complement>
-<apply block-place="deny(void)" message="You may not build outside of the map!" region="build-filter"/>
-```
+**The corpus enforces the void about as often by a hard region as by the void filter.** Measured over the 112
+`dtcm` maps in `CommunityMaps`: 102 declare a `maxbuildheight`, 68 enforce the void somewhere (56 by the
+inline `deny(void)` idiom — 31 as `block-place`, 25 as `block` — the rest through a named `not(void)` filter
+referenced indirectly), 82 carry a hard `block="never"` region, and 100 of 112 carry one or the other.
 
-Two things in it carry over exactly. The rule is scoped to **everywhere minus a small exclusion** (the
-observer spawn, which the map's own comment says must stay editable if a player somehow reaches it), never to
-a drawn build rectangle — the opposite shape from `Areas`. And it is **`block-place`, not `block`**: a player
-may still *break* a block hanging over the void, only *placing* one out there is denied, which is what lets a
-destroyable float over open void without its own goal becoming unbreakable.
-
-So `BuildIntent.VoidEnforcement` states this as its own knob: null (the default, and every map's behaviour
-before B132) leaves the void bridgeable outside any declared build area; a `VoidEnforcementIntent` — even an
-empty one — wires `block-place="deny(void)"` over `everywhere` minus its `Exclusions`, whether or not `Areas`
-is populated, and alongside the legacy `not-build-area` void-filter wiring when both are declared, since the two
-scope different regions and neither implies the other. `BuildGenerator` emits `negative(exclusion…)` rather
-than `complement(everywhere, union(exclusion…))` for this — PGM's `<negative>` already unions its children
-before negating, so the two are the same region with one fewer node. An empty `Exclusions` list still
-materialises a named `void-enforcement-area` region (typed `everywhere`) rather than referencing the bare
-`everywhere` builtin inline, so a second `Apply` can find and clear exactly what the first one wrote.
-
-The plan compiler does not yet derive a `VoidEnforcement` from anything in the plan model — a hand-authored or
-agent-authored intent states it directly, the same way `Symmetry` and `Meta` are stated rather than derived.
-`SymmetryExpander` orbits `Exclusions` exactly as it orbits `Areas`/`Holes`, so a symmetric map's exclusion
-drawn on one side is excluded on every side.
+**Where a map does enforce by the void, it is `block-place`, not `block`.** A player may still *break* a
+block hanging over the void; only *placing* one out there is denied, which is what lets a destroyable float
+over open void without its own goal becoming unbreakable. `block-break-void-filter` is the studio's reading
+of the same rule: it allows over ground exactly as the place side does, and over the void allows only what
+the dressing stage leaves there.
 
 ## 6. What validation proves
 

@@ -61,7 +61,7 @@ null `cores` and nothing about cores is generated or cleared.
 | `islandTeams` | island id → team; an authoring aid, read by the spawn step, not by the generator |
 | `spawns` | per team: the point, the yaw, and the protection zone as a union of rects |
 | `observer` | the `<default>` spawn — where spectators and pre-match players stand |
-| `build` | `maxHeight` plus the buildable `areas` and the no-build `holes` cut out of them, and a separate `voidEnforcement` (null = none) stating whether the void is permanent — independent of whether `areas` is populated |
+| `build` | `maxHeight` plus the buildable `areas` and the no-build `holes` cut out of them. The void rule follows from them: one apply over the negative of what is left, and none at all where no `areas` are declared |
 | `wools` | per wool: owner, colour, room rects, the source point, and one monument per capturing team |
 | `cores` | per core: owner, anchor, the casing's measurements, and `leak` |
 | `destroyables` | per destroyable: owner, name, anchor, its shape, what it is built of and its float |
@@ -106,8 +106,7 @@ writes:
   "build": {
     "maxHeight": 30,
     "areas": [ { "minX": -30, "minZ": -70, "maxX": 30, "maxZ": 70 } ],
-    "holes": [],
-    "voidEnforcement": { "exclusions": [] }
+    "holes": []
   },
   "wools": [
     { "owner": "red", "color": "red",
@@ -276,16 +275,15 @@ makes it editable, and `EZ1` on `GET …/editability` naming any patch of standi
 
 This is the phase the pre-flight sends an author back to, because an unbridged gap is what breaks the map.
 
-**`build.voidEnforcement` is a second, independent knob (B132)**, with no canvas step of its own yet — an
-author states it by posting the intent field directly. Declaring `areas` says nothing about whether the void
-elsewhere may be bridged; a map with no `areas` at all got no enforcement of any kind, because the wiring sat
-behind one early return keyed on `areas` being non-empty. `voidEnforcement` breaks that coupling: setting it
-(even with `areas` empty, even with `exclusions` empty) wires the corpus idiom —
-`block-place="deny(void)"` over everywhere minus the stated exclusions — which denies *placing* a block over
-open void without denying *breaking* one that already hangs there, exactly as `alpine_mining_ii` does it. Null
-(the default) leaves the void bridgeable outside any declared build area, which is every map today; the studio
-does not default it to enforced, because the corpus itself is split on whether a map restricts building at
-all through the void or through a hard region (`new-map-authoring.md` §5b measures both).
+**The void rule is the buildable region's own edge, and there is exactly one of it.** The generator wires
+`block-place="block-place-void-filter"` with `block-break="block-break-void-filter"` over `not-build-area`,
+the negative of `areas` minus `holes` — `docs/pgm/template.xml`'s shape, down to the two filter ids. A board
+that declares no `areas` writes no void rule, because the edge the rule is scoped to is the edge of the
+buildable region.
+
+**Nothing wider is written beside it.** PGM stops at the first apply rule that decides, so a rule scoped to
+everywhere would decide inside the declared build area too — denying the very placements `areas` exists to
+permit — and would precede the spawn and wool-room protections (`docs/pgm/new-map-authoring.md` §5b).
 
 ### Wools — Objectives · Spawn · Monuments · Room
 

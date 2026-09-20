@@ -146,39 +146,34 @@ public sealed class IntentXmlExportTests
     }
 
     [Test]
-    public async Task Void_enforcement_survives_the_xml_round_trip_with_no_build_area_declared()
+    public async Task The_void_rule_is_the_only_one_and_survives_the_xml_round_trip()
     {
-        // A worked example: an intent that states void enforcement and declares no build area at all — the
-        // exact shape that used to be inexpressible, because BuildGenerator returned before it ever reached
-        // the void-enforcement wiring when Areas was empty.
+        // A worked example: what a board says about the void is one rule over not-build-area, the shape
+        // docs/pgm/template.xml writes. Nothing scoped wider rides beside it, because PGM stops at the
+        // first apply rule that decides and a wider one would decide inside the buildable region too.
         var doc = BaseDoc();
         var intent = new MapIntent
         {
             Meta = new MetaIntent { Name = "Permanent Void" },
             Teams = [new TeamDef { Id = "red-team", Name = "Red", Color = "red" }, new TeamDef { Id = "blue-team", Name = "Blue", Color = "blue" }],
             Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 12, 10) }, new SpawnIntent { Team = "blue-team", Point = new(-10, 12, -10) }],
-            Build = new BuildIntent { VoidEnforcement = new VoidEnforcementIntent { Exclusions = [new Rect(-2, 58, 2, 62)] } },
+            Build = new BuildIntent { Areas = [new Rect(-2, 58, 2, 62)] },
         };
         IntentGenerator.Apply(doc, intent);
 
-        // no build area declared, but the enforcement rule is there
-        await Assert.That(((Dict)doc["regions"]!).ContainsKey("not-build-area")).IsFalse();
-        await Assert.That(((Dict)doc["regions"]!).ContainsKey("build-area")).IsFalse();
-
         var xml = XmlWriter.ToXml(Deserializer.FromDict(doc));
-        await Assert.That(xml).Contains("block-place=\"deny(void)\"");
-        await Assert.That(xml).Contains("<negative id=\"void-enforcement-area\">");
-        await Assert.That(xml).DoesNotContain("not-build-area");
+        await Assert.That(xml).Contains("region=\"not-build-area\"");
+        await Assert.That(xml).DoesNotContain("void-enforcement-area");
+        await Assert.That(xml).DoesNotContain("deny(void)");
 
-        // re-parse — proves it's well-formed and PGM-parseable with no build area at all
+        // re-parse — proves it is well-formed and PGM-parseable
         var reparsed = Serializer.ToDict(MapParser.ParseXmlString(xml));
         var regions = (Dict)reparsed["regions"]!;
-        await Assert.That(regions.ContainsKey("void-enforcement-area")).IsTrue();
-        var area = (Dict)regions["void-enforcement-area"]!;
-        await Assert.That(area["type"]).IsEqualTo("negative");
+        await Assert.That(((Dict)regions["not-build-area"]!)["type"]).IsEqualTo("negative");
         var rules = (List<object?>)reparsed["apply_rules"]!;
-        var rule = rules.OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "void-enforcement-area");
-        await Assert.That(rule["block_place"]).IsEqualTo("deny(void)");
+        var voidRules = rules.OfType<Dict>().Where(r => r.GetValueOrDefault("message") as string == "You may not edit the void!").ToList();
+        await Assert.That(voidRules.Count).IsEqualTo(1);
+        await Assert.That(voidRules.Single()["region"]).IsEqualTo("not-build-area");
     }
 
     [Test]
