@@ -652,11 +652,11 @@ and what a `subtract` takes away.
   not before it; `docs/world-scan/read-backs.md` §what a walk costs carries the walk's own account of a
   place.
 
-  *Evidence: on `technique-composed-4-taken-over`, three oaks added at `(-30, 46)`, `(-25, 46)` and
-  `(-20, 46)` (style `oak-9`, seeds 7710–7712) lean over the far lane. `column?at=-24,43` answers
-  `1 solid block(s)` — a leaf at y20 over void — and `transect` calls that station `void` with
-  `top 20, standing tree`. `walk?from=-29,45&to=-24,43` answers reachable, standing at `(-26, 44, 21)`,
-  `(-25, 44, 22)` and `(-24, 43, 20)`, with `barrier +8` and `worstStep 8`.*
+  *Evidence: on `technique-composed-4-taken-over`, whose oaks stand on the back bar's outer rim,
+  `column?at=-4,57` answers four blocks of oak leaves over void and `transect` calls that station `void`
+  with `top 21, standing tree oak-path-c`. `walk?from=-2,54&to=-4,57` answers reachable, `barrier +8`,
+  `worstStep 8`, standing at `(-2, 56, 21)`, `(-3, 56, 22)` and `(-4, 57, 22)` — three places in the
+  canopy, none of them over ground.*
 
 - [ ] **WE124 — A room's stamp is a block out of place on its mirror image.** The frame a room is built out
   from is measured from the piece's own minimum corner, and `rot_180` maps one piece's minimum corner onto
