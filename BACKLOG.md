@@ -641,21 +641,22 @@ and what a `subtract` takes away.
   at every radius 1–3, while `transect` over the same line names `wall 0` at (−14, 67) and (−14, 68) — two
   cells the route itself passes through.*
 
-- [ ] **WS71 — A bridge is levelled from a treetop, because a crown over void counts as a shore.**
-  `WorldWalk.Level` gives every cell of a build zone the height of the ground nearest it and takes its
-  shores from `floor`, which holds the lowest standing place of every column (`WorldWalk.cs:167`). A crown
-  leaning over a build zone is the only standing place in its column, so that cell enters `floor` at canopy
-  height and `Level` spreads the canopy height across the zone — a crossing a player makes at the rim reads
-  as a climb of seven to eleven blocks, and `worstStep` says so. Level a zone from the ground a player can
-  leave from: a column whose only standing place is a prop's is not a shore, and the provenance already
-  names it (`transect` prints `standing: tree` at exactly those cells). `docs/world-scan/read-backs.md`
-  §what a walk costs.
+- [ ] **WS71 — A crown over void is a standing place for the walk and a void column for every other
+  read.** `WalkGround.OfSpans` offers a place for any span top with `Walk.Headroom` clear over it, so the
+  top course of a canopy hanging past a piece's rim is ground the walk will route over and will seed
+  `WorldWalk.Level` from, while `column`, `transect` and the census all answer that the column has no
+  ground. Both answers cannot be right, and which one is wanted is the author's call — a player *can*
+  stand on leaves, and a route that climbs a tree to get somewhere still makes `worstStep` an answer about
+  the canopy rather than about the board. **Blocking question: may a walk stand on a prop at all, or is a
+  prop's own volume out of the walk the way a house's interior is?** The fix follows from the answer and
+  not before it; `docs/world-scan/read-backs.md` §what a walk costs carries the walk's own account of a
+  place.
 
-  *Evidence: on `technique-composed-4-taken-over`, whose far lane is a declared build zone at
-  `x -32..-20, z 32..44`, `transect` along `z 43` reads `(-25, 43)`, `(-21, 43)` and `(-20, 43)` as
-  `ground 20, standing tree` over void. `walk?from=-29,45&to=-26,38` then answers `barrier +7` onto
-  `(-26, 38, 20)`, while `walk?from=-29,25&to=-26,34` into the same lane from the front bar answers
-  `worst step 0`, level at 9, 3 blocks placed.*
+  *Evidence: on `technique-composed-4-taken-over`, three oaks added at `(-30, 46)`, `(-25, 46)` and
+  `(-20, 46)` (style `oak-9`, seeds 7710–7712) lean over the far lane. `column?at=-24,43` answers
+  `1 solid block(s)` — a leaf at y20 over void — and `transect` calls that station `void` with
+  `top 20, standing tree`. `walk?from=-29,45&to=-24,43` answers reachable, standing at `(-26, 44, 21)`,
+  `(-25, 44, 22)` and `(-24, 43, 20)`, with `barrier +8` and `worstStep 8`.*
 
 - [ ] **WE124 — A room's stamp is a block out of place on its mirror image.** The frame a room is built out
   from is measured from the piece's own minimum corner, and `rot_180` maps one piece's minimum corner onto
