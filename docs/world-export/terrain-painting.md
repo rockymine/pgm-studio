@@ -69,8 +69,11 @@ consults splits by how a stamp is anchored:
   painted.
 - **Interface-relative** — the **bedrock approach wall** (`StructureStamper.StampWall`, from
   `StructureIntent.Walls`; rule ST4). Not a piece but a **seam barrier**: two blocks thick across the shared
-  edge between two pieces, the interface width along it, filled with bedrock from y=0 up to
-  `approach.Surface + 2` and capped by one course of cobweb — so it stands **above** the terrain on both sides.
+  edge between two pieces, the interface width along it, filled with bedrock from y=0 up to three courses
+  over the **solved** surface and capped by one course of cobweb — so it stands **above** the terrain on both
+  sides. It is the solved surface and not the piece's own that decides this: a relief lifts the ground under
+  a seam and the plan's number does not move with it, so a wall measured from the plan is left under the
+  terrain (amendment 43). The top is one level over the whole run, taken from the highest ground it crosses.
 
 - **TP6** *A stamped structure is height-bearing, and the painter reads it as a wall, never as a drop.* For
   every rule below, a neighbour that is a structure — a room's shell or an approach-wall barrier — is

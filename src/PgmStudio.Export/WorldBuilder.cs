@@ -280,7 +280,7 @@ public static class WorldBuilder
         // Stamped after the cubes so an authoritative layout feature (an iron cube beside a spawn) wins any
         // footprint overlap. The room floors are not among them — they are the ground the rooms stand on and
         // were laid before them.
-        StampStructures(world, terrain.Ground, intent.Structures);
+        built.AddRange(StampStructures(world, terrain.Ground, intent.Structures));
         ClaimStructures(provenance, intent.Structures);
 
         // ── Build-region outline (ST5) — an unpowered redstone line in the void, one air block clear of the
@@ -554,19 +554,38 @@ public static class WorldBuilder
         return spans.Any(span => span.Floor <= standingTop && ground < span.Top);
     }
 
-    // Stamp the plan-compiled layout structures (already resolved + fanned to block coords) onto the world.
-    private static void StampStructures(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, StructureIntent? s)
+    // Stamp the plan-compiled layout structures (already resolved + fanned to block coords) onto the world,
+    // and say where the ground made one of them taller than ST4 allows.
+    private static List<Finding> StampStructures(
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, StructureIntent? s)
     {
-        if (s is null) return;
+        var said = new List<Finding>();
+        if (s is null) return said;
         foreach (var w in s.Walls)
         {
-            StructureStamper.StampWall(world, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);
+            var top = StructureStamper.StampWall(world, surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);
             DefenseChest.Stamp(world, surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.ChestOnMinFace);
+
+            // The wall's top is one level, taken from the highest ground it crosses, so ground that falls
+            // away along the seam leaves it taller at the low end. Said once per wall, at the column a
+            // player meets it tallest.
+            var proud = StructureStamper.WallCoursesProud(surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, top);
+            if (proud > RoomFrames.WallCoursesMax)
+                said.Add(new Finding("ST4",
+                    $"the approach wall at ({w.MinX}, {w.MinZ})–({w.MaxX - 1}, {w.MaxZ - 1}) stands {proud} "
+                    + $"courses over the ground at its lowest column, against {RoomFrames.WallCoursesMax}. Its "
+                    + $"top is level at y{top} and taken from the highest ground it crosses, so the "
+                    + $"{proud - RoomFrames.WallCourses} block(s) the seam falls along its run are added to its "
+                    + "face: past four courses it stops reading as a line to hold and becomes a blank wall a "
+                    + "team builds over rather than fights at. Flatten the ground under the seam, or move the "
+                    + "wall onto a level stretch of the approach.",
+                    Severity.Complaint, Subjects: [w.Stamp.Unit]));
         }
         foreach (var ic in s.IronCubes)
             StructureStamper.StampIronCubeAt(world, surface, ic.MinX, ic.MinZ, RoomFrames.IronSpan);
         foreach (var line in s.RedstoneLines)
             StructureStamper.StampRedstoneLine(world, surface, line.X1, line.Z1, line.X2, line.Z2);
+        return said;
     }
 
     // Provenance for the same plan-derived structures StampStructures just stamped — a separate pass rather

@@ -662,9 +662,14 @@ disagree with the one that runs.
   the same rule, whether it stands beside a spawn room or alone on a piece that carries none: the
   cube fits inside the piece it rides or the marker resolves unplaceable (`WX9`) and nothing is
   stamped for it.
-- **ST4 [corpus]** *Pre-built wall*: 2 blocks thick, full seam width, **three courses of bedrock**
-  above the approach side (top = approach surface +2) over solid bedrock down to y=0, capped by
-  **one course of cobweb**. The web is part of the barrier, not decoration on it: it costs an
+- **ST4 [corpus; amendment 43]** *Pre-built wall*: 2 blocks thick, full seam width, **three courses of
+  bedrock** over the ground it crosses — measured from the surface the **relief solved**, not the surface
+  the plan drew the approach at — over solid bedrock down to y=0, capped by **one course of cobweb**. The
+  top is **one level across the whole run**, taken from the **highest** ground the wall crosses: a top that
+  followed the ground per column would step with it and read as a curved wall, and a top taken from the
+  average buries the wall wherever the ground rises past it. Ground that falls away along the seam therefore
+  leaves the wall taller at its low end, and past **four courses** there the export complains — a wall that
+  tall stops reading as a line to hold and becomes a blank face a team builds over rather than fights at. The web is part of the barrier, not decoration on it: it costs an
   attacker who bridges the top real time to cross and is cut with the shears every kit carries,
   which is what lets the stone itself be short enough that both halves of the lane still read as
   one place. Corpus pattern (11 walls over 5 seeds): walls sit on **gentle seams** — every marked
@@ -1173,6 +1178,26 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     `koth/industrial`'s `north-signal` is a 12×6×9 slab at `y 35–40` over a capture volume at `y 5–9`, 578
     white stained clay and 16 white wool, every block of it colour-affected. No other marker changes: a wool
     room's stays the wool's colour and a destroyable's or a core's stays its team's.
+
+43. **`ST4`: the wall's height is the ground's, not the plan's (2026-09-21).** Reported by the author off
+    `opus5c-emberhowe`, where the wall was **under the terrain it was meant to bar**. `PlanCompiler` set
+    `topY` from `approach.Surface` — the number the *piece* was drawn at — and the stamper laid bedrock to
+    it, so a relief that lifted the seam left the barrier buried while its own defence chest stood correctly
+    on the ground above, because the chest reads the solved surface and the wall did not. On that board the
+    bedrock stopped at y11 under ground at y12–13. `StructureStamper.StampWall` now takes the solved surface
+    the way every other stamper in `StampStructures` already did, and `topY` is kept as the plan tier's
+    answer — what the plan preview draws, and the fallback where the surface has nothing to say about a
+    column.
+
+    The top is the **highest** ground over the run rather than the average, and the reason is measurable:
+    Emberhowe's west wall crosses ground rising 11 → 14 over sixteen blocks, so an average of 12.4 would
+    have left the last three blocks of it buried again. The highest is the only level that is both straight
+    and never under the terrain. What that costs is height at the low end, which is what the new complaint
+    is for: the same wall now stands **six** courses proud there, and the author's cap is four.
+
+    `RoomFrames.WallCourses` and `WallCoursesMax` carry the two numbers, in `Domain` rather than beside
+    either user, because the compiler and the stamper both measure from the first and a second `const`
+    aliasing one that exists is two rules. `ST4` joins `RuleCatalog.Raised`, since it is now cited.
 
 42. **The build ceiling is the terrain's average, and nothing standing on it counts (2026-09-20).**
     Author's call, amending 25. That amendment raised the cap for the buildings, so a two-storey spawn hall

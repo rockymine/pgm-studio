@@ -85,6 +85,13 @@ public static class PlanRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
     public const string WallWithoutInterface = "PL11";
 
+    /// <summary>A bedrock wall is drawn where a lane meets another, so the ground on the far side carries on
+    /// past both its ends and an attacker rounds it with one diagonal jump off the corner instead of crossing
+    /// it. A wall belongs in the middle of a lane, not at its mouth.</summary>
+    /// <remarks>The wall spans the seam between the two pieces, and the piece on the far side runs past that seam along the wall's own axis — so a player standing on it beside the wall's end is one jump from the ground behind it, and the line is only in the defence's way. Put a piece between the approach and the lane it opens off, and wall THAT seam: a wall with a lane's own width either side of it has to be crossed, because going round it means leaving the ground.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Structure)]
+    public const string WallAtJunction = "PL17";
+
     /// <summary>A bedrock wall is drawn on the wool room's own interface, so the wall and the room stand
     /// through each other and the room can barely be entered. The wool's own edge is never a wall seat.</summary>
     /// <remarks>Bedrock wall may not interface with the wool room piece: place down the bedrock wall around 15 blocks away from the room — on the approach piece's outer interface, where the approach meets the board.</remarks>
@@ -210,6 +217,11 @@ public static class PlanValidator
         var findings = new List<Finding>();
         void Error(string rule, string message, params string[] subjects) =>
             findings.Add(new Finding(rule, message, Subjects: subjects.Length > 0 ? subjects : null));
+        // Said rather than refused: a board whose wall can be walked round still builds and still plays, and
+        // where the line should sit instead is the author's call.
+        void Complain(string rule, string message, params string[] subjects) =>
+            findings.Add(new Finding(rule, message, Severity.Complaint,
+                                     Subjects: subjects.Length > 0 ? subjects : null));
 
         // PL15 — the shape version, first and alone: every coordinate below is read under the units this
         // version states, so a document from another one is refused rather than measured wrongly.
@@ -358,6 +370,37 @@ public static class PlanValidator
             if (!landPairs.Contains((w.A, w.B)))
                 Error(PlanRules.WallWithoutInterface,
                     $"wall '{w.A}'–'{w.B}' is not a shared land interface", w.A, w.B);
+
+        // and never at the mouth of the lane it opens off. A wall spans the interval two pieces share; where
+        // a piece runs PAST that interval along the wall's own axis, its ground wraps the corner and a player
+        // beside the wall's end is one diagonal jump from the ground behind it. That is the fault
+        // `docs/gameplay/approaches.md` states as "ground pulled out past the wall's ends is what breaks it",
+        // and the plan is where it is visible: it is a relation between two rectangles, which no render of a
+        // built world can show, because by then they are terrain.
+        foreach (var c in d.WallInterfaces)
+        {
+            if (d.Piece(c.A) is not { } pa || d.Piece(c.B) is not { } pb) continue;
+            var (minX, minZ, maxX, maxZ) = ContactGraph.WallFootprint(pa, pb);
+            var alongX = maxX - minX > maxZ - minZ;
+            var (wallLo, wallHi) = alongX ? (minX, maxX) : (minZ, maxZ);
+            foreach (var piece in new[] { pa, pb })
+            {
+                // Both are max-exclusive — a piece's rect and the wall's footprint alike — so they compare
+                // directly and a wall that exactly spans its piece wraps by nothing.
+                var (lo, hi) = alongX
+                    ? (piece.Rect.MinX, piece.Rect.MaxX)
+                    : (piece.Rect.MinZ, piece.Rect.MaxZ);
+                var wrap = Math.Max(wallLo - lo, hi - wallHi);
+                if (wrap <= 0) continue;
+                Complain(PlanRules.WallAtJunction,
+                    $"wall '{c.A}'–'{c.B}' sits at the mouth of '{piece.Id}', which runs {wrap} block(s) past "
+                    + $"the wall's end: a player on '{piece.Id}' beside it rounds the wall with one diagonal "
+                    + "jump off the corner rather than crossing it. Put a piece between the two and wall that "
+                    + "seam instead, so the wall stands in a lane with nothing to step round it onto",
+                    c.A, c.B);
+                break;
+            }
+        }
 
         // and never on the wool room's own edge: the wall and the room stamp through each other there, and
         // the device belongs an approach out, not against the room it defends

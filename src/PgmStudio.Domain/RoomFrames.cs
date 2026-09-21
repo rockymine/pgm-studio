@@ -449,6 +449,21 @@ public static class RoomFrames
     /// marker rather than reading a size off it.</summary>
     public const int IronSpan = 3;
 
+    /// <summary>Courses of bedrock an approach wall stands above the ground it bars (ST4). Three, plus the
+    /// cobweb course the stamper caps it with — tall enough to stop a player walking or jumping the line,
+    /// short enough that both halves of the lane still read as one place.
+    /// <para>It sits here rather than beside either user because both the plan compiler, which answers the
+    /// wall's height before a world exists, and the stamper, which lays it over the ground the relief
+    /// solved, measure from it — and a second <c>const</c> aliasing one that exists is two rules.</para>
+    /// </summary>
+    public const int WallCourses = 3;
+
+    /// <summary>The tallest an approach wall may stand over the ground at any column of its run before the
+    /// export complains (ST4). A wall is <see cref="WallCourses"/> proud of the highest ground it crosses and
+    /// its top is level, so ground that falls away along the seam leaves it taller at the low end; past this
+    /// it stops reading as a line to hold and becomes a blank face.</summary>
+    public const int WallCoursesMax = 4;
+
     /// <summary>Resolve one iron marker into the cube it stamps (WX8), or an unplaceable marker (WX9). The
     /// cube centres on the marker, put back on the block lattice, and stands where it lands: it fits inside
     /// the piece and clear of the room, or it does not. The room never gives an edge up for it and nothing

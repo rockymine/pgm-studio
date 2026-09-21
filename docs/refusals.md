@@ -206,6 +206,8 @@ The structural plan rules, in full:
 | `PL13` | a bedrock wall is drawn on the wool room's own interface — the wall and the room stamp through each other; place it ~15 blocks out, on the approach piece's outer interface |
 | `PL14` | a wool colour names something that is not a dye |
 | `PL15` | the document states a shape version this build does not read — every coordinate under it would be measured in the wrong unit, so it is refused rather than guessed at, and it is reported alone |
+| `PL16` | a capture-point count the board's own symmetry cannot lay out — a point belongs to nobody, so it has to be the same walk for every team, and only the centre of symmetry and a ring the orbit fans from one side point are |
+| `PL17` | a bedrock wall sits at the mouth of the lane it opens off, so ground on the far side runs past both its ends and a player rounds it with one diagonal jump off the corner (**complaint** — the board still builds, and where the line should sit instead is the author's). Put a piece between the two and wall that seam, so the wall stands in a lane with nothing to step round it onto |
 
 And the building rules, which the dressing document and the room library are both held to:
 

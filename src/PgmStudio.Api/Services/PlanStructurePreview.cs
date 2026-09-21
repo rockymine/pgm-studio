@@ -105,10 +105,16 @@ public static class PlanStructurePreview
             boxes.Add(new StructureBox("iron", null, ic.MinX, ic.MinZ, maxX, maxZ, baseY, baseY + span));
         }
 
-        // Walls: the footprint is already max-exclusive; TopY is inclusive, and the stamper lays one course of
-        // cobweb over it, so the drawn box tops out two above.
+        // Walls: the footprint is already max-exclusive, and the stamper lays one course of cobweb over the
+        // bedrock, so the drawn box tops out two above the last stone. The height comes through the stamper's
+        // own WallTop rather than off TopY, because the wall is laid three courses over the ground the relief
+        // solved and TopY is only the plan tier's answer — a box drawn from it would draw a board that is not
+        // the one being built wherever a mark or a push lifted the seam.
         foreach (var w in st.Walls)
-            boxes.Add(new StructureBox("wall", null, w.MinX, w.MinZ, w.MaxX, w.MaxZ, 0, w.TopY + 2));
+        {
+            var top = StructureStamper.WallTop(surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);
+            boxes.Add(new StructureBox("wall", null, w.MinX, w.MinZ, w.MaxX, w.MaxZ, 0, top + 2));
+        }
 
         return boxes;
     }
