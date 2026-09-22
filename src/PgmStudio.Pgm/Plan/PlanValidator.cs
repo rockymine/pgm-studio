@@ -85,10 +85,11 @@ public static class PlanRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
     public const string WallWithoutInterface = "PL11";
 
-    /// <summary>A bedrock wall is drawn where a lane meets another, so the ground on the far side carries on
-    /// past both its ends and an attacker rounds it with one diagonal jump off the corner instead of crossing
-    /// it. A wall belongs in the middle of a lane, not at its mouth.</summary>
-    /// <remarks>The wall spans the seam between the two pieces, and the piece on the far side runs past that seam along the wall's own axis — so a player standing on it beside the wall's end is one jump from the ground behind it, and the line is only in the defence's way. Put a piece between the approach and the lane it opens off, and wall THAT seam: a wall with a lane's own width either side of it has to be crossed, because going round it means leaving the ground.</remarks>
+    /// <summary>A bedrock wall sits between two pieces of unequal width, so the wider one carries on past the
+    /// wall's end and an attacker rounds it with one diagonal jump off the corner instead of crossing it. A
+    /// wall belongs between two pieces of the same width, which is the middle of a lane rather than its
+    /// mouth.</summary>
+    /// <remarks>The wall spans only the interval the two pieces share, so ground on a piece that reaches past that interval along the wall's own axis is ground beside the wall's end, and a player standing there is one jump from the ground behind it. Put a piece the lane's own width between the two and wall THAT seam: a wall flanked by nothing has to be crossed, because going round it means leaving the ground.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Structure)]
     public const string WallAtJunction = "PL17";
 
@@ -371,7 +372,7 @@ public static class PlanValidator
                 Error(PlanRules.WallWithoutInterface,
                     $"wall '{w.A}'–'{w.B}' is not a shared land interface", w.A, w.B);
 
-        // and never at the mouth of the lane it opens off. A wall spans the interval two pieces share; where
+        // and only between two pieces of the same width. A wall spans the interval two pieces share; where
         // a piece runs PAST that interval along the wall's own axis, its ground wraps the corner and a player
         // beside the wall's end is one diagonal jump from the ground behind it. That is the fault
         // `docs/gameplay/approaches.md` states as "ground pulled out past the wall's ends is what breaks it",
@@ -393,10 +394,10 @@ public static class PlanValidator
                 var wrap = Math.Max(wallLo - lo, hi - wallHi);
                 if (wrap <= 0) continue;
                 Complain(PlanRules.WallAtJunction,
-                    $"wall '{c.A}'–'{c.B}' sits at the mouth of '{piece.Id}', which runs {wrap} block(s) past "
-                    + $"the wall's end: a player on '{piece.Id}' beside it rounds the wall with one diagonal "
-                    + "jump off the corner rather than crossing it. Put a piece between the two and wall that "
-                    + "seam instead, so the wall stands in a lane with nothing to step round it onto",
+                    $"wall '{c.A}'–'{c.B}' is not flanked: '{piece.Id}' runs {wrap} block(s) past the wall's "
+                    + $"end, so a player on '{piece.Id}' beside it rounds the wall with one diagonal jump off "
+                    + "the corner rather than crossing it. A wall sits between two pieces of the same width — "
+                    + "put one the lane's own width between the two and wall that seam instead",
                     c.A, c.B);
                 break;
             }

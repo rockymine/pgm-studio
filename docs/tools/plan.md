@@ -342,10 +342,24 @@ carves the rest, and what happens where two surfaces meet follows from them rath
 wall: a bedrock barrier two blocks thick and three courses tall across the full interface width, stamped on
 the attack side, which slows a wool raid and gives the defence a prepared line. Which of its two faces carries
 the defence chests is **not authored**: the wall is two blocks thick so exactly one face can be opened, and it
-is the **approach** face — the side further from the wool, which is the side both teams reach the line across
-and the same side the wall takes its height from. A wall on a pair that shares no land interface is an error (`PL11`), and so is a wall on
+is the **approach** face — the side further from the wool, which is the side both teams reach the line across.
+
+The wall's top is one level, three courses over the **highest** solved ground along its run. Per column it
+would step with the terrain and read as a curve, and from the average it would be buried wherever the ground
+rises past the mean, so the highest is the only level that is both straight and never under the terrain. Where
+that leaves the wall standing more than four courses over its lowest column the export complains (`ST4`): the
+seam's own fall is added to the wall's face, past which it stops reading as a line to hold.
+
+A wall on a pair that shares no land interface is an error (`PL11`), and so is a wall on
 the wool room's own interface (`PL13`) — the wall and the room would stamp through each other, so the device
 belongs an approach out, around 15 blocks from the room.
+
+A wall sits between two pieces of the same width, and one between pieces of unequal width draws a complaint
+(`PL17`). The wall spans only the interval the two pieces share, so a piece reaching past that interval along
+the wall's own axis puts ground beside the wall's end, and a player standing there rounds the line with one
+diagonal jump off the corner instead of crossing it. The fix is a piece the lane's own width between the two,
+with the wall on that seam: flanked by nothing, the wall has to be crossed, because going round it means
+leaving the ground.
 
 ### Boxes
 
