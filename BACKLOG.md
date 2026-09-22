@@ -325,6 +325,16 @@ height. That is exactly what a made thing needs, and none of it has to be invent
 
 ## The plan model: pieces, and the edges between them
 
+- [ ] **TN22 — `PL17` passes a wall at a T, where other pieces run on past both of its ends.** The check in
+  `PlanValidator` (the `WallAtJunction` loop) compares the two pieces the wall names and nothing else, so an
+  arm walled against a hub side of its own width is clean while the hub's pieces in front of and behind that
+  side carry ground past both ends of the wall, and a player rounds it off either corner. Ask instead whether
+  **any** land continues past the wall's ends on either side — the cells one block beyond each end, on both
+  faces — and name the piece that holds it. Fix `docs/tools/plan.md`'s `PL17` paragraph and its
+  `docs/refusals.md` row with it. Evidence: `pgm-studio-mapgen` commit `56289ff`,
+  `specs/opus55-millbank` — wall `wool-a-t1`–`hub-t3` at x −16, z 60..76, with `hub-t2` (z 44..60) and
+  `hub-t1` (z 76..92) continuing along x −16; `POST /plan/evaluate` answers score 0 and no `PL17`.
+
 - [ ] **TN21 — a plan's `meta.authors` does not survive the compile.** `POST /api/plan/compile` answers an
   intent whose `meta` is `{name, created: "", authors: [], contributors: []}` however the plan's own `meta`
   was filled in, so a board driven plan-first exports with `EX6` — the observer platform's authors board
