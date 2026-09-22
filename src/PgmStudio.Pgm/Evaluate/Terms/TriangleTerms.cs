@@ -77,6 +77,11 @@ public sealed class SpawnWoolRatio : SoftTerm
     public override string RuleId => "WL9";
     public override bool LearnsFromTraced => false;
 
+    /// <summary>Two wools the same walk from their spawn read 1, which is the balance this rule asks for and
+    /// what a board mirrored down its own team's middle measures. A 100% double-symmetric map — across the
+    /// middle and across the middle of one team — is ordinary practice (author).</summary>
+    public override double? Ideal => 1.0;
+
     public override double? Value(EvalContext ctx)
     {
         var d = Triangle.SpawnDistances(ctx).Where(v => v is not null).Select(v => v!.Value).ToList();
@@ -98,6 +103,9 @@ public sealed class WoolFrontRatio : SoftTerm
     public override string Id => "wool-front-ratio";
     public override string RuleId => "WL10";
     public override bool LearnsFromTraced => false;
+
+    /// <summary>Two wools the same walk from the frontline read 1, which is what this rule asks for.</summary>
+    public override double? Ideal => 1.0;
 
     public override double? Value(EvalContext ctx)
     {

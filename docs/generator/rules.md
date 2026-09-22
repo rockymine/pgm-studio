@@ -177,7 +177,10 @@ and a fall counted but not charged, routing around voids — never the straight 
   Bands learned from the teaching seeds (`spawn-wool-spread`). The **size-independent factor read**
   is the ratio max ÷ min of the same distances (`spawn-wool-ratio`) — a 40-vs-105 pair on a big board
   and a 20-vs-52 pair on a small one read the same 2.6× — with an **authored cap**: the intent seeds
-  set the tolerable factor; traced maps do not widen it.
+  set the tolerable factor; traced maps do not widen it. Both ratio reads state an **ideal of 1**
+  (amendment 44), where two wools are the same walk from their spawn: a band learned off the seeds
+  has its lower edge wherever the closest one landed, and perfect balance is what the rule asks for
+  rather than something it refuses.
 - **WL10 [author]** **The spawn–wool–frontline triangle.** Two reads, both by surface traversal:
   (a) each wool keeps a real distance to the **frontline edge** — the seam where the mid build band
   meets the land, the line an attacker crosses (`wool-front-distance`, measured at the most exposed
@@ -1023,6 +1026,18 @@ term and a producibility finding are the three things that name a layout rule to
 the question it exists for is *what is this finding* and a rule nothing raises has no finding to explain. The
 rest are law all the same, and this file is where the law is. A rule that starts being raised joins the
 catalogue by being added to that set, which `RulesEndpointTests` holds to the source in both directions.
+
+44. **A band never calls the ideal a fault (2026-09-22).** Author's call, settling a complaint on
+    `opus5c-emberhowe`. `WL9`'s `spawn-wool-ratio` and `WL10`'s `wool-front-ratio` are both max ÷ min, so
+    they cannot read below 1 and 1 is two wools the same walk apart — the balance each rule asks for. Their
+    learned lower edges (1.031 and its sibling) are artifacts of where the closest teaching seed happened to
+    land, and a board mirrored down its own team's middle measures exactly 1 and was scored a violation for
+    it. **A 100% double-symmetric map — across the middle and across the middle of one team — is ordinary
+    practice**, so the floor is wrong rather than the board.
+
+    `SoftTerm.Ideal` states the value a metric is perfect at, and the band's lower edge comes down to it
+    where one is stated and sits below the band; null on every other term, whose band is a distribution with
+    a fault at each end. The upper halves are untouched — imbalance is still what both rules catch.
 
 29. **`ST1`: a wool room lays no bedrock (2026-08-31).** Author's call. The footprint fill from `y=0` existed
     to stop a room being tunnelled into from below, which the room region's `enter` filter already denies at

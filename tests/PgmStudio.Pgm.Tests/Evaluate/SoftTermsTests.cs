@@ -76,6 +76,45 @@ public sealed class SoftTermsTests
         await Assert.That(new WoolFrontRemoteness().Value(ctx)).IsNull();
     }
 
+    /// <summary><b>A band never calls the ideal a fault.</b> Both wool ratios are max ÷ min, so 1 is two
+    /// wools the same walk apart — the balance the rules ask for — while the band's lower edge is wherever
+    /// the closest seed happened to land (1.031 for the spawn ratio). A board mirrored down its own team's
+    /// middle measures exactly 1, and that is ordinary practice rather than a complaint.</summary>
+    [Test]
+    public async Task A_board_balanced_exactly_is_inside_the_band_its_seeds_never_reached()
+    {
+        // The same lane with the two wools at equal depth either side of the spawn, so both walks cost the
+        // same and the ratio is exactly 1.
+        const string mirrored = """
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
+             "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,10]}],
+             "placements":{"spawns":[{"piece":"lane","at":[5,25],"facing":"front"}],
+                           "wools":[{"piece":"lane","at":[5,5]},{"piece":"lane","at":[5,45]}]}}
+            """;
+        var ctx = Ctx(mirrored, SeedEnvelopes.Default);
+
+        var ratio = new SpawnWoolRatio();
+        await Assert.That(ratio.Value(ctx)).IsNotNull();
+        await Assert.That(ratio.Value(ctx)!.Value).IsEqualTo(1.0).Within(1e-9);
+
+        // The learned band starts above 1, and the term's own ideal is what brings its floor down.
+        await Assert.That(SeedEnvelopes.Default["spawn-wool-ratio"]!.Value.Lo).IsGreaterThan(1.0);
+        await Assert.That(ratio.Ideal).IsEqualTo(1.0);
+        await Assert.That(ratio.Measure(ctx).Distance).IsEqualTo(0.0).Within(1e-9);
+        await Assert.That(ratio.Measure(ctx).Violation).IsNull();
+    }
+
+    /// <summary>The ideal only ever lowers a floor: a ratio past the band's top is the imbalance both rules
+    /// exist to catch, and it still scores.</summary>
+    [Test]
+    public async Task An_imbalanced_pair_still_violates_above_the_band()
+    {
+        var score = new SpawnWoolRatio().Measure(Ctx(UnbalancedWoolsJson, SeedEnvelopes.Default));
+
+        await Assert.That(score.Violation).IsNotNull();
+        await Assert.That(score.Distance).IsGreaterThan(0.0);
+    }
+
     [Test]
     public async Task Triangle_terms_measure_the_teaching_seeds_and_score_them_inside_their_own_bands()
     {
