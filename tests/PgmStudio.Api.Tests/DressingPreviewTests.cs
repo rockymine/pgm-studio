@@ -392,22 +392,41 @@ public sealed class DressingPreviewTests
     [Test]
     public async Task The_seat_read_answers_where_a_prop_of_its_kind_and_footprint_may_stand()
     {
-        // The board carries one stroke along z=0. A tree keeps three blocks off a route, so the pavement
-        // and the two cells either side of it refuse and open ground away from it seats.
+        // The board carries one stroke along z=0. A boulder keeps two blocks off a route, so the pavement
+        // and the cells beside it refuse and open ground away from it seats.
         using var client = ApiTestFactory.Shared.CreateClient();
         var slug = await MapAsync(client);
 
-        var resp = await PostSeatsAsync(client, slug, "?kind=tree");
+        var resp = await PostSeatsAsync(client, slug, "?kind=boulder");
         await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
         var seats = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
-        await Assert.That(seats.GetProperty("kind").GetString()).IsEqualTo("tree");
-        await Assert.That(seats.GetProperty("standoff").GetInt32()).IsEqualTo(3);
+        await Assert.That(seats.GetProperty("kind").GetString()).IsEqualTo("boulder");
+        await Assert.That(seats.GetProperty("standoff").GetInt32()).IsEqualTo(2);
         await Assert.That(seats.GetProperty("seats").GetInt32()).IsGreaterThan(0);
         await Assert.That(At(seats, 0, 0)).IsEqualTo('0').Because("the stroke's own pavement is claimed");
         await Assert.That(At(seats, 0, 40)).IsEqualTo('1').Because("open ground well off the road seats");
         await Assert.That(seats.GetProperty("refused").EnumerateArray()
                 .Any(because => because.GetProperty("rule").GetString() == "DR-ROAD")).IsTrue();
+    }
+
+    /// <summary>A tree is asked what it would be rooted in (`DR-ROOT`), and unthemed ground is stone in every
+    /// bucket — so a board nobody has painted offers a wood nowhere to stand, which is the honest answer and
+    /// names the paint as what is missing rather than the position.</summary>
+    [Test]
+    public async Task A_tree_seats_nowhere_on_a_board_with_no_soil_painted_on_it()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await MapAsync(client);
+
+        var seats = await (await PostSeatsAsync(client, slug, "?kind=tree")).Content
+            .ReadFromJsonAsync<JsonElement>();
+
+        await Assert.That(seats.GetProperty("kind").GetString()).IsEqualTo("tree");
+        await Assert.That(seats.GetProperty("standoff").GetInt32()).IsEqualTo(3);
+        await Assert.That(seats.GetProperty("seats").GetInt32()).IsEqualTo(0);
+        await Assert.That(seats.GetProperty("refused").EnumerateArray()
+                .Any(because => because.GetProperty("rule").GetString() == "DR-ROOT")).IsTrue();
     }
 
     [Test]

@@ -497,6 +497,23 @@ data bits. `TreeTemplate.Build` answers the vanilla tree's wood and leaves from 
 radius per course from `CanopyProfiles` (profile-as-data, the same seam `BoulderShapes` uses for a rock's
 form). A copy is read straight off its own body.
 
+**A tree stands in soil, and grass and the three dirts are what that means.** A tree is a thing that grew
+where it is, so the block under its trunk is the one that says so; on stone, gravel, clay or a path's paving a
+trunk reads as a model set down rather than as a wood, and no canopy over it repairs that. `DR-ROOT` complains
+where the surface block under a placement is not one `DressingPalette.RootsInto` admits, asked of a tree that
+**landed** — one the pass turned away is standing nowhere and has nothing to be rooted in — and at the
+placement rather than at every image of its orbit.
+
+That is stricter than the flora overlay's own `SoilShare`, which takes sand at a third and gravel a little
+under it, and the difference is deliberate: a tuft of grass in a shingle is ordinary and a trunk out of one is
+not. Two questions with two answers — what will *grow* on a surface, and what a tree may be *rooted* in (the
+author's ruling).
+
+The fix for it is usually the **paint** rather than the position. A theme whose surface is rock all the way up
+gives the pass nowhere to put a tree, so a board that wants a wood states a soil band under it and
+`POST …/sketch/seats?kind=tree` then answers where that ground is — the raster refuses every cell without it
+under this same id, so a position taken off the mask cannot raise the complaint.
+
 **A copied body's own block states are `DR-FACE`.** A copy is written block for block with the data it was
 cut with — that is what makes it a copy rather than a recipe — so a block whose data *is* a direction has to
 point at something the body actually holds. A vine states every side it clings to at once, so a side naming

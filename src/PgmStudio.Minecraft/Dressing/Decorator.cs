@@ -1139,7 +1139,31 @@ public static class Decorator
     private static Placed PlaceTree(
         VoxelWorld world, DressingContext context, TreeProp tree, GroundClaims.Storey claims,
         List<Finding> declined)
-        => Fan(world, context, context.GroundFor(tree), (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", declined);
+    {
+        var ground = context.GroundFor(tree);
+        var placed = Fan(world, context, ground, (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", declined);
+
+        // DR-ROOT — a trunk out of stone, gravel or clay, asked of a tree that landed: one the pass turned
+        // away is not standing anywhere and has nothing to be rooted in. The block is the one under the
+        // trunk's own standing level, which the trunk written over it does not change, and it is read at the
+        // placement rather than at every image of its orbit — the orbit is the same ground turned, and the
+        // cell an author moves is the one they wrote.
+        if (placed.Count > 0 && ground.TryGetValue((tree.X, tree.Z), out var standing) && standing > 0)
+        {
+            var (id, data) = world.GetBlock(tree.X, standing - 1, tree.Z);
+            if (!DressingPalette.RootsInto(id))
+            {
+                var named = tree.Id.Length > 0 ? tree.Id : $"tree@{tree.X},{tree.Z}";
+                declined.Add(new Finding(DressingRules.TreeOnBareGround,
+                    $"tree '{named}' stands at ({tree.X}, {tree.Z}) on {BlockPalette.Name(id, data)}, which is "
+                    + "ground rather than soil — a trunk out of it reads as a model set down rather than as a "
+                    + "wood. Paint a band of grass or dirt under the canopy, or move it onto ground that has "
+                    + "one", Severity.Complaint, Field: "dressing.props", Subjects: [named]));
+            }
+        }
+
+        return placed;
+    }
 
     /// <summary>How far this tree's crown actually reaches from its own trunk — the farthest a leaf cell of
     /// <see cref="TemplateTree"/> or <see cref="CopiedTree"/> stands from the anchor, horizontally. This is the

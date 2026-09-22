@@ -525,7 +525,7 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
         var depth = Math.Clamp(Query<int?>("depth", isRequired: false) ?? width, 1, WidestFootprint);
 
         if (await DressedBoard.OfAsync(HttpContext, map.Id, artifacts, ct) is not { } board) return;
-        var seating = ClaimRaster.Seat(board.Claims, kind, standoff, width, depth);
+        var seating = ClaimRaster.Seat(board.Claims, kind, standoff, width, depth, SurfaceSoil.Of(board.Built));
 
         if (TextAnswer.Wanted(HttpContext))
         {
@@ -540,6 +540,17 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
             seating.FootprintWidth, seating.FootprintDepth, seating.Rows, seating.Seats,
             [.. seating.Refused.Select(because => new SeatRefusalDto(because.Rule, because.Cells))]), ct);
     }
+}
+
+/// <summary>What the surface block at a cell is rooted in, for the one placement rule that reads it
+/// (<c>DR-ROOT</c>): the block under the standing level of the built board, asked of the same world the
+/// dressing pass writes into. A cell off the board is not soil, which refuses it as the ground rule would.
+/// </summary>
+internal static class SurfaceSoil
+{
+    public static Func<int, int, bool> Of(BuiltWorld built) => (x, z) =>
+        built.Surface.TryGetValue((x, z), out var standing) && standing > 0
+        && DressingPalette.RootsInto(built.World.GetBlock(x, standing - 1, z).Id);
 }
 
 /// <summary>POST /api/map/{slug}/sketch/probe-footprint — whether a ring stands on ground, asked of the

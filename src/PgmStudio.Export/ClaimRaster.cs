@@ -115,8 +115,14 @@ public static class ClaimRaster
     /// standing within a passage of it, exactly as the pass groups them. The three that are left to the pass
     /// read the built world rather than the ground — <c>DR-CROSS</c>, <c>DR-WAY</c> and
     /// <c>DR-SLOPE</c>.</para>
+    ///
+    /// <para>For a <b>tree</b>, <paramref name="roots"/> answers what the surface block at a cell is
+    /// (<c>DR-ROOT</c>): a caller holding the built world passes it and every cell of rock, gravel or paving
+    /// is refused, so the raster offers soil alone. A caller with no world passes null and the raster answers
+    /// the other rules only.</para>
     /// </summary>
-    public static Seating Seat(Grid grid, string kind, int standoff, int width, int depth)
+    public static Seating Seat(Grid grid, string kind, int standoff, int width, int depth,
+                               Func<int, int, bool>? roots = null)
     {
         width = Math.Max(1, width);
         depth = Math.Max(1, depth);
@@ -124,6 +130,9 @@ public static class ClaimRaster
         var after = PlacedProp.PlacementOrderOf(kind) ?? int.MaxValue;
         // Only a building has a way past to leave; a tree is asked nothing about its flanks.
         var standing = kind == "house" ? Standing(grid) : null;
+        // …and only a tree is asked what it is rooted in (DR-ROOT), at its trunk, which is the whole of its
+        // footprint. Null where the caller has no world to read the surface block out of.
+        var rooted = kind == "tree" ? roots : null;
 
         var rows = new List<string>(grid.Height);
         var refused = new Dictionary<string, int>();
@@ -136,7 +145,9 @@ public static class ClaimRaster
                 if (grid.Rows[row][column] == ' ') { line[column] = ' '; continue; }
                 var stopped = Stops(grid, near, after, column, row, width, depth)
                     ?? (standing is null || Passes(grid, standing, column, row, width, depth)
-                        ? null : DressingRules.PassAround);
+                        ? null : DressingRules.PassAround)
+                    ?? (rooted is null || rooted(grid.MinX + column, grid.MinZ + row)
+                        ? null : DressingRules.TreeOnBareGround);
                 if (stopped is null) { line[column] = '1'; seats++; continue; }
                 line[column] = '0';
                 refused[stopped] = refused.GetValueOrDefault(stopped) + 1;

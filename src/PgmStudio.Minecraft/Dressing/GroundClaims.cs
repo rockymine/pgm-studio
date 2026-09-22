@@ -220,6 +220,22 @@ public static class DressingRules
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string RockOnAFace = "DR-STEEP";
 
+    /// <summary>A tree standing on ground nothing grows out of. A tree is a thing that grew where it is, so
+    /// the block under its trunk is the one that says so; on stone, gravel, clay or a path's paving it reads
+    /// as a model of a tree set down rather than as a wood, and no canopy over it repairs that.
+    ///
+    /// <para>The board has to carry the soil before a tree can stand in it. A theme painting a surface that
+    /// is rock all the way up gives the pass nowhere to put one, so the fix is usually the <em>paint</em> —
+    /// a soil band under the wood — rather than the position, and the read that answers where soil is on the
+    /// ground is the themes census.</para>
+    ///
+    /// <para>Grass and the three dirts, by <c>DressingPalette.RootsInto</c>. Sand and gravel grow a tuft and
+    /// not a trunk, so they are ground here and not soil (author). Asked of a tree that landed: one the pass
+    /// turned away is standing nowhere and has nothing to be rooted in.</para></summary>
+    /// <remarks>Paint soil where the wood stands — a band of grass or dirt under the canopy — or move the tree onto ground that already has it. <c>POST …/sketch/seats?kind=tree</c> answers where that ground is, and refuses every cell without it under this id. A complaint: the world is built and the tree is in it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Material, RuleConcern.Terrain)]
+    public const string TreeOnBareGround = "DR-ROOT";
+
     /// <summary>How much of a prop the clip has to block before <see cref="PropCut"/> is raised on the share
     /// alone. A rock tucked against a wall is flattened along it and measures about a third, which is a rock;
     /// over half of the body inside something already standing is not the prop the author placed, whether or
