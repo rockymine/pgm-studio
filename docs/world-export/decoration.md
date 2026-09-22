@@ -497,6 +497,17 @@ data bits. `TreeTemplate.Build` answers the vanilla tree's wood and leaves from 
 radius per course from `CanopyProfiles` (profile-as-data, the same seam `BoulderShapes` uses for a rock's
 form). A copy is read straight off its own body.
 
+**The ground a standing tree holds is the disc its crown covers.** A crown is leaves with gaps in it, so a
+claim made cell by cell leaves those gaps free, a second trunk seats between them, and the two crowns grow
+through each other — each clipping whatever the other wrote there first, which reads as one mass of foliage
+rather than as two trees.
+
+The radius is `Decorator.CanopyRadius`, this tree's own farthest leaf under the same deterministic build the
+stamp writes with, so a copied body is measured rather than guessed at from its species. The disc is claimed
+on every image of the orbit and joins the placement's own cells, which is what keeps the pass and the seat
+raster answering the same ground; two trees therefore stand at least their two crowns apart, and `DR-CLAIM`
+is what says so when they do not.
+
 **A tree stands in soil, and grass and the three dirts are what that means.** A tree is a thing that grew
 where it is, so the block under its trunk is the one that says so; on stone, gravel, clay or a path's paving a
 trunk reads as a model set down rather than as a wood, and no canopy over it repairs that. `DR-ROOT` complains

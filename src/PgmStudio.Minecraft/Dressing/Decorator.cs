@@ -1142,6 +1142,7 @@ public static class Decorator
     {
         var ground = context.GroundFor(tree);
         var placed = Fan(world, context, ground, (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", declined);
+        placed = Crowned(context, tree, claims, placed);
 
         // DR-ROOT — a trunk out of stone, gravel or clay, asked of a tree that landed: one the pass turned
         // away is not standing anywhere and has nothing to be rooted in. The block is the one under the
@@ -1163,6 +1164,41 @@ public static class Decorator
         }
 
         return placed;
+    }
+
+    /// <summary>The ground a standing tree holds: the disc its crown covers, rather than the columns its own
+    /// blocks happen to fill. A crown is leaves with gaps in it, and a claim made cell by cell leaves those
+    /// gaps free — so a second trunk seats between them and the two crowns grow through each other, each
+    /// clipping whatever the other wrote there first.
+    ///
+    /// <para>The radius is <see cref="CanopyRadius"/>, the farthest leaf of this tree's own deterministic
+    /// build, so a copied body is measured rather than guessed at and two trees stand at least their two
+    /// crowns apart. The disc is claimed on every image of the orbit and joins the placement's own cells, so
+    /// the pass and the seat raster answer the same ground.</para></summary>
+    private static Placed Crowned(
+        DressingContext context, TreeProp tree, GroundClaims.Storey claims, Placed placed)
+    {
+        if (placed.Count == 0) return placed;
+
+        var reach = (int)Math.Ceiling(CanopyRadius(tree));
+        if (reach <= 0) return placed;
+
+        var images = new List<List<(int X, int Z)>>(placed.Images.Count);
+        for (var k = 0; k < placed.Images.Count; k++)
+        {
+            var anchor = context.Symmetry.ImageCell(tree.X, tree.Z, k);
+            var held = new HashSet<(int X, int Z)>(placed.Images[k]);
+            for (var dz = -reach; dz <= reach; dz++)
+            for (var dx = -reach; dx <= reach; dx++)
+            {
+                if (dx * dx + dz * dz > reach * reach) continue;
+                var (x, z) = (anchor.X + dx, anchor.Z + dz);
+                claims.Claim(x, z, ClaimKind.Scatter, tree.Id);
+                held.Add((x, z));
+            }
+            images.Add([.. held]);
+        }
+        return placed with { Images = images };
     }
 
     /// <summary>How far this tree's crown actually reaches from its own trunk — the farthest a leaf cell of
