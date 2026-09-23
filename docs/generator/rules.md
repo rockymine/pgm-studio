@@ -1038,6 +1038,12 @@ the question it exists for is *what is this finding* and a rule nothing raises h
 rest are law all the same, and this file is where the law is. A rule that starts being raised joins the
 catalogue by being added to that set, which `RulesEndpointTests` holds to the source in both directions.
 
+50. **A side spawn stands in line with the hub's hole, and a donut's hole is at least 12 blocks
+    (2026-09-23).** Author's call, off the second judged sweep. A spawn seated behind the hub's hole stood
+    nearer the back wool than the one across the hub; in line with the hole it walks about as far to either,
+    so a lateral spawn's centre stands within a cell of the hole's centre, or of the edge's middle where the hub
+    has none. A donut's own hole was sampled from one cell along the hub edge — four blocks, jumped rather than
+    rounded — and now starts at `WL12`'s 12-block floor for a hole on both extents (`G276`).
 49. **`WL12`: a goal's own ground is 12 blocks, the front stays 16 (2026-09-23).** Author's call, off the
     composed boards the rule flagged. A wool room 12 blocks from its own hub is "on the low end, but not
     terrible"; a wool room or spawn that close to the frontline, or to another goal, still wants 16. The other

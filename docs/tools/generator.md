@@ -84,7 +84,7 @@ carry, or a flat 30 blocks front to front where it will carry none. It decides o
 split band, which is a crossing that carries none. **Allocation** places the hub,
 chooses its form, works out what hangs off it, and seats each neighbour on the hub's real free surface,
 producing typed boxes and the joints between them. Every unit carries a frontline on the hub's front edge, and
-a spawn on a side edge is seated level with the hub's middle or behind it, never toward the front. **Filling** emits the hub first as the constraint source
+a spawn on a side edge is seated in line with the hub's hole, or with its middle on a hub without one. **Filling** emits the hub first as the constraint source
 and each neighbour to the width its own joint was granted. The finished unit is then **re-anchored on its
 face**, so the band it will meet is the face itself rather than the hull of two offset copies. The **carve**
 lays the mid band flush against the fronts. **Walling** then gives each wool approach its defence wall (below).
@@ -176,10 +176,10 @@ budget:
 
 | Players | Wool families seen | Hub forms | Frontline |
 |---|---|---|---|
-| 8 | I 339 · L 75 · U 2 · clamp 2 | ring 257 · single 94 · bar 33 · twin 16 | bar 203 · single 110 · twin 87 |
-| 12 | I 339 · L 75 · U 2 · clamp 2 | ring 257 · single 94 · bar 33 · twin 16 | bar 203 · single 110 · twin 87 |
-| 20 | I 362 · L 146 · donut 43 · H 15 · U 9 · clamp 7 | ring 220 · bar 94 · single 65 · twin 21 | bar 249 · single 76 · twin 75 |
-| 30 | I 375 · L 152 · donut 46 · clamp 20 · U 19 · H 18 | ring 206 · twin 71 · G 41 · double-hole 34 · bar 27 · P 11 · single 10 | single 155 · twin 126 · bar 119 |
+| 8 | I 334 · L 73 · clamp 5 · U 4 · H 1 | ring 294 · bar 51 · single 50 · twin 5 | bar 177 · twin 121 · single 102 |
+| 12 | I 334 · L 73 · clamp 5 · U 4 · H 1 | ring 294 · bar 51 · single 50 · twin 5 | bar 177 · twin 121 · single 102 |
+| 20 | I 355 · L 146 · donut 31 · U 18 · H 15 · clamp 14 | ring 208 · bar 140 · single 29 · twin 23 | bar 247 · single 79 · twin 74 |
+| 30 | I 370 · L 141 · donut 42 · U 22 · H 19 · clamp 19 | ring 200 · twin 76 · bar 41 · G 40 · double-hole 34 · P 11 | single 158 · twin 125 · bar 117 |
 
 Read down the columns and the ladders are visible as behaviour. Eight and twelve players compose the same
 boards, because both are the nano band. Every board carries a frontline. The ring is the commonest hub at every
@@ -248,10 +248,10 @@ is left, never under a third; a unit whose built land falls outside 70–130% of
 rather than shipped.
 
 **The score is a distance, not a grade.** Zero means the board sits inside every envelope the authored corpus
-occupies — of 240 boards each at twelve, twenty and thirty players, 209, 74 and 30 respectively scored exactly
-zero, with the ninetieth percentile at 0.28, 3.85 and 6.37. The terms that fire are almost always
-`spawn-wool-ratio` and `wool-front-ratio`, then `frontline-width` at thirty: a spawn seated level with the
-hub's middle or behind it stands nearer the wool on its own side than the one across the hub. A hard violation would add 1000 and dominate any
+occupies — of 240 boards each at twelve, twenty and thirty players, 213, 71 and 37 respectively scored exactly
+zero, with the ninetieth percentile at 0.06, 2.62 and 5.90. The terms that fire are almost always
+`spawn-wool-ratio` and `wool-front-ratio`, then `frontline-width` at thirty: a spawn beside the hub stands
+nearer the wool at the back than the one across the hub, however squarely it faces the hole. A hard violation would add 1000 and dominate any
 soft sum, which is why the slider stops at 8.
 
 **Pinning and authoring are the two exits.** The pin toggle stores the descriptor's board and refreshes the

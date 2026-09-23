@@ -19,8 +19,10 @@ public static class UnitSeating
     /// a bay in the body simply yields no run over its stretch — which is how a caller sizing a neighbour learns
     /// there is one. Emitting is a pure function of the form, the walls and the arms, so the three readers of
     /// this body (the request sizing, the seating, the filler) all see the same one without a draw between them.
-    /// A null box means the form does not fit the rect at all.</summary>
-    internal static (Box? Box, IReadOnlyDictionary<BoxEdge, IReadOnlyList<(int Start, int Len)>> Runs, BoxEdge Front)
+    /// <c>Holes</c> is the body's enclosed void, the cells inside its box no piece covers and the outside cannot
+    /// reach. A null box means the form does not fit the rect at all.</summary>
+    internal static (Box? Box, IReadOnlyDictionary<BoxEdge, IReadOnlyList<(int Start, int Len)>> Runs, BoxEdge Front,
+        IReadOnlySet<(int X, int Z)> Holes)
         Emit(CompoundRead form, CellRect hubRect, Frame frame, int laneWidthCells,
              RingWalls? walls, IReadOnlyList<(int Start, int Width)>? arms)
     {
@@ -35,12 +37,39 @@ public static class UnitSeating
             HubWalls: walls, HubArms: arms, HubCorridorCells: laneWidthCells);
         if (HubBoxEmitter.Fill(hubBox, form, hubBox.HubCorridor, flipV: flipV, ringWalls: walls,
                 armLayout: arms) is not { } hub)
-            return (null, empty, frontEdge);
+            return (null, empty, frontEdge, new HashSet<(int X, int Z)>());
 
         var runs = hub.Offers.GroupBy(o => o.Edge).ToDictionary(
             g => g.Key,
             g => (IReadOnlyList<(int Start, int Len)>)g.Select(o => (o.Interval.Start, o.Interval.LengthCells)).ToList());
-        return (hubBox, runs, frontEdge);
+        return (hubBox, runs, frontEdge, Enclosed(hubRect, hub.Pieces));
+    }
+
+    /// <summary>The cells inside <paramref name="box"/> that none of <paramref name="pieces"/> covers and that no
+    /// empty path reaches from the box's border — a ring's hole, where a bay open to an edge is not one.</summary>
+    private static HashSet<(int X, int Z)> Enclosed(CellRect box, IReadOnlyList<GrownPiece> pieces)
+    {
+        var land = new HashSet<(int X, int Z)>();
+        foreach (var piece in pieces)
+            for (var x = piece.Rect.X; x < piece.Rect.X + piece.Rect.Width; x++)
+                for (var z = piece.Rect.Z; z < piece.Rect.Z + piece.Rect.Height; z++)
+                    land.Add((x, z));
+        var empty = new HashSet<(int X, int Z)>();
+        for (var x = box.X; x < box.X + box.Width; x++)
+            for (var z = box.Z; z < box.Z + box.Height; z++)
+                if (!land.Contains((x, z))) empty.Add((x, z));
+        var reached = new HashSet<(int X, int Z)>();
+        var queue = new Queue<(int X, int Z)>(empty.Where(c => c.X == box.X || c.Z == box.Z
+            || c.X == box.X + box.Width - 1 || c.Z == box.Z + box.Height - 1));
+        foreach (var c in queue) reached.Add(c);
+        while (queue.Count > 0)
+        {
+            var (x, z) = queue.Dequeue();
+            foreach (var n in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
+                if (empty.Contains(n) && reached.Add(n)) queue.Enqueue(n);
+        }
+        empty.ExceptWith(reached);
+        return empty;
     }
 
     /// <summary>The free runs on the edge a neighbour docking at the <b>front</b> would meet, which is what the
@@ -50,7 +79,7 @@ public static class UnitSeating
         CompoundRead form, CellRect hubRect, Frame frame, int laneWidthCells,
         RingWalls? walls, IReadOnlyList<(int Start, int Width)>? arms)
     {
-        var (box, runs, front) = Emit(form, hubRect, frame, laneWidthCells, walls, arms);
+        var (box, runs, front, _) = Emit(form, hubRect, frame, laneWidthCells, walls, arms);
         return box is not null && runs.TryGetValue(front, out var onFront) ? onFront : [];
     }
 
@@ -65,7 +94,7 @@ public static class UnitSeating
         int cell, IReadOnlyList<NeighbourRequest> requests, ComposeRng rng,
         RingWalls? walls = null, IReadOnlyList<(int Start, int Width)>? arms = null)
     {
-        var (emitted, runsByEdge, frontEdge) = Emit(form, hubRect, frame, laneWidthCells, walls, arms);
+        var (emitted, runsByEdge, frontEdge, holes) = Emit(form, hubRect, frame, laneWidthCells, walls, arms);
         if (emitted is not { } hubBox) return null;   // too small
         int boxW = hubRect.Width, boxH = hubRect.Height;
 
@@ -119,7 +148,7 @@ public static class UnitSeating
                 continue;
             }
 
-            if (SeatFullMouth(runs, edgeLen, request, edge, hubRect, Blocked, seatGapCells, grantedWidthCells, cell, frontEdge, rng)
+            if (SeatFullMouth(runs, edgeLen, request, edge, hubRect, Blocked, seatGapCells, grantedWidthCells, cell, frontEdge, holes, rng)
                 is not { } dock)
             {
                 // a wool that no longer fits with the seat gap (the third wool doubling onto the spawn's own edge
@@ -143,7 +172,7 @@ public static class UnitSeating
     ///
     /// <para>A wool whose mouth no run holds is demoted once to the compact <c>I</c> and retried; the request
     /// that comes back on <see cref="FullMouthDock.Request"/> is the one the caller must build the box from.
-    /// A spawn on a lateral edge seats only in the back half of it (<see cref="BackHalf"/>).</para>
+    /// A spawn on a lateral edge seats in line with the hub's hole (<see cref="InLine"/>).</para>
     ///
     /// <para><paramref name="blocked"/> is the caller's projection of the already-seated spawn/wool boxes onto
     /// an edge — passed as a delegate because it closes over the boxes seated so far, which grows as the loop
@@ -152,13 +181,13 @@ public static class UnitSeating
     internal static FullMouthDock? SeatFullMouth(
         IReadOnlyList<(int Start, int Len)> runs, int edgeLen, NeighbourRequest requested, BoxEdge edge, CellRect hubRect,
         Func<BoxEdge, int, List<(int Start, int Len)>> blocked, int seatGapCells, int grantedWidthCells,
-        int cell, BoxEdge frontEdge, ComposeRng rng)
+        int cell, BoxEdge frontEdge, IReadOnlySet<(int X, int Z)> hubHoles, ComposeRng rng)
     {
         var request = requested;
         var seatGap = request.Kind is BoxKind.Spawn or BoxKind.Wool ? seatGapCells : 0;
         var lateral = edge != frontEdge && edge != SeatGeometry.Opposite(frontEdge);
         if (request.Kind == BoxKind.Spawn && lateral)
-            runs = BackHalf(runs, edgeLen, request.Along, frontAtLow: frontEdge is BoxEdge.Top or BoxEdge.Left);
+            runs = InLine(runs, request.Along, HoleCentre(edge, hubRect, hubHoles) ?? edgeLen / 2.0);
         List<(int Start, int Len)> blk = seatGap > 0 ? blocked(edge, request.Depth) : [];
         var seat = SeatInRuns(runs, blk, edgeLen, request.Along, UnitTuning.CornerClearanceCells, seatGap, rng);
         if (seat is null && request.Kind == BoxKind.Wool)   // a staple's full mouth found no run — the compact I will
@@ -172,21 +201,30 @@ public static class UnitSeating
             SeatGeometry.NeighbourRect(edge, s, request.Depth, request.Along, hubRect), new BoxAbutment(edge, s, request.Along), request);
     }
 
-    /// <summary>A lateral edge's free <paramref name="runs"/> cut to the seats that sit level with the hub's
-    /// middle or behind it, for a dock <paramref name="along"/> wide: its centre at or past the edge's centre,
-    /// counted away from the front. A spawn seated nearer the front than that walks straight out onto the
-    /// frontline, which is the fault the author rules out on every board; one level with the middle faces the
-    /// hub's hole and has the frontline and both wools about equally far.</summary>
-    public static IReadOnlyList<(int Start, int Len)> BackHalf(
-        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, int along, bool frontAtLow)
+    /// <summary>An edge's free <paramref name="runs"/> cut to the seats whose centre stands within a cell of
+    /// <paramref name="centre"/>, for a dock <paramref name="along"/> wide. A spawn seated in line with the hub's
+    /// hole faces it squarely and walks about as far to a wool on either side of it; one behind the hole stands
+    /// nearer the wool at the back, and one ahead of it walks straight out onto the frontline.</summary>
+    public static IReadOnlyList<(int Start, int Len)> InLine(
+        IReadOnlyList<(int Start, int Len)> runs, int along, double centre)
     {
-        var fromFront = (edgeLen - along + 1) / 2;
-        var (lo, hi) = frontAtLow ? (fromFront, edgeLen) : (0, edgeLen - fromFront);
+        var lo = (int)Math.Ceiling(centre - along / 2.0 - 1);
+        var hi = (int)Math.Floor(centre - along / 2.0 + 1) + along;
         return runs
             .Select(r => (Start: Math.Max(r.Start, lo), End: Math.Min(r.Start + r.Len, hi)))
             .Where(r => r.End > r.Start)
             .Select(r => (r.Start, r.End - r.Start))
             .ToList();
+    }
+
+    /// <summary>The centre of the hub's enclosed hole along <paramref name="edge"/>, in that edge's own
+    /// coordinates, or null for a body without one.</summary>
+    private static double? HoleCentre(BoxEdge edge, CellRect hub, IReadOnlySet<(int X, int Z)> holes)
+    {
+        if (holes.Count == 0) return null;
+        var alongX = edge is BoxEdge.Top or BoxEdge.Bottom;
+        var span = holes.Select(c => alongX ? c.X - hub.X : c.Z - hub.Z).ToList();
+        return (span.Min() + span.Max() + 1) / 2.0;
     }
 
     /// <summary>A free box-local along-position for an <paramref name="along"/>-wide dock among the edge's

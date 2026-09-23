@@ -165,8 +165,11 @@ public static class UnitRequests
             if (family == ShapeFamily.Donut)
             {
                 attachW = rng.NextInt(woolLaneCells, UnitTuning.DonutEntryMaxCells(woolLaneCells) + 1);
-                var holeAlong = rng.NextInt(1, UnitTuning.DonutHoleAlongMaxCells + 1);
-                var holeDeep = rng.NextInt(woolLaneCells, UnitTuning.DonutHoleDeepMaxCells(woolLaneCells) + 1);
+                // the hole is one a player rounds rather than jumps, so neither extent starts under a hub hole's
+                var holeFloor = UnitTuning.HubHoleCells(cell);
+                var holeAlong = rng.NextInt(holeFloor, Math.Max(holeFloor, UnitTuning.DonutHoleAlongMaxCells) + 1);
+                var deepFloor = Math.Max(woolLaneCells, holeFloor);
+                var holeDeep = rng.NextInt(deepFloor, Math.Max(deepFloor, UnitTuning.DonutHoleDeepMaxCells(woolLaneCells)) + 1);
                 depth += holeDeep - woolLaneCells;
                 along = Math.Max(along, Math.Max(2 * woolLaneCells + holeAlong, attachW + woolLaneCells));
             }

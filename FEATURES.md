@@ -5591,6 +5591,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   holds through the change. On the hole-hub exemplar both of its G123 blockers clear, leaving only its unrelated
   scale anomalies. (G123)
 
+- **A side spawn stands in line with the hub's hole; a donut's hole is a hole (`G276`)** —
+  `Compose/UnitSeating.cs` (`InLine`, the hub body's enclosed cells), `Compose/UnitRequests.cs`. The author's
+  second judged sweep: a spawn behind the hub's hole stood nearer the back wool, so a lateral spawn's centre now
+  stands within a cell of the hole's centre, or of the edge's middle on a solid hub. A composed donut's own hole
+  was drawn from one cell along the hub edge; both extents now start at `WL12`'s 12-block floor for a hole, which
+  clears the 27 donut findings of 400 boards. At 20 players the ninetieth-percentile score falls from 3.85 to
+  2.62. `ComposerVersion` `walled-2`; `rules.md` amendment 50. (`G276`)
+
 - **`WL12` splits a goal's floor by what lies across the gap (`G264`)** — `Plan/PlanValidator.cs`
   (`MinGoalHomeSpaceBlocks`). A crossing from a wool room or spawn to the team's own ground away from the front
   wants 12 blocks, one to a piece fronting the crossing's build band or to another goal still 16. The author's
@@ -5598,7 +5606,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   fall from 295 to 31 over 400 seeds. `rules.md` amendment 49. (`G264`)
 
 - **Composed boards held to the author's judgement of them (`G275`)** — `Compose/TeamUnitAllocator.cs`,
-  `Compose/UnitSeating.cs` (`BackHalf`), `Compose/TeamUnitFiller.cs` (`TowardHub`), `Compose/UnitTuning.cs`
+  `Compose/UnitSeating.cs`, `Compose/TeamUnitFiller.cs` (`TowardHub`), `Compose/UnitTuning.cs`
   (`HubHoleCells`), `Compose/WallPlacer.cs`, `Evaluate/Terms/FrontFloorTerms.cs`, `Evaluate/EvaluationProfile.cs`
   (`Composer`). Fifteen composed boards judged by the author against a 600-board sweep: every board called fine
   had a frontline, a spawn 58+ blocks by the walk from the build band and wools 59+; every one flagged sat under

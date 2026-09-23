@@ -81,13 +81,15 @@ public sealed class ShapeCatalogTests
     }
 
     [Test]
-    public async Task The_donut_dominates_the_in_mix_variety()
+    public async Task The_donut_carries_the_most_in_mix_variety()
     {
-        // the measured sampling imbalance (G144/G118): the donut's sampled hole and entry width give it most
-        // of the shape variety, while U/H/L are one shape apiece. This is a fact the verdict corpus inherits.
+        // the measured sampling imbalance (G144/G118): the donut's sampled hole and entry width give it more
+        // shapes than any other family, while U/H/L are one shape apiece. This is a fact the verdict corpus
+        // inherits.
         var inMix = Wools.Where(s => s.Tier == CatalogTier.InMix).ToList();
-        var donuts = inMix.Count(s => s.Family == "donut");
-        await Assert.That(donuts).IsGreaterThan(inMix.Count / 2);
+        var byFamily = inMix.GroupBy(s => s.Family).ToDictionary(g => g.Key, g => g.Count());
+        await Assert.That(byFamily.MaxBy(kv => kv.Value).Key).IsEqualTo("donut")
+            .Because(string.Join(", ", byFamily.Select(kv => $"{kv.Key} {kv.Value}")));
     }
 
     [Test]

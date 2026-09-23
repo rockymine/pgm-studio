@@ -201,8 +201,8 @@ public static class UnitTuning
     internal static int DonutEntryMaxCells(int woolLaneCells) => Math.Max(woolLaneCells, 5);
 
     /// <summary>The donut's enclosed hole cap <b>along</b> the hub edge (the ring's mouth-side extent), in cells.
-    /// Sampled from one, so it needs no lane floor.</summary>
-    internal const int DonutHoleAlongMaxCells = 3;
+    /// Sampled from <see cref="HubHoleCells"/>, a hole's floor, where that is under the cap.</summary>
+    internal const int DonutHoleAlongMaxCells = 4;
 
     /// <summary>The donut's enclosed hole cap <b>deep</b> (outward), in cells. The min box gives the 1×2 hole;
     /// the sampled growth reaches 3×5 — the box grows and the emitter's ring absorbs it (its span derives from

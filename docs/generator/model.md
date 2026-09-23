@@ -1033,9 +1033,10 @@ the allocator is arithmetic on the seat, and the rectangle is derived once, at t
 survived.
 
 A spawn on a lateral edge is the one request whose seats are cut before the search: only the ones putting its
-centre level with the hub's middle or behind it, counted away from the front. A spawn seated toward the front
-walks straight out onto the frontline; one level with the middle faces the hub's hole and has the frontline
-and both wools about equally far. Where it docks also decides which way it faces — into the hub, so a spawn
+centre within a cell of the centre of the hub's hole, or of the edge's middle on a hub without one. A spawn
+seated toward the front walks straight out onto the frontline, and one behind the hole stands nearer the wool at
+the back than the one across the hub; in line with the hole it faces the hole squarely and walks about as far to
+either. Where it docks also decides which way it faces — into the hub, so a spawn
 beside the hub faces across it and one behind it faces the axis through it, and no door opens over the void
 past the hub's side.
 

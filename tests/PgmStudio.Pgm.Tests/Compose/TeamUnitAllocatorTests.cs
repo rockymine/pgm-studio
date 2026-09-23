@@ -199,61 +199,59 @@ public class TeamUnitAllocatorTests
     }
 
     [Test]
-    public async Task A_lateral_spawn_sits_level_with_the_hub_middle_or_behind_it()
+    public async Task A_lateral_spawn_sits_in_line_with_the_hub_hole_or_its_middle()
     {
-        // a spawn seated toward the front walks straight out onto the frontline; on a lateral edge its centre
-        // is at or past the hub's centre, counted away from the front (mirror_z: the front is the hub's min z)
+        // a spawn beside the hub faces its hole squarely: its centre within a cell of the hole's centre, or of the
+        // edge's middle on a hub without one (mirror_z: a lateral spawn runs along z)
         var lateral = 0;
         foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0), (20, 3800.0) })
             for (ulong seed = 0; seed < 300; seed++)
             {
                 if (TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed)) is not { } a) continue;
+                if (TeamUnitFiller.Fill(a, new ComposeRng(seed)) is not { } filled) continue;
                 var hub = a.ById("hub")!.Rect;
                 var spawn = a.Boxes.Single(b => b.Kind == BoxKind.Spawn).Rect;
-                var onLeft = spawn.X + spawn.Width == hub.X;
-                var onRight = spawn.X == hub.X + hub.Width;
-                if (!onLeft && !onRight) continue;
+                if (spawn.X + spawn.Width != hub.X && spawn.X != hub.X + hub.Width) continue;
                 lateral++;
-                await Assert.That(2 * spawn.Z + spawn.Height).IsGreaterThanOrEqualTo(2 * hub.Z + hub.Height)
-                    .Because($"{players}p/{land:0} seed {seed}: spawn z {spawn.Z}+{spawn.Height}, hub z {hub.Z}+{hub.Height}");
+                var hole = Enclosed(hub, filled.Unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Hub).Select(p => p.Rect));
+                var target2 = hole.Count > 0 ? hole.Min(c => c.Z) + hole.Max(c => c.Z) + 1 : 2 * hub.Z + hub.Height;
+                await Assert.That(Math.Abs(2 * spawn.Z + spawn.Height - target2)).IsLessThanOrEqualTo(2)
+                    .Because($"{players}p/{land:0} seed {seed}: spawn z {spawn.Z}+{spawn.Height}, hub {hub}, hole cells {hole.Count}");
             }
         await Assert.That(lateral).IsGreaterThan(0).Because("the sweep has to reach lateral spawns");
     }
 
     [Test]
-    public async Task A_holed_hub_keeps_a_hole_too_wide_to_jump()
+    public async Task In_line_keeps_only_the_seats_centred_within_a_cell_of_the_target()
     {
-        // WL12's floor for a plain hole, in cells on the envelope's grid: a narrower hole is jumped, not rounded
-        var holed = 0;
-        foreach (var (players, land) in new[] { (8, 1600.0), (12, 2800.0), (20, 3800.0), (30, 5200.0) })
-            for (ulong seed = 0; seed < 150; seed++)
-            {
-                var env = Env(players, land);
-                if (TeamUnitAllocator.Allocate(env, new ComposeRng(seed)) is not { } a) continue;
-                var hub = a.ById("hub")!;
-                if (hub.Form?.Form is not (Compound.Ring or Compound.P or Compound.DoubleHole or Compound.G)) continue;
-                holed++;
-                var cw = hub.HubCorridor;
-                var walls = hub.HubWalls ?? RingWalls.Uniform(cw);
-                var ringW = hub.Form.Form == Compound.Ring ? hub.Rect.Width : hub.Rect.Width - 2 * cw;
-                var floor = (PlanValidator.MinPlainSpaceBlocks + env.Cell - 1) / env.Cell;
-                await Assert.That(ringW - walls.Left - walls.Right).IsGreaterThanOrEqualTo(floor)
-                    .Because($"{players}p seed {seed} {hub.Form.Form} {hub.Rect}");
-                await Assert.That(hub.Rect.Height - walls.Top - walls.Bottom).IsGreaterThanOrEqualTo(floor)
-                    .Because($"{players}p seed {seed} {hub.Form.Form} {hub.Rect}");
-            }
-        await Assert.That(holed).IsGreaterThan(0).Because("the sweep has to reach holed hubs");
+        // a 12-cell edge, a 4-cell dock, the target at 6: seats 3..5 centre within a cell of it
+        await Assert.That(UnitSeating.InLine([(0, 12)], 4, 6)).IsEquivalentTo(new[] { (3, 6) });
+        // a run that stops short of the window is cut to what it covers, one wholly outside is dropped
+        await Assert.That(UnitSeating.InLine([(0, 5), (10, 2)], 4, 6)).IsEquivalentTo(new[] { (3, 2) });
     }
 
-    [Test]
-    public async Task Back_half_keeps_only_the_seats_level_with_the_middle_or_behind_it()
+    // the cells of a box no rect covers and no empty path reaches from the box's border
+    private static HashSet<(int X, int Z)> Enclosed(CellRect box, IEnumerable<CellRect> rects)
     {
-        // a 12-cell edge, a 4-cell dock: seats 4..8 are the centred-or-behind ones when the front is at 0
-        await Assert.That(UnitSeating.BackHalf([(0, 12)], 12, 4, frontAtLow: true)).IsEquivalentTo(new[] { (4, 8) });
-        await Assert.That(UnitSeating.BackHalf([(0, 12)], 12, 4, frontAtLow: false)).IsEquivalentTo(new[] { (0, 8) });
-        // a run wholly in the front half is dropped, one straddling the middle is cut at it
-        await Assert.That(UnitSeating.BackHalf([(0, 3), (5, 7)], 12, 4, frontAtLow: true)).IsEquivalentTo(new[] { (5, 7) });
-        await Assert.That(UnitSeating.BackHalf([(0, 3), (2, 6)], 12, 4, frontAtLow: true)).IsEquivalentTo(new[] { (4, 4) });
+        var land = new HashSet<(int, int)>();
+        foreach (var r in rects)
+            for (var x = r.X; x < r.X + r.Width; x++)
+                for (var z = r.Z; z < r.Z + r.Height; z++) land.Add((x, z));
+        var empty = new HashSet<(int X, int Z)>();
+        for (var x = box.X; x < box.X + box.Width; x++)
+            for (var z = box.Z; z < box.Z + box.Height; z++)
+                if (!land.Contains((x, z))) empty.Add((x, z));
+        var edge = empty.Where(c => c.X == box.X || c.Z == box.Z || c.X == box.X + box.Width - 1 || c.Z == box.Z + box.Height - 1);
+        var reached = new HashSet<(int X, int Z)>(edge);
+        var queue = new Queue<(int X, int Z)>(reached);
+        while (queue.Count > 0)
+        {
+            var (x, z) = queue.Dequeue();
+            foreach (var n in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
+                if (empty.Contains(n) && reached.Add(n)) queue.Enqueue(n);
+        }
+        empty.ExceptWith(reached);
+        return empty;
     }
 
     // two [x,z,w,h] rects keep at least `gap` cells between them on some axis — no touch, no corner-touch (the
