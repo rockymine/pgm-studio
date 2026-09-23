@@ -5591,6 +5591,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   holds through the change. On the hole-hub exemplar both of its G123 blockers clear, leaving only its unrelated
   scale anomalies. (G123)
 
+- **`WL12` splits a goal's floor by what lies across the gap (`G264`)** — `Plan/PlanValidator.cs`
+  (`MinGoalHomeSpaceBlocks`). A crossing from a wool room or spawn to the team's own ground away from the front
+  wants 12 blocks, one to a piece fronting the crossing's build band or to another goal still 16. The author's
+  ruling: 12 from a room to its own hub is on the low end and not a fault. Composed boards' `WL12` findings
+  fall from 295 to 31 over 400 seeds. `rules.md` amendment 49. (`G264`)
+
 - **Composed boards held to the author's judgement of them (`G275`)** — `Compose/TeamUnitAllocator.cs`,
   `Compose/UnitSeating.cs` (`BackHalf`), `Compose/TeamUnitFiller.cs` (`TowardHub`), `Compose/UnitTuning.cs`
   (`HubHoleCells`), `Compose/WallPlacer.cs`, `Evaluate/Terms/FrontFloorTerms.cs`, `Evaluate/EvaluationProfile.cs`

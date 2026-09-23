@@ -325,6 +325,14 @@ height. That is exactly what a made thing needs, and none of it has to be invent
 
 ## The plan model: pieces, and the edges between them
 
+- [ ] **G276 — A composed donut's own hole is 4–8 blocks, under `WL12`'s 12 for a hole.** The donut samples its
+  enclosed hole along the hub edge at 1–3 cells (`UnitTuning.DonutHoleAlongMaxCells`), so on the cell-4 grid it
+  is jumped rather than rounded and the ring's two ways in are one. Floor the along-extent at
+  `UnitTuning.HubHoleCells` in `UnitRequests.WoolRequest`, or drop the donut where the edge cannot pay for it;
+  the author's note on the same boards is that a donut wants its two walls at the hole, not one at the entry.
+  `docs/generator/model.md`. *Evidence: 27 of 400 composed boards, e.g. `p20 rot_180 seed 82`,
+  `wool-b-t1` ↔ `wool-b-t5`, 4 blocks.*
+
 - [ ] **TN21 — a plan's `meta.authors` does not survive the compile.** `POST /api/plan/compile` answers an
   intent whose `meta` is `{name, created: "", authors: [], contributors: []}` however the plan's own `meta`
   was filled in, so a board driven plan-first exports with `EX6` — the observer platform's authors board

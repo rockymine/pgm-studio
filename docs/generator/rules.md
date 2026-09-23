@@ -213,15 +213,19 @@ and a fall counted but not charged, routing around voids — never the straight 
   room reached only over a build zone states no land seam and is not this rule's business but
   `BZ5`'s.
 
-- **WL12 [author]** **A bay or a hole beside a goal is at least 16 blocks across.** Negative space is
+- **WL12 [author]** **A bay or a hole between a goal and the front is at least 16 blocks across, and one
+  between a goal and its own ground at least 12.** Negative space is
   crossed by **jumping** long before it is crossed by building: a short gap between a frontline and a
   wool room, or between a spawn and a wool room, lets a player tower at the near edge and jump in, and
   the approach the board was drawn around stops being walked at all. The measure is the **narrowest
   straight crossing** — the shortest line over the space with terrain on **both** ends, a run open at
   one end being a way out rather than a gap over. A space walled on three sides or enclosed (a `bay` or
   a `hole`, `NegativeSpaceKinds`) is asked; a space any **build zone** covers is not, since building
-  over it is what the zone states. The floor is **16 blocks** where the space touches a wool-room or
-  spawn piece and **12** where it touches neither — a hole in a team's own ground is crossed on purpose.
+  over it is what the zone states. Where a crossing touches a wool-room or spawn piece, the floor is
+  **16 blocks** when its other end is a piece fronting the crossing's build band, or another goal, and **12**
+  when it is the team's own ground away from the front — its hub, an approach — since the side that jumps
+  that gap is the one already standing there (amendment 49). A space touching neither keeps **12**, and a
+  hole in a team's own ground is crossed on purpose.
   Stated in **blocks**, never in cells: a floor stated as a cell count moves with the grid scale, and a
   jump does not care what the grid was.
 
@@ -1034,6 +1038,12 @@ the question it exists for is *what is this finding* and a rule nothing raises h
 rest are law all the same, and this file is where the law is. A rule that starts being raised joins the
 catalogue by being added to that set, which `RulesEndpointTests` holds to the source in both directions.
 
+49. **`WL12`: a goal's own ground is 12 blocks, the front stays 16 (2026-09-23).** Author's call, off the
+    composed boards the rule flagged. A wool room 12 blocks from its own hub is "on the low end, but not
+    terrible"; a wool room or spawn that close to the frontline, or to another goal, still wants 16. The other
+    end of a crossing is read as frontline when that piece has a side facing the crossing's build band
+    (`FR8`'s frontage). On 400 composed boards the rule's findings fall from 295 to 31: 27 donut approaches
+    whose own hole is under 12, and 4 wool rooms 12 blocks from the front.
 48. **The composer seats one defence wall per wool, and `PL17` reads the land past a wall's ends
     (2026-09-23).** Author's call, closing `TN22`. A wall stands across the attack's route into the approach,
     on a seam with no land one block beyond either end on either face, a lane mouth wide and `ST8`'s 10–20

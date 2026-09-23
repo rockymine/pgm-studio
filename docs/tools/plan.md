@@ -778,9 +778,10 @@ crosses is narrower than any of that — the shortest straight line over the spa
 ends, since a run open at one end is a way out of the space rather than a gap over it — so that is the number
 `narrowestBlocks` carries, with the piece at each end named.
 
-`WL12` reads it against two floors, both in blocks so they hold at any grid scale: **16** where a crossing
-touches a wool room or a spawn, and **12** for the narrowest crossing of a hole, which is crossed on purpose
-and may be tighter. A crossing any build zone reaches is not asked at all — building over it is what the zone
+`WL12` reads it against three floors, all in blocks so they hold at any grid scale. A crossing touching a wool
+room or a spawn wants **16** when its other end fronts the crossing's build band or is another goal, and **12**
+when it is the team's own ground away from the front — the hub, an approach. The narrowest crossing of a hole
+touching no goal wants **12**, since it is crossed on purpose. A crossing any build zone reaches is not asked at all — building over it is what the zone
 states. The fault it names is a short gap beside a goal: a player towers at one edge, jumps it, and the
 approach the board was drawn around is never walked.
 

@@ -41,17 +41,14 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
   and its p90 at 43 (836 voids), so the bar is the corpus p90. `opus5-threapland` is the worked case: one
   76×36 hole at cell (-10,-19), where a double-hole hub would have given two.*
 
-- [~] **G264 — The composer seats a wool room its own lane-width from the hub, so a goal's setback is the
-  band's corridor and not a distance.** On a composed board the gap `WL12` names is the **inside corner of a
-  bent wool**: `wool-a-room` sits at the far side of the wool lane, so the void between the room and `hub-t1`
-  (or `frontline-t1`) is exactly that lane's width — 12 blocks at nano and 16 at milli and centi on the cell-4
-  grid, against the author's floor of 16 from the room to the frontline. The **room's setback along its lane**
-  takes a block basis of its own, in `WoolBoxEmitter` rather than in the seat clearance.
+- [~] **G264 — A composed wool room can stand 12 blocks across void from a piece fronting the crossing.** The
+  inside corner of a bent wool is its lane's width, 12 blocks at nano, which `WL12` allows against the team's
+  own ground and not against the front (16). The room's setback along its lane takes a block basis of its own
+  where the ground across the corner fronts the band, in `WoolBoxEmitter` rather than in the seat clearance.
   `docs/generator/rules.md` and `model.md`.
 
-  *Evidence: `p8 rot_180 seed 0` at nano, wool lane 3 cells — `wool-a-room x[-1,1) z[20,23)` stands off
-  `hub-t1 x[-6,6) z[14,17)` by 12 blocks, the lane's own width and four under the floor. Nano is where it
-  binds: a 16-block floor is 4 cells against a 3-cell lane, so the room has to move rather than the lane widen.*
+  *Evidence: 4 of 400 composed boards (200 seeds each at 8 and 20 players), e.g. `p20 rot_180 seed 53`,
+  `frontline-t1` ↔ `wool-b-room`, 12 blocks.*
 
 ## Nothing else is on the board
 

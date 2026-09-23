@@ -1059,10 +1059,16 @@ public static class PlanValidator
     /// see.</summary>
     public const int MinFrontlineBlocks = 15;
 
-    /// <summary>How wide a negative space beside a wool room or a spawn must be, in blocks — the floor
-    /// <c>WL12</c> measures against. A gap is crossed by jumping long before it is crossed by building, so a
-    /// short one beside a goal deletes the approach the board was drawn around.</summary>
+    /// <summary>How wide a negative space between a wool room or a spawn and the frontline — or another goal —
+    /// must be, in blocks, the floor <c>WL12</c> measures against. A gap is crossed by jumping long before it is
+    /// crossed by building, and one the attack reaches from the front deletes the approach the board was drawn
+    /// around.</summary>
     public const int MinGoalSpaceBlocks = 16;
+
+    /// <summary>The same floor between a wool room or a spawn and the team's own ground away from the front —
+    /// its hub, an approach — in blocks. The author's number: 12 is on the low end and not a fault, since
+    /// the side that jumps it is the one already standing there.</summary>
+    public const int MinGoalHomeSpaceBlocks = 12;
 
     /// <summary>The same floor for a space touching neither, in blocks: a hole in a team's own ground is
     /// crossed on purpose and may be tighter than one beside a goal.</summary>
@@ -1107,12 +1113,14 @@ public static class PlanValidator
 
         // WL12 — how narrow a gap beside a goal is. The space reader measures every straight run the terrain
         // closes at both ends, which is the line a player jumps, and names the piece at each end. A run any
-        // build zone covers is not asked: building over it is what the zone states. Two floors, both in
-        // blocks so they hold at any grid scale — a crossing touching a wool room or a spawn, and the
-        // narrowest crossing of a hole, which is crossed on purpose and may be tighter.
+        // build zone covers is not asked: building over it is what the zone states. Three floors, all in
+        // blocks so they hold at any grid scale — a goal across from the frontline or another goal, a goal
+        // across from its team's own ground, and the narrowest crossing of a hole touching no goal.
         var goalPieces = new HashSet<string>(
             plan.Pieces.Where(piece => piece.Role is PlanRoles.WoolRoom or PlanRoles.Spawn).Select(piece => piece.Id),
             StringComparer.Ordinal);
+        var frontPieces = PieceInterfaces.Frontages(board).Where(face => face.FrontlineBlocks > 0)
+            .Select(face => face.Piece).ToHashSet(StringComparer.Ordinal);
         var reported = new HashSet<(string, string, int)>();
         foreach (var space in board.Spaces)
         {
@@ -1121,7 +1129,9 @@ public static class PlanValidator
             foreach (var run in space.Crossings)
             {
                 var beside = new[] { run.From, run.To }.Where(goalPieces.Contains).Distinct().ToList();
-                var floor = beside.Count > 0 ? MinGoalSpaceBlocks
+                var across = new[] { run.From, run.To }.Where(end => !goalPieces.Contains(end)).ToList();
+                var exposed = beside.Count > 1 || across.Any(end => end.Length == 0 || frontPieces.Contains(end));
+                var floor = beside.Count > 0 ? (exposed ? MinGoalSpaceBlocks : MinGoalHomeSpaceBlocks)
                     : hole && run.Cells == narrowest ? MinPlainSpaceBlocks
                     : 0;
                 if (floor == 0) continue;
@@ -1136,7 +1146,8 @@ public static class PlanValidator
                 var what = beside.Count > 0
                     ? $"the gap between '{run.From}' and '{run.To}'"
                     : $"the {space.Kind} between '{run.From}' and '{run.To}'";
-                var wants = beside.Count > 0 ? "a gap beside a goal wants" : "a hole wants";
+                var wants = beside.Count == 0 ? "a hole wants"
+                    : exposed ? "a gap between a goal and the front wants" : "a gap between a goal and its own ground wants";
                 yield return Lint("WL12",
                     $"{what} is {crossing} blocks across, under the {floor} {wants} — a "
                     + "player towers at one edge and jumps it, and the approach the board is drawn around is "
