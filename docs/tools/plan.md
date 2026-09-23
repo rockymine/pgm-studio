@@ -354,12 +354,14 @@ A wall on a pair that shares no land interface is an error (`PL11`), and so is a
 the wool room's own interface (`PL13`) — the wall and the room would stamp through each other, so the device
 belongs an approach out, around 15 blocks from the room.
 
-A wall sits between two pieces of the same width, and one between pieces of unequal width draws a complaint
-(`PL17`). The wall spans only the interval the two pieces share, so a piece reaching past that interval along
-the wall's own axis puts ground beside the wall's end, and a player standing there rounds the line with one
-diagonal jump off the corner instead of crossing it. The fix is a piece the lane's own width between the two,
-with the wall on that seam: flanked by nothing, the wall has to be crossed, because going round it means
-leaving the ground.
+A wall with land running past either of its ends draws a complaint (`PL17`) naming the piece that holds it.
+The wall spans only the interval the two pieces share, so ground one block beyond an end, on either face, is
+ground a player stands on beside the wall and rounds the line from, with one step off the corner instead of
+crossing it. That ground is either one of the two walled pieces running past the shared interval, or a third
+piece the wall stands against — a wall where an arm meets a hub side of its own width is flanked by the hub's
+pieces in front of and behind that side. The fix is a piece the lane's own width between the two, with the wall
+on that seam: flanked by nothing, the wall has to be crossed, because going round it means leaving the
+ground.
 
 ### Boxes
 

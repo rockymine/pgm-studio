@@ -35,17 +35,16 @@ foreach (var (label, players) in presets)
         sb.Append($"[{sym}/{label}/{seed}]");
         if (TeamUnitAllocator.Allocate(env, new ComposeRng((ulong)seed)) is not { } a) { sb.Append("NOALLOC\n"); continue; }
         alloc++;
-        sb.Append($"facing={a.SpawnFacing};");
-        foreach (var b in a.Partition.Boxes)
+        foreach (var b in a.Boxes)
             sb.Append($"B({b.Id},{b.Kind},[{string.Join(" ", b.Rect)}],land={b.LandTargetCells}," +
                 $"form={(b.Form is null ? "-" : $"{b.Form.Form}:{b.Form.Arms}")},flip={b.FlipV}," +
                 $"wool={(b.Wool is null ? "-" : $"{b.Wool.Family}:{b.Wool.Placement}:{b.Wool.Flip}:{b.Wool.WoolAtEnd}")});");
-        foreach (var j in a.Partition.Joints)
+        foreach (var j in a.Joints)
             sb.Append($"J({j.BoxA}->{j.BoxB},{j.Abutment.Edge}@{j.Abutment.Start}+{j.Abutment.WidthCells}," +
                 $"grant={(j.Grant is null ? "-" : $"{j.Grant.Edge}@{j.Grant.Interval.Start}+{j.Grant.Interval.LengthCells}" +
                     $":w{j.Grant.WidthClass}:{j.Grant.Grouping}:{j.Grant.GroupId}")});");
 
-        if (TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng((ulong)seed)) is not { } f)
+        if (TeamUnitFiller.Fill(a, new ComposeRng((ulong)seed)) is not { } f)
         { sb.Append("NOFILL\n"); continue; }
         filled++;
         foreach (var p in f.Unit.Pieces)

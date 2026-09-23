@@ -80,7 +80,8 @@ mismatch, later carried into the export gate as `OB18` (`B116`) — was built on
 removed by `B134`.
 
 Two more that were not faults but absences closed with them: a destroyable now stands on a one-block bedrock
-platform (MG23, `B88`) and every goal carries a marker above the build cap (MG24, `B89`).
+platform (MG23, `B88`) and every goal carries a marker above the build cap (MG24, `B89`). A third closed
+later: the composer seats a defence wall on every wool approach where a seam allows (MG21, `G275`).
 
 What remains below is design. It is the difference between a rough map and a good one, which is a real
 difference, and the section that follows is what it is measured against.
@@ -162,17 +163,9 @@ the tools for watching a match rather than playing one — and the intent has no
 ## The structures
 
 `StructureIntent` is the stamped furniture a map is played through — entrance redstone, iron
-cubes and approach walls. Two of its four lists are complete end to end and reachable only by hand: the
-**layout generator never authors them**, so they exist on maps someone drew and on no map it composed.
-
-**MG21 — The defence wall is fully authorable and the composer never asks for one.** The chain is whole. A
-plan carries `walls` as a list of `PlanWall`, each naming the two pieces (`a`, `b`) whose interface it
-stands on; the plan editor authors one by clicking that interface with the brick tool; `PlanValidator` checks
-it; `PlanCompiler` computes the footprint from the two pieces' contact, fans it through the orbit and emits a
-`WallStructure`; the stamper builds it and `DressingScope` protects the ground under it. What no code does is
-put a `PlanWall` into a plan the **composer** produced, so a generated board has no wall unless a person
-opens it in the editor and marks the seam. The work is in `Composer` — deciding which contacts deserve a wall
-— and not in building a wall system, which is done.
+cubes and approach walls. Iron is complete end to end and reachable only by hand: the **layout generator
+never authors it**, so it exists on maps someone drew and on no map it composed. Approach walls the composer
+seats itself (`model.md` §5.14).
 
 Worth reading before touching it, because it settles a question MG26 raises elsewhere: the wall is two blocks
 thick so one face can be opened while the other stays solid, and which face carries its defence chests is
@@ -291,7 +284,7 @@ natural ground falling away west* — and the author turns it into shapes, heigh
 document that already has the words for them, not through a spec that renamed a handful.
 The layout and the intent are the reference `MapSpec` should have been written against from the start, and `tools/seeds/ruediger.layout.json` is a hand-drawn map that uses the layout format to its width —
 three themes chosen per shape, ten `base_height` tiers stepping the ground with no relief block at all,
-Bézier outlines, a subtract, and the defence walls of MG21 actually authored.
+Bézier outlines, a subtract, and defence walls authored by hand.
 
 **MG34 — The sketch stage was skipped as an authoring step.** mapgen composes a plan, compiles it and builds
 the world, so whatever rectangles the compiler emitted are what got built. But the compiler emits

@@ -19,7 +19,7 @@ public sealed class BoxPartitionTests
         var env = Envelope.Derive(request, rng);
         var crossing = MidCarver.Crossing(env, splitBand: false, doubleRank: false, fine: false);
         if (TeamUnitAllocator.Allocate(env, rng, crossing) is not { } alloc) return null;
-        return TeamUnitFiller.Fill(alloc.Partition, alloc.SpawnFacing, rng)?.Unit;
+        return TeamUnitFiller.Fill(alloc, rng)?.Unit;
     }
 
     [Test]

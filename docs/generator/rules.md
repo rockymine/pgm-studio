@@ -134,6 +134,11 @@ and a fall counted but not charged, routing around voids — never the straight 
   own line. A **build zone counts as ground** — the gap-only spawn (SP6) whose door opens onto its
   egress bridge is an authored motif; a *buffer* is exactly the declared emptiness this keeps off
   the doorstep (the `entrance-void` fault: a 25-deep drop at the door face).
+- **SP10 [author]** **A spawn stands at least 55 blocks by the walk from the crossing's build band**
+  (`spawn-front-floor`). A spawn nearer than that walks straight out onto the frontline, and its team
+  defends from the crossing rather than from its own ground. Judged off composed boards: every spawn the
+  author called too close walked 43 blocks or less to the band, every one accepted 58 or more. A composer
+  floor — the composer's gate holds its boards to it and an authored plan is not held to it (amendment 45).
 
 ## WL — Wool room
 
@@ -194,7 +199,9 @@ and a fall counted but not charged, routing around voids — never the straight 
   (`wool-front-remoteness`, the largest per-wool front distance, any wool count) catches the stalemate
   the balance reads are blind to — a wool far from the front *and* far from everything can carry a
   perfectly balanced deficit while forcing the attacker to run the whole board into a defended
-  chokepoint.
+  chokepoint. (e) On a composed board, a **floor** (`wool-front-floor`): every wool at least 59 blocks
+  by the walk from the build band. Judged off composed boards: every wool the author called too close to
+  the frontline walked 58 or less, and the nearest one called fine 59 (amendment 46).
 - **WL11 [author]** A wool room's **approach steps by 1 level or takes a ramp**: an entry seam at
   **Δ≥2** is un-walkable bare, the same reading `SP8` takes of a spawn's egress and for the same
   reason (EL1's palette steps by 2). The player who crosses that seam is the **attacker** — a team
@@ -1027,6 +1034,28 @@ the question it exists for is *what is this finding* and a rule nothing raises h
 rest are law all the same, and this file is where the law is. A rule that starts being raised joins the
 catalogue by being added to that set, which `RulesEndpointTests` holds to the source in both directions.
 
+48. **The composer seats one defence wall per wool, and `PL17` reads the land past a wall's ends
+    (2026-09-23).** Author's call, closing `TN22`. A wall stands across the attack's route into the approach,
+    on a seam with no land one block beyond either end on either face, a lane mouth wide and `ST8`'s 10–20
+    blocks in front of the room — or, on a two-legged approach whose room lies deeper than that, the
+    nearest such seam the attack crosses, the entrance the defence holds. A straight lane is cut across to
+    make the seam, and a back-room lane is built long enough to carry one. `PL17` compared only the two
+    pieces a wall names, so a wall at a T with a hub running past both ends passed; it now asks whether
+    **any** land continues past either end and names the piece that holds it.
+47. **A composed unit always carries a frontline, its side spawn sits back and faces the hub, and its hub
+    hole is at least 12 blocks (2026-09-23).** Author's call, off a judged sweep of composed boards. Every
+    board judged fine had a frontline and every one without was flagged for a middle too wide, so the
+    no-frontline draw is gone. A spawn on a lateral hub edge is seated level with the hub's middle or behind
+    it, and faces into the hub from whichever side it docks — the placement the author gave a clamp board's
+    spawn. A ring's hole, and the ring inside a P, double-hole or G, keeps `WL12`'s 12-block floor for a
+    plain hole: a narrower one is jumped rather than rounded.
+46. **`WL10` gains a composed floor (2026-09-23).** Author's call. The author's recurring reason for
+    moving a wool was that it sat too close to the frontline; the floor is the line between the wools so
+    judged and those called fine, 59 blocks by the walk to the build band on the evaluator's own read.
+45. **`SP10` added (2026-09-23).** Author's call. A spawn too close to the frontline "simply isn't
+    wanted"; 55 blocks by the walk sits between the spawns judged too close (43 or less) and those
+    accepted (58 or more). Both floors bind the composer only: `EvaluationProfile.Composer` gates on them
+    and `EvaluationProfile.Default`, which the editor lint runs, leaves them off.
 44. **A band never calls the ideal a fault (2026-09-22).** Author's call, settling a complaint on
     `opus5c-emberhowe`. `WL9`'s `spawn-wool-ratio` and `WL10`'s `wool-front-ratio` are both max ÷ min, so
     they cannot read below 1 and 1 is two wools the same walk apart — the balance each rule asks for. Their

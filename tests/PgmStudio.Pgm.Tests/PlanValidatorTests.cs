@@ -128,6 +128,29 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
+    public async Task A_wall_where_a_third_piece_runs_past_its_end_is_flagged_and_one_on_a_neck_is_not()
+    {
+        // An arm walled against a hub side of its own width: the two named pieces match, but the hub's pieces
+        // in front of and behind that side carry ground past both ends of the wall. Moving the wall one piece
+        // out along the arm leaves void beyond both of its ends.
+        const string pieces = """
+          "pieces":[ {"id":"hub-front","role":"piece","rect":[0,0,4,2]},
+                     {"id":"hub-side","role":"piece","rect":[2,2,2,3]},
+                     {"id":"hub-back","role":"piece","rect":[0,5,4,2]},
+                     {"id":"neck","role":"piece","rect":[4,2,2,3]},
+                     {"id":"arm","role":"piece","rect":[6,2,3,3]},
+                     {"id":"wool","role":"wool-room","rect":[9,2,2,3]} ],
+        """;
+        var atTheT = Plan("""{ "plan":2, "globals":{"cell":5,"symmetry":"none"},""" + pieces
+                          + """ "walls":[ {"a":"hub-side","b":"neck"} ] }""");
+        var onTheNeck = Plan("""{ "plan":2, "globals":{"cell":5,"symmetry":"none"},""" + pieces
+                             + """ "walls":[ {"a":"neck","b":"arm"} ] }""");
+
+        await Assert.That(Lint(atTheT, PlanRules.WallAtJunction)).IsTrue();
+        await Assert.That(Lint(onTheNeck, PlanRules.WallAtJunction)).IsFalse();
+    }
+
+    [Test]
     public async Task Placement_outside_its_piece_is_an_error()
     {
         var p = Plan("""

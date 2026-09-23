@@ -171,4 +171,43 @@ public sealed class GateTermsTests
         await Assert.That(new SpawnWoolFloor().Measure(ctx).Violation).IsNull();
     }
 
+
+    // ── SpawnFrontFloor (SP10) and WoolFrontFloor (WL10), surface distance to the crossing ───────────────
+
+    // one lane off a mid band, spawn and wool at block offsets along it (cell 4: the lane starts 4 blocks past
+    // the band's edge)
+    private static EvalContext Lane(int spawnAt, int woolAt) => Ctx($$$"""
+        {"plan":2,"globals":{"cell":4,"symmetry":"rot_180"},
+         "pieces":[{"id":"lane","role":"piece","rect":[-2,1,4,24]}],
+         "zones":[{"id":"mid-band","rect":[-2,-1,4,2]}],
+         "placements":{"spawns":[{"piece":"lane","at":[8,{{{spawnAt}}}],"facing":"front"}],
+                       "wools":[{"piece":"lane","at":[8,{{{woolAt}}}]}]}}
+        """);
+
+    [Test]
+    public async Task Spawn_front_floor_fires_on_a_spawn_that_walks_straight_onto_the_crossing()
+    {
+        var near = new SpawnFrontFloor().Measure(Lane(spawnAt: 30, woolAt: 90));
+        await Assert.That(near.Violation).IsNotNull();
+        await Assert.That(near.Violation!.RuleId).IsEqualTo("SP10");
+        await Assert.That(new SpawnFrontFloor().Measure(Lane(spawnAt: 90, woolAt: 70)).Violation).IsNull();
+    }
+
+    [Test]
+    public async Task Wool_front_floor_fires_on_a_wool_beside_the_crossing()
+    {
+        var near = new WoolFrontFloor().Measure(Lane(spawnAt: 90, woolAt: 20));
+        await Assert.That(near.Violation).IsNotNull();
+        await Assert.That(near.Violation!.RuleId).IsEqualTo("WL10");
+        await Assert.That(new WoolFrontFloor().Measure(Lane(spawnAt: 90, woolAt: 70)).Violation).IsNull();
+    }
+
+    [Test]
+    public async Task The_front_floors_bind_the_composer_and_not_the_default_profile()
+    {
+        var near = Lane(spawnAt: 30, woolAt: 20);
+        await Assert.That(LayoutEvaluator.Gate(near, EvaluationProfile.Composer)).IsNotNull();
+        var lint = LayoutEvaluator.Gate(near, EvaluationProfile.Default);
+        await Assert.That(lint?.RuleId is "SP10" or "WL10").IsFalse();
+    }
 }

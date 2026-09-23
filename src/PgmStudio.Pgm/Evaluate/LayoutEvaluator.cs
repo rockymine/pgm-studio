@@ -26,6 +26,8 @@ public static class LayoutEvaluator
         new GapHopBand(),
         new BandWoolClearance(),
         new SpawnWoolFloor(),      // WL2 as a surface-distance floor (was the Euclidean WL2 lint)
+        new SpawnFrontFloor(),     // SP10 — a composer floor, off in the default profile
+        new WoolFrontFloor(),      // WL10 as a floor — a composer floor, off in the default profile
         // soft terms — feel metrics scored against the authored seed envelopes
         new FillRatio(),
         new DeadShare(),
@@ -83,7 +85,7 @@ public static class LayoutEvaluator
 
     /// <summary>The composer's acceptance gate: run the enabled hard terms in order and return the first
     /// violation (or null to accept). Short-circuit — a rejected attempt costs only the terms up to its first
-    /// failure, and the board is never derived (no ported hard term needs it).</summary>
+    /// failure, and the board is derived only once a term reading the crossing is reached.</summary>
     public static Violation? Gate(EvalContext ctx, EvaluationProfile profile)
     {
         foreach (var term in AllTerms)

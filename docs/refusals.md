@@ -207,7 +207,7 @@ The structural plan rules, in full:
 | `PL14` | a wool colour names something that is not a dye |
 | `PL15` | the document states a shape version this build does not read — every coordinate under it would be measured in the wrong unit, so it is refused rather than guessed at, and it is reported alone |
 | `PL16` | a capture-point count the board's own symmetry cannot lay out — a point belongs to nobody, so it has to be the same walk for every team, and only the centre of symmetry and a ring the orbit fans from one side point are |
-| `PL17` | a bedrock wall sits between two pieces of unequal width, so the wider one runs past the wall's end and a player rounds it with one diagonal jump off the corner (**complaint** — the board still builds, and where the line should sit instead is the author's). A wall sits between two pieces of the same width: put one the lane's own width between the two and wall that seam |
+| `PL17` | land runs past a bedrock wall's end — one of the two walled pieces reaching past the interval they share, or a third piece the wall stands against at a T — so a player rounds it with one step off the corner (**complaint** — the board still builds, and where the line should sit instead is the author's). A wall sits between two pieces of the same width with nothing beyond its ends: put one the lane's own width between the two and wall that seam |
 
 And the building rules, which the dressing document and the room library are both held to:
 

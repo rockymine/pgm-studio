@@ -33,12 +33,12 @@ two-entry requirement, the taxonomy's exemplar, is now an implicit negation insi
 ## 2. The allocator's sampling layer has no address in the taxonomy
 
 Most of the allocator is not shape-level rules at all: it decides from a budget **how many**
-wools, **whether** a frontline, **how big** a hub, and **how often** each shape appears. Nothing in
+wools, **how big** a hub, and **how often** each shape appears. Nothing in
 §7 covers it. It has two faces.
 
 **The mix — a steering distribution.** Roughly a dozen weights (`BentWoolChance`, `DonutChance`,
 `StapleChance`, `ClampAdjacentChance`, `DonutCornerWoolChance`, `SideRoomChance`, `RingChance`,
-`WidenedRingChance`, `ThirdWoolChance`, `FullFaceChance`, `ShiftedFaceChance`, `NoFrontlineInN`)
+`WidenedRingChance`, `ThirdWoolChance`, `FullFaceChance`, `ShiftedFaceChance`)
 plus several uniform picks. No declared kind fits: a `menu` is a *set* and carries no frequency; a
 `band` carries a distribution but is explicitly **descriptive and advisory**, which is the opposite
 of what these do. A weighted *generative* distribution is a real, distinct kind — provisionally
@@ -64,13 +64,13 @@ Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved 
 | `WoolLengthRatio = 3` | LN2 (20–50 blocks before a junction/dead end) | **grounded** on the lower bound; the 50 cap is unimplemented |
 | `CornerClearanceCells = 0` | the mass-level corner law | **vestigial** — it documents rather than acts (see below) |
 | the frontline joint's `faceWidth` | FR6 (split vs wide, band docks flush) | right kind (**offer**), law partially served |
-| `RingFitCells(cw)`, `WideHubCells(cw)` | geometry (a ring is two walls and a hole; a docked bar keeps one beside it) | **grounded** — derived from the corridor rather than stated |
+| `RingFitCells(cw, cell)`, `WideHubCells(cw, cell)` | geometry (a ring is two walls and a hole; a docked bar keeps one beside it) and `WL12`'s 12-block floor for a plain hole | **grounded** — derived from the corridor and the rule rather than stated |
 | `HubBoxCells` — area from the share, aspect sampled | none — HB1 constrains *width*, not box size | area **grounded** in G8 through the share; the 1.3–2.4 aspect is **invented** |
 | the box shares (`FrontlineShare`, `WoolShare`, `HubMinShare`) | G8 gives the total, nothing splits it | total **grounded**, the split **invented** |
 | `WoolCount` per band | WL6 gives 1–3; the corpus gives 1 at nano and 2 above | **grounded** |
 | `SpendFloor` / `SpendCeiling` | none — G8 gives a number, not a tolerance | **invented**, and the one the author has said to tune on what the boards look like |
 | the shape-mix weights | WL8 governs wool approach routes | **ungrounded** — the donut *is* WL8's alternative-route case, but `0.25` derives from nothing |
-| `RingChance`, `ThirdWoolChance`, `SecondWoolChance`, `NoFrontlineInN` | none | **ungrounded** |
+| `RingChance`, `ThirdWoolChance`, `SecondWoolChance` | none | **ungrounded** |
 
 **On the corner law.** `Cells.HasDiagonalPinch` is the mass-level pinch test, and it is real — but
 it is invoked **only from tests and the unit gallery**, never from `src/`. The invariant is

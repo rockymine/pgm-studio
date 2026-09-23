@@ -372,35 +372,21 @@ public static class PlanValidator
                 Error(PlanRules.WallWithoutInterface,
                     $"wall '{w.A}'–'{w.B}' is not a shared land interface", w.A, w.B);
 
-        // and only between two pieces of the same width. A wall spans the interval two pieces share; where
-        // a piece runs PAST that interval along the wall's own axis, its ground wraps the corner and a player
-        // beside the wall's end is one diagonal jump from the ground behind it. That is the fault
-        // `docs/gameplay/approaches.md` states as "ground pulled out past the wall's ends is what breaks it",
-        // and the plan is where it is visible: it is a relation between two rectangles, which no render of a
-        // built world can show, because by then they are terrain.
+        // and only where no land runs on past either of its ends. A wall spans the interval two pieces share;
+        // ground one block beyond an end, on either face, is ground a player beside the wall steps round it on.
+        // That is the fault `docs/gameplay/approaches.md` states as "ground pulled out past the wall's ends is
+        // what breaks it", and it is a relation between rectangles — the two the wall names, or a third it
+        // stands against at a T — which no render of a built world can show, because by then they are terrain.
         foreach (var c in d.WallInterfaces)
         {
             if (d.Piece(c.A) is not { } pa || d.Piece(c.B) is not { } pb) continue;
-            var (minX, minZ, maxX, maxZ) = ContactGraph.WallFootprint(pa, pb);
-            var alongX = maxX - minX > maxZ - minZ;
-            var (wallLo, wallHi) = alongX ? (minX, maxX) : (minZ, maxZ);
-            foreach (var piece in new[] { pa, pb })
-            {
-                // Both are max-exclusive — a piece's rect and the wall's footprint alike — so they compare
-                // directly and a wall that exactly spans its piece wraps by nothing.
-                var (lo, hi) = alongX
-                    ? (piece.Rect.MinX, piece.Rect.MaxX)
-                    : (piece.Rect.MinZ, piece.Rect.MaxZ);
-                var wrap = Math.Max(wallLo - lo, hi - wallHi);
-                if (wrap <= 0) continue;
-                Complain(PlanRules.WallAtJunction,
-                    $"wall '{c.A}'–'{c.B}' is not flanked: '{piece.Id}' runs {wrap} block(s) past the wall's "
-                    + $"end, so a player on '{piece.Id}' beside it rounds the wall with one diagonal jump off "
-                    + "the corner rather than crossing it. A wall sits between two pieces of the same width — "
-                    + "put one the lane's own width between the two and wall that seam instead",
-                    c.A, c.B);
-                break;
-            }
+            if (FlankOf(d.Pieces, ContactGraph.WallFootprint(pa, pb)) is not { } flank) continue;
+            Complain(PlanRules.WallAtJunction,
+                $"wall '{c.A}'–'{c.B}' is not flanked: '{flank.Id}' runs past the wall's end, so a player on it "
+                + "beside the wall rounds it with one step off the corner rather than crossing it. A wall sits "
+                + "between two pieces of the same width with nothing beyond its ends — put one the lane's own "
+                + "width between the two and wall that seam instead",
+                c.A, c.B, flank.Id);
         }
 
         // and never on the wool room's own edge: the wall and the room stamp through each other there, and
@@ -921,9 +907,17 @@ public static class PlanValidator
         }
     }
 
-    // ST8 — an approach wall's geometry: the interface it bars is a 10–20 block lane mouth (a wall across a
-    // 30-block face bars a room, not a lane), and it stands about 15 blocks in front of the wool room's
-    // entrance. The full-span clause needs no check: the compiler builds the wall across the whole interface.
+    /// <summary>The lane mouth an approach wall bars, in blocks (<c>ST8</c>): narrower is a doorway, wider bars
+    /// a room rather than a lane.</summary>
+    public const int WallMouthMinBlocks = 10, WallMouthMaxBlocks = 20;
+
+    /// <summary>How far an approach wall stands in front of the wool room's entrance, in blocks (<c>ST8</c>):
+    /// about 15 is the seat.</summary>
+    public const int WallStandoffMinBlocks = 10, WallStandoffMaxBlocks = 20;
+
+    // ST8 — an approach wall's geometry: the interface it bars is a lane mouth (WallMouth*), and it stands in
+    // front of the wool room's entrance (WallStandoff*). The full-span clause needs no check: the compiler
+    // builds the wall across the whole interface.
     private static IEnumerable<Finding> LintSt8(PlanModel plan, ContactGraph d)
     {
         var seams = PieceInterfaces.Seams(d);
@@ -933,10 +927,10 @@ public static class PlanValidator
             // that error would say one fault twice in two vocabularies
             if (wall.RoleA == PlanRoles.WoolRoom || wall.RoleB == PlanRoles.WoolRoom) continue;
 
-            if (wall.Length < 10 || wall.Length > 20)
+            if (wall.Length < WallMouthMinBlocks || wall.Length > WallMouthMaxBlocks)
                 yield return Lint("ST8",
                     $"approach wall '{wall.A}'–'{wall.B}' bars a {wall.Length}-block interface — "
-                    + "a wall wants a 10–20 block lane mouth", wall.A, wall.B);
+                    + $"a wall wants a {WallMouthMinBlocks}–{WallMouthMaxBlocks} block lane mouth", wall.A, wall.B);
 
             // the entrance it defends: the nearest wool-room seam of either walled piece (an approach
             // touching two rooms defends the near one; the far room's distance means nothing). Only a wall
@@ -952,7 +946,7 @@ public static class PlanValidator
                 var standoff = SegmentGap(wall.X1, wall.Z1, wall.X2, wall.Z2, entry.X1, entry.Z1, entry.X2, entry.Z2);
                 if (nearest is null || standoff < nearest) nearest = standoff;
             }
-            if (nearest is { } gap && (gap < 10 || gap > 20))
+            if (nearest is { } gap && (gap < WallStandoffMinBlocks || gap > WallStandoffMaxBlocks))
                 yield return Lint("ST8",
                     $"approach wall '{wall.A}'–'{wall.B}' stands {gap} blocks from the wool room's "
                     + "entrance — about 15 in front is the seat", wall.A, wall.B);
@@ -1037,6 +1031,27 @@ public static class PlanValidator
                     + "corner, or as separate regions (one per frontline leg, one flush zone per island)",
                     [.. region.ZoneIds]);
         }
+    }
+
+    /// <summary>The first piece holding land one block beyond either end of a wall
+    /// <paramref name="footprint"/>, across both of its faces — the ground a player rounds the wall on — or
+    /// null where both ends stand over void. The footprint is max-exclusive, as a piece's rect is.</summary>
+    internal static DerivedPiece? FlankOf(
+        IEnumerable<DerivedPiece> pieces, (int MinX, int MinZ, int MaxX, int MaxZ) footprint)
+    {
+        var (minX, minZ, maxX, maxZ) = footprint;
+        var alongX = maxX - minX > maxZ - minZ;
+        foreach (var piece in pieces)
+        {
+            var r = piece.Rect;
+            var flanks = alongX
+                ? r.MinZ < maxZ && r.MaxZ > minZ && (Covers(r.MinX, r.MaxX, minX - 1) || Covers(r.MinX, r.MaxX, maxX))
+                : r.MinX < maxX && r.MaxX > minX && (Covers(r.MinZ, r.MaxZ, minZ - 1) || Covers(r.MinZ, r.MaxZ, maxZ));
+            if (flanks) return piece;
+        }
+        return null;
+
+        static bool Covers(int lo, int hi, int at) => lo <= at && at < hi;
     }
 
     /// <summary>The narrowest frontline a crossing may be, in blocks (the author's number). Under it a front

@@ -36,11 +36,17 @@ public sealed class PlanFeasibilityEndpointTests
         await Assert.That(nearest.GetProperty("label").GetString()).Contains("Donut");
         await Assert.That(nearest.GetProperty("differingCells").GetInt32()).IsGreaterThan(0);
 
-        // and the other side of the same wire: this plan's hub is the unequal-walled ring, which does reproduce —
-        // a producible box carries its tuple and no nearest miss, in the same response as an unproducible one
+        // the hub is a ring whose 10-block hole is under the composed floor: unproducible, its nearest still a ring
         var hub = body.GetProperty("boxes").EnumerateArray().First(b => b.GetProperty("kind").GetString() == "hub");
-        await Assert.That(hub.GetProperty("producible").GetBoolean()).IsTrue();
-        await Assert.That(hub.GetProperty("producibleAs").GetString()).Contains("walls");
+        await Assert.That(hub.GetProperty("producible").GetBoolean()).IsFalse();
+        await Assert.That(hub.GetProperty("nearest").GetProperty("label").GetString()).Contains("Ring");
+
+        // and the other side of the same wire: the spawn reproduces — a producible box carries its tuple and no
+        // nearest miss, in the same response as an unproducible one
+        var spawn = body.GetProperty("boxes").EnumerateArray().First(b => b.GetProperty("kind").GetString() == "spawn");
+        await Assert.That(spawn.GetProperty("producible").GetBoolean()).IsTrue();
+        await Assert.That(spawn.GetProperty("producibleAs").GetString()).IsNotNull();
+        await Assert.That(spawn.GetProperty("nearest").ValueKind).IsEqualTo(JsonValueKind.Null);
 
         // the unit-level half: the arrangement findings, each citing the rule or task behind it. (The frontline's
         // own two blockers used to be here and cite G123; that landed, so what remains is the seat gap.)

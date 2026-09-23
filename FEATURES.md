@@ -4561,28 +4561,6 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cannot hold gapped — restoring it is the hub-growth work, G105). Closes §9 F1 (spawn/wool) + WL2; the frontline
   keeps no neighbour gap (build-zone's rule). Pgm suite 690/690. (G110 · taxonomy §9 F1, §10.4)
 
-- **No-frontline front guard — no neighbour flush with the hub front face** — `Compose/FrontGuard.cs` (the
-  deterministic post-pass: buffer/`Backness`, the slide, `Resolve`) + `Compose/TeamUnitAllocator.cs` (applies it
-  while seating): on a
-  frontline-less unit a spawn/wool ending flush with (or past) the hub's front face extends it into **one long flat
-  frontier** — hub front + neighbour front reading as a single straight edge (the reported defect: flat front runs
-  up to 20 cells) — which map design forbids. The guard now covers every dock, as **law**: an overhang wool
-  (L / donut) keeps only placements **buffered ≥ 1 cell behind** the face (`Backness`; none ⇒ the compact I); a
-  full-mouth lateral seat landing flush **slides back** to the nearest clear position (deterministic — no draw, so
-  an already-off-front seat and every untouched unit re-seat bit-identically). Seats no slide can save go through a
-  small **resolution search** (all processing orders × spawn back-edge slide variants): retry the slide with all
-  neighbours known, **relocate** to the mirror lateral / back edge (backmost lawful seat), retry both at the reduced
-  **wool-lane gap** (2 cells, 10 blocks — the narrower boards' own gap, still no-touch) as the last tier, then
-  **drop** the wool while another remains; a residue on a non-rectangle form directed-nulls into the rectangle
-  fallback. With a frontline the guard does not apply (the front is occupied and juts forward — no continuous line
-  can form). Flush spawn/wools on no-frontline units: **0 across 4 presets × 64 seeds**, and over the wider
-  4 × 600-seed sweep **7 of ~2400 units** keep one — every case a *saturated solid rectangle*, which is the
-  guard's own documented exemption (the rectangle is the last fallback and has nowhere further to fall back to,
-  so only it may keep a residue). The gate
-  (`No_frontline_units_keep_every_neighbour_off_the_hub_front_face`) asserts that law rather than a blanket zero,
-  over a sweep wide enough to reach the exempt case. Worst flat front run collapses 20 → 11 cells
-  (= the hub's own width); with-frontline units bit-identical; pinch 0. Pgm suite 693/693. (front-guard · G114 filed)
-
 - **Elongated hubs + the wide holed forms P, Double-hole, and G** — `Compose/HubBoxEmitter.cs` +
   `TeamUnitAllocator.cs` + `Shapes/BodyEmitter.cs`/`ShapeClassifier.cs`: the hub grows **wider, not squarer**. Its
   lateral span reads a larger cap (`HubWideCap` 5/7/9/11 by land) than its depth (`HubCapCells` 3/4/5/6), so the
@@ -5389,7 +5367,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   reads as the `G` it topologically is); terrain and room compare separately. **Unit-level** findings cover the
   arrangement — the parallel-fronts guard (via `Composer.FrontFacesSymmetric`, generalized so the gate and the
   read share one implementation), the frontline's pinned face demand, and seat separation (via
-  `TeamUnitAllocator.TooClose`, at the 2-cell floor `FrontGuard` can fall back to) — reported **alongside** the
+  `TeamUnitAllocator.TooClose`, at the 2-cell producible lane floor) — reported **alongside** the
   per-box reads, never instead of them. Findings **cite the task that would unblock them**: a nearest miss of the
   same form the box reads as means only its proportions are unreachable, so it names G105 (body widths / the
   asymmetric ring) or G82 (approach entry widening), with G129 for the generalization; a different form cites
@@ -5612,6 +5590,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the composed output still reads zero unit findings and zero unproducible boxes — the G125 reproduction gate
   holds through the change. On the hole-hub exemplar both of its G123 blockers clear, leaving only its unrelated
   scale anomalies. (G123)
+
+- **Composed boards held to the author's judgement of them (`G275`)** — `Compose/TeamUnitAllocator.cs`,
+  `Compose/UnitSeating.cs` (`BackHalf`), `Compose/TeamUnitFiller.cs` (`TowardHub`), `Compose/UnitTuning.cs`
+  (`HubHoleCells`), `Compose/WallPlacer.cs`, `Evaluate/Terms/FrontFloorTerms.cs`, `Evaluate/EvaluationProfile.cs`
+  (`Composer`). Fifteen composed boards judged by the author against a 600-board sweep: every board called fine
+  had a frontline, a spawn 58+ blocks by the walk from the build band and wools 59+; every one flagged sat under
+  those. So every unit carries a frontline (the no-frontline draw and the `FrontGuard` post-pass it needed are
+  gone); a lateral spawn seats level with the hub's middle or behind it and faces into the hub; a composed hub
+  hole keeps `WL12`'s 12-block floor; the composer gate adds `SP10` (spawn ≥55 to the band) and a `WL10` floor
+  (every wool ≥59), both off in the default profile the editor lint runs; and every wool approach gets one
+  defence wall — on a seam nothing runs past, across the attack's route, `ST8`'s standoff from the room — a
+  straight lane being cut in two to make it and built at least four cells long to hold it. Over 200 seeds each
+  at 8 and 20 players: 0 composes fail, 626 of 627 wools walled, no `PL11`/`PL13`/`PL17`/`ST8` on any wall.
+  Medium boards score worse on `spawn-wool-ratio` with the spawn seated back. `ComposerVersion` `walled-1`;
+  `rules.md` amendments 45–48. (`G275`)
+
+- **`PL17` reads the land past a wall's ends, not just the two pieces it names (`TN22`)** —
+  `Plan/PlanValidator.cs` (`FlankOf`). A wall where an arm meets a hub side of its own width passed while the
+  hub's pieces ran on past both ends; the lint now asks whether any piece holds land one block beyond either
+  end on either face, and names it. The T-junction walls of the first Millbank plan now draw two `PL17`s; every
+  composed wall and every finished collaboration board draws none. `rules.md` amendment 48. (`TN22`)
 
 - **The hub's body is chosen before its neighbours are sized (`G274`)** — `Compose/TeamUnitAllocator.cs` +
   `Compose/UnitSeating.cs` (`Emit`, `FrontRuns`) + `Compose/UnitRequests.cs` (`SealWidth`). A neighbour docks
