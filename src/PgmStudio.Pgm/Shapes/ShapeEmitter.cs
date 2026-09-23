@@ -47,13 +47,12 @@ public static class ShapeEmitter
     /// plateau that clears the export stamp.</summary>
     public const int RoomDepthCells = 2;
 
-    /// <summary>The canonical-frame mouth edge of <paramref name="family"/> before any flip: where its entry
-    /// slot(s) dock the host. <paramref name="flip"/> mirrors across the box's vertical centre, swapping a
-    /// left/right mouth.</summary>
-    public static BoxEdge MouthEdge(ShapeFamily family, bool flip = false) => family switch
+    /// <summary>The canonical-frame mouth edge of <paramref name="family"/>: where its entry slot(s) dock the
+    /// host. A flip mirrors the shape along this edge, so it never moves the mouth.</summary>
+    public static BoxEdge MouthEdge(ShapeFamily family) => family switch
     {
         ShapeFamily.U or ShapeFamily.H or ShapeFamily.Clamp => BoxEdge.Bottom,
-        ShapeFamily.Donut => flip ? BoxEdge.Right : BoxEdge.Left,
+        ShapeFamily.Donut => BoxEdge.Left,
         _ => BoxEdge.Top,
     };
 
@@ -91,8 +90,7 @@ public static class ShapeEmitter
     /// <summary>Emit <paramref name="family"/> into a W×H box at <paramref name="cw"/> (cells) as an
     /// <b>approach</b>: build the terminal-free <see cref="Body"/> and stamp the approach designation onto it
     /// (<see cref="Approach"/>) — the terminal room and its marker. <paramref name="flip"/> mirrors the shape
-    /// across the box's vertical centre (the turn goes left instead of right) so both handednesses are
-    /// reachable. <paramref name="attachments"/> (donut) is the number of hub-side stubs, 1 or 2.
+    /// along its mouth (the turn goes left instead of right) so both handednesses are reachable. <paramref name="attachments"/> (donut) is the number of hub-side stubs, 1 or 2.
     /// <paramref name="woolAtEnd"/> (U / H / donut) puts the terminal on an end of the crossbar / integrates it
     /// at the ring corner. <paramref name="woolExtend"/> (donut) holds the terminal a short I out from the
     /// shape. <paramref name="attachmentWidth"/> (donut, scythe) is the hub-interface width of the attachment in
@@ -418,21 +416,26 @@ public static class ShapeEmitter
         at ??= [room.Width / 2.0, room.Height / 2.0];
         if (flip)
         {
-            // A CellRect is a value, so the mirrored rect is written back into the list; there is no
-            // reference to mutate through.
+            // mirror along the mouth: across the vertical centre for a top/bottom mouth, the horizontal one for a
+            // side mouth. A CellRect is a value, so each mirrored rect is written back into its list.
+            var alongZ = MouthEdge(family) is BoxEdge.Left or BoxEdge.Right;
+            CellRect Mirror(CellRect r) => alongZ
+                ? r with { Z = H - r.Z - r.Height }
+                : r with { X = W - r.X - r.Width };
             for (var i = 0; i < t.Count; i++)
-                t[i] = (t[i].Rect with { X = W - t[i].Rect.X - t[i].Rect.Width }, t[i].Slot);   // slot survives the mirror
-            room = room with { X = W - room.X - room.Width };
-            at = [room.Width - at[0], at[1]];                   // mirror the marker within the flipped room
+                t[i] = (Mirror(t[i].Rect), t[i].Slot);                                  // slot survives the mirror
+            room = Mirror(room);
+            at = alongZ ? [at[0], room.Height - at[1]] : [room.Width - at[0], at[1]];   // the marker mirrors within the room
             for (var i = 0; i < vac.Count; i++)
             {
                 var v = vac[i];
-                var m = v.Mouth switch
+                var m = (alongZ, v.Mouth) switch
                 {
-                    BoxEdge.Left => BoxEdge.Right, BoxEdge.Right => BoxEdge.Left,
+                    (false, BoxEdge.Left) => BoxEdge.Right, (false, BoxEdge.Right) => BoxEdge.Left,
+                    (true, BoxEdge.Top) => BoxEdge.Bottom, (true, BoxEdge.Bottom) => BoxEdge.Top,
                     _ => v.Mouth,
                 };
-                vac[i] = v with { Rect = new(W - v.Rect.X - v.Rect.Width, v.Rect.Z, v.Rect.Width, v.Rect.Height), Mouth = m };
+                vac[i] = v with { Rect = Mirror(v.Rect), Mouth = m };
             }
         }
 
@@ -445,9 +448,9 @@ public static class ShapeEmitter
     /// pure reflections/rotations, so the family read is unchanged. Callers dock any edge by placing the
     /// normalized, mouth-up box themselves (a vertical flip at placement docks the bottom).</summary>
     public static (EmittedShape Shape, int W, int H) OrientMouthTop(
-        EmittedShape s, ShapeFamily family, bool flip, int boxW, int boxH)
+        EmittedShape s, ShapeFamily family, int boxW, int boxH)
     {
-        var source = MouthEdge(family, flip);
+        var source = MouthEdge(family);
         if (source == BoxEdge.Top) return (s, boxW, boxH);
 
         Func<CellRect, CellRect> map = source switch

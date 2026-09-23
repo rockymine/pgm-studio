@@ -148,7 +148,8 @@ public static class UnitSeating
                 continue;
             }
 
-            if (SeatFullMouth(runs, edgeLen, request, edge, hubRect, Blocked, seatGapCells, grantedWidthCells, cell, frontEdge, holes, rng)
+            var inLine = request.Kind == BoxKind.Spawn ? SpawnCentre(request, edge, edgeLen, frame, hubRect, frontEdge, holes) : null;
+            if (SeatFullMouth(runs, edgeLen, request, edge, hubRect, Blocked, seatGapCells, grantedWidthCells, cell, inLine, rng)
                 is not { } dock)
             {
                 // a wool that no longer fits with the seat gap (the third wool doubling onto the spawn's own edge
@@ -172,7 +173,7 @@ public static class UnitSeating
     ///
     /// <para>A wool whose mouth no run holds is demoted once to the compact <c>I</c> and retried; the request
     /// that comes back on <see cref="FullMouthDock.Request"/> is the one the caller must build the box from.
-    /// A spawn on a lateral edge seats in line with the hub's hole (<see cref="InLine"/>).</para>
+    /// A spawn with an <paramref name="inLine"/> centre seats within a cell of it (<see cref="InLine"/>).</para>
     ///
     /// <para><paramref name="blocked"/> is the caller's projection of the already-seated spawn/wool boxes onto
     /// an edge — passed as a delegate because it closes over the boxes seated so far, which grows as the loop
@@ -181,15 +182,24 @@ public static class UnitSeating
     internal static FullMouthDock? SeatFullMouth(
         IReadOnlyList<(int Start, int Len)> runs, int edgeLen, NeighbourRequest requested, BoxEdge edge, CellRect hubRect,
         Func<BoxEdge, int, List<(int Start, int Len)>> blocked, int seatGapCells, int grantedWidthCells,
-        int cell, BoxEdge frontEdge, IReadOnlySet<(int X, int Z)> hubHoles, ComposeRng rng)
+        int cell, double? inLine, ComposeRng rng)
     {
         var request = requested;
         var seatGap = request.Kind is BoxKind.Spawn or BoxKind.Wool ? seatGapCells : 0;
-        var lateral = edge != frontEdge && edge != SeatGeometry.Opposite(frontEdge);
-        if (request.Kind == BoxKind.Spawn && lateral)
-            runs = InLine(runs, request.Along, HoleCentre(edge, hubRect, hubHoles) ?? edgeLen / 2.0);
         List<(int Start, int Len)> blk = seatGap > 0 ? blocked(edge, request.Depth) : [];
-        var seat = SeatInRuns(runs, blk, edgeLen, request.Along, UnitTuning.CornerClearanceCells, seatGap, rng);
+        int? seat;
+        if (request.Toward is not null && inLine is { } end)
+        {
+            // as near the end as the seated neighbours allow, and never past the edge's middle
+            seat = null;
+            for (var slack = 1; seat is null && slack <= Math.Max(1, (edgeLen - request.Along) / 2); slack++)
+                seat = SeatInRuns(InLine(runs, request.Along, end, slack), blk, edgeLen, request.Along, UnitTuning.CornerClearanceCells, seatGap, rng);
+        }
+        else
+        {
+            if (inLine is { } centre) runs = InLine(runs, request.Along, centre);
+            seat = SeatInRuns(runs, blk, edgeLen, request.Along, UnitTuning.CornerClearanceCells, seatGap, rng);
+        }
         if (seat is null && request.Kind == BoxKind.Wool)   // a staple's full mouth found no run — the compact I will
         {
             request = UnitRequests.Compact(request, grantedWidthCells, cell);
@@ -201,20 +211,35 @@ public static class UnitSeating
             SeatGeometry.NeighbourRect(edge, s, request.Depth, request.Along, hubRect), new BoxAbutment(edge, s, request.Along), request);
     }
 
-    /// <summary>An edge's free <paramref name="runs"/> cut to the seats whose centre stands within a cell of
-    /// <paramref name="centre"/>, for a dock <paramref name="along"/> wide. A spawn seated in line with the hub's
+    /// <summary>An edge's free <paramref name="runs"/> cut to the seats whose centre stands within
+    /// <paramref name="slack"/> cells of <paramref name="centre"/>, for a dock <paramref name="along"/> wide. A spawn seated in line with the hub's
     /// hole faces it squarely and walks about as far to a wool on either side of it; one behind the hole stands
     /// nearer the wool at the back, and one ahead of it walks straight out onto the frontline.</summary>
     public static IReadOnlyList<(int Start, int Len)> InLine(
-        IReadOnlyList<(int Start, int Len)> runs, int along, double centre)
+        IReadOnlyList<(int Start, int Len)> runs, int along, double centre, int slack = 1)
     {
-        var lo = (int)Math.Ceiling(centre - along / 2.0 - 1);
-        var hi = (int)Math.Floor(centre - along / 2.0 + 1) + along;
+        var lo = (int)Math.Ceiling(centre - along / 2.0 - slack);
+        var hi = (int)Math.Floor(centre - along / 2.0 + slack) + along;
         return runs
             .Select(r => (Start: Math.Max(r.Start, lo), End: Math.Min(r.Start + r.Len, hi)))
             .Where(r => r.End > r.Start)
             .Select(r => (r.Start, r.End - r.Start))
             .ToList();
+    }
+
+    /// <summary>Where along its <paramref name="edge"/> a spawn centres, or null where it is free to seat anywhere.
+    /// A spawn on a lateral edge stands in line with the hub's hole, or the edge's middle without one; a back spawn
+    /// with a <see cref="NeighbourRequest.Toward"/> side stands at the end of the back edge that side meets.</summary>
+    private static double? SpawnCentre(
+        NeighbourRequest spawn, BoxEdge edge, int edgeLen, Frame frame, CellRect hub, BoxEdge frontEdge,
+        IReadOnlySet<(int X, int Z)> holes)
+    {
+        if (spawn.Toward is { } toward)
+            return SeatGeometry.SideEdge(frame, toward) is BoxEdge.Top or BoxEdge.Left
+                ? spawn.Along / 2.0
+                : edgeLen - spawn.Along / 2.0;
+        var lateral = edge != frontEdge && edge != SeatGeometry.Opposite(frontEdge);
+        return lateral ? HoleCentre(edge, hub, holes) ?? edgeLen / 2.0 : null;
     }
 
     /// <summary>The centre of the hub's enclosed hole along <paramref name="edge"/>, in that edge's own

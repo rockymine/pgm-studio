@@ -115,7 +115,7 @@ cell pattern, so two parameterizations that occupy the same cells are one card.
 
 The catalog is a **bounded set** — a pure function of the emitters and the tuning constants — so the whole of
 it is fetched once and filtered in the page, which is what makes every chip instant and needs no cursor. Today
-that is 98 cards: 89 wool approaches, 6 hub bodies and 3 frontline bodies, of which 91 are in the mix, 1
+that is 124 cards: 115 wool approaches, 6 hub bodies and 3 frontline bodies, of which 117 are in the mix, 1
 reachable and 6 emitter-only. Those numbers move whenever the tuning does.
 
 ## The knob panel

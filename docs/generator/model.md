@@ -288,7 +288,8 @@ the role each piece carries, from the closed set below; the objective and spawn 
 deliberate voids, where a `buffer` piece or a zone
 hole is an author asserting *I meant this emptiness*; per-piece height at full block resolution; and
 the override channel — `walls` — which exists to overrule what a deriver would otherwise
-infer. The composer writes it too: one defence wall per wool approach, where a seam qualifies (§5.14).
+infer. The composer writes it too: one defence wall per wool approach, two on an approach that goes round a
+hole, where a seam qualifies (§5.14).
 
 A `cliffs` channel sat beside it until 2026-08-14 and is deleted (`rules.md` EL5). It was authored and
 read by nothing but the lint that demanded it, so the annotation could not change the map it described.
@@ -703,7 +704,8 @@ Those are the base configurations. The knobs add pieces without changing the fam
 attachment is another `entry`, and the wool-extend run of the third donut figure above is a `run`.
 
 **The knobs are the variation the model allows without leaving the family.** Beyond the room placements
-already drawn, a shape can be flipped so its turn goes the other way; the room can tuck off the side of
+already drawn, a shape can be flipped so its turn goes the other way — mirrored along its mouth, so a donut's
+entry stub moves to the far end of the edge it docks and its ring hangs the other way along the host; the room can tuck off the side of
 the last segment instead of capping it; the donut can take a second attachment, slide an attachment along
 the ring's edge, or widen it; and the scythe can slide either of its two endpoints down the docking edge.
 That last one propagates rather than merely moving a rectangle: a shifted entry takes the top of the
@@ -985,7 +987,14 @@ over the seed range, a `G` front is broken into runs on every board and a branch
 where a ring, a P, a double-hole and a solid rectangle are never broken at all. Its work
 here is to turn each into a `NeighbourRequest` — one per wool, one for the spawn, and one for the
 frontline. A straight back-room wool runs at least four cells before its room, which is the shortest lane a
-defence wall seats in (§5.14). The spawn is the one box whose size barely moves:
+defence wall seats in (§5.14), and a donut's hole runs as far along the hub edge for the same reason: its two
+legs run along it, and each holds a wall a cell off the entry bar that still stands `ST8`'s standoff from the
+room.
+
+A donut makes a unit lopsided toward its side, so a unit that rolls one moves its spawn to the back. The side
+the spawn leaves and the back trade whatever was on them, a donut the trade lands on the back swaps sides with
+a lateral wool, and the spawn's request names the donut's side as the end of the back edge it stands toward.
+Without a donut the spawn's side stays the plan's own draw, the back or either lateral side. The spawn is the one box whose size barely moves:
 roughly ten blocks square where it docks the hub directly, ten by twenty where it wants a run-up, and
 twenty square for an L. It is never large, because a spawn is somewhere a player leaves rather than
 somewhere a fight happens.
@@ -1036,7 +1045,9 @@ A spawn on a lateral edge is the one request whose seats are cut before the sear
 centre within a cell of the centre of the hub's hole, or of the edge's middle on a hub without one. A spawn
 seated toward the front walks straight out onto the frontline, and one behind the hole stands nearer the wool at
 the back than the one across the hub; in line with the hole it faces the hole squarely and walks about as far to
-either. Where it docks also decides which way it faces — into the hub, so a spawn
+either. A back spawn that names a donut's side is cut the same way, to the end of the back edge that side
+meets — sliding toward the middle only as far as the seat gap to the donut forces it, and never past the
+middle. Where it docks also decides which way it faces — into the hub, so a spawn
 beside the hub faces across it and one behind it faces the axis through it, and no door opens over the void
 past the hub's side.
 
@@ -1310,7 +1321,8 @@ simply wider than it needed to be, which is a thinner crossing rather than a ref
 ### 5.14 The defence walls
 
 Once the crossing is carved, each wool approach gets one bedrock wall — the line a defence holds, and the
-line the attack's late game is pushed against. One per wool, because a defence cannot hold more.
+line the attack's late game is pushed against. One per way in, because a defence cannot hold more: a plain
+approach has one, and an approach that goes round a hole has two.
 
 Where it stands follows from how a wall fails. A wall with ground running past either end is rounded rather
 than crossed, so a seat is legal only where there is void one cell beyond both ends, on both faces — which is
@@ -1320,6 +1332,14 @@ attack's shortest route into the approach and stands `ST8`'s 10–20 blocks in f
 close enough that a defender does not walk back far to hold it. A two-legged approach whose room lies deeper
 than that window takes the nearest qualifying seam its attack crosses, which is the entrance the defence
 holds.
+
+An approach that goes round a hole — a donut, whose box encloses void its pieces ring — is two ways in, and
+one wall across either still leaves the other open. It takes a pair instead: two qualifying seams that between
+them close every way from the approach's entry to its room while neither does alone, the pair standing
+farthest from the room, so each wall holds its way as near the entry as it can. Pairs across the ring's two
+legs come first, which is where the author holds a donut; a leg's wall stands a cell off the entry bar unless
+the entry stub runs beside the leg there, when it stands where the stub has ended. Any other closing pair is
+the fallback, and a single wall the fallback after that.
 
 Most seams are cuts: a straight lane is split across into two pieces of its own width, the one on the wool's
 side taking a `-inner` suffix, and the wall stands between them. A wool whose approach offers no qualifying
@@ -1650,7 +1670,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `UnitSeating` · `FullMouthDock` | `Compose/UnitSeating.cs` | requests → seats, under the three dock rules (full mouth · overhang · contact patch). |
 | `SeatGeometry` | `Compose/SeatGeometry.cs` | `NeighbourRect` and the edge arithmetic around it: projection onto an edge, clearance, the hub joint each dock records. |
 | `TeamUnitFiller` | `Compose/TeamUnitFiller.cs` | fills the allocated partition hub-first (offer consumption) → `FilledUnit` (a `GrownUnit` + the frontline face offers); faces the spawn into the hub. |
-| `WallPlacer` · `ComposedWall` | `Compose/WallPlacer.cs` | one defence wall per wool approach, cutting a straight lane where the seam needs it (§5.14). |
+| `WallPlacer` · `ComposedWall` | `Compose/WallPlacer.cs` | one defence wall per wool approach and two round a donut's hole, cutting a straight lane where the seam needs it (§5.14). |
 | `GrownUnit` · `GrownPiece` | `Compose/GrownUnit.cs` | the composed unit records (pieces with `Slot`/`Box` labels + spawn/wool placements). |
 | `Envelope` → `ComposeEnvelope` | `Compose/Envelope.cs` | the budget: player count → land-per-team, board extent, unit bounds (§2.2). |
 | `ComposeRequest` | `Compose/ComposeRequest.cs` | the compose input, validated at construction (§2.1). |

@@ -80,7 +80,7 @@ public static class WoolBoxEmitter
 
         // canonical dims: the mouth-up normalization transposes left/right-mouth families, so size the canonical
         // frame with the along/depth swapped back through the same map
-        var famTransposes = ShapeEmitter.MouthEdge(family, flip) is BoxEdge.Left or BoxEdge.Right;
+        var famTransposes = ShapeEmitter.MouthEdge(family) is BoxEdge.Left or BoxEdge.Right;
         var (canonW, canonH) = famTransposes ? (depth, alongLen) : (alongLen, depth);
         var (minW, minH) = ShapeEmitter.MinBox(family, corridorWidth, roomPlacement, woolAtEnd: woolAtEnd);
         // a widened donut hub-entry raises the ring-edge floor past the default min box — gate it here so an
@@ -103,7 +103,7 @@ public static class WoolBoxEmitter
                 woolAtEnd: woolAtEnd, attachmentWidth: attachmentWidth, ringWalls: ringWalls);
         }
         catch (ArgumentException e) { return new FillResult.UnsupportedKnobs(family, e.Message); }
-        var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);
+        var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, canonW, canonH);
         var shape = MouthOrient.To(mouthTop, mouth, w, h);
 
         var a = Wrap(shape, box.Rect.X, box.Rect.Z, box.Id, roomId ?? $"{box.Id}-room", box.Ref);

@@ -84,10 +84,11 @@ carry, or a flat 30 blocks front to front where it will carry none. It decides o
 split band, which is a crossing that carries none. **Allocation** places the hub,
 chooses its form, works out what hangs off it, and seats each neighbour on the hub's real free surface,
 producing typed boxes and the joints between them. Every unit carries a frontline on the hub's front edge, and
-a spawn on a side edge is seated in line with the hub's hole, or with its middle on a hub without one. **Filling** emits the hub first as the constraint source
+a spawn on a side edge is seated in line with the hub's hole, or with its middle on a hub without one; a unit
+with a donut moves its spawn to the back edge's end nearer the donut. **Filling** emits the hub first as the constraint source
 and each neighbour to the width its own joint was granted. The finished unit is then **re-anchored on its
 face**, so the band it will meet is the face itself rather than the hull of two offset copies. The **carve**
-lays the mid band flush against the fronts. **Walling** then gives each wool approach its defence wall (below).
+lays the mid band flush against the fronts. **Walling** then gives each wool approach its defence walls (below).
 **Assembly** turns labelled pieces into a plan, dropping the labels, and the plan is put to the evaluator's
 hard-term gate.
 
@@ -105,7 +106,10 @@ one defence wall** where a seam qualifies: across the route the attack takes int
 no land beyond either end so it is crossed rather than rounded (`PL17`), a lane mouth wide and 10–20 blocks in
 front of the room (`ST8`). A straight lane is cut in two to make that seam, which is why a walled approach
 carries a `-inner` piece, and a back-room lane is built at least four cells long so one fits. A two-legged
-approach whose room lies deeper than the window takes the nearest qualifying seam its attack crosses.
+approach whose room lies deeper than the window takes the nearest qualifying seam its attack crosses. A donut
+is two ways round its hole and takes **two walls**, one across each leg as near the entry bar as a seam
+qualifies, since one wall would leave the other way open. A unit with a donut stands its spawn behind the
+hub, at the end of the back edge nearer the donut, because a donut draws a unit lopsided toward its side.
 
 What comes out is a plan document, and it is the same format the Plan tool edits. This is seed 2 at twelve
 players under `rot_180`, exactly as `POST /api/compose/pin` stored it:
@@ -248,8 +252,8 @@ is left, never under a third; a unit whose built land falls outside 70–130% of
 rather than shipped.
 
 **The score is a distance, not a grade.** Zero means the board sits inside every envelope the authored corpus
-occupies — of 240 boards each at twelve, twenty and thirty players, 213, 71 and 37 respectively scored exactly
-zero, with the ninetieth percentile at 0.06, 2.62 and 5.90. The terms that fire are almost always
+occupies — of 240 boards each at twelve, twenty and thirty players, 214, 72 and 34 respectively scored exactly
+zero, with the ninetieth percentile at 0.06, 2.67 and 5.52. The terms that fire are almost always
 `spawn-wool-ratio` and `wool-front-ratio`, then `frontline-width` at thirty: a spawn beside the hub stands
 nearer the wool at the back than the one across the hub, however squarely it faces the hole. A hard violation would add 1000 and dominate any
 soft sum, which is why the slider stops at 8.

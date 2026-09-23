@@ -2,11 +2,12 @@ using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Tests.Compose;
 
-/// <summary>The defence walls the composer seats: one per wool, crossed rather than rounded, never against the
-/// room, and on a straight lane at <c>ST8</c>'s standoff.</summary>
+/// <summary>The defence walls the composer seats: crossed rather than rounded, never against the room, on a
+/// straight lane at <c>ST8</c>'s standoff, and across both legs of an approach that goes round a hole.</summary>
 public sealed class WallPlacerTests
 {
     private static readonly BoxRef WoolBox = new("wool-a", BoxKind.Wool);
@@ -53,18 +54,56 @@ public sealed class WallPlacerTests
         await Assert.That(WallPlacer.Place(unit, cell: 4).Walls).IsEmpty();
     }
 
+    private static readonly BoxRef DonutBox = new("wool-b", BoxKind.Wool);
+
+    // a donut docked on the hub's right: an entry stub reaching past the entry bar beside the near leg, the two
+    // legs, and the room at the far corner of the room bar
+    private static GrownUnit Donut() => new(
+        [
+            new GrownPiece("frontline-t1", new CellRect(-4, 6, 8, 6), Box: new BoxRef("frontline", BoxKind.Frontline)),
+            new GrownPiece("hub-t1", new CellRect(-4, 12, 9, 12), Box: new BoxRef("hub", BoxKind.Hub)),
+            new GrownPiece("wool-b-t4", new CellRect(5, 14, 3, 5), Slot: ApproachSlots.Entry, Box: DonutBox),
+            new GrownPiece("wool-b-t1", new CellRect(8, 16, 9, 3), Slot: ApproachSlots.EntryBar, Box: DonutBox),
+            new GrownPiece("wool-b-t2", new CellRect(8, 12, 3, 4), Slot: ApproachSlots.Leg, Box: DonutBox),
+            new GrownPiece("wool-b-t3", new CellRect(14, 12, 3, 4), Slot: ApproachSlots.Leg, Box: DonutBox),
+            new GrownPiece("wool-b-t5", new CellRect(8, 9, 9, 3), Slot: ApproachSlots.RoomBar, Box: DonutBox),
+            new GrownPiece("wool-b-room", new CellRect(17, 9, 2, 3), PlanRoles.WoolRoom, Box: DonutBox),
+        ],
+        new GrownSpawn("hub-t1", [1, 1], "front"),
+        [new GrownWool("wool-b-room", [1, 1])]);
+
     [Test]
-    public async Task Composed_walls_are_one_per_wool_and_draw_no_wall_finding()
+    public async Task A_donut_is_walled_across_each_leg_as_near_the_entry_bar_as_it_stands()
+    {
+        var (unit, walls) = WallPlacer.Place(Donut(), cell: 4);
+
+        await Assert.That(walls.Count).IsEqualTo(2);
+        var legs = walls.Select(w => w.Outer).OrderBy(id => id).ToList();
+        await Assert.That(legs).IsEquivalentTo(new[] { "wool-b-t2", "wool-b-t3" });
+        foreach (var wall in walls)
+            await Assert.That(wall.Inner).IsEqualTo(wall.Outer + WallPlacer.InnerSuffix);
+        // the far leg is clear of the stub, so its wall stands one cell off the entry bar
+        var far = unit.Pieces.Single(p => p.Id == "wool-b-t3").Rect;
+        await Assert.That((far.Z + far.Height, far.Height)).IsEqualTo((16, 1));
+        // the near leg's last cells beside the stub would leave ground past the wall's end, so it stands deeper
+        var near = unit.Pieces.Single(p => p.Id == "wool-b-t2").Rect;
+        await Assert.That(near.Z).IsEqualTo(13);
+    }
+
+    [Test]
+    public async Task Composed_walls_are_one_per_wool_or_two_round_a_hole_and_draw_no_wall_finding()
     {
         var walled = 0;
         var wools = 0;
-        foreach (var players in new[] { 8, 20 })
+        foreach (var players in new[] { 8, 20, 30 })
             for (ulong seed = 0; seed < 30; seed++)
             {
                 var plan = Composer.Compose(new ComposeRequest(players, seed: seed));
                 wools += plan.Placements.Wools.Count;
-                walled += plan.Walls.Count;
-                await Assert.That(plan.Walls.Count).IsLessThanOrEqualTo(plan.Placements.Wools.Count);
+                var perWool = plan.Walls.GroupBy(w => string.Join("-", w.A.Split('-').Take(2))).ToList();
+                walled += perWool.Count;
+                foreach (var wool in perWool)
+                    await Assert.That(wool.Count()).IsLessThanOrEqualTo(2).Because($"p{players} seed {seed} {wool.Key}");
                 var findings = PlanValidator.Check(plan)
                     .Where(f => f.Rule is PlanRules.WallAtJunction or PlanRules.WallWithoutInterface or PlanRules.WallOnWoolRoom)
                     .Select(f => f.Message).ToList();

@@ -9,8 +9,10 @@ namespace PgmStudio.Pgm.Compose;
 /// <summary>A neighbour box to seat against the hub: the hub <see cref="Side"/> it docks, its box
 /// <see cref="Kind"/>, its outward <see cref="Depth"/> (perpendicular to the hub edge) and along-edge
 /// <see cref="Along"/> extent (cells), and its <see cref="Id"/>. Sizing is frame- and form-independent (it
-/// reads the budget); only the seat position is not — so the whole set is fixed before the form is chosen.</summary>
-internal sealed record NeighbourRequest(UnitSide Side, BoxKind Kind, int Depth, int Along, string Id, WoolFill? Wool = null);
+/// reads the budget); only the seat position is not — so the whole set is fixed before the form is chosen.
+/// <see cref="Toward"/> names the lateral side a back spawn seats at the end of.</summary>
+internal sealed record NeighbourRequest(
+    UnitSide Side, BoxKind Kind, int Depth, int Along, string Id, WoolFill? Wool = null, UnitSide? Toward = null);
 
 /// <summary>
 /// How a neighbour docks its host. The three styles are indexed by <b>how much is known about where the
@@ -61,7 +63,7 @@ public static class UnitRequests
 
     /// <summary>The neighbour boxes to seat: the spawn (a straight I for now — cross = entry width, seats
     /// cleanly; the L's overhanging foot lands next), the wools, each on its planned side (the free sides
-    /// first, a third doubling into the spawn's edge), and the frontline join on the front side (reach × a face spanning the hub front). Each takes its share out of
+    /// first, a third doubling into the spawn's edge — a unit with a donut moves its spawn to the back), and the frontline join on the front side (reach × a face spanning the hub front). Each takes its share out of
     /// <paramref name="budget"/> as it is sized, so what the unit leaves unspent is a number rather than an
     /// assumption. The spawn size is the one RNG draw here; the wool sizes read the budget (generic, no
     /// per-family solve), and the set is identical across a fallback re-seat, because the fallback is always
@@ -95,6 +97,7 @@ public static class UnitRequests
             requests.Add(new NeighbourRequest(side, BoxKind.Wool, depth, along, $"wool-{(char)('a' + i)}", fill));
             budget.Spend(along * (double)depth);
         }
+        requests = BackOfDonut(requests);
 
         // the frontline join: it docks the hub's front edge with a face spanning it (corner clearance aside) and
         // reaches `frontReach` toward the axis; the filler picks its form (Bar / single / twin) and orientation
@@ -126,6 +129,30 @@ public static class UnitRequests
         requests.Add(new NeighbourRequest(UnitSide.Front, BoxKind.Frontline, frontReach, faceWidth, "frontline"));
         budget.Spend(faceWidth * (double)frontReach);
         return requests;
+    }
+
+    /// <summary>A unit holding a donut wool with its spawn moved to the back, at the end of it nearer the donut: the
+    /// side the spawn leaves and the back trade everything on them, and a donut the trade lands on the back
+    /// trades sides with a lateral wool. A unit without a donut comes back unchanged.</summary>
+    private static List<NeighbourRequest> BackOfDonut(List<NeighbourRequest> requests)
+    {
+        var donut = requests.FirstOrDefault(r => r.Wool?.Family == ShapeFamily.Donut);
+        if (donut is null) return requests;
+        var spawnSide = requests[0].Side;
+        var traded = requests.Select(r => r with
+        {
+            Side = r.Side == spawnSide ? UnitSide.Back : r.Side == UnitSide.Back ? spawnSide : r.Side,
+        }).ToList();
+        var donutAt = traded.FindIndex(r => r.Id == donut.Id);
+        if (traded[donutAt].Side == UnitSide.Back)
+        {
+            var lateralAt = traded.FindIndex(r => r.Kind == BoxKind.Wool && r.Side is UnitSide.Left or UnitSide.Right);
+            if (lateralAt < 0) return requests;
+            (traded[donutAt], traded[lateralAt]) =
+                (traded[donutAt] with { Side = traded[lateralAt].Side }, traded[lateralAt] with { Side = UnitSide.Back });
+        }
+        traded[0] = traded[0] with { Toward = traded[donutAt].Side };
+        return traded;
     }
 
     /// <summary>Choose one wool's <b>shape and footprint</b> — the whole per-wool decision in one place. Three
@@ -165,9 +192,11 @@ public static class UnitRequests
             if (family == ShapeFamily.Donut)
             {
                 attachW = rng.NextInt(woolLaneCells, UnitTuning.DonutEntryMaxCells(woolLaneCells) + 1);
-                // the hole is one a player rounds rather than jumps, so neither extent starts under a hub hole's
+                // the hole is one a player rounds rather than jumps, so neither extent starts under a hub hole's;
+                // along it the legs run, and each is long enough to seat a wall a cell off the entry bar
                 var holeFloor = UnitTuning.HubHoleCells(cell);
-                var holeAlong = rng.NextInt(holeFloor, Math.Max(holeFloor, UnitTuning.DonutHoleAlongMaxCells) + 1);
+                var legFloor = Math.Max(holeFloor, WallPlacer.LaneCells(cell));
+                var holeAlong = rng.NextInt(legFloor, Math.Max(legFloor, UnitTuning.DonutHoleAlongMaxCells) + 1);
                 var deepFloor = Math.Max(woolLaneCells, holeFloor);
                 var holeDeep = rng.NextInt(deepFloor, Math.Max(deepFloor, UnitTuning.DonutHoleDeepMaxCells(woolLaneCells)) + 1);
                 depth += holeDeep - woolLaneCells;

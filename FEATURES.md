@@ -5591,6 +5591,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   holds through the change. On the hole-hub exemplar both of its G123 blockers clear, leaving only its unrelated
   scale anomalies. (G123)
 
+- **A donut is walled across each leg, and its unit's spawn stands at the donut's end of the back (`G277`)** —
+  `Compose/WallPlacer.cs` (pair seating round an enclosed hole), `Compose/UnitRequests.cs` (`BackOfDonut`,
+  `NeighbourRequest.Toward`), `Compose/UnitSeating.cs`, `Shapes/ShapeEmitter.cs` (a flip mirrors along the
+  mouth). The author's judgement of the walled boards: a donut is two ways in, so it takes one wall across each
+  leg as near the entry bar as a seam qualifies, and a donut makes the unit lopsided, so the spawn moves to the
+  back edge's end nearer it. A donut's hole runs four cells along the hub edge so each leg seats its wall. On
+  800 boards every holed approach carries two walls; donut boards at 20 and 30 players go from 18 and 23 to 15
+  and 15. `ComposerVersion` `walled-3`; `rules.md` amendment 51. (`G277`)
+
 - **A side spawn stands in line with the hub's hole; a donut's hole is a hole (`G276`)** —
   `Compose/UnitSeating.cs` (`InLine`, the hub body's enclosed cells), `Compose/UnitRequests.cs`. The author's
   second judged sweep: a spawn behind the hub's hole stood nearer the back wool, so a lateral spawn's centre now

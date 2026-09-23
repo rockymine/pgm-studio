@@ -222,6 +222,33 @@ public class TeamUnitAllocatorTests
     }
 
     [Test]
+    public async Task A_unit_with_a_donut_puts_its_spawn_on_the_back_at_the_end_nearer_the_donut()
+    {
+        // a donut draws the unit lopsided, so the spawn stands behind the hub, in the back edge's half on the
+        // donut's side (mirror_z: the back edge runs along x, the donut docks an x-facing side)
+        var donuts = 0;
+        foreach (var (players, land) in new[] { (12, 2800.0), (20, 3800.0), (20, 5000.0) })
+            for (ulong seed = 0; seed < 300; seed++)
+            {
+                if (TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed)) is not { } a) continue;
+                var hub = a.ById("hub")!.Rect;
+                var lateral = a.Boxes.Where(b => b.Wool?.Family == ShapeFamily.Donut
+                    && (b.Rect.X + b.Rect.Width == hub.X || b.Rect.X == hub.X + hub.Width)).ToList();
+                if (lateral.Count != 1) continue;
+                donuts++;
+                var front = a.Boxes.Single(b => b.Kind == BoxKind.Frontline).Rect;
+                var spawn = a.Boxes.Single(b => b.Kind == BoxKind.Spawn).Rect;
+                var backZ = front.Z < hub.Z ? hub.Z + hub.Height : hub.Z;
+                var because = $"{players}p/{land:0} seed {seed}: spawn {spawn}, hub {hub}, donut {lateral[0].Rect}";
+                await Assert.That(spawn.Z == backZ || spawn.Z + spawn.Height == backZ).IsTrue().Because(because);
+                var donutSide = Math.Sign(2 * lateral[0].Rect.X + lateral[0].Rect.Width - (2 * hub.X + hub.Width));
+                var spawnSide = Math.Sign(2 * spawn.X + spawn.Width - (2 * hub.X + hub.Width));
+                await Assert.That(spawnSide).IsEqualTo(donutSide).Because(because);
+            }
+        await Assert.That(donuts).IsGreaterThan(0).Because("the sweep has to reach a donut");
+    }
+
+    [Test]
     public async Task In_line_keeps_only_the_seats_centred_within_a_cell_of_the_target()
     {
         // a 12-cell edge, a 4-cell dock, the target at 6: seats 3..5 centre within a cell of it

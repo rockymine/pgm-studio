@@ -1038,6 +1038,15 @@ the question it exists for is *what is this finding* and a rule nothing raises h
 rest are law all the same, and this file is where the law is. A rule that starts being raised joins the
 catalogue by being added to that set, which `RulesEndpointTests` holds to the source in both directions.
 
+51. **A donut takes a wall across each leg, and its unit's spawn stands behind the hub at the donut's end
+    (2026-09-23).** Author's call, off the judged walled boards: a donut is two ways round its hole and one
+    wall at its entry leaves a defence nothing to hold; and a donut makes a unit lopsided, so the spawn moves
+    to the back edge's end nearer it and the wool on the back takes the side the spawn left. An approach that
+    encloses a hole is walled with a pair of seams that between them close every way from its entry to its
+    room while neither does alone, the two legs first, each as far from the room as a seam qualifies. A leg's
+    wall stands a cell off the entry bar, so the hole runs at least `ST8`'s standoff plus a cell along the hub
+    edge — four cells on the four-block grid. A donut's flip now mirrors it along its mouth, which lets its
+    ring hang either way along the hub edge; the two flips drew the same shape before (`G277`).
 50. **A side spawn stands in line with the hub's hole, and a donut's hole is at least 12 blocks
     (2026-09-23).** Author's call, off the second judged sweep. A spawn seated behind the hub's hole stood
     nearer the back wool than the one across the hub; in line with the hole it walks about as far to either,
