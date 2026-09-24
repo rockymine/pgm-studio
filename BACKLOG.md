@@ -583,6 +583,16 @@ and what a `subtract` takes away.
 
 ## The remainder: work no concept above has claimed
 
+- [ ] **WE131 — A house style stating `"beams": null` answers 500, not a finding.** `HouseStyle.Beams` is
+  a non-null `BeamStyle` with a default, and an explicit JSON `null` binds past the default: the store's
+  `SketchMaterialGate.Check` throws at `HouseStyleValidation.CheckBeams` (line 196), and every build of the
+  board then throws at `HouseStamper.LayBeams` (line 496). Refuse the null where the style is bound, with
+  the rule naming `{"block": -1}` as the way to say "no beams"; `docs/world-export/structures.md` §7 says
+  which is the shape.
+
+  *Evidence: fork `bothy` with `shell.beams` set to `null` under `dressing.styles` and `PUT …/sketch` —
+  `RQ2`, 500, stack in the server log. The same style with `{"block": -1}` stores 200 and stamps.*
+
 - [ ] **RP72 — One unbindable field discards the whole intent, at 200, and the export gate opens on it.**
   `POST /map/from-documents` answers 200 and stores a map with **no teams, no spawns and no objectives**
   when the intent carries one field the binder cannot read. Nothing is raised: no `RQ3`, no `warnings`
