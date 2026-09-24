@@ -328,6 +328,11 @@ and a fall counted but not charged, routing around voids — never the straight 
   build-zone border. Refines CT7 (stones extend the team islands' lines) for stones inside a band.
   **Column count [author, 2026-07-05]: two lateral columns are the NORM, three the hard maximum**
   (three appears in exactly one authored example) — never a wider grid; "wide, not too wide."
+- **MD7 [author]** **The crossing is not a long, thin strip.** The build band between the fronts is at
+  least 24 blocks wide at nano, 32 at micro, 40 at milli and 48 at centi, and no longer front to front
+  than twice its width. A band under either reads as a stretch to walk rather than ground to fight over,
+  and with nowhere to pass each other the two sides simply push through it. Scored, not refused: the
+  `thin-middle` term adds each shortfall over half its band, so such a board ranks badly.
 
 ## CT — The mid interface & fragmentation (read from the closure) [expert]
 
@@ -1038,6 +1043,11 @@ the question it exists for is *what is this finding* and a rule nothing raises h
 rest are law all the same, and this file is where the law is. A rule that starts being raised joins the
 catalogue by being added to that set, which `RulesEndpointTests` holds to the source in both directions.
 
+52. **`MD7` added (2026-09-24).** Author's call, off the judged donut boards: a crossing 16 blocks wide and 80
+    long on a board 150 wide was the board's defect, and one 24 wide with its stones stacked along it was
+    "a thin band" of the kind the rules teach against. The widths are the floors of the ranges the author
+    gave for a front at each size, and the length is twice the width. A board is scored for it rather than
+    redrawn: fixing the front in the composer changed too much at once and is parked (`G278`) (`G284`).
 51. **A donut takes a wall across each leg, and its unit's spawn stands behind the hub at the donut's end
     (2026-09-23).** Author's call, off the judged walled boards: a donut is two ways round its hole and one
     wall at its entry leaves a defence nothing to hold; and a donut makes a unit lopsided, so the spawn moves

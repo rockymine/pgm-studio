@@ -40,6 +40,7 @@ public static class LayoutEvaluator
         new UncrossedMiddleVoid(),
         new FrontlineCount(),
         new FrontlineWidth(),
+        new ThinMiddle(),
         new MaxChainLength(),
         new LaneWidth(),
         new WoolWoolDistance(),

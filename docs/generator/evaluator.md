@@ -401,6 +401,10 @@ it applies to and from no others.
 - **Branch / lane** — width 10 (15 on big maps, LN1); max collinear chain ≤50 blocks (LN2); wool at the
   far/back end inset ~5 (WL1); **largest enclosed void a branch wraps ≤ ~10×10** (**G40**); **absolute
   length capped to the authored norm, surplus routed to width/plaza/more routes, not length** (**G44**).
+- **The crossing's shape** — on a composed board, the build band between the fronts is at least its size's
+  floor wide (24 · 32 · 40 · 48 blocks from nano to centi) and at most twice as long as it is wide (MD7,
+  `thin-middle`); each shortfall is scored over half its band and the two are summed, so a band both thin and
+  long scores both.
 - **Approach count (from junctions)** — each objective's branch-count on the way in ≥2 where multi-access is
   wanted; a lone dead-end (count 1) is the defender-holds-the-mouth anti-pattern (WL8 / **G45** / **G37**).
 - **Spawn** — wool reachable from the frontline edge *not through* the spawn (SP1); near the back of its lane

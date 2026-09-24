@@ -424,4 +424,33 @@ public sealed class SoftTermsTests
 
         await Assert.That(new RouteInterference().Value(Ctx(oneSided, SeedEnvelopes.Empty))).IsNull();
     }
+
+    // ── ThinMiddle (MD7) ────────────────────────────────────────────────────────────────────────────────
+
+    private static string Band(int x, int z, int w, int h) => $$"""
+        {"plan":2,"globals":{"cell":4,"symmetry":"rot_180","maxPlayers":30},
+         "pieces":[{"id":"p","role":"piece","rect":[0,20,4,4]}],
+         "zones":[{"id":"mid-band","rect":[{{x}},{{z}},{{w}},{{h}}]}]}
+        """;
+
+    [Test]
+    public async Task A_band_thin_and_long_scores_both_shortfalls()
+    {
+        // milli: 16 blocks wide against the 40 floor is 24 short over half the floor (1.2), and 80 long is five
+        // times its width against at most two (3)
+        var score = new ThinMiddle().Measure(Ctx(Band(-2, -10, 4, 20), SeedEnvelopes.Empty));
+        await Assert.That(score.Distance).IsEqualTo(4.2).Within(1e-9);
+        await Assert.That(score.Violation!.RuleId).IsEqualTo("MD7");
+    }
+
+    [Test]
+    public async Task A_band_wide_and_short_is_clean_and_a_plan_without_one_is_not_read()
+    {
+        await Assert.That(new ThinMiddle().Measure(Ctx(Band(-8, -4, 16, 8), SeedEnvelopes.Empty)).Distance).IsEqualTo(0);
+        const string none = """
+            {"plan":2,"globals":{"cell":4,"symmetry":"rot_180","maxPlayers":30},
+             "pieces":[{"id":"p","role":"piece","rect":[0,20,4,4]}]}
+            """;
+        await Assert.That(new ThinMiddle().Measure(Ctx(none, SeedEnvelopes.Empty)).Distance).IsEqualTo(0);
+    }
 }

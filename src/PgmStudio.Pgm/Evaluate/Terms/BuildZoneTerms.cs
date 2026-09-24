@@ -1,5 +1,6 @@
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
 
@@ -48,5 +49,48 @@ public sealed class BandWoolClearance : ILayoutTerm
             }
 
         return TermScores.Clean(this);
+    }
+}
+
+/// <summary>MD7: the crossing's build band is not a long, thin strip. Two readings of the band a composed board
+/// carries: its width across the fronts against <see cref="WidthFloorBlocks"/> for the board's size band, and its
+/// length front to front against <see cref="MaxLengthPerWidth"/> times that width. The distance is each shortfall
+/// over half its band — the floor for the width, the ratio for the length — summed, so a band both thin and long
+/// scores both. A plan with no <c>mid-band</c> zone is not read.</summary>
+public sealed class ThinMiddle : ILayoutTerm
+{
+    /// <summary>A band longer than this many times its width reads as a corridor to walk rather than ground to
+    /// fight over.</summary>
+    public const double MaxLengthPerWidth = 2.0;
+
+    /// <summary>The narrowest band the author accepts for a board of <paramref name="band"/>, in blocks.</summary>
+    public static int WidthFloorBlocks(string band) => SizeBands.Canonical(band) switch
+    {
+        SizeBands.Nano => 24,
+        SizeBands.Micro => 32,
+        SizeBands.Milli => 40,
+        _ => 48,
+    };
+
+    public string Id => "thin-middle";
+    public string RuleId => "MD7";
+    public TermKind Kind => TermKind.Soft;
+
+    public TermScore Measure(EvalContext ctx)
+    {
+        var plan = ctx.Plan;
+        if (plan.Zones.FirstOrDefault(z => z.Id == "mid-band") is not { } band) return TermScores.Clean(this);
+        var span = Frame.For(plan.Globals.Symmetry).FromRect(band.Rect);
+        double width = span.VSpan * plan.Globals.Cell, length = span.USpan * plan.Globals.Cell;
+        if (width <= 0) return TermScores.Clean(this);
+
+        var floor = WidthFloorBlocks(SizeBands.Of(plan.Globals.MaxPlayers));
+        var thin = Math.Max(0, floor - width) / (floor / 2.0);
+        var tooLong = Math.Max(0, length / width - MaxLengthPerWidth);
+        var distance = thin + tooLong;
+        if (distance <= 0) return TermScores.Clean(this);
+        return TermScores.Soft(this, distance,
+            $"mid band {width:0} blocks wide (floor {floor}) and {length:0} long ({length / width:0.##}× its width, at most {MaxLengthPerWidth:0})",
+            [band.Id], [Ev.Rect(EvidenceTags.Offender, band.Rect)]);
     }
 }

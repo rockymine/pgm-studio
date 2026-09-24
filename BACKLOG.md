@@ -323,6 +323,49 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   `ctw/mame_i_shrunk_the_pvpers` states each of its two gold-nugget generators four times — `8s` plain, then
   `5s` behind `after-30m`, `after-60m` and `after-90m`.
 
+## Composed boards the author judged: what a larger board is made of
+
+Twelve judged donut boards at 20 and 30 players named what a larger composed board gets wrong. `MD7` now scores the thin, long crossing; the rest is below, to be taken
+**one change at a time** and judged between, because changing several at once made the boards worse.
+
+- [ ] **G278 — Parked: a wider front paid for out of the hub.** *Blocking question: which single change is
+  tried first.* A combined round — the face drawn from a fixed range per band (24–36 · 32–48 · 40–56 · 48–64
+  blocks), the hub capped at 44 · 52 · 68 · 76 blocks, two wools from micro up, a two-legged front only where
+  each leg reaches `FR9`, 16-block stones — widened the crossing but made the hubs uniform (every milli hub a
+  68-block ring; the double-hole, G and P gone) and the wool placement worse, and was rolled back. The ranges
+  are the author's and stand for when this is resumed.
+
+- [ ] **G279 — A donut hangs toward the back, and its spawn steps inward to clear it.** `SeatOverhang` draws
+  either flip; prefer the one whose ring runs toward the hub's back, and let `UnitSeating.SpawnCentre`'s
+  back-end seat slide inward past the ring. Also seat the donut nearer the spawn where its route to the wool
+  stays long. `docs/generator/model.md` §5.6.
+
+  *Evidence: judged boards p20 seed 71 (the ring runs toward the middle) and p20 seed 25 (the donut sits far
+  from the spawn with a long way to its wool).*
+
+- [ ] **G280 — A donut may dock turned 90°, its entry and a third of its long bar against the hub's side
+  wall.** A new dock for `ShapeFamily.Donut` in `UnitSeating.SeatOverhang`/`WoolBoxEmitter`, beside the
+  entry-stub dock. `docs/generator/model.md` §4.6.
+
+  *Evidence: judged board p30 seed 32, where the author proposed it.*
+
+- [ ] **G281 — An approach may raise its arm: an `I` or `L` seated at the hub's far edge, facing the way the
+  spawn faces.** Today every approach leaves the hub sideways. Seat it at the end of a lateral edge nearest
+  the back, turned so its run heads toward the back, as a variety draw in `UnitRequests.WoolRequest` and
+  `UnitSeating`. `docs/generator/model.md` §5.5–5.6.
+
+- [ ] **G282 — On an L-shaped hub with the spawn at the back, the short arm takes a long `I` turned so its
+  wool stands ahead of the spawn, with a build zone across the bay.** The zone gives attackers a second,
+  shorter way in and moves the wool further from the spawn. Build it first as an adapted plan through the
+  studio's API and play it back with the author, before any composer change. `docs/tools/plan.md`.
+
+  *Evidence: judged board p20 seed 80, where both wools cannot sit well on an L hub.*
+
+- [ ] **G283 — A wool stands too near its own spawn or too near the front on a two-wool board.** The
+  non-donut wool sits close to its spawn on p20 seed 24, and the second wool close to the frontline on p20
+  seed 50, where the author would shift both wool boxes back. `spawn-wool-ratio` and `wool-front-ratio`
+  already score it; the fix is in where `UnitSeating` seats the second wool. `docs/generator/model.md` §5.6.
+
 ## The plan model: pieces, and the edges between them
 
 - [ ] **TN21 — a plan's `meta.authors` does not survive the compile.** `POST /api/plan/compile` answers an

@@ -54,8 +54,10 @@ landed, the rest is the idea.
 - **G106** *(partial)* — the observed seat/emit failure modes (taxonomy §9 F2–F5): flush lanes at branch-hub
   run ends, the tiny-stub fallback, twin-leg equality, square-on-square.
 - **G112** — P-aware neighbour placement so the P hub survives seating.
-- **G113** — restore the third wool (near-extinct since the seat gap; bias the spawn/doubling toward the
-  wide edge). The wool-count distribution test in `ComposerTests` re-asserts 3-wool occurrence when this lands.
+- **G113** — a third wool, placed the way the corpus places one: two wools beside or behind the spawn and the
+  third ahead of it, hung into the middle of the hub, which frees that negative space for what the hub's
+  centre then holds. Doubling a third wool onto the spawn's side squeezes it in beside the others, which the
+  author ruled out on the judged boards.
 - **G114** — the along-axis mirror so a tight-hub L bends back instead of reverting to I.
 - **G107–G111** — the taxonomy audit's five moves: `demand` as a live kind (G107), the `mix` kind (G108),
   budget ladders as derived targets (G109), WL7 separation by construction (G110, the traversal-spread

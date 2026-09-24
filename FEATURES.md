@@ -5591,6 +5591,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   holds through the change. On the hole-hub exemplar both of its G123 blockers clear, leaving only its unrelated
   scale anomalies. (G123)
 
+- **A thin, long crossing scores badly (`G284`)** — `Evaluate/Terms/BuildZoneTerms.cs` (`ThinMiddle`),
+  `rules.md` `MD7`. A composed board's build band narrower than 24 · 32 · 40 · 48 blocks from nano to centi, or
+  longer than twice its width, adds each shortfall over half its band to the board's score. On the judged
+  donut boards it scores the two the author called thin at 4.2 and 2.1 and the one called good at 0; over 100
+  boards a size it fires on 13–25%. `rules.md` amendment 52. (`G284`)
+
 - **A donut is walled across each leg, and its unit's spawn stands at the donut's end of the back (`G277`)** —
   `Compose/WallPlacer.cs` (pair seating round an enclosed hole), `Compose/UnitRequests.cs` (`BackOfDonut`,
   `NeighbourRequest.Toward`), `Compose/UnitSeating.cs`, `Shapes/ShapeEmitter.cs` (a flip mirrors along the

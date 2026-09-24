@@ -252,10 +252,11 @@ is left, never under a third; a unit whose built land falls outside 70–130% of
 rather than shipped.
 
 **The score is a distance, not a grade.** Zero means the board sits inside every envelope the authored corpus
-occupies — of 240 boards each at twelve, twenty and thirty players, 214, 72 and 34 respectively scored exactly
-zero, with the ninetieth percentile at 0.06, 2.67 and 5.52. The terms that fire are almost always
-`spawn-wool-ratio` and `wool-front-ratio`, then `frontline-width` at thirty: a spawn beside the hub stands
-nearer the wool at the back than the one across the hub, however squarely it faces the hole. A hard violation would add 1000 and dominate any
+occupies — of 240 boards each at twelve, twenty and thirty players, 175, 58 and 25 respectively scored exactly
+zero, with the ninetieth percentile at 1.17, 2.92 and 5.67. The terms that fire are almost always
+`spawn-wool-ratio` and `wool-front-ratio`, then `thin-middle` and `frontline-width`: a spawn beside the hub
+stands nearer the wool at the back than the one across the hub, however squarely it faces the hole, and about
+one board in five crosses a middle thinner than its size's floor or longer than twice its width (`MD7`). A hard violation would add 1000 and dominate any
 soft sum, which is why the slider stops at 8.
 
 **Pinning and authoring are the two exits.** The pin toggle stores the descriptor's board and refreshes the
