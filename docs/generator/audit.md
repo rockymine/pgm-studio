@@ -38,7 +38,7 @@ wools, **how big** a hub, and **how often** each shape appears. Nothing in
 
 **The mix — a steering distribution.** Roughly a dozen weights (`BentWoolChance`, `DonutChance`,
 `StapleChance`, `ClampAdjacentChance`, `DonutCornerWoolChance`, `SideRoomChance`, `RingChance`,
-`WidenedRingChance`, `ThirdWoolChance`, `FullFaceChance`, `ShiftedFaceChance`)
+`WidenedRingChance`, `ShiftedFaceChance`)
 plus several uniform picks. No declared kind fits: a `menu` is a *set* and carries no frequency; a
 `band` carries a distribution but is explicitly **descriptive and advisory**, which is the opposite
 of what these do. A weighted *generative* distribution is a real, distinct kind — provisionally
@@ -70,7 +70,8 @@ Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved 
 | `WoolCount` per band | WL6 gives 1–3; the corpus gives 1 at nano and 2 above | **grounded** |
 | `SpendFloor` / `SpendCeiling` | none — G8 gives a number, not a tolerance | **invented**, and the one the author has said to tune on what the boards look like |
 | the shape-mix weights | WL8 governs wool approach routes | **ungrounded** — the donut *is* WL8's alternative-route case, but `0.25` derives from nothing |
-| `RingChance`, `ThirdWoolChance`, `SecondWoolChance` | none | **ungrounded** |
+| `RingChance`, `SecondWoolChance` | none | **ungrounded** |
+| `FaceBlocks`, `HubWideMaxBlocks` per band | none — the author's ranges | **author's call** (`rules.md` amendment 52) |
 
 **On the corner law.** `Cells.HasDiagonalPinch` is the mass-level pinch test, and it is real — but
 it is invoked **only from tests and the unit gallery**, never from `src/`. The invariant is

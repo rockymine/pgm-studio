@@ -69,7 +69,7 @@ public static class Composer
         for (var attempt = 0; attempt < ComposeAttempts; attempt++)
         {
             if (TeamUnitAllocator.Allocate(envelope, rng, crossing) is not { } partition) continue;
-            if (TeamUnitFiller.Fill(partition, rng) is not { } filled) continue;
+            if (TeamUnitFiller.Fill(partition, rng, envelope.Cell) is not { } filled) continue;
             // place the finished unit rather than take where it was built: the allocator anchors on the hub, but
             // the face is what the mid docks, so re-anchor the unit on its face before the band is derived
             filled = filled with { Unit = UnitPlacement.CentreFaceOnAxis(filled.Unit, envelope.Symmetry) };

@@ -210,8 +210,8 @@ neither rung of cell 5. What the cell does not decide is how wide a board's grou
 spine docked flush on a hub wall reads as one run twice the corridor deep at either scale (`G268`).
 
 **The wool count** is the band's too: one wool a team at nano, sometimes two; two from micro up,
-sometimes three (the third doubles onto the spawn's side). That is what 57% of nano maps and 56–82% of
-the rest carry.
+never three. That is what 57% of nano maps and 56–82% of the rest carry; a third wool in the corpus stands ahead
+of its spawn, in the middle of the hub, which a hub hanging its neighbours off its sides has no place for.
 
 The frontline is not a ladder and not a draw. Every band affords one, and every unit carries one: a unit
 without a frontline docks the crossing on the hub's own face, and the middle comes out as wide as the hub.
@@ -929,8 +929,10 @@ frontline and each wool claim a **fixed share** of it — a frontline is the gro
 takes about a fifth, each wool about an eighth, and a spawn is not a share at all but a box, costing
 what a room and a run-up cost at the map's corridor width. **The hub takes what is left**, never under
 a third: it is the junction every lane originates from, so a unit that spent itself on its edges has no
-middle. That is what makes a bigger band buy a bigger junction rather than the same one on a bigger
-board.
+middle. Its lateral span stops at a ceiling per band — 44 blocks at nano, 52 at micro, 68 at milli and 76 at
+centi — and its depth never passes its span, so a larger band buys larger approaches and a larger crossing
+rather than an ever larger junction; a share the ceiling will not spend is left unspent, which the spend gate
+reads like any other.
 
 The allocator can only aim in **footprints** — a box's rectangle is all it has before anything is
 filled — so the allowance the boxes share out is the land budget over the share of a footprint that
@@ -1013,8 +1015,12 @@ The one request the runs bound from **below** is the frontline's face. A body th
 own front is one the frontline is meant to close (§5.7), and the narrowest face that can is the one
 reaching a lane onto the shoulder each side of it — under that, no seat closes the bay however the face
 is slid, and the body's bay stays an open notch instead of becoming a hole. So the face's sample is
-floored there, rounded up to an even width first where the symmetry's parity law would otherwise round
-it back under. A solid front imposes no floor and the sample is the funnel's own.
+floored there as well as by its band, and a hub whose bay no face in the band's range can close is not taken
+at that band: the solid rectangle stands in for it. The face is the width the mid is met across, and it is drawn from a
+fixed range per band rather than read off the hub, so a hub that grows with the budget does not carry the
+front and the build band out with it: 24–36 blocks at nano, 32–48 at micro, 40–56 at milli and 48–64 at
+centi. Under a laterally flipping symmetry the draw is over the even widths in that range, the parity the
+face needs to meet its own image squarely.
 
 The along-extent is checked against the hub's edge length, and the overhang families are deliberately
 exempt from that check. A staple whose mouth is wider than the edge demotes to an L — which is to say,
@@ -1156,10 +1162,9 @@ unit of account for the rule against long flat frontiers.
 Failure is a ladder, not a cliff, and each rung is a different answer.
 
 A rich wool that finds no legal overhang demotes to the compact inline `I` — the always-seatable shape
-— and re-enters as a full mouth. A wool whose full mouth then finds no run demotes the same way. A wool
-that still cannot clear the separation gap is **dropped**, provided another wool has already seated:
-the unit keeps its objectives, one fewer, rather than failing entirely. The spawn and the frontline are
-not droppable, because a spawn or frontline that cannot seat is a genuine too-small signal.
+— and re-enters as a full mouth. A wool whose full mouth then finds no run demotes the same way. Nothing
+is dropped: a wool that still cannot clear the separation gap fails the seating like a spawn or a frontline
+would, because a unit keeps every objective it planned or is not built at all.
 
 That signal propagates upward. The allocator retries the whole seating on the solid rectangle hub,
 whose four full edges usually hold a lawful seat the chosen form's runs could not, and only when that
@@ -1204,7 +1209,9 @@ cleared. What each neighbour builds to is likewise fixed — the width its own j
 Two kinds genuinely choose at fill time, and both choose within what was granted. A **spawn** picks
 among the profiles that fit at its granted width. A **frontline** picks a form that answers the hub's:
 a branch hub takes the wide Bar across its front, while a square or holed hub prefers a staple or a
-strand, because a solid Bar flush against an already-square hub reads flat.
+strand, because a solid Bar flush against an already-square hub reads flat. Each leg a front meets the mid on
+is a crossing of its own, so the two-legged strand is drawn only where both legs can be `FR9`'s 15 blocks wide;
+a narrower face takes the Bar or the single strand instead.
 
 The frontline's choice is where the seam currently leaks, and it is a known defect rather than a
 design. Its **form choice** is declared the allocator's, since form is what decides where anything may
@@ -1254,9 +1261,10 @@ half again as deep. A crossing that carries **nothing** takes a single stated di
 front to the other, because an empty crossing is walked or bridged in one go rather than in hops.
 
 Cutting across that is the row's **grain**, which is the other thing the gap has to know before it is fixed. A
-**broad** row is a stone the band's own depth. A **fine** row is a stone one corridor deep — sixteen blocks at
-the two largest bands against twenty-four — so the crossing it opens is correspondingly shorter, and so is
-each stone, which is what lets more of them stand in one row. The grain is drawn for the board; what it is for
+**broad** row's stone is sixteen blocks deep on every band, shallow enough that two stand side by side,
+wider than deep and a hop apart, on a front from 52 blocks up. A **fine** row's stone is one corridor deep —
+twelve blocks at nano and fourteen at micro, the same sixteen above — so where the corridor is narrower the
+crossing it opens is shorter still. The grain is drawn for the board; what it is for
 is the next paragraph but one.
 
 Then the band itself. Laterally it spans exactly the hull of the opposing front faces and it docks flush
@@ -1307,7 +1315,8 @@ How many stones is what the hull affords. Each is **wider than it is deep** — 
 drawn down the middle rather than an island — and each stands clear of its neighbours by a hop and of the
 band's own ends by a cell. The widest count meeting that, capped at three, is the row, and because the hull is
 the frontline's own the count moves with the front rather than with the band: measured over the seed range it
-runs one island at nano and micro, one or two at milli and up to three at centi. Where
+runs one island at nano and micro, and two side by side on about one milli board in ten and one centi board
+in five, the rest keeping one. Where
 the row needs it the gap between stones takes one cell more than a hop, because a row spanning an odd number
 of cells cannot sit symmetric about the axis's own cell boundary.
 

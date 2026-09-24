@@ -1,3 +1,4 @@
+using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
 using PgmStudio.Vocabulary;
 
@@ -62,15 +63,17 @@ public static class TeamUnitFiller
     /// <summary>
     /// Fill an allocated <paramref name="partition"/> into a team unit, hub-first (the allocate↔fill contract).
     /// The <b>allocator (C.2) provides</b>: the positioned boxes (plan-cell <see cref="Box.Rect"/>s — one hub,
-    /// one spawn, 1–3 wools, 0–1 frontline), the joints between them with the <b>corridor width each consumer
+    /// one spawn, 1–2 wools, 0–1 frontline), the joints between them with the <b>corridor width each consumer
     /// was granted, carried per joint as their <see cref="BoxJoint.Grant"/>s</b>. This <b>filler</b> emits the hub
     /// first at the form the allocator chose (<see cref="Box.Form"/>), then for each hub joint fills the
     /// neighbour box — the spawn/wool consuming <b>its own joint's</b> granted width as its <c>cw</c>, docking the
     /// edge facing the hub — and assembles the pieces + placements.
     /// <c>null</c> on any directed fill failure (a form or family that does not fit), which the composer
-    /// resamples. The frontline (a join, not a placement — its face offer feeds the mid) joins next.
+    /// resamples. The frontline (a join, not a placement — its face offer feeds the mid) joins next; each leg
+    /// it meets the mid on is a crossing of its own, so a two-legged front is drawn only where both legs reach
+    /// <c>FR9</c>'s width on the <paramref name="cell"/>-block grid.
     /// </summary>
-    public static FilledUnit? Fill(BoxPartition partition, ComposeRng rng)
+    public static FilledUnit? Fill(BoxPartition partition, ComposeRng rng, int cell)
     {
         var hubBox = partition.Boxes.FirstOrDefault(b => b.Kind == BoxKind.Hub);
         if (hubBox is null) return null;
@@ -136,7 +139,10 @@ public static class TeamUnitFiller
                     // flush against an already-square hub reads flat (a square on a square).
                     var hubForm = hubBox.Form?.Form ?? Compound.Rectangle;
                     var bar = fitF.FirstOrDefault(f => f.Form == Compound.Rectangle);
-                    var strands = fitF.Where(f => f.Form == Compound.SpineArms).ToList();
+                    var spineLenF = mouth is BoxEdge.Left or BoxEdge.Right ? neighbour.Rect.Height : neighbour.Rect.Width;
+                    var legMin = (PlanValidator.MinFrontlineBlocks + cell - 1) / cell;
+                    var strands = fitF.Where(f => f.Form == Compound.SpineArms
+                        && (f.Arms < 2 || spineLenF >= FrontlineBoxEmitter.TwinSpineCells(legMin))).ToList();
                     var frontForm = hubForm == Compound.SpineArms && bar is not null ? bar
                         : strands.Count > 0 ? strands[rng.NextInt(0, strands.Count)]
                         : fitF[rng.NextInt(0, fitF.Count)];
@@ -144,9 +150,8 @@ public static class TeamUnitFiller
                     // the branch forms take a sampled leg layout (SampleArms — varied leg widths/placements
                     // under the leg laws: ≥2 wide, factor-2 pairs, 2–4 bays, capped end recesses) with the
                     // canonical fat L / symmetric twin as the fallback when the spine cannot host one
-                    var spineLenF = mouth is BoxEdge.Left or BoxEdge.Right ? neighbour.Rect.Height : neighbour.Rect.Width;
                     var layoutF = frontForm.Form == Compound.SpineArms
-                        ? FrontlineBoxEmitter.SampleArms(rng, spineLenF, frontForm.Arms) : null;
+                        ? FrontlineBoxEmitter.SampleArms(rng, spineLenF, frontForm.Arms, frontForm.Arms == 2 ? legMin : 2) : null;
                     var ef = (layoutF is null ? null
                             : FrontlineBoxEmitter.Fill(neighbour, frontForm, cwF, grouping, mouth, armLayout: layoutF))
                         ?? FrontlineBoxEmitter.Fill(neighbour, frontForm, cwF, grouping, mouth)!;

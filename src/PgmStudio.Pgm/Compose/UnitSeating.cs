@@ -152,12 +152,8 @@ public static class UnitSeating
             if (SeatFullMouth(runs, edgeLen, request, edge, hubRect, Blocked, seatGapCells, grantedWidthCells, cell, inLine, rng)
                 is not { } dock)
             {
-                // a wool that no longer fits with the seat gap (the third wool doubling onto the spawn's own edge
-                // cannot clear the gap on a small hub — it only ever fit by touching) is dropped rather than
-                // failing the whole unit, so long as a wool already seated: the unit keeps its objectives, one
-                // fewer. The spawn and frontline are not droppable — a request they cannot seat is a real too-small
-                // signal the caller answers by falling back / resampling.
-                if (request.Kind == BoxKind.Wool && boxes.Any(b => b.Kind == BoxKind.Wool)) continue;
+                // nothing is dropped: a unit keeps every objective it planned, and a request it cannot seat is a
+                // too-small signal the caller answers by falling back to the rectangle or redrawing the attempt
                 return null;
             }
             Seated(dock.Request, dock.Box, dock.Abutment, grantedWidthCells);   // dock.Request — a full mouth may have demoted it

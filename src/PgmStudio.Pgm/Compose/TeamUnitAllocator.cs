@@ -20,9 +20,8 @@ public sealed record UnitPlan(UnitSide Spawn, IReadOnlyList<UnitSide> Wools);
 /// structure and lays out box footprints from the budget.
 /// This layer is the frame-independent <b>placement plan</b> (<see cref="UnitPlan"/>): the wool count and
 /// which hub side each neighbour takes. The <b>spawn may sit on the back or a lateral side</b>;
-/// the wools are assigned <b>after</b> the spawn and around it — the two free (non-spawn, non-front) sides first,
-/// back preferred, a third wool doubling up on the spawn's side ("two side wools +
-/// a back wool-c" exactly when the spawn is on the back).
+/// the wools are assigned <b>after</b> the spawn and around it, on the two free (non-spawn, non-front) sides,
+/// back preferred.
 /// </summary>
 public static class TeamUnitAllocator
 {
@@ -65,7 +64,8 @@ public static class TeamUnitAllocator
         // always wider than deep, so the hub tracks the budget across every band instead of two independent
         // draws out of a ladder that saturates
         var aspect = rng.NextDouble(UnitTuning.HubAspectLow, UnitTuning.HubAspectHigh);
-        var (hubU, hubV) = UnitTuning.HubBoxCells(hubTarget, aspect, laneWidthCells);
+        var (hubU, hubV) = UnitTuning.HubBoxCells(
+            hubTarget, aspect, laneWidthCells, UnitTuning.HubWideMaxBlocks(env.Band) / env.Cell);
         budget.Spend(hubU * (double)hubV);
         // The span is drawn free of parity, including under a laterally-flipping symmetry. What has to coincide
         // with its own image is the face — it carries its own parity law and is what the finished unit is centred
@@ -92,8 +92,14 @@ public static class TeamUnitAllocator
 
         // the neighbour requests (spawn + wools + the frontline join), sized out of the budget the hub left and
         // against the free runs its front edge actually presents — a bay-fronted body (a G, U or L) hands the
-        // frontline a floor its face has to reach, which is the width that closes the bay into a hole
+        // frontline a floor its face has to reach, which is the width that closes the bay into a hole. A bay no
+        // face in the band's range can close is a body this band does not take, and the solid rectangle stands in
         var frontRuns = UnitSeating.FrontRuns(sampled, hubRect, frame, laneWidthCells, walls, arms);
+        if (UnitRequests.SealWidth(frontRuns, laneWidthCells) > UnitTuning.FaceCells(env.Band, env.Cell).Hi)
+        {
+            (sampled, walls, arms) = (new CompoundRead(Compound.Rectangle), null, null);
+            frontRuns = UnitSeating.FrontRuns(sampled, hubRect, frame, laneWidthCells, walls, arms);
+        }
         var requests = UnitRequests.Sample(
             env, rng, budget, plan, laneWidthCells, hubU, hubV, frontReach, frontRuns);
         // seat them on that body; fall back to the solid rectangle (four full edges) when the offerable surface

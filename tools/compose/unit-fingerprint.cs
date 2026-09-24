@@ -44,7 +44,7 @@ foreach (var (label, players) in presets)
                 $"grant={(j.Grant is null ? "-" : $"{j.Grant.Edge}@{j.Grant.Interval.Start}+{j.Grant.Interval.LengthCells}" +
                     $":w{j.Grant.WidthClass}:{j.Grant.Grouping}:{j.Grant.GroupId}")});");
 
-        if (TeamUnitFiller.Fill(a, new ComposeRng((ulong)seed)) is not { } f)
+        if (TeamUnitFiller.Fill(a, new ComposeRng((ulong)seed), env.Cell) is not { } f)
         { sb.Append("NOFILL\n"); continue; }
         filled++;
         foreach (var p in f.Unit.Pieces)

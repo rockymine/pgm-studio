@@ -88,7 +88,7 @@ public sealed class ComposerTests
             var findings = PlanValidator.Check(plan);
             await Assert.That(findings.Any(f => f.Severity == Severity.Refusal)).IsFalse()
                 .Because($"errors @ {players}p seed {seed}");
-            foreach (var rule in new[] { "PC-C", "G2", "G5" })
+            foreach (var rule in new[] { "PC-C", "G2", "G5", "FR9" })
                 await Assert.That(findings.Any(f => f.Rule == rule)).IsFalse()
                     .Because($"{rule} lint @ {players}p seed {seed}");
         }
@@ -159,9 +159,7 @@ public sealed class ComposerTests
     [Test]
     public async Task Wool_counts_vary_across_seeds()
     {
-        // the wool-count sampler is alive: small boards split between one and two wools. (The third wool is
-        // currently near-extinct — the seat gap drops the spawn-side doubling — so its occurrence is not
-        // asserted until that placement is restored.)
+        // the wool-count sampler is alive: small boards split between one and two wools
         var counts = new HashSet<int>();
         for (ulong seed = 0; seed < 30; seed++)
             counts.Add(Composer.Compose(new ComposeRequest(12, teams: 2, seed: seed)).Placements.Wools.Count);
@@ -169,6 +167,30 @@ public sealed class ComposerTests
         await Assert.That(counts.Contains(2)).IsTrue();
     }
 
+
+    [Test]
+    public async Task From_micro_up_a_board_carries_two_wools_a_front_in_its_range_and_a_hub_under_its_ceiling()
+    {
+        // the author's per-band ranges, in blocks: the frontline face and the hub's lateral ceiling (rot_180, the
+        // default, runs the lateral axis along x)
+        var face = new Dictionary<string, (int Lo, int Hi)> { ["micro"] = (32, 48), ["milli"] = (40, 56), ["centi"] = (48, 64) };
+        var hubMax = new Dictionary<string, int> { ["micro"] = 52, ["milli"] = 68, ["centi"] = 76 };
+        foreach (var players in new[] { 20, 30, 44 })
+            for (ulong seed = 0; seed < 15; seed++)
+            {
+                var stages = Composer.ComposeStages(new ComposeRequest(players, seed: seed));
+                var (band, cell) = (stages.Envelope.Band, stages.Envelope.Cell);
+                int Span(BoxKind kind)
+                {
+                    var rects = stages.Unit.Pieces.Where(p => p.Box?.Kind == kind).Select(p => p.Rect).ToList();
+                    return (rects.Max(r => r.X + r.Width) - rects.Min(r => r.X)) * cell;
+                }
+                var because = $"{players}p seed {seed} ({band})";
+                await Assert.That(stages.Plan.Placements.Wools.Count).IsEqualTo(2).Because(because);
+                await Assert.That(Span(BoxKind.Frontline)).IsBetween(face[band].Lo, face[band].Hi).Because(because);
+                await Assert.That(Span(BoxKind.Hub)).IsLessThanOrEqualTo(hubMax[band]).Because(because);
+            }
+    }
 
     [Test]
     public async Task Box_composition_closes_the_loop_with_a_carved_mid()

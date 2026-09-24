@@ -55,10 +55,6 @@ public static class UnitTuning
     /// carry; two is the rest.</summary>
     internal const double SecondWoolChance = 0.4;
 
-    /// <summary>Of micro-and-up units, how often the <b>third</b> wool appears (it doubles onto the spawn's
-    /// side). Two is what 56–82% of those maps carry.</summary>
-    internal const double ThirdWoolChance = 0.4;
-
     // ── the budget: what each box takes out of it ──────────────────────────────────────────────────────────
 
     /// <summary>The share a <b>frontline</b> is entitled to — the ground the mid is met on, and the second
@@ -135,17 +131,32 @@ public static class UnitTuning
     /// <para>Depth is floored at <b>three corridors</b> — a wall, a corridor and a wall — because that is what
     /// a hub needs to come out a loop rather than a slab, and the lateral span is capped so the floor never
     /// pushes the box past its share. A shallower hub can only be solid however holed a form it is handed: its
-    /// hole would be narrower than a lane.</para></summary>
-    internal static (int Deep, int Wide) HubBoxCells(double hubTargetCells, double aspect, int corridorCells)
+    /// hole would be narrower than a lane.</para>
+    ///
+    /// <para>The lateral span never passes <paramref name="maxWideCells"/>, the band's own ceiling, and the depth
+    /// never passes the span it is given: a share that would buy a bigger hub than that is left unspent rather
+    /// than turned into a deeper one.</para></summary>
+    internal static (int Deep, int Wide) HubBoxCells(double hubTargetCells, double aspect, int corridorCells, int maxWideCells)
     {
         var target = Math.Max(1.0, hubTargetCells);
         var minDeep = 3 * corridorCells;
         var minWide = corridorCells + 2;
         var wide = Math.Clamp((int)Math.Round(Math.Sqrt(target * Math.Max(1.0, aspect))),
-                              minWide, Math.Max(minWide, (int)(target / minDeep)));
-        var deep = Math.Max(minDeep, (int)Math.Round(target / wide));
+                              minWide, Math.Max(minWide, Math.Min(maxWideCells, (int)(target / minDeep))));
+        var deep = Math.Max(minDeep, Math.Min(wide, (int)Math.Round(target / wide)));
         return (deep, wide);
     }
+
+    /// <summary>The widest a hub may run laterally for a size band, in blocks. A hub grows with the band's budget
+    /// up to here and no further, so a large board spends its land on its approaches and its crossing rather
+    /// than on one oversized junction.</summary>
+    internal static int HubWideMaxBlocks(string band) => SizeBands.Canonical(band) switch
+    {
+        SizeBands.Nano => 44,
+        SizeBands.Micro => 52,
+        SizeBands.Milli => 68,
+        _ => 76,
+    };
 
     /// <summary>The box width at or above which a hub is <b>wide enough for the holed wide bodies</b> at
     /// corridor width <paramref name="corridorCells"/> — the P (loop + overhanging bar) and the Double-hole
@@ -217,13 +228,24 @@ public static class UnitTuning
     /// use the hub's full edge (which the side-tuck wool and the wide frontline face want).</summary>
     internal const int CornerClearanceCells = 0;
 
-    /// <summary>How often the frontline still takes the hub's <b>full</b> front width (G123). The pinned face
-    /// stays the common case; a partial front is the deliberate exception, not the new default.</summary>
-    internal const double FullFaceChance = 0.6;
+    /// <summary>The frontline face's width range for a size band, in blocks — the author's per-tier range, and so
+    /// the width the mid is met across. Fixed per band rather than read off the hub, so a hub that grows with the
+    /// budget does not carry the front and the build band out with it.</summary>
+    internal static (int Lo, int Hi) FaceBlocks(string band) => SizeBands.Canonical(band) switch
+    {
+        SizeBands.Nano => (24, 36),
+        SizeBands.Micro => (32, 48),
+        SizeBands.Milli => (40, 56),
+        _ => (48, 64),
+    };
 
-    /// <summary>The narrowest sampled frontline face, in cells. Below two lanes a front reads as a nub stuck to
-    /// the hub rather than a front the mid can meet.</summary>
-    internal const int FaceMinCells = 4;
+    /// <summary><see cref="FaceBlocks"/> on a <paramref name="cell"/>-block grid: the floor rounded up and the
+    /// ceiling down, so every face drawn from it stays inside the range in blocks.</summary>
+    internal static (int Lo, int Hi) FaceCells(string band, int cell)
+    {
+        var (lo, hi) = FaceBlocks(band);
+        return ((lo + cell - 1) / cell, hi / cell);
+    }
 
     /// <summary>How far a sampled face may <b>overhang</b> the hub's front edge, in cells (total across both
     /// sides). The frontline is the one neighbour allowed to be wider than the edge it docks: its face is what
@@ -238,11 +260,10 @@ public static class UnitTuning
     // ── the plan: how many wools, and which side each neighbour takes ──────────────────────────────────────
 
     /// <summary>The wool-box count for the envelope's size band: one at nano, sometimes two; two from micro
-    /// up, sometimes three (the third doubles onto the spawn's side).</summary>
+    /// up. A third wool stands ahead of the spawn in the corpus, which a hub with its neighbours on its sides
+    /// cannot offer, so the composer never draws one.</summary>
     public static int WoolCount(ComposeEnvelope env, ComposeRng rng) =>
-        env.Band == SizeBands.Nano
-            ? (rng.NextBool(SecondWoolChance) ? 2 : 1)
-            : (rng.NextBool(ThirdWoolChance) ? 3 : 2);
+        env.Band == SizeBands.Nano ? (rng.NextBool(SecondWoolChance) ? 2 : 1) : 2;
 
     /// <summary>Assign each of <paramref name="woolCount"/> wools a hub side, given the <paramref name="spawn"/>'s
     /// side. The two free body sides (back and the sides, minus the spawn's, <b>back first</b>) take a wool each;
