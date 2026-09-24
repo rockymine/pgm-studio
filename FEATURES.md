@@ -5591,17 +5591,6 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   holds through the change. On the hole-hub exemplar both of its G123 blockers clear, leaving only its unrelated
   scale anomalies. (G123)
 
-- **Composed boards spend their budget on a wider front rather than a bigger hub (`G278`)** —
-  `Compose/UnitTuning.cs` (`FaceBlocks`, `HubWideMaxBlocks`, `WoolCount`), `Compose/UnitRequests.cs`,
-  `Compose/MidCarver.cs` (`BroadStoneDeepBlocks`). The author's judgement of the donut boards: the frontline face
-  is drawn from a fixed range per band (24–36, 32–48, 40–56, 48–64 blocks), the hub stops at 44, 52, 68 and 76
-  blocks wide, no unit draws a third wool or drops one it planned, a two-legged front is drawn only where each
-  leg reaches `FR9`'s 15 blocks, and a centred stone is 16 blocks deep so two stand side by side on the wider
-  fronts. Over 100 boards a tier the face's tenth percentile rises from 16 to 24 at nano, 16 to 32
-  at micro and 32 to 40 at milli, the milli hub's median falls from 80 to 68 blocks, and `FR9` findings on
-  composed boards fall from about one board in five to none. `ComposerVersion`
-  `tiered-1`; `rules.md` amendment 52. (`G278`)
-
 - **A donut is walled across each leg, and its unit's spawn stands at the donut's end of the back (`G277`)** —
   `Compose/WallPlacer.cs` (pair seating round an enclosed hole), `Compose/UnitRequests.cs` (`BackOfDonut`,
   `NeighbourRequest.Toward`), `Compose/UnitSeating.cs`, `Shapes/ShapeEmitter.cs` (a flip mirrors along the

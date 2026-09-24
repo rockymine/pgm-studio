@@ -96,15 +96,19 @@ public static class MidCarver
     public static bool IsStone(string? pieceId) =>
         pieceId is not null && pieceId.StartsWith(StoneIdPrefix, StringComparison.Ordinal);
 
-    /// <summary>How deep a mid stone stands, in blocks. A centred row takes <see cref="BroadStoneDeepBlocks"/>; a
+    /// <summary>How deep a mid stone stands, in blocks. A centred row takes the band's own figure; a
     /// <b>keyed</b> row takes the band's <b>corridor</b> instead, because a stone keyed to a front's leg is
-    /// only as wide as that leg and has to stay wider than it is deep.</summary>
+    /// only as wide as that leg and has to stay wider than it is deep — measured over the seed range the
+    /// narrowest leg on a two-faced front runs 20 blocks at milli and 24 at centi against stone depths of 24,
+    /// so keying at the band's depth would refuse half the boards that could carry it. The shallower stone is
+    /// what makes the crossing shorter as well as the row wider.</summary>
     private static int StoneDeepBlocks(string band, MidGrain grain) =>
-        grain == MidGrain.Fine ? UnitTuning.CorridorBlocks(SizeBands.Canonical(band)) : BroadStoneDeepBlocks;
-
-    /// <summary>A centred row's stone depth, in blocks, on every band: shallow enough that two stones stand side
-    /// by side, a hop apart and wider than deep, on a front from 52 blocks up.</summary>
-    public const int BroadStoneDeepBlocks = 16;
+        grain == MidGrain.Fine ? UnitTuning.CorridorBlocks(SizeBands.Canonical(band))
+        : SizeBands.Canonical(band) switch
+        {
+            SizeBands.Micro or SizeBands.Milli or SizeBands.Centi => 24,
+            _ => 16,
+        };
 
     /// <summary>A mid stone's depth on this board, in cells — <b>even</b>, because a stone stands astride the
     /// axis and spends half its depth each side, which is what makes its own fanned image abut it into one

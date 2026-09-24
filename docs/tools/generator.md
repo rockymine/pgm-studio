@@ -120,40 +120,37 @@ players under `rot_180`, exactly as `POST /api/compose/pin` stored it:
   "meta": { "name": "Composed p12 t2 #2" },
   "globals": { "cell": 4, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
   "pieces": [
-    { "id": "hub-t1",          "role": "piece",     "rect": [-8, 15, 11, 3] },
-    { "id": "hub-t2",          "role": "piece",     "rect": [-8, 9, 11, 3] },
-    { "id": "hub-t3",          "role": "piece",     "rect": [-8, 12, 3, 3] },
-    { "id": "hub-t4",          "role": "piece",     "rect": [0, 12, 3, 3] },
-    { "id": "spawn-t1",        "role": "piece",     "rect": [0, 18, 3, 1] },
-    { "id": "spawn-room",      "role": "spawn",     "rect": [0, 19, 3, 2] },
-    { "id": "wool-a-t2",       "role": "piece",     "rect": [-14, 8, 3, 4] },
-    { "id": "wool-a-room",     "role": "wool-room", "rect": [-14, 6, 3, 2] },
-    { "id": "frontline-t1",    "role": "piece",     "rect": [-3, 6, 8, 3] },
-    { "id": "frontline-t2",    "role": "piece",     "rect": [-3, 4, 5, 2] },
-    { "id": "wool-a-t1",       "role": "piece",     "rect": [-9, 9, 1, 3] },
-    { "id": "wool-a-t1-inner", "role": "piece",     "rect": [-11, 9, 2, 3] }
+    { "id": "hub-t1",          "role": "piece",     "rect": [-5, 15, 11, 3] },
+    { "id": "hub-t2",          "role": "piece",     "rect": [-5, 9, 11, 3] },
+    { "id": "hub-t3",          "role": "piece",     "rect": [-5, 12, 3, 3] },
+    { "id": "hub-t4",          "role": "piece",     "rect": [3, 12, 3, 3] },
+    { "id": "spawn-t1",        "role": "piece",     "rect": [6, 13, 1, 3] },
+    { "id": "spawn-room",      "role": "spawn",     "rect": [7, 13, 2, 3] },
+    { "id": "wool-a-room",     "role": "wool-room", "rect": [-2, 22, 3, 2] },
+    { "id": "frontline-t1",    "role": "piece",     "rect": [-3, 4, 6, 5] },
+    { "id": "wool-a-t1",       "role": "piece",     "rect": [-2, 18, 3, 1] },
+    { "id": "wool-a-t1-inner", "role": "piece",     "rect": [-2, 19, 3, 3] }
   ],
   "zones": [ { "id": "mid-band", "rect": [-3, -4, 6, 8], "holes": [] } ],
   "placements": {
-    "spawns": [ { "id": "spawn-1", "piece": "spawn-room", "at": [6, 4], "facing": "front" } ],
+    "spawns": [ { "id": "spawn-1", "piece": "spawn-room", "at": [4, 6], "facing": "left" } ],
     "wools":  [ { "id": "wool-1",  "piece": "wool-a-room", "at": [6, 4] } ],
     "iron": [], "destroyables": [], "cores": []
   },
   "walls": [ { "a": "wool-a-t1", "b": "wool-a-t1-inner" } ],
   "boxes": [
-    { "id": "hub",        "kind": "hub",        "rect": [-8, 9, 11, 9],   "members": ["hub-t1", "hub-t2", "hub-t3", "hub-t4"] },
-    { "id": "spawn",      "kind": "spawn",      "rect": [0, 18, 3, 3],    "members": ["spawn-t1", "spawn-room"] },
-    { "id": "wool-a",     "kind": "wool",       "rect": [-14, 6, 6, 6],   "members": ["wool-a-t2", "wool-a-room", "wool-a-t1", "wool-a-t1-inner"] },
-    { "id": "frontline",  "kind": "frontline",  "rect": [-3, 4, 8, 5],    "members": ["frontline-t1", "frontline-t2"] }
+    { "id": "hub",        "kind": "hub",        "rect": [-5, 9, 11, 9],   "members": ["hub-t1", "hub-t2", "hub-t3", "hub-t4"] },
+    { "id": "spawn",      "kind": "spawn",      "rect": [6, 13, 3, 3],    "members": ["spawn-t1", "spawn-room"] },
+    { "id": "wool-a",     "kind": "wool",       "rect": [-2, 18, 3, 6],   "members": ["wool-a-room", "wool-a-t1", "wool-a-t1-inner"] },
+    { "id": "frontline",  "kind": "frontline",  "rect": [-3, 4, 6, 5],    "members": ["frontline-t1"] }
   ]
 }
 ```
 
 That document compiles clean, evaluates at score 0 with no lint, and reports every box producible. Its hub is
-a ring whose hole is five cells by three; its spawn docks the hub's back and faces front, into the hub; its
-one wool approach is an `L` off the hub's left side that turns toward the front, cut a cell off the hub into
-`wool-a-t1` and `wool-a-t1-inner` with the wall on that seam; and its frontline is a bar carrying a single
-twenty-block leg, the face the mid band is met across. It also shows what a
+a ring whose hole is five cells by three; its spawn docks the hub's right side level with the hole and faces
+left, into the hub; and its one wool approach is cut a cell off the hub into `wool-a-t1` and
+`wool-a-t1-inner`, with the wall on that seam twelve blocks in front of the room. It also shows what a
 composed plan invariably lacks, and the empty arrays are the honest part of it. **No piece carries a
 `surface`**, so a
 generated board is flat at the global 9 and every height on it arrives later, in the Sketch tool's relief
@@ -170,7 +167,7 @@ validator and the derivers ignore it — and it is what the Plan tool's feasibil
 The four numbers do not scale a board smoothly; the player count lands in a band and the band is what changes
 the board's shape. Each band carries its measured land per team — 2250 blocks² at nano, 4025 at micro, 7075 at
 milli and 8730 at centi — its corridor width in blocks — 12 · 14 · 16 · 16, with the wool
-approach one rung under — and its wool count: one a team at nano, sometimes two, and two from micro up. Beside
+approach one rung under — and its wool count: one a team at nano, two from micro up, sometimes three. Beside
 the ladders sit roughly a dozen sampling weights — how often a wool bends, how often a bent wool is a donut, how often a big
 square hub takes the ring — which steer the output's character more than anything else in the generator and
 are, by `docs/generator/audit.md`'s own account, the least principled part of the model.
@@ -251,15 +248,13 @@ tenths of it; the **mid** takes the tenth each unit gave up, twice over, because
 piece of ground both teams stand on. So a twelve-player board reads `nano 104/81 · 128% · mid 16`: the unit
 against the unit's budget, then the stones the crossing carries, counted once for the board. **The budget is
 eaten.** The spawn, the frontline and each wool claim a fixed share as they are sized and the hub takes what
-is left, never under a third and never wider than its band's ceiling (44, 52, 68 and 76 blocks from nano to
-centi). The frontline's face, the width the mid is met across, is drawn from a fixed range per band — 24–36,
-32–48, 40–56 and 48–64 blocks. A unit whose built land falls outside 70–130% of *its* budget is resampled
+is left, never under a third; a unit whose built land falls outside 70–130% of *its* budget is resampled
 rather than shipped.
 
 **The score is a distance, not a grade.** Zero means the board sits inside every envelope the authored corpus
-occupies — of 240 boards each at twelve, twenty and thirty players, 211, 70 and 38 respectively scored exactly
-zero, with the ninetieth percentile at 0.16, 2.46 and 3.76. The terms that fire are almost always
-`spawn-wool-ratio` and `wool-front-ratio`, then `wool-front-remoteness` at thirty: a spawn beside the hub stands
+occupies — of 240 boards each at twelve, twenty and thirty players, 214, 72 and 34 respectively scored exactly
+zero, with the ninetieth percentile at 0.06, 2.67 and 5.52. The terms that fire are almost always
+`spawn-wool-ratio` and `wool-front-ratio`, then `frontline-width` at thirty: a spawn beside the hub stands
 nearer the wool at the back than the one across the hub, however squarely it faces the hole. A hard violation would add 1000 and dominate any
 soft sum, which is why the slider stops at 8.
 

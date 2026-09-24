@@ -19,7 +19,7 @@ public sealed class WoolBoxGrowthTests
         var env = Envelope.Derive(request, rng);
         var crossing = MidCarver.Crossing(env, splitBand: false, doubleRank: false, fine: false);
         if (TeamUnitAllocator.Allocate(env, rng, crossing) is not { } alloc) return null;
-        return TeamUnitFiller.Fill(alloc, rng, env.Cell)?.Unit;
+        return TeamUnitFiller.Fill(alloc, rng)?.Unit;
     }
 
     private static GrownUnit Fill(int players, ulong seedFrom)

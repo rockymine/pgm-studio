@@ -1038,17 +1038,6 @@ the question it exists for is *what is this finding* and a rule nothing raises h
 rest are law all the same, and this file is where the law is. A rule that starts being raised joins the
 catalogue by being added to that set, which `RulesEndpointTests` holds to the source in both directions.
 
-52. **Two wools from micro up, a frontline face drawn from its band's range, a hub no wider than its band's
-    ceiling, and a sixteen-block stone (2026-09-24).** Author's call, off the judged donut boards: the third
-    wool was squeezed in beside the others where the corpus stands one ahead of the spawn, and a front as
-    narrow as 16 blocks on a board 150 wide made the crossing a long thin band. The face — the width the mid
-    is met across — is drawn from 24–36 blocks at nano, 32–48 at micro, 40–56 at milli and 48–64 at centi, a
-    fixed range per band rather than a share of the hub, so a hub grown with the budget does not carry the
-    front out with it. The hub's lateral span stops at 44, 52, 68 and 76 blocks and its depth at its span,
-    and the land it will not spend is left unspent rather than moved elsewhere. A centred row's stone is 16
-    blocks deep on every band, so two stand side by side on a front from 52 blocks up. A two-legged front is
-    drawn only where each leg reaches `FR9`'s 15 blocks, and a unit that cannot seat every wool it planned is
-    redrawn rather than shipped one short (`G278`).
 51. **A donut takes a wall across each leg, and its unit's spawn stands behind the hub at the donut's end
     (2026-09-23).** Author's call, off the judged walled boards: a donut is two ways round its hole and one
     wall at its entry leaves a defence nothing to hold; and a donut makes a unit lopsided, so the spawn moves

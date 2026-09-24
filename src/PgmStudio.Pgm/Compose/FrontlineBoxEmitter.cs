@@ -39,18 +39,14 @@ public static class FrontlineBoxEmitter
         new(Compound.SpineArms, 2),   // twin (CT8 / FrontForm.Twin)
     ];
 
-    /// <summary>The shortest spine a twin frontline stands on with each leg <paramref name="legMinCells"/> wide:
-    /// two legs and the narrowest bay between them.</summary>
-    public static int TwinSpineCells(int legMinCells) => 2 * legMinCells + 2;
-
     /// <summary>Sample a branch frontline's <b>leg layout</b> — the variation knob over the canonical forms (the
     /// fat L, the symmetric twin): per-leg (Start, Width) on a <paramref name="w"/>-wide spine. The laws: every
-    /// leg at least <paramref name="legMinCells"/> wide (2 unless the caller asks for more); at most two legs, their widths within <b>factor 2</b> of each other (never a 2
+    /// leg at least <b>2 wide</b>; at most two legs, their widths within <b>factor 2</b> of each other (never a 2
     /// beside a 5); the inter-leg <b>bay 2–4</b> wide; end recesses allowed but together at most a <b>third</b> of
     /// the spine (the front stays substantial); the single leg strictly wider than its notch (the fat-L law — a
     /// thin leg re-creates the banned T's thin band). Returns <c>null</c> when <paramref name="w"/> cannot host
     /// the layout — the caller falls back to the canonical form.</summary>
-    public static IReadOnlyList<(int Start, int Width)>? SampleArms(ComposeRng rng, int w, int arms, int legMinCells = 2)
+    public static IReadOnlyList<(int Start, int Width)>? SampleArms(ComposeRng rng, int w, int arms)
     {
         if (arms == 1)
         {
@@ -64,8 +60,8 @@ public static class FrontlineBoxEmitter
         var bay = rng.NextInt(2, Math.Min(4, w - 4) + 1);           // the inter-leg bay
         var slack = rng.NextInt(0, Math.Min(w - 4 - bay, w / 3) + 1); // end recess total, capped at w/3
         var rem = w - bay - slack;                                   // the two legs' combined width
-        var lo = Math.Max(legMinCells, (rem + 2) / 3);               // factor-2 law: w1 in [ceil(rem/3)..2rem/3]
-        var hi = Math.Min(rem - legMinCells, 2 * rem / 3);
+        var lo = Math.Max(2, (rem + 2) / 3);                         // factor-2 law: w1 in [ceil(rem/3)..2rem/3]
+        var hi = Math.Min(rem - 2, 2 * rem / 3);
         if (lo > hi) return null;
         var w1 = rng.NextInt(lo, hi + 1);
         var end0 = rng.NextInt(0, slack + 1);

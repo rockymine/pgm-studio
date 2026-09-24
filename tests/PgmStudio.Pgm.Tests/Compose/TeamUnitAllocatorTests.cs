@@ -80,7 +80,7 @@ public class TeamUnitAllocatorTests
         await Assert.That(Overlap(hub.Rect, spawn.Rect)).IsFalse();
 
         // the allocated partition round-trips through the filler: allocate -> fill, end to end for the first time
-        var filled = TeamUnitFiller.Fill(partition, new ComposeRng(5), cell: 5);
+        var filled = TeamUnitFiller.Fill(partition, new ComposeRng(5));
         await Assert.That(filled).IsNotNull();
         await Assert.That(filled!.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
         await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Spawn)).IsTrue();
@@ -99,7 +99,7 @@ public class TeamUnitAllocatorTests
         await Assert.That(partition.Boxes.Any(b => b.Kind == BoxKind.Wool)).IsTrue();
         await Assert.That(NoOverlaps(partition.Boxes.Select(b => b.Rect))).IsTrue();   // the boxes tile without collision
 
-        var filled = TeamUnitFiller.Fill(partition, new ComposeRng(11), cell: 5)!;
+        var filled = TeamUnitFiller.Fill(partition, new ComposeRng(11))!;
         await Assert.That(filled.Unit.Wools.Count).IsGreaterThanOrEqualTo(1);
         await Assert.That(NoOverlaps(filled.Unit.Pieces.Select(p => p.Rect))).IsTrue();  // a valid layout — no piece overlaps
     }
@@ -116,7 +116,7 @@ public class TeamUnitAllocatorTests
             {
                 var alloc = TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed));
                 if (alloc is not { } a) continue;
-                var filled = TeamUnitFiller.Fill(a, new ComposeRng(seed), cell: 5);
+                var filled = TeamUnitFiller.Fill(a, new ComposeRng(seed));
                 if (filled is null) continue;
                 await Assert.That(Cells.HasDiagonalPinch(Mask(filled.Unit.Pieces))).IsFalse();
             }
@@ -147,7 +147,7 @@ public class TeamUnitAllocatorTests
                 var hub = alloc.Boxes.FirstOrDefault(b => b.Kind == BoxKind.Hub);
                 var front = alloc.Boxes.FirstOrDefault(b => b.Kind == BoxKind.Frontline);
                 if (hub is null || front is null) continue;
-                if (TeamUnitFiller.Fill(alloc, rng, cell: 5) is not { } filled) continue;
+                if (TeamUnitFiller.Fill(alloc, rng) is not { } filled) continue;
 
                 var hubCells = Mask(filled.Unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Hub).ToList());
                 if (hubCells.Count == 0) continue;
@@ -208,7 +208,7 @@ public class TeamUnitAllocatorTests
             for (ulong seed = 0; seed < 300; seed++)
             {
                 if (TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed)) is not { } a) continue;
-                if (TeamUnitFiller.Fill(a, new ComposeRng(seed), cell: 5) is not { } filled) continue;
+                if (TeamUnitFiller.Fill(a, new ComposeRng(seed)) is not { } filled) continue;
                 var hub = a.ById("hub")!.Rect;
                 var spawn = a.Boxes.Single(b => b.Kind == BoxKind.Spawn).Rect;
                 if (spawn.X + spawn.Width != hub.X && spawn.X != hub.X + hub.Width) continue;
