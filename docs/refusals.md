@@ -28,7 +28,7 @@ not it — the layout rule the fault falls under, or the open task that would re
 `cites` is a field of its own rather than a second id: a rule is stable forever and a task id is a debt with a
 due date, and one field holding either would make the two indistinguishable to a reader.
 
-**A finding states its edit where the fix is mechanical.** A seam that steps wants a ramp mark; a house on
+**A finding states its edit where the fix is mechanical.** A seam that steps wants a ramp mark; a room on
 falling ground wants a bench held flat under it; a prop inside a road's standoff wants moving a stated number
 of blocks the other way. Where the gate can say that in the document's own vocabulary it does, as an
 **edit** beside the sentence: which document (`plan`, `layout` or `intent`), the path the change lands on,

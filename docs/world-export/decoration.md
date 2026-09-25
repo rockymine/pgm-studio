@@ -75,7 +75,7 @@ thirty blocks over a field is that field's answer, so a tree stated on it would 
 every column under it would read as built and take nothing at all. The ground beneath a floating thing is
 exactly the ground an author decorates, so the surface the pass reads leaves the prop layers out. The same
 elevation goes to `DressingScope.KeptClearAt` and to `MapExportComposer.CheckStructureSites` (`WX11`), which
-would otherwise report a shed under a balloon as standing on a fifty-block plinth. The same fact is recorded
+would otherwise report a wool room under a balloon as standing on a fifty-block plinth. The same fact is recorded
 for the renders as `ProvenancePass.Made`, claimed after this pass rather than before it — what runs between
 works on the terrain round a made thing, and a harbour that fills round a hull claims every column it filled,
 which is true of the water and false of the ship.

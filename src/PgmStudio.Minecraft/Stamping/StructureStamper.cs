@@ -49,14 +49,22 @@ public static class StructureStamper
     public static Dictionary<(int X, int Z), int> FoundationTops(
         IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int minX, int minZ, int maxX, int maxZ)
     {
-        var level = 1;
-        foreach (var cell in FoundationCells(minX, minZ, maxX, maxZ))
-            level = Math.Max(level, surfaceTop.GetValueOrDefault(cell, 1));   // topmost air cell
-
+        var level = FoundationLevel(surfaceTop, FoundationCells(minX, minZ, maxX, maxZ));
         var tops = new Dictionary<(int X, int Z), int>();
         foreach (var cell in FoundationCells(minX, minZ, maxX, maxZ))
             if (surfaceTop.ContainsKey(cell)) tops[cell] = level;             // no ground here to stand on
         return tops;
+    }
+
+    /// <summary>The course a foundation levels a footprint to: the highest topmost-air cell among
+    /// <paramref name="cells"/>, and never below <c>y 1</c>. The one reading of a foundation's floor, for the
+    /// stamp that lays it and for a check measuring what it lays.</summary>
+    public static int FoundationLevel(
+        IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IEnumerable<(int X, int Z)> cells)
+    {
+        var level = 1;
+        foreach (var cell in cells) level = Math.Max(level, surfaceTop.GetValueOrDefault(cell, 1));
+        return level;
     }
 
     /// <summary>The stamps that lay a <see cref="StampFoundation"/>, by the <c>Kind</c> their
