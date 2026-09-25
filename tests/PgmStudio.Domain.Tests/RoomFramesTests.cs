@@ -194,6 +194,27 @@ public sealed class RoomFramesTests
         await Assert.That(slots.Skip(4).All(s => s.Z == 5)).IsTrue();
     }
 
+    [Test]
+    [Arguments(RoomEdge.NegZ)]
+    [Arguments(RoomEdge.PosZ)]
+    [Arguments(RoomEdge.NegX)]
+    [Arguments(RoomEdge.PosX)]
+    public async Task The_nth_monument_seat_of_a_room_and_of_its_rot_180_image_are_images(RoomEdge door)
+    {
+        // A half-turn about the board's centre carries block cell (x, z) onto (-1 - x, -1 - z) and a door onto
+        // the opposite wall. Seats are filled in order, so wool n of one team and wool n of the other stand
+        // at each other's image only if the whole list is.
+        var room = RoomFrames.Resolve(new BlockRect(-14, -20, -2, -8), footprint: null, shellBound: true,
+            -8, -14, [], [door], out _)!;
+        var image = RoomFrames.Resolve(new BlockRect(2, 8, 14, 20), footprint: null, shellBound: true,
+            8, 14, [], [door.Opposite()], out _)!;
+        var seats = RoomFrames.MonumentSlots(room, room.Doors[0]);
+        var turned = RoomFrames.MonumentSlots(image, image.Doors[0]);
+
+        await Assert.That(string.Join(" ", turned.Select(seat => (-1 - seat.X, -1 - seat.Z, seat.Wall.Opposite()))))
+            .IsEqualTo(string.Join(" ", seats.Select(seat => (seat.X, seat.Z, seat.Wall))));
+    }
+
     // ── WX8/WX9 — iron beside the room ──────────────────────────────────────────────────────────────────
 
     [Test]

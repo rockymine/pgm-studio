@@ -490,8 +490,9 @@ public static class RoomFrames
     /// <summary>
     /// The ordered monument seats of a spawn room whose door is <paramref name="door"/>: the door-wall
     /// corners, then the back-wall corners, then the back wall filling inward, then the door wall — skipping
-    /// the cells directly inside the door opening. The list's length is the room's monument capacity; the
-    /// caller takes the first N.
+    /// the cells directly inside the door opening. Each row runs from the left hand of someone standing in
+    /// the door looking out, so the n-th seat of a room and of its image under the board's rotation are
+    /// images of each other. The list's length is the room's monument capacity; the caller takes the first N.
     /// </summary>
     public static IReadOnlyList<MonumentSlot> MonumentSlots(RoomFrame frame, RoomDoor door)
     {
@@ -508,15 +509,16 @@ public static class RoomFrames
         MonumentSlot Seat(int along, int crossAxis, RoomEdge wall) =>
             alongX ? new MonumentSlot(along, crossAxis, wall) : new MonumentSlot(crossAxis, along, wall);
         bool InDoorSpan(int along) => along >= door.Lo && along < door.Lo + door.Width;
+        int Hand(int fromLeft) => door.Edge.Handed(alongLo, alongHi - 1, fromLeft);
 
         var slots = new List<MonumentSlot>
         {
-            Seat(alongLo, near, nearWall), Seat(alongHi - 1, near, nearWall),
-            Seat(alongLo, far, farWall), Seat(alongHi - 1, far, farWall),
+            Seat(Hand(alongLo), near, nearWall), Seat(Hand(alongHi - 1), near, nearWall),
+            Seat(Hand(alongLo), far, farWall), Seat(Hand(alongHi - 1), far, farWall),
         };
-        for (var along = alongLo + 1; along < alongHi - 1; along++) slots.Add(Seat(along, far, farWall));
+        for (var along = alongLo + 1; along < alongHi - 1; along++) slots.Add(Seat(Hand(along), far, farWall));
         for (var along = alongLo + 1; along < alongHi - 1; along++)
-            if (!InDoorSpan(along)) slots.Add(Seat(along, near, nearWall));
+            if (!InDoorSpan(Hand(along))) slots.Add(Seat(Hand(along), near, nearWall));
         return slots;
     }
 

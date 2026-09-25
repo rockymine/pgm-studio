@@ -311,11 +311,15 @@ public static class HouseWindows
             // Two blocks in from each end rather than one: clearing the corner cell still leaves an opening
             // hard against the corner post, and a window meeting the post reads as a hole knocked through the
             // frame. The post wants a block of wall beside it before anything is taken out.
+            // The row is laid out from the left hand and put back on the axis after, so what a run cannot
+            // centre — a spare block, a panel skipped for spacing — falls on the same hand of every image of
+            // the building under the board's rotation.
             var (seatLo, seatHi) = wall.Seat;
+            int Axis(int fromLeft, int span = 1) => wall.Facing.Handed(seatLo, seatHi, fromLeft, span);
             var placed = style.HostBlock >= 0 && hosts is not null
-                ? Panels(seatLo, seatHi, width, Math.Max(0, style.Spacing), along => hosts(wall, along))
+                ? Panels(seatLo, seatHi, width, Math.Max(0, style.Spacing), along => hosts(wall, Axis(along)))
                 : Spread(seatLo, seatHi, width, Math.Max(0, style.Spacing));
-            foreach (var lo in placed)
+            foreach (var lo in placed.Select(fromLeft => Axis(fromLeft, width)).Order())
                 if (!MeetsDoor(doors, wall, lo, width))
                     seats.Add(new WindowSeat(wall, lo, width, sill, height));
         }
