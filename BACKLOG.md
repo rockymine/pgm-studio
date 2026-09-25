@@ -593,16 +593,6 @@ and what a `subtract` takes away.
   *Evidence: fork `bothy` with `shell.beams` set to `null` under `dressing.styles` and `PUT …/sketch` —
   `RQ2`, 500, stack in the server log. The same style with `{"block": -1}` stores 200 and stamps.*
 
-- [ ] **WE132 — The isolated-spawn seed's approach wall has bedrock where its cobweb cap should be.**
-  `IsolatedSpawnStructuresWorldTests.All_three_structure_kinds_land_in_the_built_world` fails on `c170a95`:
-  the block at `(wall.MinX, wall.TopY + 1, wall.MinZ)` of `tools/seeds/isolated-spawn.plan.json`'s first
-  `StructureIntent.Walls` entry is bedrock (7), not cobweb (30). Either the stamper raises the wall a course
-  past the `TopY` the resolved intent states, or the intent's `TopY` is not the one it stamped to — one of the
-  two is wrong, and `docs/world-export/structures.md` says which is meant.
-
-  *Evidence: `dotnet run --project tests/PgmStudio.Export.Tests -- --treenode-filter
-  "/*/*/*/All_three_structure_kinds_land_in_the_built_world"` — `Expected to be 30 but found 7`.*
-
 - [ ] **WS72 — `GET /map/{slug}/coverage` and its `?format=png` each walk the whole board.** Both run
   `GroundCoverage.Read` over the same stored documents, a field per waypoint and a walk per pair of them, and
   `drive.py` asks for both on every run: 2.5 s apiece on `opus55-scarbutte` in the Debug studio, the largest

@@ -71,13 +71,18 @@ public sealed class IsolatedSpawnStructuresWorldTests
         await Assert.That(w.GetBlock(iron.MinX + iron.Size - 1, ibase + iron.Size - 1, iron.MinZ + iron.Size - 1).Id)
             .IsEqualTo(Blocks.IronBlock);
 
-        // ST4 — the approach wall rises to its top bedrock course, one course of cobweb caps it, nothing above.
+        // ST4 — the approach wall rises to its top bedrock course over the highest ground it crosses (not the
+        // plan tier's TopY), one course of cobweb caps it, nothing above.
         var wall = s.Walls[0];
         int wx = wall.MinX, wz = wall.MinZ;
+        var top = StructureStamper.WallTop(surface, wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ, wall.TopY);
+        var highestGround = Enumerable.Range(wall.MinX, wall.MaxX - wall.MinX)
+            .SelectMany(x => Enumerable.Range(wall.MinZ, wall.MaxZ - wall.MinZ).Select(z => Surf(x, z))).Max();
+        await Assert.That(top).IsEqualTo(highestGround + RoomFrames.WallCourses - 1);
         await Assert.That(w.GetBlock(wx, 0, wz).Id).IsEqualTo(Blocks.Bedrock);
-        await Assert.That(w.GetBlock(wx, wall.TopY, wz).Id).IsEqualTo(Blocks.Bedrock);
-        await Assert.That(w.GetBlock(wx, wall.TopY + 1, wz).Id).IsEqualTo(Blocks.Cobweb);
-        await Assert.That(w.GetBlock(wx, wall.TopY + 2, wz).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(w.GetBlock(wx, top, wz).Id).IsEqualTo(Blocks.Bedrock);
+        await Assert.That(w.GetBlock(wx, top + 1, wz).Id).IsEqualTo(Blocks.Cobweb);
+        await Assert.That(w.GetBlock(wx, top + 2, wz).Id).IsEqualTo(Blocks.Air);
     }
 
     [Test]
