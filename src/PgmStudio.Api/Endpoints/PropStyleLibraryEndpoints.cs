@@ -46,24 +46,31 @@ public sealed class TreeStyleDocumentEndpoint(PropStyleStore store) : EndpointWi
     }
 }
 
+/// <summary>POST /api/tree-styles — file a tree recipe. 400 `DR-COPY` when a <c>copied</c> recipe states no
+/// cut: a copied tree is one cut out of a world, and nothing but the cutter records one.</summary>
 public sealed class TreeStyleCreateEndpoint(PropStyleStore store) : Endpoint<TreeStyleSaveRequest, TreeStyleDetail>
 {
     public override void Configure() { Post("/tree-styles"); AllowAnonymous(); }
 
     public override async Task HandleAsync(TreeStyleSaveRequest req, CancellationToken ct)
     {
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid tree style", PropStyleLibrary.Check(req), ct)) return;
         var row = PropStyleLibrary.RowOf(req);
         row.Id = await store.CreateTreeAsync(row, ct);
         await Send.OkAsync(PropStyleLibrary.ToDetail(row), ct);
     }
 }
 
+/// <summary>PUT /api/tree-styles/{id} — replace a tree recipe. Refuses the way
+/// <see cref="TreeStyleCreateEndpoint"/> does, so a re-save of a copied recipe carries the cut its GET
+/// answered.</summary>
 public sealed class TreeStyleUpdateEndpoint(PropStyleStore store) : Endpoint<TreeStyleSaveRequest, TreeStyleDetail>
 {
     public override void Configure() { Put("/tree-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(TreeStyleSaveRequest req, CancellationToken ct)
     {
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid tree style", PropStyleLibrary.Check(req), ct)) return;
         var id = Route<long>("id");
         var row = PropStyleLibrary.RowOf(req);
         if (!await store.UpdateTreeAsync(id, row, ct))

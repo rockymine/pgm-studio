@@ -319,8 +319,18 @@ public sealed record TreeStyleSummary(long Id, string Name, string Preview);
 /// <summary>A tree recipe (GET /api/tree-styles/{id}): the save request plus the row's id, which a placement
 /// names it by once it is pulled into a map's dressing registry.</summary>
 public sealed record TreeStyleDetail(
-    long Id, string Name, string Form, string Species, double Height, int[][]? Body = null)
-    : TreeStyleSaveRequest(Name, Form, Species, Height, Body);
+    long Id, string Name, string Form, string Species, double Height, int[][]? Body = null, TreeCut? Cut = null)
+    : TreeStyleSaveRequest(Name, Form, Species, Height, Body, Cut);
+
+/// <summary>Where a copied tree was cut: the world it stood in, its foot there, and when. Written by the cutter
+/// and carried by no other recipe, so a <c>copied</c> row is one somebody took out of a world rather than a
+/// block list somebody typed.</summary>
+/// <param name="World">The world directory the tree was cut from.</param>
+/// <param name="X">The foot's world x — the lowest log, or the lowest block where there is none.</param>
+/// <param name="Y">The foot's world y.</param>
+/// <param name="Z">The foot's world z.</param>
+/// <param name="At">When it was cut, UTC.</param>
+public sealed record TreeCut(string World, int X, int Y, int Z, DateTime At);
 
 /// <summary>Create or replace a tree recipe — one of <b>two</b> trees, which <paramref name="Form"/> picks. A
 /// <c>template</c> tree is vanilla and reads its species; a <c>copied</c> tree is cut out of a world and reads
@@ -335,12 +345,15 @@ public sealed record TreeStyleDetail(
 /// <param name="Body">Copied only — the tree's blocks as <c>[x, y, z, id, data]</c> rows, offsets from the
 /// foot: the lowest wood block stands at <c>(0, 0, 0)</c> and every block at <c>y 0</c> rests on the ground.
 /// A copied recipe's height is read off the body rather than stated.</param>
+/// <param name="Cut">Copied only, and required there — where the body was cut (<see cref="TreeCut"/>). A
+/// <c>copied</c> save without one is refused <c>DR-COPY</c>.</param>
 public record TreeStyleSaveRequest(
     string Name,
     [property: WordSet(typeof(TreeForms))] string Form,
     [property: WordSet(typeof(TreeSpeciesNames))] string Species,
     double Height,
-    int[][]? Body = null);
+    int[][]? Body = null,
+    TreeCut? Cut = null);
 
 /// <summary>A boulder recipe as the library lists it.</summary>
 /// <param name="Id">The row a placement names once the recipe is pulled into a map's registry.</param>

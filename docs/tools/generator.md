@@ -93,9 +93,10 @@ lays the mid band flush against the fronts. **Walling** then gives each wool app
 hard-term gate.
 
 A rejected attempt is resampled whole; sixty are allowed before the compose throws, and a throw is skipped
-rather than reported (below). The gate is eight hard terms — structural integrity, the `PC-C` corner-contact
+rather than reported (below). The gate is nine hard terms — structural integrity, the `PC-C` corner-contact
 and `G2` narrow-corridor lints, the `G5` void-hop band, the mid band's two-cell wool clearance (`BZ6`), the
-20-block spawn-to-wool floor (`WL2`), and two floors on the crossing: the spawn at least 55 blocks by the walk
+20-block spawn-to-wool floor and the wool room that shares an edge with its own spawn (both `WL2`; a composed
+wool unit is a room behind its own lane, so the second never fires on a composed board), and two floors on the crossing: the spawn at least 55 blocks by the walk
 from the build band (`SP10`) and every wool at least 59 (`WL10`). It runs the **composer profile**, every term
 on at flat weight, and short-circuits on the first that fires. The two crossing floors are the author's
 judgement of composed boards and bind them alone: the default profile the editor lint runs leaves them off.

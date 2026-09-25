@@ -36,6 +36,12 @@ public sealed class PropStyleStore(PgmDb db)
             .Set(r => r.Form, tree.Form)
             .Set(r => r.Species, tree.Species)
             .Set(r => r.Height, tree.Height)
+            .Set(r => r.Body, tree.Body)
+            .Set(r => r.CutWorld, tree.CutWorld)
+            .Set(r => r.CutX, tree.CutX)
+            .Set(r => r.CutY, tree.CutY)
+            .Set(r => r.CutZ, tree.CutZ)
+            .Set(r => r.CutAt, tree.CutAt)
             .UpdateAsync(ct) > 0;
 
     public Task<int> DeleteTreeAsync(long id, CancellationToken ct = default)

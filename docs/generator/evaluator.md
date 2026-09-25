@@ -411,7 +411,8 @@ it applies to and from no others.
   (SP2); faces the enemy by default (SP3); **docks by a readable edge, never interior to the merged land**
   (**G42**); iron beside/ahead, never behind (SP7); isolated-spawn allowed at ≥10/team (SP6); on a composed
   board, at least 55 blocks by the walk from the build band (SP10, `spawn-front-floor`).
-- **Objective / wool** — wool↔spawn ≥20 (WL2); wool↔wool ≥45 (WL7); on a composed board, every wool at least
+- **Objective / wool** — wool↔spawn ≥20 (WL2); a wool room shares no edge with its own spawn, full-width or
+  narrow seam alike, read off the authored unit's seams (WL2's lane clause, hard, `wool-room-spawn-seam`); wool↔wool ≥45 (WL7); on a composed board, every wool at least
   59 blocks by the walk from the build band (WL10, `wool-front-floor`); flat plateau covering ≥ the 8×8 stamp,
   edge-to-edge (WL3); 1–3 wools, each on a distinct lane (WL6); a third wool is rare and a real route, not
   crammed by the spawn (G45).

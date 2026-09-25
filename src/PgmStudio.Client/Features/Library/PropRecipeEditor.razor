@@ -48,6 +48,14 @@
             <text>No body yet. A copied tree is cut out of a world with <code>tools/seed-trees.cs</code>, which
               files every tree it finds here under its own name.</text>
           }
+          @if (tree.Cut is { } cut)
+          {
+            <text> Cut from <code>@cut.World</code> at (@cut.X, @cut.Y, @cut.Z) on @cut.At.ToString("yyyy-MM-dd").</text>
+          }
+          else
+          {
+            <text> No cut is recorded, so the library will not file it as copied.</text>
+          }
         </p>
       }
       else
