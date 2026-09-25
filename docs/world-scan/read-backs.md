@@ -185,9 +185,11 @@ scramble, a barrier or a drop, classed the way `PgmStudio.Geom.Walk.StepWord` cl
 the totals `rises`, `falls` and `worstStep` over the whole route. A step onto or off a plan's `wall` claim
 reads `wall` instead: the bedrock courses are stated across the lane on purpose, so the climb is the wall's
 and `worstStep` leaves it out, answering the worst step the ground makes. `?beside=N` (0 to 6 cells, Chebyshev) adds
-every distinct thing the provenance record names within `N` cells of any cell the route passes through — a
-tree, a boulder, a house, water, a spawn, a goal, wool or an iron cube, the first cell it is met at and its
-distance; flora and paint are left out, since neither is a thing a player runs into. `?format=text` answers
+every thing a player meets that the provenance record names within `N` cells of any cell the route passes
+through, with the first cell it is met at and its distance. Those are a `wall`, a wool room's `redstoneline`,
+an `ironcube`, a `spawn`, a `wool`, a `destroyable`, a `core`, a `controlpoint`, a `house`, a `tree`, a
+`boulder` and `water`, which is every kind a stamp claims but the ground cover (`flora`) and the paint
+(`stroke`). `?format=text` answers
 the same reading as characters: the route's own numbers, a station at every place it stood with the word and
 the signed step where it left a walk, the totals, and what stands beside it.
 

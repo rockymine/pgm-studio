@@ -65,10 +65,14 @@ public static class WalkProfile
     /// through.</summary>
     public readonly record struct Neighbour(StampId Owner, int X, int Z, int Distance);
 
-    /// <summary>What a player actually meets standing beside a route — everything but the ambient cover
-    /// (<c>flora</c>) and the paint (<c>stroke</c>).</summary>
+    /// <summary>The claims a player meets standing beside a route: a wall, a wool room's redstone line, an
+    /// iron cube, a spawn, a wool, a destroyable, a core, a control point, a house, a tree, a boulder and
+    /// water.</summary>
     private static readonly HashSet<string> StandingKinds =
-        ["tree", "boulder", "house", "water", "spawn", "destroyable", "core", "wool", "ironcube"];
+    [
+        "wall", "redstoneline", "ironcube", "spawn", "wool", "destroyable", "core", "controlpoint",
+        "house", "tree", "boulder", "water",
+    ];
 
     private static readonly (int Dx, int Dz)[] EightNeighbours =
         [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];

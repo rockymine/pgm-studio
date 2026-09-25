@@ -850,9 +850,9 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
                                + "out of it, so a route through an enemy protection is not offered. Absent "
                                + "walks the ground every team shares."),
             new QueryWord("beside", "Every distinct thing recorded within this many cells (Chebyshev) of any "
-                               + "cell the route passes through — a tree, a boulder, a house, water, a spawn, "
-                               + "a goal, wool or an iron cube; flora and paint are left out. 0 to 6, absent "
-                               + "asks for none.", Min: 0, Max: 6)));
+                               + "cell the route passes through — a wall, a redstone line, an iron cube, a "
+                               + "spawn, a wool, a destroyable, a core, a control point, a house, a tree, a "
+                               + "boulder or water. 0 to 6, absent asks for none.", Min: 0, Max: 6)));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

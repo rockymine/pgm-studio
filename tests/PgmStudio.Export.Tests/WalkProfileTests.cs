@@ -66,6 +66,24 @@ public sealed class WalkProfileTests
         await Assert.That(found[0].Distance).IsEqualTo(1);
     }
 
+    /// <summary>A route that crosses a wall, a wool room's redstone line and a control point passes all three,
+    /// and each is named beside it.</summary>
+    [Test]
+    [Arguments("wall")]
+    [Arguments("redstoneline")]
+    [Arguments("controlpoint")]
+    public async Task Beside_names_a_structure_the_route_passes_through(string kind)
+    {
+        var path = Path((0, 0, 10), (1, 0, 14), (2, 0, 10));
+        var provenance = new WorldProvenance();
+        provenance.Claim(1, 0, ProvenancePass.Structure, new StampId(kind, "0", 0));
+
+        var found = WalkProfile.Beside(path, provenance, 1);
+
+        await Assert.That(found.Select(near => near.Owner.Kind).ToList()).IsEquivalentTo(new[] { kind });
+        await Assert.That(found[0].Distance).IsEqualTo(0);
+    }
+
     [Test]
     public async Task Beside_keeps_the_nearest_cell_when_one_owner_covers_more_than_one()
     {
