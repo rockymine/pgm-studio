@@ -37,8 +37,10 @@ public sealed class Remembered<T>(int capacity)
             throw;
         }
 
-        if (_held.Count > capacity)
-            foreach (var stale in _held.OrderBy(pair => pair.Value.Used).Take(_held.Count - capacity).ToList())
+        // ToArray is the dictionary's own atomic snapshot; enumerating it live under concurrent removal is not.
+        var held = _held.ToArray();
+        if (held.Length > capacity)
+            foreach (var stale in held.OrderBy(pair => pair.Value.Used).Take(held.Length - capacity))
                 _held.TryRemove(stale);
         return answer;
     }
