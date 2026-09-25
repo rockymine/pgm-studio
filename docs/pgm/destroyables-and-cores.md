@@ -307,10 +307,12 @@ in emerald, gold and ender stone. So a goal of more than **three blocks** carryi
 
 It is a **complaint on a built world**, not a refusal: the goal stands, in a material the author did not name,
 and the `map.xml` declares what was actually laid rather than what was asked for. The same correction catches
-the other half of the same silence — a `materials` naming nothing the studio builds is written into the XML
-verbatim while the stamper quietly lays obsidian, so the declared material matches nothing inside its own
-region and PGM loads a goal at zero health (OB3). Correcting the first fault can produce the second, so one
-resolve answers both (`DestroyableMaterials.Resolve`) and one complaint is written.
+the other half of the same silence — a `materials` naming nothing the studio builds. That word is resolved
+rather than passed through: the goal is laid in obsidian **and** the XML declares `materials="obsidian"`, so
+the author's word appears in neither. Written through, it would match nothing inside its own region and PGM
+would load a goal at zero health (OB3); resolving both ends together is what keeps that from arising.
+Correcting the first fault can produce the second, so one resolve answers both
+(`DestroyableMaterials.Resolve`) and one complaint is written.
 
 The material vocabulary is also what a team's kit is paired to: an iron pickaxe breaks obsidian, it just does
 not drop it, so a destroy map's kit still upgrades its pickaxe to match the goal's material — obsidian to

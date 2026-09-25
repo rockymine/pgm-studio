@@ -28,9 +28,9 @@ public static class DestroyableMaterials
     }
 
     /// <summary>Whether a match names at least one material the generator can actually stamp. Checked before
-    /// authoring a destroyable's <c>materials</c>, because <see cref="BlockId"/>'s own fallback is silent: an
-    /// unrecognised name still writes into the XML verbatim (<c>DestroyableGenerator</c>) while the stamper
-    /// quietly builds obsidian, so the declared material matches nothing in its own region — the same
+    /// authoring a destroyable's <c>materials</c>, because <see cref="BlockId"/>'s own fallback is silent:
+    /// <c>DestroyableGenerator</c> writes whatever name the intent holds, so an unrecognised one left
+    /// unresolved would declare a material matching nothing in its own region while the stamper builds obsidian — the same
     /// zero-health failure as an unmatched kit tool, just one step upstream of it. Empty is buildable (the
     /// obsidian default).</summary>
     public static bool IsBuildable(string? materials) =>
@@ -52,9 +52,10 @@ public static class DestroyableMaterials
     /// The material a destroyable of <paramref name="style"/> is <b>actually</b> built in, and the sentence
     /// saying why that is not what it asked for — null where nothing was corrected.
     ///
-    /// <para>Two faults, one correction, because they compound. A name outside <see cref="All"/> is written
-    /// into the XML verbatim while <see cref="BlockId"/> quietly stamps obsidian, so the declared material
-    /// matches nothing in its own region and the goal loads at zero health (OB3). And obsidian on a cube is
+    /// <para>Two faults, one correction, because they compound. A name outside <see cref="All"/> stamps
+    /// obsidian through <see cref="BlockId"/>, so written into the XML as stated it would match nothing in its
+    /// own region and the goal would load at zero health (OB3); the caller writes the answer here into both
+    /// the world and the XML. And obsidian on a cube is
     /// buildable and still wrong, by <see cref="ObsidianLimit"/>. Correcting the first can produce the second,
     /// so one resolve answers both and the caller writes one complaint.</para>
     ///
