@@ -221,6 +221,13 @@ public sealed class PlanMeta
 
     /// <summary>A free note the author keeps beside it. Nothing reads it.</summary>
     [JsonPropertyName("notes")] public string? Notes { get; set; }
+
+    /// <summary>Who made the map, carried onto the compiled intent's <c>meta.authors</c>. A bare string is a
+    /// name, as it is in the intent. Absent credits no one.</summary>
+    [JsonPropertyName("authors")] public List<Authoring.AuthorIntent>? Authors { get; set; }
+
+    /// <summary>Who helped, carried onto the compiled intent's <c>meta.contributors</c>.</summary>
+    [JsonPropertyName("contributors")] public List<Authoring.AuthorIntent>? Contributors { get; set; }
 }
 
 /// <summary>Tracing provenance for a plan drawn over a real map's top-down render (authoring-only; ignored by

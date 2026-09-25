@@ -44,6 +44,23 @@ public sealed class PlanCompilerTests
         await Assert.That((room.MinX, room.MinZ, room.MaxX, room.MaxZ)).IsEqualTo((-15d, 25d, -5d, 35d));
     }
 
+    /// <summary>Who a map is by is the plan's to say as much as its name is, so the compiled intent's meta
+    /// carries all three — a bare string a name, an object a name with a note.</summary>
+    [Test]
+    public async Task The_plans_name_authors_and_contributors_reach_the_intent()
+    {
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""
+            { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
+              "meta":{"name":"Weirgate","authors":["the technique cards"],
+                      "contributors":[{"name":"Opus","contribution":"relief"}]},
+              {{Unit}} }
+            """));
+
+        await Assert.That(intent.Meta!.Name).IsEqualTo("Weirgate");
+        await Assert.That(intent.Meta.Authors.Select(a => a.Name)).IsEquivalentTo(new[] { "the technique cards" });
+        await Assert.That(intent.Meta.Contributors.Single().Contribution).IsEqualTo("relief");
+    }
+
     [Test]
     public async Task Rot_90_yields_four_teams_in_orbit_order()
     {

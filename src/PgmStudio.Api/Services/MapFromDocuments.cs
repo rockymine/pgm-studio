@@ -23,7 +23,7 @@ public sealed record MapLoad(
 /// actually built, and the intent it is played for. The map that comes out is a studio map rather than a
 /// world: it can be re-planned, re-read and pre-flighted, which is what an imported world can never be.
 ///
-/// <para><b>The authors ride in the body.</b> A compiled intent names nobody, so who a map is credited to is
+/// <para><b>The authors ride in the body.</b> A compiled intent names only whom its plan credited, so who a map is credited to is
 /// stated beside the three documents and written as part of the load rather than in a second call. The
 /// projection leaves the map's people alone where the intent names none, so the two may be applied in either
 /// order; stating them here is what makes one request enough.</para>

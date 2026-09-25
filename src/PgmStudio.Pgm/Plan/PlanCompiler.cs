@@ -440,7 +440,12 @@ public static class PlanCompiler
             Observer = new ObserverIntent { Point = new Pt(0, observerY, 0), Yaw = 0 },
             Build = build,
             WaterLanes = waterLanes,
-            Meta = new MetaIntent { Name = plan.Meta?.Name ?? "", Authors = [] },
+            Meta = new MetaIntent
+            {
+                Name = plan.Meta?.Name ?? "",
+                Authors = [.. plan.Meta?.Authors ?? []],
+                Contributors = [.. plan.Meta?.Contributors ?? []],
+            },
             Structures = structures.IsEmpty ? null : structures,
         };
     }

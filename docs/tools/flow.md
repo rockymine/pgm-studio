@@ -169,7 +169,7 @@ all — so a map authored against one studio could reach another only as a world
 drawing or its intent, and could never be re-planned. What the documents carry is more than the world does.
 
 **The authors ride in the body, and the operation applies them.** The three documents say what a map is
-made of and a compiled intent names nobody, so the credits are stated beside them and written as part of the
+made of, and a compiled intent names only whom its plan credited, so the credits are stated beside them and written as part of the
 load rather than in a second call the caller has to remember. A person is a bare pseudonym or
 `{uuid, name, role, contribution}`, and both forms go to the same two places: the map's author rows, and the
 stored intent's `meta.authors`/`meta.contributors`, split by role. Both, because the rows are the map's own

@@ -661,3 +661,10 @@ test("a footprint cannot be stated larger than the piece that holds it", () => {
 test("both room kinds carry a footprint", () => {
   assert.deepEqual([...FOOTPRINT_KINDS].sort(), ["spawn", "wool"]);
 });
+
+test("normalizeDoc keeps the plan's authors and contributors, the credits the compile carries onto the intent", () => {
+  const doc = normalizeDoc({ meta: { name: "W", authors: ["a"], contributors: [{ name: "b", contribution: "relief" }] } });
+  assert.deepEqual(doc.meta.authors, ["a"]);
+  assert.deepEqual(doc.meta.contributors, [{ name: "b", contribution: "relief" }]);
+  assert.equal("authors" in normalizeDoc({ meta: { name: "W" } }).meta, false);
+});

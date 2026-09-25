@@ -32,7 +32,8 @@ the same document.
 
 Two things a plan tool edits are *not* in the plan document. The map's display name and its authors live on
 the map row and are saved through `PATCH /api/map/{slug}/metadata`; the document's own `meta.name` is synced
-alongside them because the compile reads it. The surface stepper — how many blocks one click of a piece's
+alongside them because the compile reads it. A plan may state `meta.authors` and `meta.contributors` of its
+own, which the compile carries onto the intent; the editor keeps them on a round trip and does not edit them. The surface stepper — how many blocks one click of a piece's
 height control moves — is a browser preference in `localStorage`, never part of a plan.
 
 The document is not cached client-side. The database is its store, and the editor loads whatever the route
@@ -52,7 +53,8 @@ compile ever answers anything else.
 ```json POST /api/plan/compile
 {
   "plan": 2,
-  "meta": { "name": "Example board" },
+  "meta": { "name": "Example board", "authors": ["Example author"],
+            "contributors": [{ "name": "Example helper", "contribution": "relief" }] },
   "globals": { "cell": 4, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
   "pieces": [
     { "id": "spawn",      "role": "spawn",     "rect": [1, 9, 3, 2] },
@@ -431,7 +433,10 @@ PGM marks a goal shared whenever the team count is not two, and what a shared DT
 undecided, so outside order 2 the validator refuses the plan and the preview declines to draw it. The build
 intent carries the fanned build-zone areas and holes, and **no** `MaxHeight` — the ceiling is the world
 build's to measure; water lanes fan
-into their own list and stay out of the build intent. The observer sits at `(0, observerY, 0)`.
+into their own list and stay out of the build intent. The observer sits at `(0, observerY, 0)`. The intent's
+`meta` carries the plan's `meta.name`, `meta.authors` and `meta.contributors` across unchanged — a person is a
+bare name or `{name, contribution}`, as in the intent — so a plan that credits someone compiles to an intent
+that does.
 
 The intent also carries the **structure directives** the world export stamps verbatim, computed on the
 authored unit and fanned in absolute block coordinates: the entrance redstone row inside each room along
@@ -790,11 +795,10 @@ other half: what may be done next, with the route for each.
 **Two further calls belong after the intent, and the order is load-bearing.**
 `POST /api/map/{slug}/sketch/columns` answers every prop the dressing pass declined, under `warnings` — and
 `DR-KEEP` among them reads the spawn doors' approaches and the goal rings, which come off the **intent**, so
-the same call asked before it answers a shorter list. `PATCH /api/map/{slug}/metadata` is where the map's
-authors are set, and it has to follow for a different reason: storing an intent projects the document from
-the intent's own `meta`, whose `authors` a compiled intent leaves empty, so a name written earlier is
-overwritten rather than kept. `intent/from-plan` carries authors from a **previously stored intent**, which a
-first build does not have.
+the same call asked before it answers a shorter list. The map's authors reach the intent one of two ways: the
+plan states `meta.authors` and the compile carries them, or `PATCH /api/map/{slug}/metadata` sets them after
+the intent is stored. A plan that states none compiles to an intent naming nobody, and `intent/from-plan`
+carries authors only from a **previously stored intent**, which a first build does not have.
 
 The smallest plan that survives the gate needs one generating piece, one spawn marker, and — for a CTW map —
 a wool that is reachable from every capturing team's spawn by a route that does not pass through a spawn piece.

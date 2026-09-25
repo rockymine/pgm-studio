@@ -104,6 +104,10 @@ export function normalizeDoc(d) {
   if (g.observerY != null) globals.observerY = g.observerY;
   const meta = { name: src.meta?.name ?? "Untitled plan" };
   if (src.meta?.notes != null) meta.notes = src.meta.notes;
+  // A person is a bare name or {name, contribution}, as in the intent the compile carries them onto.
+  const people = list => list.map(p => (typeof p === "string" ? p : { ...p }));
+  if (src.meta?.authors != null) meta.authors = people(src.meta.authors);
+  if (src.meta?.contributors != null) meta.contributors = people(src.meta.contributors);
   const out = {
     plan: src.plan ?? PLAN_VERSION,
     meta,
