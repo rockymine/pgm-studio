@@ -271,6 +271,32 @@ public sealed class WalkTests
         await Assert.That(field.ContainsKey(At(walkable, (4, 0)))).IsFalse().Because("the far block is a separate component");
     }
 
+    /// <summary>A field prices every place by extending its predecessor's tally one step, and a single walk
+    /// prices its whole route in one pass — so the two must agree on every place, over ground that climbs,
+    /// drops, bridges and wades.</summary>
+    [Test]
+    [Arguments(WalkAim.Travel)]
+    [Arguments(WalkAim.Reach)]
+    public async Task A_field_prices_every_place_as_the_walk_to_it_does(WalkAim aim)
+    {
+        var ground = new HashSet<(int X, int Z)>(Rect(0, 0, 14, 11));
+        foreach (var cell in Rect(6, 2, 2, 7)) ground.Remove(cell);
+        var bridge = new HashSet<(int X, int Z)>(Rect(6, 2, 2, 7));
+        var surface = Rect(0, 0, 14, 11).ToDictionary(cell => cell, cell => 10 + (cell.X * 7 + cell.Z * 3) % 6 * 2);
+        var walkable = Board(ground, bridge, surface, new CellRect(0, 0, 14, 11),
+            water: new HashSet<(int X, int Z)>(Rect(10, 0, 2, 11)));
+        var from = At(walkable, (0, 0));
+
+        var field = Walk.Field(from, walkable, aim);
+        var disagree = field.Where(entry => Walk.Between(from, entry.Key, walkable, aim)!.Cost != entry.Value)
+                            .Select(entry => entry.Key).ToList();
+
+        await Assert.That(field.Count).IsGreaterThan(100);
+        await Assert.That(field.Values.Any(cost => cost.Blocks > 0)).IsTrue();
+        await Assert.That(field.Values.Any(cost => cost.Drops > 0)).IsTrue();
+        await Assert.That(disagree).IsEmpty();
+    }
+
     [Test]
     public async Task A_walk_routes_round_a_wall_rather_than_through_it()
     {

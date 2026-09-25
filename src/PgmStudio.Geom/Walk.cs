@@ -415,12 +415,16 @@ public static class Walk
 
         var came = Solve(from, ground, aim, null);
         costs[from] = new WalkCost(0, StandingBlocks(from, ground), 0, 0);
+
+        // A place's route is its predecessor's route and one step more, so each tally extends the one before
+        // it rather than re-walking the route from the origin.
+        var tallies = new Dictionary<WalkPlace, Tally>(came.Count + 1) { [from] = Tally.Start(from, ground) };
+        var unmeasured = new Stack<WalkPlace>();
         foreach (var place in came.Keys)
         {
-            var route = new List<WalkPlace> { place };
-            for (var back = place; back != from; route.Add(back)) back = came[back];
-            route.Reverse();
-            costs[place] = Measure(route, ground);
+            for (var back = place; !tallies.ContainsKey(back); back = came[back]) unmeasured.Push(back);
+            while (unmeasured.TryPop(out var step)) tallies[step] = tallies[came[step]].Then(came[step], step, ground);
+            costs[place] = tallies[place].Cost(ground);
         }
         return costs;
     }
@@ -531,25 +535,35 @@ public static class Walk
     {
         if (route.Count == 0) return default;
 
-        var hundredths = 0;
-        var blocks = StandingBlocks(route[0], ground);
-        int drops = 0, worst = 0;
+        var tally = Tally.Start(route[0], ground);
+        for (var i = 1; i < route.Count; i++) tally = tally.Then(route[i - 1], route[i], ground);
+        return tally.Cost(ground);
+    }
 
-        for (var i = 1; i < route.Count; i++)
+    /// <summary>A route's cost as it is walked: the distance still in hundredths of a cell, so it is rounded
+    /// once, at the end, however many steps it was summed over.</summary>
+    private readonly record struct Tally(int Hundredths, int Blocks, int Drops, int WorstDrop)
+    {
+        public static Tally Start(WalkPlace place, WalkGround ground) => new(0, StandingBlocks(place, ground), 0, 0);
+
+        /// <summary>This tally, one step further — from <paramref name="from"/> to <paramref name="to"/>.</summary>
+        public Tally Then(WalkPlace from, WalkPlace to, WalkGround ground)
         {
-            var (from, to) = (route[i - 1], route[i]);
             var step = from.X != to.X && from.Z != to.Z ? Diagonal : Straight;
             if (ground.Water?.Contains(to.Cell) == true) step *= WaterSlowdown;
-            hundredths += step;
 
-            blocks += StandingBlocks(to, ground);
+            var blocks = Blocks + StandingBlocks(to, ground);
             // The rise is the two places' own difference — a place is where the feet are, so nothing has to
             // be looked up to price a step between two of them.
             if (to.Y - from.Y > FreeRise) blocks += to.Y - from.Y - FreeRise;
-            if (from.Y - to.Y > FreeDrop) { drops++; worst = Math.Max(worst, from.Y - to.Y); }
+            var (drops, worst) = from.Y - to.Y > FreeDrop
+                ? (Drops + 1, Math.Max(WorstDrop, from.Y - to.Y))
+                : (Drops, WorstDrop);
+            return new Tally(Hundredths + step, blocks, drops, worst);
         }
-        return new WalkCost(
-            (int)Math.Round(hundredths * ground.BlocksPerCell / 100.0), blocks, drops, worst);
+
+        public WalkCost Cost(WalkGround ground)
+            => new((int)Math.Round(Hundredths * ground.BlocksPerCell / 100.0), Blocks, Drops, WorstDrop);
     }
 
     /// <summary>What standing in a place costs to place: nothing on ground, one block over void a player
