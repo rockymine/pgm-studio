@@ -117,6 +117,17 @@ The headroom test is what makes a building a building: the terrain under a wall 
 own top is the surface, and crossing it costs the climb. Without it a walled cell reads at the floor the wall
 stands beside, which is how a route comes to walk through a house for nothing.
 
+**A prop's volume is out of the walk** (the author's ruling). A tree's trunk and crown and a boulder are
+solid — they take the headroom of the ground they stand on and roof what is under them like any block, so a
+player does not walk through a trunk — but no place is ever offered on them: their blocks are neither
+somewhere to stand nor ground under somewhere to stand. So a crown hanging past a board's rim leaves those
+columns void to the walk, exactly as `column`, `transect` and the census read them, and a crown over a field
+leaves the field under it walkable up to the crown's underside. Which blocks are a prop's is read off the
+build's own record rather than off their material: in a column a `tree` or `boulder` claimed last
+(`WorldProvenance.PropVolumeAt`), every block outside the spans the rasterizer laid is the prop's
+(`WorldColumns.ForWalk`). A path, a water course and a bed of flora are laid on or into the ground rather than
+standing on it, so their blocks read as ground.
+
 **A step between two places has to fit under the lower one's clearance** — how many blocks are open over it
 before the next solid one. A player builds up through open air and falls down through it, so a gallery roofed
 sixteen blocks up is not a step from a deck twenty-six blocks over it, while the same gallery where the roof

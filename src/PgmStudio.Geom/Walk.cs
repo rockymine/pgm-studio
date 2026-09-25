@@ -95,7 +95,11 @@ public sealed record WalkGround(
     /// so this is the ground as the world's own geometry states it.</summary>
     /// <param name="columns">Every solid span, as <c>(x, z, floor, top)</c>. A cell may appear more than
     /// once, and a cell whose spans offer nowhere to stand contributes no place.</param>
-    public static WalkGround OfSpans(IEnumerable<(int X, int Z, int YFloor, int YTop)> columns)
+    /// <param name="props">Every span a prop stamped, in the same shape: solid over the ground it stands in,
+    /// and never a place of its own (<see cref="Walk.Standing"/>).</param>
+    public static WalkGround OfSpans(
+        IEnumerable<(int X, int Z, int YFloor, int YTop)> columns,
+        IEnumerable<(int X, int Z, int YFloor, int YTop)> props)
     {
         var stacks = new Dictionary<(int X, int Z), List<(int Floor, int Top)>>();
         foreach (var (x, z, floor, top) in columns)
@@ -103,11 +107,17 @@ public sealed record WalkGround(
             if (!stacks.TryGetValue((x, z), out var spans)) stacks[(x, z)] = spans = [];
             spans.Add((floor, top));
         }
+        var propStacks = new Dictionary<(int X, int Z), List<(int Floor, int Top)>>();
+        foreach (var (x, z, floor, top) in props)
+        {
+            if (!propStacks.TryGetValue((x, z), out var spans)) propStacks[(x, z)] = spans = [];
+            spans.Add((floor, top));
+        }
 
         var ground = new HashSet<WalkPlace>();
         var clear = new Dictionary<WalkPlace, int>();
         foreach (var (cell, spans) in stacks)
-            foreach (var (top, room) in Walk.Standing(spans))
+            foreach (var (top, room) in Walk.Standing(spans, propStacks.GetValueOrDefault(cell) ?? []))
             {
                 var place = new WalkPlace(cell.X, cell.Z, top);
                 ground.Add(place);
@@ -275,20 +285,28 @@ public static class Walk
     /// with two answers twice.
     ///
     /// <para>The one definition of where a player stands, so a world the studio built and the same world
-    /// scanned back cannot disagree about it. Answers lowest first.</para></summary>
+    /// scanned back cannot disagree about it. Answers lowest first.</para>
+    ///
+    /// <para><b>A prop's volume is out of the walk.</b> A tree's trunk and crown and a boulder are solid —
+    /// they take a place's headroom and roof it like any block — but their tops are never a place to stand, so
+    /// a crown hanging over the void leaves the column void and a crown over a field leaves the field.</para>
+    /// </summary>
     /// <param name="spans">The column's solid runs, as <c>(floor, top)</c> inclusive, in any order.</param>
-    public static IEnumerable<(int Top, int Clear)> Standing(IReadOnlyCollection<(int Floor, int Top)> spans)
+    /// <param name="props">The column's runs a prop stamped, as <c>(floor, top)</c> inclusive: solid, and never
+    /// stood on.</param>
+    public static IEnumerable<(int Top, int Clear)> Standing(
+        IReadOnlyCollection<(int Floor, int Top)> spans, IReadOnlyCollection<(int Floor, int Top)> props)
     {
-        var ordered = spans.OrderBy(span => span.Top).ToList();
-        for (var i = 0; i < ordered.Count; i++)
+        var solid = spans.Concat(props).ToList();
+        foreach (var (_, top) in spans.OrderBy(span => span.Top))
         {
-            var stand = ordered[i].Top + 1;
+            var stand = top + 1;
             if (stand + Headroom > WorldHeight) continue;
-            if (ordered.Any(span => span.Floor <= stand + Headroom - 1 && stand <= span.Top)) continue;
+            if (solid.Any(span => span.Floor <= stand + Headroom - 1 && stand <= span.Top)) continue;
 
-            // The next span whose floor is at or above this surface is its ceiling; nothing above it is sky.
-            var ceiling = ordered.Skip(i + 1).Select(span => span.Floor)
-                                 .Where(floor => floor >= stand).DefaultIfEmpty(int.MaxValue).Min();
+            // The lowest solid floor at or above this surface is its ceiling; nothing above it is sky.
+            var ceiling = solid.Select(span => span.Floor)
+                               .Where(floor => floor >= stand).DefaultIfEmpty(int.MaxValue).Min();
             yield return (stand, ceiling == int.MaxValue ? int.MaxValue : Math.Max(0, ceiling - stand));
         }
     }

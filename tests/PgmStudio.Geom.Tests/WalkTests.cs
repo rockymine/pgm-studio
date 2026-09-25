@@ -433,4 +433,45 @@ public sealed class WalkTests
         await Assert.That(() => Walk.Field(At(walkable, (0, 0)), walkable, WalkAim.Comfort))
             .Throws<ArgumentOutOfRangeException>();
     }
+
+    /// <summary>Two fields of ground whose top course is 10, cells x 0–2 and x 6–8, with nothing between
+    /// them — and, where <paramref name="crown"/> is set, a tree's crown hung level with the fields across the
+    /// three void cells, courses 7–10.</summary>
+    private static WalkGround Gap(bool crown)
+    {
+        var ground = new List<(int X, int Z, int YFloor, int YTop)>();
+        var props = new List<(int X, int Z, int YFloor, int YTop)>();
+        for (var z = 0; z < 3; z++)
+            for (var x = 0; x < 9; x++)
+                if (x is < 3 or > 5) ground.Add((x, z, 0, 10));
+                else if (crown) props.Add((x, z, 7, 10));
+        return WalkGround.OfSpans(ground, props);
+    }
+
+    [Test]
+    public async Task A_crown_over_the_void_is_no_place_to_stand()
+    {
+        // The crown's top is level with both fields, so a walk that stood on it would cross for nothing. A
+        // prop's volume is out of the walk: the cells under it hold no place, and the fields do not join.
+        var board = Gap(crown: true);
+        await Assert.That(board.Stand((4, 1))).IsNull();
+        await Assert.That(Walk.Between(At(board, (0, 1)), At(board, (8, 1)), board)).IsNull();
+        await Assert.That(board.Footprint.Count).IsEqualTo(Gap(crown: false).Footprint.Count);
+    }
+
+    [Test]
+    public async Task A_tree_on_ground_leaves_no_place_on_its_crown_and_roofs_what_is_under_it()
+    {
+        // One cell carries the trunk and the crown over ground (courses 0–10); the one beside it carries
+        // only the crown, four courses clear of the ground. The trunk cell is solid to a player and holds no
+        // place at all; the crown cell holds the ground under it, roofed at the crown's underside.
+        var board = WalkGround.OfSpans(
+            [(0, 0, 0, 10), (1, 0, 0, 10)],
+            [(0, 0, 11, 18), (1, 0, 15, 18)]);
+
+        await Assert.That(board.Stacks.ContainsKey((0, 0))).IsFalse();
+        var under = board.Stacks[(1, 0)];
+        await Assert.That(under.Select(place => place.Y)).IsEquivalentTo(new[] { 11 });
+        await Assert.That(board.ClearAbove(under[0])).IsEqualTo(4);
+    }
 }

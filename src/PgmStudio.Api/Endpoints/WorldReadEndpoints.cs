@@ -760,15 +760,19 @@ internal static class WalkReads
     ///
     /// <para>The runs come off the <b>world</b> rather than off <c>Built.Columns</c>, which is the
     /// rasterizer's read of the terrain a build stood on — one span per cell, with no house, tree or
-    /// structure in it. A walk over that set crosses a building as though it were not there.</para></summary>
+    /// structure in it. A walk over that set crosses a building as though it were not there.</para>
+    ///
+    /// <para>A tree's and a boulder's blocks are kept apart from the rest (<c>WorldColumns.ForWalk</c>): solid,
+    /// so a trunk is not walked through, and never a place to stand, so a crown over the void is void to the
+    /// walk as it is to <c>column</c>, <c>transect</c> and the census.</para></summary>
     public static WalkGround Ground(BuiltRead read, string layoutJson)
     {
         var areas = (read.Built.ResolvedIntent.Build?.Areas ?? [])
             .Select(a => ((int)Math.Floor(a.MinX), (int)Math.Floor(a.MinZ),
                           (int)Math.Ceiling(a.MaxX), (int)Math.Ceiling(a.MaxZ)));
-        var spans = PgmStudio.Minecraft.Anvil.WorldColumns.Of(read.Built.World)
-            .SelectMany(column => column.Runs.Select(run => (column.X, column.Z, run.YBottom, run.YTop)));
-        return WorldWalk.OfBuilt(spans, areas, Water(layoutJson));
+        var (ground, props) = PgmStudio.Minecraft.Anvil.WorldColumns.ForWalk(
+            read.Built.World, read.Built.Provenance, read.Built.Columns ?? []);
+        return WorldWalk.OfBuilt(ground, props, areas, Water(layoutJson));
     }
 
     /// <summary>The team a walk is measured for, checked against the ones the map spawns so a misspelling

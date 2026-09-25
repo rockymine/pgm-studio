@@ -49,7 +49,7 @@ public sealed class SegmentIndex
     public IEnumerable<(int x, int z, int top, int clear)> StandingTops()
     {
         foreach (var (cell, segments) in _byCol)
-            foreach (var (top, clear) in Walk.Standing([.. segments.Select(s => (s.ys, s.ye))]))
+            foreach (var (top, clear) in Walk.Standing([.. segments.Select(s => (s.ys, s.ye))], []))
                 yield return (cell.x, cell.z, top, clear);
     }
 
