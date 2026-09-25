@@ -336,25 +336,6 @@ Twelve judged donut boards at 20 and 30 players named what a larger composed boa
 
 ## The plan model: pieces, and the edges between them
 
-- [ ] **TN21 — a plan's `meta.authors` does not survive the compile.** `POST /api/plan/compile` answers an
-  intent whose `meta` is `{name, created: "", authors: [], contributors: []}` however the plan's own `meta`
-  was filled in, so a board driven plan-first exports with `EX6` — the observer platform's authors board
-  gets a heading and nothing under it — and the names have to be written onto the intent by hand afterwards.
-  `PlanCompiler` is where the intent's `meta` is built; carry `name`, `authors` and `contributors` across
-  from `PlanModel.Meta`. Evidence: `pgm-studio-mapgen`'s `techniques/walls-and-iron` plan states
-  `meta.authors: ["the technique cards"]` and the compiled intent comes back with `authors: []`; its
-  `compiled.txt` prints both.
-
-- [ ] **PG17 — `DC3`'s own text describes a verbatim write the export does not do.** The rule says a
-  material naming nothing the studio builds "writes into the map.xml verbatim while the blocks come out
-  obsidian, and a declared material matching nothing in its own region is a goal at zero health (`OB3`)".
-  Measured, both ends move together: a destroyable authored `materials: "diamond block"` builds three
-  obsidian and the export writes `materials="obsidian"`, so the `OB3` case the sentence warns of cannot
-  arise this way. Correct the rule's `means` to say the word is resolved rather than passed through, and
-  check `docs/pgm/destroyables-and-cores.md` for the same claim. Evidence:
-  `pgm-studio-mapgen/techniques/destroy-goals/mismatch.txt`, which posts it and reads the world and the
-  document back.
-
 - [ ] **G270 — A mid stone's depth is fixed before the hull that bounds its width is known, so a
   narrow-fronted board under-spends the crossing.** `MidCarver.Crossing` sets the half-gap from
   `StoneDeepCells` before allocation, because the allocator takes it as its axis margin; the width then comes
@@ -431,23 +412,6 @@ and what a `subtract` takes away.
   islands by id, and spawns/wools are world coordinates); flag the author when the island set changes so a
   stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
-
-- [ ] **B54 — A rebuild drops a hand-drawn shape and says nothing.** `PUT /map/{slug}/sketch/from-plan`
-  carries the finish, the relief and an author-corrected structural height, and refuses **409** rather than
-  orphan a relief. Geometry drawn in the sketch is carried by nothing — right, since the plan owns the board —
-  but the reply does not say so: `200`, `{"orphaned": []}`, no warning, which tells a caller the opposite of
-  what happened. The endpoint already asks this of the relief and answers it as `SketchFromPlanDto(orphans)`;
-  a stored shape no compile output and no `intentRef` accounts for is the same question of a different field,
-  and belongs beside it in the reply and as a complaint. `SketchEndpoints`, `docs/tools/sketch.md`.
-
-  Two wordings go with it, in `PlanTool.razor`'s rebuild confirmation: **Keeps** omits the relief, which is
-  the most expensive thing on the board and is kept, and **Replaces** says "everything the plan states",
-  which a hand-drawn shape is not. The client also never sends `?force=true`, so a rebuild that would orphan
-  a relief dies as `save layout failed (HTTP 409)` with nothing offered.
-
-  *Built from `opus5-corbel-scar`'s plan, sketched on, then rebuilt after growing one piece by two cells:
-  relief, theme and prop carried; the circle gone from the shapes and from `team`'s `shapeIds`; `200`,
-  `{"orphaned":[]}`, no `Pgm-Warnings`.*
 
 ## Refactoring and cleanup
 
@@ -526,55 +490,11 @@ and what a `subtract` takes away.
 
 ## The remainder: work no concept above has claimed
 
-- [ ] **WE131 — A house style stating `"beams": null` answers 500, not a finding.** `HouseStyle.Beams` is
-  a non-null `BeamStyle` with a default, and an explicit JSON `null` binds past the default: the store's
-  `SketchMaterialGate.Check` throws at `HouseStyleValidation.CheckBeams` (line 196), and every build of the
-  board then throws at `HouseStamper.LayBeams` (line 496). Refuse the null where the style is bound, with
-  the rule naming `{"block": -1}` as the way to say "no beams"; `docs/world-export/structures.md` §7 says
-  which is the shape.
-
-  *Evidence: fork `bothy` with `shell.beams` set to `null` under `dressing.styles` and `PUT …/sketch` —
-  `RQ2`, 500, stack in the server log. The same style with `{"block": -1}` stores 200 and stamps.*
-
 - [ ] **WS72 — `GET /map/{slug}/coverage` and its `?format=png` each walk the whole board.** Both run
   `GroundCoverage.Read` over the same stored documents, a field per waypoint and a walk per pair of them, and
   `drive.py` asks for both on every run: 2.5 s apiece on `opus55-scarbutte` in the Debug studio, the largest
   read a drive still waits on. The picture wants the numbers the JSON already computed, kept the way
   `BuiltWorlds` keeps a world — keyed on what the read derives from, so an edit is a new key.
-
-- [ ] **RP72 — One unbindable field discards the whole intent, at 200, and the export gate opens on it.**
-  `POST /map/from-documents` answers 200 and stores a map with **no teams, no spawns and no objectives**
-  when the intent carries one field the binder cannot read. Nothing is raised: no `RQ3`, no `warnings`
-  entry, no `Warning` header, and `GET /preflight` then answers `exportReady: true` on the result. The
-  binder's failure to read one property is taken as the whole object being absent, so the deserialized
-  intent is a default instance and every downstream reader agrees it is a valid empty one. A refusal
-  belongs where the binder gives up; an intent that states teams and comes back with none is the one
-  shape `RQ1` exists to catch. `docs/refusals.md` carries the gate catalogue.
-
-  *Evidence, reproducible on the running studio: post `opus5-fallowgate`'s own plan, layout and intent
-  under one slug, and the same three with `"modes": ["dtm"]` added to the intent under another. `modes`
-  is a real `MapIntent` field and takes `ModeIntent` objects rather than strings. Both answer 200 with no
-  warning header. `GET /map/probe-control/intent` reads `teams 2, spawns 2, destroyables 2`;
-  `GET /map/probe-badmodes/intent` reads `teams null, spawns 0, destroyables 0`. Both preflights read
-  `exportReady: true`.*
-
-- [ ] **RP73 — `crown` is signed in world space, so a positive crown fills a negative push back in.**
-  `ReliefSolver` adds the crown to the amount without regard to the amount's sign
-  (`Relief/ReliefSolver.cs:478`, `amount += push.Crown * PushMark.Ease(...)`), so on a push of amount −12
-  a crown of +12 returns the floor's centre to the surrounding level and only a negative crown dishes it.
-  The field's own docstring is written from a raising push — *"how much higher the middle of the push
-  stands than its edge"* (`Geom/Relief/Marks.cs:331`) — and says nothing about the other direction, which
-  is the direction a pit is made in. State it in the docstring and in `docs/world-export/relief.md`. The
-  editor's default of 2 against the record's 0 is the same fact with teeth: a pit knobbed up in the
-  inspector starts with a two-block mound in its floor.
-
-- [ ] **WE130 — `sketch/seats` answers a question it cannot answer for a house.** The seat query reports the
-  yard beside a quarry as a legal seat, because the three rules that read the built world — `DR-CROSS`,
-  `DR-WAY` and `DR-SLOPE` — are the dressing pass's to raise and not the query's
-  (`Api/Endpoints/SketchEndpoints.cs:483`). An author who asks `seats` before placing a building, which is
-  what the skill tells them to do, is told yes and then gets a building in a hole. Either the query runs the
-  seating arithmetic it is being asked about, or its answer says in terms which questions it did not ask.
-  `docs/tools/sketch.md` carries the endpoint.
 
 - [ ] **RP71 — A map cannot be deleted.** The API carries 26 `DELETE` routes and every part of a map is
   removable through one — layers, groups, shapes, vertices, props, relief, themes, biome, room styles, teams,

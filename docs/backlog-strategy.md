@@ -435,11 +435,11 @@ of them is the same thing: a document, a route or a solver that already answers,
 asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
-`S34`, `TS51`, `TS63`, `B54`, `B9`. `G187` and `G164` left this population by being read against the code
+`S34`, `TS51`, `TS63`, `B9`. `G187` and `G164` left this population by being read against the code
 rather than built — plan-tier flow was already served and `Cells.WaysRound` already in use, so what one entry
 called a project was a primitive and a term, and the other was a term over two corridors that read itself
-(`FEATURES.md`). Four more left it by shipping —
-`B221` and `B258`, the library's pictures, `WE34`, the seat read, and `TS30`, the bend — which is the
+(`FEATURES.md`). Five more left it by shipping —
+`B221` and `B258`, the library's pictures, `WE34`, the seat read, `TS30`, the bend, and `B54`, what a rebuild drops — which is the
 population behaving as intended: a roadmap entry is drained by being built, not by being triaged again.
 `B58` left it the same way, with `N12`: the destroyable suggester and the Configure phase that confirms from
 its list are one capability, and it took a phase to arrive rather than a triage.

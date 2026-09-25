@@ -3269,6 +3269,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the 74 of `pgm-studio-mapgen/corpus/tree-showcase` — under `<world>-r<row>-<n>`, dropping bodies that hang
   in the air as fragments. `docs/world-export/decoration.md` §6, `docs/tools/library.md`.
 
+- **An unreadable document field is refused, not emptied (`RP72`)** — `Api/Services/DocumentBinding`. An
+  intent, plan or layout whose field the binder cannot read is refused `RQ1` at 400 naming its path
+  (`intent.modes[0]`) on every intent write and on `POST /map/from-documents`, instead of storing a default
+  intent with no teams, spawns or objectives that preflight then passes. (`RP72`)
+
+- **A plan's authors reach the intent (`TN21`)** — `PlanMeta.Authors`/`Contributors`, carried by
+  `PlanCompiler` and kept by `plan-doc.js`, so a plan-first board no longer exports with `EX6`. (`TN21`)
+
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)
@@ -7940,6 +7948,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **`walk?beside=` names every kind a player meets (`WS70`)** — `WalkProfile.StandingKinds` holds every
   stamped kind but `flora` and `stroke`, `wall` first, and `StampId`'s docstring lists what is actually
   stamped. (`WS70`)
+
+- **A style stating an always-present part as `null` is refused by its path (`WE131`)** —
+  `HouseStyleJson.StatedNull`, read by `DressingJson.ParseStyles` and `SketchMaterialGate`. Beams, roof,
+  windows, doorway and the rest: `DR-DOC` in a dressing recipe, `RQ1` on a bound room style, naming
+  `{"block": -1}` as how beams say none, instead of a 500. `docs/world-export/structures.md` §7. (`WE131`)
+
+- **`sketch/seats` asks a building's site to be level (`WE130`)** — `Dressing/SiteLevel`, shared by the
+  dressing pass and `ClaimRaster.Seat`. `DR-SLOPE` by the pass's own arithmetic against `?style=`, answered as
+  `slopeLimit`; the declines the query does not run, `DR-CROSS` and `DR-WAY`, are named under `unasked`.
+  `docs/tools/sketch.md`. (`WE130`)
+
+- **A rebuild names the shapes it drops (`B54`)** — `SketchLayout.DroppedShapes`, `SketchFromPlanDto.Dropped`,
+  complaint `SK29`. `PUT …/sketch/from-plan` lists every stored shape the compile does not produce and no
+  `intentRef` accounts for; the plan tool's confirmation states what is kept and offers `?force=true` on a
+  relief conflict, and lists what was dropped afterwards. (`B54`)
+
+- **`DC3` says an unknown destroyable material is resolved (`PG17`)** — `ObjectiveRules.StyleMaterial`: both
+  the blocks and the `map.xml` say obsidian, so no goal is written at zero health this way. (`PG17`)
+
+- **A push's crown is world height (`RP73`)** — `PushMark`'s docstring and `relief.md` say a positive crown
+  fills a dig back in; the editor seeds and reads the record's crown of 0. (`RP73`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
