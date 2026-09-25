@@ -11,7 +11,7 @@ namespace PgmStudio.Minecraft.Render;
 /// Whether a player standing at spawn can walk to every objective — the reading a top-down cannot give,
 /// because a top-down shows where ground is and says nothing about whether it joins up. A column is
 /// <b>navigable</b> when it has ground and two clear blocks of headroom over it, <b>or</b> when it has
-/// neither but the map opens it to bridging — a void gap a build carries no ground
+/// neither but sits inside the map's own declared buildable region — a void gap a build carries no ground
 /// over is still a route the moment PGM lets players bridge it, and a capture board routinely joins its
 /// islands exactly that way (<c>docs/pgm/water-lanes.md</c> §1, <c>ruediger</c>'s build regions). The
 /// navigable columns are split into 4-connected components, and every spawn/wool/monument/core region is
@@ -19,16 +19,26 @@ namespace PgmStudio.Minecraft.Render;
 /// connected board; a marker in a second colour is cut off from the rest, however good the terrain looks
 /// from above.
 ///
-/// <para>The render does not read the map's filters. Which void columns a board opens to bridging is
-/// <c>Analysis.Playability.Editability</c>'s answer — PGM's own first-rule-wins resolution over the place scope
-/// — and the caller that reaches both projects computes it and hands the set in, so the picture and the walk,
-/// coverage and dead-ground reads cannot disagree about it. A <b>water lane</b> is not in that set: it opens
-/// only after the match clock passes its timer, and no apply rule opens its footprint at kickoff, so it reads
-/// here as any other void, cut off until it opens.</para>
+/// <para>The buildable region is read the same way this render already reads its markers: straight out of
+/// the parsed <c>map.xml</c>, off the <c>&lt;apply&gt;</c> rule that gates block edits by a "not void"
+/// filter over some region (<see cref="BridgeableColumns"/>) — the same wiring <c>BuildGenerator</c> writes
+/// and any hand-authored map uses to the same end, since PGM offers no other way to open a void gap to
+/// building. A <b>water lane</b> is deliberately not this: it opens only after the match clock passes its
+/// timer, so treating it as day-one navigable would read a board as connected before it is, and the generator
+/// never wires one into the buildable region for exactly that reason — a lane's footprint carries no such
+/// apply rule of its own, so it is read here the same as any other void, cut off until it opens.</para>
 ///
 /// <para>This still falls short of the full question <c>Analysis.Playability.Traversability</c> asks of an
-/// imported map — no <c>never</c>/<c>restricted</c> apply-rule classes, just ground, headroom and the columns
-/// it is handed as bridgeable.</para>
+/// imported map — no NTS geometry (only the box shapes <see cref="PgmStudio.Domain.RegionBoxes"/> reduces to:
+/// rectangles, cuboids, unions of them), no <c>never</c>/<c>restricted</c> apply-rule classes, just ground,
+/// headroom and the one buildable-region rule. <c>Minecraft</c> and <c>Analysis</c> are dependency siblings —
+/// neither project references the other — and that oracle is built on NTS region geometry plus a JSON
+/// dictionary shape this render never holds (it reads a live <see cref="VoxelWorld"/>/region directory and a
+/// parsed <c>MapXml</c>), so calling it directly would mean handing <c>Minecraft</c> a reference to
+/// <c>Analysis</c> and reconstructing that dictionary just to ask it. Reducing a region to boxes is already
+/// the shared, Domain-level piece (<see cref="PgmStudio.Domain.RegionBoxes"/>); duplicating the much smaller
+/// "does this apply rule gate on void" read is the cheaper and more honest choice than either of those, and
+/// is the whole of what stands in for the oracle here.</para>
 /// </summary>
 public static class TraversabilityRender
 {
@@ -47,29 +57,35 @@ public static class TraversabilityRender
         int NavigableCount, int BridgeableCount, int MarkerCount, int IsolatedCount,
         IReadOnlyList<Stranded> OutOfReach);
 
-    /// <summary>The finished navigability picture, written to <paramref name="outPng"/>. Nonzero where the
-    /// chunks hold no ground column.</summary>
-    public static int Run(IReadOnlyList<AnvilRegion.Chunk> chunks, string outPng, MapXml? map,
-                          IReadOnlySet<(int X, int Z)>? bridgeable, int scale)
-        => Emit(chunks, outPng, map, bridgeable, scale) is null ? 1 : 0;
+    /// <summary>Reads a built region directory from disk.</summary>
+    public static int Run(string regionDir, string outPng, MapXml? map, int scale)
+    {
+        if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
+        var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList();
+        if (chunks.Count == 0) { Console.Error.WriteLine($"no chunks in {regionDir}"); return 1; }
+        return Emit(chunks, outPng, map, scale) is null ? 1 : 0;
+    }
 
     /// <summary>The finished navigability picture as bytes, for a caller that wants the image rather than a
-    /// file. Null where the chunks hold no ground column.</summary>
-    public static byte[]? Png(IReadOnlyList<AnvilRegion.Chunk> chunks, MapXml? map,
-                              IReadOnlySet<(int X, int Z)>? bridgeable, int scale)
-        => Emit(chunks, null, map, bridgeable, scale);
+    /// file. Null where the world holds no ground column.</summary>
+    public static byte[]? Png(VoxelWorld world, MapXml? map, int scale)
+        => Emit([.. AnvilRegion.FromWorld(world)], null, map, scale);
 
-    /// <summary>The navigability reading without the picture — the same components, markers and bridged
-    /// columns the render is drawn from, for a caller that wants the numbers. Null where the chunks hold no
+    public static int Run(VoxelWorld world, string outPng, MapXml? map, int scale)
+        => Emit(AnvilRegion.FromWorld(world).ToList(), outPng, map, scale) is null ? 1 : 0;
+
+    /// <summary>The navigability reading without the picture — the same components, markers and buildable
+    /// region the render is drawn from, for a caller that wants the numbers. Null where the world holds no
     /// ground column.</summary>
-    public static Result? Read(IReadOnlyList<AnvilRegion.Chunk> chunks, MapXml? map,
-                               IReadOnlySet<(int X, int Z)>? bridgeable)
-        => Render(chunks, map is null ? [] : Markers(map), bridgeable, map?.MaxBuildHeight);
+    public static Result? Read(VoxelWorld world, MapXml? map)
+        => Render([.. AnvilRegion.FromWorld(world)], map is null ? [] : Markers(map),
+                  map is null ? null : BridgeableColumns(map), map?.MaxBuildHeight);
 
-    private static byte[]? Emit(IReadOnlyList<AnvilRegion.Chunk> chunks, string? outPng, MapXml? map,
-                                IReadOnlySet<(int X, int Z)>? bridgeable, int scale)
+    private static byte[]? Emit(List<AnvilRegion.Chunk> chunks, string? outPng, MapXml? map, int scale)
     {
-        var result = Render(chunks, map is null ? [] : Markers(map), bridgeable, map?.MaxBuildHeight);
+        var markers = map is null ? [] : Markers(map);
+        var bridgeable = map is null ? null : BridgeableColumns(map);
+        var result = Render(chunks, markers, bridgeable, map?.MaxBuildHeight);
         if (result is null) { if (outPng is not null) Console.Error.WriteLine("no ground columns"); return null; }
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
@@ -131,6 +147,49 @@ public static class TraversabilityRender
         return new BlockBox(x, y, z, x, y, z);
     }
 
+    /// <summary>The void columns this map's own apply rules make bridgeable at kickoff — the buildable
+    /// region read straight off the "not void" wiring PGM enforces, the same one <c>BuildGenerator</c>
+    /// writes and any hand-authored map reaches for to the same end, since PGM offers no other way to open a
+    /// void gap to building. The rule is read on the scopes a bridge is placed under — <c>block</c> and
+    /// <c>block-place</c> — since the template states place and break apart and only placing opens a gap.
+    /// A water lane carries no apply rule of its own over its footprint (it opens by a
+    /// timed fill firing later in the match, not by this wiring — <c>docs/pgm/water-lanes.md</c> §1,
+    /// §4), so it is not found here and reads as void until the render that watches it actually opens.
+    /// <para>Reduces only the box shapes <see cref="RegionBoxes.FootprintXZ"/> can state — rectangles,
+    /// cuboids and unions of them, which is every shape the generator's own build regions are drawn from. A
+    /// region built from a circle, a polygon or anything else that does not reduce to boxes contributes
+    /// nothing, the same safe-empty answer <see cref="RegionBoxes"/> gives everywhere else it is asked a
+    /// shape it cannot state exactly.</para></summary>
+    public static HashSet<(int X, int Z)> BridgeableColumns(MapXml map)
+    {
+        var columns = new HashSet<(int X, int Z)>();
+        foreach (var rule in map.ApplyRules)
+        {
+            if (rule.RegionId.Length == 0) continue;
+            if (!GatesOnVoid(rule.BlockFilter, map.Filters, []) && !GatesOnVoid(rule.BlockPlaceFilter, map.Filters, []))
+                continue;
+            foreach (var box in RegionBoxes.FootprintXZ(map.Regions, rule.RegionId))
+                for (var x = box.MinX; x <= box.MaxX; x++)
+                    for (var z = box.MinZ; z <= box.MaxZ; z++)
+                        columns.Add((x, z));
+        }
+        return columns;
+    }
+
+    /// <summary>Whether a block-edit filter value ultimately reads "void" — chasing the same
+    /// <c>not</c>/<c>deny</c>/<c>allow</c> wrapping <c>BuildGenerator</c> writes around its own
+    /// <c>void</c> filter (<c>block-place-void-filter = not(void)</c>), plus the inline <c>deny(void)</c> shorthand a
+    /// hand-authored map can write straight into the attribute without registering a filter at all.</summary>
+    private static bool GatesOnVoid(string filterValue, IReadOnlyDictionary<string, Filter> filters, HashSet<string> seen)
+    {
+        if (filterValue.Length == 0 || !seen.Add(filterValue)) return false;
+        if (!filters.TryGetValue(filterValue, out var filter))
+            return filterValue.Contains("void", StringComparison.OrdinalIgnoreCase);
+        if (filter.Type == "void") return true;
+        if (filter.Type is "not" or "deny" or "allow") return GatesOnVoid(filter.Child ?? "", filters, seen);
+        return false;
+    }
+
     /// <summary>
     /// The patches of standing ground no player can get to, off the same components the picture is drawn
     /// from — largest first.
@@ -190,9 +249,9 @@ public static class TraversabilityRender
     private const int BridgeTint = 0x38bdf8;
 
     /// <summary>The pure render: chunks + objective markers in, findings + an RGB pixel buffer out.
-    /// <paramref name="bridgeable"/> is the set of columns the map opens to bridging from the first tick, as
-    /// the caller computed it; only the void ones among them are drawn as bridged, and null or empty means the
-    /// render reads ground and headroom only.</summary>
+    /// <paramref name="bridgeable"/> is the set of void columns (no ground of their own) that the map's own
+    /// buildable-region wiring opens to bridging from the first tick — see <see cref="BridgeableColumns"/>;
+    /// null/empty means the render falls back to ground-and-headroom only.</summary>
     public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, IReadOnlyList<Marker> markers,
         IReadOnlySet<(int X, int Z)>? bridgeable = null, int? maxBuildHeight = null)
     {

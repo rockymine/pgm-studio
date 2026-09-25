@@ -226,7 +226,7 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 ## World import: reading a map the studio did not build
 
 - [ ] **B57 — `scan_segment` counts a build-region marker as solid ground.** *Parked (author): imports are
-  not a priority, and this waits on `B9`.* Island detection now separates
+  not a priority, and this waits on `B9`. `WS73` waits on it.* Island detection now separates
   terrain from markers and from what a map erases before play (`FEATURES.md`,
   `docs/world-scan/terrain-ground-truth.md`), but that runs on `CleanColumns` → `islands_json` only. The other
   ingest derivation, `FeatureExtractors.Segments` → `scan_segment`, has its own exclusion set and applies
@@ -480,6 +480,23 @@ and what a `subtract` takes away.
   it back, so a freshly drawn region could be shown as drawn-but-unwired. The Edit tool was the only thing
   that drew one, and it is gone. Retire the field on both request DTOs (`EditRequests.cs`), `RegionNode`'s
   echo (`RegionTreeDtos.cs`), `RegionDrafts` and the artifact, and `docs/pgm/region-data-flow.md` §5 with them.
+
+- [ ] **WS73 — Two answers to "which void columns may be bridged", and neither is PGM's.**
+  `Editability.Result.Bridgeable` counts a column as bridgeable where its zone is `build_zone` or `filtered`,
+  and a zone is open when **breaking** is, so a map stating `block-break="always"` or a leaves-and-logs break
+  exception over the void opens the whole void to bridging although `block-place` refuses every block there.
+  `TraversabilityRender.BridgeableColumns` reads the place scope on its own. Read bridging off the place walk
+  alone and hand the one answer to the walk and to `reach` (the render lives in `Minecraft`, so the set is
+  computed in `Export`). **Blocked on `B57`:** on maps stating `block-place="deny(void)"`, the buildable middle
+  is marked by a y=0 floor sheet, which makes those columns non-void to PGM and so placeable, but the segment
+  scan counts that sheet as standing ground rather than as void to bridge. With the place-only reading and
+  the sheet still read as ground, the corpus walk loses the middle. `docs/world-scan/read-backs.md`.
+
+  *Evidence: the place-only reading moves 39 `trav` goldens; 10 corpus maps go connected → not connected
+  (`apocalypse_ctw`, `candyland_ctw`, `canyon_ii`, `fairy_tales_metamorphose`, `golden_drought_ii`, `greenhill`,
+  `gridlock_2`, `race_for_victory_2`, `welcome_to_wool_square`, `witchs_potions`). `canyon_ii` states
+  `block-place="deny(void)" block-break="always"` map-wide: the old answer bridges all 34,056 void columns,
+  the place-only answer none of its 32,308 build-zone columns.*
 
 - [ ] **A8 Should the layout generator be its own project?** `Pgm` holds two charters:
   the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85

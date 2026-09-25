@@ -8000,10 +8000,6 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `Decorator.Doorway` fits the door through `HouseStamper.Fit` with the image's reflection, the room stamper's
   own rule. (`WE135`)
 
-- **One answer to which void columns may be bridged (`WS73`)** — `Editability.Result.Bridges`, read off the
-  place walk alone, is what the walk and `reach`/`render/traversability` both take; `Export.BridgeableColumns`
-  hands it to the render, which reads no filters. (`WS73`)
-
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each

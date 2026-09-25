@@ -81,15 +81,6 @@ internal static class WorldReads
         return new BuiltRead(built, projected, map.Slug, asRead, LaidTo(layoutJson, built.ResolvedIntent));
     }
 
-    /// <summary>The world as chunks, with the columns its map document opens to bridging — what
-    /// <c>reach</c> and <c>render/traversability</c> are both drawn from. A world whose document did not read
-    /// has nothing bridged.</summary>
-    public static (IReadOnlyList<AnvilRegion.Chunk> Chunks, HashSet<(int X, int Z)>? Bridgeable) Reach(BuiltRead read)
-    {
-        List<AnvilRegion.Chunk> chunks = [.. AnvilRegion.FromWorld(read.Built.World)];
-        return (chunks, read.Doc is { } doc ? BridgeableColumns.Of(chunks, doc) : null);
-    }
-
     /// <summary>The symmetry the world was built to.
     ///
     /// <para><b>The layout's own setup answers it.</b> That is the mode and centre the rasteriser fans every
@@ -448,8 +439,7 @@ internal sealed class ReachReadEndpoint(MapRepository repo, MapReader reader, Ma
             return;
         }
 
-        var (chunks, bridgeable) = WorldReads.Reach(read);
-        var walked = TraversabilityRender.Read(chunks, read.Map, bridgeable);
+        var walked = TraversabilityRender.Read(read.Built.World, read.Map);
         if (walked is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nothing to walk",
@@ -611,11 +601,8 @@ internal sealed class TraversabilityReadEndpoint(MapRepository repo, MapReader r
 
     protected override string Empty => "this world has no ground column, so there is nothing to walk";
 
-    protected override byte[]? Draw(BuiltRead read)
-    {
-        var (chunks, bridgeable) = WorldReads.Reach(read);
-        return TraversabilityRender.Png(chunks, read.Map, bridgeable, Scale);
-    }
+    protected override byte[]? Draw(BuiltRead read) =>
+        TraversabilityRender.Png(read.Built.World, read.Map, Scale);
 }
 
 /// <summary>GET /api/map/{slug}/render/structures — the building census by block material, for a world the

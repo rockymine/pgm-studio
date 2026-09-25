@@ -143,12 +143,6 @@ public sealed class EditabilityTests
             .Because("one filter over both scopes denies the whole column");
         await Assert.That(ZoneAt(with, 8, 8)).IsEqualTo(EditZone.Filtered)
             .Because("placing is denied and breaking a canopy is not, so somebody can edit it");
-
-        bool BridgeableAt(Editability.Result res, int x, int z) => res.Bridgeable((z - res.MinZ) * res.Width + (x - res.MinX));
-        await Assert.That(BridgeableAt(with, 8, 8)).IsFalse()
-            .Because("a bridge is placed, and only breaking is permitted out there");
-        await Assert.That(BridgeableAt(with, 2, 2)).IsTrue().Because("inside the drawn rectangle");
-        await Assert.That(with.BridgeableCells().All(cell => cell is { X: >= 0 and < 4, Z: >= 0 and < 4 })).IsTrue();
     }
 
     /// <summary>Without a scan there is no y=0 layer, so a void filter has nothing to read. The pass says so
