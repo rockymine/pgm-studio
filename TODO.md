@@ -55,6 +55,6 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 The walk drained, and so did what a building may stand on — `DR-PASS` is the author's ruling, the passage is
 owed round a group of buildings, and `sketch/seats` answers it forwards (`FEATURES.md`).
 
-`docs/backlog-strategy.md` names **the layer word** as the programme to pull next: `B263`, `B264`, `WE28`,
-`TS64`, in `BACKLOG.md`. Three of the four want something first — `B263` a ruling on how the canvas says which
-storey a prop is on, `B264` and `TS64` a surface — and `WE28` is the one that is settled and backend only.
+`docs/backlog-strategy.md` names **the layer word** as the programme to pull next: `B264`, `WE28` and `TS64`,
+in `BACKLOG.md`, `B263` having shipped. `B264` and `TS64` want a surface first, and `WE28` is the one that is
+settled and backend only.

@@ -9251,6 +9251,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **`SK19` reads a placement's kind before its key (`TS78`).** Only a tree, a boulder and a building name a
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
+- **A prop's storey is picked in the inspector, and another storey's props draw dimmed (`B263`)** —
+  `SketchDressingInspector`'s Storey row writes `PlacedProp.Layer` from the layer strip's own list;
+  `dressing-render.js` draws a prop on another storey at `OFF_LAYER_ALPHA` and a canvas click picks only the
+  active storey's props (`dressing-doc.js` `onLayer`). The author's ruling: dimmed. (`B263`)
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
   pass's five *seat* rules over every cell of a board so a placement is found rather than guessed at, and left

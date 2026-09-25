@@ -185,16 +185,6 @@ cannot state it.
 one naming `layer: "under"` builds at **y7** with its cage around it, the one naming nothing at **y31**.
 `PUT /map/{slug}/intent` is what places an underground objective.*
 
-- [ ] **B263 — A prop's layer cannot be seen or changed, and every storey's props draw alike.** Placing one
-  already records the storey (`dressing-doc.js` `add`, `TS45`), and `DressingContext.GroundFor` resolves it,
-  declining `DR-LAYER` where that layer has no ground. Two reads are missing. `SketchDressingInspector` has no
-  field for `PlacedProp.Layer`, so moving a prop between storeys means editing the layout by hand. And
-  `dressing-render.js` draws a gallery-floor prop exactly like the roof one over it, so a stacked board's
-  dressing reads as one plane. The Sketch tool already carries the layer strip, so this adds no chrome.
-
-  **Needs a ruling first:** should a prop on an inactive storey be dimmed, hidden, or drawn as it is with a
-  badge? The field is an afternoon; how the canvas says which floor something is on is the actual decision.
-
 - [ ] **B264 — Configure cannot address a storey at all, so no objective can be authored below the top one.**
   Not six missing fields. `SketchLayerStrip` appears in one file, `SketchTool.razor`, and every Configure
   canvas runs base-layer-only by construction — `SpawnStep`, `TeamAssignStep`, `WorldIslandsStep` and
@@ -337,8 +327,14 @@ Twelve judged donut boards at 20 and 30 players named what a larger composed boa
   hull is known) or the depth reads a hull the envelope can predict. `docs/generator/model.md` §5.13 and
   `rules.md` amendment 35.
 
-  *Evidence: at centi the mid's share is 109 cells and the row spends 72 — `p32 rot_180 seed 0`, hull 21
-  cells, two stones of 7×6 where the share would buy 9×6.*
+  Where a crossing under-spends, its stones are already as deep as they are wide — the hull caps the width
+  and the row's wider-than-deep rule caps the depth at it — so a deeper stone is a line, and the land can
+  only go into width, which `BZ9` holds to the hull. *Blocking question (author): accept the under-spend,
+  let the zone overhang the fronts, allow a stone deeper than wide, or give the land back to the units.*
+
+  *Evidence: `rot_180`, seeds 0–59, normal crossings spend a median of 85 · 72 · 81 · 88% of their share
+  from nano to centi, and 13–21 of 33–40 boards a band spend under 80%. `p16 rot_180 seed 0`: share 50
+  cells, band 8×12, one 6×6 stone, 72%.*
 
 - [ ] **G268 — A frontline spine docked flush on a hub wall makes one slab twice the corridor deep.**
   The frontline's spine is one corridor deep and the hub's wall behind it is another, and the spine docks
