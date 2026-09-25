@@ -227,10 +227,11 @@ public sealed record AreaMark(double[][] Ring, double[] Heights, double Bevel = 
         // The triangulation is of the ring and not of the cell, so it is built once rather than per cell.
         var tris = Tilted ? Triangulation.EarClip(Ring) : null;
         var closed = Closed;
+        var covered = footprint.Covered(Ring);
 
         foreach (var (x, z) in footprint.Land())
         {
-            if (!Polygon.PointInRing(x + 0.5, z + 0.5, Ring)) continue;
+            if (!covered[footprint.Index(x, z)]) continue;
             var height = tris is null ? Heights[0]
                        : Triangulation.Interpolate(Ring, Heights, tris, x + 0.5, z + 0.5);
             var weight = 1.0;

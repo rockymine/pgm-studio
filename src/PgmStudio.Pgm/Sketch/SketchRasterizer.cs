@@ -1743,9 +1743,13 @@ public static class SketchRasterizer
             minX = Math.Min(minX, p[0]); maxX = Math.Max(maxX, p[0]);
             minZ = Math.Min(minZ, p[1]); maxZ = Math.Max(maxZ, p[1]);
         }
-        for (var x = (int)Math.Floor(minX); x < (int)Math.Ceiling(maxX); x++)
-            for (var z = (int)Math.Floor(minZ); z < (int)Math.Ceiling(maxZ); z++)
-                if (Polygon.PointInRing(x + 0.5, z + 0.5, ring)) yield return (x, z);
+        int x0 = (int)Math.Floor(minX), x1 = (int)Math.Ceiling(maxX) - 1;
+        int z0 = (int)Math.Floor(minZ), z1 = (int)Math.Ceiling(maxZ) - 1;
+        var inside = Polygon.CentresInside(ring, x0, z0, x1, z1);
+        var width = x1 - x0 + 1;
+        for (var x = x0; x <= x1; x++)
+            for (var z = z0; z <= z1; z++)
+                if (inside[(z - z0) * width + (x - x0)]) yield return (x, z);
     }
 
     // ── symmetry ──────────────────────────────────────────────────────────────────────────────────

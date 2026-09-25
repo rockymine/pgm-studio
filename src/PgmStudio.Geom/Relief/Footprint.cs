@@ -93,9 +93,16 @@ public sealed class Footprint
     {
         var cells = new List<(int X, int Z)>();
         if (ring.Length < 3) return cells;
+        var inside = Polygon.CentresInside(ring, minX, minZ, maxX, maxZ);
+        var width = maxX - minX + 1;
         for (var x = minX; x <= maxX; x++)
             for (var z = minZ; z <= maxZ; z++)
-                if (Polygon.PointInRing(x + 0.5, z + 0.5, ring)) cells.Add((x, z));
+                if (inside[(z - minZ) * width + (x - minX)]) cells.Add((x, z));
         return cells;
     }
+
+    /// <summary>Which cells of this footprint's box have their centre inside <paramref name="ring"/>, indexed
+    /// the way <see cref="Index"/> indexes the footprint — land or not.</summary>
+    public bool[] Covered(double[][] ring)
+        => Polygon.CentresInside(ring, MinX, MinZ, MinX + Width - 1, MinZ + Depth - 1);
 }

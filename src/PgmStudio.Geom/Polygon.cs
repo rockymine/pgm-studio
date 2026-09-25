@@ -21,6 +21,49 @@ public static class Polygon
         return inside;
     }
 
+    /// <summary>Which cells of the box <c>[minX..maxX] × [minZ..maxZ]</c> have their centre inside
+    /// <paramref name="ring"/>, row-major from <c>(minX, minZ)</c>: exactly <see cref="PointInRing"/> at every
+    /// <c>(x + 0.5, z + 0.5)</c>, with the same crossing test and the same arithmetic, so the two can never
+    /// disagree about a cell.
+    /// <para>A row's crossings are found once and the row is filled from them, so the cost is one pass over the
+    /// edges per row rather than per cell — what a whole-shape rasterization wants, since a bent coast carries
+    /// hundreds of edges.</para></summary>
+    public static bool[] CentresInside(IReadOnlyList<IReadOnlyList<double>> ring,
+                                       int minX, int minZ, int maxX, int maxZ)
+    {
+        int width = Math.Max(0, maxX - minX + 1), depth = Math.Max(0, maxZ - minZ + 1);
+        var inside = new bool[width * depth];
+        var count = ring.Count;
+        if (count == 0 || width == 0) return inside;
+
+        var xs = new double[count];
+        var zs = new double[count];
+        for (var i = 0; i < count; i++) { xs[i] = ring[i][0]; zs[i] = ring[i][1]; }
+
+        var crossings = new double[count];
+        for (var row = 0; row < depth; row++)
+        {
+            double pz = minZ + row + 0.5;
+            var found = 0;
+            for (int i = 0, j = count - 1; i < count; j = i++)
+                if (zs[i] > pz != zs[j] > pz)
+                    crossings[found++] = (xs[j] - xs[i]) * (pz - zs[i]) / (zs[j] - zs[i]) + xs[i];
+            if (found == 0) continue;
+            Array.Sort(crossings, 0, found);
+
+            // A centre is inside when an odd number of crossings lie strictly to its right.
+            var passed = 0;
+            var offset = row * width;
+            for (var column = 0; column < width; column++)
+            {
+                double px = minX + column + 0.5;
+                while (passed < found && crossings[passed] <= px) passed++;
+                inside[offset + column] = ((found - passed) & 1) == 1;
+            }
+        }
+        return inside;
+    }
+
     /// <summary>Whether the closed polyline <paramref name="ring"/> crosses itself. Every pair of
     /// non-adjacent edges, which is a few thousand tests on the rings a plan compiles to and is the whole of
     /// what makes an edited outline safe to store — a ring folded over its own far side rasterizes as ground

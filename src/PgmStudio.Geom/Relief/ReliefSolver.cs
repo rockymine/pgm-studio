@@ -384,8 +384,9 @@ public static class ReliefSolver
         var inward = new double[footprint.Cells];
         Array.Fill(inward, double.PositiveInfinity);
         var cells = 0;
+        var covered = footprint.Covered(ring);
         foreach (var (x, z) in footprint.Land())
-            if (Polygon.PointInRing(x + 0.5, z + 0.5, ring)) cells++;
+            if (covered[footprint.Index(x, z)]) cells++;
             else inward[footprint.Index(x, z)] = 0;
         if (cells == 0) return (inward, 0, 0);
 
@@ -438,8 +439,9 @@ public static class ReliefSolver
             var outward = new double[lift.Length];
             Array.Fill(outward, double.PositiveInfinity);
             var seeded = false;
+            var covered = footprint.Covered(push.Ring);
             foreach (var (x, z) in footprint.Land())
-                if (Polygon.PointInRing(x + 0.5, z + 0.5, push.Ring))
+                if (covered[footprint.Index(x, z)])
                 { outward[footprint.Index(x, z)] = 0; seeded = true; }
             if (!seeded) continue;
             Chamfer(footprint, outward);
