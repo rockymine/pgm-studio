@@ -30,8 +30,8 @@ in one union under a single owner. Neither is a structure a player breaks. Count
 detector for missing something that is not there — and pairing one against a real monument is how `ulcinj`,
 whose obsidian monuments stand **218 blocks apart**, can be made to look like a map with a 17-block pair. The
 rule: **skip `show="false"`, and take one structure per `<destroyable>`** rather than one per cuboid, since a
-region that is a union is one objective. The same floor markers are what `B57` is about on the terrain side —
-`scan_segment` still reads that slab as solid ground.
+region that is a union is one objective. The same floor markers are left out of the terrain the walk stands on
+(`terrain-ground-truth.md`, the segment scan).
 
 ## 2. Cores — lava sealed inside obsidian, and almost nothing else is
 

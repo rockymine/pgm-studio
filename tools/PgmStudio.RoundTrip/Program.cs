@@ -8,6 +8,7 @@ using PgmStudio.Analysis.Footprint;
 using JP = System.Text.Json.Serialization.JsonPropertyNameAttribute;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Suggest;
+using PgmStudio.Export;
 
 // Numbers are dot-separated whatever the host's regional settings say — the same pin the API and the client
 // hold. A harness that compared derivations under a comma-decimal locale would report differences that are
@@ -286,8 +287,13 @@ if (travMapIdx >= 0 && travMapIdx + 2 < args.Length)
     var mapAt = Array.IndexOf(args, "--map");
     var scaleAt = Array.IndexOf(args, "--scale");
     var travMap = mapAt >= 0 && mapAt + 1 < args.Length ? MapParser.Parse(args[mapAt + 1]) : null;
+    var travRegionDir = args[travMapIdx + 1];
+    if (!Directory.Exists(travRegionDir)) { Console.Error.WriteLine($"no region dir: {travRegionDir}"); return 1; }
+    var travChunks = Directory.GetFiles(travRegionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList();
+    if (travChunks.Count == 0) { Console.Error.WriteLine($"no chunks in {travRegionDir}"); return 1; }
     return TraversabilityRender.Run(
-        args[travMapIdx + 1], args[travMapIdx + 2], travMap,
+        travChunks, args[travMapIdx + 2], travMap,
+        travMap is null ? null : BridgeableColumns.Of(travChunks, Serializer.ToDict(travMap)),
         scaleAt >= 0 && scaleAt + 1 < args.Length && int.TryParse(args[scaleAt + 1], out var travScale) ? Math.Max(1, travScale) : 3);
 }
 
@@ -900,6 +906,8 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
         .Select(s => new ScanSpawnerRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldY = s.WorldY, EntityId = s.EntityId, SpawnsWool = s.SpawnsWool, SpawnItemId = s.SpawnItemId, SpawnItemDamage = s.SpawnItemDamage, SpawnCount = s.SpawnCount, SpawnRange = s.SpawnRange, MinSpawnDelay = s.MinSpawnDelay, MaxSpawnDelay = s.MaxSpawnDelay, RequiredPlayerRange = s.RequiredPlayerRange, MaxNearbyEntities = s.MaxNearbyEntities }).ToList());
     await WriteParquet(Path.Combine(outDir, "layer_segments.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.Segments(chunks)
         .Select(s => new SegmentRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldYStart = s.WorldYStart, WorldYEnd = s.WorldYEnd }).ToList());
+    await WriteParquet(Path.Combine(outDir, "floor_marks.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.FloorMarks(chunks)
+        .Select(m => new FloorMarkRow { WorldX = m.WorldX, WorldZ = m.WorldZ, BlockId = m.BlockId }).ToList());
 
     // Surface layer → layer.parquet (the cached artifact + the bounding-box source)
     var surface = PgmStudio.Minecraft.Anvil.SurfaceExtractors.Surface(chunks).ToList();
@@ -1788,6 +1796,13 @@ sealed class ScanSpawnerRow
     [JP("max_spawn_delay")] public int? MaxSpawnDelay { get; set; }
     [JP("required_player_range")] public int? RequiredPlayerRange { get; set; }
     [JP("max_nearby_entities")] public int? MaxNearbyEntities { get; set; }
+}
+
+sealed class FloorMarkRow
+{
+    [JP("world_x")] public int WorldX { get; set; }
+    [JP("world_z")] public int WorldZ { get; set; }
+    [JP("block_id")] public int BlockId { get; set; }
 }
 
 sealed class SegmentRow

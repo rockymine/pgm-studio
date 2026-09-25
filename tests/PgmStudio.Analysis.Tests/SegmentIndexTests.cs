@@ -96,4 +96,15 @@ public sealed class SegmentIndexTests
         await Assert.That(Standing(enough, 0, 0)).IsEqualTo(11);
         await Assert.That(Standing(tooLittle, 0, 0)).IsEqualTo(21);
     }
+
+    /// <summary><b>A floor mark answers the void question and nothing else.</b> A block-36 marker at y=0
+    /// makes the column not void to PGM, so it is a Y=0 column; nobody stands on it, so it is no standing
+    /// place.</summary>
+    [Test]
+    public async Task A_floor_mark_is_y0_and_no_standing_place()
+    {
+        var index = new SegmentIndex([(0, 0, 0, 18)], [(5, 5)]);
+        await Assert.That(index.Y0Columns()).Contains((5, 5));
+        await Assert.That(Standing(index, 5, 5)).IsNull();
+    }
 }

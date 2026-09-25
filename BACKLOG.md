@@ -225,22 +225,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ## World import: reading a map the studio did not build
 
-- [ ] **B57 — `scan_segment` counts a build-region marker as solid ground.** *Parked (author): imports are
-  not a priority, and this waits on `B9`. `WS73` waits on it.* Island detection now separates
-  terrain from markers and from what a map erases before play (`FEATURES.md`,
-  `docs/world-scan/terrain-ground-truth.md`), but that runs on `CleanColumns` → `islands_json` only. The other
-  ingest derivation, `FeatureExtractors.Segments` → `scan_segment`, has its own exclusion set and applies
-  neither rule, so a floor sheet at `y=0` persists as a solid span. Everything reading it at query time
-  (`SegmentIndex.BaseColumns` → `IslandDetector.CleanedBaseFootprint`) therefore walks on a marker. Narrower
-  than it sounds — that path feeds kit-reach, not the island picture the configure tool draws — which is why
-  it is filed rather than fixed alongside. The two derivations should agree on what ground is, and the fix is
-  to route the floor-marker rule through both. **Blocked in practice by re-import**: `scan_segment` is
-  written once at ingest from a world that is then discarded, so changing it reaches existing maps only when
-  a map can be re-imported — which is **`B9`**, and `docs/backlog-strategy.md` files that as roadmap:
-  a capability nobody is blocked on. So this entry waits on one nobody has asked for, and doing it alone
-  fixes the derivation for maps imported after it and for none of the maps that exist.
-
-
 ## The shop: buying things in the middle of a match
 
 - [ ] **PG16 — A spawner's drop height is the author's and nothing checks it.** `SpawnerIntent.At` carries a
@@ -481,22 +465,30 @@ and what a `subtract` takes away.
   that drew one, and it is gone. Retire the field on both request DTOs (`EditRequests.cs`), `RegionNode`'s
   echo (`RegionTreeDtos.cs`), `RegionDrafts` and the artifact, and `docs/pgm/region-data-flow.md` §5 with them.
 
-- [ ] **WS73 — Two answers to "which void columns may be bridged", and neither is PGM's.**
-  `Editability.Result.Bridgeable` counts a column as bridgeable where its zone is `build_zone` or `filtered`,
-  and a zone is open when **breaking** is, so a map stating `block-break="always"` or a leaves-and-logs break
-  exception over the void opens the whole void to bridging although `block-place` refuses every block there.
-  `TraversabilityRender.BridgeableColumns` reads the place scope on its own. Read bridging off the place walk
-  alone and hand the one answer to the walk and to `reach` (the render lives in `Minecraft`, so the set is
-  computed in `Export`). **Blocked on `B57`:** on maps stating `block-place="deny(void)"`, the buildable middle
-  is marked by a y=0 floor sheet, which makes those columns non-void to PGM and so placeable, but the segment
-  scan counts that sheet as standing ground rather than as void to bridge. With the place-only reading and
-  the sheet still read as ground, the corpus walk loses the middle. `docs/world-scan/read-backs.md`.
+- [ ] **WS74 — Traversability reads 146 of 347 corpus maps as not connected.** These are played maps, so
+most of the verdicts are the reading's and not the map's. Measured over the corpus with `layer_segments` and
+`floor_marks` from the current extractor: 101 have their points on separate ground the walk does not join
+(`wits_end`'s four wool rooms are each an island), 17 lose an objective to a team's `enter` rules, 18 have a
+wool and 11 a spawn off the ground the walk stands on (one map both). Take them per cause, reading each
+against PGM rather than tuning the walk to the count. `docs/world-scan/read-backs.md`.
 
-  *Evidence: the place-only reading moves 39 `trav` goldens; 10 corpus maps go connected → not connected
-  (`apocalypse_ctw`, `candyland_ctw`, `canyon_ii`, `fairy_tales_metamorphose`, `golden_drought_ii`, `greenhill`,
-  `gridlock_2`, `race_for_victory_2`, `welcome_to_wool_square`, `witchs_potions`). `canyon_ii` states
-  `block-place="deny(void)" block-break="always"` map-wide: the old answer bridges all 34,056 void columns,
-  the place-only answer none of its 32,308 build-zone columns.*
+  *Evidence: `Traversability.Check` over the 347 maps `--goldens` measures; `apocalypse_ctw` is a per-team
+  entry case, `after_hours` a wool off the ground, `banana_split` a spawn.*
+
+- [ ] **RP74 — The corpus scan output predates floor marks.** `rockymine/pgm-studio-output` carries
+`layer_segments.parquet` from before the segment scan left out a floor sheet, and no `floor_marks.parquet`, so
+`corpus-goldens.json` is recorded over the old void test. Regenerate both files for every map with
+`tools/PgmStudio.RoundTrip --scan-out` (or the two files alone), commit them to that repository, then
+re-record `corpus-goldens.json` against it after reading the moved verdicts.
+
+  *Evidence: over a regenerated copy, 168 verdicts move against the recorded goldens (130 `trav`, 38 `build`);
+  18 maps go not connected → connected and none the other way.*
+
+- [ ] **PG19 — The `resize` region is refused.** PGM grows or shrinks a child region by a vector
+(`<resize min=… max=…>`); the parser does not read it, and `MapParser.EnsureSupported` refuses the five corpus
+maps using it rather than read a rule over it as covering the whole board. Read it as the child's footprint
+grown by the x and z of `min`/`max`, in `RegionParser` and `RegionGeometry2d`, and take it off the refused
+list. `docs/pgm/supported-maps.md`.
 
 - [ ] **A8 Should the layout generator be its own project?** `Pgm` holds two charters:
   the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85

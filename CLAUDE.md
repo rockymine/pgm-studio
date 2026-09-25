@@ -477,7 +477,7 @@ console error, which the smoke sweep turns into a failed page; a silent blank is
   copy and made safe refactors look risky. **PGM is the reference for the contract**, `tests/` gate it, and
   `--goldens` catches a derivation moving.
 - **Don't make the format fit.** A malformed or out-of-range map is rejected rather than accommodated by
-  weakening the schema — three gates in `MapParser.EnsureSupported`, written out in
+  weakening the schema — four gates in `MapParser.EnsureSupported`, written out in
   `docs/pgm/supported-maps.md`.
 - **Coordinate flooring is per-field, not global.** The wool `<location>` is floored and the monument
   `<block>` is not, because PGM floors one itself and never the other. The rule and the PGM sources are in

@@ -139,4 +139,32 @@ public class FeatureExtractorsTests
         // iron column (4,5): single solid cell at y=6
         await Assert.That((segs[1].WorldX, segs[1].WorldZ, segs[1].WorldYStart, segs[1].WorldYEnd)).IsEqualTo((4, 5, 6, 6));
     }
+
+    private static AnvilRegion.Chunk FloorChunk()
+    {
+        var blocks = new byte[4096];
+        blocks[Idx(0, 0, 0)] = 36;   // block-36 marker at the world floor
+        blocks[Idx(1, 0, 0)] = 95;   // stained-glass floor sheet
+        blocks[Idx(2, 1, 0)] = 95;   // the sheet's second course
+        blocks[Idx(3, 0, 0)] = 1;    // stone
+        var section = new NbtCompound
+        {
+            new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]),
+        };
+        var level = new NbtCompound("Level")
+        {
+            new NbtList("Sections", new[] { section }),
+        };
+        return new AnvilRegion.Chunk(0, 0, level);
+    }
+
+    [Test]
+    public async Task A_marker_or_glass_sheet_at_the_floor_is_a_floor_mark_and_no_segment()
+    {
+        var marks = FeatureExtractors.FloorMarks([FloorChunk()]).Select(m => (m.WorldX, m.WorldZ, m.BlockId)).ToHashSet();
+        await Assert.That(marks.SetEquals(new[] { (0, 0, 36), (1, 0, 95) })).IsTrue();
+
+        var segs = FeatureExtractors.Segments([FloorChunk()]).Select(s => (s.WorldX, s.WorldZ, s.WorldYStart, s.WorldYEnd)).ToList();
+        await Assert.That(segs).IsEquivalentTo(new[] { (3, 0, 0, 0) });
+    }
 }

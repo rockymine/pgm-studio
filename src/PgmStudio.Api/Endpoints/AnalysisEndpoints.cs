@@ -46,7 +46,7 @@ public sealed class EditabilityEndpoint(MapRepository repo, MapReader reader, Fe
         // region-AABB-plus-margin; falls back to that margin box when there's no scan.
         var box = (await feature.MapBboxAsync(map.Id, ct))?.bounds;
         var grid = box is { } b ? ((int)b.Item1, (int)b.Item2, (int)b.Item3, (int)b.Item4) : ((int, int, int, int)?)null;
-        var zones = Editability.Compute(doc, segments?.Y0Columns(), grid);
+        var zones = Editability.Compute(doc, segments?.Y0Columns(), grid, floorMarks: segments?.FloorMarks);
 
         // The dead-ground read needs somewhere to stand, so it is asked only of a scanned map — the walk over
         // an unscanned one has no ground in it and would report the whole board as fine.

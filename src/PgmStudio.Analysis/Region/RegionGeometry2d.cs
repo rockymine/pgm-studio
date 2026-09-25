@@ -30,6 +30,13 @@ public static class RegionGeometry2d
                     return null;
                 return Box(Math.Min(mnx, mxx), Math.Min(mnz, mxz), Math.Max(mnx, mxx), Math.Max(mnz, mxz));
             }
+            // Unbounded in PGM; here it is the whole box the footprint is read in, which is what a complement
+            // that starts from it ("everywhere but the build area") needs to subtract from.
+            case "everywhere":
+            {
+                var (minX, minZ, maxX, maxZ) = bounds;
+                return Box(minX, minZ, maxX, maxZ);
+            }
             case "cylinder": return Disc(AsDict(region.GetValueOrDefault("base")), region);
             case "circle": return Disc(AsDict(region.GetValueOrDefault("center")), region);
             case "sphere": return Disc(AsDict(region.GetValueOrDefault("origin")), region);
@@ -52,6 +59,19 @@ public static class RegionGeometry2d
                 return HalfPlane(Num(o.GetValueOrDefault("x")) ?? 0, Num(o.GetValueOrDefault("z")) ?? 0,
                                  Num(n.GetValueOrDefault("x")) ?? 0, Num(n.GetValueOrDefault("z")) ?? 0, bounds);
             }
+            // PGM's above/below: a half-space along each axis stated, intersected. An x or z bound cuts the
+            // footprint; a y bound alone limits a height and so bounds no column, and has no footprint.
+            case "above" or "below":
+            {
+                var direction = t == "above" ? 1.0 : -1.0;
+                Geometry? result = null;
+                if (Num(region.GetValueOrDefault("x")) is { } hx)
+                    result = Intersect(result, HalfPlane(hx, 0, direction, 0, bounds));
+                if (Num(region.GetValueOrDefault("z")) is { } hz)
+                    result = Intersect(result, HalfPlane(0, hz, 0, direction, bounds));
+                return result is null || result.IsEmpty ? null : result;
+            }
+            case "nowhere": return null;
             case "union" or "complement" or "intersect" or "negative":
                 return Compound(t, region, bounds, registry);
             case "mirror":
@@ -123,6 +143,9 @@ public static class RegionGeometry2d
             }
         }
     }
+
+    private static Geometry? Intersect(Geometry? sofar, Geometry? next) =>
+        sofar is null ? next : next is null ? sofar : sofar.Intersection(next);
 
     private static Geometry? HalfPlane(double ox, double oz, double nx, double nz, (double minX, double minZ, double maxX, double maxZ) b)
     {

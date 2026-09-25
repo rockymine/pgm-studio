@@ -113,8 +113,10 @@ public static class Serializer
             case "reference":
                 b["ref_id"] = r.RefId;
                 break;
-            case "above":
-                b["y"] = C(r.AboveY);
+            case "above" or "below":
+                if (r.HalfX is not null) b["x"] = C(r.HalfX);
+                if (r.HalfY is not null) b["y"] = C(r.HalfY);
+                if (r.HalfZ is not null) b["z"] = C(r.HalfZ);
                 break;
         }
         return b;

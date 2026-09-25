@@ -8000,6 +8000,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `Decorator.Doorway` fits the door through `HouseStamper.Fit` with the image's reflection, the room stamper's
   own rule. (`WE135`)
 
+- **The void test is PGM's, and a map's build area reads as one (`WS73`, `B57`)** — a y=0 block the segment
+  scan leaves out (the block-36 marker PGM removes on load, a glass floor sheet) is kept as a **floor mark**
+  (`FeatureExtractors.FloorMarks`, table `floor_mark`, migration `M0040`), and `SegmentIndex.Y0Columns` counts
+  it, as PGM's `<void/>` filter does; the segment scan applies the island scan's floor-marker rule, so a
+  marker is never standing ground. Bridging is read off the place scope alone — granted ground, a conditional
+  filter, or a floor mark a void rule passes — and `Export.BridgeableColumns` hands the one
+  set to `reach`. The region parser reads `below`, `above` on every axis, `nowhere`/`empty` and multi-child
+  `<region>` wrappers as unions, and `everywhere` has a footprint, so the 134 corpus maps stating their build
+  area as `complement(everywhere, …)` read it; `resize` is refused, and `RegionTypesTests` holds the parser to
+  PGM's list. Corpus traversability: not connected 193 → 146 of 347 over a regenerated scan (164 over the
+  committed one, until `RP74`). (`WS73`, `B57`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each

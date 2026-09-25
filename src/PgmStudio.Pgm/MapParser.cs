@@ -88,6 +88,22 @@ public sealed partial class MapParser
                 $"map requires server {serverText}: modern (>= {FirstModernServer}) worlds use the palette block format the Anvil reader does not support yet.");
 
         EnsureObjectivesReadable();
+        EnsureRegionsReadable();
+    }
+
+    /// <summary>PGM region types the parser does not read. A region the parser drops leaves the rule that names
+    /// it with no region, and a rule with no region is read as applying everywhere — so an unread region is
+    /// not a smaller map, it is a wrong one, and it is refused here instead.</summary>
+    private static readonly string[] UnreadRegionTypes = ["resize"];
+
+    private void EnsureRegionsReadable()
+    {
+        var unread = _root.Descendants().Select(e => e.Name.LocalName)
+            .Where(UnreadRegionTypes.Contains).Distinct().ToList();
+        if (unread.Count == 0) return;
+        throw new UnsupportedMapException(
+            $"map uses a region type the studio cannot read: {string.Join(", ", unread.Select(t => $"<{t}>"))}. "
+            + "A rule over it would be read as covering the whole map.");
     }
 
     // An objective module we do not read would be dropped in silence: the map parses, exports, and plays

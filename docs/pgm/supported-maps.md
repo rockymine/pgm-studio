@@ -1,8 +1,8 @@
 # What the studio will read, and what it refuses
 
 A map the studio cannot fully read is refused rather than partly parsed, because the failure mode of the
-alternative is silent: a map that loads, exports and plays without the thing that was dropped. Four gates
-decide it, three in `MapParser.EnsureSupported` and one in `MapParser.EnsureShopsReadable`, all raising
+alternative is silent: a map that loads, exports and plays without the thing that was dropped. Five gates
+decide it, four in `MapParser.EnsureSupported` and one in `MapParser.EnsureShopsReadable`, all raising
 `UnsupportedMapException`. `--scan-out-all` skips-and-logs them; everything else treats a refusal as a
 refusal.
 
@@ -33,6 +33,14 @@ gate reading root elements only: a scorebox is its own objective inside an eleme
 skipping that check would export a scorebox map without its boxes. A payload is a furnace minecart players
 push around the board, and none of the geometry describing one is read.
 
+**No unread region type.** A region the parser does not read leaves the rule that names it with no region,
+and a rule with no region applies everywhere — so a dropped region is not a smaller map but a wrong one, a
+`block="never"` over a patch read as sealing the board. The parser reads every region PGM's `RegionParser`
+names but one: `above`, `below`, `block`, `circle`, `complement`, `cuboid`, `cylinder`, `empty`, `everywhere`,
+`half`, `intersect`, `mirror`, `negative`, `nowhere`, `point`, `rectangle`, `sphere`, `translate` and `union`,
+with a `<region>` wrapper, or an apply's inline regions, read as the union of every child as PGM reads them.
+**`resize` is refused**, five corpus maps, and `RegionTypesTests` holds the parser to PGM's list.
+
 **No unreadable shop.** `shops` is not an objective module at all — its map tag is auxiliary and carries no
 gamemode, so a board keeps its goal whether or not the menu survives. What a fourth gate exists for is the
 fifteen bedwars boards whose every building block is bought: an icon dropped in silence there is a map nobody
@@ -41,14 +49,14 @@ cannot carry — a child inside a shop, category, icon or payment outside the se
 attribute PGM acts on that is not carried (the grenade behaviour, the modern `components` syntax, the legacy
 potion list, the class-picker tag, and the four that turn an element into a written book, a player head, a
 firework or a banner). A `<shopkeeper>` whose place is neither coordinates nor one region reference refuses on
-the same rule, because the alternative is an entity spawned at the origin. Unlike the three gates above, this
+the same rule, because the alternative is an entity spawned at the origin. Unlike the four gates above, this
 one reads the document **after** variants and constants are resolved, because the corpus writes whole
 categories inside an `<if variant>`. `shops.md` is what it reads. No corpus map is refused by it.
 
-Swept over every `map.xml` in both corpora — 1,622 directories, which is more than the 350-slug set the
-round-trip harness runs because it counts the nested category folders too — **1,329 parse**. The 293 refused
-are 146 for `flags`, 75 for a scorebox, 37 below the proto floor, 27 for a modern world and 9 for
-`payloads`. Of the maps that carry a control point or a score module, all 286 also survive the XML round trip
+Swept over every `map.xml` in both corpora — 1,624 directories, which is more than the 350-slug set the
+round-trip harness runs because it counts the nested category folders too — **1,326 parse**. The 298 refused
+are 229 for an unread objective module (`flags`, a scorebox, `payloads`), 37 below the proto floor, 27 for a
+modern world and 5 for a `resize` region. Of the maps that carry a control point or a score module, all 286 also survive the XML round trip
 with every point and every knob unchanged. Of the 39 that carry a shop or a keeper, 35 parse — the other four
 are refused by the gates above, three for a scorebox and one for a 1.21 world — and all 35 survive both
 codecs with every shop id, category, icon and keeper intact.

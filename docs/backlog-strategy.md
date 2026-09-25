@@ -151,10 +151,9 @@ a shape to be stated on. The other half was that the plinth the build levels und
 the surface map the painter reads, so the courses a room actually shows were ones no pass addressed — the
 levelling reports its own surface now and the world build folds it in.
 
-**`B57` — `FeatureExtractors.Segments` → `scan_segment` applies neither of the two exclusion rules
-`CleanColumns` applies, so a build-region floor sheet at `y=0` persists as solid ground and everything reading
-it at query time walks on a marker. Reported with measured evidence and not re-confirmed here, because
-confirming it wants a built world rather than a reading.
+**`B57` shipped** with `WS73` (`FEATURES.md`), confirmed against the corpus worlds rather than a reading: the
+segment scan applies the floor-marker rule, and what it leaves out at y=0 is kept as floor marks, which PGM's
+void filter counts.
 
 ## The board's numbers rot faster than its prose
 
@@ -414,7 +413,7 @@ but each of the three wants a different treatment, which is what makes them wort
 ambiguity at their edges.
 
 **Blocked decisions** are what the board still marks as parked — `WE41` (not yet), `A8`, `G278` and `G282`
-(not now), and `B57` with `B9` (imports are not a priority). A question put to the author comes back the
+(not now), and `B9` (imports are not a priority). A question put to the author comes back the
 same day, and five of the answers so far have been to decline the question. Each has a definite end
 and none of it is work until the answer arrives.
 
@@ -465,7 +464,7 @@ for deferring. It cost one message. This phase is the one nobody can do alone, a
 whenever the list refills — the causes below each had a question sitting in them, and none of them could move
 until it was answered.
 
-**Phase 1 — the verified defect run.** Drained but for `B57`, which is blocked in practice by re-import.
+**Phase 1 — the verified defect run.** Drained; `B57` shipped with `WS73`.
 Each lands with a test that fails on the old behaviour — that is the deliverable, not the fix. `B145` left
 this way (`FEATURES.md`), pinned at three tiers: the levelling reporting the surface it leaves, the painter
 finishing a plinth folded into its map, and a built room's floor course carrying no raw stone. `TS74` and `B144` left this way (`FEATURES.md`), and `TS31`

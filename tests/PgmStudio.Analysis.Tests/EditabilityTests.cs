@@ -143,6 +143,12 @@ public sealed class EditabilityTests
             .Because("one filter over both scopes denies the whole column");
         await Assert.That(ZoneAt(with, 8, 8)).IsEqualTo(EditZone.Filtered)
             .Because("placing is denied and breaking a canopy is not, so somebody can edit it");
+
+        bool BridgeableAt(Editability.Result res, int x, int z) => res.Bridgeable((z - res.MinZ) * res.Width + (x - res.MinX));
+        await Assert.That(BridgeableAt(with, 8, 8)).IsFalse()
+            .Because("a bridge is placed, and only breaking is permitted out there");
+        await Assert.That(BridgeableAt(with, 2, 2)).IsTrue().Because("inside the drawn rectangle");
+        await Assert.That(with.BridgeableCells().All(cell => cell is { X: >= 0 and < 4, Z: >= 0 and < 4 })).IsTrue();
     }
 
     /// <summary>Without a scan there is no y=0 layer, so a void filter has nothing to read. The pass says so
@@ -167,5 +173,83 @@ public sealed class EditabilityTests
         await Assert.That(geom).IsNotNull();
         await Assert.That(geom!.Contains(new NetTopologySuite.Geometries.Point(5, 5))).IsTrue();
         await Assert.That(geom.Contains(new NetTopologySuite.Geometries.Point(50, 50))).IsFalse();
+    }
+
+    private static bool BridgesAt(Editability.Result res, int x, int z) => res.Bridgeable((z - res.MinZ) * res.Width + (x - res.MinX));
+    private static string ZoneOf(Editability.Result res, int x, int z) => res.ZoneAt((z - res.MinZ) * res.Width + (x - res.MinX));
+
+    /// <summary><b>A complement starting from everywhere states the build area as its hole.</b> The void rule
+    /// covers everywhere but the rectangle, so the rectangle is the grant — the idiom 134 corpus maps write.</summary>
+    [Test]
+    public async Task A_complement_of_everywhere_grants_the_area_it_leaves_out()
+    {
+        var doc = Doc("""
+            <regions>
+              <complement id="void-area"><everywhere/><rectangle min="0,0" max="4,4"/></complement>
+              <apply block="deny(void)" region="void-area"/>
+            </regions>
+            """);
+        var res = Editability.Compute(doc, [], (-8, -8, 12, 12));
+        await Assert.That(ZoneOf(res, 2, 2)).IsEqualTo(EditZone.BuildZone).Because("the rectangle the complement leaves out");
+        await Assert.That(ZoneOf(res, 8, 8)).IsEqualTo(EditZone.Sealed).Because("void the rule covers");
+        await Assert.That(BridgesAt(res, 2, 2)).IsTrue();
+    }
+
+    /// <summary><b>A map-wide void rule lets a player build across a marked column and nowhere else.</b> PGM's
+    /// void filter reads the block at y=0, a block-36 marker included, so a column carrying one is not void
+    /// and the rule passes it; an empty column is void and refused. The marked column stays ground on the
+    /// zone map — the author drew no zone — while the walk may bridge it; a column of ground, not void
+    /// either, is stood on and not bridged.</summary>
+    [Test]
+    public async Task A_map_wide_void_rule_bridges_a_marked_column_and_refuses_an_empty_one()
+    {
+        var doc = Doc("""
+            <regions>
+              <rectangle id="board" min="0,0" max="8,8"/>
+              <apply block="deny(void)"/>
+            </regions>
+            """);
+        var marked = new HashSet<(int, int)> { (2, 2) };
+        var y0 = new HashSet<(int, int)> { (2, 2), (3, 3) };
+        var res = Editability.Compute(doc, y0, (-4, -4, 12, 12), floorMarks: marked);
+        await Assert.That(BridgesAt(res, 2, 2)).IsTrue().Because("a y=0 marker makes the column not void");
+        await Assert.That(BridgesAt(res, 3, 3)).IsFalse().Because("ground is stood on, not bridged");
+        await Assert.That(BridgesAt(res, 5, 5)).IsFalse().Because("an empty column is void");
+        await Assert.That(ZoneOf(res, 2, 2)).IsEqualTo(EditZone.Ground);
+    }
+
+    /// <summary><b>A rule over a height bounds no column.</b> <c>&lt;below y="7"/&gt;</c> is a half-space in
+    /// y: it stops building at the bottom of the world and leaves every column open at the height a bridge is
+    /// laid, so it may not seal the board the way a region read as everywhere would.</summary>
+    [Test]
+    public async Task A_rule_over_a_height_alone_seals_no_column()
+    {
+        var doc = Doc("""
+            <regions>
+              <rectangle id="build-area" min="0,0" max="4,4"/>
+              <negative id="not-build-area"><region id="build-area"/></negative>
+              <apply block="deny(void)" region="not-build-area"/>
+              <apply block="never"><region><below y="7"/></region></apply>
+            </regions>
+            """);
+        var res = Editability.Compute(doc, [], (-8, -8, 12, 12));
+        await Assert.That(ZoneOf(res, 2, 2)).IsEqualTo(EditZone.BuildZone);
+        await Assert.That(BridgesAt(res, 2, 2)).IsTrue();
+    }
+
+    /// <summary><b>An x bound cuts the footprint.</b> <c>&lt;above x="0"/&gt;</c> is the half of the board at
+    /// or past x=0, not everything over a height.</summary>
+    [Test]
+    public async Task An_above_on_x_covers_only_its_half()
+    {
+        var doc = Doc("""
+            <regions>
+              <above id="east" x="0"/>
+              <apply block="never" region="east"/>
+            </regions>
+            """);
+        var res = Editability.Compute(doc, AllSolid(Doc("""<regions><rectangle id="r" min="-8,-8" max="8,8"/></regions>""")), (-8, -8, 8, 8));
+        await Assert.That(ZoneOf(res, 4, 0)).IsEqualTo(EditZone.Sealed).Because("east of x=0");
+        await Assert.That(ZoneOf(res, -4, 0)).IsNotEqualTo(EditZone.Sealed).Because("west of x=0");
     }
 }

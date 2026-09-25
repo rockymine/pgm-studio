@@ -92,12 +92,14 @@ internal sealed class RegionParser
         Region? region;
         if (tag == "region")
         {
-            // A pure <region id="X"/> reference returns immediately, unregistered; a
-            // <region>…</region> wrapper falls through
-            // to its first child + the synthetic-id assignment below.
+            // A pure <region id="X"/> reference returns immediately, unregistered. A <region>…</region>
+            // wrapper is PGM's parseChildren: the union of every child, which for a single child is that child,
+            // taken with the synthetic-id assignment below.
             if (regionId.Length > 0 && !elem.Elements().Any())
                 return new Region { Id = "", Type = "reference", RefId = regionId };
-            region = ParseRegionElement(elem, parentId, index);
+            region = elem.Elements().Count() > 1
+                ? ParseComposite(elem, regionId, parentId, index, "union")
+                : ParseRegionElement(elem, parentId, index);
         }
         else
         {
@@ -113,7 +115,14 @@ internal sealed class RegionParser
                 "union" or "negative" or "complement" or "intersect"
                             => ParseComposite(elem, regionId, parentId, index, tag),
                 "everywhere" => new Region { Id = regionId, Type = "everywhere" },
-                "above"      => new Region { Id = regionId, Type = "above", AboveY = Coord.Parse(Xml.Get(elem, "y", "0")) ?? 0.0 },
+                "above" or "below" => new Region
+                {
+                    Id = regionId, Type = tag,
+                    HalfX = elem.Attribute("x") is { } ax ? Coord.Parse(ax.Value) : null,
+                    HalfY = elem.Attribute("y") is { } ay ? Coord.Parse(ay.Value) : null,
+                    HalfZ = elem.Attribute("z") is { } az ? Coord.Parse(az.Value) : null,
+                },
+                "nowhere" or "empty" => new Region { Id = regionId, Type = "nowhere" },
                 "half"       => ParseHalf(elem, regionId),
                 "mirror"     => ParseMirror(elem, regionId, parentId, index),
                 "translate"  => ParseTranslate(elem, regionId, parentId, index),
@@ -333,18 +342,12 @@ internal sealed class RegionParser
             Velocity = Xml.Get(elem, "velocity", ""),
             Message = Xml.Get(elem, "message", ""),
         };
-        if (rule.RegionId.Length == 0)
+        if (rule.RegionId.Length == 0 && elem.Elements().Any())
         {
-            var syntheticParent = $"__apply_{applyIndex}";
-            foreach (var child in elem.Elements())
-            {
-                var childRegion = ParseRegionNode(child, syntheticParent, 0);
-                if (childRegion is not null && childRegion.Id.Length > 0)
-                {
-                    rule.RegionId = childRegion.Id;
-                    break;
-                }
-            }
+            // An apply's inline regions are PGM's parseChildren too: every child, as one union.
+            var inline = new XElement("region", elem.Elements());
+            if (ParseRegionNode(inline, $"__apply_{applyIndex}", 0) is { Id.Length: > 0 } childRegion)
+                rule.RegionId = childRegion.Id;
         }
         return rule;
     }
