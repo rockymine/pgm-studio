@@ -182,7 +182,9 @@ pairing that shows what the standoff bought.
 beside it.** `places` carries the route's own `y` at each cell — the storey the walk chose, not the ground a
 deck or a gallery roofs it with — and `steps` names every consecutive pair whose rise is not a plain walk: a
 scramble, a barrier or a drop, classed the way `PgmStudio.Geom.Walk.StepWord` classes any signed step, with
-the totals `rises`, `falls` and `worstStep` over the whole route. `?beside=N` (0 to 6 cells, Chebyshev) adds
+the totals `rises`, `falls` and `worstStep` over the whole route. A step onto or off a plan's `wall` claim
+reads `wall` instead: the bedrock courses are stated across the lane on purpose, so the climb is the wall's
+and `worstStep` leaves it out, answering the worst step the ground makes. `?beside=N` (0 to 6 cells, Chebyshev) adds
 every distinct thing the provenance record names within `N` cells of any cell the route passes through — a
 tree, a boulder, a house, water, a spawn, a goal, wool or an iron cube, the first cell it is met at and its
 distance; flora and paint are left out, since neither is a thing a player runs into. `?format=text` answers

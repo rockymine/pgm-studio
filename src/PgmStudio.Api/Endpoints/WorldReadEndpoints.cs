@@ -900,13 +900,13 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
             return;
         }
 
-        var profile = WalkProfile.Of(path);
+        var profile = WalkProfile.Of(path, read.Built.Provenance);
         var beside = WalkProfile.Beside(path, read.Built.Provenance, besideRadius);
 
         if (TextAnswer.Wanted(HttpContext))
         {
             await TextAnswer.WriteAsync(HttpContext,
-                WalkProfile.Render(from.Value, to.Value, name, path, profile, beside), ct);
+                WalkProfile.Render(from.Value, to.Value, name, path, profile, beside, read.Built.Provenance), ct);
             return;
         }
 

@@ -12,34 +12,52 @@ namespace PgmStudio.Export;
 /// </summary>
 public static class WalkProfile
 {
-    /// <summary>One step of a route that is not a plain walk — a scramble, a barrier or a drop: the cell it
-    /// lands on, the signed rise from the place before it, and the word <see cref="Walk.StepWord"/> gives
-    /// that rise.</summary>
+    /// <summary>One step of a route that is not a plain walk — a scramble, a barrier, a drop, or the climb onto
+    /// or off a stated wall: the cell it lands on, the signed rise from the place before it, and its word.</summary>
     public readonly record struct Event(int X, int Z, int Rise, string Word);
 
+    /// <summary>The word for a step onto or off a <c>wall</c> claim. A plan's wall is bedrock stated across a
+    /// lane on purpose, so the step it makes is the wall's and not a fault in the ground.</summary>
+    public const string WallWord = "wall";
+
     /// <summary>The steps of a route that are not a plain walk, and their totals: how many climbed, how
-    /// many fell, and the largest in either direction — zero where the route never left a walk.</summary>
+    /// many fell, and the largest in either direction that is not a stated wall — zero where the route never
+    /// left a walk.</summary>
     public sealed record Profile(IReadOnlyList<Event> Events, int Rises, int Falls, int WorstStep);
 
-    /// <summary>The profile of <paramref name="path"/>: its events and their totals.</summary>
-    public static Profile Of(WalkPath path)
+    /// <summary>The profile of <paramref name="path"/> over the world <paramref name="provenance"/> records:
+    /// its events and their totals.</summary>
+    public static Profile Of(WalkPath path, WorldProvenance provenance)
     {
-        var events = Events(path);
+        var events = Events(path, provenance);
+        var ground = events.Where(step => step.Word != WallWord).ToList();
         return new Profile(events, events.Count(step => step.Rise > 0), events.Count(step => step.Rise < 0),
-            events.Count == 0 ? 0 : events.Max(step => Math.Abs(step.Rise)));
+            ground.Count == 0 ? 0 : ground.Max(step => Math.Abs(step.Rise)));
     }
 
     /// <summary>Every step of <paramref name="path"/> that is not a plain walk, in route order.</summary>
-    public static IReadOnlyList<Event> Events(WalkPath path)
+    public static IReadOnlyList<Event> Events(WalkPath path, WorldProvenance provenance)
     {
         var events = new List<Event>();
         for (var i = 1; i < path.Places.Count; i++)
         {
-            var rise = path.Places[i].Y - path.Places[i - 1].Y;
-            var word = Walk.StepWord(rise);
-            if (word != "walk") events.Add(new Event(path.Places[i].X, path.Places[i].Z, rise, word));
+            var word = StepWordAt(path, i, provenance);
+            if (word != "walk")
+                events.Add(new Event(path.Places[i].X, path.Places[i].Z, path.Places[i].Y - path.Places[i - 1].Y, word));
         }
         return events;
+    }
+
+    /// <summary>The word for the step into place <paramref name="index"/>: <see cref="Walk.StepWord"/>'s, or
+    /// <see cref="WallWord"/> where a step that leaves a walk lands on or leaves a <c>wall</c> claim.</summary>
+    private static string StepWordAt(WalkPath path, int index, WorldProvenance provenance)
+    {
+        var (before, here) = (path.Places[index - 1], path.Places[index]);
+        var word = Walk.StepWord(here.Y - before.Y);
+        if (word == "walk") return word;
+        return IsWall(here) || IsWall(before) ? WallWord : word;
+
+        bool IsWall(WalkPlace place) => provenance.OwnerAt(place.X, place.Z)?.Kind == "wall";
     }
 
     /// <summary>One thing the provenance record names within a stated distance of a route: the claim, the
@@ -96,7 +114,7 @@ public static class WalkProfile
     /// <summary>The route as characters: its own numbers, a station at every place it stood with the word and
     /// the signed step where it left a walk, the totals, and what stands beside it.</summary>
     public static string Render(WalkPlace from, WalkPlace to, string aim, WalkPath path, Profile profile,
-        IReadOnlyList<Neighbour> beside)
+        IReadOnlyList<Neighbour> beside, WorldProvenance provenance)
     {
         var text = new StringBuilder();
         text.Append($"ROUTE ({from.X}, {from.Z}) -> ({to.X}, {to.Z}) aim {aim}: {path.Cost.Distance} blocks, "
@@ -109,9 +127,8 @@ public static class WalkProfile
             text.Append("  ").Append($"({place.X}, {place.Z})".PadRight(16)).Append(place.Y.ToString().PadLeft(4));
             if (i > 0)
             {
-                var rise = place.Y - path.Places[i - 1].Y;
-                var word = Walk.StepWord(rise);
-                if (word != "walk") text.Append("   ").Append(word).Append(' ').Append(Signed(rise));
+                var word = StepWordAt(path, i, provenance);
+                if (word != "walk") text.Append("   ").Append(word).Append(' ').Append(Signed(place.Y - path.Places[i - 1].Y));
             }
             text.Append('\n');
         }

@@ -18,19 +18,37 @@ public sealed class WalkProfileTests
     public async Task A_route_that_never_leaves_a_walk_has_no_events()
     {
         var path = Path((0, 0, 10), (1, 0, 10), (2, 0, 11), (3, 0, 9));   // rises of 0, 1, -2 — all within a walk
-        await Assert.That(WalkProfile.Events(path)).IsEmpty();
+        await Assert.That(WalkProfile.Events(path, new WorldProvenance())).IsEmpty();
     }
 
     [Test]
     public async Task A_climb_a_bigger_climb_and_a_fall_each_class_as_their_own_word()
     {
         var path = Path((0, 0, 10), (1, 0, 12), (2, 0, 20), (3, 0, 10));
-        var events = WalkProfile.Events(path);
+        var events = WalkProfile.Events(path, new WorldProvenance());
 
         await Assert.That(events.Count).IsEqualTo(3);
         await Assert.That(events[0]).IsEqualTo(new WalkProfile.Event(1, 0, 2, "scramble"));
         await Assert.That(events[1]).IsEqualTo(new WalkProfile.Event(2, 0, 8, "barrier"));
         await Assert.That(events[2]).IsEqualTo(new WalkProfile.Event(3, 0, -10, "drop"));
+    }
+
+    /// <summary>A plan's wall is a step the map states, so the climb onto it and the drop off it are the
+    /// wall's, and the worst step is the worst the ground makes.</summary>
+    [Test]
+    public async Task A_step_onto_or_off_a_stated_wall_is_the_wall_and_not_the_worst_step()
+    {
+        var path = Path((0, 0, 14), (1, 0, 16), (2, 0, 20), (3, 0, 14), (4, 0, 14));
+        var provenance = new WorldProvenance();
+        provenance.Claim(2, 0, ProvenancePass.Structure, new StampId("wall", "0", 0));
+
+        var profile = WalkProfile.Of(path, provenance);
+
+        await Assert.That(profile.Events.Select(step => step.Word).ToList())
+            .IsEquivalentTo(new[] { "scramble", WalkProfile.WallWord, WalkProfile.WallWord });
+        await Assert.That(profile.WorstStep).IsEqualTo(2).Because("the scramble is the ground's worst step");
+        await Assert.That(profile.Rises).IsEqualTo(2);
+        await Assert.That(profile.Falls).IsEqualTo(1);
     }
 
     [Test]
