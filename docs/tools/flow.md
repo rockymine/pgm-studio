@@ -74,7 +74,7 @@ this folder takes a map; these are what a caller with no map reaches for first.
 |---|---|---|
 | `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
 | `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
-| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under — **the authoring call for a headless caller**, not only the import one, and the whole of it: the finish and the intent's projection run inside it. A map already at that slug is replaced. See *The three documents are the way in, and the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 400 `no document given` `RQ1` naming `layout` or `intent`, which are the load and are both required · 422 the layout carries no ground |
+| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under — **the authoring call for a headless caller**, not only the import one, and the whole of it: the finish and the intent's projection run inside it. A map already at that slug is replaced. See *The three documents are the way in, and the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 400 `no document given` `RQ1` naming `layout` or `intent`, which are the load and are both required · 400 `unreadable document` `RQ1` naming the first field of each document its binder cannot read, under the member it was posted as (`intent.modes[0]`) — nothing is stored · 422 the layout carries no ground |
 
 ## The hand-offs
 
@@ -148,6 +148,12 @@ documents. A body omitting one of the two is `400 no document given` naming it, 
 JSON and an absent one would otherwise reach a reader that throws, answering the request's fault as the
 studio's.
 
+**Each document binds onto its record before anything is stored.** A reader that cannot read one field gives
+up on the whole document, so an intent stating `"modes": ["dtm"]` — `modes` takes objects — would otherwise
+be stored as an intent with no teams, spawns or objectives, and the export gate would open on it. It is `400
+unreadable document`, one `RQ1` per document naming the field its binder stopped at under the member it was
+posted as (`intent.modes[0]`), and no map is created.
+
 **It is the authoring call and not only the import one, and that is the distinction to get right.** A caller
 holding a layout and an intent — compiled from a plan, or written by hand — stores the whole map in this one
 request under a slug it names: the finish that rasterizes the layout runs inside it, the intent's projection
@@ -163,7 +169,7 @@ all — so a map authored against one studio could reach another only as a world
 drawing or its intent, and could never be re-planned. What the documents carry is more than the world does.
 
 **The authors ride in the body, and the operation applies them.** The three documents say what a map is
-made of and a compiled intent names nobody, so the credits are stated beside them and written as part of the
+made of, and a compiled intent names only whom its plan credited, so the credits are stated beside them and written as part of the
 load rather than in a second call the caller has to remember. A person is a bare pseudonym or
 `{uuid, name, role, contribution}`, and both forms go to the same two places: the map's author rows, and the
 stored intent's `meta.authors`/`meta.contributors`, split by role. Both, because the rows are the map's own

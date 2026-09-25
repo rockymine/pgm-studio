@@ -19,10 +19,10 @@ public static class ObjectiveRules
 
     /// <summary>A destroyable is built in a material its size is wrong for: obsidian is worth at most three
     /// blocks, so a cube or a plus-section column carrying it is a grind rather than a raid — or the material
-    /// names nothing the studio builds at all, which writes into the map.xml verbatim while the blocks come
-    /// out obsidian, and a declared material matching nothing in its own region is a goal at zero health
-    /// (OB3).</summary>
-    /// <remarks>Name a material the goal's size is built for: obsidian for a pillar, ender stone, gold or emerald for a cube or a column. This is a <b>complaint</b> — the world is built and the goal stands, in ender stone rather than in what was named, and the map.xml declares what was actually laid.</remarks>
+    /// names nothing the studio builds at all. Either word is resolved rather than passed through: the blocks
+    /// and the map.xml's <c>materials</c> both come out in the material actually laid (obsidian for an unknown
+    /// name, ender stone past three blocks), so the word the author wrote appears in neither.</summary>
+    /// <remarks>Name a material the goal's size is built for: obsidian for a pillar, ender stone, gold or emerald for a cube or a column. This is a <b>complaint</b> — the world is built and the goal stands, in obsidian or ender stone rather than in what was named, and the map.xml declares what was actually laid, so the declared material always matches its own region.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Material)]
     public const string StyleMaterial = "DC3";
 

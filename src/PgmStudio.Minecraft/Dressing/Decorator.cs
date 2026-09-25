@@ -808,7 +808,7 @@ public static class Decorator
             // Measured against the ridge rather than the eave: a wall below the ground beside it is a house
             // dug into a slope, which is what the seating rule is for, and a roof below it is a house nobody
             // can see. The roof's rise is two courses per pitch over a wing of any ordinary width.
-            var buries = house.Style.WallCourses + 2 * Math.Max(1, house.Style.Roof.Pitch);
+            var buries = SiteLevel.Limit(house.Style);
             if (rise >= buries)
             {
                 declined.Add(new Finding(DressingRules.SiteNotLevel,
@@ -1032,13 +1032,8 @@ public static class Decorator
     /// is what the refusal names.</para></summary>
     private static (int? Floor, (int X, int Z)? Bare, int Rise) Ground(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, BuildingPlan plan)
     {
-        int lowest = int.MaxValue, highest = int.MinValue;
-        foreach (var (x, z) in plan.Cells())
-        {
-            if (!ground.TryGetValue((x, z), out var top)) return (null, (x, z), 0);
-            lowest = Math.Min(lowest, top);
-            highest = Math.Max(highest, top);
-        }
+        var (lowest, highest, bare) = SiteLevel.Read(ground, plan.Cells());
+        if (bare is not null) return (null, bare, 0);
         return lowest == int.MaxValue || lowest < 2
             ? (null, null, 0)
             : (lowest - 1, null, highest - lowest);

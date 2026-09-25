@@ -232,6 +232,14 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
                 + "PUT /map/{slug}/sketch",
                 Severity.Complaint, Field: $"relief.{group}", Subjects: [group])]);
 
+        // Geometry is the plan's, so a shape drawn in the sketch is carried by nothing — and said so.
+        var dropped = SketchLayout.DroppedShapes(compiled, storedJson);
+        if (dropped.Count > 0)
+            Complaints.Add(HttpContext, [new Finding(SketchRules.ShapeDropped,
+                $"the rebuild keeps the plan's geometry, and {dropped.Count} shape(s) drawn in the sketch are "
+                + $"not in it: {string.Join(", ", dropped)}. Draw them into the plan, or again after the rebuild",
+                Severity.Complaint, Field: "layers", Subjects: dropped)]);
+
         var merged = SketchLayout.CarryStructuralHeight(
             SketchLayout.CarryRelief(SketchLayout.CarryFinish(compiled, storedJson), storedJson), storedJson);
 
@@ -251,7 +259,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         if (written.Refusal is { } stale) { await Refusals.WriteAsync(HttpContext, stale, ct); return; }
 
         Revisions.Answer(HttpContext, written.Revision!.Value);
-        await Send.OkAsync(new SketchFromPlanDto(orphans), ct);
+        await Send.OkAsync(new SketchFromPlanDto(orphans, dropped), ct);
     }
 }
 
@@ -482,8 +490,10 @@ internal static class DressedBoard
 /// with its minimum corner there. A tree or a boulder is 1×1 at its trunk and needs no more; a building
 /// states its <b>walls</b>, and the way past it is asked too (<c>DR-PASS</c>): the passage is measured from
 /// the roof over those walls, and a candidate joins the group of any building standing within a passage of
-/// it, exactly as the pass groups them. What is still the pass's to raise is the three that read the built
-/// world — <c>DR-CROSS</c>, <c>DR-WAY</c> and <c>DR-SLOPE</c>.</para>
+/// it, exactly as the pass groups them. Its site is asked to be level (<c>DR-SLOPE</c>) against the style
+/// <c>style</c> names — a house recipe in the posted layout's dressing, or the default building. What is
+/// still the pass's to raise is named in the answer's <c>unasked</c>: <c>DR-CROSS</c> and <c>DR-WAY</c>, which
+/// walk the board's routes and waypoints with the footprint taken out.</para>
 ///
 /// <para>Body: the layout, as <c>sketch/dressing</c> takes it. The cost is the same build.</para></summary>
 public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore artifacts)
@@ -504,7 +514,10 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
                 + "passage beside it is measured from there.",
                 Min: 1, Max: WidestFootprint),
             new QueryWord("depth", $"The footprint down, in blocks, 1 to {WidestFootprint}. Absent is "
-                + "`width`, so one number asks about a square.", Min: 1, Max: WidestFootprint)));
+                + "`width`, so one number asks about a square.", Min: 1, Max: WidestFootprint),
+            new QueryWord("style", "For a building, the key of the house recipe in the posted layout's "
+                + "`dressing.styles` it is built in: its height is what a site's rise is asked against "
+                + "(`DR-SLOPE`). Absent is the default building.")));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -525,7 +538,27 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
         var depth = Math.Clamp(Query<int?>("depth", isRequired: false) ?? width, 1, WidestFootprint);
 
         if (await DressedBoard.OfAsync(HttpContext, map.Id, artifacts, ct) is not { } board) return;
-        var seating = ClaimRaster.Seat(board.Claims, kind, standoff, width, depth, SurfaceSoil.Of(board.Built));
+
+        ClaimRaster.Level? level = null;
+        if (kind == "house")
+        {
+            var key = Query<string?>("style", isRequired: false);
+            HouseStyle style = new();
+            if (key is { Length: > 0 })
+            {
+                if (DressingScope.DocOf(board.LayoutJson).Styles.GetValueOrDefault(key) is not HouseStyleRef recipe)
+                {
+                    await Refusals.WriteAsync(HttpContext, 422, "no such house recipe",
+                        [new Finding(RequestRules.NoSuchSubject,
+                            $"'{key}' names no house recipe in the posted layout's dressing.styles",
+                            Field: "style")], ct);
+                    return;
+                }
+                style = recipe.Shell;
+            }
+            level = new ClaimRaster.Level(board.Built.Surface, SiteLevel.Limit(style));
+        }
+        var seating = ClaimRaster.Seat(board.Claims, kind, standoff, width, depth, level, SurfaceSoil.Of(board.Built));
 
         if (TextAnswer.Wanted(HttpContext))
         {
@@ -538,7 +571,8 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
                             seating.MinX + seating.Width - 1, seating.MinZ + seating.Height - 1),
             seating.Width, seating.Height, seating.Kind, seating.Standoff,
             seating.FootprintWidth, seating.FootprintDepth, seating.Rows, seating.Seats,
-            [.. seating.Refused.Select(because => new SeatRefusalDto(because.Rule, because.Cells))]), ct);
+            [.. seating.Refused.Select(because => new SeatRefusalDto(because.Rule, because.Cells))],
+            seating.Unasked, seating.SlopeLimit), ct);
     }
 }
 

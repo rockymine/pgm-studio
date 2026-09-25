@@ -27,6 +27,7 @@ public static class IntentWrite
         MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
         PlayerLookup players, string slug, long mapId, string body, long? expected, CancellationToken ct)
     {
+        if (Unbindable(body) is { } unreadable) return new(new Refusal(400, "unreadable document", [unreadable]));
         var intent = Stated(body) ?? new MapIntent();
         if (Unnamable(intent) is { } named) return new(named);
 
@@ -71,14 +72,23 @@ public static class IntentWrite
         return refused.Count == 0 ? null : new Refusal(400, "not a name", refused);
     }
 
-    /// <summary>What a body states as an intent, or null where it states none. A body that will not read as
-    /// one is the request's own fault (<c>RQ1</c>), answered where the body is read.</summary>
+    /// <summary>What a body states as an intent, or null where it states none or will not bind — the lenient
+    /// read, for a caller only asking what the intent says. A body that will not bind is refused by
+    /// <see cref="Unbindable"/> before anything is stored.</summary>
     public static MapIntent? Stated(string json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
-        try { return JsonSerializer.Deserialize<MapIntent>(json, MapArtifactStore.Json); }
+        try { return Read(json); }
         catch (JsonException) { return null; }
     }
+
+    /// <summary>The <c>RQ1</c> finding for an intent the binder cannot read, naming the field it gave up at
+    /// under <paramref name="member"/> (<c>modes[0]</c>, or <c>intent.modes[0]</c> where the intent is posted
+    /// beside other documents), or null where it binds.</summary>
+    public static Finding? Unbindable(string json, string member = "") =>
+        DocumentBinding.Unbindable(member, json, stated => Read(stated));
+
+    private static MapIntent? Read(string json) => JsonSerializer.Deserialize<MapIntent>(json, MapArtifactStore.Json);
 
     // Turn each stated author/contributor into {uuid, name, role, contribution}. PGM takes a person as an
     // account — a `uuid` it resolves to a player — or a pseudonym, the element's own text, and either alone

@@ -429,6 +429,28 @@ public sealed class DressingPreviewTests
                 .Any(because => because.GetProperty("rule").GetString() == "DR-ROOT")).IsTrue();
     }
 
+    /// <summary>A building's seat is asked to be level against its style's height, and the answer names the
+    /// rules it did not ask — a seat marked 1 is not a promise the pass cannot break.</summary>
+    [Test]
+    public async Task A_building_seat_names_its_slope_limit_and_the_rules_it_did_not_ask()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await MapAsync(client);
+
+        var house = await (await PostSeatsAsync(client, slug, "?kind=house&width=5")).Content
+            .ReadFromJsonAsync<JsonElement>();
+        await Assert.That(house.GetProperty("slopeLimit").GetInt32()).IsGreaterThan(0);
+        await Assert.That(house.GetProperty("unasked").EnumerateArray().Select(rule => rule.GetString()))
+            .IsEquivalentTo(["DR-CROSS", "DR-WAY"]);
+
+        var tree = await (await PostSeatsAsync(client, slug, "?kind=tree")).Content
+            .ReadFromJsonAsync<JsonElement>();
+        await Assert.That(tree.GetProperty("unasked").GetArrayLength()).IsEqualTo(0);
+
+        var unknown = await PostSeatsAsync(client, slug, "?kind=house&width=5&style=nope");
+        await Assert.That((int)unknown.StatusCode).IsEqualTo(422);
+    }
+
     [Test]
     public async Task A_footprint_wider_than_the_gap_it_is_asked_about_does_not_seat_in_it()
     {

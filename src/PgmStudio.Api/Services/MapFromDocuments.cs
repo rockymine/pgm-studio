@@ -23,7 +23,7 @@ public sealed record MapLoad(
 /// actually built, and the intent it is played for. The map that comes out is a studio map rather than a
 /// world: it can be re-planned, re-read and pre-flighted, which is what an imported world can never be.
 ///
-/// <para><b>The authors ride in the body.</b> A compiled intent names nobody, so who a map is credited to is
+/// <para><b>The authors ride in the body.</b> A compiled intent names only whom its plan credited, so who a map is credited to is
 /// stated beside the three documents and written as part of the load rather than in a second call. The
 /// projection leaves the map's people alone where the intent names none, so the two may be applied in either
 /// order; stating them here is what makes one request enough.</para>
@@ -59,6 +59,18 @@ public static class MapFromDocuments
         if (string.IsNullOrWhiteSpace(name))
             return Refuse(400, "no name given", new Finding(RequestRules.Unreadable,
                 "neither a name nor the intent's own meta.name says what this map is called", Field: "name"));
+
+        // Each document binds onto its record before anything is stored: a lenient read of one that does not
+        // is a default instance, and a map stored from it is a map with none of what the document stated.
+        Finding?[] unbindable =
+        [
+            request.Plan is { ValueKind: not JsonValueKind.Undefined } plan
+                ? DocumentBinding.Unbindable("plan", plan.GetRawText(), json => PlanModel.Parse(json)) : null,
+            DocumentBinding.Unbindable("layout", request.Layout.GetRawText(), json => SketchLayout.Parse(json)),
+            IntentWrite.Unbindable(request.Intent.GetRawText(), "intent"),
+        ];
+        if (unbindable.OfType<Finding>().ToList() is { Count: > 0 } unread)
+            return new(new Refusal(400, "unreadable document", unread));
 
         Complaints.Unread(http, [
             .. Unread("plan", request.Plan, PlanModel.Stated),

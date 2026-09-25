@@ -313,6 +313,17 @@ building's `Front`, not the doorway's: it is the same wall a `RoofForm.Shed` fal
 against, so filing it under the doorway would leave a roof asking the way in which way it falls. What decides
 a piece's home is the responsibility it answers to, never the prefix it shares.
 
+**A piece that is always present is never stated as `null`.** A style's pieces split two ways and nothing in
+the document marks which: `porch`, `front`, `post` and a storey's own overrides are nullable, and a null is how
+they say "not this piece"; `foundation`, `roof`, `wall`, `windows`, `beams`, `doorway`, `storeys` and a door's
+`head` are not, and each says "none" in its own words — a window or a door head takes `"form": "none"`, beams
+take `{"block": -1}`, a list takes `[]`. A null stated for one of those is refused by its path wherever the
+style is bound: the library's reader and a bound room style (`roomStyles.wool.beams`) answer `RQ1`, and a
+building's recipe in a dressing document answers `DR-DOC` naming the recipe and `shell.beams`. The walk goes
+down lists too, so `storeys[1].wall.stack` is named by its index. Read past, the null is not the default — it
+is a null the style gate and the stamper dereference, and on a bound room style a snapshot the export's reader
+would drop for the built-in shell.
+
 A stack is read from its part's own base outward: a floor **downward** from the course players stand on, a
 wall and a roof **upward**. The direction is the load-bearing part of the model. A floor that grew upward
 would lift the pad and move the exported point; walls indexed from the floor are what keep a band at eye level
@@ -975,7 +986,7 @@ posts.
 The ends are **the one thing a house writes outside its own footprint**. Everything else a style lays falls
 inside the walls plus the roof's overhang, which is what makes a shell safe to stamp onto finished terrain — so
 these are asked for rather than assumed, and a style naming none leaves the ring around the building exactly as
-it found it.
+it found it. None is `"beams": {"block": -1}`, which is also the default; `"beams": null` is refused (§7).
 
 What a style never touches: the **platform** under a room (`StampFoundation`) and the **entrance redstone
 line** (ST1) belong to the plan-derived structures, not to a shell. The platform is level, at the highest

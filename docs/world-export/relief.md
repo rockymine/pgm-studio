@@ -284,10 +284,14 @@ is never carried to the next push: it is sized to the ring it was stated on.
 
 **A crown** says how much higher the middle of the push stands than its edge. Zero is the flat top; positive
 domes it; negative dishes it into a hollow whose rim is the drawn outline — a corrie, a quarry floor, a pond
-basin, depending on what fills it. The record's own default is zero and the **editor's is two**, and the
-disagreement is deliberate: a flat top is the least natural of the three settings and is the thing an author
-reaches for a push in order to stop making, so a push drawn without touching a knob should already be a
-landform. The record keeps zero because a caller that states nothing should get the plain operation.
+basin, depending on what fills it.
+
+**The crown is signed in world space, not relative to the push.** The solver adds it to the amount whatever
+the amount's sign (`amount + crown · ease(1 − depth / deepest)`), so on a dig a positive crown **fills the pit back in**
+toward its spine — an amount of −12 with a crown of +12 returns the floor's centre to the surrounding level —
+and only a negative crown deepens the floor. A dished pit is a negative amount with a negative crown. The
+default is zero in the record, the editor's fresh push and the inspector alike, so a push turned into a dig
+has a flat floor until a crown is stated.
 
 What "the middle" means is the part worth stating, because it is the one thing that does *not* have to be
 authored. It is the deepest point of the outline measured **inward**, which is the shape's medial axis — the
