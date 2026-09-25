@@ -323,8 +323,10 @@ Twelve judged donut boards at 20 and 30 players named what a larger composed boa
   stands). A stone is read by how many of its edges border the zone: **four** — inside it; **three** —
   against one side, not spanning it; **two adjacent** — in a corner; all three allowed. **Two opposite** —
   across the whole band: allowed, and the band is then emitted as two zones, one per side, neither holding the
-  stone (PGM accepts one zone either way; two is what mapmakers write). **One** edge means the stone stands
-  outside the band, which is refused. Several stones with zone between them keep one zone. So
+  stone (PGM accepts one zone either way; two is what mapmakers write). A stone with **one** edge on the zone
+  would stand outside the band; the composer never lays one, and nothing is checked for it, since only the
+  composer knows a stone (`MidCarver.IsStone`) and a frontline docks on one edge. Several stones with zone
+  between them keep one zone. So
   `StoneInsetCells` stops holding a stone a cell off the band's ends, and `MD4` and `CT1`'s one band zone are
   restated: `rules.md` (a new amendment), `model.md` §5.13, `MidCarver.Stones`.
 
