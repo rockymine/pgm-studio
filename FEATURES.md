@@ -7979,6 +7979,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   coordinates and the time it was cut, written by `tools/seed-trees.cs`; one without is refused `DR-COPY`.
   Hand-built bodies have no form word: the author's ruling is that they are not wanted. (`TL15`)
 
+- **A room and its mirror image are exact images (`WE133`)** — `Symmetry.Reflects`, `reflected` on each
+  spawn and wool image (`PlanCompiler`, `SymmetryExpander`), `RoomFrame.Reflected`. A reflected frame lays its
+  window spare block, narrowed door, ladder, porch posts and monument order out from the other hand, so
+  `mirror_x` and `mirror_z` boards stamp exact images as `rot_180` does. `docs/world-export/structures.md`. (`WE133`)
+
+- **A prop's volume is out of the walk (`WS71`)** — `Walk.Standing`, `WorldColumns.ForWalk`,
+  `WorldProvenance.PropVolumeAt`. A tree's or boulder's blocks are solid, so a trunk is not walked through and
+  a crown roofs the ground under it, but never a place to stand: a crown over the void is void to `walk` as to
+  `column`, `transect` and the census. The author's ruling. (`WS71`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each

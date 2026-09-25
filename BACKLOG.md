@@ -483,42 +483,12 @@ and what a `subtract` takes away.
   staging harness that had no route to remove them, beside the two real maps.*
 
 
-- [ ] **WS71 — A crown over void is a standing place for the walk and a void column for every other
-  read.** `WalkGround.OfSpans` offers a place for any span top with `Walk.Headroom` clear over it, so the
-  top course of a canopy hanging past a piece's rim is ground the walk will route over and will seed
-  `WorldWalk.Level` from, while `column`, `transect` and the census all answer that the column has no
-  ground. Both answers cannot be right, and which one is wanted is the author's call — a player *can*
-  stand on leaves, and a route that climbs a tree to get somewhere still makes `worstStep` an answer about
-  the canopy rather than about the board. A crown over the void is not itself irregular: `template.xml`'s
-  `block-break-void-filter` allows breaking leaves and logs inside the void region, so the contract already
-  expects tree parts to hang past a board's edge (the author's ruling). **Blocking question: may a walk stand on a prop at all, or is a
-  prop's own volume out of the walk the way a house's interior is?** The fix follows from the answer and
-  not before it; `docs/world-scan/read-backs.md` §what a walk costs carries the walk's own account of a
-  place.
-
-  *Evidence: on `technique-composed-4-taken-over`, whose oaks stand on the back bar's outer rim,
-  `column?at=-4,57` answers four blocks of oak leaves over void and `transect` calls that station `void`
-  with `top 21, standing tree oak-path-c`. `walk?from=-2,54&to=-4,57` answers reachable, `barrier +8`,
-  `worstStep 8`, standing at `(-2, 56, 21)`, `(-3, 56, 22)` and `(-4, 57, 22)` — three places in the
-  canopy, none of them over ground.*
-
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled
   room need `6 + 2 + 3` = 11 blocks on one axis and those spawn pieces are 10×10, 15×15 and 20×10. Nothing is
   broken by it — an unplaceable marker stamps nothing and is flagged `WX9` — so this is a data refresh, not a
   defect: re-author each spawn piece so it either has the depth for a yard or states a footprint small enough
   to open one, then re-record whatever `docs/generator/seed-stats.md` measures off them.
-
-- [ ] **WE133 — A room and its mirror image are not exact images where a wall cannot centre.** The stamp
-  takes each choice a wall cannot centre — the ladder end, a window row's spare block, a narrowed door, porch
-  posts, monument order — from a hand (`RoomEdges.Handed`), which a rotation carries onto the same hand of
-  the image and a reflection swaps. The frame does not know which image of the orbit is reflected, so on a
-  `mirror_x`/`mirror_z` board those choices land on the opposite hand of the far team's copy. Carry the
-  image's handedness from the orbit into the resolved room intent and flip the hand where it is reflected.
-  `docs/world-export/structures.md` §1.
-
-  *Evidence: `HouseStamperTests.A_room_and_its_rot_180_image_stand_on_the_same_columns` holds for every
-  preset under `rot_180`; the same comparison under a mirror fails wherever a wall's leftover is odd.*
 
 - [ ] **WS73 — Two answers to "which void columns may be bridged".** `Editability.Compute`
   (`Analysis/Playability/Editability.cs`) and `TraversabilityRender.BridgeableColumns`
@@ -537,6 +507,13 @@ and what a `subtract` takes away.
   *Evidence: 11 build specs in `pgm-studio-mapgen/specs` (`opus5-flintwick`'s `library_tree`, the
   `opus5b`/`opus5c` commons) copy a library tree's body inline, which a cut-carrying rule would still allow;
   the hand-written bodies among the specs' 37 inline bodies are the ones it would refuse.*
+
+- [ ] **WE135 — A dressing-pass house's door is centred by coordinate, so its image is a block off.**
+  `Decorator.Doorway` (`Dressing/Decorator.cs:1087`) seats the door at `(min + max) / 2` along the front, which
+  floors toward the low coordinate, so where a wall's leftover is odd the door leans to the low end on both
+  images rather than to the same hand. Take the leftover from a hand through `RoomEdges.Handed` and
+  `DressingSymmetry.Reflects`, the way the room stamper's own doors do, so a placed house and its image stand
+  on the same columns. `docs/world-export/decoration.md`.
 
 - [ ] **A8 Should the layout generator be its own project?** `Pgm` holds two charters:
   the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85
