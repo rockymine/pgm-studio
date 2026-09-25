@@ -59,6 +59,27 @@ public sealed class HouseStyleJsonNullPartTests
         await Assert.That(fault!.Field).IsEqualTo("roof.gableWindows");
     }
 
+    /// <summary>A list of parts is walked too, each item against the record it becomes, and the refusal names
+    /// the item by its index.</summary>
+    [Test]
+    public async Task A_part_inside_a_list_is_refused_by_its_index()
+    {
+        var fault = Assert.Throws<DocumentFault>(() => HouseStyleJson.Deserialize(
+            "{\"storeys\":[{\"clear\":3},{\"wall\":{\"stack\":null,\"extent\":3}}]}"));
+
+        await Assert.That(fault!.Field).IsEqualTo("storeys[1].wall.stack");
+    }
+
+    /// <summary>Beams are always present, and a building without them says so in the beams' own words — the
+    /// refusal names the block of -1 that does.</summary>
+    [Test]
+    public async Task Beams_stated_as_null_name_the_block_that_says_none()
+    {
+        var fault = Assert.Throws<DocumentFault>(() => HouseStyleJson.Deserialize("{\"beams\":null}"));
+
+        await Assert.That(fault!.Message).Contains("{\"block\": -1}");
+    }
+
     /// <summary>An absent document and an empty one are the same fault to an author, and both have to arrive as
     /// the parse failure every caller catches. This is the one that was escaping: <c>JsonNode.Parse</c> raises
     /// <see cref="ArgumentNullException"/> on a null string, which is the single type no endpoint names, so the

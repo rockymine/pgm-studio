@@ -156,6 +156,18 @@ public static class DressingJson
         var styles = new Dictionary<string, PropStyle>(StringComparer.Ordinal);
         foreach (var (key, value) in entries)
         {
+            // A house recipe's shell is a style snapshot, and a part it states as null where the record cannot
+            // hold one is refused here the way the style's own reader refuses it — read past, it is a null the
+            // gate and the stamper dereference.
+            if (value is JsonObject recipe && recipe["kind"] is JsonValue kind
+                && kind.TryGetValue<string>(out var word) && word == "house")
+            {
+                if (recipe.TryGetPropertyValue("shell", out var shell) && shell is null)
+                    throw new DressingParseException($"recipe '{key}'", "shell",
+                        "is stated as null — a building's recipe always has a shell; drop the field for the default one");
+                if (HouseStyleJson.StatedNull(shell, "shell") is { } stated)
+                    throw new DressingParseException($"recipe '{key}'", stated.Field, stated.Detail);
+            }
             try
             {
                 if (value.Deserialize<PropStyle>(Options) is { } style) styles[key] = style;

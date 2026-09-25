@@ -66,12 +66,10 @@ public static class HouseStyleJson
     /// Refuse a part written as <c>null</c> where the record cannot hold one.
     ///
     /// <para>A style's parts split two ways with nothing in the document marking which: <c>porch</c> and
-    /// <c>doorEdge</c> are nullable and a null is how they say "not this part", while <c>roof</c>,
-    /// <c>windows</c>, <c>gableWindows</c>, <c>storeys</c> and a door's <c>head</c> are not — they carry an
-    /// initializer a JSON null bypasses, leaving the record holding a null the stamper dereferences. So a
-    /// document reads as though stating null were the way to drop any part, and for half of them it was an
-    /// unhandled <see cref="NullReferenceException"/> — raised inside the validation gate itself, which reads
-    /// <c>Roof.GableWindows</c> before it can name anything.</para>
+    /// <c>front</c> are nullable and a null is how they say "not this part", while <c>roof</c>,
+    /// <c>windows</c>, <c>gableWindows</c>, <c>beams</c>, <c>storeys</c> and a door's <c>head</c> are not —
+    /// they carry an initializer a JSON null bypasses, leaving the record holding a null the validation gate
+    /// and the stamper dereference.</para>
     ///
     /// <para>Reading such a null as the default would be worse than the crash: an author writing
     /// <c>"gableWindows": null</c> means <i>none</i>, and would silently be given the default pair. So it is
@@ -80,7 +78,27 @@ public static class HouseStyleJson
     /// </summary>
     private static void RefuseStatedNulls(JsonNode node, Type type, string path)
     {
-        if (node is not JsonObject obj) return;
+        if (StatedNull(node, type, path) is { } fault)
+            throw new PgmStudio.Domain.DocumentFault(fault.Field, $"field '{fault.Field}' {fault.Detail}");
+    }
+
+    /// <summary>The first part of a style snapshot stated as <c>null</c> where the record cannot hold one: its
+    /// path under <paramref name="path"/> and the sentence saying how that part says "none" instead, or null
+    /// when there is none. Public because a style is snapshotted in two places — on its own, and as a house
+    /// recipe in a dressing document — and both readers refuse the same nulls.</summary>
+    public static (string Field, string Detail)? StatedNull(JsonNode? node, string path = "") =>
+        node is null ? null : StatedNull(node, typeof(HouseStyle), path);
+
+    private static (string Field, string Detail)? StatedNull(JsonNode node, Type type, string path)
+    {
+        if (node is JsonArray items && ElementType(type) is { } element)
+        {
+            for (var at = 0; at < items.Count; at++)
+                if (items[at] is { } item && StatedNull(item, element, $"{path}[{at}]") is { } inItem)
+                    return inItem;
+            return null;
+        }
+        if (node is not JsonObject obj) return null;
         foreach (var (name, value) in obj)
         {
             var property = type.GetProperties().FirstOrDefault(
@@ -90,14 +108,26 @@ public static class HouseStyleJson
             if (value is null)
             {
                 if (!PgmStudio.Domain.DeclaredNullability.IsNonNullable(property)) continue;
-                throw new PgmStudio.Domain.DocumentFault(where,
-                    $"field '{where}' is stated as null, and this part of a style is always present — "
-                    + "drop it from the document, or say it is not wanted in the part's own words "
-                    + "(a window or a door head takes \"form\": \"none\")");
+                return (where, "is stated as null, and this part of a style is always present — drop it from "
+                    + $"the document, or say it is not wanted in the part's own words ({NoneOf(property.PropertyType)})");
             }
-            RefuseStatedNulls(value, property.PropertyType, where);
+            if (StatedNull(value, property.PropertyType, where) is { } nested) return nested;
         }
+        return null;
     }
+
+    /// <summary>How a part that is always present says it is not wanted.</summary>
+    private static string NoneOf(Type part) =>
+        part == typeof(BeamStyle) ? "beams take {\"block\": -1}"
+        : part == typeof(WindowStyle) || part == typeof(DoorHeadStyle)
+            ? "a window or a door head takes \"form\": \"none\""
+        : ElementType(part) is not null ? "a list takes []"
+        : "a window or a door head takes \"form\": \"none\", beams take {\"block\": -1}";
+
+    /// <summary>The element type of a list-shaped part, or null for anything else.</summary>
+    private static Type? ElementType(Type type) =>
+        type != typeof(string) && type.IsGenericType && type.GetGenericArguments() is [var element]
+        && typeof(System.Collections.IEnumerable).IsAssignableFrom(type) ? element : null;
 
     /// <summary>
     /// Carry a stored style forward onto the current record, in place.
