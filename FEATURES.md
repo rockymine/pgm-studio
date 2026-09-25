@@ -5671,6 +5671,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   that trace's half scale; it reads **producible end to end**, every box and no unit finding, and is the green
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
+- **A refused split band carries a mid stone (`G271`)** — `Compose/MidCarver.cs`. `TryCarve` records whether
+  the split it asked for was granted; a realised split still leaves the bay between its legs bare, and a
+  refused one lays the single rank astride the axis at `RefusedSplitDeepCells`, the depth the stoneless gap
+  leaves a hop either side of. `rules.md` amendment 53; `ComposerVersion` `walled-4`. (`G271`)
+
+- **Turning a spawn carries the cube it seeded (`TN14`)** — `plan-bridge.js` `cycleFacing`, `plan-doc.js`
+  `reseatSeededIron`. A re-click or Cycle facing re-asks `POST /api/plan/room` and moves an iron cube still
+  standing where the old facing seeded it; a cube the author slid is left alone. `docs/tools/plan.md`. (`TN14`)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **A narrow seam is the way into a room, so it carries a door and an entrance line (`WE128`).**
   `ContactGraph.IsLandInterface` answers `Land` **or** `Narrow` and the `WoolRoom` flag on a segment is
@@ -7905,6 +7914,32 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `map.xml` otherwise, behind the traversability gate (shared `MapXmlComposer`). The Configure Export button
   downloads it (`studio.downloadUrl`), and the wizard's manual Monuments sub-step is dropped for sketch maps
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
+
+- **A room and its `rot_180` image stand on the same columns (`WE124`)** — `Domain/RoomEdges.cs`
+  (`AlongRunsRight`, `Handed`), `Houses/HouseStamper.cs`, `HouseWindows.cs`, `RoomFrames.MonumentSlots`. Every
+  choice a wall cannot centre — a window row's spare block, a narrowed door, the ladder end, porch posts, the
+  monument order — is taken from a hand, and a frame's doors outrank a style's compass `Front`.
+  `docs/world-export/structures.md` §1. (`WE124`)
+
+- **A house reports a deep dig (`WE129`)** — `Dressing/Decorator.cs`, `DressingRules.SiteDug`. A house whose
+  seat digs more than three blocks out of any one column raises `DR-DIG`, a complaint carrying the floor's
+  course, the deepest carve and its column, the columns carved and the blocks removed; up to three is a house
+  settling into a slope and is silent (`DressingRules.SettleDepth`, the author's number). (`WE129`)
+
+- **`WX11` reads a foundation's floor through the stamp's own level (`WE77`)** —
+  `StructureStamper.FoundationLevel`, shared by `MapExportComposer.CheckStructureSites` and the stamp; the
+  docs say the rule measures wool and spawn rooms, not placed buildings. (`WE77`)
+
+- **The reach read opens a build area stated as the template writes it (`WS68`)** —
+  `Render/TraversabilityRender.BridgeableColumns` reads `block-place=not(void)` over `not-build-area`, so a
+  built board no longer reads `bridgeable 0`. (`WS68`)
+
+- **A stated wall is the wall, not the walk's worst step (`WS69`)** — `WalkProfile` takes the world's
+  provenance; a step onto or off a plan's `wall` claim is worded `wall` and kept out of `worstStep`. (`WS69`)
+
+- **`walk?beside=` names every kind a player meets (`WS70`)** — `WalkProfile.StandingKinds` holds every
+  stamped kind but `flora` and `stroke`, `wall` first, and `StampId`'s docstring lists what is actually
+  stamped. (`WS70`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning

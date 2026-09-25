@@ -215,38 +215,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ### A made thing is a third kind, and it is drawn out of layers
 
-- [ ] **WE77 — `WX11` measures a structure's plinth from the highest terrain its footprint touches, and the
-  stamper seats it on the lowest.** The same maximum-over-a-footprint reading put a goal's bedrock plate above
-  the goal it protects, and `WE82` settled that half by handing the stamper the ground the goal resolved on
-  rather than letting it read one; this is the other half, and the check is what reads wrong now.
-  `MapExportComposer.CheckStructureSites` takes
-  `floor = cells.Select(surface).Max()` and reports `floor - beside` as the face a foundation fills; a house
-  prop seats on the **lowest** column of its own footprint one course down and carves the terrain standing
-  over that floor away (`docs/world-export/structures.md` §6). So a footprint that clips one tall authored
-  shape reports a plinth the world does not build. Read the floor the way the stamper does, or off the
-  provenance the stamp recorded. `docs/refusals.md`'s `WX11` sentence states the maximum reading and changes
-  with it.
-
-  *`opus5-mootgate` build 3: `WX11 house h-south-d 0 stands 7 blocks above the cell beside it at (11, 33)`,
-  where `column?at=11,33` reads Grass Block at y14 and `column?at=11,34` reads the house's own plate at y14 —
-  a drop of 0, and no bedrock face in the world. The house's footprint touches a stair-flight polygon whose
-  top is y21–22, which is exactly 7 above y14. Moving it two blocks clear of the flight silenced the rule.*
-
-
-**The author's ruling.** The shape tool draws **terrain** — shapes and a relief. The dressing pass places
-**props** — houses, trees, boulders. A sculpture is neither: it is a *made thing*, its own kind beside those
-two, and it happens to be written in the layer model because that is what can hold it.
-`pgm-studio-mapgen/SCULPTING-WITH-LAYERS.md` is the measurement behind every entry here — nine forms in sketch
-shapes, eight of them one layer, and nine compiled solids on two exported boards.
-
-**The house is the worked precedent, and its contract is the one to copy** (`docs/world-export/decoration.md`
-§8, `structures.md` §6). A house prop is a drawn rectangle handed to a stamper that neither knows nor cares
-where the footprint came from; it **seats on the lowest column of its own footprint, one course down**, carves
-the terrain standing over that floor out of every footprint column while the ground outside keeps its height,
-**claims what it stamps grown one block outward**, and refuses rather than half-lands — `DR-SITE` on the first
-column with no ground under it, `DR-SLOPE` where the rise across the footprint reaches the building's own
-height. That is exactly what a made thing needs, and none of it has to be invented.
-
 - [~] **TS64 — A made thing is one row in the strip, and one thing to drag.** The layer's `prop` field is
   written and the rasterizer seats by it; the surface is not. `opus5-automaton` carries 31 layers, 24 of them
   `colossus-L0…sentinel-L7`, so `SketchLayerStrip` shows 31 tabs and `GET …/render/topdown?layer=` prints all
@@ -387,24 +355,12 @@ Twelve judged donut boards at 20 and 30 players named what a larger composed boa
   `pgm-studio-mapgen/techniques/destroy-goals/mismatch.txt`, which posts it and reads the world and the
   document back.
 
-- [ ] **G271 — A split band that is refused still carries no stone, so the crossing has neither an island
-  nor a bay.** `MidCarver.TryCarve` returns `[]` whenever `design.SplitBand` is set, on the reading that the
-  bay between the split's two legs is the island. But `SplitRun` grants the split only where the face admits
-  one, and the gap was already fixed at `EmptyHalfGapCells` when the request was made — so a refused split
-  spends the wide empty crossing and puts nothing in it. Carry the realised split out of the carve and lay
-  the row when it was refused. `docs/generator/model.md` §5.13.
-
-  *Evidence: `p8 rot_180 seed 2` (nano, `pgm-studio-mapgen/specs/opus5-cleftmoor`) — the band is
-  `x[-3,3) z[-4,4)`, exactly the 6-cell frontline hull and its own rot_180 image, so there are no two legs
-  and no bay; `mid 0/28` cells of the crossing's share, and 32 blocks of plain void from front to front.*
-
 - [ ] **G270 — A mid stone's depth is fixed before the hull that bounds its width is known, so a
   narrow-fronted board under-spends the crossing.** `MidCarver.Crossing` sets the half-gap from
   `StoneDeepCells` before allocation, because the allocator takes it as its axis margin; the width then comes
   from the frontline hull the carve is handed. Where that hull is narrow the stone shrinks but the depth
-  cannot grow to compensate, so the mid spends **66–85%** of its share and 17–33% of boards carry no stone at
-  all — about half of those split bands (`G271`) and half hulls too narrow for one stone at the
-  wider-than-deep rule. Either the crossing is designed twice (a provisional gap, then a re-carve once the
+  cannot grow to compensate, so the mid spends **66–85%** of its share and a hull too narrow for one
+  stone at the wider-than-deep rule carries none at all. Either the crossing is designed twice (a provisional gap, then a re-carve once the
   hull is known) or the depth reads a hull the envelope can predict. `docs/generator/model.md` §5.13 and
   `rules.md` amendment 35.
 
@@ -432,19 +388,6 @@ each side's frontline share, the straits between bridged islands — and the lin
 seams support and nothing asks for, the word the model uses for a seam — and the rules that are about a
 piece's own geometry rather than about what is stamped on it: what a spawn's ray faces, what a wall seals,
 and what a `subtract` takes away.
-
-- [ ] **TN14 — Cycling a spawn's facing leaves the iron it seeded on the old hand.** The editor asks
-  `POST /api/plan/room` once, when the piece is drawn, and writes the answer's `at`, `footprint` and `iron`
-  onto new placements (`plan-bridge.js:128` `seedRoom`). Cycling the facing afterwards — a re-click on a
-  selected spawn (`canvas/plan-canvas.js:1053`) or the rail's Cycle facing button (`plan-bridge.js:446`
-  `cycleFacing`) — rewrites `facing` alone, so the cube keeps the side it was seeded on. Re-ask on a facing
-  change and move the seeded cube, leaving one the author has since slid alone.
-
-  *the door walls do not move with the facing, so the footprint does not go stale; the facing breaks the tie
-  between two equally wide walls, `Doors[0]` is what the cube is seated beside, and the cube stands on the
-  player's right as they walk out. On quatrefoil's two-door `spawn` piece the answer's `iron` is
-  `[3.5, 16.5]` for `back`, `left`, `back-right`, `front-left` and `back-left` and `[16.5, 10.5]` for
-  `front`, `right` and `front-right`, at an unmoved `footprint` of `[1, 1, 12, 12]`.*
 
 - [ ] **B213 — Stop fusing the two pieces a wall sits between, and lock the seam in the sketch.** A wall's
   rect is fixed at compile from the interface its two plan pieces share, and nothing afterwards holds that
@@ -625,22 +568,6 @@ and what a `subtract` takes away.
   editor's default of 2 against the record's 0 is the same fact with teeth: a pit knobbed up in the
   inspector starts with a two-block mound in its floor.
 
-- [ ] **WE129 — A house excavates its footprint with no ceiling and nothing reports how much.**
-  `Decorator.Ground` seats a house at `lowest - 1`, the minimum first-air-Y over `plan.Cells()`
-  (`Dressing/Decorator.cs:1033`), and `Decorator.Excavate` then clears every footprint column from
-  `floorY + 1` to its own surface (`Decorator.cs:1051`). Both are deliberate and right on a slope. Neither
-  is bounded: a footprint whose lowest cell sits in a pit deletes that whole depth across the plan and the
-  building stands in the hole it dug. `DR-SLOPE` is the only guard and it tests the same `rise` against the
-  building's own height (`Decorator.cs:812`), so a shell tall enough to afford the rise excavates it in
-  silence. Raise a complaint carrying the courses removed and the columns they came off — `Excavate` holds
-  both numbers at the moment it removes them. Whether it should also *refuse* past some depth is the
-  author's call and is not assumed here. `docs/world-export/decoration.md` §the seating rule.
-
-  *Evidence: `opus5-whitegape`'s `works-shed` on a yard whose surface is y23–24 seated at y13, the quarry
-  floor. `column (2,-50)` reads the yard face as stone brick y19–23; `column (3,-50)` one block east reads
-  the shed's brickwork starting at y13. Rise 10 against a two-storey `buries` of about 13, so `DR-SLOPE`
-  stayed silent. `decoration.md:767` already records the same failure on `opus5-ravensmere`.*
-
 - [ ] **WE130 — `sketch/seats` answers a question it cannot answer for a house.** The seat query reports the
   yard beside a quarry as a legal seat, because the three rules that read the built world — `DR-CROSS`,
   `DR-WAY` and `DR-SLOPE` — are the dressing pass's to raise and not the query's
@@ -662,49 +589,6 @@ and what a `subtract` takes away.
   staging harness that had no route to remove them, beside the two real maps.*
 
 
-- [ ] **WS68 — Every built board reads `bridgeable 0`, because the export grants building by forbidding it
-  everywhere else.** `BuildGenerator` wraps the buildable rectangles in the `not-build-area` negative and
-  applies `block-place=not(void)` to it — the corpus idiom `docs/pgm/template.xml` writes — so inside the
-  build region *nothing* applies. `Editability.Zones` sets `granted[i]` only on an explicit `Allow`, so those
-  cells come back `ground` rather than `build_zone`, and `WorldWalk`'s bridgeable set counts `build_zone` and
-  `filtered` only. The reads that stand on it — `reach`, `coverage`, the walk tiers — therefore treat a
-  crossing nobody is forbidden to bridge as unbridgeable. Read a void column inside a region whose only rule
-  is a negative void-deny as a grant, in `Editability.Zones`; `docs/world-scan/read-backs.md`.
-
-  *Evidence: `pgm-studio-mapgen/specs/opus5-stannerford` exports `<rectangle id="build-area-1"
-  min="-16,-20" max="16,20"/>` under `not-build-area`, and its `renders/04-reach.txt` reports
-  `bridgeable 0` while calling the mid stone at `x -12..11, z -8..7` (384 cells, floor y12) and the whole
-  opposing half at `x -24..39, z -92..-21` (2363 cells) `no-build-zone`.
-  `grep -o 'bridgeable [0-9]*' specs/*/renders/04-reach.txt` answers 0 on all 40 boards there.*
-
-- [ ] **WS69 — A stated bedrock wall is the walk's worst step, and a transect over the same two cells
-  disagrees.** A plan's `walls` entry stamps three bedrock courses and a cobweb cap across a wool-lane
-  interface (`PlanCompiler.BedrockCourses`), which is the feature and not an obstacle: bedrock cannot be
-  destroyed so a defender builds on it, and four courses is what an attacker bridges (author).
-  `WalkProfile.Events` words every rise from `Walk.StepWord` alone (`WalkProfile.cs:38`), so the climb onto
-  a wall reads `barrier` and sets `worstStep`, and a reader taking `worstStep` for the board's worst fault
-  condemns a wall the map states deliberately. The profile is the site: `Of` and `Events` take the path only
-  while the endpoint already holds `read.Built.Provenance` at the call (`WorldReadEndpoints.cs:904`) — pass
-  it, word a step landing on a `wall` claim as the wall it is, and keep it out of `WorstStep`.
-  `docs/world-scan/read-backs.md` §what a walk costs.
-
-  *Evidence: on `technique-composed-4-taken-over`, `walk?from=-14,60&to=-14,76` crosses with 3 blocks placed
-  and answers `worstStep 4` with `{"x":-14,"z":67,"rise":4,"word":"barrier"}`, while
-  `transect?points=-14,60;-14,76` over the same line reads the ground under the wall as 14→15, names both
-  stations `wall 0`, and answers `worst step 1: 0 barrier`.*
-
-- [ ] **WS70 — `walk?beside=` cannot name a wall, because its set is an allow-list documented as a
-  deny-list.** `WalkProfile.StandingKinds` lists nine kinds (`WalkProfile.cs:52`) under a docstring reading
-  "everything but the ambient cover (`flora`) and the paint (`stroke`)", and `StampId` documents thirteen —
-  so `wall`, `roomfloor` and `redstoneline` are absent from every `beside` answer without anyone having
-  decided they should be. A route that climbs a bedrock wall reports nothing beside it. Name the kinds a
-  player meets, `wall` first, and state the set as what it holds rather than as what it drops.
-  `docs/world-scan/read-backs.md` carries the query word.
-
-  *Evidence: `walk?from=-14,60&to=-14,76&beside=3` on `technique-composed-4-taken-over` answers `beside: []`
-  at every radius 1–3, while `transect` over the same line names `wall 0` at (−14, 67) and (−14, 68) — two
-  cells the route itself passes through.*
-
 - [ ] **WS71 — A crown over void is a standing place for the walk and a void column for every other
   read.** `WalkGround.OfSpans` offers a place for any span top with `Walk.Headroom` clear over it, so the
   top course of a canopy hanging past a piece's rim is ground the walk will route over and will seed
@@ -724,15 +608,6 @@ and what a `subtract` takes away.
   `worstStep 8`, standing at `(-2, 56, 21)`, `(-3, 56, 22)` and `(-4, 57, 22)` — three places in the
   canopy, none of them over ground.*
 
-- [ ] **WE124 — A room's stamp is a block out of place on its mirror image.** The frame a room is built out
-  from is measured from the piece's own minimum corner, and `rot_180` maps one piece's minimum corner onto
-  its image's maximum, so everything the stamp does not centre — the bay, the ridge, the storey posts —
-  lands a block off on the far team's copy. Measure the frame from its centre instead, so a room and its
-  image stand on the same columns. Evidence: on `pgm-studio-mapgen/specs/opus5-coinfall`, whose two camp
-  pieces are exact mirror rectangles (the mirror gate passes), the halls stamped in them are not —
-  `column?at=2,-72` tops out at `y 38` against `y 40` at its image `column?at=-2,72`, and `column?at=0,-68`
-  is open grass where `column?at=0,68` carries roof at `y 32`.
-
 - [ ] **TL15 — Anything can be filed as a `copied` tree.** `copied` means cut out of a world
   (`docs/tools/library.md`, the author's ruling) and `tools/seed-trees.cs` over
   `pgm-studio-mapgen/corpus/tree-showcase` is the only thing that cuts one, but `PropStyleLibrary.Save`
@@ -750,6 +625,24 @@ and what a `subtract` takes away.
   broken by it — an unplaceable marker stamps nothing and is flagged `WX9` — so this is a data refresh, not a
   defect: re-author each spawn piece so it either has the depth for a yard or states a footprint small enough
   to open one, then re-record whatever `docs/generator/seed-stats.md` measures off them.
+
+- [ ] **WE133 — A room and its mirror image are not exact images where a wall cannot centre.** The stamp
+  takes each choice a wall cannot centre — the ladder end, a window row's spare block, a narrowed door, porch
+  posts, monument order — from a hand (`RoomEdges.Handed`), which a rotation carries onto the same hand of
+  the image and a reflection swaps. The frame does not know which image of the orbit is reflected, so on a
+  `mirror_x`/`mirror_z` board those choices land on the opposite hand of the far team's copy. Carry the
+  image's handedness from the orbit into the resolved room intent and flip the hand where it is reflected.
+  `docs/world-export/structures.md` §1.
+
+  *Evidence: `HouseStamperTests.A_room_and_its_rot_180_image_stand_on_the_same_columns` holds for every
+  preset under `rot_180`; the same comparison under a mirror fails wherever a wall's leftover is odd.*
+
+- [ ] **WS73 — Two answers to "which void columns may be bridged".** `Editability.Compute`
+  (`Analysis/Playability/Editability.cs`) and `TraversabilityRender.BridgeableColumns`
+  (`Minecraft/Render/TraversabilityRender.cs:163`) each read the board's filters for the same set, so the
+  `reach` picture and the walk, coverage and dead-ground reads can disagree whenever one learns a rule shape
+  the other does not. `Minecraft` cannot reference `Analysis`, so the set is computed once in the Api from
+  `Editability` and handed to the render. `docs/world-scan/read-backs.md`.
 
 - [ ] **A8 Should the layout generator be its own project?** `Pgm` holds two charters:
   the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85
