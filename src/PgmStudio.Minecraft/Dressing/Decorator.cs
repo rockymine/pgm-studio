@@ -875,10 +875,12 @@ public static class Decorator
         }
 
         var raised = new List<PlacementClaim>(images.Count);
+        Excavation? deepest = null;
         for (var k = 0; k < images.Count; k++)
         {
             var (image, front, floorY) = images[k];
-            Excavate(world, context, ground, image, floorY);
+            var dug = Excavate(world, ground, image, floorY);
+            if (dug.Blocks > 0 && (deepest is null || dug.Deepest > deepest.Value.Deepest)) deepest = dug;
             HouseStamper.Stamp(
                 world, image, floorY, house.Style,
                 doors: front is { } side ? Doorway(house.Style, image, side) : null);
@@ -894,6 +896,14 @@ public static class Decorator
             raised.Add(new PlacementClaim(new StampId("house", house.Id, k), ProvenancePass.Structure,
                                           ClaimedCells(image, house.Style)));
         }
+
+        // What the seat cost the ground, reported once for the orbit at the image that dug deepest.
+        if (deepest is { } carve)
+            declined.Add(new Finding(DressingRules.SiteDug,
+                $"building '{house.Id}' dug its site out of the ground to seat its floor at y{carve.FloorY}: "
+                + $"{carve.Deepest} course(s) at ({carve.At.X}, {carve.At.Z}), {carve.Columns} column(s) "
+                + $"carved, {carve.Blocks} block(s) of ground removed",
+                Severity.Complaint, Subjects: [house.Id]));
         return raised;
     }
 
@@ -1041,20 +1051,34 @@ public static class Decorator
     /// a tree from rooting in one): every footprint column is cleared from the floor's own course up to its
     /// old surface, so the house sinks into the slope with its interior intact. Only the wall plan is carved —
     /// the ground under the eaves is outside the building — and a column whose surface carries a stamp is left
-    /// whole, the rule every pass keeps.</summary>
-    private static void Excavate(VoxelWorld world, DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, BuildingPlan plan, int floorY)
+    /// whole, the rule every pass keeps. Returns what it removed, which <see cref="DressingRules.SiteDug"/>
+    /// reports.</summary>
+    private static Excavation Excavate(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> ground, BuildingPlan plan, int floorY)
     {
+        int columns = 0, blocks = 0, deepest = 0;
+        (int X, int Z) at = default;
         foreach (var (x, z) in plan.Cells())
         {
             if (!ground.TryGetValue((x, z), out var top)) continue;
             if (DressingPalette.IsStamp(world.GetBlock(x, top - 1, z).Id)) continue;
+            var removed = 0;
             for (var y = floorY + 1; y < top; y++)
             {
                 if (y is < 1 or >= VoxelWorld.MaxHeight) continue;
+                if (world.GetBlock(x, y, z).Id != Blocks.Air) removed++;
                 world.SetBlock(x, y, z, Blocks.Air);
             }
+            if (removed == 0) continue;
+            columns++;
+            blocks += removed;
+            if (removed > deepest) (deepest, at) = (removed, (x, z));
         }
+        return new Excavation(floorY, columns, blocks, deepest, at);
     }
+
+    /// <summary>What <see cref="Excavate"/> took out of one image's footprint: the floor it cut down to, how
+    /// many columns it carved, how many blocks of ground went, and the deepest carve and its column.</summary>
+    private readonly record struct Excavation(int FloorY, int Columns, int Blocks, int Deepest, (int X, int Z) At);
 
     /// <summary>The one doorway a chosen wall asks for: centred on the run of wall the plan actually has facing
     /// that way and clear of both corner posts, which is what the building would cut for itself on a long side.

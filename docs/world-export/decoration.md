@@ -769,6 +769,16 @@ crevasse — declined by nothing, because every cell had ground under it. The fi
 same one an objective's ground gets: an `area` relief mark under the footprint, which states the plateau
 rather than hoping for one.
 
+**And what the seat digs out is reported (`DR-DIG`).** Nothing bounds the carve: the floor is taken off the
+lowest column alone, so a footprint whose lowest cell sits in a pit takes that pit's whole depth out of every
+other column, and the building stands in the hole it dug. `DR-SLOPE` reads the same rise against the
+building's height, so a shell tall enough to afford it digs in silence without a second reading. `Excavate`
+counts what it removes as it removes it, and a building whose carve took out any ground raises a complaint
+naming the floor's course, the deepest carve and its column, the columns carved and the blocks of ground
+removed — once for the orbit, at the image that dug deepest. On level ground the seat's course down removes
+nothing and the rule is silent. It does not refuse: how deep a building may dig is the author's call, and
+the complaint is the number that call is made on.
+
 **It must leave a way past itself (`DR-PASS`).** Beside a building there must be **eight blocks** of passable
 ground along the whole run of **every** one of its four sides. The eight are counted from **what the building
 stamps, not from its walls**: a roof oversails its wall by at least one block whatever the style says
@@ -930,12 +940,12 @@ off the raster's own `structure` cells — one building to a run of them, since 
 directions take, which is what keeps the mask and the pass from disagreeing about a cell; a test asks every
 anchor of a board both ways and requires the same answer.
 
-What is left to the pass is the three that read the built world rather than the ground under the footprint:
-`DR-CROSS`, `DR-WAY` and `DR-SLOPE`.
+What is left to the pass is what reads the built world rather than the ground under the footprint:
+`DR-CROSS`, `DR-WAY`, `DR-SLOPE`, and `DR-DIG`, which reports the carve the stamp itself makes.
 
 Each one is a **`decline`**, the severity between a refusal and a complaint: the world was built, so nothing
-stopped, and this prop is not in it, so there is nothing for the author to ignore — except `DR-PASS`, which is
-a complaint, the building standing where it was put. That is what a caller reads off a 2xx to answer *did what
+stopped, and this prop is not in it, so there is nothing for the author to ignore — except `DR-PASS` and
+`DR-DIG`, which are complaints, the building standing where it was put. That is what a caller reads off a 2xx to answer *did what
 I posted survive*.
 
 The declines travel three ways. Back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under

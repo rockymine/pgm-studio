@@ -1763,7 +1763,7 @@ a building gets a seat rather than a verdict. `DR-PASS` is asked here too: a bui
 its **walls**, the passage is measured from the roof over them, and a candidate joins the group of any
 building standing within a passage of it — the standing ones are read off the raster's own structure cells,
 one building to a run of them, and grouped once for the board rather than once per anchor. `DR-CROSS`,
-`DR-WAY` and `DR-SLOPE` read the built world and stay the pass's to raise.
+`DR-WAY`, `DR-SLOPE` and `DR-DIG` read the built world and stay the pass's to raise.
 
 ```json POST /api/map/{slug}/sketch/seats?kind=tree&width=3
 {"setup": {"mirror_mode": "none", "center": {"cx": 0, "cz": 0}},
