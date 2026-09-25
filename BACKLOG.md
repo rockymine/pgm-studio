@@ -374,21 +374,6 @@ and what a `subtract` takes away.
   wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
   from 2 isolated markers to **0** — the direction that reads as an improvement.*
 
-- [ ] **G263 — `WL2`'s "different lane" clause has no term, so a wool room may abut its spawn.** The rule
-  reads *"on a different lane than the spawn; wool↔spawn ≥ 20"* and only the distance half is built:
-  `SpawnWoolFloor` (hard, `MinBlocks = 20`) and `SpawnWoolDistance` (soft, `[27, 170]`) in
-  `src/PgmStudio.Pgm/Evaluate/Terms/SpawnTerms.cs`, both measuring the walk from the spawn **point** to the
-  wool **block**. `WL6` — one wool to a lane — has no term at all. Add a hard term beside them indicting a
-  wool-room piece that shares an edge with, or lies within a few cells of, a spawn piece; `PieceInterfaces`
-  already answers that seam. The composer cannot emit the shape — every composed wool unit is `boxes: 2`,
-  the room plus its lane, against a spawn's 1 — so only a hand-authored plan reaches it, which
-  `AUTHORING-BRIEF.md` asks authors for. `docs/generator/rules.md`.
-
-  *`opus5-redmarl` places `dye-w [-13,-26,5,4]`, `yard` (spawn) `[-8,-26,7,4]` and `dye-e [-1,-26,5,4]` in
-  one row with their edges touching, 8 blocks apart in the built world. `POST /plan/evaluate` answers
-  `score 0, valid true`, because the walk it measures is 33. `opus5-mirkholt` and `opus5-flintwick` are the
-  same shape; `opus5-coinfall` is the counter-example, with a 15-cell `run` piece between the two.*
-
 ## User Experience
 
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** *Parked (author): imports
@@ -517,17 +502,6 @@ and what a `subtract` takes away.
   `worstStep 8`, standing at `(-2, 56, 21)`, `(-3, 56, 22)` and `(-4, 57, 22)` — three places in the
   canopy, none of them over ground.*
 
-- [ ] **TL15 — Anything can be filed as a `copied` tree.** `copied` means cut out of a world
-  (`docs/tools/library.md`, the author's ruling) and `tools/seed-trees.cs` over
-  `pgm-studio-mapgen/corpus/tree-showcase` is the only thing that cuts one, but `PropStyleLibrary.Save`
-  takes `form: "copied"` with the request's own `Body` array, so a board can post a block list it made up and
-  the row is indistinguishable from a cut one — which is how a dead-bush cluster, a log pile and a crate came
-  to be filed as trees. What is wanted is the **refusal**, not a provenance card: give `TreeStyleRow` the cut
-  — the world directory, the foot's world coordinates, the date — written by the cutter and absent on
-  anything else, and refuse a `copied` row that carries none. **Weigh against:** a body is the only recipe
-  that can hold a block the two generative forms cannot emit, so a hand-built prop needs a form word of its
-  own before `copied` can be closed to it.
-
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled
   room need `6 + 2 + 3` = 11 blocks on one axis and those spawn pieces are 10×10, 15×15 and 20×10. Nothing is
@@ -552,6 +526,17 @@ and what a `subtract` takes away.
   `reach` picture and the walk, coverage and dead-ground reads can disagree whenever one learns a rule shape
   the other does not. `Minecraft` cannot reference `Analysis`, so the set is computed once in the Api from
   `Editability` and handed to the render. `docs/world-scan/read-backs.md`.
+
+- [ ] **WE134 — A map's own dressing registry still takes a hand-written `copied` body.** The tree library
+  refuses a `copied` save carrying no cut (`DR-COPY`), but a map's `dressing.styles` takes
+  `{"kind":"tree","form":"copied","body":…}` as written and nothing asks where the body came from.
+  *Blocking question (author): does "hand-built props are not wanted" reach a map's own registry — refuse an
+  inline `copied` body unless it names a library tree, which carries the cut — or only the library?*
+  `docs/world-export/decoration.md`.
+
+  *Evidence: 11 build specs in `pgm-studio-mapgen/specs` (`opus5-flintwick`'s `library_tree`, the
+  `opus5b`/`opus5c` commons) copy a library tree's body inline, which a cut-carrying rule would still allow;
+  the hand-written bodies among the specs' 37 inline bodies are the ones it would refuse.*
 
 - [ ] **A8 Should the layout generator be its own project?** `Pgm` holds two charters:
   the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85

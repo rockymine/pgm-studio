@@ -5688,6 +5688,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `reseatSeededIron`. A re-click or Cycle facing re-asks `POST /api/plan/room` and moves an iron cube still
   standing where the old facing seeded it; a cube the author slid is left alone. `docs/tools/plan.md`. (`TN14`)
 
+- **A wool room may not share an edge with its own spawn (`G263`)** — hard evaluator term
+  `wool-room-spawn-seam` in `Evaluate/Terms/SpawnTerms.cs`, `WL2`'s lane clause, `rules.md` amendment 54.
+  The composer never emits the shape, so no composed board moves. (`G263`)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **A narrow seam is the way into a room, so it carries a door and an entrance line (`WE128`).**
   `ContactGraph.IsLandInterface` answers `Land` **or** `Narrow` and the `WoolRoom` flag on a segment is
@@ -7969,6 +7973,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **A push's crown is world height (`RP73`)** — `PushMark`'s docstring and `relief.md` say a positive crown
   fills a dig back in; the editor seeds and reads the record's crown of 0. (`RP73`)
+
+- **A copied tree records its cut, and the library refuses one without (`TL15`)** — migration `M0039`,
+  `TreeCut` on the tree-style DTOs, `PropStyleLibrary.Check`. A `copied` save carries the world, the foot's
+  coordinates and the time it was cut, written by `tools/seed-trees.cs`; one without is refused `DR-COPY`.
+  Hand-built bodies have no form word: the author's ruling is that they are not wanted. (`TL15`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
