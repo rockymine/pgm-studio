@@ -5,12 +5,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { DressingDoc, defaultProp, isMarker, isRect, MAX_FOOTPRINT, propAnchor, propReach, rectFootprint,
+import { DressingDoc, defaultProp, isMarker, isRect, MAX_FOOTPRINT, onLayer, propAnchor, propReach, rectFootprint,
          translateProp } from "../../src/PgmStudio.Client/wwwroot/js/studio/dressing/dressing-doc.js";
 import { DressingController, DRESSING_TOOLS }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/dressing-controller.js";
 import { MIN_FOOTPRINT_SPAN } from "../../src/PgmStudio.Client/wwwroot/js/studio/shared/building.js";
-import { paintDressing } from "../../src/PgmStudio.Client/wwwroot/js/studio/render/dressing-render.js";
+import { layerAlpha, OFF_LAYER_ALPHA, paintDressing }
+  from "../../src/PgmStudio.Client/wwwroot/js/studio/render/dressing-render.js";
 import { recordingPainter } from "./_painter-stub.js";
 
 // No handle layer and no viewport: the point grips are the one DOM-bearing part of the controller, and
@@ -413,6 +414,56 @@ test("a prop that already names a layer keeps it", () => {
 test("a stored layer survives a read", () => {
   const doc = DressingDoc.from({ props: [{ kind: "tree", id: "d1", layer: "upper", x: 0, z: 0 }] });
   assert.equal(doc.props[0].layer, "upper");
+});
+
+// ── which storey a prop is drawn on ───────────────────────────────────────────
+// A stacked board's props are all drawn, and the ones on another storey dimmed, so a gallery-floor tree and
+// the roof tree over it read as two floors rather than one plane. A dimmed prop is context: a click reaches
+// only the storey being drawn on, the way another layer's shapes ghost and are not picked.
+test("a prop on the active storey draws at full strength, one on another storey dimmed", () => {
+  assert.equal(layerAlpha({ kind: "tree", layer: "roof" }, "roof"), 1);
+  assert.equal(layerAlpha({ kind: "tree", layer: "gallery" }, "roof"), OFF_LAYER_ALPHA);
+  assert.ok(OFF_LAYER_ALPHA > 0 && OFF_LAYER_ALPHA < 1, "dimmed, not hidden");
+});
+
+test("a prop naming no storey, or a board with none active, is never dimmed", () => {
+  assert.equal(layerAlpha({ kind: "tree" }, "roof"), 1, "an unlayered prop rests on the top surface");
+  assert.equal(layerAlpha({ kind: "tree", layer: "gallery" }, ""), 1);
+  assert.ok(onLayer({ kind: "tree" }, "roof"));
+});
+
+test("the dressing layer dims every ring of a prop on another storey, and only that prop", () => {
+  const painter = recordingPainter();
+  const here = { id: "t1", kind: "tree", x: 0, z: 0, height: 6, layer: "roof" };
+  const below = { id: "t2", kind: "tree", x: 40, z: 0, height: 6, layer: "gallery" };
+  paintDressing(painter, [here, below], { activeLayer: "roof" });
+  const [first, second] = painter.of("ring").map(call => call[1].alpha);
+  assert.equal(first, 1);
+  assert.equal(second, OFF_LAYER_ALPHA);
+});
+
+test("a click picks only a prop on the storey being drawn on", () => {
+  const { doc, tools } = controller();
+  doc.setLayer("gallery");
+  const under = doc.add({ ...defaultProp("tree", 1), x: 10, z: 10 });
+  doc.setLayer("roof");
+  tools.onMouseDown(10, 10, "select");
+  assert.equal(tools.selectedId, null, "the gallery tree under the roof is not reached from the roof");
+  doc.setLayer("gallery");
+  tools.onMouseDown(10, 10, "select");
+  assert.equal(tools.selectedId, under.id);
+});
+
+test("moving a selected prop to another storey writes its layer, and the next one placed still takes the active storey", () => {
+  const { doc, tools } = controller();
+  doc.setLayer("roof");
+  tools.onMouseDown(10, 10, "dress:tree");
+  const moved = tools.updateSelected({ layer: "gallery" });
+  assert.equal(moved.layer, "gallery");
+  assert.equal(doc.toJSON().props[0].layer, "gallery", "and it is what the layout stores");
+
+  tools.onMouseDown(30, 30, "dress:tree");
+  assert.equal(doc.props[1].layer, "roof", "a storey is where one prop rests, not a starting value");
 });
 
 // ── joining buildings into one ────────────────────────────────────────────────

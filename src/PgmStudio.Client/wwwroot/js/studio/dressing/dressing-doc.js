@@ -59,6 +59,10 @@ export const isMarker = (propOrKind) => {
   return kind === "tree" || kind === "boulder";
 };
 
+/** Whether a prop rests on the storey `layer` names. A prop naming no layer rests on the top surface and a
+ *  board with no active layer is flat, so either reads as on every storey. */
+export const onLayer = (prop, layer) => !layer || !prop?.layer || prop.layer === layer;
+
 /** Whether a kind is placed by dragging a rectangle rather than by tracing an outline. A building is the only
  *  one: its footprint is what the stamper takes, and a stamper takes a box — one or more of them. Stored as
  *  `wings`, a list of rectangles each as two opposite corners, so a wing moves, mirrors and reshapes through

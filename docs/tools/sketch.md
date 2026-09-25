@@ -406,7 +406,9 @@ scanned world's ground belongs to: a scan's segments carry no layer at all, beca
 stacked sketch are one geometry seen twice**, differing only in provenance.
 
 In the editor, the active layer is the one being drawn on; the others ghost underneath in 2-D and stack in the
-isometric preview, and a new layer defaults to ten blocks above the highest existing one.
+isometric preview, and a new layer defaults to ten blocks above the highest existing one. A placed prop follows
+the same rule in the Dressing phase: one resting on another layer is drawn dimmed, and a click reaches only the
+props of the layer being drawn on.
 
 ### A made thing, and the three words that say a layer is one
 
@@ -1255,9 +1257,21 @@ cell's answer, and the goal beneath one was stamped eighty-three blocks up on it
 `BuiltTerrain.SurfaceFor` gives a stamped thing, so a prop and a monument on one floor cannot disagree about
 where that floor is. Naming a layer the board has no ground at is **declined** (`DR-LAYER`) rather than seated
 on the top, because the top is exactly the storey the author was saying they did not mean. `decoration.md`
-carries the pass itself. The Dressing phase cannot state it — the layer rail renders only in Draw, so a prop
-placed in the browser always takes the top surface and a `layer` set over the API survives an edit unshown
-(`B263`).
+carries the pass itself.
+
+**In the Dressing phase a prop takes the layer being drawn on, and the inspector moves it.** A placement
+records the canvas layer strip's active layer (`DressingDoc.add`); a prop that already names one keeps it.
+With a prop selected on a board of more than one layer, the inspector's **Storey** field offers the strip's
+own layers and writes the pick as `layer` through the same `updateProp` patch every other knob takes. Unlike
+the other knobs it is not carried into the next placement's starting values, because the next prop takes the
+active layer. The field offers every layer and filters none: one with no ground under the prop is declined
+`DR-LAYER` by the pass, which is what `POST …/sketch/dressing` and the export's warnings report.
+
+**A prop on another layer is drawn dimmed.** `dressing-render.js` draws a prop whose `layer` is not the active
+one at `OFF_LAYER_ALPHA` of its strength, fill, outline and route alike, so a gallery-floor tree and the roof
+tree over it read as two floors. Like another layer's shapes it is context rather than a target: a click on
+the canvas picks only props on the active layer, and the placed-props list still reaches any of them. A prop
+naming no layer, and every prop of a board with no active layer, draws at full strength.
 
 **Every word above is written in camelCase, and that is the canonical form** — what `POST .../sketch/finish`
 and the export always write back, and the form every example in this document is in. The reader is more

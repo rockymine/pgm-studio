@@ -211,8 +211,7 @@ those rectangles out of the intent and the release therefore asks rather than te
 worked to its end looks like: one foundation, three entries, and the cause named before the entries were.
 
 **A layer is first-class in the export and an afterthought everywhere else.** `DressingDoc.add` stamps the
-storey; `SketchDressingInspector` has no field for it. `TerrainPainter` is handed a surface per layer and
-sorts by nothing. `B263` · `B264` · `WE28` · `TS64`. The board now carries this cause as a section
+storey. `TerrainPainter` is handed a surface per layer and sorts by nothing. `B264` · `WE28` · `TS64`. The board now carries this cause as a section
 preamble of its own, which is the shape a cause should reach before it is worked.
 
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
@@ -426,7 +425,7 @@ recipe is made of**, numbering two that read the same way, and only the client's
 answer keyed on the display name. One concept with two shapes rather than a decision, and reading the code
 either half of it was in is what said so (`FEATURES.md`).
 
-**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`, `TS64`, `S59`.
+**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B264`, `TS64`, `S59`.
 `N08` and `N12` were both one until the same sitting drained them. Four more — `B107`, `S25b`, `B145`, `WE54`
 — were this population until the building's one model turned them from three reaches into one, and all four
 have since shipped. That is the reading's own claim tested: a reach gap is drained by naming the cause under
@@ -491,7 +490,7 @@ for.
 
 Of the causes this section named earlier, the client reading its own schema is `C51` alone and the compiler's
 lost identity is `B213`, so neither stands as a programme. What is left whole, after the walk, is **the layer
-word** (`B263`, `B264`, `WE28`, `TS64` — a layer is first-class in the export and an afterthought everywhere
+word** (`B264`, `WE28`, `TS64` — a layer is first-class in the export and an afterthought everywhere
 else), and it is the one to pull next. The two shop entries that remain (`PG15`, `PG16`) are independent
 extensions of a landed slice rather than one cause, and are therefore roadmap rather than programme.
 
