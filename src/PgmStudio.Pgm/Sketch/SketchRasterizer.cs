@@ -1426,7 +1426,7 @@ public static class SketchRasterizer
         var made = MadeLayers(state);
         var ground = WalkGround.OfSpans(
             RasterizeColumns(state).Where(segment => !made.Contains(segment.Layer))
-                                   .Select(segment => (segment.X, segment.Z, segment.YFloor, segment.YTop)));
+                                   .Select(segment => (segment.X, segment.Z, segment.YFloor, segment.YTop)), []);
         if (ground.Ground.Count == 0) return [];
 
         var components = Walk.Components(ground, JoinedRise);

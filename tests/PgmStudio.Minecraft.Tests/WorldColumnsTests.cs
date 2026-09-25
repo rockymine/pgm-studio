@@ -1,5 +1,7 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Tests;
 
@@ -245,5 +247,39 @@ public sealed class WorldColumnsTests
 
         await Assert.That(surface.Count).IsEqualTo(0);
         await Assert.That(y0.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task A_walk_takes_a_trees_blocks_apart_from_the_ground_they_stand_in()
+    {
+        // Terrain laid [1, 11) over bedrock at (0, 0), a trunk of logs over it to 16 and leaves to 18; a crown
+        // cell of leaves over void at (1, 0); a house wall on ground at (2, 0), which a Structure claim keeps
+        // whole; and ground with nothing claimed at (3, 0).
+        var world = new VoxelWorld();
+        foreach (var x in new[] { 0, 2, 3 })
+        {
+            world.SetBlock(x, 0, 0, Blocks.Bedrock);
+            for (var y = 1; y < 11; y++) world.SetBlock(x, y, 0, Blocks.Stone);
+        }
+        for (var y = 11; y <= 16; y++) world.SetBlock(0, y, 0, Blocks.Log);
+        for (var y = 17; y <= 18; y++) world.SetBlock(0, y, 0, Blocks.Leaves);
+        for (var y = 16; y <= 18; y++) world.SetBlock(1, y, 0, Blocks.Leaves);
+        for (var y = 11; y <= 14; y++) world.SetBlock(2, y, 0, Blocks.Planks);
+
+        var provenance = new WorldProvenance();
+        provenance.Claim([(0, 0), (1, 0)], ProvenancePass.Prop, new StampId("tree", "oak", 0));
+        provenance.Claim(2, 0, ProvenancePass.Structure, new StampId("house", "h1", 0));
+        ColumnSegment[] terrain =
+            [new(0, 0, 1, 11, "ground"), new(2, 0, 1, 11, "ground"), new(3, 0, 1, 11, "ground")];
+
+        var (ground, props) = WorldColumns.ForWalk(world, provenance, terrain);
+
+        // Every solid block is in exactly one of the two, and the tree's are the props.
+        await Assert.That(props.OrderBy(span => span.X).ThenBy(span => span.YFloor))
+            .IsEquivalentTo(new[] { (0, 0, 11, 16), (0, 0, 17, 18), (1, 0, 16, 18) });
+        await Assert.That(ground.Where(span => span.X == 0).Select(span => (span.YFloor, span.YTop)))
+            .IsEquivalentTo(new[] { (0, 0), (1, 10) });
+        await Assert.That(ground.Where(span => span.X == 2).Max(span => span.YTop)).IsEqualTo(14);
+        await Assert.That(ground.Any(span => span.X == 1)).IsFalse();
     }
 }

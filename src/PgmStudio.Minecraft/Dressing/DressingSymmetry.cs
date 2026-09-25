@@ -28,6 +28,10 @@ public sealed record DressingSymmetry(string? Mode = null, double CenterX = 0, d
     /// <summary>Whether a cell is the representative of its own orbit — the test a generator loops on.</summary>
     public bool IsCanonical(int x, int z) => Canonical(x, z) == (x, z);
 
+    /// <summary>Whether the <paramref name="k"/>-th image is a reflection, whose left and right hands are
+    /// swapped — what a building stamped at it lays its off-centre choices out by.</summary>
+    public bool Reflects(int k) => Symmetry.Reflects(Mode, k);
+
     /// <summary>The <paramref name="k"/>-th image of a cell, as a cell.</summary>
     public (int X, int Z) ImageCell(int x, int z, int k) => Symmetry.Cell(x, z, Mode, CenterX, CenterZ, k);
 

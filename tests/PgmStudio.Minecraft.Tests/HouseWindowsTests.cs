@@ -26,7 +26,7 @@ public sealed class HouseWindowsTests
     private static List<WindowSeat> Seats(
         WindowStyle style, int width = 15, int depth = 11, int wallExtent = 7,
         IReadOnlyList<WallOpening>? doors = null)
-        => HouseWindows.Seats(style, Walls(width, depth), wallExtent, doors);
+        => HouseWindows.Seats(style, Walls(width, depth), wallExtent, doors, reflected: false);
 
     [Test]
     public async Task No_window_is_cut_through_a_corner()
@@ -165,7 +165,7 @@ public sealed class HouseWindowsTests
             Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, Spacing = 1,
             HostBlock = 5, HostData = 1,
         };
-        var seats = HouseWindows.Seats(style, Walls(21, 21), 7, null, Banded);
+        var seats = HouseWindows.Seats(style, Walls(21, 21), 7, null, reflected: false, Banded);
 
         await Assert.That(seats).IsNotEmpty();
         foreach (var seat in seats)
@@ -184,7 +184,7 @@ public sealed class HouseWindowsTests
             Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, Spacing = 1,
             HostBlock = 5, HostData = 1,
         };
-        var seats = HouseWindows.Seats(style, Walls(9, 9), 7, null, Banded);
+        var seats = HouseWindows.Seats(style, Walls(9, 9), 7, null, reflected: false, Banded);
         await Assert.That(seats.Count(seat => seat.Wall.Facing == RoomEdge.NegZ)).IsGreaterThan(0);
     }
 
@@ -197,7 +197,7 @@ public sealed class HouseWindowsTests
         {
             Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, HostBlock = 5, HostData = 1,
         };
-        await Assert.That(HouseWindows.Seats(style, Walls(21, 21), 7, null, (_, _) => false)).IsEmpty();
+        await Assert.That(HouseWindows.Seats(style, Walls(21, 21), 7, null, reflected: false, (_, _) => false)).IsEmpty();
     }
 
     [Test]
@@ -206,7 +206,7 @@ public sealed class HouseWindowsTests
         // The host is an addition, not a change: a style that names none is spread exactly as it always was,
         // and the predicate is not even consulted.
         var style = new WindowStyle { Form = WindowForm.Pane, Width = 2, Height = 2, Sill = 2, Spacing = 3 };
-        await Assert.That(HouseWindows.Seats(style, Walls(15, 11), 7, null, (_, _) => false))
+        await Assert.That(HouseWindows.Seats(style, Walls(15, 11), 7, null, reflected: false, (_, _) => false))
             .IsEquivalentTo(Seats(style));
     }
 
@@ -305,7 +305,7 @@ public sealed class HouseWindowsTests
             Form = WindowForm.Pane, Block = Blocks.GlassPane, HostBlock = Blocks.Planks, HostData = 1,
             Width = 2, Height = 2, Sill = 2, Spacing = 2,
         };
-        var seats = HouseWindows.Seats(style, Walls(width, 9), 6, null, (_, _) => true)
+        var seats = HouseWindows.Seats(style, Walls(width, 9), 6, null, reflected: false, (_, _) => true)
             .Where(seat => seat.Wall.Facing == RoomEdge.NegZ)
             .OrderBy(seat => seat.Lo)
             .ToList();
@@ -335,7 +335,7 @@ public sealed class HouseWindowsTests
             Width = 2, Height = 2, Sill = 2, Spacing = 1,
         };
         // Two cells of something else, then two of the host, round and round.
-        var seats = HouseWindows.Seats(style, Walls(21, 9), 6, null, (_, along) => along % 4 >= 2)
+        var seats = HouseWindows.Seats(style, Walls(21, 9), 6, null, reflected: false, (_, along) => along % 4 >= 2)
             .Where(seat => seat.Wall.Facing == RoomEdge.NegZ)
             .ToList();
 

@@ -996,8 +996,12 @@ public static class WorldBuilder
     /// <summary>The frame the export stamps for a wool: resolved on the region it owns, with its entry
     /// interfaces cutting the doors (WX1/WX6). Shared with the structure preview so the drawn box and the
     /// stamped shell cannot disagree. A wool with no region at all — a partial intent — falls back to the
-    /// marker-anchored default.</summary>
-    public static RoomFrame WoolFrame(WoolIntent w, bool shellBound)
+    /// marker-anchored default. A reflected wool (<see cref="WoolIntent.Reflected"/>) resolves a reflected
+    /// frame, so its cage is laid out as the mirror of the one it is an image of.</summary>
+    public static RoomFrame WoolFrame(WoolIntent w, bool shellBound) =>
+        UnreflectedWoolFrame(w, shellBound) with { Reflected = w.Reflected };
+
+    private static RoomFrame UnreflectedWoolFrame(WoolIntent w, bool shellBound)
     {
         if (Ground(w.Protection) is { } ground)
         {
@@ -1013,8 +1017,15 @@ public static class WorldBuilder
     /// <inheritdoc cref="WoolFrame"/>
     /// <remarks>A spawn resolves its room together with the region's iron markers: each cube stands clear of
     /// the shell in the ring around it, and an unfittable marker comes back unplaceable (WX8/WX9) — nothing
-    /// stamps for it.</remarks>
+    /// stamps for it. A reflected spawn (<see cref="SpawnIntent.Reflected"/>) resolves a reflected frame, so
+    /// its hall and its monument seats are laid out as the mirror of the ones it is an image of.</remarks>
     public static ResolvedRoom SpawnRoom(SpawnIntent s, bool shellBound)
+    {
+        var room = UnreflectedSpawnRoom(s, shellBound);
+        return room with { Frame = room.Frame with { Reflected = s.Reflected } };
+    }
+
+    private static ResolvedRoom UnreflectedSpawnRoom(SpawnIntent s, bool shellBound)
     {
         var doorEdges = SpawnDoors(s);
         if (Ground(s.Protection) is { } ground)

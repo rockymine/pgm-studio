@@ -255,6 +255,7 @@ public static class PlanCompiler
                 {
                     Team = teams[k].Id,
                     Stamp = Stamp("spawn", s.Id, spawnIndex, k),
+                    Reflected = Symmetry.Reflects(d.Mode, k),
                     // Y here is the plan's own flat nominal height, exactly as ResolveGoalAnchor's is:
                     // informational, carried for a caller with no built world to read yet, and never the
                     // spawn's real Y. WorldBuilder resolves that against the terrain the relief
@@ -315,6 +316,7 @@ public static class PlanCompiler
                 {
                     Owner = teams[k].Id,
                     Stamp = Stamp("wool", w.Id, i, k),
+                    Reflected = Symmetry.Reflects(d.Mode, k),
                     Color = color,
                     // The whole wool-room piece: the room region, and the ground the cage is framed on.
                     Protection = [new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ)],

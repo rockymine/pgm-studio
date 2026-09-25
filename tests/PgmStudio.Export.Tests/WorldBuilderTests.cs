@@ -59,6 +59,29 @@ public sealed class WorldBuilderTests
     }
 
     [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task A_reflected_room_resolves_a_reflected_frame(bool reflected)
+    {
+        // The frame is what the stampers lay a room's off-centre choices out by, so the reflection the fan
+        // recorded on the intent has to reach it — on the region-framed path and on the default one alike.
+        var region = new SpawnIntent
+        {
+            Team = "red", Point = new Pt(-20, 1, 0), Protection = [new Rect(-30, -10, -10, 10)], Doors = ["+x"],
+            Reflected = reflected,
+        };
+        var bare = new SpawnIntent { Team = "red", Point = new Pt(-20, 1, 0), Reflected = reflected };
+        var wool = new WoolIntent
+        {
+            Owner = "red", Spawn = new Pt(-20, 1, 0), Protection = [new Rect(-30, -10, -10, 10)], Reflected = reflected,
+        };
+
+        await Assert.That(WorldBuilder.SpawnRoom(region, shellBound: true).Frame.Reflected).IsEqualTo(reflected);
+        await Assert.That(WorldBuilder.SpawnRoom(bare, shellBound: true).Frame.Reflected).IsEqualTo(reflected);
+        await Assert.That(WorldBuilder.WoolFrame(wool, shellBound: true).Reflected).IsEqualTo(reflected);
+    }
+
+    [Test]
     public async Task Every_wool_room_carries_a_sky_marker_in_its_own_wool_colour()
     {
         // No Build intent is authored here and none is needed: the cap is measured off the world the build

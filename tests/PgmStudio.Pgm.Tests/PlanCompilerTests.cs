@@ -44,6 +44,21 @@ public sealed class PlanCompilerTests
         await Assert.That((room.MinX, room.MinZ, room.MaxX, room.MaxZ)).IsEqualTo((-15d, 25d, -5d, 35d));
     }
 
+    [Test]
+    [Arguments("mirror_x", true)]
+    [Arguments("mirror_z", true)]
+    [Arguments("rot_180", false)]
+    public async Task A_rooms_image_says_whether_the_orbit_reflected_it(string mode, bool reflects)
+    {
+        // A reflection swaps a room's hands and a rotation keeps them, so the fan hands the stamper which one
+        // it did. The authored unit is never reflected.
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"cell":5,"symmetry":"{{mode}}"}, {{Unit}} }"""));
+        await Assert.That(intent.Spawns.Select(s => (s.Stamp.Image, s.Reflected)))
+            .IsEquivalentTo(new[] { (0, false), (1, reflects) });
+        await Assert.That(intent.Wools!.Select(w => (w.Stamp.Image, w.Reflected)))
+            .IsEquivalentTo(new[] { (0, false), (1, reflects) });
+    }
+
     /// <summary>Who a map is by is the plan's to say as much as its name is, so the compiled intent's meta
     /// carries all three — a bare string a name, an object a name with a note.</summary>
     [Test]
