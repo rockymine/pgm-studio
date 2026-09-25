@@ -1283,7 +1283,10 @@ public sealed class DecoratorTests
             } }]));
 
         await Assert.That(tally.Houses).IsEqualTo(1);
-        await Assert.That(tally.Declines).IsEmpty();
+        // Standing, and the carve — four courses, one past the settle depth — reported as the one complaint.
+        var dug = tally.Declines.Single();
+        await Assert.That(dug.Rule).IsEqualTo(DressingRules.SiteDug);
+        await Assert.That(dug.Message).Contains("4 course(s)");
         // The mound is gone from the interior: the column that stood four courses over the floor is open air.
         for (var y = 9; y <= 11; y++)
             await Assert.That(world.GetBlock(20, y, 20).Id).IsEqualTo(Blocks.Air);
@@ -1313,6 +1316,49 @@ public sealed class DecoratorTests
                 Doorway = new Doorway { Door = DoorMaterial.Air },
             } }]));
         await Assert.That(atFloor.Houses).IsEqualTo(1);
+    }
+
+    /// <summary><b>A house dug into a pit says how deep it dug, past the depth a house settles by.</b> It
+    /// seats one course under the lowest column of its footprint and clears every other column down to that
+    /// floor, so one low cell takes its depth out of the whole plan — too shallow for <c>DR-SLOPE</c> to
+    /// refuse. A carve of <see cref="DressingRules.SettleDepth"/> is silent and one block more is the
+    /// complaint carrying it.</summary>
+    [Test]
+    [Arguments(DressingRules.SettleDepth, false)]
+    [Arguments(DressingRules.SettleDepth + 1, true)]
+    public async Task A_house_seated_in_a_pit_reports_the_ground_it_dug_out_past_the_settle_depth(int pitDepth, bool reported)
+    {
+        var (world, top) = Plateau();
+        for (var y = 8 - pitDepth; y < 8; y++) world.SetBlock(12, y, 18, Blocks.Air);
+        top[(12, 18)] = 8 - pitDepth;
+
+        var tally = Decorator.Decorate(world, Context(top,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[10, 16], [20, 24]])],
+                             Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } } }]));
+
+        await Assert.That(tally.Houses).IsEqualTo(1);
+        await Assert.That(world.GetBlock(15, 7, 20).Id).IsEqualTo(Blocks.Air)
+            .Because("the carve took the pit's depth out of a column the pit never touched");
+        var dug = tally.Declines.Where(finding => finding.Rule == DressingRules.SiteDug).ToList();
+        if (!reported)
+        {
+            await Assert.That(dug).IsEmpty().Because("a carve up to the settle depth is a house settling into a slope");
+            return;
+        }
+        await Assert.That(dug.Count).IsEqualTo(1);
+        await Assert.That(dug[0].Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(dug[0].Message).Contains($"seat its floor at y{7 - pitDepth}: {pitDepth} course(s)");
+    }
+
+    /// <summary>On level ground the seat's own course down removes nothing, and nothing is reported.</summary>
+    [Test]
+    public async Task A_house_on_level_ground_digs_nothing()
+    {
+        var (flat, flatTop) = Plateau();
+        var level = Decorator.Decorate(flat, Context(flatTop,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[10, 16], [20, 24]])],
+                             Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } } }]));
+        await Assert.That(level.Declines.Where(finding => finding.Rule == DressingRules.SiteDug)).IsEmpty();
     }
 
     [Test]

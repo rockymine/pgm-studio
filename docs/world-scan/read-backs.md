@@ -43,7 +43,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
 | `slopes` | — | the worst step to a neighbour per sampled cell, as JSON digit rows or, on `?format=text`, `.`/`:`/`#` — the tiers a walk is priced in. `faces` names the barrier runs worth checking, largest first |
 | `incline` | — | how steeply the ground is inclined per sampled cell, as `text/plain`: the glyph is the **tens of degrees**, so `0` is under ten from level, `4` is forty to fifty, `8` is a face. Below the grid, how much ground stands in each ten degrees. The angle a slope band is picked by (`TP24`), read through the painter's own formula. `window` widens the gradient from the 2 cells either side the painter reads at |
-| `reach` | — | which standing ground **no player can get to**, and why, as `text/plain`: the patches, their column counts, their lowest standing course and the box to stand in. The traversability picture's own partition read as numbers — the navigable components, less the one the board is played on, less every component a spawn or an objective sits on, less every component the map opens to bridging — plus ground above the map's `maxbuildheight`, which cannot be built up to. **It names nothing as wrong**: scenery, a side observer island and a shelf over the ceiling read exactly like a shape stranded by accident, and only the author can tell them apart |
+| `reach` | — | which standing ground **no player can get to**, and why, as `text/plain`: the patches, their column counts, their lowest standing course and the box to stand in. The traversability picture's own partition read as numbers — the navigable components, less the one the board is played on, less every component a spawn or an objective sits on, less every component the map opens to bridging (a region whose `block` or `block-place` rule is the void test, the template's `not-build-area` idiom read as the build area it negates) — plus ground above the map's `maxbuildheight`, which cannot be built up to. **It names nothing as wrong**: scenery, a side observer island and a shelf over the ceiling read exactly like a shape stranded by accident, and only the author can tell them apart |
 | `editability` | — | which columns a player may edit and **what makes each one editable**, as JSON: digit rows over a bounding box, the four `EditZone` words, a colour each, the counts, and `findings`. The zones are `build_zone` · `ground` · `filtered` · `sealed`, read by following PGM's own resolution — the first region-filter application that does not abstain settles the column, and place and break are the separate scopes PGM makes them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one it was laid to |
@@ -184,10 +184,14 @@ pairing that shows what the standoff bought.
 beside it.** `places` carries the route's own `y` at each cell — the storey the walk chose, not the ground a
 deck or a gallery roofs it with — and `steps` names every consecutive pair whose rise is not a plain walk: a
 scramble, a barrier or a drop, classed the way `PgmStudio.Geom.Walk.StepWord` classes any signed step, with
-the totals `rises`, `falls` and `worstStep` over the whole route. `?beside=N` (0 to 6 cells, Chebyshev) adds
-every distinct thing the provenance record names within `N` cells of any cell the route passes through — a
-tree, a boulder, a house, water, a spawn, a goal, wool or an iron cube, the first cell it is met at and its
-distance; flora and paint are left out, since neither is a thing a player runs into. `?format=text` answers
+the totals `rises`, `falls` and `worstStep` over the whole route. A step onto or off a plan's `wall` claim
+reads `wall` instead: the bedrock courses are stated across the lane on purpose, so the climb is the wall's
+and `worstStep` leaves it out, answering the worst step the ground makes. `?beside=N` (0 to 6 cells, Chebyshev) adds
+every thing a player meets that the provenance record names within `N` cells of any cell the route passes
+through, with the first cell it is met at and its distance. Those are a `wall`, a wool room's `redstoneline`,
+an `ironcube`, a `spawn`, a `wool`, a `destroyable`, a `core`, a `controlpoint`, a `house`, a `tree`, a
+`boulder` and `water`, which is every kind a stamp claims but the ground cover (`flora`) and the paint
+(`stroke`). `?format=text` answers
 the same reading as characters: the route's own numbers, a station at every place it stood with the word and
 the signed step where it left a walk, the totals, and what stands beside it.
 

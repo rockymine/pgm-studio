@@ -2,6 +2,7 @@ using PgmStudio.Domain;
 using PgmStudio.Export;
 using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export.Tests;
@@ -170,12 +171,31 @@ public sealed class StructureSiteTests
         await Assert.That(finding.Message).Contains("2 blocks above the ground beside it");
     }
 
-    /// <summary>Every kind that lays no foundation is silent, whatever the ground around it does.</summary>
+    /// <summary>The drop is measured from the course the stamp itself levels the footprint to, over a
+    /// footprint whose ground steps, so the face reported is the face the foundation lays.</summary>
+    [Test]
+    public async Task The_floor_measured_is_the_level_the_foundation_stamps()
+    {
+        var surface = Plateau(0, 0, 5, 5, top: 10);
+        for (var z = 0; z <= 5; z++) surface[(5, z)] = 13;       // the footprint's east row stands higher
+        for (var z = 0; z <= 5; z++) surface[(-1, z)] = 8;      // the ground west of the room, below it
+
+        var level = StructureStamper.FoundationTops(surface, 0, 0, 6, 6).Values.Distinct().Single();
+        var finding = MapExportComposer.CheckStructureSites(surface, Stamped(0, 0, 5, 5)).Single();
+
+        await Assert.That(level).IsEqualTo(13);
+        await Assert.That(finding.Message).Contains($"{level - 8} blocks above the ground beside it at (-1, ");
+    }
+
+    /// <summary>Every kind that lays no foundation is silent, whatever the ground around it does. A placed
+    /// building is one: it seats on its lowest column and digs the rest out, so the highest ground it spans
+    /// is no floor it stands on.</summary>
     [Test]
     [Arguments("wall")]
     [Arguments("redstoneline")]
     [Arguments("destroyable")]
     [Arguments("core")]
+    [Arguments("house")]
     public async Task A_stamp_that_levels_nothing_is_silent(string kind)
     {
         var surface = Plateau(0, 0, 5, 5, top: 30);

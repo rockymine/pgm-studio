@@ -851,12 +851,16 @@ courses beneath it are still ground and are painted as such — the stone-only r
 more (TP6), which is what finishes the outside face a raised piece shows; where the footprint is too small to
 carry walls (WX2) the plinth **is** the floor, and it is now the board's ground rather than rock.
 
-**And where the cell beside a building has no ground to meet it on, `WX11` says so** — a complaint at the
-columns tier, since a building on a ledge is a real thing to draw and the world builds either way. The
-foundation levels its fill at the footprint's own highest column, so a neighbour that is void, or more than
-a step below the floor, is met by a sheer face of that fill: a wall a player cannot climb, at a height
-nobody chose. It is read off the **provenance** rather than off the intent, so it covers everything a pass
-stamped — a wool cage, a spawn cube, a placed building — by the identity each already recorded.
+**And where the ground beside a room falls away from it, `WX11` says so** — a complaint at the columns
+tier, since a room on a ledge is a real thing to draw and the world builds either way. The foundation levels
+its fill at the footprint's own highest column (`StructureStamper.FoundationLevel`, the one reading the stamp
+and the check both take), so a neighbour more than a step below the floor is met by a sheer face of that
+fill: a wall a player cannot climb, at a height nobody chose. A void neighbour is the board's edge and is
+not measured. It is read off the **provenance** rather than off the intent, by the identity each stamp
+already recorded, and it asks only what lays a foundation — a wool room and a spawn room
+(`StructureStamper.FoundationKinds`). A placed building lays none: it seats on its lowest column and digs
+the rest out (`docs/world-export/decoration.md` § the seating rule), so the highest ground its footprint
+spans is no floor it stands on.
 
 **A building stands on a foundation**, and it is one thing rather than three fields beside each other. The
 **plate** claims downward from the course players walk on, so a thicker one digs into the ground the house
