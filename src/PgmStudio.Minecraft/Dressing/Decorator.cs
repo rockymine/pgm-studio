@@ -883,7 +883,8 @@ public static class Decorator
             if (dug.Blocks > 0 && (deepest is null || dug.Deepest > deepest.Value.Deepest)) deepest = dug;
             HouseStamper.Stamp(
                 world, image, floorY, house.Style,
-                doors: front is { } side ? Doorway(house.Style, image, side) : null);
+                doors: front is { } side ? Doorway(house.Style, image, side) : null,
+                reflected: context.Symmetry.Reflects(k));
 
             foreach (var (x, z) in HeldCells(image, house.Style))
                 claims.Claim(x, z, ClaimKind.Structure, house.Id);

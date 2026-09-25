@@ -25,6 +25,12 @@ public static class Symmetry
         _ => null,
     };
 
+    /// <summary>Whether the <paramref name="k"/>-th orbit image under <paramref name="mode"/> is a reflection of
+    /// the authored unit rather than a rotation of it. A reflection swaps left and right, so anything laid out
+    /// from one hand has to be laid out from the other hand on this image to land on its mirror; a rotation
+    /// keeps both hands. Image 0 is the unit itself and never reflected.</summary>
+    public static bool Reflects(string? mode, int k) => k % 2 != 0 && Normal(mode) is not null;
+
     /// <summary>The concrete axes that make up a mode's orbit (the C# twin of JS <c>orbitAxes</c>), one per
     /// image beyond the base (length = <see cref="Order"/> − 1): <c>rot_90</c> fans out to
     /// rot_90/rot_180/rot_270; <c>none</c>/empty is order 1 so its orbit is empty (no fanning); every other

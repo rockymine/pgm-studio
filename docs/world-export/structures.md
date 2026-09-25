@@ -104,12 +104,19 @@ rounding it away.
   ladder hangs at, the order the monument seats fill. Every one of those is taken from a **hand** — the left or
   right of someone inside looking out through the wall (`RoomEdges.Handed`) — never from the low coordinate,
   because a rotation of the board carries a hand onto the same hand of the image and a coordinate onto the far
-  end of it. So under `rot_180` (and `rot_90`) a room's image is its stamp turned, block for block in what is
-  built; which stone of a noise or cell material lands where is keyed on the world's own coordinates and is not.
-  A mirror turns a left hand into a right one, and the frame does not carry which orbit image is the reflected
-  one, so on a mirror board a stamp that cannot centre a choice makes the same hand's choice on both sides.
+  end of it. A mirror turns a left hand into a right one, so the reflection travels with the room: whoever
+  fans the orbit — `PlanCompiler`, and `SymmetryExpander` for an intent that states one unit — asks
+  `Symmetry.Reflects(mode, image)` and records the answer on the spawn or wool (`reflected` on the intent), and
+  `WorldBuilder.SpawnRoom`/`WoolFrame` carry it onto the frame (`RoomFrame.Reflected`). A reflected frame is
+  laid out from the other hand — `RoomEdges.Handed(reflected, …)` — so the spare block, the narrowed door, the
+  ladder, the porch posts and the monument order land on the mirror of the authored room's. So under every
+  symmetry a room's image is its stamp turned or mirrored, block for block in what is built; which stone of a
+  noise or cell material lands where is keyed on the world's own coordinates and is not. An entry placed by
+  hand rather than fanned is an authored unit of its own and is stamped unreflected. The dressing pass's
+  houses take the same flag from `DressingSymmetry.Reflects` at each image they stamp.
   A block cell `x` turns onto `-1 - x` about a grid-line centre, so a read comparing a room with its image
-  compares column `(x, z)` with `(-1 - x, -1 - z)`, not with `(-x, -z)`.
+  compares column `(x, z)` with `(-1 - x, -1 - z)`, not with `(-x, -z)` — and under `mirror_x` with
+  `(-1 - x, z)`.
 
 - **WX2** *Minimums are measured in blocks, never cells, and only one of them refuses.* The smallest room
   there is measures **4×4** — a 2×2 pad and the block of clear floor it keeps on every side, which is the
@@ -286,7 +293,8 @@ the preview both call, so the stamped volume, the emitted region and the drawn b
 3. **The furnishers** — `RoomFrames.InteriorCorners` seats the chest stacks and
    `RoomFrames.MonumentSlots` the monuments (door-wall corners, back-wall corners, then the walls
    fill, skipping the door opening — each row from the left hand of someone standing in the door looking
-   out, so wool *n* of one team and of the other sit at each other's image). A larger spawn room gains monument capacity from its longer
+   out, a reflected room's from the right, so wool *n* of one team and of the other sit at each other's
+   image). A larger spawn room gains monument capacity from its longer
    walls with no new rules; the validator refuses a plan whose captured-wool count exceeds the
    seats.
 4. **The style** — `RoomStyle`, choosing shell materials and decoration, **never the footprint**; the
@@ -727,7 +735,8 @@ direction is what a window is seated in and a doorway is cut through. Two of an 
 naming a wall by the direction it faces stops being an identity the moment a building turns a corner. Each run
 is seated **between its two corners**, the windows are spread evenly and centred on that run —
 a wall reads as symmetric rather than as windows starting at one end and stopping when they run out, and where
-the leftover is odd the spare block falls on the right hand of someone inside looking out (§1) — and any
+the leftover is odd the spare block falls on the right hand of someone inside looking out, the left in a
+reflected building (§1) — and any
 seat that would meet a doorway, or the block of wall either side of it, is **dropped rather than shifted**.
 Shifting one would break the spacing of every window after it to save it, and the gap where a door is reads as
 intended. An opening that will not fit between the sill and the wall's last course is not cut at all.
@@ -929,8 +938,8 @@ interior corner, and both halves of that are about what else claims those cells.
 monuments fill a room's corners first and then the far wall inward (`MonumentSlots`), so the door wall is
 untouched until a room carries more monuments than a team ever captures — six wools is the ceiling in
 practice, and one cell off the door wall's corner is free. The corner itself is not, which is why the ladder
-sits one along from it — at the **left-hand** end, seen from inside looking out, so both teams climb in the
-same corner of their own room (§1). Where the doorway reaches that end the ladder takes the right-hand one
+sits one along from it — at the **left-hand** end, seen from inside looking out (the right-hand one in a
+reflected room), so both teams climb in the same corner of their own room (§1). Where the doorway reaches that end the ladder takes the right-hand one
 instead: a ladder in the doorway is a ladder in the way.
 
 Storeys are not a house-only feature. A wool room takes a `HouseStyle` like any other building, so a

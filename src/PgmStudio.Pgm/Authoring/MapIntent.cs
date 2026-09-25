@@ -362,6 +362,12 @@ public sealed record SpawnIntent
     /// receives an entry out of an already-fanned list and can only count.</summary>
     public StampId Stamp { get; init; }
 
+    /// <summary>Whether this entry is a mirror image of the authored unit — set by whoever fanned the orbit
+    /// (<c>Symmetry.Reflects</c>) and carried onto the room's frame (<c>RoomFrame.Reflected</c>). A reflection
+    /// swaps left and right, so every choice the room's walls cannot centre is taken from the other hand and
+    /// the image stamps as the mirror of the original. False on an entry nobody fanned.</summary>
+    public bool Reflected { get; init; }
+
     /// <summary>The team that enters here, by id.</summary>
     public string Team { get; init; } = "";
 
@@ -423,6 +429,12 @@ public sealed record WoolIntent
     /// carried through to the stamper, and recorded as the column's owner. The stamper cannot derive it: it
     /// receives an entry out of an already-fanned list and can only count.</summary>
     public StampId Stamp { get; init; }
+
+    /// <summary>Whether this entry is a mirror image of the authored unit — set by whoever fanned the orbit
+    /// (<c>Symmetry.Reflects</c>) and carried onto the room's frame (<c>RoomFrame.Reflected</c>). A reflection
+    /// swaps left and right, so every choice the room's walls cannot centre is taken from the other hand and
+    /// the image stamps as the mirror of the original. False on an entry nobody fanned.</summary>
+    public bool Reflected { get; init; }
 
     /// <summary>The team that defends this wool, by id.</summary>
     public string Owner { get; init; } = "";

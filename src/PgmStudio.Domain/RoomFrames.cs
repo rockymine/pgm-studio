@@ -166,12 +166,19 @@ public sealed record ResolvedRoom(RoomFrame Frame, IReadOnlyList<IronResolution>
 /// because none is bound or because the footprint is too small to carry one. The pad, the chests and the
 /// monuments are what a room is and sit on the footprint whichever it is, so every stamper reads this rather
 /// than asking again whether a style was bound.</para>
+///
+/// <para><see cref="Reflected"/> is whether this room is a mirror image of the one the author placed. Every
+/// choice a wall cannot centre — the spare block of a window row, the ladder's end, a narrowed door, the porch
+/// posts, the order of the monument seats — is taken from a hand (<see cref="RoomEdges.Handed"/>), and a
+/// reflection swaps the hands, so the stampers read it here to lay the image out as the mirror of the
+/// original. The resolver cannot derive it: it is a fact about the orbit image, set by whoever fanned it.</para>
 /// </summary>
 public sealed record RoomFrame(
     int MinX, int MinZ, int MaxX, int MaxZ,
     SpawnPad Pad,
     IReadOnlyList<RoomDoor> Doors,
-    int Wall = 1)
+    int Wall = 1,
+    bool Reflected = false)
 {
     public int Width => MaxX - MinX;
     public int Depth => MaxZ - MinZ;
@@ -506,8 +513,9 @@ public static class RoomFrames
     /// The ordered monument seats of a spawn room whose door is <paramref name="door"/>: the door-wall
     /// corners, then the back-wall corners, then the back wall filling inward, then the door wall — skipping
     /// the cells directly inside the door opening. Each row runs from the left hand of someone standing in
-    /// the door looking out, so the n-th seat of a room and of its image under the board's rotation are
-    /// images of each other. The list's length is the room's monument capacity; the caller takes the first N.
+    /// the door looking out, so the n-th seat of a room and of its orbit image are images of each other —
+    /// under a reflection too, since a <see cref="RoomFrame.Reflected"/> frame counts from the other hand.
+    /// The list's length is the room's monument capacity; the caller takes the first N.
     /// </summary>
     public static IReadOnlyList<MonumentSlot> MonumentSlots(RoomFrame frame, RoomDoor door)
     {
@@ -524,7 +532,7 @@ public static class RoomFrames
         MonumentSlot Seat(int along, int crossAxis, RoomEdge wall) =>
             alongX ? new MonumentSlot(along, crossAxis, wall) : new MonumentSlot(crossAxis, along, wall);
         bool InDoorSpan(int along) => along >= door.Lo && along < door.Lo + door.Width;
-        int Hand(int fromLeft) => door.Edge.Handed(alongLo, alongHi - 1, fromLeft);
+        int Hand(int fromLeft) => door.Edge.Handed(frame.Reflected, alongLo, alongHi - 1, fromLeft);
 
         var slots = new List<MonumentSlot>
         {

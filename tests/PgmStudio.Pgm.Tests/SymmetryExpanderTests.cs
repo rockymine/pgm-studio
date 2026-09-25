@@ -80,6 +80,26 @@ public sealed class SymmetryExpanderTests
     }
 
     [Test]
+    [Arguments("mirror_x", true)]
+    [Arguments("mirror_z", true)]
+    [Arguments("rot_180", false)]
+    public async Task A_filled_room_says_whether_the_orbit_reflected_it(string mode, bool reflects)
+    {
+        var intent = new MapIntent
+        {
+            Teams = TwoTeams(),
+            Symmetry = new SymmetryIntent { Mode = mode, CenterX = 0, CenterZ = 0 },
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 8, 4) }],
+            Wools = [new WoolIntent { Owner = "red-team", Spawn = new(12, 8, 6) }],
+        };
+        var outp = SymmetryExpander.Expand(intent);
+
+        await Assert.That(outp.Spawns.Single(s => s.Team == "red-team").Reflected).IsFalse();
+        await Assert.That(outp.Spawns.Single(s => s.Team == "blue-team").Reflected).IsEqualTo(reflects);
+        await Assert.That(outp.Wools!.Single(w => w.Owner == "blue-team").Reflected).IsEqualTo(reflects);
+    }
+
+    [Test]
     public async Task Region_orbit_keeps_block_centre_points_and_integer_grid_rects()
     {
         // Corpus convention (verified against PGM RectangleRegion/PointRegion + the 350-map corpus):

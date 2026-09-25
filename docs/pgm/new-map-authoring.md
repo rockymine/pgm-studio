@@ -86,6 +86,13 @@ map. It maps orbit position to team *in list order*, which is the weaker rule, s
 authored or already-assigned team is left alone. On a plan-built or fully-configured map it therefore does
 nothing at all.
 
+**A fanned room records whether its image is a reflection.** Both fans — the plan's and the expander's — set
+`reflected` on every spawn and wool they produce, from `Symmetry.Reflects(mode, image)`: true on the far image
+of a `mirror_*` board, false under a rotation and on the authored unit. A room's stamp takes each choice its
+walls cannot centre from a hand, and a reflection swaps the hands, so the export reads the flag onto the room's
+frame and lays the image out as the mirror of the original (`docs/world-export/structures.md` WX1). Configure's
+coverage assignment stores separately placed spawns rather than images of one, so those carry `false`.
+
 **The canvases only draw.** The JS ghosts — `plan-doc`'s mirror images, the sketch mirror layer, the editor's
 `setAuthorMirror` — are previews. They store nothing and decide nothing.
 

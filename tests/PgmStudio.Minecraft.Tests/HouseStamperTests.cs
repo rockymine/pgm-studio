@@ -1891,6 +1891,54 @@ public sealed class HouseStamperTests
         await Assert.That(faults).IsEmpty();
     }
 
+    [Test]
+    [MethodDataSource(nameof(RoomStyles))]
+    public async Task A_room_and_its_mirror_images_stand_on_the_same_columns((string Name, HouseStyle Style) named)
+    {
+        // The rot_180 comparison under the two mirrors. mirror_x carries block cell x onto -1 - x and keeps z,
+        // so a wall facing ±x turns onto the opposite wall and one facing ±z keeps its edge; mirror_z the same
+        // with the axes swapped. The image is a reflection, so its frame is resolved reflected — the fact the
+        // fan hands the resolver — and every choice a wall cannot centre has to land on the mirror of the
+        // original's.
+        var pieces = new[]
+        {
+            (MinX: -10, MinZ: -80, MaxX: 10, MaxZ: -65, MarkerX: 0.0, MarkerZ: -72.0),
+            (MinX: -12, MinZ: -20, MaxX: -2, MaxZ: -8, MarkerX: -7.0, MarkerZ: -14.0),
+            (MinX: -11, MinZ: -19, MaxX: -2, MaxZ: -8, MarkerX: -6.5, MarkerZ: -13.5),
+            (MinX: -30, MinZ: -9, MaxX: -14, MaxZ: 9, MarkerX: -22.0, MarkerZ: 0.0),
+        };
+        var faults = new List<string>();
+        foreach (var acrossX in new[] { true, false })
+            foreach (var piece in pieces)
+                foreach (var door in RoomEdges.All)
+                {
+                    var room = RoomFrames.Resolve(new BlockRect(piece.MinX, piece.MinZ, piece.MaxX, piece.MaxZ),
+                        null, shellBound: true, piece.MarkerX, piece.MarkerZ, [], [door], out _)!;
+                    var mirroredDoor = door.AlongX() == acrossX ? door : door.Opposite();
+                    var image = (acrossX
+                        ? RoomFrames.Resolve(new BlockRect(-piece.MaxX, piece.MinZ, -piece.MinX, piece.MaxZ), null,
+                            shellBound: true, -piece.MarkerX, piece.MarkerZ, [], [mirroredDoor], out _)!
+                        : RoomFrames.Resolve(new BlockRect(piece.MinX, -piece.MaxZ, piece.MaxX, -piece.MinZ), null,
+                            shellBound: true, piece.MarkerX, -piece.MarkerZ, [], [mirroredDoor], out _)!)
+                        with { Reflected = true };
+                    var (world, mirrored) = (new VoxelWorld(), new VoxelWorld());
+                    HouseStamper.Stamp(world, room, FloorY, named.Style);
+                    HouseStamper.Stamp(mirrored, image, FloorY, named.Style);
+
+                    for (var x = piece.MinX - 4; x < piece.MaxX + 4; x++)
+                        for (var z = piece.MinZ - 4; z < piece.MaxZ + 4; z++)
+                            for (var y = FloorY - 4; y < FloorY + 50; y++)
+                            {
+                                var (imageX, imageZ) = acrossX ? (-1 - x, z) : (x, -1 - z);
+                                if ((world.GetBlock(x, y, z).Id == Blocks.Air)
+                                    != (mirrored.GetBlock(imageX, y, imageZ).Id == Blocks.Air))
+                                    faults.Add($"{named.Name} {room.Width}x{room.Depth} door {door.Word()} "
+                                               + $"mirror_{(acrossX ? "x" : "z")} at ({x}, {y}, {z})");
+                            }
+                }
+        await Assert.That(faults).IsEmpty();
+    }
+
     private static IEnumerable<(int X, int Z)> Cells(int width, int depth)
     {
         for (var x = 0; x < width; x++)
