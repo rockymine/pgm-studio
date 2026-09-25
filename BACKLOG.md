@@ -318,18 +318,19 @@ Twelve judged donut boards at 20 and 30 players named what a larger composed boa
 
 ## The plan model: pieces, and the edges between them
 
-- [ ] **G270 — A mid stone grows to the zone's lateral border, and a stone spanning the band splits it in
-  two.** *Parked (author): no composer change yet.* The author's ruling: a zone never grows to overhang the
-  ground it docks (`BZ9` stands). A stone may grow to the build zone's border, so `StoneInsetCells` stops
-  holding it a cell off the band's ends — but a stone must not have build zone on all four sides once it
-  reaches that border. Where a stone is as wide as the band, the band is emitted as **two zones**, one per
-  side of the stone, neither containing it: what mapmakers do. Where several stones stand with zone between
-  them, one band stays one zone. `MD4` ("stones sit entirely inside the build zone") and `CT1`'s one band
-  zone change with it: `docs/generator/rules.md` (a new amendment), `model.md` §5.13, `MidCarver.Stones`.
+- [ ] **G270 — A mid stone may grow to the build zone's border, and one spanning the band splits it in two.**
+  *Parked (author): no composer change yet.* A zone never grows to overhang the ground it docks (`BZ9`
+  stands). A stone is read by how many of its edges border the zone: **four** — inside it; **three** —
+  against one side, not spanning it; **two adjacent** — in a corner; all three allowed. **Two opposite** —
+  across the whole band: allowed, and the band is then emitted as two zones, one per side, neither holding the
+  stone (PGM accepts one zone either way; two is what mapmakers write). **One** edge means the stone stands
+  outside the band, which is refused. Several stones with zone between them keep one zone. So
+  `StoneInsetCells` stops holding a stone a cell off the band's ends, and `MD4` and `CT1`'s one band zone are
+  restated: `rules.md` (a new amendment), `model.md` §5.13, `MidCarver.Stones`.
 
   *Evidence: `rot_180`, seeds 0–59, normal crossings spend a median of 85 · 72 · 81 · 88% of their share
   from nano to centi; `p16 rot_180 seed 0`, band 8×12 cells, one 6×6 stone held a cell off each end, 72%.
-  At the border it is 8×6, 48 of 50 cells.*
+  Spanning the band it is 8×6, 48 of 50 cells, and the band becomes two 8×3 zones.*
 
 - [ ] **G268 — A frontline spine docked flush on a hub wall makes one slab twice the corridor deep.**
   The frontline's spine is one corridor deep and the hub's wall behind it is another, and the spine docks
