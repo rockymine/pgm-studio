@@ -81,7 +81,7 @@ turns the player count into a land budget, a fanned board extent and the cell bo
 The **crossing** fixes the gap between the two fronts while the board is still empty, because the allocator
 takes it as the axis margin everything else is laid out behind: one hop either side of the stone the band will
 carry, or a flat 30 blocks front to front where it will carry none. It decides once whether this board wants a
-split band, which is a crossing that carries none. **Allocation** places the hub,
+split band, which is a crossing that carries no stone where the face grants it. **Allocation** places the hub,
 chooses its form, works out what hangs off it, and seats each neighbour on the hub's real free surface,
 producing typed boxes and the joints between them. Every unit carries a frontline on the hub's front edge, and
 a spawn on a side edge is seated in line with the hub's hole, or with its middle on a hub without one; a unit
@@ -371,10 +371,11 @@ no water lane and no iron — every one of those is a later tool's or an unbuilt
 seam that the attack crosses with void beyond both ends, and is left unwalled. Nothing weighs a wall against the
 board's other walls: each wool is walled on its own terms.
 
-**The mid is one plain band.** Twenty blocks of build zone spanning the axis, flush against both fronts, with
-no stones and no centre island. A board's crossing is therefore the same crossing on every board, and the
-richer mids the model describes layer in later. The one variation is the split band, drawn on about a third of
-laterally-flipping boards and granted only where the face can host it.
+**The mid is one band and one row of stones.** The band spans the axis flush against both fronts and carries
+up to three stones, astride the axis or as a facing pair of ranks (`docs/generator/model.md` §5.13), and no
+richer middle than that row. The one variation in the band itself is the split, drawn on about a third of
+laterally-flipping boards and granted only where the face can host it: a granted split carries no stone, its
+bay being the island, and a refused one carries the single rank its empty gap has room for.
 
 **The drawer's hard-term list is structurally unreachable.** The browse endpoint evaluates with the same
 profile the composer's acceptance gate used, so a board with a hard violation was already resampled away:

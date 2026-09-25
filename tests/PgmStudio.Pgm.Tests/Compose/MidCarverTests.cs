@@ -91,9 +91,12 @@ public sealed class MidCarverTests
                 {
                     var stages = Composer.ComposeStages(new ComposeRequest(players, 2, symmetry, seed));
                     var env = stages.Envelope;
-                    // a keyed row is a corridor deep rather than the band's own stone depth, so the depth the
-                    // invariant holds against is the one the row it actually laid is measured in
-                    var deep = MidCarver.StoneDeepCells(env, stages.Mid.Grain);
+                    // a keyed row is a corridor deep rather than the band's own stone depth, and a split the face
+                    // refused stands its stone at what the stoneless gap leaves, so the depth the invariant holds
+                    // against is the one the row it actually laid is measured in
+                    var deep = stages.Crossing.SplitBand
+                        ? MidCarver.RefusedSplitDeepCells(env)
+                        : MidCarver.StoneDeepCells(env, stages.Mid.Grain);
                     var stones = stages.Mid.Stones;
                     await Assert.That(stones.Count).IsLessThanOrEqualTo(MidCarver.StoneMaxCount);
 
@@ -154,6 +157,32 @@ public sealed class MidCarverTests
                 await Assert.That(front - stoneFar).IsEqualTo(MidCarver.HopCells(env.Cell))
                     .Because($"p{players} s{seed}: one hop from the stone's far edge to the unit's near edge");
             }
+    }
+
+    /// <summary>A board that asked for a split its face could not host still puts ground in the crossing: every
+    /// composed two-image board whose crossing was designed for a split either realised it, spanning less than
+    /// the face hull, or carries a stone.</summary>
+    [Test]
+    public async Task A_board_whose_split_was_refused_carries_a_mid_stone()
+    {
+        var refused = 0;
+        foreach (var players in new[] { 8, 16, 24, 32, 52 })
+            for (ulong seed = 0; seed < 8; seed++)
+            {
+                var stages = Composer.ComposeStages(new ComposeRequest(players, 2, "rot_180", seed));
+                if (!stages.Crossing.SplitBand) continue;
+                var front = stages.Unit.Pieces.Min(piece => piece.Rect.Z);
+                // a realised split spans one leg; a refused one spans the hull of the faces and their images
+                var faces = stages.Unit.Pieces.Where(piece => piece.Rect.Z == front)
+                    .Select(piece => (Lo: piece.Rect.X, Hi: piece.Rect.X + piece.Rect.Width)).ToList();
+                var hull = Math.Max(faces.Max(face => face.Hi), faces.Max(face => -face.Lo))
+                           - Math.Min(faces.Min(face => face.Lo), faces.Min(face => -face.Hi));
+                if (stages.Mid.BandRect.Width < hull) continue;
+                refused++;
+                await Assert.That(stages.Mid.Stones.Count).IsGreaterThan(0)
+                    .Because($"p{players} s{seed}: a refused split still crosses a stone");
+            }
+        await Assert.That(refused).IsGreaterThan(0).Because("a sweep with no refused split asserts nothing");
     }
 
     [Test]
@@ -225,6 +254,33 @@ public sealed class MidCarverTests
         var legs = new (int X, int W)[] { (-6, 4), (2, 3) };   // 4 wide against 3 — not its own mirror
         await Assert.That(Band("rot_180", split: true, legs)!.Value.Width)
             .IsEqualTo(Band("rot_180", split: false, legs)!.Value.Width);
+    }
+
+    /// <summary>A split the face refused leaves one band across the stoneless gap, and that band carries the
+    /// single rank astride the axis — a hop off each front, at the depth the gap leaves — where a realised split
+    /// carries none, its bay being the island.</summary>
+    [Test]
+    public async Task A_refused_split_carries_a_stone_and_a_realised_one_does_not()
+    {
+        var env = Env("rot_180");
+        var design = MidCarver.Crossing(env, splitBand: true, doubleRank: false, fine: false);
+        var halfGap = design.HalfGapCells;
+        MidResult Carve(params (int X, int W)[] legs) => MidCarver.TryCarve(env, design, new GrownUnit(
+            legs.Select((leg, index) => new GrownPiece($"front-{index}", new(leg.X, halfGap, leg.W, 2)))
+                .Append(new GrownPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3))).ToList(),
+            new GrownSpawn("hub", [0, 0], "front"), []))!;
+
+        var refused = Carve((-6, 4), (2, 3));
+        await Assert.That(refused.Stones.Count).IsGreaterThan(0).Because("the wide empty crossing gets its stone");
+        await Assert.That(refused.Form).IsEqualTo(MidForm.SingleRank);
+        foreach (var stone in refused.Stones)
+        {
+            await Assert.That(stone.Rect.Z).IsEqualTo(-stone.Rect.Z - stone.Rect.Height).Because("astride the axis");
+            await Assert.That(halfGap - (stone.Rect.Z + stone.Rect.Height)).IsEqualTo(MidCarver.HopCells(env.Cell))
+                .Because("a hop off the front it is reached from");
+        }
+
+        await Assert.That(Carve((-5, 3), (2, 3)).Stones).IsEmpty().Because("a realised split's bay is the island");
     }
 
     /// <summary>Under a mirror the image lands straight across rather than reflected, so a band over one leg

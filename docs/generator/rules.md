@@ -1308,3 +1308,13 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     board's other room carried two. Both rules now say full-width or narrower, both sites call the predicate,
     and the composer's gate reads `PlanValidator` through the same path, so three of 120 recorded boards move
     verdict and `ComposerVersion` is `body-first-2` (`WE128`).
+
+53. **A refused split carries a stone (2026-09-25).** Amendment 35's "a split band carries none" read the
+    request rather than the grant: `MidCarver.TryCarve` laid no row whenever the crossing asked to split, and
+    `SplitRun` grants the split only where the face coincides with its own image as two legs round the axis.
+    A refused split is one band across the whole hull of the faces, opened at the stoneless 30 blocks, so it
+    spent the widest crossing on the board and put nothing in it — `p8 rot_180 seed 2` at nano, a 6-cell hull,
+    `mid 0/28`. A realised split still carries none; a refused one carries the single rank astride the axis at
+    the depth that gap leaves a hop either side of (`RefusedSplitDeepCells`, two cells on every grid the
+    composer uses). Fifteen of the 120 recorded boards move, all `rot_180`, and `ComposerVersion` is
+    `walled-4` (`G271`).

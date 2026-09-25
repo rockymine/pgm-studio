@@ -1311,12 +1311,15 @@ runs one island at nano and micro, one or two at milli and up to three at centi.
 the row needs it the gap between stones takes one cell more than a hop, because a row spanning an odd number
 of cells cannot sit symmetric about the axis's own cell boundary.
 
-Two things the crossing declines. A board that **asked for a split band** carries no stone: a realised split
-is already two parallel crossings with the bay between its legs left as an island, and a stone in the bay
-would fill the thing that makes it a split. The carve declines on the request rather than on the grant,
-though, so a face that offered no split it would take spends the empty crossing and puts nothing in it
-either (`G271`). And a hull too narrow to hold one stone at the aspect rule carries none — the band is then
-simply wider than it needed to be, which is a thinner crossing rather than a refused board.
+Two things the crossing declines. A **realised split band** carries no stone: it is already two parallel
+crossings with the bay between its legs left as an island, and a stone in the bay would fill the thing that
+makes it a split. The split is a request the face grants or refuses, and a refused one is crossed by a single
+band like any other, so it carries the single rank — but its gap was fixed at the empty crossing's thirty
+blocks before the face was known, so the stone stands as deep as that gap leaves room for once a hop is kept to
+each front: two cells on every grid the composer uses, eight blocks at cell 4 and ten at cell 5, against the
+sixteen or more a stone otherwise stands. And a
+hull too narrow to hold one stone at the aspect rule carries none — the band is then simply wider than it
+needed to be, which is a thinner crossing rather than a refused board.
 
 ### 5.14 The defence walls
 

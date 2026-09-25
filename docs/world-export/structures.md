@@ -98,6 +98,19 @@ rounding it away.
 
   The shell's orientation is the rect's own; the fanned rect orients the orbit images.
 
+  **A room and its image stand on the same columns.** The frame is symmetric by construction — its footprint,
+  pad and doors are the fanned rect's own — so what could break the image is the stamp, wherever it makes a
+  choice a run cannot centre: the spare block of a window row or a narrowed door, the end of the door wall a
+  ladder hangs at, the order the monument seats fill. Every one of those is taken from a **hand** — the left or
+  right of someone inside looking out through the wall (`RoomEdges.Handed`) — never from the low coordinate,
+  because a rotation of the board carries a hand onto the same hand of the image and a coordinate onto the far
+  end of it. So under `rot_180` (and `rot_90`) a room's image is its stamp turned, block for block in what is
+  built; which stone of a noise or cell material lands where is keyed on the world's own coordinates and is not.
+  A mirror turns a left hand into a right one, and the frame does not carry which orbit image is the reflected
+  one, so on a mirror board a stamp that cannot centre a choice makes the same hand's choice on both sides.
+  A block cell `x` turns onto `-1 - x` about a grid-line centre, so a read comparing a room with its image
+  compares column `(x, z)` with `(-1 - x, -1 - z)`, not with `(-x, -z)`.
+
 - **WX2** *Minimums are measured in blocks, never cells, and only one of them refuses.* The smallest room
   there is measures **4×4** — a 2×2 pad and the block of clear floor it keeps on every side, which is the
   same ring its four chest corners seat in. That is the span WX2 refuses under, everywhere and whatever is
@@ -272,7 +285,8 @@ the preview both call, so the stamped volume, the emitted region and the drawn b
    (WX5), which is the whole of what a caller gets back.
 3. **The furnishers** — `RoomFrames.InteriorCorners` seats the chest stacks and
    `RoomFrames.MonumentSlots` the monuments (door-wall corners, back-wall corners, then the walls
-   fill, skipping the door opening). A larger spawn room gains monument capacity from its longer
+   fill, skipping the door opening — each row from the left hand of someone standing in the door looking
+   out, so wool *n* of one team and of the other sit at each other's image). A larger spawn room gains monument capacity from its longer
    walls with no new rules; the validator refuses a plan whose captured-wool count exceeds the
    seats.
 4. **The style** — `RoomStyle`, choosing shell materials and decoration, **never the footprint**; the
@@ -701,7 +715,8 @@ back into itself — so a rectangle stands in four of them and an L in six, and 
 direction is what a window is seated in and a doorway is cut through. Two of an L's walls look the same way, so
 naming a wall by the direction it faces stops being an identity the moment a building turns a corner. Each run
 is seated **between its two corners**, the windows are spread evenly and centred on that run —
-a wall reads as symmetric rather than as windows starting at one end and stopping when they run out — and any
+a wall reads as symmetric rather than as windows starting at one end and stopping when they run out, and where
+the leftover is odd the spare block falls on the right hand of someone inside looking out (§1) — and any
 seat that would meet a doorway, or the block of wall either side of it, is **dropped rather than shifted**.
 Shifting one would break the spacing of every window after it to save it, and the gap where a door is reads as
 intended. An opening that will not fit between the sill and the wall's last course is not cut at all.
@@ -775,7 +790,10 @@ and a seat a door meets is dropped rather than shifted. A twenty-one-wide wall e
 two windows either side of its door and reads as a row with a hole punched in it; entered at the gable end it
 keeps its whole row, and a hall is entered at the end anyway. Unset, the front is the long side, which is what
 a building with nothing to say about it has always fronted on. A porch's own edge outranks it, since a porch
-names the wall it fronts; a frame's doors outrank both.
+names the wall it fronts, and pins it — and the ladder and a shed's fall with it — to one side of the world on
+every image of the room. A frame's doors outrank the style's front: a front named by a style is one compass
+edge for both teams' copies, so read ahead of the doors it would put one team's ladder on its door wall and the
+other's on its back wall.
 
 **An arch is two upside-down stairs in the top corners of an opening, and one shape serves both holes.** Over
 a doorway the middle between them is spanned — a beam or an upside-down slab reading as one line with the
@@ -900,8 +918,9 @@ interior corner, and both halves of that are about what else claims those cells.
 monuments fill a room's corners first and then the far wall inward (`MonumentSlots`), so the door wall is
 untouched until a room carries more monuments than a team ever captures — six wools is the ceiling in
 practice, and one cell off the door wall's corner is free. The corner itself is not, which is why the ladder
-sits one along from it. Where the doorway reaches that end the ladder takes the other one instead: a ladder in
-the doorway is a ladder in the way.
+sits one along from it — at the **left-hand** end, seen from inside looking out, so both teams climb in the
+same corner of their own room (§1). Where the doorway reaches that end the ladder takes the right-hand one
+instead: a ladder in the doorway is a ladder in the way.
 
 Storeys are not a house-only feature. A wool room takes a `HouseStyle` like any other building, so a
 multi-storey wool room is the same stack with a monument in it.

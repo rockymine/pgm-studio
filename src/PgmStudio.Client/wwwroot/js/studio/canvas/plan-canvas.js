@@ -16,7 +16,7 @@ import { layerStack, INERT } from "../render/layer-stack.js";
 import { CanvasPainter } from "../render/canvas-painter.js";
 import { blockDataToDataUrl } from "../render/block-render.js";
 import {
-  ROLE_COLORS, BOX_COLORS, ZONE_COLORS, isWaterLane, canonicalZoneKind, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
+  ROLE_COLORS, BOX_COLORS, ZONE_COLORS, isWaterLane, canonicalZoneKind, FACING_DIR, rectCellsToBlocks, cellOfWorld, rectFromCells,
   markerCell, attachMarker, markerAt, markerList, MARKER_KINDS, allMarkers, viewBounds, pickAtWorld, sameSelection,
   footprintCell, clampFootprint, pieceBlocks, FOOTPRINT_KINDS,
   pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece,
@@ -1068,11 +1068,11 @@ export class PlanCanvas extends CanvasBase {
 
   // A press-release with no drag. The first click on a spawn only selects it; a re-click on the
   // already-selected spawn (reselect) cycles its facing — so placing/selecting never surprises with a
-  // facing change. (Selection itself already happened on mousedown.)
+  // facing change. (Selection itself already happened on mousedown.) The turn itself is the host's
+  // (onCycleFacing), because a facing is also where the room's seeded iron stands.
   #clickSelect(reselect) {
     if (reselect && this.#sel?.kind === "marker" && this.#sel.markerKind === "spawn") {
-      const m = markerAt(this.#doc, "spawn", this.#sel.index);
-      if (m) { m.facing = nextFacing(m.facing); this.render(); this.#cb.onChange?.(); this.#fireSelect(); }
+      if (markerAt(this.#doc, "spawn", this.#sel.index)) this.#cb.onCycleFacing?.(this.#sel.index);
     } else if (!this.#sel) {
       this.#refreshOverlay();
     }

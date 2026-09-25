@@ -70,6 +70,21 @@ export const FACING_DIR = {
 export function nextFacing(f) { const i = FACINGS.indexOf(f); return FACINGS[(i + 1) % FACINGS.length]; }
 
 /**
+ * Carry the iron cube a spawn's room seeded across a change of facing: the cube on `pieceId` still standing at
+ * `seeded` — the room's answer for the facing it had — moves to `reseated`, the answer for the facing it has
+ * now. A cube standing anywhere else is one the author placed or slid, and is left where it is. Answers whether
+ * a cube moved.
+ */
+export function reseatSeededIron(doc, pieceId, seeded, reseated) {
+  if (!Array.isArray(seeded) || !Array.isArray(reseated)) return false;
+  const cube = (doc.placements?.iron || []).find(m => m.piece === pieceId
+    && Array.isArray(m.at) && m.at[0] === seeded[0] && m.at[1] === seeded[1]);
+  if (!cube || (cube.at[0] === reseated[0] && cube.at[1] === reseated[1])) return false;
+  cube.at = [reseated[0], reseated[1]];
+  return true;
+}
+
+/**
  * The shape version a document written here states — the twin of `PlanModel.CurrentVersion`, which is what
  * the server reads. A marker's `at` is an offset in **blocks** from its piece's minimum corner (version 2);
  * version 1 stated the same field in cells, the same numbers over a different distance, so a document

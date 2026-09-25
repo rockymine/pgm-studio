@@ -14,7 +14,7 @@
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, defaultReference, ROLES, BOX_KINDS,
-  viewBounds, markerList, MARKER_KINDS, boxMembers, nextFacing,
+  viewBounds, markerList, MARKER_KINDS, boxMembers, nextFacing, reseatSeededIron,
 } from "../plan/plan-doc.js";
 import { parseOverlays } from "../plan/plan-inspect.js";
 import { fireTo } from "./fire.js";
@@ -86,6 +86,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     onCreate: (kind, rect) => createRect(kind, rect),
     onDelete: (sel) => deleteSelection(sel),
     onToggleWall: (a, b) => toggleWallMark(a, b),
+    onCycleFacing: (index) => cycleFacing(index),
   });
 
   // ── document mutations (canvas + inspector edits funnel here) ───────────────
@@ -126,14 +127,8 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   // selected; the marker and footprint land a moment later, exactly as the live feeds do. A piece too small
   // to raise a shell on answers 404 and is left bare, which is the honest signal that nothing fits.
   async function seedRoom(pieceId, role) {
-    let res;
-    try {
-      res = await fetch(`/api/plan/room?piece=${encodeURIComponent(pieceId)}`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: toJson(doc) });
-    } catch { return; }                       // offline / transient — the piece keeps the resolver's default
-    if (!res.ok) return;
-    let seed;
-    try { seed = await res.json(); } catch { return; }
+    const seed = await askRoom(pieceId, toJson(doc));
+    if (!seed) return;                        // offline, refused or unreadable — the piece keeps the resolver's default
     if (!doc.pieces.some(p => p.id === pieceId)) return;   // deleted or renamed while the ask was in flight
     const list = role === "spawn" ? doc.placements.spawns : doc.placements.wools;
     if (list.some(m => m.piece === pieceId)) return;        // the author got there first
@@ -145,6 +140,47 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     if (Array.isArray(seed.iron) && !doc.placements.iron.some(m => m.piece === pieceId)) {
       doc.placements.iron.push({ piece: pieceId, at: seed.iron });
     }
+    canvas.setDoc(doc);
+    afterEdit();
+  }
+
+  // The room a piece carries as `state` (a plan wire document) states it, or null where the server could not be
+  // reached or has nothing to seed.
+  async function askRoom(pieceId, state) {
+    try {
+      const res = await fetch(`/api/plan/room?piece=${encodeURIComponent(pieceId)}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: state });
+      return res.ok ? await res.json() : null;
+    } catch { return null; }
+  }
+
+  // Turn a spawn to its next facing. The iron the room seeded stands beside the door on the player's right, and
+  // the facing is what picks the door, so the cube is asked for again and moved — if it still stands where the
+  // old facing's room put it. The room is asked for twice, before and after, rather than remembered: a cube
+  // seeded in an earlier session is recognised the same way, and one the author slid answers to neither.
+  // Clicks faster than the answers keep the document from before the first of them, and only the last answer
+  // is applied.
+  const turning = new Map();                  // piece id → { before, seq } while a re-ask is in flight
+  function cycleFacing(index) {
+    const m = doc.placements.spawns[index];
+    if (!m) return;
+    const pieceId = m.piece;
+    const pending = turning.get(pieceId);
+    const before = pending ? pending.before : toJson(doc);
+    const seq = (pending?.seq ?? 0) + 1;
+    turning.set(pieceId, { before, seq });
+    m.facing = nextFacing(m.facing);
+    canvas.setDoc(doc);
+    canvas.select({ kind: "marker", markerKind: "spawn", index });
+    afterEdit();
+    reseatIron(pieceId, before, toJson(doc), seq);
+  }
+
+  async function reseatIron(pieceId, before, after, seq) {
+    const [was, now] = await Promise.all([askRoom(pieceId, before), askRoom(pieceId, after)]);
+    if (turning.get(pieceId)?.seq !== seq) return;     // a later turn is in flight and answers for both
+    turning.delete(pieceId);
+    if (!was || !now || !reseatSeededIron(doc, pieceId, was.iron, now.iron)) return;
     canvas.setDoc(doc);
     afterEdit();
   }
@@ -443,7 +479,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       else { const m = boxMembers(doc, b).map(p => p.id); if (m.length) b.members = m; }
       canvas.setDoc(doc); canvas.select({ kind: "box", id }); afterEdit();
     },
-    cycleFacing(index) { const m = doc.placements.spawns[index]; if (!m) return; m.facing = nextFacing(m.facing); canvas.setDoc(doc); canvas.select({ kind: "marker", markerKind: "spawn", index }); afterEdit(); },
+    cycleFacing(index) { cycleFacing(index); },
 
     // Set one structure field on an objective marker — the casing knobs on a core, the design and material
     // on a destroyable. A null value REMOVES the key, which is what keeps a marker the author never varied

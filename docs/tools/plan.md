@@ -273,6 +273,14 @@ building is the one worth handing an author who has not said yet; where the piec
 room it *can* have is seeded anyway and the building simply is not there (`WX2`). Only a piece too small to
 hold a room at all is left bare, which is the honest signal that nothing fits.
 
+**Turning a spawn carries the cube it seeded.** The iron stands beside the door on the player's right, and the
+facing is what picks the door, so cycling a spawn's facing — a click on the already-selected marker or the
+rail's *Cycle facing* — asks `POST /api/plan/room` again, once for the document as it stood and once as it
+now stands. A cube on that piece still at the first answer is the seeded one and moves to the second; a cube
+anywhere else is one the author placed or slid, and stays where it is. Nothing is remembered between the two
+asks, so a cube seeded in an earlier session is recognised the same way. The footprint does not move with
+the facing: it is stated on the placement, and the walls a door can open through are the piece's.
+
 A **wool** may name a `color`, one of the sixteen dyes PGM resolves — `white`, `orange`, `magenta`,
 `light_blue`, `yellow`, `lime`, `pink`, `gray`, `silver`, `cyan`, `purple`, `blue`, `brown`, `green`, `red`,
 `black`, which `GET /api/objectives/vocabulary` serves under `wool.colors` with each one's label and swatch.
