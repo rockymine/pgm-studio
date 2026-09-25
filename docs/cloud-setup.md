@@ -130,10 +130,13 @@ Analysis beyond that is a scratch pass rather than a checked-in harness (`CLAUDE
 local*) — write it against the JSON `RoundTrip` emits, keep the finding, drop the script.
 
 ## Data (corpus maps + real output)
-- **Real output data** lives in its own repo: **`rockymine/pgm-studio-output`** — clone it when you need the
-  actual generated/derived output rather than synthetic fixtures.
-- Corpus analysis also needs the source map worlds, which aren't in the container. Clone them locally and
-  point the tool / `MapsRoots` at the clone (e.g. `OvercastCommunity/CommunityMaps`, the `ctw/` subset).
+- **Real output data** lives in its own repo: **`rockymine/pgm-studio-output`**, one folder per corpus map
+  with a world the studio reads (every game mode), written by `tools/PgmStudio.RoundTrip --scan-out-all`. It
+  is the feature root `--goldens` reads; rescan it when the scanner changes, since a map's goldens are only as
+  current as its folder.
+- Corpus analysis also needs the source maps, which aren't in the container. A sparse clone of
+  `OvercastCommunity/PublicMaps` and `OvercastCommunity/CommunityMaps` holding `*.xml` and `**/region/*.mca`
+  is enough, with `PGM_STUDIO_MAPS_ROOTS` listing every game-mode folder of both, separated by `;`.
 
 ## Orientation
 `CLAUDE.md` (rules) · `TODO.md` (open work) · `FEATURES.md` (shipped) ·

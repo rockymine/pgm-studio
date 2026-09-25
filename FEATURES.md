@@ -8009,8 +8009,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   set to `reach`. The region parser reads `below`, `above` on every axis, `nowhere`/`empty` and multi-child
   `<region>` wrappers as unions, and `everywhere` has a footprint, so the 134 corpus maps stating their build
   area as `complement(everywhere, …)` read it; `resize` is refused, and `RegionTypesTests` holds the parser to
-  PGM's list. Corpus traversability: not connected 193 → 146 of 347 over a regenerated scan (164 over the
-  committed one, until `RP74`). (`WS73`, `B57`)
+  PGM's list. Corpus traversability over the 347 CTW maps then scanned: not connected 193 → 146. (`WS73`,
+  `B57`)
+
+- **The corpus scan output is current and covers every mode (`RP74`)** — `rockymine/pgm-studio-output` is
+  rescanned with `--scan-out-all`: floor marks and the floor-sheet-free segment scan for the 347 CTW maps it
+  held, and 566 more maps of every other mode the studio reads, so `corpus-goldens.json` measures 911 maps'
+  traversability instead of 347. A `<mirror>` of a region with an `oo` side derives finite bounds on the
+  axis it keeps (`RegionBoundsDeriver.Mirror`, shared by the parser and the storage round-trip), which lets
+  `mont_blanc`, `royal_ascend` and `cargo` serialize at all. (`RP74`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning

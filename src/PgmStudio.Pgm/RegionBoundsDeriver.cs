@@ -8,7 +8,8 @@ namespace PgmStudio.Pgm;
 /// reconstructing a map from storage. The XML parser computes these at parse time
 /// (<c>RegionParser</c>), but a DB round-trip only persists primitive bounds — so after rebuilding
 /// the registry we recompute union/negative/complement/intersect (union of children),
-/// mirror (reflect the source AABB) and translate (offset the source AABB). Same math as the parser.
+/// mirror (reflect the source AABB) and translate (offset the source AABB). The parser takes its bounds from
+/// the same three operations.
 /// </summary>
 public static class RegionBoundsDeriver
 {
@@ -35,26 +36,47 @@ public static class RegionBoundsDeriver
     }
 
     private static Bounds2d? UnionBounds(List<string>? childIds, IReadOnlyDictionary<string, Region> registry)
+        => childIds is null ? null
+            : Union(childIds.Select(cid => registry.GetValueOrDefault(cid)?.Bounds2d).OfType<Bounds2d>());
+
+    private static Bounds2d? MirrorBounds(Region m, IReadOnlyDictionary<string, Region> registry)
+        => m.SourceId is { } sid && registry.GetValueOrDefault(sid)?.Bounds2d is { } b
+            ? Mirror(b, m.NormalX ?? 0, m.NormalZ ?? 0, m.OriginX ?? 0, m.OriginZ ?? 0)
+            : null;
+
+    private static Bounds2d? TranslateBounds(Region t, IReadOnlyDictionary<string, Region> registry)
+        => t.SourceId is { } sid && registry.GetValueOrDefault(sid)?.Bounds2d is { } b
+            ? Translate(b, t.OffsetX ?? 0, t.OffsetZ ?? 0)
+            : null;
+
+    /// <summary>The box around every child box; null where there is none.</summary>
+    public static Bounds2d? Union(IEnumerable<Bounds2d> boxes)
     {
-        if (childIds is null) return null;
         double minX = double.PositiveInfinity, minZ = double.PositiveInfinity;
         double maxX = double.NegativeInfinity, maxZ = double.NegativeInfinity;
         var found = false;
-        foreach (var cid in childIds)
-            if (registry.GetValueOrDefault(cid)?.Bounds2d is { } b)
-            {
-                // NaN-tolerant min/max — a mirror of an oo/-oo source yields NaN.
-                minX = MinPy(minX, b.MinX); minZ = MinPy(minZ, b.MinZ);
-                maxX = MaxPy(maxX, b.MaxX); maxZ = MaxPy(maxZ, b.MaxZ);
-                found = true;
-            }
+        foreach (var b in boxes)
+        {
+            minX = Math.Min(minX, b.MinX); minZ = Math.Min(minZ, b.MinZ);
+            maxX = Math.Max(maxX, b.MaxX); maxZ = Math.Max(maxZ, b.MaxZ);
+            found = true;
+        }
         return found ? Bounds2d.Of(minX, minZ, maxX, maxZ) : null;
     }
 
-    private static Bounds2d? MirrorBounds(Region m, IReadOnlyDictionary<string, Region> registry)
+    /// <summary>The source box reflected across the mirror plane (PGM <c>&lt;mirror&gt;</c>): all four corners
+    /// through the canonical <see cref="Symmetry"/> transform, then re-bound — exact for axis-aligned and 45°
+    /// normals. An unbounded side cannot go through the corner transform (it multiplies a zero component by
+    /// infinity), so an axis-aligned normal flips its own axis alone and a diagonal one leaves the reflection
+    /// unbounded.</summary>
+    public static Bounds2d Mirror(Bounds2d b, double nx, double nz, double ox, double oz)
     {
-        if (m.SourceId is not { } sid || registry.GetValueOrDefault(sid)?.Bounds2d is not { } b) return null;
-        double nx = m.NormalX ?? 0, nz = m.NormalZ ?? 0, ox = m.OriginX ?? 0, oz = m.OriginZ ?? 0;
+        if (double.IsInfinity(b.MinX) || double.IsInfinity(b.MinZ) || double.IsInfinity(b.MaxX) || double.IsInfinity(b.MaxZ))
+        {
+            if (nz == 0 && nx != 0) return Bounds2d.Of(2 * ox - b.MaxX, b.MinZ, 2 * ox - b.MinX, b.MaxZ);
+            if (nx == 0 && nz != 0) return Bounds2d.Of(b.MinX, 2 * oz - b.MaxZ, b.MaxX, 2 * oz - b.MinZ);
+            return Bounds2d.Of(double.NegativeInfinity, double.NegativeInfinity, double.PositiveInfinity, double.PositiveInfinity);
+        }
         var c = new[]
         {
             Symmetry.ReflectPoint(b.MinX, b.MinZ, nx, nz, ox, oz),
@@ -65,13 +87,7 @@ public static class RegionBoundsDeriver
         return Bounds2d.Of(c.Min(p => p.X), c.Min(p => p.Z), c.Max(p => p.X), c.Max(p => p.Z));
     }
 
-    private static Bounds2d? TranslateBounds(Region t, IReadOnlyDictionary<string, Region> registry)
-    {
-        if (t.SourceId is not { } sid || registry.GetValueOrDefault(sid)?.Bounds2d is not { } b) return null;
-        double dx = t.OffsetX ?? 0, dz = t.OffsetZ ?? 0;
-        return Bounds2d.Of(b.MinX + dx, b.MinZ + dz, b.MaxX + dx, b.MaxZ + dz);
-    }
-
-    private static double MinPy(double acc, double v) => double.IsNaN(v) ? acc : Math.Min(acc, v);
-    private static double MaxPy(double acc, double v) => double.IsNaN(v) ? acc : Math.Max(acc, v);
+    /// <summary>The source box moved by the offset.</summary>
+    public static Bounds2d Translate(Bounds2d b, double dx, double dz)
+        => Bounds2d.Of(b.MinX + dx, b.MinZ + dz, b.MaxX + dx, b.MaxZ + dz);
 }
