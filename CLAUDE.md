@@ -216,6 +216,10 @@ renamed or retired changes its `vocabulary.md` row in the same commit.
   database so it cannot touch dev data. It needs Playwright **globally** (`npm i -g playwright && npx
   playwright install chromium`). **Stop `dev.sh` first** — two servers on one VM starve each other and the
   failures land as 30s route timeouts that look like page faults.
+- **`.github/workflows/ci.yml`** runs the same gates on every pull request and push to `main`: the build, all
+  ten test projects (the three database ones serially, on MariaDB installed the way `docs/cloud-setup.md`
+  does), the JS suite, the census, the tool scripts and `./tools/e2e.sh all`. A red check there is the
+  same failure a local run would show, not an environment quirk.
 - **`tools/PgmStudio.RoundTrip --goldens [featureRoot] [--update]`** is the corpus regression net: the four
   map-level derivations over every corpus map, compared against `corpus-goldens.json`, so a change that moves
   a verdict says which maps and what moved. Re-record when the change is deliberate — it buys the look, not a
