@@ -363,8 +363,8 @@ states is not read as a gap again.
 
 The per-side-focus half of `N08` did not survive the same reading and is not a question the author was
 asked: `FocusSection` and the `/concepts` page it lived on were deleted on 2026-07-22 (`7fac0f69`), so the
-design it named is gone and only the want is left. It is filed as `TC6`, parked on what the frame should be —
-`WorldCanvas.FitIsland` frames an island, and a team's quadrant is not one.
+design it named is gone and only the want is left. It was filed as `TC6` and withdrawn on the author's
+answer: the author frames a side by dragging the canvas, so there is no frame for the tool to choose.
 
 **The sitting has happened, and it drained the whole list.** Seven questions were put to the author in one
 pass and seven came back, which is what this section claimed would happen and had never been tested. What the
@@ -414,9 +414,9 @@ partition it — a third of the entries are cleanup, naming and consistency work
 but each of the three wants a different treatment, which is what makes them worth naming despite the
 ambiguity at their edges.
 
-**Blocked decisions** are what the board still marks as parked — `TC6` (what a per-side frame is), `WE41`
-and `A8`. The sittings above are why that list is three and not twelve: a question put to the author comes
-back the same day, and four of the answers so far have been to decline the question. Each has a definite end
+**Blocked decisions** are what the board still marks as parked — `WE41` (not yet), `A8`, `G278` and `G282`
+(not now), and `B57` with `B9` (imports are not a priority). A question put to the author comes back the
+same day, and five of the answers so far have been to decline the question. Each has a definite end
 and none of it is work until the answer arrives.
 
 `TS103` is what one of them looks like once it is asked. The question read as a fork — index a kind's names

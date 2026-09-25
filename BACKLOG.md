@@ -39,15 +39,6 @@ them one rather than with the contract work that shipped them.
 
 
 
-- [ ] **TC6 — Per-side focus: framing one team's quadrant while its unit is being worked.** *Parked on a
-  ruling: what the framing should be.* The want was filed against `FocusSection`, a mockup on the `/concepts`
-  page — both were deleted on 2026-07-22 (`7fac0f69`, superseded by Configure), so there is no design left to
-  wire up, only the question it stood for. The canvas half that exists is `WorldCanvas.FitIsland` →
-  `world-canvas.js:330 fitIsland(id, fillFrac)`, which frames one **island**; a team's quadrant on a
-  two-island board is not an island, and on a four-team board the two do not coincide either. **The
-  question:** is the frame an island, the team's spawn plus its objectives, the symmetry quadrant the orbit
-  cuts, or the author dragging it themselves — and does it follow the selected team, or is it a control.
-
 - [ ] **TE3 — Retire the Edit tool.** The author's ruling: it is not being kept. The intent model authors a
   map now, and nobody has driven `/maps/{slug}/edit` — so its three unwired inspectors were never work, they
   were work on a surface with no future. `Features/Edit/` is 16 files and 2,155 lines behind one route.
@@ -115,8 +106,8 @@ what is gathered here is the parked and dormant slices of the same surface.
   *9 of 50 buildings on the spec boards are walled in the ground's own family — `opus5-siderite-bowl` puts
   three grey-stone houses on grey stone, `sonnet-gantry` two brick houses on brick.*
 
-- [~] **WE41 — A pattern is a family shown off rather than a ground.** *Parked on a ruling: no candidate
-  predicate reproduces the author's judgement, and nothing is built until one is chosen.* The predicate the
+- [~] **WE41 — A pattern is a family shown off rather than a ground.** *Parked (author): not yet — the
+  predicate below is named, and nothing judging a pattern's look is built until the author says so.* The predicate the
   author has since named is not colour distance but **how much of a family a pattern takes**: two blocks is a
   texture, three a mottle, five a family on display. Complain where a pattern's entry list carries more than
   two members of one `TerrainPalette` family. Beside it, two placements the author states absolutely: a
@@ -255,7 +246,8 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ## World import: reading a map the studio did not build
 
-- [ ] **B57 — `scan_segment` counts a build-region marker as solid ground.** Island detection now separates
+- [ ] **B57 — `scan_segment` counts a build-region marker as solid ground.** *Parked (author): imports are
+  not a priority, and this waits on `B9`.* Island detection now separates
   terrain from markers and from what a map erases before play (`FEATURES.md`,
   `docs/world-scan/terrain-ground-truth.md`), but that runs on `CleanColumns` → `islands_json` only. The other
   ingest derivation, `FeatureExtractors.Segments` → `scan_segment`, has its own exclusion set and applies
@@ -296,8 +288,8 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 Twelve judged donut boards at 20 and 30 players named what a larger composed board gets wrong. `MD7` now scores the thin, long crossing; the rest is below, to be taken
 **one change at a time** and judged between, because changing several at once made the boards worse.
 
-- [ ] **G278 — Parked: a wider front paid for out of the hub.** *Blocking question: which single change is
-  tried first.* A combined round — the face drawn from a fixed range per band (24–36 · 32–48 · 40–56 · 48–64
+- [ ] **G278 — Parked: a wider front paid for out of the hub.** *Parked (author): not now. When resumed,
+  the question is which single change is tried first.* A combined round — the face drawn from a fixed range per band (24–36 · 32–48 · 40–56 · 48–64
   blocks), the hub capped at 44 · 52 · 68 · 76 blocks, two wools from micro up, a two-legged front only where
   each leg reaches `FR9`, 16-block stones — widened the crossing but made the hubs uniform (every milli hub a
   68-block ring; the double-hole, G and P gone) and the wool placement worse, and was rolled back. The ranges
@@ -323,7 +315,7 @@ Twelve judged donut boards at 20 and 30 players named what a larger composed boa
   `UnitSeating`. `docs/generator/model.md` §5.5–5.6.
 
 - [ ] **G282 — On an L-shaped hub with the spawn at the back, the short arm takes a long `I` turned so its
-  wool stands ahead of the spawn, with a build zone across the bay.** The zone gives attackers a second,
+  wool stands ahead of the spawn, with a build zone across the bay.** *Parked (author): not now.* The zone gives attackers a second,
   shorter way in and moves the wool further from the spawn. Build it first as an adapted plan through the
   studio's API and play it back with the author, before any composer change. `docs/tools/plan.md`.
 
@@ -403,7 +395,8 @@ and what a `subtract` takes away.
 
 ## User Experience
 
-- [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
+- [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** *Parked (author): imports
+  are not a priority.* When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
   updated world as a *new* map and hand-copy the intent across. Add a "re-import / update world" action on
   an intent-authored map that re-scans a chosen folder/zip in place — refreshing only the world-derived
