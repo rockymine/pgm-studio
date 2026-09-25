@@ -370,5 +370,44 @@ public sealed class SketchEndpointTests
         throw new FileNotFoundException($"seed {file} not found above the test binary");
     }
 
+    /// <summary>A rebuild keeps the plan's geometry, so a shape drawn in the sketch is carried by nothing —
+    /// and the answer says which, beside the relief it already reports, with a complaint on the success. A
+    /// shape the compile produces again and a room projected from the intent are not dropped.</summary>
+    [Test]
+    public async Task A_rebuild_names_the_sketch_drawn_shapes_it_does_not_keep()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Rebuilt" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        static string Board(string extra) => $$$"""
+            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
+             "layers":[{"id":"ground","base_y":0,"layout":{
+               "shapes":[{"id":"plan-a","type":"rectangle","operation":"add",
+                          "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"base_height":10}{{{extra}}}],
+               "groups":[{"id":"i","name":"I","mirrors":false,"shapeIds":["plan-a"]}]}}]}
+            """;
+        var drawn = Board("""
+            ,{"id":"circle-1","type":"circle","operation":"add","center_x":0,"center_z":0,"radius":4,"base_height":14}
+            ,{"id":"red-spawn","type":"rectangle","operation":"add","role":"spawn","intentRef":"red",
+              "min_x":0,"max_x":4,"min_z":0,"max_z":4}
+            """);
+        var stored = await client.PutAsync($"/api/map/{slug}/sketch",
+            new StringContent(drawn, Encoding.UTF8, "application/json"));
+        await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
+
+        var rebuilt = await client.PutAsync($"/api/map/{slug}/sketch/from-plan",
+            new StringContent(Board(""), Encoding.UTF8, "application/json"));
+        var text = await rebuilt.Content.ReadAsStringAsync();
+        await Assert.That(rebuilt.IsSuccessStatusCode).IsTrue().Because(text);
+
+        var answer = JsonDocument.Parse(text).RootElement;
+        await Assert.That(answer.GetProperty("dropped").EnumerateArray().Select(id => id.GetString()))
+            .IsEquivalentTo(["circle-1"]);
+        await Assert.That(answer.GetProperty("warnings").EnumerateArray()
+            .Any(finding => finding.GetProperty("rule").GetString() == "SK29")).IsTrue();
+    }
+
     // ── harness (self-contained, mirrors MetadataEndpointTests) ─────────────────────
 }

@@ -51,11 +51,13 @@ public sealed record DiscardedDto(bool Discarded);
 /// <param name="ConfigureUrl">The page that continues it, ready to navigate to.</param>
 public sealed record SketchFinishedDto(string Slug, string ConfigureUrl);
 
-/// <summary>The stored layout was replaced by one a plan compiled, and the terrain that had nowhere to land
-/// on the new board. Empty unless <c>?force=true</c> accepted the loss.</summary>
+/// <summary>The stored layout was replaced by one a plan compiled, and what of the stored board the new one
+/// does not keep.</summary>
 /// <param name="Orphaned">The islands whose terrain had nowhere to land on the new board, by id. Empty
 /// unless <c>?force=true</c> accepted the loss, since otherwise the write is refused rather than made.</param>
-public sealed record SketchFromPlanDto(IReadOnlyList<string> Orphaned);
+/// <param name="Dropped">The shapes drawn in the sketch that the rebuild does not keep, by id — every stored
+/// shape whose id the compile does not produce and which stands for no intent entity (<c>SK29</c>).</param>
+public sealed record SketchFromPlanDto(IReadOnlyList<string> Orphaned, IReadOnlyList<string> Dropped);
 
 /// <summary>What a bend drew: the shape it redrew, how many vertices the outline now carries, and how many
 /// of the points it cut had no room on the side asked for and stayed on the edge they were cut from.</summary>

@@ -90,6 +90,13 @@ public partial class PlanTool
     private MapState? state;
     private bool confirmingRebuild;
 
+    // The groups whose relief the rebuilt board has no island for, as the layout write refused them (409) —
+    // offered back as a choice, since discarding hand-drawn terrain is the author's call and not the build's.
+    private IReadOnlyList<string>? orphanedRelief;
+
+    // The sketch-drawn shapes the last rebuild did not keep, as the layout write answered them.
+    private IReadOnlyList<string> droppedShapes = [];
+
     private bool Rebuilds => state is { Artifacts: { } held } && (held.Sketch || held.World);
     private string BuildLabel => Rebuilds ? "Rebuild this map" : MapBacked ? "Build the map" : "Create draft";
 
@@ -992,6 +999,15 @@ public partial class PlanTool
 
     private void CancelRebuild() => confirmingRebuild = false;
 
+    private void KeepRelief() => orphanedRelief = null;
+
+    // The author accepted the loss the layout write refused over: the same build, with ?force=true.
+    private async Task DiscardReliefAndRebuild()
+    {
+        orphanedRelief = null;
+        await CreateDraft(discardRelief: true);
+    }
+
     // Post the current plan to /api/plan/compile. A 422 renders its structural findings in place of the JSON;
     // a 400 (malformed) / transport failure shows a message. A 200 stores the compiled pair for preview + the
     // draft chain. Compiling resets any prior draft so a fresh compile starts the loop over.
@@ -1005,6 +1021,7 @@ public partial class PlanTool
         compiledPlan = compiledLayout = compiledIntent = compiledLayoutRaw = compiledIntentRaw = null;
         compileTab = PlanTabId;
         draftSlug = null; draftError = null; draftBusy = false;
+        orphanedRelief = null; droppedShapes = [];
         StateHasChanged();
 
         try
@@ -1109,10 +1126,10 @@ public partial class PlanTool
     // themes, room shells and dressing) and the intent carries its authored slices (IntentCarry — the
     // authors, island team assignments and confirmed symmetry). Rebuilding changes the board and the
     // structure the plan describes; it is not an answer to anything else about the map.
-    private async Task CreateDraft()
+    private async Task CreateDraft(bool discardRelief = false)
     {
         if (handle is null || compiledLayoutRaw is null || compiledIntentRaw is null) return;
-        draftBusy = true; draftError = null; draftSlug = null;
+        draftBusy = true; draftError = null; draftSlug = null; orphanedRelief = null; droppedShapes = [];
 
         try
         {
@@ -1132,8 +1149,19 @@ public partial class PlanTool
             if (!await Ok(planResp, "record the plan")) return;
 
             draftStep = "Saving layout"; StateHasChanged();
-            using var layoutResp = await Http.PutAsync($"api/map/{slug}/sketch/from-plan", new StringContent(compiledLayoutRaw, Encoding.UTF8, "application/json"));
+            var force = discardRelief ? "?force=true" : "";
+            using var layoutResp = await Http.PutAsync($"api/map/{slug}/sketch/from-plan{force}", new StringContent(compiledLayoutRaw, Encoding.UTF8, "application/json"));
+            // A 409 here is relief the rebuilt board has no island for, one finding per group: asked back
+            // rather than reported as a failure, since the way through is a choice the author makes.
+            if (layoutResp.StatusCode == System.Net.HttpStatusCode.Conflict
+                && await layoutResp.Content.ReadFromJsonAsync<RefusalDto>() is { } refusal
+                && refusal.Findings.SelectMany(finding => finding.SubjectIds).ToList() is { Count: > 0 } groups)
+            {
+                orphanedRelief = groups;
+                return;
+            }
             if (!await Ok(layoutResp, "save layout")) return;
+            droppedShapes = (await layoutResp.Content.ReadFromJsonAsync<SketchFromPlanDto>())?.Dropped ?? [];
 
             draftStep = "Rasterizing"; StateHasChanged();
             using var finishResp = await Http.PostAsync($"api/map/{slug}/sketch/finish", null);

@@ -523,7 +523,15 @@ The compile drawer is the exit. It posts the document to `/api/plan/compile` and
 layout and the compiled intent as downloadable panes, or the structural findings that blocked it — each
 clickable to pulse its subjects on the canvas. Below them, the build button runs the whole chain. On a map that
 already holds a sketch or a world it asks first, because the same click means either originating the map or
-replacing a board someone has since been working on.
+replacing a board someone has since been working on. The question names what the rebuild **replaces** — the
+terrain and islands, any shape drawn in the sketch that the plan does not produce, and the teams, spawns, wools
+and build zones — and what it **keeps**: the relief on every island that survives, a room height the author
+corrected, the themes, room shells and dressing, and the authors.
+
+**A rebuild that would orphan a relief is asked again, not failed.** The layout write answers `409` with one
+`SK1` per group the new board has no island for, and the drawer names those groups and offers *Discard it and
+rebuild*, which reruns the chain with `?force=true`; *Cancel* leaves the map as it was. After a rebuild the
+drawer lists the sketch-drawn shapes the layout write reported as `dropped` (`SK29`).
 
 **The button under the panes reads the compile, not the map.** *Rebuild this map* / *Build the map* / *Create
 draft* is what it says in the one state where it can act; a compile that has not run yet reads *Compile
@@ -721,7 +729,7 @@ draws the board as characters.
 |---|---|---|---|
 | `POST /plan/compile` | the document | `{layout, intent}`, each half serialized with its consumer's options so both can be posted on verbatim; `warnings` rides beside them where the compile is complete enough to succeed and incomplete enough to remark on (today `PL3`, a map with no objective), and where the posted plan carried a field the reader has nowhere to keep (`RQ3`) | 422 `{findings}` structural or completeness errors · 400 malformed |
 | `POST /sketch` | `{name}` | `{slug}` — originates a map; only needed off the bare route | — |
-| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{orphaned}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers, and any field of the **posted** layout the reader had nowhere to keep (`RQ3`) | 409 one `SK1` finding per orphaned group, subject = group id (`?force=true` accepts the loss) · 400 · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{orphaned, dropped}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers, and any field of the **posted** layout the reader had nowhere to keep (`RQ3`). `dropped` names every stored shape the compile does not produce and that carries no `intentRef` — a shape drawn in the sketch, which nothing carries since geometry is the plan's — with one `SK29` complaint beside it | 409 one `SK1` finding per orphaned group, subject = group id (`?force=true` accepts the loss) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes the layout into world geometry and moves the map to `stage=configure`, answering the stored document's own complaints under `warnings` on the way through | 404 unknown map · 422 the layout rasterizes to no ground · 422 `SK2` |
 | `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the stored **authors and contributors** onto it and nothing else. `symmetry` and `islandTeams` are deliberately not carried, so a rebuild clears both | 404 · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
 | `GET /map/{slug}/export` | — | the world ZIP | 404 unknown map · 409 and 422 as `/xml`, plus non-2xx with a message on a zip/IO failure |

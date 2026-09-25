@@ -1602,6 +1602,11 @@ re-fuses the board does not merely move a group — it produces a different one,
 the old fusion has nowhere correct to land. `?force=true` accepts the loss and proceeds, which is the author's
 call and not the server's.
 
+**A shape drawn in the sketch is not carried, and the rebuild names it.** Geometry is the plan's, so a stored
+shape the compile does not produce and which stands for no intent entity (no `intentRef`) is not in the layout
+the rebuild stores. That is right, and it is not silent: the answer's `dropped` lists those shapes by id beside
+`orphaned`, and one `SK29` complaint names them on the 200.
+
 **And a relief in the posted body loses to the stored one, which the same route now says out loud.** The carry
 is what the route is for — a compiled layout carries no relief, because a plan cannot express one, so the
 stored relief is the only one there is — but a caller that compiled, patched a relief onto the result and
@@ -1691,7 +1696,7 @@ Every endpoint is anonymous and rooted at `/api`.
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}`. The `ETag` is the revision to state on the next write | 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
-| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned, dropped}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one. `dropped` names the stored shapes the rebuild does not keep — every one whose id the compile does not produce and which carries no `intentRef`, which is a shape drawn in the sketch — with one `SK29` complaint naming them | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
 

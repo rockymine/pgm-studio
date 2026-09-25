@@ -232,6 +232,14 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
                 + "PUT /map/{slug}/sketch",
                 Severity.Complaint, Field: $"relief.{group}", Subjects: [group])]);
 
+        // Geometry is the plan's, so a shape drawn in the sketch is carried by nothing — and said so.
+        var dropped = SketchLayout.DroppedShapes(compiled, storedJson);
+        if (dropped.Count > 0)
+            Complaints.Add(HttpContext, [new Finding(SketchRules.ShapeDropped,
+                $"the rebuild keeps the plan's geometry, and {dropped.Count} shape(s) drawn in the sketch are "
+                + $"not in it: {string.Join(", ", dropped)}. Draw them into the plan, or again after the rebuild",
+                Severity.Complaint, Field: "layers", Subjects: dropped)]);
+
         var merged = SketchLayout.CarryStructuralHeight(
             SketchLayout.CarryRelief(SketchLayout.CarryFinish(compiled, storedJson), storedJson), storedJson);
 
@@ -251,7 +259,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         if (written.Refusal is { } stale) { await Refusals.WriteAsync(HttpContext, stale, ct); return; }
 
         Revisions.Answer(HttpContext, written.Revision!.Value);
-        await Send.OkAsync(new SketchFromPlanDto(orphans), ct);
+        await Send.OkAsync(new SketchFromPlanDto(orphans, dropped), ct);
     }
 }
 
