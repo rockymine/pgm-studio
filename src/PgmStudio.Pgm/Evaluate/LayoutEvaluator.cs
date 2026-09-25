@@ -25,7 +25,8 @@ public static class LayoutEvaluator
         new LintRejectTerm("G2"),
         new GapHopBand(),
         new BandWoolClearance(),
-        new SpawnWoolFloor(),      // WL2 as a surface-distance floor (was the Euclidean WL2 lint)
+        new SpawnWoolFloor(),      // WL2 as a surface-distance floor
+        new WoolRoomSpawnSeam(),   // WL2's lane clause: no wool room shares an edge with its own spawn
         new SpawnFrontFloor(),     // SP10 — a composer floor, off in the default profile
         new WoolFrontFloor(),      // WL10 as a floor — a composer floor, off in the default profile
         // soft terms — feel metrics scored against the authored seed envelopes

@@ -210,4 +210,43 @@ public sealed class GateTermsTests
         var lint = LayoutEvaluator.Gate(near, EvaluationProfile.Default);
         await Assert.That(lint?.RuleId is "SP10" or "WL10").IsFalse();
     }
+
+    // ── WoolRoomSpawnSeam (WL2, the lane clause) ────────────────────────────────────────────────────────
+
+    // Two wool rooms flanking the spawn in one row, cell 4. `between` is the cell width of a plain run piece
+    // standing between the spawn and each room; 0 puts the rooms edge to edge with the spawn.
+    private static PlanModel Flanked(int between) => PlanModel.Parse($$$"""
+        {"plan":2,"globals":{"cell":4,"symmetry":"none"},
+         "pieces":[
+           {"id":"dye-w","role":"wool-room","rect":[{{{-13 - between}}},-26,5,4]},
+           {{{(between > 0 ? $$"""{"id":"run-w","role":"piece","rect":[{{-8 - between}},-26,{{between}},4]},""" : "")}}}
+           {"id":"yard","role":"spawn","rect":[-8,-26,7,4]},
+           {{{(between > 0 ? $$"""{"id":"run-e","role":"piece","rect":[-1,-26,{{between}},4]},""" : "")}}}
+           {"id":"dye-e","role":"wool-room","rect":[{{{-1 + between}}},-26,5,4]}],
+         "placements":{"spawns":[{"piece":"yard","at":[14,8],"facing":"front"}],
+                       "wools":[{"piece":"dye-w","at":[10,8]},{"piece":"dye-e","at":[10,8]}]}}
+        """)!;
+
+    [Test]
+    public async Task A_wool_room_sharing_an_edge_with_its_spawn_is_invalid()
+    {
+        var evaluation = LayoutEvaluator.Evaluate(Flanked(between: 0), EvaluationProfile.Default);
+        await Assert.That(evaluation.IsValid).IsFalse();
+        var seam = evaluation.Violations.SingleOrDefault(v => v.TermId == "wool-room-spawn-seam");
+        await Assert.That(seam).IsNotNull();
+        await Assert.That(seam!.RuleId).IsEqualTo("WL2");
+        await Assert.That(seam.Subjects).Contains("dye-w");
+        await Assert.That(seam.Subjects).Contains("dye-e");
+        await Assert.That(seam.Subjects).Contains("yard");
+    }
+
+    [Test]
+    public async Task A_run_piece_between_the_wool_room_and_its_spawn_is_valid()
+    {
+        var evaluation = LayoutEvaluator.Evaluate(Flanked(between: 4), EvaluationProfile.Default);
+        var seam = evaluation.Terms.SingleOrDefault(t => t.TermId == "wool-room-spawn-seam");
+        await Assert.That(seam).IsNotNull();
+        await Assert.That(seam!.Violation).IsNull();
+        await Assert.That(evaluation.IsValid).IsTrue();
+    }
 }

@@ -146,7 +146,8 @@ and a fall counted but not charged, routing around voids — never the straight 
   authored twice (`four-team-wool-two-sided`: two stepped land seams into the room;
   `mirror-big-board`).
 - **WL2 [corpus]** On a different lane than the spawn; wool↔spawn ≥ **20** — all 17 corpus pairs
-  pass, tightest 22.4 (the base seeds), typical 36–58, up to 101 on the big board.
+  pass, tightest 22.4 (the base seeds), typical 36–58, up to 101 on the big board. The lane clause is
+  hard at one reading: a wool room shares no edge with its own spawn (amendment 54).
 - **WL3 [expert, clarified]** The plan records only the wool's position and floor level; the
   physical room (cage, pedestal — the 8×8 stamp today) is stamped at export. Requirement on the
   plan: the wool sits on a **flat plateau covering at least the stamp footprint and extending to
@@ -1318,3 +1319,11 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     the depth that gap leaves a hop either side of (`RefusedSplitDeepCells`, two cells on every grid the
     composer uses). Fifteen of the 120 recorded boards move, all `rot_180`, and `ComposerVersion` is
     `walled-4` (`G271`).
+
+54. **`WL2`'s lane clause is hard: a wool room shares no edge with its own spawn (2026-09-25).** Author's
+    call. Only the distance half of `WL2` was measured, and it measures the walk from spawn point to wool
+    block, so a row of room, spawn and room with their edges touching — eight blocks apart in the built world,
+    33 by the walk — cleared it. The clause is read at exactly one place: a `wool-room` piece and a `spawn`
+    piece of the same team sharing a land seam, full-width or narrow. A corner touch shares no edge, and no
+    cell-distance clause is added. The term is `wool-room-spawn-seam`; every composed wool unit is a room
+    behind its own lane, so no composed board moves and `ComposerVersion` stands (`G263`).
