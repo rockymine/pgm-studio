@@ -756,6 +756,14 @@ direction, so it goes round the orbit the way an offset does (`DressingSymmetry.
 rectangle alone would put a copy on the far side of the map with its door still on the same compass side, so a
 mirrored pair would face the same way and one team would walk out toward the other's half.
 
+**The door lands on the image's matching column, not merely on the image's wall.** It is fitted by the room
+stamper's own `HouseStamper.Fit`: centred on the plan's side, clear of both corner posts, and where the run
+cannot centre it exactly the spare block is taken from a hand rather than from the low coordinate — the right
+hand seen from inside, the left on an image the orbit reflects (`DressingSymmetry.Reflects`). A rotation
+carries a hand onto the same hand and a coordinate onto the opposite end, so a door seated by coordinate
+would stand a block off on the turned copy; seated by hand, a placed house and its image stand on the same
+columns, door included.
+
 **It obeys one part of the keep-out mask, the approach, and never joins the mask itself.** A building is not
 generated the way a flora field is: someone drew this rectangle here, and a spawn's own margin is not a reason
 to lose it. A door's approach is the exception, because a building is the one prop big enough to close a lane

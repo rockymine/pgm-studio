@@ -883,7 +883,7 @@ public static class Decorator
             if (dug.Blocks > 0 && (deepest is null || dug.Deepest > deepest.Value.Deepest)) deepest = dug;
             HouseStamper.Stamp(
                 world, image, floorY, house.Style,
-                doors: front is { } side ? Doorway(house.Style, image, side) : null,
+                doors: front is { } side ? Doorway(house.Style, image, side, context.Symmetry.Reflects(k)) : null,
                 reflected: context.Symmetry.Reflects(k));
 
             foreach (var (x, z) in HeldCells(image, house.Style))
@@ -1077,25 +1077,19 @@ public static class Decorator
     /// many columns it carved, how many blocks of ground went, and the deepest carve and its column.</summary>
     private readonly record struct Excavation(int FloorY, int Columns, int Blocks, int Deepest, (int X, int Z) At);
 
-    /// <summary>The one doorway a chosen wall asks for: centred on the run of wall the plan actually has facing
-    /// that way and clear of both corner posts, which is what the building would cut for itself on a long side.
-    /// Stated as a door rather than left to the stamper because the stamper picks the <em>side</em> as well, and
-    /// here the side is the author's. Reads the plan's own <see cref="WallSegment"/> rather than a width and a
-    /// depth, since on a plan of more than one wing the chosen wall is not the whole of that side.</summary>
-    private static IReadOnlyList<RoomDoor> Doorway(HouseStyle style, BuildingPlan plan, RoomEdge front)
+    /// <summary>The one doorway a chosen wall asks for: fitted to the run of wall the plan actually has facing
+    /// that way by the stamper's own <see cref="HouseStamper.Fit"/>, centred on the plan's side and clear of
+    /// both corner posts, with a spare block taken from the hand a <paramref name="reflected"/> image swaps.
+    /// Stated as a door rather than left to the stamper because the stamper picks the <em>side</em> as well,
+    /// and here the side is the author's. Reads the plan's own <see cref="WallSegment"/> rather than a width
+    /// and a depth, since on a plan of more than one wing the chosen wall is not the whole of that side.</summary>
+    private static IReadOnlyList<RoomDoor> Doorway(HouseStyle style, BuildingPlan plan, RoomEdge front, bool reflected)
     {
-        var about = front.AlongX() ? (plan.MinX + plan.MaxX) / 2 : (plan.MinZ + plan.MaxZ) / 2;
-        if (plan.WallFacing(front, about) is not { } wall) return [];
-
-        // A block of wall clear of each corner post, the rule the stamper's own doors keep: an opening in the
-        // very next cell still meets the post, and a door against the post reads as a hole knocked through the
-        // frame. Only a run too tight to spare the margin falls back to the bare run between its corners.
-        var (seatLo, seatHi) = wall.Seat;
-        var (runLo, runHi) = wall.BetweenCorners;
-        var (lo, hi) = seatHi >= seatLo ? (seatLo, seatHi) : (runLo, runHi);
-
-        var width = Math.Clamp(style.Doorway.CutWidth, 1, hi - lo + 1);
-        return [new RoomDoor(front, Math.Clamp(about - (width - 1) / 2, lo, hi - width + 1), width)];
+        var centreTwice = front.AlongX() ? plan.MinX + plan.MaxX : plan.MinZ + plan.MaxZ;
+        if (plan.WallFacing(front, centreTwice / 2) is not { } wall) return [];
+        return HouseStamper.Fit(wall, style.Doorway.CutWidth, centreTwice, reflected) is { } fitted
+            ? [new RoomDoor(front, fitted.Lo, fitted.Width)]
+            : [];
     }
 
     private static Placed PlaceBoulder(
