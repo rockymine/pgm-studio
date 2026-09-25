@@ -9,7 +9,9 @@
 // so a plain connected-component pass over the tree blocks assigns every branch and leaf to one trunk with no
 // arbitration. A tree is logs, leaves, and the carpentry an author branches with — wooden slabs, wooden stairs,
 // fences and vines; --wool counts wool too, for a corpus that builds a tree out of it. Each tree is normalised to
-// its foot — the lowest log, or the lowest block where there is none — and stored as [x, y, z, id, data] rows.
+// its foot — the lowest log, or the lowest block where there is none — and stored as [x, y, z, id, data] rows,
+// with the cut recorded beside them: the world directory, the foot's world coordinates and the time of the run.
+// The cut is what makes a row `copied`; the library refuses that form to any save without one (DR-COPY).
 // A body counts as a tree when it rests on something: a solid block that is not tree material within two
 // courses under its foot. A leaf cloud or a stray log hanging in the air is a fragment of a tree that broke,
 // and is reported rather than filed.
@@ -152,7 +154,9 @@ await using var db = new PgmDb(PgmDataOptions.ForConnectionString(connection));
 var store = new PropStyleStore(db);
 var existing = (await store.ListTreesAsync()).ToDictionary(r => r.Name, r => r, StringComparer.Ordinal);
 int added = 0, updated = 0;
-foreach (var (treeName, _, blocks) in named)
+var cutFrom = Path.GetFullPath(worldDir).TrimEnd('/');
+var cutAt = DateTime.UtcNow;
+foreach (var (treeName, foot, blocks) in named)
 {
     var stored = new TreeStyleRow
     {
@@ -160,6 +164,11 @@ foreach (var (treeName, _, blocks) in named)
         Form = "copied",
         Height = blocks.Max(cell => cell[1]) - blocks.Min(cell => cell[1]) + 1,
         Body = JsonSerializer.Serialize(blocks),
+        CutWorld = cutFrom,
+        CutX = foot.X,
+        CutY = foot.Y,
+        CutZ = foot.Z,
+        CutAt = cutAt,
     };
     if (existing.TryGetValue(treeName, out var have))
     {

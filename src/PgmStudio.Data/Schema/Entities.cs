@@ -756,6 +756,13 @@ public sealed class TreeStyleRow
     /// <summary>Copied only — the tree's blocks as the recipe's own JSON (<c>[[x, y, z, id, data], …]</c>,
     /// M0031). Empty on a template, which builds its own from its species.</summary>
     [Column("body"), NotNull] public string Body { get; set; } = "";
+    /// <summary>Copied only — where the body was cut (M0039): the world directory, the foot's world
+    /// coordinates and the time, written by the cutter. Null on a template.</summary>
+    [Column("cut_world")] public string? CutWorld { get; set; }
+    [Column("cut_x")] public int? CutX { get; set; }
+    [Column("cut_y")] public int? CutY { get; set; }
+    [Column("cut_z")] public int? CutZ { get; set; }
+    [Column("cut_at")] public DateTime? CutAt { get; set; }
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }
 

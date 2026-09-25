@@ -196,6 +196,14 @@ public static class DressingRules
     [Rule(RuleCategory.Malformed, RuleConcern.Feature, RuleConcern.Material)]
     public const string UnheldFace = "DR-FACE";
 
+    /// <summary>A tree recipe claims the <c>copied</c> form and states no cut. A copied tree is one cut out of
+    /// a world — its body is what stood there, block for block — so the row records where: the world
+    /// directory, the foot's world coordinates and when. A body with no cut behind it is a block list somebody
+    /// typed, and the library files no such thing as a tree. Asked where a tree recipe is saved.</summary>
+    /// <remarks>Cut the tree out of a world with `dotnet run tools/seed-trees.cs` over the world it stands in, which files every tree it finds with its cut recorded. There is no form for a hand-built body: a prop that is not a tree cut from a world is not filed in the tree library at all. A re-save of a copied recipe carries the `cut` its `GET` answered.</remarks>
+    [Rule(RuleCategory.Forbidden, RuleConcern.Request, RuleConcern.Feature)]
+    public const string UncutCopy = "DR-COPY";
+
     /// <summary>A body of water that dug a shaft rather than filled a hollow. Its line is one plane across the
     /// whole run — by default the lowest surface it crosses — and every bed column standing above that line is
     /// emptied down to it. <c>depth</c> bounds how far <b>below</b> the line the bed goes and nothing bounds
