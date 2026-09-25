@@ -1674,6 +1674,34 @@ public sealed class DecoratorTests
         }
     }
 
+    /// <summary><b>A house and its image stand on the same columns, door included.</b> The front runs eleven
+    /// blocks with its centre on a block, so a two-wide door has a spare block to place — taken from a hand,
+    /// it lands on the image's matching column; taken from the low coordinate, it lands one block off on the
+    /// turned or mirrored copy.</summary>
+    [Test]
+    [Arguments("rot_180")]
+    [Arguments("mirror_x")]
+    [Arguments("mirror_z")]
+    public async Task A_house_and_its_image_stand_on_the_same_columns_including_the_door(string symmetry)
+    {
+        var (world, top) = Plateau(80, from: -40);
+        var images = new DressingSymmetry(symmetry);
+        var tally = Decorator.Decorate(world, Context(top,
+            [new HouseProp
+            {
+                Id = "h", Wings = [new AuthoredWing([[10, 16], [20, 24]])], Front = RoomEdge.NegZ,
+                Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
+            }], symmetry: symmetry));
+
+        await Assert.That(tally.Houses).IsEqualTo(2);
+        var unmatched = top.Keys.Where(cell =>
+            !Column(cell).SequenceEqual(Column(images.ImageCell(cell.X, cell.Z, 1)))).ToList();
+        await Assert.That(unmatched).IsEmpty();
+
+        IEnumerable<int> Column((int X, int Z) cell) =>
+            Enumerable.Range(8, 20).Select(y => world.GetBlock(cell.X, y, cell.Z).Id);
+    }
+
     [Test]
     public async Task A_path_is_mirrored_as_a_whole_route_rather_than_cell_by_cell()
     {

@@ -67,13 +67,7 @@ public static class WorldWalk
         // permission somebody can satisfy. Ground that is merely editable because nothing forbids it is not
         // a grant: reading it as one makes every cell outside every rule crossable, and a board then walks
         // over void nobody can bridge.
-        var open = new HashSet<(int X, int Z)>();
-        for (var i = 0; i < edit.Zone.Length; i++)
-        {
-            if (!edit.Bridgeable(i)) continue;
-            var cell = (edit.MinX + i % edit.Width, edit.MinZ + i / edit.Width);
-            if (!standable.Contains(cell)) open.Add(cell);
-        }
+        var open = new HashSet<(int X, int Z)>(edit.BridgeableCells().Where(cell => !standable.Contains(cell)));
 
         Level(open, floor);
         var bridgeable = new HashSet<WalkPlace>(
