@@ -39,17 +39,6 @@ them one rather than with the contract work that shipped them.
 
 
 
-- [ ] **TE3 — Retire the Edit tool.** The author's ruling: it is not being kept. The intent model authors a
-  map now, and nobody has driven `/maps/{slug}/edit` — so its three unwired inspectors were never work, they
-  were work on a surface with no future. `Features/Edit/` is 16 files and 2,155 lines behind one route.
-  **`WorldCanvas` and `world-bridge` stay**: the Configure tool's build-layer, core-casing and core-objective
-  steps mount the same canvas, so what goes is the tool, not the surface it draws on. Take the route out of
-  the smoke sweep's list and the nav rail with it, and grep `docs/` for the tool's own name in the same
-  commit — `routing-and-ia.md` describes it as a surface an author can open, and
-  `docs/tools/edit.md` is the document that goes. `TE2` went with it: the tool's wool picker spelling the
-  sixteen dyes a second way is a defect in a surface with no future, and `WoolColors` is already the one list
-  every other reader takes.
-
 - [ ] **TC7 — The configure tool cannot place a hill.** The API is the way in — an agent adds
   `controlPoints` to the intent it already posts (`docs/pgm/control-points.md` §9) — and the wizard has no
   step for it. What the step states is a count and the anchors; the tuning is one shared block and already
@@ -468,32 +457,12 @@ and what a `subtract` takes away.
   read a drive still waits on. The picture wants the numbers the JSON already computed, kept the way
   `BuiltWorlds` keeps a world — keyed on what the read derives from, so an edit is a new key.
 
-- [ ] **RP71 — A map cannot be deleted.** The API carries 26 `DELETE` routes and every part of a map is
-  removable through one — layers, groups, shapes, vertices, props, relief, themes, biome, room styles, teams,
-  wools, spawns, regions — and none removes the map row. `DELETE /map/{slug}/sketch/discard-if-empty` drops
-  only a pristine never-drawn draft, so a map that stored once is permanent short of SQL. Every `map_id`
-  foreign key is already `ON DELETE CASCADE`, so the work is one endpoint over `MapRepository`, not a schema
-  change. It matters for a driver rather than for the browser: a spec re-driven under a corrected slug leaves
-  the old one behind, and a harness that builds a map per variant has no way to clean up after itself.
-  Lands beside the other whole-map routes; `docs/architecture.md` carries the route surface.
-
-  *Evidence: seven scratch maps (`stage-01-ground` … `stage-07-dressed`) were left in the dev database by a
-  staging harness that had no route to remove them, beside the two real maps.*
-
-
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled
   room need `6 + 2 + 3` = 11 blocks on one axis and those spawn pieces are 10×10, 15×15 and 20×10. Nothing is
   broken by it — an unplaceable marker stamps nothing and is flagged `WX9` — so this is a data refresh, not a
   defect: re-author each spawn piece so it either has the depth for a yard or states a footprint small enough
   to open one, then re-record whatever `docs/generator/seed-stats.md` measures off them.
-
-- [ ] **WS73 — Two answers to "which void columns may be bridged".** `Editability.Compute`
-  (`Analysis/Playability/Editability.cs`) and `TraversabilityRender.BridgeableColumns`
-  (`Minecraft/Render/TraversabilityRender.cs:163`) each read the board's filters for the same set, so the
-  `reach` picture and the walk, coverage and dead-ground reads can disagree whenever one learns a rule shape
-  the other does not. `Minecraft` cannot reference `Analysis`, so the set is computed once in the Api from
-  `Editability` and handed to the render. `docs/world-scan/read-backs.md`.
 
 - [ ] **WE134 — A map's own dressing registry still takes a hand-written `copied` body.** The tree library
   refuses a `copied` save carrying no cut (`DR-COPY`), but a map's `dressing.styles` takes
@@ -506,12 +475,11 @@ and what a `subtract` takes away.
   `opus5b`/`opus5c` commons) copy a library tree's body inline, which a cut-carrying rule would still allow;
   the hand-written bodies among the specs' 37 inline bodies are the ones it would refuse.*
 
-- [ ] **WE135 — A dressing-pass house's door is centred by coordinate, so its image is a block off.**
-  `Decorator.Doorway` (`Dressing/Decorator.cs:1087`) seats the door at `(min + max) / 2` along the front, which
-  floors toward the low coordinate, so where a wall's leftover is odd the door leans to the low end on both
-  images rather than to the same hand. Take the leftover from a hand through `RoomEdges.Handed` and
-  `DressingSymmetry.Reflects`, the way the room stamper's own doors do, so a placed house and its image stand
-  on the same columns. `docs/world-export/decoration.md`.
+- [ ] **PG18 — The region draft bucket has no client left.** `POST /regions` and its `/orbit` follow-up take
+  `draft_step`, `RegionDrafts` writes it into the `region_drafts_json` artifact and `/regions/tree` echoes
+  it back, so a freshly drawn region could be shown as drawn-but-unwired. The Edit tool was the only thing
+  that drew one, and it is gone. Retire the field on both request DTOs (`EditRequests.cs`), `RegionNode`'s
+  echo (`RegionTreeDtos.cs`), `RegionDrafts` and the artifact, and `docs/pgm/region-data-flow.md` §5 with them.
 
 - [ ] **A8 Should the layout generator be its own project?** `Pgm` holds two charters:
   the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85

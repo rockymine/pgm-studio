@@ -3277,6 +3277,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A plan's authors reach the intent (`TN21`)** — `PlanMeta.Authors`/`Contributors`, carried by
   `PlanCompiler` and kept by `plan-doc.js`, so a plan-first board no longer exports with `EX6`. (`TN21`)
 
+- **A map can be deleted (`RP71`)** — `DELETE /map/{slug}` answers 204 and cascades every row stored under the
+  map; an unknown slug is 404 `RQ4`. The world folder it was scanned from stays. (`RP71`)
+
+- **The Edit tool is retired (`TE3`)** — `/maps/{slug}/edit` and `Features/Edit/` are gone; `WorldCanvas` and
+  the bodies drawn beside it live in `Features/Configure/`, and a finished map's document is changed through
+  the entity routes `docs/tools/flow.md` documents. (`TE3`)
+
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)
@@ -7988,6 +7995,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `WorldProvenance.PropVolumeAt`. A tree's or boulder's blocks are solid, so a trunk is not walked through and
   a crown roofs the ground under it, but never a place to stand: a crown over the void is void to `walk` as to
   `column`, `transect` and the census. The author's ruling. (`WS71`)
+
+- **A dressing-pass house and its image stand on the same columns, door included (`WE135`)** —
+  `Decorator.Doorway` fits the door through `HouseStamper.Fit` with the image's reflection, the room stamper's
+  own rule. (`WE135`)
+
+- **One answer to which void columns may be bridged (`WS73`)** — `Editability.Result.Bridges`, read off the
+  place walk alone, is what the walk and `reach`/`render/traversability` both take; `Export.BridgeableColumns`
+  hands it to the render, which reads no filters. (`WS73`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
