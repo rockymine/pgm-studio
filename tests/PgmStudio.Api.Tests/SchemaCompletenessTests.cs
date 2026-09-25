@@ -54,6 +54,7 @@ public sealed class SchemaCompletenessTests
     private static readonly string[] NoBody =
     [
         "DELETE /api/biome-patterns/{id}",
+        "DELETE /api/map/{slug}",
         "DELETE /api/boulder-styles/{id}",
         "DELETE /api/plans/{id}",
         "DELETE /api/porch-styles/{id}",

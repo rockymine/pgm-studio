@@ -54,8 +54,7 @@ the row carries), and `DetailHeader` (an inspector head: icon, label, trailing b
 **Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + topbar + body + optional footer);
 `Topbar` carries the home link and a `Crumbs` slot composed from `Crumb`; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from; `FlowBar` is the phase/step nav shared by the Configure wizard and Edit's stepped
-phases; `AppFooter`/`AppFooterLink` and `SideDrawer` finish the set.
+arranges itself from; `FlowBar` is the phase/step nav the stepped tools share; `AppFooter`/`AppFooterLink` and `SideDrawer` finish the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
 `CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton`, `DockChoice` (one option of a set the dock
@@ -66,8 +65,10 @@ and `ViewModeToggle`.
 `MaterialEditor`, `BlockPicker`, `StyleSelect` (binding a saved style — the same question, grouped by kind,
 with the bound style's own picture beside the control) and `HouseViews`.
 
-**Editor** — feature components that are not vocabulary but are shared by more than one tool: `WorldCanvas`,
-`RegionTree`, `SliceView`, `SmartSuggestion`, `BuildHeightSideview`.
+**Editor** — feature components that are not vocabulary but have more than one consumer: `SmartSuggestion`,
+which the Configure tool and the design showcase both mount. The world canvas and the bodies drawn beside it —
+`WorldCanvas`, `RegionTree`, `SliceView`, `BuildHeightSideview` — are the Configure tool's alone and live in
+`Features/Configure/`.
 
 ## The words a form writes, and where they are declared
 

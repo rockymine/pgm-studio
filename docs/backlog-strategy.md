@@ -165,12 +165,12 @@ table of corrections is a second place for a number to be wrong.
 
 | entry | the board says | measured today | the command that retakes it |
 |---|---|---|---|
-| `C51` | 28 selects, the plan tool 7 | **25**, the plan tool **10**, and six of the 25 go with `TE3` | `grep -rc "<select" src/PgmStudio.Client --include=*.razor` |
+| `C51` | 28 selects, the plan tool 7 | **25**, the plan tool **10**, and six of the 25 went with `TE3` | `grep -rc "<select" src/PgmStudio.Client --include=*.razor` |
 | `B261` | 422 hand-maintained lines in `ThemeVocabulary.cs` | **542** | `wc -l src/PgmStudio.Client/Components/Terrain/ThemeVocabulary.cs` |
 | `A8` | the generator is 85 files, 11.5k lines | **90 files, 13,385 lines** | `find src/PgmStudio.Pgm/{Compose,Evaluate,Shapes,Derive,Plan} -name '*.cs'` |
 | `WE70` | six callers hardcode `true`; `DressingScope:216,218` | **ten** sites, of which **five are deliberate**: a plan carries no binding, so `PlanStructurePreview:60,74` and `PieceRoom:75,98` draw the shell a plan exports and `RoomStylePreview:42` previews a style. The three that read a built map were the defect (`FEATURES.md`) | `grep -rn "shellBound: true" src --include=*.cs` |
 | `C62` | `components.css:989–1004`; the grep "hits only that CSS" | **985–1001**, and the fourth site is a signpost comment rather than markup. Shipped (`FEATURES.md`); the wider reading it opened is `C64` | `grep -rn "map-author-" src/ tests/` |
-| `TE2` | `ObjectivePhase.razor.cs:201`, `:211`; `.razor:56` | **`:204`**, **`:212`**; **`:55`** | `grep -n DyeColors src/PgmStudio.Client/Features/Edit/ObjectivePhase.razor.cs` |
+| `TE2` | `ObjectivePhase.razor.cs:201`, `:211`; `.razor:56` | **`:204`**, **`:212`**; **`:55`** — the file went with `TE3` | — |
 | `RP59` | every authored board takes six calls, because the one-call path reads as a re-import | `drive.py:582` stores through **`POST /map/from-documents`**, one call, under a stated slug | `grep -n 'call("P' /media/sf_repos/pgm-studio-mapgen/tools/drive.py` |
 
 One held: `G143`'s "handful of consumers" for the four misnamed edge lists, which is five sites. `B260`'s
@@ -499,7 +499,7 @@ anything above interrupts it, except a Phase 1 defect in the surface it is build
 programme at a time and says at the top which one, so the phase order above is what to pull up next rather
 than a queue that runs beside the one already open.
 
-**Phase 3 — put the surviving measurements under a script.** `C51`, `B261`, `A8` and `TE2` each
+**Phase 3 — put the surviving measurements under a script.** `C51`, `B261` and `A8` each
 carry a count or a line number that has drifted, and `C62` carried a retake command that did not measure
 its own claim. Where the number is load-bearing it earns a `census.sh`-shaped generator; where it is not, it
 comes out of the entry and the prose stands alone. `RP59` was not part of this phase — what drifted there was

@@ -18,7 +18,7 @@ The routes are `/maps/{slug}/configure` for a map that exists and `/maps/new` fo
 zero and has no slug because a map has no identity until its world has been scanned.
 
 **What made all of this possible is `MapIntent`.** Before it, authoring a map meant editing the PGM document
-itself — regions, filters and apply-rules, by hand, in the Edit tool. The intent is a declarative statement of
+itself — regions, filters and apply-rules, by hand. The intent is a declarative statement of
 what the author wants, and a generator projects it into that document. So an author states *this team spawns
 here, this wool is red and lives in that room*, and the twenty-odd regions, twenty filters and eleven
 apply-rules that make PGM agree are derived rather than typed. Every phase below edits one slice of that one
@@ -177,7 +177,7 @@ monument candidates, resource blocks, chests, spawners, and the detected symmetr
 count, each selectable for a detail explanation. **Plan** hands off to the wizard at Identity.
 
 A folder carrying a `map.xml` is refused with 422 — it is not a new-map candidate. That is the line between
-this tool and the Edit tool.
+a map being configured and a finished one.
 
 ### Identity
 
@@ -675,8 +675,8 @@ all four checks passing, and the gate open.
 ## Limits
 
 **Kits cannot be edited.** Every generated team gets the fixed Standard preset, and the intent carries no kit
-field at all. The one kit surface in the studio is a free-text box in the **Edit** tool naming which kit a
-spawn uses, and nothing anywhere authors what a kit *contains* — that is the author's decision rather than
+field at all. The one kit statement in the studio is a spawn's `kit` field on the entity routes
+(`flow.md`), naming which kit it grants, and nothing anywhere authors what a kit *contains* — that is the author's decision rather than
 a gap, so a map wanting different starting gear is finished outside the studio.
 
 **Water lanes cannot be authored here, and are invisible even when present.** The Buildable-layer step draws
@@ -692,9 +692,9 @@ offers no control for it.
 
 **Opening a corpus map does not make it configurable.** Any map in the database can be opened, but a corpus
 map has no intent: the phases show empty slices, nothing is pre-filled, and there is no path that derives one
-from an existing `map.xml`. Configure authors an intent; it does not read one back out of a finished map. To
-look at a corpus map's XML the tool is **Edit** — which is a technical inspector rather than an authoring
-surface, supports **CTW only**, and is not going to grow DTC or DTM. That gap is exactly what the intent model
+from an existing `map.xml`. Configure authors an intent; it does not read one back out of a finished map. A
+corpus map's XML is read through `GET /map/{slug}/xml` and its document changed through the entity routes
+(`flow.md`); no tool surfaces either. That gap is exactly what the intent model
 closed for new maps.
 
 **Nothing here judges how a map plays.** Pre-flight asks whether the document is well-formed, whether the

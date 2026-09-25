@@ -58,8 +58,8 @@ public sealed class RefusalEnvelopeTests
     }
 
     /// <summary>
-    /// The Edit tool's write path was the last surface answering a bare <c>{error}</c>, and it is many routes
-    /// deep, so the assertion is over the <em>faults</em> rather than over the routes: one per kind a request
+    /// The entity write path is many routes deep, so the assertion is over the <em>faults</em> rather than
+    /// over the routes: one per kind a request
     /// can fail with, each through a different editor. The document faults <c>ED1</c> and <c>ED2</c> are not
     /// here because no route can raise them any more — the editors that do are reached from the intent
     /// generators, and <c>FilterEditorTests</c> holds them there.

@@ -34,8 +34,8 @@ internal static class RegionDrafts
     }
 }
 
-/// <summary>POST /api/map/{slug}/regions — create a primitive region (optionally tagged with the
-/// editor <c>draft_step</c> so it shows in that activity until it's wired — E10).</summary>
+/// <summary>POST /api/map/{slug}/regions — create a primitive region, optionally tagged with a
+/// <c>draft_step</c> that <c>/regions/tree</c> echoes back while the region is unwired.</summary>
 public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure()

@@ -42,11 +42,10 @@ shipped.
 | **Plan** | `/maps/{slug}/plan` | the board | `plan_json` |
 | **Sketch** | `/maps/{slug}/sketch` | the ground | `sketch_layout_json` |
 | **Configure** | `/maps/{slug}/configure` | the play | `map_intent_json`, and the projected document |
-| **Edit** | `/maps/{slug}/edit` | the map | the map document, directly |
 | **Library** | `/library` | — | its own tables, shared across every map |
 
-Read the row order as the pipeline. The one exception is Edit, which is not a step in it: it opens a map that
-already exists as a `map.xml` and adjusts the document by hand.
+Read the row order as the pipeline. A map that already exists as a `map.xml` has no tool of its own: its
+document is changed through the entity routes under *A finished map's document* below.
 
 ## Where a map starts
 
@@ -74,6 +73,7 @@ this folder takes a map; these are what a caller with no map reaches for first.
 |---|---|---|
 | `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
 | `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
+| `DELETE /map/{slug}` | nothing — **204**, and the map is gone with everything stored under it: its teams, regions, authors, objectives, scans and every document it held, since each of those rows cascades from the map's. A world folder under a maps root is what a map was scanned from rather than something it holds, and stays; an imported one is offered as an import candidate again. The call for a driver cleaning up after a variant, or a spec re-driven under a corrected slug | 404 `RQ4` no map at that slug |
 | `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under — **the authoring call for a headless caller**, not only the import one, and the whole of it: the finish and the intent's projection run inside it. A map already at that slug is replaced. See *The three documents are the way in, and the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 400 `no document given` `RQ1` naming `layout` or `intent`, which are the load and are both required · 400 `unreadable document` `RQ1` naming the first field of each document its binder cannot read, under the member it was posted as (`intent.modes[0]`) — nothing is stored · 422 the layout carries no ground |
 
 ## The hand-offs
@@ -202,7 +202,8 @@ split — sketches are counted by the layer a map holds, configure and edit by t
 there; the only runtime transition anywhere in the tree is sketch → configure, at finish. Maps at `edit` are
 the ones that arrived as a parsed `map.xml`, which on a development checkout is most of them — 349 of 425 in
 this one. That is the whole difference between the two halves of the studio: one authors a map into existence,
-the other opens one that already exists.
+the other holds one that already exists, which no tool opens at its stage — the maps list links each to the
+layers it still holds.
 
 **A stage is a progress marker and not a lock.** The one-way flow above means nothing reads back up — a later
 level never writes into an earlier one — and that is all it means: a configured map may be re-planned, and no
@@ -267,8 +268,79 @@ nothing in Configure renders them.
 **The shells stamped over spawns and wool rooms** come from the room styles bound in Sketch's Theme phase.
 Configure places the markers and draws the rooms; it cannot choose the building.
 
-**Kits** are nobody's. Every generated team gets one fixed preset, and the only kit control in the studio is a
-free-text box in Edit naming which kit a spawn grants — nothing states what a kit contains.
+**Kits** are nobody's. Every generated team gets one fixed preset, and the only kit statement in the studio is
+a spawn's `kit` field on the entity routes, naming which kit it grants — nothing states what a kit contains.
+
+## A finished map's document
+
+**A map that arrived as a `map.xml` has no tool: its document is changed through the entity routes, one
+targeted edit at a time.** Each write reads the whole document, applies one edit and saves the whole document
+back through the codec (`WriteSupport.RunEditAsync`), so whatever the edit does not touch rides through
+unchanged — a map's destroyables survive a wool edit that knows nothing about them. The routes write no world
+and no intent, so a map changed this way is not pre-flighted, and it exports unconditionally.
+
+**They are for a surgical change to a finished map** — renaming a region, nudging a spawn's yaw, correcting a
+monument's coordinates on a corpus map. One PATCH does it and the rest of the document is untouched. Authoring
+a new map through them means writing every region, filter and apply-rule by hand, which is what the intent
+(`configure.md`) exists to replace.
+
+| Endpoint | Does |
+|---|---|
+| `GET /map/{slug}` | the whole parsed document — teams, spawns, wools, regions, filters, apply-rules, kits — with its revision as an `ETag` |
+| `GET /map/{slug}/regions/tree` · `/regions` | the region tree grouped by category, and the flat registry |
+| `PATCH /map/{slug}/metadata` | name, version, objective, max build height, authors |
+| `GET /minecraft/player[?name=\|uuid=]` | one player as `{uuid, name}` — a typed username to the canonical uuid an author entry is stored under, and back. A value not shaped like an account name is never asked about, and a resolved pair is answered from `minecraft_player` for thirty days. **404** means no account is called that |
+| `POST` · `PATCH` · `DELETE /map/{slug}/teams[/{teamId}]` | the teams |
+| `POST` · `PATCH` · `DELETE /map/{slug}/spawns[/{regionId}]` | a spawn's region, team, yaw and kit — the `kit` field names which kit the spawn grants, and nothing in the studio states what a kit contains |
+| `PATCH` · `DELETE /map/{slug}/observer-spawn` | the `<default>` spawn |
+| `POST` · `PATCH` · `DELETE /map/{slug}/wools[/{woolId}]` | the wool objectives |
+| `POST` · `PATCH` · `DELETE /map/{slug}/wools/{woolId}/monuments[/{monId}]` | their capture points |
+| `POST` · `PATCH` · `DELETE /map/{slug}/regions[/{regionId}]` | create, re-coordinate or rename, delete — the numbers nested under `coords` on both writes |
+| `POST /map/{slug}/regions/group` · `/ungroup` | union two or more, dissolve a compound |
+| `POST /map/{slug}/regions/{regionId}/counterpart` · `/orbit` | mirror a region onto the other team, or round the orbit |
+| `GET /map/{slug}/xml` | the rendered `map.xml` |
+
+**Their failures run through one path, so their codes are uniform.** **400** (`RQ1`, `ED1`, `ED2`) is a payload
+the document will not take, **404** (`RQ4`) an unknown map, region, team, wool, monument, spawn, filter or
+apply-rule, and **409** (`RQ5`) an id already in use, with the id holding the name in the finding's
+`subjects`. Payload validation runs before the lookup, so a malformed body aimed at something that does not
+exist answers 400 rather than 404. `POST …/spawns`, `PATCH …/observer-spawn` and `POST …/teams` bind their
+request record, so a missing `region_id` or `id` is refused before the map is read; every update stays
+hand-read, because an update tells an absent field (leave it) from a `null` one (clear it) by whether the key
+is there at all.
+
+**Two editors on one map keep only the second, unless they state a revision.** Every write rewrites the whole
+document, so any of them may state the revision `GET /map/{slug}` answered as an `If-Match`; one naming a
+revision the map is no longer at is refused as `RQ5`, and one stating nothing writes as it always did.
+`docs/refusals.md` carries the rule.
+
+**Their bodies and answers are declared.** The request records are `Contracts/EditRequests.cs` and the answer
+records `Contracts/EditDtos.cs`, both published in the schema; `EditRequestShapeTests` and
+`EditAnswerShapeTests` hold each to the editor behind it. Most writes answer `{}`; a created, grouped,
+dissolved or fanned region answers the id the caller now names it by, and a wool, a monument or a team
+answers the row in the shape `GET /map/{slug}` carries it.
+
+**A region's numbers always travel nested under `coords`, on a create and on a patch alike.** A patch takes
+`{"id": …}` to rename — cascading through the categories, every compound's child list, and any spawn or wool
+room pointing at it — and `{"coords": {…}}` to move it, answering the footprint the region now covers. The
+stored type chooses which numbers it reads, and a number the type does not use is accepted and ignored. A flat
+payload is a 400 carrying `RQ1`; a create whose `coords` is short of a number its type needs names it
+(`coords.max_x`), and on a patch an absent or `null` number means leave it.
+
+```
+GET   /api/map/sentient                            → the whole document
+GET   /api/map/sentient/regions/tree               → the tree: the region's id, type and current numbers
+PATCH /api/map/sentient/regions/blue-spawn-point   {"coords": {"min_x": 234, "min_z": 149,
+                                                               "max_x": 238, "max_z": 151}}
+POST  /api/map/sentient/regions/group              {"type": "union", "child_ids": ["blue-spawn-point"]}
+→ 400 { "error":    "edit not applicable",
+        "message":  "union requires at least 2 region(s)",
+        "findings": [ { "rule": "ED2", "message": "union requires at least 2 region(s)",
+                        "severity": "refusal" } ] }
+```
+
+The ids are real — `sentient` carries `red-spawn-point`, `blue-spawn-point`, `spawns`, `obs-spawn-point`,
+`wool-rooms` and a monument per colour — and `blue-spawn-point` is a `cuboid`.
 
 ## What a write endpoint takes
 
@@ -309,7 +381,6 @@ once rather than one per round trip. `docs/refusals.md` has the envelope.
 | `generator.md` | rolling boards: the request, what a compose produces, the browse feed |
 | `shapes.md` | the vocabulary the generator fills boxes with, and how far each shape actually gets |
 | `library.md` | materials, themes, house parts and room styles — the fourteen material kinds |
-| `edit.md` | the inspector for maps that already exist |
 
 One document outside this folder carries the rest: `docs/generator/model.md` is the canonical model of
 layout generation and governs on any disagreement about it. What the system can be **asked** for is not a

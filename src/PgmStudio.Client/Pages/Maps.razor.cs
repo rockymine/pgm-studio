@@ -76,6 +76,11 @@ public partial class Maps
         if (map.HasSurface) yield return (MapStage.Configure, "Configure");
     }
 
+    /// <summary>The tool a row opens: the one at the map's stage, or — for a finished map, which no tool opens
+    /// at its stage — the last layer it holds, and nothing when it holds none.</summary>
+    private static string? Opens(MapSummary map) =>
+        map.Stage == MapStage.Edit ? Layers(map).Select(layer => layer.Id).LastOrDefault() : map.Stage;
+
     private static string LayerTitle(MapSummary map, string layer) => layer switch
     {
         MapStage.Plan => "Open the plan this map was compiled from. Nothing is rebuilt by looking.",
@@ -102,7 +107,7 @@ public partial class Maps
         MapStage.Plan => "Every map that holds a plan — including ones already built and configured. Open one to keep planning.",
         MapStage.Sketch => "Every map that holds a drawn sketch — including ones already configured. Open one to keep sketching.",
         MapStage.Configure => "Worlds with terrain but no finished map.xml — sketched or imported. Open one to keep configuring.",
-        _ => "Maps with a finished map.xml. Open one to refine its regions, teams, wools and objectives.",
+        _ => "Maps with a finished map.xml. Open one on the last layer it holds — its world in Configure, where it has one.",
     };
 
     private string EmptyMessage => CurrentStage switch

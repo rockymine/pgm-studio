@@ -3,7 +3,7 @@
 What a map's regions actually **are**, activity by activity, measured on the corpus — and the one
 composition pattern that is not a union. This is the reference for what a region-bearing step is composing,
 not for the surface that composes it: the authoring tools are `../tools/configure.md` (which states intent
-and derives the graph) and `../tools/edit.md` (which edits the graph directly).
+and derives the graph) and the entity write routes in `../tools/flow.md` (which edit the graph directly).
 
 The wiring templates the patterns below resolve to are `filter-region-wiring.md`; the categories that scope
 a region to a step are `region-categorization.md` §3.
@@ -119,8 +119,8 @@ author states the intent; the engine proposes the subtraction.
 The **primitives / composed** split — leaf shapes on one side, the structures grouping them on the other,
 each annotated with its wiring — was designed as the authoring view for exactly the reason above: a tree
 buries what you drew one level deeper every time you group it. **The view it was for is not being built.**
-Hand-authoring regions and their filters is the burden the intent model exists to remove, so the Edit tool
-never grew the create/update/delete surface this split was the render input for, and the route that answered
+Hand-authoring regions and their filters is the burden the intent model exists to remove, so no tool
+grew the create/update/delete surface this split was the render input for, and the route that answered
 it is gone. `RegionAuthoringEncoder.EncodeAuthoring` remains as a derivation, reviewable through
 `tools/PgmStudio.RoundTrip --authoring-fixture`; the argument above is kept because it is a true statement
 about what a tree hides, not because a screen is coming.

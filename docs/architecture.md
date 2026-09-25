@@ -77,8 +77,8 @@ for, against what `docs/refusals.md` says. `Refusals.UseRefusalEnvelope` makes i
 envelope, and both halves of "this body will not read" now name the field **as the wire spells it**: a
 property stating its own JSON name reports `region_id`, not the `regionId` the record declares.
 
-**A validation that cannot live in a schema still lives in the code by hand.** Of the Edit tool's 53 refusal
-sites across `Pgm/Editing`, **15 are `Unreadable`** — a field is absent, a value is outside a closed set, a
+**A validation that cannot live in a schema still lives in the code by hand.** Of the 53 refusal
+sites across the document editors in `Pgm/Editing`, **15 are `Unreadable`** — a field is absent, a value is outside a closed set, a
 number is not one. Three of those are now unreachable over HTTP, shadowed by the bindings above, and stay as
 the library guards they are: `SpawnEditor` and `TeamEditor` are public API in `Pgm` and cannot assume a bound
 caller. The other 38 sites are a different thing entirely: `NoSuchSubject`, `Conflict`, `Unresolved` and
@@ -86,9 +86,9 @@ caller. The other 38 sites are a different thing entirely: `NoSuchSubject`, `Con
 
 **Every operation now says what it answers.** An endpoint that declares no response type is published as
 **204 No Content** — the generator's default, and a claim rather than a silence, so an undeclared route does
-not leave a caller guessing but misleads it. **Nought of the 149 operations** publish that 204 without
-answering it; seven publish it truthfully, every one a delete whose answer is that the thing is gone.
-`SchemaCompletenessTests` holds the count at zero and the seven as a named list, so a route added without a
+not leave a caller guessing but misleads it. **None of the operations** publish that 204 without
+answering it; eleven publish it truthfully, every one a delete whose answer is that the thing is gone — ten
+library rows and a whole map. `SchemaCompletenessTests` holds the count at zero and the eleven as a named list, so a route added without a
 response type fails there, and one on the list that grows a body cannot leave it quietly. The media types
 are declared too: the six `image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
 `/api-docs` renders a theme swatch beside the route that draws it.
@@ -144,9 +144,7 @@ the response types, and those already come from `Contracts` at 71 of 73 call sit
 the path check, at the price of a build-time package and a second copy of the whole surface committed to the
 tree — the "second accepted shape" that `CLAUDE.md` forbids for exactly the reason it would rot here.
 `ClientRouteTests` buys the same check for nothing: every route string in the client is a route the schema
-serves, with no exception left — the Edit tool's twenty-three writes were composed from a prefix stated in
-three phases and a tail passed at the call site, which is not a route and could not be read; they are named
-operations on `MapEdits` now, each carrying its own literal. The tables are the same problem seen from the
+serves, with no exception left. The tables are the same problem seen from the
 prose side: three heavily used
 analysis routes had drifted out of every one of them, which is not a documentation lapse but what a
 hand-maintained copy of a machine-readable fact does.
@@ -247,6 +245,11 @@ authored rather than three calls later. It does not build: the export gates need
 each is named in `unasked` with the route that does pay, because a list silent about what it skipped reads as
 *nothing is wrong*. `GET /map/{slug}/state` answers the other half — where the map has got to and what may be
 done to it from here, each move with its route. A driver's loop is *act, then ask*.
+
+**A map ends on `DELETE /map/{slug}`.** It answers 204 and removes the `map` row, and every table keyed on a
+map cascades from that row, so the map's teams, regions, objectives, scans and stored documents go with it in
+one statement; a slug naming nothing is `RQ4` at 404. A world folder under a maps root is the source a map was
+scanned from rather than part of the map, and is left on disk.
 
 **A stage is a progress marker and not a lock**, which is the product statement the transition table rests
 on: `flow.md`'s one-way flow means nothing reads back up, not that a built map may never be re-planned. So no

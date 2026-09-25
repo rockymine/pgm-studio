@@ -24,13 +24,14 @@ const page = await newPage(browser);
 // The three surfaces, with what each is expected to keep in the svg once its world is painted. `floor` is
 // the share of the viewport the world must cover: well clear of blank, and set per surface because a plan
 // board fills more of its frame than a world map fills its bounding box. `enter` is for a surface whose
-// route does not land on it — the Edit tool opens on Identity, which mounts no canvas, so the world one is
-// reached through its nav rail (a state switch, so nothing is advanced or persisted to get there).
+// route does not land on it — the Configure tool opens on Identity, which mounts no canvas, so the world one
+// is reached through its nav rail on World · Scan (a state switch, so nothing is advanced or persisted to get
+// there).
 const SURFACES = [
   { name: "plan",   path: `/maps/${seed.planSlug}/plan`,     floor: 5, screen: ["overlay", "scale"] },
   { name: "sketch", path: `/maps/${seed.sketchSlug}/sketch`, floor: 5, screen: ["groupChrome", "handles", "center", "scale"] },
-  { name: "world",  path: `/maps/${seed.mapSlug}/edit`,      floor: 1, screen: ["overlay"],
-    enter: (page) => page.click('button.nav-btn[title="Setup"]') },
+  { name: "world",  path: `/maps/${seed.mapSlug}/configure`, floor: 1, screen: ["overlay"],
+    enter: (page) => page.click('button.nav-btn[title="World"]') },
 ];
 
 /** Painted pixels, distinct colours, and an order-sensitive signature of the surface's content. */

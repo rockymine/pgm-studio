@@ -101,8 +101,8 @@ mariadb` (its default admin path, which works once `sudo service mariadb start` 
 minutes here over an already-built solution, fifteen suites and 273 checks; a cold tree adds the WASM build
 in front of it.
 
-**One check fails where the container cannot reach Mojang.** The smoke sweep's *edit tool is clean* reads a
-404 from `/api/minecraft/player?name=Notch`, which is the studio answering honestly: `Notch` is shaped like a
+**One check fails where the container cannot reach Mojang.** A smoke-sweep route that shows the map's author row
+reads a 404 from `/api/minecraft/player?name=Notch`, which is the studio answering honestly: `Notch` is shaped like a
 Minecraft account, so the question is worth asking, and where `api.mojang.com` is unreachable there is no
 account to answer with. It is not tolerated — `ALLOWED_FAULTS` in `tests/e2e/lib/harness.mjs` holds one
 entry, for a fetch the sweep itself cancelled, and a 404 from the studio's own API is exactly what that list

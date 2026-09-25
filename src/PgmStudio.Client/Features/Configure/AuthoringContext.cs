@@ -16,9 +16,7 @@ namespace PgmStudio.Client.Features.Configure;
 public static class AuthoringContext
 {
     /// <summary>One team, as the <b>intent</b> states it — the three fields every step that draws a team
-    /// reads. The Edit tool's own team record is a different shape over a different document: it reads
-    /// <c>GET /map/{slug}</c> and carries the dye colour and the player caps the intent has no field
-    /// for.</summary>
+    /// reads.</summary>
     public sealed class Team { public string Id = ""; public string Name = ""; public string Color = ""; }
 
     /// <summary>The teams an intent states, in the order it states them. Nine steps read them and every one

@@ -31,12 +31,12 @@ function editabilityToBlockData(grid) {
 /** Create an WorldCanvas on the given elements, load the map, and return a handle.
  *  Cursor/zoom labels are updated in JS (per-mousemove, hot path); only selection calls C#.
  *  Imported on demand from Blazor (await JS.import) — no global, no load-order race. */
-export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep) {
+export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category) {
   const canvas = new WorldCanvas(svgEl, wrapEl, {
     onCanvasClick: (node) => dotnetRef.invokeMethodAsync("OnCanvasSelect", node?.id ?? null),
     onCoords: (x, z) => { if (coordsEl) coordsEl.textContent = (x === null || x === undefined) ? "" : `X ${x}  Z ${z}`; },
     onZoom: (scale) => { if (zoomEl) zoomEl.textContent = `${Math.round(scale * 100)}%`; },
-    // Draw-tool region creation (C5): a completed shape → C#, which POSTs /regions then reloads.
+    // A completed rectangle (RectDraw mode) → C#, which writes it to the intent.
     onRegionDraw: (drawResult) => dotnetRef.invokeMethodAsync("OnRegionDraw", drawResult),
     // Island pick (World authoring step): a click in island-select mode → C# (null = clicked empty space).
     onIslandClick: (id) => dotnetRef.invokeMethodAsync("OnCanvasIslandSelect", id ?? null),
@@ -57,17 +57,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
       // wanted, found anywhere in the tree — the same regions the activity sidebar lists. Objective/spawn/
       // build regions nest inside rule-containers in the "other" group, so a group-name filter misses them;
       // collecting by per-node category (compounds excluded — their primitive children carry the category)
-      // gives exactly the sidebar's primitives. No filter (Regions activity) → render the whole tree.
+      // gives exactly the sidebar's primitives. No filter → render the whole tree.
       const wanted = category ? new Set(category.split(",")) : null;
       let groups;
       if (wanted) {
         const prims = [];
         const walk = (n) => {
-          // a region's derived category matches the activity, OR it's a still-unwired draft drawn in this
-          // step (category "other" until wired — E10). Both render as their primitive geometry.
-          const matches = wanted.has(n.category)
-            || (draftStep && n.draft_step === draftStep && n.category === "other");
-          if (n.id && matches && !COMPOUND_TYPES.has(n.type)) prims.push(n);
+          if (n.id && wanted.has(n.category) && !COMPOUND_TYPES.has(n.type)) prims.push(n);
           (n.children ?? []).forEach(walk);
           if (n.source) walk(n.source);
         };
@@ -83,8 +79,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     },
     setTool(tool) { canvas.setActiveTool(tool === "select" ? null : tool); },
     setSelection(ids) { canvas.setSelectedRegions(ids ?? []); },
-    // Push a region's new footprint to the canvas after an inspector edit (re-renders just that shape).
-    refreshRegionBounds(id, bounds) { canvas.refreshRegionBounds(id, bounds); },
     // Block-colour overlay (C6): lazily fetch the top-surface layer (B4), then toggle visibility.
     // Returns false when no scan data is available, so the caller can leave the toggle off.
     async setBlocks(visible) {
@@ -122,8 +116,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     fitIsland(id) { canvas.fitIsland(id); },
     fitBounds(minX, minZ, maxX, maxZ) { canvas.fitBounds({ min_x: minX, min_z: minZ, max_x: maxX, max_z: maxZ }); },
     resetView() { canvas.resetView(); },
-    // The painted surface owns a canvas element, a resize observer and a theme watcher, and sixteen hosts
-    // mount this canvas — so teardown is real work now, not just dropping the reference.
+    // The painted surface owns a canvas element, a resize observer and a theme watcher, and every Configure
+    // step that mounts this canvas mounts its own — so teardown is real work, not just dropping the reference.
     dispose() { canvas.dispose(); },
   };
 
