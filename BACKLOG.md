@@ -318,23 +318,18 @@ Twelve judged donut boards at 20 and 30 players named what a larger composed boa
 
 ## The plan model: pieces, and the edges between them
 
-- [ ] **G270 — A mid stone's depth is fixed before the hull that bounds its width is known, so a
-  narrow-fronted board under-spends the crossing.** `MidCarver.Crossing` sets the half-gap from
-  `StoneDeepCells` before allocation, because the allocator takes it as its axis margin; the width then comes
-  from the frontline hull the carve is handed. Where that hull is narrow the stone shrinks but the depth
-  cannot grow to compensate, so the mid spends **66–85%** of its share and a hull too narrow for one
-  stone at the wider-than-deep rule carries none at all. Either the crossing is designed twice (a provisional gap, then a re-carve once the
-  hull is known) or the depth reads a hull the envelope can predict. `docs/generator/model.md` §5.13 and
-  `rules.md` amendment 35.
-
-  Where a crossing under-spends, its stones are already as deep as they are wide — the hull caps the width
-  and the row's wider-than-deep rule caps the depth at it — so a deeper stone is a line, and the land can
-  only go into width, which `BZ9` holds to the hull. *Blocking question (author): accept the under-spend,
-  let the zone overhang the fronts, allow a stone deeper than wide, or give the land back to the units.*
+- [ ] **G270 — A mid stone grows to the zone's lateral border, and a stone spanning the band splits it in
+  two.** *Parked (author): no composer change yet.* The author's ruling: a zone never grows to overhang the
+  ground it docks (`BZ9` stands). A stone may grow to the build zone's border, so `StoneInsetCells` stops
+  holding it a cell off the band's ends — but a stone must not have build zone on all four sides once it
+  reaches that border. Where a stone is as wide as the band, the band is emitted as **two zones**, one per
+  side of the stone, neither containing it: what mapmakers do. Where several stones stand with zone between
+  them, one band stays one zone. `MD4` ("stones sit entirely inside the build zone") and `CT1`'s one band
+  zone change with it: `docs/generator/rules.md` (a new amendment), `model.md` §5.13, `MidCarver.Stones`.
 
   *Evidence: `rot_180`, seeds 0–59, normal crossings spend a median of 85 · 72 · 81 · 88% of their share
-  from nano to centi, and 13–21 of 33–40 boards a band spend under 80%. `p16 rot_180 seed 0`: share 50
-  cells, band 8×12, one 6×6 stone, 72%.*
+  from nano to centi; `p16 rot_180 seed 0`, band 8×12 cells, one 6×6 stone held a cell off each end, 72%.
+  At the border it is 8×6, 48 of 50 cells.*
 
 - [ ] **G268 — A frontline spine docked flush on a hub wall makes one slab twice the corridor deep.**
   The frontline's spine is one corridor deep and the hub's wall behind it is another, and the spine docks
