@@ -90,10 +90,16 @@ public static class ClaimRaster
 
     /// <summary>Where a prop of a stated kind and footprint may seat, as digit rows over the same box the
     /// raster covers: <c>1</c> an anchor the footprint stands at, <c>0</c> one it does not, a space where the
-    /// anchor cell itself is off the board. <see cref="Refused"/> counts the anchors each rule turned away.</summary>
+    /// anchor cell itself is off the board. <see cref="Refused"/> counts the anchors each rule turned away;
+    /// <see cref="Unasked"/> names the rules the pass still asks of a seat this answers <c>1</c>, and
+    /// <see cref="SlopeLimit"/> is the rise <c>DR-SLOPE</c> was asked against, where it was.</summary>
     public sealed record Seating(int MinX, int MinZ, int Width, int Height, IReadOnlyList<string> Rows,
         string Kind, int Standoff, int FootprintWidth, int FootprintDepth, int Seats,
-        IReadOnlyList<Because> Refused);
+        IReadOnlyList<Because> Refused, IReadOnlyList<string> Unasked, int? SlopeLimit = null);
+
+    /// <summary>The ground a building's site is read against and the rise its style may not reach
+    /// (<see cref="SiteLevel"/>).</summary>
+    public sealed record Level(IReadOnlyDictionary<(int X, int Z), int> Ground, int Limit);
 
     /// <summary>
     /// The raster read forwards: every anchor a footprint of <paramref name="width"/>×<paramref name="depth"/>
@@ -112,11 +118,19 @@ public static class ClaimRaster
     ///
     /// <para>For a <b>building</b> the way past it is asked too (<c>DR-PASS</c>): the footprint is the walls,
     /// the passage is measured from the roof over them, and a candidate joins the group of any building
-    /// standing within a passage of it, exactly as the pass groups them. The three that are left to the pass
-    /// read the built world rather than the ground — <c>DR-CROSS</c>, <c>DR-WAY</c> and
-    /// <c>DR-SLOPE</c>.</para>
+    /// standing within a passage of it, exactly as the pass groups them. <c>DR-SLOPE</c> is asked where
+    /// <paramref name="level"/> states the ground and the style's limit, in the pass's order — after the
+    /// ground, before the way past. The two left to the pass walk the board's routes and waypoints with the
+    /// footprint taken out — <c>DR-CROSS</c> and <c>DR-WAY</c> — and are named in
+    /// <see cref="Seating.Unasked"/>.</para>
+    ///
+    /// <para>For a <b>tree</b>, <paramref name="roots"/> answers what the surface block at a cell is
+    /// (<c>DR-ROOT</c>): a caller holding the built world passes it and every cell of rock, gravel or paving
+    /// is refused, so the raster offers soil alone. A caller with no world passes null and the raster answers
+    /// the other rules only.</para>
     /// </summary>
-    public static Seating Seat(Grid grid, string kind, int standoff, int width, int depth)
+    public static Seating Seat(Grid grid, string kind, int standoff, int width, int depth, Level? level = null,
+                               Func<int, int, bool>? roots = null)
     {
         width = Math.Max(1, width);
         depth = Math.Max(1, depth);
@@ -124,6 +138,9 @@ public static class ClaimRaster
         var after = PlacedProp.PlacementOrderOf(kind) ?? int.MaxValue;
         // Only a building has a way past to leave; a tree is asked nothing about its flanks.
         var standing = kind == "house" ? Standing(grid) : null;
+        // …and only a tree is asked what it is rooted in (DR-ROOT), at its trunk, which is the whole of its
+        // footprint. Null where the caller has no world to read the surface block out of.
+        var rooted = kind == "tree" ? roots : null;
 
         var rows = new List<string>(grid.Height);
         var refused = new Dictionary<string, int>();
@@ -135,8 +152,12 @@ public static class ClaimRaster
             {
                 if (grid.Rows[row][column] == ' ') { line[column] = ' '; continue; }
                 var stopped = Stops(grid, near, after, column, row, width, depth)
+                    ?? (standing is not null && level is not null && !Levels(grid, level, column, row, width, depth)
+                        ? DressingRules.SiteNotLevel : null)
                     ?? (standing is null || Passes(grid, standing, column, row, width, depth)
-                        ? null : DressingRules.PassAround);
+                        ? null : DressingRules.PassAround)
+                    ?? (rooted is null || rooted(grid.MinX + column, grid.MinZ + row)
+                        ? null : DressingRules.TreeOnBareGround);
                 if (stopped is null) { line[column] = '1'; seats++; continue; }
                 line[column] = '0';
                 refused[stopped] = refused.GetValueOrDefault(stopped) + 1;
@@ -144,8 +165,28 @@ public static class ClaimRaster
             rows.Add(new string(line));
         }
 
+        List<string> unasked = standing is null ? []
+            : level is null ? [DressingRules.RouteCrossed, DressingRules.WayThrough, DressingRules.SiteNotLevel]
+            : [DressingRules.RouteCrossed, DressingRules.WayThrough];
         return new Seating(grid.MinX, grid.MinZ, grid.Width, grid.Height, rows, kind, standoff, width, depth,
-            seats, [.. refused.OrderByDescending(entry => entry.Value).Select(entry => new Because(entry.Key, entry.Value))]);
+            seats, [.. refused.OrderByDescending(entry => entry.Value).Select(entry => new Because(entry.Key, entry.Value))],
+            unasked, standing is null ? null : level?.Limit);
+    }
+
+    /// <summary>Whether the box anchored here is level enough for the style to stand on — the pass's own
+    /// <see cref="SiteLevel"/> arithmetic over the same cells. A box with bare ground under it is
+    /// <c>DR-SITE</c>'s, asked before this.</summary>
+    private static bool Levels(Grid grid, Level level, int column, int row, int width, int depth)
+    {
+        var (lowest, highest, bare) = SiteLevel.Read(level.Ground, Box(grid.MinX + column, grid.MinZ + row, width, depth));
+        return bare is not null || lowest == int.MaxValue || highest - lowest < level.Limit;
+    }
+
+    private static IEnumerable<(int X, int Z)> Box(int minX, int minZ, int width, int depth)
+    {
+        for (var dz = 0; dz < depth; dz++)
+            for (var dx = 0; dx < width; dx++)
+                yield return (minX + dx, minZ + dz);
     }
 
     /// <summary>The rule that turns this anchor away, or null where the whole footprint seats.
@@ -257,6 +298,11 @@ public static class ClaimRaster
             text.Append("; refused ").Append(string.Join(", ",
                 seating.Refused.Select(because => $"{because.Cells} {because.Rule}")));
         text.Append('\n');
+        if (seating.SlopeLimit is { } limit)
+            text.Append($"{DressingRules.SiteNotLevel} asked: a site rising {limit} or more is refused\n");
+        if (seating.Unasked.Count > 0)
+            text.Append("NOT ASKED  ").AppendJoin(", ", seating.Unasked)
+                .Append(" — the pass may still decline a seat marked 1 under these\n");
         return text.ToString();
     }
 

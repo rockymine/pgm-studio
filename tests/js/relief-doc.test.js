@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { recordingPainter } from "./_painter-stub.js";
 
 import { ReliefDoc, defaultMark, markAnchor, markPoints, markReach, pointsPatch, translateMark, isRing, isSpot,
-         isPush, pushAmounts, pushAmountPatch, FALLBACK_BASE }
+         isPush, pushAmounts, pushAmountPatch, FALLBACK_BASE, defaultPush }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/relief/relief-doc.js";
 import { ReliefController, RELIEF_TOOLS }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/relief-controller.js";
@@ -754,4 +754,11 @@ test("the press that inserts a point keeps hold of it", () => {
   assert.deepEqual(markPoints(doc.byId(id)), [[0, 0], [10, 9], [20, 0]]);
   controller.onHandleUp();
   assert.equal(controller.onHandleMove(4, 4), false);
+});
+
+// A crown is world height added whatever the amount's sign, so a fresh push seeds the record's own 0: any
+// other seed is a mound left in the floor of a push turned into a dig.
+test("a fresh push states the record's crown of zero", () => {
+  assert.equal(defaultPush().crown, 0);
+  assert.equal(defaultMark("push").crown, 0);
 });

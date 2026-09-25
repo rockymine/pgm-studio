@@ -37,7 +37,7 @@ public static class HouseStamper
     /// (the dressing pass's <c>PlacementClaim</c>) reads, in place of the wall rectangle alone — the wall
     /// rectangle is what a plan piece or a dragged rectangle hands the stamper, not what the stamper writes.
     /// <c>HouseStamperTests</c> proves every block <see cref="Stamp(VoxelWorld,BuildingPlan,int,HouseStyle,int,
-    /// IReadOnlyList{RoomDoor})"/> actually places lands inside it, so a caller answering from the style's own
+    /// IReadOnlyList{RoomDoor},bool)"/> actually places lands inside it, so a caller answering from the style's own
     /// fields never has to re-open the voxels to check.</para>
     /// <para>This is a <b>bound</b> and not a claim. A beam runs out from a corner only, so a rectangle wide
     /// enough to hold the longest one also spans the middle of every edge, where nothing is written — and one
@@ -83,9 +83,12 @@ public static class HouseStamper
     /// <summary>Stamp a house over a resolved <see cref="RoomFrame"/> — its footprint, and its doors on the
     /// edges the frame carries. A spawn's door sits on the yaw-derived edge, which is the way players face
     /// walking out, and a wool structure takes one per entry interface; neither is something a building can
-    /// work out from its own proportions, so where a frame says, the frame wins.</summary>
+    /// work out from its own proportions, so where a frame says, the frame wins. A
+    /// <see cref="RoomFrame.Reflected"/> frame is laid out from the other hand, so a mirror image of a room is
+    /// stamped as the mirror of it.</summary>
     public static void Stamp(VoxelWorld world, RoomFrame frame, int floorY, HouseStyle style, int color = -1)
-        => Stamp(world, frame.MinX, frame.MinZ, frame.Width, frame.Depth, floorY, style, color, frame.Doors);
+        => Stamp(world, frame.MinX, frame.MinZ, frame.Width, frame.Depth, floorY, style, color, frame.Doors,
+                 frame.Reflected);
 
     /// <summary>Stamp a house whose walls occupy <paramref name="width"/> x <paramref name="depth"/> blocks
     /// with their south-west corner at <paramref name="minX"/>/<paramref name="minZ"/>, standing on
@@ -93,9 +96,10 @@ public static class HouseStamper
     /// tint channel for a team-tinted material, exactly as a room's does. With no
     /// <paramref name="doors"/> the house cuts one of its own through the middle of a long side.</summary>
     public static void Stamp(VoxelWorld world, int minX, int minZ, int width, int depth, int floorY,
-                             HouseStyle style, int color = -1, IReadOnlyList<RoomDoor>? doors = null)
+                             HouseStyle style, int color = -1, IReadOnlyList<RoomDoor>? doors = null,
+                             bool reflected = false)
         => Stamp(world, new BuildingPlan(minX, minZ, minX + width - 1, minZ + depth - 1), floorY, style, color,
-                 doors);
+                 doors, reflected);
 
     /// <summary>Stamp a house over a <paramref name="ground"/> plan of any shape, standing on
     /// <paramref name="floorY"/> — the course a player walks on inside it. Everything below the eave reads the
@@ -110,15 +114,19 @@ public static class HouseStamper
     ///
     /// <para><b>A porch is the one part that still wants a rectangle.</b> A deck is a strip the walls give up,
     /// and giving one up on a shape that turns a corner is taking cells out of a shape rather than moving one
-    /// side of a rectangle in — so a plan of more than one wing is stamped without its porch.</para></summary>
+    /// side of a rectangle in — so a plan of more than one wing is stamped without its porch.</para>
+    ///
+    /// <para><paramref name="reflected"/> says the building is a mirror image of the one authored: every
+    /// choice a run cannot centre is then taken from the other hand (<see cref="RoomEdges.Handed"/>), which is
+    /// what makes the image the mirror of the original cell for cell.</para></summary>
     public static void Stamp(VoxelWorld world, BuildingPlan ground, int floorY, HouseStyle style,
-                             int color = -1, IReadOnlyList<RoomDoor>? doors = null)
+                             int color = -1, IReadOnlyList<RoomDoor>? doors = null, bool reflected = false)
     {
         // No room for two walls and an inside: a plan whose every cell is wall is a plan with no room in it.
         // Asked of the ring rather than of a span, so it holds whatever shape the plan is.
         if (!ground.Cells().Any(cell => ground.Ring(cell.X, cell.Z) >= 1)) return;
 
-        var front = style.Porch?.Edge ?? style.Front ?? FrontEdge(doors, ground);
+        var front = style.Porch?.Edge ?? FrontEdge(doors, style, ground);
         var (body, deck) = SplitPorch(ground, style.Porch, front);
         var doorHeight = Math.Min(
             doors is { Count: > 0 } ? style.Doorway.Height : Math.Max(3, style.Doorway.Height),
@@ -127,7 +135,7 @@ public static class HouseStamper
         // against. A rectangle has one run per side, so this is that side; a plan that turns a corner has to
         // pick, and the rule is on the plan.
         var frontWall = body.WallFacing(front, FrontCentre(body, front));
-        var openings = Doorways(doors, style, body, frontWall);
+        var openings = Doorways(doors, style, body, frontWall, reflected);
 
         var overhang = Math.Max(0, style.Roof.Overhang);
         var pitch = Math.Max(1, style.Roof.Pitch);
@@ -329,7 +337,7 @@ public static class HouseStamper
             var storey = levels[level];
             var windows = storey.Windows ?? style.Windows;
             var seats = HouseWindows.Seats(
-                windows, plan.Segments, storey.Headroom, level == 0 ? openings : null,
+                windows, plan.Segments, storey.Headroom, level == 0 ? openings : null, reflected,
                 Hosts(plan, storey.Wall ?? style.Wall, windows, bases[level]));
             foreach (var seat in seats)
                 HouseWindows.Cut(world, seat with { Sill = seat.Sill + bases[level] }, windows, floorY);
@@ -400,7 +408,8 @@ public static class HouseStamper
             foreach (var wall in alone.Segments)
             {
                 var (lo, hi) = wall.Seat;                            // a block clear of both corners
-                var start = lo + (hi - lo + 1 - width) / 2;          // centred the way a wall's windows are
+                // Centred the way a wall's windows are, the spare block of an odd leftover on the right hand.
+                var start = wall.Facing.Handed(reflected, lo, hi, lo + (hi - lo + 1 - width) / 2, width);
                 if (start < lo || start + width - 1 > hi) continue;
 
                 // <b>The gable has to keep material round the opening.</b> A triangle narrows as it rises, so
@@ -444,7 +453,7 @@ public static class HouseStamper
             // under open sky two floors later.
             var top = TopPlan();
             var climb = top?.WallFacing(front, FrontCentre(top, front)) is { } wall
-                ? LadderCell(wall, openings)
+                ? LadderCell(wall, openings, reflected)
                 : default((int X, int Z)?);
 
             for (var level = 0; level < levels.Count - 1; level++)
@@ -807,7 +816,7 @@ public static class HouseStamper
 
             // A post stands on the deck, so it takes the ground storey's wall where the style names no post —
             // the storey it is actually beside, not the one at the top of the building.
-            var posts = PorchPosts(porch, outer);
+            var posts = PorchPosts(porch, outer, reflected);
             var postMaterial = groundPost ?? groundWall.At(groundWall.Extent - 1).Material;
             foreach (var (x, z) in posts)
                 for (var y = floorY + 1; y < canopy.Underside(x, z); y++)
@@ -848,14 +857,16 @@ public static class HouseStamper
     /// more monuments than a team ever captures. One along from the corner rather than in it for the same
     /// reason: the corner itself is always taken.</para>
     ///
-    /// <para>The low end of the wall unless the doorway reaches it, in which case the high end — a ladder in
-    /// the doorway is a ladder in the way.</para></summary>
-    private static (int X, int Z) LadderCell(WallSegment wall, IReadOnlyList<WallOpening> doors)
+    /// <para>The left-hand end of the wall, seen from inside looking out, unless the doorway reaches it, in
+    /// which case the right-hand end — a ladder in the doorway is a ladder in the way. A hand rather than the
+    /// low coordinate, so every image of the room climbs in the same corner — a reflected one counting from
+    /// the other hand.</para></summary>
+    private static (int X, int Z) LadderCell(WallSegment wall, IReadOnlyList<WallOpening> doors, bool reflected)
     {
         var (lo, hi) = wall.BetweenCorners;
-        var along = Math.Min(lo + 1, hi);
+        var along = wall.Facing.Handed(reflected, lo, hi, Math.Min(lo + 1, hi));
         if (doors.Any(door => door.Wall == wall && along >= door.Lo - 1 && along < door.Lo + door.Width + 1))
-            along = Math.Max(hi - 1, lo);
+            along = wall.Facing.Handed(reflected, lo, hi, Math.Max(hi - 1, lo));
 
         var (wallX, wallZ) = wall.Cell(along);
         var (inX, inZ) = wall.Inward;
@@ -866,10 +877,13 @@ public static class HouseStamper
     /// the block behind it is what holds it up.</summary>
     private static int LadderFacing(RoomEdge wall) => BlockGeometry.Fronting(wall.Opposite());
 
-    /// <summary>The wall a house fronts on: the one its doors are cut through, or — with none given — the long
-    /// side the building would cut its own through.</summary>
-    private static RoomEdge FrontEdge(IReadOnlyList<RoomDoor>? doors, BuildingPlan ground)
-        => doors is { Count: > 0 } ? doors[0].Edge : DefaultFront(ground.Width, ground.Depth);
+    /// <summary>The wall a house fronts on: the one its doors are cut through, or — with none given — the
+    /// style's own <see cref="HouseStyle.Front"/>, else the long side the building would cut its own through.
+    /// The doors outrank the style because they are the frame's, and a frame is fanned across the symmetry
+    /// orbit: a compass edge named by a style is one side of the world for every image of the room, so a
+    /// front read from it puts the ladder and the shed's fall on a different wall of each team's copy.</summary>
+    private static RoomEdge FrontEdge(IReadOnlyList<RoomDoor>? doors, HouseStyle style, BuildingPlan ground)
+        => doors is { Count: > 0 } ? doors[0].Edge : style.Front ?? DefaultFront(ground.Width, ground.Depth);
 
     /// <summary>The wall a house with no doors fronts on — the long side, which is where it cuts its own. Public
     /// because the front decides how tall a <see cref="RoofForm.Shed"/> or a <see cref="RoofForm.Saltbox"/>
@@ -914,7 +928,7 @@ public static class HouseStamper
     /// through the frame. A porch moves the wall its doors were cut in, and they are carried onto the new line
     /// with the same fit. Without a frame the house cuts its own, centred on the front.</summary>
     private static List<WallOpening> Doorways(
-        IReadOnlyList<RoomDoor>? doors, HouseStyle style, BuildingPlan body, WallSegment? frontWall)
+        IReadOnlyList<RoomDoor>? doors, HouseStyle style, BuildingPlan body, WallSegment? frontWall, bool reflected)
     {
         if (doors is { Count: > 0 })
         {
@@ -923,24 +937,29 @@ public static class HouseStamper
             {
                 var about = door.Lo + (door.Width - 1) / 2;
                 if (body.WallFacing(door.Edge, about) is not { } wall) continue;
-                if (Fit(wall, door.Width, about) is { } fitted)
+                if (Fit(wall, door.Width, 2 * door.Lo + door.Width - 1, reflected) is { } fitted)
                     carried.Add(new WallOpening(wall, fitted.Lo, fitted.Width));
             }
             return carried;
         }
 
         if (frontWall is not { } face) return [];
-        return Fit(face, style.Doorway.CutWidth, FrontCentre(body, face.Facing)) is { } own
+        var centreTwice = face.AlongX ? body.MinX + body.MaxX : body.MinZ + body.MaxZ;
+        return Fit(face, style.Doorway.CutWidth, centreTwice, reflected) is { } own
             ? [new WallOpening(face, own.Lo, own.Width)]
             : [];
     }
 
-    /// <summary>The middle of the side a house fronts on, which is where it cuts its own door.</summary>
+    /// <summary>The middle of the side a house fronts on — what picks the run of wall it fronts on where a plan
+    /// that turns a corner has two looking the same way.</summary>
     private static int FrontCentre(BuildingPlan body, RoomEdge front)
         => front.AlongX() ? (body.MinX + body.MaxX) / 2 : (body.MinZ + body.MaxZ) / 2;
 
-    /// <summary>An opening of at most <paramref name="width"/> on one wall, as near <paramref name="about"/> as
-    /// the wall allows, or null where the wall cannot carry one at all.
+    /// <summary>An opening of at most <paramref name="width"/> on one wall, centred as near the point
+    /// <paramref name="centreTwice"/> names — twice its along coordinate, so a centre between two blocks is
+    /// exact — as the wall allows, or null where the wall cannot carry one at all. An opening that cannot
+    /// centre exactly takes the spare block on its right hand, seen from inside — the left, on a
+    /// <paramref name="reflected"/> building — so every image of the building cuts the same one.
     ///
     /// <para>Every opening keeps the same margin off both corners, and it is kept <b>whatever stands in the
     /// corner</b>. A post makes the reason easy to see — a column wants a block of wall beside it before
@@ -956,7 +975,7 @@ public static class HouseStamper
     /// centred single opening rather than a two-wide one against the turn. Only a face with no seat at all
     /// falls back to the run between the corners, because a building nobody can walk into is worse than one
     /// with a tight door.</para></summary>
-    private static (int Lo, int Width)? Fit(WallSegment wall, int width, int about)
+    private static (int Lo, int Width)? Fit(WallSegment wall, int width, int centreTwice, bool reflected)
     {
         var (runLo, runHi) = wall.BetweenCorners;
         var (seatLo, seatHi) = wall.Seat;
@@ -964,12 +983,15 @@ public static class HouseStamper
 
         var fitted = Math.Min(width, hi - lo + 1);
         if (fitted < 1) return null;
-        return (Math.Clamp(about - (fitted - 1) / 2, lo, hi - fitted + 1), fitted);
+        var lowTwice = centreTwice - (fitted - 1);
+        var start = (int)Math.Floor(lowTwice / 2.0);
+        if (lowTwice % 2 != 0 && !wall.Facing.AlongRunsRight(reflected)) start++;
+        return (Math.Clamp(start, lo, hi - fitted + 1), fitted);
     }
 
     /// <summary>The deck's posts: one at each outer corner, and enough between them that no span of the eave
     /// runs more than five blocks unsupported.</summary>
-    private static List<(int X, int Z)> PorchPosts(BuildingPlan porch, RoomEdge outer)
+    private static List<(int X, int Z)> PorchPosts(BuildingPlan porch, RoomEdge outer, bool reflected)
     {
         var alongX = outer.AlongX();
         var (lo, hi) = alongX ? (porch.MinX, porch.MaxX) : (porch.MinZ, porch.MaxZ);
@@ -983,7 +1005,7 @@ public static class HouseStamper
         var posts = new List<(int X, int Z)>();
         for (var index = 0; index <= spans; index++)
         {
-            var along = lo + (int)Math.Round((double)index * run / spans);
+            var along = outer.Handed(reflected, lo, hi, lo + (int)Math.Round((double)index * run / spans));
             posts.Add(alongX ? (along, fixedAt) : (fixedAt, along));
         }
         return posts;

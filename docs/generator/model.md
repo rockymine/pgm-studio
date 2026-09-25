@@ -213,8 +213,8 @@ spine docked flush on a hub wall reads as one run twice the corridor deep at eit
 sometimes three (the third doubles onto the spawn's side). That is what 57% of nano maps and 56–82% of
 the rest carry.
 
-The frontline is not a ladder. Every band affords one, so it is present unless the one-in-seven
-sampled exception withholds it.
+The frontline is not a ladder and not a draw. Every band affords one, and every unit carries one: a unit
+without a frontline docks the crossing on the hub's own face, and the middle comes out as wide as the hub.
 
 These are what the allocator turns into requests: the wool count fixes how many neighbours must be
 seated, and the lane width is the figure every corridor and every clearance test is measured in.
@@ -288,8 +288,8 @@ the role each piece carries, from the closed set below; the objective and spawn 
 deliberate voids, where a `buffer` piece or a zone
 hole is an author asserting *I meant this emptiness*; per-piece height at full block resolution; and
 the override channel — `walls` — which exists to overrule what a deriver would otherwise
-infer. It is written by no generator today: a defence wall is authored, never composed, and the list
-stands empty on every generated board.
+infer. The composer writes it too: one defence wall per wool approach, two on an approach that goes round a
+hole, where a seam qualifies (§5.14).
 
 A `cliffs` channel sat beside it until 2026-08-14 and is deleted (`rules.md` EL5). It was authored and
 read by nothing but the lint that demanded it, so the annotation could not change the map it described.
@@ -704,7 +704,8 @@ Those are the base configurations. The knobs add pieces without changing the fam
 attachment is another `entry`, and the wool-extend run of the third donut figure above is a `run`.
 
 **The knobs are the variation the model allows without leaving the family.** Beyond the room placements
-already drawn, a shape can be flipped so its turn goes the other way; the room can tuck off the side of
+already drawn, a shape can be flipped so its turn goes the other way — mirrored along its mouth, so a donut's
+entry stub moves to the far end of the edge it docks and its ring hangs the other way along the host; the room can tuck off the side of
 the last segment instead of capping it; the donut can take a second attachment, slide an attachment along
 the ring's edge, or widen it; and the scythe can slide either of its two endpoints down the docking edge.
 That last one propagates rather than merely moving a rectangle: a shifted entry takes the top of the
@@ -880,8 +881,8 @@ failure this must not have.
 
 Composition takes a budget and returns one team unit with terrain in it. It runs in two halves that
 must not be confused. **Allocation** decides structure and position while nothing is yet made of
-anything: it begins with a budget and ends with a `BoxPartition` — typed boxes, the joints between
-them, and the spawn's facing — and everything it produces is a rectangle in plan cells. **Filling**
+anything: it begins with a budget and ends with a `BoxPartition` — typed boxes and the joints between
+them — and everything it produces is a rectangle in plan cells. **Filling**
 then puts terrain inside those rectangles, deciding only what allocation left open.
 
 The order matters more than any individual rule in it, because each step consumes what the previous
@@ -947,10 +948,11 @@ positioned relative to it. Nothing downstream re-opens that decision.
 Its **area** is what its share bought and its **aspect** is what varies between boards, sampled between
 1.3 and 2.4 wider than deep — so a hub spends what it was given whatever shape it comes out, and always
 grows wider rather than squarer. The long lateral edge is what gives the spawn and the wools room to
-attach with a gap between them, and past four corridors wide it affords the wide holed bodies, whose
-bar and ring runs are long stretches of free surface. Where the plan carries a frontline, the
-frontline's reach pushes the hub's front edge back, so the frontline ends up between the hub and the
-axis rather than beside it.
+attach with a gap between them, and past four corridors and a hole wide it affords the wide holed bodies,
+whose bar and ring runs are long stretches of free surface. Every hole a composed hub keeps is at least 12
+blocks across — `WL12`'s floor for a plain hole — so a ring is only offered where two walls and that hole fit;
+a narrower hole is jumped rather than rounded and splits nothing. The frontline's reach pushes the hub's front
+edge back, so the frontline ends up between the hub and the axis rather than beside it.
 
 The allocator, not the filler, owns the choice of hub form, because the form decides where neighbours
 can sit. It emits the body once to read what that body offers, and the chosen form — with its wall
@@ -977,14 +979,22 @@ put a neighbour where the hub has no material is never proposed, not proposed an
 ### 5.5 What the unit asks for
 
 With the body emitted and before any position exists, the allocator works out what the unit needs. It
-does not decide the counts: how many wool boxes there are, whether there is a frontline at all, and
-how large the spawn is all come off the budget ladders, and the allocator reads them as given. What the
+does not decide the counts: how many wool boxes there are and how large the spawn is both come off the
+budget ladders, and the allocator reads them as given. What the
 body buys it is the **runs** of §5.4: a neighbour is sized against the stretches the hub really offers
 rather than against its bounding box, which on a bay-fronted body are two different numbers — measured
 over the seed range, a `G` front is broken into runs on every board and a branch hub's on five in six,
 where a ring, a P, a double-hole and a solid rectangle are never broken at all. Its work
 here is to turn each into a `NeighbourRequest` — one per wool, one for the spawn, and one for the
-frontline where the budget affords it. The spawn is the one box whose size barely moves:
+frontline. A straight back-room wool runs at least four cells before its room, which is the shortest lane a
+defence wall seats in (§5.14), and a donut's hole runs as far along the hub edge for the same reason: its two
+legs run along it, and each holds a wall a cell off the entry bar that still stands `ST8`'s standoff from the
+room.
+
+A donut makes a unit lopsided toward its side, so a unit that rolls one moves its spawn to the back. The side
+the spawn leaves and the back trade whatever was on them, a donut the trade lands on the back swaps sides with
+a lateral wool, and the spawn's request names the donut's side as the end of the back edge it stands toward.
+Without a donut the spawn's side stays the plan's own draw, the back or either lateral side. The spawn is the one box whose size barely moves:
 roughly ten blocks square where it docks the hub directly, ten by twenty where it wants a run-up, and
 twenty square for an L. It is never large, because a spawn is somewhere a player leaves rather than
 somewhere a fight happens.
@@ -1028,8 +1038,18 @@ it. It says nothing about the along direction, where the box's size was fixed be
 consulted.
 
 Because the search runs in a single integer, nothing is ever built and then moved. Every adjustment in
-the allocator — the front guard's backward slide included — is arithmetic on the seat, and the
-rectangle is derived once, at the end, from the value that survived.
+the allocator is arithmetic on the seat, and the rectangle is derived once, at the end, from the value that
+survived.
+
+A spawn on a lateral edge is the one request whose seats are cut before the search: only the ones putting its
+centre within a cell of the centre of the hub's hole, or of the edge's middle on a hub without one. A spawn
+seated toward the front walks straight out onto the frontline, and one behind the hole stands nearer the wool at
+the back than the one across the hub; in line with the hole it faces the hole squarely and walks about as far to
+either. A back spawn that names a donut's side is cut the same way, to the end of the back edge that side
+meets — sliding toward the middle only as far as the seat gap to the donut forces it, and never past the
+middle. Where it docks also decides which way it faces — into the hub, so a spawn
+beside the hub faces across it and one behind it faces the axis through it, and no door opens over the void
+past the hub's side.
 
 What a seat produces is an envelope, not terrain. What goes inside it — and how much of it is left
 empty — is settled later, by a filler that cannot move the rectangle it was handed.
@@ -1144,12 +1164,6 @@ not droppable, because a spawn or frontline that cannot seat is a genuine too-sm
 That signal propagates upward. The allocator retries the whole seating on the solid rectangle hub,
 whose four full edges usually hold a lawful seat the chosen form's runs could not, and only when that
 also fails does the attempt return nothing and the composer resample.
-
-One further pass runs where a unit has no frontline. A lateral seat left flush with the hub's empty
-front would extend that face into one long flat frontier, so the seat slides backward —
-deterministically, consuming no draw — to the nearest position that clears the front. Seats that no
-backward position can hold are collected and resolved after every neighbour is placed, when the full
-set is known and an earlier drop may have freed the very blocker.
 
 ### 5.10 What a joint records
 
@@ -1297,12 +1311,42 @@ runs one island at nano and micro, one or two at milli and up to three at centi.
 the row needs it the gap between stones takes one cell more than a hop, because a row spanning an odd number
 of cells cannot sit symmetric about the axis's own cell boundary.
 
-Two things the crossing declines. A board that **asked for a split band** carries no stone: a realised split
-is already two parallel crossings with the bay between its legs left as an island, and a stone in the bay
-would fill the thing that makes it a split. The carve declines on the request rather than on the grant,
-though, so a face that offered no split it would take spends the empty crossing and puts nothing in it
-either (`G271`). And a hull too narrow to hold one stone at the aspect rule carries none — the band is then
-simply wider than it needed to be, which is a thinner crossing rather than a refused board.
+Two things the crossing declines. A **realised split band** carries no stone: it is already two parallel
+crossings with the bay between its legs left as an island, and a stone in the bay would fill the thing that
+makes it a split. The split is a request the face grants or refuses, and a refused one is crossed by a single
+band like any other, so it carries the single rank — but its gap was fixed at the empty crossing's thirty
+blocks before the face was known, so the stone stands as deep as that gap leaves room for once a hop is kept to
+each front: two cells on every grid the composer uses, eight blocks at cell 4 and ten at cell 5, against the
+sixteen or more a stone otherwise stands. And a
+hull too narrow to hold one stone at the aspect rule carries none — the band is then simply wider than it
+needed to be, which is a thinner crossing rather than a refused board.
+
+### 5.14 The defence walls
+
+Once the crossing is carved, each wool approach gets one bedrock wall — the line a defence holds, and the
+line the attack's late game is pushed against. One per way in, because a defence cannot hold more: a plain
+approach has one, and an approach that goes round a hole has two.
+
+Where it stands follows from how a wall fails. A wall with ground running past either end is rounded rather
+than crossed, so a seat is legal only where there is void one cell beyond both ends, on both faces — which is
+exactly what a wall at a T lacks, the hub running on past it. It bars a lane mouth, 10 to 20 blocks, and
+never stands against the room itself (`PL13`). Of the seams that qualify, the chosen one is crossed by the
+attack's shortest route into the approach and stands `ST8`'s 10–20 blocks in front of the room, nearest 15:
+close enough that a defender does not walk back far to hold it. A two-legged approach whose room lies deeper
+than that window takes the nearest qualifying seam its attack crosses, which is the entrance the defence
+holds.
+
+An approach that goes round a hole — a donut, whose box encloses void its pieces ring — is two ways in, and
+one wall across either still leaves the other open. It takes a pair instead: two qualifying seams that between
+them close every way from the approach's entry to its room while neither does alone, the pair standing
+farthest from the room, so each wall holds its way as near the entry as it can. Pairs across the ring's two
+legs come first, which is where the author holds a donut; a leg's wall stands a cell off the entry bar unless
+the entry stub runs beside the leg there, when it stands where the stub has ended. Any other closing pair is
+the fallback, and a single wall the fallback after that.
+
+Most seams are cuts: a straight lane is split across into two pieces of its own width, the one on the wool's
+side taking a `-inner` suffix, and the wall stands between them. A wool whose approach offers no qualifying
+seam is left unwalled, about one in six hundred.
 
 ---
 
@@ -1622,17 +1666,17 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 
 | Piece | Path | What |
 |---|---|---|
-| `Composer` | `Compose/Composer.cs` | `Compose(ComposeRequest)` — the entry point: envelope → crossing → allocate → fill → carve → assemble, gated by the evaluator's hard terms. |
-| `TeamUnitAllocator` | `Compose/TeamUnitAllocator.cs` | the allocate entry point: hub size, hub position (the unit's only absolute rect) and hub-form choice → `BoxPartition` + spawn facing. |
+| `Composer` | `Compose/Composer.cs` | `Compose(ComposeRequest)` — the entry point: envelope → crossing → allocate → fill → carve → wall → assemble, gated by the evaluator's hard terms. |
+| `TeamUnitAllocator` | `Compose/TeamUnitAllocator.cs` | the allocate entry point: hub size, hub position (the unit's only absolute rect) and hub-form choice → `BoxPartition`. |
 | `UnitTuning` | `Compose/UnitTuning.cs` | the size ladders, the shape mix, the seat clearances, and the placement plan (`UnitPlan`) they feed. |
 | `UnitRequests` · `NeighbourRequest` · `DockStyle` | `Compose/UnitRequests.cs` | what hangs off the hub, sized coordinate-free, and the dock style each request implies. |
 | `UnitSeating` · `FullMouthDock` | `Compose/UnitSeating.cs` | requests → seats, under the three dock rules (full mouth · overhang · contact patch). |
 | `SeatGeometry` | `Compose/SeatGeometry.cs` | `NeighbourRect` and the edge arithmetic around it: projection onto an edge, clearance, the hub joint each dock records. |
-| `TeamUnitFiller` | `Compose/TeamUnitFiller.cs` | fills the allocated partition hub-first (offer consumption) → `FilledUnit` (a `GrownUnit` + the frontline face offers). |
+| `TeamUnitFiller` | `Compose/TeamUnitFiller.cs` | fills the allocated partition hub-first (offer consumption) → `FilledUnit` (a `GrownUnit` + the frontline face offers); faces the spawn into the hub. |
+| `WallPlacer` · `ComposedWall` | `Compose/WallPlacer.cs` | one defence wall per wool approach and two round a donut's hole, cutting a straight lane where the seam needs it (§5.14). |
 | `GrownUnit` · `GrownPiece` | `Compose/GrownUnit.cs` | the composed unit records (pieces with `Slot`/`Box` labels + spawn/wool placements). |
 | `Envelope` → `ComposeEnvelope` | `Compose/Envelope.cs` | the budget: player count → land-per-team, board extent, unit bounds (§2.2). |
 | `ComposeRequest` | `Compose/ComposeRequest.cs` | the compose input, validated at construction (§2.1). |
-| `FrontGuard` | `Compose/FrontGuard.cs` | the no-frontline seat post-pass: slide/relocate/drop a seat left flush with the empty front. |
 | `UnitPlacement` | `Compose/UnitPlacement.cs` | re-anchors the finished unit on its **face** before the band is derived. |
 | `Producibility` | `Compose/Producibility.cs` | "could the composer have produced this?" — answered by search over the declared menus, not by inverse. |
 | `WoolBoxEmitter` | `Compose/WoolBoxEmitter.cs` | the wool binding over `ShapeEmitter` — fills a wool box, terminal → wool room + marker. |

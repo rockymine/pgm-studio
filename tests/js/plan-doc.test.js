@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 import {
-  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, nextFacing, FACINGS, FACING_DIR,
+  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, nextFacing, FACINGS, FACING_DIR, reseatSeededIron,
   rectCellsToBlocks, cellOfWorld, rectFromCells, rectContainsCell,
   pieceAtCell, zoneAtCell, markerCell, attachMarker, snapHalf, allMarkers,
   contentBounds, viewBounds, pieceMirrorImages, zoneMirrorImages, markerMirrorImages, ROLES, ROLE_COLORS,
@@ -104,6 +104,28 @@ test("attachMarker snaps a 2×2-room click to the nearest half-block lattice poi
 test("uniqueId suffixes on collision", () => {
   assert.equal(uniqueId(["lane", "hub"], "mid"), "mid");
   assert.equal(uniqueId(["lane", "lane-2"], "lane"), "lane-3");
+});
+
+test("reseatSeededIron moves the cube a room seeded to the new facing's answer, and only that one", () => {
+  const doc = emptyDoc();
+  doc.placements.iron.push({ piece: "spawn", at: [14, 3] });      // where the old facing's room put it
+  doc.placements.iron.push({ piece: "spawn", at: [2, 17] });      // a second cube the author added
+  doc.placements.iron.push({ piece: "other", at: [14, 3] });      // the same offset on another piece
+
+  assert.equal(reseatSeededIron(doc, "spawn", [14, 3], [3, 3]), true);
+  assert.deepEqual(doc.placements.iron.map(m => [m.piece, m.at]),
+    [["spawn", [3, 3]], ["spawn", [2, 17]], ["other", [14, 3]]]);
+});
+
+test("reseatSeededIron leaves a cube the author slid off the seeded spot where it stands", () => {
+  const doc = emptyDoc();
+  doc.placements.iron.push({ piece: "spawn", at: [15, 3] });
+  assert.equal(reseatSeededIron(doc, "spawn", [14, 3], [3, 3]), false);
+  assert.deepEqual(doc.placements.iron[0].at, [15, 3]);
+  // A room with no iron to seed on either side answers nothing, and nothing moves.
+  assert.equal(reseatSeededIron(doc, "spawn", undefined, [3, 3]), false);
+  assert.equal(reseatSeededIron(doc, "spawn", [15, 3], null), false);
+  assert.deepEqual(doc.placements.iron[0].at, [15, 3]);
 });
 
 test("nextFacing walks the compass clockwise through all eight, wall and corner alternating", () => {
@@ -660,4 +682,11 @@ test("a footprint cannot be stated larger than the piece that holds it", () => {
 
 test("both room kinds carry a footprint", () => {
   assert.deepEqual([...FOOTPRINT_KINDS].sort(), ["spawn", "wool"]);
+});
+
+test("normalizeDoc keeps the plan's authors and contributors, the credits the compile carries onto the intent", () => {
+  const doc = normalizeDoc({ meta: { name: "W", authors: ["a"], contributors: [{ name: "b", contribution: "relief" }] } });
+  assert.deepEqual(doc.meta.authors, ["a"]);
+  assert.deepEqual(doc.meta.contributors, [{ name: "b", contribution: "relief" }]);
+  assert.equal("authors" in normalizeDoc({ meta: { name: "W" } }).meta, false);
 });

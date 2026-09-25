@@ -96,6 +96,23 @@ public static class RoomEdges
         return (-x, -z);
     }
 
+    /// <summary>Whether a step up the along axis of a wall on this edge runs toward the right hand of someone
+    /// inside the room looking out through it. A layout a run cannot centre exactly — a spare block, a ladder
+    /// at one end, the first of a row of seats — is taken from one hand rather than from the low coordinate:
+    /// a rotation of the board carries a hand onto the same hand of the image, and a coordinate onto the
+    /// opposite end of it. A <paramref name="reflected"/> room is a mirror image, whose hands are swapped, so
+    /// the step runs the other way and the image's choice lands on the mirror of the authored one.</summary>
+    public static bool AlongRunsRight(this RoomEdge edge, bool reflected) =>
+        (edge is RoomEdge.NegZ or RoomEdge.PosX) != reflected;
+
+    /// <summary>The low end of a <paramref name="width"/>-wide stretch of a run from <paramref name="lo"/> to
+    /// <paramref name="hi"/> inclusive, where <paramref name="fromLeft"/> is that stretch's low end counted from
+    /// the left hand (<see cref="AlongRunsRight"/>) of a room that is <paramref name="reflected"/> or not. A
+    /// layout is worked out once in hand order and put back on the axis here; with <paramref name="width"/> 1
+    /// it turns a single step either way, and is its own inverse.</summary>
+    public static int Handed(this RoomEdge edge, bool reflected, int lo, int hi, int fromLeft, int width = 1) =>
+        edge.AlongRunsRight(reflected) ? fromLeft : lo + hi - (fromLeft + width - 1);
+
     /// <summary>The edge across the room from this one: the wall a door on this side is walked toward, and
     /// the way something hung on this wall has to look to be seen.</summary>
     public static RoomEdge Opposite(this RoomEdge edge) => edge switch

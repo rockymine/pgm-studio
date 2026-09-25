@@ -392,6 +392,18 @@ public sealed class ContactGraph
         return list;
     }
 
+    /// <summary>A wall's footprint: two blocks thick across the shared seam, the full interface width along
+    /// it (ST4). Max-exclusive, which is what the stamper walks. It lives here beside the rest of the wall
+    /// derivation because both the compiler, which emits the structure, and the validator, which says whether
+    /// the seam is one a wall can hold, measure the same rectangle.</summary>
+    public static (int MinX, int MinZ, int MaxX, int MaxZ) WallFootprint(DerivedPiece a, DerivedPiece b)
+    {
+        var (x1, z1, x2, z2) = BorderSegment(a.Rect, b.Rect);
+        if (x1 == x2)   // vertical seam
+            return (x1 - 1, Math.Min(z1, z2), x1 + 1, Math.Max(z1, z2));
+        return (Math.Min(x1, x2), z1 - 1, Math.Max(x1, x2), z1 + 1);   // horizontal seam
+    }
+
     /// <summary>The piece an approach wall's chest face looks out at (ST4): its <b>approach</b> side, the one
     /// further from the wool. A wall is a place a defence is built — a few courses of bedrock and a barricade
     /// raised on it out of what the chest holds — and both teams reach that line from the same side, the side

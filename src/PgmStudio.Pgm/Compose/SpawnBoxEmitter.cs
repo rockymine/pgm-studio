@@ -78,7 +78,7 @@ public static class SpawnBoxEmitter
         }
 
         var raw = ShapeEmitter.Emit(family, alongLen, depth, cw, flip);
-        var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, alongLen, depth);
+        var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, alongLen, depth);
         var shape = MouthOrient.To(mouthTop, mouth, w, h);
 
         var boxRef = new BoxRef(box.Id, BoxKind.Spawn);

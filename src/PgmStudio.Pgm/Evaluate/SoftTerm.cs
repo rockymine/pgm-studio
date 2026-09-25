@@ -30,6 +30,16 @@ public abstract class SoftTerm : ILayoutTerm
     /// the constant lives in the term beside the metric it bounds and no generated file can drift it.</summary>
     public virtual Band? AuthoredBand => null;
 
+    /// <summary>The value this metric is <b>perfect</b> at, where the band would otherwise call the ideal a
+    /// fault. A ratio of max ÷ min is 1 when two things are equal and the rule reading it complains that they
+    /// differ, so nothing below 1 exists and 1 itself is the answer the rule wants — while the band's lower
+    /// edge is wherever the closest seed happened to land. A band never refuses the ideal: where this is
+    /// stated and sits below the band, the band's lower edge comes down to it.
+    ///
+    /// <para>Null for the ordinary term, whose band is a distribution with a fault at each end.</para>
+    /// </summary>
+    public virtual double? Ideal => null;
+
     /// <summary>The piece/zone ids the metric implicates (for editor highlight); empty by default.</summary>
     protected virtual IReadOnlyList<string> Subjects(EvalContext ctx) => [];
 
@@ -43,6 +53,7 @@ public abstract class SoftTerm : ILayoutTerm
 
         var band = AuthoredBand ?? ctx.Envelopes[Id];
         if (band is null) return TermScores.Clean(this);   // no band yet → dormant, not a violation
+        if (Ideal is { } ideal && ideal < band.Value.Lo) band = band.Value with { Lo = ideal };
 
         var distance = band.Value.Distance(value.Value);
         if (distance <= 0.0) return TermScores.Clean(this);

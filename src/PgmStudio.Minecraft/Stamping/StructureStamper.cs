@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Stamping;
@@ -49,14 +50,22 @@ public static class StructureStamper
     public static Dictionary<(int X, int Z), int> FoundationTops(
         IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int minX, int minZ, int maxX, int maxZ)
     {
-        var level = 1;
-        foreach (var cell in FoundationCells(minX, minZ, maxX, maxZ))
-            level = Math.Max(level, surfaceTop.GetValueOrDefault(cell, 1));   // topmost air cell
-
+        var level = FoundationLevel(surfaceTop, FoundationCells(minX, minZ, maxX, maxZ));
         var tops = new Dictionary<(int X, int Z), int>();
         foreach (var cell in FoundationCells(minX, minZ, maxX, maxZ))
             if (surfaceTop.ContainsKey(cell)) tops[cell] = level;             // no ground here to stand on
         return tops;
+    }
+
+    /// <summary>The course a foundation levels a footprint to: the highest topmost-air cell among
+    /// <paramref name="cells"/>, and never below <c>y 1</c>. The one reading of a foundation's floor, for the
+    /// stamp that lays it and for a check measuring what it lays.</summary>
+    public static int FoundationLevel(
+        IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IEnumerable<(int X, int Z)> cells)
+    {
+        var level = 1;
+        foreach (var cell in cells) level = Math.Max(level, surfaceTop.GetValueOrDefault(cell, 1));
+        return level;
     }
 
     /// <summary>The stamps that lay a <see cref="StampFoundation"/>, by the <c>Kind</c> their
@@ -195,21 +204,63 @@ public static class StructureStamper
                            DefenseChest.Facing(0, 1));
     }
 
-    /// <summary>Raise a solid bedrock wall over a seam footprint from y=0 up to <paramref name="topY"/>
-    /// inclusive, and lay one course of cobweb over it (ST4). Footprint is min-inclusive, max-exclusive; it is
-    /// two blocks thick across the seam and spans the full shared-interface width along it.
+    /// <summary>Raise a solid bedrock wall over a seam footprint from y=0 to <see cref="RoomFrames.WallCourses"/>
+    /// courses over the ground it crosses, and lay one course of cobweb over it (ST4). Footprint is
+    /// min-inclusive, max-exclusive; it is two blocks thick across the seam and spans the full shared-interface
+    /// width along it. The top it reached is returned, so a caller can say how tall the wall came out.
     /// <para>The web is the wall's last course, not decoration on it: a bedrock line a team cannot break is
     /// also a line they cannot see over, so an attacker who bridges to the top meets a course that costs time
     /// to cross and can be cut away with the shears every kit carries. It is why the bedrock itself is short —
-    /// the barrier is three courses of stone and one of web, not five of stone.</para></summary>
-    public static void StampWall(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int topY)
+    /// the barrier is three courses of stone and one of web, not five of stone.</para>
+    /// <para><b>The height comes from the ground the relief solved, not from the surface the plan drew.</b> A
+    /// piece states one surface and the relief then lifts the ground under the seam by whatever its marks and
+    /// pushes say, and a wall measured from the plan's own number does not move with it — it is left under the
+    /// terrain it was meant to bar, with its defence chest standing correctly on the ground above it, because
+    /// the chest reads the solved surface and the wall did not. <paramref name="topY"/> is the plan tier's
+    /// answer and is used only where the surface has nothing to say about a column.</para>
+    /// <para><b>The top is one level across the whole run, and that level is the highest ground the wall
+    /// crosses.</b> A top that followed the ground per column would step with it and read as a curved wall,
+    /// which is not how a map is built; a top taken from the average buries the wall wherever the ground rises
+    /// past it, which is the fault this measures from in the first place. The highest is the only level that
+    /// is both straight and never under the terrain.</para></summary>
+    public static int StampWall(
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
+        int minX, int minZ, int maxX, int maxZ, int topY)
     {
-        var top = Math.Clamp(topY, 0, VoxelWorld.MaxHeight - 1);
+        var top = WallTop(surfaceTop, minX, minZ, maxX, maxZ, topY);
         foreach (var (x, z) in WallCells(minX, minZ, maxX, maxZ))
         {
             for (var y = 0; y <= top; y++) world.SetBlock(x, y, z, Blocks.Bedrock);
             if (top + 1 < VoxelWorld.MaxHeight) world.SetBlock(x, top + 1, z, Blocks.Cobweb);
         }
+        return top;
+    }
+
+    /// <summary>The course an approach wall's bedrock tops out at: <see cref="RoomFrames.WallCourses"/> over
+    /// the highest ground its footprint crosses, with <paramref name="topY"/> — the plan tier's own answer —
+    /// as the fallback where the surface has nothing to say about it.
+    /// <para>It is a method rather than two copies of one sum because the plan preview draws the same wall
+    /// the stamper lays, and a preview that answered a different height would draw a board that is not the
+    /// one being built.</para></summary>
+    public static int WallTop(
+        IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int minX, int minZ, int maxX, int maxZ, int topY)
+    {
+        // Max-exclusive footprint against SurfaceYOver's max-inclusive one.
+        var standing = PositionSnap.SurfaceYOver(
+            surfaceTop, minX, minZ, maxX - 1, maxZ - 1, topY - RoomFrames.WallCourses + 1);
+        return Math.Clamp(standing + RoomFrames.WallCourses - 1, 0, VoxelWorld.MaxHeight - 1);
+    }
+
+    /// <summary>How many courses of bedrock a wall stamped to <paramref name="top"/> stands proud of the
+    /// lowest ground along its own run — the number ST4 caps, and the one a player at the low end meets.
+    /// Answers <see cref="RoomFrames.WallCourses"/> on a seam whose ground is level.</summary>
+    public static int WallCoursesProud(
+        IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int minX, int minZ, int maxX, int maxZ, int top)
+    {
+        var lowest = int.MaxValue;
+        foreach (var cell in WallCells(minX, minZ, maxX, maxZ))
+            if (surfaceTop.TryGetValue(cell, out var t) && t < lowest) lowest = t;
+        return lowest == int.MaxValue ? RoomFrames.WallCourses : top - lowest + 1;
     }
 
     /// <summary>The columns <see cref="StampWall"/> fills, for a caller recording what it covered — the same

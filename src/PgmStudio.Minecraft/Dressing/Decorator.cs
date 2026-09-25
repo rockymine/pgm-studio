@@ -808,7 +808,7 @@ public static class Decorator
             // Measured against the ridge rather than the eave: a wall below the ground beside it is a house
             // dug into a slope, which is what the seating rule is for, and a roof below it is a house nobody
             // can see. The roof's rise is two courses per pitch over a wing of any ordinary width.
-            var buries = house.Style.WallCourses + 2 * Math.Max(1, house.Style.Roof.Pitch);
+            var buries = SiteLevel.Limit(house.Style);
             if (rise >= buries)
             {
                 declined.Add(new Finding(DressingRules.SiteNotLevel,
@@ -875,13 +875,16 @@ public static class Decorator
         }
 
         var raised = new List<PlacementClaim>(images.Count);
+        Excavation? deepest = null;
         for (var k = 0; k < images.Count; k++)
         {
             var (image, front, floorY) = images[k];
-            Excavate(world, context, ground, image, floorY);
+            var dug = Excavate(world, ground, image, floorY);
+            if (dug.Blocks > 0 && (deepest is null || dug.Deepest > deepest.Value.Deepest)) deepest = dug;
             HouseStamper.Stamp(
                 world, image, floorY, house.Style,
-                doors: front is { } side ? Doorway(house.Style, image, side) : null);
+                doors: front is { } side ? Doorway(house.Style, image, side) : null,
+                reflected: context.Symmetry.Reflects(k));
 
             foreach (var (x, z) in HeldCells(image, house.Style))
                 claims.Claim(x, z, ClaimKind.Structure, house.Id);
@@ -894,6 +897,15 @@ public static class Decorator
             raised.Add(new PlacementClaim(new StampId("house", house.Id, k), ProvenancePass.Structure,
                                           ClaimedCells(image, house.Style)));
         }
+
+        // What the seat cost the ground, reported once for the orbit at the image that dug deepest, and only
+        // past the depth a house settles into a slope by.
+        if (deepest is { } carve && carve.Deepest > DressingRules.SettleDepth)
+            declined.Add(new Finding(DressingRules.SiteDug,
+                $"building '{house.Id}' dug its site out of the ground to seat its floor at y{carve.FloorY}: "
+                + $"{carve.Deepest} course(s) at ({carve.At.X}, {carve.At.Z}), {carve.Columns} column(s) "
+                + $"carved, {carve.Blocks} block(s) of ground removed",
+                Severity.Complaint, Subjects: [house.Id]));
         return raised;
     }
 
@@ -1021,13 +1033,8 @@ public static class Decorator
     /// is what the refusal names.</para></summary>
     private static (int? Floor, (int X, int Z)? Bare, int Rise) Ground(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, BuildingPlan plan)
     {
-        int lowest = int.MaxValue, highest = int.MinValue;
-        foreach (var (x, z) in plan.Cells())
-        {
-            if (!ground.TryGetValue((x, z), out var top)) return (null, (x, z), 0);
-            lowest = Math.Min(lowest, top);
-            highest = Math.Max(highest, top);
-        }
+        var (lowest, highest, bare) = SiteLevel.Read(ground, plan.Cells());
+        if (bare is not null) return (null, bare, 0);
         return lowest == int.MaxValue || lowest < 2
             ? (null, null, 0)
             : (lowest - 1, null, highest - lowest);
@@ -1041,20 +1048,34 @@ public static class Decorator
     /// a tree from rooting in one): every footprint column is cleared from the floor's own course up to its
     /// old surface, so the house sinks into the slope with its interior intact. Only the wall plan is carved —
     /// the ground under the eaves is outside the building — and a column whose surface carries a stamp is left
-    /// whole, the rule every pass keeps.</summary>
-    private static void Excavate(VoxelWorld world, DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, BuildingPlan plan, int floorY)
+    /// whole, the rule every pass keeps. Returns what it removed, which <see cref="DressingRules.SiteDug"/>
+    /// reports.</summary>
+    private static Excavation Excavate(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> ground, BuildingPlan plan, int floorY)
     {
+        int columns = 0, blocks = 0, deepest = 0;
+        (int X, int Z) at = default;
         foreach (var (x, z) in plan.Cells())
         {
             if (!ground.TryGetValue((x, z), out var top)) continue;
             if (DressingPalette.IsStamp(world.GetBlock(x, top - 1, z).Id)) continue;
+            var removed = 0;
             for (var y = floorY + 1; y < top; y++)
             {
                 if (y is < 1 or >= VoxelWorld.MaxHeight) continue;
+                if (world.GetBlock(x, y, z).Id != Blocks.Air) removed++;
                 world.SetBlock(x, y, z, Blocks.Air);
             }
+            if (removed == 0) continue;
+            columns++;
+            blocks += removed;
+            if (removed > deepest) (deepest, at) = (removed, (x, z));
         }
+        return new Excavation(floorY, columns, blocks, deepest, at);
     }
+
+    /// <summary>What <see cref="Excavate"/> took out of one image's footprint: the floor it cut down to, how
+    /// many columns it carved, how many blocks of ground went, and the deepest carve and its column.</summary>
+    private readonly record struct Excavation(int FloorY, int Columns, int Blocks, int Deepest, (int X, int Z) At);
 
     /// <summary>The one doorway a chosen wall asks for: centred on the run of wall the plan actually has facing
     /// that way and clear of both corner posts, which is what the building would cut for itself on a long side.
@@ -1139,7 +1160,67 @@ public static class Decorator
     private static Placed PlaceTree(
         VoxelWorld world, DressingContext context, TreeProp tree, GroundClaims.Storey claims,
         List<Finding> declined)
-        => Fan(world, context, context.GroundFor(tree), (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", declined);
+    {
+        var ground = context.GroundFor(tree);
+        var placed = Fan(world, context, ground, (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", declined);
+        placed = Crowned(context, tree, claims, placed);
+
+        // DR-ROOT — a trunk out of stone, gravel or clay, asked of a tree that landed: one the pass turned
+        // away is not standing anywhere and has nothing to be rooted in. The block is the one under the
+        // trunk's own standing level, which the trunk written over it does not change, and it is read at the
+        // placement rather than at every image of its orbit — the orbit is the same ground turned, and the
+        // cell an author moves is the one they wrote.
+        if (placed.Count > 0 && ground.TryGetValue((tree.X, tree.Z), out var standing) && standing > 0)
+        {
+            var (id, data) = world.GetBlock(tree.X, standing - 1, tree.Z);
+            if (!DressingPalette.RootsInto(id))
+            {
+                var named = tree.Id.Length > 0 ? tree.Id : $"tree@{tree.X},{tree.Z}";
+                declined.Add(new Finding(DressingRules.TreeOnBareGround,
+                    $"tree '{named}' stands at ({tree.X}, {tree.Z}) on {BlockPalette.Name(id, data)}, which is "
+                    + "ground rather than soil — a trunk out of it reads as a model set down rather than as a "
+                    + "wood. Paint a band of grass or dirt under the canopy, or move it onto ground that has "
+                    + "one", Severity.Complaint, Field: "dressing.props", Subjects: [named]));
+            }
+        }
+
+        return placed;
+    }
+
+    /// <summary>The ground a standing tree holds: the disc its crown covers, rather than the columns its own
+    /// blocks happen to fill. A crown is leaves with gaps in it, and a claim made cell by cell leaves those
+    /// gaps free — so a second trunk seats between them and the two crowns grow through each other, each
+    /// clipping whatever the other wrote there first.
+    ///
+    /// <para>The radius is <see cref="CanopyRadius"/>, the farthest leaf of this tree's own deterministic
+    /// build, so a copied body is measured rather than guessed at and two trees stand at least their two
+    /// crowns apart. The disc is claimed on every image of the orbit and joins the placement's own cells, so
+    /// the pass and the seat raster answer the same ground.</para></summary>
+    private static Placed Crowned(
+        DressingContext context, TreeProp tree, GroundClaims.Storey claims, Placed placed)
+    {
+        if (placed.Count == 0) return placed;
+
+        var reach = (int)Math.Ceiling(CanopyRadius(tree));
+        if (reach <= 0) return placed;
+
+        var images = new List<List<(int X, int Z)>>(placed.Images.Count);
+        for (var k = 0; k < placed.Images.Count; k++)
+        {
+            var anchor = context.Symmetry.ImageCell(tree.X, tree.Z, k);
+            var held = new HashSet<(int X, int Z)>(placed.Images[k]);
+            for (var dz = -reach; dz <= reach; dz++)
+            for (var dx = -reach; dx <= reach; dx++)
+            {
+                if (dx * dx + dz * dz > reach * reach) continue;
+                var (x, z) = (anchor.X + dx, anchor.Z + dz);
+                claims.Claim(x, z, ClaimKind.Scatter, tree.Id);
+                held.Add((x, z));
+            }
+            images.Add([.. held]);
+        }
+        return placed with { Images = images };
+    }
 
     /// <summary>How far this tree's crown actually reaches from its own trunk — the farthest a leaf cell of
     /// <see cref="TemplateTree"/> or <see cref="CopiedTree"/> stands from the anchor, horizontally. This is the

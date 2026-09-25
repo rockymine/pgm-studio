@@ -18,8 +18,8 @@ public enum PublishVerdict { Veto, Allow }
 /// grants a second approach (the WL8 motif), and the U/H entry-walled bay is vetoed alike; an enclosed hole is
 /// the shape's own device. <b>Notches allow</b> — including the notch walled by a <c>room-run</c> (the Z's
 /// second notch): the clearance margin, not a veto, is what keeps pieces off the room there. <b>Terminal-free
-/// bodies allow everything</b> — a bare U's bay, a Z's notches, a ring's hole (the hole's size condition is a
-/// pending gate). The publishable region of an allowed space is its <b>front, unguarded parts</b> (the
+/// bodies allow everything</b> — a bare U's bay, a Z's notches, a ring's hole (whose size the composer floors
+/// at <see cref="UnitTuning.HubHoleCells"/>). The publishable region of an allowed space is its <b>front, unguarded parts</b> (the
 /// mouth-touching covering layer); a hole, having no mouth, offers all its parts. <c>Open</c>-kind spaces are
 /// plain outside — nothing to publish.</para>
 /// </summary>

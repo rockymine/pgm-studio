@@ -10,11 +10,14 @@
  * Every prop is also drawn at each of its **mirror images**, faded. A prop is fanned across the symmetry orbit
  * at export, so an author who cannot see the other half is authoring blind — the ghost is the same affordance
  * the shape mirror preview already gives.
+ *
+ * A prop on a storey other than the one being drawn on is drawn **dimmed**, so a stacked board's dressing reads
+ * as floors rather than one plane — a gallery tree under the roof one is the same colour and fainter.
  */
 
 import { BUILDING_COLORS } from "./primitive-style.js";
 import { strokeRing, strokeCenterline } from "../geometry/stroke.js";
-import { isMarker, isRect, MAX_FOOTPRINT, propAnchor, propReach, rectFootprint, rectPlan, wingCorners }
+import { isMarker, isRect, MAX_FOOTPRINT, onLayer, propAnchor, propReach, rectFootprint, rectPlan, wingCorners }
   from "../dressing/dressing-doc.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
 
@@ -32,15 +35,22 @@ const KIND_STYLE = {
 const FILL_ALPHA = 0.34;
 const GHOST_ALPHA = 0.16;      // a mirror image is context, not a thing to click
 const SELECTED_WIDTH = 2.5;
+/** How strongly a prop on another storey draws, against 1 for one on the storey being drawn on. */
+export const OFF_LAYER_ALPHA = 0.35;
 const CIRCLE_POINTS = 24;      // a marker's footprint is a disc; this many points read as round at any zoom
+
+/** The strength a prop draws at while `activeLayer` is the storey being drawn on. */
+export const layerAlpha = (prop, activeLayer) => (onLayer(prop, activeLayer) ? 1 : OFF_LAYER_ALPHA);
 
 /**
  * Paint every prop, plus the mirror images of each. `mirrorPoint(x, z, k)` gives the k-th image of a point and
  * `order` how many images there are — the canvas already owns the map's symmetry, so this asks rather than
- * re-deriving it.
+ * re-deriving it. `activeLayer` is the storey being drawn on; a prop on any other is dimmed.
  */
-export function paintDressing(painter, props, { selectedId = null, mirrorPoint = null, order = 1, styles = {} } = {}) {
+export function paintDressing(painter, props,
+                              { selectedId = null, mirrorPoint = null, order = 1, styles = {}, activeLayer = "" } = {}) {
   for (const prop of props ?? []) {
+    const strength = layerAlpha(prop, activeLayer);
     for (let k = order - 1; k >= 0; k--) {          // images first, so the real prop draws over them
       for (const ring of footprints(prop, k, mirrorPoint, styles)) {
         if (ring.length < 3) continue;
@@ -52,7 +62,7 @@ export function paintDressing(painter, props, { selectedId = null, mirrorPoint =
           fillRule: "evenodd",
           stroke: kind.stroke,
           width: selected ? SELECTED_WIDTH : 1,
-          alpha: k === 0 ? 1 : 0.7,
+          alpha: (k === 0 ? 1 : 0.7) * strength,
         });
       }
     }
@@ -63,7 +73,7 @@ export function paintDressing(painter, props, { selectedId = null, mirrorPoint =
       const runs = [];
       for (let i = 1; i < curve.length; i++)
         runs.push({ x1: curve[i - 1][0], z1: curve[i - 1][1], x2: curve[i][0], z2: curve[i][1] });
-      painter.segments(runs, { stroke: (KIND_STYLE[prop.kind] ?? KIND_STYLE.path).stroke, width: 1 });
+      painter.segments(runs, { stroke: (KIND_STYLE[prop.kind] ?? KIND_STYLE.path).stroke, width: 1, alpha: strength });
     }
   }
 }

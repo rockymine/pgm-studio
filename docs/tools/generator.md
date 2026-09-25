@@ -81,55 +81,79 @@ turns the player count into a land budget, a fanned board extent and the cell bo
 The **crossing** fixes the gap between the two fronts while the board is still empty, because the allocator
 takes it as the axis margin everything else is laid out behind: one hop either side of the stone the band will
 carry, or a flat 30 blocks front to front where it will carry none. It decides once whether this board wants a
-split band, which is a crossing that carries none. **Allocation** places the hub,
+split band, which is a crossing that carries no stone where the face grants it. **Allocation** places the hub,
 chooses its form, works out what hangs off it, and seats each neighbour on the hub's real free surface,
-producing typed boxes and the joints between them. **Filling** emits the hub first as the constraint source
+producing typed boxes and the joints between them. Every unit carries a frontline on the hub's front edge, and
+a spawn on a side edge is seated in line with the hub's hole, or with its middle on a hub without one; a unit
+with a donut moves its spawn to the back edge's end nearer the donut. **Filling** emits the hub first as the constraint source
 and each neighbour to the width its own joint was granted. The finished unit is then **re-anchored on its
 face**, so the band it will meet is the face itself rather than the hull of two offset copies. The **carve**
-lays the mid band flush against the fronts. **Assembly** turns labelled pieces into a plan, dropping the
-labels, and the plan is put to the evaluator's hard-term gate.
+lays the mid band flush against the fronts. **Walling** then gives each wool approach its defence walls (below).
+**Assembly** turns labelled pieces into a plan, dropping the labels, and the plan is put to the evaluator's
+hard-term gate.
 
 A rejected attempt is resampled whole; sixty are allowed before the compose throws, and a throw is skipped
-rather than reported (below). The gate is seven hard terms — structural integrity, the `PC-C` corner-contact
-and `G2` narrow-corridor lints, the `G5` void-hop band, the mid band's two-cell wool clearance, a wool ringed
-by a hole, and the spawn-to-wool floor — every one of them on, at flat weight, in the default profile, and it
-short-circuits on the first that fires.
+rather than reported (below). The gate is nine hard terms — structural integrity, the `PC-C` corner-contact
+and `G2` narrow-corridor lints, the `G5` void-hop band, the mid band's two-cell wool clearance (`BZ6`), the
+20-block spawn-to-wool floor and the wool room that shares an edge with its own spawn (both `WL2`; a composed
+wool unit is a room behind its own lane, so the second never fires on a composed board), and two floors on the crossing: the spawn at least 55 blocks by the walk
+from the build band (`SP10`) and every wool at least 59 (`WL10`). It runs the **composer profile**, every term
+on at flat weight, and short-circuits on the first that fires. The two crossing floors are the author's
+judgement of composed boards and bind them alone: the default profile the editor lint runs leaves them off.
 
-What comes out is a plan document, and it is the same format the Plan tool edits. This is seed 0 at twelve
+**Every hub hole is at least 12 blocks across.** A ring's hole, and the ring inside a P, double-hole or G, keeps
+`WL12`'s floor for a plain hole, so the composer never draws a slit a player jumps. **Every wool approach gets
+one defence wall** where a seam qualifies: across the route the attack takes into the approach, on a seam with
+no land beyond either end so it is crossed rather than rounded (`PL17`), a lane mouth wide and 10–20 blocks in
+front of the room (`ST8`). A straight lane is cut in two to make that seam, which is why a walled approach
+carries a `-inner` piece, and a back-room lane is built at least four cells long so one fits. A two-legged
+approach whose room lies deeper than the window takes the nearest qualifying seam its attack crosses. A donut
+is two ways round its hole and takes **two walls**, one across each leg as near the entry bar as a seam
+qualifies, since one wall would leave the other way open. A unit with a donut stands its spawn behind the
+hub, at the end of the back edge nearer the donut, because a donut draws a unit lopsided toward its side.
+
+What comes out is a plan document, and it is the same format the Plan tool edits. This is seed 2 at twelve
 players under `rot_180`, exactly as `POST /api/compose/pin` stored it:
 
 ```json
 {
   "plan": 2,
-  "meta": { "name": "Composed p12 t2 #0" },
+  "meta": { "name": "Composed p12 t2 #2" },
   "globals": { "cell": 4, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
   "pieces": [
-    { "id": "hub-t1",       "role": "piece",     "rect": [-6, 6, 6, 4] },
-    { "id": "spawn-t1",     "role": "piece",     "rect": [-7, 6, 1, 2] },
-    { "id": "spawn-room",   "role": "spawn",     "rect": [-9, 6, 2, 2] },
-    { "id": "wool-a-t1",    "role": "piece",     "rect": [-5, 10, 2, 1] },
-    { "id": "wool-a-room",  "role": "wool-room", "rect": [-5, 11, 2, 2] },
-    { "id": "frontline-t1", "role": "piece",     "rect": [-2, 2, 4, 4] }
+    { "id": "hub-t1",          "role": "piece",     "rect": [-5, 15, 11, 3] },
+    { "id": "hub-t2",          "role": "piece",     "rect": [-5, 9, 11, 3] },
+    { "id": "hub-t3",          "role": "piece",     "rect": [-5, 12, 3, 3] },
+    { "id": "hub-t4",          "role": "piece",     "rect": [3, 12, 3, 3] },
+    { "id": "spawn-t1",        "role": "piece",     "rect": [6, 13, 1, 3] },
+    { "id": "spawn-room",      "role": "spawn",     "rect": [7, 13, 2, 3] },
+    { "id": "wool-a-room",     "role": "wool-room", "rect": [-2, 22, 3, 2] },
+    { "id": "frontline-t1",    "role": "piece",     "rect": [-3, 4, 6, 5] },
+    { "id": "wool-a-t1",       "role": "piece",     "rect": [-2, 18, 3, 1] },
+    { "id": "wool-a-t1-inner", "role": "piece",     "rect": [-2, 19, 3, 3] }
   ],
-  "zones": [ { "id": "mid-band", "rect": [-2, -2, 4, 4], "holes": [] } ],
+  "zones": [ { "id": "mid-band", "rect": [-3, -4, 6, 8], "holes": [] } ],
   "placements": {
-    "spawns": [ { "id": "spawn-1", "piece": "spawn-room", "at": [5, 5], "facing": "front" } ],
-    "wools":  [ { "id": "wool-1",  "piece": "wool-a-room", "at": [5, 5] } ],
+    "spawns": [ { "id": "spawn-1", "piece": "spawn-room", "at": [4, 6], "facing": "left" } ],
+    "wools":  [ { "id": "wool-1",  "piece": "wool-a-room", "at": [6, 4] } ],
     "iron": [], "destroyables": [], "cores": []
   },
-  "cliffs": [], "walls": [],
+  "walls": [ { "a": "wool-a-t1", "b": "wool-a-t1-inner" } ],
   "boxes": [
-    { "id": "hub",       "kind": "hub",       "rect": [-6, 6, 6, 4],  "members": ["hub-t1"] },
-    { "id": "spawn",     "kind": "spawn",     "rect": [-9, 6, 3, 2],  "members": ["spawn-t1", "spawn-room"] },
-    { "id": "wool-a",    "kind": "wool",      "rect": [-5, 10, 2, 3], "members": ["wool-a-t1", "wool-a-room"] },
-    { "id": "frontline", "kind": "frontline", "rect": [-2, 2, 4, 4],  "members": ["frontline-t1"] }
+    { "id": "hub",        "kind": "hub",        "rect": [-5, 9, 11, 9],   "members": ["hub-t1", "hub-t2", "hub-t3", "hub-t4"] },
+    { "id": "spawn",      "kind": "spawn",      "rect": [6, 13, 3, 3],    "members": ["spawn-t1", "spawn-room"] },
+    { "id": "wool-a",     "kind": "wool",       "rect": [-2, 18, 3, 6],   "members": ["wool-a-room", "wool-a-t1", "wool-a-t1-inner"] },
+    { "id": "frontline",  "kind": "frontline",  "rect": [-3, 4, 6, 5],    "members": ["frontline-t1"] }
   ]
 }
 ```
 
-That document compiles clean, evaluates at score 0, and reports every box producible. It also shows what a
-composed plan invariably lacks, and the empty arrays are the honest part of it. **`walls` is always
-empty** — a defence wall is authored, never composed. **No piece carries a `surface`**, so a
+That document compiles clean, evaluates at score 0 with no lint, and reports every box producible. Its hub is
+a ring whose hole is five cells by three; its spawn docks the hub's right side level with the hole and faces
+left, into the hub; and its one wool approach is cut a cell off the hub into `wool-a-t1` and
+`wool-a-t1-inner`, with the wall on that seam twelve blocks in front of the room. It also shows what a
+composed plan invariably lacks, and the empty arrays are the honest part of it. **No piece carries a
+`surface`**, so a
 generated board is flat at the global 9 and every height on it arrives later, in the Sketch tool's relief
 phase. **`iron`, `destroyables` and `cores` are always empty**: the composer makes CTW boards and places wools
 and one spawn, nothing else. There is exactly **one zone**, the mid band, and it is a build zone — no water
@@ -157,16 +181,16 @@ budget:
 
 | Players | Wool families seen | Hub forms | Frontline |
 |---|---|---|---|
-| 8 | I 278 · L 115 · donut 7 | bar 284 · single 116 | none 400 |
-| 12 | I 308 · L 124 · donut 23 · clamp 1 · U 1 | bar 218 · single 122 · twin 60 | bar 263 · single 43 · twin 34 · none 60 |
-| 20 | I 370 · L 133 · donut 37 · U 8 · H 6 · clamp 4 | ring 221 · bar 86 · double-hole 38 · twin 28 · P 9 · G 9 · single 9 | bar 185 · single 86 · twin 75 · none 54 |
-| 30 | I 369 · L 145 · donut 42 · U 8 · H 8 · clamp 3 | ring 214 · bar 86 · double-hole 39 · twin 28 · G 13 · P 12 · single 8 | bar 193 · single 80 · twin 75 · none 52 |
+| 8 | I 334 · L 73 · clamp 5 · U 4 · H 1 | ring 294 · bar 51 · single 50 · twin 5 | bar 177 · twin 121 · single 102 |
+| 12 | I 334 · L 73 · clamp 5 · U 4 · H 1 | ring 294 · bar 51 · single 50 · twin 5 | bar 177 · twin 121 · single 102 |
+| 20 | I 355 · L 146 · donut 31 · U 18 · H 15 · clamp 14 | ring 208 · bar 140 · single 29 · twin 23 | bar 247 · single 79 · twin 74 |
+| 30 | I 370 · L 141 · donut 42 · U 22 · H 19 · clamp 19 | ring 200 · twin 76 · bar 41 · G 40 · double-hole 34 · P 11 | single 158 · twin 125 · bar 117 |
 
-Read down the columns and the ladders are visible as behaviour. An eight-player board never has a frontline
-and never has a hub with a hole in it, because neither is affordable; at twelve the frontline appears on
-six boards in seven and the hub is still solid or branched; by twenty the ring has taken over the hub menu
-outright and the holed bodies arrive with it. A wool count sums past the board count because a family is
-counted once per board however many approaches of it that board carries.
+Read down the columns and the ladders are visible as behaviour. Eight and twelve players compose the same
+boards, because both are the nano band. Every board carries a frontline. The ring is the commonest hub at every
+size, and the wide holed bodies — double-hole, G and P — arrive only at thirty, where a hub is wide enough to
+keep a bar beside a ring whose hole is still 12 blocks. A wool count sums past the board count because a family
+is counted once per board however many approaches of it that board carries.
 
 ## The feed
 
@@ -229,9 +253,11 @@ is left, never under a third; a unit whose built land falls outside 70–130% of
 rather than shipped.
 
 **The score is a distance, not a grade.** Zero means the board sits inside every envelope the authored corpus
-occupies, which is most of them — of 240 boards each at twelve, twenty and thirty players, 167, 131 and 109
-respectively scored exactly zero, with the ninetieth percentile at 1.25, 3.06 and 3.52. The terms that fire
-are almost always `spawn-wool-ratio` and `wool-front-ratio`. A hard violation would add 1000 and dominate any
+occupies — of 240 boards each at twelve, twenty and thirty players, 175, 58 and 25 respectively scored exactly
+zero, with the ninetieth percentile at 1.17, 2.92 and 5.67. The terms that fire are almost always
+`spawn-wool-ratio` and `wool-front-ratio`, then `thin-middle` and `frontline-width`: a spawn beside the hub
+stands nearer the wool at the back than the one across the hub, however squarely it faces the hole, and about
+one board in five crosses a middle thinner than its size's floor or longer than twice its width (`MD7`). A hard violation would add 1000 and dominate any
 soft sum, which is why the slider stops at 8.
 
 **Pinning and authoring are the two exits.** The pin toggle stores the descriptor's board and refreshes the
@@ -340,13 +366,17 @@ disabled rather than simply never matching. `shapes.md` badges each of them, and
 knob does and why it stops.
 
 **A generated board is flat, unpainted and CTW.** No elevation, no theme, no dressing, no destroy objective,
-no water lane, no iron, and no defensive wall — every one of those is a later tool's or an unbuilt pass.
-`walls` exists in the format as schema waiting for a composer that decides which seams deserve one.
+no water lane and no iron — every one of those is a later tool's or an unbuilt pass.
 
-**The mid is one plain band.** Twenty blocks of build zone spanning the axis, flush against both fronts, with
-no stones and no centre island. A board's crossing is therefore the same crossing on every board, and the
-richer mids the model describes layer in later. The one variation is the split band, drawn on about a third of
-laterally-flipping boards and granted only where the face can host it.
+**A wall goes where a seam allows, not where a defence would choose.** About one wool in six hundred has no
+seam that the attack crosses with void beyond both ends, and is left unwalled. Nothing weighs a wall against the
+board's other walls: each wool is walled on its own terms.
+
+**The mid is one band and one row of stones.** The band spans the axis flush against both fronts and carries
+up to three stones, astride the axis or as a facing pair of ranks (`docs/generator/model.md` §5.13), and no
+richer middle than that row. The one variation in the band itself is the split, drawn on about a third of
+laterally-flipping boards and granted only where the face can host it: a granted split carries no stone, its
+bay being the island, and a refused one carries the single rank its empty gap has room for.
 
 **The drawer's hard-term list is structurally unreachable.** The browse endpoint evaluates with the same
 profile the composer's acceptance gate used, so a board with a hard violation was already resampled away:

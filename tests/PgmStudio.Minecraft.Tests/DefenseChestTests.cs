@@ -14,6 +14,11 @@ namespace PgmStudio.Minecraft.Tests;
 public sealed class DefenseChestTests
 {
     // A flat surface (first air at y=8) over the wall and the ground either side of it.
+    /// <summary>No solved ground, which makes <c>StampWall</c> fall back to the plan tier's own <c>topY</c>
+    /// verbatim. These tests are about which face a chest opens on, not about how tall the wall came out.</summary>
+    private static readonly IReadOnlyDictionary<(int X, int Z), int> NoSurface =
+        new Dictionary<(int X, int Z), int>();
+
     private static Dictionary<(int X, int Z), int> Flat(int minX, int minZ, int maxX, int maxZ, int top = 8)
     {
         var surface = new Dictionary<(int, int), int>();
@@ -38,7 +43,7 @@ public sealed class DefenseChestTests
     {
         var world = new VoxelWorld();
         // A wall thin across X (columns x=0 min face, x=1 max face), lane 8 (→ one chest), up to y=20.
-        StructureStamper.StampWall(world, 0, 0, 2, 8, 20);
+        StructureStamper.StampWall(world, NoSurface, 0, 0, 2, 8, 20);
         DefenseChest.Stamp(world, Flat(-2, -2, 3, 8), 0, 0, 2, 8, onMinFace: true);
 
         // Lane 8 → one chest, set into the min face (x=0) at the ground line, facing out (west).
@@ -62,7 +67,7 @@ public sealed class DefenseChestTests
         // approach, and the column it left is bedrock again. Which team can reach the supply is the whole
         // point of the choice, so nothing about it may fall out of the footprint's coordinates.
         var world = new VoxelWorld();
-        StructureStamper.StampWall(world, 0, 0, 2, 8, 20);
+        StructureStamper.StampWall(world, NoSurface, 0, 0, 2, 8, 20);
         DefenseChest.Stamp(world, Flat(-2, -2, 3, 8), 0, 0, 2, 8, onMinFace: false);
 
         await Assert.That(ChestCount(world, 0, 0, 2, 8, 0, 20)).IsEqualTo(1);
@@ -76,13 +81,13 @@ public sealed class DefenseChestTests
     public async Task A_narrow_lane_gets_one_chest_a_wide_lane_two()
     {
         var narrow = new VoxelWorld();
-        StructureStamper.StampWall(narrow, 0, 0, 2, DefenseChest.SingleChestMaxLane, 20);
+        StructureStamper.StampWall(narrow, NoSurface, 0, 0, 2, DefenseChest.SingleChestMaxLane, 20);
         DefenseChest.Stamp(narrow, Flat(-2, -2, 3, DefenseChest.SingleChestMaxLane), 0, 0, 2, DefenseChest.SingleChestMaxLane, onMinFace: true);
         await Assert.That(ChestCount(narrow, 0, 0, 2, DefenseChest.SingleChestMaxLane, 0, 20)).IsEqualTo(1);
 
         var wide = new VoxelWorld();
         var wideLane = DefenseChest.SingleChestMaxLane + 4;
-        StructureStamper.StampWall(wide, 0, 0, 2, wideLane, 20);
+        StructureStamper.StampWall(wide, NoSurface, 0, 0, 2, wideLane, 20);
         DefenseChest.Stamp(wide, Flat(-2, -2, 3, wideLane), 0, 0, 2, wideLane, onMinFace: true);
         await Assert.That(ChestCount(wide, 0, 0, 2, wideLane, 0, 20)).IsEqualTo(2);
     }
@@ -91,7 +96,7 @@ public sealed class DefenseChestTests
     public async Task A_defence_chest_carries_the_full_loadout()
     {
         var world = new VoxelWorld();
-        StructureStamper.StampWall(world, 0, 0, 2, 8, 20);
+        StructureStamper.StampWall(world, NoSurface, 0, 0, 2, 8, 20);
         DefenseChest.Stamp(world, Flat(-2, -2, 3, 8), 0, 0, 2, 8, onMinFace: true);
 
         var dir = Path.Combine(Path.GetTempPath(), "walldef_" + Guid.NewGuid().ToString("N"));

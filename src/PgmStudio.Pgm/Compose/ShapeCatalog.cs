@@ -210,12 +210,12 @@ public static class ShapeCatalog
             foreach (var share in BudgetShares)
                 for (ulong seed = 1; seed <= SweepSeeds; seed++)
                 {
-                    var (fill, along, depth) = UnitRequests.WoolRequest(new ComposeRng(seed), UnitTuning.WoolLaneFloorCells, edgeLen, share);
+                    var (fill, along, depth) = UnitRequests.WoolRequest(new ComposeRng(seed), UnitTuning.WoolLaneFloorCells, edgeLen, share, ComposeRequest.DefaultCell);
                     Keep(fill, along, depth);
                     // the seat step's fallback: any request that finds no placement is re-dispatched compact
                     var compact = UnitRequests.Compact(
                         new NeighbourRequest(UnitSide.Back, BoxKind.Wool, depth, along, "w", fill),
-                        UnitTuning.WoolLaneFloorCells);
+                        UnitTuning.WoolLaneFloorCells, ComposeRequest.DefaultCell);
                     if (compact.Wool is { } cw) Keep(cw, compact.Along, compact.Depth);
                 }
 

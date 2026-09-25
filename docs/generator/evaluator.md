@@ -401,12 +401,19 @@ it applies to and from no others.
 - **Branch / lane** — width 10 (15 on big maps, LN1); max collinear chain ≤50 blocks (LN2); wool at the
   far/back end inset ~5 (WL1); **largest enclosed void a branch wraps ≤ ~10×10** (**G40**); **absolute
   length capped to the authored norm, surplus routed to width/plaza/more routes, not length** (**G44**).
+- **The crossing's shape** — on a composed board, the build band between the fronts is at least its size's
+  floor wide (24 · 32 · 40 · 48 blocks from nano to centi) and at most twice as long as it is wide (MD7,
+  `thin-middle`); each shortfall is scored over half its band and the two are summed, so a band both thin and
+  long scores both.
 - **Approach count (from junctions)** — each objective's branch-count on the way in ≥2 where multi-access is
   wanted; a lone dead-end (count 1) is the defender-holds-the-mouth anti-pattern (WL8 / **G45** / **G37**).
 - **Spawn** — wool reachable from the frontline edge *not through* the spawn (SP1); near the back of its lane
   (SP2); faces the enemy by default (SP3); **docks by a readable edge, never interior to the merged land**
-  (**G42**); iron beside/ahead, never behind (SP7); isolated-spawn allowed at ≥10/team (SP6).
-- **Objective / wool** — wool↔spawn ≥20 (WL2); wool↔wool ≥45 (WL7); flat plateau covering ≥ the 8×8 stamp,
+  (**G42**); iron beside/ahead, never behind (SP7); isolated-spawn allowed at ≥10/team (SP6); on a composed
+  board, at least 55 blocks by the walk from the build band (SP10, `spawn-front-floor`).
+- **Objective / wool** — wool↔spawn ≥20 (WL2); a wool room shares no edge with its own spawn, full-width or
+  narrow seam alike, read off the authored unit's seams (WL2's lane clause, hard, `wool-room-spawn-seam`); wool↔wool ≥45 (WL7); on a composed board, every wool at least
+  59 blocks by the walk from the build band (WL10, `wool-front-floor`); flat plateau covering ≥ the 8×8 stamp,
   edge-to-edge (WL3); 1–3 wools, each on a distinct lane (WL6); a third wool is rare and a real route, not
   crammed by the spawn (G45).
 - **Destroy goals** — four bands over one walk. Each goal's enemy÷own spawn walk lands in the authored band

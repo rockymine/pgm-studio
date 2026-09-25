@@ -125,12 +125,13 @@ public sealed class ComposerTests
     }
 
     [Test]
-    public async Task Composed_zones_carry_the_mid_band_and_walls_stay_empty()
+    public async Task Composed_zones_carry_the_mid_band_and_each_wall_bars_a_wool_approach()
     {
         var plan = Composer.Compose(new ComposeRequest(12, seed: 1));
         await Assert.That(plan.Zones.Any(z => z.Id == "mid-band")).IsTrue();
         await Assert.That(plan.Zones.All(z => z.Id == "mid-band")).IsTrue();
-        await Assert.That(plan.Walls).IsEmpty();
+        await Assert.That(plan.Walls.Count).IsGreaterThan(0);
+        await Assert.That(plan.Walls.All(w => w.B.StartsWith("wool-"))).IsTrue();
     }
 
     [Test]

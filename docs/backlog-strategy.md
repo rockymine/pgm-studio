@@ -211,8 +211,7 @@ those rectangles out of the intent and the release therefore asks rather than te
 worked to its end looks like: one foundation, three entries, and the cause named before the entries were.
 
 **A layer is first-class in the export and an afterthought everywhere else.** `DressingDoc.add` stamps the
-storey; `SketchDressingInspector` has no field for it. `TerrainPainter` is handed a surface per layer and
-sorts by nothing. `B263` · `B264` · `WE28` · `TS64`. The board now carries this cause as a section
+storey. `TerrainPainter` is handed a surface per layer and sorts by nothing. `B264` · `WE28` · `TS64`. The board now carries this cause as a section
 preamble of its own, which is the shape a cause should reach before it is worked.
 
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
@@ -363,8 +362,8 @@ states is not read as a gap again.
 
 The per-side-focus half of `N08` did not survive the same reading and is not a question the author was
 asked: `FocusSection` and the `/concepts` page it lived on were deleted on 2026-07-22 (`7fac0f69`), so the
-design it named is gone and only the want is left. It is filed as `TC6`, parked on what the frame should be —
-`WorldCanvas.FitIsland` frames an island, and a team's quadrant is not one.
+design it named is gone and only the want is left. It was filed as `TC6` and withdrawn on the author's
+answer: the author frames a side by dragging the canvas, so there is no frame for the tool to choose.
 
 **The sitting has happened, and it drained the whole list.** Seven questions were put to the author in one
 pass and seven came back, which is what this section claimed would happen and had never been tested. What the
@@ -414,9 +413,9 @@ partition it — a third of the entries are cleanup, naming and consistency work
 but each of the three wants a different treatment, which is what makes them worth naming despite the
 ambiguity at their edges.
 
-**Blocked decisions** are what the board still marks as parked — `TC6` (what a per-side frame is), `WE41`
-and `A8`. The sittings above are why that list is three and not twelve: a question put to the author comes
-back the same day, and four of the answers so far have been to decline the question. Each has a definite end
+**Blocked decisions** are what the board still marks as parked — `WE41` (not yet), `A8`, `G278` and `G282`
+(not now), and `B57` with `B9` (imports are not a priority). A question put to the author comes back the
+same day, and five of the answers so far have been to decline the question. Each has a definite end
 and none of it is work until the answer arrives.
 
 `TS103` is what one of them looks like once it is asked. The question read as a fork — index a kind's names
@@ -426,7 +425,7 @@ recipe is made of**, numbering two that read the same way, and only the client's
 answer keyed on the display name. One concept with two shapes rather than a decision, and reading the code
 either half of it was in is what said so (`FEATURES.md`).
 
-**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`, `TS64`, `S59`.
+**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B264`, `TS64`, `S59`.
 `N08` and `N12` were both one until the same sitting drained them. Four more — `B107`, `S25b`, `B145`, `WE54`
 — were this population until the building's one model turned them from three reaches into one, and all four
 have since shipped. That is the reading's own claim tested: a reach gap is drained by naming the cause under
@@ -435,11 +434,11 @@ of them is the same thing: a document, a route or a solver that already answers,
 asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
-`S34`, `TS51`, `TS63`, `B54`, `B9`. `G187` and `G164` left this population by being read against the code
+`S34`, `TS51`, `TS63`, `B9`. `G187` and `G164` left this population by being read against the code
 rather than built — plan-tier flow was already served and `Cells.WaysRound` already in use, so what one entry
 called a project was a primitive and a term, and the other was a term over two corridors that read itself
-(`FEATURES.md`). Four more left it by shipping —
-`B221` and `B258`, the library's pictures, `WE34`, the seat read, and `TS30`, the bend — which is the
+(`FEATURES.md`). Five more left it by shipping —
+`B221` and `B258`, the library's pictures, `WE34`, the seat read, `TS30`, the bend, and `B54`, what a rebuild drops — which is the
 population behaving as intended: a roadmap entry is drained by being built, not by being triaged again.
 `B58` left it the same way, with `N12`: the destroyable suggester and the Configure phase that confirms from
 its list are one capability, and it took a phase to arrive rather than a triage.
@@ -491,7 +490,7 @@ for.
 
 Of the causes this section named earlier, the client reading its own schema is `C51` alone and the compiler's
 lost identity is `B213`, so neither stands as a programme. What is left whole, after the walk, is **the layer
-word** (`B263`, `B264`, `WE28`, `TS64` — a layer is first-class in the export and an afterthought everywhere
+word** (`B264`, `WE28`, `TS64` — a layer is first-class in the export and an afterthought everywhere
 else), and it is the one to pull next. The two shop entries that remain (`PG15`, `PG16`) are independent
 extensions of a landed slice rather than one cause, and are therefore roadmap rather than programme.
 

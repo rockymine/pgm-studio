@@ -77,6 +77,11 @@ public sealed class SpawnWoolRatio : SoftTerm
     public override string RuleId => "WL9";
     public override bool LearnsFromTraced => false;
 
+    /// <summary>Two wools the same walk from their spawn read 1, which is the balance this rule asks for and
+    /// what a board mirrored down its own team's middle measures. A 100% double-symmetric map — across the
+    /// middle and across the middle of one team — is ordinary practice (author).</summary>
+    public override double? Ideal => 1.0;
+
     public override double? Value(EvalContext ctx)
     {
         var d = Triangle.SpawnDistances(ctx).Where(v => v is not null).Select(v => v!.Value).ToList();
@@ -98,6 +103,9 @@ public sealed class WoolFrontRatio : SoftTerm
     public override string Id => "wool-front-ratio";
     public override string RuleId => "WL10";
     public override bool LearnsFromTraced => false;
+
+    /// <summary>Two wools the same walk from the frontline read 1, which is what this rule asks for.</summary>
+    public override double? Ideal => 1.0;
 
     public override double? Value(EvalContext ctx)
     {
@@ -163,19 +171,36 @@ internal static class Triangle
     public static List<double?> FrontDistances(EvalContext ctx)
     {
         var ground = SurfaceNav.Ground(ctx);
-        var band = ctx.Board.BuildKindOf.Where(kv => kv.Value == "front-front").Select(kv => kv.Key).ToHashSet();
-        return ctx.Plan.Placements.Wools.Select(w =>
-        {
-            if (band.Count == 0 || SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint) is not { } wc)
-                return (double?)null;
-            if (ground.Stand(wc) is not { } from) return null;
-            // One field out of the wool prices every band cell at once, rather than a walk apiece.
-            var reach = Walk.Field(from, ground);
-            double? best = null;
-            foreach (var (place, cost) in reach)
-                if (band.Contains(place.Cell) && cost.Distance < (best ?? double.MaxValue))
-                    best = cost.Distance;
-            return best;
-        }).ToList();
+        var band = FrontBand(ctx);
+        return ctx.Plan.Placements.Wools
+            .Select(w => SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint) is { } cell
+                ? ToBand(ground, band, cell) : null)
+            .ToList();
+    }
+
+    /// <summary>Per spawn: the same traversal from the spawn marker to the nearest front-front build cell —
+    /// how far a player who has just spawned walks before the crossing, in blocks.</summary>
+    public static List<double?> SpawnFrontDistances(EvalContext ctx)
+    {
+        var ground = SurfaceNav.Ground(ctx);
+        var band = FrontBand(ctx);
+        return ctx.Plan.Placements.Spawns
+            .Select(s => SurfaceNav.MarkerCell(ctx, s.Piece, s.At, ground.Footprint) is { } cell
+                ? ToBand(ground, band, cell) : null)
+            .ToList();
+    }
+
+    private static HashSet<(int X, int Z)> FrontBand(EvalContext ctx) =>
+        ctx.Board.BuildKindOf.Where(kv => kv.Value == "front-front").Select(kv => kv.Key).ToHashSet();
+
+    private static double? ToBand(WalkGround ground, HashSet<(int X, int Z)> band, (int X, int Z) cell)
+    {
+        if (band.Count == 0 || ground.Stand(cell) is not { } from) return null;
+        // One field out of the marker prices every band cell at once, rather than a walk apiece.
+        double? best = null;
+        foreach (var (place, cost) in Walk.Field(from, ground))
+            if (band.Contains(place.Cell) && cost.Distance < (best ?? double.MaxValue))
+                best = cost.Distance;
+        return best;
     }
 }

@@ -317,4 +317,13 @@ public static class SketchRules
     /// <remarks>Set `mirrors` true on the group, which is what a structure standing on one team's ground wants. Keep it false only where the thing really is its own image — centred on the symmetry centre, or on the mirror line — and then make its own shapes symmetric too, or the two teams meet it propped at different spacings. `GET /api/map/{slug}/column` is what confirms either way, at the reflected block: the image of block `z` is `−z−1`, so probing `−z` lands one block off and reports a difference on a board that is exactly symmetric.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string BuiltOnOneImage = "SK28";
+
+    /// <summary>A shape the rebuild does not keep. A rebuild from the plan replaces the board's geometry with
+    /// what the plan compiles to and carries the finish, the relief and a corrected structural height across;
+    /// a shape drawn in the sketch is none of those. One whose id the compile does not produce and which
+    /// stands for no intent entity (no <c>intentRef</c>) is not in the layout the rebuild stores, nor in any
+    /// group's <c>shapeIds</c>.</summary>
+    /// <remarks>Draw it into the plan, where every rebuild produces it, or draw it again in the sketch after the rebuild. The rebuild is written either way: the shapes it dropped ride on `dropped` in the answer and one complaint names them, so the loss is read rather than found.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Terrain)]
+    public const string ShapeDropped = "SK29";
 }

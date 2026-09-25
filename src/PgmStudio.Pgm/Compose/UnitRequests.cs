@@ -9,8 +9,10 @@ namespace PgmStudio.Pgm.Compose;
 /// <summary>A neighbour box to seat against the hub: the hub <see cref="Side"/> it docks, its box
 /// <see cref="Kind"/>, its outward <see cref="Depth"/> (perpendicular to the hub edge) and along-edge
 /// <see cref="Along"/> extent (cells), and its <see cref="Id"/>. Sizing is frame- and form-independent (it
-/// reads the budget); only the seat position is not — so the whole set is fixed before the form is chosen.</summary>
-internal sealed record NeighbourRequest(UnitSide Side, BoxKind Kind, int Depth, int Along, string Id, WoolFill? Wool = null);
+/// reads the budget); only the seat position is not — so the whole set is fixed before the form is chosen.
+/// <see cref="Toward"/> names the lateral side a back spawn seats at the end of.</summary>
+internal sealed record NeighbourRequest(
+    UnitSide Side, BoxKind Kind, int Depth, int Along, string Id, WoolFill? Wool = null, UnitSide? Toward = null);
 
 /// <summary>
 /// How a neighbour docks its host. The three styles are indexed by <b>how much is known about where the
@@ -61,8 +63,7 @@ public static class UnitRequests
 
     /// <summary>The neighbour boxes to seat: the spawn (a straight I for now — cross = entry width, seats
     /// cleanly; the L's overhanging foot lands next), the wools, each on its planned side (the free sides
-    /// first, a third doubling into the spawn's edge), and — when the plan carries one — the frontline join on
-    /// the front side (reach × a face spanning the hub front). Each takes its share out of
+    /// first, a third doubling into the spawn's edge — a unit with a donut moves its spawn to the back), and the frontline join on the front side (reach × a face spanning the hub front). Each takes its share out of
     /// <paramref name="budget"/> as it is sized, so what the unit leaves unspent is a number rather than an
     /// assumption. The spawn size is the one RNG draw here; the wool sizes read the budget (generic, no
     /// per-family solve), and the set is identical across a fallback re-seat, because the fallback is always
@@ -92,44 +93,66 @@ public static class UnitRequests
         {
             var side = plan.Wools[i];
             var edgeLen = side is UnitSide.Front or UnitSide.Back ? hubV : hubU;
-            var (fill, along, depth) = WoolRequest(rng, env.WoolCorridorCells, edgeLen, woolShare);
+            var (fill, along, depth) = WoolRequest(rng, env.WoolCorridorCells, edgeLen, woolShare, env.Cell);
             requests.Add(new NeighbourRequest(side, BoxKind.Wool, depth, along, $"wool-{(char)('a' + i)}", fill));
             budget.Spend(along * (double)depth);
         }
+        requests = BackOfDonut(requests);
 
         // the frontline join: it docks the hub's front edge with a face spanning it (corner clearance aside) and
         // reaches `frontReach` toward the axis; the filler picks its form (Bar / single / twin) and orientation
-        if (plan.Frontline is { } front)
-        {
-            // G123: the face is no longer pinned to the hub's full front width. A sampled width — seated anywhere
-            // along the edge and free to overhang it — is the funnel: the mid meets only part of the hub front,
-            // so the two onward routes around the front cost differently. The full face stays the common draw.
-            var full = Math.Max(laneWidthCells, hubV - 2 * UnitTuning.CornerClearanceCells);
-            // the floor a bay-fronted body imposes: a face closing a bay has to reach a lane onto the shoulder
-            // each side of it, so the narrowest useful face spans from the near shoulder's lane to the far one's.
-            // Below that no seat can close the bay, and the body's own bay stays an open notch (CT8's rotation
-            // hole is a hole the frontline made). A solid front imposes nothing and the sample is the funnel's.
-            // the parity law below rounds an ODD face down a cell, which would take it back under a floor it
-            // has to clear — so a floor is rounded UP to even first, and a draw above an even floor stays
-            // above it however the parity falls
-            var flip = MidCarver.LateralFlip(env.Symmetry);
-            var seal = Math.Min(full, SealWidth(frontRuns, laneWidthCells));
-            if (flip && seal % 2 != 0) seal = Math.Min(full, seal + 1);
-            var floor = Math.Max(Math.Min(UnitTuning.FaceMinCells, full), seal);
-            var faceWidth = rng.NextBool(UnitTuning.FullFaceChance)
-                ? full
-                : rng.NextInt(floor, Math.Max(floor, full + UnitTuning.FaceOverhangMaxCells) + 1);
-            // the face-parity law. Under a laterally-flipping symmetry the opposing image reflects v about the
-            // axis point, so a face spanning [lo, hi) meets its own image only where [lo, hi) and [-hi, -lo)
-            // overlap — which is exact when lo = -hi, i.e. when the span is EVEN and the face is centred. The hub
-            // is already forced even for this reason; an odd face lands half a cell off the centre the seat aims
-            // at and the band has to reach past it. Parity is all that is required — no lane multiple, and the
-            // rule reads the same in blocks as in cells because the cell size is odd.
-            if (flip && faceWidth % 2 != 0) faceWidth--;
-            requests.Add(new NeighbourRequest(front, BoxKind.Frontline, frontReach, faceWidth, "frontline"));
-            budget.Spend(faceWidth * (double)frontReach);
-        }
+        // G123: the face is no longer pinned to the hub's full front width. A sampled width — seated anywhere
+        // along the edge and free to overhang it — is the funnel: the mid meets only part of the hub front,
+        // so the two onward routes around the front cost differently. The full face stays the common draw.
+        var full = Math.Max(laneWidthCells, hubV - 2 * UnitTuning.CornerClearanceCells);
+        // the floor a bay-fronted body imposes: a face closing a bay has to reach a lane onto the shoulder
+        // each side of it, so the narrowest useful face spans from the near shoulder's lane to the far one's.
+        // Below that no seat can close the bay, and the body's own bay stays an open notch (CT8's rotation
+        // hole is a hole the frontline made). A solid front imposes nothing and the sample is the funnel's.
+        // the parity law below rounds an ODD face down a cell, which would take it back under a floor it
+        // has to clear — so a floor is rounded UP to even first, and a draw above an even floor stays
+        // above it however the parity falls
+        var flip = MidCarver.LateralFlip(env.Symmetry);
+        var seal = Math.Min(full, SealWidth(frontRuns, laneWidthCells));
+        if (flip && seal % 2 != 0) seal = Math.Min(full, seal + 1);
+        var floor = Math.Max(Math.Min(UnitTuning.FaceMinCells, full), seal);
+        var faceWidth = rng.NextBool(UnitTuning.FullFaceChance)
+            ? full
+            : rng.NextInt(floor, Math.Max(floor, full + UnitTuning.FaceOverhangMaxCells) + 1);
+        // the face-parity law. Under a laterally-flipping symmetry the opposing image reflects v about the
+        // axis point, so a face spanning [lo, hi) meets its own image only where [lo, hi) and [-hi, -lo)
+        // overlap — which is exact when lo = -hi, i.e. when the span is EVEN and the face is centred. The hub
+        // is already forced even for this reason; an odd face lands half a cell off the centre the seat aims
+        // at and the band has to reach past it. Parity is all that is required — no lane multiple, and the
+        // rule reads the same in blocks as in cells because the cell size is odd.
+        if (flip && faceWidth % 2 != 0) faceWidth--;
+        requests.Add(new NeighbourRequest(UnitSide.Front, BoxKind.Frontline, frontReach, faceWidth, "frontline"));
+        budget.Spend(faceWidth * (double)frontReach);
         return requests;
+    }
+
+    /// <summary>A unit holding a donut wool with its spawn moved to the back, at the end of it nearer the donut: the
+    /// side the spawn leaves and the back trade everything on them, and a donut the trade lands on the back
+    /// trades sides with a lateral wool. A unit without a donut comes back unchanged.</summary>
+    private static List<NeighbourRequest> BackOfDonut(List<NeighbourRequest> requests)
+    {
+        var donut = requests.FirstOrDefault(r => r.Wool?.Family == ShapeFamily.Donut);
+        if (donut is null) return requests;
+        var spawnSide = requests[0].Side;
+        var traded = requests.Select(r => r with
+        {
+            Side = r.Side == spawnSide ? UnitSide.Back : r.Side == UnitSide.Back ? spawnSide : r.Side,
+        }).ToList();
+        var donutAt = traded.FindIndex(r => r.Id == donut.Id);
+        if (traded[donutAt].Side == UnitSide.Back)
+        {
+            var lateralAt = traded.FindIndex(r => r.Kind == BoxKind.Wool && r.Side is UnitSide.Left or UnitSide.Right);
+            if (lateralAt < 0) return requests;
+            (traded[donutAt], traded[lateralAt]) =
+                (traded[donutAt] with { Side = traded[lateralAt].Side }, traded[lateralAt] with { Side = UnitSide.Back });
+        }
+        traded[0] = traded[0] with { Toward = traded[donutAt].Side };
+        return traded;
     }
 
     /// <summary>Choose one wool's <b>shape and footprint</b> — the whole per-wool decision in one place. Three
@@ -144,9 +167,10 @@ public static class UnitRequests
     /// length rule.</item>
     /// </list>
     /// The wool lane is the band's own <paramref name="woolLaneCells"/> (§4), one rung under the map's
-    /// <c>w</c>.</summary>
+    /// <c>w</c>. A back-room lane runs at least <see cref="WallPlacer.LaneCells"/> before its room, so it seats a
+    /// defence wall.</summary>
     internal static (WoolFill Fill, int Along, int Depth) WoolRequest(
-        ComposeRng rng, int woolLaneCells, int edgeLen, double woolShare)
+        ComposeRng rng, int woolLaneCells, int edgeLen, double woolShare, int cell)
     {
         if (rng.NextBool(UnitTuning.BentWoolChance))
         {
@@ -168,8 +192,13 @@ public static class UnitRequests
             if (family == ShapeFamily.Donut)
             {
                 attachW = rng.NextInt(woolLaneCells, UnitTuning.DonutEntryMaxCells(woolLaneCells) + 1);
-                var holeAlong = rng.NextInt(1, UnitTuning.DonutHoleAlongMaxCells + 1);
-                var holeDeep = rng.NextInt(woolLaneCells, UnitTuning.DonutHoleDeepMaxCells(woolLaneCells) + 1);
+                // the hole is one a player rounds rather than jumps, so neither extent starts under a hub hole's;
+                // along it the legs run, and each is long enough to seat a wall a cell off the entry bar
+                var holeFloor = UnitTuning.HubHoleCells(cell);
+                var legFloor = Math.Max(holeFloor, WallPlacer.LaneCells(cell));
+                var holeAlong = rng.NextInt(legFloor, Math.Max(legFloor, UnitTuning.DonutHoleAlongMaxCells) + 1);
+                var deepFloor = Math.Max(woolLaneCells, holeFloor);
+                var holeDeep = rng.NextInt(deepFloor, Math.Max(deepFloor, UnitTuning.DonutHoleDeepMaxCells(woolLaneCells)) + 1);
                 depth += holeDeep - woolLaneCells;
                 along = Math.Max(along, Math.Max(2 * woolLaneCells + holeAlong, attachW + woolLaneCells));
             }
@@ -199,7 +228,7 @@ public static class UnitRequests
         }
 
         return (new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false),
-            woolLaneCells, Math.Clamp(budgetDepth, rd + 1, maxDepth));
+            woolLaneCells, Math.Clamp(budgetDepth, Math.Min(rd + WallPlacer.LaneCells(cell), maxDepth), maxDepth));
     }
 
     /// <summary>The deepest a wool box may run outward from the hub, in cells — the wool length rule, over
@@ -229,13 +258,18 @@ public static class UnitRequests
     }
 
     /// <summary>Demote a wool request to the <b>compact inline <c>I</c></b> — the always-seatable shape: a
-    /// one-lane mouth at the hub's offered width, its depth capped under the wool length rule. Both seat failures
-    /// land here (an overhang with no clear placement, a full mouth no run holds) rather than failing the unit.</summary>
-    internal static NeighbourRequest Compact(NeighbourRequest request, int grantedWidthCells) =>
-        request with
+    /// one-lane mouth at the hub's offered width, its depth capped under the wool length rule and never short of
+    /// the lane a wall seats in (<see cref="WallPlacer.LaneCells"/>). Both seat failures land here (an overhang
+    /// with no clear placement, a full mouth no run holds) rather than failing the unit.</summary>
+    internal static NeighbourRequest Compact(NeighbourRequest request, int grantedWidthCells, int cell)
+    {
+        var walled = ShapeEmitter.RoomDepthCells + WallPlacer.LaneCells(cell);
+        var cap = Math.Max(walled, UnitTuning.WoolLengthRatio * ShapeEmitter.RoomDepthCells - 1);
+        return request with
         {
             Along = grantedWidthCells,
-            Depth = Math.Min(request.Depth, UnitTuning.WoolLengthRatio * ShapeEmitter.RoomDepthCells - 1),
+            Depth = Math.Clamp(request.Depth, walled, cap),
             Wool = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false),
         };
+    }
 }

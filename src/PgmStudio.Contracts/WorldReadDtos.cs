@@ -100,12 +100,14 @@ public sealed record StrokeReadDto(
     int Rises, int Falls, int WorstStep, IReadOnlyList<string> Events,
     IReadOnlyList<StrokeRunDto> Materials, int MaterialRuns, IReadOnlyList<StrokeGapDto> Gaps);
 
-/// <summary>One step of a walked route that is not a plain walk — a scramble, a barrier or a drop.</summary>
+/// <summary>One step of a walked route that is not a plain walk — a scramble, a barrier, a drop, or the climb
+/// onto or off a stated wall.</summary>
 /// <param name="X">The cell the step lands on, east–west.</param>
 /// <param name="Z">The same, north–south.</param>
 /// <param name="Rise">The signed rise from the place before it, in blocks.</param>
-/// <param name="Word">What that rise reads as — <c>scramble</c>, <c>barrier</c> or <c>drop</c> — the word
-/// <c>PgmStudio.Geom.Walk.StepWord</c> gives every step in the studio.</param>
+/// <param name="Word">What that rise reads as — <c>scramble</c>, <c>barrier</c> or <c>drop</c>, the word
+/// <c>PgmStudio.Geom.Walk.StepWord</c> gives every step in the studio, or <c>wall</c> where the step lands on
+/// or leaves a plan's wall.</param>
 public sealed record WalkStepDto(int X, int Z, int Rise, string Word);
 
 /// <summary>One thing standing within a stated distance of a route: the provenance record's own claim, the
@@ -133,8 +135,8 @@ public sealed record WalkNeighbourDto(string Kind, string Unit, int Image, int X
 /// <param name="Steps">Every step between consecutive places that is not a plain walk, in route order.</param>
 /// <param name="Rises">How many of those steps climb.</param>
 /// <param name="Falls">How many drop.</param>
-/// <param name="WorstStep">The largest of them, in blocks, whichever direction it ran — zero where the
-/// route never left a walk.</param>
+/// <param name="WorstStep">The largest of them that is not a <c>wall</c> step, in blocks, whichever
+/// direction it ran — zero where the route never left a walk.</param>
 /// <param name="Beside">Every distinct thing the provenance record names within the asked distance of the
 /// route (<c>?beside=N</c>), or empty where none was asked for.</param>
 public sealed record WalkReadDto(bool Reachable, int Distance, int Blocks, int Drops, int WorstDrop,

@@ -406,7 +406,9 @@ scanned world's ground belongs to: a scan's segments carry no layer at all, beca
 stacked sketch are one geometry seen twice**, differing only in provenance.
 
 In the editor, the active layer is the one being drawn on; the others ghost underneath in 2-D and stack in the
-isometric preview, and a new layer defaults to ten blocks above the highest existing one.
+isometric preview, and a new layer defaults to ten blocks above the highest existing one. A placed prop follows
+the same rule in the Dressing phase: one resting on another layer is drawn dimmed, and a click reaches only the
+props of the layer being drawn on.
 
 ### A made thing, and the three words that say a layer is one
 
@@ -1255,9 +1257,21 @@ cell's answer, and the goal beneath one was stamped eighty-three blocks up on it
 `BuiltTerrain.SurfaceFor` gives a stamped thing, so a prop and a monument on one floor cannot disagree about
 where that floor is. Naming a layer the board has no ground at is **declined** (`DR-LAYER`) rather than seated
 on the top, because the top is exactly the storey the author was saying they did not mean. `decoration.md`
-carries the pass itself. The Dressing phase cannot state it — the layer rail renders only in Draw, so a prop
-placed in the browser always takes the top surface and a `layer` set over the API survives an edit unshown
-(`B263`).
+carries the pass itself.
+
+**In the Dressing phase a prop takes the layer being drawn on, and the inspector moves it.** A placement
+records the canvas layer strip's active layer (`DressingDoc.add`); a prop that already names one keeps it.
+With a prop selected on a board of more than one layer, the inspector's **Storey** field offers the strip's
+own layers and writes the pick as `layer` through the same `updateProp` patch every other knob takes. Unlike
+the other knobs it is not carried into the next placement's starting values, because the next prop takes the
+active layer. The field offers every layer and filters none: one with no ground under the prop is declined
+`DR-LAYER` by the pass, which is what `POST …/sketch/dressing` and the export's warnings report.
+
+**A prop on another layer is drawn dimmed.** `dressing-render.js` draws a prop whose `layer` is not the active
+one at `OFF_LAYER_ALPHA` of its strength, fill, outline and route alike, so a gallery-floor tree and the roof
+tree over it read as two floors. Like another layer's shapes it is context rather than a target: a click on
+the canvas picks only props on the active layer, and the placed-props list still reaches any of them. A prop
+naming no layer, and every prop of a board with no active layer, draws at full strength.
 
 **Every word above is written in camelCase, and that is the canonical form** — what `POST .../sketch/finish`
 and the export always write back, and the form every example in this document is in. The reader is more
@@ -1602,6 +1616,11 @@ re-fuses the board does not merely move a group — it produces a different one,
 the old fusion has nowhere correct to land. `?force=true` accepts the loss and proceeds, which is the author's
 call and not the server's.
 
+**A shape drawn in the sketch is not carried, and the rebuild names it.** Geometry is the plan's, so a stored
+shape the compile does not produce and which stands for no intent entity (no `intentRef`) is not in the layout
+the rebuild stores. That is right, and it is not silent: the answer's `dropped` lists those shapes by id beside
+`orphaned`, and one `SK29` complaint names them on the 200.
+
 **And a relief in the posted body loses to the stored one, which the same route now says out loud.** The carry
 is what the route is for — a compiled layout carries no relief, because a plan cannot express one, so the
 stored relief is the only one there is — but a caller that compiled, patched a relief onto the result and
@@ -1691,7 +1710,7 @@ Every endpoint is anonymous and rooted at `/api`.
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}`. The `ETag` is the revision to state on the next write | 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
-| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned, dropped}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge, and so does one `SK1` per group whose **posted** relief the carry replaced with the stored one. `dropped` names the stored shapes the rebuild does not keep — every one whose id the compile does not produce and which carries no `intentRef`, which is a shape drawn in the sketch — with one `SK29` complaint naming them | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
 
@@ -1707,7 +1726,7 @@ carry — the board an author is looking at is the one place those complaints ar
 | `POST /map/{slug}/sketch/relief/read` | `{groups[]}` — per group the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, the symmetry error, the `landform` it measures as beside the `smoothing` it kept, the `level` share of it and the `largestField` of level ground on it, the `seams` where two of its marks meet on a step, the `silentMarks` that pinned nothing, and the `pushes` with each one's two gradients — its `skirt` (`amount / falloff`) and its `crown` (`crown / deepest`) in blocks of rise per block of run, and how many cells its ring covers. Carries `RL1` where the group states a different word, `RL2` where it carries elevation it never graded (`docs/world-export/relief.md` §6.1), `RL3` where a seam is taller than a scramble, `RL4` for a mark that landed nowhere, `RL5` where it was graded everywhere and left nowhere level to stand (§2.0) and `RL6` where a push's two gradients run more than about twice apart |
 | `POST /map/{slug}/sketch/columns` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells, claims}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. `claims` is `{bounds, width, height, classes[], rows[]}`, digit rows over the board's own ground the way `coverage`'s own classes are, classing every cell as a prop's own claim, a goal's clearance, a keep-out, or free — so a candidate site is looked up on the raster rather than tried and read back as a decline. `?format=text` answers the same reading as characters, with the classes' key, a column-index line, the declines and a `placed n, declined n` line under it | 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
-| `POST /map/{slug}/sketch/seats[?kind=&width=&depth=]` | `{bounds, width, height, kind, standoff, footprintWidth, footprintDepth, rows[], seats, refused[]}` — where a prop of that kind and footprint **may** stand, which the `DR-*` declines only ever answer backwards: `1` where a box of `width`×`depth` blocks seats with its minimum corner on that cell, `0` where it does not, a space off the board, and `refused` the tally of which rule turned the rest away. `kind` is one of the document's own prop kinds (absent: `tree`) and decides the route standoff; one number asks about a square. `?format=text` answers the same mask with its key and the tally under it | 422 `no such prop kind` `RQ4` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
+| `POST /map/{slug}/sketch/seats[?kind=&width=&depth=&style=]` | `{bounds, width, height, kind, standoff, footprintWidth, footprintDepth, rows[], seats, refused[], unasked[], slopeLimit}` — where a prop of that kind and footprint **may** stand, which the `DR-*` declines only ever answer backwards: `1` where a box of `width`×`depth` blocks seats with its minimum corner on that cell, `0` where it does not, a space off the board, and `refused` the tally of which rule turned the rest away. `kind` is one of the document's own prop kinds (absent: `tree`) and decides the route standoff; one number asks about a square. A `tree` is asked `DR-ROOT` as well — every cell whose surface is not grass or dirt is refused. For a `house`, `style` names the recipe whose height `DR-SLOPE` is asked against (absent: the default building), `slopeLimit` is that height and `unasked` names `DR-CROSS` and `DR-WAY`, the declines the query does not run; every other kind answers `unasked` empty. `?format=text` answers the same mask with its key and the tally under it | 422 `no such prop kind` `RQ4` · 422 `no such house recipe` `RQ4` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/probe-footprint` | `{cells, land, void, hole, voidCells[], holeCells[]}` — what a ring stands on, against the **rasterised** footprint rather than a model of the coast rebuilt outside the studio. The ring need not be a shape the layout carries, which is the point: it is asked before one is built on it. Body `{layout, ring}` | 422 `ring too short` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
 
 **The parts, one at a time.** Each of these reads and writes one part of the stored layout without the
@@ -1762,8 +1781,18 @@ a bed of flora does not stop a tree while a tree stops the flora (`docs/world-ex
 a building gets a seat rather than a verdict. `DR-PASS` is asked here too: a building's `width`/`depth` are
 its **walls**, the passage is measured from the roof over them, and a candidate joins the group of any
 building standing within a passage of it — the standing ones are read off the raster's own structure cells,
-one building to a run of them, and grouped once for the board rather than once per anchor. `DR-CROSS`,
-`DR-WAY` and `DR-SLOPE` read the built world and stay the pass's to raise.
+one building to a run of them, and grouped once for the board rather than once per anchor. Its site is asked
+to be level too (`DR-SLOPE`), by the pass's own arithmetic: the rise across the footprint against the height
+of the style `?style=` names — a house recipe key in the posted layout's `dressing.styles`, absent the default
+building — and `slopeLimit` answers the rise it refused from. `DR-CROSS` and `DR-WAY` walk the board's routes
+and waypoints with the footprint taken out, stay the pass's to raise, and are named in the answer's `unasked`,
+so a building seat marked `1` says which declines it has not been asked about. `DR-DIG` (a carve of more than three blocks at a column) is the stamp's own and stays
+the pass's to raise.
+
+**A tree is asked what it would be rooted in.** The raster is built over a world, so the surface block at a
+cell is readable, and `DR-ROOT` refuses every cell whose surface is not soil — grass or one of the three
+dirts. A board painted rock all the way up therefore answers a mask of zeros for `kind=tree`, which is the
+honest answer: the wood wants a soil band under it before it wants a position.
 
 ```json POST /api/map/{slug}/sketch/seats?kind=tree&width=3
 {"setup": {"mirror_mode": "none", "center": {"cx": 0, "cz": 0}},

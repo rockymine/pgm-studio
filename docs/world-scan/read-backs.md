@@ -12,10 +12,12 @@ They answer over HTTP now, one route each, and what each one draws is written on
 
 ## What it reads, and where the world comes from
 
-**The world is built for the request.** A map that ships its own region files has one on disk; a
-sketch-authored map's exists only as the layout and the intent it derives from, which is the same position
-`GET /map/{slug}/export` is in, and it builds one too. A map with no stored sketch layout is a **404** — not a
-fault, but a statement that there is no world here to build.
+**The world is built from the stored documents, once.** A map that ships its own region files has one on
+disk; a sketch-authored map's exists only as the layout and the intent it derives from, which is the same
+position `GET /map/{slug}/export` is in. `BuiltWorlds` builds it the first time it is asked for and keeps it
+keyed on those two documents, so every read of one board and its export share one build, and an edit is a
+different key rather than a stale answer. A map with no stored sketch layout is a **404** — not a fault, but
+a statement that there is no world here to build.
 
 **The build runs no gate, deliberately.** A board that fails one is exactly the board somebody needs to look
 at, and a read-back that refuses the broken case is never there when it is wanted. `OB17`, `EX1`, `OB24` and
@@ -41,7 +43,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
 | `slopes` | — | the worst step to a neighbour per sampled cell, as JSON digit rows or, on `?format=text`, `.`/`:`/`#` — the tiers a walk is priced in. `faces` names the barrier runs worth checking, largest first |
 | `incline` | — | how steeply the ground is inclined per sampled cell, as `text/plain`: the glyph is the **tens of degrees**, so `0` is under ten from level, `4` is forty to fifty, `8` is a face. Below the grid, how much ground stands in each ten degrees. The angle a slope band is picked by (`TP24`), read through the painter's own formula. `window` widens the gradient from the 2 cells either side the painter reads at |
-| `reach` | — | which standing ground **no player can get to**, and why, as `text/plain`: the patches, their column counts, their lowest standing course and the box to stand in. The traversability picture's own partition read as numbers — the navigable components, less the one the board is played on, less every component a spawn or an objective sits on, less every component the map opens to bridging — plus ground above the map's `maxbuildheight`, which cannot be built up to. **It names nothing as wrong**: scenery, a side observer island and a shelf over the ceiling read exactly like a shape stranded by accident, and only the author can tell them apart |
+| `reach` | — | which standing ground **no player can get to**, and why, as `text/plain`: the patches, their column counts, their lowest standing course and the box to stand in. The traversability picture's own partition read as numbers — the navigable components, less the one the board is played on, less every component a spawn or an objective sits on, less every component the map opens to bridging (a region whose `block` or `block-place` rule is the void test, the template's `not-build-area` idiom read as the build area it negates) — plus ground above the map's `maxbuildheight`, which cannot be built up to. **It names nothing as wrong**: scenery, a side observer island and a shelf over the ceiling read exactly like a shape stranded by accident, and only the author can tell them apart |
 | `editability` | — | which columns a player may edit and **what makes each one editable**, as JSON: digit rows over a bounding box, the four `EditZone` words, a colour each, the counts, and `findings`. The zones are `build_zone` · `ground` · `filtered` · `sealed`, read by following PGM's own resolution — the first region-filter application that does not abstain settles the column, and place and break are the separate scopes PGM makes them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one it was laid to |
@@ -115,6 +117,17 @@ The headroom test is what makes a building a building: the terrain under a wall 
 own top is the surface, and crossing it costs the climb. Without it a walled cell reads at the floor the wall
 stands beside, which is how a route comes to walk through a house for nothing.
 
+**A prop's volume is out of the walk** (the author's ruling). A tree's trunk and crown and a boulder are
+solid — they take the headroom of the ground they stand on and roof what is under them like any block, so a
+player does not walk through a trunk — but no place is ever offered on them: their blocks are neither
+somewhere to stand nor ground under somewhere to stand. So a crown hanging past a board's rim leaves those
+columns void to the walk, exactly as `column`, `transect` and the census read them, and a crown over a field
+leaves the field under it walkable up to the crown's underside. Which blocks are a prop's is read off the
+build's own record rather than off their material: in a column a `tree` or `boulder` claimed last
+(`WorldProvenance.PropVolumeAt`), every block outside the spans the rasterizer laid is the prop's
+(`WorldColumns.ForWalk`). A path, a water course and a bed of flora are laid on or into the ground rather than
+standing on it, so their blocks read as ground.
+
 **A step between two places has to fit under the lower one's clearance** — how many blocks are open over it
 before the next solid one. A player builds up through open air and falls down through it, so a gallery roofed
 sixteen blocks up is not a step from a deck twenty-six blocks over it, while the same gallery where the roof
@@ -182,10 +195,14 @@ pairing that shows what the standoff bought.
 beside it.** `places` carries the route's own `y` at each cell — the storey the walk chose, not the ground a
 deck or a gallery roofs it with — and `steps` names every consecutive pair whose rise is not a plain walk: a
 scramble, a barrier or a drop, classed the way `PgmStudio.Geom.Walk.StepWord` classes any signed step, with
-the totals `rises`, `falls` and `worstStep` over the whole route. `?beside=N` (0 to 6 cells, Chebyshev) adds
-every distinct thing the provenance record names within `N` cells of any cell the route passes through — a
-tree, a boulder, a house, water, a spawn, a goal, wool or an iron cube, the first cell it is met at and its
-distance; flora and paint are left out, since neither is a thing a player runs into. `?format=text` answers
+the totals `rises`, `falls` and `worstStep` over the whole route. A step onto or off a plan's `wall` claim
+reads `wall` instead: the bedrock courses are stated across the lane on purpose, so the climb is the wall's
+and `worstStep` leaves it out, answering the worst step the ground makes. `?beside=N` (0 to 6 cells, Chebyshev) adds
+every thing a player meets that the provenance record names within `N` cells of any cell the route passes
+through, with the first cell it is met at and its distance. Those are a `wall`, a wool room's `redstoneline`,
+an `ironcube`, a `spawn`, a `wool`, a `destroyable`, a `core`, a `controlpoint`, a `house`, a `tree`, a
+`boulder` and `water`, which is every kind a stamp claims but the ground cover (`flora`) and the paint
+(`stroke`). `?format=text` answers
 the same reading as characters: the route's own numbers, a station at every place it stood with the word and
 the signed step where it left a walk, the totals, and what stands beside it.
 
@@ -370,8 +387,9 @@ compared as id and data both, because a pattern samples the cell folded into the
 
 ## Limits
 
-The build is paid per request; nothing is cached. A large board is the same cost as an export, which is what
-it is.
+The first read after an edit pays for the build, and on a large board that is the cost of an export; every
+read after it is answered from the same build until the documents change. Four boards are kept, so a caller
+reading a fifth has the least recently read one built again when it returns to it.
 
 **A picture says whether and a text read says where.** Every PNG here is framed on the world's own occupied
 extent and carries a scale bar naming pixels-per-block and the size in blocks — and never the corner it

@@ -115,6 +115,23 @@ public static class DressingRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string SiteNotLevel = "DR-SLOPE";
 
+    /// <summary>A building dug its site out of the ground more than 3 blocks deep at some column. It seats
+    /// one course below the <b>lowest</b> column of its footprint and every footprint column standing over
+    /// that floor is cleared to air, and nothing bounds how deep: a footprint whose lowest cell sits in a pit
+    /// takes the whole depth of that pit out of every other column, and the building stands in the hole it
+    /// dug. <c>DR-SLOPE</c> is measured on the same rise against the building's own height, so a shell tall
+    /// enough to afford it digs in silence without this. A carve of up to 3 blocks is a house settling into
+    /// a slope and raises nothing. The finding carries the deepest carve and the column it came off, how many
+    /// columns were carved and how many blocks of ground went.</summary>
+    /// <remarks>Compare the carve with what the building was meant to sit in. Past 3 blocks at a column the house is probably submerged — move it onto the ground beside the low cell, or state the plateau it stands on with an `area` relief mark. A complaint: the world is built and the building is in it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
+    public const string SiteDug = "DR-DIG";
+
+    /// <summary>The deepest carve at any one column a building's seat may make in silence, in blocks —
+    /// <see cref="SiteDug"/>'s one number. Up to it a house settles into a slope; past it the house is
+    /// probably submerged (author).</summary>
+    public const int SettleDepth = 3;
+
     /// <summary>A prop names a layer this board does not have ground on. A stacked board carries a surface
     /// per storey and a prop may say which one it rests on; naming one that is not there is not the same as
     /// naming none, so it is declined rather than quietly seated on the top surface — which is exactly the
@@ -179,6 +196,14 @@ public static class DressingRules
     [Rule(RuleCategory.Malformed, RuleConcern.Feature, RuleConcern.Material)]
     public const string UnheldFace = "DR-FACE";
 
+    /// <summary>A tree recipe claims the <c>copied</c> form and states no cut. A copied tree is one cut out of
+    /// a world — its body is what stood there, block for block — so the row records where: the world
+    /// directory, the foot's world coordinates and when. A body with no cut behind it is a block list somebody
+    /// typed, and the library files no such thing as a tree. Asked where a tree recipe is saved.</summary>
+    /// <remarks>Cut the tree out of a world with `dotnet run tools/seed-trees.cs` over the world it stands in, which files every tree it finds with its cut recorded. There is no form for a hand-built body: a prop that is not a tree cut from a world is not filed in the tree library at all. A re-save of a copied recipe carries the `cut` its `GET` answered.</remarks>
+    [Rule(RuleCategory.Forbidden, RuleConcern.Request, RuleConcern.Feature)]
+    public const string UncutCopy = "DR-COPY";
+
     /// <summary>A body of water that dug a shaft rather than filled a hollow. Its line is one plane across the
     /// whole run — by default the lowest surface it crosses — and every bed column standing above that line is
     /// emptied down to it. <c>depth</c> bounds how far <b>below</b> the line the bed goes and nothing bounds
@@ -219,6 +244,22 @@ public static class DressingRules
     /// <remarks>Move the rock onto ground the board does not paint as a face — the flat, or the graded band under it. The finding names the cell, the angle measured there and the angle the theme calls a cliff, so the three can be compared against the incline read. A complaint: the world is built and the rock is in it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string RockOnAFace = "DR-STEEP";
+
+    /// <summary>A tree standing on ground nothing grows out of. A tree is a thing that grew where it is, so
+    /// the block under its trunk is the one that says so; on stone, gravel, clay or a path's paving it reads
+    /// as a model of a tree set down rather than as a wood, and no canopy over it repairs that.
+    ///
+    /// <para>The board has to carry the soil before a tree can stand in it. A theme painting a surface that
+    /// is rock all the way up gives the pass nowhere to put one, so the fix is usually the <em>paint</em> —
+    /// a soil band under the wood — rather than the position, and the read that answers where soil is on the
+    /// ground is the themes census.</para>
+    ///
+    /// <para>Grass and the three dirts, by <c>DressingPalette.RootsInto</c>. Sand and gravel grow a tuft and
+    /// not a trunk, so they are ground here and not soil (author). Asked of a tree that landed: one the pass
+    /// turned away is standing nowhere and has nothing to be rooted in.</para></summary>
+    /// <remarks>Paint soil where the wood stands — a band of grass or dirt under the canopy — or move the tree onto ground that already has it. <c>POST …/sketch/seats?kind=tree</c> answers where that ground is, and refuses every cell without it under this id. A complaint: the world is built and the tree is in it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Material, RuleConcern.Terrain)]
+    public const string TreeOnBareGround = "DR-ROOT";
 
     /// <summary>How much of a prop the clip has to block before <see cref="PropCut"/> is raised on the share
     /// alone. A rock tucked against a wall is flattened along it and measures about a third, which is a rock;

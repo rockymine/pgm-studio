@@ -60,7 +60,7 @@ public sealed class WayThrough
     {
         var board = WalkGround.OfSpans(
             surfaceTop.Where(column => column.Value > 0)
-                      .Select(column => (column.Key.X, column.Key.Z, 0, column.Value - 1)));
+                      .Select(column => (column.Key.X, column.Key.Z, 0, column.Value - 1)), []);
 
         var seats = new List<WalkPlace>();
         foreach (var waypoint in waypoints)

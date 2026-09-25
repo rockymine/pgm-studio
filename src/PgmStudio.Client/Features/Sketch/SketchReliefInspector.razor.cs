@@ -561,14 +561,20 @@ public partial class SketchReliefInspector
         {
             var amount = Num(PushFields.Amount, 5);
             var falloff = Num(PushFields.Falloff, 10);
-            var crown = Num(PushFields.Crown, 2);
+            var crown = Num(PushFields.Crown);
             var verb = amount < 0 ? "Digs" : "Lifts";
             var skirt = falloff <= 0
                 ? "a sheer edge at the ring"
                 : $"over {Span(falloff)} of skirt, {Math.Abs(amount) / falloff:0.#} a block";
-            var top = crown == 0 ? "flat on top"
-                    : crown > 0 ? $"domed {Span(crown)} at its spine"
-                    : $"dished {Span(-crown)} at its spine";
+            // The crown is world height, added whatever the amount's sign: on a dig a positive one fills the
+            // floor back in toward the spine.
+            var top = amount < 0
+                ? crown == 0 ? "flat-floored"
+                  : crown > 0 ? $"its floor raised {Span(crown)} at its spine"
+                  : $"its floor deepened {Span(-crown)} at its spine"
+                : crown == 0 ? "flat on top"
+                  : crown > 0 ? $"domed {Span(crown)} at its spine"
+                  : $"dished {Span(-crown)} at its spine";
             return $"{verb} {Span(Math.Abs(amount))}, {skirt} — {top}.";
         }
     }

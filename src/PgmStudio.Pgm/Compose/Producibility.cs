@@ -226,10 +226,9 @@ public static class Producibility
                           "over the hole.", Cites: "G2"));
         }
 
-        // the seat-separation law: no spawn/wool seats within the separation gap of another. The gap is the map's
-        // lane width (2 or 3), but FrontGuard.Resolve may fall back to the wool-lane 2 as its last tier before a
-        // flush residue — so 2 is the true floor the allocator can seat at, and testing against it keeps this
-        // from over-reporting on a wide board. NB the measurand is the box ENVELOPE (corner-inclusive), which
+        // the seat-separation law: no spawn/wool seats within the separation gap of another. An authored plan is
+        // held to the producible lane floor rather than the band's lane width, which keeps this from
+        // over-reporting on a wide board. NB the measurand is the box ENVELOPE (corner-inclusive), which
         // G124 questions: a donut's void margins can indict a placement whose emitted terrain keeps the gap.
         var seats = plan.Boxes.Where(b => b.Kind is PlanBoxKinds.Wool or PlanBoxKinds.Spawn).ToList();
         for (var i = 0; i < seats.Count; i++)
@@ -275,7 +274,7 @@ public static class Producibility
         // enumerated lazily and kept as they come: an exact match ends the search, so the producible case — the
         // common one — never pays for the rest of the space. Only a real miss enumerates it all, to report against.
         var candidates = new List<Candidate>();
-        foreach (var c in Candidates(box, all, measured))
+        foreach (var c in Candidates(box, all, measured, plan.Globals.Cell))
         {
             candidates.Add(c);
             if (c.Mask is not null && c.Mask.SetEquals(all))    // exact terrain+room match — the box is producible
@@ -332,22 +331,22 @@ public static class Producibility
 
     /// <summary>Every tuple the declared production menus admit for this box kind, emitted into the box's own
     /// footprint by the real emitters. The menus are read as data — nothing here restates them.</summary>
-    private static IEnumerable<Candidate> Candidates(PlanBox box, IReadOnlySet<(int, int)> target, int measuredCw) =>
+    private static IEnumerable<Candidate> Candidates(PlanBox box, IReadOnlySet<(int, int)> target, int measuredCw, int cell) =>
         box.Kind switch
         {
-            PlanBoxKinds.Hub => HubCandidates(box, measuredCw),
+            PlanBoxKinds.Hub => HubCandidates(box, measuredCw, cell),
             PlanBoxKinds.Frontline => FrontlineCandidates(box, measuredCw),
             PlanBoxKinds.Wool => ApproachCandidates(box, BoxKind.Wool, measuredCw),
             PlanBoxKinds.Spawn => ApproachCandidates(box, BoxKind.Spawn, measuredCw),
             _ => [],
         };
 
-    private static IEnumerable<Candidate> HubCandidates(PlanBox box, int measuredCw)
+    private static IEnumerable<Candidate> HubCandidates(PlanBox box, int measuredCw, int cell)
     {
         var b = new Box(box.Id, BoxKind.Hub, box.Rect, box.Rect.Width * box.Rect.Height);
         foreach (var cw in SearchWidths(measuredCw))
         foreach (var form in FillProfiles.HubForms)
-            foreach (var walls in HubWallVectors(form, box, cw))
+            foreach (var walls in HubWallVectors(form, box, cw, cell))
                 foreach (var arms in HubArmLayouts(form, box, cw))
                     foreach (var flip in new[] { false, true })
                     {
@@ -391,16 +390,16 @@ public static class Producibility
     /// <see cref="TeamUnitAllocator.ChooseHubWalls"/> over many seeds rather than restating its law (one side
     /// widened, within twice the narrowest, only where the hole has the slack). The even-walled ring
     /// (<c>null</c>) is always offered first, and a form without a ring yields only that.</summary>
-    private static IEnumerable<RingWalls?> HubWallVectors(CompoundRead form, PlanBox box, int cw)
+    private static IEnumerable<RingWalls?> HubWallVectors(CompoundRead form, PlanBox box, int cw, int cell)
     {
         yield return null;
         int w = box.Rect.Width, h = box.Rect.Height;
-        foreach (var walls in Memo($"hub-walls {form.Form} {form.Arms} {w} {h} {cw}", () =>
+        foreach (var walls in Memo($"hub-walls {form.Form} {form.Arms} {w} {h} {cw} {cell}", () =>
                  {
                      var seen = new HashSet<RingWalls>();
                      var vectors = new List<RingWalls>();
                      for (ulong seed = 1; seed <= SamplerSweepSeeds; seed++)
-                         if (TeamUnitAllocator.ChooseHubWalls(form, w, h, cw, new ComposeRng(seed)) is { } v
+                         if (TeamUnitAllocator.ChooseHubWalls(form, w, h, cw, cell, new ComposeRng(seed)) is { } v
                              && seen.Add(v)) vectors.Add(v);
                      return vectors;
                  }))

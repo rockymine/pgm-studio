@@ -33,6 +33,9 @@ public partial class SketchDressingInspector
     /// <summary>The dressing state pushed by the bridge (<c>OnDressing</c>) — props, the selection, and the
     /// selected prop itself.</summary>
     [Parameter] public string? StateJson { get; set; }
+    /// <summary>The board's layers, as the canvas layer strip lists them — the storeys a selected prop may be
+    /// moved to.</summary>
+    [Parameter] public IReadOnlyList<SketchLayerRow> Layers { get; set; } = [];
 
     [Inject] public TerrainLibraryClient Library { get; set; } = default!;
     [Inject] public IJSRuntime JS { get; set; } = default!;
@@ -388,6 +391,9 @@ public static class PropFields
     public const string Rock = "rock";
     public const string Mossy = "mossy";
     public const string Seed = "seed";
+    /// <summary>The storey a prop rests on, by layer id — absent on a flat board, which resolves the top
+    /// surface.</summary>
+    public const string Layer = "layer";
 
     /// <summary>The values a fresh prop starts at, for the reads that need a fallback.</summary>
     public const string SolidStyle = "solid";

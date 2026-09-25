@@ -1,4 +1,6 @@
 using PgmStudio.Geom;
+using PgmStudio.Pgm.Derive;
+using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
 
@@ -75,5 +77,33 @@ public sealed class SpawnWoolFloor : ILayoutTerm
         var subjects = ctx.Plan.Placements.Spawns.Select(s => s.Piece)
             .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
         return TermScores.Violated(this, $"spawn↔wool traversal {blocks:0} < {MinBlocks} blocks", subjects, evidence);
+    }
+}
+
+/// <summary>WL2's lane clause as a hard term: a wool room may not share an edge with its own team's spawn. Reads
+/// the land seams of the authored unit (<see cref="PieceInterfaces.Seams"/> — full-width or narrow), whose
+/// pieces are one team's, so every wool-room↔spawn seam it finds is a room against its own spawn. A corner
+/// touch shares no edge, and a room a third piece or a gap away from its spawn is the distance terms' to judge.
+/// Indicts both pieces and draws the shared edge.</summary>
+public sealed class WoolRoomSpawnSeam : ILayoutTerm
+{
+    public string Id => "wool-room-spawn-seam";
+    public string RuleId => "WL2";
+    public TermKind Kind => TermKind.Hard;
+
+    public TermScore Measure(EvalContext ctx)
+    {
+        var seams = PieceInterfaces.Seams(ctx.Contacts)
+            .Where(s => (s.RoleA, s.RoleB) is (PlanRoles.WoolRoom, PlanRoles.Spawn) or (PlanRoles.Spawn, PlanRoles.WoolRoom))
+            .ToList();
+        if (seams.Count == 0) return TermScores.Clean(this);
+
+        double cell = ctx.Contacts.Cell;
+        var evidence = seams
+            .Select(s => (Evidence)Ev.Segment(EvidenceTags.Offender, s.X1 / cell, s.Z1 / cell, s.X2 / cell, s.Z2 / cell))
+            .ToList();
+        var subjects = seams.SelectMany(s => new[] { s.A, s.B }).Distinct().ToList();
+        var pairs = string.Join(", ", seams.Select(s => $"{s.A}–{s.B}"));
+        return TermScores.Violated(this, $"a wool room shares an edge with its own spawn ({pairs})", subjects, evidence);
     }
 }

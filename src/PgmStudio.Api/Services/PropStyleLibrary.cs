@@ -37,23 +37,49 @@ public sealed class PropStyleLibrary(PropStyleStore store)
         Body = BodyOf(row.Body),
     };
 
+    /// <summary>The tree gate a save passes: a <c>copied</c> recipe states where it was cut
+    /// (<see cref="DressingRules.UncutCopy"/>). A template is never refused here.</summary>
+    public static Findings Check(TreeStyleSaveRequest req) =>
+        TreeForms.Canonical(req.Form) != TreeForms.Copied || req.Cut is { World.Length: > 0 }
+            ? Findings.None
+            : Findings.Of(new Finding(DressingRules.UncutCopy,
+                $"'{req.Name}' is filed as a copied tree and states no cut — a copied tree is one cut out of a "
+                + "world, and the cut (world, foot, time) is what the cutter records",
+                Field: "cut"));
+
     /// <summary>A copied recipe's height is what its body stands, read rather than stated: a knob that
-    /// disagrees with the blocks would size a preview's sample patch for a tree that is not there.</summary>
-    public static TreeStyleRow RowOf(TreeStyleSaveRequest req) => new()
+    /// disagrees with the blocks would size a preview's sample patch for a tree that is not there. The cut is
+    /// kept on a copy and dropped from a template, the same way the body is.</summary>
+    public static TreeStyleRow RowOf(TreeStyleSaveRequest req)
     {
-        Name = req.Name,
-        Form = TreeForms.Canonical(req.Form),
-        Species = TreeSpeciesNames.Canonical(req.Species),
-        Height = TreeForms.Canonical(req.Form) == TreeForms.Copied
-            ? new TreeStyle { Form = TreeForm.Copied, Body = req.Body }.BodyHeight
-            : Math.Clamp(req.Height, 5, 40),
-        Body = TreeForms.Canonical(req.Form) == TreeForms.Copied && req.Body is { Length: > 0 }
-            ? JsonSerializer.Serialize(req.Body) : "",
-    };
+        var copied = TreeForms.Canonical(req.Form) == TreeForms.Copied;
+        var cut = copied ? req.Cut : null;
+        return new()
+        {
+            Name = req.Name,
+            Form = TreeForms.Canonical(req.Form),
+            Species = TreeSpeciesNames.Canonical(req.Species),
+            Height = copied
+                ? new TreeStyle { Form = TreeForm.Copied, Body = req.Body }.BodyHeight
+                : Math.Clamp(req.Height, 5, 40),
+            Body = copied && req.Body is { Length: > 0 } ? JsonSerializer.Serialize(req.Body) : "",
+            CutWorld = cut?.World,
+            CutX = cut?.X,
+            CutY = cut?.Y,
+            CutZ = cut?.Z,
+            CutAt = cut?.At,
+        };
+    }
 
     public static TreeStyleDetail ToDetail(TreeStyleRow row) => new(
         row.Id, row.Name, TreeForms.Canonical(row.Form), row.Species, row.Height,
-        BodyOf(row.Body)?.Select(cell => cell).ToArray());
+        BodyOf(row.Body)?.Select(cell => cell).ToArray(), CutOf(row));
+
+    /// <summary>The cut a row records, or none where it records no world.</summary>
+    private static TreeCut? CutOf(TreeStyleRow row) =>
+        row is { CutWorld.Length: > 0, CutX: { } x, CutY: { } y, CutZ: { } z, CutAt: { } at }
+            ? new TreeCut(row.CutWorld, x, y, z, DateTime.SpecifyKind(at, DateTimeKind.Utc))
+            : null;
 
     /// <summary>The body a row stores, or nothing where it stores none or stores something that is not a
     /// list of rows — a hand-edited column still answers a recipe rather than a 500.</summary>

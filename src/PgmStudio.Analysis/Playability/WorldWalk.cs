@@ -149,18 +149,22 @@ public static class WorldWalk
 
     /// <summary>The ground a walk runs over on a world the studio built for itself, from the rasterised
     /// columns rather than from a scan.</summary>
-    /// <param name="columns">Every solid span, as the rasterizer emits them. A cell's standing surface is
-    /// read from them under the same rule a scan is: the lowest span whose top carries
-    /// <see cref="Walk.Headroom"/> clear blocks over it.</param>
+    /// <param name="columns">Every solid span a player may stand on. A cell's standing surface is read from
+    /// them under the same rule a scan is: a span whose top carries <see cref="Walk.Headroom"/> clear blocks
+    /// over it.</param>
+    /// <param name="props">Every span a prop stamped — a tree, a boulder. Solid, so it roofs and blocks the
+    /// ground it stands in, and never a place to stand: a prop's volume is out of the walk, and a crown hanging
+    /// over the void leaves that column void.</param>
     /// <param name="buildAreas">The intent's build zones, as <c>(minX, minZ, maxX, maxZ)</c> inclusive — void
     /// inside one is a route the moment a player may place a block in it.</param>
     /// <param name="water">Cells a player swims, or null on a board with none.</param>
     public static WalkGround OfBuilt(
         IEnumerable<(int X, int Z, int YFloor, int YTop)> columns,
+        IEnumerable<(int X, int Z, int YFloor, int YTop)> props,
         IEnumerable<(int MinX, int MinZ, int MaxX, int MaxZ)> buildAreas,
         IReadOnlySet<(int X, int Z)>? water = null)
     {
-        var solid = WalkGround.OfSpans(columns);
+        var solid = WalkGround.OfSpans(columns, props);
         var ground = new HashSet<WalkPlace>(solid.Ground);
         var clear = new Dictionary<WalkPlace, int>();
         var floor = new Dictionary<(int X, int Z), int>();

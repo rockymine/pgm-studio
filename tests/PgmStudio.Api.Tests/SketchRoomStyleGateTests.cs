@@ -112,6 +112,40 @@ public sealed class SketchMaterialGateTests
         await Assert.That(finding.GetProperty("subjects")[0].GetString()).IsEqualTo("byre");
     }
 
+    /// <summary>Beams stated as null, where the style is bound. On a building's recipe the dressing reader
+    /// refuses it (<c>DR-DOC</c>); on a bound room style the export would otherwise fall back to the built-in
+    /// shell, so the gate refuses it as unreadable (<c>RQ1</c>). Both name the path and the block of -1 that
+    /// says "no beams".</summary>
+    [Test]
+    [Arguments("""
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layers":[{"base_y":0,"layout":{"shapes":[{"id":"s1","type":"rectangle","operation":"add",
+           "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}]}}],
+         "dressing":{"props":[{"kind":"house","id":"byre","wings":[{"corners":[[0,0],[6,6]]}],"style":"bothy"}],
+                     "styles":{"bothy":{"kind":"house","shell":{"beams":null}}}}}
+        """, "DR-DOC", "shell.beams")]
+    [Arguments("""
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layers":[{"base_y":0,"layout":{"shapes":[{"id":"s1","type":"rectangle","operation":"add",
+           "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}]}}],
+         "roomStyles":{"wool":{"beams":null}}}
+        """, "RQ1", "roomStyles.wool.beams")]
+    public async Task Beams_stated_as_null_are_refused_where_the_style_is_bound(
+        string layout, string rule, string field)
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        await client.PostAsJsonAsync("/api/sketch", new { name = "Beams" });
+
+        var resp = await client.PutAsync("/api/map/beams/sketch", Body(layout));
+        var text = await resp.Content.ReadAsStringAsync();
+        await Assert.That((int)resp.StatusCode).IsEqualTo(400).Because(text);
+        var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo(rule);
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo(field);
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("{\"block\": -1}");
+    }
+
     /// <summary>A board with no styles at all passes every road — the gate reports what is there and never
     /// asks for a house.</summary>
     [Test]

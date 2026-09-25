@@ -95,6 +95,13 @@ public sealed class WorldProvenance
     /// <see cref="PassAt"/> to tell the two apart.</summary>
     public StampId? OwnerAt(int x, int z) => _claims.TryGetValue((x, z), out var claim) ? claim.Owner : null;
 
+    /// <summary>Whether a prop that stands as a volume of its own claimed a column last — a <c>tree</c> or a
+    /// <c>boulder</c>, as against a path, a water course or a bed of flora, which are laid on or into the
+    /// ground rather than standing on it. What stands above the terrain in such a column is the prop's.</summary>
+    public bool PropVolumeAt(int x, int z) =>
+        _claims.TryGetValue((x, z), out var claim)
+        && claim is { Pass: ProvenancePass.Prop, Owner.Kind: "tree" or "boulder" };
+
     public int Count => _claims.Count;
 
     /// <summary>Every claimed column, its pass and its owner, in no particular order — what a caller

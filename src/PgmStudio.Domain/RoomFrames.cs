@@ -166,12 +166,19 @@ public sealed record ResolvedRoom(RoomFrame Frame, IReadOnlyList<IronResolution>
 /// because none is bound or because the footprint is too small to carry one. The pad, the chests and the
 /// monuments are what a room is and sit on the footprint whichever it is, so every stamper reads this rather
 /// than asking again whether a style was bound.</para>
+///
+/// <para><see cref="Reflected"/> is whether this room is a mirror image of the one the author placed. Every
+/// choice a wall cannot centre — the spare block of a window row, the ladder's end, a narrowed door, the porch
+/// posts, the order of the monument seats — is taken from a hand (<see cref="RoomEdges.Handed"/>), and a
+/// reflection swaps the hands, so the stampers read it here to lay the image out as the mirror of the
+/// original. The resolver cannot derive it: it is a fact about the orbit image, set by whoever fanned it.</para>
 /// </summary>
 public sealed record RoomFrame(
     int MinX, int MinZ, int MaxX, int MaxZ,
     SpawnPad Pad,
     IReadOnlyList<RoomDoor> Doors,
-    int Wall = 1)
+    int Wall = 1,
+    bool Reflected = false)
 {
     public int Width => MaxX - MinX;
     public int Depth => MaxZ - MinZ;
@@ -449,6 +456,21 @@ public static class RoomFrames
     /// marker rather than reading a size off it.</summary>
     public const int IronSpan = 3;
 
+    /// <summary>Courses of bedrock an approach wall stands above the ground it bars (ST4). Three, plus the
+    /// cobweb course the stamper caps it with — tall enough to stop a player walking or jumping the line,
+    /// short enough that both halves of the lane still read as one place.
+    /// <para>It sits here rather than beside either user because both the plan compiler, which answers the
+    /// wall's height before a world exists, and the stamper, which lays it over the ground the relief
+    /// solved, measure from it — and a second <c>const</c> aliasing one that exists is two rules.</para>
+    /// </summary>
+    public const int WallCourses = 3;
+
+    /// <summary>The tallest an approach wall may stand over the ground at any column of its run before the
+    /// export complains (ST4). A wall is <see cref="WallCourses"/> proud of the highest ground it crosses and
+    /// its top is level, so ground that falls away along the seam leaves it taller at the low end; past this
+    /// it stops reading as a line to hold and becomes a blank face.</summary>
+    public const int WallCoursesMax = 4;
+
     /// <summary>Resolve one iron marker into the cube it stamps (WX8), or an unplaceable marker (WX9). The
     /// cube centres on the marker, put back on the block lattice, and stands where it lands: it fits inside
     /// the piece and clear of the room, or it does not. The room never gives an edge up for it and nothing
@@ -490,8 +512,10 @@ public static class RoomFrames
     /// <summary>
     /// The ordered monument seats of a spawn room whose door is <paramref name="door"/>: the door-wall
     /// corners, then the back-wall corners, then the back wall filling inward, then the door wall — skipping
-    /// the cells directly inside the door opening. The list's length is the room's monument capacity; the
-    /// caller takes the first N.
+    /// the cells directly inside the door opening. Each row runs from the left hand of someone standing in
+    /// the door looking out, so the n-th seat of a room and of its orbit image are images of each other —
+    /// under a reflection too, since a <see cref="RoomFrame.Reflected"/> frame counts from the other hand.
+    /// The list's length is the room's monument capacity; the caller takes the first N.
     /// </summary>
     public static IReadOnlyList<MonumentSlot> MonumentSlots(RoomFrame frame, RoomDoor door)
     {
@@ -508,15 +532,16 @@ public static class RoomFrames
         MonumentSlot Seat(int along, int crossAxis, RoomEdge wall) =>
             alongX ? new MonumentSlot(along, crossAxis, wall) : new MonumentSlot(crossAxis, along, wall);
         bool InDoorSpan(int along) => along >= door.Lo && along < door.Lo + door.Width;
+        int Hand(int fromLeft) => door.Edge.Handed(frame.Reflected, alongLo, alongHi - 1, fromLeft);
 
         var slots = new List<MonumentSlot>
         {
-            Seat(alongLo, near, nearWall), Seat(alongHi - 1, near, nearWall),
-            Seat(alongLo, far, farWall), Seat(alongHi - 1, far, farWall),
+            Seat(Hand(alongLo), near, nearWall), Seat(Hand(alongHi - 1), near, nearWall),
+            Seat(Hand(alongLo), far, farWall), Seat(Hand(alongHi - 1), far, farWall),
         };
-        for (var along = alongLo + 1; along < alongHi - 1; along++) slots.Add(Seat(along, far, farWall));
+        for (var along = alongLo + 1; along < alongHi - 1; along++) slots.Add(Seat(Hand(along), far, farWall));
         for (var along = alongLo + 1; along < alongHi - 1; along++)
-            if (!InDoorSpan(along)) slots.Add(Seat(along, near, nearWall));
+            if (!InDoorSpan(Hand(along))) slots.Add(Seat(Hand(along), near, nearWall));
         return slots;
     }
 

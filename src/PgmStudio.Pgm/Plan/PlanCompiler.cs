@@ -255,6 +255,7 @@ public static class PlanCompiler
                 {
                     Team = teams[k].Id,
                     Stamp = Stamp("spawn", s.Id, spawnIndex, k),
+                    Reflected = Symmetry.Reflects(d.Mode, k),
                     // Y here is the plan's own flat nominal height, exactly as ResolveGoalAnchor's is:
                     // informational, carried for a caller with no built world to read yet, and never the
                     // spawn's real Y. WorldBuilder resolves that against the terrain the relief
@@ -315,6 +316,7 @@ public static class PlanCompiler
                 {
                     Owner = teams[k].Id,
                     Stamp = Stamp("wool", w.Id, i, k),
+                    Reflected = Symmetry.Reflects(d.Mode, k),
                     Color = color,
                     // The whole wool-room piece: the room region, and the ground the cage is framed on.
                     Protection = [new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ)],
@@ -440,7 +442,12 @@ public static class PlanCompiler
             Observer = new ObserverIntent { Point = new Pt(0, observerY, 0), Yaw = 0 },
             Build = build,
             WaterLanes = waterLanes,
-            Meta = new MetaIntent { Name = plan.Meta?.Name ?? "", Authors = [] },
+            Meta = new MetaIntent
+            {
+                Name = plan.Meta?.Name ?? "",
+                Authors = [.. plan.Meta?.Authors ?? []],
+                Contributors = [.. plan.Meta?.Contributors ?? []],
+            },
             Structures = structures.IsEmpty ? null : structures,
         };
     }
@@ -573,8 +580,12 @@ public static class PlanCompiler
             var (approach, _) = d.ApproachSide(c);
             var pieceA = d.Piece(c.A)!.Value;
             var pieceB = d.Piece(c.B)!.Value;
-            var (minX, minZ, maxX, maxZ) = WallFootprint(pieceA, pieceB);
-            var topY = approach.Surface + BedrockCourses - 1;
+            var (minX, minZ, maxX, maxZ) = ContactGraph.WallFootprint(pieceA, pieceB);
+            // The plan tier's answer, from the surface the approach was drawn at. It is what the plan
+            // preview draws and what the stamper falls back to where the solved surface has nothing to say
+            // about a column; the built wall takes its height from the ground the relief solved instead,
+            // because a piece's stated surface does not move when a mark or a push lifts the seam.
+            var topY = approach.Surface + RoomFrames.WallCourses - 1;
             // The chest opens on the approach — the same side the wall takes its height from, and the side
             // both teams reach the line across. Carried as a piece rather than a face so it survives the
             // orbit: a reflection swaps which of the two faces has the smaller coordinate.
@@ -593,11 +604,6 @@ public static class PlanCompiler
 
         return s;
     }
-
-    /// <summary>Courses of bedrock an approach wall stands above the ground it bars (ST4). Three, plus the
-    /// cobweb course the stamper caps it with — tall enough to stop a player walking or jumping the line,
-    /// short enough that both halves of the lane still read as one place.</summary>
-    private const int BedrockCourses = 3;
 
     // The redstone row: one block inside the wool room, running the entry-interface width, with the two
     // endpoints (where the torches sit). The segment lies on the room piece's boundary — a piece↔piece
@@ -638,15 +644,6 @@ public static class PlanCompiler
                 segments.Add(new BlockRect(Math.Min(edge.X1, edge.X2), Math.Min(edge.Z1, edge.Z2),
                     Math.Max(edge.X1, edge.X2), Math.Max(edge.Z1, edge.Z2)));
         return segments;
-    }
-
-    // A wall footprint: two blocks thick across the shared seam, the full interface width along it.
-    private static (int MinX, int MinZ, int MaxX, int MaxZ) WallFootprint(DerivedPiece a, DerivedPiece b)
-    {
-        var (x1, z1, x2, z2) = ContactGraph.BorderSegment(a.Rect, b.Rect);
-        if (x1 == x2)   // vertical seam
-            return (x1 - 1, Math.Min(z1, z2), x1 + 1, Math.Max(z1, z2));
-        return (Math.Min(x1, x2), z1 - 1, Math.Max(x1, x2), z1 + 1);   // horizontal seam
     }
 
     // Fan a set of cell rects to every orbit image, de-duplicating exact repeats (self-symmetric rects).

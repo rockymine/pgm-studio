@@ -150,7 +150,9 @@ public static class TraversabilityRender
     /// <summary>The void columns this map's own apply rules make bridgeable at kickoff — the buildable
     /// region read straight off the "not void" wiring PGM enforces, the same one <c>BuildGenerator</c>
     /// writes and any hand-authored map reaches for to the same end, since PGM offers no other way to open a
-    /// void gap to building. A water lane carries no apply rule of its own over its footprint (it opens by a
+    /// void gap to building. The rule is read on the scopes a bridge is placed under — <c>block</c> and
+    /// <c>block-place</c> — since the template states place and break apart and only placing opens a gap.
+    /// A water lane carries no apply rule of its own over its footprint (it opens by a
     /// timed fill firing later in the match, not by this wiring — <c>docs/pgm/water-lanes.md</c> §1,
     /// §4), so it is not found here and reads as void until the render that watches it actually opens.
     /// <para>Reduces only the box shapes <see cref="RegionBoxes.FootprintXZ"/> can state — rectangles,
@@ -163,7 +165,9 @@ public static class TraversabilityRender
         var columns = new HashSet<(int X, int Z)>();
         foreach (var rule in map.ApplyRules)
         {
-            if (rule.RegionId.Length == 0 || !GatesOnVoid(rule.BlockFilter, map.Filters, [])) continue;
+            if (rule.RegionId.Length == 0) continue;
+            if (!GatesOnVoid(rule.BlockFilter, map.Filters, []) && !GatesOnVoid(rule.BlockPlaceFilter, map.Filters, []))
+                continue;
             foreach (var box in RegionBoxes.FootprintXZ(map.Regions, rule.RegionId))
                 for (var x = box.MinX; x <= box.MaxX; x++)
                     for (var z = box.MinZ; z <= box.MaxZ; z++)

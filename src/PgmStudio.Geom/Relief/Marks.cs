@@ -227,10 +227,11 @@ public sealed record AreaMark(double[][] Ring, double[] Heights, double Bevel = 
         // The triangulation is of the ring and not of the cell, so it is built once rather than per cell.
         var tris = Tilted ? Triangulation.EarClip(Ring) : null;
         var closed = Closed;
+        var covered = footprint.Covered(Ring);
 
         foreach (var (x, z) in footprint.Land())
         {
-            if (!Polygon.PointInRing(x + 0.5, z + 0.5, Ring)) continue;
+            if (!covered[footprint.Index(x, z)]) continue;
             var height = tris is null ? Heights[0]
                        : Triangulation.Interpolate(Ring, Heights, tris, x + 0.5, z + 0.5);
             var weight = 1.0;
@@ -328,8 +329,10 @@ public sealed record ScarpMark(double[][] Points, double High, double Low,
 /// <para><b>Amounts</b> — A lift per ring vertex instead of one for the whole outline, interpolated around the
 /// ring and wrapped so a closed loop has no seam. This is what makes a drawn ridge a ridge rather than a plateau
 /// with a shaped edge. Null uses <paramref name="Amount"/> the whole way round.</para>
-/// <para><b>Crown</b> — How much higher the middle of the push stands than its edge. Zero is a flat top; positive
-/// domes it; negative dishes it into a hollow whose rim is the drawn outline. <para>What "the middle" means is
+/// <para><b>Crown</b> — How much higher the middle of the push stands than its edge, in world height: it is added
+/// to the amount whatever the amount's sign. Zero is a flat top or a flat floor; positive domes a raise and
+/// fills a dig back in toward its spine; negative dishes a raise into a hollow whose rim is the drawn outline and
+/// deepens a dig's floor. <para>What "the middle" means is
 /// not authored, because the shape already knows: it is the deepest point of the outline measured inward, which
 /// is the medial axis. For a round push that is a <b>point</b> and the result is a dome; for a long one it is a
 /// <b>line</b> and the result is a ridge whose crest follows the shape's own spine.</para></para>

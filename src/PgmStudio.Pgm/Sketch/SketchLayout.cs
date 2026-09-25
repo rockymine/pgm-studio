@@ -203,6 +203,24 @@ public sealed class SketchLayout
             .ToList();
     }
 
+    /// <summary>The stored shapes a rebuild from <paramref name="compiledJson"/> does not keep, by id: a shape
+    /// whose id the compile does not produce and that carries no <see cref="SketchShape.IntentRef"/> — which is
+    /// a shape drawn in the sketch rather than one the plan or the intent accounts for (<see
+    /// cref="SketchRules.ShapeDropped"/>). Geometry is the plan's, so nothing carries one across.</summary>
+    public static IReadOnlyList<string> DroppedShapes(string compiledJson, string? storedJson)
+    {
+        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
+        if (stored is null) return [];
+        var compiled = new HashSet<string>(
+            Stack(Parse(compiledJson)).SelectMany(layer => layer.Shapes).Select(shape => shape.Id),
+            StringComparer.Ordinal);
+        return Stack(stored).SelectMany(layer => layer.Shapes)
+            .Where(shape => shape.IntentRef is not { Length: > 0 } && !compiled.Contains(shape.Id))
+            .Select(shape => shape.Id)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+    }
+
     /// <summary>A freshly compiled layout with every author-stated structural height carried onto it —
     /// the shape-level counterpart to <see cref="CarryRelief"/>. A plan recompile writes a fresh Floor/
     /// BaseHeight for every Role-tagged shape it holds a group's relief against, because that is the only

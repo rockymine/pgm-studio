@@ -48,6 +48,24 @@ public sealed class ShapeMirrorTests
     }
 
     [Test]
+    [Arguments(ShapeFamily.L)]
+    [Arguments(ShapeFamily.Z)]
+    [Arguments(ShapeFamily.Donut)]
+    public async Task A_flip_mirrors_the_entry_along_the_mouth(ShapeFamily family)
+    {
+        // a single-entry family docked on a box's top: flipped, its entry lands at the mirror position along
+        // that edge, so an overhanging dock can hang the body either way
+        const int cw = 3;
+        var (along, depth) = WoolBoxEmitter.MouthBox(family, cw);
+        var box = new PgmStudio.Pgm.Compose.Box("probe", BoxKind.Wool, new CellRect(0, 0, along + 2, depth + 2), 0);
+        var plain = BoxFiller.EntryOn(box, BoxEdge.Top, cw, family);
+        var flipped = BoxFiller.EntryOn(box, BoxEdge.Top, cw, family, flip: true);
+        await Assert.That(plain).IsNotNull();
+        await Assert.That(flipped!.Value.Start).IsEqualTo(along + 2 - plain!.Value.Start - plain.Value.Len);
+        await Assert.That(flipped.Value.Start).IsNotEqualTo(plain.Value.Start);
+    }
+
+    [Test]
     [Arguments(ShapeFamily.I)]
     [Arguments(ShapeFamily.L)]
     [Arguments(ShapeFamily.Z)]

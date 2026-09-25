@@ -75,7 +75,7 @@ thirty blocks over a field is that field's answer, so a tree stated on it would 
 every column under it would read as built and take nothing at all. The ground beneath a floating thing is
 exactly the ground an author decorates, so the surface the pass reads leaves the prop layers out. The same
 elevation goes to `DressingScope.KeptClearAt` and to `MapExportComposer.CheckStructureSites` (`WX11`), which
-would otherwise report a shed under a balloon as standing on a fifty-block plinth. The same fact is recorded
+would otherwise report a wool room under a balloon as standing on a fifty-block plinth. The same fact is recorded
 for the renders as `ProvenancePass.Made`, claimed after this pass rather than before it — what runs between
 works on the terrain round a made thing, and a harbour that fills round a hull claims every column it filled,
 which is true of the water and false of the ship.
@@ -497,6 +497,34 @@ data bits. `TreeTemplate.Build` answers the vanilla tree's wood and leaves from 
 radius per course from `CanopyProfiles` (profile-as-data, the same seam `BoulderShapes` uses for a rock's
 form). A copy is read straight off its own body.
 
+**The ground a standing tree holds is the disc its crown covers.** A crown is leaves with gaps in it, so a
+claim made cell by cell leaves those gaps free, a second trunk seats between them, and the two crowns grow
+through each other — each clipping whatever the other wrote there first, which reads as one mass of foliage
+rather than as two trees.
+
+The radius is `Decorator.CanopyRadius`, this tree's own farthest leaf under the same deterministic build the
+stamp writes with, so a copied body is measured rather than guessed at from its species. The disc is claimed
+on every image of the orbit and joins the placement's own cells, which is what keeps the pass and the seat
+raster answering the same ground; two trees therefore stand at least their two crowns apart, and `DR-CLAIM`
+is what says so when they do not.
+
+**A tree stands in soil, and grass and the three dirts are what that means.** A tree is a thing that grew
+where it is, so the block under its trunk is the one that says so; on stone, gravel, clay or a path's paving a
+trunk reads as a model set down rather than as a wood, and no canopy over it repairs that. `DR-ROOT` complains
+where the surface block under a placement is not one `DressingPalette.RootsInto` admits, asked of a tree that
+**landed** — one the pass turned away is standing nowhere and has nothing to be rooted in — and at the
+placement rather than at every image of its orbit.
+
+That is stricter than the flora overlay's own `SoilShare`, which takes sand at a third and gravel a little
+under it, and the difference is deliberate: a tuft of grass in a shingle is ordinary and a trunk out of one is
+not. Two questions with two answers — what will *grow* on a surface, and what a tree may be *rooted* in (the
+author's ruling).
+
+The fix for it is usually the **paint** rather than the position. A theme whose surface is rock all the way up
+gives the pass nowhere to put a tree, so a board that wants a wood states a soil band under it and
+`POST …/sketch/seats?kind=tree` then answers where that ground is — the raster refuses every cell without it
+under this same id, so a position taken off the mask cannot raise the complaint.
+
 **A copied body's own block states are `DR-FACE`.** A copy is written block for block with the data it was
 cut with — that is what makes it a copy rather than a recipe — so a block whose data *is* a direction has to
 point at something the body actually holds. A vine states every side it clings to at once, so a side naming
@@ -509,15 +537,16 @@ own. It does: `BlockGeometry.Turned` maps each set bit through the image's trans
 a single face survives a mirror or a quarter-turn without a second bit to protect it. The rule is asked once
 per body, since a board draws the same tree thirty times and the fault is in the recipe.
 
-**`copied` is doing three jobs, and only one of them is its own (`TL15`).** A `template` tree is built from
-two blocks — the species' log and its leaf — so anything else a real tree has
-(a vine on the crown, a bush at the foot) and anything that is not a tree at all has nowhere to go but a
-copied body, which is the one recipe carrying an arbitrary `[x, y, z, id, data]`. Measured over the 81 copied
-bodies in `pgm-studio-mapgen/specs`: 44 are genuinely cut from a world, logs and leaves only; 37 are
-hand-written, and 27 of those carry a block the generative forms cannot emit. A body is therefore what an
-author reaches for whenever a prop needs a third block, and that is the shape rather than a gap in it: a
-vine on a crown is something the tree generator could state, and everything else a board files this way is a
-small built thing an author drew because they wanted exactly it.
+**`copied` means cut out of a world, and the library files nothing else under it.** A `template` tree is
+built from two blocks — the species' log and its leaf — so anything else a real tree has (a vine on the crown,
+a bush at the foot) and anything that is not a tree at all has nowhere to go but a copied body, which is the
+one recipe carrying an arbitrary `[x, y, z, id, data]`. Measured over the 81 copied bodies in
+`pgm-studio-mapgen/specs`: 44 are genuinely cut from a world, logs and leaves only; 37 are hand-written, and 27
+of those carry a block the generative forms cannot emit. Hand-built props are not wanted (the author's ruling),
+so the tree library records each copied row's cut — the world, the foot there, the time — and refuses a
+`copied` save without one (`DR-COPY`, `docs/tools/library.md`); no second form word takes the hand-written
+bodies. A map's own dressing registry holds its copy of a recipe and carries no cut, so a body written straight
+into a document's `styles` is not asked this question.
 
 **The second tree is copied, and it decides nothing about its own shape.** A `TreeForm.Copied` recipe carries
 a `body` — every block of a tree an author built, as `[x, y, z, id, data]` offsets from its foot, the lowest
@@ -769,6 +798,17 @@ crevasse — declined by nothing, because every cell had ground under it. The fi
 same one an objective's ground gets: an `area` relief mark under the footprint, which states the plateau
 rather than hoping for one.
 
+**And what the seat digs out is reported (`DR-DIG`).** Nothing bounds the carve: the floor is taken off the
+lowest column alone, so a footprint whose lowest cell sits in a pit takes that pit's whole depth out of every
+other column, and the building stands in the hole it dug. `DR-SLOPE` reads the same rise against the
+building's height, so a shell tall enough to afford it digs in silence without a second reading. `Excavate`
+counts what it removes as it removes it, and a building whose deepest carve at any one column is more than
+**three blocks** (`DressingRules.SettleDepth`) raises a complaint naming the floor's course, the deepest
+carve and its column, the columns carved and the blocks of ground removed — once for the orbit, at the image
+that dug deepest. Up to three blocks is a house settling into a slope and is silent; past three the house is
+probably submerged (author). It does not refuse: the building is in the world and the complaint is the
+number to move it on.
+
 **It must leave a way past itself (`DR-PASS`).** Beside a building there must be **eight blocks** of passable
 ground along the whole run of **every** one of its four sides. The eight are counted from **what the building
 stamps, not from its walls**: a roof oversails its wall by at least one block whatever the style says
@@ -930,12 +970,19 @@ off the raster's own `structure` cells — one building to a run of them, since 
 directions take, which is what keeps the mask and the pass from disagreeing about a cell; a test asks every
 anchor of a board both ways and requires the same answer.
 
-What is left to the pass is the three that read the built world rather than the ground under the footprint:
-`DR-CROSS`, `DR-WAY` and `DR-SLOPE`.
+**A building's site is asked to be level by the pass's own arithmetic.** `DR-SLOPE` is the rise across the
+footprint against the style's wall courses plus its roof's rise, and `SiteLevel` holds both halves, so the
+mask and the pass read one number: the style is the house recipe `?style=` names in the posted layout's
+`dressing.styles`, or the default building, and the limit it was asked against comes back as `slopeLimit`.
+
+What is left to the pass is the two that walk the board's routes and waypoints with the footprint taken out —
+`DR-CROSS` and `DR-WAY` — and the answer names them under `unasked` (and a `NOT ASKED` line in the text
+answer), so a seat marked `1` is never read as a promise the pass cannot break. `DR-DIG`, which reports the carve the stamp itself
+makes, is the pass's too.
 
 Each one is a **`decline`**, the severity between a refusal and a complaint: the world was built, so nothing
-stopped, and this prop is not in it, so there is nothing for the author to ignore — except `DR-PASS`, which is
-a complaint, the building standing where it was put. That is what a caller reads off a 2xx to answer *did what
+stopped, and this prop is not in it, so there is nothing for the author to ignore — except `DR-PASS` and
+`DR-DIG`, which are complaints, the building standing where it was put. That is what a caller reads off a 2xx to answer *did what
 I posted survive*.
 
 The declines travel three ways. Back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under

@@ -69,7 +69,7 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
             return;
         }
 
-        var profile = EvaluationProfile.Default;
+        var profile = EvaluationProfile.Composer;
         var structural = woolReq.Count > 0 || hubReq.Count > 0 || frontReq.Count > 0;
         var cards = new List<ComposeCard>();
         // the structural census over every board composed here, tallied before the sieve — a filter must not

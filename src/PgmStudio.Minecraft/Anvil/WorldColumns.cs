@@ -85,6 +85,48 @@ public static class WorldColumns
         return (surface, y0);
     }
 
+    /// <summary>Every solid run of a built world as a walk takes it, as <c>(x, z, bottom, top)</c> inclusive,
+    /// split in two: the <c>Ground</c> a player may stand on, and the <c>Props</c> — the blocks a tree or a
+    /// boulder stamped (<see cref="WorldProvenance.PropVolumeAt"/>), which are solid and never stood on. In a
+    /// column a prop claimed, a block inside a span the rasterizer laid (<paramref name="terrain"/>) is the
+    /// ground it stands in and every other block is the prop's, so a crown hanging past a board's rim is the
+    /// prop's all the way down.</summary>
+    public static (List<(int X, int Z, int YFloor, int YTop)> Ground, List<(int X, int Z, int YFloor, int YTop)> Props)
+        ForWalk(VoxelWorld world, WorldProvenance provenance, IReadOnlyList<ColumnSegment> terrain)
+    {
+        var laid = terrain.GroupBy(segment => segment.Cell)
+            .ToDictionary(group => group.Key, group => group.Select(segment => (segment.YFloor, segment.YTop)).ToList());
+        var ground = new List<(int X, int Z, int YFloor, int YTop)>();
+        var props = new List<(int X, int Z, int YFloor, int YTop)>();
+        foreach (var (x, z, runs) in Of(world))
+        {
+            if (!provenance.PropVolumeAt(x, z))
+            {
+                foreach (var run in runs) ground.Add((x, z, run.YBottom, run.YTop));
+                continue;
+            }
+            var spans = laid.GetValueOrDefault((x, z)) ?? [];
+            foreach (var run in runs)
+            {
+                // Walk the run bottom up, cutting it wherever it passes between the terrain and the prop.
+                var start = run.YBottom;
+                var inTerrain = Laid(spans, start);
+                for (var y = run.YBottom + 1; y <= run.YTop + 1; y++)
+                {
+                    var here = y <= run.YTop && Laid(spans, y);
+                    if (y <= run.YTop && here == inTerrain) continue;
+                    (inTerrain ? ground : props).Add((x, z, start, y - 1));
+                    (start, inTerrain) = (y, here);
+                }
+            }
+        }
+        return (ground, props);
+
+        // The bedrock course a grounded column rests on is terrain as much as the stone over it.
+        static bool Laid(List<(int YFloor, int YTop)> spans, int y) =>
+            (y == 0 && spans.Count > 0) || spans.Any(span => span.YFloor <= y && y < span.YTop);
+    }
+
     /// <summary>One column's runs, walked from the top of the world down so the list comes back top first.
     /// A run is carried while the block below matches it and closed by air, by a different block, by a
     /// section that was never allocated, or by the bottom of the read.</summary>

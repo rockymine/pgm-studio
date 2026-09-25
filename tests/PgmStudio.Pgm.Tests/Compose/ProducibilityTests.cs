@@ -80,21 +80,33 @@ public sealed class ProducibilityTests
         await Assert.That(narrow.Message).Contains("1 cell");
     }
 
-    /// <summary>The unequal-wall ring: the hole-hub exemplar's hub has one wall 2 cells and the other 3. The
-    /// search reproduces it and <b>names the wall vector</b> that did — the widened ring is inside the parameter
-    /// space, not near it, and the label says which side is wide.</summary>
+    /// <summary>The unequal-wall ring: one wall a cell wider than the other three. The search reproduces it and
+    /// <b>names the wall vector</b> that did — the widened ring is inside the parameter space, not near it, and the
+    /// label says which side is wide.</summary>
     [Test]
     public async Task An_unequal_walled_ring_reproduces_and_names_its_walls()
     {
-        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
-        var hub = Producibility.Read(plan).First(r => r.Kind == PlanBoxKinds.Hub);
+        var hub = Producibility.Read(HubPlan(BodyEmitter.Ring(new RingWalls(2, 3, 2, 2), 10, 7))).First();
 
-        await Assert.That(hub.Identity).Contains("Ring").Because("topologically it is a ring");
         await Assert.That(hub.IsProducible).IsTrue().Because("a ring may carry one wall wider than the rest");
         await Assert.That(hub.Producible!.Label).Contains("Ring");
         await Assert.That(hub.Producible.Label).Contains("walls 2/3/2/2")
             .Because("the tuple that reproduced it names which side is wide, not just that one is");
         await Assert.That(hub.Nearest).IsNull().Because("a reproduced box needs no nearest miss");
+    }
+
+    /// <summary>The hole-hub exemplar's ring leaves a hole 10 blocks across, under the 12 a composed hole keeps:
+    /// still a ring to the eye, and not one the composer draws.</summary>
+    [Test]
+    public async Task A_ring_whose_hole_a_player_jumps_does_not_reproduce()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
+        var hub = Producibility.Read(plan).First(r => r.Kind == PlanBoxKinds.Hub);
+
+        await Assert.That(hub.Identity).Contains("Ring").Because("topologically it is a ring");
+        await Assert.That(hub.IsProducible).IsFalse().Because("its 10-block hole is under the composed floor");
+        await Assert.That(hub.Nearest!.Label).Contains("Ring")
+            .Because("the nearest miss is still a ring — the shape is right, the hole is not");
     }
 
     /// <summary>The widening is bounded, and the bound is the sampler's: a ring whose wide wall is more than

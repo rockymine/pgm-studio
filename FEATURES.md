@@ -3269,6 +3269,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the 74 of `pgm-studio-mapgen/corpus/tree-showcase` — under `<world>-r<row>-<n>`, dropping bodies that hang
   in the air as fragments. `docs/world-export/decoration.md` §6, `docs/tools/library.md`.
 
+- **An unreadable document field is refused, not emptied (`RP72`)** — `Api/Services/DocumentBinding`. An
+  intent, plan or layout whose field the binder cannot read is refused `RQ1` at 400 naming its path
+  (`intent.modes[0]`) on every intent write and on `POST /map/from-documents`, instead of storing a default
+  intent with no teams, spawns or objectives that preflight then passes. (`RP72`)
+
+- **A plan's authors reach the intent (`TN21`)** — `PlanMeta.Authors`/`Contributors`, carried by
+  `PlanCompiler` and kept by `plan-doc.js`, so a plan-first board no longer exports with `EX6`. (`TN21`)
+
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)
@@ -4561,28 +4569,6 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cannot hold gapped — restoring it is the hub-growth work, G105). Closes §9 F1 (spawn/wool) + WL2; the frontline
   keeps no neighbour gap (build-zone's rule). Pgm suite 690/690. (G110 · taxonomy §9 F1, §10.4)
 
-- **No-frontline front guard — no neighbour flush with the hub front face** — `Compose/FrontGuard.cs` (the
-  deterministic post-pass: buffer/`Backness`, the slide, `Resolve`) + `Compose/TeamUnitAllocator.cs` (applies it
-  while seating): on a
-  frontline-less unit a spawn/wool ending flush with (or past) the hub's front face extends it into **one long flat
-  frontier** — hub front + neighbour front reading as a single straight edge (the reported defect: flat front runs
-  up to 20 cells) — which map design forbids. The guard now covers every dock, as **law**: an overhang wool
-  (L / donut) keeps only placements **buffered ≥ 1 cell behind** the face (`Backness`; none ⇒ the compact I); a
-  full-mouth lateral seat landing flush **slides back** to the nearest clear position (deterministic — no draw, so
-  an already-off-front seat and every untouched unit re-seat bit-identically). Seats no slide can save go through a
-  small **resolution search** (all processing orders × spawn back-edge slide variants): retry the slide with all
-  neighbours known, **relocate** to the mirror lateral / back edge (backmost lawful seat), retry both at the reduced
-  **wool-lane gap** (2 cells, 10 blocks — the narrower boards' own gap, still no-touch) as the last tier, then
-  **drop** the wool while another remains; a residue on a non-rectangle form directed-nulls into the rectangle
-  fallback. With a frontline the guard does not apply (the front is occupied and juts forward — no continuous line
-  can form). Flush spawn/wools on no-frontline units: **0 across 4 presets × 64 seeds**, and over the wider
-  4 × 600-seed sweep **7 of ~2400 units** keep one — every case a *saturated solid rectangle*, which is the
-  guard's own documented exemption (the rectangle is the last fallback and has nowhere further to fall back to,
-  so only it may keep a residue). The gate
-  (`No_frontline_units_keep_every_neighbour_off_the_hub_front_face`) asserts that law rather than a blanket zero,
-  over a sweep wide enough to reach the exempt case. Worst flat front run collapses 20 → 11 cells
-  (= the hub's own width); with-frontline units bit-identical; pinch 0. Pgm suite 693/693. (front-guard · G114 filed)
-
 - **Elongated hubs + the wide holed forms P, Double-hole, and G** — `Compose/HubBoxEmitter.cs` +
   `TeamUnitAllocator.cs` + `Shapes/BodyEmitter.cs`/`ShapeClassifier.cs`: the hub grows **wider, not squarer**. Its
   lateral span reads a larger cap (`HubWideCap` 5/7/9/11 by land) than its depth (`HubCapCells` 3/4/5/6), so the
@@ -5389,7 +5375,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   reads as the `G` it topologically is); terrain and room compare separately. **Unit-level** findings cover the
   arrangement — the parallel-fronts guard (via `Composer.FrontFacesSymmetric`, generalized so the gate and the
   read share one implementation), the frontline's pinned face demand, and seat separation (via
-  `TeamUnitAllocator.TooClose`, at the 2-cell floor `FrontGuard` can fall back to) — reported **alongside** the
+  `TeamUnitAllocator.TooClose`, at the 2-cell producible lane floor) — reported **alongside** the
   per-box reads, never instead of them. Findings **cite the task that would unblock them**: a nearest miss of the
   same form the box reads as means only its proportions are unreachable, so it names G105 (body widths / the
   asymmetric ring) or G82 (approach entry widening), with G129 for the generalization; a different form cites
@@ -5613,6 +5599,56 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   holds through the change. On the hole-hub exemplar both of its G123 blockers clear, leaving only its unrelated
   scale anomalies. (G123)
 
+- **A thin, long crossing scores badly (`G284`)** — `Evaluate/Terms/BuildZoneTerms.cs` (`ThinMiddle`),
+  `rules.md` `MD7`. A composed board's build band narrower than 24 · 32 · 40 · 48 blocks from nano to centi, or
+  longer than twice its width, adds each shortfall over half its band to the board's score. On the judged
+  donut boards it scores the two the author called thin at 4.2 and 2.1 and the one called good at 0; over 100
+  boards a size it fires on 13–25%. `rules.md` amendment 52. (`G284`)
+
+- **A donut is walled across each leg, and its unit's spawn stands at the donut's end of the back (`G277`)** —
+  `Compose/WallPlacer.cs` (pair seating round an enclosed hole), `Compose/UnitRequests.cs` (`BackOfDonut`,
+  `NeighbourRequest.Toward`), `Compose/UnitSeating.cs`, `Shapes/ShapeEmitter.cs` (a flip mirrors along the
+  mouth). The author's judgement of the walled boards: a donut is two ways in, so it takes one wall across each
+  leg as near the entry bar as a seam qualifies, and a donut makes the unit lopsided, so the spawn moves to the
+  back edge's end nearer it. A donut's hole runs four cells along the hub edge so each leg seats its wall. On
+  800 boards every holed approach carries two walls; donut boards at 20 and 30 players go from 18 and 23 to 15
+  and 15. `ComposerVersion` `walled-3`; `rules.md` amendment 51. (`G277`)
+
+- **A side spawn stands in line with the hub's hole; a donut's hole is a hole (`G276`)** —
+  `Compose/UnitSeating.cs` (`InLine`, the hub body's enclosed cells), `Compose/UnitRequests.cs`. The author's
+  second judged sweep: a spawn behind the hub's hole stood nearer the back wool, so a lateral spawn's centre now
+  stands within a cell of the hole's centre, or of the edge's middle on a solid hub. A composed donut's own hole
+  was drawn from one cell along the hub edge; both extents now start at `WL12`'s 12-block floor for a hole, which
+  clears the 27 donut findings of 400 boards. At 20 players the ninetieth-percentile score falls from 3.85 to
+  2.62. `ComposerVersion` `walled-2`; `rules.md` amendment 50. (`G276`)
+
+- **`WL12` splits a goal's floor by what lies across the gap (`G264`)** — `Plan/PlanValidator.cs`
+  (`MinGoalHomeSpaceBlocks`). A crossing from a wool room or spawn to the team's own ground away from the front
+  wants 12 blocks, one to a piece fronting the crossing's build band or to another goal still 16. The author's
+  ruling: 12 from a room to its own hub is on the low end and not a fault. Composed boards' `WL12` findings
+  fall from 295 to 31 over 400 seeds. `rules.md` amendment 49. (`G264`)
+
+- **Composed boards held to the author's judgement of them (`G275`)** — `Compose/TeamUnitAllocator.cs`,
+  `Compose/UnitSeating.cs`, `Compose/TeamUnitFiller.cs` (`TowardHub`), `Compose/UnitTuning.cs`
+  (`HubHoleCells`), `Compose/WallPlacer.cs`, `Evaluate/Terms/FrontFloorTerms.cs`, `Evaluate/EvaluationProfile.cs`
+  (`Composer`). Fifteen composed boards judged by the author against a 600-board sweep: every board called fine
+  had a frontline, a spawn 58+ blocks by the walk from the build band and wools 59+; every one flagged sat under
+  those. So every unit carries a frontline (the no-frontline draw and the `FrontGuard` post-pass it needed are
+  gone); a lateral spawn seats level with the hub's middle or behind it and faces into the hub; a composed hub
+  hole keeps `WL12`'s 12-block floor; the composer gate adds `SP10` (spawn ≥55 to the band) and a `WL10` floor
+  (every wool ≥59), both off in the default profile the editor lint runs; and every wool approach gets one
+  defence wall — on a seam nothing runs past, across the attack's route, `ST8`'s standoff from the room — a
+  straight lane being cut in two to make it and built at least four cells long to hold it. Over 200 seeds each
+  at 8 and 20 players: 0 composes fail, 626 of 627 wools walled, no `PL11`/`PL13`/`PL17`/`ST8` on any wall.
+  Medium boards score worse on `spawn-wool-ratio` with the spawn seated back. `ComposerVersion` `walled-1`;
+  `rules.md` amendments 45–48. (`G275`)
+
+- **`PL17` reads the land past a wall's ends, not just the two pieces it names (`TN22`)** —
+  `Plan/PlanValidator.cs` (`FlankOf`). A wall where an arm meets a hub side of its own width passed while the
+  hub's pieces ran on past both ends; the lint now asks whether any piece holds land one block beyond either
+  end on either face, and names it. The T-junction walls of the first Millbank plan now draw two `PL17`s; every
+  composed wall and every finished collaboration board draws none. `rules.md` amendment 48. (`TN22`)
+
 - **The hub's body is chosen before its neighbours are sized (`G274`)** — `Compose/TeamUnitAllocator.cs` +
   `Compose/UnitSeating.cs` (`Emit`, `FrontRuns`) + `Compose/UnitRequests.cs` (`SealWidth`). A neighbour docks
   onto the **runs** a hub offers and every request was sized against the hub's *bounding box* — two different
@@ -5642,6 +5678,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   composer's own corridor width (every wall and lane 2 cells, not 1) so it isolates the shifted frontline from
   that trace's half scale; it reads **producible end to end**, every box and no unit finding, and is the green
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
+
+- **A refused split band carries a mid stone (`G271`)** — `Compose/MidCarver.cs`. `TryCarve` records whether
+  the split it asked for was granted; a realised split still leaves the bay between its legs bare, and a
+  refused one lays the single rank astride the axis at `RefusedSplitDeepCells`, the depth the stoneless gap
+  leaves a hop either side of. `rules.md` amendment 53; `ComposerVersion` `walled-4`. (`G271`)
+
+- **Turning a spawn carries the cube it seeded (`TN14`)** — `plan-bridge.js` `cycleFacing`, `plan-doc.js`
+  `reseatSeededIron`. A re-click or Cycle facing re-asks `POST /api/plan/room` and moves an iron cube still
+  standing where the old facing seeded it; a cube the author slid is left alone. `docs/tools/plan.md`. (`TN14`)
+
+- **A wool room may not share an edge with its own spawn (`G263`)** — hard evaluator term
+  `wool-room-spawn-seam` in `Evaluate/Terms/SpawnTerms.cs`, `WL2`'s lane clause, `rules.md` amendment 54.
+  The composer never emits the shape, so no composed board moves. (`G263`)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **A narrow seam is the way into a room, so it carries a door and an entrance line (`WE128`).**
@@ -7878,6 +7927,68 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   downloads it (`studio.downloadUrl`), and the wizard's manual Monuments sub-step is dropped for sketch maps
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
+- **A room and its `rot_180` image stand on the same columns (`WE124`)** — `Domain/RoomEdges.cs`
+  (`AlongRunsRight`, `Handed`), `Houses/HouseStamper.cs`, `HouseWindows.cs`, `RoomFrames.MonumentSlots`. Every
+  choice a wall cannot centre — a window row's spare block, a narrowed door, the ladder end, porch posts, the
+  monument order — is taken from a hand, and a frame's doors outrank a style's compass `Front`.
+  `docs/world-export/structures.md` §1. (`WE124`)
+
+- **A house reports a deep dig (`WE129`)** — `Dressing/Decorator.cs`, `DressingRules.SiteDug`. A house whose
+  seat digs more than three blocks out of any one column raises `DR-DIG`, a complaint carrying the floor's
+  course, the deepest carve and its column, the columns carved and the blocks removed; up to three is a house
+  settling into a slope and is silent (`DressingRules.SettleDepth`, the author's number). (`WE129`)
+
+- **`WX11` reads a foundation's floor through the stamp's own level (`WE77`)** —
+  `StructureStamper.FoundationLevel`, shared by `MapExportComposer.CheckStructureSites` and the stamp; the
+  docs say the rule measures wool and spawn rooms, not placed buildings. (`WE77`)
+
+- **The reach read opens a build area stated as the template writes it (`WS68`)** —
+  `Render/TraversabilityRender.BridgeableColumns` reads `block-place=not(void)` over `not-build-area`, so a
+  built board no longer reads `bridgeable 0`. (`WS68`)
+
+- **A stated wall is the wall, not the walk's worst step (`WS69`)** — `WalkProfile` takes the world's
+  provenance; a step onto or off a plan's `wall` claim is worded `wall` and kept out of `worstStep`. (`WS69`)
+
+- **`walk?beside=` names every kind a player meets (`WS70`)** — `WalkProfile.StandingKinds` holds every
+  stamped kind but `flora` and `stroke`, `wall` first, and `StampId`'s docstring lists what is actually
+  stamped. (`WS70`)
+
+- **A style stating an always-present part as `null` is refused by its path (`WE131`)** —
+  `HouseStyleJson.StatedNull`, read by `DressingJson.ParseStyles` and `SketchMaterialGate`. Beams, roof,
+  windows, doorway and the rest: `DR-DOC` in a dressing recipe, `RQ1` on a bound room style, naming
+  `{"block": -1}` as how beams say none, instead of a 500. `docs/world-export/structures.md` §7. (`WE131`)
+
+- **`sketch/seats` asks a building's site to be level (`WE130`)** — `Dressing/SiteLevel`, shared by the
+  dressing pass and `ClaimRaster.Seat`. `DR-SLOPE` by the pass's own arithmetic against `?style=`, answered as
+  `slopeLimit`; the declines the query does not run, `DR-CROSS` and `DR-WAY`, are named under `unasked`.
+  `docs/tools/sketch.md`. (`WE130`)
+
+- **A rebuild names the shapes it drops (`B54`)** — `SketchLayout.DroppedShapes`, `SketchFromPlanDto.Dropped`,
+  complaint `SK29`. `PUT …/sketch/from-plan` lists every stored shape the compile does not produce and no
+  `intentRef` accounts for; the plan tool's confirmation states what is kept and offers `?force=true` on a
+  relief conflict, and lists what was dropped afterwards. (`B54`)
+
+- **`DC3` says an unknown destroyable material is resolved (`PG17`)** — `ObjectiveRules.StyleMaterial`: both
+  the blocks and the `map.xml` say obsidian, so no goal is written at zero health this way. (`PG17`)
+
+- **A push's crown is world height (`RP73`)** — `PushMark`'s docstring and `relief.md` say a positive crown
+  fills a dig back in; the editor seeds and reads the record's crown of 0. (`RP73`)
+
+- **A copied tree records its cut, and the library refuses one without (`TL15`)** — migration `M0039`,
+  `TreeCut` on the tree-style DTOs, `PropStyleLibrary.Check`. A `copied` save carries the world, the foot's
+  coordinates and the time it was cut, written by `tools/seed-trees.cs`; one without is refused `DR-COPY`.
+  Hand-built bodies have no form word: the author's ruling is that they are not wanted. (`TL15`)
+
+- **A room and its mirror image are exact images (`WE133`)** — `Symmetry.Reflects`, `reflected` on each
+  spawn and wool image (`PlanCompiler`, `SymmetryExpander`), `RoomFrame.Reflected`. A reflected frame lays its
+  window spare block, narrowed door, ladder, porch posts and monument order out from the other hand, so
+  `mirror_x` and `mirror_z` boards stamp exact images as `rot_180` does. `docs/world-export/structures.md`. (`WE133`)
+
+- **A prop's volume is out of the walk (`WS71`)** — `Walk.Standing`, `WorldColumns.ForWalk`,
+  `WorldProvenance.PropVolumeAt`. A tree's or boulder's blocks are solid, so a trunk is not walked through and
+  a crown roofs the ground under it, but never a place to stand: a crown over the void is void to `walk` as to
+  `column`, `transect` and the census. The author's ruling. (`WS71`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
@@ -9158,6 +9269,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   statue and a blue one compiled alike stood in two places and both painted blue.
 - **`SK19` reads a placement's kind before its key (`TS78`).** Only a tree, a boulder and a building name a
   recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
+
+- **A prop's storey is picked in the inspector, and another storey's props draw dimmed (`B263`)** —
+  `SketchDressingInspector`'s Storey row writes `PlacedProp.Layer` from the layer strip's own list;
+  `dressing-render.js` draws a prop on another storey at `OFF_LAYER_ALPHA` and a canvas click picks only the
+  active storey's props (`dressing-doc.js` `onLayer`). The author's ruling: dimmed. (`B263`)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

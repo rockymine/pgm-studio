@@ -294,10 +294,13 @@ public static class HouseWindows
     /// <para><b>hosts</b> — Whether the wall at one cell of a run is a block the window may be cut into, or null
     /// where the style names no host and any cell will do. Passed as a question rather than as the wall itself:
     /// the seater decides <em>where</em> a window goes and has no business knowing what a wall is made of, and
-    /// the caller that does know can answer by resolving it.</para></summary>
+    /// the caller that does know can answer by resolving it.</para>
+    /// <para><b>reflected</b> — Whether the building is a mirror image of the one authored, so each row is laid
+    /// out from the other hand (<see cref="RoomEdges.Handed"/>).</para></summary>
     public static List<WindowSeat> Seats(
         WindowStyle style, IReadOnlyList<WallSegment> walls,
-        int wallExtent, IReadOnlyList<WallOpening>? doors, Func<WallSegment, int, bool>? hosts = null)
+        int wallExtent, IReadOnlyList<WallOpening>? doors, bool reflected,
+        Func<WallSegment, int, bool>? hosts = null)
     {
         var seats = new List<WindowSeat>();
         if (style.Form == WindowForm.None) return seats;
@@ -311,11 +314,15 @@ public static class HouseWindows
             // Two blocks in from each end rather than one: clearing the corner cell still leaves an opening
             // hard against the corner post, and a window meeting the post reads as a hole knocked through the
             // frame. The post wants a block of wall beside it before anything is taken out.
+            // The row is laid out from the left hand and put back on the axis after, so what a run cannot
+            // centre — a spare block, a panel skipped for spacing — falls on the same hand of every image of
+            // the building, a reflected one counting from the other hand.
             var (seatLo, seatHi) = wall.Seat;
+            int Axis(int fromLeft, int span = 1) => wall.Facing.Handed(reflected, seatLo, seatHi, fromLeft, span);
             var placed = style.HostBlock >= 0 && hosts is not null
-                ? Panels(seatLo, seatHi, width, Math.Max(0, style.Spacing), along => hosts(wall, along))
+                ? Panels(seatLo, seatHi, width, Math.Max(0, style.Spacing), along => hosts(wall, Axis(along)))
                 : Spread(seatLo, seatHi, width, Math.Max(0, style.Spacing));
-            foreach (var lo in placed)
+            foreach (var lo in placed.Select(fromLeft => Axis(fromLeft, width)).Order())
                 if (!MeetsDoor(doors, wall, lo, width))
                     seats.Add(new WindowSeat(wall, lo, width, sill, height));
         }

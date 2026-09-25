@@ -44,6 +44,7 @@ public static class SketchMaterialGate
         catch (JsonException) { return Findings.None; }
 
         var findings = new List<Finding>();
+        findings.AddRange(StatedNulls(layoutJson));
         if (styles.Wool is { } wool)
             findings.AddRange(HouseStyleValidation.Check(wool).Under("roomStyles.wool"));
         if (styles.Spawn is { } spawn)
@@ -62,6 +63,25 @@ public static class SketchMaterialGate
         {
             findings.AddRange(TerrainThemeScope.Check(layoutJson));
             findings.AddRange(RockTone.Check(layoutJson));
+        }
+        return findings;
+    }
+
+    /// <summary>A bound room style stating a part as <c>null</c> where the record cannot hold one — refused
+    /// by its path (<c>RQ1</c>), because the export's reader falls back to the built-in shell on a snapshot it
+    /// cannot read and would stamp a building the author did not describe.</summary>
+    private static Findings StatedNulls(string layoutJson)
+    {
+        var bound = SketchLayout.Parse(layoutJson)?.RoomStyles;
+        var findings = new List<Finding>();
+        foreach (var (kind, snapshot) in new[] { ("wool", bound?.Wool), ("spawn", bound?.Spawn) })
+        {
+            if (snapshot is not { ValueKind: JsonValueKind.Object } style) continue;
+            var node = System.Text.Json.Nodes.JsonNode.Parse(style.GetRawText());
+            HouseStyleJson.Upgrade(node);
+            if (HouseStyleJson.StatedNull(node, $"roomStyles.{kind}") is { } stated)
+                findings.Add(new Finding(PgmStudio.Domain.RequestRules.Unreadable,
+                    $"field '{stated.Field}' {stated.Detail}", Field: stated.Field));
         }
         return findings;
     }

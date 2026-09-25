@@ -25,7 +25,7 @@
 
 import { paintDressingPreview, paintMarkerGhost } from "../render/dressing-render.js";
 import { buildingsOverlap, defaultProp, isMarker, isRect, propAnchor, propReach, rectFootprint, rectsJoinUp,
-         translateProp, wingCorners, wingRects, withCorners } from "../dressing/dressing-doc.js";
+         onLayer, translateProp, wingCorners, wingRects, withCorners } from "../dressing/dressing-doc.js";
 import { douglasPeucker, simplifyRing } from "../geometry/simplify.js";
 import { svgEl, handleRectAttrs } from "../render/svg.js";
 import { toScreen } from "../geometry/transform.js";
@@ -201,7 +201,10 @@ export class DressingController {
     if (!this.#selectedId) return null;
     const updated = this.#doc.update(this.#selectedId, patch);
     if (updated) {
-      this.setSettings(updated.kind, patch);
+      // The storey is where this one prop rests, not a starting value: the next prop placed takes the storey
+      // being drawn on.
+      const { layer, ...carried } = patch ?? {};
+      this.setSettings(updated.kind, carried);
       this.refreshHandles();      // a wider path or a re-traced area moves its own grips
       this.#callbacks.onChanged?.();
     }
@@ -455,6 +458,9 @@ export class DressingController {
   #hitTest(bx, bz) {
     let best = null, bestReach = Infinity;
     for (const prop of this.#doc.props) {
+      // A prop on another storey is drawn dimmed as context and is not picked, the way another layer's shapes
+      // ghost — a click over a stacked board reaches the floor being drawn on.
+      if (!onLayer(prop, this.#doc.layer)) continue;
       const [ax, az] = propAnchor(prop);
       const reach = isMarker(prop) ? propReach(prop, this.#doc.styles) + PICK_SLACK : areaReach(prop);
       const distance = Math.hypot(bx - ax, bz - az);

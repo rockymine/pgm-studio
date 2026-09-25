@@ -235,6 +235,23 @@
 
       @* ── seed + delete ───────────────────────────────────────────────────────────────────────── *@
       <div class="section-header section-header--ruled"><h2 class="section-title">This one</h2></div>
+      @* The storey it rests on, offered from the canvas strip's own rows. A storey with no ground under the
+         prop is not filtered out here: the dressing pass is the judge, and declines it DR-LAYER. *@
+      @if (editingSelection && Layers.Count > 1)
+      {
+        <Field Label="Storey"><LabelHint>drawn dimmed while another is active</LabelHint>
+          <ChildContent>
+            <div class="chip-row">
+              @foreach (var layer in Layers)
+              {
+                <Chip Active="@(Text(PropFields.Layer) == layer.Id)" @key="layer.Id"
+                      Title="@($"Rest on '{layer.Name}', based at y {layer.BaseY}")"
+                      OnClick="() => Set(PropFields.Layer, JsonValue.Create(layer.Id))">@layer.Name</Chip>
+              }
+            </div>
+          </ChildContent>
+        </Field>
+      }
       <Field Label="Seed">
         <div class="panel-actions">
           <NumberField Value="Num(PropFields.Seed)" ValueChanged="v => Set(PropFields.Seed, JsonValue.Create((int)v))" Min="0" />

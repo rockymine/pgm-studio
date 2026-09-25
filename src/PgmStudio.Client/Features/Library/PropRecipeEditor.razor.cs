@@ -90,7 +90,7 @@ public partial class PropRecipeEditor
             }
             (editingId, draftName) = (detail.Id, detail.Name);
             tree = new TreeStyleSaveRequest(
-                detail.Name, detail.Form, detail.Species, detail.Height, detail.Body);
+                detail.Name, detail.Form, detail.Species, detail.Height, detail.Body, detail.Cut);
             return;
         }
 

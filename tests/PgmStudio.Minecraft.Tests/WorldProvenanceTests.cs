@@ -118,4 +118,19 @@ public sealed class WorldProvenanceTests
         await Assert.That(provenance.OwnerAt(0, 0)).IsEqualTo(new StampId("house", "d-h1", 0));
         await Assert.That(provenance.OwnerAt(1, 0)).IsEqualTo(new StampId("house", "d-h1", 0));
     }
+
+    [Test]
+    [Arguments(ProvenancePass.Prop, "tree", true)]
+    [Arguments(ProvenancePass.Prop, "boulder", true)]
+    [Arguments(ProvenancePass.Prop, "flora", false)]
+    [Arguments(ProvenancePass.Prop, "water", false)]
+    [Arguments(ProvenancePass.Prop, "stroke", false)]
+    [Arguments(ProvenancePass.Structure, "house", false)]
+    public async Task Only_a_tree_or_a_boulder_stands_as_a_prop_volume(ProvenancePass pass, string kind, bool volume)
+    {
+        var provenance = new WorldProvenance();
+        provenance.Claim(0, 0, pass, new StampId(kind, "p", 0));
+        await Assert.That(provenance.PropVolumeAt(0, 0)).IsEqualTo(volume);
+        await Assert.That(provenance.PropVolumeAt(1, 0)).IsFalse();
+    }
 }

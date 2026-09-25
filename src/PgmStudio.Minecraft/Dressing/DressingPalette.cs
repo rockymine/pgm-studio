@@ -63,6 +63,18 @@ public static class DressingPalette
 
     private const int Mycelium = 110;
 
+    /// <summary>Whether a tree's foot may stand on this block: grass and the three dirts, and nothing else.
+    /// A tree is a thing that grew where it stands, so the block under its trunk is the one that says so —
+    /// gravel, clay, stone and a path's paving are ground a tree was never rooted in, whatever else grows on
+    /// them.
+    ///
+    /// <para>Stricter than <see cref="SoilShare"/>, which admits sand at a third and gravel at a little less
+    /// because a tuft of grass in a shingle is ordinary and a trunk out of it is not. Two questions, two
+    /// answers: what will <em>grow</em> on a surface, and what a tree may be <em>rooted</em> in. The three
+    /// dirts share one id, so the data is not read.</para>
+    /// </summary>
+    public static bool RootsInto(int blockId) => blockId is Blocks.Grass or Blocks.Dirt;
+
     /// <summary>Whether a block on top of a column was <em>stamped</em> there — a room floor, an approach wall,
     /// a monument, an objective — rather than left by the painter. The painter only ever writes terrain
     /// materials, so anything else standing on a surface belongs to something the map is played through, and

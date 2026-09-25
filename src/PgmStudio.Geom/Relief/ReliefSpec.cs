@@ -130,8 +130,9 @@ public sealed record ReliefGroup(IReadOnlyList<ReliefShape> Shapes, ReliefSpec S
             // The same surface the solve would have pinned, read through the mark rather than off the scalar
             // it used to be: an excluded shape that tilts is stamped tilted.
             var held = shape.Held();
+            var covered = whole.Covered(shape.Ring);
             foreach (var (x, z) in whole.Land())
-                if (Polygon.PointInRing(x + 0.5, z + 0.5, shape.Ring))
+                if (covered[whole.Index(x, z)])
                 {
                     var index = whole.Index(x, z);
                     var height = held.HeightAt(x + 0.5, z + 0.5);

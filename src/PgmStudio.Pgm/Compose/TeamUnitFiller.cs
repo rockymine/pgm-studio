@@ -1,4 +1,5 @@
 using PgmStudio.Pgm.Shapes;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Compose;
 
@@ -62,16 +63,14 @@ public static class TeamUnitFiller
     /// Fill an allocated <paramref name="partition"/> into a team unit, hub-first (the allocate↔fill contract).
     /// The <b>allocator (C.2) provides</b>: the positioned boxes (plan-cell <see cref="Box.Rect"/>s — one hub,
     /// one spawn, 1–3 wools, 0–1 frontline), the joints between them with the <b>corridor width each consumer
-    /// was granted, carried per joint as their <see cref="BoxJoint.Grant"/>s</b>, and the spawn's
-    /// <paramref name="spawnFacing"/> (the one
-    /// board-frame value — every other output is plan-cell or piece-relative). This <b>filler</b> emits the hub
+    /// was granted, carried per joint as their <see cref="BoxJoint.Grant"/>s</b>. This <b>filler</b> emits the hub
     /// first at the form the allocator chose (<see cref="Box.Form"/>), then for each hub joint fills the
     /// neighbour box — the spawn/wool consuming <b>its own joint's</b> granted width as its <c>cw</c>, docking the
     /// edge facing the hub — and assembles the pieces + placements.
     /// <c>null</c> on any directed fill failure (a form or family that does not fit), which the composer
     /// resamples. The frontline (a join, not a placement — its face offer feeds the mid) joins next.
     /// </summary>
-    public static FilledUnit? Fill(BoxPartition partition, string spawnFacing, ComposeRng rng)
+    public static FilledUnit? Fill(BoxPartition partition, ComposeRng rng)
     {
         var hubBox = partition.Boxes.FirstOrDefault(b => b.Kind == BoxKind.Hub);
         if (hubBox is null) return null;
@@ -107,7 +106,7 @@ public static class TeamUnitFiller
                     if (fitS.Count == 0) return null;
                     var es = FillSpawn(hub, j, hubEdge, neighbour, mouth, fitS[rng.NextInt(0, fitS.Count)], flip: false, roomId)!;
                     pieces.AddRange(es.Pieces);
-                    spawn = new GrownSpawn(roomId, es.MarkerAt, spawnFacing);
+                    spawn = new GrownSpawn(roomId, es.MarkerAt, TowardHub(hubEdge));
                     break;
 
                 case BoxKind.Wool:
@@ -172,6 +171,17 @@ public static class TeamUnitFiller
 
     /// <summary>The hub's edge a <paramref name="j"/>oint touches — the interface edge when the hub is
     /// <see cref="BoxJoint.BoxA"/>, else its opposite (the interface is read on <c>BoxA</c>'s frame).</summary>
+    /// <summary>The board direction a spawn docked on the hub's <paramref name="hubEdge"/> faces: into the hub.
+    /// A spawn behind the hub faces the axis through it, and one beside it faces across it — never out over the
+    /// void past the hub's side (<c>SP9</c>).</summary>
+    internal static string TowardHub(BoxEdge hubEdge) => hubEdge switch
+    {
+        BoxEdge.Left => SpawnFacings.Right,
+        BoxEdge.Right => SpawnFacings.Left,
+        BoxEdge.Top => SpawnFacings.Back,
+        _ => SpawnFacings.Front,
+    };
+
     private static BoxEdge HubEdge(BoxJoint j, string hubId) =>
         j.BoxA == hubId ? j.Abutment.Edge : Opposite(j.Abutment.Edge);
 

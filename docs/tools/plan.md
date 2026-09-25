@@ -32,7 +32,8 @@ the same document.
 
 Two things a plan tool edits are *not* in the plan document. The map's display name and its authors live on
 the map row and are saved through `PATCH /api/map/{slug}/metadata`; the document's own `meta.name` is synced
-alongside them because the compile reads it. The surface stepper — how many blocks one click of a piece's
+alongside them because the compile reads it. A plan may state `meta.authors` and `meta.contributors` of its
+own, which the compile carries onto the intent; the editor keeps them on a round trip and does not edit them. The surface stepper — how many blocks one click of a piece's
 height control moves — is a browser preference in `localStorage`, never part of a plan.
 
 The document is not cached client-side. The database is its store, and the editor loads whatever the route
@@ -52,7 +53,8 @@ compile ever answers anything else.
 ```json POST /api/plan/compile
 {
   "plan": 2,
-  "meta": { "name": "Example board" },
+  "meta": { "name": "Example board", "authors": ["Example author"],
+            "contributors": [{ "name": "Example helper", "contribution": "relief" }] },
   "globals": { "cell": 4, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
   "pieces": [
     { "id": "spawn",      "role": "spawn",     "rect": [1, 9, 3, 2] },
@@ -273,6 +275,14 @@ building is the one worth handing an author who has not said yet; where the piec
 room it *can* have is seeded anyway and the building simply is not there (`WX2`). Only a piece too small to
 hold a room at all is left bare, which is the honest signal that nothing fits.
 
+**Turning a spawn carries the cube it seeded.** The iron stands beside the door on the player's right, and the
+facing is what picks the door, so cycling a spawn's facing — a click on the already-selected marker or the
+rail's *Cycle facing* — asks `POST /api/plan/room` again, once for the document as it stood and once as it
+now stands. A cube on that piece still at the first answer is the seeded one and moves to the second; a cube
+anywhere else is one the author placed or slid, and stays where it is. Nothing is remembered between the two
+asks, so a cube seeded in an earlier session is recognised the same way. The footprint does not move with
+the facing: it is stated on the placement, and the walls a door can open through are the piece's.
+
 A **wool** may name a `color`, one of the sixteen dyes PGM resolves — `white`, `orange`, `magenta`,
 `light_blue`, `yellow`, `lime`, `pink`, `gray`, `silver`, `cyan`, `purple`, `blue`, `brown`, `green`, `red`,
 `black`, which `GET /api/objectives/vocabulary` serves under `wool.colors` with each one's label and swatch.
@@ -342,10 +352,26 @@ carves the rest, and what happens where two surfaces meet follows from them rath
 wall: a bedrock barrier two blocks thick and three courses tall across the full interface width, stamped on
 the attack side, which slows a wool raid and gives the defence a prepared line. Which of its two faces carries
 the defence chests is **not authored**: the wall is two blocks thick so exactly one face can be opened, and it
-is the **approach** face — the side further from the wool, which is the side both teams reach the line across
-and the same side the wall takes its height from. A wall on a pair that shares no land interface is an error (`PL11`), and so is a wall on
+is the **approach** face — the side further from the wool, which is the side both teams reach the line across.
+
+The wall's top is one level, three courses over the **highest** solved ground along its run. Per column it
+would step with the terrain and read as a curve, and from the average it would be buried wherever the ground
+rises past the mean, so the highest is the only level that is both straight and never under the terrain. Where
+that leaves the wall standing more than four courses over its lowest column the export complains (`ST4`): the
+seam's own fall is added to the wall's face, past which it stops reading as a line to hold.
+
+A wall on a pair that shares no land interface is an error (`PL11`), and so is a wall on
 the wool room's own interface (`PL13`) — the wall and the room would stamp through each other, so the device
 belongs an approach out, around 15 blocks from the room.
+
+A wall with land running past either of its ends draws a complaint (`PL17`) naming the piece that holds it.
+The wall spans only the interval the two pieces share, so ground one block beyond an end, on either face, is
+ground a player stands on beside the wall and rounds the line from, with one step off the corner instead of
+crossing it. That ground is either one of the two walled pieces running past the shared interval, or a third
+piece the wall stands against — a wall where an arm meets a hub side of its own width is flanked by the hub's
+pieces in front of and behind that side. The fix is a piece the lane's own width between the two, with the wall
+on that seam: flanked by nothing, the wall has to be crossed, because going round it means leaving the
+ground.
 
 ### Boxes
 
@@ -431,7 +457,10 @@ PGM marks a goal shared whenever the team count is not two, and what a shared DT
 undecided, so outside order 2 the validator refuses the plan and the preview declines to draw it. The build
 intent carries the fanned build-zone areas and holes, and **no** `MaxHeight` — the ceiling is the world
 build's to measure; water lanes fan
-into their own list and stay out of the build intent. The observer sits at `(0, observerY, 0)`.
+into their own list and stay out of the build intent. The observer sits at `(0, observerY, 0)`. The intent's
+`meta` carries the plan's `meta.name`, `meta.authors` and `meta.contributors` across unchanged — a person is a
+bare name or `{name, contribution}`, as in the intent — so a plan that credits someone compiles to an intent
+that does.
 
 The intent also carries the **structure directives** the world export stamps verbatim, computed on the
 authored unit and fanned in absolute block coordinates: the entrance redstone row inside each room along
@@ -518,7 +547,15 @@ The compile drawer is the exit. It posts the document to `/api/plan/compile` and
 layout and the compiled intent as downloadable panes, or the structural findings that blocked it — each
 clickable to pulse its subjects on the canvas. Below them, the build button runs the whole chain. On a map that
 already holds a sketch or a world it asks first, because the same click means either originating the map or
-replacing a board someone has since been working on.
+replacing a board someone has since been working on. The question names what the rebuild **replaces** — the
+terrain and islands, any shape drawn in the sketch that the plan does not produce, and the teams, spawns, wools
+and build zones — and what it **keeps**: the relief on every island that survives, a room height the author
+corrected, the themes, room shells and dressing, and the authors.
+
+**A rebuild that would orphan a relief is asked again, not failed.** The layout write answers `409` with one
+`SK1` per group the new board has no island for, and the drawer names those groups and offers *Discard it and
+rebuild*, which reruns the chain with `?force=true`; *Cancel* leaves the map as it was. After a rebuild the
+drawer lists the sketch-drawn shapes the layout write reported as `dropped` (`SK29`).
 
 **The button under the panes reads the compile, not the map.** *Rebuild this map* / *Build the map* / *Create
 draft* is what it says in the one state where it can act; a compile that has not run yet reads *Compile
@@ -716,7 +753,7 @@ draws the board as characters.
 |---|---|---|---|
 | `POST /plan/compile` | the document | `{layout, intent}`, each half serialized with its consumer's options so both can be posted on verbatim; `warnings` rides beside them where the compile is complete enough to succeed and incomplete enough to remark on (today `PL3`, a map with no objective), and where the posted plan carried a field the reader has nowhere to keep (`RQ3`) | 422 `{findings}` structural or completeness errors · 400 malformed |
 | `POST /sketch` | `{name}` | `{slug}` — originates a map; only needed off the bare route | — |
-| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{orphaned}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers, and any field of the **posted** layout the reader had nowhere to keep (`RQ3`) | 409 one `SK1` finding per orphaned group, subject = group id (`?force=true` accepts the loss) · 400 · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{orphaned, dropped}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers, and any field of the **posted** layout the reader had nowhere to keep (`RQ3`). `dropped` names every stored shape the compile does not produce and that carries no `intentRef` — a shape drawn in the sketch, which nothing carries since geometry is the plan's — with one `SK29` complaint beside it | 409 one `SK1` finding per orphaned group, subject = group id (`?force=true` accepts the loss) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes the layout into world geometry and moves the map to `stage=configure`, answering the stored document's own complaints under `warnings` on the way through | 404 unknown map · 422 the layout rasterizes to no ground · 422 `SK2` |
 | `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the stored **authors and contributors** onto it and nothing else. `symmetry` and `islandTeams` are deliberately not carried, so a rebuild clears both | 404 · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
 | `GET /map/{slug}/export` | — | the world ZIP | 404 unknown map · 409 and 422 as `/xml`, plus non-2xx with a message on a zip/IO failure |
@@ -762,9 +799,10 @@ crosses is narrower than any of that — the shortest straight line over the spa
 ends, since a run open at one end is a way out of the space rather than a gap over it — so that is the number
 `narrowestBlocks` carries, with the piece at each end named.
 
-`WL12` reads it against two floors, both in blocks so they hold at any grid scale: **16** where a crossing
-touches a wool room or a spawn, and **12** for the narrowest crossing of a hole, which is crossed on purpose
-and may be tighter. A crossing any build zone reaches is not asked at all — building over it is what the zone
+`WL12` reads it against three floors, all in blocks so they hold at any grid scale. A crossing touching a wool
+room or a spawn wants **16** when its other end fronts the crossing's build band or is another goal, and **12**
+when it is the team's own ground away from the front — the hub, an approach. The narrowest crossing of a hole
+touching no goal wants **12**, since it is crossed on purpose. A crossing any build zone reaches is not asked at all — building over it is what the zone
 states. The fault it names is a short gap beside a goal: a player towers at one edge, jumps it, and the
 approach the board was drawn around is never walked.
 
@@ -790,11 +828,10 @@ other half: what may be done next, with the route for each.
 **Two further calls belong after the intent, and the order is load-bearing.**
 `POST /api/map/{slug}/sketch/columns` answers every prop the dressing pass declined, under `warnings` — and
 `DR-KEEP` among them reads the spawn doors' approaches and the goal rings, which come off the **intent**, so
-the same call asked before it answers a shorter list. `PATCH /api/map/{slug}/metadata` is where the map's
-authors are set, and it has to follow for a different reason: storing an intent projects the document from
-the intent's own `meta`, whose `authors` a compiled intent leaves empty, so a name written earlier is
-overwritten rather than kept. `intent/from-plan` carries authors from a **previously stored intent**, which a
-first build does not have.
+the same call asked before it answers a shorter list. The map's authors reach the intent one of two ways: the
+plan states `meta.authors` and the compile carries them, or `PATCH /api/map/{slug}/metadata` sets them after
+the intent is stored. A plan that states none compiles to an intent naming nobody, and `intent/from-plan`
+carries authors only from a **previously stored intent**, which a first build does not have.
 
 The smallest plan that survives the gate needs one generating piece, one spawn marker, and — for a CTW map —
 a wool that is reachable from every capturing team's spawn by a route that does not pass through a spawn piece.

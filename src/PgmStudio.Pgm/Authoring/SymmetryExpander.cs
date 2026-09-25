@@ -138,6 +138,7 @@ public static class SymmetryExpander
                 {
                     Team = target,
                     Stamp = src.Stamp.At(k),
+                    Reflected = src.Reflected != Symmetry.Reflects(sym.Mode, k),
                     Point = TransformPt(src.Point, sym, k),
                     Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
                     Yaw = TransformYaw(src.Yaw, sym, k),
@@ -166,6 +167,7 @@ public static class SymmetryExpander
                 {
                     Owner = owner.Id,
                     Stamp = src.Stamp.At(k),
+                    Reflected = src.Reflected != Symmetry.Reflects(sym.Mode, k),
                     Color = "",   // orbit copies default to the new owner team's colour (WoolGenerator.ColorSlug)
                     Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
                     Spawn = TransformPt(src.Spawn, sym, k),

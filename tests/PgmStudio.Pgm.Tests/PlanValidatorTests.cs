@@ -128,6 +128,29 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
+    public async Task A_wall_where_a_third_piece_runs_past_its_end_is_flagged_and_one_on_a_neck_is_not()
+    {
+        // An arm walled against a hub side of its own width: the two named pieces match, but the hub's pieces
+        // in front of and behind that side carry ground past both ends of the wall. Moving the wall one piece
+        // out along the arm leaves void beyond both of its ends.
+        const string pieces = """
+          "pieces":[ {"id":"hub-front","role":"piece","rect":[0,0,4,2]},
+                     {"id":"hub-side","role":"piece","rect":[2,2,2,3]},
+                     {"id":"hub-back","role":"piece","rect":[0,5,4,2]},
+                     {"id":"neck","role":"piece","rect":[4,2,2,3]},
+                     {"id":"arm","role":"piece","rect":[6,2,3,3]},
+                     {"id":"wool","role":"wool-room","rect":[9,2,2,3]} ],
+        """;
+        var atTheT = Plan("""{ "plan":2, "globals":{"cell":5,"symmetry":"none"},""" + pieces
+                          + """ "walls":[ {"a":"hub-side","b":"neck"} ] }""");
+        var onTheNeck = Plan("""{ "plan":2, "globals":{"cell":5,"symmetry":"none"},""" + pieces
+                             + """ "walls":[ {"a":"neck","b":"arm"} ] }""");
+
+        await Assert.That(Lint(atTheT, PlanRules.WallAtJunction)).IsTrue();
+        await Assert.That(Lint(onTheNeck, PlanRules.WallAtJunction)).IsFalse();
+    }
+
+    [Test]
     public async Task Placement_outside_its_piece_is_an_error()
     {
         var p = Plan("""
@@ -906,7 +929,7 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task A_gap_beside_a_wool_room_narrower_than_sixteen_blocks_fires_WL12()
+    public async Task A_gap_between_a_wool_room_and_its_own_ground_narrower_than_twelve_blocks_fires_WL12()
     {
         // two cells of void between the room and the ground beside it: ten blocks, which a player crosses by
         // towering at one edge, so the approach the board states is not the one walked.
@@ -919,7 +942,7 @@ public sealed class PlanValidatorTests
           "placements":{ "spawns":[ {"piece":"hub","at":[20,10],"facing":"front"} ],
                          "wools":[ {"piece":"room","at":[5,5]} ] } }
         """);
-        await Assert.That(Lint(tight, "WL12")).IsTrue().Because("ten blocks is under the sixteen a gap beside a goal wants");
+        await Assert.That(Lint(tight, "WL12")).IsTrue().Because("ten blocks is under the twelve a gap between a goal and its own ground wants");
 
         // the same arrangement with the far ground pushed a cell further out: twenty blocks, and quiet.
         var clear = Plan("""
@@ -932,6 +955,31 @@ public sealed class PlanValidatorTests
                          "wools":[ {"piece":"room","at":[5,5]} ] } }
         """);
         await Assert.That(Lint(clear, "WL12")).IsFalse();
+    }
+
+    [Test]
+    public async Task Twelve_blocks_from_a_wool_room_to_its_own_ground_is_quiet_and_to_the_frontline_is_not()
+    {
+        // a room across a bay from its hub side (own ground, away from the front): twelve blocks is enough
+        var home = Plan("""
+        { "plan":2, "globals":{"cell":4,"symmetry":"rot_180"},
+          "pieces":[ {"id":"hub","role":"lane","rect":[-4,4,4,3]},
+                     {"id":"back","role":"lane","rect":[-4,7,12,3]},
+                     {"id":"room","role":"wool-room","rect":[3,4,3,3]} ],
+          "placements":{ "wools":[ {"piece":"room","at":[6,6]} ] } }
+        """);
+        await Assert.That(Lint(home, "WL12")).IsFalse().Because("twelve blocks to a goal's own ground is the author's floor");
+
+        // the same room twelve blocks across a bay from a piece fronting the crossing: sixteen is wanted
+        var front = Plan("""
+        { "plan":2, "globals":{"cell":4,"symmetry":"rot_180"},
+          "pieces":[ {"id":"front","role":"lane","rect":[-4,1,4,3]},
+                     {"id":"back","role":"lane","rect":[-4,4,12,3]},
+                     {"id":"room","role":"wool-room","rect":[3,1,3,3]} ],
+          "zones":[ {"id":"mid","rect":[-4,-1,4,2]} ],
+          "placements":{ "wools":[ {"piece":"room","at":[6,6]} ] } }
+        """);
+        await Assert.That(Lint(front, "WL12")).IsTrue().Because("twelve blocks from the frontline is under its sixteen");
     }
 
     [Test]

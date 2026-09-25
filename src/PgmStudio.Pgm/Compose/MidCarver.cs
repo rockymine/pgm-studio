@@ -51,7 +51,9 @@ public sealed record MidResult(
 ///
 /// <para>Inside the band it lays a row of <b>mid stones</b> (<see cref="Stones"/>) — the shared ground the
 /// crossing is fought over, funded by <see cref="MidShare"/> out of what the units would have spent on
-/// themselves. A split band carries none: the bay between its legs is already the island.</para>
+/// themselves. A realised split band carries none: the bay between its legs is already the island. A split the
+/// face refused carries the row a single band would, at the depth its gap leaves room for
+/// (<see cref="RefusedSplitDeepCells"/>).</para>
 ///
 /// <para>Deterministic — no draws.</para>
 /// </summary>
@@ -230,7 +232,12 @@ public static class MidCarver
         // ...unless the face offers a split and the crossing asked for one, in which case the band spans a single
         // leg and the symmetry supplies its partner — two parallel crossings with the bay between them left as an
         // island. The mid reads the face here; it never asks the frontline to be shaped a particular way.
-        if (design.SplitBand && SplitRun(frontPieces, flip) is { } run) (bandL, bandR) = run;
+        var split = design.SplitBand ? SplitRun(frontPieces, flip) : null;
+        if (split is { } run) (bandL, bandR) = run;
+        // A split the face refused leaves one band across the stoneless gap, and that band carries the single
+        // rank at the depth the gap leaves a hop either side of.
+        var refusedDeep = design.SplitBand && split is null ? RefusedSplitDeepCells(env) : 0;
+        var form = refusedDeep > 0 ? MidForm.SingleRank : design.Form;
 
         var band = frame.ToRect(-h, 2 * h, bandL, bandR - bandL);
         if (!BandContactsOk(env, unit, band, frontIds)) return null;
@@ -241,11 +248,23 @@ public static class MidCarver
             if (merged.Count > 0 && face.Lo <= merged[^1].Hi)
                 merged[^1] = (merged[^1].Lo, Math.Max(merged[^1].Hi, face.Hi));
             else merged.Add(face);
-        var stones = Stones(env, band, design.Form, design.Grain, merged);
+        var stones = Stones(env, band, form, design.Grain, merged, refusedDeep > 0 ? refusedDeep : null);
         var landed = design.Grain == MidGrain.Fine && Keyed(env, frame, merged,
                          StoneDeepCells(env, design.Grain), design.Form == MidForm.DoubleRank).Count > 0;
         return new MidResult(
-            band, stones, stones.Count == 0 ? MidForm.None : design.Form, design.Grain, landed);
+            band, stones, stones.Count == 0 ? MidForm.None : form, design.Grain, landed);
+    }
+
+    /// <summary>How deep the stone a <b>refused</b> split carries stands, in cells, or 0 where it carries none.
+    /// The gap was fixed at <see cref="EmptyHalfGapCells"/> before the face was known, so the stone takes what
+    /// that gap leaves once a hop is kept to each front — even, because it stands astride the axis — and never
+    /// more than the band's own stone depth. Only a two-image board carries one: a quarter-turn crossing is four
+    /// wedges rather than a row.</summary>
+    public static int RefusedSplitDeepCells(ComposeEnvelope env)
+    {
+        if (Geom.Symmetry.Order(env.Symmetry) != 2) return 0;
+        var room = 2 * (EmptyHalfGapCells(env.Cell) - HopCells(env.Cell));
+        return room < 2 ? 0 : Math.Min(room, StoneDeepCells(env));
     }
 
     /// <summary>
@@ -267,14 +286,17 @@ public static class MidCarver
     /// cells cannot sit symmetric about the axis's own cell boundary. Deterministic — no draws. A hull too
     /// narrow to hold one stone at the aspect rule carries none, and the band is then wider than it needed to
     /// be rather than refused.</para>
+    ///
+    /// <para><paramref name="deepCells"/> stands the stones at a depth the crossing's gap set rather than the
+    /// band's own (<see cref="RefusedSplitDeepCells"/>).</para>
     /// </summary>
     public static IReadOnlyList<MidStone> Stones(
         ComposeEnvelope env, CellRect band, MidForm form, MidGrain grain = MidGrain.Broad,
-        IReadOnlyList<(int Lo, int Hi)>? faces = null)
+        IReadOnlyList<(int Lo, int Hi)>? faces = null, int? deepCells = null)
     {
         if (form == MidForm.None) return [];
         var frame = Frame.For(env.Symmetry);
-        var deep = StoneDeepCells(env, grain);
+        var deep = deepCells ?? StoneDeepCells(env, grain);
         var pair = form == MidForm.DoubleRank;
         if (grain == MidGrain.Fine && faces is { Count: >= 2 }
             && Keyed(env, frame, faces, deep, pair) is { Count: > 0 } keyed) return keyed;

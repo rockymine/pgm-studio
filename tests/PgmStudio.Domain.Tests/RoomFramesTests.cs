@@ -194,6 +194,57 @@ public sealed class RoomFramesTests
         await Assert.That(slots.Skip(4).All(s => s.Z == 5)).IsTrue();
     }
 
+    [Test]
+    [Arguments(RoomEdge.NegZ)]
+    [Arguments(RoomEdge.PosZ)]
+    [Arguments(RoomEdge.NegX)]
+    [Arguments(RoomEdge.PosX)]
+    public async Task The_nth_monument_seat_of_a_room_and_of_its_rot_180_image_are_images(RoomEdge door)
+    {
+        // A half-turn about the board's centre carries block cell (x, z) onto (-1 - x, -1 - z) and a door onto
+        // the opposite wall. Seats are filled in order, so wool n of one team and wool n of the other stand
+        // at each other's image only if the whole list is.
+        var room = RoomFrames.Resolve(new BlockRect(-14, -20, -2, -8), footprint: null, shellBound: true,
+            -8, -14, [], [door], out _)!;
+        var image = RoomFrames.Resolve(new BlockRect(2, 8, 14, 20), footprint: null, shellBound: true,
+            8, 14, [], [door.Opposite()], out _)!;
+        var seats = RoomFrames.MonumentSlots(room, room.Doors[0]);
+        var turned = RoomFrames.MonumentSlots(image, image.Doors[0]);
+
+        await Assert.That(string.Join(" ", turned.Select(seat => (-1 - seat.X, -1 - seat.Z, seat.Wall.Opposite()))))
+            .IsEqualTo(string.Join(" ", seats.Select(seat => (seat.X, seat.Z, seat.Wall))));
+    }
+
+    [Test]
+    [Arguments(RoomEdge.NegZ, true)]
+    [Arguments(RoomEdge.PosZ, true)]
+    [Arguments(RoomEdge.NegX, true)]
+    [Arguments(RoomEdge.PosX, true)]
+    [Arguments(RoomEdge.NegZ, false)]
+    [Arguments(RoomEdge.PosZ, false)]
+    [Arguments(RoomEdge.NegX, false)]
+    [Arguments(RoomEdge.PosX, false)]
+    public async Task The_nth_monument_seat_of_a_room_and_of_its_mirror_image_are_images(RoomEdge door, bool acrossX)
+    {
+        // mirror_x carries block cell x onto -1 - x and keeps z, turning a wall facing ±x onto the opposite one
+        // and keeping a wall facing ±z; mirror_z the same with the axes swapped. The image is a reflection, so
+        // its frame is resolved reflected, and its n-th seat has to stand at the image of the room's n-th.
+        RoomEdge Mirror(RoomEdge edge) => edge.AlongX() == acrossX ? edge : edge.Opposite();
+        (int X, int Z) Cell(int x, int z) => acrossX ? (-1 - x, z) : (x, -1 - z);
+        var room = RoomFrames.Resolve(new BlockRect(-14, -20, -2, -8), footprint: null, shellBound: true,
+            -8, -14, [], [door], out _)!;
+        var image = (acrossX
+            ? RoomFrames.Resolve(new BlockRect(2, -20, 14, -8), footprint: null, shellBound: true,
+                8, -14, [], [Mirror(door)], out _)!
+            : RoomFrames.Resolve(new BlockRect(-14, 8, -2, 20), footprint: null, shellBound: true,
+                -8, 14, [], [Mirror(door)], out _)!) with { Reflected = true };
+        var seats = RoomFrames.MonumentSlots(room, room.Doors[0]);
+        var mirrored = RoomFrames.MonumentSlots(image, image.Doors[0]);
+
+        await Assert.That(string.Join(" ", mirrored.Select(seat => (Cell(seat.X, seat.Z), Mirror(seat.Wall)))))
+            .IsEqualTo(string.Join(" ", seats.Select(seat => ((seat.X, seat.Z), seat.Wall))));
+    }
+
     // ── WX8/WX9 — iron beside the room ──────────────────────────────────────────────────────────────────
 
     [Test]

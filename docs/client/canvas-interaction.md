@@ -281,6 +281,13 @@ the tool saves what the canvas holds, the wrong id is written into the document.
 therefore sets the live list to the incoming layer's own groups before recomputing, and falls back to that
 layer's persisted group records when it has none yet.
 
+**The active layer reaches the dressing through the dressing document, and nowhere else.** A layer switch
+calls `pushActiveLayer`, which sets `DressingDoc.layer` before the recompute repaints; the document stamps it on
+each new placement, `sketch-canvas` hands it to `paintDressing` as `activeLayer`, and the dressing controller's
+hit test reads it too. One predicate, `onLayer` in `dressing-doc.js`, answers whether a prop rests on it, so
+the dimmed drawing and the click that skips a dimmed prop cannot disagree — the same pair of answers another
+layer's shapes get from being ghosted rather than loaded onto the canvas.
+
 **A saved group record is claimed by one group.** The other half of the same fact: `restoreGroupMeta`
 copies a name, a `mirrors` flag and an **id** from the persisted group records onto the recomputed
 groups, matched by shapeId overlap. Matching each group to its best record independently gives every

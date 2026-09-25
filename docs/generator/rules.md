@@ -134,6 +134,11 @@ and a fall counted but not charged, routing around voids — never the straight 
   own line. A **build zone counts as ground** — the gap-only spawn (SP6) whose door opens onto its
   egress bridge is an authored motif; a *buffer* is exactly the declared emptiness this keeps off
   the doorstep (the `entrance-void` fault: a 25-deep drop at the door face).
+- **SP10 [author]** **A spawn stands at least 55 blocks by the walk from the crossing's build band**
+  (`spawn-front-floor`). A spawn nearer than that walks straight out onto the frontline, and its team
+  defends from the crossing rather than from its own ground. Judged off composed boards: every spawn the
+  author called too close walked 43 blocks or less to the band, every one accepted 58 or more. A composer
+  floor — the composer's gate holds its boards to it and an authored plan is not held to it (amendment 45).
 
 ## WL — Wool room
 
@@ -141,7 +146,8 @@ and a fall counted but not charged, routing around voids — never the straight 
   authored twice (`four-team-wool-two-sided`: two stepped land seams into the room;
   `mirror-big-board`).
 - **WL2 [corpus]** On a different lane than the spawn; wool↔spawn ≥ **20** — all 17 corpus pairs
-  pass, tightest 22.4 (the base seeds), typical 36–58, up to 101 on the big board.
+  pass, tightest 22.4 (the base seeds), typical 36–58, up to 101 on the big board. The lane clause is
+  hard at one reading: a wool room shares no edge with its own spawn (amendment 54).
 - **WL3 [expert, clarified]** The plan records only the wool's position and floor level; the
   physical room (cage, pedestal — the 8×8 stamp today) is stamped at export. Requirement on the
   plan: the wool sits on a **flat plateau covering at least the stamp footprint and extending to
@@ -177,7 +183,10 @@ and a fall counted but not charged, routing around voids — never the straight 
   Bands learned from the teaching seeds (`spawn-wool-spread`). The **size-independent factor read**
   is the ratio max ÷ min of the same distances (`spawn-wool-ratio`) — a 40-vs-105 pair on a big board
   and a 20-vs-52 pair on a small one read the same 2.6× — with an **authored cap**: the intent seeds
-  set the tolerable factor; traced maps do not widen it.
+  set the tolerable factor; traced maps do not widen it. Both ratio reads state an **ideal of 1**
+  (amendment 44), where two wools are the same walk from their spawn: a band learned off the seeds
+  has its lower edge wherever the closest one landed, and perfect balance is what the rule asks for
+  rather than something it refuses.
 - **WL10 [author]** **The spawn–wool–frontline triangle.** Two reads, both by surface traversal:
   (a) each wool keeps a real distance to the **frontline edge** — the seam where the mid build band
   meets the land, the line an attacker crosses (`wool-front-distance`, measured at the most exposed
@@ -191,7 +200,9 @@ and a fall counted but not charged, routing around voids — never the straight 
   (`wool-front-remoteness`, the largest per-wool front distance, any wool count) catches the stalemate
   the balance reads are blind to — a wool far from the front *and* far from everything can carry a
   perfectly balanced deficit while forcing the attacker to run the whole board into a defended
-  chokepoint.
+  chokepoint. (e) On a composed board, a **floor** (`wool-front-floor`): every wool at least 59 blocks
+  by the walk from the build band. Judged off composed boards: every wool the author called too close to
+  the frontline walked 58 or less, and the nearest one called fine 59 (amendment 46).
 - **WL11 [author]** A wool room's **approach steps by 1 level or takes a ramp**: an entry seam at
   **Δ≥2** is un-walkable bare, the same reading `SP8` takes of a spawn's egress and for the same
   reason (EL1's palette steps by 2). The player who crosses that seam is the **attacker** — a team
@@ -203,15 +214,19 @@ and a fall counted but not charged, routing around voids — never the straight 
   room reached only over a build zone states no land seam and is not this rule's business but
   `BZ5`'s.
 
-- **WL12 [author]** **A bay or a hole beside a goal is at least 16 blocks across.** Negative space is
+- **WL12 [author]** **A bay or a hole between a goal and the front is at least 16 blocks across, and one
+  between a goal and its own ground at least 12.** Negative space is
   crossed by **jumping** long before it is crossed by building: a short gap between a frontline and a
   wool room, or between a spawn and a wool room, lets a player tower at the near edge and jump in, and
   the approach the board was drawn around stops being walked at all. The measure is the **narrowest
   straight crossing** — the shortest line over the space with terrain on **both** ends, a run open at
   one end being a way out rather than a gap over. A space walled on three sides or enclosed (a `bay` or
   a `hole`, `NegativeSpaceKinds`) is asked; a space any **build zone** covers is not, since building
-  over it is what the zone states. The floor is **16 blocks** where the space touches a wool-room or
-  spawn piece and **12** where it touches neither — a hole in a team's own ground is crossed on purpose.
+  over it is what the zone states. Where a crossing touches a wool-room or spawn piece, the floor is
+  **16 blocks** when its other end is a piece fronting the crossing's build band, or another goal, and **12**
+  when it is the team's own ground away from the front — its hub, an approach — since the side that jumps
+  that gap is the one already standing there (amendment 49). A space touching neither keeps **12**, and a
+  hole in a team's own ground is crossed on purpose.
   Stated in **blocks**, never in cells: a floor stated as a cell count moves with the grid scale, and a
   jump does not care what the grid was.
 
@@ -314,6 +329,11 @@ and a fall counted but not charged, routing around voids — never the straight 
   build-zone border. Refines CT7 (stones extend the team islands' lines) for stones inside a band.
   **Column count [author, 2026-07-05]: two lateral columns are the NORM, three the hard maximum**
   (three appears in exactly one authored example) — never a wider grid; "wide, not too wide."
+- **MD7 [author]** **The crossing is not a long, thin strip.** The build band between the fronts is at
+  least 24 blocks wide at nano, 32 at micro, 40 at milli and 48 at centi, and no longer front to front
+  than twice its width. A band under either reads as a stretch to walk rather than ground to fight over,
+  and with nowhere to pass each other the two sides simply push through it. Scored, not refused: the
+  `thin-middle` term adds each shortfall over half its band, so such a board ranks badly.
 
 ## CT — The mid interface & fragmentation (read from the closure) [expert]
 
@@ -662,9 +682,14 @@ disagree with the one that runs.
   the same rule, whether it stands beside a spawn room or alone on a piece that carries none: the
   cube fits inside the piece it rides or the marker resolves unplaceable (`WX9`) and nothing is
   stamped for it.
-- **ST4 [corpus]** *Pre-built wall*: 2 blocks thick, full seam width, **three courses of bedrock**
-  above the approach side (top = approach surface +2) over solid bedrock down to y=0, capped by
-  **one course of cobweb**. The web is part of the barrier, not decoration on it: it costs an
+- **ST4 [corpus; amendment 43]** *Pre-built wall*: 2 blocks thick, full seam width, **three courses of
+  bedrock** over the ground it crosses — measured from the surface the **relief solved**, not the surface
+  the plan drew the approach at — over solid bedrock down to y=0, capped by **one course of cobweb**. The
+  top is **one level across the whole run**, taken from the **highest** ground the wall crosses: a top that
+  followed the ground per column would step with it and read as a curved wall, and a top taken from the
+  average buries the wall wherever the ground rises past it. Ground that falls away along the seam therefore
+  leaves the wall taller at its low end, and past **four courses** there the export complains — a wall that
+  tall stops reading as a line to hold and becomes a blank face a team builds over rather than fights at. The web is part of the barrier, not decoration on it: it costs an
   attacker who bridges the top real time to cross and is cut with the shears every kit carries,
   which is what lets the stone itself be short enough that both halves of the lane still read as
   one place. Corpus pattern (11 walls over 5 seeds): walls sit on **gentle seams** — every marked
@@ -1019,6 +1044,66 @@ the question it exists for is *what is this finding* and a rule nothing raises h
 rest are law all the same, and this file is where the law is. A rule that starts being raised joins the
 catalogue by being added to that set, which `RulesEndpointTests` holds to the source in both directions.
 
+52. **`MD7` added (2026-09-24).** Author's call, off the judged donut boards: a crossing 16 blocks wide and 80
+    long on a board 150 wide was the board's defect, and one 24 wide with its stones stacked along it was
+    "a thin band" of the kind the rules teach against. The widths are the floors of the ranges the author
+    gave for a front at each size, and the length is twice the width. A board is scored for it rather than
+    redrawn: fixing the front in the composer changed too much at once and is parked (`G278`) (`G284`).
+51. **A donut takes a wall across each leg, and its unit's spawn stands behind the hub at the donut's end
+    (2026-09-23).** Author's call, off the judged walled boards: a donut is two ways round its hole and one
+    wall at its entry leaves a defence nothing to hold; and a donut makes a unit lopsided, so the spawn moves
+    to the back edge's end nearer it and the wool on the back takes the side the spawn left. An approach that
+    encloses a hole is walled with a pair of seams that between them close every way from its entry to its
+    room while neither does alone, the two legs first, each as far from the room as a seam qualifies. A leg's
+    wall stands a cell off the entry bar, so the hole runs at least `ST8`'s standoff plus a cell along the hub
+    edge — four cells on the four-block grid. A donut's flip now mirrors it along its mouth, which lets its
+    ring hang either way along the hub edge; the two flips drew the same shape before (`G277`).
+50. **A side spawn stands in line with the hub's hole, and a donut's hole is at least 12 blocks
+    (2026-09-23).** Author's call, off the second judged sweep. A spawn seated behind the hub's hole stood
+    nearer the back wool than the one across the hub; in line with the hole it walks about as far to either,
+    so a lateral spawn's centre stands within a cell of the hole's centre, or of the edge's middle where the hub
+    has none. A donut's own hole was sampled from one cell along the hub edge — four blocks, jumped rather than
+    rounded — and now starts at `WL12`'s 12-block floor for a hole on both extents (`G276`).
+49. **`WL12`: a goal's own ground is 12 blocks, the front stays 16 (2026-09-23).** Author's call, off the
+    composed boards the rule flagged. A wool room 12 blocks from its own hub is "on the low end, but not
+    terrible"; a wool room or spawn that close to the frontline, or to another goal, still wants 16. The other
+    end of a crossing is read as frontline when that piece has a side facing the crossing's build band
+    (`FR8`'s frontage). On 400 composed boards the rule's findings fall from 295 to 31: 27 donut approaches
+    whose own hole is under 12, and 4 wool rooms 12 blocks from the front.
+48. **The composer seats one defence wall per wool, and `PL17` reads the land past a wall's ends
+    (2026-09-23).** Author's call, closing `TN22`. A wall stands across the attack's route into the approach,
+    on a seam with no land one block beyond either end on either face, a lane mouth wide and `ST8`'s 10–20
+    blocks in front of the room — or, on a two-legged approach whose room lies deeper than that, the
+    nearest such seam the attack crosses, the entrance the defence holds. A straight lane is cut across to
+    make the seam, and a back-room lane is built long enough to carry one. `PL17` compared only the two
+    pieces a wall names, so a wall at a T with a hub running past both ends passed; it now asks whether
+    **any** land continues past either end and names the piece that holds it.
+47. **A composed unit always carries a frontline, its side spawn sits back and faces the hub, and its hub
+    hole is at least 12 blocks (2026-09-23).** Author's call, off a judged sweep of composed boards. Every
+    board judged fine had a frontline and every one without was flagged for a middle too wide, so the
+    no-frontline draw is gone. A spawn on a lateral hub edge is seated level with the hub's middle or behind
+    it, and faces into the hub from whichever side it docks — the placement the author gave a clamp board's
+    spawn. A ring's hole, and the ring inside a P, double-hole or G, keeps `WL12`'s 12-block floor for a
+    plain hole: a narrower one is jumped rather than rounded.
+46. **`WL10` gains a composed floor (2026-09-23).** Author's call. The author's recurring reason for
+    moving a wool was that it sat too close to the frontline; the floor is the line between the wools so
+    judged and those called fine, 59 blocks by the walk to the build band on the evaluator's own read.
+45. **`SP10` added (2026-09-23).** Author's call. A spawn too close to the frontline "simply isn't
+    wanted"; 55 blocks by the walk sits between the spawns judged too close (43 or less) and those
+    accepted (58 or more). Both floors bind the composer only: `EvaluationProfile.Composer` gates on them
+    and `EvaluationProfile.Default`, which the editor lint runs, leaves them off.
+44. **A band never calls the ideal a fault (2026-09-22).** Author's call, settling a complaint on
+    `opus5c-emberhowe`. `WL9`'s `spawn-wool-ratio` and `WL10`'s `wool-front-ratio` are both max ÷ min, so
+    they cannot read below 1 and 1 is two wools the same walk apart — the balance each rule asks for. Their
+    learned lower edges (1.031 and its sibling) are artifacts of where the closest teaching seed happened to
+    land, and a board mirrored down its own team's middle measures exactly 1 and was scored a violation for
+    it. **A 100% double-symmetric map — across the middle and across the middle of one team — is ordinary
+    practice**, so the floor is wrong rather than the board.
+
+    `SoftTerm.Ideal` states the value a metric is perfect at, and the band's lower edge comes down to it
+    where one is stated and sits below the band; null on every other term, whose band is a distribution with
+    a fault at each end. The upper halves are untouched — imbalance is still what both rules catch.
+
 29. **`ST1`: a wool room lays no bedrock (2026-08-31).** Author's call. The footprint fill from `y=0` existed
     to stop a room being tunnelled into from below, which the room region's `enter` filter already denies at
     every depth — so the fill bought nothing and stood where the author drew ground, the general case being
@@ -1174,6 +1259,26 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     white stained clay and 16 white wool, every block of it colour-affected. No other marker changes: a wool
     room's stays the wool's colour and a destroyable's or a core's stays its team's.
 
+43. **`ST4`: the wall's height is the ground's, not the plan's (2026-09-21).** Reported by the author off
+    `opus5c-emberhowe`, where the wall was **under the terrain it was meant to bar**. `PlanCompiler` set
+    `topY` from `approach.Surface` — the number the *piece* was drawn at — and the stamper laid bedrock to
+    it, so a relief that lifted the seam left the barrier buried while its own defence chest stood correctly
+    on the ground above, because the chest reads the solved surface and the wall did not. On that board the
+    bedrock stopped at y11 under ground at y12–13. `StructureStamper.StampWall` now takes the solved surface
+    the way every other stamper in `StampStructures` already did, and `topY` is kept as the plan tier's
+    answer — what the plan preview draws, and the fallback where the surface has nothing to say about a
+    column.
+
+    The top is the **highest** ground over the run rather than the average, and the reason is measurable:
+    Emberhowe's west wall crosses ground rising 11 → 14 over sixteen blocks, so an average of 12.4 would
+    have left the last three blocks of it buried again. The highest is the only level that is both straight
+    and never under the terrain. What that costs is height at the low end, which is what the new complaint
+    is for: the same wall now stands **six** courses proud there, and the author's cap is four.
+
+    `RoomFrames.WallCourses` and `WallCoursesMax` carry the two numbers, in `Domain` rather than beside
+    either user, because the compiler and the stamper both measure from the first and a second `const`
+    aliasing one that exists is two rules. `ST4` joins `RuleCatalog.Raised`, since it is now cited.
+
 42. **The build ceiling is the terrain's average, and nothing standing on it counts (2026-09-20).**
     Author's call, amending 25. That amendment raised the cap for the buildings, so a two-storey spawn hall
     lifted the sky over the whole board; the cap then tracked whatever the tallest thing an author placed
@@ -1204,3 +1309,21 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     board's other room carried two. Both rules now say full-width or narrower, both sites call the predicate,
     and the composer's gate reads `PlanValidator` through the same path, so three of 120 recorded boards move
     verdict and `ComposerVersion` is `body-first-2` (`WE128`).
+
+53. **A refused split carries a stone (2026-09-25).** Amendment 35's "a split band carries none" read the
+    request rather than the grant: `MidCarver.TryCarve` laid no row whenever the crossing asked to split, and
+    `SplitRun` grants the split only where the face coincides with its own image as two legs round the axis.
+    A refused split is one band across the whole hull of the faces, opened at the stoneless 30 blocks, so it
+    spent the widest crossing on the board and put nothing in it — `p8 rot_180 seed 2` at nano, a 6-cell hull,
+    `mid 0/28`. A realised split still carries none; a refused one carries the single rank astride the axis at
+    the depth that gap leaves a hop either side of (`RefusedSplitDeepCells`, two cells on every grid the
+    composer uses). Fifteen of the 120 recorded boards move, all `rot_180`, and `ComposerVersion` is
+    `walled-4` (`G271`).
+
+54. **`WL2`'s lane clause is hard: a wool room shares no edge with its own spawn (2026-09-25).** Author's
+    call. Only the distance half of `WL2` was measured, and it measures the walk from spawn point to wool
+    block, so a row of room, spawn and room with their edges touching — eight blocks apart in the built world,
+    33 by the walk — cleared it. The clause is read at exactly one place: a `wool-room` piece and a `spawn`
+    piece of the same team sharing a land seam, full-width or narrow. A corner touch shares no edge, and no
+    cell-distance clause is added. The term is `wool-room-spawn-seam`; every composed wool unit is a room
+    behind its own lane, so no composed board moves and `ComposerVersion` stands (`G263`).

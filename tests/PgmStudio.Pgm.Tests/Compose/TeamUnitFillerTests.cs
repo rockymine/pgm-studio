@@ -110,9 +110,9 @@ public class TeamUnitFillerTests
                     new EdgeOffer(BoxEdge.Right, new EdgeInterval(0, 6, ApproachSlots.Bar), 2, OfferGrouping.Several, "hub-Right")),
             ]);
 
-        var filled = TeamUnitFiller.Fill(partition, "south", new ComposeRng(1))!;
+        var filled = TeamUnitFiller.Fill(partition, new ComposeRng(1))!;
 
-        await Assert.That(filled.Unit.Spawn.Facing).IsEqualTo("south");                       // the one frame value, threaded through
+        await Assert.That(filled.Unit.Spawn.Facing).IsEqualTo("front");                       // behind the hub, it faces through it
         await Assert.That(filled.Unit.Wools.Count).IsEqualTo(1);
         // every team-unit box kind emitted its pieces, hub-first
         await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
@@ -128,7 +128,7 @@ public class TeamUnitFillerTests
     {
         var partition = new BoxPartition(
             [new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 36)], []);
-        await Assert.That(TeamUnitFiller.Fill(partition, "south", new ComposeRng(1))).IsNull();
+        await Assert.That(TeamUnitFiller.Fill(partition, new ComposeRng(1))).IsNull();
     }
 
     [Test]
@@ -148,7 +148,7 @@ public class TeamUnitFillerTests
                     new EdgeOffer(BoxEdge.Top, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "hub-Top")),
             ]);
 
-        var filled = TeamUnitFiller.Fill(partition, "north", new ComposeRng(3))!;
+        var filled = TeamUnitFiller.Fill(partition, new ComposeRng(3))!;
 
         // the frontline emitted its terrain but no room (a join, not a placement), and offered its face to the mid
         await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Frontline)).IsTrue();

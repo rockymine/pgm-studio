@@ -124,7 +124,7 @@ public static class MapExportComposer
         if (SketchLayoutCheck.Check(layoutJson) is { Refuses: true } oversized)
             return Refuse("the board cannot be built as drawn", [.. oversized.Refusals], 422);
 
-        var built = WorldBuilder.Build(layoutJson, intent);
+        var built = BuiltWorlds.Of(layoutJson, intent);
         var goals = built.ResolvedIntent;
 
         // The ground this export ships, as the build itself read it. A sketch map's stored segments are
@@ -469,10 +469,11 @@ public static class MapExportComposer
     /// draws for water meeting the void. Measuring against it reported the floor's own height above y=0 as
     /// though it were a step, so every structure at the rim raised one and the number it carried was its
     /// altitude.</para>
-    /// <para><b>And only what lays a foundation is asked</b> (<see cref="StructureStamper.FoundationKinds"/>).
-    /// The floor below is the footprint's highest, which is the height of every cell in it only where
-    /// something levelled them to it. A bedrock wall, a redstone line and a goal's buried plate level
-    /// nothing, so against a footprint that spans a step — a wall sitting on the seam between two pieces —
+    /// <para><b>And only what lays a foundation is asked</b> (<see cref="StructureStamper.FoundationKinds"/>),
+    /// from the floor <see cref="StructureStamper.FoundationLevel"/> levels it to — the stamp's own reading,
+    /// which is the height of every cell in the footprint because the stamp levelled them to it. A placed
+    /// building lays none: it seats on its lowest column and digs the rest out. A bedrock wall, a redstone
+    /// line and a goal's buried plate level nothing either, so against a footprint that spans a step — a wall sitting on the seam between two pieces —
     /// the maximum belongs to one row and the neighbour that wins is beside the other, and the drop reported
     /// is between two cells that never meet.</para>
     /// <para>Read off the provenance rather than the intent, so it covers every stamping of such a thing by
@@ -480,7 +481,7 @@ public static class MapExportComposer
     /// the world builds either way.</para>
     /// <para><b>surface</b> — The <b>terrain's</b> tops, cell by cell — <see cref="BuiltWorld.Surface"/>. Not the
     /// board's highest: what stands over a cell is not what a building beside it steps down to, and a balloon
-    /// flying over a field would read as a fifty-block plinth under the shed on it.</para></summary>
+    /// flying over a field would read as a fifty-block plinth under the room beside it.</para></summary>
     /// <para><b>groupAt</b> — The relief group a cell's ground is solved under, where the caller holds the
     /// layout to say. With it, the finding states the edit that settles it: an <c>area</c> mark held flat at
     /// the structure's own floor, two cells past its footprint on every side, on that group's relief. Without
@@ -493,9 +494,8 @@ public static class MapExportComposer
         foreach (var (cell, pass, owner) in provenance.Claims)
         {
             if (pass != ProvenancePass.Structure || owner is not { } stamp) continue;
-            // Only what lays a foundation. The fault here is a foundation's own face, and the floor it is
-            // measured from is the footprint's highest — which is the height of every cell only where
-            // something levelled them to it. See StructureStamper.FoundationKinds.
+            // Only what lays a foundation. The fault here is a foundation's own face, measured from the
+            // floor the foundation levels to. See StructureStamper.FoundationKinds.
             if (!StructureStamper.FoundationKinds.Contains(stamp.Kind)) continue;
             var identity = $"{stamp.Kind}:{stamp.Unit}:{stamp.Image}";
             if (!byOwner.TryGetValue(identity, out var cells)) byOwner[identity] = cells = [];
@@ -506,7 +506,7 @@ public static class MapExportComposer
         foreach (var (identity, cells) in byOwner.OrderBy(entry => entry.Key, StringComparer.Ordinal))
         {
             var footprint = cells.ToHashSet();
-            var floor = cells.Where(surface.ContainsKey).Select(cell => surface[cell]).DefaultIfEmpty(0).Max();
+            var floor = StructureStamper.FoundationLevel(surface, cells);
             int worst = 0, atX = 0, atZ = 0;
             foreach (var (x, z) in cells)
                 foreach (var (nx, nz) in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })

@@ -26,9 +26,10 @@ namespace PgmStudio.Api.Endpoints;
 /// only from a .NET binary is a capability no schema names, so a brief had to carry a table of flags and an agent
 /// had to know the binary existed. These are the same renderers, over the same world, answering over HTTP — and
 /// what each one draws is written once, as the endpoint description the schema publishes.</para>
-/// <para><b>The world is built for the request.</b> A map that ships its own region files has one on disk, but a
-/// sketch-authored map's world exists only as the layout and the intent it is derived from — the same position
-/// <c>GET …/export</c> is in, and it builds one too. The build here runs <b>no gate</b>, deliberately: a board
+/// <para><b>The world is built from the stored documents, once.</b> A map that ships its own region files has one
+/// on disk, but a sketch-authored map's world exists only as the layout and the intent it is derived from — the
+/// same position <c>GET …/export</c> is in — and <see cref="BuiltWorlds"/> builds it once for every read and the
+/// export to share. The build here runs <b>no gate</b>, deliberately: a board
 /// that fails one is exactly the board somebody needs to look at, and a read-back that refuses the broken case is
 /// a read-back that is never there when it is wanted.</para>
 /// <para>The map document is projected from the resolved intent rather than composed through the export, for the
@@ -55,7 +56,7 @@ internal static class WorldReads
 
         var layoutJson = System.Text.Encoding.UTF8.GetString(layout);
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
-        var built = WorldBuilder.Build(layoutJson, intent);
+        var built = BuiltWorlds.Of(layoutJson, intent);
 
         // The overlays read a map document, and the one that describes this world is the projection of the
         // intent the build just resolved — spawns snapped to the structures it placed, goal locations filled
@@ -759,15 +760,19 @@ internal static class WalkReads
     ///
     /// <para>The runs come off the <b>world</b> rather than off <c>Built.Columns</c>, which is the
     /// rasterizer's read of the terrain a build stood on — one span per cell, with no house, tree or
-    /// structure in it. A walk over that set crosses a building as though it were not there.</para></summary>
+    /// structure in it. A walk over that set crosses a building as though it were not there.</para>
+    ///
+    /// <para>A tree's and a boulder's blocks are kept apart from the rest (<c>WorldColumns.ForWalk</c>): solid,
+    /// so a trunk is not walked through, and never a place to stand, so a crown over the void is void to the
+    /// walk as it is to <c>column</c>, <c>transect</c> and the census.</para></summary>
     public static WalkGround Ground(BuiltRead read, string layoutJson)
     {
         var areas = (read.Built.ResolvedIntent.Build?.Areas ?? [])
             .Select(a => ((int)Math.Floor(a.MinX), (int)Math.Floor(a.MinZ),
                           (int)Math.Ceiling(a.MaxX), (int)Math.Ceiling(a.MaxZ)));
-        var spans = PgmStudio.Minecraft.Anvil.WorldColumns.Of(read.Built.World)
-            .SelectMany(column => column.Runs.Select(run => (column.X, column.Z, run.YBottom, run.YTop)));
-        return WorldWalk.OfBuilt(spans, areas, Water(layoutJson));
+        var (ground, props) = PgmStudio.Minecraft.Anvil.WorldColumns.ForWalk(
+            read.Built.World, read.Built.Provenance, read.Built.Columns ?? []);
+        return WorldWalk.OfBuilt(ground, props, areas, Water(layoutJson));
     }
 
     /// <summary>The team a walk is measured for, checked against the ones the map spawns so a misspelling
@@ -850,9 +855,9 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
                                + "out of it, so a route through an enemy protection is not offered. Absent "
                                + "walks the ground every team shares."),
             new QueryWord("beside", "Every distinct thing recorded within this many cells (Chebyshev) of any "
-                               + "cell the route passes through — a tree, a boulder, a house, water, a spawn, "
-                               + "a goal, wool or an iron cube; flora and paint are left out. 0 to 6, absent "
-                               + "asks for none.", Min: 0, Max: 6)));
+                               + "cell the route passes through — a wall, a redstone line, an iron cube, a "
+                               + "spawn, a wool, a destroyable, a core, a control point, a house, a tree, a "
+                               + "boulder or water. 0 to 6, absent asks for none.", Min: 0, Max: 6)));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -900,13 +905,13 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
             return;
         }
 
-        var profile = WalkProfile.Of(path);
+        var profile = WalkProfile.Of(path, read.Built.Provenance);
         var beside = WalkProfile.Beside(path, read.Built.Provenance, besideRadius);
 
         if (TextAnswer.Wanted(HttpContext))
         {
             await TextAnswer.WriteAsync(HttpContext,
-                WalkProfile.Render(from.Value, to.Value, name, path, profile, beside), ct);
+                WalkProfile.Render(from.Value, to.Value, name, path, profile, beside, read.Built.Provenance), ct);
             return;
         }
 

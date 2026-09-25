@@ -1,4 +1,5 @@
 using PgmStudio.Geom;
+using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
 using PgmStudio.Vocabulary;
 
@@ -50,10 +51,6 @@ public static class UnitTuning
                  (int)Math.Round(WoolCorridorBlocks(SizeBands.Canonical(band)) / (double)cell,
                                  MidpointRounding.AwayFromZero));
 
-    /// <summary>One unit in this many has no frontline — the sampled exception that keeps the frontline from
-    /// being universal. Every band's budget affords one, so nothing else withholds it.</summary>
-    internal const int NoFrontlineInN = 7;
-
     /// <summary>How often a nano unit carries a <b>second</b> wool. One wool a team is what 57% of nano maps
     /// carry; two is the rest.</summary>
     internal const double SecondWoolChance = 0.4;
@@ -100,10 +97,16 @@ public static class UnitTuning
 
     // ── the shape mix: which bodies a box may be ───────────────────────────────────────────────────────────
 
+    /// <summary>The narrowest a composed hub hole is, in cells on a <paramref name="cell"/>-block grid:
+    /// <c>WL12</c>'s floor for a hole touching no goal (<see cref="PlanValidator.MinPlainSpaceBlocks"/>),
+    /// rounded up. A narrower hole is jumped rather than rounded, so it splits nothing.</summary>
+    internal static int HubHoleCells(int cell) =>
+        (PlanValidator.MinPlainSpaceBlocks + cell - 1) / cell;
+
     /// <summary>The smallest hub dimension a <b>ring</b> fits in at corridor width
-    /// <paramref name="corridorCells"/> — two walls and a hole one corridor wide. A hub at least this big on
-    /// both axes is a "big square" and prefers negative space to solid area.</summary>
-    internal static int RingFitCells(int corridorCells) => 2 * corridorCells + 1;
+    /// <paramref name="corridorCells"/> — two walls and a hole of <see cref="HubHoleCells"/>. A hub at least this
+    /// big on both axes is a "big square" and prefers negative space to solid area.</summary>
+    internal static int RingFitCells(int corridorCells, int cell) => 2 * corridorCells + HubHoleCells(cell);
 
     /// <summary>Of big-square hubs, how often the form is the <b>ring</b> specifically rather than another
     /// negative-space body. The ring's void always fits and survives a frontline, so it carries most of them.</summary>
@@ -146,9 +149,9 @@ public static class UnitTuning
 
     /// <summary>The box width at or above which a hub is <b>wide enough for the holed wide bodies</b> at
     /// corridor width <paramref name="corridorCells"/> — the P (loop + overhanging bar) and the Double-hole
-    /// (ring + docked U) each keep a bar beside their ring, so <c>w − 2·cw ≥ 2·cw + 1</c>. Below it they
-    /// directed-null and the compact menu is used.</summary>
-    internal static int WideHubCells(int corridorCells) => 4 * corridorCells + 1;
+    /// (ring + docked U) each keep a bar beside their ring, so <c>w − 2·cw</c> has to fit a ring
+    /// (<see cref="RingFitCells"/>). Below it the compact menu is used.</summary>
+    internal static int WideHubCells(int corridorCells, int cell) => 2 * corridorCells + RingFitCells(corridorCells, cell);
 
     // ── the shape mix: how often each wool shape is sampled ────────────────────────────────────────────────
 
@@ -198,8 +201,9 @@ public static class UnitTuning
     internal static int DonutEntryMaxCells(int woolLaneCells) => Math.Max(woolLaneCells, 5);
 
     /// <summary>The donut's enclosed hole cap <b>along</b> the hub edge (the ring's mouth-side extent), in cells.
-    /// Sampled from one, so it needs no lane floor.</summary>
-    internal const int DonutHoleAlongMaxCells = 3;
+    /// Its legs run along it, so it is sampled from <see cref="WallPlacer.LaneCells"/> — the leg a wall crosses a
+    /// cell off the entry bar — or <see cref="HubHoleCells"/> where that is larger, and never under either.</summary>
+    internal const int DonutHoleAlongMaxCells = 4;
 
     /// <summary>The donut's enclosed hole cap <b>deep</b> (outward), in cells. The min box gives the 1×2 hole;
     /// the sampled growth reaches 3×5 — the box grows and the emitter's ring absorbs it (its span derives from
@@ -252,11 +256,11 @@ public static class UnitTuning
     }
 
     /// <summary>Sample a unit's placement plan: the wool count, the spawn's side (back or a lateral side), and
-    /// the wools around it. <paramref name="hasFrontline"/> reserves the front side for the frontline.</summary>
-    public static UnitPlan SamplePlan(ComposeEnvelope env, ComposeRng rng, bool hasFrontline)
+    /// the wools around it. The front side is the frontline's on every unit.</summary>
+    public static UnitPlan SamplePlan(ComposeEnvelope env, ComposeRng rng)
     {
         var woolCount = WoolCount(env, rng);
         var spawn = new[] { UnitSide.Back, UnitSide.Left, UnitSide.Right }[rng.NextInt(0, 3)];
-        return new UnitPlan(hasFrontline ? UnitSide.Front : null, spawn, AssignWools(spawn, woolCount));
+        return new UnitPlan(spawn, AssignWools(spawn, woolCount));
     }
 }

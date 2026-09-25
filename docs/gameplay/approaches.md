@@ -111,8 +111,10 @@ not have to search for where to put it. A monument far from the spawn, or hidden
 has to find, is the failure this exists to prevent.
 
 **[author]** A **defence wall** is a CTW device. It is bedrock, it is pre-built, and it exists to slow an
-attack down and give the defence a prepared line to hold — which is why it is authored on the interface
-between two pieces rather than derived, and why nothing generated ever asks for one (`mapgen-review.md` MG21).
+attack down and give the defence a prepared line to hold — which is why it stands on the interface between
+two pieces rather than being derived from the ground. A composed board carries one per wool approach, on a seam
+nothing runs past, near the room — and two on a donut, one across each leg by the entry bar, because a donut is
+two ways in and one wall leaves the other open (`model.md` §5.14).
 
 **[author]** **The wall is meant to be in the way, and that is the whole of it.** A wall standing across a
 wool's approach is not a fault to be routed around: blocking the way in is the device's purpose, giving the

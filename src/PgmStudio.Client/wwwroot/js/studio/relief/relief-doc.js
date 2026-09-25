@@ -78,16 +78,11 @@ export function defaultMark(kind, height = FALLBACK_BASE) {
 }
 
 /**
- * A fresh push. The numbers mirror the C# record defaults, with one exception that is a UI decision rather
- * than a model one: `crown` ships at **2** here where the record's default is 0.
- *
- * A crown of zero gives a drawn ring a flat top, and a flat top is the least natural of the three settings —
- * it is a plateau, and a plateau is the thing an author reaches for a push to stop making. Two is a gentle
- * dome on a round ring and a gentle ridge on a long one, from the same number, because the middle is measured
- * inward and a shape's inward middle is a point when it is round and a line when it is long.
+ * A fresh push. `crown` is the record's own default, 0: the crown is added to the amount in world height
+ * whatever the amount's sign, so any other seed is a mound in the floor of a push turned into a dig.
  */
 export function defaultPush() {
-  return { kind: PUSH_KIND, id: "", ring: [], amount: 5, falloff: 10, roughness: 0.3, crown: 2, seed: 1 };
+  return { kind: PUSH_KIND, id: "", ring: [], amount: 5, falloff: 10, roughness: 0.3, crown: 0, seed: 1 };
 }
 
 /** Whether a kind is placed at a point rather than traced. Only a spot height is: a summit is a decision about

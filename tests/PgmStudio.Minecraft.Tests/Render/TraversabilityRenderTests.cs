@@ -112,8 +112,9 @@ public sealed class TraversabilityRenderTests
         return world;
     }
 
-    // BuildGenerator's own shape: a rectangle (or a union of them) wrapped in a negative, gated by a filter
-    // that chases down to "void" — the wiring PGM actually enforces at kickoff, not a name convention.
+    // BuildGenerator's own shape: a rectangle (or a union of them) wrapped in a negative, its place scope gated
+    // by a filter that chases down to "void" and its break scope by the exception filter beside it — the
+    // wiring PGM actually enforces at kickoff, not a name convention.
     private static MapXml MapWithBuildRegion(int minX, int minZ, int maxX, int maxZ)
     {
         var map = new MapXml();
@@ -121,8 +122,25 @@ public sealed class TraversabilityRenderTests
         map.Regions["not-build-area"] = new Region { Id = "not-build-area", Type = "negative", Children = ["build-area-1"] };
         map.Filters["is-void"] = new Filter { Id = "is-void", Type = "void" };
         map.Filters["no-void"] = new Filter { Id = "no-void", Type = "not", Child = "is-void" };
-        map.ApplyRules.Add(new ApplyRule { BlockFilter = "no-void", RegionId = "not-build-area" });
+        map.Filters["over-void-breakable"] = new Filter { Id = "over-void-breakable", Type = "any" };
+        map.ApplyRules.Add(new ApplyRule
+        {
+            BlockPlaceFilter = "no-void", BlockBreakFilter = "over-void-breakable", RegionId = "not-build-area",
+        });
         return map;
+    }
+
+    [Test]
+    public async Task A_void_rule_stated_on_the_block_scope_opens_the_same_columns_as_one_on_the_place_scope()
+    {
+        var placeScoped = MapWithBuildRegion(minX: 2, minZ: -1, maxX: 5, maxZ: 3);
+        var bothScoped = MapWithBuildRegion(minX: 2, minZ: -1, maxX: 5, maxZ: 3);
+        bothScoped.ApplyRules[0] = new ApplyRule { BlockFilter = "no-void", RegionId = "not-build-area" };
+
+        var placed = TraversabilityRender.BridgeableColumns(placeScoped);
+
+        await Assert.That(placed.Count).IsGreaterThan(0);
+        await Assert.That(placed.SetEquals(TraversabilityRender.BridgeableColumns(bothScoped))).IsTrue();
     }
 
     [Test]

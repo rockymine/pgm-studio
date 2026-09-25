@@ -390,9 +390,11 @@ name, and the name is a row here (author).
 
 A `tree_style` is one of **two trees**, which its form picks. A `template` tree names a **species**, whose row
 carries the wood, the canopy profile and the proportions, and scales it by height. A `copied` tree is one an
-author built by hand and carries its own **body**: every block as `[x, y, z, id, data]` from its foot, the
-lowest log, which stands at the origin and rests on the ground. Its height is read off the body rather than
-stated, and it has no knob — it is retuned by cutting it again. Each form reads only its own fields, so the
+author built in a world and the cutter took out of it, and it carries its own **body**: every block as
+`[x, y, z, id, data]` from its foot, the lowest log, which stands at the origin and rests on the ground. Its
+height is read off the body rather than stated, and it has no knob — it is retuned by cutting it again. Beside
+the body it carries its **cut**, `{world, x, y, z, at}`: the world directory it was cut from, the foot's world
+coordinates there and the time of the cut (UTC), which a template never carries. Each form reads only its own fields, so the
 ones it does not read are inert rather than wrong, and switching form keeps every field: a body survives a
 look at what the same recipe would be as a template, and the species chosen for it is still chosen on the way
 back. A `boulder_style` is four statements — form, size,
@@ -410,13 +412,14 @@ written for, and
 cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the six vanilla species
 and four erratics, and knows nothing about any world.
 
-**Nothing yet enforces "cut out of a world" (`TL15`).** A body carries no record of where it came from, so the
-cutter's row and a hand-typed array are indistinguishable once stored — which is how boards came to file a
-dead-bush cluster, a log pile and a crate as `copied` trees. `PropStyleLibrary.Save` takes the request's own
-`Body` for any row whose form is `copied`, and what the entry asks for is the refusal: the cut recorded on the
-row, and a row claiming the form without one turned away. A body is the only recipe that can carry a block the
-two generative forms cannot emit, so a hand-built prop wants a form word of its own before `copied` closes to
-it.
+**A `copied` save without a cut is refused.** The cutter is what writes a cut and nothing else does, so a
+row claiming the form states one or is turned away with `DR-COPY` at **400** — a block list typed into a
+request, a dead-bush cluster, a log pile or a crate is not a tree cut from a world, and the library files no
+such thing as one. There is no form word for a hand-built body: a prop that is not a tree cut from a world is
+not filed here at all. A re-save carries the `cut` the recipe's `GET` answered, which is what the editor sends.
+A row filed before the cut was recorded loads, browses and places as it did and answers no `cut`, so it cannot
+be saved again as `copied` until the cutter files it again — re-running `tools/seed-trees.cs` over the same
+world updates every row it cut, by name, with the cut recorded.
 
 **The card is the whole picture, and that is the point.** Six woods differ in colour and six species differ in
 *shape* — a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia — and neither reads off a
@@ -680,6 +683,11 @@ rule ids (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` 
   of a single course it is a one-block rim round a building with no foundation under it. Either drop it — no
   footing is the default — or give the plate the two or three courses that earn one.
 
+**A copied tree that states no cut is refused where it is saved.** `POST`/`PUT /tree-styles` run
+`PropStyleLibrary.Check` over the request, and a `copied` form with no `cut` answers **400**
+`{error: "invalid tree style", findings: [{rule: "DR-COPY", field: "cut", …}]}` (above, *A tree and a boulder
+are recipes a click puts down*). A template is never refused there, and a `cut` sent with one is dropped.
+
 Beyond that the library barely refuses. A save needs a name. A storey's clear floors at three. An unbound
 bucket that still paints is dropped rather than rejected. Nothing yet validates a *composition* as a whole — a
 roof and a storey that would look wrong stacked, a window sized bigger than the wall that holds it — only that
@@ -708,7 +716,7 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
 | `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds. The answer is `{plan, section, cutaway, columns}`: three SVG cuts, and **`columns`** — the stamped world's own per-column runs, the same shape `POST /plan/columns` answers for a map, which the browser meshes and draws in 3-D. **The two take different bodies**: `preview` takes the same record as `POST /room-styles`, `preview-snapshot` takes a **bare `HouseStyle`** — the document itself, unwrapped, exactly what `GET /room-styles/{id}/json` hands back once its string is unwrapped. A wrapper posted to it is dropped and previews the defaults |
 | `DELETE /room-styles/{id}` | forget a room style; its courses cascade, its styles stay |
-| `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}`. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
+| `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. A tree is `{name, form, species, height, body, cut}`; `POST`/`PUT /tree-styles` answer 400 `{error: "invalid tree style", findings}` with `DR-COPY` when a `copied` tree carries no `cut`. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}`. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
 | `GET /tree-styles/{id}/json` · `GET /boulder-styles/{id}/json` | the recipe as a dressing document states it, as `{styleJson: "…"}` — what a pull copies into a map's `styles` registry under a key |
 | `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette — each block's id/data, name, tone family, swatch, and what it **looks like** per face (below) — and every material kind with its fields, defaults and the cell facts it varies with |
 | `GET /terrain/looks` | the construction words a face's `construction` is drawn from, each with what it means |

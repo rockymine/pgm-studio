@@ -1,5 +1,6 @@
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
+using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
 using PgmStudio.Vocabulary;
 
@@ -44,23 +45,26 @@ public class TeamUnitAllocatorTests
     }
 
     [Test]
-    public async Task Sample_plan_reserves_the_front_for_the_frontline_and_seats_the_spawn_off_front()
+    public async Task Sample_plan_never_seats_the_spawn_or_a_wool_on_the_front()
     {
         var env = Env();
-        var plan = UnitTuning.SamplePlan(env, new ComposeRng(7), hasFrontline: true);
+        var plan = UnitTuning.SamplePlan(env, new ComposeRng(7));
 
-        await Assert.That(plan.Frontline).IsEqualTo(UnitSide.Front);
         await Assert.That(plan.Spawn).IsNotEqualTo(UnitSide.Front);
         await Assert.That(plan.Wools.Count).IsGreaterThanOrEqualTo(1);
         await Assert.That(plan.Wools.All(s => s != UnitSide.Front)).IsTrue();
     }
 
     [Test]
-    public async Task No_frontline_leaves_the_front_unassigned()
+    public async Task Every_allocated_unit_carries_a_frontline()
     {
-        var env = Env();
-        var plan = UnitTuning.SamplePlan(env, new ComposeRng(7), hasFrontline: false);
-        await Assert.That(plan.Frontline).IsNull();
+        foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0), (20, 3800.0) })
+            for (ulong seed = 0; seed < 200; seed++)
+            {
+                if (TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed)) is not { } a) continue;
+                await Assert.That(a.Boxes.Any(b => b.Kind == BoxKind.Frontline)).IsTrue()
+                    .Because($"{players}p/{land:0} seed {seed}");
+            }
     }
 
     [Test]
@@ -68,7 +72,7 @@ public class TeamUnitAllocatorTests
     {
         var alloc = TeamUnitAllocator.Allocate(Env(), new ComposeRng(5));
         await Assert.That(alloc).IsNotNull();
-        var (partition, facing) = alloc!.Value;
+        var partition = alloc!;
 
         // the hub and spawn are both allocated and do not overlap
         var hub = partition.ById("hub")!;
@@ -76,22 +80,26 @@ public class TeamUnitAllocatorTests
         await Assert.That(Overlap(hub.Rect, spawn.Rect)).IsFalse();
 
         // the allocated partition round-trips through the filler: allocate -> fill, end to end for the first time
-        var filled = TeamUnitFiller.Fill(partition, facing, new ComposeRng(5));
+        var filled = TeamUnitFiller.Fill(partition, new ComposeRng(5));
         await Assert.That(filled).IsNotNull();
         await Assert.That(filled!.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
         await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Spawn)).IsTrue();
-        await Assert.That(filled.Unit.Spawn.Facing).IsEqualTo(facing);
+        // the spawn faces into the hub from whichever side it docks (mirror_z: front is −z)
+        var intoHub = spawn.Rect.X >= hub.Rect.X + hub.Rect.Width ? "left"
+            : spawn.Rect.X + spawn.Rect.Width <= hub.Rect.X ? "right"
+            : spawn.Rect.Z >= hub.Rect.Z + hub.Rect.Height ? "front" : "back";
+        await Assert.That(filled.Unit.Spawn.Facing).IsEqualTo(intoHub);
     }
 
     [Test]
     public async Task Allocates_a_full_unit_with_wools_and_no_overlaps_the_filler_consumes()
     {
-        var (partition, facing) = TeamUnitAllocator.Allocate(Env(players: 8, land: 1600), new ComposeRng(11))!.Value;
+        var partition = TeamUnitAllocator.Allocate(Env(players: 8, land: 1600), new ComposeRng(11))!;
 
         await Assert.That(partition.Boxes.Any(b => b.Kind == BoxKind.Wool)).IsTrue();
         await Assert.That(NoOverlaps(partition.Boxes.Select(b => b.Rect))).IsTrue();   // the boxes tile without collision
 
-        var filled = TeamUnitFiller.Fill(partition, facing, new ComposeRng(11))!;
+        var filled = TeamUnitFiller.Fill(partition, new ComposeRng(11))!;
         await Assert.That(filled.Unit.Wools.Count).IsGreaterThanOrEqualTo(1);
         await Assert.That(NoOverlaps(filled.Unit.Pieces.Select(p => p.Rect))).IsTrue();  // a valid layout — no piece overlaps
     }
@@ -108,7 +116,7 @@ public class TeamUnitAllocatorTests
             {
                 var alloc = TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed));
                 if (alloc is not { } a) continue;
-                var filled = TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng(seed));
+                var filled = TeamUnitFiller.Fill(a, new ComposeRng(seed));
                 if (filled is null) continue;
                 await Assert.That(Cells.HasDiagonalPinch(Mask(filled.Unit.Pieces))).IsFalse();
             }
@@ -136,10 +144,10 @@ public class TeamUnitAllocatorTests
                 var crossing = MidCarver.Crossing(envelope, splitBand: false, doubleRank: false, fine: false);
                 if (TeamUnitAllocator.Allocate(envelope, rng, crossing) is not { } alloc) continue;
 
-                var hub = alloc.Partition.Boxes.FirstOrDefault(b => b.Kind == BoxKind.Hub);
-                var front = alloc.Partition.Boxes.FirstOrDefault(b => b.Kind == BoxKind.Frontline);
+                var hub = alloc.Boxes.FirstOrDefault(b => b.Kind == BoxKind.Hub);
+                var front = alloc.Boxes.FirstOrDefault(b => b.Kind == BoxKind.Frontline);
                 if (hub is null || front is null) continue;
-                if (TeamUnitFiller.Fill(alloc.Partition, alloc.SpawnFacing, rng) is not { } filled) continue;
+                if (TeamUnitFiller.Fill(alloc, rng) is not { } filled) continue;
 
                 var hubCells = Mask(filled.Unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Hub).ToList());
                 if (hubCells.Count == 0) continue;
@@ -169,10 +177,7 @@ public class TeamUnitAllocatorTests
     public async Task Neighbour_spawn_and_wool_bodies_keep_the_lane_width_gap()
     {
         // the seat-step separation law: no spawn/wool neighbour touches (or corner-touches) another spawn/wool —
-        // they stay at least the band's own corridor width apart. One narrowing: on a no-frontline unit the
-        // front guard may, as its last tier before a flush front, reseat a wool at the wool lane's width — so a
-        // pair involving a wool there keeps that floor instead; the full gap still binds every with-frontline
-        // unit and every spawn↔spawn pair.
+        // they stay at least the band's own corridor width apart.
         foreach (var players in new[] { 8, 12, 16, 24, 32 })
         {
             var env = Envelope.Derive(new ComposeRequest(players), new ComposeRng(1));
@@ -182,14 +187,11 @@ public class TeamUnitAllocatorTests
             {
                 var alloc = TeamUnitAllocator.Allocate(env, new ComposeRng(seed));
                 if (alloc is not { } a) continue;
-                var noFront = a.Partition.Boxes.All(b => b.Kind != BoxKind.Frontline);
-                var nbs = a.Partition.Boxes.Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool).ToList();
+                var nbs = a.Boxes.Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool).ToList();
                 for (var i = 0; i < nbs.Count; i++)
                     for (var j = i + 1; j < nbs.Count; j++)
                     {
-                        var woolPair = nbs[i].Kind == BoxKind.Wool || nbs[j].Kind == BoxKind.Wool;
-                        var gap = noFront && woolPair ? Math.Min(w, env.WoolCorridorCells) : w;
-                        await Assert.That(Separated(nbs[i].Rect, nbs[j].Rect, gap)).IsTrue()
+                        await Assert.That(Separated(nbs[i].Rect, nbs[j].Rect, w)).IsTrue()
                             .Because($"{nbs[i].Id}<->{nbs[j].Id} @ {players}p/{land:0} seed {seed}");
                     }
             }
@@ -197,36 +199,86 @@ public class TeamUnitAllocatorTests
     }
 
     [Test]
-    public async Task No_frontline_units_keep_every_neighbour_off_the_hub_front_face()
+    public async Task A_lateral_spawn_sits_in_line_with_the_hub_hole_or_its_middle()
     {
-        // the front-guard law: on a unit without a frontline, no spawn/wool may end flush with (or past) the
-        // hub's front face — a flush neighbour extends the face into one long flat frontier, which map design
-        // forbids. Every neighbour's front-most extent stays at least one cell behind the face.
-        //
-        // The one exemption the guard itself carries: a residue that survives the whole resolve fails the unit
-        // for every form BUT the solid rectangle, which is the last fallback and has nowhere further to fall
-        // back to. So a flush seat is lawful only on a saturated rectangle — which is what this asserts, over a
-        // sweep wide enough to actually reach one (they are ~0.3% of units, so a short sweep never sees them).
-        var flushOnRectangle = 0;
+        // a spawn beside the hub faces its hole squarely: its centre within a cell of the hole's centre, or of the
+        // edge's middle on a hub without one (mirror_z: a lateral spawn runs along z)
+        var lateral = 0;
         foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0), (20, 3800.0) })
-            for (ulong seed = 0; seed < 600; seed++)
+            for (ulong seed = 0; seed < 300; seed++)
             {
-                var alloc = TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed));
-                if (alloc is not { } a) continue;
-                if (a.Partition.Boxes.Any(b => b.Kind == BoxKind.Frontline)) continue;   // occupied front — exempt
-                var hub = a.Partition.ById("hub")!;
-                var face = hub.Rect.Z;                               // mirror_z: the front is the hub's min-z edge
-                foreach (var nb in a.Partition.Boxes.Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool))
-                {
-                    if (nb.Rect.Z - face >= 1) continue;
-                    await Assert.That(hub.Form?.Form ?? Compound.Rectangle).IsEqualTo(Compound.Rectangle)
-                        .Because($"{nb.Id} @ {players}p/{land:0} seed {seed} sits flush with the hub front, "
-                                 + "which only a saturated solid rectangle may do");
-                    flushOnRectangle++;
-                }
+                if (TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed)) is not { } a) continue;
+                if (TeamUnitFiller.Fill(a, new ComposeRng(seed)) is not { } filled) continue;
+                var hub = a.ById("hub")!.Rect;
+                var spawn = a.Boxes.Single(b => b.Kind == BoxKind.Spawn).Rect;
+                if (spawn.X + spawn.Width != hub.X && spawn.X != hub.X + hub.Width) continue;
+                lateral++;
+                var hole = Enclosed(hub, filled.Unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Hub).Select(p => p.Rect));
+                var target2 = hole.Count > 0 ? hole.Min(c => c.Z) + hole.Max(c => c.Z) + 1 : 2 * hub.Z + hub.Height;
+                await Assert.That(Math.Abs(2 * spawn.Z + spawn.Height - target2)).IsLessThanOrEqualTo(2)
+                    .Because($"{players}p/{land:0} seed {seed}: spawn z {spawn.Z}+{spawn.Height}, hub {hub}, hole cells {hole.Count}");
             }
-        await Assert.That(flushOnRectangle).IsGreaterThan(0)
-            .Because("the sweep has to actually reach the saturated-rectangle case it exempts");
+        await Assert.That(lateral).IsGreaterThan(0).Because("the sweep has to reach lateral spawns");
+    }
+
+    [Test]
+    public async Task A_unit_with_a_donut_puts_its_spawn_on_the_back_at_the_end_nearer_the_donut()
+    {
+        // a donut draws the unit lopsided, so the spawn stands behind the hub, in the back edge's half on the
+        // donut's side (mirror_z: the back edge runs along x, the donut docks an x-facing side)
+        var donuts = 0;
+        foreach (var (players, land) in new[] { (12, 2800.0), (20, 3800.0), (20, 5000.0) })
+            for (ulong seed = 0; seed < 300; seed++)
+            {
+                if (TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed)) is not { } a) continue;
+                var hub = a.ById("hub")!.Rect;
+                var lateral = a.Boxes.Where(b => b.Wool?.Family == ShapeFamily.Donut
+                    && (b.Rect.X + b.Rect.Width == hub.X || b.Rect.X == hub.X + hub.Width)).ToList();
+                if (lateral.Count != 1) continue;
+                donuts++;
+                var front = a.Boxes.Single(b => b.Kind == BoxKind.Frontline).Rect;
+                var spawn = a.Boxes.Single(b => b.Kind == BoxKind.Spawn).Rect;
+                var backZ = front.Z < hub.Z ? hub.Z + hub.Height : hub.Z;
+                var because = $"{players}p/{land:0} seed {seed}: spawn {spawn}, hub {hub}, donut {lateral[0].Rect}";
+                await Assert.That(spawn.Z == backZ || spawn.Z + spawn.Height == backZ).IsTrue().Because(because);
+                var donutSide = Math.Sign(2 * lateral[0].Rect.X + lateral[0].Rect.Width - (2 * hub.X + hub.Width));
+                var spawnSide = Math.Sign(2 * spawn.X + spawn.Width - (2 * hub.X + hub.Width));
+                await Assert.That(spawnSide).IsEqualTo(donutSide).Because(because);
+            }
+        await Assert.That(donuts).IsGreaterThan(0).Because("the sweep has to reach a donut");
+    }
+
+    [Test]
+    public async Task In_line_keeps_only_the_seats_centred_within_a_cell_of_the_target()
+    {
+        // a 12-cell edge, a 4-cell dock, the target at 6: seats 3..5 centre within a cell of it
+        await Assert.That(UnitSeating.InLine([(0, 12)], 4, 6)).IsEquivalentTo(new[] { (3, 6) });
+        // a run that stops short of the window is cut to what it covers, one wholly outside is dropped
+        await Assert.That(UnitSeating.InLine([(0, 5), (10, 2)], 4, 6)).IsEquivalentTo(new[] { (3, 2) });
+    }
+
+    // the cells of a box no rect covers and no empty path reaches from the box's border
+    private static HashSet<(int X, int Z)> Enclosed(CellRect box, IEnumerable<CellRect> rects)
+    {
+        var land = new HashSet<(int, int)>();
+        foreach (var r in rects)
+            for (var x = r.X; x < r.X + r.Width; x++)
+                for (var z = r.Z; z < r.Z + r.Height; z++) land.Add((x, z));
+        var empty = new HashSet<(int X, int Z)>();
+        for (var x = box.X; x < box.X + box.Width; x++)
+            for (var z = box.Z; z < box.Z + box.Height; z++)
+                if (!land.Contains((x, z))) empty.Add((x, z));
+        var edge = empty.Where(c => c.X == box.X || c.Z == box.Z || c.X == box.X + box.Width - 1 || c.Z == box.Z + box.Height - 1);
+        var reached = new HashSet<(int X, int Z)>(edge);
+        var queue = new Queue<(int X, int Z)>(reached);
+        while (queue.Count > 0)
+        {
+            var (x, z) = queue.Dequeue();
+            foreach (var n in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
+                if (empty.Contains(n) && reached.Add(n)) queue.Enqueue(n);
+        }
+        empty.ExceptWith(reached);
+        return empty;
     }
 
     // two [x,z,w,h] rects keep at least `gap` cells between them on some axis — no touch, no corner-touch (the

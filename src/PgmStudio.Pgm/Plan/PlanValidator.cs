@@ -85,6 +85,14 @@ public static class PlanRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
     public const string WallWithoutInterface = "PL11";
 
+    /// <summary>A bedrock wall sits between two pieces of unequal width, so the wider one carries on past the
+    /// wall's end and an attacker rounds it with one diagonal jump off the corner instead of crossing it. A
+    /// wall belongs between two pieces of the same width, which is the middle of a lane rather than its
+    /// mouth.</summary>
+    /// <remarks>The wall spans only the interval the two pieces share, so ground on a piece that reaches past that interval along the wall's own axis is ground beside the wall's end, and a player standing there is one jump from the ground behind it. Put a piece the lane's own width between the two and wall THAT seam: a wall flanked by nothing has to be crossed, because going round it means leaving the ground.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Structure)]
+    public const string WallAtJunction = "PL17";
+
     /// <summary>A bedrock wall is drawn on the wool room's own interface, so the wall and the room stand
     /// through each other and the room can barely be entered. The wool's own edge is never a wall seat.</summary>
     /// <remarks>Bedrock wall may not interface with the wool room piece: place down the bedrock wall around 15 blocks away from the room — on the approach piece's outer interface, where the approach meets the board.</remarks>
@@ -210,6 +218,11 @@ public static class PlanValidator
         var findings = new List<Finding>();
         void Error(string rule, string message, params string[] subjects) =>
             findings.Add(new Finding(rule, message, Subjects: subjects.Length > 0 ? subjects : null));
+        // Said rather than refused: a board whose wall can be walked round still builds and still plays, and
+        // where the line should sit instead is the author's call.
+        void Complain(string rule, string message, params string[] subjects) =>
+            findings.Add(new Finding(rule, message, Severity.Complaint,
+                                     Subjects: subjects.Length > 0 ? subjects : null));
 
         // PL15 — the shape version, first and alone: every coordinate below is read under the units this
         // version states, so a document from another one is refused rather than measured wrongly.
@@ -358,6 +371,23 @@ public static class PlanValidator
             if (!landPairs.Contains((w.A, w.B)))
                 Error(PlanRules.WallWithoutInterface,
                     $"wall '{w.A}'–'{w.B}' is not a shared land interface", w.A, w.B);
+
+        // and only where no land runs on past either of its ends. A wall spans the interval two pieces share;
+        // ground one block beyond an end, on either face, is ground a player beside the wall steps round it on.
+        // That is the fault `docs/gameplay/approaches.md` states as "ground pulled out past the wall's ends is
+        // what breaks it", and it is a relation between rectangles — the two the wall names, or a third it
+        // stands against at a T — which no render of a built world can show, because by then they are terrain.
+        foreach (var c in d.WallInterfaces)
+        {
+            if (d.Piece(c.A) is not { } pa || d.Piece(c.B) is not { } pb) continue;
+            if (FlankOf(d.Pieces, ContactGraph.WallFootprint(pa, pb)) is not { } flank) continue;
+            Complain(PlanRules.WallAtJunction,
+                $"wall '{c.A}'–'{c.B}' is not flanked: '{flank.Id}' runs past the wall's end, so a player on it "
+                + "beside the wall rounds it with one step off the corner rather than crossing it. A wall sits "
+                + "between two pieces of the same width with nothing beyond its ends — put one the lane's own "
+                + "width between the two and wall that seam instead",
+                c.A, c.B, flank.Id);
+        }
 
         // and never on the wool room's own edge: the wall and the room stamp through each other there, and
         // the device belongs an approach out, not against the room it defends
@@ -877,9 +907,17 @@ public static class PlanValidator
         }
     }
 
-    // ST8 — an approach wall's geometry: the interface it bars is a 10–20 block lane mouth (a wall across a
-    // 30-block face bars a room, not a lane), and it stands about 15 blocks in front of the wool room's
-    // entrance. The full-span clause needs no check: the compiler builds the wall across the whole interface.
+    /// <summary>The lane mouth an approach wall bars, in blocks (<c>ST8</c>): narrower is a doorway, wider bars
+    /// a room rather than a lane.</summary>
+    public const int WallMouthMinBlocks = 10, WallMouthMaxBlocks = 20;
+
+    /// <summary>How far an approach wall stands in front of the wool room's entrance, in blocks (<c>ST8</c>):
+    /// about 15 is the seat.</summary>
+    public const int WallStandoffMinBlocks = 10, WallStandoffMaxBlocks = 20;
+
+    // ST8 — an approach wall's geometry: the interface it bars is a lane mouth (WallMouth*), and it stands in
+    // front of the wool room's entrance (WallStandoff*). The full-span clause needs no check: the compiler
+    // builds the wall across the whole interface.
     private static IEnumerable<Finding> LintSt8(PlanModel plan, ContactGraph d)
     {
         var seams = PieceInterfaces.Seams(d);
@@ -889,10 +927,10 @@ public static class PlanValidator
             // that error would say one fault twice in two vocabularies
             if (wall.RoleA == PlanRoles.WoolRoom || wall.RoleB == PlanRoles.WoolRoom) continue;
 
-            if (wall.Length < 10 || wall.Length > 20)
+            if (wall.Length < WallMouthMinBlocks || wall.Length > WallMouthMaxBlocks)
                 yield return Lint("ST8",
                     $"approach wall '{wall.A}'–'{wall.B}' bars a {wall.Length}-block interface — "
-                    + "a wall wants a 10–20 block lane mouth", wall.A, wall.B);
+                    + $"a wall wants a {WallMouthMinBlocks}–{WallMouthMaxBlocks} block lane mouth", wall.A, wall.B);
 
             // the entrance it defends: the nearest wool-room seam of either walled piece (an approach
             // touching two rooms defends the near one; the far room's distance means nothing). Only a wall
@@ -908,7 +946,7 @@ public static class PlanValidator
                 var standoff = SegmentGap(wall.X1, wall.Z1, wall.X2, wall.Z2, entry.X1, entry.Z1, entry.X2, entry.Z2);
                 if (nearest is null || standoff < nearest) nearest = standoff;
             }
-            if (nearest is { } gap && (gap < 10 || gap > 20))
+            if (nearest is { } gap && (gap < WallStandoffMinBlocks || gap > WallStandoffMaxBlocks))
                 yield return Lint("ST8",
                     $"approach wall '{wall.A}'–'{wall.B}' stands {gap} blocks from the wool room's "
                     + "entrance — about 15 in front is the seat", wall.A, wall.B);
@@ -995,15 +1033,42 @@ public static class PlanValidator
         }
     }
 
+    /// <summary>The first piece holding land one block beyond either end of a wall
+    /// <paramref name="footprint"/>, across both of its faces — the ground a player rounds the wall on — or
+    /// null where both ends stand over void. The footprint is max-exclusive, as a piece's rect is.</summary>
+    internal static DerivedPiece? FlankOf(
+        IEnumerable<DerivedPiece> pieces, (int MinX, int MinZ, int MaxX, int MaxZ) footprint)
+    {
+        var (minX, minZ, maxX, maxZ) = footprint;
+        var alongX = maxX - minX > maxZ - minZ;
+        foreach (var piece in pieces)
+        {
+            var r = piece.Rect;
+            var flanks = alongX
+                ? r.MinZ < maxZ && r.MaxZ > minZ && (Covers(r.MinX, r.MaxX, minX - 1) || Covers(r.MinX, r.MaxX, maxX))
+                : r.MinX < maxX && r.MaxX > minX && (Covers(r.MinZ, r.MaxZ, minZ - 1) || Covers(r.MinZ, r.MaxZ, maxZ));
+            if (flanks) return piece;
+        }
+        return null;
+
+        static bool Covers(int lo, int hi, int at) => lo <= at && at < hi;
+    }
+
     /// <summary>The narrowest frontline a crossing may be, in blocks (the author's number). Under it a front
     /// reads as a funnel whatever share of its face it takes, which is the half <c>FR8</c>'s share cannot
     /// see.</summary>
     public const int MinFrontlineBlocks = 15;
 
-    /// <summary>How wide a negative space beside a wool room or a spawn must be, in blocks — the floor
-    /// <c>WL12</c> measures against. A gap is crossed by jumping long before it is crossed by building, so a
-    /// short one beside a goal deletes the approach the board was drawn around.</summary>
+    /// <summary>How wide a negative space between a wool room or a spawn and the frontline — or another goal —
+    /// must be, in blocks, the floor <c>WL12</c> measures against. A gap is crossed by jumping long before it is
+    /// crossed by building, and one the attack reaches from the front deletes the approach the board was drawn
+    /// around.</summary>
     public const int MinGoalSpaceBlocks = 16;
+
+    /// <summary>The same floor between a wool room or a spawn and the team's own ground away from the front —
+    /// its hub, an approach — in blocks. The author's number: 12 is on the low end and not a fault, since
+    /// the side that jumps it is the one already standing there.</summary>
+    public const int MinGoalHomeSpaceBlocks = 12;
 
     /// <summary>The same floor for a space touching neither, in blocks: a hole in a team's own ground is
     /// crossed on purpose and may be tighter than one beside a goal.</summary>
@@ -1048,12 +1113,14 @@ public static class PlanValidator
 
         // WL12 — how narrow a gap beside a goal is. The space reader measures every straight run the terrain
         // closes at both ends, which is the line a player jumps, and names the piece at each end. A run any
-        // build zone covers is not asked: building over it is what the zone states. Two floors, both in
-        // blocks so they hold at any grid scale — a crossing touching a wool room or a spawn, and the
-        // narrowest crossing of a hole, which is crossed on purpose and may be tighter.
+        // build zone covers is not asked: building over it is what the zone states. Three floors, all in
+        // blocks so they hold at any grid scale — a goal across from the frontline or another goal, a goal
+        // across from its team's own ground, and the narrowest crossing of a hole touching no goal.
         var goalPieces = new HashSet<string>(
             plan.Pieces.Where(piece => piece.Role is PlanRoles.WoolRoom or PlanRoles.Spawn).Select(piece => piece.Id),
             StringComparer.Ordinal);
+        var frontPieces = PieceInterfaces.Frontages(board).Where(face => face.FrontlineBlocks > 0)
+            .Select(face => face.Piece).ToHashSet(StringComparer.Ordinal);
         var reported = new HashSet<(string, string, int)>();
         foreach (var space in board.Spaces)
         {
@@ -1062,7 +1129,9 @@ public static class PlanValidator
             foreach (var run in space.Crossings)
             {
                 var beside = new[] { run.From, run.To }.Where(goalPieces.Contains).Distinct().ToList();
-                var floor = beside.Count > 0 ? MinGoalSpaceBlocks
+                var across = new[] { run.From, run.To }.Where(end => !goalPieces.Contains(end)).ToList();
+                var exposed = beside.Count > 1 || across.Any(end => end.Length == 0 || frontPieces.Contains(end));
+                var floor = beside.Count > 0 ? (exposed ? MinGoalSpaceBlocks : MinGoalHomeSpaceBlocks)
                     : hole && run.Cells == narrowest ? MinPlainSpaceBlocks
                     : 0;
                 if (floor == 0) continue;
@@ -1077,7 +1146,8 @@ public static class PlanValidator
                 var what = beside.Count > 0
                     ? $"the gap between '{run.From}' and '{run.To}'"
                     : $"the {space.Kind} between '{run.From}' and '{run.To}'";
-                var wants = beside.Count > 0 ? "a gap beside a goal wants" : "a hole wants";
+                var wants = beside.Count == 0 ? "a hole wants"
+                    : exposed ? "a gap between a goal and the front wants" : "a gap between a goal and its own ground wants";
                 yield return Lint("WL12",
                     $"{what} is {crossing} blocks across, under the {floor} {wants} — a "
                     + "player towers at one edge and jumps it, and the approach the board is drawn around is "

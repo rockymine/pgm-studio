@@ -20,9 +20,9 @@ public sealed record ComposedStages(
 /// axis where the front hull affords them, so the fanned board is two units connected by the crossing and
 /// the ground in it. Every attempt's assembled plan must pass the
 /// <see cref="LayoutEvaluator"/> hard-terms gate — no structural errors, no WL2/PC-C/G2 lint, every void hop
-/// in G5's band, the mid band clear of every wool by two cells (BZ6), and no closure hole ringed by a wool
-/// plateau (WL8) — or the whole attempt is resampled (an optional <see cref="IComposeRejectSink"/> captures
-/// why). Walls stay empty — a defence wall is authored, never composed (review.md MG21).
+/// in G5's band, the mid band clear of every wool by two cells (BZ6), the spawn and every wool far enough from
+/// the crossing (SP10, WL10) — or the whole attempt is resampled (an optional <see cref="IComposeRejectSink"/>
+/// captures why). Each wool approach gets one defence wall where a seam qualifies (<see cref="WallPlacer"/>).
 /// </summary>
 public static class Composer
 {
@@ -68,8 +68,8 @@ public static class Composer
 
         for (var attempt = 0; attempt < ComposeAttempts; attempt++)
         {
-            if (TeamUnitAllocator.Allocate(envelope, rng, crossing) is not { } alloc) continue;
-            if (TeamUnitFiller.Fill(alloc.Partition, alloc.SpawnFacing, rng) is not { } filled) continue;
+            if (TeamUnitAllocator.Allocate(envelope, rng, crossing) is not { } partition) continue;
+            if (TeamUnitFiller.Fill(partition, rng) is not { } filled) continue;
             // place the finished unit rather than take where it was built: the allocator anchors on the hub, but
             // the face is what the mid docks, so re-anchor the unit on its face before the band is derived
             filled = filled with { Unit = UnitPlacement.CentreFaceOnAxis(filled.Unit, envelope.Symmetry) };
@@ -96,8 +96,9 @@ public static class Composer
             var mid = MidCarver.TryCarve(envelope, crossing, filled.Unit);
             if (mid is null) continue;
 
-            var plan = Assemble(request, envelope, filled.Unit, mid);
-            var violation = LayoutEvaluator.Gate(EvalContext.Build(plan), EvaluationProfile.Default);
+            var (walled, walls) = WallPlacer.Place(filled.Unit, envelope.Cell);
+            var plan = Assemble(request, envelope, walled, mid, walls);
+            var violation = LayoutEvaluator.Gate(EvalContext.Build(plan), EvaluationProfile.Composer);
             if (violation is not null)
             {
                 rejects?.Reject(new RejectRecord(
@@ -105,7 +106,7 @@ public static class Composer
                     violation.TermId, violation.RuleId, violation.Subjects));
                 continue;
             }
-            return new ComposedStages(envelope, filled.Unit, crossing, mid, plan);
+            return new ComposedStages(envelope, walled, crossing, mid, plan);
         }
         throw new ComposeException(
             $"composition could not assemble an acceptable plan within {ComposeAttempts} attempts " +
@@ -156,7 +157,8 @@ public static class Composer
     }
 
     internal static PlanModel Assemble(
-        ComposeRequest request, ComposeEnvelope envelope, GrownUnit unit, MidResult mid)
+        ComposeRequest request, ComposeEnvelope envelope, GrownUnit unit, MidResult mid,
+        IReadOnlyList<ComposedWall> walls)
     {
         var plan = new PlanModel
         {
@@ -193,6 +195,8 @@ public static class Composer
             {
                 Piece = wool.Piece, At = MarkerOffset(wool.At, plan.Globals.Cell),
             });
+        foreach (var wall in walls)
+            plan.Walls.Add(new PlanWall { A = wall.Outer, B = wall.Inner });
 
         return plan;
     }

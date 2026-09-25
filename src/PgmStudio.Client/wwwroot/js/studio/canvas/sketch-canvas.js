@@ -975,6 +975,7 @@ export class SketchCanvas extends CanvasBase {
     paintDressing(painter, this.#dressingDoc.props, {
       selectedId: this.#dressing?.selectedId ?? null,
       styles: this.#dressingDoc.styles,
+      activeLayer: this.#dressingDoc.layer,
       order: axes.length + 1,
       mirrorPoint: (x, z, k) => applySymmetry(x, z, axes[k - 1], this.#center.cx, this.#center.cz),
     });

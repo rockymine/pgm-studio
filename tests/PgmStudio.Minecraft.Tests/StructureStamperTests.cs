@@ -217,12 +217,62 @@ public sealed class StructureStamperTests
         await Assert.That(w.GetBlock(1 + span, 13, 2).Id).IsEqualTo(Blocks.Air);                 // past the far face
     }
 
+    /// <summary>No solved ground at all, which makes <c>StampWall</c> fall back to the plan tier's own
+    /// <c>topY</c> verbatim — the height the two tests below are about.</summary>
+    private static readonly IReadOnlyDictionary<(int X, int Z), int> NoSurface =
+        new Dictionary<(int X, int Z), int>();
+
+    /// <summary>Ground rising 9 → 12 along a wall's own run, which is the shape that put the barrier under
+    /// the terrain before the height came off the solved surface.</summary>
+    private static Dictionary<(int X, int Z), int> RisingUnderTheWall()
+    {
+        var surface = new Dictionary<(int X, int Z), int>();
+        for (var x = -30; x < -20; x++)
+        for (var z = 39; z < 41; z++)
+            surface[(x, z)] = x < -25 ? 9 : 12;
+        return surface;
+    }
+
+    [Test]
+    public async Task Wall_takes_its_height_from_the_solved_ground_rather_than_the_plans_own_number()
+    {
+        var w = new VoxelWorld();
+        // The plan drew the approach at a surface that puts topY at 11. The relief then lifted the seam to
+        // 12, and a wall laid to 11 would be buried under the ground it is meant to bar.
+        var top = StructureStamper.StampWall(w, RisingUnderTheWall(), -30, 39, -20, 41, topY: 11);
+
+        await Assert.That(top).IsEqualTo(12 + RoomFrames.WallCourses - 1);
+        await Assert.That(w.GetBlock(-21, 12, 39).Id).IsEqualTo(Blocks.Bedrock);   // over the high ground
+        await Assert.That(w.GetBlock(-21, 14, 39).Id).IsEqualTo(Blocks.Bedrock);   // three courses of it
+        await Assert.That(w.GetBlock(-21, 15, 39).Id).IsEqualTo(Blocks.Cobweb);
+    }
+
+    [Test]
+    public async Task Wall_top_is_one_level_over_its_whole_run_and_the_low_end_stands_taller()
+    {
+        var w = new VoxelWorld();
+        var surface = RisingUnderTheWall();
+        var top = StructureStamper.StampWall(w, surface, -30, 39, -20, 41, topY: 11);
+
+        // Level end to end — it does not step down with the ground, which would read as a curved wall.
+        await Assert.That(w.GetBlock(-30, top, 39).Id).IsEqualTo(Blocks.Bedrock);
+        await Assert.That(w.GetBlock(-21, top, 39).Id).IsEqualTo(Blocks.Bedrock);
+        await Assert.That(w.GetBlock(-30, top + 1, 39).Id).IsEqualTo(Blocks.Cobweb);
+        await Assert.That(w.GetBlock(-21, top + 1, 39).Id).IsEqualTo(Blocks.Cobweb);
+
+        // So the three blocks the seam falls are added to the face at the low end: three courses proud at
+        // the high end and six at the low, which is what ST4's cap of four is asked of.
+        await Assert.That(StructureStamper.WallCoursesProud(surface, -30, 39, -20, 41, top)).IsEqualTo(6);
+        await Assert.That(StructureStamper.WallCoursesProud(
+            surface, -25, 39, -20, 41, top)).IsEqualTo(RoomFrames.WallCourses);
+    }
+
     [Test]
     public async Task Wall_rises_bedrock_from_zero_to_the_top_height_inclusive()
     {
         var w = new VoxelWorld();
         // Footprint 2 thick across z, 10 wide across x; top at y=13.
-        StructureStamper.StampWall(w, minX: -30, minZ: 39, maxX: -20, maxZ: 41, topY: 13);
+        StructureStamper.StampWall(w, NoSurface, minX: -30, minZ: 39, maxX: -20, maxZ: 41, topY: 13);
 
         await Assert.That(w.GetBlock(-30, 0, 39).Id).IsEqualTo(Blocks.Bedrock);    // reaches the floor
         await Assert.That(w.GetBlock(-25, 13, 40).Id).IsEqualTo(Blocks.Bedrock);   // top bedrock course
@@ -238,7 +288,7 @@ public sealed class StructureStamperTests
     public async Task Wall_is_capped_by_one_course_of_cobweb_over_its_whole_footprint()
     {
         var w = new VoxelWorld();
-        StructureStamper.StampWall(w, minX: -30, minZ: 39, maxX: -20, maxZ: 41, topY: 13);
+        StructureStamper.StampWall(w, NoSurface, minX: -30, minZ: 39, maxX: -20, maxZ: 41, topY: 13);
 
         for (var x = -30; x < -20; x++)
         for (var z = 39; z < 41; z++)
