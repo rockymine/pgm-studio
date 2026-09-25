@@ -8,6 +8,7 @@ using PgmStudio.Analysis.Footprint;
 using JP = System.Text.Json.Serialization.JsonPropertyNameAttribute;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Suggest;
+using PgmStudio.Export;
 
 // Numbers are dot-separated whatever the host's regional settings say — the same pin the API and the client
 // hold. A harness that compared derivations under a comma-decimal locale would report differences that are
@@ -286,8 +287,13 @@ if (travMapIdx >= 0 && travMapIdx + 2 < args.Length)
     var mapAt = Array.IndexOf(args, "--map");
     var scaleAt = Array.IndexOf(args, "--scale");
     var travMap = mapAt >= 0 && mapAt + 1 < args.Length ? MapParser.Parse(args[mapAt + 1]) : null;
+    var travRegionDir = args[travMapIdx + 1];
+    if (!Directory.Exists(travRegionDir)) { Console.Error.WriteLine($"no region dir: {travRegionDir}"); return 1; }
+    var travChunks = Directory.GetFiles(travRegionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList();
+    if (travChunks.Count == 0) { Console.Error.WriteLine($"no chunks in {travRegionDir}"); return 1; }
     return TraversabilityRender.Run(
-        args[travMapIdx + 1], args[travMapIdx + 2], travMap,
+        travChunks, args[travMapIdx + 2], travMap,
+        travMap is null ? null : BridgeableColumns.Of(travChunks, Serializer.ToDict(travMap)),
         scaleAt >= 0 && scaleAt + 1 < args.Length && int.TryParse(args[scaleAt + 1], out var travScale) ? Math.Max(1, travScale) : 3);
 }
 
