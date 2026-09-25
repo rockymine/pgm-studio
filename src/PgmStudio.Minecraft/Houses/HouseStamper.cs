@@ -975,7 +975,7 @@ public static class HouseStamper
     /// centred single opening rather than a two-wide one against the turn. Only a face with no seat at all
     /// falls back to the run between the corners, because a building nobody can walk into is worse than one
     /// with a tight door.</para></summary>
-    private static (int Lo, int Width)? Fit(WallSegment wall, int width, int centreTwice, bool reflected)
+    internal static (int Lo, int Width)? Fit(WallSegment wall, int width, int centreTwice, bool reflected)
     {
         var (runLo, runHi) = wall.BetweenCorners;
         var (seatLo, seatHi) = wall.Seat;

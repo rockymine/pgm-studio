@@ -48,10 +48,14 @@ public static class Editability
     ///
     /// <para><b>IsVoid</b> — whether each column is void to PGM, meaning no block at y=0. It is the question a
     /// void filter asks and the one a placement over nothing has to answer. Meaningless where <b>HasY0</b> is
-    /// false, since without a scan there is no layer to read it from.</para></summary>
+    /// false, since without a scan there is no layer to read it from.</para>
+    ///
+    /// <para><b>Bridges</b> — whether a player may build across each column: the <b>place</b> walk alone,
+    /// because a bridge is placed, and a column only breaking is permitted on carries none. Placing counts
+    /// where the map granted it or where a conditional filter permits somebody.</para></summary>
     public sealed record Result(
         int MinX, int MinZ, int MaxX, int MaxZ, int Width, int Height,
-        byte[] Zone, bool[] IsVoid, Dictionary<string, int> Counts, bool HasY0)
+        byte[] Zone, bool[] IsVoid, bool[] Bridges, Dictionary<string, int> Counts, bool HasY0)
     {
         /// <summary>Whether the column holding a world position is void. Null off the grid, which is a
         /// position outside the analysed box rather than one over nothing.</summary>
@@ -62,11 +66,18 @@ public static class Editability
             return IsVoid[iz * Width + ix];
         }
 
-        /// <summary>Whether the column at index <paramref name="i"/> is one a player may build across —
-        /// editable, and by something the map granted rather than by ground that is already there. Bridging
-        /// ungranted ground would let a walk cross void nobody may bridge.</summary>
-        public bool Bridgeable(int i) =>
-            Zone[i] == EditZone.IndexOf(EditZone.BuildZone) || Zone[i] == EditZone.IndexOf(EditZone.Filtered);
+        /// <summary>Whether the column at index <paramref name="i"/> is one a player may build across — a
+        /// block may be placed there, by something the map granted rather than by ground that is already
+        /// there. Bridging ungranted ground would let a walk cross void nobody may bridge.</summary>
+        public bool Bridgeable(int i) => Bridges[i];
+
+        /// <summary>Every column a player may build across, in world cells — the one answer to which void
+        /// columns a board opens to bridging, which the walk and the reach picture both take.</summary>
+        public IEnumerable<(int X, int Z)> BridgeableCells()
+        {
+            for (var i = 0; i < Bridges.Length; i++)
+                if (Bridges[i]) yield return (MinX + i % Width, MinZ + i / Width);
+        }
 
         public string ZoneAt(int i) => EditZone.All[Zone[i]];
     }
@@ -146,8 +157,13 @@ public static class Editability
         return ((int)xs.Min() - margin, (int)zs.Min() - margin, (int)xs.Max() + margin, (int)zs.Max() + margin);
     }
 
+    /// <summary>The edit zones and bridgeable columns of a map document over a grid. <paramref name="y0Columns"/>
+    /// is every column PGM's void filter reads as not void; <paramref name="floorMarks"/> is the part of it
+    /// that holds a floor mark rather than ground — the columns a void rule's region leaves open to building
+    /// across.</summary>
     public static Result Compute(Dict data, HashSet<(int, int)>? y0Columns,
-        (int minX, int minZ, int maxX, int maxZ)? bbox = null, int margin = 16)
+        (int minX, int minZ, int maxX, int maxZ)? bbox = null, int margin = 16,
+        IReadOnlySet<(int, int)>? floorMarks = null)
     {
         var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
         var filters = MapDoc.AsDict(data.GetValueOrDefault("filters"));
@@ -169,6 +185,12 @@ public static class Editability
                 if (ix >= 0 && ix < nx && iz >= 0 && iz < nz) isVoid[iz * nx + ix] = false;
             }
         }
+        var isMark = new bool[cells];
+        foreach (var (x, z) in floorMarks ?? new HashSet<(int, int)>())
+        {
+            int ix = x - minX, iz = z - minZ;
+            if (ix >= 0 && ix < nx && iz >= 0 && iz < nz) isMark[iz * nx + ix] = true;
+        }
 
         // Two walks per column — place and break — each stopping at the first rule that answers. A rule
         // grants the ground it explicitly names; `granted` records that so a build zone can be told from
@@ -176,6 +198,7 @@ public static class Editability
         var place = new Say[cells];
         var breakage = new Say[cells];
         var granted = new bool[cells];
+        var qualified = new bool[cells];
 
         bool[]? Mask(object? reference)
         {
@@ -213,8 +236,9 @@ public static class Editability
 
                 var verdict = Classify(stated, filters, null);
                 // A void rule states the build zone as its own complement: "you may not edit the void OUT
-                // THERE" is how a map says "the zone is IN HERE". So the ground this rule does not cover is
-                // the grant, and nothing else in the document names it.
+                // THERE" is how a map says "the zone is IN HERE", so the ground the rule does not cover is the
+                // grant. Inside it, a floor mark the rule passes because it is not void may still be built across —
+                // a map marking its build area with a y=0 sheet or block-36 markers marks it that way.
                 var statesVoid = verdict.Kind is "void" or "deny-void";
                 for (var i = 0; i < cells; i++)
                 {
@@ -225,6 +249,7 @@ public static class Editability
                     }
                     var say = SayFor(verdict, isVoid[i]);
                     if (say == Say.Allow && !statesVoid) granted[i] = true;
+                    if (statesVoid && isMark[i]) qualified[i] = true;
                     if (touchesPlace) Settle(place, i, say);
                     if (touchesBreak) Settle(breakage, i, say);
                 }
@@ -246,8 +271,14 @@ public static class Editability
                     : sealedIndex;
         }
 
+        // A bridge is placed, so the place walk alone says where one may stand.
+        var bridges = new bool[cells];
+        for (var i = 0; i < cells; i++)
+            bridges[i] = place[i] == Say.Conditional
+                         || (place[i] is Say.Allow or Say.Abstain && (granted[i] || qualified[i]));
+
         var counts = EditZone.All.ToDictionary(word => word, word => zone.Count(z => z == EditZone.IndexOf(word)));
-        return new Result(minX, minZ, maxX, maxZ, nx, nz, zone, isVoid, counts, hasY0);
+        return new Result(minX, minZ, maxX, maxZ, nx, nz, zone, isVoid, bridges, counts, hasY0);
     }
 
     /// <summary>Record a rule's answer for one column, first answer winning. Only an abstention leaves the

@@ -99,8 +99,8 @@ drawn in**, without faking the derived category, the editor keeps a small **side
   endpoint tags `{newKey: step}` (and each orbit counterpart) into the blob.
 - **Read:** `/regions/tree` loads the blob, **prunes** keys whose region no longer exists, and attaches
   `node.draft_step` via `EncodeTree`/`EncodeNode`.
-- **Render:** each draw activity passes its `DraftStep`; the sidebar shows a **"Draft"** section of nodes
-  with `draft_step == myStep && category == "other"`, and the canvas renders those too.
+- **Render:** no client surface draws from the draft set. The Configure canvas renders by category alone
+  (§6), and `node.draft_step` is on the tree for a caller that wants it.
 - **Graduate:** a node is shown as a draft **only while its derived category is still `other`**. The
   moment R1 wiring lands, the next `/regions/tree` derives its real category/subtype → it **leaves** the
   Draft section and the canvas's draft set, and appears in its proper subtype section via normal
@@ -121,10 +121,7 @@ their primitive children carry the classification) selected by this rule, walkin
 would miss them):
 
 ```
-render n  ⟺  n is primitive AND (
-                 n.category ∈ {the activity's categories}        // WIRED
-              OR (n.draft_step == this step AND n.category == "other")  // JUST DRAWN
-             )
+render n  ⟺  n is primitive AND n.category ∈ {the step's categories}        // WIRED
 ```
 
 - **Wired region** — e.g. a rectangle referenced by `enter=only-red`, or a region in `spawns[]`. Its

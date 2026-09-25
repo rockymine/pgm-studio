@@ -3,26 +3,37 @@ using PgmStudio.Geom;
 namespace PgmStudio.Analysis.Scan;
 
 /// <summary>
-/// Vertical-segment terrain index: solid Y-ranges per (x,z) column. The single source for Y=0 presence
-/// (buildability void), where a player stands in a column and whether they can stand there at all
-/// (traversability, and every walk over a scanned board), and air-at-a-point (monument obstruction).
+/// Vertical-segment terrain index: solid Y-ranges per (x,z) column, and the floor marks — y=0 blocks no
+/// segment holds. The single source for Y=0 presence (buildability void), where a player stands in a column
+/// and whether they can stand there at all (traversability, and every walk over a scanned board), and
+/// air-at-a-point (monument obstruction).
 /// </summary>
 public sealed class SegmentIndex
 {
     private readonly Dictionary<(int x, int z), List<(int ys, int ye)>> _byCol = new();
+    private readonly HashSet<(int, int)> _floorMarks;
 
-    public SegmentIndex(IEnumerable<(int x, int z, int ys, int ye)> rows)
+    public SegmentIndex(IEnumerable<(int x, int z, int ys, int ye)> rows, IEnumerable<(int x, int z)>? floorMarks = null)
     {
         foreach (var (x, z, ys, ye) in rows)
         {
             if (!_byCol.TryGetValue((x, z), out var list)) { list = []; _byCol[(x, z)] = list; }
             list.Add((ys, ye));
         }
+        _floorMarks = floorMarks is null ? [] : [.. floorMarks];
     }
 
-    /// <summary>Columns with a solid block at Y=0 (≡ layer_y0).</summary>
+    /// <summary>Columns whose y=0 block is a floor mark — not void to PGM, and no ground to stand on.</summary>
+    public IReadOnlySet<(int, int)> FloorMarks => _floorMarks;
+
+    /// <summary>Columns PGM's void filter reads as not void: a block at Y=0, whether a segment's or a floor
+    /// mark's. A block-36 marker counts although PGM removes it on load, because the filter remembers it.</summary>
     public HashSet<(int, int)> Y0Columns()
-        => _byCol.Where(kv => kv.Value.Any(s => s.ys <= 0 && 0 <= s.ye)).Select(kv => kv.Key).ToHashSet();
+    {
+        var columns = _byCol.Where(kv => kv.Value.Any(s => s.ys <= 0 && 0 <= s.ye)).Select(kv => kv.Key).ToHashSet();
+        columns.UnionWith(_floorMarks);
+        return columns;
+    }
 
     /// <summary>Columns a player can stand in — those <see cref="StandingTops"/> finds a surface for. A
     /// column solid to the sky, or roofed everywhere at less than <see cref="Walk.Headroom"/>, is not one.

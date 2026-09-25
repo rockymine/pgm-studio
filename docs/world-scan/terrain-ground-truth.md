@@ -81,8 +81,17 @@ Only §3 needs the map's XML, and only a corpus map scanned through `scan-world`
 zip or folder import carries no XML by design, because the XML is what the configure tool *produces* from it.
 Those imports pass `PhantomErasure.None`, and §1 and §2 carry them entirely.
 
-`segment` is a separate ingest derivation with its own exclusion (`FeatureExtractors.SegmentExclude`)
-and does not apply §2 or §3, so the query-time footprint built from it (`SegmentIndex.BaseColumns` →
-`IslandDetector.CleanedBaseFootprint`) still counts a floor marker as solid. That inconsistency is real and
-filed (`B57`); it is narrower than it sounds, because that path feeds kit-reach analysis rather than the
-island picture.
+`segment` is the other ingest derivation — the solid runs every walk stands on — and it applies §2 too:
+`FeatureExtractors.Segments` leaves out the non-solid ids (`SegmentExclude`, block 36 among them) and a
+stained-glass sheet at the world floor, so a floor marker is never standing ground. §3 needs the XML and
+stays with the island picture.
+
+**What a floor marker still answers is PGM's void question.** PGM's `<void/>` filter reads the block at
+`(x, 0, z)` and counts anything there — a removed block 36 too, because `WorldProblemListener` remembers where
+it stood — so a marked column is not void and may be built over although nobody stands on it. That is how
+maps mark a build area over empty space. The scan therefore keeps what it leaves out of the segments at y=0
+as **floor marks** (`FeatureExtractors.FloorMarks` → `floor_mark`, `floor_marks.parquet`), and
+`SegmentIndex.Y0Columns` — the one answer to "is this column void" — is the segments' y=0 columns and the
+floor marks together. Measured over the 348 corpus maps with a scanned world: 77 lay block 36 at y=0 and 15 a
+glass sheet, and without the marks 98 maps read 837,009 columns as void that PGM does not. Like the rest of
+the ingest, a map imported before the marks were written keeps no marks until it is re-imported.

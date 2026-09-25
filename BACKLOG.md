@@ -39,17 +39,6 @@ them one rather than with the contract work that shipped them.
 
 
 
-- [ ] **TE3 — Retire the Edit tool.** The author's ruling: it is not being kept. The intent model authors a
-  map now, and nobody has driven `/maps/{slug}/edit` — so its three unwired inspectors were never work, they
-  were work on a surface with no future. `Features/Edit/` is 16 files and 2,155 lines behind one route.
-  **`WorldCanvas` and `world-bridge` stay**: the Configure tool's build-layer, core-casing and core-objective
-  steps mount the same canvas, so what goes is the tool, not the surface it draws on. Take the route out of
-  the smoke sweep's list and the nav rail with it, and grep `docs/` for the tool's own name in the same
-  commit — `routing-and-ia.md` describes it as a surface an author can open, and
-  `docs/tools/edit.md` is the document that goes. `TE2` went with it: the tool's wool picker spelling the
-  sixteen dyes a second way is a defect in a surface with no future, and `WoolColors` is already the one list
-  every other reader takes.
-
 - [ ] **TC7 — The configure tool cannot place a hill.** The API is the way in — an agent adds
   `controlPoints` to the intent it already posts (`docs/pgm/control-points.md` §9) — and the wizard has no
   step for it. What the step states is a count and the anchors; the tuning is one shared block and already
@@ -235,22 +224,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   confirms an edit after the fact rather than while it is being made.
 
 ## World import: reading a map the studio did not build
-
-- [ ] **B57 — `scan_segment` counts a build-region marker as solid ground.** *Parked (author): imports are
-  not a priority, and this waits on `B9`.* Island detection now separates
-  terrain from markers and from what a map erases before play (`FEATURES.md`,
-  `docs/world-scan/terrain-ground-truth.md`), but that runs on `CleanColumns` → `islands_json` only. The other
-  ingest derivation, `FeatureExtractors.Segments` → `scan_segment`, has its own exclusion set and applies
-  neither rule, so a floor sheet at `y=0` persists as a solid span. Everything reading it at query time
-  (`SegmentIndex.BaseColumns` → `IslandDetector.CleanedBaseFootprint`) therefore walks on a marker. Narrower
-  than it sounds — that path feeds kit-reach, not the island picture the configure tool draws — which is why
-  it is filed rather than fixed alongside. The two derivations should agree on what ground is, and the fix is
-  to route the floor-marker rule through both. **Blocked in practice by re-import**: `scan_segment` is
-  written once at ingest from a world that is then discarded, so changing it reaches existing maps only when
-  a map can be re-imported — which is **`B9`**, and `docs/backlog-strategy.md` files that as roadmap:
-  a capability nobody is blocked on. So this entry waits on one nobody has asked for, and doing it alone
-  fixes the derivation for maps imported after it and for none of the maps that exist.
-
 
 ## The shop: buying things in the middle of a match
 
@@ -468,32 +441,12 @@ and what a `subtract` takes away.
   read a drive still waits on. The picture wants the numbers the JSON already computed, kept the way
   `BuiltWorlds` keeps a world — keyed on what the read derives from, so an edit is a new key.
 
-- [ ] **RP71 — A map cannot be deleted.** The API carries 26 `DELETE` routes and every part of a map is
-  removable through one — layers, groups, shapes, vertices, props, relief, themes, biome, room styles, teams,
-  wools, spawns, regions — and none removes the map row. `DELETE /map/{slug}/sketch/discard-if-empty` drops
-  only a pristine never-drawn draft, so a map that stored once is permanent short of SQL. Every `map_id`
-  foreign key is already `ON DELETE CASCADE`, so the work is one endpoint over `MapRepository`, not a schema
-  change. It matters for a driver rather than for the browser: a spec re-driven under a corrected slug leaves
-  the old one behind, and a harness that builds a map per variant has no way to clean up after itself.
-  Lands beside the other whole-map routes; `docs/architecture.md` carries the route surface.
-
-  *Evidence: seven scratch maps (`stage-01-ground` … `stage-07-dressed`) were left in the dev database by a
-  staging harness that had no route to remove them, beside the two real maps.*
-
-
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled
   room need `6 + 2 + 3` = 11 blocks on one axis and those spawn pieces are 10×10, 15×15 and 20×10. Nothing is
   broken by it — an unplaceable marker stamps nothing and is flagged `WX9` — so this is a data refresh, not a
   defect: re-author each spawn piece so it either has the depth for a yard or states a footprint small enough
   to open one, then re-record whatever `docs/generator/seed-stats.md` measures off them.
-
-- [ ] **WS73 — Two answers to "which void columns may be bridged".** `Editability.Compute`
-  (`Analysis/Playability/Editability.cs`) and `TraversabilityRender.BridgeableColumns`
-  (`Minecraft/Render/TraversabilityRender.cs:163`) each read the board's filters for the same set, so the
-  `reach` picture and the walk, coverage and dead-ground reads can disagree whenever one learns a rule shape
-  the other does not. `Minecraft` cannot reference `Analysis`, so the set is computed once in the Api from
-  `Editability` and handed to the render. `docs/world-scan/read-backs.md`.
 
 - [ ] **WE134 — A map's own dressing registry still takes a hand-written `copied` body.** The tree library
   refuses a `copied` save carrying no cut (`DR-COPY`), but a map's `dressing.styles` takes
@@ -506,12 +459,36 @@ and what a `subtract` takes away.
   `opus5b`/`opus5c` commons) copy a library tree's body inline, which a cut-carrying rule would still allow;
   the hand-written bodies among the specs' 37 inline bodies are the ones it would refuse.*
 
-- [ ] **WE135 — A dressing-pass house's door is centred by coordinate, so its image is a block off.**
-  `Decorator.Doorway` (`Dressing/Decorator.cs:1087`) seats the door at `(min + max) / 2` along the front, which
-  floors toward the low coordinate, so where a wall's leftover is odd the door leans to the low end on both
-  images rather than to the same hand. Take the leftover from a hand through `RoomEdges.Handed` and
-  `DressingSymmetry.Reflects`, the way the room stamper's own doors do, so a placed house and its image stand
-  on the same columns. `docs/world-export/decoration.md`.
+- [ ] **PG18 — The region draft bucket has no client left.** `POST /regions` and its `/orbit` follow-up take
+  `draft_step`, `RegionDrafts` writes it into the `region_drafts_json` artifact and `/regions/tree` echoes
+  it back, so a freshly drawn region could be shown as drawn-but-unwired. The Edit tool was the only thing
+  that drew one, and it is gone. Retire the field on both request DTOs (`EditRequests.cs`), `RegionNode`'s
+  echo (`RegionTreeDtos.cs`), `RegionDrafts` and the artifact, and `docs/pgm/region-data-flow.md` §5 with them.
+
+- [ ] **WS74 — Traversability reads 146 of 347 corpus maps as not connected.** These are played maps, so
+most of the verdicts are the reading's and not the map's. Measured over the corpus with `layer_segments` and
+`floor_marks` from the current extractor: 101 have their points on separate ground the walk does not join
+(`wits_end`'s four wool rooms are each an island), 17 lose an objective to a team's `enter` rules, 18 have a
+wool and 11 a spawn off the ground the walk stands on (one map both). Take them per cause, reading each
+against PGM rather than tuning the walk to the count. `docs/world-scan/read-backs.md`.
+
+  *Evidence: `Traversability.Check` over the 347 maps `--goldens` measures; `apocalypse_ctw` is a per-team
+  entry case, `after_hours` a wool off the ground, `banana_split` a spawn.*
+
+- [ ] **RP74 — The corpus scan output predates floor marks.** `rockymine/pgm-studio-output` carries
+`layer_segments.parquet` from before the segment scan left out a floor sheet, and no `floor_marks.parquet`, so
+`corpus-goldens.json` is recorded over the old void test. Regenerate both files for every map with
+`tools/PgmStudio.RoundTrip --scan-out` (or the two files alone), commit them to that repository, then
+re-record `corpus-goldens.json` against it after reading the moved verdicts.
+
+  *Evidence: over a regenerated copy, 168 verdicts move against the recorded goldens (130 `trav`, 38 `build`);
+  18 maps go not connected → connected and none the other way.*
+
+- [ ] **PG19 — The `resize` region is refused.** PGM grows or shrinks a child region by a vector
+(`<resize min=… max=…>`); the parser does not read it, and `MapParser.EnsureSupported` refuses the five corpus
+maps using it rather than read a rule over it as covering the whole board. Read it as the child's footprint
+grown by the x and z of `min`/`max`, in `RegionParser` and `RegionGeometry2d`, and take it off the refused
+list. `docs/pgm/supported-maps.md`.
 
 - [ ] **A8 Should the layout generator be its own project?** `Pgm` holds two charters:
   the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85

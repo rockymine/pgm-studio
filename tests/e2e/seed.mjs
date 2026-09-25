@@ -10,7 +10,7 @@
  * Three maps, one per stage the routes need:
  *   plan      — a composed candidate committed to authoring    → /maps/{slug}/plan
  *   sketch    — a draft carrying a compiled layout             → /maps/{slug}/sketch
- *   configure — that layout finished into world geometry       → /maps/{slug}/configure and /edit
+ *   configure — that layout finished into world geometry       → /maps/{slug}/configure
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
@@ -46,7 +46,10 @@ async function main() {
   const carried = await composedPlanMap();
   const compiled = await api("/plan/compile", { method: "POST", body: plan.planJson });
   await api(`/map/${carried.slug}/sketch`, { method: "PUT", body: compiled.layout });
-  await api(`/map/${carried.slug}/intent`, { method: "PUT", body: compiled.intent });
+  // A finished map names its author: Configure unlocks every phase past Identity only once one is stated,
+  // and a name with a space in it is a pseudonym, so no Mojang lookup is asked.
+  const intent = { ...compiled.intent, meta: { ...compiled.intent.meta, authors: [{ name: "E2E fixture" }] } };
+  await api(`/map/${carried.slug}/intent`, { method: "PUT", body: intent });
   const finished = await api(`/map/${carried.slug}/sketch/finish`, { method: "POST" });
   console.log(`  configure  ${finished.slug} (finished to world geometry)`);
 

@@ -4,7 +4,9 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace PgmStudio.Client.Components;
+using PgmStudio.Client.Components;
+
+namespace PgmStudio.Client.Features.Configure;
 
 public partial class WorldCanvas
 {
@@ -12,15 +14,6 @@ public partial class WorldCanvas
     [Parameter] public string? Category { get; set; }
     [Parameter] public EventCallback<string?> OnSelect { get; set; }
 
-    /// <summary>When set, draw tools are enabled and a drawn shape creates a region in this category
-    /// (C5). Null = read-only (move/select only), e.g. the Regions browser.</summary>
-    [Parameter] public string? DrawCategory { get; set; }
-    /// <summary>The editor step (teams/objective/build) freshly drawn regions are tagged with so they show
-    /// in this activity until they're wired (E10). Also rendered on the canvas alongside the category set.</summary>
-    [Parameter] public string? DraftStep { get; set; }
-    /// <summary>Fired after a drawn region is created (and the canvas reloaded) so the host activity
-    /// can refresh its sidebar tree/list.</summary>
-    [Parameter] public EventCallback OnRegionCreated { get; set; }
     /// <summary>Fired when a region's footprint is changed by a resize drag — the host persists it and
     /// refreshes its inspector. Args: (region id, new min/max x/z).</summary>
     [Parameter] public EventCallback<(string Id, double MinX, double MinZ, double MaxX, double MaxZ)> OnGeometrySaved { get; set; }
@@ -92,16 +85,6 @@ public partial class WorldCanvas
                 .Select(island => island.Id).ToList();
         }
         catch { islandIds = new(); }
-
-        // The orbit toggle only applies while drawing, and only on maps with a confirmed symmetry — fetch
-        // the primary mode so the toolbar chip can label itself ("Orbit 90" / "Orbit x" …). Default: on.
-        if (DrawCategory is null) return;
-        try
-        {
-            var sym = await Http.GetFromJsonAsync<SymmetryDto>($"api/map/{Slug}/symmetry");
-            if (sym is { Status: "confirmed", Primary: { } primary }) orbitMode = primary.Type;
-        }
-        catch { orbitMode = null; }   // no symmetry artifact / asymmetric map → no orbit chip
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -111,7 +94,7 @@ public partial class WorldCanvas
         {
             selfRef = DotNetObjectReference.Create(this);
             handle = await JS.InvokeAsync<IJSObjectReference>(
-                "studio.mountCanvas", svgRef, wrapRef, readout!.Cursor, readout.Zoom, selfRef, Slug, Category, DraftStep);
+                "studio.mountCanvas", svgRef, wrapRef, readout!.Cursor, readout.Zoom, selfRef, Slug, Category);
             if (IslandSelect)
             {
                 await handle.InvokeVoidAsync("setIslandSelect", true);
@@ -127,22 +110,6 @@ public partial class WorldCanvas
             await OnReady.InvokeAsync();
         }
     }
-
-    /// <summary>F3: the map's confirmed symmetry mode (e.g. "rot_90"), or null when no orbit is available.</summary>
-    private string? orbitMode;
-    /// <summary>F3: whether a drawn region is mirrored into its symmetry orbit. Toggled from the toolbar.</summary>
-    private bool orbitOn = true;
-
-    private void ToggleOrbit() => orbitOn = !orbitOn;
-
-    /// <summary>Toolbar label for the orbit chip — "Orbit 90" / "Orbit 180" / "Orbit x" / "Orbit z" …</summary>
-    private string OrbitLabel() => orbitMode switch
-    {
-        "rot_90" => "Orbit 90",
-        "rot_180" => "Orbit 180",
-        { } m when m.StartsWith("mirror_") => $"Orbit {m["mirror_".Length..]}",
-        _ => "Orbit",
-    };
 
     private async Task SetTool(string t)
     {
@@ -216,15 +183,6 @@ public partial class WorldCanvas
         if (handle is not null) await handle.InvokeVoidAsync("fitBounds", minX, minZ, maxX, maxZ);
     }
 
-    /// <summary>Re-fetch the region tree and re-render the canvas geometry — call after a server-side
-    /// mutation (delete / group / ungroup / rename) so the drawn shapes match the data. `setSelection`
-    /// only repaints highlights on the cached dataset, so it can't drop a deleted region on its own.
-    /// No-op until the canvas is mounted (it self-loads on mount).</summary>
-    public async Task ReloadAsync()
-    {
-        if (handle is not null) await handle.InvokeVoidAsync("load", Slug);
-    }
-
     [JSInvokable] public Task OnCanvasSelect(string? id) => OnSelect.InvokeAsync(id);
 
     /// <summary>Canvas island pick (World authoring step) → host.</summary>
@@ -272,8 +230,7 @@ public partial class WorldCanvas
     }
 
     /// <summary>A region's footprint was changed by a resize drag (the canvas already shows it live).
-    /// The host persists it — PATCH region bounds on the Edit page, or patch the intent slice in the
-    /// Configure wizard — and refreshes its inspector. Args: region id + new {min,max}{x,z}.</summary>
+    /// The host patches the intent slice it renders and refreshes its inspector. Args: region id + new {min,max}{x,z}.</summary>
     [JSInvokable]
     public Task OnBoundsSave(string id, JsonElement bounds)
     {
@@ -281,63 +238,16 @@ public partial class WorldCanvas
         return OnGeometrySaved.InvokeAsync((id, N("min_x"), N("min_z"), N("max_x"), N("max_z")));
     }
 
-    /// <summary>Push a region's new footprint to the canvas after an inspector edit (re-renders just
-    /// that shape; no zoom reset).</summary>
-    public async Task RefreshRegionBoundsAsync(string id, IReadOnlyDictionary<string, double> bounds)
-    {
-        if (handle is not null) await handle.InvokeVoidAsync("refreshRegionBounds", id, bounds);
-    }
-
-    /// <summary>C5: a draw tool completed a shape → create the region, fill its symmetry orbit (F3),
-    /// reload the canvas, notify the host.</summary>
+    /// <summary>A rectangle drawn in <see cref="RectDraw"/> mode → the host, which writes it to the intent and
+    /// renders it back as a dummy region. No region is created here.</summary>
     [JSInvokable]
     public async Task OnRegionDraw(JsonElement draw)
     {
-        // RectDraw mode (Configure authoring): report the rectangle's geometry to the host instead of
-        // creating a region — the host writes it to intent and renders it back as a dummy region.
-        if (RectDraw && OnRectDrawn.HasDelegate)
-        {
-            double N(string k) => draw.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
-            await OnRectDrawn.InvokeAsync((N("min_x"), N("min_z"), N("max_x"), N("max_z")));
-            await SetTool("select");   // switch to select so the drawn rect can be picked + resized
-            StateHasChanged();
-            return;
-        }
-        if (DrawCategory is null || handle is null) return;
-        var resp = await Http.PostAsJsonAsync($"api/map/{Slug}/regions", BuildPayload(draw, DrawCategory, DraftStep));
-        if (!resp.IsSuccessStatusCode) return;
-
-        // F3: when the orbit toggle is on, create the source's counterpart(s) so the drawn region appears
-        // in every symmetric position. No-op (server-side) on asymmetric maps; skipped entirely when off.
-        if (orbitOn)
-        {
-            var created = await resp.Content.ReadFromJsonAsync<RegionCreatedDto>();
-            if (created?.Id is { Length: > 0 } newId)
-                await Http.PostAsJsonAsync($"api/map/{Slug}/regions/{newId}/orbit", new { category = DrawCategory, draft_step = DraftStep });
-        }
-
-        await SetTool("select");
-        StateHasChanged();                              // refresh the toolbar highlight (JSInvokable won't auto-render)
-        await handle.InvokeVoidAsync("load", Slug);     // re-render the canvas with the new region(s)
-        await OnRegionCreated.InvokeAsync();
-    }
-
-    // Convert an WorldCanvas drawResult into a createRegion payload (drawResultToPayload in the canvas bridge).
-    private static Dictionary<string, object?> BuildPayload(JsonElement d, string category, string? draftStep)
-    {
-        double N(string k) => d.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
-        var type = d.TryGetProperty("type", out var t) ? t.GetString() ?? "rectangle" : "rectangle";
-        var coords = new Dictionary<string, object?>();
-        switch (type)
-        {
-            case "cylinder": coords["base_x"] = N("base_x"); coords["base_y"] = 0; coords["base_z"] = N("base_z"); coords["radius"] = N("radius"); coords["height"] = 10; break;
-            case "circle": coords["center_x"] = N("center_x"); coords["center_z"] = N("center_z"); coords["radius"] = N("radius"); break;
-            case "point" or "block": coords["x"] = N("min_x") + 0.5; coords["y"] = 0; coords["z"] = N("min_z") + 0.5; break;
-            default: coords["min_x"] = N("min_x"); coords["min_z"] = N("min_z"); coords["max_x"] = N("max_x"); coords["max_z"] = N("max_z"); break;   // rectangle, cuboid
-        }
-        var p = new Dictionary<string, object?> { ["category"] = category, ["type"] = type, ["coords"] = coords };
-        if (!string.IsNullOrEmpty(draftStep)) p["draft_step"] = draftStep;
-        return p;
+        if (!RectDraw || !OnRectDrawn.HasDelegate) return;
+        double N(string k) => draw.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
+        await OnRectDrawn.InvokeAsync((N("min_x"), N("min_z"), N("max_x"), N("max_z")));
+        await SetTool("select");   // switch to select so the drawn rect can be picked + resized
+        StateHasChanged();
     }
 
     /// <summary>Drop the canvas. The field is cleared <b>before</b> the reference is disposed, because every

@@ -151,10 +151,9 @@ a shape to be stated on. The other half was that the plinth the build levels und
 the surface map the painter reads, so the courses a room actually shows were ones no pass addressed — the
 levelling reports its own surface now and the world build folds it in.
 
-**`B57` — `FeatureExtractors.Segments` → `scan_segment` applies neither of the two exclusion rules
-`CleanColumns` applies, so a build-region floor sheet at `y=0` persists as solid ground and everything reading
-it at query time walks on a marker. Reported with measured evidence and not re-confirmed here, because
-confirming it wants a built world rather than a reading.
+**`B57` shipped** with `WS73` (`FEATURES.md`), confirmed against the corpus worlds rather than a reading: the
+segment scan applies the floor-marker rule, and what it leaves out at y=0 is kept as floor marks, which PGM's
+void filter counts.
 
 ## The board's numbers rot faster than its prose
 
@@ -165,12 +164,12 @@ table of corrections is a second place for a number to be wrong.
 
 | entry | the board says | measured today | the command that retakes it |
 |---|---|---|---|
-| `C51` | 28 selects, the plan tool 7 | **25**, the plan tool **10**, and six of the 25 go with `TE3` | `grep -rc "<select" src/PgmStudio.Client --include=*.razor` |
+| `C51` | 28 selects, the plan tool 7 | **25**, the plan tool **10**, and six of the 25 went with `TE3` | `grep -rc "<select" src/PgmStudio.Client --include=*.razor` |
 | `B261` | 422 hand-maintained lines in `ThemeVocabulary.cs` | **542** | `wc -l src/PgmStudio.Client/Components/Terrain/ThemeVocabulary.cs` |
 | `A8` | the generator is 85 files, 11.5k lines | **90 files, 13,385 lines** | `find src/PgmStudio.Pgm/{Compose,Evaluate,Shapes,Derive,Plan} -name '*.cs'` |
 | `WE70` | six callers hardcode `true`; `DressingScope:216,218` | **ten** sites, of which **five are deliberate**: a plan carries no binding, so `PlanStructurePreview:60,74` and `PieceRoom:75,98` draw the shell a plan exports and `RoomStylePreview:42` previews a style. The three that read a built map were the defect (`FEATURES.md`) | `grep -rn "shellBound: true" src --include=*.cs` |
 | `C62` | `components.css:989–1004`; the grep "hits only that CSS" | **985–1001**, and the fourth site is a signpost comment rather than markup. Shipped (`FEATURES.md`); the wider reading it opened is `C64` | `grep -rn "map-author-" src/ tests/` |
-| `TE2` | `ObjectivePhase.razor.cs:201`, `:211`; `.razor:56` | **`:204`**, **`:212`**; **`:55`** | `grep -n DyeColors src/PgmStudio.Client/Features/Edit/ObjectivePhase.razor.cs` |
+| `TE2` | `ObjectivePhase.razor.cs:201`, `:211`; `.razor:56` | **`:204`**, **`:212`**; **`:55`** — the file went with `TE3` | — |
 | `RP59` | every authored board takes six calls, because the one-call path reads as a re-import | `drive.py:582` stores through **`POST /map/from-documents`**, one call, under a stated slug | `grep -n 'call("P' /media/sf_repos/pgm-studio-mapgen/tools/drive.py` |
 
 One held: `G143`'s "handful of consumers" for the four misnamed edge lists, which is five sites. `B260`'s
@@ -414,7 +413,7 @@ but each of the three wants a different treatment, which is what makes them wort
 ambiguity at their edges.
 
 **Blocked decisions** are what the board still marks as parked — `WE41` (not yet), `A8`, `G278` and `G282`
-(not now), and `B57` with `B9` (imports are not a priority). A question put to the author comes back the
+(not now), and `B9` (imports are not a priority). A question put to the author comes back the
 same day, and five of the answers so far have been to decline the question. Each has a definite end
 and none of it is work until the answer arrives.
 
@@ -465,7 +464,7 @@ for deferring. It cost one message. This phase is the one nobody can do alone, a
 whenever the list refills — the causes below each had a question sitting in them, and none of them could move
 until it was answered.
 
-**Phase 1 — the verified defect run.** Drained but for `B57`, which is blocked in practice by re-import.
+**Phase 1 — the verified defect run.** Drained; `B57` shipped with `WS73`.
 Each lands with a test that fails on the old behaviour — that is the deliverable, not the fix. `B145` left
 this way (`FEATURES.md`), pinned at three tiers: the levelling reporting the surface it leaves, the painter
 finishing a plinth folded into its map, and a built room's floor course carrying no raw stone. `TS74` and `B144` left this way (`FEATURES.md`), and `TS31`
@@ -499,7 +498,7 @@ anything above interrupts it, except a Phase 1 defect in the surface it is build
 programme at a time and says at the top which one, so the phase order above is what to pull up next rather
 than a queue that runs beside the one already open.
 
-**Phase 3 — put the surviving measurements under a script.** `C51`, `B261`, `A8` and `TE2` each
+**Phase 3 — put the surviving measurements under a script.** `C51`, `B261` and `A8` each
 carry a count or a line number that has drifted, and `C62` carried a retake command that did not measure
 its own claim. Where the number is load-bearing it earns a `census.sh`-shaped generator; where it is not, it
 comes out of the entry and the prose stands alone. `RP59` was not part of this phase — what drifted there was

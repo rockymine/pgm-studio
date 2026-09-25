@@ -457,6 +457,18 @@ public sealed class SegmentRow
     [Column("world_y_end"), NotNull] public int WorldYEnd { get; set; }
 }
 
+/// <summary>A y=0 block no <see cref="SegmentRow"/> holds (M0040): it makes the column not void to PGM's
+/// void filter without being ground anyone stands on.</summary>
+[Table("floor_mark")]
+public sealed class FloorMarkRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("world_x"), NotNull] public int WorldX { get; set; }
+    [Column("world_z"), NotNull] public int WorldZ { get; set; }
+    [Column("block_id"), NotNull] public int BlockId { get; set; }
+}
+
 [Table("map_artifact")]
 public sealed class MapArtifactRow
 {

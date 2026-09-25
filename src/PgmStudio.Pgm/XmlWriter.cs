@@ -836,8 +836,14 @@ public static partial class XmlWriter
                 break;
             case "everywhere":
                 e = new XElement("everywhere"); break;
-            case "above":
-                e = new XElement("above"); Set(e, "y", C(r.AboveY)); break;
+            case "above" or "below":
+                e = new XElement(r.Type);
+                if (r.HalfX is not null) Set(e, "x", C(r.HalfX));
+                if (r.HalfY is not null) Set(e, "y", C(r.HalfY));
+                if (r.HalfZ is not null) Set(e, "z", C(r.HalfZ));
+                break;
+            case "nowhere":
+                e = new XElement("nowhere"); break;
             case "half":
                 e = new XElement("half"); Set(e, "origin", C3(r.OriginX, r.OriginY, r.OriginZ)); Set(e, "normal", C3(r.NormalX, r.NormalY, r.NormalZ)); break;
             default:

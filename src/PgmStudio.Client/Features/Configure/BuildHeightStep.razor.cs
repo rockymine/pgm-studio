@@ -4,8 +4,7 @@ using Microsoft.JSInterop;
 
 namespace PgmStudio.Client.Features.Configure;
 
-// Build · height step: the max-build-height cap. Reuses the shared BuildHeightSideview (identical to the
-// Edit Build Regions step) and writes the build slice's maxHeight; BuildGenerator applies it on save.
+// Build · height step: the max-build-height cap, set on the BuildHeightSideview; writes the build slice's maxHeight; BuildGenerator applies it on save.
 public partial class BuildHeightStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;

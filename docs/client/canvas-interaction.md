@@ -10,16 +10,16 @@ Read alongside `../tools/sketch.md` and `../tools/plan.md` (what the two drawing
 
 ## 1. The one fact that frames everything
 
-The Configure wizard has no canvas of its own. Every phase that draws mounts **the same `WorldCanvas`**
-the Edit page uses, differing only by parameters. Sixteen Blazor components mount it today — eleven
-Configure steps (`WorldScan`, `WorldIslands`, `WorldSymmetry`, `TeamAssign`, `Spawn`, `Protection`,
-`BuildLayer`, `WoolRoom`, `WoolSpawn`, `WoolMonuments`, `WoolObjectives`) and five Edit phases (`Setup`,
-`Regions`, `BuildRegions`, `Objective`, `Teams`).
+Every Configure step that draws on the world mounts **the same `WorldCanvas`**, differing only by
+parameters. Fourteen steps mount it today — `WorldScan`, `WorldIslands`, `WorldSymmetry`, `TeamAssign`,
+`Spawn`, `Protection`, `BuildLayer`, `WoolRoom`, `WoolSpawn`, `WoolMonuments`, `WoolObjectives`,
+`DestroyableObjectives`, `CoreObjectives` and `CoreCasing` — and the component lives with them in
+`Features/Configure/`.
 
 The consequence is the single most useful thing to know before changing anything here: **wiring a
-capability into `WorldCanvas` and its bridge makes it available to sixteen surfaces at once**, and
+capability into `WorldCanvas` and its bridge makes it available to fourteen surfaces at once**, and
 breaking one breaks all of them. The `if`/mode branches that configure the canvas per phase
-(`IslandSelect`, `SymmetryMode`, `PointPick`, `DrawCategory`) are intentional configuration, not
+(`IslandSelect`, `SymmetryMode`, `PointPick`, `RectDraw`) are intentional configuration, not
 duplication — leave them alone.
 
 The other three canvases are genuinely separate engines because they draw different things: `PlanCanvas`
@@ -94,7 +94,7 @@ canvas layer can then reuse or test it.
 | `render/column-mesh.js` | the server's per-column runs → the triangles that preview draws; decides which faces are seen, and drops the runs of any sketch layer the viewer has hidden before deciding |
 | `bridge/house-iso-bridge.js` | the library's 3-D building: an `IsoScene` on a wrap with no canvas under it (§6) |
 | `canvas/canvas-base.js` | the shared pan/zoom/drag machinery (§3) |
-| `canvas/world-canvas.js` | the shared engine behind Edit + Configure (§1) |
+| `canvas/world-canvas.js` | the world engine every Configure canvas step mounts (§1) |
 | `canvas/plan-canvas.js`, `sketch-canvas.js`, `sideview-canvas.js` | the plan grid, the sketch surface, the depth cross-section (all painted; the first two hybrid, the third painted throughout) |
 | `canvas/static-renderer.js`, `configure-renderer.js` | fixed-fit non-interactive previews |
 | `controllers/*` | one interaction mode each (§4) |
@@ -220,8 +220,8 @@ sketch shows a destroyable or a core in, so the two tools cannot drift into two 
 
 **One transform box, four anchors, and the edges are bands rather than things.** `renderTransformBox` is the
 box a selection is scaled by, and every authoring surface draws that one: the sketch at each rung of its
-ladder, the plan for a piece or a zone, and `WorldEditController` for a region — which is Edit and all eleven
-Configure steps at once. A reader who has learnt the corners of a region has learnt a piece's and a shape's,
+ladder, the plan for a piece or a zone, and `WorldEditController` for a region — which is every Configure
+canvas step at once. A reader who has learnt the corners of a region has learnt a piece's and a shape's,
 which is the whole reason it is one emission and not three tables of eight.
 
 It carries **four** anchors, one per corner, drawn ON the selection's own bounds. Each edge is an invisible
@@ -351,8 +351,8 @@ Above the unit line, `tests/e2e/paint.mjs` is the one check that a painted surfa
 canvas raises no error and leaves no elements behind, so it is exactly as "clean" as a working one to the
 smoke sweep; `paint.mjs` asserts on pixels instead, for each of the three hybrid surfaces: painted
 coverage, buffer = CSS box × DPR, the screen chrome present in the svg, and that a wheel burst *changes*
-the pixel signature — which a stretched raster would not. It reaches the world canvas through the Edit
-tool's nav rail, since that route opens on a phase with no canvas mounted.
+the pixel signature — which a stretched raster would not. It reaches the world canvas through the
+Configure tool's nav rail, on World · Scan, since that route opens on a phase with no canvas mounted.
 
 ## 8. Known duplication and open work
 

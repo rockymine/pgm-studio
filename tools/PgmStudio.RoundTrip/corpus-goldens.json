@@ -15,7 +15,7 @@
     "3084": {
       "regions": "E335E5196059 30 regions · mechanic=1 observer_spawn=1 other=14 spawn=5 wool=9",
       "build": "E3BD27239D7F 250x447 · build_zone=21280 filtered=3522 ground=0 sealed=86948",
-      "trav": "0BB636A0F1ED connected=False components=2 points=8 warning",
+      "trav": "3EBC63497DEB connected=False components=3 points=9 warning",
       "wool": "B2A8D02D8219 6/6 obtainable · 1 resources"
     },
     "5man": {
@@ -33,7 +33,7 @@
     "803": {
       "regions": "E240DEC7E9A5 20 regions · build=5 observer_spawn=1 other=2 spawn=5 wool=7",
       "build": "6F1F8C2A8666 285x195 · build_zone=2364 filtered=47218 ground=5993 sealed=0",
-      "trav": "51EB87611A7F connected=False components=3 points=4 warning",
+      "trav": "94E0F4E09114 connected=False components=3 points=4 warning",
       "wool": "DC326E225D39 2/2 obtainable · 1 resources"
     },
     "9_layers_of_random_blocks": {
@@ -91,14 +91,14 @@
       "wool": null
     },
     "abstract": {
-      "regions": "40C008F931C0 46 regions · build=19 mechanic=6 observer_spawn=1 other=5 spawn=7 wool=8",
-      "build": "F69DCF00CA4C 185x103 · build_zone=1051 filtered=1577 ground=2096 sealed=14331",
+      "regions": "8937C7BD716E 46 regions · build=19 mechanic=6 observer_spawn=1 other=5 spawn=7 wool=8",
+      "build": "602A15842C1E 185x103 · build_zone=946 filtered=1423 ground=2096 sealed=14590",
       "trav": "8FF237BFE88B connected=False components=3 points=14 warning",
       "wool": "D65D5745C540 2/2 obtainable · 0 resources"
     },
     "abstract_remix": {
-      "regions": "40C008F931C0 46 regions · build=19 mechanic=6 observer_spawn=1 other=5 spawn=7 wool=8",
-      "build": "F69DCF00CA4C 185x103 · build_zone=1051 filtered=1577 ground=2096 sealed=14331",
+      "regions": "8937C7BD716E 46 regions · build=19 mechanic=6 observer_spawn=1 other=5 spawn=7 wool=8",
+      "build": "602A15842C1E 185x103 · build_zone=946 filtered=1423 ground=2096 sealed=14590",
       "trav": "8FF237BFE88B connected=False components=3 points=14 warning",
       "wool": "D65D5745C540 2/2 obtainable · 0 resources"
     },
@@ -134,8 +134,8 @@
     },
     "ad_astra": {
       "regions": "0903E16D0D53 45 regions · build=4 observer_spawn=1 other=6 spawn=11 wool=23",
-      "build": "9839C6E90DA0 267x357 · build_zone=0 filtered=7818 ground=87152 sealed=349",
-      "trav": "859D4846C63E connected=False components=2 points=6 warning",
+      "build": "03D1AA31A69A 267x357 · build_zone=3317 filtered=67523 ground=24130 sealed=349",
+      "trav": "4E405EEA9FB1 connected=True components=1 points=6 ok",
       "wool": "C3C88226BEA5 4/4 obtainable · 1 resources"
     },
     "ad_infinitum": {
@@ -146,8 +146,8 @@
     },
     "aequabilis": {
       "regions": "D0F80859B1D4 30 regions · build=4 mechanic=1 observer_spawn=1 other=8 spawn=9 wool=7",
-      "build": "B17EFD19E8A0 401x153 · build_zone=0 filtered=2802 ground=58551 sealed=0",
-      "trav": "3EDBE1899F50 connected=False components=2 points=6 warning",
+      "build": "B0F9757E0FCE 401x153 · build_zone=3315 filtered=2802 ground=19196 sealed=36040",
+      "trav": "479F4BC4BFD1 connected=True components=1 points=6 ok",
       "wool": "0DC59CACA269 4/4 obtainable · 1 resources"
     },
     "aerobellum": {
@@ -165,7 +165,7 @@
     "aether": {
       "regions": "6FAE6D725813 21 regions · build=4 mechanic=3 observer_spawn=1 other=3 spawn=5 wool=5",
       "build": "20B3E7042336 115x230 · build_zone=7738 filtered=528 ground=18184 sealed=0",
-      "trav": "712B968F494B connected=False components=3 points=4 warning",
+      "trav": "D3D46AA91C77 connected=False components=3 points=4 warning",
       "wool": "3EBB38CD231A 0/2 obtainable · 1 resources"
     },
     "affinity": {
@@ -345,7 +345,7 @@
     "apocalypse_ctw": {
       "regions": "351513CCB6C5 28 regions · build=1 observer_spawn=1 other=2 spawn=5 wool=19",
       "build": "424AD701FD5A 213x427 · build_zone=8241 filtered=62430 ground=20280 sealed=0",
-      "trav": "ECBAB0F69F29 connected=True components=1 points=6 ok",
+      "trav": "06898EF3C1C0 connected=False components=1 points=6 warning",
       "wool": "8CCDC1A874C7 4/4 obtainable · 1 resources"
     },
     "apollo_23": {
@@ -362,8 +362,8 @@
     },
     "appalachia": {
       "regions": "5EE1A70DFEC7 20 regions · build=1 mechanic=3 observer_spawn=1 other=6 spawn=6 wool=3",
-      "build": "58568248F10C 247x138 · build_zone=0 filtered=1824 ground=32261 sealed=1",
-      "trav": "D2D3315A55FF connected=False components=2 points=6 warning",
+      "build": "A2DCA14D4D38 247x138 · build_zone=11556 filtered=1824 ground=20705 sealed=1",
+      "trav": "76D5D9A37ADD connected=True components=1 points=6 ok",
       "wool": "B6B01810F390 4/4 obtainable · 1 resources"
     },
     "apple_smash": {
@@ -386,8 +386,8 @@
     },
     "arabia": {
       "regions": "82AB01A65185 19 regions · build=4 observer_spawn=1 other=2 spawn=5 wool=7",
-      "build": "E3DEC4BF1E43 108x252 · build_zone=0 filtered=1536 ground=25680 sealed=0",
-      "trav": "AA8CAF745289 connected=False components=2 points=6 warning",
+      "build": "BC5E04827EA4 108x252 · build_zone=7440 filtered=1536 ground=2376 sealed=15864",
+      "trav": "6D76C9A84BCB connected=True components=1 points=6 ok",
       "wool": "3B3FC6BC8857 4/4 obtainable · 1 resources"
     },
     "arachnea": {
@@ -398,8 +398,8 @@
     },
     "araxa": {
       "regions": "411291DD3466 21 regions · build=1 observer_spawn=1 other=2 spawn=5 wool=12",
-      "build": "BCE074996AFF 291x227 · build_zone=0 filtered=4254 ground=61803 sealed=0",
-      "trav": "17143B2B0518 connected=False components=2 points=6 warning",
+      "build": "238F6DADF311 291x227 · build_zone=5293 filtered=4254 ground=12998 sealed=43512",
+      "trav": "2B9C620F4E36 connected=True components=1 points=6 ok",
       "wool": "E0362A5C5E3F 4/4 obtainable · 1 resources"
     },
     "arcane_ctw": {
@@ -408,6 +408,12 @@
       "trav": "7F002015D2AA connected=True components=1 points=4 ok",
       "wool": "A5129298093C 2/2 obtainable · 1 resources"
     },
+    "arch": {
+      "regions": "B57F9B0447DC unsupported",
+      "build": null,
+      "trav": null,
+      "wool": null
+    },
     "arctic_ruins": {
       "regions": "24430BA809C7 20 regions · build=4 mechanic=2 observer_spawn=1 other=2 spawn=9 wool=2",
       "build": null,
@@ -415,7 +421,7 @@
       "wool": null
     },
     "argon": {
-      "regions": "A631319E6190 25 regions · build=4 observer_spawn=1 other=13 spawn=7",
+      "regions": "32BC1267E0F4 35 regions · build=4 observer_spawn=1 other=23 spawn=7",
       "build": "43530737F5CA 545x241 · build_zone=7011 filtered=17994 ground=82160 sealed=24180",
       "trav": "3FC8AE209277 connected=False components=5 points=6 warning",
       "wool": "EF606B9326A2 4/4 obtainable · 1 resources"
@@ -535,7 +541,7 @@
       "wool": null
     },
     "avant_garde": {
-      "regions": "8D9A95EB29A1 49 regions · mechanic=1 observer_spawn=1 other=38 spawn=3 wool=6",
+      "regions": "C2C188671363 50 regions · mechanic=1 observer_spawn=1 other=39 spawn=3 wool=6",
       "build": null,
       "trav": null,
       "wool": null
@@ -559,9 +565,9 @@
       "wool": null
     },
     "backspook": {
-      "regions": "F34FDF6211C8 37 regions · build=1 observer_spawn=1 other=10 spawn=7 wool=18",
-      "build": "C70E7EC2CD53 119x315 · build_zone=20937 filtered=2498 ground=0 sealed=14050",
-      "trav": "993D965CB225 connected=False components=5 points=6 warning",
+      "regions": "819846133E38 38 regions · observer_spawn=1 other=9 spawn=7 wool=21",
+      "build": "88D978A6903A 119x315 · build_zone=15345 filtered=2180 ground=50 sealed=19910",
+      "trav": "1E46BA90FF42 connected=False components=5 points=6 warning",
       "wool": "E56B28D5EC0B 4/4 obtainable · 1 resources"
     },
     "backstreets": {
@@ -602,8 +608,8 @@
     },
     "bamboo_valley": {
       "regions": "9EC8A1219CC2 16 regions · build=1 observer_spawn=1 other=2 spawn=5 wool=7",
-      "build": "EF6AF4AF1BCC 393x183 · build_zone=0 filtered=5316 ground=66603 sealed=0",
-      "trav": "E6355579C0F0 connected=False components=2 points=6 warning",
+      "build": "64A839C87BCD 393x183 · build_zone=1435 filtered=5316 ground=10160 sealed=55008",
+      "trav": "8A2365C0DDA2 connected=True components=1 points=6 ok",
       "wool": "C3EF085BD26E 4/4 obtainable · 1 resources"
     },
     "bamboo_valley_ii": {
@@ -620,12 +626,12 @@
     },
     "bamboo_valley_v": {
       "regions": "E0F832492284 33 regions · build=10 observer_spawn=1 other=2 spawn=5 wool=15",
-      "build": "5CC67B5730AB 186x240 · build_zone=0 filtered=1008 ground=43632 sealed=0",
-      "trav": "2B05276D90CF connected=False components=2 points=6 warning",
+      "build": "4BA2A86A84E5 186x240 · build_zone=11270 filtered=1008 ground=32362 sealed=0",
+      "trav": "0311F7BAC053 connected=True components=1 points=6 ok",
       "wool": "BD96EBCCDD7B 4/4 obtainable · 1 resources"
     },
     "banana_split": {
-      "regions": "E6A6D5144BDB 22 regions · observer_spawn=1 other=3 spawn=8 wool=10",
+      "regions": "2AF791F6C6B8 26 regions · observer_spawn=1 other=6 spawn=8 wool=11",
       "build": "E438961C252E 243x142 · build_zone=0 filtered=676 ground=20623 sealed=13207",
       "trav": "086396C644A8 connected=False components=4 points=8 warning",
       "wool": "82DB08EA8657 4/4 obtainable · 0 resources"
@@ -637,7 +643,7 @@
       "wool": null
     },
     "barnyard_abduction": {
-      "regions": "0FA7F11C4282 20 regions · build=3 observer_spawn=1 other=5 spawn=9 wool=2",
+      "regions": "B57F9B0447DC unsupported",
       "build": null,
       "trav": null,
       "wool": null
@@ -667,7 +673,7 @@
       "wool": null
     },
     "battle_of_tenjin_ii": {
-      "regions": "271318EE1DE0 12 regions · observer_spawn=1 other=9 spawn=2",
+      "regions": "083929CE443E 20 regions · observer_spawn=1 other=17 spawn=2",
       "build": null,
       "trav": null,
       "wool": null
@@ -697,7 +703,7 @@
       "wool": null
     },
     "beach_battles": {
-      "regions": "01385B4D6FDA 48 regions · observer_spawn=1 other=44 spawn=3",
+      "regions": "C1EEF33871BB 50 regions · observer_spawn=1 other=46 spawn=3",
       "build": null,
       "trav": null,
       "wool": null
@@ -722,14 +728,14 @@
     },
     "below_zero": {
       "regions": "CC3A8C2F5AAE 32 regions · mechanic=2 observer_spawn=1 other=20 spawn=2 wool=7",
-      "build": "27707A104DBB 270x272 · build_zone=0 filtered=6915 ground=66516 sealed=9",
+      "build": "E8E4A2A5145D 270x272 · build_zone=0 filtered=6915 ground=13000 sealed=53525",
       "trav": "133C4EAF6860 connected=False components=2 points=6 warning",
       "wool": "E8639E5D31D6 4/4 obtainable · 2 resources"
     },
     "belvedere": {
       "regions": "BEEAB68B7D83 30 regions · build=2 mechanic=3 observer_spawn=1 other=5 spawn=5 wool=14",
       "build": "00001C760CDE 215x279 · build_zone=8724 filtered=43624 ground=6452 sealed=1185",
-      "trav": "7E7251F978BB connected=False components=5 points=6 warning",
+      "trav": "23D9CE952A4E connected=False components=5 points=6 warning",
       "wool": "08DA90584C5C 4/4 obtainable · 1 resources"
     },
     "bessemers_process": {
@@ -806,8 +812,8 @@
     },
     "blocks_ctw": {
       "regions": "575F1805866A 27 regions · build=1 observer_spawn=1 other=2 spawn=9 wool=14",
-      "build": "16DD82296127 298x364 · build_zone=0 filtered=0 ground=103592 sealed=4880",
-      "trav": "0D7D19A2484C connected=False components=6 points=6 warning",
+      "build": "821ED0DAE4E8 298x364 · build_zone=3156 filtered=0 ground=27189 sealed=78127",
+      "trav": "FEE5FF0A37E6 connected=True components=1 points=6 ok",
       "wool": "E5C488432824 0/4 obtainable · 1 resources"
     },
     "blocks_destroy_the_dynamite": {
@@ -877,13 +883,13 @@
       "wool": null
     },
     "bookshelf_x64": {
-      "regions": "F3F390DBA14B 14 regions · observer_spawn=1 other=8 spawn=5",
+      "regions": "8075E6596A84 15 regions · mechanic=1 observer_spawn=1 other=8 spawn=5",
       "build": null,
       "trav": null,
       "wool": null
     },
     "boom": {
-      "regions": "466E5C0D023C 14 regions · observer_spawn=1 other=5 spawn=3 wool=5",
+      "regions": "8E0FD45F6E76 20 regions · observer_spawn=1 other=11 spawn=3 wool=5",
       "build": null,
       "trav": null,
       "wool": null
@@ -895,7 +901,7 @@
       "wool": null
     },
     "boombox": {
-      "regions": "C0A897E0B4CF 68 regions · mechanic=2 observer_spawn=1 other=60 spawn=5",
+      "regions": "43C46C2F00D9 69 regions · mechanic=2 observer_spawn=1 other=61 spawn=5",
       "build": null,
       "trav": null,
       "wool": null
@@ -930,8 +936,20 @@
       "trav": null,
       "wool": null
     },
+    "brady_block": {
+      "regions": "D73A17049074 9 regions · observer_spawn=1 other=8",
+      "build": null,
+      "trav": null,
+      "wool": null
+    },
     "breezebille": {
       "regions": "243FEF88EBEF unsupported",
+      "build": null,
+      "trav": null,
+      "wool": null
+    },
+    "bricked_n_clayed": {
+      "regions": "FF578C1BA3DE 15 regions · mechanic=2 observer_spawn=1 other=2 spawn=5 wool=5",
       "build": null,
       "trav": null,
       "wool": null
@@ -967,15 +985,15 @@
       "wool": null
     },
     "brittlebush": {
-      "regions": "73760488EA9F 45 regions · build=11 mechanic=3 observer_spawn=2 other=4 spawn=7 wool=18",
-      "build": "4879EFAE4A16 228x122 · build_zone=0 filtered=576 ground=26820 sealed=420",
-      "trav": "DB6C7266B48F connected=False components=6 points=6 warning",
+      "regions": "BCD0C0E1F77B 46 regions · build=11 mechanic=3 observer_spawn=2 other=4 spawn=7 wool=19",
+      "build": "19D3043625C2 228x122 · build_zone=8160 filtered=576 ground=18660 sealed=420",
+      "trav": "A8C33CAC433A connected=False components=5 points=6 warning",
       "wool": "4A2F97F34006 4/4 obtainable · 1 resources"
     },
     "brittlebush_ii": {
       "regions": "FCA1D680CFAC 39 regions · build=5 mechanic=3 observer_spawn=1 other=1 spawn=12 wool=17",
       "build": "1677A21B35F3 182x210 · build_zone=6800 filtered=28336 ground=2580 sealed=504",
-      "trav": "21EE671C0A07 connected=False components=5 points=6 warning",
+      "trav": "D5CA6A17DC4D connected=False components=5 points=6 warning",
       "wool": "4A2F97F34006 4/4 obtainable · 1 resources"
     },
     "bulletwood": {
@@ -986,8 +1004,8 @@
     },
     "bungee_coorde": {
       "regions": "2D82467B6948 26 regions · observer_spawn=1 other=8 spawn=11 wool=6",
-      "build": "ED934C92D192 212x213 · build_zone=52 filtered=216 ground=44600 sealed=288",
-      "trav": "85A4D6D09068 connected=False components=4 points=10 warning",
+      "build": "36EFE9659118 212x213 · build_zone=551 filtered=216 ground=44101 sealed=288",
+      "trav": "D1DBC728BD1C connected=False components=4 points=10 warning",
       "wool": "EB03C77ADA38 4/4 obtainable · 2 resources"
     },
     "burning_palace": {
@@ -1032,12 +1050,6 @@
       "trav": null,
       "wool": null
     },
-    "cake_wars_3": {
-      "regions": "828766818890 7 regions · observer_spawn=1 spawn=4 wool=2",
-      "build": null,
-      "trav": null,
-      "wool": null
-    },
     "cake_wars_ranked": {
       "regions": "0552A066A72A 14 regions · observer_spawn=1 other=7 spawn=6",
       "build": null,
@@ -1053,7 +1065,7 @@
     "candyland_ctw": {
       "regions": "E6180B943BDE 29 regions · observer_spawn=1 other=7 spawn=15 wool=6",
       "build": "040ABCCE1C08 133x321 · build_zone=0 filtered=24594 ground=18099 sealed=0",
-      "trav": "A897ABCC63E9 connected=True components=1 points=6 ok",
+      "trav": "A201532D5013 connected=False components=2 points=6 warning",
       "wool": "D7D2A03F3F9D 4/4 obtainable · 2 resources"
     },
     "cannon_duel_diagonal": {
@@ -1081,19 +1093,19 @@
       "wool": null
     },
     "cannonquad_ii": {
-      "regions": "62EAA0CC3C89 19 regions · observer_spawn=1 other=4 spawn=9 wool=5",
+      "regions": "0F804C0552CB 20 regions · observer_spawn=1 other=5 spawn=9 wool=5",
       "build": null,
       "trav": null,
       "wool": null
     },
     "cannonquad_reloaded": {
-      "regions": "BDBBF564BD2D 36 regions · build=1 observer_spawn=1 other=30 spawn=4",
+      "regions": "DFFD2E78A39B 37 regions · build=1 observer_spawn=1 other=31 spawn=4",
       "build": null,
       "trav": null,
       "wool": null
     },
     "cannonquest": {
-      "regions": "AF061DADFB95 28 regions · build=3 observer_spawn=1 other=15 spawn=9",
+      "regions": "388FDCA0FF1A 30 regions · build=3 observer_spawn=1 other=17 spawn=9",
       "build": null,
       "trav": null,
       "wool": null
@@ -1107,7 +1119,7 @@
     "canyon_ii": {
       "regions": "98622D3185D2 13 regions · observer_spawn=1 spawn=5 wool=7",
       "build": "65840EAD5895 258x132 · build_zone=32308 filtered=1748 ground=0 sealed=0",
-      "trav": "61EB82629B81 connected=True components=1 points=6 ok",
+      "trav": "F5A0753C04DB connected=False components=2 points=6 warning",
       "wool": "221BBC4874C5 4/4 obtainable · 1 resources"
     },
     "capture_the_wool_ctw": {
@@ -1117,7 +1129,7 @@
       "wool": null
     },
     "cargo": {
-      "regions": "3FEE59F7A7F5 23 regions · observer_spawn=1 other=3 spawn=8 wool=11",
+      "regions": "98D92BCE3DBB 24 regions · observer_spawn=1 other=4 spawn=8 wool=11",
       "build": "5B807F8E52FF 195x225 · build_zone=0 filtered=2457 ground=0 sealed=41418",
       "trav": "A6522E3F51A7 connected=False components=2 points=6 warning",
       "wool": "C07788FD5C9A 4/4 obtainable · 0 resources"
@@ -1167,7 +1179,7 @@
     "celestial_islands": {
       "regions": "24E1C050CECD 45 regions · observer_spawn=1 other=15 spawn=7 wool=22",
       "build": "02EFA33E7DC0 279x253 · build_zone=0 filtered=13518 ground=15530 sealed=41539",
-      "trav": "ED5D8CFF4CFE connected=False components=2 points=6 warning",
+      "trav": "393FF2827D1B connected=False components=2 points=6 warning",
       "wool": "EA22E53D2513 4/4 obtainable · 2 resources"
     },
     "cerulean_cave": {
@@ -1299,7 +1311,7 @@
     "chles_great_wall": {
       "regions": "99B1E3A9DF87 81 regions · mechanic=3 observer_spawn=1 other=53 spawn=11 wool=13",
       "build": "207B424B9CA9 319x450 · build_zone=0 filtered=0 ground=0 sealed=143550",
-      "trav": "688977EBB5E6 connected=False components=3 points=6 warning",
+      "trav": "AC861605B618 connected=False components=3 points=6 warning",
       "wool": "F44265D12C86 2/2 obtainable · 2 resources"
     },
     "chocolate_diamonds": {
@@ -1333,7 +1345,7 @@
       "wool": "BF55931F8C8D 1/1 obtainable · 1 resources"
     },
     "city_of_colors_dtm": {
-      "regions": "C8C9F8F10993 18 regions · observer_spawn=1 other=2 spawn=9 wool=6",
+      "regions": "0FBE1A6FEA28 19 regions · observer_spawn=1 other=3 spawn=9 wool=6",
       "build": null,
       "trav": null,
       "wool": null
@@ -1346,13 +1358,13 @@
     },
     "clayclay": {
       "regions": "A24D10169F16 27 regions · build=9 observer_spawn=1 other=1 spawn=6 wool=10",
-      "build": "035BCFA42651 172x188 · build_zone=0 filtered=692 ground=31644 sealed=0",
-      "trav": "336E1873E09D connected=False components=2 points=4 warning",
+      "build": "FD2FC9C06ABE 172x188 · build_zone=4228 filtered=28068 ground=40 sealed=0",
+      "trav": "5C7B93301BCD connected=True components=1 points=4 ok",
       "wool": "88B3B713AD15 2/2 obtainable · 1 resources"
     },
     "clearcut": {
       "regions": "6577B5C34738 45 regions · build=5 mechanic=12 observer_spawn=1 other=10 spawn=5 wool=12",
-      "build": "CBAE99F61627 197x242 · build_zone=0 filtered=1275 ground=46226 sealed=173",
+      "build": "0E8118BF9823 197x242 · build_zone=7148 filtered=1275 ground=39078 sealed=173",
       "trav": "2A7F48EB72BC connected=True components=1 points=6 ok",
       "wool": "1479BA311CA7 4/4 obtainable · 1 resources"
     },
@@ -1388,14 +1400,14 @@
     },
     "coconut": {
       "regions": "26C9379F9F1B 27 regions · build=11 mechanic=1 observer_spawn=1 other=2 spawn=5 wool=7",
-      "build": "1D2E8A14F079 190x190 · build_zone=0 filtered=1698 ground=34297 sealed=105",
-      "trav": "3F51DCB4BE01 connected=False components=2 points=4 warning",
+      "build": "B31062CE587A 190x190 · build_zone=7708 filtered=1698 ground=1149 sealed=25545",
+      "trav": "E302D53E43D1 connected=True components=1 points=4 ok",
       "wool": "CC5FD5A5484D 2/2 obtainable · 1 resources"
     },
     "coconut_mald": {
       "regions": "07759ED80472 26 regions · build=10 mechanic=1 observer_spawn=1 other=2 spawn=5 wool=7",
-      "build": "72E9C106E097 255x134 · build_zone=0 filtered=2040 ground=32025 sealed=105",
-      "trav": "AEB8722CEB3F connected=False components=2 points=4 warning",
+      "build": "877A343702F6 255x134 · build_zone=32025 filtered=2040 ground=0 sealed=105",
+      "trav": "CF5F22CDA84C connected=True components=1 points=4 ok",
       "wool": "CC5FD5A5484D 2/2 obtainable · 1 resources"
     },
     "colorado": {
@@ -1417,15 +1429,15 @@
       "wool": null
     },
     "columbia_ctw": {
-      "regions": "B6882541733B 17 regions · observer_spawn=1 spawn=10 wool=6",
+      "regions": "08D844BD31EA 18 regions · observer_spawn=1 other=1 spawn=10 wool=6",
       "build": "4AFB0FC1CF1F 373x185 · build_zone=0 filtered=5708 ground=62889 sealed=408",
-      "trav": "375A3C937A16 connected=False components=2 points=6 warning",
+      "trav": "BB41CBA03275 connected=False components=2 points=6 warning",
       "wool": "28A6A34332A4 4/4 obtainable · 1 resources"
     },
     "comb_conquest": {
       "regions": "4BBBF51A59F5 27 regions · build=2 mechanic=3 observer_spawn=1 other=4 spawn=5 wool=12",
-      "build": "F0D4FB903725 167x209 · build_zone=0 filtered=6188 ground=28714 sealed=1",
-      "trav": "FEA9BD5FA644 connected=False components=2 points=6 warning",
+      "build": "FC04480378E5 167x209 · build_zone=6230 filtered=6188 ground=22484 sealed=1",
+      "trav": "12D8C4580C64 connected=True components=1 points=6 ok",
       "wool": "EE0D78160C91 4/4 obtainable · 2 resources"
     },
     "concourse": {
@@ -1442,7 +1454,7 @@
     },
     "connected": {
       "regions": "E195222C827A 22 regions · build=1 observer_spawn=1 other=2 spawn=5 wool=13",
-      "build": "54EF0F064B8A 129x273 · build_zone=0 filtered=920 ground=33999 sealed=298",
+      "build": "0F2B414F32A9 129x273 · build_zone=1369 filtered=920 ground=12472 sealed=20456",
       "trav": "72DBB5D08750 connected=True components=1 points=6 ok",
       "wool": "6641F370017B 4/4 obtainable · 0 resources"
     },
@@ -1466,8 +1478,8 @@
     },
     "coral_reef_ii": {
       "regions": "23FA020607F1 17 regions · build=1 mechanic=1 observer_spawn=1 other=2 spawn=5 wool=7",
-      "build": "7297D8B77D56 267x133 · build_zone=0 filtered=1888 ground=33622 sealed=1",
-      "trav": "0B895F26C423 connected=False components=2 points=6 warning",
+      "build": "0227C3E029F9 267x133 · build_zone=6805 filtered=1888 ground=4420 sealed=22398",
+      "trav": "6BBC9782E34B connected=True components=1 points=6 ok",
       "wool": "87336A02130F 4/4 obtainable · 1 resources"
     },
     "cordillera": {
@@ -1502,6 +1514,12 @@
     },
     "cos_tnt": {
       "regions": "DBB5BDF035DB 77 regions · mechanic=1 observer_spawn=1 other=58 spawn=17",
+      "build": null,
+      "trav": null,
+      "wool": null
+    },
+    "cottage": {
+      "regions": "4031AE831E4A 21 regions · mechanic=1 observer_spawn=1 other=6 spawn=13",
       "build": null,
       "trav": null,
       "wool": null
@@ -1562,8 +1580,8 @@
     },
     "cyril": {
       "regions": "CCA10116E110 30 regions · build=4 mechanic=3 observer_spawn=1 other=6 spawn=8 wool=8",
-      "build": "1D5ED9FC37A8 133x153 · build_zone=0 filtered=0 ground=19667 sealed=682",
-      "trav": "8F70DC4C598F connected=False components=3 points=4 warning",
+      "build": "051C5688D759 133x153 · build_zone=1380 filtered=0 ground=4788 sealed=14181",
+      "trav": "842B35B3567A connected=False components=2 points=4 warning",
       "wool": "4A9C3FAFFE24 2/2 obtainable · 2 resources"
     },
     "cytokinesis": {
@@ -1609,15 +1627,15 @@
       "wool": null
     },
     "dawnskirr": {
-      "regions": "5CBFC789B376 22 regions · observer_spawn=1 other=2 spawn=9 wool=10",
-      "build": "AFE76ED42149 134x232 · build_zone=0 filtered=13060 ground=0 sealed=18028",
-      "trav": "D3BBE7EDB90E connected=False components=1 points=4 warning",
+      "regions": "C489A70D2196 18 regions · build=1 observer_spawn=1 other=1 spawn=9 wool=6",
+      "build": "8080EE730360 134x232 · build_zone=7047 filtered=930 ground=4597 sealed=18514",
+      "trav": "D908D502C62D connected=True components=1 points=4 ok",
       "wool": "D3A746DF9F11 2/2 obtainable · 1 resources"
     },
     "daydream_mini": {
       "regions": "4676095569AF 41 regions · build=1 mechanic=2 observer_spawn=1 other=4 spawn=10 wool=23",
-      "build": "342E332B4D12 191x191 · build_zone=0 filtered=2680 ground=33792 sealed=9",
-      "trav": "07498422B3E3 connected=False components=4 points=8 warning",
+      "build": "2CD5E2CC75B7 191x191 · build_zone=5320 filtered=31152 ground=0 sealed=9",
+      "trav": "239831A4D8EC connected=True components=1 points=8 ok",
       "wool": "AE559C4D6E1D 4/4 obtainable · 2 resources"
     },
     "dead_end": {
@@ -1628,8 +1646,8 @@
     },
     "dead_noon": {
       "regions": "421A0BDF073F 23 regions · build=1 observer_spawn=1 other=5 spawn=9 wool=7",
-      "build": "0A78EC7248E5 132x236 · build_zone=0 filtered=816 ground=30336 sealed=0",
-      "trav": "77D66A936CD9 connected=False components=2 points=4 warning",
+      "build": "2E5FAAFBB58A 132x236 · build_zone=2880 filtered=816 ground=3504 sealed=23952",
+      "trav": "95B8D3BC6175 connected=False components=1 points=4 warning",
       "wool": "D1FCC7F2AE66 2/2 obtainable · 2 resources"
     },
     "dead_waters": {
@@ -1676,8 +1694,8 @@
     },
     "deepwind_jungle": {
       "regions": "32FC5EB29D4E 18 regions · build=3 observer_spawn=1 other=2 spawn=5 wool=7",
-      "build": "0BBC39084779 121x197 · build_zone=0 filtered=1040 ground=22041 sealed=756",
-      "trav": "120CB1657F01 connected=False components=2 points=6 warning",
+      "build": "D09D614C874C 121x197 · build_zone=6126 filtered=1040 ground=624 sealed=16047",
+      "trav": "D6DED039DBE2 connected=True components=1 points=6 ok",
       "wool": "A8115B8410DD 4/4 obtainable · 0 resources"
     },
     "deepwood": {
@@ -1705,8 +1723,8 @@
       "wool": null
     },
     "desert_country": {
-      "regions": "BE298FC994B1 24 regions · build=6 mechanic=1 observer_spawn=1 other=4 spawn=5 wool=7",
-      "build": "0A0A481FE0CB 129x288 · build_zone=7867 filtered=1558 ground=5082 sealed=22645",
+      "regions": "BE6B5239D330 24 regions · build=6 mechanic=1 observer_spawn=1 other=3 spawn=6 wool=7",
+      "build": "B88A5D945954 129x288 · build_zone=6939 filtered=2486 ground=5082 sealed=22645",
       "trav": "A76C1B6C5C7C connected=True components=1 points=6 ok",
       "wool": "324692A5DE11 4/4 obtainable · 2 resources"
     },
@@ -1737,7 +1755,7 @@
     "desolate_gully_ctw": {
       "regions": "A7348BC192FD 9 regions · observer_spawn=1 spawn=4 wool=4",
       "build": "330D953E708C 140x125 · build_zone=0 filtered=17293 ground=0 sealed=207",
-      "trav": "ABFDCDBD438A connected=False components=1 points=4 warning",
+      "trav": "5F7B7134267A connected=False components=2 points=4 warning",
       "wool": "B18ABC10427D 2/2 obtainable · 1 resources"
     },
     "destiny": {
@@ -1765,7 +1783,7 @@
       "wool": null
     },
     "directrix": {
-      "regions": "098616AFAD95 42 regions · mechanic=27 observer_spawn=1 other=12 spawn=2",
+      "regions": "259D7D1ED6EA 54 regions · mechanic=27 observer_spawn=1 other=24 spawn=2",
       "build": null,
       "trav": null,
       "wool": null
@@ -1807,7 +1825,7 @@
       "wool": null
     },
     "disc_wars_iii": {
-      "regions": "33448515B76A 50 regions · mechanic=25 observer_spawn=1 other=22 spawn=2",
+      "regions": "19B955D936EA 58 regions · mechanic=25 observer_spawn=1 other=30 spawn=2",
       "build": null,
       "trav": null,
       "wool": null
@@ -1831,7 +1849,7 @@
       "wool": "B91F09213D33 2/2 obtainable · 1 resources"
     },
     "dk_crossovers_dte": {
-      "regions": "85D4ED967D5F 22 regions · mechanic=1 observer_spawn=1 other=18 spawn=2",
+      "regions": "132A89A65950 30 regions · mechanic=1 observer_spawn=1 other=26 spawn=2",
       "build": null,
       "trav": null,
       "wool": null
@@ -1923,7 +1941,7 @@
     "dragons_hearth": {
       "regions": "DD34E7D36C1F 34 regions · mechanic=5 observer_spawn=1 other=9 spawn=5 wool=14",
       "build": "8E92234136F2 289x767 · build_zone=0 filtered=10042 ground=211621 sealed=0",
-      "trav": "BEA40CCFD8FF connected=False components=6 points=6 warning",
+      "trav": "3552C550117A connected=True components=1 points=6 ok",
       "wool": "B53F541BE21A 4/4 obtainable · 3 resources"
     },
     "drastic_change": {
@@ -1933,15 +1951,15 @@
       "wool": "6C3CC5499175 4/4 obtainable · 1 resources"
     },
     "drastic_change_ii": {
-      "regions": "6BF41D986C90 44 regions · build=21 observer_spawn=1 other=1 spawn=6 wool=15",
+      "regions": "2FEAF935BD8B 53 regions · build=12 observer_spawn=1 other=1 spawn=10 wool=29",
       "build": null,
       "trav": null,
       "wool": null
     },
     "dreamland": {
-      "regions": "9FEC23C90B66 53 regions · build=9 mechanic=8 observer_spawn=1 other=7 spawn=5 wool=23",
+      "regions": "8B9C81032D1A 53 regions · build=9 mechanic=8 observer_spawn=1 other=7 spawn=5 wool=23",
       "build": "38E9E1D626E3 241x399 · build_zone=29019 filtered=14912 ground=52178 sealed=50",
-      "trav": "485DE48EE3B5 connected=True components=1 points=6 ok",
+      "trav": "22CB39060047 connected=True components=1 points=6 ok",
       "wool": "D72EB55426E6 4/4 obtainable · 2 resources"
     },
     "dromedary": {
@@ -1970,8 +1988,8 @@
     },
     "duality": {
       "regions": "7D180F90C958 29 regions · build=3 observer_spawn=1 other=2 spawn=5 wool=18",
-      "build": "F7C96B224BDC 165x257 · build_zone=0 filtered=6004 ground=36401 sealed=0",
-      "trav": "24B423B4EB2A connected=False components=2 points=6 warning",
+      "build": "8BC814B8E7BF 165x257 · build_zone=884 filtered=6004 ground=35517 sealed=0",
+      "trav": "EAFE9EC4A4E4 connected=True components=1 points=6 ok",
       "wool": "A807E6C9B28C 4/4 obtainable · 2 resources"
     },
     "dust_ctf": {
@@ -1987,7 +2005,7 @@
       "wool": null
     },
     "dynamite": {
-      "regions": "9F5B29FD46E5 23 regions · observer_spawn=1 other=5 spawn=13 wool=4",
+      "regions": "B4426E42841F 25 regions · observer_spawn=1 other=7 spawn=13 wool=4",
       "build": null,
       "trav": null,
       "wool": null
@@ -2053,7 +2071,7 @@
       "wool": null
     },
     "emerald_canopy": {
-      "regions": "F9656FDACA8D 13 regions · observer_spawn=1 other=4 spawn=2 wool=6",
+      "regions": "D370A40B6048 15 regions · observer_spawn=1 other=6 spawn=2 wool=6",
       "build": null,
       "trav": null,
       "wool": null
@@ -2066,8 +2084,8 @@
     },
     "emergency_meeting": {
       "regions": "6311BF48A283 28 regions · build=6 mechanic=1 observer_spawn=1 other=2 spawn=9 wool=9",
-      "build": "20DD3ED6EF23 233x239 · build_zone=0 filtered=0 ground=54140 sealed=1547",
-      "trav": "344F88502705 connected=False components=4 points=8 warning",
+      "build": "80C8E2A468B4 233x239 · build_zone=5401 filtered=45699 ground=3040 sealed=1547",
+      "trav": "22FE39678F4C connected=False components=1 points=8 warning",
       "wool": "1B80C8FC0CED 4/4 obtainable · 2 resources"
     },
     "emission": {
@@ -2077,7 +2095,7 @@
       "wool": null
     },
     "empire": {
-      "regions": "588AD4976800 14 regions · build=1 observer_spawn=1 other=2 spawn=4 wool=6",
+      "regions": "74E4577CF923 18 regions · build=1 observer_spawn=1 other=4 spawn=6 wool=6",
       "build": "F4447FA1F64C 141x213 · build_zone=0 filtered=30033 ground=0 sealed=0",
       "trav": "F7835A216D2A connected=True components=1 points=6 ok",
       "wool": "8E9B5725D749 4/4 obtainable · 0 resources"
@@ -2127,7 +2145,7 @@
     "epsilon": {
       "regions": "831779413C50 19 regions · observer_spawn=1 spawn=6 wool=12",
       "build": "CD06E4F84D9A 269x214 · build_zone=0 filtered=2750 ground=54816 sealed=0",
-      "trav": "F794F2F7541D connected=False components=5 points=6 warning",
+      "trav": "0CCD74CCAC34 connected=False components=5 points=6 warning",
       "wool": "5CEE1304BD6A 4/4 obtainable · 1 resources"
     },
     "equinox": {
@@ -2167,8 +2185,8 @@
       "wool": null
     },
     "ethereal": {
-      "regions": "A6868F61F82B 24 regions · build=5 mechanic=1 observer_spawn=1 other=9 spawn=6 wool=2",
-      "build": "9E4BE8372F22 375x110 · build_zone=0 filtered=3530 ground=13392 sealed=24328",
+      "regions": "7DC0EB952FB3 26 regions · build=5 mechanic=1 observer_spawn=1 other=10 spawn=7 wool=2",
+      "build": "935C714D1260 375x110 · build_zone=0 filtered=3474 ground=13378 sealed=24398",
       "trav": "0FF113E2082F connected=True components=1 points=4 ok",
       "wool": "666B0ED782FA 2/2 obtainable · 2 resources"
     },
@@ -2199,7 +2217,7 @@
     "expedition": {
       "regions": "BCB8EFB74977 21 regions · build=11 observer_spawn=1 spawn=6 wool=3",
       "build": "2C85384EF8D3 170x91 · build_zone=864 filtered=12540 ground=1826 sealed=240",
-      "trav": "E60622371D49 connected=False components=4 points=4 warning",
+      "trav": "4BEC61D1C098 connected=False components=4 points=4 warning",
       "wool": "2077C100B904 2/2 obtainable · 1 resources"
     },
     "experiment_12": {
@@ -2245,9 +2263,9 @@
       "wool": null
     },
     "fairy_tales_2_a_tale_or_two": {
-      "regions": "D6F643BF757A 30 regions · build=4 observer_spawn=1 other=7 spawn=3 wool=15",
-      "build": "E9FAB7749CC3 242x300 · build_zone=0 filtered=0 ground=69368 sealed=3232",
-      "trav": "4C0FA296881C connected=False components=6 points=8 warning",
+      "regions": "07749E83A4E7 31 regions · build=4 observer_spawn=1 other=7 spawn=3 wool=16",
+      "build": "144212A45693 242x300 · build_zone=18508 filtered=0 ground=0 sealed=54092",
+      "trav": "93F3C3667513 connected=False components=1 points=8 warning",
       "wool": "FFED352CF1A2 6/6 obtainable · 1 resources"
     },
     "fairy_tales_2_mini": {
@@ -2259,7 +2277,7 @@
     "fairy_tales_metamorphose": {
       "regions": "FB9CD776B631 35 regions · build=6 observer_spawn=1 other=16 spawn=5 wool=7",
       "build": "6696F8CD1436 268x153 · build_zone=36947 filtered=0 ground=0 sealed=4057",
-      "trav": "FE4BBC7DA8F9 connected=True components=1 points=6 ok",
+      "trav": "0AB71A3C5A4C connected=False components=2 points=6 warning",
       "wool": "2A000D150627 4/4 obtainable · 1 resources"
     },
     "fall_of_babylon": {
@@ -2295,7 +2313,7 @@
     "far_fetched": {
       "regions": "935B8FBC3127 34 regions · mechanic=1 observer_spawn=1 other=2 spawn=11 wool=19",
       "build": "A4F746A2EDBC 231x483 · build_zone=0 filtered=3156 ground=108237 sealed=180",
-      "trav": "A936AD617FE8 connected=False components=4 points=8 warning",
+      "trav": "58D5C9C1AA23 connected=False components=4 points=8 warning",
       "wool": "6AE3C50A4475 6/6 obtainable · 1 resources"
     },
     "fb_blue_snooze": {
@@ -2324,12 +2342,18 @@
     },
     "feel_good_inc": {
       "regions": "A0A5289FA2CD 30 regions · build=5 mechanic=3 observer_spawn=1 other=4 spawn=5 wool=12",
-      "build": "EEDA3BD58807 247x299 · build_zone=0 filtered=2730 ground=71122 sealed=1",
-      "trav": "7B13ED87B1F8 connected=False components=2 points=6 warning",
+      "build": "1994DCFA4FB4 247x299 · build_zone=7774 filtered=2730 ground=63348 sealed=1",
+      "trav": "48BF4B9C684C connected=True components=1 points=6 ok",
       "wool": "EB8D5AC383E4 4/4 obtainable · 3 resources"
     },
     "festive": {
       "regions": "5259444F68BA 1 regions · observer_spawn=1",
+      "build": null,
+      "trav": null,
+      "wool": null
+    },
+    "fire_on_the_mountain": {
+      "regions": "70F81319975F 15 regions · mechanic=3 observer_spawn=1 other=4 spawn=7",
       "build": null,
       "trav": null,
       "wool": null
@@ -2347,7 +2371,7 @@
       "wool": "60A31D557CEA 4/4 obtainable · 1 resources"
     },
     "firum_ctw": {
-      "regions": "414F0DC7930B 98 regions · build=31 mechanic=8 observer_spawn=1 other=34 spawn=15 wool=9",
+      "regions": "97F5982A9AD2 99 regions · build=31 mechanic=9 observer_spawn=1 other=34 spawn=15 wool=9",
       "build": "67442AEA65A3 201x395 · build_zone=17035 filtered=52058 ground=10176 sealed=126",
       "trav": "CEDA302ABC17 connected=True components=1 points=6 ok",
       "wool": "957CF3C759D6 2/2 obtainable · 2 resources"
@@ -2377,7 +2401,7 @@
       "wool": null
     },
     "flag_football_nyc": {
-      "regions": "790987D32FB1 14 regions · observer_spawn=1 other=5 spawn=8",
+      "regions": "59319BFB2E50 15 regions · observer_spawn=1 other=6 spawn=8",
       "build": null,
       "trav": null,
       "wool": null
@@ -2431,7 +2455,7 @@
       "wool": null
     },
     "fort_wars": {
-      "regions": "767B7A1C9D9D 16 regions · observer_spawn=1 other=10 spawn=5",
+      "regions": "5A68267AE8EA 18 regions · observer_spawn=1 other=12 spawn=5",
       "build": null,
       "trav": null,
       "wool": null
@@ -2462,8 +2486,8 @@
     },
     "fourchette": {
       "regions": "B10184F96415 27 regions · build=7 mechanic=1 observer_spawn=1 other=10 spawn=5 wool=3",
-      "build": "1EB83161EBF9 411x246 · build_zone=0 filtered=7637 ground=93469 sealed=0",
-      "trav": "EE99F727289B connected=False components=2 points=8 warning",
+      "build": "C16FC20DD9CF 411x246 · build_zone=6074 filtered=7637 ground=6903 sealed=80492",
+      "trav": "832B0668241E connected=True components=1 points=8 ok",
       "wool": "D8542D8E5725 6/6 obtainable · 1 resources"
     },
     "fox_dream": {
@@ -2491,7 +2515,7 @@
       "wool": null
     },
     "fracture_dtm": {
-      "regions": "98AB11DFD9DC 36 regions · observer_spawn=1 other=12 spawn=13 wool=10",
+      "regions": "0FBC5AEC6BC7 37 regions · observer_spawn=1 other=13 spawn=13 wool=10",
       "build": null,
       "trav": null,
       "wool": null
@@ -2552,8 +2576,8 @@
     },
     "fta_royal_garden_ctw": {
       "regions": "8267DF18CB0D 20 regions · build=1 observer_spawn=1 other=3 spawn=9 wool=6",
-      "build": "59790251FBC6 431x337 · build_zone=0 filtered=9702 ground=135545 sealed=0",
-      "trav": "763DEFF5A418 connected=False components=6 points=6 warning",
+      "build": "5F50D0B75DDF 431x337 · build_zone=2077 filtered=9702 ground=23018 sealed=110450",
+      "trav": "41368F5DC49A connected=False components=5 points=6 warning",
       "wool": "26FD43A1D408 4/4 obtainable · 1 resources"
     },
     "full_salvo": {
@@ -2587,8 +2611,8 @@
       "wool": null
     },
     "garf": {
-      "regions": "7772A9E5FB1D 17 regions · observer_spawn=1 spawn=5 wool=11",
-      "build": "05B59348238E 209x240 · build_zone=0 filtered=1070 ground=0 sealed=49090",
+      "regions": "5787FE094836 18 regions · observer_spawn=1 other=1 spawn=5 wool=11",
+      "build": "F9D9319A4F41 209x240 · build_zone=49090 filtered=1070 ground=0 sealed=0",
       "trav": "5624AD9CE5DC connected=False components=5 points=6 warning",
       "wool": "0292177F0683 4/4 obtainable · 1 resources"
     },
@@ -2648,7 +2672,7 @@
     },
     "gobi": {
       "regions": "1391A87A4772 24 regions · build=2 observer_spawn=1 other=2 spawn=12 wool=7",
-      "build": "6AE631338A5C 249x153 · build_zone=0 filtered=1850 ground=35927 sealed=320",
+      "build": "F84159C81FBB 249x153 · build_zone=11063 filtered=1850 ground=2616 sealed=22568",
       "trav": "D61A40A59C45 connected=True components=1 points=6 ok",
       "wool": "A9851755FFE2 4/4 obtainable · 1 resources"
     },
@@ -2660,7 +2684,7 @@
     },
     "golden_drought": {
       "regions": "B01FCDE93E09 27 regions · observer_spawn=1 other=14 spawn=5 wool=7",
-      "build": "D9B8BC2B3579 255x255 · build_zone=0 filtered=3350 ground=61675 sealed=0",
+      "build": "BC6EDDC75E36 255x255 · build_zone=0 filtered=3350 ground=11865 sealed=49810",
       "trav": "B67B6A0E7A77 connected=False components=2 points=6 warning",
       "wool": "64984FA1D4C5 4/4 obtainable · 1 resources"
     },
@@ -2671,9 +2695,9 @@
       "wool": null
     },
     "golden_drought_ii": {
-      "regions": "165ACCEC75D9 48 regions · observer_spawn=1 other=35 spawn=6 wool=6",
+      "regions": "E106262BDDC5 48 regions · observer_spawn=1 other=34 spawn=7 wool=6",
       "build": "5CA0FCDF6F27 393x393 · build_zone=13047 filtered=4928 ground=11822 sealed=124652",
-      "trav": "B01B88887361 connected=True components=1 points=6 ok",
+      "trav": "8874007EC06A connected=False components=1 points=6 warning",
       "wool": "8E48AC1AA6D2 4/4 obtainable · 1 resources"
     },
     "golden_drought_iii": {
@@ -2689,15 +2713,15 @@
       "wool": "A4E2698631DF 6/6 obtainable · 2 resources"
     },
     "golden_drought_v": {
-      "regions": "D5ADB56BD9CA 20 regions · build=5 observer_spawn=1 other=2 spawn=5 wool=7",
-      "build": "A51F98D0FEDC 201x116 · build_zone=22390 filtered=674 ground=0 sealed=252",
+      "regions": "C6543D3BA814 22 regions · build=5 observer_spawn=1 other=4 spawn=5 wool=7",
+      "build": "7E999E044496 201x116 · build_zone=6841 filtered=674 ground=0 sealed=15801",
       "trav": "189856606E4D connected=True components=1 points=4 ok",
       "wool": "1F9F726C4FFB 2/2 obtainable · 1 resources"
     },
     "golden_drought_vi": {
       "regions": "5C4B0B6D8FE0 42 regions · build=22 mechanic=2 observer_spawn=1 other=6 spawn=4 wool=7",
-      "build": "B33783672CF0 122x363 · build_zone=0 filtered=2500 ground=41786 sealed=0",
-      "trav": "FD47C37FE651 connected=False components=3 points=6 warning",
+      "build": "10C3ECF61A49 122x363 · build_zone=13393 filtered=2500 ground=0 sealed=28393",
+      "trav": "143D1E0E69A3 connected=False components=2 points=6 warning",
       "wool": "907257CF117B 4/4 obtainable · 1 resources"
     },
     "golden_fever": {
@@ -2707,14 +2731,14 @@
       "wool": null
     },
     "gongua_ctw": {
-      "regions": "22C6A4080AE7 20 regions · observer_spawn=1 other=1 spawn=11 wool=7",
+      "regions": "1D71F18975D1 21 regions · observer_spawn=1 other=2 spawn=11 wool=7",
       "build": "1DC2F955ED0B 209x403 · build_zone=0 filtered=9466 ground=74761 sealed=0",
       "trav": "1CB0D0F3567B connected=False components=2 points=6 warning",
       "wool": "E8EE82434FB1 2/2 obtainable · 3 resources"
     },
     "goo_lagoon": {
-      "regions": "3955F2102AEA 35 regions · build=6 mechanic=3 observer_spawn=1 other=6 spawn=4 wool=15",
-      "build": "BE270643D707 135x281 · build_zone=18275 filtered=1712 ground=2332 sealed=15616",
+      "regions": "BD64CB9AF399 39 regions · build=6 mechanic=3 observer_spawn=1 other=10 spawn=4 wool=15",
+      "build": "9DD8D3929A40 135x281 · build_zone=18275 filtered=1712 ground=2090 sealed=15858",
       "trav": "131385752C38 connected=True components=1 points=6 ok",
       "wool": "DAF2A1492C66 4/4 obtainable · 2 resources"
     },
@@ -2775,7 +2799,7 @@
     "greenhill": {
       "regions": "3601F3FCF8AC 22 regions · mechanic=1 observer_spawn=1 other=2 spawn=6 wool=12",
       "build": "4AB6986656AB 98x281 · build_zone=25302 filtered=1656 ground=0 sealed=580",
-      "trav": "4ED7920C766F connected=True components=1 points=6 ok",
+      "trav": "830085F7CE67 connected=False components=2 points=6 warning",
       "wool": "ECB87F92543B 4/4 obtainable · 1 resources"
     },
     "greenhouse_ctf": {
@@ -2785,15 +2809,15 @@
       "wool": null
     },
     "grenouille_de_larmee": {
-      "regions": "BDF744EEDA9A 9 regions · observer_spawn=1 other=1 spawn=4 wool=3",
-      "build": "40964EDE9D24 242x72 · build_zone=2263 filtered=0 ground=14921 sealed=240",
+      "regions": "4E8FB45EBE62 13 regions · observer_spawn=1 other=5 spawn=4 wool=3",
+      "build": "940892B492BB 242x72 · build_zone=2263 filtered=0 ground=12887 sealed=2274",
       "trav": "9D33FBF1EA56 connected=True components=1 points=4 ok",
       "wool": "637374B13251 2/2 obtainable · 0 resources"
     },
     "gridlock_2": {
       "regions": "88F9877613F3 29 regions · build=13 observer_spawn=1 other=1 spawn=5 wool=9",
       "build": "E3701EC8FC03 349x129 · build_zone=41256 filtered=2595 ground=0 sealed=1170",
-      "trav": "960E0C098833 connected=True components=1 points=6 ok",
+      "trav": "F0F335473A21 connected=False components=1 points=6 warning",
       "wool": "7E605C590850 4/4 obtainable · 1 resources"
     },
     "grub": {
@@ -2809,8 +2833,8 @@
       "wool": null
     },
     "hadron": {
-      "regions": "F8BC658DD755 27 regions · build=3 observer_spawn=1 other=12 spawn=4 wool=7",
-      "build": "BE4884E7CA38 277x241 · build_zone=1425 filtered=1817 ground=16757 sealed=46758",
+      "regions": "468C8DC984E3 41 regions · build=3 observer_spawn=1 other=26 spawn=4 wool=7",
+      "build": "DFBA202E1677 277x241 · build_zone=1425 filtered=4713 ground=13313 sealed=47306",
       "trav": "55BF5ED68B63 connected=True components=1 points=6 ok",
       "wool": "6206D2764FC9 4/4 obtainable · 1 resources"
     },
@@ -2839,7 +2863,7 @@
       "wool": null
     },
     "haneul_islands": {
-      "regions": "D3E8F93F5A91 15 regions · observer_spawn=1 other=4 spawn=6 wool=4",
+      "regions": "78C5D841239E 16 regions · observer_spawn=1 other=5 spawn=6 wool=4",
       "build": null,
       "trav": null,
       "wool": null
@@ -2857,9 +2881,9 @@
       "wool": null
     },
     "harbor_ctw": {
-      "regions": "265C662EDB4B 36 regions · build=4 observer_spawn=1 other=12 spawn=6 wool=13",
+      "regions": "408FA4F19D57 37 regions · build=4 observer_spawn=1 other=12 spawn=6 wool=14",
       "build": "A5F650A2635F 562x224 · build_zone=37088 filtered=80020 ground=8776 sealed=4",
-      "trav": "681598985C6E connected=False components=5 points=6 warning",
+      "trav": "A0E61E2F8167 connected=False components=5 points=6 warning",
       "wool": "9C494A5568CD 4/4 obtainable · 1 resources"
     },
     "harvest": {
@@ -2887,8 +2911,8 @@
       "wool": null
     },
     "havoc": {
-      "regions": "98A0F245B435 11 regions · build=2 observer_spawn=1 other=1 spawn=5 wool=2",
-      "build": "39CCFDAFCFCA 295x278 · build_zone=6849 filtered=0 ground=0 sealed=75161",
+      "regions": "95B2A693531E 21 regions · build=2 observer_spawn=1 other=9 spawn=5 wool=4",
+      "build": "D2AA4CA53350 322x321 · build_zone=6849 filtered=0 ground=0 sealed=96513",
       "trav": "B2B9623BF5A0 connected=False components=3 points=6 warning",
       "wool": "124EDE635341 0/4 obtainable · 1 resources"
     },
@@ -2929,19 +2953,13 @@
       "wool": null
     },
     "hillside_daydream": {
-      "regions": "DFDECEF716E8 41 regions · build=1 mechanic=3 observer_spawn=1 other=3 spawn=10 wool=23",
-      "build": "5346BD553D67 254x254 · build_zone=0 filtered=4568 ground=59944 sealed=4",
-      "trav": "2E05F63279B0 connected=False components=8 points=8 warning",
+      "regions": "23C3BA2C33E0 42 regions · build=1 mechanic=3 observer_spawn=1 other=4 spawn=10 wool=23",
+      "build": "A7A512F8FA66 254x254 · build_zone=11232 filtered=53280 ground=0 sealed=4",
+      "trav": "B94268C0DAED connected=False components=5 points=8 warning",
       "wool": "D0BCA96AA017 4/4 obtainable · 2 resources"
     },
     "hirap": {
       "regions": "BD612E7E7CC3 unsupported",
-      "build": null,
-      "trav": null,
-      "wool": null
-    },
-    "hk1_test_copy": {
-      "regions": "8E7EC4348E51 11 regions · build=1 observer_spawn=1 other=2 spawn=5 wool=2",
       "build": null,
       "trav": null,
       "wool": null
@@ -2953,7 +2971,7 @@
       "wool": "112934FA6D6F 2/2 obtainable · 1 resources"
     },
     "hobbit_hill": {
-      "regions": "F2D9A4F51D39 19 regions · mechanic=4 observer_spawn=1 other=7 spawn=5 wool=2",
+      "regions": "24C2A24F9C06 20 regions · mechanic=4 observer_spawn=1 other=8 spawn=5 wool=2",
       "build": null,
       "trav": null,
       "wool": null
@@ -3014,8 +3032,8 @@
     },
     "huanxiang": {
       "regions": "03B9925968B7 18 regions · build=1 mechanic=2 observer_spawn=1 other=2 spawn=5 wool=7",
-      "build": "A4EF5E14C5B0 189x123 · build_zone=0 filtered=342 ground=22272 sealed=633",
-      "trav": "DB06C54E020C connected=False components=2 points=6 warning",
+      "build": "317BF15005C0 189x123 · build_zone=5552 filtered=342 ground=16720 sealed=633",
+      "trav": "468603C87C81 connected=False components=1 points=6 warning",
       "wool": "8E6B8C01FFF3 4/4 obtainable · 2 resources"
     },
     "hydrolock": {
@@ -3025,8 +3043,8 @@
       "wool": "8613B63E4848 4/4 obtainable · 1 resources"
     },
     "hydrolock_ii": {
-      "regions": "FCC510C7F7DF 46 regions · build=22 observer_spawn=1 other=16 spawn=5 wool=2",
-      "build": "66E01B5F5368 221x165 · build_zone=7161 filtered=3066 ground=0 sealed=26238",
+      "regions": "DC47F321447F 50 regions · build=22 observer_spawn=1 other=20 spawn=5 wool=2",
+      "build": "4FAD67AD92FF 221x165 · build_zone=7051 filtered=3516 ground=0 sealed=25898",
       "trav": "9BE982A935AF connected=True components=1 points=6 ok",
       "wool": "7C71D240ED2A 4/4 obtainable · 3 resources"
     },
@@ -3055,7 +3073,7 @@
       "wool": "B6DD13395546 4/4 obtainable · 2 resources"
     },
     "icescar": {
-      "regions": "416C6B78C255 24 regions · mechanic=2 observer_spawn=1 other=17 spawn=4",
+      "regions": "CE2D4B0E150E 24 regions · mechanic=2 observer_spawn=1 other=16 spawn=5",
       "build": null,
       "trav": null,
       "wool": null
@@ -3099,7 +3117,7 @@
     "infernal_shadow": {
       "regions": "300C9966ED6D 20 regions · build=3 observer_spawn=1 other=2 spawn=10 wool=4",
       "build": "61C7A778CB88 227x73 · build_zone=1983 filtered=416 ground=3426 sealed=10746",
-      "trav": "C149F2C68F78 connected=True components=1 points=4 ok",
+      "trav": "AF20674CB289 connected=True components=1 points=4 ok",
       "wool": "B5BC56D3A541 2/2 obtainable · 0 resources"
     },
     "ingwaz": {
@@ -3171,7 +3189,7 @@
     "istana_ctw": {
       "regions": "417825B7D07B 49 regions · build=13 observer_spawn=1 other=2 spawn=11 wool=22",
       "build": "3FF0EB50DEA1 359x193 · build_zone=10516 filtered=56581 ground=2190 sealed=0",
-      "trav": "089901339DB7 connected=False components=3 points=6 warning",
+      "trav": "2098169F4819 connected=False components=3 points=6 warning",
       "wool": "890D56E0D975 4/4 obtainable · 1 resources"
     },
     "iti_moai": {
@@ -3181,9 +3199,9 @@
       "wool": null
     },
     "japan": {
-      "regions": "E5DBE74A027E 12 regions · build=1 observer_spawn=1 other=2 spawn=5 wool=3",
-      "build": "A0DE4A25DFAC 241x137 · build_zone=0 filtered=576 ground=31601 sealed=840",
-      "trav": "6F8775BEDFEC connected=False components=2 points=4 warning",
+      "regions": "FA2064DBAF09 14 regions · build=1 observer_spawn=1 other=4 spawn=5 wool=3",
+      "build": "F97D374C3BFA 241x137 · build_zone=0 filtered=32177 ground=0 sealed=840",
+      "trav": "2E5EF5BD6601 connected=True components=1 points=4 ok",
       "wool": "C8031A7C6079 2/2 obtainable · 1 resources"
     },
     "java_ii": {
@@ -3278,8 +3296,8 @@
     },
     "kanto": {
       "regions": "3D2772B1863A 28 regions · build=2 observer_spawn=1 other=2 spawn=6 wool=17",
-      "build": "4615FF008AA6 125x273 · build_zone=0 filtered=3594 ground=30531 sealed=0",
-      "trav": "F34FF6BA23F3 connected=False components=6 points=6 warning",
+      "build": "DE546A053B52 125x273 · build_zone=782 filtered=3594 ground=9158 sealed=20591",
+      "trav": "81F7082FA121 connected=False components=5 points=6 warning",
       "wool": "AB47CFAA92AD 4/4 obtainable · 2 resources"
     },
     "keeper": {
@@ -3409,7 +3427,7 @@
       "wool": null
     },
     "la_bataille_de_lepee": {
-      "regions": "78AF8D3945DE 29 regions · build=1 observer_spawn=1 other=8 spawn=10 wool=9",
+      "regions": "405F93C2A313 30 regions · build=1 mechanic=1 observer_spawn=1 other=8 spawn=10 wool=9",
       "build": "12ABF7DD74E6 73x131 · build_zone=1485 filtered=152 ground=0 sealed=7926",
       "trav": "5B3D5FE80E7B connected=False components=1 points=4 warning",
       "wool": "A67739995BA1 2/2 obtainable · 2 resources"
@@ -3433,15 +3451,15 @@
       "wool": null
     },
     "lasa": {
-      "regions": "8C29F9B26D52 10 regions · build=1 observer_spawn=1 other=1 spawn=6 wool=1",
+      "regions": "5DA705A4D453 11 regions · build=1 observer_spawn=1 other=2 spawn=6 wool=1",
       "build": null,
       "trav": null,
       "wool": null
     },
     "last_overcastian": {
       "regions": "E0FCF61DC026 33 regions · build=7 observer_spawn=1 other=2 spawn=6 wool=17",
-      "build": "92352CF07871 239x313 · build_zone=0 filtered=12974 ground=61833 sealed=0",
-      "trav": "883F0D29A925 connected=False components=6 points=8 warning",
+      "build": "C824CD4F5152 239x313 · build_zone=7204 filtered=12974 ground=10136 sealed=44493",
+      "trav": "668BAC7CEB3B connected=False components=5 points=8 warning",
       "wool": "7452B0E61E37 6/6 obtainable · 1 resources"
     },
     "last_overcastian_mini": {
@@ -3476,8 +3494,8 @@
     },
     "level_up": {
       "regions": "7B54FFA95510 23 regions · build=7 observer_spawn=2 other=2 spawn=5 wool=7",
-      "build": "89623B89B87F 211x431 · build_zone=0 filtered=3582 ground=87359 sealed=0",
-      "trav": "3361CC067662 connected=False components=4 points=4 warning",
+      "build": "316F3E2B3281 211x431 · build_zone=6891 filtered=3582 ground=80468 sealed=0",
+      "trav": "49603A91ACC4 connected=False components=3 points=4 warning",
       "wool": "2E6B10054232 2/2 obtainable · 1 resources"
     },
     "levels": {
@@ -3530,8 +3548,8 @@
     },
     "lindorm": {
       "regions": "36C5AB225B42 21 regions · observer_spawn=1 other=5 spawn=8 wool=7",
-      "build": "A348CA26B195 110x196 · build_zone=0 filtered=19817 ground=0 sealed=1743",
-      "trav": "C6DD393465BB connected=False components=2 points=3 warning",
+      "build": "662DD56AD857 110x196 · build_zone=0 filtered=21307 ground=0 sealed=253",
+      "trav": "DC222867001B connected=True components=1 points=3 ok",
       "wool": "11892900AA1C 1/1 obtainable · 0 resources"
     },
     "little_china": {
@@ -3541,7 +3559,7 @@
       "wool": null
     },
     "little_roses": {
-      "regions": "7F232B1034F4 19 regions · build=4 observer_spawn=1 other=4 spawn=8 wool=2",
+      "regions": "1C33DF18D2B6 21 regions · build=4 observer_spawn=1 other=5 spawn=9 wool=2",
       "build": null,
       "trav": null,
       "wool": null
@@ -3567,7 +3585,7 @@
     "lost_haven": {
       "regions": "AB5E1497957E 161 regions · mechanic=1 observer_spawn=1 other=145 spawn=5 wool=9",
       "build": "6B5EDB1499EB 292x430 · build_zone=23616 filtered=8414 ground=23782 sealed=69748",
-      "trav": "47F25B95B12E connected=False components=5 points=8 warning",
+      "trav": "DB3FBC481BFE connected=False components=6 points=9 warning",
       "wool": "7F3670426116 6/6 obtainable · 1 resources"
     },
     "lost_world_ctf": {
@@ -3595,26 +3613,26 @@
       "wool": "DD523594CF7A 2/2 obtainable · 0 resources"
     },
     "lump": {
-      "regions": "6AE6DE8F74F7 45 regions · mechanic=1 observer_spawn=1 other=2 spawn=11 wool=30",
+      "regions": "719A060644BB 45 regions · observer_spawn=1 spawn=11 wool=33",
       "build": "1088C99B6EDC 202x269 · build_zone=0 filtered=54338 ground=0 sealed=0",
       "trav": "1A5D92577F77 connected=True components=1 points=6 ok",
       "wool": "8780E2304E7E 4/4 obtainable · 1 resources"
     },
     "lunar_crescent": {
-      "regions": "2E515E3FF2B5 55 regions · mechanic=2 observer_spawn=1 other=27 spawn=13 wool=12",
+      "regions": "4B766DCC6959 62 regions · mechanic=2 observer_spawn=1 other=32 spawn=15 wool=12",
       "build": null,
       "trav": null,
       "wool": null
     },
     "lupa": {
       "regions": "D492996F1DEC 46 regions · build=16 mechanic=3 observer_spawn=1 other=11 spawn=5 wool=10",
-      "build": "AB4D60D883EA 327x214 · build_zone=0 filtered=3250 ground=66726 sealed=2",
-      "trav": "3E02057FC0B4 connected=False components=2 points=6 warning",
+      "build": "9FFB32B01A2F 327x214 · build_zone=3696 filtered=3250 ground=15689 sealed=47343",
+      "trav": "C28B011470C3 connected=True components=1 points=6 ok",
       "wool": "AB1069FA7F34 4/4 obtainable · 1 resources"
     },
     "lupain": {
       "regions": "D0F6A6C53896 26 regions · build=10 mechanic=2 observer_spawn=1 other=3 spawn=5 wool=5",
-      "build": "0CD501C4CDC4 189x154 · build_zone=0 filtered=1067 ground=28039 sealed=0",
+      "build": "E45E8AF9C272 189x154 · build_zone=2662 filtered=1067 ground=3631 sealed=21746",
       "trav": "F76E45E61640 connected=True components=1 points=4 ok",
       "wool": "D264AA962660 2/2 obtainable · 2 resources"
     },
@@ -3721,7 +3739,7 @@
       "wool": null
     },
     "merry_drought_dtm": {
-      "regions": "03F61581FB67 11 regions · observer_spawn=1 other=1 spawn=5 wool=4",
+      "regions": "1D04443FA10C 23 regions · observer_spawn=1 other=13 spawn=5 wool=4",
       "build": null,
       "trav": null,
       "wool": null
@@ -3745,13 +3763,19 @@
       "wool": null
     },
     "mexico": {
-      "regions": "05F4F8741CAB 28 regions · build=3 mechanic=1 observer_spawn=1 other=4 spawn=5 wool=14",
+      "regions": "647E1ED16641 29 regions · build=3 mechanic=1 observer_spawn=1 other=5 spawn=5 wool=14",
       "build": "3397865A8E29 330x165 · build_zone=13905 filtered=37489 ground=3056 sealed=0",
       "trav": "B02049E826AC connected=True components=1 points=6 ok",
       "wool": "9FF78BF2ACEB 4/4 obtainable · 3 resources"
     },
     "midnight_train": {
-      "regions": "32F328FF4E56 13 regions · observer_spawn=1 other=3 spawn=5 wool=4",
+      "regions": "E1F286AAC55B 45 regions · observer_spawn=1 other=35 spawn=5 wool=4",
+      "build": null,
+      "trav": null,
+      "wool": null
+    },
+    "millrace": {
+      "regions": "3317827BEFD8 18 regions · build=3 mechanic=1 observer_spawn=1 other=4 spawn=5 wool=4",
       "build": null,
       "trav": null,
       "wool": null
@@ -3781,7 +3805,7 @@
       "wool": null
     },
     "missingno": {
-      "regions": "7A8F8D54A155 17 regions · build=4 observer_spawn=1 other=2 spawn=8 wool=2",
+      "regions": "554AA4FA835C 19 regions · build=5 observer_spawn=1 other=2 spawn=9 wool=2",
       "build": null,
       "trav": null,
       "wool": null
@@ -3884,8 +3908,8 @@
     },
     "mushroom_gorge": {
       "regions": "965CE1570836 34 regions · build=8 observer_spawn=1 other=11 spawn=7 wool=7",
-      "build": "9D316CDE8BE9 138x313 · build_zone=0 filtered=1800 ground=40438 sealed=956",
-      "trav": "CCE84B172128 connected=False components=2 points=6 warning",
+      "build": "F6CDB2626A2E 138x313 · build_zone=3038 filtered=1800 ground=10796 sealed=27560",
+      "trav": "00C0EF364AFE connected=False components=1 points=6 warning",
       "wool": "54D4542F5098 4/4 obtainable · 1 resources"
     },
     "mushroom_kingdoms": {
@@ -3907,7 +3931,7 @@
       "wool": null
     },
     "mystic_desert": {
-      "regions": "7BE3E47448E3 8 regions · observer_spawn=1 other=4 spawn=2 wool=1",
+      "regions": "D1CF5C738C75 9 regions · observer_spawn=1 other=5 spawn=2 wool=1",
       "build": null,
       "trav": null,
       "wool": null
@@ -3986,14 +4010,14 @@
     },
     "newgen_classic": {
       "regions": "5AFB1C6B5374 38 regions · build=9 mechanic=1 observer_spawn=1 other=13 spawn=9 wool=5",
-      "build": "67509F2994FD 178x178 · build_zone=0 filtered=1512 ground=30172 sealed=0",
+      "build": "AC6DE4A458B2 178x178 · build_zone=3345 filtered=22371 ground=5968 sealed=0",
       "trav": "B06CE6EABCD4 connected=True components=1 points=8 ok",
       "wool": "72ADF38FFF3B 4/4 obtainable · 1 resources"
     },
     "nextgen": {
       "regions": "D03627DF4738 50 regions · build=7 observer_spawn=1 other=5 spawn=5 wool=32",
-      "build": "162D4750B64A 119x197 · build_zone=0 filtered=744 ground=21307 sealed=1392",
-      "trav": "CE17518F821C connected=False components=2 points=6 warning",
+      "build": "CD1800457BE1 119x197 · build_zone=5313 filtered=744 ground=15994 sealed=1392",
+      "trav": "008ED7AA60E6 connected=True components=1 points=6 ok",
       "wool": "9F2ABC87AFED 4/4 obtainable · 1 resources"
     },
     "nextrace": {
@@ -4015,7 +4039,7 @@
       "wool": "D9653C7857DF 4/4 obtainable · 1 resources"
     },
     "nightsail": {
-      "regions": "0E3413C2D622 15 regions · observer_spawn=1 other=5 spawn=9",
+      "regions": "610BEBC3A55E 17 regions · observer_spawn=1 other=7 spawn=9",
       "build": null,
       "trav": null,
       "wool": null
@@ -4035,7 +4059,7 @@
     "no_mans_land": {
       "regions": "3CDDCEDCD30B 22 regions · observer_spawn=1 other=5 spawn=4 wool=12",
       "build": "C911DE918B0E 158x181 · build_zone=0 filtered=676 ground=14987 sealed=12935",
-      "trav": "A82050D1EEEF connected=False components=6 points=6 warning",
+      "trav": "C363DCB8429E connected=False components=6 points=6 warning",
       "wool": "8C45299C6BBF 4/4 obtainable · 1 resources"
     },
     "nobles_district": {
@@ -4063,9 +4087,9 @@
       "wool": null
     },
     "nutrient": {
-      "regions": "259898371D1F 21 regions · build=2 observer_spawn=1 other=2 spawn=9 wool=7",
-      "build": "8E2B61C23B70 221x221 · build_zone=0 filtered=1932 ground=41869 sealed=5040",
-      "trav": "EF4459AFB525 connected=False components=2 points=6 warning",
+      "regions": "1F15D90BD64F 49 regions · build=3 observer_spawn=1 other=1 spawn=21 wool=23",
+      "build": "05BF5DB99534 221x221 · build_zone=2921 filtered=1050 ground=8356 sealed=36514",
+      "trav": "3DD74D176B63 connected=True components=1 points=6 ok",
       "wool": "8B968AE261B3 4/4 obtainable · 1 resources"
     },
     "nyxis": {
@@ -4083,7 +4107,7 @@
     "oaken_meadow_mini": {
       "regions": "AA8CDF8530B7 41 regions · build=2 observer_spawn=1 other=7 spawn=5 wool=26",
       "build": "C4C7D029D49F 149x135 · build_zone=891 filtered=15369 ground=3523 sealed=332",
-      "trav": "0C6FA53D1D98 connected=False components=4 points=6 warning",
+      "trav": "A9ECAABB45EE connected=False components=4 points=6 warning",
       "wool": "A577FF365635 4/4 obtainable · 0 resources"
     },
     "oakspell": {
@@ -4124,8 +4148,8 @@
     },
     "opal": {
       "regions": "CF66923E6567 40 regions · build=8 mechanic=2 observer_spawn=1 other=10 spawn=7 wool=12",
-      "build": "2E5F0AF34ECA 419x353 · build_zone=0 filtered=7920 ground=139870 sealed=117",
-      "trav": "9FFAF6AC1EF0 connected=False components=2 points=6 warning",
+      "build": "893821C99E2C 419x353 · build_zone=3210 filtered=7920 ground=136660 sealed=117",
+      "trav": "7AA093F86CED connected=True components=1 points=6 ok",
       "wool": "908F20188354 4/4 obtainable · 1 resources"
     },
     "opal_redux": {
@@ -4161,7 +4185,7 @@
     "oumuamua": {
       "regions": "C6247F2EAF4B 39 regions · build=6 observer_spawn=1 other=2 spawn=9 wool=21",
       "build": "D71067C71E5B 158x158 · build_zone=2332 filtered=19521 ground=2787 sealed=324",
-      "trav": "10B459557733 connected=True components=1 points=8 ok",
+      "trav": "3D2A4537AF8D connected=True components=1 points=8 ok",
       "wool": "78F2610E4858 4/4 obtainable · 2 resources"
     },
     "ouroboros": {
@@ -4173,13 +4197,13 @@
     "outback": {
       "regions": "452B601DDD26 36 regions · build=1 observer_spawn=1 other=4 spawn=12 wool=18",
       "build": "0B41CC9E59E1 172x304 · build_zone=16240 filtered=29440 ground=6512 sealed=96",
-      "trav": "428F155BBE6F connected=False components=5 points=6 warning",
+      "trav": "19250C79C342 connected=False components=5 points=6 warning",
       "wool": "D7EC29C8F2C5 4/4 obtainable · 1 resources"
     },
     "outback_mini": {
       "regions": "A6B9EDD3F7CD 25 regions · observer_spawn=1 other=5 spawn=5 wool=14",
       "build": "B402DE940ABB 102x164 · build_zone=4176 filtered=10920 ground=1632 sealed=0",
-      "trav": "BB0CAAD9B406 connected=False components=5 points=6 warning",
+      "trav": "CB73A27981E8 connected=False components=5 points=6 warning",
       "wool": "E84CFEC22541 4/4 obtainable · 1 resources"
     },
     "outback_outback_edition": {
@@ -4196,6 +4220,12 @@
     },
     "outcast_2": {
       "regions": "BD612E7E7CC3 unsupported",
+      "build": null,
+      "trav": null,
+      "wool": null
+    },
+    "outcrop": {
+      "regions": "5139EFB9E8C4 47 regions · observer_spawn=1 other=8 spawn=31 wool=7",
       "build": null,
       "trav": null,
       "wool": null
@@ -4298,8 +4328,8 @@
     },
     "persisto": {
       "regions": "9954B22755F9 28 regions · build=5 mechanic=1 observer_spawn=1 other=4 spawn=5 wool=12",
-      "build": "6419D9AD5BD8 155x165 · build_zone=0 filtered=1622 ground=23503 sealed=450",
-      "trav": "E8B7BFDFE31F connected=False components=6 points=6 warning",
+      "build": "9D30C94FCCBB 155x165 · build_zone=3849 filtered=1622 ground=0 sealed=20104",
+      "trav": "32BD83127098 connected=True components=1 points=6 ok",
       "wool": "9030627F2C1A 4/4 obtainable · 2 resources"
     },
     "philosophers_stone": {
@@ -4351,8 +4381,8 @@
       "wool": null
     },
     "pipe_palace": {
-      "regions": "3723A80476ED 48 regions · build=26 mechanic=7 observer_spawn=1 other=4 spawn=6 wool=4",
-      "build": "1EE716F033B0 204x301 · build_zone=28421 filtered=646 ground=8243 sealed=24094",
+      "regions": "C012CC5BE160 98 regions · build=26 mechanic=7 observer_spawn=1 other=54 spawn=6 wool=4",
+      "build": "DA433FDB3490 204x301 · build_zone=23428 filtered=1292 ground=8201 sealed=28483",
       "trav": "CA05AB660772 connected=True components=1 points=6 ok",
       "wool": "EB9CC771D900 4/4 obtainable · 3 resources"
     },
@@ -4388,8 +4418,8 @@
     },
     "pixelmix": {
       "regions": "BAD371537FB5 44 regions · build=23 observer_spawn=1 other=2 spawn=10 wool=8",
-      "build": "BC5A40446ACF 295x233 · build_zone=0 filtered=2020 ground=65663 sealed=1052",
-      "trav": "3C2ACAF6494F connected=False components=4 points=6 warning",
+      "build": "42D5DC7848E8 295x233 · build_zone=17675 filtered=2020 ground=2108 sealed=46932",
+      "trav": "0C75D82445FF connected=True components=1 points=6 ok",
       "wool": "7995D60C9E8C 4/4 obtainable · 1 resources"
     },
     "pixie": {
@@ -4400,8 +4430,8 @@
     },
     "placid_spring": {
       "regions": "9C7825289EE4 34 regions · build=3 observer_spawn=1 other=8 spawn=15 wool=7",
-      "build": "E58016EE360A 79x211 · build_zone=0 filtered=552 ground=14981 sealed=1136",
-      "trav": "B3CBC15BC42E connected=False components=4 points=6 warning",
+      "build": "96F6C20633B1 79x211 · build_zone=620 filtered=552 ground=728 sealed=14769",
+      "trav": "95C4ADC82889 connected=False components=4 points=6 warning",
       "wool": "B85DC976838A 4/4 obtainable · 0 resources"
     },
     "points_festival": {
@@ -4423,13 +4453,13 @@
       "wool": null
     },
     "polus_ffa": {
-      "regions": "67C4F892A5F8 7 regions · mechanic=1 observer_spawn=1 other=5",
+      "regions": "EC37A9D06F46 9 regions · mechanic=1 observer_spawn=1 other=7",
       "build": null,
       "trav": null,
       "wool": null
     },
     "polylith": {
-      "regions": "B84C9D495F34 13 regions · build=1 observer_spawn=1 other=3 spawn=8",
+      "regions": "C9EEAC004F98 13 regions · build=1 observer_spawn=1 other=3 spawn=8",
       "build": null,
       "trav": null,
       "wool": null
@@ -4479,7 +4509,7 @@
     "prisma_ctw": {
       "regions": "07E69DB680C8 17 regions · build=2 observer_spawn=1 other=1 spawn=7 wool=6",
       "build": "0F114E3FEA49 193x125 · build_zone=3759 filtered=360 ground=2132 sealed=17874",
-      "trav": "F180922063AF connected=False components=3 points=4 warning",
+      "trav": "BEA217E7672B connected=False components=3 points=4 warning",
       "wool": "B60B8C990117 2/2 obtainable · 1 resources"
     },
     "procedural_cliff_maze": {
@@ -4537,8 +4567,8 @@
       "wool": null
     },
     "pursuit_of_happiness": {
-      "regions": "5F38B96DD8A3 24 regions · build=5 observer_spawn=1 other=7 spawn=5 wool=6",
-      "build": "9064FCC46B4F 251x136 · build_zone=0 filtered=34086 ground=0 sealed=50",
+      "regions": "094141226479 24 regions · build=5 observer_spawn=1 other=6 spawn=6 wool=6",
+      "build": "20865D9E6941 251x136 · build_zone=0 filtered=34011 ground=0 sealed=125",
       "trav": "E62E6E30996C connected=False components=5 points=6 warning",
       "wool": "D2C6A478E11C 4/4 obtainable · 2 resources"
     },
@@ -4611,19 +4641,19 @@
     "race_for_victory_2": {
       "regions": "E030C07B59FB 27 regions · mechanic=1 observer_spawn=1 other=10 spawn=5 wool=10",
       "build": "AC88A66BEDBE 104x285 · build_zone=0 filtered=22063 ground=6185 sealed=1392",
-      "trav": "E8DFF25FE569 connected=True components=1 points=6 ok",
+      "trav": "9FD6DE867DAE connected=False components=2 points=6 warning",
       "wool": "B1EC1C4169BB 4/4 obtainable · 1 resources"
     },
     "race_for_victory_3": {
       "regions": "01DA5D9998F9 37 regions · build=8 observer_spawn=1 other=20 spawn=5 wool=3",
-      "build": "EFC1ADD5AE16 229x411 · build_zone=0 filtered=5264 ground=85777 sealed=3078",
-      "trav": "796B9C2102C2 connected=False components=8 points=8 warning",
+      "build": "927D825C798D 229x411 · build_zone=749 filtered=5264 ground=9166 sealed=78940",
+      "trav": "174EE5FBEB06 connected=False components=8 points=8 warning",
       "wool": "AD6661BE0AB4 6/6 obtainable · 1 resources"
     },
     "race_for_victory_4": {
       "regions": "CD7A77AB637A 57 regions · build=9 observer_spawn=1 other=1 spawn=5 wool=41",
       "build": "38AB8673D8ED 140x265 · build_zone=0 filtered=37100 ground=0 sealed=0",
-      "trav": "7ADBD4F5F322 connected=False components=4 points=8 warning",
+      "trav": "3B5596689E76 connected=False components=6 points=8 warning",
       "wool": "E957CCEF7565 6/6 obtainable · 1 resources"
     },
     "raceway": {
@@ -4705,7 +4735,7 @@
       "wool": null
     },
     "reindeer_trails": {
-      "regions": "3CE30A8FDC9E 9 regions · observer_spawn=1 other=1 spawn=5 wool=2",
+      "regions": "B57F9B0447DC unsupported",
       "build": null,
       "trav": null,
       "wool": null
@@ -4730,8 +4760,8 @@
     },
     "renegade": {
       "regions": "A97FC00E0D84 27 regions · build=3 observer_spawn=1 other=2 spawn=5 wool=16",
-      "build": "D6FB122AFFE4 386x130 · build_zone=0 filtered=3724 ground=44008 sealed=2448",
-      "trav": "844B04A6C4D1 connected=False components=2 points=6 warning",
+      "build": "C46F9E77045A 386x130 · build_zone=2596 filtered=3724 ground=14172 sealed=29688",
+      "trav": "D531D7DEECA2 connected=True components=1 points=6 ok",
       "wool": "E2940D5CCAE5 4/4 obtainable · 1 resources"
     },
     "research": {
@@ -4741,8 +4771,8 @@
       "wool": null
     },
     "research_base": {
-      "regions": "47D760EF70D9 28 regions · build=10 observer_spawn=1 other=1 spawn=12 wool=4",
-      "build": "7D2D3AA95D37 88x152 · build_zone=2124 filtered=0 ground=1038 sealed=10214",
+      "regions": "069720CE313D 29 regions · build=10 observer_spawn=1 other=1 spawn=12 wool=5",
+      "build": "0EF31750A405 88x152 · build_zone=2124 filtered=2816 ground=750 sealed=7686",
       "trav": "EDA75889C46F connected=False components=3 points=4 warning",
       "wool": "07EF1AC1950A 2/2 obtainable · 1 resources"
     },
@@ -4759,7 +4789,7 @@
       "wool": null
     },
     "retaliation_2": {
-      "regions": "3939028FE90E 22 regions · observer_spawn=1 other=7 spawn=10 wool=4",
+      "regions": "7F6FA81B5E0B 23 regions · observer_spawn=1 other=8 spawn=10 wool=4",
       "build": null,
       "trav": null,
       "wool": null
@@ -4820,8 +4850,8 @@
     },
     "ring_run": {
       "regions": "369C5971B717 22 regions · build=2 observer_spawn=1 other=4 spawn=5 wool=10",
-      "build": "457BDEFEA718 337x155 · build_zone=0 filtered=1764 ground=49685 sealed=786",
-      "trav": "DD207EEDA681 connected=False components=2 points=6 warning",
+      "build": "9BE25439EC0D 337x155 · build_zone=2560 filtered=1764 ground=12243 sealed=35668",
+      "trav": "719906D4FAFB connected=True components=1 points=6 ok",
       "wool": "A8E7104AF565 4/4 obtainable · 1 resources"
     },
     "ringpull": {
@@ -4903,15 +4933,15 @@
       "wool": null
     },
     "royal_ascend": {
-      "regions": "341D938A6DAA 25 regions · build=1 observer_spawn=1 other=12 spawn=11",
+      "regions": "1736F9355050 26 regions · build=1 observer_spawn=1 other=13 spawn=11",
       "build": null,
       "trav": null,
       "wool": null
     },
     "royal_garden_ctw": {
       "regions": "FB41EBED95FA 27 regions · build=1 observer_spawn=1 other=9 spawn=9 wool=7",
-      "build": "C21712554EAF 355x167 · build_zone=0 filtered=6686 ground=52599 sealed=0",
-      "trav": "AB825028CB39 connected=False components=2 points=6 warning",
+      "build": "4692B21925F6 355x167 · build_zone=1539 filtered=6686 ground=13306 sealed=37754",
+      "trav": "57F713152F82 connected=True components=1 points=6 ok",
       "wool": "B6BAACBF2572 4/4 obtainable · 1 resources"
     },
     "royal_garden_dtc": {
@@ -4958,8 +4988,8 @@
     },
     "ruffland": {
       "regions": "B55047CDE20F 43 regions · build=10 observer_spawn=1 other=1 spawn=10 wool=21",
-      "build": "EBF35B2FAAD1 307x307 · build_zone=0 filtered=7768 ground=86481 sealed=0",
-      "trav": "564A60DF7DC2 connected=False components=7 points=8 warning",
+      "build": "4376B4B66467 307x307 · build_zone=21321 filtered=72928 ground=0 sealed=0",
+      "trav": "62987DF9A302 connected=False components=4 points=8 warning",
       "wool": "24E00959497A 4/4 obtainable · 1 resources"
     },
     "runes_of_ruin": {
@@ -5007,7 +5037,7 @@
     "sakura_garden": {
       "regions": "06EA1F5AEA90 33 regions · build=6 mechanic=1 observer_spawn=1 other=6 spawn=5 wool=14",
       "build": "65153D04E064 247x291 · build_zone=13273 filtered=51024 ground=7580 sealed=0",
-      "trav": "A43C614566E7 connected=False components=5 points=6 warning",
+      "trav": "FF272C325148 connected=False components=5 points=6 warning",
       "wool": "FD65398A868A 4/4 obtainable · 1 resources"
     },
     "sakura_garden_ii": {
@@ -5029,7 +5059,7 @@
       "wool": "82C0B8996B7A 4/4 obtainable · 2 resources"
     },
     "sandbox": {
-      "regions": "AF622A2C6C9E 25 regions · observer_spawn=1 other=12 spawn=9 wool=3",
+      "regions": "30B92AA35BCE 26 regions · observer_spawn=1 other=13 spawn=9 wool=3",
       "build": null,
       "trav": null,
       "wool": null
@@ -5043,13 +5073,13 @@
     "santa_clauses": {
       "regions": "D4D80B7DEAF8 13 regions · observer_spawn=1 spawn=9 wool=3",
       "build": "28FF986A3FB0 201x141 · build_zone=0 filtered=510 ground=27549 sealed=282",
-      "trav": "97186C5429EB connected=False components=2 points=4 warning",
+      "trav": "157982C9A1E0 connected=False components=2 points=4 warning",
       "wool": "5861D7108F17 2/2 obtainable · 0 resources"
     },
     "santorini": {
       "regions": "E465717FE5EE 24 regions · build=11 observer_spawn=1 other=4 spawn=5 wool=3",
       "build": "E751E07CBC26 96x136 · build_zone=2186 filtered=128 ground=456 sealed=10286",
-      "trav": "691CF0E9FEAB connected=False components=4 points=4 warning",
+      "trav": "1913CED9A3DB connected=False components=4 points=4 warning",
       "wool": "B565D55BCF7B 2/2 obtainable · 1 resources"
     },
     "sarc": {
@@ -5089,8 +5119,8 @@
       "wool": null
     },
     "selenius": {
-      "regions": "58E02D4520E9 18 regions · observer_spawn=1 other=6 spawn=5 wool=6",
-      "build": "F1D78F4EFDC1 116x163 · build_zone=0 filtered=576 ground=6461 sealed=11871",
+      "regions": "FEF70260A8B4 20 regions · observer_spawn=1 other=8 spawn=5 wool=6",
+      "build": "47E89359B1A6 116x163 · build_zone=0 filtered=576 ground=6460 sealed=11872",
       "trav": "1E9B3CC928F9 connected=False components=6 points=6 warning",
       "wool": "A41D26E8FDBF 4/4 obtainable · 0 resources"
     },
@@ -5131,7 +5161,7 @@
       "wool": "141615834364 4/4 obtainable · 1 resources"
     },
     "sheer_heart_attack": {
-      "regions": "7CD7C14C6F66 34 regions · observer_spawn=1 other=26 spawn=7",
+      "regions": "D78F863E41BD 35 regions · observer_spawn=1 other=27 spawn=7",
       "build": null,
       "trav": null,
       "wool": null
@@ -5181,7 +5211,7 @@
     "simplicity_ctw": {
       "regions": "9CD88A54C8BD 14 regions · build=4 observer_spawn=1 other=1 spawn=5 wool=3",
       "build": "D54897DAF9C5 230x144 · build_zone=12000 filtered=18050 ground=3070 sealed=0",
-      "trav": "4C14190F322F connected=False components=3 points=4 warning",
+      "trav": "8BCAA9C78036 connected=False components=3 points=4 warning",
       "wool": "53F38FBC01AC 2/2 obtainable · 1 resources"
     },
     "sinuous": {
@@ -5229,11 +5259,11 @@
     "smashcap": {
       "regions": "AE8A44B5936F 24 regions · build=6 observer_spawn=1 other=2 spawn=7 wool=8",
       "build": "68A38313002E 150x252 · build_zone=4037 filtered=30144 ground=3269 sealed=350",
-      "trav": "BCAA45C0B494 connected=False components=3 points=4 warning",
+      "trav": "A18056171C3F connected=False components=3 points=4 warning",
       "wool": "CB9DED7B32D8 2/2 obtainable · 1 resources"
     },
     "smog": {
-      "regions": "2BA590635818 26 regions · build=4 observer_spawn=1 other=1 spawn=8 wool=12",
+      "regions": "B6164932718E 27 regions · build=4 observer_spawn=1 other=2 spawn=8 wool=12",
       "build": "DB9B236336DE 137x201 · build_zone=4137 filtered=902 ground=0 sealed=22498",
       "trav": "EE4E45F99966 connected=True components=1 points=6 ok",
       "wool": "7CD181EC6DAA 4/4 obtainable · 2 resources"
@@ -5259,7 +5289,7 @@
     "snowback": {
       "regions": "D29A3DD06D81 23 regions · build=1 observer_spawn=1 other=2 spawn=5 wool=14",
       "build": "5931AE0B6867 172x292 · build_zone=16240 filtered=27472 ground=6512 sealed=0",
-      "trav": "9D1DAA5B7C6A connected=False components=5 points=6 warning",
+      "trav": "DD86D825EE3F connected=False components=5 points=6 warning",
       "wool": "5A27941B2F68 4/4 obtainable · 2 resources"
     },
     "snowdrift_pass": {
@@ -5287,25 +5317,25 @@
       "wool": null
     },
     "solitudemc": {
-      "regions": "8B18475564B0 8 regions · build=1 observer_spawn=1 other=3 spawn=3",
+      "regions": "142FFE3109E2 10 regions · build=1 observer_spawn=1 other=5 spawn=3",
       "build": null,
       "trav": null,
       "wool": null
     },
     "soviet_mills": {
-      "regions": "A67F051247DA 9 regions · observer_spawn=1 other=3 spawn=3 wool=2",
+      "regions": "1ACF6226E925 11 regions · observer_spawn=1 other=3 spawn=5 wool=2",
       "build": null,
       "trav": null,
       "wool": null
     },
     "space_base": {
-      "regions": "AF74D84A70DA 30 regions · mechanic=5 observer_spawn=1 other=15 spawn=4 wool=5",
+      "regions": "E4D7DFB0A238 31 regions · mechanic=5 observer_spawn=1 other=16 spawn=4 wool=5",
       "build": "380EF092D37C 353x353 · build_zone=0 filtered=124609 ground=0 sealed=0",
       "trav": "69DCA1BD7CFF connected=True components=1 points=8 ok",
       "wool": "EA7D388A0091 4/4 obtainable · 2 resources"
     },
     "space_corp": {
-      "regions": "A092F82DDD3D 17 regions · observer_spawn=1 other=10 spawn=4 wool=2",
+      "regions": "A6EE04EF948F 19 regions · observer_spawn=1 other=10 spawn=6 wool=2",
       "build": null,
       "trav": null,
       "wool": null
@@ -5361,7 +5391,7 @@
     "stalactites_a_land_down_under": {
       "regions": "567787ED8F3F 16 regions · observer_spawn=1 other=4 spawn=4 wool=7",
       "build": "929A63874D80 255x131 · build_zone=0 filtered=1094 ground=8450 sealed=23861",
-      "trav": "6ADC76713DE3 connected=True components=1 points=6 ok",
+      "trav": "3BE81230C4C9 connected=True components=1 points=6 ok",
       "wool": "1EF68F039503 4/4 obtainable · 2 resources"
     },
     "standstill": {
@@ -5377,7 +5407,7 @@
       "wool": "578055207FD8 4/4 obtainable · 1 resources"
     },
     "state_of_decay": {
-      "regions": "F4E5A0076598 11 regions · observer_spawn=1 other=3 spawn=5 wool=2",
+      "regions": "C7A9EEC1CF60 13 regions · observer_spawn=1 other=5 spawn=5 wool=2",
       "build": null,
       "trav": null,
       "wool": null
@@ -5418,6 +5448,12 @@
       "trav": null,
       "wool": null
     },
+    "still_october": {
+      "regions": "07EE79087763 21 regions · observer_spawn=1 other=6 spawn=5 wool=9",
+      "build": null,
+      "trav": null,
+      "wool": null
+    },
     "stone_fields": {
       "regions": "BB4B27A09E12 15 regions · observer_spawn=1 other=5 spawn=5 wool=4",
       "build": null,
@@ -5450,8 +5486,8 @@
     },
     "stranger_things": {
       "regions": "DBC03917A8B8 32 regions · build=16 mechanic=4 observer_spawn=1 other=2 spawn=2 wool=7",
-      "build": "B32146D661C9 219x107 · build_zone=0 filtered=1378 ground=22054 sealed=1",
-      "trav": "E2A7031F2DC6 connected=False components=2 points=6 warning",
+      "build": "EA22A1BE869F 219x107 · build_zone=10028 filtered=1378 ground=12026 sealed=1",
+      "trav": "7DBB6669CE02 connected=True components=1 points=6 ok",
       "wool": "7E13F8E4CCD1 4/4 obtainable · 2 resources"
     },
     "stratosphere_ctw": {
@@ -5503,7 +5539,7 @@
       "wool": null
     },
     "summertime_at_browns_farms": {
-      "regions": "FC49B6E6A968 108 regions · mechanic=4 observer_spawn=1 other=45 spawn=17 wool=41",
+      "regions": "5DF7EB89BC37 109 regions · mechanic=4 observer_spawn=1 other=46 spawn=17 wool=41",
       "build": "D0CE16D6C79E 354x354 · build_zone=0 filtered=120482 ground=0 sealed=4834",
       "trav": "1858B12A79F2 connected=True components=1 points=16 ok",
       "wool": "933E7EA47F61 0/8 obtainable · 1 resources"
@@ -5511,7 +5547,7 @@
     "sunbliss": {
       "regions": "99C1048EB5A5 68 regions · build=9 observer_spawn=1 other=2 spawn=20 wool=36",
       "build": "15F039341E2B 146x317 · build_zone=1544 filtered=35956 ground=8770 sealed=12",
-      "trav": "60DBE4A1EA46 connected=False components=2 points=4 warning",
+      "trav": "81F830D556B9 connected=False components=2 points=4 warning",
       "wool": "2B16A7FAA641 2/2 obtainable · 1 resources"
     },
     "sunburn": {
@@ -5558,8 +5594,8 @@
     },
     "super_mario_warp_zone": {
       "regions": "0C5EB5D7C4FD 29 regions · build=1 mechanic=2 observer_spawn=1 other=8 spawn=14 wool=3",
-      "build": "DC22ED3B12E1 435x327 · build_zone=0 filtered=12248 ground=129698 sealed=299",
-      "trav": "CD2686A4EC1B connected=False components=4 points=4 warning",
+      "build": "B479603B75A0 435x327 · build_zone=8852 filtered=12248 ground=1870 sealed=119275",
+      "trav": "AFCD7271A4B5 connected=False components=4 points=4 warning",
       "wool": "F669B776BE2B 2/2 obtainable · 3 resources"
     },
     "supercube": {
@@ -5575,8 +5611,8 @@
       "wool": null
     },
     "surveillance": {
-      "regions": "7A8E2A4AF76B 34 regions · build=4 mechanic=6 observer_spawn=1 other=12 spawn=6 wool=5",
-      "build": "32543C701906 204x473 · build_zone=15659 filtered=356 ground=10270 sealed=70207",
+      "regions": "36A1A0696B26 37 regions · build=4 mechanic=6 observer_spawn=1 other=14 spawn=7 wool=5",
+      "build": "3CD5B77ADAA9 204x473 · build_zone=15659 filtered=27688 ground=2722 sealed=50423",
       "trav": "8768FF8BD659 connected=False components=1 points=4 warning",
       "wool": "B9645A66C248 2/2 obtainable · 3 resources"
     },
@@ -5587,7 +5623,7 @@
       "wool": null
     },
     "sweetopia": {
-      "regions": "48AD3BC69378 27 regions · build=9 mechanic=3 observer_spawn=1 other=6 spawn=5 wool=3",
+      "regions": "DA1DA7F054D3 29 regions · build=9 mechanic=3 observer_spawn=1 other=8 spawn=5 wool=3",
       "build": "186E89782130 185x197 · build_zone=0 filtered=9183 ground=1585 sealed=25677",
       "trav": "18DF146D61CA connected=True components=1 points=4 ok",
       "wool": "6628348AF192 2/2 obtainable · 2 resources"
@@ -5671,14 +5707,14 @@
       "wool": "8CBB709B80AF 4/4 obtainable · 1 resources"
     },
     "temple_valley": {
-      "regions": "406D0E796EB1 12 regions · observer_spawn=1 other=6 spawn=5",
+      "regions": "9345734BB090 24 regions · observer_spawn=1 other=18 spawn=5",
       "build": null,
       "trav": null,
       "wool": null
     },
     "tenebrous": {
-      "regions": "5608BB04E617 12 regions · build=2 observer_spawn=1 other=4 spawn=3 wool=2",
-      "build": "DC50BC6DC48B 211x326 · build_zone=1440 filtered=2019 ground=10538 sealed=54789",
+      "regions": "D75989D4CECD 22 regions · build=2 observer_spawn=1 other=14 spawn=3 wool=2",
+      "build": "B7085A56EF9A 211x333 · build_zone=1440 filtered=4068 ground=8455 sealed=56300",
       "trav": "3B322C7922D7 connected=False components=4 points=6 warning",
       "wool": "A995713EC520 0/4 obtainable · 1 resources"
     },
@@ -5701,7 +5737,7 @@
       "wool": null
     },
     "the_4th_law": {
-      "regions": "E503397BF245 29 regions · build=5 observer_spawn=1 other=9 spawn=5 wool=9",
+      "regions": "3BDF6D300150 31 regions · build=5 observer_spawn=1 other=11 spawn=5 wool=9",
       "build": null,
       "trav": null,
       "wool": null
@@ -5713,14 +5749,14 @@
       "wool": null
     },
     "the_9.5th_law": {
-      "regions": "461EDD8A5997 21 regions · build=4 observer_spawn=1 other=9 spawn=3 wool=4",
+      "regions": "12AD7B7A783F 22 regions · build=4 observer_spawn=1 other=9 spawn=3 wool=5",
       "build": "79FA6D4E0E81 373x120 · build_zone=10008 filtered=3580 ground=31172 sealed=0",
       "trav": "79F93A941C2B connected=True components=1 points=4 ok",
       "wool": "A51712F217BF 2/2 obtainable · 2 resources"
     },
     "the_9th_law": {
-      "regions": "B1A7A4E1268B 38 regions · build=6 mechanic=2 observer_spawn=1 other=9 spawn=3 wool=17",
-      "build": "994294CA7D89 373x120 · build_zone=10364 filtered=30056 ground=4340 sealed=0",
+      "regions": "9307DD711163 41 regions · build=6 mechanic=2 observer_spawn=1 other=12 spawn=3 wool=17",
+      "build": "07611A0CECFB 373x120 · build_zone=10364 filtered=4955 ground=29441 sealed=0",
       "trav": "8FC6DEFDFBAA connected=True components=1 points=6 ok",
       "wool": "AFB5DA3BB256 4/4 obtainable · 2 resources"
     },
@@ -5757,7 +5793,7 @@
     "the_end_of_the_dragon": {
       "regions": "30E40C8AF530 30 regions · build=8 observer_spawn=1 other=2 spawn=5 wool=14",
       "build": "DC1E8F930D8F 369x265 · build_zone=23173 filtered=71764 ground=2848 sealed=0",
-      "trav": "7EE8C96FD825 connected=False components=5 points=6 warning",
+      "trav": "071E56F98B0E connected=False components=5 points=6 warning",
       "wool": "A35AA0271036 4/4 obtainable · 2 resources"
     },
     "the_endless_blue": {
@@ -5797,7 +5833,7 @@
       "wool": null
     },
     "the_high_seas": {
-      "regions": "B9BA9910B27E 8 regions · observer_spawn=1 other=5 spawn=2",
+      "regions": "B6ACAD5A73FE 9 regions · observer_spawn=1 other=6 spawn=2",
       "build": null,
       "trav": null,
       "wool": null
@@ -5851,13 +5887,19 @@
       "wool": null
     },
     "the_pipes": {
-      "regions": "0A7011340672 3 regions · mechanic=2 observer_spawn=1",
+      "regions": "71ECD8EEC4DF 25 regions · mechanic=2 observer_spawn=1 other=22",
       "build": null,
       "trav": null,
       "wool": null
     },
     "the_presidents_cottage": {
       "regions": "C754E9486B16 24 regions · build=1 mechanic=3 observer_spawn=1 other=12 spawn=7",
+      "build": null,
+      "trav": null,
+      "wool": null
+    },
+    "the_sandpit": {
+      "regions": "BD612E7E7CC3 unsupported",
       "build": null,
       "trav": null,
       "wool": null
@@ -5881,8 +5923,8 @@
       "wool": null
     },
     "the_ugly_barnacle": {
-      "regions": "47D88BC2380F 25 regions · build=13 observer_spawn=1 other=2 spawn=7 wool=2",
-      "build": "2FAFF28250F5 318x195 · build_zone=24742 filtered=35447 ground=1820 sealed=1",
+      "regions": "5CAE38369AF8 34 regions · build=13 observer_spawn=1 other=11 spawn=7 wool=2",
+      "build": "A33584DDA1CB 318x195 · build_zone=24548 filtered=35637 ground=1820 sealed=5",
       "trav": "BB64FA842A2E connected=True components=1 points=6 ok",
       "wool": "8E035338A7AB 4/4 obtainable · 1 resources"
     },
@@ -5893,7 +5935,7 @@
       "wool": null
     },
     "the_waiting_room": {
-      "regions": "E81545FE7CB1 87 regions · observer_spawn=1 other=80 spawn=6",
+      "regions": "B76282E74090 88 regions · observer_spawn=1 other=81 spawn=6",
       "build": null,
       "trav": null,
       "wool": null
@@ -5996,8 +6038,8 @@
     },
     "tohjo_falls_ii": {
       "regions": "7D95D5827D84 29 regions · build=4 mechanic=3 observer_spawn=1 other=4 spawn=5 wool=12",
-      "build": "E150EC0A90A0 191x253 · build_zone=0 filtered=3168 ground=45154 sealed=1",
-      "trav": "76FE170FFF42 connected=False components=6 points=6 warning",
+      "build": "743739145F78 191x253 · build_zone=5750 filtered=3168 ground=39404 sealed=1",
+      "trav": "9F2F8DF80587 connected=False components=5 points=6 warning",
       "wool": "95B07862D993 4/4 obtainable · 2 resources"
     },
     "tom_brady": {
@@ -6019,7 +6061,7 @@
       "wool": null
     },
     "toss_up": {
-      "regions": "D136A744DCAB 2 regions · mechanic=1 observer_spawn=1",
+      "regions": "3604656C36E5 6 regions · mechanic=1 observer_spawn=1 other=4",
       "build": null,
       "trav": null,
       "wool": null
@@ -6057,13 +6099,13 @@
     "townside": {
       "regions": "4F3E2984661C 18 regions · build=3 observer_spawn=1 other=2 spawn=6 wool=6",
       "build": "D4BD76A829C9 187x333 · build_zone=1292 filtered=50426 ground=10454 sealed=99",
-      "trav": "68DD59DBD1AB connected=False components=3 points=4 warning",
+      "trav": "7CBBEB7310EC connected=False components=3 points=4 warning",
       "wool": "F3FCA9FED9F4 2/2 obtainable · 1 resources"
     },
     "townside_mini": {
       "regions": "DBBD7248B1DD 19 regions · build=3 observer_spawn=1 other=2 spawn=6 wool=7",
       "build": "B36CE444ABCF 110x184 · build_zone=360 filtered=17204 ground=2652 sealed=24",
-      "trav": "8B5E637E1D80 connected=False components=3 points=4 warning",
+      "trav": "67B64A968EC5 connected=False components=3 points=4 warning",
       "wool": "713DFA1BDB8B 2/2 obtainable · 1 resources"
     },
     "trail_mix": {
@@ -6081,7 +6123,7 @@
     "tranquility": {
       "regions": "AB29E70944DB 14 regions · mechanic=1 observer_spawn=1 spawn=5 wool=7",
       "build": "E10B8FB9AB9C 115x179 · build_zone=0 filtered=572 ground=19468 sealed=545",
-      "trav": "3A4E00E31CB4 connected=False components=2 points=6 warning",
+      "trav": "53B149E3E7A6 connected=False components=2 points=6 warning",
       "wool": "D4EECFE23C6C 4/4 obtainable · 0 resources"
     },
     "transit": {
@@ -6194,8 +6236,8 @@
     },
     "turf_wars": {
       "regions": "EED3AAD6AE79 44 regions · build=4 mechanic=1 observer_spawn=1 other=2 spawn=9 wool=27",
-      "build": "A2C994C5E015 199x335 · build_zone=0 filtered=4762 ground=61894 sealed=9",
-      "trav": "205727D84FCC connected=False components=2 points=6 warning",
+      "build": "AC4920913798 199x335 · build_zone=2434 filtered=4762 ground=59460 sealed=9",
+      "trav": "5CDCCADDF0B4 connected=False components=1 points=6 warning",
       "wool": "DDBDFAFF9F2F 4/4 obtainable · 1 resources"
     },
     "turnstile": {
@@ -6205,10 +6247,10 @@
       "wool": null
     },
     "tuscany": {
-      "regions": "02505EC6948B 17 regions · build=1 mechanic=1 observer_spawn=1 other=2 spawn=5 wool=7",
-      "build": "2C73F5C8B3F4 281x195 · build_zone=0 filtered=728 ground=54067 sealed=0",
-      "trav": "4C173E42D906 connected=False components=2 points=6 warning",
-      "wool": "D40ECC1D8711 4/4 obtainable · 1 resources"
+      "regions": "1EC57E727A2A 19 regions · build=1 mechanic=1 observer_spawn=1 other=2 spawn=7 wool=7",
+      "build": "A89102F3B241 281x195 · build_zone=11685 filtered=38138 ground=4972 sealed=0",
+      "trav": "3DE91FAD024F connected=True components=1 points=6 ok",
+      "wool": "26A815B107F3 4/4 obtainable · 1 resources"
     },
     "tuscany_hills": {
       "regions": "BD612E7E7CC3 unsupported",
@@ -6235,9 +6277,9 @@
       "wool": null
     },
     "twisted": {
-      "regions": "40704608CD64 14 regions · build=2 observer_spawn=1 other=2 spawn=7 wool=2",
-      "build": "68DE7DAF2350 131x368 · build_zone=0 filtered=3481 ground=0 sealed=44727",
-      "trav": "EF560FDD1D9F connected=False components=2 points=6 warning",
+      "regions": "703C17FFCDD9 33 regions · build=2 observer_spawn=1 other=21 spawn=7 wool=2",
+      "build": "8CA1AD1DFB6F 131x368 · build_zone=3555 filtered=4022 ground=0 sealed=40631",
+      "trav": "1FE55ECC746F connected=True components=1 points=6 ok",
       "wool": "C88530B15A02 4/4 obtainable · 2 resources"
     },
     "two": {
@@ -6254,8 +6296,8 @@
     },
     "two_tier": {
       "regions": "8CF4D91F2434 27 regions · build=1 mechanic=1 observer_spawn=1 other=6 spawn=11 wool=7",
-      "build": "65C7AF273BA8 239x126 · build_zone=0 filtered=1768 ground=27346 sealed=1000",
-      "trav": "1EEB5074FCC0 connected=False components=2 points=6 warning",
+      "build": "5F7697FF809D 239x126 · build_zone=1748 filtered=1768 ground=5809 sealed=20789",
+      "trav": "37A657AA8CB8 connected=False components=1 points=6 warning",
       "wool": "9BC0BB459A2F 4/4 obtainable · 3 resources"
     },
     "u-bahn": {
@@ -6301,8 +6343,8 @@
       "wool": null
     },
     "underpass": {
-      "regions": "9A14EC2EAE9D 7 regions · observer_spawn=1 other=2 spawn=2 wool=2",
-      "build": "74443D0E4BD5 206x76 · build_zone=680 filtered=0 ground=376 sealed=14600",
+      "regions": "E166C0CD940A 13 regions · observer_spawn=1 other=4 spawn=4 wool=4",
+      "build": "8C272386B3E6 208x76 · build_zone=680 filtered=0 ground=0 sealed=15128",
       "trav": "929276E9AC1B connected=True components=1 points=4 ok",
       "wool": "B8C921AF963B 2/2 obtainable · 0 resources"
     },
@@ -6327,7 +6369,7 @@
     "vegas": {
       "regions": "2DA1A45A04C0 78 regions · build=7 mechanic=10 observer_spawn=1 other=35 spawn=9 wool=16",
       "build": "5768118C0F33 216x325 · build_zone=0 filtered=61394 ground=0 sealed=8806",
-      "trav": "9C4F540B114D connected=True components=1 points=8 ok",
+      "trav": "A48EC67DF338 connected=True components=1 points=8 ok",
       "wool": "396205EB7853 4/4 obtainable · 1 resources"
     },
     "veld": {
@@ -6351,13 +6393,13 @@
     "vertex": {
       "regions": "F434160F21C0 16 regions · build=3 observer_spawn=1 spawn=7 wool=5",
       "build": "192ADE68F155 117x117 · build_zone=4248 filtered=9289 ground=0 sealed=152",
-      "trav": "F69DDD78D77F connected=False components=2 points=4 warning",
+      "trav": "9B270B45A429 connected=False components=2 points=4 warning",
       "wool": "AC96BE8414B8 2/2 obtainable · 1 resources"
     },
     "vesuvius": {
       "regions": "38EA7AEC8043 32 regions · build=9 observer_spawn=1 other=8 spawn=7 wool=7",
-      "build": "CB7CC9891EDC 189x189 · build_zone=0 filtered=2019 ground=33702 sealed=0",
-      "trav": "6542BB7D726C connected=False components=6 points=6 warning",
+      "build": "49C0C6887C19 189x189 · build_zone=7591 filtered=2019 ground=5571 sealed=20540",
+      "trav": "CB3F36978AA1 connected=False components=5 points=6 warning",
       "wool": "F30629E9DCA7 4/4 obtainable · 1 resources"
     },
     "victoria": {
@@ -6368,8 +6410,8 @@
     },
     "villa_i": {
       "regions": "97F3BD2EFCD6 19 regions · build=4 observer_spawn=1 other=1 spawn=6 wool=7",
-      "build": "9441D7C657B7 279x212 · build_zone=0 filtered=1141 ground=58007 sealed=0",
-      "trav": "C92E1EAD7138 connected=False components=4 points=4 warning",
+      "build": "5E3D54248677 279x212 · build_zone=8543 filtered=48121 ground=2484 sealed=0",
+      "trav": "8E7CBC9CEDFC connected=False components=3 points=4 warning",
       "wool": "03D4D312D250 2/2 obtainable · 2 resources"
     },
     "villa_ii": {
@@ -6415,7 +6457,7 @@
       "wool": null
     },
     "wallop_series_x": {
-      "regions": "70E5B4EBF39A 24 regions · observer_spawn=1 other=8 spawn=11 wool=4",
+      "regions": "20A74A2FF270 26 regions · observer_spawn=1 other=8 spawn=13 wool=4",
       "build": null,
       "trav": null,
       "wool": null
@@ -6434,6 +6476,12 @@
     },
     "war_for_iacon": {
       "regions": "92BB6DE7AF78 14 regions · mechanic=2 observer_spawn=1 other=6 spawn=5",
+      "build": null,
+      "trav": null,
+      "wool": null
+    },
+    "war_of_brady": {
+      "regions": "2AF30EF863E0 7 regions · observer_spawn=1 other=6",
       "build": null,
       "trav": null,
       "wool": null
@@ -6476,8 +6524,8 @@
     },
     "we_sell_mushrooms": {
       "regions": "2DF691BEBC12 32 regions · build=8 observer_spawn=2 other=6 spawn=8 wool=8",
-      "build": "0F44A64F0497 281x281 · build_zone=0 filtered=7174 ground=71787 sealed=0",
-      "trav": "9BC857C4C5B1 connected=False components=6 points=6 warning",
+      "build": "21BEDEBF05CF 281x281 · build_zone=15233 filtered=7174 ground=572 sealed=55982",
+      "trav": "377443267568 connected=True components=1 points=6 ok",
       "wool": "1FA7F4FE863D 4/4 obtainable · 1 resources"
     },
     "we_sell_mushrooms_ctf": {
@@ -6494,14 +6542,14 @@
     },
     "welcome_to_wool_circle": {
       "regions": "FEE3FEDA1A0B 173 regions · build=4 mechanic=3 observer_spawn=1 other=5 spawn=139 wool=21",
-      "build": "61EC52C53864 625x215 · build_zone=0 filtered=6234 ground=128132 sealed=9",
-      "trav": "0841245E20F6 connected=False components=8 points=8 warning",
+      "build": "10D6AB1CD3A6 625x215 · build_zone=17070 filtered=103050 ground=14246 sealed=9",
+      "trav": "FC5DCF5BE6DA connected=False components=7 points=8 warning",
       "wool": "47908CD36B2D 6/6 obtainable · 1 resources"
     },
     "welcome_to_wool_square": {
-      "regions": "C4961C076BEE 34 regions · observer_spawn=1 other=5 spawn=5 wool=23",
-      "build": "C4DE42C2372F 737x210 · build_zone=150449 filtered=2818 ground=744 sealed=759",
-      "trav": "45C6F83D158F connected=True components=1 points=8 ok",
+      "regions": "5D09EC8D727D 36 regions · observer_spawn=1 other=6 spawn=5 wool=24",
+      "build": "BEC64CC65E14 737x210 · build_zone=137506 filtered=2818 ground=12928 sealed=1518",
+      "trav": "F2C52A97987F connected=False components=1 points=8 warning",
       "wool": "811CFDCB42C8 6/6 obtainable · 1 resources"
     },
     "west_rider": {
@@ -6524,14 +6572,14 @@
     },
     "when_men_cried": {
       "regions": "270293E9DB6D 18 regions · build=3 observer_spawn=1 other=2 spawn=5 wool=7",
-      "build": "62F6B8159C2A 239x167 · build_zone=0 filtered=996 ground=38917 sealed=0",
-      "trav": "A798A9FBAA02 connected=False components=2 points=6 warning",
+      "build": "F69292E25D59 239x167 · build_zone=2820 filtered=996 ground=7483 sealed=28614",
+      "trav": "7E903529E566 connected=True components=1 points=6 ok",
       "wool": "3F5F0FFA09FD 4/4 obtainable · 1 resources"
     },
     "wholething": {
-      "regions": "826B923AC2F6 45 regions · build=1 mechanic=1 observer_spawn=1 other=6 spawn=18 wool=18",
-      "build": "7921C34711C1 175x271 · build_zone=0 filtered=1140 ground=42545 sealed=3740",
-      "trav": "48AFC791D7CB connected=False components=2 points=6 warning",
+      "regions": "DF037A3947FF 46 regions · build=1 mechanic=1 observer_spawn=1 other=7 spawn=18 wool=18",
+      "build": "DE16FC803628 175x271 · build_zone=42545 filtered=1140 ground=0 sealed=3740",
+      "trav": "B03A4FB49842 connected=True components=1 points=6 ok",
       "wool": "BC7390171BF3 4/4 obtainable · 1 resources"
     },
     "wild_isle": {
@@ -6541,7 +6589,7 @@
       "wool": null
     },
     "wild_west": {
-      "regions": "A14ECBC0FB30 16 regions · mechanic=1 observer_spawn=1 other=9 spawn=5",
+      "regions": "B57F9B0447DC unsupported",
       "build": null,
       "trav": null,
       "wool": null
@@ -6603,7 +6651,7 @@
     "witchs_potions": {
       "regions": "B2F05D85CBCE 46 regions · build=8 observer_spawn=1 other=9 spawn=6 wool=22",
       "build": "A4B4D66170E5 181x325 · build_zone=7787 filtered=42184 ground=8854 sealed=0",
-      "trav": "644FBF1B1434 connected=True components=1 points=6 ok",
+      "trav": "59A6A30FEF38 connected=False components=1 points=6 warning",
       "wool": "037991BF7C56 4/4 obtainable · 1 resources"
     },
     "wits_end": {
@@ -6613,14 +6661,14 @@
       "wool": "A51D2F5C1AE2 4/4 obtainable · 1 resources"
     },
     "woodlands": {
-      "regions": "3F9F2314CD43 14 regions · observer_spawn=1 other=9 spawn=4",
+      "regions": "548D761F46D5 16 regions · observer_spawn=1 other=11 spawn=4",
       "build": null,
       "trav": null,
       "wool": null
     },
     "woolirium": {
       "regions": "6590227196FD 15 regions · build=1 observer_spawn=1 other=2 spawn=5 wool=6",
-      "build": "DACA7B7DA97B 241x103 · build_zone=0 filtered=23861 ground=0 sealed=962",
+      "build": "9F9B16B80D65 241x103 · build_zone=0 filtered=10205 ground=0 sealed=14618",
       "trav": "60068F21A99D connected=True components=1 points=6 ok",
       "wool": "D25C7A8482C4 4/4 obtainable · 2 resources"
     },
@@ -6633,7 +6681,7 @@
     "wrath_of_cthulhu": {
       "regions": "51FD46B74C66 37 regions · observer_spawn=1 other=5 spawn=6 wool=25",
       "build": "B4AC212A4251 178x380 · build_zone=0 filtered=3720 ground=792 sealed=63128",
-      "trav": "A0ACEFCD96B7 connected=False components=2 points=6 warning",
+      "trav": "CAB0D08C11D6 connected=False components=2 points=6 warning",
       "wool": "0A7D43AEBB05 4/4 obtainable · 2 resources"
     },
     "wrath_tor_rage": {
@@ -6650,14 +6698,14 @@
     },
     "xi": {
       "regions": "3B06657C24EE 20 regions · build=5 observer_spawn=1 other=2 spawn=5 wool=7",
-      "build": "DAB6D96AB7BC 170x322 · build_zone=0 filtered=5857 ground=48883 sealed=0",
-      "trav": "5183F803D03E connected=False components=2 points=6 warning",
+      "build": "B6DD8A3965E3 170x322 · build_zone=2495 filtered=5857 ground=9369 sealed=37019",
+      "trav": "560473EF90B5 connected=True components=1 points=6 ok",
       "wool": "2CF351AFEEDB 4/4 obtainable · 1 resources"
     },
     "xi_ii": {
       "regions": "88B4AE423769 23 regions · build=2 observer_spawn=1 other=9 spawn=5 wool=6",
-      "build": "661D3A59A2DB 272x139 · build_zone=0 filtered=330 ground=35626 sealed=1852",
-      "trav": "F08476F1B92B connected=False components=2 points=4 warning",
+      "build": "0109A0B93522 272x139 · build_zone=2040 filtered=330 ground=3686 sealed=31752",
+      "trav": "E65368A82C29 connected=True components=1 points=4 ok",
       "wool": "E4EAA418ACEB 2/2 obtainable · 0 resources"
     },
     "ximorta": {
@@ -6669,11 +6717,11 @@
     "xinx": {
       "regions": "0AA1AAF2895D 40 regions · build=3 mechanic=1 observer_spawn=1 other=6 spawn=6 wool=23",
       "build": "904F99D8C68B 337x155 · build_zone=750 filtered=42951 ground=8534 sealed=0",
-      "trav": "8B09BC9C7F7D connected=False components=5 points=6 warning",
+      "trav": "69AEDA829526 connected=False components=5 points=6 warning",
       "wool": "15D16B12C78B 4/4 obtainable · 1 resources"
     },
     "xion": {
-      "regions": "D8AE09188E59 40 regions · mechanic=3 observer_spawn=1 other=10 spawn=19 wool=7",
+      "regions": "E39D62EEAE23 42 regions · mechanic=3 observer_spawn=1 other=10 spawn=21 wool=7",
       "build": "B472B8AB4610 321x321 · build_zone=0 filtered=900 ground=0 sealed=102141",
       "trav": "3D6D6ACF82DE connected=False components=6 points=6 warning",
       "wool": "FB5810DCC1FF 4/4 obtainable · 2 resources"
@@ -6721,7 +6769,7 @@
       "wool": "6954D0BC2DB3 2/2 obtainable · 1 resources"
     },
     "yonaguni": {
-      "regions": "16C0E8BA01EA 17 regions · mechanic=1 observer_spawn=1 other=12 spawn=3",
+      "regions": "6CB6D0C6B39D 18 regions · mechanic=1 observer_spawn=1 other=13 spawn=3",
       "build": null,
       "trav": null,
       "wool": null

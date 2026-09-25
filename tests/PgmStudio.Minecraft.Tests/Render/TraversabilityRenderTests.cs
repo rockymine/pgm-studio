@@ -98,8 +98,7 @@ public sealed class TraversabilityRenderTests
         await Assert.That(result!.NavigableCount).IsEqualTo(0);
     }
 
-    // The two platforms from the tests above (x=0..1 and x=5..6, z=0..1), with the same x=2..4 void gap —
-    // now read against a map document rather than bare markers, to exercise the buildable-region wiring.
+    // The two platforms from the tests above (x=0..1 and x=5..6, z=0..1), with the same x=2..4 void gap.
     private static VoxelWorld TwoPlatforms()
     {
         var world = new VoxelWorld();
@@ -112,105 +111,64 @@ public sealed class TraversabilityRenderTests
         return world;
     }
 
-    // BuildGenerator's own shape: a rectangle (or a union of them) wrapped in a negative, its place scope gated
-    // by a filter that chases down to "void" and its break scope by the exception filter beside it — the
-    // wiring PGM actually enforces at kickoff, not a name convention.
-    private static MapXml MapWithBuildRegion(int minX, int minZ, int maxX, int maxZ)
+    /// <summary>The columns x 2..4, z <paramref name="minZ"/>..<paramref name="maxZ"/> — the gap between the
+    /// two platforms, or part of it.</summary>
+    private static HashSet<(int X, int Z)> Gap(int minZ = 0, int maxZ = 1)
+    {
+        var cells = new HashSet<(int X, int Z)>();
+        for (var x = 2; x <= 4; x++)
+            for (var z = minZ; z <= maxZ; z++)
+                cells.Add((x, z));
+        return cells;
+    }
+
+    /// <summary><b>The render draws exactly the void columns it is handed.</b> Which columns a board opens to
+    /// bridging is the caller's answer, so the picture bridges the handed gap and nothing past it, and a
+    /// handed column that already has ground keeps its own reading.</summary>
+    [Test]
+    public async Task The_render_bridges_exactly_the_void_columns_it_is_handed()
+    {
+        var handed = Gap();
+        handed.Add((0, 0));                                   // ground: stays ground
+
+        var result = TraversabilityRender.Render(AnvilRegion.FromWorld(TwoPlatforms()), markers: [], handed);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.BridgeableCount).IsEqualTo(6);
+        await Assert.That(result.ComponentCount).IsEqualTo(1);
+    }
+
+    /// <summary>A handed set covering only one row of the gap still joins the platforms, and bridges only
+    /// that row.</summary>
+    [Test]
+    public async Task A_partial_bridge_is_drawn_as_the_part_handed()
+    {
+        var result = TraversabilityRender.Render(
+            AnvilRegion.FromWorld(TwoPlatforms()), markers: [], Gap(minZ: 0, maxZ: 0));
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.BridgeableCount).IsEqualTo(3);
+        await Assert.That(result.ComponentCount).IsEqualTo(1);
+    }
+
+    /// <summary><b>The render does not read the map's filters.</b> A map wiring a build area the template way
+    /// opens nothing unless the caller hands the columns in: a second reader of the same filters here is a
+    /// second answer to a question <c>Editability</c> owns.</summary>
+    [Test]
+    public async Task A_map_stating_a_build_area_bridges_nothing_the_caller_did_not_hand_in()
     {
         var map = new MapXml();
-        map.Regions["build-area-1"] = new Region { Id = "build-area-1", Type = "rectangle", MinX = minX, MinZ = minZ, MaxX = maxX, MaxZ = maxZ };
+        map.Regions["build-area-1"] = new Region { Id = "build-area-1", Type = "rectangle", MinX = 2, MinZ = -1, MaxX = 5, MaxZ = 3 };
         map.Regions["not-build-area"] = new Region { Id = "not-build-area", Type = "negative", Children = ["build-area-1"] };
         map.Filters["is-void"] = new Filter { Id = "is-void", Type = "void" };
         map.Filters["no-void"] = new Filter { Id = "no-void", Type = "not", Child = "is-void" };
-        map.Filters["over-void-breakable"] = new Filter { Id = "over-void-breakable", Type = "any" };
-        map.ApplyRules.Add(new ApplyRule
-        {
-            BlockPlaceFilter = "no-void", BlockBreakFilter = "over-void-breakable", RegionId = "not-build-area",
-        });
-        return map;
-    }
+        map.ApplyRules.Add(new ApplyRule { BlockPlaceFilter = "no-void", RegionId = "not-build-area" });
 
-    [Test]
-    public async Task A_void_rule_stated_on_the_block_scope_opens_the_same_columns_as_one_on_the_place_scope()
-    {
-        var placeScoped = MapWithBuildRegion(minX: 2, minZ: -1, maxX: 5, maxZ: 3);
-        var bothScoped = MapWithBuildRegion(minX: 2, minZ: -1, maxX: 5, maxZ: 3);
-        bothScoped.ApplyRules[0] = new ApplyRule { BlockFilter = "no-void", RegionId = "not-build-area" };
-
-        var placed = TraversabilityRender.BridgeableColumns(placeScoped);
-
-        await Assert.That(placed.Count).IsGreaterThan(0);
-        await Assert.That(placed.SetEquals(TraversabilityRender.BridgeableColumns(bothScoped))).IsTrue();
-    }
-
-    [Test]
-    public async Task A_void_gap_inside_the_declared_buildable_region_joins_the_platforms_into_one_component()
-    {
-        var map = MapWithBuildRegion(minX: 2, minZ: -1, maxX: 5, maxZ: 3);   // covers the x=2..4 gap
-        var bridgeable = TraversabilityRender.BridgeableColumns(map);
-
-        var result = TraversabilityRender.Render(AnvilRegion.FromWorld(TwoPlatforms()), markers: [], bridgeable);
+        var result = TraversabilityRender.Read([.. AnvilRegion.FromWorld(TwoPlatforms())], map, bridgeable: null);
 
         await Assert.That(result).IsNotNull();
-        await Assert.That(result!.ComponentCount).IsEqualTo(1);
-        await Assert.That(result.BridgeableCount).IsGreaterThan(0);
-    }
-
-    [Test]
-    public async Task A_buildable_region_that_misses_the_gap_leaves_the_platforms_separate()
-    {
-        var map = MapWithBuildRegion(minX: 50, minZ: 50, maxX: 55, maxZ: 55);   // nowhere near the gap
-        var bridgeable = TraversabilityRender.BridgeableColumns(map);
-
-        var result = TraversabilityRender.Render(AnvilRegion.FromWorld(TwoPlatforms()), markers: [], bridgeable);
-
-        // The far-off buildable patch is itself now navigable (it reads as its own small component, +1), but
-        // it touches neither platform — three components total, the two platforms still apart from each other.
-        await Assert.That(result).IsNotNull();
-        await Assert.That(result!.ComponentCount).IsEqualTo(3);
-        await Assert.That(result.BridgeableCount).IsGreaterThan(0);
-    }
-
-    [Test]
-    public async Task A_region_over_the_gap_with_no_void_gating_apply_rule_is_not_bridged()
-    {
-        // The water-lane shape: a region named/drawn over the gap, but nothing applies a "not void" filter
-        // to it — the lane opens later by a timed fill, not by this wiring, so it reads as void here exactly
-        // like any other gap the map has not declared buildable at kickoff.
-        var map = new MapXml();
-        map.Regions["lane"] = new Region { Id = "lane", Type = "rectangle", MinX = 2, MinZ = -1, MaxX = 5, MaxZ = 3 };
-
-        var bridgeable = TraversabilityRender.BridgeableColumns(map);
-        var result = TraversabilityRender.Render(AnvilRegion.FromWorld(TwoPlatforms()), markers: [], bridgeable);
-
-        await Assert.That(bridgeable.Count).IsEqualTo(0);
-        await Assert.That(result).IsNotNull();
-        await Assert.That(result!.ComponentCount).IsEqualTo(2);
-    }
-
-    [Test]
-    public async Task An_inline_deny_void_shorthand_is_read_the_same_as_a_registered_not_void_filter()
-    {
-        // A hand-authored map can write PGM's inline filter shorthand directly into the block attribute
-        // without ever registering a filter for it.
-        var map = new MapXml();
-        map.Regions["build-area-1"] = new Region { Id = "build-area-1", Type = "rectangle", MinX = 2, MinZ = -1, MaxX = 5, MaxZ = 3 };
-        map.ApplyRules.Add(new ApplyRule { BlockFilter = "deny(void)", RegionId = "build-area-1" });
-
-        var bridgeable = TraversabilityRender.BridgeableColumns(map);
-
-        await Assert.That(bridgeable.Count).IsGreaterThan(0);
-    }
-
-    [Test]
-    public async Task An_apply_rule_gated_on_an_unrelated_filter_bridges_nothing()
-    {
-        var map = new MapXml();
-        map.Regions["spawn-area"] = new Region { Id = "spawn-area", Type = "rectangle", MinX = 2, MinZ = -1, MaxX = 5, MaxZ = 3 };
-        map.Filters["red-only"] = new Filter { Id = "red-only", Type = "team", Team = "red" };
-        map.ApplyRules.Add(new ApplyRule { BlockFilter = "red-only", RegionId = "spawn-area" });
-
-        await Assert.That(TraversabilityRender.BridgeableColumns(map).Count).IsEqualTo(0);
+        await Assert.That(result!.BridgeableCount).IsEqualTo(0);
+        await Assert.That(result.ComponentCount).IsEqualTo(2);
     }
 
     [Test]
@@ -219,7 +177,8 @@ public sealed class TraversabilityRenderTests
         var outPng = Path.Combine(Path.GetTempPath(), $"traversability-legend-{Guid.NewGuid():N}.png");
         try
         {
-            var exit = TraversabilityRender.Run(TwoPlatforms(), outPng, map: null, scale: 2);
+            var exit = TraversabilityRender.Run(
+                [.. AnvilRegion.FromWorld(TwoPlatforms())], outPng, map: null, bridgeable: null, scale: 2);
             await Assert.That(exit).IsEqualTo(0);
 
             var (width, height) = PngTestUtil.Dimensions(File.ReadAllBytes(outPng));

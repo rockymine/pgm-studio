@@ -1,8 +1,8 @@
 @namespace PgmStudio.Client.Features.Configure
 
-@* World · Scan step (N01): read-only review of the extracted world. Centre panel is the reused
-   edit-page WorldCanvas — its navigation toolbar (pan/zoom · fit island · reset) and its island-base ↔
-   surface layer toggle ("Blocks"). The side panels summarise the cleaned-base detection. *@
+@* World · Scan step: read-only review of the extracted world. The centre panel is WorldCanvas with its
+   navigation toolbar (pan/zoom · fit island · reset) and its island-base ↔ surface layer toggle
+   ("Blocks"). The side panels summarise the cleaned-base detection. *@
 
 <Workspace>
 
@@ -30,7 +30,7 @@
 
   <div class="sidebar-handle"></div>
 
-  @* The reused edit canvas — read-only here (no DrawCategory ⇒ move/select only). *@
+  @* The world canvas with no mode set — move/select only. *@
   <WorldCanvas Slug="@Wizard.Slug" />
 
   <div class="sidebar-handle"></div>

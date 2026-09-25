@@ -100,8 +100,10 @@ public static class CorpusGoldens
             var segments = dir is null ? null : Path.Combine(dir, "layer_segments.parquet");
             if (segments is not null && File.Exists(segments))
             {
-                var index = new SegmentIndex(await FeatureData.ReadSegments(segments));
-                build = DescribeEditability(Editability.Compute(doc, index.Y0Columns()));
+                var marks = Path.Combine(dir!, "floor_marks.parquet");
+                var index = new SegmentIndex(await FeatureData.ReadSegments(segments),
+                                             File.Exists(marks) ? await FeatureData.ReadFloorMarks(marks) : null);
+                build = DescribeEditability(Editability.Compute(doc, index.Y0Columns(), floorMarks: index.FloorMarks));
                 trav = DescribeTraversability(Traversability.Check(doc, index));
             }
             if (dir is not null && Directory.Exists(dir)) wool = await DescribeWool(doc, dir);
@@ -174,6 +176,9 @@ public static class FeatureData
         var result = await Parquet.Serialization.ParquetSerializer.DeserializeUntypedAsync(stream);
         return [.. result.Data.Select(d => d.ToDictionary(kv => kv.Key, kv => (object?)kv.Value))];
     }
+
+    public static async Task<List<(int, int)>> ReadFloorMarks(string path) =>
+        [.. (await ReadParquet(path)).Select(r => (Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_z"])))];
 
     public static async Task<List<(int, int, int, int)>> ReadSegments(string path) =>
         [.. (await ReadParquet(path)).Select(r => (Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_z"]),

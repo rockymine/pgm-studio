@@ -15,6 +15,11 @@ public readonly record struct SpawnerFeature(
     int? MinSpawnDelay, int? MaxSpawnDelay, int? RequiredPlayerRange, int? MaxNearbyEntities);
 public readonly record struct SegmentFeature(int WorldX, int WorldZ, int WorldYStart, int WorldYEnd);
 
+/// <summary>A block at y=0 that no segment holds — the invisible block-36 marker, a glass floor sheet. PGM's
+/// void filter reads (x, 0, z) and counts any block there, a removed block 36 included, so the column is not
+/// void and may be built over; nobody stands on it, so it is no segment.</summary>
+public readonly record struct FloorMarkFeature(int WorldX, int WorldZ, int BlockId);
+
 /// <summary>
 /// Locate specific block types across a set of region files — "where are the X blocks and what
 /// are they?". <c>minecraft/layers.py</c>. Each method scans the decoded block stream / tile-entity NBT and
@@ -129,6 +134,30 @@ public static class FeatureExtractors
         }
     }
 
+    /// <summary>Whether a block is ground a player stands on: not air, not one of the non-solid ids, and not a
+    /// build-region marker laid at the world floor (<see cref="SurfaceExtractors.FloorMarkerIds"/>), the rule
+    /// the island scan reads too.</summary>
+    private static bool IsSolid(int id, int y) =>
+        id != 0 && !SegmentExclude.Contains(id)
+        && !(y <= SurfaceExtractors.FloorMarkerMaxY && SurfaceExtractors.FloorMarkerIds.Contains(id));
+
+    /// <summary>Every y=0 block no segment holds (→ floor_marks.parquet): what makes a column not void to PGM
+    /// without being ground.</summary>
+    public static IEnumerable<FloorMarkFeature> FloorMarks(IEnumerable<AnvilRegion.Chunk> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            if (AnvilRegion.Sections(chunk).FirstOrDefault(section => section.SectionY == 0) is not { } floor)
+                continue;
+            for (var index = 0; index < 256; index++)
+            {
+                var id = floor.Ids[index];
+                if (id == 0 || IsSolid(id, 0)) continue;
+                yield return new FloorMarkFeature(chunk.ChunkX * 16 + (index & 15), chunk.ChunkZ * 16 + (index >> 4), id);
+            }
+        }
+    }
+
     /// <summary>All contiguous solid Y-runs per column, inclusive [start,end] (→ layer_segments.parquet).</summary>
     public static IEnumerable<SegmentFeature> Segments(IEnumerable<AnvilRegion.Chunk> chunks, int minRunLength = 1)
     {
@@ -144,8 +173,7 @@ public static class FeatureExtractors
                     var runStart = -1;
                     for (var y = 0; y < 256; y++)
                     {
-                        var id = full[(y << 8) | col];
-                        var solid = id != 0 && !SegmentExclude.Contains(id);
+                        var solid = IsSolid(full[(y << 8) | col], y);
                         if (solid)
                         {
                             if (runStart < 0) runStart = y;

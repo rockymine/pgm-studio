@@ -36,7 +36,6 @@ const ROUTES = [
   { path: `/maps/${seed.planSlug}/plan`,          name: "plan tool",      expect: "body" },
   { path: `/maps/${seed.sketchSlug}/sketch`,      name: "sketch tool",    expect: "body" },
   { path: `/maps/${seed.mapSlug}/configure`,      name: "configure tool", expect: "body" },
-  { path: `/maps/${seed.mapSlug}/edit`,           name: "edit tool",      expect: "body" },
   { path: "/maps/new",                            name: "new map",        expect: "body" },
   { path: "/not-found",                           name: "not found",      expect: "body" },
   { path: "/definitely-not-a-route",              name: "unknown route",  expect: "body" },

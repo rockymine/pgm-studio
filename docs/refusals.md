@@ -116,7 +116,7 @@ a bound request that will not read is refused before any handler runs, and
 under `error: "request will not read"`. `RequiredFields` answers the other half — a field that is missing
 rather than unreadable — as `RQ1` under `error: "incomplete request"`. Both name the field **as the wire
 spells it**, which is the only name a caller can look for: a property stating its own JSON name reports
-`region_id`, not the `regionId` its record declares. The Edit tool's thirty-six write routes
+`region_id`, not the `regionId` its record declares. The document editors' write routes
 answer it through one path: `EditException` carries the finding, and `WriteSupport.RunEditAsync` writes
 `Refusals.Of` with it.
 
@@ -348,7 +348,7 @@ None of these is a gate's. A gate reads a document it understood and says what i
 six are about the **request**, and they exist because the shape above held everywhere except at the door.
 
 They are stated in `Domain` rather than at the door that raises most of them, because the door is not the only
-place that knows one. The document editors behind the Edit tool refuse an id naming nothing, an id already
+place that knows one. The document editors behind the entity write routes refuse an id naming nothing, an id already
 taken and a value outside a closed set from inside `Pgm.Editing`, and copying the ids down to reach them would
 be the second `const` aliasing one that exists — the failure *Adding one* names below.
 

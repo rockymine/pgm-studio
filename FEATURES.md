@@ -3277,6 +3277,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A plan's authors reach the intent (`TN21`)** — `PlanMeta.Authors`/`Contributors`, carried by
   `PlanCompiler` and kept by `plan-doc.js`, so a plan-first board no longer exports with `EX6`. (`TN21`)
 
+- **A map can be deleted (`RP71`)** — `DELETE /map/{slug}` answers 204 and cascades every row stored under the
+  map; an unknown slug is 404 `RQ4`. The world folder it was scanned from stays. (`RP71`)
+
+- **The Edit tool is retired (`TE3`)** — `/maps/{slug}/edit` and `Features/Edit/` are gone; `WorldCanvas` and
+  the bodies drawn beside it live in `Features/Configure/`, and a finished map's document is changed through
+  the entity routes `docs/tools/flow.md` documents. (`TE3`)
+
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)
@@ -7988,6 +7995,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `WorldProvenance.PropVolumeAt`. A tree's or boulder's blocks are solid, so a trunk is not walked through and
   a crown roofs the ground under it, but never a place to stand: a crown over the void is void to `walk` as to
   `column`, `transect` and the census. The author's ruling. (`WS71`)
+
+- **A dressing-pass house and its image stand on the same columns, door included (`WE135`)** —
+  `Decorator.Doorway` fits the door through `HouseStamper.Fit` with the image's reflection, the room stamper's
+  own rule. (`WE135`)
+
+- **The void test is PGM's, and a map's build area reads as one (`WS73`, `B57`)** — a y=0 block the segment
+  scan leaves out (the block-36 marker PGM removes on load, a glass floor sheet) is kept as a **floor mark**
+  (`FeatureExtractors.FloorMarks`, table `floor_mark`, migration `M0040`), and `SegmentIndex.Y0Columns` counts
+  it, as PGM's `<void/>` filter does; the segment scan applies the island scan's floor-marker rule, so a
+  marker is never standing ground. Bridging is read off the place scope alone — granted ground, a conditional
+  filter, or a floor mark a void rule passes — and `Export.BridgeableColumns` hands the one
+  set to `reach`. The region parser reads `below`, `above` on every axis, `nowhere`/`empty` and multi-child
+  `<region>` wrappers as unions, and `everywhere` has a footprint, so the 134 corpus maps stating their build
+  area as `complement(everywhere, …)` read it; `resize` is refused, and `RegionTypesTests` holds the parser to
+  PGM's list. Corpus traversability: not connected 193 → 146 of 347 over a regenerated scan (164 over the
+  committed one, until `RP74`). (`WS73`, `B57`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning

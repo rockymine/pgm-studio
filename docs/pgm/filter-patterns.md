@@ -8,7 +8,7 @@ figures re-verified 2026-06-10.
 
 The **clusters** below cover *intent*, ordered by map-level prevalence. The **appendix** is the *vocabulary*
 — which filter types attach to which events, and how they compose — and is the only written account of it in
-the repository, since the studio surfaces no filter editing at all (`docs/tools/edit.md`).
+the repository, since the studio surfaces no filter editing at all.
 
 What the studio's own generator emits is a small, fixed subset of this: `TeamsGenerator`, `WoolGenerator` and
 `BuildGenerator` write the spawn-protection, wool-room and build-area patterns, wired per

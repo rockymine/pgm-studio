@@ -210,7 +210,7 @@ public partial class SpawnStep
 
     private void SelectTeam(string id) => selectedTeamId = id;
 
-    // A point RegionNode for the reused SliceView (the edit page's mini side-view) — it reads x/y/z + Type.
+    // A point RegionNode for the SliceView mini side-view — it reads x/y/z + Type.
     // The id carries x/z so moving the spawn re-points the slice at its new column (Y drags don't, by design).
     private RegionNode SpawnNode(Spawn s) => new()
     {

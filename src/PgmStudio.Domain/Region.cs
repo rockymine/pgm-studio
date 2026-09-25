@@ -46,6 +46,7 @@ public sealed class Region
     public double? OffsetX, OffsetY, OffsetZ;    // translate
     // reference
     public string? RefId;
-    // above
-    public double? AboveY;
+    // above / below: PGM's half-spaces along each axis stated, intersected — above keeps what is at or past
+    // a bound, below what is at or short of it
+    public double? HalfX, HalfY, HalfZ;
 }

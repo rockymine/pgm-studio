@@ -142,8 +142,12 @@ public static class Deserializer
                 break;
             case "everywhere":
                 break;
-            case "above":
-                r.AboveY = Cd(Req(d, "y"));
+            case "above" or "below":
+                r.HalfX = d.TryGetValue("x", out var hx) ? Cd(hx) : null;
+                r.HalfY = d.TryGetValue("y", out var hy) ? Cd(hy) : null;
+                r.HalfZ = d.TryGetValue("z", out var hz) ? Cd(hz) : null;
+                break;
+            case "nowhere":
                 break;
         }
         return r;

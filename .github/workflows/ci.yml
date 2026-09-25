@@ -1,0 +1,116 @@
+# The gates a contributor runs locally, on every pull request and every push to main.
+#
+# `checks` is everything that needs no database: the build, the seven test projects that stand alone, the JS
+# suite, the census and the file-based tool scripts. `database-and-browser` installs MariaDB on the runner the
+# way docs/cloud-setup.md does (the e2e script resets its schema through `sudo -n mariadb`, which a service
+# container cannot answer), then runs the three database test projects serially and the full browser sweep.
+#
+# Test projects run through `dotnet run --project`: `dotnet test` has no VSTest bridge on the .NET 10 SDK.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build
+        run: dotnet build PgmStudio.slnx -v q
+
+      - name: Test projects with no database
+        run: |
+          failed=0
+          for project in Vocabulary Geom Domain Pgm Analysis Minecraft Export; do
+            echo "::group::PgmStudio.$project.Tests"
+            dotnet run --no-build --project "tests/PgmStudio.$project.Tests" || failed=1
+            echo "::endgroup::"
+          done
+          exit $failed
+
+      - name: JS tests
+        run: bash tools/js-test.sh
+
+      - name: Census is current
+        run: bash tools/census.sh --check
+
+      - name: File-based tool scripts build
+        run: bash tools/build-scripts.sh
+
+  database-and-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: MariaDB, the databases and their user
+        run: |
+          sudo systemctl stop mysql || true
+          sudo apt-get purge -y 'mysql-server*' 'mysql-client*' mysql-common || true
+          sudo rm -rf /etc/mysql /var/lib/mysql
+          sudo apt-get update -q
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q mariadb-server
+          sudo service mariadb start
+          sudo mariadb <<'SQL'
+          CREATE DATABASE IF NOT EXISTS pgm_studio;
+          CREATE DATABASE IF NOT EXISTS pgm_studio_test;
+          CREATE USER IF NOT EXISTS 'pgm'@'localhost' IDENTIFIED BY 'pgm_dev_pw';
+          GRANT ALL ON pgm_studio.*      TO 'pgm'@'localhost';
+          GRANT ALL ON pgm_studio_test.* TO 'pgm'@'localhost';
+          FLUSH PRIVILEGES;
+          SQL
+
+      - name: Build
+        run: dotnet build PgmStudio.slnx -v q
+
+      - name: Database test projects, one at a time
+        run: |
+          failed=0
+          for project in Data Import Api; do
+            echo "::group::PgmStudio.$project.Tests"
+            dotnet run --no-build --project "tests/PgmStudio.$project.Tests" || failed=1
+            echo "::endgroup::"
+          done
+          exit $failed
+
+      - name: Playwright and Chromium
+        run: |
+          npm install -g playwright
+          playwright install --with-deps chromium
+
+      - name: Browser sweep
+        run: ./tools/e2e.sh all
+
+      - name: Server log on failure
+        if: failure()
+        run: tail -n 200 .tmp/e2e-*.log || true

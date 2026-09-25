@@ -65,6 +65,8 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
             }).ToList();
         var segs = FeatureExtractors.Segments(chunks)
             .Select(s => new SegmentRow { MapId = mapId, WorldX = s.WorldX, WorldZ = s.WorldZ, WorldYStart = s.WorldYStart, WorldYEnd = s.WorldYEnd }).ToList();
+        var marks = FeatureExtractors.FloorMarks(chunks)
+            .Select(m => new FloorMarkRow { MapId = mapId, WorldX = m.WorldX, WorldZ = m.WorldZ, BlockId = m.BlockId }).ToList();
 
         // The world, read once, for both suggesters. Decoding is the world package's and what a monument or
         // a core is is a derivation, so the read happens here — at the one caller that has both — and each
@@ -99,6 +101,7 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
             if (chests.Count > 0) await db.BulkCopyAsync(chests, ct);
             if (spawners.Count > 0) await db.BulkCopyAsync(spawners, ct);
             if (segs.Count > 0) await db.BulkCopyAsync(segs, ct);
+            if (marks.Count > 0) await db.BulkCopyAsync(marks, ct);
 
             monCount = await MonumentCandidateStore.WriteAsync(db, mapId, monuments, ct);
             coreCount = await CoreCandidateStore.WriteAsync(db, mapId, cores, ct);
@@ -239,5 +242,6 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
         await db.SpawnerBlocks.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.MonumentCandidates.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Segments.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.FloorMarks.Where(x => x.MapId == mapId).DeleteAsync(ct);
     }
 }

@@ -4,11 +4,8 @@ using PgmStudio.Contracts;
 namespace PgmStudio.Client.Models;
 
 /// <summary>
-/// One region as the editor holds it while the author works on it: what <c>RegionNodeDto</c> answered, plus
-/// what only a screen needs — an icon, a formatted coordinate, the first wiring event as a tag — and
-/// <b>mutable</b> bounds and coords, which is the point. An inspector edit writes the new number here and
-/// draws from it before the save round-trips (<see cref="RegionEdits"/>), so the tree the canvas renders is
-/// the author's current one rather than the last one the server confirmed.
+/// One region as the client holds it: what <c>RegionNodeDto</c> answered, plus what only a screen needs — an
+/// icon, a formatted coordinate, the first wiring event as a tag.
 /// </summary>
 public sealed class RegionNode
 {
@@ -17,7 +14,6 @@ public sealed class RegionNode
     public string Label = "";
     public string? Category;         // the region's own derived category (may differ from its display group)
     public string? Subtype;          // refines the category, e.g. spawn → "point" | "protection"
-    public string? DraftStep;        // editor step it was drawn in (teams/objective/build) while unwired (E10)
     public List<string> Wiring = new();  // spatial filter wiring, e.g. "enter=only-blue", "block_break=…"
     public bool Synthetic;
     public bool IsNegative;
@@ -45,7 +41,6 @@ public sealed class RegionNode
             Label = dto.Label,
             Category = dto.Category,
             Subtype = dto.Subtype,
-            DraftStep = dto.DraftStep,
             Synthetic = dto.SyntheticId,
             IsNegative = dto.IsNegative,
             Bounds = Extent(dto.Bounds),
