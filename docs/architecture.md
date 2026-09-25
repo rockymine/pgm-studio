@@ -86,9 +86,9 @@ caller. The other 38 sites are a different thing entirely: `NoSuchSubject`, `Con
 
 **Every operation now says what it answers.** An endpoint that declares no response type is published as
 **204 No Content** — the generator's default, and a claim rather than a silence, so an undeclared route does
-not leave a caller guessing but misleads it. **Nought of the 149 operations** publish that 204 without
-answering it; seven publish it truthfully, every one a delete whose answer is that the thing is gone.
-`SchemaCompletenessTests` holds the count at zero and the seven as a named list, so a route added without a
+not leave a caller guessing but misleads it. **None of the operations** publish that 204 without
+answering it; eleven publish it truthfully, every one a delete whose answer is that the thing is gone — ten
+library rows and a whole map. `SchemaCompletenessTests` holds the count at zero and the eleven as a named list, so a route added without a
 response type fails there, and one on the list that grows a body cannot leave it quietly. The media types
 are declared too: the six `image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
 `/api-docs` renders a theme swatch beside the route that draws it.
@@ -245,6 +245,11 @@ authored rather than three calls later. It does not build: the export gates need
 each is named in `unasked` with the route that does pay, because a list silent about what it skipped reads as
 *nothing is wrong*. `GET /map/{slug}/state` answers the other half — where the map has got to and what may be
 done to it from here, each move with its route. A driver's loop is *act, then ask*.
+
+**A map ends on `DELETE /map/{slug}`.** It answers 204 and removes the `map` row, and every table keyed on a
+map cascades from that row, so the map's teams, regions, objectives, scans and stored documents go with it in
+one statement; a slug naming nothing is `RQ4` at 404. A world folder under a maps root is the source a map was
+scanned from rather than part of the map, and is left on disk.
 
 **A stage is a progress marker and not a lock**, which is the product statement the transition table rests
 on: `flow.md`'s one-way flow means nothing reads back up, not that a built map may never be re-planned. So no

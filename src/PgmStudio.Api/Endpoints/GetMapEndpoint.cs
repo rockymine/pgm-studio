@@ -32,6 +32,26 @@ public sealed class GetMapEndpoint(MapRepository repo, MapReader reader, MapWrit
     }
 }
 
+/// <summary>DELETE /api/map/{slug} — remove the map and everything stored under it: every row keyed on the
+/// map cascades from its <c>map</c> row. A world folder under a maps root is the source a map was scanned from
+/// rather than something the map holds, so it is left where it is.</summary>
+public sealed class DeleteMapEndpoint(MapRepository repo) : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Delete("/map/{slug}");
+        AllowAnonymous();
+        Description(b => b.Refuses(404));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        await repo.DeleteMapAsync(map.Id, ct);
+        await Send.NoContentAsync(ct);
+    }
+}
+
 /// <summary>GET /api/map/{slug}/findings — everything wrong with this map right now, as far as its stored
 /// documents can say, plus the gates a read cannot reach and where to ask them. The operation is
 /// <see cref="MapFindings"/>; this is the door to it.</summary>
