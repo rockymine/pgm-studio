@@ -1149,8 +1149,9 @@ public partial class PlanTool
             if (!await Ok(planResp, "record the plan")) return;
 
             draftStep = "Saving layout"; StateHasChanged();
-            var force = discardRelief ? "?force=true" : "";
-            using var layoutResp = await Http.PutAsync($"api/map/{slug}/sketch/from-plan{force}", new StringContent(compiledLayoutRaw, Encoding.UTF8, "application/json"));
+            using var layoutResp = await Http.PutAsync(
+                discardRelief ? $"api/map/{slug}/sketch/from-plan?force=true" : $"api/map/{slug}/sketch/from-plan",
+                new StringContent(compiledLayoutRaw, Encoding.UTF8, "application/json"));
             // A 409 here is relief the rebuilt board has no island for, one finding per group: asked back
             // rather than reported as a failure, since the way through is a choice the author makes.
             if (layoutResp.StatusCode == System.Net.HttpStatusCode.Conflict
