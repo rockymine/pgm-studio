@@ -175,13 +175,50 @@ public sealed class ClaimRasterTests
     {
         var world = new VoxelWorld();
         var top = new Dictionary<(int X, int Z), int>();
-        foreach (var (cell, _) in surface)
+        foreach (var (cell, height) in surface)
         {
-            for (var y = 0; y < 7; y++) world.SetBlock(cell.X, y, cell.Z, Blocks.Stone);
-            world.SetBlock(cell.X, 7, cell.Z, Blocks.Grass);
-            top[cell] = 8;
+            for (var y = 0; y < height - 1; y++) world.SetBlock(cell.X, y, cell.Z, Blocks.Stone);
+            world.SetBlock(cell.X, height - 1, cell.Z, Blocks.Grass);
+            top[cell] = height;
         }
         return (world, top);
+    }
+
+    /// <summary>A yard beside a quarry: the seat query asks a building's site to be level by the pass's own
+    /// arithmetic, so every anchor it offers is one the pass seats, and a footprint straddling the quarry's
+    /// edge is refused <c>DR-SLOPE</c> rather than offered and then declined. What it still cannot ask is named
+    /// in the answer.</summary>
+    [Test]
+    public async Task A_seat_straddling_a_quarry_edge_is_refused_as_the_pass_refuses_it()
+    {
+        const int size = 24;
+        var surface = Ground(0, 0, size - 1, size - 1);
+        for (var z = 0; z < size; z++)
+        for (var x = 12; x < size; x++)
+            surface[(x, z)] = 30;                                // the yard stands 22 over the quarry floor
+
+        var style = House("probe", 0, 0, 4, 4).Style;
+        var grid = ClaimRaster.Read([], surface, (_, _) => null, (_, _) => false);
+        var seats = ClaimRaster.Seat(grid, "house", standoff: 0, width: 5, depth: 5,
+            new ClaimRaster.Level(surface, SiteLevel.Limit(style)));
+
+        await Assert.That(seats.Refused.Select(because => because.Rule)).Contains(DressingRules.SiteNotLevel);
+        await Assert.That(seats.Unasked).IsEquivalentTo([DressingRules.RouteCrossed, DressingRules.WayThrough]);
+        await Assert.That(ClaimRaster.RenderSeats(seats)).Contains("NOT ASKED  DR-CROSS, DR-WAY");
+
+        var disagreed = new List<string>();
+        for (var row = 0; row + 4 < grid.Height; row += 3)
+        for (var column = 0; column + 4 < grid.Width; column++)
+        {
+            var raster = seats.Rows[row][column] == '1';
+            var (world, top) = World(surface);
+            var tally = Decorator.Decorate(world, new DressingContext(top, [House("new", column, row, column + 4, row + 4)]));
+            var refused = tally.Declines.Any(finding => finding.SubjectIds.Contains("new"));
+            if (raster == !refused) continue;
+            disagreed.Add($"({column}, {row}) raster {(raster ? "seats" : "refuses")}, pass "
+                + string.Join("/", tally.Declines.Where(f => f.SubjectIds.Contains("new")).Select(f => f.Rule)));
+        }
+        await Assert.That(string.Join("; ", disagreed.Take(6))).IsEqualTo("");
     }
 
     /// <summary>A building is asked about the way past it too, and a 15-block lane is the case that says so:

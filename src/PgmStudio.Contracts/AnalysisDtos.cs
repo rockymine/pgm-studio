@@ -379,7 +379,7 @@ public sealed record ClaimRasterDto(
 /// <summary>One rule that turned an anchor away, and how many anchors it turned away — what a board with no
 /// room for a prop is short of, rather than only that it is short.</summary>
 /// <param name="Rule">The rule id the dressing pass would decline under: <c>DR-CLAIM</c>, <c>DR-KEEP</c>,
-/// <c>DR-ROAD</c>, <c>DR-SITE</c> or <c>OB19</c>.</param>
+/// <c>DR-ROAD</c>, <c>DR-SITE</c>, <c>DR-SLOPE</c>, <c>DR-PASS</c> or <c>OB19</c>.</param>
 /// <param name="Cells">How many anchors it refused.</param>
 public sealed record SeatRefusalDto(string Rule, int Cells);
 
@@ -397,7 +397,12 @@ public sealed record SeatRefusalDto(string Rule, int Cells);
 /// cell, <c>0</c> where it does not, a space where the cell itself is off the board.</param>
 /// <param name="Seats">How many cells answer <c>1</c>.</param>
 /// <param name="Refused">Why the rest did not, largest first.</param>
+/// <param name="Unasked">The decline rules the pass still asks of a seat this answers <c>1</c> — for a
+/// building <c>DR-CROSS</c> and <c>DR-WAY</c>, which walk the board's routes and waypoints with the footprint
+/// taken out. Empty for every other kind.</param>
+/// <param name="SlopeLimit">For a building, the rise across its footprint <c>DR-SLOPE</c> refused from — the
+/// style's wall courses plus its roof's rise.</param>
 public sealed record SeatsDto(
     Bounds2dDto Bounds, int Width, int Height, string Kind, int Standoff,
     int FootprintWidth, int FootprintDepth, IReadOnlyList<string> Rows, int Seats,
-    IReadOnlyList<SeatRefusalDto> Refused);
+    IReadOnlyList<SeatRefusalDto> Refused, IReadOnlyList<string> Unasked, int? SlopeLimit);

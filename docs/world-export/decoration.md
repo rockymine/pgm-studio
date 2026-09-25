@@ -930,8 +930,14 @@ off the raster's own `structure` cells — one building to a run of them, since 
 directions take, which is what keeps the mask and the pass from disagreeing about a cell; a test asks every
 anchor of a board both ways and requires the same answer.
 
-What is left to the pass is the three that read the built world rather than the ground under the footprint:
-`DR-CROSS`, `DR-WAY` and `DR-SLOPE`.
+**A building's site is asked to be level by the pass's own arithmetic.** `DR-SLOPE` is the rise across the
+footprint against the style's wall courses plus its roof's rise, and `SiteLevel` holds both halves, so the
+mask and the pass read one number: the style is the house recipe `?style=` names in the posted layout's
+`dressing.styles`, or the default building, and the limit it was asked against comes back as `slopeLimit`.
+
+What is left to the pass is the two that walk the board's routes and waypoints with the footprint taken out —
+`DR-CROSS` and `DR-WAY` — and the answer names them under `unasked` (and a `NOT ASKED` line in the text
+answer), so a seat marked `1` is never read as a promise the pass cannot break.
 
 Each one is a **`decline`**, the severity between a refusal and a complaint: the world was built, so nothing
 stopped, and this prop is not in it, so there is nothing for the author to ignore — except `DR-PASS`, which is
