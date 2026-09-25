@@ -992,8 +992,6 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 
 /* Stack of labeled chip rows */
 
-/* Modifier: add top gap before a filter-group-options row */
-.filter-group-options--mt { margin-top: var(--space-2); }
 .filter-chip {
   display: inline-flex; align-items: center;
   font-size: var(--font-sm); font-family: inherit;

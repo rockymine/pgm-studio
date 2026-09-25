@@ -103,7 +103,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 |---|---|---|---|
 | `Analysis` | 25 | 4,508 | `Playability/` 14 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
 | `Api` | 111 | 15,901 | `Endpoints/` 61 · `Services/` 46 · `Http/` 3 · 1 at root |
-| `Client` | 212 | 26,751 | `Features/` 122 (nested) · `Components/` 71 (nested) · `Pages/` 7 · `Models/` 6 · `Layout/` 3 · 3 at root |
+| `Client` | 194 | 24,325 | `Features/` 114 (nested) · `Components/` 63 (nested) · `Pages/` 7 · `Models/` 4 · `Layout/` 3 · 3 at root |
 | `Contracts` | 33 | 3,699 | flat |
 | `Data` | 17 | 2,962 | `Features/` 5 · `Map/` 5 · `Theme/` 4 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 30 | 3,462 | flat |
@@ -154,7 +154,7 @@ The friction is that their names do not announce the order they come in.
 | 2 | `SketchLayout` (`sketch_layout_json`) | `Pgm/Sketch` | the real geometry at block resolution — the **sketch** tool's document |
 | 3 | `MapIntent` (`map_intent_json`) | `Pgm/Authoring` | what the author *wants*: teams, spawns, objectives, regions — the **configure** tool's input |
 | 4 | `MapXml` + entities | `Domain/MapModel.cs` | what a finished map *is*, parsed and typed |
-| 5 | the `Dict` doc (`xml_data.json`) | `Pgm/JsonTree.cs` | the loose `Dictionary<string, object?>` tree — the round-trip currency the **edit** tool patches |
+| 5 | the `Dict` doc (`xml_data.json`) | `Pgm/JsonTree.cs` | the loose `Dictionary<string, object?>` tree — the round-trip currency the entity write routes patch |
 | 6 | `*Row` POCOs (40 tables) | `Data/Schema/Entities.cs` | the relational shape — the hybrid persistence model |
 | 7 | wire DTOs | `Contracts/*.cs` | what crosses `/api` to the client |
 
@@ -169,7 +169,7 @@ cached artifact in a `map_artifact` blob rather than a row per block. `PgmStudio
 those rows, so migrating an existing map needs no world re-scan; only importing a new one does.
 
 Every artifact — the cached layer, the detected islands, the scan configuration, the authoring intent, the
-sketch and plan blobs, the editor's region drafts — is one row keyed by `(map_id, kind)`, and one store keyed
+sketch and plan blobs, the region drafts — is one row keyed by `(map_id, kind)`, and one store keyed
 on that kind answers for all of them: `Data/Map/MapArtifactStore.cs` is the only place the table is queried.
 A caller asks for bytes, for a deserialized document, or for the artifact's mere presence — which is what
 "is this map intent-authored / sketch-origin / scanned" each reduce to. What stays per-kind is only what

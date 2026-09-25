@@ -10,7 +10,7 @@
  * Three maps, one per stage the routes need:
  *   plan      — a composed candidate committed to authoring    → /maps/{slug}/plan
  *   sketch    — a draft carrying a compiled layout             → /maps/{slug}/sketch
- *   configure — that layout finished into world geometry       → /maps/{slug}/configure and /edit
+ *   configure — that layout finished into world geometry       → /maps/{slug}/configure
  */
 
 import { mkdir, writeFile } from "node:fs/promises";

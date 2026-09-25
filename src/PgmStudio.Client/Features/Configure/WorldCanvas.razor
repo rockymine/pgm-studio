@@ -1,4 +1,4 @@
-@namespace PgmStudio.Client.Components
+@namespace PgmStudio.Client.Features.Configure
 @inject IJSRuntime JS
 @inject HttpClient Http
 @implements IAsyncDisposable
@@ -17,12 +17,6 @@
   @* No projection toggle: this canvas is top-down only, so fit ends the row where the 2D/3D toggle ends
      Sketch's and Plan's. *@
   <CanvasLayerBar>
-    @if (orbitMode is not null)
-    {
-      <LayerChip Icon="orbit" Active="orbitOn"
-                 Title="Mirror drawn regions across the map's confirmed symmetry"
-                 OnClick="ToggleOrbit">@OrbitLabel()</LayerChip>
-    }
     @* Blocks overlay is a mode-independent visual aid (renders below the regions/markers); offered on every
        canvas so placement can be lined up against the real terrain. No-op when the map has no scan data. *@
     <LayerChip Icon="box" Active="blocksOn" Title="Overlay the top-surface block colours"
@@ -53,26 +47,7 @@
       <DockButton Icon="hand" Title="Move" Active="@(tool == "move")"
                   OnClick='() => SetTool("move")' />
     </DockGroup>
-    @if (DrawCategory is not null)
-    {
-      @* One region shape per button — a region is what it is by its type, and nothing here builds or carves,
-         so the group takes no mode colour. *@
-      <DockGroup>
-        <DockButton Icon="rectangle-horizontal" Title="Rectangle" Active="@(tool == "rectangle")"
-                    OnClick='() => SetTool("rectangle")' />
-        <DockButton Icon="box" Title="Cuboid" Active="@(tool == "cuboid")"
-                    OnClick='() => SetTool("cuboid")' />
-        <DockButton Icon="cylinder" Title="Cylinder" Active="@(tool == "cylinder")"
-                    OnClick='() => SetTool("cylinder")' />
-        <DockButton Icon="circle" Title="Circle" Active="@(tool == "circle")"
-                    OnClick='() => SetTool("circle")' />
-        <DockButton Icon="square" Title="Block" Active="@(tool == "block")"
-                    OnClick='() => SetTool("block")' />
-        <DockButton Icon="dot" Title="Point" Active="@(tool == "point")"
-                    OnClick='() => SetTool("point")' />
-      </DockGroup>
-    }
-    else if (PointPick)
+    @if (PointPick)
     {
       <DockGroup>
         <DockButton Icon="dot" Title="Point" Active="@(tool == "point")"

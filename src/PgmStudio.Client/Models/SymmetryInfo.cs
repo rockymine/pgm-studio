@@ -2,7 +2,7 @@ namespace PgmStudio.Client.Models;
 
 /// <summary>
 /// Friendly UI wording for a symmetry mode — the single source of the human-readable labels shared by the
-/// Configure/Edit surfaces that display a detected or chosen symmetry (World scan/symmetry phases, the
+/// Configure surfaces that display a detected or chosen symmetry (World scan/symmetry phases, the
 /// Configure landing, the Configure activity, the Teams suggestion). Presentation only: the orbit
 /// <em>count</em> is not duplicated here — call <see cref="PgmStudio.Geom.Symmetry.Order"/> for that.
 /// </summary>

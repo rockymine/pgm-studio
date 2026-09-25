@@ -83,12 +83,12 @@ window.studio = {
 
   // Mount the hybrid world canvas. Uses a native dynamic import (absolute URL) so it bypasses
   // Blazor's fingerprinting import map (which 404s for arbitrary wwwroot modules under the dev host).
-  async mountCanvas(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep) {
+  async mountCanvas(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category) {
     const mod = await import("/js/studio/bridge/world-bridge.js");
-    return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep);
+    return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category);
   },
 
-  // Mount the Build-Regions side-view canvas (C7). dotnetRef.OnHeightChanged(y) fires on drag.
+  // Mount the build-height side-view canvas (C7). dotnetRef.OnHeightChanged(y) fires on drag.
   async mountSideview(canvasEl, dotnetRef, slug, axis) {
     const mod = await import("/js/studio/bridge/sideview-bridge.js");
     return mod.mount(canvasEl, dotnetRef, slug, axis);

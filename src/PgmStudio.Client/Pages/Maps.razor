@@ -80,7 +80,7 @@
               {
                 @foreach (var m in Filtered)
                 {
-                  <ListRow Href="@($"maps/{m.Slug}/{m.Stage}")" Selected="m.Slug == Just" @key="m.Slug">
+                  <ListRow Href="@(Opens(m) is { } layer ? $"maps/{m.Slug}/{layer}" : null)" Selected="m.Slug == Just" @key="m.Slug">
                     <ChildContent>
                       <span class="list-label list-label--mono">@m.Slug</span>
                       <span class="list-label">@m.Name</span>
@@ -101,7 +101,7 @@
                       <span class="map-artifacts">
                         @foreach (var (id, label) in Layers(m))
                         {
-                          <a class="map-layer @(m.Stage == id ? "map-layer--now" : null)"
+                          <a class="map-layer @(Opens(m) == id ? "map-layer--now" : null)"
                              href="@($"maps/{m.Slug}/{id}")" title="@LayerTitle(m, id)">@label</a>
                         }
                       </span>

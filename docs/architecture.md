@@ -77,8 +77,8 @@ for, against what `docs/refusals.md` says. `Refusals.UseRefusalEnvelope` makes i
 envelope, and both halves of "this body will not read" now name the field **as the wire spells it**: a
 property stating its own JSON name reports `region_id`, not the `regionId` the record declares.
 
-**A validation that cannot live in a schema still lives in the code by hand.** Of the Edit tool's 53 refusal
-sites across `Pgm/Editing`, **15 are `Unreadable`** — a field is absent, a value is outside a closed set, a
+**A validation that cannot live in a schema still lives in the code by hand.** Of the 53 refusal
+sites across the document editors in `Pgm/Editing`, **15 are `Unreadable`** — a field is absent, a value is outside a closed set, a
 number is not one. Three of those are now unreachable over HTTP, shadowed by the bindings above, and stay as
 the library guards they are: `SpawnEditor` and `TeamEditor` are public API in `Pgm` and cannot assume a bound
 caller. The other 38 sites are a different thing entirely: `NoSuchSubject`, `Conflict`, `Unresolved` and
@@ -144,9 +144,7 @@ the response types, and those already come from `Contracts` at 71 of 73 call sit
 the path check, at the price of a build-time package and a second copy of the whole surface committed to the
 tree — the "second accepted shape" that `CLAUDE.md` forbids for exactly the reason it would rot here.
 `ClientRouteTests` buys the same check for nothing: every route string in the client is a route the schema
-serves, with no exception left — the Edit tool's twenty-three writes were composed from a prefix stated in
-three phases and a tail passed at the call site, which is not a route and could not be read; they are named
-operations on `MapEdits` now, each carrying its own literal. The tables are the same problem seen from the
+serves, with no exception left. The tables are the same problem seen from the
 prose side: three heavily used
 analysis routes had drifted out of every one of them, which is not a documentation lapse but what a
 hand-maintained copy of a machine-readable fact does.

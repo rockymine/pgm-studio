@@ -1,6 +1,6 @@
 /**
- * WorldCanvas — the world rendering engine shared by the Edit page (/maps/{id}/edit) and the Configure
- * wizard (/maps/{id}/configure). Extends CanvasBase for pan/zoom/transform + the drag FSM (via the
+ * WorldCanvas — the world rendering engine the Configure wizard's steps (/maps/{id}/configure) mount.
+ * Extends CanvasBase for pan/zoom/transform + the drag FSM (via the
  * _on* hooks below), and delegates every interaction mode to a plain controller:
  *   WorldDrawController     new-region drawing (the draw tools)
  *   WorldEditController     transform-box resize + arrow-key move of the selected region
@@ -20,7 +20,6 @@
  *   Render / lifecycle
  *     render(ctx, groups)              full repaint + zoom reset
  *     refreshRegions(groups)           re-take the region set without resetting zoom
- *     refreshRegionBounds(id, bounds)  repaint one region after an inspector/move edit
  *     resize()                         re-render at new dimensions (preserves zoom)
  *     dispose()                        drop the painted surface + the base's observers
  *   Selection / editing
@@ -162,7 +161,7 @@ export class WorldCanvas extends CanvasBase {
     this.#callbacks = callbacks;
     // The painted surface is created here rather than in the host markup, so neither the Blazor component
     // nor the bridge signature is changed by what the world layers are drawn with — which matters more
-    // here than anywhere else, since sixteen hosts mount this one canvas.
+    // here than anywhere else, since fourteen hosts mount this one canvas.
     this.#canvasEl = document.createElement("canvas");
     this.#canvasEl.className = "world-canvas-2d";
     this._svg.parentNode.insertBefore(this.#canvasEl, this._svg);
@@ -567,19 +566,11 @@ export class WorldCanvas extends CanvasBase {
     this.#rebuild();
   }
 
-  /** Drop the painted surface and the base's observers. The sixteen hosts each mount their own. */
+  /** Drop the painted surface and the base's observers. Each host mounts its own. */
   dispose() {
     this.#painter?.dispose();
     this.#canvasEl?.remove();
     this._disposeCanvasBase();
-  }
-
-  refreshRegionBounds(nodeId, newBounds) {
-    const node = this.#nodeMap.get(nodeId);
-    if (!node) return;
-    node.bounds = newBounds;
-    this.#paintWorld();
-    this.#updateOverlay();
   }
 
   refreshRegions(groups) {

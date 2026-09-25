@@ -15,8 +15,7 @@ namespace PgmStudio.Api.Tests;
 /// copy of the whole surface committed to the tree.</para>
 ///
 /// <para>Only a string naming a <b>whole</b> route is checked, and every route the client calls is written
-/// as one: the Edit tool's writes are named operations on <c>MapEdits</c>, each carrying its own literal, so
-/// there is no half-route for this to be blind to.</para>
+/// as one, so there is no half-route for this to be blind to.</para>
 ///
 /// <para>One route is written per <b>kind</b> rather than per path — the six libraries differ only in a stem,
 /// and <c>TerrainLibraryClient</c> hangs one verb off <see cref="LibraryKind.Route"/> rather than repeating

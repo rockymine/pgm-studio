@@ -6,7 +6,7 @@ using PgmStudio.Contracts;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The request records the write routes outside the edit tool declare, held to the handlers that read them.
+/// The request records the write routes outside the entity editors declare, held to the handlers that read them.
 /// These are declared rather than bound — the handler reads the body itself — so nothing in the compiler
 /// says the record's spelling and the handler's are the same, and a record that drifts publishes a form
 /// nobody reads while the route answers 200 off its defaults.

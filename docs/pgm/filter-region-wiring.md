@@ -40,7 +40,7 @@ and **confirmed by the author** — never auto-applied or silently mutated. Each
 
 | # | Template | Trigger (signal) | Emitted wiring | Recipe |
 |---|---|---|---|---|
-| 1 | **Build / void enforcement** | positive build region(s) in the Build Regions step (+ `layer_y0.parquet`) | group buildable regions → apply `block-place=no-void` to the **complement**, with `block-break=over-void-breakable` beside it so what decoration left over the void can still be cut down | Cluster 2.4 |
+| 1 | **Build / void enforcement** | positive build region(s) from the Configure Build phase (+ `layer_y0.parquet`) | group buildable regions → apply `block-place=no-void` to the **complement**, with `block-break=over-void-breakable` beside it so what decoration left over the void can still be cut down | Cluster 2.4 |
 | 2 | **Spawn protection** | a team spawn region (`spawns[].region`) | on the protection zone, apply `enter=only-<team>`; on the shared `spawns` union, `block=never` (anti-grief; `never` is built-in — no new filter), **restated as `block-break=only-<ore>` + `block-place=only-<ore>-cause-world` where ore lives in a spawn** (below); optionally `use=only-<team>` | Cluster 1.1 |
 | 3 | **Wool-room defense** | a wool-room region with a derived owner (§6 owner) | apply `enter=not-<owner>` (defender excluded) | Cluster 1.2 |
 | 4 | **Wool-room build/break** | a wool-room region | apply `block=<team>-woolrooms-filter` (team check + material whitelist) | Cluster 2.2 |

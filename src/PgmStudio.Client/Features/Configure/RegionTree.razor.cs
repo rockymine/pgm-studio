@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using PgmStudio.Client.Models;
 
-namespace PgmStudio.Client.Components;
+using PgmStudio.Client.Components;
+
+namespace PgmStudio.Client.Features.Configure;
 
 public partial class RegionTree
 {

@@ -11,7 +11,7 @@ namespace PgmStudio.Domain;
 /// read back, and a fault that is the studio's own.</para>
 ///
 /// <para>They sit beside <see cref="Finding"/> rather than at the API boundary, because the boundary is not
-/// the only place that knows one: the document editors behind the Edit tool raise <c>RQ1</c>, <c>RQ4</c> and
+/// the only place that knows one: the document editors behind the entity write routes raise <c>RQ1</c>, <c>RQ4</c> and
 /// <c>RQ5</c> from inside <c>Pgm.Editing</c>. A rule id has one home — a second <c>const</c> aliasing one that
 /// exists is two rules, which <c>docs/refusals.md</c> names under <i>Adding one</i> — so it lives in the
 /// lowest project every caller can already reach.</para>

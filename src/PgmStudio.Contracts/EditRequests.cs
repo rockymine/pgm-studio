@@ -24,8 +24,8 @@ namespace PgmStudio.Contracts;
 /// <c>RQ5</c>.</param>
 /// <param name="Category">Which of the editor's region groups this one is filed under. Absent means
 /// <c>other</c>.</param>
-/// <param name="DraftStep">Marks the region as drawn but not yet wired, so the editor's Teams, Objective or
-/// Build phase still shows it as a draft. Absent means it is wired.</param>
+/// <param name="DraftStep">Marks the region as drawn but not yet wired; <c>/regions/tree</c> echoes it back
+/// while the region's derived category is still <c>other</c>. Absent means it is wired.</param>
 /// <param name="Coords">The type's own numbers. Which are read is <see cref="Type"/>, and a number the
 /// chosen type requires and <c>coords</c> omits is refused as <c>RQ1</c>; an absent <c>coords</c> is the
 /// same refusal.</param>

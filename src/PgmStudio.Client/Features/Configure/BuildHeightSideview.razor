@@ -1,10 +1,9 @@
-@namespace PgmStudio.Client.Components
+@namespace PgmStudio.Client.Features.Configure
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
 @* The max-build-height side-view: a depth slice with an axis toggle and a draggable height line
-   (studio.mountSideview / SideviewCanvas, C7). Shared by the Edit Build Regions step and the Configure
-   Build phase so both are identical. The host owns the height value + its number input; this renders the
+   (studio.mountSideview / SideviewCanvas, C7). The host owns the height value + its number input; this renders the
    canvas region, syncs the line to Height, and reports drags via HeightChanged. *@
 
 <div class="workspace-canvas">

@@ -168,7 +168,7 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore arti
 
 /// <summary>
 /// GET /api/map/{slug}/segments?axis=x|z — side-view depth profile (B5). Projects the map's vertical
-/// solid segments onto a 2D (primary × y) grid via <see cref="SideView"/>; feeds the Build-Regions
+/// solid segments onto a 2D (primary × y) grid via <see cref="SideView"/>; feeds the build-height
 /// side-view canvas (C7). Mirrors the reference <c>get_segments</c>.
 /// </summary>
 public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<SegmentsDto>

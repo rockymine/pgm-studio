@@ -12,7 +12,7 @@ between a map's stage and the artifacts it carries.
 query parameter reads as an optional filter, and an editor without a map is not a page at all.
 
 **The id is the on-disk map directory name** — maps are already clean slugs (`thunder`, `pigland`,
-`dragons_hearth`), so `/maps/thunder/edit` works and matches the `api/map/{slug}` calls beside it. The pretty
+`dragons_hearth`), so `/maps/thunder/configure` works and matches the `api/map/{slug}` calls beside it. The pretty
 `<name>` out of the XML is shown in the UI and never put in a URL: spaces and capitals force encoding and are
 not stable across a rename.
 
@@ -29,7 +29,6 @@ phase a tool opens on (`?phase=info`), the row a listing should highlight (`?jus
 | `/maps/{slug}/plan` | `PlanTool` | the plan tool on a map |
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
 | `/maps/{slug}/configure` | `ConfigureTool` | the configure wizard |
-| `/maps/{slug}/edit` | `EditTool` | the region editor for a map that already has a `map.xml` |
 | `/maps/new` | `ConfigureTool` | the same tool with no slug: its Import phase, which is how a world becomes a map row |
 | `/plan-editor` | `PlanTool` | the same tool with no map: a candidate plan row, no phase host |
 | `/generator` | `GeneratorTool` | the composer's browse-and-pin gallery |
@@ -65,6 +64,9 @@ and two list **a stage a map stands at**, which is why a map appears in more tha
 | **Configuring** (`?stage=configure`) | maps standing at `configure` — terrain but no finished `map.xml` | Import a world |
 | **Maps** (`/maps`) | maps standing at `edit` — a finished `map.xml` | — |
 
+A row opens the tool at its map's stage. A map at `edit` has no tool at its stage, so its row opens the last
+layer it holds — Configure, where it has a world — and one holding no layer is listed without a link.
+
 A map keeps every layer it has ever had, so "every map with a plan" and "every map at the plan stage" are
 different collections; each list says which in its own blurb. `GET /api/maps[?stage=…]` serves them and
 `GET /api/maps/stage-counts` the landing tallies, each counting exactly what its list does — so a card and the
@@ -75,7 +77,7 @@ page it opens cannot disagree.
 Seven cards in two groups. The first four are where authoring starts — **Plan a layout** (the Plans
 collection), **Browse generated layouts** (`/generator`), **Shape catalog** (`/catalog`) and **Style and theme
 library** (`/library`) — three of which need no map at all. The last three are the map lifecycle — **Sketch**,
-**Configure**, **Edit** — each deep-linking into its collection and carrying that collection's live count.
+**Configure**, **Maps** — each deep-linking into its collection and carrying that collection's live count.
 
 ## Labels against code names
 
@@ -85,7 +87,6 @@ The visible label is deliberately decoupled from the concept the code is built o
 |---|---|---|
 | **Configure** | **authoring** — `MapIntent`, the intent model, `../pgm/new-map-authoring.md` | `/maps/{slug}/configure` |
 | **Sketch** | sketch | `/maps/{slug}/sketch` |
-| **Edit** | the region editor | `/maps/{slug}/edit` |
 
 The reason is that "authoring" names what the tool *does* to a map and "Configure" names what a person came to
 do, and the two audiences are different. Renaming the concept to match the label would have touched the intent
@@ -99,8 +100,8 @@ lifecycle position (no `map.xml` yet against has one), which is why the labels a
 ## Exits
 
 **A tool leaves through the collection it belongs to, not through the landing.** The topbar's home link is the
-exit, and each of the four map tools names its own list: Sketch → *Sketches*, Plan → *Plans*, Configure →
-*Configuring*, Edit → *Maps*. The surfaces that hold no map — the generator, the catalog, the library, the
+exit, and each of the three map tools names its own list: Sketch → *Sketches*, Plan → *Plans*, Configure →
+*Configuring*. The surfaces that hold no map — the generator, the catalog, the library, the
 design showcase and the maps page itself — go to *Studio* instead, because there is no collection above them.
 The plan tool sits on both sides: opened on a map it returns to Plans, opened at `/plan-editor` on a bare
 candidate it returns to Studio.
