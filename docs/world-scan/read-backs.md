@@ -12,10 +12,12 @@ They answer over HTTP now, one route each, and what each one draws is written on
 
 ## What it reads, and where the world comes from
 
-**The world is built for the request.** A map that ships its own region files has one on disk; a
-sketch-authored map's exists only as the layout and the intent it derives from, which is the same position
-`GET /map/{slug}/export` is in, and it builds one too. A map with no stored sketch layout is a **404** — not a
-fault, but a statement that there is no world here to build.
+**The world is built from the stored documents, once.** A map that ships its own region files has one on
+disk; a sketch-authored map's exists only as the layout and the intent it derives from, which is the same
+position `GET /map/{slug}/export` is in. `BuiltWorlds` builds it the first time it is asked for and keeps it
+keyed on those two documents, so every read of one board and its export share one build, and an edit is a
+different key rather than a stale answer. A map with no stored sketch layout is a **404** — not a fault, but
+a statement that there is no world here to build.
 
 **The build runs no gate, deliberately.** A board that fails one is exactly the board somebody needs to look
 at, and a read-back that refuses the broken case is never there when it is wanted. `OB17`, `EX1`, `OB24` and
@@ -370,8 +372,9 @@ compared as id and data both, because a pattern samples the cell folded into the
 
 ## Limits
 
-The build is paid per request; nothing is cached. A large board is the same cost as an export, which is what
-it is.
+The first read after an edit pays for the build, and on a large board that is the cost of an export; every
+read after it is answered from the same build until the documents change. Four boards are kept, so a caller
+reading a fifth has the least recently read one built again when it returns to it.
 
 **A picture says whether and a text read says where.** Every PNG here is framed on the world's own occupied
 extent and carries a scale bar naming pixels-per-block and the size in blocks — and never the corner it

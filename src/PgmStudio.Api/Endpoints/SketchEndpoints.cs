@@ -339,7 +339,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         WorldColumnsDto payload;
         try
         {
-            var built = WorldBuilder.Build(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
+            var built = BuiltWorlds.Of(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
             payload = WorldColumnPayload.Of(built.World, built.Columns);
             Complaints.Add(HttpContext, built.Declines);
 
@@ -454,7 +454,7 @@ internal static class DressedBoard
         BuiltWorld built;
         try
         {
-            built = WorldBuilder.Build(layoutJson,
+            built = BuiltWorlds.Of(layoutJson,
                 await artifacts.LoadJsonOrEmptyAsync<MapIntent>(mapId, ArtifactKind.MapIntentJson, ct));
         }
         catch (DressingParseException fault)

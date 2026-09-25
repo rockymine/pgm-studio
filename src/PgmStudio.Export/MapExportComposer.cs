@@ -124,7 +124,7 @@ public static class MapExportComposer
         if (SketchLayoutCheck.Check(layoutJson) is { Refuses: true } oversized)
             return Refuse("the board cannot be built as drawn", [.. oversized.Refusals], 422);
 
-        var built = WorldBuilder.Build(layoutJson, intent);
+        var built = BuiltWorlds.Of(layoutJson, intent);
         var goals = built.ResolvedIntent;
 
         // The ground this export ships, as the build itself read it. A sketch map's stored segments are

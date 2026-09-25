@@ -1,4 +1,5 @@
-﻿using PgmStudio.Domain;
+﻿using System.Text;
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Geom.Relief;
@@ -80,8 +81,18 @@ public static class SketchRasterizer
         => RasterizeColumns(SketchLayout.Parse(layoutJson));
 
     /// <summary>As above, off a layout already read. What a gate holding the document takes, so a check and
-    /// the build it describes rasterize the same board rather than parsing it twice.</summary>
+    /// the build it describes rasterize the same board rather than parsing it twice.
+    /// <para>The columns are kept for the layouts most recently asked about, keyed on the layout as it
+    /// serializes: the build, the layout check and the theme scope each rasterize the board they are handed,
+    /// and on a stored map they are all handed the same one. Each caller gets its own list.</para></summary>
     public static List<ColumnSegment> RasterizeColumns(SketchLayout? state)
+        => state is null
+            ? ColumnsOf(null)
+            : [.. Columns.Of(Encoding.UTF8.GetBytes(state.ToJson()), () => ColumnsOf(state))];
+
+    private static readonly Remembered<List<ColumnSegment>> Columns = new(capacity: 8);
+
+    private static List<ColumnSegment> ColumnsOf(SketchLayout? state)
     {
         var cx = state?.Setup?.Center?.Cx ?? 0;
         var cz = state?.Setup?.Center?.Cz ?? 0;

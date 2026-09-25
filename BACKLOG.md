@@ -583,6 +583,22 @@ and what a `subtract` takes away.
 
 ## The remainder: work no concept above has claimed
 
+- [ ] **WE131 — The isolated-spawn seed's approach wall has bedrock where its cobweb cap should be.**
+  `IsolatedSpawnStructuresWorldTests.All_three_structure_kinds_land_in_the_built_world` fails on `c170a95`:
+  the block at `(wall.MinX, wall.TopY + 1, wall.MinZ)` of `tools/seeds/isolated-spawn.plan.json`'s first
+  `StructureIntent.Walls` entry is bedrock (7), not cobweb (30). Either the stamper raises the wall a course
+  past the `TopY` the resolved intent states, or the intent's `TopY` is not the one it stamped to — one of the
+  two is wrong, and `docs/world-export/structures.md` says which is meant.
+
+  *Evidence: `dotnet run --project tests/PgmStudio.Export.Tests -- --treenode-filter
+  "/*/*/*/All_three_structure_kinds_land_in_the_built_world"` — `Expected to be 30 but found 7`.*
+
+- [ ] **WS72 — `GET /map/{slug}/coverage` and its `?format=png` each walk the whole board.** Both run
+  `GroundCoverage.Read` over the same stored documents, a field per waypoint and a walk per pair of them, and
+  `drive.py` asks for both on every run: 2.5 s apiece on `opus55-scarbutte` in the Debug studio, the largest
+  read a drive still waits on. The picture wants the numbers the JSON already computed, kept the way
+  `BuiltWorlds` keeps a world — keyed on what the read derives from, so an edit is a new key.
+
 - [ ] **RP72 — One unbindable field discards the whole intent, at 200, and the export gate opens on it.**
   `POST /map/from-documents` answers 200 and stores a map with **no teams, no spawns and no objectives**
   when the intent carries one field the binder cannot read. Nothing is raised: no `RQ3`, no `warnings`

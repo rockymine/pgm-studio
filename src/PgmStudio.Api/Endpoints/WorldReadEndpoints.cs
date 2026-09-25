@@ -26,9 +26,10 @@ namespace PgmStudio.Api.Endpoints;
 /// only from a .NET binary is a capability no schema names, so a brief had to carry a table of flags and an agent
 /// had to know the binary existed. These are the same renderers, over the same world, answering over HTTP — and
 /// what each one draws is written once, as the endpoint description the schema publishes.</para>
-/// <para><b>The world is built for the request.</b> A map that ships its own region files has one on disk, but a
-/// sketch-authored map's world exists only as the layout and the intent it is derived from — the same position
-/// <c>GET …/export</c> is in, and it builds one too. The build here runs <b>no gate</b>, deliberately: a board
+/// <para><b>The world is built from the stored documents, once.</b> A map that ships its own region files has one
+/// on disk, but a sketch-authored map's world exists only as the layout and the intent it is derived from — the
+/// same position <c>GET …/export</c> is in — and <see cref="BuiltWorlds"/> builds it once for every read and the
+/// export to share. The build here runs <b>no gate</b>, deliberately: a board
 /// that fails one is exactly the board somebody needs to look at, and a read-back that refuses the broken case is
 /// a read-back that is never there when it is wanted.</para>
 /// <para>The map document is projected from the resolved intent rather than composed through the export, for the
@@ -55,7 +56,7 @@ internal static class WorldReads
 
         var layoutJson = System.Text.Encoding.UTF8.GetString(layout);
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
-        var built = WorldBuilder.Build(layoutJson, intent);
+        var built = BuiltWorlds.Of(layoutJson, intent);
 
         // The overlays read a map document, and the one that describes this world is the projection of the
         // intent the build just resolved — spawns snapped to the structures it placed, goal locations filled
