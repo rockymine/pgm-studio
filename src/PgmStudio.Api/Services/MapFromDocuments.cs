@@ -60,6 +60,18 @@ public static class MapFromDocuments
             return Refuse(400, "no name given", new Finding(RequestRules.Unreadable,
                 "neither a name nor the intent's own meta.name says what this map is called", Field: "name"));
 
+        // Each document binds onto its record before anything is stored: a lenient read of one that does not
+        // is a default instance, and a map stored from it is a map with none of what the document stated.
+        Finding?[] unbindable =
+        [
+            request.Plan is { ValueKind: not JsonValueKind.Undefined } plan
+                ? DocumentBinding.Unbindable("plan", plan.GetRawText(), json => PlanModel.Parse(json)) : null,
+            DocumentBinding.Unbindable("layout", request.Layout.GetRawText(), json => SketchLayout.Parse(json)),
+            IntentWrite.Unbindable(request.Intent.GetRawText(), "intent"),
+        ];
+        if (unbindable.OfType<Finding>().ToList() is { Count: > 0 } unread)
+            return new(new Refusal(400, "unreadable document", unread));
+
         Complaints.Unread(http, [
             .. Unread("plan", request.Plan, PlanModel.Stated),
             .. Unread("layout", request.Layout, SketchLayout.Stated),

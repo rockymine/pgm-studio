@@ -235,6 +235,49 @@ public sealed class MapFromDocumentsTests
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo(field);
     }
 
+    /// <summary>One field the binder cannot read is a refusal naming it, not a default intent with no teams,
+    /// spawns or objectives stored at 200 — and nothing is stored, so the export gate has no empty map to
+    /// open on. <c>modes</c> is a real field; it takes objects, not the bare words posted here.</summary>
+    [Test]
+    public async Task An_intent_field_the_binder_cannot_read_is_refused_by_its_path()
+    {
+        using var client = await FreshAsync();
+
+        var resp = await client.PostAsJsonAsync("/api/map/from-documents", new
+        {
+            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
+            layout = JsonDocument.Parse(Layout).RootElement,
+            intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"},"modes":["dtm"]}""").RootElement,
+            name = "Weirgate",
+        });
+        var text = await resp.Content.ReadAsStringAsync();
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest).Because(text);
+
+        var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("intent.modes[0]");
+
+        var maps = await client.GetFromJsonAsync<JsonElement>("/api/maps");
+        await Assert.That(maps.EnumerateArray().Any(m => m.GetProperty("slug").GetString() == "weirgate")).IsFalse();
+    }
+
+    /// <summary>The same binder stands behind every intent write, so the map's own intent route refuses the
+    /// field by the path the document states it at.</summary>
+    [Test]
+    public async Task An_intent_put_the_binder_cannot_read_is_refused_by_its_path()
+    {
+        using var client = await FreshAsync();
+        var loaded = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
+
+        var resp = await client.PutAsync("/api/map/weirgate/intent", new StringContent(
+            """{"meta":{"name":"Weirgate"},"modes":["dtm"]}""", Encoding.UTF8, "application/json"));
+        var text = await resp.Content.ReadAsStringAsync();
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest).Because(text);
+        var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("modes[0]");
+    }
+
     private static async Task<HttpClient> FreshAsync()
     {
         await ApiTestFactory.ResetSchemaAsync();

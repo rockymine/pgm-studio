@@ -358,6 +358,14 @@ call sites already catching that keep working, and `TerrainThemeJson`, which car
 failure across because System.Text.Json reports that one as a `NotSupportedException` and the difference is in
 the reporting rather than in what went wrong.
 
+A **field the binder cannot read** is the same rule over a document held as raw JSON. A binder that stops at
+one property yields nothing for the whole document, and a caller that read that as "no document" would store
+a default instance — an intent with no teams, spawns or objectives, which every reader downstream agrees is a
+valid empty one. So every intent write (`PUT …/intent`, `PUT …/intent/from-plan`) and `POST
+/map/from-documents`, for each of its three documents, bind before storing through `DocumentBinding` and
+refuse `RQ1` at 400 naming the path the binder stopped at (`modes[0]`, `intent.modes[0]`), with nothing
+written.
+
 A **missing field** is the same rule asked earlier: `RequiredFields` refuses anything a request DTO declares
 non-nullable and the body did not supply, naming every one rather than the first, before any handler runs. Null
 alone counts — an empty list is a value and a blank name is a fault about the name, which is a gate's to judge.
