@@ -773,11 +773,12 @@ rather than hoping for one.
 lowest column alone, so a footprint whose lowest cell sits in a pit takes that pit's whole depth out of every
 other column, and the building stands in the hole it dug. `DR-SLOPE` reads the same rise against the
 building's height, so a shell tall enough to afford it digs in silence without a second reading. `Excavate`
-counts what it removes as it removes it, and a building whose carve took out any ground raises a complaint
-naming the floor's course, the deepest carve and its column, the columns carved and the blocks of ground
-removed — once for the orbit, at the image that dug deepest. On level ground the seat's course down removes
-nothing and the rule is silent. It does not refuse: how deep a building may dig is the author's call, and
-the complaint is the number that call is made on.
+counts what it removes as it removes it, and a building whose deepest carve at any one column is more than
+**three blocks** (`DressingRules.SettleDepth`) raises a complaint naming the floor's course, the deepest
+carve and its column, the columns carved and the blocks of ground removed — once for the orbit, at the image
+that dug deepest. Up to three blocks is a house settling into a slope and is silent; past three the house is
+probably submerged (author). It does not refuse: the building is in the world and the complaint is the
+number to move it on.
 
 **It must leave a way past itself (`DR-PASS`).** Beside a building there must be **eight blocks** of passable
 ground along the whole run of **every** one of its four sides. The eight are counted from **what the building

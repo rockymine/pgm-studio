@@ -897,8 +897,9 @@ public static class Decorator
                                           ClaimedCells(image, house.Style)));
         }
 
-        // What the seat cost the ground, reported once for the orbit at the image that dug deepest.
-        if (deepest is { } carve)
+        // What the seat cost the ground, reported once for the orbit at the image that dug deepest, and only
+        // past the depth a house settles into a slope by.
+        if (deepest is { } carve && carve.Deepest > DressingRules.SettleDepth)
             declined.Add(new Finding(DressingRules.SiteDug,
                 $"building '{house.Id}' dug its site out of the ground to seat its floor at y{carve.FloorY}: "
                 + $"{carve.Deepest} course(s) at ({carve.At.X}, {carve.At.Z}), {carve.Columns} column(s) "

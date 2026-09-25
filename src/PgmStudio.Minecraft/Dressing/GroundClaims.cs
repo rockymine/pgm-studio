@@ -115,16 +115,22 @@ public static class DressingRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string SiteNotLevel = "DR-SLOPE";
 
-    /// <summary>A building dug its site out of the ground. It seats one course below the <b>lowest</b> column
-    /// of its footprint and every footprint column standing over that floor is cleared to air, and nothing
-    /// bounds how deep: a footprint whose lowest cell sits in a pit takes the whole depth of that pit out of
-    /// every other column, and the building stands in the hole it dug. <c>DR-SLOPE</c> is measured on the
-    /// same rise against the building's own height, so a shell tall enough to afford it digs in silence
-    /// without this. The finding carries the deepest carve and the column it came off, how many columns were
-    /// carved and how many blocks of ground went.</summary>
-    /// <remarks>Compare the carve with what the building was meant to sit in. Sinking into a slope is what the seating rule is for; a carve as deep as a storey across most of the footprint is a building in a pit — move it onto the ground beside the low cell, or state the plateau it stands on with an `area` relief mark. A complaint: the world is built and the building is in it.</remarks>
+    /// <summary>A building dug its site out of the ground more than 3 blocks deep at some column. It seats
+    /// one course below the <b>lowest</b> column of its footprint and every footprint column standing over
+    /// that floor is cleared to air, and nothing bounds how deep: a footprint whose lowest cell sits in a pit
+    /// takes the whole depth of that pit out of every other column, and the building stands in the hole it
+    /// dug. <c>DR-SLOPE</c> is measured on the same rise against the building's own height, so a shell tall
+    /// enough to afford it digs in silence without this. A carve of up to 3 blocks is a house settling into
+    /// a slope and raises nothing. The finding carries the deepest carve and the column it came off, how many
+    /// columns were carved and how many blocks of ground went.</summary>
+    /// <remarks>Compare the carve with what the building was meant to sit in. Past 3 blocks at a column the house is probably submerged — move it onto the ground beside the low cell, or state the plateau it stands on with an `area` relief mark. A complaint: the world is built and the building is in it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string SiteDug = "DR-DIG";
+
+    /// <summary>The deepest carve at any one column a building's seat may make in silence, in blocks —
+    /// <see cref="SiteDug"/>'s one number. Up to it a house settles into a slope; past it the house is
+    /// probably submerged (author).</summary>
+    public const int SettleDepth = 3;
 
     /// <summary>A prop names a layer this board does not have ground on. A stacked board carries a surface
     /// per storey and a prop may say which one it rests on; naming one that is not there is not the same as
