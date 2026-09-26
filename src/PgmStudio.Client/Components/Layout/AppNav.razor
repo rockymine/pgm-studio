@@ -1,0 +1,60 @@
+@namespace PgmStudio.Client.Components
+@implements IDisposable
+@inject NavigationManager Nav
+@inject StudioAccess Access
+
+@* The studio's own bar, the same on every page: home, a link to each tool, and at the right the theme and
+   the account. What belongs to the tool in front of it — its trail, its state, its actions — is the Topbar
+   under it. *@
+
+<nav class="app-nav" aria-label="Studio">
+    <a class="app-nav-home" href="" title="Studio home">
+        <span class="app-nav-pgm">pgm</span><span class="app-nav-sub">STUDIO</span>
+    </a>
+    <div class="app-nav-links">
+        @foreach (var link in Links)
+        {
+            @if (link.AdminOnly && !admin) { continue; }
+            <a class="app-nav-link@(IsHere(link) ? " app-nav-link--active" : null)" href="@link.Href"
+               aria-current="@(IsHere(link) ? "page" : null)">@link.Label</a>
+        }
+    </div>
+    <div class="app-nav-right">
+        <ThemeToggle />
+        <AccountMenu />
+    </div>
+</nav>
+
+@code {
+    private sealed record NavLink(string Href, string Label, bool AdminOnly = false);
+
+    private static readonly NavLink[] Links =
+    [
+        new("maps", "Maps"),
+        new("plan-editor", "Plan editor"),
+        new("generator", "Generator"),
+        new("catalog", "Catalog"),
+        new("library", "Library"),
+        new("admin/users", "Users", AdminOnly: true),
+    ];
+
+    private bool admin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        admin = await Access.IsAdminAsync();
+    }
+
+    /// <summary>A link is lit on its own page and every page under it; a map's tools sit under Maps.</summary>
+    private bool IsHere(NavLink link)
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0];
+        return path == link.Href || path.StartsWith(link.Href + "/", StringComparison.Ordinal);
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+        InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

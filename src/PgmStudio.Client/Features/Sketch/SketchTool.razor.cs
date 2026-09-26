@@ -300,7 +300,6 @@ public partial class SketchTool
 
     private Task Undo() => handle?.InvokeVoidAsync("undo").AsTask() ?? Task.CompletedTask;
     private Task Redo() => handle?.InvokeVoidAsync("redo").AsTask() ?? Task.CompletedTask;
-    private Task ShowKeys() => JS.InvokeVoidAsync("studio.showKeys").AsTask();
 
     /// <summary>The brush the canvas lifted, or the one it was handed back.</summary>
     [JSInvokable]

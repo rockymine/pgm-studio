@@ -1715,52 +1715,6 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 .readonly-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .readonly-fieldset:disabled { opacity: 0.55; }
 
-.readonly-banner {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: var(--color-warning-bg);
-  border-bottom: 1px solid var(--border);
-  color: var(--text-primary);
-  font-size: var(--font-sm);
-}
-.readonly-banner > svg { flex: none; color: var(--color-warning); width: 16px; height: 16px; }
-.readonly-banner-action {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--accent-light);
-  text-decoration: none;
-  font-weight: 600;
-}
-.readonly-banner-action svg { width: 14px; height: 14px; }
-
-.account {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-sm);
-  color: var(--text-secondary);
-}
-.account-name { color: var(--text-bright); font-weight: 600; }
-.account-link {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--text-secondary);
-  text-decoration: none;
-  background: none;
-  border: 0;
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font: inherit;
-}
-.account-link:hover { color: var(--text-bright); background: var(--bg-vis-hover); }
-.account-link svg { width: 16px; height: 16px; }
-
 .invite-link {
   display: flex;
   gap: var(--space-2);
@@ -1781,3 +1735,139 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 .user-actions { display: flex; flex: none; align-items: center; gap: var(--space-2); }
 .user-actions .field-input { width: auto; }
 .invite-link .field-input--slim { width: auto; flex: none; }
+
+/* ── The studio's own bar, the same on every page ──────────────────────────────────────────────── */
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 var(--space-3) 0 var(--space-4);
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
+  color: var(--nav-text);
+  font-size: var(--font-md);
+}
+.app-nav-home { display: flex; align-items: baseline; gap: 4px; text-decoration: none; color: var(--nav-text-strong); }
+.app-nav-pgm { font-weight: 700; }
+.app-nav-sub { font-size: 10px; letter-spacing: 0.12em; color: var(--nav-text-muted); }
+.app-nav-links { display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; }
+.app-nav-link {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--nav-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.app-nav-link:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
+.app-nav-link--active { color: var(--nav-text-strong); background: var(--nav-active); }
+.app-nav-right { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
+.app-nav .theme-toggle { color: var(--nav-text); }
+.app-nav .theme-toggle:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
+
+.account { position: relative; }
+.account-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-2) 0 4px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--nav-text-strong);
+  font: inherit;
+  cursor: pointer;
+}
+.account-button:hover, .account-button[aria-expanded="true"] { background: var(--nav-hover); }
+.account-button svg { width: 14px; height: 14px; }
+.account-name { font-weight: 600; }
+.account-role {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--nav-active);
+  color: var(--nav-text-strong);
+  font-size: var(--font-xs);
+}
+.account-local { display: flex; align-items: center; gap: var(--space-2); color: var(--nav-text); }
+.account-signin {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: #5865f2;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}
+.account-signin svg { width: 16px; height: 16px; }
+.account-scrim { position: fixed; inset: 0; z-index: 40; }
+.account-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 41;
+  width: 240px;
+  padding: var(--space-2);
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.account-menu-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.account-menu-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.account-menu-who .account-name { color: var(--text-bright); }
+.account-menu-note { color: var(--text-muted); font-size: var(--font-sm); }
+.account-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.account-menu-item:hover { background: var(--bg-selected-hover); }
+.account-menu-item svg { width: 16px; height: 16px; color: var(--text-secondary); }
+
+/* A page the caller may not write says so in the tool's bar; the reason is on hover. */
+.readonly-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: var(--space-3);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-bg);
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+}
+.readonly-tag svg { width: 14px; height: 14px; color: var(--color-warning); }
+
+button.app-footer-link { border: 0; background: none; padding: 0; font: inherit; cursor: pointer; }
+.app-footer-kbd {
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--font-xs);
+}

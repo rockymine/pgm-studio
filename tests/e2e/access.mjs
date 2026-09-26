@@ -19,17 +19,18 @@ const page = await newPage(browser);
 async function visit(base, path) {
   clearFaults(page);
   await page.goto(`${base}${path}`, { waitUntil: "networkidle", timeout: 30000 });
-  await page.waitForSelector(".topbar-right .account", { timeout: 20000 });
+  await page.waitForSelector(".app-nav-right .account-local, .app-nav-right .account-signin, .app-nav-right .account", { timeout: 20000 });
 }
 
 const readState = () => page.evaluate(() => ({
-  banner: document.querySelector(".readonly-banner")?.textContent?.trim() ?? null,
-  signIn: !!document.querySelector('.readonly-banner a[href*="api/auth/discord"]'),
+  banner: document.querySelector(".topbar .readonly-tag")?.getAttribute("title") ?? null,
+  signIn: !!document.querySelector('.app-nav a.account-signin[href*="api/auth/discord"]'),
   greyed: document.querySelectorAll("fieldset.readonly-fieldset[disabled]").length,
   select: !!document.querySelector('.canvas-dock button[aria-label="Select"]'),
   rectangle: !!document.querySelector('.canvas-dock button[aria-label="Rectangle"]'),
   inspector: document.querySelectorAll(".workspace-inspector, .workspace-scroll").length,
-  account: document.querySelector(".topbar-right .account")?.textContent?.replace(/\s+/g, " ").trim() ?? "",
+  account: document.querySelector(".app-nav-right")?.textContent?.replace(/\s+/g, " ").trim() ?? "",
+  users: !!document.querySelector('.app-nav a[href="admin/users"]'),
 }));
 
 // ── the suite's own server: open, the local admin ──────────────────────────────────────────────────
@@ -37,10 +38,11 @@ checks.section("an open studio stays editable");
 await visit(BASE, `/maps/${seed.sketchSlug}/sketch`);
 await page.waitForSelector(".canvas-dock", { timeout: 20000 }).catch(() => {});
 let state = await readState();
-checks.add("no read-only banner", state.banner === null, state.banner ?? "");
+checks.add("no view-only tag", state.banner === null, state.banner ?? "");
 checks.add("no field is greyed", state.greyed === 0, `${state.greyed} disabled fieldset(s)`);
 checks.add("the drawing tools are there", state.rectangle);
-checks.add("the top bar names the local admin", /local/.test(state.account), state.account);
+checks.add("the studio bar names the local admin", /local/.test(state.account), state.account);
+checks.add("the studio bar links the whitelist for an admin", state.users);
 
 await visit(BASE, "/admin/users");
 const adminPage = await page.evaluate(() => ({
@@ -69,17 +71,17 @@ try {
                                       ["configure", `/maps/${seed.mapSlug}/configure`, false]]) {
     checks.section(`a signed-out visitor sees the ${name} tool read-only`);
     await visit(invited, path);
-    await page.waitForSelector(".readonly-banner", { timeout: 20000 }).catch(() => {});
+    await page.waitForSelector(".topbar .readonly-tag", { timeout: 20000 }).catch(() => {});
     if (canvas) await page.waitForSelector(".canvas-dock", { timeout: 20000 }).catch(() => {});
     await page.waitForSelector("fieldset.readonly-fieldset", { timeout: 10000 }).catch(() => {});
     state = await readState();
-    checks.add("the banner says why", /not signed in/.test(state.banner ?? ""), state.banner ?? "no banner");
-    checks.add("the banner offers the sign-in", state.signIn);
+    checks.add("the tool bar says view only, and why", /not signed in/.test(state.banner ?? ""), state.banner ?? "no tag");
+    checks.add("the studio bar offers the sign-in", state.signIn);
     checks.add("the panels are greyed", state.greyed > 0,
       `${state.greyed} disabled fieldset(s) over ${state.inspector} panel(s)`);
     if (canvas) checks.add("the tools that only look stay", state.select);
     checks.add("the tools that draw are gone", !state.rectangle);
-    checks.add("the top bar offers the sign-in", /Sign in/.test(state.account), state.account);
+    checks.add("the studio bar hides the whitelist from a visitor", !state.users);
     checks.add("opening it writes nothing and faults nothing", page.faults.length === 0,
       page.faults.slice(0, 3).join(" | "));
   }

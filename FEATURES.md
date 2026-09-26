@@ -272,6 +272,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `mc-heads.net`, which was an unpinned third-party request from the user's own browser on every page
   carrying authors, and the first thing to fail on a restricted network; the e2e harness lost the
   `ALLOWED_FAULTS` entry that existed only to tolerate it. (C45, TC2)
+- **Two bars: the studio's, and the tool's (C66).** `AppNav` is the same on every page — home, Maps, Plan
+  editor, Generator, Catalog, Library and, for an admin, Users; the theme; and the account, whose head, name
+  and role open a menu to sign out, or *Sign in with Discord* for a visitor. It follows the theme. The tool's
+  `Topbar` under it keeps the trail, a *View only* tag on a read-only page, and the tool's own actions; the
+  logo left the tools' rails, and the keyboard shortcuts moved to the footer every page now carries, beside the
+  `?` that opens them anywhere. `docs/client/routing-and-ia.md`, `docs/client/ui-conventions.md`.
 - **A player's head again, served by the studio (C65).** `GET /api/minecraft/player/{uuid}/skin` fetches the
   skin from Mojang's session and texture servers — only `textures.minecraft.net`, over https, a PNG of at most
   64 KB — and keeps it thirty days beside the name (`minecraft_player.skin_png`, `M0044`). `PlayerHead` cuts the

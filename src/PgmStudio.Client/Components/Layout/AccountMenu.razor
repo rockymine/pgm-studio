@@ -4,41 +4,58 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Who the browser is, at the right of every top bar: the name and role signed in, the whitelist for an
-   admin, and signing in or out. An open studio's local admin has no account, so it offers only the
-   whitelist. *@
+@* Who the browser is, at the right of the studio's bar: the head, name and role signed in, opening a menu
+   to sign out; the sign-in for a visitor; and "local" in an open studio, whose admin has no account. *@
 
 @if (me is not null)
 {
-    <div class="account">
-        @if (me.Role == StudioRoles.Admin)
-        {
-            <a class="account-link" href="admin/users" title="The whitelist and its invitations">
-                <i data-lucide="users"></i>
-            </a>
-        }
-        @if (me.Mode == AccessModes.Open)
-        {
-            <span title="This studio is open: every request is the local admin">local</span>
-        }
-        else if (me.SignedIn)
-        {
-            <PlayerHead Uuid="@me.Uuid" Name="@me.Name" Size="20" />
-            <span class="account-name" title="@me.Uuid">@me.Name</span>
-            <Badge Kind="dim">@(me.Role ?? "not on the whitelist")</Badge>
-            <button class="account-link" title="Sign out" @onclick="SignOutAsync"><i data-lucide="log-out"></i></button>
-        }
-        else
-        {
-            <a class="account-link" href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))">
-                <i data-lucide="log-in"></i><span>Sign in</span>
-            </a>
-        }
-    </div>
+    @if (me.Mode == AccessModes.Open)
+    {
+        <span class="account-local" title="This studio is open: every request is the local admin">
+            local <span class="account-role">admin</span>
+        </span>
+    }
+    else if (me.SignedIn)
+    {
+        <div class="account">
+            <button type="button" class="account-button" aria-haspopup="menu" aria-expanded="@(open ? "true" : "false")"
+                    @onclick="() => open = !open">
+                <PlayerHead Uuid="@me.Uuid" Name="@me.Name" Size="22" />
+                <span class="account-name">@me.Name</span>
+                <span class="account-role">@(me.Role ?? "guest")</span>
+                <i data-lucide="chevron-down"></i>
+            </button>
+            @if (open)
+            {
+                <div class="account-scrim" @onclick="() => open = false"></div>
+                <div class="account-menu" role="menu">
+                    <div class="account-menu-head">
+                        <PlayerHead Uuid="@me.Uuid" Name="@me.Name" Size="40" />
+                        <div class="account-menu-who">
+                            <span class="account-name">@me.Name</span>
+                            <span class="account-menu-note">
+                                @(me.Role is null ? "not on the whitelist" : me.Role) · signed in with Discord
+                            </span>
+                        </div>
+                    </div>
+                    <button type="button" class="account-menu-item" role="menuitem" @onclick="SignOutAsync">
+                        <i data-lucide="log-out"></i><span>Sign out</span>
+                    </button>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <a class="account-signin" href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))">
+            <i data-lucide="log-in"></i><span>Sign in with Discord</span>
+        </a>
+    }
 }
 
 @code {
     private CallerDto? me;
+    private bool open;
 
     protected override async Task OnInitializedAsync() => me = await Access.MeAsync();
 

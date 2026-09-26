@@ -4,31 +4,21 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-@* The full-screen studio shell — the .editor-page wrapper around a Bar (a Topbar), the body, and an
-   optional Footer. The default body is .app-body with an optional Rail (a NavRail) beside the
-   .activity-viewport that wraps ChildContent. Two escapes: Viewport=false drops the viewport wrapper
-   (ChildContent sits directly in .app-body); Bare=true drops .app-body entirely for pages that own
+@* The full-screen studio shell — the .editor-page wrapper around the studio's own bar (AppNav), the tool's
+   Bar (a Topbar), the body and the footer. The default body is .app-body with an optional Rail (a NavRail)
+   beside the .activity-viewport that wraps ChildContent. Two escapes: Viewport=false drops the viewport
+   wrapper (ChildContent sits directly in .app-body); Bare=true drops .app-body entirely for pages that own
    their own body layout (the generator's gen-body, the /design ds-layout).
 
    The shell also decides whether the page opens read-only (StudioAccess.ReadOnlyReasonAsync, from the
-   address), says why under the bar, and cascades the answer as "StudioReadOnly" to the panels, the dock
-   and the fields that write. *@
+   address): the reason reaches the Bar as "StudioReadOnlyReason", which the Topbar shows, and the answer
+   reaches the body as "StudioReadOnly", which the panels, the dock and the fields that write read. *@
 
 <div class="editor-page@(ReadOnly ? " studio-readonly" : "")">
-    @Bar
-    @if (readOnlyReason is not null)
-    {
-        <div class="readonly-banner" role="status">
-            <i data-lucide="eye"></i>
-            <span>@readOnlyReason</span>
-            @if (!signedIn)
-            {
-                <a class="readonly-banner-action" href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))">
-                    <i data-lucide="log-in"></i><span>Sign in with Discord</span>
-                </a>
-            }
-        </div>
-    }
+    <AppNav />
+    <CascadingValue Name="StudioReadOnlyReason" Value="readOnlyReason">
+        @Bar
+    </CascadingValue>
     <CascadingValue Name="StudioReadOnly" Value="ReadOnly">
         @if (Bare)
         {
@@ -49,44 +39,33 @@
             </div>
         }
     </CascadingValue>
-    @Footer
+    <AppFooter />
 </div>
 
 @code {
     [Parameter] public RenderFragment? Bar { get; set; }
     [Parameter] public RenderFragment? Rail { get; set; }
-    [Parameter] public RenderFragment? Footer { get; set; }
     [Parameter] public bool Bare { get; set; }
     [Parameter] public bool Viewport { get; set; } = true;
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private string? readOnlyReason;
-    private bool signedIn = true;
 
     private bool ReadOnly => readOnlyReason is not null;
 
     protected override async Task OnInitializedAsync()
     {
         Nav.LocationChanged += OnLocationChanged;
-        await DecideAsync();
+        readOnlyReason = await Access.ReadOnlyReasonAsync(Nav.ToBaseRelativePath(Nav.Uri));
     }
 
     private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
-        await DecideAsync();
+        readOnlyReason = await Access.ReadOnlyReasonAsync(Nav.ToBaseRelativePath(Nav.Uri));
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task DecideAsync()
-    {
-        readOnlyReason = await Access.ReadOnlyReasonAsync(Nav.ToBaseRelativePath(Nav.Uri));
-        signedIn = (await Access.MeAsync()).SignedIn;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (readOnlyReason is not null) await JS.InvokeVoidAsync("studio.icons");
-    }
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 }

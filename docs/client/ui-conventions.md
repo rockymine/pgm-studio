@@ -54,10 +54,14 @@ from outside the studio to draw them.
 on its own, `ListRow` (the list row with its swatch, label, tag, go-arrow and a `Trailing` slot for a control
 the row carries), and `DetailHeader` (an inspector head: icon, label, trailing badges).
 
-**Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + topbar + body + optional footer);
-`Topbar` carries the home link, a `Crumbs` slot composed from `Crumb`, and `AccountMenu` — who is signed in; `NavRail` and `NavButton` are the
+**Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + the two bars + body + footer);
+`AppNav` is the studio's own bar on every page — home, a link per tool, the theme and `AccountMenu`, who is
+signed in; `Topbar` is the tool's bar under it — the home link, a `Crumbs` slot composed from `Crumb`, a *View
+only* tag on a read-only page, and the tool's actions; `AppFooter` closes every page with the keyboard
+shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from; `FlowBar` is the phase/step nav the stepped tools share; `AppFooter`/`AppFooterLink` and `SideDrawer` finish the set.
+arranges itself from; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
+finish the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
 `CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton`, `DockChoice` (one option of a set the dock
@@ -78,9 +82,9 @@ which the Configure tool and the design showcase both mount. The world canvas an
 **Whether a page may write is the shell's to decide, and the panels' to show.** `StudioShell` asks
 `StudioAccess.ReadOnlyReasonAsync` about the address it is on — a page under `/maps/{slug}/` edits that map and
 asks `GET /api/map/{slug}/access`; the map list, the catalogue, the design page and the whitelist page write
-nothing; every other page needs someone on the whitelist — and where the answer is no it draws a banner under
-the bar saying why, with the sign-in where the visitor is signed out, and cascades `StudioReadOnly` to
-everything beneath it. No tool states its own read-only-ness, so a new tool is read-only for a visitor the
+nothing; every other page needs someone on the whitelist — and where the answer is no it hands the reason to
+the tool's bar as `StudioReadOnlyReason`, which shows *View only* with the reason on hover, and cascades
+`StudioReadOnly` to everything beneath it. No tool states its own read-only-ness, so a new tool is read-only for a visitor the
 moment it sits in the shell.
 
 Three shells answer the cascade. `Inspector` and `ContentColumn` put their content in a disabled `<fieldset>`,

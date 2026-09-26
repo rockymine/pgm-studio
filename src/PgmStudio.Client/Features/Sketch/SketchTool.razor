@@ -22,12 +22,11 @@
         <span class="topbar-crumb topbar-crumb--dim">@groupLabel</span>
         <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" OnClick="Undo" />
         <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" OnClick="Redo" />
-        <Button Variant="icon" Icon="keyboard" Title="Keyboard shortcuts" OnClick="ShowKeys" />
       </Right>
     </Topbar>
   </Bar>
   <Rail>
-    <NavRail LogoHref="/" LogoTitle="Studio home">
+    <NavRail>
       <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
       <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
       <NavButton Icon="mountain" Title="Relief" Active="@ReliefActive" OnClick="GoRelief" />

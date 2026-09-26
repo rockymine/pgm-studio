@@ -31,8 +31,8 @@
     }
     else
     {
-    <Topbar HomeHref="/" HomeLabel="Studio" HomeTitle="Studio home">
-      <Crumbs><Crumb Dim>Plan editor</Crumb></Crumbs>
+    <Topbar>
+      <Crumbs><Crumb Sep="false" Dim>Plan editor</Crumb></Crumbs>
       <Right>
         @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
         @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
@@ -54,7 +54,7 @@
     }
   </Bar>
   <Rail>
-    <NavRail LogoHref="/" LogoTitle="Studio home">
+    <NavRail>
       @if (MapBacked)
       {
         <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />

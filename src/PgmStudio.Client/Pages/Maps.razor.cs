@@ -124,8 +124,9 @@ public partial class Maps
             ? maps
             : maps.Where(m => (m.Slug + " " + m.Name).Contains(filter, StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Whether the caller may originate a map; the start buttons are greyed out where not.</summary>
-    private bool mayWrite = true;
+    /// <summary>Whether the caller may originate a map; the start buttons are greyed out until it is known
+    /// that they may.</summary>
+    private bool mayWrite;
 
     private string? WriteTitle => mayWrite ? null : "Sign in as someone on the whitelist to start a map";
 

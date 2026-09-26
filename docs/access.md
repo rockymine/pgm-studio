@@ -79,12 +79,13 @@ Access__Mode=invited ./tools/dev.sh restart              # now closed
 
 ## What the browser shows
 
-The top bar says who the browser is on every page: the head, name and role signed in with a sign-out, a sign-in for
-a visitor, `local` in an open studio, and for an admin a link to the whitelist at `/admin/users`. That page
+The studio's bar says who the browser is on every page: the head, name and role signed in, opening a menu to
+sign out; *Sign in with Discord* for a visitor; `local` in an open studio. For an admin it also carries *Users*,
+the whitelist at `/admin/users`. That page
 adds a player by name or uuid in a role, changes a role, takes someone off, and opens an invitation whose link
 it shows once with a copy button — the same four routes as below.
 
-A page the caller may not write opens read-only: a banner under the bar says why and offers the sign-in, the
+A page the caller may not write opens read-only: the tool's bar says *View only*, with the reason on hover, the
 panels grey their fields and the canvas keeps only the tools that look. `docs/client/ui-conventions.md` says
 how the shell decides it. `tests/e2e/access.mjs` holds it, against a second server over the suite's database
 running invited with the browser signed out.

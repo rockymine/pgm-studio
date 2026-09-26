@@ -11,15 +11,15 @@
 
 <StudioShell>
   <Bar>
-    <Topbar HomeHref="/" HomeLabel="Studio" HomeTitle="Studio home">
+    <Topbar>
       <Crumbs>
         @if (Open is null)
         {
-          <Crumb Dim>Library</Crumb>
+          <Crumb Sep="false" Dim>Library</Crumb>
         }
         else
         {
-          <Crumb Href="/library" Dim>Library</Crumb>
+          <Crumb Sep="false" Href="/library" Dim>Library</Crumb>
           @if (Entry is null)
           {
             <Crumb>@Open.Title</Crumb>
@@ -37,7 +37,7 @@
     </Topbar>
   </Bar>
   <Rail>
-    <NavRail LogoHref="/" LogoTitle="Studio home">
+    <NavRail>
       <NavButton Icon="library" Title="Every library" Href="/library" Active="@(Open is null)" />
       <div class="nav-rail-div"></div>
       @foreach (var kind in LibraryKinds.All)

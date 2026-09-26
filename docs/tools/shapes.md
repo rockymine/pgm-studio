@@ -3,7 +3,7 @@
 ## What it is
 
 The shape catalog is the generation vocabulary made browsable: every shape the composer can put in a box,
-emitted once and drawn. Its route is `/catalog`, and it is reached from the generator's top bar, which is the
+emitted once and drawn. Its route is `/catalog`, and it sits beside the generator in the studio's bar, which is the
 relationship between them — the catalog shows the pieces, the generator shows the boards those pieces make.
 
 It is a **read-only** page. Nothing on it is stored, nothing it shows can be edited, and no board is composed

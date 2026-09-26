@@ -10,6 +10,14 @@
   color-scheme: dark;
 
   /* ── Backgrounds ─────────────────────────────────────────────────────── */
+  /* The studio's own bar: the recessed surface of whichever theme is on, so it frames the tool's bar under it. */
+  --nav-bg:          var(--bg-deep);
+  --nav-border:      var(--border);
+  --nav-hover:       var(--bg-panel);
+  --nav-active:      var(--bg-selected);
+  --nav-text:        var(--text-secondary);
+  --nav-text-muted:  var(--text-muted);
+  --nav-text-strong: var(--text-strong);
   --bg-canvas:          #080f1a;   /* map/sketch VIEWPORT (themed; light override in [data-theme=light]) */
   --bg-deep:            #080f1a;   /* deepest UI surface (logo box) */
   --bg-base:            #0f172a;   /* page background */
