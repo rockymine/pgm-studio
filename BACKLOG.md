@@ -465,8 +465,9 @@ and what a `subtract` takes away.
   that drew one, and it is gone. Retire the field on both request DTOs (`EditRequests.cs`), `RegionNode`'s
   echo (`RegionTreeDtos.cs`), `RegionDrafts` and the artifact, and `docs/pgm/region-data-flow.md` §5 with them.
 
-- [~] **WS74 — Traversability reads 169 of 911 corpus maps as not connected.** These are played maps, so
-most verdicts are still the reading's. By first cause: 81 separate ground, 41 a point with no ground near,
+- [~] **WS74 — Traversability reads 169 of 911 corpus maps as not connected.** *Parked by the author: more
+corpus reading is not worth its cost, and `--goldens` holds these 169 as the baseline any change is measured
+against.* These are played maps, so most verdicts are still the reading's. By first cause: 81 separate ground, 41 a point with no ground near,
 27 a team barred by an `enter` rule, 20 a sealed room. Known and left: `abstract` stacks six spawns per team
 one above another behind spawn filters, `curly_wools_ix` asks defenders to pillar up to their wool,
 `black_betty` has a broken void setup, the cannon maps fight across void, and `citadel` is attack/defend,
