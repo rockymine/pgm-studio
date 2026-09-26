@@ -25,6 +25,13 @@ writes: when a shape changes, **change the callers**. Never keep a legacy path, 
 second accepted format "just in case" — there is no case, and the second path is what rots. The exception is
 the `map.xml` contract itself, which PGM reads and which is therefore not ours to change.
 
+**Stored data is never the thing that gives way.** The rule above is about code and wire shapes; it is not
+licence to drop what is in the database. A deployed studio holds maps other people wrote, so a change to
+how something is stored ships with a **FluentMigrator migration that carries every existing row into the new
+shape** — never a reset, a "re-import it", or a column dropped with its contents. A migration that cannot
+carry a row forward is a question for the author before it is written, not a `DELETE` inside it. The code
+still keeps one shape: the migration converts the data once, and nothing reads the old form afterwards.
+
 ## Where code goes
 The rule: **a unit of code lives in the lowest (most-depended-upon) project that (a) already has the
 dependencies it needs and (b) every consumer can already reach** — push it down for reuse, never up. Then a
