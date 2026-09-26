@@ -1709,3 +1709,63 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 /* A chord the tool has but cannot run yet — a delete with nothing selected. Listed, because a chord hidden
    until it works is a chord nobody learns; dimmed, because it will not answer now. */
 .keys-row--off { opacity: .45; }
+
+/* ── Access: who is signed in, and a page that opens read-only ─────────────────────────────────── */
+
+/* A disabled fieldset greys every field and button inside it; it carries none of the box a fieldset draws. */
+.readonly-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.readonly-fieldset:disabled { opacity: 0.55; }
+
+.readonly-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-warning-bg);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+}
+.readonly-banner > svg { flex: none; color: var(--color-warning); width: 16px; height: 16px; }
+.readonly-banner-action {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--accent-light);
+  text-decoration: none;
+  font-weight: 600;
+}
+.readonly-banner-action svg { width: 14px; height: 14px; }
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+.account-name { color: var(--text-bright); font-weight: 600; }
+.account-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-secondary);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+}
+.account-link:hover { color: var(--text-bright); background: var(--bg-vis-hover); }
+.account-link svg { width: 16px; height: 16px; }
+
+.invite-link {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-2);
+}
+.invite-link .field-input { flex: 1; font-family: ui-monospace, monospace; font-size: var(--font-xs); }

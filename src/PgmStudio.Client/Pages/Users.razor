@@ -1,0 +1,92 @@
+@page "/admin/users"
+@layout StudioLayout
+
+<PageTitle>PGM Studio — Users</PageTitle>
+
+@* The whitelist: who may write to this studio, in which role, and the invitations that let them sign in.
+   An admin's page; anyone else is told so and shown nothing of the list. *@
+
+<StudioShell>
+  <Bar>
+    <Topbar HomeHref="/" HomeLabel="Studio" HomeTitle="Studio home">
+      <Crumbs><Crumb Dim>Users</Crumb></Crumbs>
+    </Topbar>
+  </Bar>
+  <ChildContent>
+    <Workspace>
+      <ContentColumn MaxWidth="820">
+        @if (admin is null)
+        {
+          <div class="list-empty">Loading…</div>
+        }
+        else if (admin == false)
+        {
+          <div class="callout">
+            <span class="callout-icon"><i data-lucide="shield"></i></span>
+            <p>Only an admin keeps the whitelist.</p>
+          </div>
+        }
+        else
+        {
+          <Section Title="Add a player">
+            <Description>
+              A player on the whitelist may originate maps and edit the ones they own or are credited on; an admin
+              may edit every map and keep this list. Adding someone does not let them sign in yet — open an
+              invitation for them below and send them the link.
+            </Description>
+            <ChildContent>
+              <div class="invite-link">
+                <input class="field-input" placeholder="Minecraft name or uuid" @bind="newPlayer" @bind:event="oninput" />
+                <Select Options="Roles" Value="@newRole" ValueChanged="v => newRole = v" Title="Role" />
+                <Button Variant="primary" Icon="user-plus" OnClick="AddAsync" Busy="adding" BusyLabel="Adding…"
+                        Disabled="@string.IsNullOrWhiteSpace(newPlayer)">Add</Button>
+              </div>
+              @if (error is not null) { <div class="field-error">@error</div> }
+            </ChildContent>
+          </Section>
+
+          <Section Title="Whitelist">
+            <Actions><Badge Kind="dim">@(users?.Count ?? 0)</Badge></Actions>
+            <ChildContent>
+              <div class="panel-list" style="margin-top: var(--space-3);">
+                @if (users is null) { <div class="list-empty">Loading…</div> }
+                else if (users.Count == 0) { <div class="list-empty">Nobody is on the whitelist yet.</div> }
+                else
+                {
+                  @foreach (var user in users)
+                  {
+                    <ListRow @key="user.Uuid">
+                      <ChildContent>
+                        <span class="list-label">@user.Name</span>
+                        <span class="list-label list-label--mono" title="Minecraft uuid">@user.Uuid</span>
+                        <span class="list-tag">@SignInState(user)</span>
+                      </ChildContent>
+                      <Trailing>
+                        <Select Options="Roles" Value="@user.Role" ValueChanged="v => SetRoleAsync(user, v)" Title="Role" />
+                        <Button Variant="icon" Icon="link" Title="Open an invitation and show its link"
+                                OnClick="() => InviteAsync(user)" />
+                        <Button Variant="icon" Icon="trash-2" Title="Take off the whitelist"
+                                OnClick="() => RemoveAsync(user)" />
+                      </Trailing>
+                    </ListRow>
+                    @if (invites.TryGetValue(user.Uuid, out var invite))
+                    {
+                      <div class="invite-link">
+                        <input class="field-input" readonly value="@invite.Link" />
+                        <Button Icon="copy" OnClick="() => CopyAsync(invite.Link)">@(copied == invite.Link ? "Copied" : "Copy")</Button>
+                      </div>
+                      <p class="section-desc">
+                        Works once, until @invite.ExpiresAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm"), and is shown only now.
+                        The first Discord account to sign in through it is bound to @user.Name.
+                      </p>
+                    }
+                  }
+                }
+              </div>
+            </ChildContent>
+          </Section>
+        }
+      </ContentColumn>
+    </Workspace>
+  </ChildContent>
+</StudioShell>

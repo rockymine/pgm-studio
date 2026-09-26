@@ -1,0 +1,52 @@
+@namespace PgmStudio.Client.Components
+@inject StudioAccess Access
+@inject NavigationManager Nav
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+@* Who the browser is, at the right of every top bar: the name and role signed in, the whitelist for an
+   admin, and signing in or out. An open studio's local admin has no account, so it offers only the
+   whitelist. *@
+
+@if (me is not null)
+{
+    <div class="account">
+        @if (me.Role == StudioRoles.Admin)
+        {
+            <a class="account-link" href="admin/users" title="The whitelist and its invitations">
+                <i data-lucide="users"></i>
+            </a>
+        }
+        @if (me.Mode == AccessModes.Open)
+        {
+            <span title="This studio is open: every request is the local admin">local</span>
+        }
+        else if (me.SignedIn)
+        {
+            <span class="account-name" title="@me.Uuid">@me.Name</span>
+            <Badge Kind="dim">@(me.Role ?? "not on the whitelist")</Badge>
+            <button class="account-link" title="Sign out" @onclick="SignOutAsync"><i data-lucide="log-out"></i></button>
+        }
+        else
+        {
+            <a class="account-link" href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))">
+                <i data-lucide="log-in"></i><span>Sign in</span>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private CallerDto? me;
+
+    protected override async Task OnInitializedAsync() => me = await Access.MeAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+
+    private async Task SignOutAsync()
+    {
+        await Http.PostAsync("api/auth/sign-out", null);
+        Access.Forget();
+        Nav.NavigateTo(Nav.Uri, forceLoad: true);
+    }
+}

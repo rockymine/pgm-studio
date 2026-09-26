@@ -77,6 +77,18 @@ Access__Mode=invited ./tools/dev.sh restart              # now closed
 # open the link in a browser, sign in with Discord, then http://localhost:7894/api/me names you
 ```
 
+## What the browser shows
+
+The top bar says who the browser is on every page: the name and role signed in with a sign-out, a sign-in for
+a visitor, `local` in an open studio, and for an admin a link to the whitelist at `/admin/users`. That page
+adds a player by name or uuid in a role, changes a role, takes someone off, and opens an invitation whose link
+it shows once with a copy button — the same four routes as below.
+
+A page the caller may not write opens read-only: a banner under the bar says why and offers the sign-in, the
+panels grey their fields and the canvas keeps only the tools that look. `docs/client/ui-conventions.md` says
+how the shell decides it. `tests/e2e/access.mjs` holds it, against a second server over the suite's database
+running invited with the browser signed out.
+
 ## Which route needs what is decided from the route
 
 No endpoint states its own access. `AccessRules.Apply` runs over every endpoint from the FastEndpoints
@@ -121,7 +133,8 @@ Every write publishes both in the schema at `/api/openapi/v1.json`, and no read 
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `GET /api/me` | `{mode, signedIn, uuid, name, role}` — who the request is and what role it carries | — |
-| `GET /api/users` | the whitelist, by name: `[{uuid, name, role, addedAt}]` | 403 |
+| `GET /api/map/{slug}/access` | `{mayEdit}` — whether this request's writes to the map would be accepted; the client opens it read-only where not | 404 |
+| `GET /api/users` | the whitelist, by name: `[{uuid, name, role, addedAt, signsIn, inviteExpiresAt}]` — `signsIn` once a Discord account is bound, `inviteExpiresAt` while an invitation is open | 403 |
 | `POST /api/users` `{player, role}` | puts the account `player` names — a name or a uuid, resolved through Mojang — on the whitelist in `role`, or changes the role of one already on it; answers the stored row | 400, 404 |
 | `DELETE /api/users/{uuid}` | takes the person off; they keep every credit and write nothing more | 404 |
 | `POST /api/users/{uuid}/invite` | opens an invitation for someone on the whitelist, replacing any open one: `{link, expiresAt}`. The link is shown this once | 404 |
@@ -161,7 +174,9 @@ the uuid of an account the studio has already resolved goes through.
   Discord is asked to return to `http://`; that is part of `RP78`.
 - **A caller without a browser has no way in.** A token for the drivers and agents that write over HTTP is
   `RP76`.
-- **The client does not know who it is.** It renders every control to everyone and a write the caller may not
-  make comes back as the refusal; reading `GET /api/me` and hiding what it rules out is `RP77`.
+- **A read-only page still lets a few edits start.** The panels grey their fields and the dock drops its
+  drawing tools (`docs/client/ui-conventions.md`), but a sidebar's own inputs, a select-and-drag on the canvas
+  and a phase bar's finish are not reached; each is refused by the server and springs back. Closing them is
+  `RP81`.
 - **A read is open, and some reads are expensive.** A world export or a render is a `GET` anyone may send;
   bounding what one caller can ask for at once is `RP79`.

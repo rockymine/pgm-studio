@@ -2,7 +2,7 @@
 
 @* The app top bar — an optional breadcrumb-home link (icon + label), a Crumbs slot for the page's
    trail (compose with <Crumb>), and a right cluster (Right slot) that ends with the theme toggle
-   unless ShowTheme is off. Renders no .topbar-right at all when there is nothing to put there. *@
+   unless ShowTheme is off, and the account — who is signed in — on every page. *@
 
 <div class="topbar">
     @if (HomeHref is not null)
@@ -13,13 +13,11 @@
         </a>
     }
     @Crumbs
-    @if (Right is not null || ShowTheme)
-    {
-        <div class="topbar-right">
-            @Right
-            @if (ShowTheme) { <ThemeToggle /> }
-        </div>
-    }
+    <div class="topbar-right">
+        @Right
+        <AccountMenu />
+        @if (ShowTheme) { <ThemeToggle /> }
+    </div>
 </div>
 
 @code {

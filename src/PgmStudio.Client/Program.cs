@@ -20,6 +20,8 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddScoped<PgmStudio.Client.Components.TerrainLibraryClient>();
+// Who the browser is signed in as, asked once per page load; the shell opens a page read-only from it.
+builder.Services.AddScoped<PgmStudio.Client.Components.StudioAccess>();
 // Loaded once and shared: the material schema is a build constant, so every editor asks the same answer.
 builder.Services.AddScoped<PgmStudio.Client.Components.MaterialSchema>();
 

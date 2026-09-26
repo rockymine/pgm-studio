@@ -3,6 +3,7 @@ using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Access;
+using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Vocabulary;
@@ -18,6 +19,24 @@ public sealed class MeEndpoint(Callers callers, AccessOptions access) : Endpoint
     {
         var caller = await callers.OfAsync(HttpContext, ct);
         await Send.OkAsync(new CallerDto(access.Mode, caller.SignedIn, caller.Uuid, caller.Name, caller.Role), ct);
+    }
+}
+
+/// <summary>GET /api/map/{slug}/access — whether the request may change this map, so a client can open it
+/// read-only rather than let an edit be refused.</summary>
+public sealed class MapAccessEndpoint(Callers callers, MapRepository maps) : EndpointWithoutRequest<MapAccessDto>
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/access");
+        Description(b => b.Refuses(404));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await maps.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var caller = await callers.OfAsync(HttpContext, ct);
+        await Send.OkAsync(new MapAccessDto(await callers.MayEditAsync(caller, map, ct)), ct);
     }
 }
 
@@ -66,7 +85,9 @@ public sealed class UserPutEndpoint(StudioUserStore users, PlayerLookup players)
         await Send.OkAsync(Dto(await users.PutAsync(account.Uuid, account.Name, request.Role, ct)), ct);
     }
 
-    internal static StudioUserDto Dto(StudioUserRow row) => new(row.Uuid, row.Name, row.Role, row.CreatedAt);
+    internal static StudioUserDto Dto(StudioUserRow row) => new(
+        row.Uuid, row.Name, row.Role, row.CreatedAt, row.DiscordId is not null,
+        row.InviteExpiresAt > DateTime.UtcNow ? row.InviteExpiresAt : null);
 }
 
 /// <summary>DELETE /api/users/{uuid} — take a person off the whitelist; they keep the credits they have and

@@ -75,6 +75,11 @@ public sealed class AccessTests
         await Assert.That(stored).IsEqualTo(Owner);
 
         using var stranger = InvitedFactory.As(Stranger);
+        await Assert.That((await owner.GetFromJsonAsync<MapAccessDto>($"/api/map/{slug}/access"))!.MayEdit).IsTrue();
+        await Assert.That((await stranger.GetFromJsonAsync<MapAccessDto>($"/api/map/{slug}/access"))!.MayEdit).IsFalse();
+        using var signedOut = InvitedFactory.Shared.CreateClient();
+        await Assert.That((await signedOut.GetFromJsonAsync<MapAccessDto>($"/api/map/{slug}/access"))!.MayEdit).IsFalse();
+
         using var refused = await stranger.DeleteAsync($"/api/map/{slug}");
         await AssertRefusedAsync(refused, HttpStatusCode.Forbidden, "RQ8");
 

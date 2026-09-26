@@ -9647,6 +9647,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST /regions/group` + `/ungroup`. (ex-R1a; wire-after-group is parked.)
 
 ## Data & ops (D)
+- **The client knows who it is (`RP77`).** Every top bar says who is signed in, with sign-in and sign-out,
+  and an admin reaches `/admin/users`: add a player, change a role, take someone off, open an invitation and
+  copy its link. A page the caller may not write opens read-only — a banner says why, `Inspector`,
+  `ContentColumn` and the library editor grey their fields, and the dock keeps only the tools that look —
+  decided once by `StudioShell` from the address and `GET /api/map/{slug}/access`. `tests/e2e/access.mjs`
+  holds it against an invited server. `docs/access.md`, `docs/client/ui-conventions.md`.
 - **Signing in with Discord, bound to a Minecraft account by invitation (`RP75`).** An admin opens an
   invitation for someone on the whitelist (`POST /api/users/{uuid}/invite`) and hands them the one-time link;
   the first Discord account to sign in through it is bound to that person, and from then on

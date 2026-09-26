@@ -52,7 +52,7 @@ on its own, `ListRow` (the list row with its swatch, label, tag, go-arrow and a 
 the row carries), and `DetailHeader` (an inspector head: icon, label, trailing badges).
 
 **Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + topbar + body + optional footer);
-`Topbar` carries the home link and a `Crumbs` slot composed from `Crumb`; `NavRail` and `NavButton` are the
+`Topbar` carries the home link, a `Crumbs` slot composed from `Crumb`, and `AccountMenu` — who is signed in; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
 arranges itself from; `FlowBar` is the phase/step nav the stepped tools share; `AppFooter`/`AppFooterLink` and `SideDrawer` finish the set.
 
@@ -69,6 +69,25 @@ with the bound style's own picture beside the control) and `HouseViews`.
 which the Configure tool and the design showcase both mount. The world canvas and the bodies drawn beside it —
 `WorldCanvas`, `RegionTree`, `SliceView`, `BuildHeightSideview` — are the Configure tool's alone and live in
 `Features/Configure/`.
+
+## A page that may not write
+
+**Whether a page may write is the shell's to decide, and the panels' to show.** `StudioShell` asks
+`StudioAccess.ReadOnlyReasonAsync` about the address it is on — a page under `/maps/{slug}/` edits that map and
+asks `GET /api/map/{slug}/access`; the map list, the catalogue, the design page and the whitelist page write
+nothing; every other page needs someone on the whitelist — and where the answer is no it draws a banner under
+the bar saying why, with the sign-in where the visitor is signed out, and cascades `StudioReadOnly` to
+everything beneath it. No tool states its own read-only-ness, so a new tool is read-only for a visitor the
+moment it sits in the shell.
+
+Three shells answer the cascade. `Inspector` and `ContentColumn` put their content in a disabled `<fieldset>`,
+which is the browser's own way of greying every input, select and button inside it at once; the library
+editor does the same over its name, fields and save. `DockGroup` is authoring unless it is marked `Viewing`,
+and an authoring group is not drawn on a read-only page — so select and pan stay, and every tool that draws
+goes. What the shells do not reach is recorded as `RP81`.
+
+The server refuses every write the caller may not make whatever the page shows (`docs/access.md`); this is
+what lets the page say so before an edit rather than after it.
 
 ## The words a form writes, and where they are declared
 

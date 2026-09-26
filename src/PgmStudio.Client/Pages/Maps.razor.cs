@@ -124,8 +124,14 @@ public partial class Maps
             ? maps
             : maps.Where(m => (m.Slug + " " + m.Name).Contains(filter, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>Whether the caller may originate a map; the start buttons are greyed out where not.</summary>
+    private bool mayWrite = true;
+
+    private string? WriteTitle => mayWrite ? null : "Sign in as someone on the whitelist to start a map";
+
     protected override async Task OnParametersSetAsync()
     {
+        mayWrite = await Access.MayWriteAsync();
         if (loadedStage == CurrentStage) return;   // stage unchanged → keep the loaded list
         loadedStage = CurrentStage;
         maps = null;

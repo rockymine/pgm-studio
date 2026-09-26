@@ -332,7 +332,7 @@
              They share one box: with each family down to an option and a chevron, a rule between them would
              separate less than the pairs already do. *@
           <CanvasDock FlyoutOpen="@(openFlyout is not null)" OnDismissFlyout="CloseFlyouts">
-            <DockGroup>
+            <DockGroup Viewing>
               <DockButton Icon="mouse-pointer-2" Title="Select" Active="@(tool == "select")"
                           OnClick='() => PickTool("select")' />
               <DockButton Icon="hand" Title="Move" Active="@(tool == "pan")"

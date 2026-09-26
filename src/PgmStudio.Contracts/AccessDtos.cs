@@ -20,11 +20,15 @@ public sealed record CallerDto(
 /// <param name="Name">Their Minecraft name when they were added.</param>
 /// <param name="Role">What they may do.</param>
 /// <param name="AddedAt">When they were first put on the whitelist.</param>
+/// <param name="SignsIn">Whether a Discord account is bound to them, so they can sign in.</param>
+/// <param name="InviteExpiresAt">When their open invitation lapses, in UTC, or null where none is open.</param>
 public sealed record StudioUserDto(
     string Uuid,
     string Name,
     [property: WordSet(typeof(StudioRoles))] string Role,
-    DateTime AddedAt);
+    DateTime AddedAt,
+    bool SignsIn,
+    DateTime? InviteExpiresAt);
 
 /// <summary>Put a person on the whitelist, or change the role of one already on it.</summary>
 /// <param name="Player">Their Minecraft name or uuid; the studio resolves it to the account.</param>
@@ -38,3 +42,8 @@ public sealed record StudioUserRequest(
 /// <param name="Link">The one-time sign-in link to hand the person. It is shown once and stored only as a hash.</param>
 /// <param name="ExpiresAt">When it stops working, in UTC.</param>
 public sealed record InviteDto(string Link, DateTime ExpiresAt);
+
+/// <summary>What the request may do to one map.</summary>
+/// <param name="MayEdit">Whether its writes would be accepted: an admin, the map's owner, or an author it
+/// credits. The client opens the map read-only where this is false.</param>
+public sealed record MapAccessDto(bool MayEdit);

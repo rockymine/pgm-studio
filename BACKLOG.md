@@ -435,18 +435,20 @@ and what a `subtract` takes away.
 
 ## Opening the studio to other people: sign-in, a server, and what a caller may ask for
 
-The access rules and the Discord sign-in are in place (`docs/access.md`). What remains is a way in for callers
-without a browser, the machine it runs on, and the client knowing who it is.
+The access rules, the Discord sign-in and the read-only client are in place (`docs/access.md`). What remains
+is a way in for callers without a browser, the machine it runs on, and the edits a read-only page still lets
+start.
 
 - [ ] **RP76 — A token for callers without a browser.** An admin- or self-issued bearer token, stored as a
   hash beside the user it acts as (`studio_token`: user id, hash, label, created, last used), accepted by a
   second authentication scheme and revocable from `DELETE /api/users/me/tokens/{id}`. The agent that loads
   maps with `POST /api/map/from-documents` carries one as an environment secret, never a password.
 
-- [ ] **RP77 — The client knows who it is.** `Layout/` reads `GET /api/me` once, shows who is signed in and a
-  sign-in link, and a tool opens a map read-only — no save, no drag — where `role` is null or the map is
-  neither theirs nor credited to them. The e2e harness gains an `invited` run that finds no write control on a
-  signed-out page.
+- [ ] **RP81 — The edits a read-only page still lets start.** Three reach past the shells that grey a page
+  (`docs/client/ui-conventions.md`): a `Sidebar`'s own inputs (the sketch layer's rename and base height), the
+  select tool's drag on the canvas, which moves a shape until the save is refused, and a `FlowBar` whose next
+  step writes (the sketch's Finish). Pass the cascaded `StudioReadOnly` into the canvas controllers as a flag
+  that refuses a drag, and let `FlowBar` disable a writing step. The server refuses all three today.
 
 - [ ] **RP78 — `docs/deployment.md`: the studio on a server.** A Hetzner Cloud VM, Caddy for HTTPS in front
   of the API as a systemd service with `UseForwardedHeaders` so the Discord callback is `https://`, MariaDB
