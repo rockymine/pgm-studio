@@ -20,6 +20,7 @@
     <Project Path="tests/PgmStudio.Client.Tests/PgmStudio.Client.Tests.csproj" />
     <Project Path="tests/PgmStudio.Data.Tests/PgmStudio.Data.Tests.csproj" />
     <Project Path="tests/PgmStudio.Domain.Tests/PgmStudio.Domain.Tests.csproj" />
+    <Project Path="tests/PgmStudio.E2e.Tests/PgmStudio.E2e.Tests.csproj" />
     <Project Path="tests/PgmStudio.Export.Tests/PgmStudio.Export.Tests.csproj" />
     <Project Path="tests/PgmStudio.Geom.Tests/PgmStudio.Geom.Tests.csproj" />
     <Project Path="tests/PgmStudio.Import.Tests/PgmStudio.Import.Tests.csproj" />

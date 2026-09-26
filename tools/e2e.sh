@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# End-to-end runner: bring up a throwaway instance of the app, seed it, run the specs, tear it down.
+# End-to-end runner: bring up a throwaway instance of the app, run the browser suite against it, tear it down.
 #
-#   ./tools/e2e.sh              # seed + smoke (the default gate)
+#   ./tools/e2e.sh              # smoke (the default gate)
 #   ./tools/e2e.sh all          # every spec
-#   ./tools/e2e.sh smoke        # one spec by name (tests/e2e/<name>.mjs)
+#   ./tools/e2e.sh plan-refusals  # one spec by name — tests/PgmStudio.E2e.Tests/PlanRefusalsSpec.cs
 #   ./tools/e2e.sh --keep all   # leave the server running afterwards, to poke at it
 #
-# It uses its OWN database and port so a run can never touch the dev data (`./tools/dev.sh` on :7894,
-# `pgm_studio`) — the specs create maps, and left on the dev DB they pile up in the dashboard.
+# The suite is the TUnit project tests/PgmStudio.E2e.Tests, driving Chromium over CDP through PuppeteerSharp;
+# it seeds its own fixture maps once per run, before the first spec. It uses its OWN database and port so a run
+# can never touch the dev data (`./tools/dev.sh` on :7894, `pgm_studio`) — the specs create maps, and left on
+# the dev DB they pile up in the dashboard.
 #
-#   E2E_PORT=7895  E2E_DB=pgm_studio_e2e  E2E_DB_USER=pgm  E2E_DB_PASS=pgm_dev_pw  PW_CHROMIUM=<path>
+#   E2E_PORT=7895  E2E_DB=pgm_studio_e2e  E2E_DB_USER=pgm  E2E_DB_PASS=pgm_dev_pw  E2E_CHROMIUM=<path>
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,16 +27,30 @@ if [[ "${1:-}" == "--keep" ]]; then KEEP=1; shift; fi
 TARGET="${1:-smoke}"
 
 API_CSPROJ="$ROOT/src/PgmStudio.Api/PgmStudio.Api.csproj"
+SUITE="$ROOT/tests/PgmStudio.E2e.Tests"
 DLL="$ROOT/src/PgmStudio.Api/bin/Debug/net10.0/PgmStudio.Api.dll"
 TMP="$ROOT/.tmp"; mkdir -p "$TMP"
 LOG="$TMP/e2e-$PORT.log"
 PID=""
 
+# A spec is named by its file: `plan-refusals` is the class PlanRefusalsSpec.
+FILTER=()
+if [[ "$TARGET" != "all" ]]; then
+  CLASS=""
+  IFS='-' read -ra WORDS <<<"$TARGET"
+  for word in "${WORDS[@]}"; do CLASS+="${word^}"; done
+  CLASS+="Spec"
+  if [[ ! -f "$SUITE/$CLASS.cs" ]]; then
+    echo "no spec named '$TARGET' — one of: all $(cd "$SUITE" && ls *Spec.cs | sed -E 's/Spec\.cs$//; s/([a-z])([A-Z])/\1-\2/g' | tr 'A-Z' 'a-z' | tr '\n' ' ')"
+    exit 1
+  fi
+  FILTER=(--treenode-filter "/*/*/$CLASS/*")
+fi
+
 export ASPNETCORE_ENVIRONMENT=Development
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export ConnectionStrings__PgmStudio="$CONN"
 export E2E_BASE="http://localhost:$PORT"
-export E2E_SEED="$TMP/e2e-seed.json"
 
 cleanup() {
   if [[ -n "$PID" && $KEEP -eq 0 ]]; then
@@ -64,7 +80,7 @@ dotnet run --project "$ROOT/src/PgmStudio.Import" -- --migrate-only >"$TMP/e2e-m
 echo "· schema up to date"
 
 echo "── build ──"
-dotnet build "$API_CSPROJ" -v q --nologo >"$TMP/e2e-build.log" 2>&1 \
+{ dotnet build "$API_CSPROJ" -v q --nologo && dotnet build "$SUITE" -v q --nologo; } >"$TMP/e2e-build.log" 2>&1 \
   || { echo "build failed — see $TMP/e2e-build.log"; exit 1; }
 
 echo "── server (:$PORT) ──"
@@ -78,21 +94,9 @@ done
 curl -sf -m 2 "http://localhost:$PORT/api/health" >/dev/null || { echo "server never became healthy — see $LOG"; exit 1; }
 echo "· up"
 
-echo "── seed ──"
-node "$ROOT/tests/e2e/seed.mjs"
-
-run_spec() { echo; echo "── ${1} ──"; node "$ROOT/tests/e2e/${1}.mjs"; }
-
+echo "── suite ($TARGET) ──"
 status=0
-if [[ "$TARGET" == "all" ]]; then
-  for spec in "$ROOT"/tests/e2e/*.mjs; do
-    name="$(basename "$spec" .mjs)"
-    [[ "$name" == "seed" ]] && continue
-    run_spec "$name" || status=1
-  done
-else
-  run_spec "$TARGET" || status=1
-fi
+dotnet run --no-build --project "$SUITE" -- --output Detailed --disable-logo "${FILTER[@]}" || status=1
 
 echo
 [[ $status -eq 0 ]] && echo "e2e: PASS" || echo "e2e: FAIL"
