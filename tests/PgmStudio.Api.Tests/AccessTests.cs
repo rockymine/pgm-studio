@@ -108,6 +108,25 @@ public sealed class AccessTests
     }
 
     [Test]
+    public async Task An_untouched_draft_is_discarded_though_it_credits_its_originator_and_one_crediting_another_is_kept()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+
+        using var owner = InvitedFactory.As(Owner);
+        var untouched = await OriginateAsync(owner, "Untitled sketch");
+        var discarded = await owner.DeleteFromJsonAsync<JsonElement>($"/api/map/{untouched}/sketch/discard-if-empty");
+        await Assert.That(discarded.GetProperty("discarded").GetBoolean()).IsTrue();
+        await Assert.That(await ScalarAsync($"SELECT COUNT(*) FROM map WHERE slug = '{untouched}'")).IsEqualTo("0");
+
+        var credited = await OriginateAsync(owner, "Untitled sketch");
+        await ApiTestFactory.ExecuteAsync(
+            $"INSERT INTO author (map_id, uuid, role) SELECT id, '{Credited}', 'author' FROM map WHERE slug = '{credited}'");
+        var kept = await owner.DeleteFromJsonAsync<JsonElement>($"/api/map/{credited}/sketch/discard-if-empty");
+        await Assert.That(kept.GetProperty("discarded").GetBoolean()).IsFalse();
+    }
+
+    [Test]
     public async Task An_author_a_map_credits_may_change_it_and_a_contributor_may_not()
     {
         await ApiTestFactory.ResetSchemaAsync();

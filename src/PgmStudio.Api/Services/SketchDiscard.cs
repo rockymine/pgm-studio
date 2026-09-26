@@ -13,8 +13,9 @@ namespace PgmStudio.Api.Services;
 /// <para>Opening the Sketch tool creates a map before the author has drawn anything, so leaving without
 /// drawing would otherwise litter the dashboard with untitled drafts. This is what the tool asks on the way
 /// out, and it is a judgement rather than a delete: a draft is discarded only if every sign of work is
-/// absent — still at the sketch stage, still under the name it was created with, credited to nobody, and
-/// holding no shape in any layer.</para>
+/// absent — still at the sketch stage, still under the name it was created with, credited to nobody but the
+/// person who originated it, and holding no shape in any layer. The originator's own credit is written with
+/// the map (<see cref="MapOrigin"/>), so it is no sign of work.</para>
 ///
 /// <para><b>A map that is not there is discarded, not refused.</b> Asking to throw away something that does
 /// not exist has got what it wanted, and a 404 would make a caller handle a case that is already the
@@ -34,7 +35,7 @@ public static class SketchDiscard
 
         var untouched = map.Stage == MapStage.Sketch
             && string.Equals(map.Name?.Trim(), UntouchedName, StringComparison.Ordinal)
-            && !await db.Authors.AnyAsync(author => author.MapId == map.Id, ct)
+            && !await db.Authors.AnyAsync(author => author.MapId == map.Id && author.Uuid != map.OwnerUuid, ct)
             && !await HasShapesAsync(artifacts, map.Id, ct);
 
         if (untouched) await repo.DeleteMapAsync(map.Id, ct);   // FK cascade removes the layout artifact
