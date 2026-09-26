@@ -89,7 +89,7 @@ public static class KitReach
 
             // The spawn's own storey, not its cell's lowest: a spawn on a deck over a gallery walks the deck,
             // and pricing its kit from the gallery floor is a budget for a route the team never takes.
-            var box = NavPoints.Region(sp.GetValueOrDefault("region"), regions);
+            var box = RegionGeometry2d.Resolve(sp.GetValueOrDefault("region"), regions);
             var start = NavPoints.Centre(box, regions, bounds) is { } seat
                 ? Cells.SnapToWalkable(seat, ground.Footprint, SnapRadius)
                 : null;

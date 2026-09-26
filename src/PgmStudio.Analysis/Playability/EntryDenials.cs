@@ -2,6 +2,7 @@ namespace PgmStudio.Analysis.Playability;
 
 using PgmStudio.Geom;
 
+using PgmStudio.Analysis.Region;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
@@ -74,6 +75,46 @@ public static class EntryDenials
         for (var i = 0; i < denied.Length; i++)
             if (denied[i]) cells.Add((over.X + i % over.Width, over.Z + i / over.Width));
         return cells;
+    }
+
+    /// <summary>The cells of the protection a goal stands in, for a team barred from it: the innermost union the
+    /// author named, inside a rule's region that bars the team, that still holds the goal. A wool room drawn as
+    /// a union of a room and the lane into it is one protection even where a row between them was missed, so
+    /// its cells are the room's and the lane's together. Empty where no rule barring the team covers the goal.
+    /// </summary>
+    public static HashSet<(int X, int Z)> Protection(Dict data, string team, (int X, int Z) goal, CellRect over)
+    {
+        var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
+        var filters = MapDoc.AsDict(data.GetValueOrDefault("filters"));
+        var bounds = ((double)over.X, (double)over.Z, (double)(over.X + over.Width), (double)(over.Z + over.Height));
+        bool[]? Mask(object reference) => Editability.RegionMask(reference, regions, bounds, over.X, over.Z, over.Width, over.Height);
+        var at = (goal.Z - over.Z) * over.Width + (goal.X - over.X);
+        if (goal.X < over.X || goal.Z < over.Z || goal.X >= over.X + over.Width || goal.Z >= over.Z + over.Height) return [];
+
+        foreach (var rule in MapDoc.AsList(data.GetValueOrDefault("apply_rules")).OfType<Dict>())
+        {
+            if (rule.GetValueOrDefault("enter") is not string enter || enter.Length == 0 || Allows(enter, filters, team)) continue;
+            if (rule.GetValueOrDefault("region") is not { } reference || Mask(reference) is not { } mask || !mask[at]) continue;
+
+            // Descend through named unions while one still holds the goal.
+            for (var depth = 0; depth < 16; depth++)
+            {
+                var region = RegionGeometry2d.Resolve(reference, regions);
+                if ((region?.GetValueOrDefault("type") as string) != "union") break;
+                var inner = MapDoc.AsList(region.GetValueOrDefault("children")).OfType<string>()
+                    .Where(child => !child.Contains("__")
+                                    && RegionGeometry2d.Resolve(child, regions)?.GetValueOrDefault("type") as string == "union")
+                    .Select(child => (child, mask: Mask(child)))
+                    .FirstOrDefault(candidate => candidate.mask is { } m && m[at]);
+                if (inner.mask is null) break;
+                (reference, mask) = (inner.child, inner.mask);
+            }
+            var cells = new HashSet<(int X, int Z)>();
+            for (var i = 0; i < mask.Length; i++)
+                if (mask[i]) cells.Add((over.X + i % over.Width, over.Z + i / over.Width));
+            return cells;
+        }
+        return [];
     }
 
     /// <summary>Whether an <c>enter</c> filter lets <paramref name="team"/> in. Deliberately permissive: a

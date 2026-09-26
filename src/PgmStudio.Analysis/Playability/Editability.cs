@@ -327,7 +327,7 @@ public static class Editability
     /// unbounded region, or a union holding one.</summary>
     private static bool Unbounded(object? reference, Dict regions, int depth = 0)
     {
-        var region = reference is string named ? regions.GetValueOrDefault(named) as Dict : reference as Dict;
+        var region = RegionGeometry2d.Resolve(reference, regions);
         if (region is null || depth > 16) return false;
         var children = MapDoc.AsList(region.GetValueOrDefault("children"));
         return (region.GetValueOrDefault("type") as string) switch
@@ -342,7 +342,7 @@ public static class Editability
     internal static bool[]? RegionMask(object? reference, Dict regions,
         (double, double, double, double) bounds, int minX, int minZ, int nx, int nz)
     {
-        var region = reference is string named ? regions.GetValueOrDefault(named) as Dict : reference as Dict;
+        var region = RegionGeometry2d.Resolve(reference, regions);
         var geometry = RegionGeometry2d.ToGeometry(region, bounds, regions);
         if (geometry is null || geometry.IsEmpty) return null;
         var prepared = PreparedGeometryFactory.Prepare(geometry);

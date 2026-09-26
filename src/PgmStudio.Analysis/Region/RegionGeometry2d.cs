@@ -76,7 +76,7 @@ public static class RegionGeometry2d
                 return Compound(t, region, bounds, registry);
             case "mirror":
             {
-                var src = ToGeometry(registry.GetValueOrDefault(region.GetValueOrDefault("source_id") as string ?? "") as Dict, bounds, registry);
+                var src = ToGeometry(Resolve(region.GetValueOrDefault("source_id"), registry), bounds, registry);
                 if (src is null || src.IsEmpty) return null;
                 var o = AsDict(region.GetValueOrDefault("origin"));
                 var n = AsDict(region.GetValueOrDefault("normal"));
@@ -85,15 +85,14 @@ public static class RegionGeometry2d
             }
             case "translate":
             {
-                var src = ToGeometry(registry.GetValueOrDefault(region.GetValueOrDefault("source_id") as string ?? "") as Dict, bounds, registry);
+                var src = ToGeometry(Resolve(region.GetValueOrDefault("source_id"), registry), bounds, registry);
                 if (src is null || src.IsEmpty) return null;
                 var off = AsDict(region.GetValueOrDefault("offset"));
                 return AffineTransformation.TranslationInstance(Num(off.GetValueOrDefault("x")) ?? 0, Num(off.GetValueOrDefault("z")) ?? 0).Transform(src);
             }
             case "reference":
             {
-                var refId = region.GetValueOrDefault("ref_id") as string;
-                return refId is not null && registry.GetValueOrDefault(refId) is Dict r ? ToGeometry(r, bounds, registry) : null;
+                return Resolve(region.GetValueOrDefault("ref_id"), registry) is { } r ? ToGeometry(r, bounds, registry) : null;
             }
             default: return null;
         }
@@ -197,10 +196,16 @@ public static class RegionGeometry2d
     private static Geometry? UnaryUnion(IReadOnlyCollection<Geometry?> geoms)
         => geoms.Count == 0 ? null : Gf.BuildGeometry(geoms.Where(g => g is not null).Cast<Geometry>().ToList()).Union();
 
-    private static Dict? ResolveRef(object? c, Dict registry) => c switch
+    private static Dict? ResolveRef(object? c, Dict registry) => Resolve(c, registry);
+
+    /// <summary>A region reference as its document entry: an inline region as itself, an id as the region the
+    /// map defines under it, and <c>everywhere</c> or <c>nowhere</c> as PGM's built-in regions of those ids,
+    /// which a map refers to without defining.</summary>
+    public static Dict? Resolve(object? reference, Dict registry) => reference switch
     {
-        Dict d => d,
-        string s => registry.GetValueOrDefault(s) as Dict,
+        Dict inline => inline,
+        string id when registry.GetValueOrDefault(id) is Dict defined => defined,
+        "everywhere" or "nowhere" => new Dict { ["id"] = reference, ["type"] = reference },
         _ => null,
     };
 

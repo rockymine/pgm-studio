@@ -40,6 +40,10 @@ names but one: `above`, `below`, `block`, `circle`, `complement`, `cuboid`, `cyl
 `half`, `intersect`, `mirror`, `negative`, `nowhere`, `point`, `rectangle`, `sphere`, `translate` and `union`,
 with a `<region>` wrapper, or an apply's inline regions, read as the union of every child as PGM reads them.
 **`resize` is refused**, five corpus maps, and `RegionTypesTests` holds the parser to PGM's list.
+Two ids need no element at all: PGM registers `everywhere` and `nowhere` as built-in regions before a map's
+own are parsed, and 110 corpus maps write `region="everywhere"` without defining it. The analysis resolves a
+region reference in one place, `RegionGeometry2d.Resolve`, which answers those two ids with PGM's regions
+when the map defines neither.
 
 **No unreadable shop.** `shops` is not an objective module at all — its map tag is auxiliary and carries no
 gamemode, so a board keeps its goal whether or not the menu survives. What a fourth gate exists for is the

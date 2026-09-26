@@ -35,6 +35,15 @@ public sealed class SegmentIndex
         return columns;
     }
 
+    /// <summary>The world's column extent, <c>(minX, minZ, maxX, maxZ)</c> inclusive, over every column any
+    /// segment or floor mark holds.</summary>
+    public (int MinX, int MinZ, int MaxX, int MaxZ) Extent()
+    {
+        var columns = _byCol.Keys.Concat(_floorMarks).ToList();
+        return columns.Count == 0 ? (0, 0, -1, -1)
+            : (columns.Min(c => c.Item1), columns.Min(c => c.Item2), columns.Max(c => c.Item1), columns.Max(c => c.Item2));
+    }
+
     /// <summary>Columns a player can stand in — those <see cref="StandingTops"/> finds a surface for. A
     /// column solid to the sky, or roofed everywhere at less than <see cref="Walk.Headroom"/>, is not one.
     /// The storey is discarded here and only here; a caller that needs it takes the tops.</summary>

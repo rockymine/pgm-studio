@@ -312,4 +312,24 @@ public sealed class EditabilityTests
         await Assert.That(BridgesAt(res, 2, 2)).IsTrue().Because("the build area, void or not");
         await Assert.That(BridgesAt(res, 8, 8)).IsFalse().Because("the rule refuses everything else");
     }
+
+    /// <summary><b>A rule over <c>everywhere</c> covers the map although no region of that id is defined.</b>
+    /// PGM registers <c>everywhere</c> and <c>nowhere</c> as built-in regions, and a map refers to them by id;
+    /// agrostid's void rule is written that way, over the water it lays at y=0 to mark its build area.</summary>
+    [Test]
+    public async Task A_rule_over_the_builtin_everywhere_covers_the_map()
+    {
+        var doc = Doc("""
+            <filters>
+              <not id="not-void"><void/></not>
+            </filters>
+            <regions>
+              <apply block-place="not-void" region="everywhere"/>
+            </regions>
+            """);
+        var marked = new HashSet<(int, int)> { (2, 2) };
+        var res = Editability.Compute(doc, marked, (-4, -4, 12, 12), floorMarks: marked);
+        await Assert.That(BridgesAt(res, 2, 2)).IsTrue().Because("the void rule passes a floor mark and it may be built across");
+        await Assert.That(BridgesAt(res, 6, 6)).IsFalse().Because("the void rule refuses an empty column");
+    }
 }

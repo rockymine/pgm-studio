@@ -8012,6 +8012,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   PGM's list. Corpus traversability over the 347 CTW maps then scanned: not connected 193 → 146. (`WS73`,
   `B57`)
 
+- **A wool stated outside the world is judged at its source (`WS75`)** — `Traversability.Check` takes the wool
+  sources the scan found (`FeatureData.WoolSourcesAsync` on the `traversability` endpoint, the parquet rows
+  under `--goldens`), and a wool whose `location` lies outside the world's columns is seated at its colour's
+  PGM spawner, or failing one a spawner block or chest of the colour; loose wool blocks are not read. (`WS75`)
+
 - **The corpus scan output is current and covers every mode (`RP74`)** — `rockymine/pgm-studio-output` is
   rescanned with `--scan-out-all`: floor marks and the floor-sheet-free segment scan for the 347 CTW maps it
   held, and 566 more maps of every other mode the studio reads, so `corpus-goldens.json` measures 911 maps'

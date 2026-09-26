@@ -372,4 +372,83 @@ public sealed class TraversabilityTests
         var destroyable = res.Points.Single(p => p.Point.Kind == "destroyable");
         await Assert.That(destroyable.Component).IsEqualTo(0);   // off the navigable grid — and gating
     }
+
+    [Test]
+    public async Task A_wool_stated_outside_the_world_is_judged_at_its_source()
+    {
+        // A wool whose location the author never set sits far off the map, while the wool reaches players
+        // from a chest in its room. Judged at the stated point it is off the ground; judged at the chest it
+        // stands on the one strip of ground the spawn is on.
+        var data = new Dict
+        {
+            ["regions"] = new Dict { ["red-spawn"] = Rect(0, 0, 4, 4) },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "red-spawn" } },
+            ["wools"] = new List<object?>
+            {
+                new Dict { ["color"] = "light blue", ["team"] = "blue", ["location"] = Xz(-210, -201) },
+            },
+            ["apply_rules"] = new List<object?>(),
+        };
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x < 30; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+        var sources = new List<WoolSources.Source>
+        {
+            new("block", "light_blue", 12, 1, 2, 1),
+            new("chest", "light_blue", 25, 1, 2, 4),
+            new("chest", "red", 3, 1, 2, 4),
+        };
+
+        var unmoved = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 35, 10));
+        await Assert.That(unmoved.Connected).IsFalse().Because("the stated location is off the world");
+
+        var moved = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 35, 10), woolSources: sources);
+        await Assert.That(moved.Connected).IsTrue();
+        var wool = moved.Points.Single(point => point.Point.Kind == "wool").Point;
+        await Assert.That((wool.X, wool.Z)).IsEqualTo((25, 2)).Because("the chest of the colour, not the loose block");
+
+        var blocksOnly = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 35, 10), woolSources: [sources[0]]);
+        await Assert.That(blocksOnly.Connected).IsFalse().Because("loose wool blocks are decoration as often as a source");
+    }
+
+    [Test]
+    public async Task A_wool_room_drawn_as_two_rectangles_with_a_missed_row_is_one_protection()
+    {
+        // The author drew blue's wool room as a union of the lane into it (x 20..22) and the room (x 24..32)
+        // and missed the row between them (x 23). Blue is barred from both and can only walk to the lane's
+        // mouth; that is the border of the one protection the author meant, so blue reaches it.
+        var regions = new Dict
+        {
+            ["red-spawn"] = Rect(0, 0, 4, 4),
+            ["blue-spawn"] = Rect(8, 0, 12, 4),
+            ["lane"] = Rect(20, 0, 23, 4),
+            ["room"] = Rect(24, -6, 33, 10),
+            ["wool-room"] = new Dict { ["type"] = "union", ["children"] = new List<object?> { "lane", "room" } },
+        };
+        var data = new Dict
+        {
+            ["regions"] = regions,
+            ["filters"] = new Dict
+            {
+                ["only-red"] = new Dict { ["type"] = "team", ["team"] = "red" },
+                ["only-blue"] = new Dict { ["type"] = "team", ["team"] = "blue" },
+                ["not-blue"] = new Dict { ["type"] = "not", ["child"] = "only-blue" },
+            },
+            ["spawns"] = new List<object?>
+            {
+                new Dict { ["team"] = "red", ["region"] = "red-spawn" },
+                new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
+            },
+            ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["team"] = "blue", ["location"] = Xz(30, 2) } },
+            ["apply_rules"] = new List<object?> { new Dict { ["region"] = "wool-room", ["enter"] = "not-blue" } },
+        };
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x < 20; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+        for (var x = 20; x < 24; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+        for (var x = 24; x < 33; x++) for (var z = -6; z < 10; z++) surface.Add((x, z));
+
+        var res = Traversability.Check(data, Flat(surface), bbox: (-5, -10, 40, 15));
+
+        await Assert.That(res.Connected).IsTrue();
+        await Assert.That(res.Isolated).IsEmpty();
+    }
 }
