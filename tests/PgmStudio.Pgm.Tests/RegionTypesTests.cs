@@ -60,7 +60,8 @@ public sealed class RegionTypesTests
         var rule = map.ApplyRules.Single();
         var region = map.Regions[rule.RegionId];
         await Assert.That(region.Type).IsEqualTo("union");
-        await Assert.That(region.Children.Count).IsEqualTo(2);
+        await Assert.That(region.Children).IsNotNull();
+        await Assert.That(region.Children!.Count).IsEqualTo(2);
     }
 
     [Test]

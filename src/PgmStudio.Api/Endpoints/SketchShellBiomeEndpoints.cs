@@ -34,7 +34,7 @@ public sealed class SketchRoomStylesEndpoint(MapRepository repo, MapArtifactStor
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/room-styles"); AllowAnonymous();
+        Get("/map/{slug}/sketch/room-styles");
         Description(b => b.Produces<SketchRoomStylesDto>(200, "application/json").Refuses(404));
     }
 
@@ -61,7 +61,7 @@ public sealed class SketchRoomStyleWriteEndpoint(MapRepository repo, MapArtifact
 {
     public override void Configure()
     {
-        Put("/map/{slug}/sketch/room-styles/{part}"); AllowAnonymous();
+        Put("/map/{slug}/sketch/room-styles/{part}");
         Description(b => b.Accepts<HouseStyle>("application/json")
                           .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -102,7 +102,7 @@ public sealed class SketchRoomStyleDeleteEndpoint(MapRepository repo, MapArtifac
 {
     public override void Configure()
     {
-        Delete("/map/{slug}/sketch/room-styles/{part}"); AllowAnonymous();
+        Delete("/map/{slug}/sketch/room-styles/{part}");
         Description(b => b.Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
 
@@ -127,7 +127,7 @@ public sealed class SketchBiomeReadEndpoint(MapRepository repo, MapArtifactStore
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/biome"); AllowAnonymous();
+        Get("/map/{slug}/sketch/biome");
         Description(b => b.Produces<BiomeField>(200, "application/json").Refuses(400, 404));
     }
 
@@ -158,7 +158,7 @@ public sealed class SketchBiomeWriteEndpoint(MapRepository repo, MapArtifactStor
 {
     public override void Configure()
     {
-        Put("/map/{slug}/sketch/biome"); AllowAnonymous();
+        Put("/map/{slug}/sketch/biome");
         Description(b => b.Accepts<BiomeField>("application/json")
                           .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -190,7 +190,7 @@ public sealed class SketchBiomeDeleteEndpoint(MapRepository repo, MapArtifactSto
 {
     public override void Configure()
     {
-        Delete("/map/{slug}/sketch/biome"); AllowAnonymous();
+        Delete("/map/{slug}/sketch/biome");
         Description(b => b.Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
 

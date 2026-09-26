@@ -87,4 +87,79 @@ public sealed class PlayerLookupTests
         await Assert.That(http.WasAsked).IsTrue()
             .Because("the name IS shaped like an account, so the question was worth asking");
     }
+
+    /// <summary>A Mojang that answers one profile whose skin lives at <paramref name="texture"/>, serves a
+    /// small PNG there, and records every address it was asked.</summary>
+    private sealed class SkinServer(string texture) : HttpMessageHandler
+    {
+        public static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4];
+        public List<Uri> Asked { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Asked.Add(request.RequestUri!);
+            if (request.RequestUri!.Host == "sessionserver.mojang.com")
+            {
+                var textures = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                    "{\"textures\":{\"SKIN\":{\"url\":\"" + texture + "\"}}}"));
+                var profile = $$"""{"id":"069a79f444e94726a5befca90e38aaf5","name":"Notch","properties":[{"name":"textures","value":"{{textures}}"}]}""";
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                    { Content = new StringContent(profile) });
+            }
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                { Content = new ByteArrayContent(Png) });
+        }
+    }
+
+    /// <summary>A skin is fetched once, over https from Mojang's texture host, and read from the store after.</summary>
+    [Test]
+    public async Task A_skin_is_fetched_from_the_texture_host_once_and_kept()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var server = new SkinServer("http://textures.minecraft.net/texture/abc");
+        var lookup = new PlayerLookup(new MojangClient(new HttpClient(server)),
+            scope.ServiceProvider.GetRequiredService<PlayerNameStore>());
+
+        await Assert.That(await lookup.SkinAsync(NotchUuid)).IsEquivalentTo(SkinServer.Png);
+        await Assert.That(server.Asked.Last().ToString()).IsEqualTo("https://textures.minecraft.net/texture/abc");
+        var asked = server.Asked.Count;
+
+        await Assert.That(await lookup.SkinAsync(NotchUuid)).IsEquivalentTo(SkinServer.Png);
+        await Assert.That(server.Asked.Count).IsEqualTo(asked).Because("a kept skin is not asked for again");
+    }
+
+    /// <summary>A profile naming a texture anywhere else is not followed: the studio fetches from Mojang's
+    /// texture host and nowhere a profile could point it.</summary>
+    [Test]
+    public async Task A_texture_on_another_host_is_never_fetched()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var server = new SkinServer("http://example.com/texture/abc");
+        var lookup = new PlayerLookup(new MojangClient(new HttpClient(server)),
+            scope.ServiceProvider.GetRequiredService<PlayerNameStore>());
+
+        await Assert.That(await lookup.SkinAsync(NotchUuid)).IsNull();
+        await Assert.That(server.Asked.Any(uri => uri.Host == "example.com")).IsFalse();
+    }
+
+    /// <summary>The route serves a kept skin as a PNG from the studio's own origin, and answers 404 in the
+    /// envelope for a uuid that is not one.</summary>
+    [Test]
+    public async Task The_skin_route_serves_the_kept_skin()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using (var scope = ApiTestFactory.Shared.Services.CreateScope())
+            await scope.ServiceProvider.GetRequiredService<PlayerNameStore>()
+                .KeepSkinAsync(NotchUuid, "Notch", SkinServer.Png);
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        using var skin = await client.GetAsync($"/api/minecraft/player/{NotchUuid}/skin");
+        await Assert.That(skin.Content.Headers.ContentType?.MediaType).IsEqualTo("image/png");
+        await Assert.That(await skin.Content.ReadAsByteArrayAsync()).IsEquivalentTo(SkinServer.Png);
+
+        using var none = await client.GetAsync("/api/minecraft/player/not-a-uuid/skin");
+        await Assert.That(none.StatusCode).IsEqualTo(System.Net.HttpStatusCode.NotFound);
+    }
 }

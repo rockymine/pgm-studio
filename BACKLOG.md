@@ -433,6 +433,34 @@ and what a `subtract` takes away.
   and its sub-intervals, so they are correct and should stay, which is exactly why the deriver's misuse
   is worth removing rather than tolerating.
 
+## Opening the studio to other people: sign-in, a server, and what a caller may ask for
+
+The access rules, the Discord sign-in and the read-only client are in place (`docs/access.md`). What remains
+is a way in for callers without a browser, the machine it runs on, and the edits a read-only page still lets
+start.
+
+- [ ] **RP76 — A token for callers without a browser.** An admin- or self-issued bearer token, stored as a
+  hash beside the user it acts as (`studio_token`: user id, hash, label, created, last used), accepted by a
+  second authentication scheme and revocable from `DELETE /api/users/me/tokens/{id}`. The agent that loads
+  maps with `POST /api/map/from-documents` carries one as an environment secret, never a password.
+
+- [ ] **RP81 — The edits a read-only page still lets start.** Three reach past the shells that grey a page
+  (`docs/client/ui-conventions.md`): a `Sidebar`'s own inputs (the sketch layer's rename and base height), the
+  select tool's drag on the canvas, which moves a shape until the save is refused, and a `FlowBar` whose next
+  step writes (the sketch's Finish). Pass the cascaded `StudioReadOnly` into the canvas controllers as a flag
+  that refuses a drag, and let `FlowBar` disable a writing step. The server refuses all three today.
+
+- [ ] **RP78 — `docs/deployment.md`: the studio on a server.** A Hetzner Cloud VM, Caddy for HTTPS in front
+  of the API as a systemd service with `UseForwardedHeaders` so the Discord callback is `https://`, MariaDB
+  bound to localhost, a GitHub Actions job that publishes after a
+  green `main`, runs `--migrate-only` behind a `mariadb-dump`, and restarts; nightly dumps to a Storage Box.
+  `Access:Mode=invited` and `Access:Admins` set in the unit's environment.
+
+- [ ] **RP79 — Bound what one caller may ask for at once.** A world export, a render and a compose are
+  seconds of CPU and a `GET` is open to anyone, so ASP.NET's rate limiter keyed on the caller — the uuid, or
+  the address when signed out — allows one export and a handful of renders in flight each, and answers the
+  rest 429 in the refusal envelope under a new `RQ` rule.
+
 ## The remainder: work no concept above has claimed
 
 - [ ] **WS72 — `GET /map/{slug}/coverage` and its `?format=png` each walk the whole board.** Both run

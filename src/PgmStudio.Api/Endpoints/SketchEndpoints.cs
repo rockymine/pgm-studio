@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
+using PgmStudio.Api.Access;
 using PgmStudio.Analysis.Footprint;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Api.Services;
@@ -34,7 +35,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
 {
     public override void Configure()
     {
-        Post("/sketch"); AllowAnonymous();
+        Post("/sketch");
         Description(b => b.Accepts<SketchOriginateRequest>("application/json"));
     }
 
@@ -46,7 +47,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var name = SketchDiscard.UntouchedName;
+        var name = DraftDiscard.SketchName;
         var hasFrame = false;
         double width = DefaultWidth, depth = DefaultDepth, centerX = 0, centerZ = 0;
         var mode = DefaultMode;
@@ -65,7 +66,8 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
         }
         catch { /* empty / invalid body → default name, no frame */ }
 
-        var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(repo, name, MapStage.Sketch, ct);
+        var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
+            repo, name, MapStage.Sketch, Callers.OriginatorOf(HttpContext), ct);
         var seed = Seed(hasFrame ? Math.Max(16, width) : null, Math.Max(16, depth), mode, centerX, centerZ);
         await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson, seed, ct);
         await Send.OkAsync(new OriginatedDto(slug), ct);
@@ -104,7 +106,6 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
     public override void Configure()
     {
         Get("/map/{slug}/sketch");
-        AllowAnonymous();
         // Declared rather than sent as the record: the blob is answered exactly as it was stored, and
         // re-serialising it through SketchLayout would drop whatever the reader has no field for — which is
         // the loss RQ3 exists to report on the way in, not to cause on the way out.
@@ -137,7 +138,7 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
 {
     public override void Configure()
     {
-        Put("/map/{slug}/sketch"); AllowAnonymous();
+        Put("/map/{slug}/sketch");
         Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 409));
     }
 
@@ -190,7 +191,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
 {
     public override void Configure()
     {
-        Put("/map/{slug}/sketch/from-plan"); AllowAnonymous();
+        Put("/map/{slug}/sketch/from-plan");
         Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 409));
     }
 
@@ -273,7 +274,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 {
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/paint"); AllowAnonymous();
+        Post("/map/{slug}/sketch/paint");
         Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404));
     }
 
@@ -324,7 +325,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
 {
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/columns"); AllowAnonymous();
+        Post("/map/{slug}/sketch/columns");
         Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 422));
     }
 
@@ -402,7 +403,7 @@ public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore 
 
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/dressing"); AllowAnonymous();
+        Post("/map/{slug}/sketch/dressing");
         Description(b => b.Accepts<SketchLayout>("application/json").AlsoText().Refuses(400, 404, 422));
     }
 
@@ -505,7 +506,7 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
 
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/seats"); AllowAnonymous();
+        Post("/map/{slug}/sketch/seats");
         Description(b => b.Accepts<SketchLayout>("application/json").AlsoText().Refuses(400, 404, 422).Reads(
             new QueryWord("kind", "Whose placement rules to run — the standoff a route is kept at is the "
                 + "kind's own. Absent runs `tree`'s.", [.. PlacedProp.Kinds]),
@@ -604,7 +605,7 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
 {
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/probe-footprint"); AllowAnonymous();
+        Post("/map/{slug}/sketch/probe-footprint");
         Description(b => b.Accepts<FootprintProbe.Request>("application/json").Refuses(404, 422));
     }
 
@@ -680,7 +681,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
 {
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/relief"); AllowAnonymous();
+        Post("/map/{slug}/sketch/relief");
         Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404));
     }
 
@@ -755,7 +756,7 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 {
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/relief/read"); AllowAnonymous();
+        Post("/map/{slug}/sketch/relief/read");
         Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404));
     }
 
@@ -842,7 +843,7 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore artifacts, WorldFeatureWriter writer)
     : EndpointWithoutRequest<SketchFinishedDto>
 {
-    public override void Configure() { Post("/map/{slug}/sketch/finish"); AllowAnonymous(); Description(b => b.Refuses(404, 422)); }
+    public override void Configure() { Post("/map/{slug}/sketch/finish"); Description(b => b.Refuses(404, 422)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -858,24 +859,6 @@ public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore ar
         // What the board names and does not have rides on the success — this is the last stage that can say so.
         Complaints.Add(HttpContext, finished.Complaints?.Complaints ?? []);
         await Send.OkAsync(new SketchFinishedDto(map.Slug, $"/maps/{map.Slug}/configure"), ct);
-    }
-}
-
-/// <summary>DELETE /api/map/{slug}/sketch/discard-if-empty — drop a still-pristine sketch draft (the row
-/// "New sketch" creates up front, then abandoned). The client calls this best-effort when it leaves the
-/// Sketch tool. Discards only a draft that is genuinely untouched: sketch stage, still carrying the default
-/// name, no authors, and nothing drawn — anything else is real work and is left alone. Returns
-/// <c>{discarded}</c>; a missing map or a non-pristine one is a no-op success.</summary>
-public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
-    : EndpointWithoutRequest<DiscardedDto>
-{
-    public override void Configure() { Delete("/map/{slug}/sketch/discard-if-empty"); AllowAnonymous(); }
-
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        var discarded = await SketchDiscard.IfUntouchedAsync(
-            repo, db, artifacts, Route<string>("slug")!, ct);
-        await Send.OkAsync(new DiscardedDto(discarded), ct);
     }
 }
 

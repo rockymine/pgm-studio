@@ -31,7 +31,7 @@ public sealed class DestroyableSuggestionsEndpoint(MapRepository repo, PgmDb db)
 {
     public override void Configure()
     {
-        Get("/map/{slug}/destroyable-suggestions"); AllowAnonymous(); Description(b => b.Refuses(404));
+        Get("/map/{slug}/destroyable-suggestions"); Description(b => b.Refuses(404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

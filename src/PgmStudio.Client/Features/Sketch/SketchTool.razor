@@ -22,12 +22,11 @@
         <span class="topbar-crumb topbar-crumb--dim">@groupLabel</span>
         <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" OnClick="Undo" />
         <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" OnClick="Redo" />
-        <Button Variant="icon" Icon="keyboard" Title="Keyboard shortcuts" OnClick="ShowKeys" />
       </Right>
     </Topbar>
   </Bar>
   <Rail>
-    <NavRail LogoHref="/" LogoTitle="Studio home">
+    <NavRail>
       <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
       <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
       <NavButton Icon="mountain" Title="Relief" Active="@ReliefActive" OnClick="GoRelief" />
@@ -190,7 +189,7 @@
           <CanvasDock>
             @* Getting around the canvas and picking what is already on it — the whole dock in a select-only
                phase (Theme). Every group after this one authors something, which is Draw's and Dressing's. *@
-            <DockGroup>
+            <DockGroup Viewing>
               <DockButton Icon="mouse-pointer-2" Title="Select" Active="@(tool == "select")"
                           OnClick='() => SetTool("select")' />
               <DockButton Icon="hand" Title="Move" Active="@(tool == "move")"

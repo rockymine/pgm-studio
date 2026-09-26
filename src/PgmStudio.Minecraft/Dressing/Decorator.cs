@@ -46,6 +46,9 @@ namespace PgmStudio.Minecraft.Dressing;
 /// Absent, every prop seats on <paramref name="SurfaceTop"/>.</param>
 /// <param name="Waypoints">The points a route is traced between, so a pass that keeps ground clear of
 /// traffic knows where the traffic goes. Absent, nothing is held clear on that account.</param>
+/// <param name="CliffAngleAt">The angle from which the theme painting a cell calls its ground a face, by layer
+/// and cell — what a prop is kept off a cliff against (<see cref="Incline"/>). Absent, no ground is a
+/// cliff.</param>
 public sealed record DressingContext(
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
     IReadOnlyList<PlacedProp> Props,

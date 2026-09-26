@@ -35,7 +35,7 @@ public sealed class EvaluatorTermsEndpointTests
         await Assert.That(goalRatio.Kind).IsEqualTo("soft");
         await Assert.That(goalRatio.BandSource).IsEqualTo("authored");
         await Assert.That(goalRatio.Band).IsEquivalentTo(new[] { 3.0, 4.0 });
-        await Assert.That(goalRatio.LearnsFromTraced).IsEqualTo(false);
+        await Assert.That(goalRatio.LearnsFromTraced).IsFalse();
     }
 
     [Test]
@@ -47,7 +47,7 @@ public sealed class EvaluatorTermsEndpointTests
         await Assert.That(goalDistance.Kind).IsEqualTo("soft");
         await Assert.That(goalDistance.BandSource).IsEqualTo("authored");
         await Assert.That(goalDistance.Band).IsEquivalentTo(new[] { 40.0, 90.0 });
-        await Assert.That(goalDistance.LearnsFromTraced).IsEqualTo(false);
+        await Assert.That(goalDistance.LearnsFromTraced).IsFalse();
     }
 
     [Test]

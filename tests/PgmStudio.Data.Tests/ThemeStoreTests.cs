@@ -49,7 +49,7 @@ public sealed class ThemeStoreTests
 
         var joined = await store.GetBucketStylesAsync(themeId);
         await Assert.That(joined.Count).IsEqualTo(2);
-        await Assert.That(joined.Any(j => j.Bucket.Bucket == ThemeBuckets.Rim && j.Style.Name == "quartz")).IsTrue();
+        await Assert.That(joined.Any(j => j.Bucket.Bucket == ThemeBuckets.Rim && j.Style?.Name == "quartz")).IsTrue();
 
         await store.DeleteThemeAsync(themeId);
         await Assert.That((await store.GetBucketsAsync(themeId)).Count).IsEqualTo(0);   // bindings cascaded

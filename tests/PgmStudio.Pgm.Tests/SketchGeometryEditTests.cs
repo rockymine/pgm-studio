@@ -90,7 +90,7 @@ public sealed class SketchGeometryEditTests
         var edited = SketchGeometryEdit.AddShape(Board, "ground",
             new JsonObject { ["type"] = "rectangle" }, "i");
         var group = Root(edited.Layout!)["layers"]!.AsArray()[0]!["layout"]!["groups"]!.AsArray()[0]!;
-        await Assert.That(group["shapeIds"]!.AsArray().Select(id => (string?)id))
+        await Assert.That(group["shapeIds"]!.AsArray().Select(id => (string)id!))
             .IsEquivalentTo(new[] { "s1", "s2", edited.Id });
     }
 
@@ -141,7 +141,7 @@ public sealed class SketchGeometryEditTests
     {
         var edited = SketchGeometryEdit.RemoveShape(Board, "s1");
         var group = Root(edited.Layout!)["layers"]!.AsArray()[0]!["layout"]!["groups"]!.AsArray()[0]!;
-        await Assert.That(group["shapeIds"]!.AsArray().Select(id => (string?)id))
+        await Assert.That(group["shapeIds"]!.AsArray().Select(id => (string)id!))
             .IsEquivalentTo(new[] { "s2" });
         await Assert.That(Shapes(edited.Layout!, "ground").Count).IsEqualTo(1);
     }

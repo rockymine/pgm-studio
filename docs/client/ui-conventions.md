@@ -33,7 +33,10 @@ By tier, each grounded in the classes it emits.
 
 **Primitives** — leaf, style-only. `Button` (`action-btn` plus its `--primary`/`--danger`/`--warn`/`--icon`
 variants, an optional lucide `Icon` name, and an `Href` that switches it to an `<a>`), `Badge`, `Chip`
-(`filter-chip`), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, and `Icon`.
+(`filter-chip`), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, `Icon`, and `PlayerHead` —
+a person's initial on a neutral tile, with an account's face and hat cut in CSS from the
+skin the studio serves at `/api/minecraft/player/{uuid}/skin`, so a browser asks no third party and a skin the
+studio cannot get leaves the initial showing.
 
 **Forms** — `Field` is the atom the whole system is built from: it owns the label, the required mark, the
 error line and the hint slots, and the input itself is `ChildContent`. `NumberField` and `CoordField` are the
@@ -51,10 +54,14 @@ from outside the studio to draw them.
 on its own, `ListRow` (the list row with its swatch, label, tag, go-arrow and a `Trailing` slot for a control
 the row carries), and `DetailHeader` (an inspector head: icon, label, trailing badges).
 
-**Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + topbar + body + optional footer);
-`Topbar` carries the home link and a `Crumbs` slot composed from `Crumb`; `NavRail` and `NavButton` are the
+**Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + the two bars + body + footer);
+`AppNav` is the studio's own bar on every page — home, a link per tool, the theme and `AccountMenu`, who is
+signed in; `Topbar` is the tool's bar under it — the home link, a `Crumbs` slot composed from `Crumb`, a *View
+only* tag on a read-only page, and the tool's actions; `AppFooter` closes every page with the keyboard
+shortcuts, the design reference and the repository; `NavRail` and `NavButton` are the
 left rail; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from; `FlowBar` is the phase/step nav the stepped tools share; `AppFooter`/`AppFooterLink` and `SideDrawer` finish the set.
+arranges itself from; `FlowBar` is the phase/step nav the stepped tools share; `AppFooterLink` and `SideDrawer`
+finish the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
 `CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton`, `DockChoice` (one option of a set the dock
@@ -69,6 +76,25 @@ with the bound style's own picture beside the control) and `HouseViews`.
 which the Configure tool and the design showcase both mount. The world canvas and the bodies drawn beside it —
 `WorldCanvas`, `RegionTree`, `SliceView`, `BuildHeightSideview` — are the Configure tool's alone and live in
 `Features/Configure/`.
+
+## A page that may not write
+
+**Whether a page may write is the shell's to decide, and the panels' to show.** `StudioShell` asks
+`StudioAccess.ReadOnlyReasonAsync` about the address it is on — a page under `/maps/{slug}/` edits that map and
+asks `GET /api/map/{slug}/access`; the map list, the catalogue, the design page and the whitelist page write
+nothing; every other page needs someone on the whitelist — and where the answer is no it hands the reason to
+the tool's bar as `StudioReadOnlyReason`, which shows *View only* with the reason on hover, and cascades
+`StudioReadOnly` to everything beneath it. No tool states its own read-only-ness, so a new tool is read-only for a visitor the
+moment it sits in the shell.
+
+Three shells answer the cascade. `Inspector` and `ContentColumn` put their content in a disabled `<fieldset>`,
+which is the browser's own way of greying every input, select and button inside it at once; the library
+editor does the same over its name, fields and save. `DockGroup` is authoring unless it is marked `Viewing`,
+and an authoring group is not drawn on a read-only page — so select and pan stay, and every tool that draws
+goes. What the shells do not reach is recorded as `RP81`.
+
+The server refuses every write the caller may not make whatever the page shows (`docs/access.md`); this is
+what lets the page say so before an edit rather than after it.
 
 ## The words a form writes, and where they are declared
 

@@ -13,7 +13,7 @@ namespace PgmStudio.Minecraft.Render;
 /// needs no key, and an author holding a mask cut at 20 and 45 reads its two boundaries straight off the
 /// page as the step from <c>1</c> to <c>2</c> and from <c>4</c> to <c>5</c>.</para>
 ///
-/// <para>It answers the same <see cref="TerrainProfile.SlopeAt"/> the painter resolves against, over the same
+/// <para>It answers the same <see cref="TerrainProfile.SlopeAt(Func{int, int, int}, int)"/> the painter resolves against, over the same
 /// terrain surface, so a band that came out wrong and the number that chose it cannot disagree. Water,
 /// houses and the map's own spawns and goals overprint as they do on the heightmap, because ground under
 /// something that matters is read differently from ground that is merely steep.</para>

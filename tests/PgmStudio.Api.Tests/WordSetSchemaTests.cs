@@ -31,7 +31,7 @@ public sealed class WordSetSchemaTests
         typeof(DoorHeadForms), typeof(DoorHeadFills), typeof(Landform), typeof(EditZone),
         typeof(WoolColors), typeof(TreeForms), typeof(TreeSpeciesNames),
         typeof(BoulderForms), typeof(BlockKinds), typeof(BiomeKinds), typeof(StructuralRoles),
-        typeof(NegativeSpaceKinds), typeof(SizeBands),
+        typeof(NegativeSpaceKinds), typeof(SizeBands), typeof(AccessModes), typeof(StudioRoles),
     ];
 
     /// <summary>The fields marked today. Nothing in the compiler can say a field <em>ought</em> to be
@@ -64,7 +64,7 @@ public sealed class WordSetSchemaTests
                 if (!properties.TryGetProperty(Wire(property), out var field)) continue;
 
                 var published = field.TryGetProperty("enum", out var words)
-                    ? words.EnumerateArray().Select(word => word.GetString()).ToList()
+                    ? words.EnumerateArray().Select(word => word.GetString()!).ToList()
                     : [];
                 await Assert.That(published).IsEquivalentTo(Words.Of(declaring))
                     .Because($"{record.Name}.{Wire(property)} takes {declaring.Name}'s words");

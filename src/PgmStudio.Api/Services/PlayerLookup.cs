@@ -1,3 +1,4 @@
+using System.Text.Json;
 using PgmStudio.Data.Map;
 using PgmStudio.Vocabulary;
 
@@ -38,6 +39,24 @@ public sealed class PlayerLookup(MojangClient mojang, PlayerNameStore kept)
             return (uuid, name);
         }
         catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The skin of the account a uuid names — kept for thirty days like the name, and asked of
+    /// Mojang when not kept. Null where there is none or Mojang cannot be reached.</summary>
+    public async Task<byte[]?> SkinAsync(string uuid, CancellationToken ct = default)
+    {
+        if (await kept.SkinAsync(uuid, ct) is { } known) return known;
+        try
+        {
+            if (await mojang.SkinAsync(uuid, ct) is not ({ } name, { } skin)) return null;
+            await kept.KeepSkinAsync(uuid, name, skin, ct);
+            return skin;
+        }
+        catch (Exception fault) when (fault is HttpRequestException or TaskCanceledException or JsonException
+                                          or FormatException or KeyNotFoundException or InvalidOperationException)
         {
             return null;
         }

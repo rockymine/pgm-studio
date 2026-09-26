@@ -13,7 +13,7 @@ being **authored**, which originates a map at `stage=plan` and hands it to the P
 map follows the ordinary lifecycle — plan, sketch, configure — and the generator is done with it.
 
 Its companion page is the shape catalog at `/catalog`, which shows the vocabulary the composer fills boxes
-with. That is `shapes.md`'s subject, and the two pages link to each other from the top bar.
+with. That is `shapes.md`'s subject, and the two sit side by side in the studio's bar.
 
 What the composer *is* — the pipeline, the shape model, the rule kinds — is `docs/generator/model.md`, which
 governs. This document is the tool: what a request is, what comes back, what the numbers on a card mean, and
@@ -292,7 +292,8 @@ that a pinned board is any good — the score is advice, and a board scoring 12 
 
 ## The API
 
-Every endpoint is anonymous and rooted at `/api`.
+Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist
+([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|

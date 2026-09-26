@@ -31,8 +31,9 @@ public static class IntentWrite
         var intent = Stated(body) ?? new MapIntent();
         if (Unnamable(intent) is { } named) return new(named);
 
+        var stored = await WithMapPeopleAsync(reader, slug, intent, ct);
         var written = await DocumentWrite.StoreAsync(artifacts, mapId, ArtifactKind.MapIntentJson, "intent",
-            JsonSerializer.SerializeToUtf8Bytes(intent, MapArtifactStore.Json), expected, ct);
+            JsonSerializer.SerializeToUtf8Bytes(stored, MapArtifactStore.Json), expected, ct);
         if (written.Refusal is { } refusal) return new(refusal);
 
         // A stated name is looked up here (async, outside the pure generator) so an account gets its uuid.
@@ -45,6 +46,33 @@ public static class IntentWrite
         // number is a different one and answering it would arm the caller's next write against the wrong
         // document.
         return applied with { Revision = written.Revision };
+    }
+
+    /// <summary>The intent to store: as stated where it names anyone, and otherwise carrying the people the map
+    /// already credits — the map's rows are its record of who made it, and the export reads the stored intent,
+    /// so an intent naming nobody would leave a credited map telling its players it names nobody (<c>EX6</c>).
+    /// The map's rows are left alone either way.</summary>
+    private static async Task<MapIntent> WithMapPeopleAsync(
+        MapReader reader, string slug, MapIntent intent, CancellationToken ct)
+    {
+        if (intent.Meta is { } stated && (stated.Authors.Count > 0 || stated.Contributors.Count > 0)) return intent;
+        if (await reader.ReadDocAsync(slug, ct) is not { } doc
+            || doc.GetValueOrDefault("authors") is not IEnumerable<object?> entries)
+            return intent;
+
+        var people = entries.Select(MapAuthors.Read).OfType<MapAuthors.Person>()
+            .Where(person => person.Name.Length > 0).ToList();
+        if (people.Count == 0) return intent;
+
+        List<AuthorIntent> Named(bool contributors) =>
+        [
+            .. people.Where(person => person.Contributor == contributors)
+                .Select(person => new AuthorIntent { Name = person.Name, Contribution = person.Contribution }),
+        ];
+        return intent with
+        {
+            Meta = (intent.Meta ?? new MetaIntent()) with { Authors = Named(false), Contributors = Named(true) },
+        };
     }
 
     /// <summary>The refusal for a person the intent states under a name nobody could be called, or null

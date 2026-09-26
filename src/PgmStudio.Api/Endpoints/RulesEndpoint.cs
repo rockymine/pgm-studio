@@ -34,7 +34,7 @@ namespace PgmStudio.Api.Endpoints;
 /// </summary>
 public sealed class RulesEndpoint : EndpointWithoutRequest<List<RuleDto>>
 {
-    public override void Configure() { Get("/rules"); AllowAnonymous(); }
+    public override void Configure() { Get("/rules"); }
 
     /// <summary>The assemblies holding rule ids, named rather than discovered. An assembly nothing has touched
     /// yet is not loaded, so sweeping <c>AppDomain</c> would drop a family depending on what the process

@@ -40,7 +40,7 @@ public sealed class ControlPointGeneratorTests
     // ends the match for whoever captures it first. This is the assertion the whole board depends on.
     [Test]
     public async Task Every_point_is_written_not_required()
-        => await Assert.That(First(Generate(Sample()))["required"]).IsEqualTo(false);
+        => await Assert.That((bool)First(Generate(Sample()))["required"]!).IsFalse();
 
     [Test]
     public async Task A_point_is_written_as_a_hill_rather_than_a_control_point()
@@ -52,9 +52,9 @@ public sealed class ControlPointGeneratorTests
     public async Task The_studios_capture_convention_is_stated_in_full()
     {
         var point = First(Generate(Sample()));
-        await Assert.That(point["neutral_state"]).IsEqualTo(true);
-        await Assert.That(point["incremental"]).IsEqualTo(true);
-        await Assert.That(point["show_progress"]).IsEqualTo(true);
+        await Assert.That((bool)point["neutral_state"]!).IsTrue();
+        await Assert.That((bool)point["incremental"]!).IsTrue();
+        await Assert.That((bool)point["show_progress"]!).IsTrue();
         await Assert.That(point["time_multiplier"]).IsEqualTo(0d);
         await Assert.That(point["capture_time"]).IsEqualTo(ObjectiveDefaults.ControlPointCaptureTime);
         await Assert.That(point["points"]).IsEqualTo(ObjectiveDefaults.ControlPointPoints);

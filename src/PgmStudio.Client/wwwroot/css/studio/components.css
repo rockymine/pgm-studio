@@ -152,7 +152,6 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
   gap: var(--space-1) var(--space-2);
 }
 .author-mark {
-  --author-hue: 0;
   width: 16px;
   height: 16px;
   flex-shrink: 0;
@@ -164,11 +163,11 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
   font-weight: 600;
   line-height: 1;
   user-select: none;
-  color: hsl(var(--author-hue) 55% 25%);
-  background: hsl(var(--author-hue) 45% 82%);
+  color: var(--text-secondary);
+  background: var(--bg-deep);
 }
-/* An account answered for this row, so the mark is stated rather than assumed. */
-.author-mark--account { box-shadow: 0 0 0 1px hsl(var(--author-hue) 45% 45%); }
+/* An account answered for this row: its head covers the initial, and the edge says so where it has none. */
+.author-mark--account { box-shadow: 0 0 0 1px var(--border); }
 .author-name { min-width: 0; }
 .author-contribution { min-width: 0; grid-column: 2; }
 .author-row .btn-remove { grid-column: 3; grid-row: 1 / span 2; }
@@ -1709,3 +1708,166 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 /* A chord the tool has but cannot run yet — a delete with nothing selected. Listed, because a chord hidden
    until it works is a chord nobody learns; dimmed, because it will not answer now. */
 .keys-row--off { opacity: .45; }
+
+/* ── Access: who is signed in, and a page that opens read-only ─────────────────────────────────── */
+
+/* A disabled fieldset greys every field and button inside it; it carries none of the box a fieldset draws. */
+.readonly-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.readonly-fieldset:disabled { opacity: 0.55; }
+
+.invite-link {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-2);
+}
+.invite-link .field-input { flex: 1; font-family: ui-monospace, monospace; font-size: var(--font-xs); }
+
+/* A player's face and hat, cut from their skin over the initial beneath; a skin that does not load leaves
+   the initial showing. */
+.author-mark { position: relative; overflow: hidden; }
+.player-head-face {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+.user-actions { display: flex; flex: none; align-items: center; gap: var(--space-2); }
+.user-actions .field-input { width: auto; }
+.invite-link .field-input--slim { width: auto; flex: none; }
+
+/* ── The studio's own bar, the same on every page ──────────────────────────────────────────────── */
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 var(--space-3) 0 var(--space-4);
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
+  color: var(--nav-text);
+  font-size: var(--font-md);
+}
+.app-nav-home { display: flex; align-items: baseline; gap: 4px; text-decoration: none; color: var(--nav-text-strong); }
+.app-nav-pgm { font-weight: 700; }
+.app-nav-sub { font-size: 10px; letter-spacing: 0.12em; color: var(--nav-text-muted); }
+.app-nav-links { display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; }
+.app-nav-link {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--nav-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.app-nav-link:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
+.app-nav-link--active { color: var(--nav-text-strong); background: var(--nav-active); }
+.app-nav-right { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
+.app-nav .theme-toggle { color: var(--nav-text); }
+.app-nav .theme-toggle:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
+
+.account { position: relative; }
+.account-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-2) 0 4px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--nav-text-strong);
+  font: inherit;
+  cursor: pointer;
+}
+.account-button:hover, .account-button[aria-expanded="true"] { background: var(--nav-hover); }
+.account-button svg { width: 14px; height: 14px; }
+.account-name { font-weight: 600; }
+.account-role {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--nav-active);
+  color: var(--nav-text-strong);
+  font-size: var(--font-xs);
+}
+.account-local { display: flex; align-items: center; gap: var(--space-2); color: var(--nav-text); }
+.account-signin {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: #5865f2;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}
+.account-signin svg { width: 16px; height: 16px; }
+.account-scrim { position: fixed; inset: 0; z-index: 40; }
+.account-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 41;
+  width: 240px;
+  padding: var(--space-2);
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.account-menu-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.account-menu-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.account-menu-who .account-name { color: var(--text-bright); }
+.account-menu-note { color: var(--text-muted); font-size: var(--font-sm); }
+.account-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.account-menu-item:hover { background: var(--bg-selected-hover); }
+.account-menu-item svg { width: 16px; height: 16px; color: var(--text-secondary); }
+
+/* A page the caller may not write says so in the tool's bar; the reason is on hover. */
+.readonly-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: var(--space-3);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-bg);
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+}
+.readonly-tag svg { width: 14px; height: 14px; color: var(--color-warning); }
+
+button.app-footer-link { border: 0; background: none; padding: 0; font: inherit; cursor: pointer; }
+.app-footer-kbd {
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--font-xs);
+}

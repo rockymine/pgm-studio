@@ -12,7 +12,7 @@ namespace PgmStudio.Api.Endpoints;
 /// neither reads off a number.</summary>
 public sealed class TreeStyleListEndpoint(PropStyleLibrary library) : EndpointWithoutRequest<List<TreeStyleSummary>>
 {
-    public override void Configure() { Get("/tree-styles"); AllowAnonymous(); }
+    public override void Configure() { Get("/tree-styles"); }
 
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ListTreesAsync(ct))
@@ -21,7 +21,7 @@ public sealed class TreeStyleListEndpoint(PropStyleLibrary library) : EndpointWi
 
 public sealed class TreeStyleGetEndpoint(PropStyleStore store) : EndpointWithoutRequest<TreeStyleDetail>
 {
-    public override void Configure() { Get("/tree-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/tree-styles/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -35,7 +35,7 @@ public sealed class TreeStyleGetEndpoint(PropStyleStore store) : EndpointWithout
 /// pull copies into a map's registry under a key.</summary>
 public sealed class TreeStyleDocumentEndpoint(PropStyleStore store) : EndpointWithoutRequest<StyleJsonDto>
 {
-    public override void Configure() { Get("/tree-styles/{id}/json"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/tree-styles/{id}/json"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -50,7 +50,7 @@ public sealed class TreeStyleDocumentEndpoint(PropStyleStore store) : EndpointWi
 /// cut: a copied tree is one cut out of a world, and nothing but the cutter records one.</summary>
 public sealed class TreeStyleCreateEndpoint(PropStyleStore store) : Endpoint<TreeStyleSaveRequest, TreeStyleDetail>
 {
-    public override void Configure() { Post("/tree-styles"); AllowAnonymous(); }
+    public override void Configure() { Post("/tree-styles"); }
 
     public override async Task HandleAsync(TreeStyleSaveRequest req, CancellationToken ct)
     {
@@ -66,7 +66,7 @@ public sealed class TreeStyleCreateEndpoint(PropStyleStore store) : Endpoint<Tre
 /// answered.</summary>
 public sealed class TreeStyleUpdateEndpoint(PropStyleStore store) : Endpoint<TreeStyleSaveRequest, TreeStyleDetail>
 {
-    public override void Configure() { Put("/tree-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Put("/tree-styles/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(TreeStyleSaveRequest req, CancellationToken ct)
     {
@@ -82,7 +82,7 @@ public sealed class TreeStyleUpdateEndpoint(PropStyleStore store) : Endpoint<Tre
 
 public sealed class TreeStyleDraftPreviewEndpoint : Endpoint<TreeStyleSaveRequest, StyleCardDto>
 {
-    public override void Configure() { Post("/tree-styles/preview"); AllowAnonymous(); }
+    public override void Configure() { Post("/tree-styles/preview"); }
 
     public override async Task HandleAsync(TreeStyleSaveRequest req, CancellationToken ct)
         => await Send.OkAsync(new StyleCardDto(PropStyleLibrary.CardOf(req)), ct);
@@ -93,7 +93,7 @@ public sealed class TreeStyleDraftPreviewEndpoint : Endpoint<TreeStyleSaveReques
 /// they were pulled from goes.</summary>
 public sealed class TreeStyleDeleteEndpoint(PropStyleStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/tree-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Delete("/tree-styles/{id}"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -106,7 +106,7 @@ public sealed class TreeStyleDeleteEndpoint(PropStyleStore store) : EndpointWith
 public sealed class BoulderStyleListEndpoint(PropStyleLibrary library)
     : EndpointWithoutRequest<List<BoulderStyleSummary>>
 {
-    public override void Configure() { Get("/boulder-styles"); AllowAnonymous(); }
+    public override void Configure() { Get("/boulder-styles"); }
 
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ListBouldersAsync(ct))
@@ -115,7 +115,7 @@ public sealed class BoulderStyleListEndpoint(PropStyleLibrary library)
 
 public sealed class BoulderStyleGetEndpoint(PropStyleStore store) : EndpointWithoutRequest<BoulderStyleDetail>
 {
-    public override void Configure() { Get("/boulder-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/boulder-styles/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -127,7 +127,7 @@ public sealed class BoulderStyleGetEndpoint(PropStyleStore store) : EndpointWith
 
 public sealed class BoulderStyleDocumentEndpoint(PropStyleStore store) : EndpointWithoutRequest<StyleJsonDto>
 {
-    public override void Configure() { Get("/boulder-styles/{id}/json"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/boulder-styles/{id}/json"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -141,7 +141,7 @@ public sealed class BoulderStyleDocumentEndpoint(PropStyleStore store) : Endpoin
 public sealed class BoulderStyleCreateEndpoint(PropStyleStore store)
     : Endpoint<BoulderStyleSaveRequest, BoulderStyleDetail>
 {
-    public override void Configure() { Post("/boulder-styles"); AllowAnonymous(); }
+    public override void Configure() { Post("/boulder-styles"); }
 
     public override async Task HandleAsync(BoulderStyleSaveRequest req, CancellationToken ct)
     {
@@ -154,7 +154,7 @@ public sealed class BoulderStyleCreateEndpoint(PropStyleStore store)
 public sealed class BoulderStyleUpdateEndpoint(PropStyleStore store)
     : Endpoint<BoulderStyleSaveRequest, BoulderStyleDetail>
 {
-    public override void Configure() { Put("/boulder-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Put("/boulder-styles/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(BoulderStyleSaveRequest req, CancellationToken ct)
     {
@@ -169,7 +169,7 @@ public sealed class BoulderStyleUpdateEndpoint(PropStyleStore store)
 
 public sealed class BoulderStyleDraftPreviewEndpoint : Endpoint<BoulderStyleSaveRequest, StyleCardDto>
 {
-    public override void Configure() { Post("/boulder-styles/preview"); AllowAnonymous(); }
+    public override void Configure() { Post("/boulder-styles/preview"); }
 
     public override async Task HandleAsync(BoulderStyleSaveRequest req, CancellationToken ct)
         => await Send.OkAsync(new StyleCardDto(PropStyleLibrary.CardOf(req)), ct);
@@ -177,7 +177,7 @@ public sealed class BoulderStyleDraftPreviewEndpoint : Endpoint<BoulderStyleSave
 
 public sealed class BoulderStyleDeleteEndpoint(PropStyleStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/boulder-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Delete("/boulder-styles/{id}"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

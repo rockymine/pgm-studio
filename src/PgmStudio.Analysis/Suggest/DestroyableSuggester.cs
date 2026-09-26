@@ -14,7 +14,7 @@ namespace PgmStudio.Analysis.Suggest;
 /// <param name="Blocks">How many blocks the mass holds. Descriptive, never a filter: the corpus spans one
 /// block to 31,105 and any cap discards truth.</param>
 /// <param name="SameNearby">Same-material blocks in the neighbourhood, excluding the mass itself, counted to
-/// <see cref="SameNearbyCap"/> and no further. The isolation signal: decoration repeats, a goal is placed
+/// <see cref="DestroyableSuggester.SameNearbyCap"/> and no further. The isolation signal: decoration repeats, a goal is placed
 /// once.</param>
 /// <param name="Elevation">Blocks between the mass's underside and the median terrain height of the ring
 /// around it. The prominence signal.</param>

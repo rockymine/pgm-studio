@@ -43,7 +43,7 @@ public sealed class SketchLayerListEndpoint(MapRepository repo, MapArtifactStore
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/layers"); AllowAnonymous();
+        Get("/map/{slug}/sketch/layers");
         Description(b => b.Produces<IReadOnlyList<SketchLayer>>(200, "application/json").Refuses(404));
     }
 
@@ -64,7 +64,7 @@ public sealed class SketchLayerOfIdEndpoint(MapRepository repo, MapArtifactStore
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/layers/{layerId}"); AllowAnonymous();
+        Get("/map/{slug}/sketch/layers/{layerId}");
         Description(b => b.Produces<SketchLayer>(200, "application/json").Refuses(404));
     }
 
@@ -97,7 +97,7 @@ public sealed class SketchLayerWriteEndpoint(MapRepository repo, MapArtifactStor
 {
     public override void Configure()
     {
-        Put("/map/{slug}/sketch/layers/{layerId}"); AllowAnonymous();
+        Put("/map/{slug}/sketch/layers/{layerId}");
         Description(b => b.Accepts<SketchLayer>("application/json")
                           .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -120,7 +120,7 @@ public sealed class SketchLayerDeleteEndpoint(MapRepository repo, MapArtifactSto
 {
     public override void Configure()
     {
-        Delete("/map/{slug}/sketch/layers/{layerId}"); AllowAnonymous();
+        Delete("/map/{slug}/sketch/layers/{layerId}");
         Description(b => b.Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
 
@@ -143,7 +143,7 @@ public sealed class SketchGroupListEndpoint(MapRepository repo, MapArtifactStore
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/groups"); AllowAnonymous();
+        Get("/map/{slug}/sketch/groups");
         Description(b => b.Produces<IReadOnlyList<SketchGroupAt>>(200, "application/json").Refuses(404));
     }
 
@@ -175,7 +175,7 @@ public sealed class SketchGroupWriteEndpoint(MapRepository repo, MapArtifactStor
 {
     public override void Configure()
     {
-        Put("/map/{slug}/sketch/layers/{layerId}/groups/{groupId}"); AllowAnonymous();
+        Put("/map/{slug}/sketch/layers/{layerId}/groups/{groupId}");
         Description(b => b.Accepts<SketchGroup>("application/json")
                           .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -201,7 +201,7 @@ public sealed class SketchGroupDeleteEndpoint(MapRepository repo, MapArtifactSto
 {
     public override void Configure()
     {
-        Delete("/map/{slug}/sketch/layers/{layerId}/groups/{groupId}"); AllowAnonymous();
+        Delete("/map/{slug}/sketch/layers/{layerId}/groups/{groupId}");
         Description(b => b.Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
 
@@ -224,7 +224,7 @@ public sealed class SketchShapeListEndpoint(MapRepository repo, MapArtifactStore
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/layers/{layerId}/shapes"); AllowAnonymous();
+        Get("/map/{slug}/sketch/layers/{layerId}/shapes");
         Description(b => b.Produces<IReadOnlyList<SketchShape>>(200, "application/json").Refuses(404));
     }
 
@@ -258,7 +258,7 @@ public sealed class SketchShapeCreateEndpoint(MapRepository repo, MapArtifactSto
 {
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/layers/{layerId}/shapes"); AllowAnonymous();
+        Post("/map/{slug}/sketch/layers/{layerId}/shapes");
         Description(b => b.Accepts<SketchShape>("application/json")
                           .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -283,7 +283,7 @@ public sealed class SketchShapeOfIdEndpoint(MapRepository repo, MapArtifactStore
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/shapes/{shapeId}"); AllowAnonymous();
+        Get("/map/{slug}/sketch/shapes/{shapeId}");
         Description(b => b.Produces<SketchShape>(200, "application/json").Refuses(404));
     }
 
@@ -314,7 +314,7 @@ public sealed class SketchShapeUpdateEndpoint(MapRepository repo, MapArtifactSto
 {
     public override void Configure()
     {
-        Patch("/map/{slug}/sketch/shapes/{shapeId}"); AllowAnonymous();
+        Patch("/map/{slug}/sketch/shapes/{shapeId}");
         Description(b => b.Accepts<SketchShape>("application/json")
                           .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -337,7 +337,7 @@ public sealed class SketchShapeDeleteEndpoint(MapRepository repo, MapArtifactSto
 {
     public override void Configure()
     {
-        Delete("/map/{slug}/sketch/shapes/{shapeId}"); AllowAnonymous();
+        Delete("/map/{slug}/sketch/shapes/{shapeId}");
         Description(b => b.Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
 
@@ -379,7 +379,7 @@ public sealed class SketchVertexMoveEndpoint(MapRepository repo, MapArtifactStor
 {
     public override void Configure()
     {
-        Patch("/map/{slug}/sketch/shapes/{shapeId}/vertices/{index}"); AllowAnonymous();
+        Patch("/map/{slug}/sketch/shapes/{shapeId}/vertices/{index}");
         Description(b => b.Accepts<VertexAt>("application/json")
                           .Produces<OutlineDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -422,7 +422,7 @@ public sealed class SketchVertexAddEndpoint(MapRepository repo, MapArtifactStore
 {
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/shapes/{shapeId}/vertices"); AllowAnonymous();
+        Post("/map/{slug}/sketch/shapes/{shapeId}/vertices");
         Description(b => b.Accepts<VertexInsert>("application/json")
                           .Produces<OutlineDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -460,7 +460,7 @@ public sealed class SketchVertexDeleteEndpoint(MapRepository repo, MapArtifactSt
 {
     public override void Configure()
     {
-        Delete("/map/{slug}/sketch/shapes/{shapeId}/vertices/{index}"); AllowAnonymous();
+        Delete("/map/{slug}/sketch/shapes/{shapeId}/vertices/{index}");
         Description(b => b.Produces<OutlineDto>(200, "application/json").Refuses(400, 404, 409));
     }
 
@@ -517,7 +517,7 @@ public sealed class SketchShapeBendEndpoint(MapRepository repo, MapArtifactStore
 {
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/shapes/{shapeId}/bend"); AllowAnonymous();
+        Post("/map/{slug}/sketch/shapes/{shapeId}/bend");
         Description(b => b.Accepts<BendRequest>("application/json")
                           .Produces<BentDto>(200, "application/json").Refuses(400, 404, 409));
     }

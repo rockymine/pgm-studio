@@ -11,6 +11,7 @@ public sealed class PgmDb : DataConnection
 
     public ITable<MapRow> Maps => this.GetTable<MapRow>();
     public ITable<AuthorRow> Authors => this.GetTable<AuthorRow>();
+    public ITable<StudioUserRow> StudioUsers => this.GetTable<StudioUserRow>();
     public ITable<TeamRow> Teams => this.GetTable<TeamRow>();
     public ITable<KitRow> Kits => this.GetTable<KitRow>();
     public ITable<KitItemRow> KitItems => this.GetTable<KitItemRow>();

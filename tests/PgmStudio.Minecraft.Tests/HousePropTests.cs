@@ -103,8 +103,10 @@ public sealed class HousePropTests
     {
         // The one number serves two readings — two walls and an inside for a wing, a pad and the clear floor
         // it keeps for a room — and it is only one number while it is enough for both.
+#pragma warning disable TUnitAssertions0005 // the constant is the subject: this pins a number the author stated
         await Assert.That(RoomFrames.MinFootprintSpan)
             .IsGreaterThanOrEqualTo(RoomFrames.PadSpan + 2 * RoomFrames.PadWallClearance);
+#pragma warning restore TUnitAssertions0005
     }
 
     [Test]

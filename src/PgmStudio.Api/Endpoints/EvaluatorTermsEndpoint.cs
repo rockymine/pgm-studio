@@ -18,7 +18,7 @@ namespace PgmStudio.Api.Endpoints;
 /// </summary>
 public sealed class EvaluatorTermsEndpoint : EndpointWithoutRequest<List<TermDto>>
 {
-    public override void Configure() { Get("/rules/terms"); AllowAnonymous(); }
+    public override void Configure() { Get("/rules/terms"); }
 
     private static readonly List<TermDto> Catalog =
     [

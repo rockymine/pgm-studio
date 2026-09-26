@@ -25,6 +25,13 @@ writes: when a shape changes, **change the callers**. Never keep a legacy path, 
 second accepted format "just in case" — there is no case, and the second path is what rots. The exception is
 the `map.xml` contract itself, which PGM reads and which is therefore not ours to change.
 
+**Stored data is never the thing that gives way.** The rule above is about code and wire shapes; it is not
+licence to drop what is in the database. A deployed studio holds maps other people wrote, so a change to
+how something is stored ships with a **FluentMigrator migration that carries every existing row into the new
+shape** — never a reset, a "re-import it", or a column dropped with its contents. A migration that cannot
+carry a row forward is a question for the author before it is written, not a `DELETE` inside it. The code
+still keeps one shape: the migration converts the data once, and nothing reads the old form afterwards.
+
 ## Where code goes
 The rule: **a unit of code lives in the lowest (most-depended-upon) project that (a) already has the
 dependencies it needs and (b) every consumer can already reach** — push it down for reuse, never up. Then a
@@ -117,7 +124,7 @@ document rather than what a reader is looking for.
 | `pgm/` | the map contract — destroyables/cores, control points, shops and shopkeepers, water lanes, regions and filters, include resolution, what the studio refuses to read, the intent model, `template.xml`. |
 | `client/` | the browser half: the canvas JS layer, the component vocabulary, routing and how the client is served. |
 | `gameplay/` | what a map is played for — `approaches.md` (what the ground around an objective does, and the one document whose claims are the author's), the match-flow account, the traffic ground truth. |
-| root | whole-repo notes: `project-structure` (the package map — where a piece of code belongs), `architecture` (the boundary — how a request becomes work, and what the studio can say about itself), `design-decisions`, `refusals` (how every gate says no, and the rule-id catalogue), `cloud-setup`, `backlog-strategy` (the board's own reading — which entries are defects, which are questions, which share a cause, and the order that drains them). |
+| root | whole-repo notes: `project-structure` (the package map — where a piece of code belongs), `architecture` (the boundary — how a request becomes work, and what the studio can say about itself), `design-decisions`, `refusals` (how every gate says no, and the rule-id catalogue), `access` (who may write, and how a request is signed in), `cloud-setup`, `backlog-strategy` (the board's own reading — which entries are defects, which are questions, which share a cause, and the order that drains them). |
 
 A document is deleted when a subject folder's document owns its subject; corpus **measurements** are kept even
 when the design around them has landed, because nothing else can re-derive them.
@@ -210,6 +217,9 @@ renamed or retired changes its `vocabulary.md` row in the same commit.
   schema, expandable and sendable without a client — over the document at `/api/openapi/v1.json`, which is
   generated from the routes and the DTOs. A route that declares no request type appears there with no body
   schema, which is the honest reading of `RP12`.
+- **A warning fails the build.** `Directory.Build.props` sets `TreatWarningsAsErrors` for every project, tests
+  and tool scripts included, so a build that passes has none. A warning that states something true of deliberate
+  code is suppressed at the line with its reason beside it, never across a project.
 - **`dotnet test` is not the path** on the .NET 10 SDK (the VSTest bridge is gone) — run a project directly:
   `dotnet run --project tests/<Project>`.
 - **`./tools/e2e.sh all`** is the browser gate (icons · paint · plan refusals · smoke), on its own port and

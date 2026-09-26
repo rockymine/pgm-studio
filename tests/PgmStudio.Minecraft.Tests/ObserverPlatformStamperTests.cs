@@ -122,7 +122,7 @@ public sealed class ObserverPlatformStamperTests
                                 || tile.Get<NbtInt>("z")!.Value != z) continue;
                             return [.. Enumerable.Range(1, 4).Select(i => tile.Get<NbtString>($"Text{i}")!.Value)];
                         }
-            await Assert.That(false).IsTrue().Because($"no sign at ({x}, {y}, {z})");
+            Assert.Fail($"no sign at ({x}, {y}, {z})");
             return [];
         }
         finally { Directory.Delete(dir, recursive: true); }

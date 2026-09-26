@@ -1285,6 +1285,12 @@ public partial class PlanTool
 
     public async ValueTask DisposeAsync()
     {
+        // A "New plan" draft never saved is discarded so an abandoned click doesn't linger on the dashboard;
+        // the server decides whether it is untouched (default name, never saved, no one else credited).
+        if (MapBacked)
+        {
+            try { await Http.DeleteAsync($"api/map/{Slug}/discard-if-empty"); } catch { }
+        }
         try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null)
         {

@@ -15,8 +15,9 @@ namespace PgmStudio.Api.Tests;
 internal static class EndpointTables
 {
     /// <summary>Codes no row carries, because every operation publishes them from one place: the two the
-    /// global configurator declares, and the successes.</summary>
-    public static readonly int[] Everywhere = [200, 201, 204, 400, 500];
+    /// global configurator declares, the two the access rules declare on every write, and the successes.
+    /// </summary>
+    public static readonly int[] Everywhere = [200, 201, 204, 400, 401, 403, 500];
 
     /// <summary>
     /// One endpoint-table row: the verbs and paths its leading cell names, the one route it leads with, where

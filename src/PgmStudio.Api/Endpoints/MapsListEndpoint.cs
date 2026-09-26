@@ -26,7 +26,6 @@ public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifa
     public override void Configure()
     {
         Get("/maps");
-        AllowAnonymous();
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -65,7 +64,6 @@ public sealed class MapStageCountsEndpoint(MapRepository repo, MapArtifactStore 
     public override void Configure()
     {
         Get("/maps/stage-counts");
-        AllowAnonymous();
     }
 
     public override async Task HandleAsync(CancellationToken ct)

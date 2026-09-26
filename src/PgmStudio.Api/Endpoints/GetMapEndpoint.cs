@@ -16,7 +16,6 @@ public sealed class GetMapEndpoint(MapRepository repo, MapReader reader, MapWrit
     public override void Configure()
     {
         Get("/map/{slug}");
-        AllowAnonymous();
         // Declared rather than sent as the record: the document is the codec's encoding of the whole
         // contract, so mapping it here would be a second codec free to disagree with the first.
         // MapDocumentShapeTests holds the record to what the serializer writes instead.
@@ -40,7 +39,6 @@ public sealed class DeleteMapEndpoint(MapRepository repo) : EndpointWithoutReque
     public override void Configure()
     {
         Delete("/map/{slug}");
-        AllowAnonymous();
         Description(b => b.Refuses(404));
     }
 
@@ -49,6 +47,21 @@ public sealed class DeleteMapEndpoint(MapRepository repo) : EndpointWithoutReque
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         await repo.DeleteMapAsync(map.Id, ct);
         await Send.NoContentAsync(ct);
+    }
+}
+
+/// <summary>DELETE /api/map/{slug}/discard-if-empty — drop a draft "New sketch" or "New plan" created and
+/// nobody worked on (<see cref="DraftDiscard"/>). Both tools call it best-effort on the way out; a map with any
+/// work in it, and a slug no map is stored under, answer <c>{discarded: false}</c>.</summary>
+public sealed class DraftDiscardEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<DiscardedDto>
+{
+    public override void Configure() { Delete("/map/{slug}/discard-if-empty"); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var discarded = await DraftDiscard.IfUntouchedAsync(repo, db, artifacts, Route<string>("slug")!, ct);
+        await Send.OkAsync(new DiscardedDto(discarded), ct);
     }
 }
 
@@ -61,7 +74,6 @@ public sealed class MapFindingsEndpoint(MapRepository repo, MapArtifactStore art
     public override void Configure()
     {
         Get("/map/{slug}/findings");
-        AllowAnonymous();
         Description(b => b.Refuses(404));
     }
 
@@ -78,7 +90,7 @@ public sealed class MapFindingsEndpoint(MapRepository repo, MapArtifactStore art
 /// question answered outright.</summary>
 public sealed class MapStateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapState>
 {
-    public override void Configure() { Get("/map/{slug}/state"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/state"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

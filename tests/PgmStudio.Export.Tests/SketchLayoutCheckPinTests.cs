@@ -15,6 +15,8 @@ public sealed class SketchLayoutCheckPinTests
     [Test]
     public async Task The_height_the_document_gate_judges_against_is_the_world_the_builder_writes_into()
     {
+#pragma warning disable TUnitAssertions0005 // the constant is the subject: this pins a number the author stated
         await Assert.That(SketchLayoutCheck.WorldHeight).IsEqualTo(VoxelWorld.MaxHeight);
+#pragma warning restore TUnitAssertions0005
     }
 }

@@ -403,7 +403,7 @@ public sealed class SketchEndpointTests
         await Assert.That(rebuilt.IsSuccessStatusCode).IsTrue().Because(text);
 
         var answer = JsonDocument.Parse(text).RootElement;
-        await Assert.That(answer.GetProperty("dropped").EnumerateArray().Select(id => id.GetString()))
+        await Assert.That(answer.GetProperty("dropped").EnumerateArray().Select(id => id.GetString()!))
             .IsEquivalentTo(["circle-1"]);
         await Assert.That(answer.GetProperty("warnings").EnumerateArray()
             .Any(finding => finding.GetProperty("rule").GetString() == "SK29")).IsTrue();

@@ -12,7 +12,7 @@ namespace PgmStudio.Api.Endpoints;
 /// <see cref="ObjectiveVocabularyDto"/>.</summary>
 public sealed class ObjectiveVocabularyEndpoint : EndpointWithoutRequest<ObjectiveVocabularyDto>
 {
-    public override void Configure() { Get("/objectives/vocabulary"); AllowAnonymous(); }
+    public override void Configure() { Get("/objectives/vocabulary"); }
 
     public override Task HandleAsync(CancellationToken ct) => Send.OkAsync(new ObjectiveVocabularyDto(
         new DestroyableVocabularyDto(

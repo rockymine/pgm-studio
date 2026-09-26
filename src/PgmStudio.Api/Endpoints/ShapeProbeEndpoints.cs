@@ -19,7 +19,7 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
     /// <summary>The probe render scale — larger than a catalog card, since one shape has the panel to itself.</summary>
     private const int ProbeScale = 12;
 
-    public override void Configure() { Get("/shapes/probe"); AllowAnonymous(); }
+    public override void Configure() { Get("/shapes/probe"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -82,7 +82,7 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
 /// </summary>
 public sealed class ShapeProbeSchemaEndpoint : EndpointWithoutRequest<ShapeProbeSchema>
 {
-    public override void Configure() { Get("/shapes/probe/schema"); AllowAnonymous(); }
+    public override void Configure() { Get("/shapes/probe/schema"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

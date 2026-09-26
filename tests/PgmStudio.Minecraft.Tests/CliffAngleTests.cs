@@ -55,7 +55,9 @@ public sealed class CliffAngleTests
             new Band(new SolidMaterial(Grass), 25),
             new Band(new SolidMaterial(Stone), 65));
 
+#pragma warning disable TUnitAssertions0005 // the constant is the subject: this pins a number the author stated
         await Assert.That(SurfaceGradient.Steepest).IsEqualTo(89);
+#pragma warning restore TUnitAssertions0005
         await Assert.That(Materials.CliffAngle(surface)).IsEqualTo(25);
     }
 
@@ -65,7 +67,9 @@ public sealed class CliffAngleTests
     {
         await Assert.That(Materials.CliffAngle(new SolidMaterial(Grass))).IsEqualTo(Materials.DefaultCliffAngle);
         await Assert.That(Materials.CliffAngle(null)).IsEqualTo(Materials.DefaultCliffAngle);
+#pragma warning disable TUnitAssertions0005 // the constant is the subject: this pins a number the author stated
         await Assert.That(Materials.DefaultCliffAngle).IsEqualTo(30);
+#pragma warning restore TUnitAssertions0005
     }
 
     /// <summary>A surface is commonly a pattern with the grading inside it, so the grading is looked for

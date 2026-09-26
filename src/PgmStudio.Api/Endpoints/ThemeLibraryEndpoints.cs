@@ -40,7 +40,7 @@ internal static class ThemeLibraryMapping
 /// (the "show every voronoi" browse).</summary>
 public sealed class StyleListEndpoint(ThemeStore store) : EndpointWithoutRequest<List<StyleDto>>
 {
-    public override void Configure() { Get("/styles"); AllowAnonymous(); }
+    public override void Configure() { Get("/styles"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -53,7 +53,7 @@ public sealed class StyleListEndpoint(ThemeStore store) : EndpointWithoutRequest
 /// <summary>GET /api/styles/{id} — one style.</summary>
 public sealed class StyleGetEndpoint(ThemeStore store) : EndpointWithoutRequest<StyleDto>
 {
-    public override void Configure() { Get("/styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/styles/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -66,7 +66,7 @@ public sealed class StyleGetEndpoint(ThemeStore store) : EndpointWithoutRequest<
 /// <summary>POST /api/styles — save a new reusable style.</summary>
 public sealed class StyleCreateEndpoint(ThemeStore store) : Endpoint<StyleSaveRequest, StyleDto>
 {
-    public override void Configure() { Post("/styles"); AllowAnonymous(); }
+    public override void Configure() { Post("/styles"); }
 
     public override async Task HandleAsync(StyleSaveRequest req, CancellationToken ct)
     {
@@ -80,7 +80,7 @@ public sealed class StyleCreateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
 /// not a map's applied snapshot).</summary>
 public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRequest, StyleDto>
 {
-    public override void Configure() { Put("/styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Put("/styles/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(StyleSaveRequest req, CancellationToken ct)
     {
@@ -97,7 +97,7 @@ public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
 /// would otherwise complain about.</summary>
 public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(409)); }
+    public override void Configure() { Delete("/styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -121,7 +121,7 @@ public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms) 
 /// <summary>GET /api/themes — the theme library, newest first, each with the sample plateau it finishes.</summary>
 public sealed class ThemeListEndpoint(ThemeLibrary library) : EndpointWithoutRequest<List<ThemeSummary>>
 {
-    public override void Configure() { Get("/themes"); AllowAnonymous(); }
+    public override void Configure() { Get("/themes"); }
 
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ComposeAllAsync(ct))
@@ -132,7 +132,7 @@ public sealed class ThemeListEndpoint(ThemeLibrary library) : EndpointWithoutReq
 /// <summary>GET /api/themes/{id} — a theme with its per-bucket style bindings.</summary>
 public sealed class ThemeGetEndpoint(ThemeStore store) : EndpointWithoutRequest<ThemeDetail>
 {
-    public override void Configure() { Get("/themes/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/themes/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -146,7 +146,7 @@ public sealed class ThemeGetEndpoint(ThemeStore store) : EndpointWithoutRequest<
 /// <summary>POST /api/themes — compose a theme from existing styles (the knobs + bucket→style bindings).</summary>
 public sealed class ThemeCreateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRequest, ThemeDetail>
 {
-    public override void Configure() { Post("/themes"); AllowAnonymous(); }
+    public override void Configure() { Post("/themes"); }
 
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
     {
@@ -172,7 +172,7 @@ public sealed class ThemeCreateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
 /// <summary>PUT /api/themes/{id} — replace a theme's knobs and its whole set of bucket bindings.</summary>
 public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRequest, ThemeDetail>
 {
-    public override void Configure() { Put("/themes/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Put("/themes/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
     {
@@ -189,7 +189,7 @@ public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
 /// it. What the library's theme editor re-renders as buckets are bound and knobs are turned.</summary>
 public sealed class ThemeDraftPreviewEndpoint(ThemeLibrary library) : Endpoint<ThemeSaveRequest, ThemePreviewDto>
 {
-    public override void Configure() { Post("/themes/preview"); AllowAnonymous(); }
+    public override void Configure() { Post("/themes/preview"); }
 
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
         => await Send.OkAsync(StylePreview.ThemeViews(await library.ComposeDraftAsync(req, ct)), ct);
@@ -198,7 +198,7 @@ public sealed class ThemeDraftPreviewEndpoint(ThemeLibrary library) : Endpoint<T
 /// <summary>DELETE /api/themes/{id} — forget a theme (its bucket bindings cascade; the styles stay).</summary>
 public sealed class ThemeDeleteEndpoint(ThemeStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/themes/{id}"); AllowAnonymous(); }
+    public override void Configure() { Delete("/themes/{id}"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -211,7 +211,7 @@ public sealed class ThemeDeleteEndpoint(ThemeStore store) : EndpointWithoutReque
 /// consumes and a map snapshots when it applies the theme).</summary>
 public sealed class ThemeJsonEndpoint(ThemeLibrary library) : EndpointWithoutRequest<ThemeJsonDto>
 {
-    public override void Configure() { Get("/themes/{id}/json"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/themes/{id}/json"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -225,7 +225,7 @@ public sealed class ThemeJsonEndpoint(ThemeLibrary library) : EndpointWithoutReq
 /// binding them. 400, never 500, on invalid theme JSON.</summary>
 public sealed class ThemeImportEndpoint(ThemeLibrary library) : Endpoint<ThemeImportRequest, CreatedDto>
 {
-    public override void Configure() { Post("/themes/import"); AllowAnonymous(); }
+    public override void Configure() { Post("/themes/import"); }
 
     public override async Task HandleAsync(ThemeImportRequest req, CancellationToken ct)
     {

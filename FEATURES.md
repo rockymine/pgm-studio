@@ -272,6 +272,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `mc-heads.net`, which was an unpinned third-party request from the user's own browser on every page
   carrying authors, and the first thing to fail on a restricted network; the e2e harness lost the
   `ALLOWED_FAULTS` entry that existed only to tolerate it. (C45, TC2)
+- **Two bars: the studio's, and the tool's (C66).** `AppNav` is the same on every page — home, Maps, Plan
+  editor, Generator, Catalog, Library and, for an admin, Users; the theme; and the account, whose head, name
+  and role open a menu to sign out, or *Sign in with Discord* for a visitor. It follows the theme. The tool's
+  `Topbar` under it keeps the trail, a *View only* tag on a read-only page, and the tool's own actions; the
+  logo left the tools' rails, and the keyboard shortcuts moved to the footer every page now carries, beside the
+  `?` that opens them anywhere. `docs/client/routing-and-ia.md`, `docs/client/ui-conventions.md`.
+- **A player's head again, served by the studio (C65).** `GET /api/minecraft/player/{uuid}/skin` fetches the
+  skin from Mojang's session and texture servers — only `textures.minecraft.net`, over https, a PNG of at most
+  64 KB — and keeps it thirty days beside the name (`minecraft_player.skin_png`, `M0044`). `PlayerHead` cuts the
+  face and hat out of it in CSS over the initial the row already drew, so the head is back in the author rows,
+  the top bar and the whitelist, and nothing is fetched from the browser to a third party. A skin that cannot
+  be had leaves the initial.
 - **One keyboard, one registry, and the help is generated from it (C53).** `wwwroot/js/studio/shared/keys.js`
   owns the app's single `keydown` listener and the registry every binding lives in. An entry is
   `{ id, keys, label, group, run, when?, priority?, inField?, passive? }`, and `label` and `group` are
@@ -563,9 +575,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   its own load/save (Edit → map metadata, Configure → the intent meta slice). `AuthorsEditor`
   now resolves a row either way — stored uuid → name **or** stored name → uuid — so a name-only row (the
   Configure intent's shape) is matched to its account on load. And a **New sketch** draft left untouched is auto-discarded
-  (`DELETE /api/map/{slug}/sketch/discard-if-empty`, called on the tool's dispose) when still pristine —
+  (`DELETE /api/map/{slug}/discard-if-empty`, called on the tool's dispose) when still pristine —
   sketch stage, default name, no authors, no shapes — so an abandoned click no longer litters the dashboard.
   Verified: curl (discard keeps renamed/drawn drafts) + Playwright (leave an empty draft → gone). (C27)
+- **An abandoned New plan is discarded like an abandoned New sketch (`TN23`).** Leaving the Plan tool asks
+  `DELETE /api/map/{slug}/discard-if-empty`, now one route for both tools over one judgement (`DraftDiscard`):
+  a plan still named *Untitled plan*, never saved, not forked from a generator candidate and credited to nobody
+  but its originator is deleted, and its slug is free for the next. `docs/tools/plan.md`.
 - **Plan tool on the phase model (map route)** — a map-backed plan (`/maps/{slug}/plan`) is now a phase host
   like Sketch: the rail is `Info`/`Draw`. The new `PlanInfoPhase` has an `Info` phase with **Identity**
   (plan name + authors via the shared `AuthorsEditor`, saved to the map-metadata endpoint)
@@ -1167,7 +1183,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   | `MapOrigin` | the row all six ways into the studio write, with three ways to take a slug because the three are a product statement |
   | `MapEdit` | the thirty-six edit routes' one path, off `Endpoints` and HTTP-free |
   | `IntentWrite` | already an operation, simply misfiled |
-  | `SketchDiscard` · `MapMetadata` · `SymmetryConfirm` · `WorldFolderImport` | the four that were only ever one route's, and are reachable without one now |
+  | `DraftDiscard` · `MapMetadata` · `SymmetryConfirm` · `WorldFolderImport` | the four that were only ever one route's, and are reachable without one now |
 
   Under them, one refusal shape (`Vocabulary.Refusal`) where three results had each declared the same triple
   and its own `IsError`; one load-or-404 prologue (`MapOfRoute`) where **47** had been written out; one slug
@@ -1302,7 +1318,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `RP29`'s edit routes, every one of them handing back what an editor returned.
 
   Ten answer the shape they were already sending, and no wire changed.
-  `DELETE …/sketch/discard-if-empty` declares `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare
+  `DELETE …/discard-if-empty` declares `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare
   `PlanDetail`; `PATCH /configure/{slug}/exclude-island` and `PATCH …/symmetry` answer the shared
   acknowledgement where each had built its own body, and `POST /themes/import` answers a shared `CreatedDto`. `GET …/segments` and
   `GET …/column-floor` get `SegmentsDto` and `ColumnFloorDto`, keeping the snake_case keys the side-view
@@ -9647,6 +9663,29 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST /regions/group` + `/ungroup`. (ex-R1a; wire-after-group is parked.)
 
 ## Data & ops (D)
+- **The client knows who it is (`RP77`).** Every top bar says who is signed in, with sign-in and sign-out,
+  and an admin reaches `/admin/users`: add a player, change a role, take someone off, open an invitation and
+  copy its link. A page the caller may not write opens read-only — a banner says why, `Inspector`,
+  `ContentColumn` and the library editor grey their fields, and the dock keeps only the tools that look —
+  decided once by `StudioShell` from the address and `GET /api/map/{slug}/access`. `tests/e2e/access.mjs`
+  holds it against an invited server. `docs/access.md`, `docs/client/ui-conventions.md`.
+- **A map is credited to whoever originates it (`RP82`).** A sketch, plan, import or document load started
+  by a signed-in person writes them as the map's first `author`, uuid and name, beside the ownership, so
+  nobody types themselves in; removing the credit leaves them the owner. An intent stored while it names nobody
+  carries the map's credits into `meta`, so the export does not call a credited map authorless. `docs/access.md`.
+- **Signing in with Discord, bound to a Minecraft account by invitation (`RP75`).** An admin opens an
+  invitation for someone on the whitelist (`POST /api/users/{uuid}/invite`) and hands them the one-time link;
+  the first Discord account to sign in through it is bound to that person, and from then on
+  `GET /api/auth/discord` signs them in. OAuth2 with PKCE over ASP.NET's own handler, the `identify` scope
+  alone, the secret only in the environment, and only the hash of an invitation stored. `docs/access.md`.
+- **Reads are open and writes need someone on the whitelist (`RP80`).** `Access:Mode` is `open` on a
+  developer's machine, where every request is the local admin, and `invited` everywhere else, where a write
+  needs a person on the `studio_user` whitelist. Which route needs what is decided in one place from the route
+  itself (`AccessRules`), not by 149 endpoints: a write under `/map/{slug}` needs the map's owner, an author it
+  credits or an admin, a shared library `DELETE` needs an admin, and any other write a member. A map records who
+  originated it (`map.owner_uuid`), loading documents over someone else's map is refused, the whitelist is kept
+  over `/api/users`, and `GET /api/me` says who a request is. Refusals are `RQ7` (401) and `RQ8` (403) in the
+  one envelope. `docs/access.md`.
 - **The census is counted, not typed (`RP8`).** `project-structure.md` §3's size table was a snapshot nothing
   regenerated, and **every row had drifted** — `Client` read 80 files against 186, `Pgm` 137 against 148 — while
   the folder breakdowns were worse than stale: counted at one level where the folders nest, so `Compose/` read

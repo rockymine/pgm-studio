@@ -23,7 +23,7 @@ namespace PgmStudio.Api.Endpoints;
 /// blocks interchangeable in one bucket can be quite distinct in the other.</para></summary>
 public sealed class TerrainBlocksEndpoint : EndpointWithoutRequest<List<PaintBlockDto>>
 {
-    public override void Configure() { Get("/terrain/blocks"); AllowAnonymous(); }
+    public override void Configure() { Get("/terrain/blocks"); }
 
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync(TerrainPalette.Paintable
@@ -41,7 +41,7 @@ public sealed class TerrainBlocksEndpoint : EndpointWithoutRequest<List<PaintBlo
 /// table was measured under.</summary>
 public sealed class TerrainLooksEndpoint : EndpointWithoutRequest<List<LookFlagDto>>
 {
-    public override void Configure() { Get("/terrain/looks"); AllowAnonymous(); }
+    public override void Configure() { Get("/terrain/looks"); }
 
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync(BlockLook.Flags.Select(f => new LookFlagDto(f.Key, f.Value)).ToList(), ct);
@@ -53,7 +53,7 @@ public sealed class TerrainLooksEndpoint : EndpointWithoutRequest<List<LookFlagD
 /// second copy on the far side of the wire is a picker free to offer what the export does not write.</summary>
 public sealed class TerrainBiomesEndpoint : EndpointWithoutRequest<List<BiomeOptionDto>>
 {
-    public override void Configure() { Get("/terrain/biomes"); AllowAnonymous(); }
+    public override void Configure() { Get("/terrain/biomes"); }
 
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync(Biome.All
@@ -83,7 +83,7 @@ public sealed class TerrainBiomesEndpoint : EndpointWithoutRequest<List<BiomeOpt
 /// </summary>
 public sealed class TerrainPatternsEndpoint : EndpointWithoutRequest<List<MaterialKindDto>>
 {
-    public override void Configure() { Get("/terrain/patterns"); AllowAnonymous(); }
+    public override void Configure() { Get("/terrain/patterns"); }
 
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync([.. MaterialVocabulary.All.Select(kind => new MaterialKindDto(
@@ -162,7 +162,6 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest<MaterialPre
     public override void Configure()
     {
         Post("/terrain/material-preview");
-        AllowAnonymous();
         Description(b => b.Accepts<TerrainMaterial>("application/json").AlsoPng(StylePreview.MaterialPngViews));
     }
 
@@ -189,7 +188,6 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest<ThemePreviewDt
     public override void Configure()
     {
         Post("/terrain/theme-preview");
-        AllowAnonymous();
         Description(b => b.Accepts<TerrainTheme>("application/json").AlsoPng(StylePreview.ThemePngViews));
     }
 
@@ -215,7 +213,6 @@ public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingP
     public override void Configure()
     {
         Post("/terrain/prop-preview");
-        AllowAnonymous();
         Description(b => b.AlsoPng(DressingPreview.PngViews));
     }
 
@@ -279,7 +276,7 @@ internal static class PropOptionEndpoints
 /// <summary>GET /api/terrain/stroke-styles — the five ways a stroke paves the ground it crosses, each drawn.</summary>
 public sealed class StrokeStyleCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {
-    public override void Configure() { Get("/terrain/stroke-styles"); AllowAnonymous(); }
+    public override void Configure() { Get("/terrain/stroke-styles"); }
 
     public override Task HandleAsync(CancellationToken ct)
     {
@@ -294,7 +291,7 @@ public sealed class StrokeStyleCardsEndpoint : EndpointWithoutRequest<List<PropO
 /// <summary>GET /api/terrain/water-forms — the three channel forms, each an actual dug channel seen from above.</summary>
 public sealed class WaterFormCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {
-    public override void Configure() { Get("/terrain/water-forms"); AllowAnonymous(); }
+    public override void Configure() { Get("/terrain/water-forms"); }
 
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync([.. DressingPreview.WaterFormCards(
@@ -304,7 +301,7 @@ public sealed class WaterFormCardsEndpoint : EndpointWithoutRequest<List<PropOpt
 /// <summary>GET /api/terrain/boulder-forms — the four rock shapes, each an actual rock.</summary>
 public sealed class BoulderFormCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {
-    public override void Configure() { Get("/terrain/boulder-forms"); AllowAnonymous(); }
+    public override void Configure() { Get("/terrain/boulder-forms"); }
 
     public override Task HandleAsync(CancellationToken ct)
     {
@@ -318,7 +315,7 @@ public sealed class BoulderFormCardsEndpoint : EndpointWithoutRequest<List<PropO
 /// <summary>GET /api/terrain/species — every vanilla species, each built.</summary>
 public sealed class TreeSpeciesEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {
-    public override void Configure() { Get("/terrain/species"); AllowAnonymous(); }
+    public override void Configure() { Get("/terrain/species"); }
 
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync([.. DressingPreview.SpeciesCards(ThemePresets.Meadow)], ct);
@@ -331,7 +328,7 @@ public sealed class ThemeMapPreviewEndpoint : EndpointWithoutRequest<ThemeMapPre
 {
     public override void Configure()
     {
-        Post("/terrain/theme-map-preview"); AllowAnonymous();
+        Post("/terrain/theme-map-preview");
         Description(b => b.Accepts<PlanModel>("application/json"));
     }
 

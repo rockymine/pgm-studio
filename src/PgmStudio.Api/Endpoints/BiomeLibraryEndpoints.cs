@@ -48,7 +48,7 @@ internal static class BiomeLibraryMapping
 /// patch of ground it tints.</summary>
 public sealed class BiomePatternListEndpoint(ThemeStore store) : EndpointWithoutRequest<List<BiomePatternSummary>>
 {
-    public override void Configure() { Get("/biome-patterns"); AllowAnonymous(); }
+    public override void Configure() { Get("/biome-patterns"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -62,7 +62,7 @@ public sealed class BiomePatternListEndpoint(ThemeStore store) : EndpointWithout
 public sealed class BiomePatternGetEndpoint(ThemeStore store) : EndpointWithoutRequest<BiomePatternSummary>
 {
     public override void Configure()
-    { Get("/biome-patterns/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    { Get("/biome-patterns/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -77,7 +77,7 @@ public sealed class BiomePatternCreateEndpoint(ThemeStore store)
     : Endpoint<BiomePatternSaveRequest, BiomePatternSummary>
 {
     public override void Configure()
-    { Post("/biome-patterns"); AllowAnonymous(); Description(b => b.Refuses(400)); }
+    { Post("/biome-patterns"); Description(b => b.Refuses(400)); }
 
     public override async Task HandleAsync(BiomePatternSaveRequest req, CancellationToken ct)
     {
@@ -94,7 +94,7 @@ public sealed class BiomePatternUpdateEndpoint(ThemeStore store)
     : Endpoint<BiomePatternSaveRequest, BiomePatternSummary>
 {
     public override void Configure()
-    { Put("/biome-patterns/{id}"); AllowAnonymous(); Description(b => b.Refuses(400, 404)); }
+    { Put("/biome-patterns/{id}"); Description(b => b.Refuses(400, 404)); }
 
     public override async Task HandleAsync(BiomePatternSaveRequest req, CancellationToken ct)
     {
@@ -112,7 +112,7 @@ public sealed class BiomePatternUpdateEndpoint(ThemeStore store)
 public sealed class BiomePatternDeleteEndpoint(ThemeStore store) : EndpointWithoutRequest
 {
     public override void Configure()
-    { Delete("/biome-patterns/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    { Delete("/biome-patterns/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -128,7 +128,7 @@ public sealed class BiomePatternPreviewEndpoint : EndpointWithoutRequest<StyleCa
 {
     public override void Configure()
     {
-        Post("/biome-patterns/preview"); AllowAnonymous();
+        Post("/biome-patterns/preview");
         Description(b => b.Accepts<BiomeField>("application/json")
                           .Produces<StyleCardDto>(200, "application/json").Refuses(400));
     }

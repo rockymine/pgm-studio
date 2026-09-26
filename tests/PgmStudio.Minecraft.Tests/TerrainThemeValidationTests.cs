@@ -324,7 +324,7 @@ public sealed class TerrainThemeValidationTests
         var stack = new LayeredMaterial(new BandStack([new Band(turf, 1), new Band(body, 6)]));
         var findings = TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = stack });
 
-        await Assert.That(findings.Select(f => f.Field))
+        await Assert.That(findings.Select(f => f.Field!))
             .IsEquivalentTo(new[] { "fill.stack[0].rise", "fill.stack[1].rise" });
     }
 

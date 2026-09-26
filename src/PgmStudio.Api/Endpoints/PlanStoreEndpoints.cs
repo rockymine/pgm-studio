@@ -44,7 +44,7 @@ internal static class PlanStoreMapping
 /// touched first. Summaries only (no plan JSON); the detail endpoint carries the document.</summary>
 public sealed class PlanListEndpoint(PlanStore store) : EndpointWithoutRequest<List<PlanSummary>>
 {
-    public override void Configure() { Get("/plans"); AllowAnonymous(); }
+    public override void Configure() { Get("/plans"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -57,7 +57,7 @@ public sealed class PlanListEndpoint(PlanStore store) : EndpointWithoutRequest<L
 /// <summary>GET /api/plans/{id} — one plan with its <c>*.plan.json</c> document, to load into the editor.</summary>
 public sealed class PlanGetEndpoint(PlanStore store) : EndpointWithoutRequest<PlanDetail>
 {
-    public override void Configure() { Get("/plans/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/plans/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -72,7 +72,7 @@ public sealed class PlanGetEndpoint(PlanStore store) : EndpointWithoutRequest<Pl
 /// answered 400, never 500.</summary>
 public sealed class PlanSaveEndpoint(PlanStore store) : Endpoint<PlanSaveRequest, PlanDetail>
 {
-    public override void Configure() { Post("/plans"); AllowAnonymous(); }
+    public override void Configure() { Post("/plans"); }
 
     public override async Task HandleAsync(PlanSaveRequest req, CancellationToken ct)
     {
@@ -96,7 +96,7 @@ public sealed class PlanSaveEndpoint(PlanStore store) : Endpoint<PlanSaveRequest
 /// <c>parent_id</c> null rather than cascading.</summary>
 public sealed class PlanDeleteEndpoint(PlanStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/plans/{id}"); AllowAnonymous(); }
+    public override void Configure() { Delete("/plans/{id}"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

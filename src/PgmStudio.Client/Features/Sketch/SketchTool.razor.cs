@@ -300,7 +300,6 @@ public partial class SketchTool
 
     private Task Undo() => handle?.InvokeVoidAsync("undo").AsTask() ?? Task.CompletedTask;
     private Task Redo() => handle?.InvokeVoidAsync("redo").AsTask() ?? Task.CompletedTask;
-    private Task ShowKeys() => JS.InvokeVoidAsync("studio.showKeys").AsTask();
 
     /// <summary>The brush the canvas lifted, or the one it was handed back.</summary>
     [JSInvokable]
@@ -878,7 +877,7 @@ public partial class SketchTool
         // re-checks the full pristine condition (default name, no authors, no shapes) before deleting.
         if (shapes.Count == 0 && groups.Count == 0)
         {
-            try { await Http.DeleteAsync($"api/map/{Slug}/sketch/discard-if-empty"); } catch { }
+            try { await Http.DeleteAsync($"api/map/{Slug}/discard-if-empty"); } catch { }
         }
         try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null)

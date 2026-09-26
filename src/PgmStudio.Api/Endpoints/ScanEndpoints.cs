@@ -151,7 +151,7 @@ internal static class BlockPixels
 /// </summary>
 public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<BlockPixelsDto>
 {
-    public override void Configure() { Get("/map/{slug}/top-surface"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/top-surface"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -173,7 +173,7 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore arti
 /// </summary>
 public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<SegmentsDto>
 {
-    public override void Configure() { Get("/map/{slug}/segments"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/segments"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -215,7 +215,7 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
 /// </summary>
 public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<ColumnFloorDto>
 {
-    public override void Configure() { Get("/map/{slug}/column-floor"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/column-floor"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -250,7 +250,7 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : Endpoint
 /// </summary>
 public sealed class BlockSeatEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<BlockSeatDto>
 {
-    public override void Configure() { Get("/map/{slug}/block-seat"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/block-seat"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

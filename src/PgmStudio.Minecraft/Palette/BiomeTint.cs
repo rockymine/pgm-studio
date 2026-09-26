@@ -36,7 +36,7 @@ public enum TintChannel
 /// field that places them is the studio's own <see cref="PatternNoise"/>, so the picture shows that swamp is
 /// two-tone at about the right size without claiming to be the same splotches the client will draw.</para>
 ///
-/// <para>A biome no row names answers <see cref="Plains"/>'s colours, which is what the format's own default
+/// <para>A biome no row names answers <see cref="Biome.Plains"/>'s colours, which is what the format's own default
 /// is and what an unpainted chunk carries.</para>
 /// </summary>
 public static class BiomeTint

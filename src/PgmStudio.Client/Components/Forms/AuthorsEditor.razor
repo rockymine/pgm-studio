@@ -37,8 +37,7 @@
     private RenderFragment Row(AuthorRow p, List<AuthorRow> list) => __builder =>
     {
         <div class="author-row">
-            <span class="author-mark @(p.Uuid.Length > 0 ? "author-mark--account" : null)"
-                  style="@MarkStyle(p)" aria-hidden="true">@Initial(p)</span>
+            <PlayerHead Uuid="@p.Uuid" Name="@p.Name" />
             <input class="field-input author-name @(p.Error ? "field-input--error" : null)" type="text"
                    placeholder="Minecraft username, or any name"
                    title="@(p.Error ? AuthorNames.Refuse(p.Name.Trim())

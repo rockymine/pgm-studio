@@ -35,6 +35,8 @@ public partial class LibraryEditor
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     [Parameter, EditorRequired] public LibraryKind Kind { get; set; } = default!;
+    /// <summary>Set on a read-only page: the name, the fields and the save sit in a disabled fieldset.</summary>
+    [CascadingParameter(Name = "StudioReadOnly")] public bool ReadOnly { get; set; }
     [Parameter] public string Name { get; set; } = "";
     [Parameter] public EventCallback<string> NameChanged { get; set; }
 

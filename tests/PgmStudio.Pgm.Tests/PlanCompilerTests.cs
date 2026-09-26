@@ -401,7 +401,8 @@ public sealed class PlanCompilerTests
                                    {"piece":"w2","at":[5,5]},
                                    {"piece":"w3","at":[5,5]} ] } }
         """));
-        await Assert.That(intent.Wools.Count).IsEqualTo(12);
+        await Assert.That(intent.Wools).IsNotNull();
+        await Assert.That(intent.Wools!.Count).IsEqualTo(12);
         foreach (var wool in intent.Wools)
             await Assert.That(WoolColors.IsColor(wool.Color)).IsTrue();
     }

@@ -1,5 +1,8 @@
 <Project>
 
+  <!-- The repository's own rules first: this file is the nearer one, so the root's is imported explicitly. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
   <!-- TUnit normally injects its global usings (TUnit.Core, TUnit.Assertions, etc.) through a late-running
        .targets file. The incremental build does not fold those into GlobalUsings.g.cs reliably on the
        first pass, so a clean first build of a test project can fail with CS0246 (the [Test] attribute

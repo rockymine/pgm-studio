@@ -39,7 +39,8 @@ public sealed class SchemaCompletenessTests
     public async Task Every_operation_declares_what_it_answers()
     {
         var undeclared = (await OperationsAsync())
-            .Where(operation => operation.Success.Count == 0 && !NoBody.Contains(operation.Name))
+            .Where(operation => operation.Success.Count == 0 && !NoBody.Contains(operation.Name)
+                                && !operation.Codes.Contains("302"))
             .Select(operation => operation.Name)
             .ToList();
 
@@ -220,6 +221,8 @@ public sealed class SchemaCompletenessTests
         "POST /api/map/{slug}/scan-world",
         "POST /api/map/{slug}/sketch/finish",
         "POST /api/plan/{planId}/author",
+        "POST /api/auth/sign-out",
+        "POST /api/users/{uuid}/invite",
     ];
 
     /// <summary>And that list stays honest from the other side: a route on it that grows a declared body has
@@ -326,7 +329,7 @@ public sealed class SchemaCompletenessTests
 
         var published = document.RootElement
             .GetProperty("components").GetProperty("schemas").GetProperty("Severity")
-            .GetProperty("enum").EnumerateArray().Select(value => value.GetString()).ToList();
+            .GetProperty("enum").EnumerateArray().Select(value => value.GetString()!).ToList();
         var written = Enum.GetValues<Severity>()
             .Select(severity => JsonSerializer.Serialize(severity).Trim('"'))
             .ToList();

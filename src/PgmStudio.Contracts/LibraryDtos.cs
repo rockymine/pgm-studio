@@ -30,7 +30,7 @@ public record StyleSaveRequest(string Name, [property: WordSet(typeof(MaterialKi
 /// <param name="Params">The serialized <c>BiomeField</c>, as JSON text.</param>
 /// <param name="Preview">A top-down patch of grass under the field, as an SVG. Named as every other library
 /// row names its picture, because the browse grid reads one field across every kind.</param>
-public sealed record BiomePatternSummary(long Id, string Name, [property: WordSet(typeof(BiomeKinds))] string Kind,
+public sealed record BiomePatternSummary(long Id, string Name, string Kind,
     string Params, string Preview) : BiomePatternSaveRequest(Name, Kind, Params);
 
 /// <summary>Create/update a biome pattern (POST /api/biome-patterns, PUT /api/biome-patterns/{id}).</summary>

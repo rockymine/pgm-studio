@@ -28,7 +28,7 @@ public sealed class TerrainThemeComposerTests
         var decomposed = TerrainThemeComposer.Decompose(ThemePresets.Meadow);
         await Assert.That(decomposed.Buckets.Count).IsEqualTo(4);
 
-        string Kind(TerrainBucket bucket) => decomposed.Buckets.First(b => b.Bucket == bucket).Kind;
+        string? Kind(TerrainBucket bucket) => decomposed.Buckets.First(b => b.Bucket == bucket).Kind;
         await Assert.That(Kind(TerrainBucket.Rim)).IsEqualTo("solid");        // quartz
         await Assert.That(Kind(TerrainBucket.Surface)).IsEqualTo("layered");  // grass over two dirt
         await Assert.That(Kind(TerrainBucket.Wall)).IsEqualTo("teamTint");    // team-tinted clay

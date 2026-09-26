@@ -25,6 +25,26 @@ public sealed class MapRow
     /// answered as an <c>ETag</c>, and what an <c>If-Match</c> is checked against. Not
     /// <see cref="Version"/>, which is the version string PGM reads.</summary>
     [Column("revision"), NotNull] public long Revision { get; set; } = 1;
+    /// <summary>The Minecraft uuid of the person who originated this map, or null where it was originated with
+    /// nobody signed in. The owner may always edit the map, whoever its credited authors are.</summary>
+    [Column("owner_uuid")] public string? OwnerUuid { get; set; }
+}
+
+/// <summary>One person on the studio's whitelist: the Minecraft account they are credited under and the role
+/// that decides what they may write.</summary>
+[Table("studio_user")]
+public sealed class StudioUserRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("uuid"), NotNull] public string Uuid { get; set; } = "";
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("role"), NotNull] public string Role { get; set; } = "";
+    [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
+    /// <summary>The Discord account that signs in as this person, or null until an invitation binds one.</summary>
+    [Column("discord_id")] public string? DiscordId { get; set; }
+    /// <summary>The SHA-256 of the open invitation's code, or null where none is open.</summary>
+    [Column("invite_hash")] public string? InviteHash { get; set; }
+    [Column("invite_expires_at")] public DateTime? InviteExpiresAt { get; set; }
 }
 
 [Table("author")]
@@ -877,4 +897,7 @@ public sealed class MinecraftPlayerRow
     [PrimaryKey, Column("uuid"), NotNull] public string Uuid { get; set; } = "";
     [Column("name"), NotNull] public string Name { get; set; } = "";
     [Column("fetched_at")] public DateTime FetchedAt { get; set; }
+    /// <summary>The skin Mojang's texture server answered for this player, or null until it is asked.</summary>
+    [Column("skin_png")] public byte[]? SkinPng { get; set; }
+    [Column("skin_fetched_at")] public DateTime? SkinFetchedAt { get; set; }
 }

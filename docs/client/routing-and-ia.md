@@ -99,14 +99,18 @@ lifecycle position (no `map.xml` yet against has one), which is why the labels a
 
 ## Exits
 
-**A tool leaves through the collection it belongs to, not through the landing.** The topbar's home link is the
-exit, and each of the three map tools names its own list: Sketch → *Sketches*, Plan → *Plans*, Configure →
-*Configuring*. The surfaces that hold no map — the generator, the catalog, the library, the
-design showcase and the maps page itself — go to *Studio* instead, because there is no collection above them.
-The plan tool sits on both sides: opened on a map it returns to Plans, opened at `/plan-editor` on a bare
-candidate it returns to Studio.
+**Every page carries two bars, and each answers one question.** The studio's own bar (`AppNav`) is the same
+everywhere: home, a link to each tool — Maps, Plan editor, Generator, Catalog, Library, and Users for an admin
+— lit on the page it names and every page under it, and at the right the theme and the account. The tool's bar
+(`Topbar`) under it is the trail to where the page is and the tool's own state and actions. So getting to
+another tool is always one click in the top bar, and the tool's bar holds nothing that is not the tool's.
 
-Beside that link the topbar carries the trail — the map's name, then the tool or phase, dimmed. Neither is a
+**A map tool leaves through the collection it belongs to.** Its bar's home link is that exit, and each of the
+three map tools names its own list: Sketch → *Sketches*, Plan → *Plans*, Configure → *Configuring*. The
+surfaces that hold no map — the generator, the catalog, the library, the design showcase and the maps page
+itself — carry no home link, because the studio's bar above them is already the way home.
+
+Beside that link the tool's bar carries the trail — the map's name, then the tool or phase, dimmed. Neither is a
 link: the map is already open, so a second way to it would be a way to nowhere.
 
 One exit is not a link at all. **Finishing a sketch** rasterizes the layout, advances the map to `configure`,

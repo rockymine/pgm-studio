@@ -21,7 +21,7 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public sealed class PlayerLookupEndpoint(PlayerLookup players) : EndpointWithoutRequest<PlayerDto>
 {
-    public override void Configure() { Get("/minecraft/player"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/minecraft/player"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -43,5 +43,33 @@ public sealed class PlayerLookupEndpoint(PlayerLookup players) : EndpointWithout
             [new Finding(RequestRules.NoSuchSubject,
                 $"no Minecraft account is called '{query}' — store it as a pseudonym instead, which PGM reads "
                 + "as a whole author")], ct);
+    }
+}
+
+/// <summary>GET /api/minecraft/player/{uuid}/skin — the player's skin as a PNG, served from the studio's own
+/// origin so a browser draws a head without asking a third party. Kept for thirty days; 404 where the player
+/// has no skin or Mojang cannot be reached, and the client draws the player's initial instead.</summary>
+public sealed class PlayerSkinEndpoint(PlayerLookup players) : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Get("/minecraft/player/{uuid}/skin");
+        Description(b => b.Png().Refuses(404));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var uuid = Route<string>("uuid") ?? "";
+        if (await players.SkinAsync(uuid, ct) is not { } skin)
+        {
+            HttpContext.Response.Headers.CacheControl = "public, max-age=300";
+            await Refusals.WriteAsync(HttpContext, 404, "no skin",
+                [new Finding(RequestRules.NoSuchSubject,
+                    $"no skin could be had for '{uuid}' — it names no account, or Mojang did not answer")], ct);
+            return;
+        }
+        HttpContext.Response.Headers.CacheControl = "public, max-age=86400";
+        HttpContext.Response.ContentType = "image/png";
+        await HttpContext.Response.Body.WriteAsync(skin, ct);
     }
 }

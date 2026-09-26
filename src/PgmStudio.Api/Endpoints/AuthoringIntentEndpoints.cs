@@ -18,7 +18,7 @@ using Dict = Dictionary<string, object?>;
 /// (docs/pgm/new-map-authoring.md), empty if none yet.</summary>
 public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapIntent>
 {
-    public override void Configure() { Get("/map/{slug}/intent"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/intent"); Description(b => b.Refuses(404)); }
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
@@ -35,7 +35,6 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
     public override void Configure()
     {
         Put("/map/{slug}/intent");
-        AllowAnonymous();
         Description(b => b.Accepts<MapIntent>("application/json").Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
 
@@ -73,7 +72,6 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
     public override void Configure()
     {
         Put("/map/{slug}/intent/from-plan");
-        AllowAnonymous();
         Description(b => b.Accepts<MapIntent>("application/json").Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
 
@@ -101,7 +99,7 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
 ///
 /// <para>The sketch draws a spawn, a wool room and the building inside one as locked annotations projected
 /// out of the intent, so a drag on that canvas has to arrive back here or the picture and the world build
-/// disagree about where a room is. <paramref name="reference"/> is the annotation's own <c>intentRef</c> — a
+/// disagree about where a room is. <c>{reference}</c> is the annotation's own <c>intentRef</c> — a
 /// team id for a spawn, <c>owner:colour</c> for a wool — and the body says which of the room's two rectangles
 /// moved and where it landed. <see cref="RoomPieceMove"/> holds what that means and what refuses it; this
 /// route reads the stored intent, hands it over, and stores and projects the answer the way an ordinary
@@ -114,7 +112,6 @@ public sealed class IntentRoomMoveEndpoint(
     public override void Configure()
     {
         Patch("/map/{slug}/intent/rooms/{reference}");
-        AllowAnonymous();
         Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(400, 404, 409, 422));
     }
 

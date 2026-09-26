@@ -10,11 +10,11 @@
 
 <Workspace Class="lib-workspace">
   <Sidebar>
-    <div class="lib-name">
+    <fieldset class="readonly-fieldset lib-name" disabled="@ReadOnly">
       <label class="field-label" for="lib-entry-name">Name</label>
       <input id="lib-entry-name" class="field-input" placeholder="@($"a {Kind.One} you will recognise")"
              value="@Name" @oninput="OnNameInput" />
-    </div>
+    </fieldset>
 
     <Section Title="@Kind.Title" Variant="list">
       <div class="lib-outline">
@@ -42,7 +42,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="lib-fields">
+  <fieldset class="readonly-fieldset lib-fields" disabled="@ReadOnly">
     <div class="lib-fields-scroll">
       <div class="@DocCls">
         @if (Nests)
@@ -60,7 +60,7 @@
       @if (Note is not null) { <p class="section-desc lib-foot-note">@Note</p> }
       <div class="panel-actions">@Actions</div>
     </div>
-  </div>
+  </fieldset>
 
   <div class="sidebar-handle"></div>
 
@@ -73,6 +73,6 @@
     @if (Footnote is not null) { <span class="canvas-note">@Footnote</span> }
     @* Two questions, and they are not the same one: the bar above says which view, the dock below says what
        the view is taken over. A row of nine capsules in one corner reads as one long list of neither. *@
-    @if (Dock is not null) { <CanvasDock><DockGroup>@Dock</DockGroup></CanvasDock> }
+    @if (Dock is not null) { <CanvasDock><DockGroup Viewing>@Dock</DockGroup></CanvasDock> }
   </aside>
 </Workspace>

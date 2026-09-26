@@ -136,7 +136,7 @@ if (draft.status === 200 && draft.json?.slug) {
     const bareFin = await apiRaw(`/map/${bareSlug}/sketch/finish`, { method: "POST" });
     checks.add("finish refuses a layout with no ground", bareFin.status === 422,
       `${bareFin.status}: ${(bareFin.json?.error ?? bareFin.text).slice(0, 120)}`);
-    await apiRaw(`/map/${bareSlug}/sketch/discard-if-empty`, { method: "DELETE" });
+    await apiRaw(`/map/${bareSlug}/discard-if-empty`, { method: "DELETE" });
   }
 } else {
   checks.add("finish accepts a one-island layout", false, `could not create a draft: ${draft.status}`);

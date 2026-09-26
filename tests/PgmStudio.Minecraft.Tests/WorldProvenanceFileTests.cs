@@ -127,7 +127,7 @@ public sealed class WorldProvenanceFileTests
             WorldProvenanceFile.Write(written, dir);
 
             var read = WorldProvenanceFile.TryRead(dir)!;
-            await Assert.That(read.OwnerAt(0, 0)).IsEqualTo(null);
+            await Assert.That(read.OwnerAt(0, 0)).IsNull();
         }
         finally { Directory.Delete(dir, recursive: true); }
     }

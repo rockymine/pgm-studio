@@ -1,8 +1,9 @@
 @namespace PgmStudio.Client.Components
 
-@* The app top bar — an optional breadcrumb-home link (icon + label), a Crumbs slot for the page's
-   trail (compose with <Crumb>), and a right cluster (Right slot) that ends with the theme toggle
-   unless ShowTheme is off. Renders no .topbar-right at all when there is nothing to put there. *@
+@* The tool's bar, under the studio's own — the trail to where the page is (an optional home link, then
+   the Crumbs slot composed from Crumb), a "view only" tag where the page opens read-only, and the tool's
+   state and actions at the right (Right). What belongs to the studio rather than the tool — its pages,
+   the theme, the account — is AppNav above it. *@
 
 <div class="topbar">
     @if (HomeHref is not null)
@@ -13,12 +14,13 @@
         </a>
     }
     @Crumbs
-    @if (Right is not null || ShowTheme)
+    @if (ReadOnlyReason is not null)
     {
-        <div class="topbar-right">
-            @Right
-            @if (ShowTheme) { <ThemeToggle /> }
-        </div>
+        <span class="readonly-tag" role="status" title="@ReadOnlyReason"><i data-lucide="eye"></i><span>View only</span></span>
+    }
+    @if (Right is not null)
+    {
+        <div class="topbar-right">@Right</div>
     }
 </div>
 
@@ -29,5 +31,5 @@
     [Parameter] public string? HomeTitle { get; set; }
     [Parameter] public RenderFragment? Crumbs { get; set; }
     [Parameter] public RenderFragment? Right { get; set; }
-    [Parameter] public bool ShowTheme { get; set; } = true;
+    [CascadingParameter(Name = "StudioReadOnlyReason")] public string? ReadOnlyReason { get; set; }
 }
