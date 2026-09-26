@@ -178,9 +178,10 @@ public static class FeatureExtractors
         113,                                // nether brick fence
     };
 
-    /// <summary>Every run of door blocks standing on solid ground that is not a door itself (→
-    /// door_runs.parquet). A run with air under it is a floor or a roof, which a player stands on or under
-    /// rather than breaks through, and is not one.</summary>
+    /// <summary>Every run of door blocks standing on solid ground that is not a door itself, and either at
+    /// least two blocks tall or held under something solid — a doorway, a window, a wall (→
+    /// door_runs.parquet). A run with air under it is a roof or a hanging floor, and a single block with air
+    /// over it is the floor a player stands on; neither is a door.</summary>
     public static IEnumerable<DoorRunFeature> DoorRuns(IEnumerable<AnvilRegion.Chunk> chunks)
     {
         foreach (var chunk in chunks)
@@ -200,7 +201,8 @@ public static class FeatureExtractors
                     }
                     else if (!door && runStart >= 0)
                     {
-                        yield return new DoorRunFeature(chunk.ChunkX * 16 + (col & 15), chunk.ChunkZ * 16 + (col >> 4), runStart, y - 1);
+                        if (y - runStart >= 2 || IsSolid(id, y))
+                            yield return new DoorRunFeature(chunk.ChunkX * 16 + (col & 15), chunk.ChunkZ * 16 + (col >> 4), runStart, y - 1);
                         runStart = -1;
                     }
                 }

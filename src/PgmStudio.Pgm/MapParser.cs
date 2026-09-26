@@ -1162,10 +1162,17 @@ public sealed partial class MapParser
     private List<Spawner> ParseSpawners()
     {
         var spawners = new List<Spawner>();
+        var index = 0;
         foreach (var elem in _root.Descendants("spawners").SelectMany(s => s.Elements("spawner")))
         {
-            var spawnRegion = Xml.Get(elem, "spawn-region", "").Trim();
-            var playerRegion = Xml.Get(elem, "player-region", "").Trim();
+            // PGM takes each region as an attribute naming one or as a child element holding it.
+            string RegionOf(string name) =>
+                Xml.Get(elem, name, "").Trim() is { Length: > 0 } named ? named
+                : elem.Element(name) is { } wrapper ? _regionParser.ParseRegionProperty(wrapper, $"__spawner_{index}_{name}")?.Id ?? ""
+                : "";
+            var spawnRegion = RegionOf("spawn-region");
+            var playerRegion = RegionOf("player-region");
+            index++;
             if (spawnRegion.Length == 0 || playerRegion.Length == 0) continue;
 
             var maxEntitiesStr = Xml.Get(elem, "max-entities", "");

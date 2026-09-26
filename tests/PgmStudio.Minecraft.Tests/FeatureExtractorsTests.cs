@@ -197,14 +197,17 @@ public class FeatureExtractorsTests
     }
 
     [Test]
-    public async Task A_door_on_solid_ground_is_a_door_run_and_a_glass_floor_over_air_is_not()
+    public async Task A_door_on_solid_ground_is_a_door_run_and_a_glass_floor_is_not()
     {
         var blocks = new byte[4096];
         for (var y = 0; y < 5; y++) blocks[Idx(0, y, 0)] = 1;
         blocks[Idx(0, 5, 0)] = 160; blocks[Idx(0, 6, 0)] = 160;   // a pane doorway on stone
         blocks[Idx(1, 8, 0)] = 20;                                // a glass floor with air under it
         for (var y = 0; y < 5; y++) blocks[Idx(2, y, 0)] = 1;
-        blocks[Idx(2, 5, 0)] = 113;                               // a nether brick fence on stone
+        blocks[Idx(2, 5, 0)] = 113;                               // a one-high nether brick fence gate
+        blocks[Idx(2, 6, 0)] = 1;                                 // under its lintel
+        for (var y = 0; y < 5; y++) blocks[Idx(3, y, 0)] = 1;
+        blocks[Idx(3, 5, 0)] = 95;                                // a glass floor course on stone, air above
         var section = new NbtCompound
         {
             new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]),

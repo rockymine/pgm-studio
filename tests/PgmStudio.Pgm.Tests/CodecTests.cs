@@ -278,4 +278,22 @@ public sealed class CodecTests
 
     private static List<string> NamedRegionIds(MapXml m) => m.Regions.Keys.Where(k => !k.Contains("__")).OrderBy(x => x).ToList();
     private static List<string> NamedFilterIds(MapXml m) => m.Filters.Keys.Where(k => !k.Contains("__")).OrderBy(x => x).ToList();
+
+    [Test]
+    public async Task A_spawner_stating_its_regions_as_elements_is_read_and_written_back()
+    {
+        // PGM takes a spawner's regions as attributes or as child elements; cyril writes them as elements.
+        var parsed = MapParser.ParseXmlString(
+            """<?xml version="1.0"?><map proto="1.4.0"><name>m</name><version>1</version><objective>o</objective>"""
+            + """<spawners><spawner delay="3s"><spawn-region><point>-18.5,12.1,-30</point></spawn-region>"""
+            + """<player-region><cylinder base="-20,7,-32" radius="3" height="6"/></player-region>"""
+            + """<item damage="14" material="wool"/></spawner></spawners></map>""");
+
+        var spawner = parsed.Spawners.Single();
+        await Assert.That(parsed.Regions.ContainsKey(spawner.SpawnRegion)).IsTrue();
+        await Assert.That(parsed.Regions.ContainsKey(spawner.PlayerRegion)).IsTrue();
+
+        var again = MapParser.ParseXmlString(XmlWriter.ToXml(Deserializer.FromDict(Serializer.ToDict(parsed))));
+        await Assert.That(again.Spawners.Count).IsEqualTo(1);
+    }
 }
