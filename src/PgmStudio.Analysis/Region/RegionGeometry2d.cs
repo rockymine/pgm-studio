@@ -1,6 +1,8 @@
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Utilities;
 
+using PgmStudio.Domain;
+
 namespace PgmStudio.Analysis.Region;
 
 using Dict = Dictionary<string, object?>;
@@ -212,5 +214,53 @@ public static class RegionGeometry2d
     private static Dict AsDict(object? o) => o as Dict ?? new Dict();
     private static List<object?> AsList(object? o) => o as List<object?> ?? [];
     private static Dict NonEmpty(Dict a, Dict b) => a.Count > 0 ? a : b;
+    /// <summary>The heights a region covers, <c>(low, high)</c> inclusive, as the vertical half of its
+    /// footprint: a cuboid's and a cylinder's own span, a sphere's diameter, an <c>above</c> or <c>below</c> on y
+    /// open on one side; a union the span of its children, an intersection their overlap, a transform its
+    /// source's. Everything else — a rectangle, a circle, a negative, a complement — covers every height.
+    /// </summary>
+    public static (double Low, double High) Heights(object? reference, Dict registry, int depth = 0)
+    {
+        var all = (double.NegativeInfinity, double.PositiveInfinity);
+        if (depth > 32 || Resolve(reference, registry) is not { } region) return all;
+        double? Y(object? point) => AsDict(point).GetValueOrDefault("y") is { } y ? Coord.Decode(y) : null;
+        var children = AsList(region.GetValueOrDefault("children"));
+        switch (region.GetValueOrDefault("type") as string)
+        {
+            case "cuboid" when Y(region.GetValueOrDefault("min")) is { } low && Y(region.GetValueOrDefault("max")) is { } high:
+                return (Math.Min(low, high), Math.Max(low, high));
+            case "cylinder" when Y(region.GetValueOrDefault("base")) is { } bottom:
+                return (bottom, region.GetValueOrDefault("height") is { } height ? bottom + Coord.Decode(height) : double.PositiveInfinity);
+            case "sphere" when Y(region.GetValueOrDefault("origin")) is { } middle && region.GetValueOrDefault("radius") is { } radius:
+                return (middle - Coord.Decode(radius), middle + Coord.Decode(radius));
+            case "above" when region.GetValueOrDefault("y") is { } floor:
+                return (Coord.Decode(floor), double.PositiveInfinity);
+            case "below" when region.GetValueOrDefault("y") is { } ceiling:
+                return (double.NegativeInfinity, Coord.Decode(ceiling));
+            case "union" when children.Count > 0:
+            {
+                var spans = children.Select(child => Heights(child, registry, depth + 1)).ToList();
+                return (spans.Min(span => span.Low), spans.Max(span => span.High));
+            }
+            case "intersect" when children.Count > 0:
+            {
+                var spans = children.Select(child => Heights(child, registry, depth + 1)).ToList();
+                return (spans.Max(span => span.Low), spans.Min(span => span.High));
+            }
+            case "mirror":
+                return Heights(region.GetValueOrDefault("source_id"), registry, depth + 1);
+            case "translate":
+            {
+                var (low, high) = Heights(region.GetValueOrDefault("source_id"), registry, depth + 1);
+                var lift = Y(region.GetValueOrDefault("offset")) ?? 0;
+                return (low + lift, high + lift);
+            }
+            case "reference":
+                return Heights(region.GetValueOrDefault("ref_id"), registry, depth + 1);
+            default:
+                return all;
+        }
+    }
+
     private static double? Num(object? v) => v switch { double d => d, long l => l, int i => i, float f => f, _ => null };
 }

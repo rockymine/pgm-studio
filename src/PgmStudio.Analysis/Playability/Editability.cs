@@ -55,8 +55,17 @@ public static class Editability
     /// where the map granted it or where a conditional filter permits somebody.</para></summary>
     public sealed record Result(
         int MinX, int MinZ, int MaxX, int MaxZ, int Width, int Height,
-        byte[] Zone, bool[] IsVoid, bool[] Bridges, Dictionary<string, int> Counts, bool HasY0)
+        byte[] Zone, bool[] IsVoid, bool[] Bridges, Dictionary<string, int> Counts, bool HasY0, bool[] Breaks)
     {
+        /// <summary>Whether a player may break blocks in the column at a world cell — the break walk allows
+        /// it, abstains, or answers conditionally, which is a filter some player passes. False off the grid.
+        /// </summary>
+        public bool BreakableAt((int X, int Z) cell)
+        {
+            int ix = cell.X - MinX, iz = cell.Z - MinZ;
+            return ix >= 0 && iz >= 0 && ix < Width && iz < Height && Breaks[iz * Width + ix];
+        }
+
         /// <summary>Whether the column holding a world position is void. Null off the grid, which is a
         /// position outside the analysed box rather than one over nothing.</summary>
         public bool? VoidAt(double x, double z)
@@ -310,7 +319,9 @@ public static class Editability
                          || (place[i] is Say.Allow or Say.Abstain && (granted[i] || qualified[i]));
 
         var counts = EditZone.All.ToDictionary(word => word, word => zone.Count(z => z == EditZone.IndexOf(word)));
-        return new Result(minX, minZ, maxX, maxZ, nx, nz, zone, isVoid, bridges, counts, hasY0);
+        var breaks = new bool[cells];
+        for (var i = 0; i < cells; i++) breaks[i] = breakage[i] != Say.Deny;
+        return new Result(minX, minZ, maxX, maxZ, nx, nz, zone, isVoid, bridges, counts, hasY0, breaks);
     }
 
     /// <summary>Record a rule's answer for one column, first answer winning. Only an abstention leaves the

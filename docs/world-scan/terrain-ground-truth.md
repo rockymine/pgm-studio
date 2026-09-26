@@ -90,6 +90,14 @@ into a component of its own; over the corpus, making them walk-through connects 
 not connected, 45 of them through cobwebs alone. Trapdoors stay solid, since a closed one is as often a
 floor. §3 needs the XML and stays with the island picture.
 
+A doorway a player breaks through is a third case, neither walked through nor ground. Glass, glass panes,
+stained glass and panes (the stamper's breakable door materials, `DoorMaterials`) and the nether brick fence
+are solid and stay in their segments; the scan also keeps every run of them that stands on solid ground as a
+**door run** (`FeatureExtractors.DoorRuns` → `door_run`, `door_runs.parquet`). A run with air under it is a
+glass floor or a roof and is not one. The walk opens a door run where the map lets players break blocks in
+its column (`Editability.Result.BreakableAt`), so the floor it stands on becomes a surface with the doorway's
+room over it, and keeps it shut where breaking is denied.
+
 The floor markers are stained glass and water (`SurfaceExtractors.FloorMarkerIds`), both only at y ≤ 1.
 Water laid at the floor marks a build area the same way a glass sheet does and is not an island: agrostid's
 3,264 water blocks all sit at y=0, while its lakes, at y 7–8, stay ground.

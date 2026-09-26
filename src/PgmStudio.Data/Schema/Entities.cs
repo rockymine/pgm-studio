@@ -469,6 +469,19 @@ public sealed class FloorMarkRow
     [Column("block_id"), NotNull] public int BlockId { get; set; }
 }
 
+/// <summary>A run of door blocks standing on solid ground (M0041): solid, so its segment keeps it, and
+/// opened by a walk where the map lets players break blocks in its column.</summary>
+[Table("door_run")]
+public sealed class DoorRunRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("world_x"), NotNull] public int WorldX { get; set; }
+    [Column("world_z"), NotNull] public int WorldZ { get; set; }
+    [Column("world_y_start"), NotNull] public int WorldYStart { get; set; }
+    [Column("world_y_end"), NotNull] public int WorldYEnd { get; set; }
+}
+
 [Table("map_artifact")]
 public sealed class MapArtifactRow
 {

@@ -80,14 +80,17 @@ public sealed record WalkGround(
         places.GroupBy(place => place.Cell)
               .ToDictionary(group => group.Key, group => group.OrderBy(place => place.Y).ToArray());
 
-    /// <summary>The same ground restricted to <paramref name="keep"/> — what a caller wants when some cells
-    /// are out of bounds for this walk in particular: a team an <c>enter</c> rule bars, or a way deliberately
-    /// cut to ask whether another one exists. A cell is barred whole: an <c>enter</c> rule keeps a team out of
-    /// ground, not out of one storey of it. Constructed rather than copied, because <see cref="Passable"/> is
-    /// captured once and <c>with</c> would carry the wider set through.</summary>
-    public WalkGround Narrowed(IReadOnlySet<(int X, int Z)> keep) => new(
-        new HashSet<WalkPlace>(Ground.Where(place => keep.Contains(place.Cell))),
-        new HashSet<WalkPlace>(Bridgeable.Where(place => keep.Contains(place.Cell))),
+    /// <summary>The same ground restricted to the cells in <paramref name="keep"/>, every storey of each — a
+    /// way deliberately cut to ask whether another one exists.</summary>
+    public WalkGround Narrowed(IReadOnlySet<(int X, int Z)> keep) => Narrowed(place => keep.Contains(place.Cell));
+
+    /// <summary>The same ground restricted to the places <paramref name="keep"/> admits — what a caller wants
+    /// when some are out of bounds for this walk in particular, such as the storeys an <c>enter</c> rule bars
+    /// a team from. Constructed rather than copied, because <see cref="Passable"/> is captured once and
+    /// <c>with</c> would carry the wider set through.</summary>
+    public WalkGround Narrowed(Func<WalkPlace, bool> keep) => new(
+        new HashSet<WalkPlace>(Ground.Where(keep)),
+        new HashSet<WalkPlace>(Bridgeable.Where(keep)),
         Bounds, BlocksPerCell, Water, Clear);
 
     /// <summary>The board a set of solid spans makes: every place a player can stand in them, with the room

@@ -20,6 +20,11 @@ public readonly record struct SegmentFeature(int WorldX, int WorldZ, int WorldYS
 /// void and may be built over; nobody stands on it, so it is no segment.</summary>
 public readonly record struct FloorMarkFeature(int WorldX, int WorldZ, int BlockId);
 
+/// <summary>A run of door blocks standing on solid ground — a doorway's glass, a wool room's pane wall, a
+/// nether-brick-fence gate. Solid, so it stays in its segment; a walk that knows the map lets players break
+/// blocks there opens it.</summary>
+public readonly record struct DoorRunFeature(int WorldX, int WorldZ, int WorldYStart, int WorldYEnd);
+
 /// <summary>
 /// Locate specific block types across a set of region files — "where are the X blocks and what
 /// are they?". <c>minecraft/layers.py</c>. Each method scans the decoded block stream / tile-entity NBT and
@@ -159,6 +164,48 @@ public static class FeatureExtractors
                 var id = floor.Ids[index];
                 if (id == 0 || IsSolid(id, 0)) continue;
                 yield return new FloorMarkFeature(chunk.ChunkX * 16 + (index & 15), chunk.ChunkZ * 16 + (index >> 4), id);
+            }
+        }
+    }
+
+    /// <summary>What a map closes a doorway with for players to break: the breakable door materials the
+    /// stamper builds with (<see cref="PgmStudio.Domain.DoorMaterials"/>), plain glass and glass panes, and the
+    /// nether brick fence. A cobweb is among the door materials but is walked through already.</summary>
+    public static readonly IReadOnlySet<int> DoorIds = new HashSet<int>(
+        PgmStudio.Domain.DoorMaterials.Breakable.Select(choice => choice.BlockId).Where(id => !SegmentExclude.Contains(id)))
+    {
+        20, 102,                            // glass, glass pane
+        113,                                // nether brick fence
+    };
+
+    /// <summary>Every run of door blocks standing on solid ground that is not a door itself (→
+    /// door_runs.parquet). A run with air under it is a floor or a roof, which a player stands on or under
+    /// rather than breaks through, and is not one.</summary>
+    public static IEnumerable<DoorRunFeature> DoorRuns(IEnumerable<AnvilRegion.Chunk> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            var full = AnvilRegion.FullVolume(chunk);
+            for (var col = 0; col < 256; col++)
+            {
+                var runStart = -1;
+                for (var y = 1; y < 256; y++)
+                {
+                    var id = full[(y << 8) | col];
+                    var door = DoorIds.Contains(id) && IsSolid(id, y);
+                    if (door && runStart < 0)
+                    {
+                        var below = full[((y - 1) << 8) | col];
+                        if (IsSolid(below, y - 1) && !DoorIds.Contains(below)) runStart = y;
+                    }
+                    else if (!door && runStart >= 0)
+                    {
+                        yield return new DoorRunFeature(chunk.ChunkX * 16 + (col & 15), chunk.ChunkZ * 16 + (col >> 4), runStart, y - 1);
+                        runStart = -1;
+                    }
+                }
+                if (runStart >= 0)
+                    yield return new DoorRunFeature(chunk.ChunkX * 16 + (col & 15), chunk.ChunkZ * 16 + (col >> 4), runStart, 255);
             }
         }
     }

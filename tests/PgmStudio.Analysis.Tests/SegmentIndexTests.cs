@@ -107,4 +107,17 @@ public sealed class SegmentIndexTests
         await Assert.That(index.Y0Columns()).Contains((5, 5));
         await Assert.That(Standing(index, 5, 5)).IsNull();
     }
+
+    [Test]
+    public async Task A_door_opens_only_where_the_walk_says_it_may_be_broken()
+    {
+        // Stone to y 10 with a two-pane doorway on it (y 11-12) and a lintel over it at y 13.
+        var index = new SegmentIndex([(0, 0, 0, 13)], null, [(0, 0, 11, 12)]);
+
+        var shut = index.StandingTops().Select(t => t.top).ToList();
+        var open = index.StandingTops(_ => true).Select(t => t.top).ToList();
+
+        await Assert.That(shut).IsEquivalentTo(new[] { 14 }).Because("a shut door is solid to the lintel");
+        await Assert.That(open).Contains(11).Because("the floor the door stands on, with the doorway's room over it");
+    }
 }

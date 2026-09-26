@@ -485,4 +485,45 @@ public sealed class TraversabilityTests
 
         await Assert.That(res.Connected).IsTrue();
     }
+
+    [Test]
+    public async Task A_wool_room_above_a_spawn_bars_the_room_and_not_the_spawn_under_it()
+    {
+        // abstract draws its wool rooms as cuboids standing on top of the spawns and bars each team from its
+        // own. The cuboid covers y 10..20; blue spawns on the ground under it, at y 1, and walks out to the
+        // wool it must take. Read flat, the room would bar the spawn and leave blue nowhere to start from.
+        var data = new Dict
+        {
+            ["regions"] = new Dict
+            {
+                ["blue-spawn"] = Rect(0, 0, 4, 4),
+                ["red-spawn"] = Rect(26, 0, 30, 4),
+                ["blue-room"] = new Dict
+                {
+                    ["type"] = "cuboid",
+                    ["min"] = new Dict { ["x"] = -1.0, ["y"] = 10.0, ["z"] = -1.0 },
+                    ["max"] = new Dict { ["x"] = 6.0, ["y"] = 20.0, ["z"] = 5.0 },
+                },
+            },
+            ["filters"] = new Dict
+            {
+                ["only-blue"] = new Dict { ["type"] = "team", ["team"] = "blue" },
+                ["not-blue"] = new Dict { ["type"] = "not", ["child"] = "only-blue" },
+            },
+            ["spawns"] = new List<object?>
+            {
+                new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
+                new Dict { ["team"] = "red", ["region"] = "red-spawn" },
+            },
+            ["wools"] = new List<object?> { new Dict { ["color"] = "red", ["team"] = "red", ["location"] = Xz(20, 2) } },
+            ["apply_rules"] = new List<object?> { new Dict { ["region"] = "blue-room", ["enter"] = "not-blue" } },
+        };
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x < 30; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+
+        var res = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 35, 10));
+
+        await Assert.That(res.Connected).IsTrue();
+        await Assert.That(res.Isolated).IsEmpty();
+    }
 }

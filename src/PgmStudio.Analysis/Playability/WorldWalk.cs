@@ -46,7 +46,7 @@ public static class WorldWalk
         var clear = new Dictionary<WalkPlace, int>();
         var floor = new Dictionary<(int X, int Z), int>();
         if (segments is not null)
-            foreach (var (x, z, top, room) in segments.StandingTops())
+            foreach (var (x, z, top, room) in segments.StandingTops(edit.BreakableAt))
             {
                 var place = new WalkPlace(x, z, top);
                 places.Add(place);
@@ -98,8 +98,8 @@ public static class WorldWalk
         return (minX, minZ, maxX, maxZ);
     }
 
-    /// <summary>One team's own ground: the same walk with every cell an <c>enter</c> rule bars it from taken
-    /// out. A barred cell is neither standable nor bridgeable — bridging onto it still puts the player there —
+    /// <summary>One team's own ground: the same walk with every place an <c>enter</c> rule bars it from taken
+    /// out. A barred place is neither standable nor bridgeable — bridging onto it still puts the player there —
     /// and a team nothing bars gets the ground it was given back unchanged.
     ///
     /// <para>Narrowing a ground already built rather than building a second one is what lets a caller with
@@ -110,15 +110,13 @@ public static class WorldWalk
     {
         var over = shared.Bounds;
         if (data is null || team is null || over.Width <= 0 || over.Height <= 0) return shared;
-        return EntryDenials.Cells(data, team, over) is { Count: > 0 } denied ? Without(shared, denied) : shared;
+        return EntryDenials.For(data, team, over) is { } barred ? Without(shared, barred.Bars) : shared;
     }
 
-    /// <summary>The same walk with a set of cells taken out of it, whichever question put them there — the
-    /// ground a team is barred from, or that ground less the one patch a caller is asking whether a player can
-    /// walk up to. A cell goes whole: an <c>enter</c> rule keeps a team out of ground, not out of one storey
-    /// of it.</summary>
-    public static WalkGround Without(WalkGround shared, IReadOnlySet<(int X, int Z)> cut)
-        => shared.Narrowed(new HashSet<(int X, int Z)>(shared.Footprint.Where(cell => !cut.Contains(cell))));
+    /// <summary>The same walk with the places a question bars taken out of it — the storeys a team may not
+    /// enter, or those less the one patch a caller is asking whether a player can walk up to.</summary>
+    public static WalkGround Without(WalkGround shared, Func<WalkPlace, bool> barred)
+        => shared.Narrowed(place => !barred(place));
 
     /// <summary>Give every bridgeable cell the height of the ground nearest it, spreading outward from the
     /// shores. A player bridging builds out level from where they left, so a crossing costs nothing until it

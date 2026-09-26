@@ -186,9 +186,10 @@ public static class Traversability
         {
             // The team's own walk, narrowed the same way a measured distance for that team is — one rule for
             // what an enter denial takes away, whether the question is "is there a way" or "how far".
-            if (EntryDenials.Cells(data, team, over) is not { Count: > 0 } denied) continue;
+            if (EntryDenials.For(data, team, over) is not { } barred) continue;
+            var denied = barred.Cells;
 
-            var ground = WorldWalk.Without(shared, denied);
+            var ground = WorldWalk.Without(shared, barred.Bars);
             var components = Walk.Components(ground);
             var spawns = owned.Where(point => point.Kind == "spawn" && point.Owner == team).ToList();
             var spawnComponents = spawns
@@ -201,8 +202,8 @@ public static class Traversability
                 if (point.Kind == "spawn") continue;
                 var component = ComponentOf(point, ground, components);
                 if (component > 0 && spawnComponents.Contains(component)) continue;
-                if (point.Owner == team && BarredNear(point.Cell, denied) is { } barred
-                    && Approaches(point, barred, shared, denied, spawns, EntryDenials.Protection(data, team, barred, over)))
+                if (point.Owner == team && BarredNear(point.Cell, denied) is { } at
+                    && Approaches(point, at, shared, barred, spawns, EntryDenials.Protection(data, team, at, over)))
                     continue;
                 yield return new IsolatedPoint(point.Kind, point.Name, For: team);
             }
@@ -210,22 +211,22 @@ public static class Traversability
     }
 
     /// <summary>Whether a team can walk up to a goal of its own it may not stand on: the same journey from its
-    /// own spawns, over its own ground plus the one barred patch the goal stands in (<paramref name="barred"/>). Reaching that patch is
+    /// own spawns, over its own ground plus the one barred patch the goal stands in (<paramref name="at"/>). Reaching that patch is
     /// reaching the protection's border, which is as far as a defender of a wool room ever goes and is
     /// therefore the whole of what the goal asks of its own team. The patch is the goal's 4-connected area of
     /// this team's denied cells, together with the named protection it stands in
     /// (<see cref="EntryDenials.Protection"/>), and nothing else is given back, so a route that would have to
     /// cross a second protection is still cut. False where nothing bars the team at the goal at all — the goal is then simply
     /// out of reach, whoever walks.</summary>
-    private static bool Approaches(NavPoint goal, (int X, int Z) barred, WalkGround shared,
-        IReadOnlySet<(int X, int Z)> denied, List<NavPoint> spawns, IReadOnlySet<(int X, int Z)> protection)
+    private static bool Approaches(NavPoint goal, (int X, int Z) at, WalkGround shared,
+        EntryDenials.Barred barred, List<NavPoint> spawns, IReadOnlySet<(int X, int Z)> protection)
     {
-        var patch = Cells.Flood([barred], denied);
+        var denied = barred.Cells;
+        var patch = Cells.Flood([at], denied);
         patch.UnionWith(protection.Where(denied.Contains));
         if (patch.Count == 0) return false;
 
-        var elsewhere = new HashSet<(int X, int Z)>(denied.Where(cell => !patch.Contains(cell)));
-        var upTo = WorldWalk.Without(shared, elsewhere);
+        var upTo = WorldWalk.Without(shared, place => !patch.Contains(place.Cell) && barred.Bars(place));
         var components = Walk.Components(upTo);
         var border = ComponentOf(goal, upTo, components);
         return border > 0 && spawns.Any(spawn => ComponentOf(spawn, upTo, components) == border);

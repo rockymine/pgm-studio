@@ -27,8 +27,10 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts)
         var rows = await db.Segments.Where(s => s.MapId == mapId).ToListAsync(ct);
         if (rows.Count == 0) return null;
         var marks = await db.FloorMarks.Where(m => m.MapId == mapId).Select(m => new { m.WorldX, m.WorldZ }).ToListAsync(ct);
+        var doors = await db.DoorRuns.Where(d => d.MapId == mapId).ToListAsync(ct);
         return new SegmentIndex(rows.Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)),
-                                marks.Select(m => (m.WorldX, m.WorldZ)));
+                                marks.Select(m => (m.WorldX, m.WorldZ)),
+                                doors.Select(d => (d.WorldX, d.WorldZ, d.WorldYStart, d.WorldYEnd)));
     }
 
     public async Task<List<WoolSources.Source>> WoolSourcesAsync(long mapId, Dict doc, CancellationToken ct = default)

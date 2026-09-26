@@ -100,9 +100,7 @@ public static class CorpusGoldens
             var segments = dir is null ? null : Path.Combine(dir, "layer_segments.parquet");
             if (segments is not null && File.Exists(segments))
             {
-                var marks = Path.Combine(dir!, "floor_marks.parquet");
-                var index = new SegmentIndex(await FeatureData.ReadSegments(segments),
-                                             File.Exists(marks) ? await FeatureData.ReadFloorMarks(marks) : null);
+                var index = (await FeatureData.ReadIndex(dir!))!;
                 build = DescribeEditability(Editability.Compute(doc, index.Y0Columns(), floorMarks: index.FloorMarks));
                 var woolSources = await FeatureData.WoolSourceRows(dir!);
                 woolSources.AddRange(WoolSources.PgmSpawnerSources(doc));
@@ -177,6 +175,19 @@ public static class FeatureData
         await using var stream = File.OpenRead(path);
         var result = await Parquet.Serialization.ParquetSerializer.DeserializeUntypedAsync(stream);
         return [.. result.Data.Select(d => d.ToDictionary(kv => kv.Key, kv => (object?)kv.Value))];
+    }
+
+    /// <summary>A scanned map's segment index as the database holds it: its segments, floor marks and door
+    /// runs, from the files the scan wrote. Null where the map was not scanned.</summary>
+    public static async Task<SegmentIndex?> ReadIndex(string dir)
+    {
+        var segments = Path.Combine(dir, "layer_segments.parquet");
+        if (!File.Exists(segments)) return null;
+        var marks = Path.Combine(dir, "floor_marks.parquet");
+        var doors = Path.Combine(dir, "door_runs.parquet");
+        return new SegmentIndex(await ReadSegments(segments),
+                                File.Exists(marks) ? await ReadFloorMarks(marks) : null,
+                                File.Exists(doors) ? await ReadSegments(doors) : null);
     }
 
     public static async Task<List<(int, int)>> ReadFloorMarks(string path) =>
