@@ -4,7 +4,7 @@
  *
  * These tables are the single source of truth's JS face. The source of truth is the sibling game-colors.json,
  * which the C# (Models/GameColors.cs) reads directly; the arrays below mirror it and are held identical by
- * tests/js/game-colors.test.mjs (a drift check), so the two languages cannot diverge. They are inlined rather
+ * tests/PgmStudio.Client.Tests/Scripts/game-colors.test.js (a drift check), so the two languages cannot diverge. They are inlined rather
  * than fetched because these modules load through Blazor's JS interop, where an async (top-level-await) module
  * is fragile — a single aborted fetch poisons it — and the data is a frozen 1.8 constant not worth that risk.
  *

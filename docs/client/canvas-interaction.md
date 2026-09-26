@@ -353,9 +353,9 @@ payload or a refusal. That matters because `enterIso` is the most stateful funct
 await, a race guard, a cache stamp and two failure paths, and a rename inside it shipped a
 `ReferenceError` to the browser that neither the C# build nor the JS tests could see.
 
-Above the unit line, `tests/e2e/paint.mjs` is the one check that a painted surface actually paints. A blank
+Above the unit line, `PaintSpec` in `tests/PgmStudio.E2e.Tests` is the one check that a painted surface actually paints. A blank
 canvas raises no error and leaves no elements behind, so it is exactly as "clean" as a working one to the
-smoke sweep; `paint.mjs` asserts on pixels instead, for each of the three hybrid surfaces: painted
+smoke sweep; `PaintSpec` asserts on pixels instead, for each of the three hybrid surfaces: painted
 coverage, buffer = CSS box × DPR, the screen chrome present in the svg, and that a wheel burst *changes*
 the pixel signature — which a stretched raster would not. It reaches the world canvas through the
 Configure tool's nav rail, on World · Scan, since that route opens on a phase with no canvas mounted.

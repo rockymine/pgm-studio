@@ -87,7 +87,7 @@ it shows once with a copy button — the same four routes as below.
 
 A page the caller may not write opens read-only: the tool's bar says *View only*, with the reason on hover, the
 panels grey their fields and the canvas keeps only the tools that look. `docs/client/ui-conventions.md` says
-how the shell decides it. `tests/e2e/access.mjs` holds it, against a second server over the suite's database
+how the shell decides it. `AccessSpec` in `tests/PgmStudio.E2e.Tests` holds it, against a second server over the suite's database
 running invited with the browser signed out.
 
 ## Which route needs what is decided from the route

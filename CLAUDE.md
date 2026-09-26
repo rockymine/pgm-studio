@@ -223,12 +223,14 @@ renamed or retired changes its `vocabulary.md` row in the same commit.
 - **`dotnet test` is not the path** on the .NET 10 SDK (the VSTest bridge is gone) — run a project directly:
   `dotnet run --project tests/<Project>`.
 - **`./tools/e2e.sh all`** is the browser gate (icons · paint · plan refusals · smoke), on its own port and
-  database so it cannot touch dev data. It needs Playwright **globally** (`npm i -g playwright && npx
-  playwright install chromium`). **Stop `dev.sh` first** — two servers on one VM starve each other and the
+  database so it cannot touch dev data. It runs `tests/PgmStudio.E2e.Tests`, which drives Chromium through
+  PuppeteerSharp and needs only a Chromium or Chrome on the machine (`E2E_CHROMIUM=<path>` names one).
+  **Stop `dev.sh` first** — two servers on one VM starve each other and the
   failures land as 30s route timeouts that look like page faults.
 - **`.github/workflows/ci.yml`** runs the same gates on every pull request and push to `main`: the build, all
-  ten test projects (the three database ones serially, on MariaDB installed the way `docs/cloud-setup.md`
-  does), the JS suite, the census, the tool scripts and `./tools/e2e.sh all`. A red check there is the
+  eleven test projects outside the browser suite (the three database ones serially, on MariaDB installed the
+  way `docs/cloud-setup.md` does; the client's script tests among the rest), the census, the tool scripts and
+  `./tools/e2e.sh all`. A red check there is the
   same failure a local run would show, not an environment quirk.
 - **`tools/PgmStudio.RoundTrip --goldens [featureRoot] [--update]`** is the corpus regression net: the four
   map-level derivations over every corpus map, compared against `corpus-goldens.json`, so a change that moves

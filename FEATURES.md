@@ -325,12 +325,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `waves-horizontal`, `file-plus-corner`, `funnel`). (C30, C67)
 - **The project carries no Node (C67).** The browser modules' tests run as TUnit tests in Jint, a .NET
   JavaScript engine (`tests/PgmStudio.Client.Tests`, one TUnit test per `test()` case, 457 of them); there
-  is no `package.json`, `node_modules`, npm step or `setup-node` in CI.
+  is no `package.json`, `node_modules`, npm step or `setup-node` in CI. The browser suite is TUnit too
+  (`tests/PgmStudio.E2e.Tests`, one class per spec), driving Chromium through PuppeteerSharp rather than
+  Playwright, which spawns Node. `PW_CHROMIUM` is now `E2E_CHROMIUM`.
 - **A committed end-to-end harness — the smoke layer of C28 (C31).** The "Playwright N/N" numbers in the
   entries below were one-off runs in the sessions that produced them; nothing in the repo could reproduce
   one. `tools/e2e.sh` can: it resets **its own database** (`pgm_studio_e2e`) and serves on **its own port**
   (7895), so a run can never touch the dev data — the specs create maps, and on the dev DB they pile up in
-  the dashboard. Migrate → build → start → wait for health → seed → run → tear down; `npm run e2e`,
+  the dashboard. Migrate → build → start → wait for health → seed → run → tear down; `./tools/e2e.sh`,
   `--keep` to leave the server up.
   - **Seeded from the composer, not from hand-drawn boxes.** A pinned descriptor
     (`players/teams/symmetry/seed/cell`) composes the same real board every run — spawns, wools, a hub, a
@@ -338,10 +340,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
     without committing a fixture file. Three maps, one per stage the routes need: a composed candidate
     committed to authoring (`plan`), the same layout carried through compile → sketch → **Finish** into
     world geometry (`configure`, and what `/edit` opens), and a draft holding that layout (`sketch`).
-  - **`smoke.mjs` — 15 routes × (renders · is clean).** "Clean" means no uncaught exception, no console
+  - **`SmokeSpec` — 15 routes × (renders · is clean).** "Clean" means no uncaught exception, no console
     error, no failed or 4xx/5xx request. Anything tolerated must be named in `ALLOWED_FAULTS` **with a
     reason and a task id**, so an allowance is a decision on the record rather than a silent filter.
-  - **`plan-refusals.mjs` — the refusal contract**, written by corrupting a composed plan one slice at a
+  - **`PlanRefusalsSpec` — the refusal contract**, written by corrupting a composed plan one slice at a
     time so a refusal is attributable to the slice. Structural breakage is refused with findings; malformed
     input is 4xx and never 5xx; `Finish` refuses a one-island layout.
 
@@ -353,11 +355,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   an incomplete plan compiling** (B38, gated below) — asserted as the behaviour of the day so the suite
   stayed a signal, and written to fail loudly when a gate landed, which is how it did. 31/31 smoke,
   22/22 refusals. (C31)
-- **The suite measures what its names claim (TS41, TS42, C52).** `tests/e2e/structural.mjs` reads the
+- **The suite measures what its names claim (TS41, TS42, C52).** `tests/PgmStudio.E2e.Tests/StructuralSpec` reads the
   compiled layout one layer at a time — `layers[].layout.shapes`, where a sketch layout keeps its drawing —
   so `S25`'s two spawn and two wool rectangles are counted beside the terrain they surface over, and the
   two checks that carry weight only on a non-empty set (the rectangle footprints, the `intentRef` link and
-  its colour) are the ones reporting them. `tests/e2e/dressing.mjs` takes its placing tools from the dock's
+  its colour) are the ones reporting them. `tests/PgmStudio.E2e.Tests/DressingSpec` takes its placing tools from the dock's
   placing group rather than from a stated number, so a tool added to `DressingTools.All` leaves a working
   phase green, and names the three it drives — `Stroke`, `Water`, `Tree` — once, so the offer check and the
   clicks cannot disagree about what a tool is called: the drive reaches the path and channel drags past its
@@ -733,7 +735,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   been coloured. The five-step `--icon-xs/sm/md/lg/xl` scale replaces all twenty, the dead selectors are
   live, `svg.lucide` carries the default so the stylesheet owns the size (studio.js's attribute is now
   only a pre-paint fallback), and `.nav-rail`'s `!important` — which outranked nothing — is gone.
-  `tests/e2e/controls.mjs` gates both this and `--control-height`: every control in a library row is one
+  `tests/PgmStudio.E2e.Tests/ControlsSpec` gates both this and `--control-height`: every control in a library row is one
   height, every square control is square, and every rendered glyph lands on a scale step. Its load-bearing
   check is the one the token did *not* produce — an unconstrained `select.field-input` must still measure
   `--control-height`, which is what ties the token to the type scale rather than to itself. Verified by
@@ -763,7 +765,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   a delay so crossing the dock does not trail a caption. It is the tool's **name**, not its manual: a lasso
   and a polygon explain themselves, and a sentence in every tooltip is a sentence in the way. The two mode
   buttons already print the state they are in, so theirs names the destination instead ("Switch to Carve"). Plan's Interfaces/Frontline/Labels/Heights overlays came
-  out of the Settings panel onto the canvas they annotate. `tests/e2e/draw-tools.mjs` gates the operation
+  out of the Settings panel onto the canvas they annotate. `tests/PgmStudio.E2e.Tests/DrawToolsSpec` gates the operation
   contract: one control, colouring the three tools it decides for, dimmed when it decides nothing. The
   retired `.canvas-subbar` draw vocabulary (`.op-pill`, `.subbar-sep`, `.canvas-dim`, `.canvas-zoom`,
   `.canvas-island-select`, the whole `.plan-toolbar` palette) is deleted; `.canvas-subbar` itself survives
@@ -3835,7 +3837,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **closes the compile drawer first**: it is modal and dims the board behind it, so a highlight painted under
   it would answer "which core?" with a ring nobody can see. The wiring is per-subject rather than per-rule,
   so it covers every finding the validator can raise rather than `OB17` alone, and it lands the editor half
-  `B37` wanted for unplaceable markers. (`PlanTool.ShowFinding`; `tests/e2e/plan-findings.mjs` builds a plan
+  `B37` wanted for unplaceable markers. (`PlanTool.ShowFinding`; `tests/PgmStudio.E2e.Tests/PlanFindingsSpec` builds a plan
   refused for one specific reason and asserts the drawer yields, the board repaints, and the pulse clears
   itself — the last of which is also what proves the repaint was the highlight. C44 · B59 · B37)
 - **A marker can be referred to, not only drawn (`B59`).** A piece has an id and a zone has an id; a marker
@@ -3876,7 +3878,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   reason: `DestroyableMaterials` is both what the picker offers and what `WorldBuilder` resolves, so a
   material cannot be offered that silently stamps obsidian while the XML names emerald.
   (`PlanTool` inspector; `plan-canvas.js` selection payload, `plan-bridge.js setMarkerField`;
-  `ObjectiveVocabularyEndpoint`; `DestroyableMaterials`; `tests/e2e/plan-objective-variants.mjs` places a
+  `ObjectiveVocabularyEndpoint`; `DestroyableMaterials`; `tests/PgmStudio.E2e.Tests/PlanObjectiveVariantsSpec` places a
   core and a destroyable and varies both in a browser. G160)
 - **A world canvas that mounts before layout no longer writes a negative size (`N12`).** `WorldCanvas`'s
   rebuild measured its wrap directly (`clientWidth - 24`) and set the result on the `<svg>`, so a host that
@@ -3909,7 +3911,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `AuthoringContext`, since a core step needs the same teams and the same orbit.
   (`ConfigurePhases`/`ConfigureTool`/`ConfigureLayout`; `CoreObjectivesStep`, `CoreCasingStep`,
   `CoreAuthoring`, `AuthoringContext`; `CoreSuggestionsEndpoint`; `CoreIntentWireTests` pins the JSON the
-  wizard writes against `CoreIntent`, and `tests/e2e/configure-objectives.mjs` drives both claims in a
+  wizard writes against `CoreIntent`, and `tests/PgmStudio.E2e.Tests/ConfigureObjectivesSpec` drives both claims in a
   browser. N12 · B58)
 - **A team id says team (B50).** The generated document's `<team>` ids were the bare colour — `id="red"`,
   `<team id="only-red">red</team>` — which is what the `color` attribute beside it already says, so nothing
@@ -5165,7 +5167,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `render/canvas-painter.js` + `shape-render.js` + `sketch-render.js` + `symmetry-render.js` +
   `primitive-style.js` + `block-render.js` + `canvas-chrome.js` + all three canvases and their draw
   controllers + `tests/PgmStudio.Client.Tests/Scripts/{canvas-painter,render,primitive-style,symmetry-render}.test.js` +
-  `tests/e2e/paint.mjs`. With the plan canvas proven (below), the sketch and world canvases followed, and
+  `tests/PgmStudio.E2e.Tests/PaintSpec`. With the plan canvas proven (below), the sketch and world canvases followed, and
   the primitives that were private to the plan conversion became the painter's own: `rect`/`line`/
   `segments`/`circle`/`dot`/`ellipse`/`path`/`ring`/`poly`/`text`/`image`, in **world** coordinates
   through a `toSurface` fit (identity for plan and sketch, the bbox transform for the world canvas), under
@@ -5183,7 +5185,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   primitive as numbers and draws it through `paint(painter)`, so previews live in the same frame at the
   same scale as everything under them; the edit controllers' handles stay SVG, where a fixed pixel size
   and a `mousedown` target are the point. `WorldCanvas` gained a real `dispose` (a painted surface owns a
-  canvas element, a resize observer and a theme watcher, and sixteen hosts mount it). `paint.mjs` now
+  canvas element, a resize observer and a theme watcher, and sixteen hosts mount it). `PaintSpec` now
   sweeps all three surfaces, entering the world canvas through the Edit tool's nav rail because the route
   itself lands on Identity, which mounts no canvas. JS 188/188, e2e 19/19 paint + 33/33 smoke + 22/22 plan
   refusals + 19/19 icons, client build clean. Each surface reports its own numbers: plan 35.2% painted
@@ -5212,8 +5214,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   19/19 paint + 33/33 smoke + 22/22 refusals + 19/19 icons, build clean. (CV18)
 
 - **The plan canvas's world layers are painted, not retained (CV18)** — `render/canvas-painter.js` +
-  `canvas/plan-canvas.js` + `tests/PgmStudio.Client.Tests/Scripts/canvas-painter.test.js` + `tests/e2e/paint.mjs` +
-  `tools/painter-probe.mjs`. Zooming an authoring canvas in Firefox left the picture soft until the next
+  `canvas/plan-canvas.js` + `tests/PgmStudio.Client.Tests/Scripts/canvas-painter.test.js` + `tests/PgmStudio.E2e.Tests/PaintSpec` +
+  a one-off canvas probe. Zooming an authoring canvas in Firefox left the picture soft until the next
   input: a viewport matrix on a transformed SVG DOM is a paint-property change, so the engine may stretch
   the rasterization it already holds and defer re-rastering indefinitely — no repaint the app can issue
   fixes that, and every nudge tried measured worse. The fix is the surface the reference tools (Figma,
@@ -5228,11 +5230,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Interaction code is untouched — hit-testing, snapping and selection were already data-driven off
   `plan-doc`, and the hover cursor now comes from the same `pickAtWorld` the click uses. The hatch fills
   became `CanvasPattern`s, the lint pulse drives its own rAF loop, and `painter.layers` replaces
-  `data-layer` as the queryable paint order. Decided by measurement (`painter-probe.mjs`): rebuild-and-
+  `data-layer` as the queryable paint order. Decided by measurement (a one-off canvas probe): rebuild-and-
   stroke 20.4 ms vs rasterize-once 0.6 ms at 45k cells, and `color-mix()` tokens parse in a 2-D context.
   SkiaSharp-on-Blazor was rejected — the documents, controllers and hit-testing live in JS, and marshalling
   draw calls or documents across the WASM boundary is the class of cost already hit three times. The
-  server-side `PlanBoardSvg` divergence is accepted. `paint.mjs` asserts on pixels: painted coverage,
+  server-side `PlanBoardSvg` divergence is accepted. `PaintSpec` asserts on pixels: painted coverage,
   buffer = box × DPR, chrome still in the svg, and that a wheel burst *changes* the pixel signature — a
   stretched raster would not. JS 166/166; the artifact is confirmed gone on a real Firefox. (CV18)
 
@@ -6342,7 +6344,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`add`/`subtract`); only the label changed, because it should say what the next shape does to the land
   rather than name a set operation. The dead `.draw-tool-label` / `.draw-tool-btn--op-*` rules are gone and
   the separator is the subbar's own `.subbar-sep` rather than a twin of it. Shown in the `/design` catalog and
-  gated by a new e2e spec (`tests/e2e/draw-tools.mjs`, 11 checks: exactly one operation control with nothing
+  gated by a new e2e spec (`tests/PgmStudio.E2e.Tests/DrawToolsSpec`, 11 checks: exactly one operation control with nothing
   else repeating its state, dimmed on move and measure, awake on rectangle, a click flipping it each way, and
   the mode surviving a tool change).
 - **Five full cubes an authored board is built of now resolve to a tone family (WS15).** `SurfaceReport`
@@ -7215,7 +7217,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   projected spawn piece stayed where the plan put it, and the ground left behind fused into an island of its
   own — one group became two, and `east-22` came back with eight vertices where it was drawn with four.
   Restored from the spec with the author's relief kept.
-  Beside it, `tests/e2e/dressing.mjs` had been **dead since 2026-09-04**: `C63` renamed the prop kind `path`
+  Beside it, `tests/PgmStudio.E2e.Tests/DressingSpec` had been **dead since 2026-09-04**: `C63` renamed the prop kind `path`
   to `stroke` and swept the source but not the fixtures, so the suite threw on its first `PUT` and printed no
   result — including in the full runs, where a crashed suite reports nothing rather than a failure. The kind
   and `/terrain/path-styles` are `stroke` now and 18 of its 20 checks run. The last two drive a `.choice-tile`
@@ -9661,7 +9663,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   and an admin reaches `/admin/users`: add a player, change a role, take someone off, open an invitation and
   copy its link. A page the caller may not write opens read-only — a banner says why, `Inspector`,
   `ContentColumn` and the library editor grey their fields, and the dock keeps only the tools that look —
-  decided once by `StudioShell` from the address and `GET /api/map/{slug}/access`. `tests/e2e/access.mjs`
+  decided once by `StudioShell` from the address and `GET /api/map/{slug}/access`. `tests/PgmStudio.E2e.Tests/AccessSpec`
   holds it against an invited server. `docs/access.md`, `docs/client/ui-conventions.md`.
 - **A map is credited to whoever originates it (`RP82`).** A sketch, plan, import or document load started
   by a signed-in person writes them as the map's first `author`, uuid and name, beside the ownership, so

@@ -159,7 +159,7 @@ function handle(e) {
 }
 
 /** Install the one listener. Guarded on there being a document, so the registry — which is the half worth
- *  testing — imports under Node's test runner without a DOM. */
+ *  testing — imports in the script tests without a DOM. */
 export function install() {
   if (installed || typeof document === "undefined") return;
   installed = true;

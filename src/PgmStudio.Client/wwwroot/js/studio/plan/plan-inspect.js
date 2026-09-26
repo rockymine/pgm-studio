@@ -2,7 +2,7 @@
  * Pure helpers for the plan editor's inspect layer (the derived-structure overlays) — NO DOM.
  * The block-space geometry (interfaces / gap links / frontline) is computed server-side by /api/plan/inspect;
  * this module owns only the client-side presentation glue: reading/writing the overlay-toggle preferences.
- * Node-tested alongside plan-doc.js.
+ * Tested alongside plan-doc.js.
  */
 
 /**

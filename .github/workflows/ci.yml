@@ -63,10 +63,6 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
       - name: MariaDB, the databases and their user
         run: |
           sudo systemctl stop mysql || true
@@ -96,11 +92,6 @@ jobs:
             echo "::endgroup::"
           done
           exit $failed
-
-      - name: Playwright and Chromium
-        run: |
-          npm install -g playwright
-          playwright install --with-deps chromium
 
       - name: Browser sweep
         run: ./tools/e2e.sh all

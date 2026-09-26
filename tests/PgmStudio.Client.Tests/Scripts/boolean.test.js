@@ -1,5 +1,5 @@
 // Tests for the sketch boolean-group layer. Runs in the standard `node --test` harness — boolean.js
-// imports the vendored polygon-clipping bundle relatively, so no node_modules is needed.
+// imports the vendored polygon-clipping bundle relatively, so it loads from the repository as it stands.
 import { test } from "./_harness.js";
 import assert from "./_assert.js";
 

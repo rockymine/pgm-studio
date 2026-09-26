@@ -84,27 +84,23 @@ group so no per-test schema reset overlaps another test.
 
 ## End-to-end (it runs here — don't assume otherwise)
 `./tools/e2e.sh all` works in the container, and it is the only check that exercises the Blazor surfaces at
-all. Nothing extra needs installing: **Playwright is already global** (`/opt/node22`, resolved by
-`tests/e2e/lib/harness.mjs`) and **Chromium is pre-installed** at `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`
-— never run `playwright install`, **whatever Playwright's own banner says**.
+all. Nothing extra needs installing: the suite is `tests/PgmStudio.E2e.Tests`, which drives Chromium from .NET
+through PuppeteerSharp, and **Chromium is pre-installed** at `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`.
 
-**No version has to match, and none is named here.** A Playwright package pins exactly one browser revision,
-so a container whose global package is newer than its browsers directory resolves a build that is not there
-and answers with the install banner — which is how "the e2e suite cannot be run in the cloud" gets reported.
-It can. `openBrowser` tries Playwright's own resolution first and, where that finds nothing, drives the
-newest Chromium actually under `PLAYWRIGHT_BROWSERS_PATH`, printing the path it took. Nothing needs passing
-and no revision needs pinning; `PW_CHROMIUM=<path>` still overrides, for a browser somewhere else entirely.
+**No version has to match, and none is named here.** The browser is found in order: `E2E_CHROMIUM=<path>`
+where one is named, the newest Chromium under `PLAYWRIGHT_BROWSERS_PATH`, a `google-chrome`/`chromium` on the
+`PATH` (which is what a GitHub runner has), and only then a download. The run prints the path it took.
 
 The only prerequisite is the database section above, since the script resets its own schema through `sudo -n
 mariadb` (its default admin path, which works once `sudo service mariadb start` has run). It uses its own port
 (7895) and database (`pgm_studio_e2e`), so a run cannot touch dev data. A full sweep takes about three
-minutes here over an already-built solution, fifteen suites and 273 checks; a cold tree adds the WASM build
+minutes here over an already-built solution, sixteen specs and 308 checks; a cold tree adds the WASM build
 in front of it.
 
 **One check fails where the container cannot reach Mojang.** A smoke-sweep route that shows the map's author row
 reads a 404 from `/api/minecraft/player?name=Notch`, which is the studio answering honestly: `Notch` is shaped like a
 Minecraft account, so the question is worth asking, and where `api.mojang.com` is unreachable there is no
-account to answer with. It is not tolerated — `ALLOWED_FAULTS` in `tests/e2e/lib/harness.mjs` holds one
+account to answer with. It is not tolerated — `AllowedFaults` in `tests/PgmStudio.E2e.Tests/Harness/StudioPage.cs` holds one
 entry, for a fetch the sweep itself cancelled, and a 404 from the studio's own API is exactly what that list
 refuses to wave through. Check `curl -m 10 https://api.mojang.com/users/profiles/minecraft/Notch` before
 reading it as a defect: no answer at all means the run is on a network without egress, and every other spec
@@ -117,12 +113,9 @@ so a container with no egress renders and saves the Identity form intact.
 The suite drives **Chromium only**, so a rendering defect that exists in another engine cannot appear in it
 — which is why the browser-specific canvas artifact recorded in `BACKLOG.md` was found by hand and stays
 un-gated. **Firefox cannot be added here**, and the three routes are all closed, so there is no point
-spending the attempt again: `playwright install firefox` is refused by the network policy (403 on the
-CONNECT to `cdn.playwright.dev` and `playwright.download.prss.microsoft.com`), every Mozilla download host
-is refused the same way, and Ubuntu noble's `firefox` package is a snap transition stub with no snap in the
-container. Playwright needs its own patched build regardless, so a distro Firefox would not have driven
-anyway. Anything engine-specific has to be checked on a real machine; `tools/painter-probe.mjs` takes a
-`--browser` switch for exactly that.
+spending the attempt again: every Mozilla download host is refused by the network policy (403 on the
+CONNECT), and Ubuntu noble's `firefox` package is a snap transition stub with no snap in the container.
+Anything engine-specific has to be checked on a real machine.
 
 ## If you don't need the DB
 Much of the analysis work needs **no database**. `tools/PgmStudio.RoundTrip` runs DB-free:
