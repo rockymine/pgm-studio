@@ -147,8 +147,9 @@ the goal has to stand on it, which is the walk above. A team that *defends* it n
 wool room's `enter=not-<owner>` rule is what makes defending it mean anything — so what its own goal asks
 of it is the **border**: the ground it may stand on has to reach the barred patch the goal stands in.
 `Traversability.Approaches` walks it over its own ground plus that one patch, taken as the goal's
-4-connected area of the team's denied cells, so a second protection on the way is a wall and not a way
-round. A defender walled off from its own wool room refuses exactly as an attacker cut off from the wool
+4-connected area of the team's denied cells together with the innermost union the author named around the
+goal (`EntryDenials.Protection`), so a second protection on the way is a wall and not a way round, while a
+wool room drawn as a room and its lane with a row missed between them is still one protection. A defender walled off from its own wool room refuses exactly as an attacker cut off from the wool
 does, and the wiring every CTW map carries passes.
 
 - *Which team defends a wool is not in `map.xml`:* `<wool team>` names a capturing team, one element per

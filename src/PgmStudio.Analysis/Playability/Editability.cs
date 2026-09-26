@@ -55,8 +55,17 @@ public static class Editability
     /// where the map granted it or where a conditional filter permits somebody.</para></summary>
     public sealed record Result(
         int MinX, int MinZ, int MaxX, int MaxZ, int Width, int Height,
-        byte[] Zone, bool[] IsVoid, bool[] Bridges, Dictionary<string, int> Counts, bool HasY0)
+        byte[] Zone, bool[] IsVoid, bool[] Bridges, Dictionary<string, int> Counts, bool HasY0, bool[] Breaks)
     {
+        /// <summary>Whether a player may break blocks in the column at a world cell — the break walk allows
+        /// it, abstains, or answers conditionally, which is a filter some player passes. False off the grid.
+        /// </summary>
+        public bool BreakableAt((int X, int Z) cell)
+        {
+            int ix = cell.X - MinX, iz = cell.Z - MinZ;
+            return ix >= 0 && iz >= 0 && ix < Width && iz < Height && Breaks[iz * Width + ix];
+        }
+
         /// <summary>Whether the column holding a world position is void. Null off the grid, which is a
         /// position outside the analysed box rather than one over nothing.</summary>
         public bool? VoidAt(double x, double z)
@@ -108,7 +117,15 @@ public static class Editability
         if (type == "deny")
         {
             var inner = Classify(child, filters, next, negated);
-            return inner.Kind == "void" && !inner.Negated ? new("deny-void", negated) : new("other", negated);
+            if (inner.Kind == "void" && !inner.Negated) return new("deny-void", negated);
+            // A <deny> answers only where its filter matches, so one that cannot match a player placing a
+            // block — ice forming, a material, an explosion — lets that placement through to the next rule.
+            return MatchesPlacement(child, filters, []) switch
+            {
+                false => new("abstain", negated),
+                true => new("never", negated),
+                null => new("other", negated),
+            };
         }
         if (type == "allow") return Classify(child, filters, next, negated);
         if (type is "any" or "all" or "one")
@@ -126,6 +143,26 @@ public static class Editability
         return new("other", negated);
     }
 
+    /// <summary>Whether a filter matches a player placing a block: false for a material or any cause but a
+    /// player's, true for that cause, and null where it turns on who places, or on anything else a column
+    /// read cannot see.</summary>
+    private static bool? MatchesPlacement(string value, Dict filters, HashSet<string> seen)
+    {
+        if (value == "never") return false;
+        if (value is "always" or "allow") return true;
+        if (!seen.Add(value) || filters.GetValueOrDefault(value) is not Dict filter) return null;
+        var children = MapDoc.AsList(filter.GetValueOrDefault("children")).Select(c => MatchesPlacement(c as string ?? "", filters, seen)).ToList();
+        return (filter.GetValueOrDefault("type") as string) switch
+        {
+            "material" => false,
+            "cause" => (filter.GetValueOrDefault("cause") as string)?.ToLowerInvariant() is "player" or "living",
+            "not" => !MatchesPlacement(filter.GetValueOrDefault("child") as string ?? "", filters, seen),
+            "all" => children.Any(c => c == false) ? false : children.All(c => c == true) ? true : null,
+            "any" => children.Any(c => c == true) ? true : children.All(c => c == false) ? false : null,
+            _ => null,
+        };
+    }
+
     /// <summary>What one rule's filter says about one column, given whether that column is void.</summary>
     private static Say SayFor(Verdict verdict, bool isVoid) => verdict.Kind switch
     {
@@ -135,6 +172,7 @@ public static class Editability
         "void" => (isVoid ^ verdict.Negated) ? Say.Allow : Say.Deny,
         // deny(void): deny over void, abstain on ground, because <deny> answers nothing when it does not match.
         "deny-void" => isVoid ? Say.Deny : Say.Abstain,
+        "abstain" => Say.Abstain,
         _ => Say.Conditional,
     };
 
@@ -240,11 +278,14 @@ public static class Editability
                 // grant. Inside it, a floor mark the rule passes because it is not void may still be built across —
                 // a map marking its build area with a y=0 sheet or block-36 markers marks it that way.
                 var statesVoid = verdict.Kind is "void" or "deny-void";
+                // A never rule over everything but an area states that area as the build zone the same way.
+                var statesZone = statesVoid
+                    || (touchesPlace && verdict is { Kind: "never", Negated: false } && Unbounded(rule.GetValueOrDefault("region"), regions));
                 for (var i = 0; i < cells; i++)
                 {
                     if (!inRegion[i])
                     {
-                        if (statesVoid) granted[i] = true;
+                        if (statesZone) granted[i] = true;
                         continue;
                     }
                     var say = SayFor(verdict, isVoid[i]);
@@ -278,7 +319,9 @@ public static class Editability
                          || (place[i] is Say.Allow or Say.Abstain && (granted[i] || qualified[i]));
 
         var counts = EditZone.All.ToDictionary(word => word, word => zone.Count(z => z == EditZone.IndexOf(word)));
-        return new Result(minX, minZ, maxX, maxZ, nx, nz, zone, isVoid, bridges, counts, hasY0);
+        var breaks = new bool[cells];
+        for (var i = 0; i < cells; i++) breaks[i] = breakage[i] != Say.Deny;
+        return new Result(minX, minZ, maxX, maxZ, nx, nz, zone, isVoid, bridges, counts, hasY0, breaks);
     }
 
     /// <summary>Record a rule's answer for one column, first answer winning. Only an abstention leaves the
@@ -291,10 +334,26 @@ public static class Editability
     /// <summary>One region's footprint over a grid, as a cell mask — the rasterization every apply-rule reader
     /// shares, so an enter rule and a block rule cannot disagree about which cells a region covers. Null where
     /// the reference resolves to no geometry.</summary>
+    /// <summary>Whether a region is everything but some area: a <c>negative</c>, a <c>complement</c> of an
+    /// unbounded region, or a union holding one.</summary>
+    private static bool Unbounded(object? reference, Dict regions, int depth = 0)
+    {
+        var region = RegionGeometry2d.Resolve(reference, regions);
+        if (region is null || depth > 16) return false;
+        var children = MapDoc.AsList(region.GetValueOrDefault("children"));
+        return (region.GetValueOrDefault("type") as string) switch
+        {
+            "negative" or "everywhere" => true,
+            "complement" => children.Count > 0 && Unbounded(children[0], regions, depth + 1),
+            "union" => children.Any(child => Unbounded(child, regions, depth + 1)),
+            _ => false,
+        };
+    }
+
     internal static bool[]? RegionMask(object? reference, Dict regions,
         (double, double, double, double) bounds, int minX, int minZ, int nx, int nz)
     {
-        var region = reference is string named ? regions.GetValueOrDefault(named) as Dict : reference as Dict;
+        var region = RegionGeometry2d.Resolve(reference, regions);
         var geometry = RegionGeometry2d.ToGeometry(region, bounds, regions);
         if (geometry is null || geometry.IsEmpty) return null;
         var prepared = PreparedGeometryFactory.Prepare(geometry);

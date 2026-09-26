@@ -20,6 +20,11 @@ public readonly record struct SegmentFeature(int WorldX, int WorldZ, int WorldYS
 /// void and may be built over; nobody stands on it, so it is no segment.</summary>
 public readonly record struct FloorMarkFeature(int WorldX, int WorldZ, int BlockId);
 
+/// <summary>A run of door blocks standing on solid ground — a doorway's glass, a wool room's pane wall, a
+/// nether-brick-fence gate. Solid, so it stays in its segment; a walk that knows the map lets players break
+/// blocks there opens it.</summary>
+public readonly record struct DoorRunFeature(int WorldX, int WorldZ, int WorldYStart, int WorldYEnd);
+
 /// <summary>
 /// Locate specific block types across a set of region files — "where are the X blocks and what
 /// are they?". <c>minecraft/layers.py</c>. Each method scans the decoded block stream / tile-entity NBT and
@@ -37,12 +42,17 @@ public static class FeatureExtractors
 
     private static readonly HashSet<string> ChestTileIds = new(StringComparer.Ordinal) { "Chest", "TrappedChest" };
 
-    // Non-solid decorative ids skipped in segment extraction (NON_SOLID_BLOCK_IDS), plus the
-    // PISTON_MOVING_PIECE marker (36) many CTW maps use as an invisible build boundary.
+    // Blocks a player walks through, which segment extraction skips: plants, torches, redstone, signs and
+    // plates; what a player opens or pushes through (doors, fence gates) and the cobweb a wool-room entrance
+    // is guarded with; and the PISTON_MOVING_PIECE marker (36) many CTW maps use as an invisible build boundary.
     private static readonly HashSet<int> SegmentExclude = new()
     {
         6, 31, 32, 37, 38, 39, 40, 50, 55, 59, 63, 65, 66, 69, 70, 71, 72,
         75, 76, 77, 78, 83, 104, 105, 106, 115, 141, 142, 143, 147, 148, 166,
+        30,                                 // cobweb
+        64, 193, 194, 195, 196, 197,        // wooden doors
+        107, 183, 184, 185, 186, 187,       // fence gates
+        68,                                 // wall sign
         36,
     };
 
@@ -156,6 +166,54 @@ public static class FeatureExtractors
                 yield return new FloorMarkFeature(chunk.ChunkX * 16 + (index & 15), chunk.ChunkZ * 16 + (index >> 4), id);
             }
         }
+    }
+
+    /// <summary>What a map closes a doorway with for players to break: the breakable door materials the
+    /// stamper builds with (<see cref="PgmStudio.Domain.DoorMaterials"/>), plain glass and glass panes, and the
+    /// nether brick fence. A cobweb is among the door materials but is walked through already.</summary>
+    public static readonly IReadOnlySet<int> DoorIds = new HashSet<int>(
+        PgmStudio.Domain.DoorMaterials.Breakable.Select(choice => choice.BlockId).Where(id => !SegmentExclude.Contains(id)))
+    {
+        20, 102,                            // glass, glass pane
+        113,                                // nether brick fence
+    };
+
+    /// <summary>Every run of door blocks that closes a way through (→ door_runs.parquet): standing on solid
+    /// ground that is not a door itself, at least two blocks tall or held under something solid, and with open
+    /// space on both sides of it in a line — west and east, or north and south — at the height a player walks
+    /// in. A doorway, a window and a pane wall have that; a run with air under it is a roof or a hanging floor,
+    /// a single block with air over it is a floor course, and glass buried in a solid mass separates nothing.
+    /// </summary>
+    public static IEnumerable<DoorRunFeature> DoorRuns(IEnumerable<AnvilRegion.Chunk> chunks)
+    {
+        var volumes = chunks.ToDictionary(chunk => (chunk.ChunkX, chunk.ChunkZ), AnvilRegion.FullVolume);
+        bool Open(int x, int y, int z) =>
+            !volumes.TryGetValue((x >> 4, z >> 4), out var full) || !IsSolid(full[(y << 8) | ((z & 15) << 4) | (x & 15)], y);
+
+        foreach (var ((chunkX, chunkZ), full) in volumes)
+            for (var col = 0; col < 256; col++)
+            {
+                int x = chunkX * 16 + (col & 15), z = chunkZ * 16 + (col >> 4);
+                var runStart = -1;
+                for (var y = 1; y < 256; y++)
+                {
+                    var id = full[(y << 8) | col];
+                    var door = DoorIds.Contains(id) && IsSolid(id, y);
+                    if (door && runStart < 0)
+                    {
+                        var below = full[((y - 1) << 8) | col];
+                        if (IsSolid(below, y - 1) && !DoorIds.Contains(below)) runStart = y;
+                    }
+                    else if (!door && runStart >= 0)
+                    {
+                        var through = (Open(x - 1, runStart, z) && Open(x + 1, runStart, z))
+                                      || (Open(x, runStart, z - 1) && Open(x, runStart, z + 1));
+                        if (through && (y - runStart >= 2 || IsSolid(id, y)))
+                            yield return new DoorRunFeature(x, z, runStart, y - 1);
+                        runStart = -1;
+                    }
+                }
+            }
     }
 
     /// <summary>All contiguous solid Y-runs per column, inclusive [start,end] (→ layer_segments.parquet).</summary>

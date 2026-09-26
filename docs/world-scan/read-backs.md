@@ -170,7 +170,13 @@ spawn's protection until it swallows the approach to its own wool and the shared
 **reachable in 121 blocks**, while `?team=red-team` answers **unreachable** — which is what the export gate
 refuses under `EX1` where the goal is one that team must take. A goal the team *defends* is asked a weaker
 question there, since its own wool room bars it by design: the walk only has to reach the barred ground's
-border. Both ends are snapped on the shared ground before the team's is walked, so a barred
+border, where the barred ground is the protection the goal stands in — the innermost union the author named
+around it, so a room and the lane into it are one border even where a row between them was missed. A wool stated on
+its room's edge — 128.5 against a rectangle ending at 128 — stands in the barred cell nearest it within the
+3-block snap every point takes. An `enter` rule bars only the heights its region covers
+(`RegionGeometry2d.Heights`): a cuboid wool room above a spawn bars the room's storey and not the spawn under
+it, while a rectangle bars every height. And a door a player may break — glass, a pane, a nether brick fence
+on solid ground — is open wherever the map allows breaking in its column (`terrain-ground-truth.md`). Both ends are snapped on the shared ground before the team's is walked, so a barred
 objective answers unreachable rather than sliding sideways to the nearest cell the team may stand on.
 
 **A control point is a goal the reads count, and it is the one nobody owns.** `NavPoints` resolves the places
@@ -183,6 +189,17 @@ is the pad and the air a body occupies, falling back to the pad alone on a map t
 name is PGM's own — the author's where they wrote one, and `Hill`, `Hill 2`, `Hill 3` off a counter only an
 unnamed point advances (`ControlPointNaming`), so the document's points and an intent's are recognised as
 the same points rather than counted twice.
+
+**A wool is judged where it is, which is not always where the map says.** A wool's point is its stated
+`location`, and on a map whose author never set one that coordinate can lie outside the world entirely — ten
+corpus CTW maps do this and play fine, because the wool reaches players from a spawner, a chest or blocks in
+its room. `traversability` and `--goldens` hand `Traversability.Check` the wool sources the scan found
+(`FeatureData.WoolSourcesAsync`, the same set wool availability reads), and a wool stated outside the world's
+columns is seated at its colour's source instead: its PGM `<spawner>`, or failing one a spawner block or a
+chest of the colour. Loose wool blocks are no evidence, since they spread over a map as decoration, so a wool
+with none of those stays where it is stated.
+The export gate and preflight judge studio-authored maps, whose wool locations the studio writes, and pass
+none.
 
 The bound is what keeps it honest in both directions. Unbounded, a standoff route wanders; ordered after
 distance, it never moves. And the exposure term is the route's **worst** shortfall rather than its total,
@@ -333,10 +350,15 @@ bridged cell carries no height of its own and joins whatever it touches, which i
 Which void columns are bridged is not the picture's own reading: `Analysis.Playability.Editability` answers
 it once, walking the apply rules first-answer-wins on the place scope — a bridge is placed, so a column only
 breaking is permitted on stays void. A column is bridged where placing is conditional, where the map grants
-it (the area a void rule's region leaves out), or where a void rule passes it over a floor mark
-— a block-36 marker or a glass sheet at y=0, not void to PGM and nothing to stand on, which is how a map
-marks its build area over empty space (`terrain-ground-truth.md`). Solid ground the rule passes is stood on,
-not bridged. `Export.BridgeableColumns` hands that set to the render, the same
+it, or where a void rule passes it over a floor mark — a block-36 marker, a glass sheet or water at y=0, not
+void to PGM and nothing to stand on, which is how a map marks its build area over empty space
+(`terrain-ground-truth.md`). Solid ground the rule passes is stood on, not bridged. A map grants the area a
+rule states as its build zone by covering everything else: a void rule's region, or a `never` rule's over an
+unbounded region — the `negative` of the build area, the way most DTC/M maps write it, whose edge a cobweb or
+redstone line at y 0–1 traces one or two blocks off on the maps that draw one. A `<deny>` answers only
+where its filter matches, so one no player's placement matches (a material, ice forming, an explosion)
+abstains and the next rule decides; one over the `player` cause refuses, and one that turns on who places
+stays conditional. `Export.BridgeableColumns` hands that set to the render, the same
 set a scanned board's walk, coverage and dead-ground reads take, so `reach` and they cannot disagree about it.
 The export's reachability gate is deliberately not bounded this way: there the question is whether anyone
 *can* get somewhere, and a player carrying blocks pays for the climb.

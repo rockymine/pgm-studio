@@ -465,24 +465,17 @@ and what a `subtract` takes away.
   that drew one, and it is gone. Retire the field on both request DTOs (`EditRequests.cs`), `RegionNode`'s
   echo (`RegionTreeDtos.cs`), `RegionDrafts` and the artifact, and `docs/pgm/region-data-flow.md` §5 with them.
 
-- [ ] **WS74 — Traversability reads 146 of 347 corpus maps as not connected.** These are played maps, so
-most of the verdicts are the reading's and not the map's. Measured over the corpus with `layer_segments` and
-`floor_marks` from the current extractor: 101 have their points on separate ground the walk does not join
-(`wits_end`'s four wool rooms are each an island), 17 lose an objective to a team's `enter` rules, 18 have a
-wool and 11 a spawn off the ground the walk stands on (one map both). Take them per cause, reading each
-against PGM rather than tuning the walk to the count. `docs/world-scan/read-backs.md`.
+- [~] **WS74 — Traversability reads 169 of 911 corpus maps as not connected.** *Parked by the author: more
+corpus reading is not worth its cost, and `--goldens` holds these 169 as the baseline any change is measured
+against.* These are played maps, so most verdicts are still the reading's. By first cause: 81 separate ground, 41 a point with no ground near,
+27 a team barred by an `enter` rule, 20 a sealed room. Known and left: `abstract` stacks six spawns per team
+one above another behind spawn filters, `curly_wools_ix` asks defenders to pillar up to their wool,
+`black_betty` has a broken void setup, the cannon maps fight across void, and `citadel` is attack/defend,
+where only the attackers need the wool. Take the rest per cause, reading each against PGM.
+`docs/world-scan/read-backs.md`.
 
-  *Evidence: `Traversability.Check` over the 347 maps `--goldens` measures; `apocalypse_ctw` is a per-team
-  entry case, `after_hours` a wool off the ground, `banana_split` a spawn.*
-
-- [ ] **RP74 — The corpus scan output predates floor marks.** `rockymine/pgm-studio-output` carries
-`layer_segments.parquet` from before the segment scan left out a floor sheet, and no `floor_marks.parquet`, so
-`corpus-goldens.json` is recorded over the old void test. Regenerate both files for every map with
-`tools/PgmStudio.RoundTrip --scan-out` (or the two files alone), commit them to that repository, then
-re-record `corpus-goldens.json` against it after reading the moved verdicts.
-
-  *Evidence: over a regenerated copy, 168 verdicts move against the recorded goldens (130 `trav`, 38 `build`);
-  18 maps go not connected → connected and none the other way.*
+  *Evidence: `ki` states `<apply block-place="deny(void)" region="bases">` "You may not bridge to the enemy
+  side!"; `outcast`'s halves are joined only by water at y ≤ 1.*
 
 - [ ] **PG19 — The `resize` region is refused.** PGM grows or shrinks a child region by a vector
 (`<resize min=… max=…>`); the parser does not read it, and `MapParser.EnsureSupported` refuses the five corpus

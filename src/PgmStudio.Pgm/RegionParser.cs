@@ -354,47 +354,13 @@ internal sealed class RegionParser
 
     // ── bounds helpers ──────────────────────────────────────────────────────────────
     private Bounds2d? UnionBounds(List<string> childIds)
-    {
-        double minX = double.PositiveInfinity, minZ = double.PositiveInfinity;
-        double maxX = double.NegativeInfinity, maxZ = double.NegativeInfinity;
-        var found = false;
-        foreach (var cid in childIds)
-        {
-            if (_registry.GetValueOrDefault(cid)?.Bounds2d is { } b)
-            {
-                // min/max ignore a NaN operand — a mirror of an infinite source yields NaN;
-                // C# Math.Min/Max propagate it — so skip NaN per component to match.
-                minX = MinPy(minX, b.MinX); minZ = MinPy(minZ, b.MinZ);
-                maxX = MaxPy(maxX, b.MaxX); maxZ = MaxPy(maxZ, b.MaxZ);
-                found = true;
-            }
-        }
-        return found ? Bounds2d.Of(minX, minZ, maxX, maxZ) : null;
-    }
-
-    private static double MinPy(double acc, double v) => double.IsNaN(v) ? acc : Math.Min(acc, v);
-    private static double MaxPy(double acc, double v) => double.IsNaN(v) ? acc : Math.Max(acc, v);
+        => RegionBoundsDeriver.Union(childIds.Select(cid => _registry.GetValueOrDefault(cid)?.Bounds2d).OfType<Bounds2d>());
 
     private Bounds2d? TranslateBounds(string sourceId, double dx, double dz)
-    {
-        if (_registry.GetValueOrDefault(sourceId)?.Bounds2d is not { } b) return null;
-        return Bounds2d.Of(b.MinX + dx, b.MinZ + dz, b.MaxX + dx, b.MaxZ + dz);
-    }
+        => _registry.GetValueOrDefault(sourceId)?.Bounds2d is { } b ? RegionBoundsDeriver.Translate(b, dx, dz) : null;
 
-    // Reflect the source AABB across the mirror plane (PGM <mirror>): reflect all four corners via the
-    // canonical Symmetry transform, then re-bound — exact for axis-aligned and 45° normals.
     private Bounds2d? MirrorBounds(string sourceId, double nx, double nz, double ox, double oz)
-    {
-        if (_registry.GetValueOrDefault(sourceId)?.Bounds2d is not { } b) return null;
-        var c = new[]
-        {
-            Symmetry.ReflectPoint(b.MinX, b.MinZ, nx, nz, ox, oz),
-            Symmetry.ReflectPoint(b.MinX, b.MaxZ, nx, nz, ox, oz),
-            Symmetry.ReflectPoint(b.MaxX, b.MinZ, nx, nz, ox, oz),
-            Symmetry.ReflectPoint(b.MaxX, b.MaxZ, nx, nz, ox, oz),
-        };
-        return Bounds2d.Of(c.Min(p => p.X), c.Min(p => p.Z), c.Max(p => p.X), c.Max(p => p.Z));
-    }
+        => _registry.GetValueOrDefault(sourceId)?.Bounds2d is { } b ? RegionBoundsDeriver.Mirror(b, nx, nz, ox, oz) : null;
 
     private static string NonEmpty(string s, string def) => string.IsNullOrEmpty(s) ? def : s;
 }

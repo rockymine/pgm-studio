@@ -82,9 +82,29 @@ zip or folder import carries no XML by design, because the XML is what the confi
 Those imports pass `PhantomErasure.None`, and §1 and §2 carry them entirely.
 
 `segment` is the other ingest derivation — the solid runs every walk stands on — and it applies §2 too:
-`FeatureExtractors.Segments` leaves out the non-solid ids (`SegmentExclude`, block 36 among them) and a
-stained-glass sheet at the world floor, so a floor marker is never standing ground. §3 needs the XML and
-stays with the island picture.
+`FeatureExtractors.Segments` leaves out what a player walks through (`SegmentExclude`) and a floor marker at
+the world floor, so a floor marker is never standing ground. Walked through means plants, torches, redstone,
+signs and plates, block 36, and what a wool room's entrance is closed with: the cobweb a player pushes
+through, and the wooden door and fence gate a player opens. Read as solid, those sealed the room behind them
+into a component of its own; over the corpus, making them walk-through connects 56 of the 290 maps that read
+not connected, 45 of them through cobwebs alone. Trapdoors stay solid, since a closed one is as often a
+floor. §3 needs the XML and stays with the island picture.
+
+A doorway a player breaks through is a third case, neither walked through nor ground. Glass, glass panes,
+stained glass and panes (the stamper's breakable door materials, `DoorMaterials`) and the nether brick fence
+are solid and stay in their segments; the scan also keeps every run of them that stands on solid ground as a
+**door run** (`FeatureExtractors.DoorRuns` → `door_run`, `door_runs.parquet`), when it closes a way
+through: two blocks tall or held under something solid, with open space on both sides of it in a line — west
+and east, or north and south — at the height a player walks in, the way a doorway, a window and a pane wall
+are. A run with air under it is a roof or a hanging floor, a single block with air over it is a floor course,
+and glass buried in a solid mass separates nothing: celestial_islands scatters glass through its mushroom
+islands, and opening that carved a sealed pocket a wool was seated in. The walk opens a door run where the map lets players break blocks in
+its column (`Editability.Result.BreakableAt`), so the floor it stands on becomes a surface with the doorway's
+room over it, and keeps it shut where breaking is denied.
+
+The floor markers are stained glass and water (`SurfaceExtractors.FloorMarkerIds`), both only at y ≤ 1.
+Water laid at the floor marks a build area the same way a glass sheet does and is not an island: agrostid's
+3,264 water blocks all sit at y=0, while its lakes, at y 7–8, stay ground.
 
 **What a floor marker still answers is PGM's void question.** PGM's `<void/>` filter reads the block at
 `(x, 0, z)` and counts anything there — a removed block 36 too, because `WorldProblemListener` remembers where

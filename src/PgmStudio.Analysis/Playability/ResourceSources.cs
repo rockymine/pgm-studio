@@ -33,7 +33,7 @@ public static class ResourceSources
         else { var b = Editability.RegionBbox(data, 8); bbox = (b.minX, b.minZ, b.maxX, b.maxZ); }
         var outp = new List<(Geometry, string)>();
         foreach (var rn in MapDoc.AsList(data.GetValueOrDefault("renewables")).OfType<Dict>())
-            if (rn.GetValueOrDefault("region_id") is string rid && regions.GetValueOrDefault(rid) is Dict reg
+            if (rn.GetValueOrDefault("region_id") is string rid && RegionGeometry2d.Resolve(rid, regions) is Dict reg
                 && RegionGeometry2d.ToGeometry(reg, bbox, regions) is { IsEmpty: false } g)
                 outp.Add((g, rn.GetValueOrDefault("renew_filter") as string ?? ""));
         return outp;

@@ -167,4 +167,70 @@ public class FeatureExtractorsTests
         var segs = FeatureExtractors.Segments([FloorChunk()]).Select(s => (s.WorldX, s.WorldZ, s.WorldYStart, s.WorldYEnd)).ToList();
         await Assert.That(segs).IsEquivalentTo(new[] { (3, 0, 0, 0) });
     }
+
+    private static AnvilRegion.Chunk PassageChunk()
+    {
+        var blocks = new byte[4096];
+        blocks[Idx(0, 0, 0)] = 9;    // water laid at the world floor
+        blocks[Idx(1, 8, 0)] = 9;    // a lake's water, well above it
+        for (var y = 0; y < 5; y++) { blocks[Idx(2, y, 0)] = 1; blocks[Idx(3, y, 0)] = 1; blocks[Idx(4, y, 0)] = 1; }
+        blocks[Idx(2, 5, 0)] = 30;   // a cobweb over stone
+        blocks[Idx(3, 5, 0)] = 64;   // a wooden door's two halves over stone
+        blocks[Idx(3, 6, 0)] = 64;
+        blocks[Idx(4, 5, 0)] = 107;  // a fence gate over stone
+        var section = new NbtCompound
+        {
+            new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]),
+        };
+        return new AnvilRegion.Chunk(0, 0, new NbtCompound("Level") { new NbtList("Sections", new[] { section }) });
+    }
+
+    [Test]
+    public async Task A_cobweb_a_door_and_a_gate_are_walked_through_and_floor_water_is_a_mark()
+    {
+        var segs = FeatureExtractors.Segments([PassageChunk()]).Select(s => (s.WorldX, s.WorldZ, s.WorldYStart, s.WorldYEnd)).ToHashSet();
+        await Assert.That(segs.SetEquals(new[] { (1, 0, 8, 8), (2, 0, 0, 4), (3, 0, 0, 4), (4, 0, 0, 4) }))
+            .IsTrue().Because("each passage ends its column's run at the stone, and only the lake's water is ground");
+
+        var marks = FeatureExtractors.FloorMarks([PassageChunk()]).Select(m => (m.WorldX, m.WorldZ, m.BlockId)).ToHashSet();
+        await Assert.That(marks.SetEquals(new[] { (0, 0, 9) })).IsTrue();
+    }
+
+    [Test]
+    public async Task A_door_on_solid_ground_is_a_door_run_and_a_glass_floor_is_not()
+    {
+        var blocks = new byte[4096];
+        for (var y = 0; y < 5; y++) blocks[Idx(0, y, 0)] = 1;
+        blocks[Idx(0, 5, 0)] = 160; blocks[Idx(0, 6, 0)] = 160;   // a pane doorway on stone
+        blocks[Idx(1, 8, 0)] = 20;                                // a glass floor with air under it
+        for (var y = 0; y < 5; y++) blocks[Idx(2, y, 0)] = 1;
+        blocks[Idx(2, 5, 0)] = 113;                               // a one-high nether brick fence gate
+        blocks[Idx(2, 6, 0)] = 1;                                 // under its lintel
+        for (var y = 0; y < 5; y++) blocks[Idx(3, y, 0)] = 1;
+        blocks[Idx(3, 5, 0)] = 95;                                // a glass floor course on stone, air above
+        var section = new NbtCompound
+        {
+            new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]),
+        };
+        var chunk = new AnvilRegion.Chunk(0, 0, new NbtCompound("Level") { new NbtList("Sections", new[] { section }) });
+
+        var runs = FeatureExtractors.DoorRuns([chunk]).Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)).ToHashSet();
+        await Assert.That(runs.SetEquals(new[] { (0, 0, 5, 6), (2, 0, 5, 5) })).IsTrue();
+    }
+
+    [Test]
+    public async Task Glass_buried_in_a_solid_mass_is_no_door()
+    {
+        // A two-high glass run inside stone on every side: it separates no two open spaces.
+        var blocks = new byte[4096];
+        for (var x = 4; x <= 6; x++) for (var z = 4; z <= 6; z++) for (var y = 0; y <= 8; y++) blocks[Idx(x, y, z)] = 1;
+        blocks[Idx(5, 5, 5)] = 20; blocks[Idx(5, 6, 5)] = 20;
+        var section = new NbtCompound
+        {
+            new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]),
+        };
+        var chunk = new AnvilRegion.Chunk(0, 0, new NbtCompound("Level") { new NbtList("Sections", new[] { section }) });
+
+        await Assert.That(FeatureExtractors.DoorRuns([chunk]).Count()).IsEqualTo(0);
+    }
 }

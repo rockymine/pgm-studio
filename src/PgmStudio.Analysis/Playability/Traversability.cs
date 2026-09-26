@@ -2,6 +2,7 @@
 namespace PgmStudio.Analysis.Playability;
 
 using PgmStudio.Analysis.Region;
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Analysis.Scan;
 using PgmStudio.Geom.Algorithms;
@@ -54,9 +55,11 @@ public static class Traversability
 
     /// <summary><b>declared</b> is goals the document cannot carry — see <see cref="NavPoints.Of"/>. Absent, the
     /// verdict is over what the document states, which on a map whose goals are not placed yet is its spawns and
-    /// nothing else.</summary>
+    /// nothing else. <b>woolSources</b> is where the scanned world holds each colour of wool; a wool whose stated
+    /// location lies outside the world is judged where its source is instead (<see cref="WoolSeat"/>).</summary>
     public static Result Check(Dict data, SegmentIndex? segments,
-        (int, int, int, int)? bbox = null, int margin = 16, IReadOnlyList<NavPoint>? declared = null)
+        (int, int, int, int)? bbox = null, int margin = 16, IReadOnlyList<NavPoint>? declared = null,
+        IReadOnlyList<WoolSources.Source>? woolSources = null)
     {
         var ground = WorldWalk.Ground(data, segments, margin, bbox);
         var box = ground.Bounds;
@@ -64,6 +67,8 @@ public static class Traversability
 
         var components = Walk.Components(ground);
         var owned = NavPoints.Of(data, (box.X, box.Z, box.MaxX, box.MaxZ), declared);
+        if (segments is not null && woolSources is { Count: > 0 })
+            owned = [.. owned.Select(point => WoolSeat(point, segments, woolSources))];
         var placed = owned.Select(point => new Landing(point, ComponentOf(point, ground, components))).ToList();
 
         // Every goal gates the export refusal — destroyables, cores and control points included (the author's
@@ -122,6 +127,46 @@ public static class Traversability
             ? components.GetValueOrDefault(place)
             : 0;
 
+    /// <summary>A wool stated outside the world, moved to where the map hands that colour out; every other
+    /// point as it is. A map that never set its wool's <c>location</c> still gets the wool to its players, and
+    /// where it does so is where the wool is: its PGM spawner, or failing one a spawner block or a chest of the
+    /// colour. Loose wool blocks are no evidence — they spread over a map as decoration — so a wool with none of
+    /// those stays where it is stated.</summary>
+    private static NavPoint WoolSeat(NavPoint point, SegmentIndex segments, IReadOnlyList<WoolSources.Source> sources)
+    {
+        if (point.Kind != "wool") return point;
+        var (minX, minZ, maxX, maxZ) = segments.Extent();
+        if (point.X >= minX && point.X <= maxX && point.Z >= minZ && point.Z <= maxZ) return point;
+
+        var colour = BlockColors.Normalize(point.Name);
+        var ofColour = sources.Where(source => source.Color == colour).ToList();
+        if (ofColour.Where(source => source.Type == "pgm_spawner").MaxBy(source => source.Count) is { } module)
+            return point with { X = module.X, Z = module.Z, Y = null };
+        if (ofColour.Where(source => source.Type is "spawner" or "chest").MaxBy(source => source.Count) is { } handed)
+            return point with { X = handed.X, Z = handed.Z, Y = handed.Y };
+        return point;
+    }
+
+    /// <summary>The barred cell a goal stands in: its own, or the nearest within <see cref="SnapRadius"/>, since a
+    /// wool is stated on its room's edge as often as inside it — a location of 128.5 against a room whose
+    /// rectangle ends at 128 is a column the rule does not bar. Null where nothing near the goal is barred.</summary>
+    private static (int X, int Z)? BarredNear((int X, int Z) cell, IReadOnlySet<(int X, int Z)> denied)
+    {
+        for (var radius = 0; radius <= SnapRadius; radius++)
+        {
+            (int X, int Z)? nearest = null; var best = int.MaxValue;
+            for (var dx = -radius; dx <= radius; dx++)
+                for (var dz = -radius; dz <= radius; dz++)
+                {
+                    if (Math.Max(Math.Abs(dx), Math.Abs(dz)) != radius || !denied.Contains((cell.X + dx, cell.Z + dz))) continue;
+                    var distance = dx * dx + dz * dz;
+                    if (distance < best) (best, nearest) = (distance, (cell.X + dx, cell.Z + dz));
+                }
+            if (nearest is not null) return nearest;
+        }
+        return null;
+    }
+
     /// <summary>How far a marker's cell may be off the ground and still be read as standing on it.</summary>
     private const int SnapRadius = 3;
 
@@ -141,9 +186,10 @@ public static class Traversability
         {
             // The team's own walk, narrowed the same way a measured distance for that team is — one rule for
             // what an enter denial takes away, whether the question is "is there a way" or "how far".
-            if (EntryDenials.Cells(data, team, over) is not { Count: > 0 } denied) continue;
+            if (EntryDenials.For(data, team, over) is not { } barred) continue;
+            var denied = barred.Cells;
 
-            var ground = WorldWalk.Without(shared, denied);
+            var ground = WorldWalk.Without(shared, barred.Bars);
             var components = Walk.Components(ground);
             var spawns = owned.Where(point => point.Kind == "spawn" && point.Owner == team).ToList();
             var spawnComponents = spawns
@@ -156,27 +202,31 @@ public static class Traversability
                 if (point.Kind == "spawn") continue;
                 var component = ComponentOf(point, ground, components);
                 if (component > 0 && spawnComponents.Contains(component)) continue;
-                if (point.Owner == team && Approaches(point, shared, denied, spawns)) continue;
+                if (point.Owner == team && BarredNear(point.Cell, denied) is { } at
+                    && Approaches(point, at, shared, barred, spawns, EntryDenials.Protection(data, team, at, over)))
+                    continue;
                 yield return new IsolatedPoint(point.Kind, point.Name, For: team);
             }
         }
     }
 
     /// <summary>Whether a team can walk up to a goal of its own it may not stand on: the same journey from its
-    /// own spawns, over its own ground plus the one barred patch the goal stands in. Reaching that patch is
+    /// own spawns, over its own ground plus the one barred patch the goal stands in (<paramref name="at"/>). Reaching that patch is
     /// reaching the protection's border, which is as far as a defender of a wool room ever goes and is
     /// therefore the whole of what the goal asks of its own team. The patch is the goal's 4-connected area of
-    /// this team's denied cells and nothing else is given back, so a route that would have to cross a second
-    /// protection is still cut. False where nothing bars the team at the goal at all — the goal is then simply
+    /// this team's denied cells, together with the named protection it stands in
+    /// (<see cref="EntryDenials.Protection"/>), and nothing else is given back, so a route that would have to
+    /// cross a second protection is still cut. False where nothing bars the team at the goal at all — the goal is then simply
     /// out of reach, whoever walks.</summary>
-    private static bool Approaches(NavPoint goal, WalkGround shared, IReadOnlySet<(int X, int Z)> denied,
-        List<NavPoint> spawns)
+    private static bool Approaches(NavPoint goal, (int X, int Z) at, WalkGround shared,
+        EntryDenials.Barred barred, List<NavPoint> spawns, IReadOnlySet<(int X, int Z)> protection)
     {
-        var patch = Cells.Flood([goal.Cell], denied);
+        var denied = barred.Cells;
+        var patch = Cells.Flood([at], denied);
+        patch.UnionWith(protection.Where(denied.Contains));
         if (patch.Count == 0) return false;
 
-        var elsewhere = new HashSet<(int X, int Z)>(denied.Where(cell => !patch.Contains(cell)));
-        var upTo = WorldWalk.Without(shared, elsewhere);
+        var upTo = WorldWalk.Without(shared, place => !patch.Contains(place.Cell) && barred.Bars(place));
         var components = Walk.Components(upTo);
         var border = ComponentOf(goal, upTo, components);
         return border > 0 && spawns.Any(spawn => ComponentOf(spawn, upTo, components) == border);

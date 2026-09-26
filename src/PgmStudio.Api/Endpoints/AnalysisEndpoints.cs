@@ -73,7 +73,7 @@ public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader,
         if (await repo.WithGoalsOfRouteAsync(reader, artifacts, HttpContext, ct) is not ({ } map, { } doc, { } goals)) return;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
-        var res = Traversability.Check(doc, segs, declared: goals);
+        var res = Traversability.Check(doc, segs, declared: goals, woolSources: await feature.WoolSourcesAsync(map.Id, doc, ct));
         await Send.OkAsync(new TraversabilityDto(
             res.Connected, res.ComponentCount, res.Severity, res.Message, res.HaveLayers,
             res.Points.Select(p => new NavPointDto(p.Point.Kind, p.Point.Name, p.Point.X, p.Point.Z, p.Component)).ToList(),

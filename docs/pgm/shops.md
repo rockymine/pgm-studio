@@ -284,7 +284,9 @@ kit's own blocks.
 currencies, **374 are `<spawner>` items** — against 31 block-drop rules and 24 kill-rewards — and 17 of the 39
 shop-carrying maps carry spawners. A `<spawner>` is a clock and a place: it drops its items into a region
 every so often while a player stands in another, up to a cap on how many may lie uncollected. PGM spawns the
-stack itself, so the studio writes no blocks for one.
+stack itself, so the studio writes no blocks for one. PGM takes each of the two regions as an attribute naming
+one (`spawn-region="…"`) or as a child element holding it (`<spawn-region><point>…</point></spawn-region>`); 55
+corpus maps write the second, and the parser reads both, registering the inline one under a synthetic id.
 
 An agent states them as a second array on the same intent:
 

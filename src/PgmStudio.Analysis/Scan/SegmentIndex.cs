@@ -13,7 +13,10 @@ public sealed class SegmentIndex
     private readonly Dictionary<(int x, int z), List<(int ys, int ye)>> _byCol = new();
     private readonly HashSet<(int, int)> _floorMarks;
 
-    public SegmentIndex(IEnumerable<(int x, int z, int ys, int ye)> rows, IEnumerable<(int x, int z)>? floorMarks = null)
+    private readonly Dictionary<(int x, int z), List<(int ys, int ye)>> _doors = new();
+
+    public SegmentIndex(IEnumerable<(int x, int z, int ys, int ye)> rows, IEnumerable<(int x, int z)>? floorMarks = null,
+        IEnumerable<(int x, int z, int ys, int ye)>? doorRuns = null)
     {
         foreach (var (x, z, ys, ye) in rows)
         {
@@ -21,6 +24,11 @@ public sealed class SegmentIndex
             list.Add((ys, ye));
         }
         _floorMarks = floorMarks is null ? [] : [.. floorMarks];
+        foreach (var (x, z, ys, ye) in doorRuns ?? [])
+        {
+            if (!_doors.TryGetValue((x, z), out var list)) { list = []; _doors[(x, z)] = list; }
+            list.Add((ys, ye));
+        }
     }
 
     /// <summary>Columns whose y=0 block is a floor mark — not void to PGM, and no ground to stand on.</summary>
@@ -33,6 +41,15 @@ public sealed class SegmentIndex
         var columns = _byCol.Where(kv => kv.Value.Any(s => s.ys <= 0 && 0 <= s.ye)).Select(kv => kv.Key).ToHashSet();
         columns.UnionWith(_floorMarks);
         return columns;
+    }
+
+    /// <summary>The world's column extent, <c>(minX, minZ, maxX, maxZ)</c> inclusive, over every column any
+    /// segment or floor mark holds.</summary>
+    public (int MinX, int MinZ, int MaxX, int MaxZ) Extent()
+    {
+        var columns = _byCol.Keys.Concat(_floorMarks).ToList();
+        return columns.Count == 0 ? (0, 0, -1, -1)
+            : (columns.Min(c => c.Item1), columns.Min(c => c.Item2), columns.Max(c => c.Item1), columns.Max(c => c.Item2));
     }
 
     /// <summary>Columns a player can stand in — those <see cref="StandingTops"/> finds a surface for. A
@@ -56,12 +73,31 @@ public sealed class SegmentIndex
     /// step from it, while the same floor where the roof is cut away is open to the sky.</para>
     ///
     /// <para>The headroom test is load-bearing on its own: the surface under a building is the course its
-    /// floor sits on, and a walk that took it would cross the walls as if they were not there.</para></summary>
-    public IEnumerable<(int x, int z, int top, int clear)> StandingTops()
+    /// floor sits on, and a walk that took it would cross the walls as if they were not there.</para>
+    ///
+    /// <para><paramref name="opens"/> names the columns a player may break blocks in; there a door run — the
+    /// glass or fence a map closes a doorway with — is taken out of its segment, so the floor it stands on is a
+    /// surface with its doorway's room over it. Absent, every door stays shut.</para></summary>
+    public IEnumerable<(int x, int z, int top, int clear)> StandingTops(Func<(int x, int z), bool>? opens = null)
     {
         foreach (var (cell, segments) in _byCol)
-            foreach (var (top, clear) in Walk.Standing([.. segments.Select(s => (s.ys, s.ye))], []))
+        {
+            var spans = segments.Select(s => (s.ys, s.ye)).ToList();
+            if (opens is not null && _doors.TryGetValue(cell, out var doors) && opens(cell))
+                spans = Open(spans, doors);
+            foreach (var (top, clear) in Walk.Standing(spans, []))
                 yield return (cell.x, cell.z, top, clear);
+        }
+    }
+
+    /// <summary>Solid spans with the door runs cut out of them.</summary>
+    private static List<(int ys, int ye)> Open(List<(int ys, int ye)> spans, List<(int ys, int ye)> doors)
+    {
+        foreach (var (doorStart, doorEnd) in doors)
+            spans = [.. spans.SelectMany(span => span.ye < doorStart || span.ys > doorEnd
+                ? [span]
+                : new[] { (span.ys, doorStart - 1), (doorEnd + 1, span.ye) }.Where(part => part.Item1 <= part.Item2))];
+        return spans;
     }
 
     /// <summary>Whether the scan reached this column at all. A column it never read answers <c>IsAir</c> to

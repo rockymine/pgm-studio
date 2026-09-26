@@ -73,7 +73,7 @@ public static class WoolSources
         {
             var color = BlockColors.Normalize(w.GetValueOrDefault("color") as string ?? "");
             var roomId = w.GetValueOrDefault("wool_room_region") as string;
-            var room = roomId is not null ? regions.GetValueOrDefault(roomId) as Dict : null;
+            var room = roomId is not null ? RegionGeometry2d.Resolve(roomId, regions) : null;
             var roomGeom = room is not null ? RegionGeometry2d.ToGeometry(room, bbox, regions) : null;
             var phys = SummarizeSources(physical, roomGeom, renewable).FirstOrDefault(e => e.Color == color);
             var hasPgm = pgmColors.Contains(color);
@@ -166,7 +166,7 @@ public static class WoolSources
         {
             var geoms = new List<Geometry>();
             foreach (var key in new[] { "spawn_region", "player_region" })
-                if (sp.GetValueOrDefault(key) is string rid && regions.GetValueOrDefault(rid) is Dict reg
+                if (sp.GetValueOrDefault(key) is string rid && RegionGeometry2d.Resolve(rid, regions) is Dict reg
                     && RegionGeometry2d.ToGeometry(reg, bbox, regions) is { IsEmpty: false } g) geoms.Add(g);
             Geometry? geom = geoms.Count == 0 ? null : geoms.Aggregate((a, b) => a.Union(b));
             int cx = geom is null ? 0 : (int)Math.Round(geom.Centroid.X, MidpointRounding.ToEven);
@@ -221,7 +221,7 @@ public static class WoolSources
         var bbox = mapBbox ?? MapBbox(regions);
         var geoms = new List<Geometry>();
         foreach (var rn in MapDoc.AsList(data.GetValueOrDefault("renewables")).OfType<Dict>())
-            if (rn.GetValueOrDefault("region_id") is string rid && regions.GetValueOrDefault(rid) is Dict reg
+            if (rn.GetValueOrDefault("region_id") is string rid && RegionGeometry2d.Resolve(rid, regions) is Dict reg
                 && RegionGeometry2d.ToGeometry(reg, bbox, regions) is { IsEmpty: false } g) geoms.Add(g);
         return geoms;
     }

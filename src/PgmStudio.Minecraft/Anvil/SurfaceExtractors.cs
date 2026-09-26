@@ -47,9 +47,10 @@ public static class SurfaceExtractors
     /// <para>The invisible block-36 marker needs no height rule (it is noise anywhere and lives in
     /// <see cref="CleanBaseExclude"/>); stained glass does, because it is also a building material. Measured on
     /// the corpus: every map whose glass floor bridges its islands lays it at y=0 — newgen, outlyne and
-    /// rushers_vs_defenders at 100% — while the maps the blanket rule damaged carry theirs at y≥4.</para>
+    /// rushers_vs_defenders at 100% — while the maps the blanket rule damaged carry theirs at y≥4. Water laid
+    /// at the floor is the same statement: agrostid's 3,264 water blocks all sit at y=0, its lakes at y 7–8.</para>
     /// </summary>
-    public static readonly IReadOnlySet<int> FloorMarkerIds = new HashSet<int> { 95 };
+    public static readonly IReadOnlySet<int> FloorMarkerIds = new HashSet<int> { 95, 8, 9 };
 
     /// <summary>The highest Y a <see cref="FloorMarkerIds"/> block counts as a marker. A marker sheet spans the
     /// single floor layer, which maps write as a cuboid <c>y = 0..1</c>.</summary>

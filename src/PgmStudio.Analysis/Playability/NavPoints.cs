@@ -61,7 +61,7 @@ public static class NavPoints
         foreach (var spawn in MapDoc.AsList(data.GetValueOrDefault("spawns")).OfType<Dict>())
         {
             var team = spawn.GetValueOrDefault("team") as string ?? "";
-            var box = Region(spawn.GetValueOrDefault("region"), regions);
+            var box = RegionGeometry2d.Resolve(spawn.GetValueOrDefault("region"), regions);
             if (Centre(box, regions, bounds) is { } seat)
                 points.Add(new NavPoint("spawn", team, team, seat.x, seat.z, Height(box)));
         }
@@ -72,7 +72,7 @@ public static class NavPoints
             var owner = wool.GetValueOrDefault("team") as string ?? "";
             if (Stated(wool.GetValueOrDefault("location")) is { } at)
                 points.Add(new NavPoint("wool", color, owner, at.x, at.z, at.y));
-            else if (Region(wool.GetValueOrDefault("wool_room_region"), regions) is { } room
+            else if (RegionGeometry2d.Resolve(wool.GetValueOrDefault("wool_room_region"), regions) is { } room
                      && Centre(room, regions, bounds) is { } inside)
                 points.Add(new NavPoint("wool", color, owner, inside.x, inside.z, Height(room)));
         }
@@ -84,7 +84,7 @@ public static class NavPoints
             if (destroyable.GetValueOrDefault("show") is false) continue;
             var owner = destroyable.GetValueOrDefault("owner") as string ?? "";
             var name = destroyable.GetValueOrDefault("name") as string ?? owner;
-            var box = Region(destroyable.GetValueOrDefault("region"), regions);
+            var box = RegionGeometry2d.Resolve(destroyable.GetValueOrDefault("region"), regions);
             if (Centre(box, regions, bounds) is { } at)
                 points.Add(new NavPoint("destroyable", name, owner, at.x, at.z, Height(box)));
         }
@@ -92,7 +92,7 @@ public static class NavPoints
         foreach (var core in MapDoc.AsList(data.GetValueOrDefault("cores")).OfType<Dict>())
         {
             var owner = core.GetValueOrDefault("owner") as string ?? "";
-            var box = Region(core.GetValueOrDefault("region"), regions);
+            var box = RegionGeometry2d.Resolve(core.GetValueOrDefault("region"), regions);
             if (Centre(box, regions, bounds) is { } at)
                 points.Add(new NavPoint("core", owner, owner, at.x, at.z, Height(box)));
         }
@@ -104,8 +104,8 @@ public static class NavPoints
         foreach (var (hill, name) in hills.Zip(
                      ControlPointNaming.Displayed(hills.Select(h => h.GetValueOrDefault("name") as string))))
         {
-            var box = Region(hill.GetValueOrDefault("capture_region"), regions)
-                      ?? Region(hill.GetValueOrDefault("progress_region"), regions);
+            var box = RegionGeometry2d.Resolve(hill.GetValueOrDefault("capture_region"), regions)
+                      ?? RegionGeometry2d.Resolve(hill.GetValueOrDefault("progress_region"), regions);
             if (Centre(box, regions, bounds) is { } at)
                 points.Add(new NavPoint("point", name, "", at.x, at.z, Height(box)));
         }
@@ -117,11 +117,6 @@ public static class NavPoints
         }
         return points;
     }
-
-    /// <summary>A region reference — a name into the registry, or the region written inline — as a region.</summary>
-    public static Dict? Region(object? reference, Dict regions) => reference is string named
-        ? regions.GetValueOrDefault(named) as Dict
-        : reference as Dict;
 
     /// <summary>Where a region sits, as one cell: its centroid where that lies inside it, an interior point
     /// otherwise, and failing any geometry the centre of the bounding box it declares.</summary>
