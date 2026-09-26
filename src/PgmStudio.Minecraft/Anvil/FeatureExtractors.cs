@@ -178,17 +178,22 @@ public static class FeatureExtractors
         113,                                // nether brick fence
     };
 
-    /// <summary>Every run of door blocks standing on solid ground that is not a door itself, and either at
-    /// least two blocks tall or held under something solid — a doorway, a window, a wall (→
-    /// door_runs.parquet). A run with air under it is a roof or a hanging floor, and a single block with air
-    /// over it is the floor a player stands on; neither is a door.</summary>
+    /// <summary>Every run of door blocks that closes a way through (→ door_runs.parquet): standing on solid
+    /// ground that is not a door itself, at least two blocks tall or held under something solid, and with open
+    /// space on both sides of it in a line — west and east, or north and south — at the height a player walks
+    /// in. A doorway, a window and a pane wall have that; a run with air under it is a roof or a hanging floor,
+    /// a single block with air over it is a floor course, and glass buried in a solid mass separates nothing.
+    /// </summary>
     public static IEnumerable<DoorRunFeature> DoorRuns(IEnumerable<AnvilRegion.Chunk> chunks)
     {
-        foreach (var chunk in chunks)
-        {
-            var full = AnvilRegion.FullVolume(chunk);
+        var volumes = chunks.ToDictionary(chunk => (chunk.ChunkX, chunk.ChunkZ), AnvilRegion.FullVolume);
+        bool Open(int x, int y, int z) =>
+            !volumes.TryGetValue((x >> 4, z >> 4), out var full) || !IsSolid(full[(y << 8) | ((z & 15) << 4) | (x & 15)], y);
+
+        foreach (var ((chunkX, chunkZ), full) in volumes)
             for (var col = 0; col < 256; col++)
             {
+                int x = chunkX * 16 + (col & 15), z = chunkZ * 16 + (col >> 4);
                 var runStart = -1;
                 for (var y = 1; y < 256; y++)
                 {
@@ -201,15 +206,14 @@ public static class FeatureExtractors
                     }
                     else if (!door && runStart >= 0)
                     {
-                        if (y - runStart >= 2 || IsSolid(id, y))
-                            yield return new DoorRunFeature(chunk.ChunkX * 16 + (col & 15), chunk.ChunkZ * 16 + (col >> 4), runStart, y - 1);
+                        var through = (Open(x - 1, runStart, z) && Open(x + 1, runStart, z))
+                                      || (Open(x, runStart, z - 1) && Open(x, runStart, z + 1));
+                        if (through && (y - runStart >= 2 || IsSolid(id, y)))
+                            yield return new DoorRunFeature(x, z, runStart, y - 1);
                         runStart = -1;
                     }
                 }
-                if (runStart >= 0)
-                    yield return new DoorRunFeature(chunk.ChunkX * 16 + (col & 15), chunk.ChunkZ * 16 + (col >> 4), runStart, 255);
             }
-        }
     }
 
     /// <summary>All contiguous solid Y-runs per column, inclusive [start,end] (→ layer_segments.parquet).</summary>

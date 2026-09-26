@@ -93,10 +93,12 @@ floor. §3 needs the XML and stays with the island picture.
 A doorway a player breaks through is a third case, neither walked through nor ground. Glass, glass panes,
 stained glass and panes (the stamper's breakable door materials, `DoorMaterials`) and the nether brick fence
 are solid and stay in their segments; the scan also keeps every run of them that stands on solid ground as a
-**door run** (`FeatureExtractors.DoorRuns` → `door_run`, `door_runs.parquet`), when it is two blocks tall
-or held under something solid, the way a doorway, a window and a wall are. A run with air under it is a roof
-or a hanging floor, and a single block with air over it is a floor course — celestial_islands scatters glass
-through its mushroom islands, and opening that lowered the floor under a wool. The walk opens a door run where the map lets players break blocks in
+**door run** (`FeatureExtractors.DoorRuns` → `door_run`, `door_runs.parquet`), when it closes a way
+through: two blocks tall or held under something solid, with open space on both sides of it in a line — west
+and east, or north and south — at the height a player walks in, the way a doorway, a window and a pane wall
+are. A run with air under it is a roof or a hanging floor, a single block with air over it is a floor course,
+and glass buried in a solid mass separates nothing: celestial_islands scatters glass through its mushroom
+islands, and opening that carved a sealed pocket a wool was seated in. The walk opens a door run where the map lets players break blocks in
 its column (`Editability.Result.BreakableAt`), so the floor it stands on becomes a surface with the doorway's
 room over it, and keeps it shut where breaking is denied.
 

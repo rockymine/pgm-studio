@@ -217,4 +217,20 @@ public class FeatureExtractorsTests
         var runs = FeatureExtractors.DoorRuns([chunk]).Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)).ToHashSet();
         await Assert.That(runs.SetEquals(new[] { (0, 0, 5, 6), (2, 0, 5, 5) })).IsTrue();
     }
+
+    [Test]
+    public async Task Glass_buried_in_a_solid_mass_is_no_door()
+    {
+        // A two-high glass run inside stone on every side: it separates no two open spaces.
+        var blocks = new byte[4096];
+        for (var x = 4; x <= 6; x++) for (var z = 4; z <= 6; z++) for (var y = 0; y <= 8; y++) blocks[Idx(x, y, z)] = 1;
+        blocks[Idx(5, 5, 5)] = 20; blocks[Idx(5, 6, 5)] = 20;
+        var section = new NbtCompound
+        {
+            new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]),
+        };
+        var chunk = new AnvilRegion.Chunk(0, 0, new NbtCompound("Level") { new NbtList("Sections", new[] { section }) });
+
+        await Assert.That(FeatureExtractors.DoorRuns([chunk]).Count()).IsEqualTo(0);
+    }
 }
