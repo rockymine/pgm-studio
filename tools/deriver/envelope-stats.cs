@@ -1,5 +1,7 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
+// It runs under `dotnet run` and is never published ahead-of-time, so the AOT analysers have nothing to guard.
+#:property PublishAot=false
 // Generates the soft-term envelopes. Runs every SoftTerm's Value() over the teaching maps — the same method the
 // term scores with, so the band and the score can never drift — takes each metric's [min, max], and writes:
 //   • src/PgmStudio.Pgm/Evaluate/seed-envelopes.json   (embedded, the bands the evaluator loads)

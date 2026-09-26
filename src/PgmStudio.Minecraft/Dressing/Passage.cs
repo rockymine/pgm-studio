@@ -77,6 +77,7 @@ public static class Passage
     ///
     /// <para>Over the bounding run: the notch of an L is the building's own ground, not a public route through
     /// it, and the same holds of the yard inside a ring of houses.</para></summary>
+    /// <param name="group">What the buildings standing together take up, measured as one block of buildings.</param>
     /// <param name="isGround">Whether a cell is terrain a player stands on.</param>
     /// <param name="isBuilt">Whether a building holds that cell. The ring a group holds past its own stamp is
     /// a way past it — a ring is held so that nothing <em>seats</em> under an eave, not so that nobody passes

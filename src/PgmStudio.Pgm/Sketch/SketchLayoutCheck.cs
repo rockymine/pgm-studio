@@ -658,7 +658,7 @@ public static class SketchLayoutCheck
     /// <see cref="Empty"/> already gives a shape that draws nothing.
     ///
     /// <para>The case is ordinary rather than exotic. A compile declares a buffer over every enclosed void
-    /// (<see cref="PlanVoids"/>) so a ring of pieces at one surface cannot fuse across its own hole; where
+    /// (<see cref="Plan.PlanVoids"/>) so a ring of pieces at one surface cannot fuse across its own hole; where
     /// the ring is at several surfaces the union never bridges the hole to begin with and the cut lands on
     /// nothing. It is then exactly the shape that goes ungrouped, since a regroup assigns a subtract by what
     /// it overlaps — so the shape with no effect is the one this rule would otherwise name.</para>

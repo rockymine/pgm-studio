@@ -201,7 +201,7 @@ public sealed class TeamsGeneratorTests
 
         // the reset kit force-strips that resistance (duration 0) once out of spawn
         var reset = kits.OfType<Dict>().Single(k => k.GetValueOrDefault("id") as string == "reset-resistance-kit");
-        await Assert.That(reset["force"]).IsEqualTo(true);
+        await Assert.That((bool)reset["force"]!).IsTrue();
         await Assert.That(reset.GetValueOrDefault("clear") as bool? ?? false).IsFalse();
         var resetEff = ((List<object?>)reset["effects"]!).OfType<Dict>().Single();
         await Assert.That(resetEff["type"]).IsEqualTo("damage resistance");

@@ -56,27 +56,27 @@ public sealed class ObjectiveVocabularyEndpointTests
     public async Task The_offered_designs_are_every_style_the_generator_knows()
     {
         var destroyable = (await GetAsync()).GetProperty("destroyable");
-        var styles = destroyable.GetProperty("styles").EnumerateArray().Select(s => s.GetString()).ToList();
+        var styles = destroyable.GetProperty("styles").EnumerateArray().Select(s => s.GetString()!).ToList();
         await Assert.That(styles).IsEquivalentTo(DestroyableStyles.All.ToList());
 
         // A picker's default has to be one of its own options, or the select renders with nothing chosen.
-        await Assert.That(styles).Contains(destroyable.GetProperty("style").GetString());
+        await Assert.That(styles).Contains(destroyable.GetProperty("style").GetString()!);
     }
 
     [Test]
     public async Task The_offered_materials_are_the_ones_the_stamper_can_build()
     {
         var destroyable = (await GetAsync()).GetProperty("destroyable");
-        var materials = destroyable.GetProperty("materialChoices").EnumerateArray().Select(m => m.GetString()).ToList();
+        var materials = destroyable.GetProperty("materialChoices").EnumerateArray().Select(m => m.GetString()!).ToList();
         await Assert.That(materials).IsEquivalentTo(DestroyableMaterials.All.ToList());
-        await Assert.That(materials).Contains(destroyable.GetProperty("materials").GetString());
+        await Assert.That(materials).Contains(destroyable.GetProperty("materials").GetString()!);
     }
 
     [Test]
     public async Task The_offered_dyes_are_every_colour_a_wool_may_be()
     {
         var wool = (await GetAsync()).GetProperty("wool");
-        var colors = wool.GetProperty("colors").EnumerateArray().Select(c => c.GetProperty("name").GetString()).ToList();
+        var colors = wool.GetProperty("colors").EnumerateArray().Select(c => c.GetProperty("name").GetString()!).ToList();
         await Assert.That(colors).IsEquivalentTo(WoolColors.All.ToList());
 
         // Each dye carries its own swatch: an inspector that had to derive a colour from a name would be

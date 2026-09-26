@@ -44,7 +44,7 @@ public sealed class EmitterPlacementKnobTests
             await Assert.That(family).IsEqualTo(ShapeFamily.Scythe);
             await Assert.That(overlap).IsFalse();
             // the template order survives every shift
-            await Assert.That(a.Terrain.Select(p => p.Slot).Append(a.WoolRoom.Slot))
+            await Assert.That(a.Terrain.Select(p => p.Slot!).Append(a.WoolRoom.Slot!))
                 .IsEquivalentTo(ApproachSlots.Template(ShapeFamily.Scythe));
         }
     }

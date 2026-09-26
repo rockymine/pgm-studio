@@ -71,7 +71,7 @@ public sealed class MapExportComposerPlayabilityTests
         var findings = MapExportComposer.Playable(Intent(spawns: 2, destroyables: 2), Doc());
 
         var lost = findings.Where(finding => finding.Rule == "EX3").ToList();
-        await Assert.That(lost.Select(finding => finding.Field)).IsEquivalentTo(new[] { "spawns", "destroyables" });
+        await Assert.That(lost.Select(finding => finding.Field!)).IsEquivalentTo(new[] { "spawns", "destroyables" });
         await Assert.That(lost.First(finding => finding.Field == "spawns").Message).Contains("states 2 spawns");
     }
 

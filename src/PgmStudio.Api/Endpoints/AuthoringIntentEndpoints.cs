@@ -99,7 +99,7 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
 ///
 /// <para>The sketch draws a spawn, a wool room and the building inside one as locked annotations projected
 /// out of the intent, so a drag on that canvas has to arrive back here or the picture and the world build
-/// disagree about where a room is. <paramref name="reference"/> is the annotation's own <c>intentRef</c> — a
+/// disagree about where a room is. <c>{reference}</c> is the annotation's own <c>intentRef</c> — a
 /// team id for a spawn, <c>owner:colour</c> for a wool — and the body says which of the room's two rectangles
 /// moved and where it landed. <see cref="RoomPieceMove"/> holds what that means and what refuses it; this
 /// route reads the stored intent, hands it over, and stores and projects the answer the way an ordinary

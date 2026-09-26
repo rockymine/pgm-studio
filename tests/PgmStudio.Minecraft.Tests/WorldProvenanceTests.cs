@@ -81,7 +81,7 @@ public sealed class WorldProvenanceTests
         // read differently from a column nothing ever claimed at all.
         var provenance = new WorldProvenance();
         provenance.Claim(5, 5, ProvenancePass.Ground);
-        await Assert.That(provenance.OwnerAt(5, 5)).IsEqualTo(null);
+        await Assert.That(provenance.OwnerAt(5, 5)).IsNull();
     }
 
     [Test]

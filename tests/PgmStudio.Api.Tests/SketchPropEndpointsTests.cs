@@ -61,7 +61,7 @@ public sealed class SketchPropEndpointsTests
         await AddAsync(client, new { kind = "tree", x = 3, z = 3, seed = 3 });
 
         var ids = (await ListAsync(client)).GetProperty("props").EnumerateArray()
-            .Select(prop => prop.GetProperty("id").GetString()).ToList();
+            .Select(prop => prop.GetProperty("id").GetString()!).ToList();
         await Assert.That(ids).IsEquivalentTo(new[] { "tree-1", "boulder-1", "tree-2" });
     }
 
@@ -87,7 +87,7 @@ public sealed class SketchPropEndpointsTests
         await Assert.That(deleted.IsSuccessStatusCode).IsTrue();
 
         var left = (await ListAsync(client)).GetProperty("props").EnumerateArray()
-            .Select(prop => prop.GetProperty("id").GetString()).ToList();
+            .Select(prop => prop.GetProperty("id").GetString()!).ToList();
         await Assert.That(left).IsEquivalentTo(new[] { "boulder-1", "flora-1" });
     }
 

@@ -100,7 +100,8 @@ public sealed class PlanStructuresTests
         // A wool's Entries are the segments the cage cuts its doors on, and an empty set means the room is
         // unreachable: the validator refuses on it and the stamper cuts nothing. A room whose only seam is
         // narrow answering empty seals the wool inside a solid box.
-        foreach (var wool in intent.Wools)
+        await Assert.That(intent.Wools).IsNotNull();
+        foreach (var wool in intent.Wools!)
             await Assert.That(wool.Entries).IsNotEmpty()
                 .Because("an empty entry set seals the room, and this room is reachable");
     }

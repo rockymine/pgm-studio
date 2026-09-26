@@ -76,7 +76,7 @@ public static class RoomStyleScope
     };
 }
 
-/// <summary>The shell each kind of room is stamped in, as <see cref="RoomStyleScope.StylesOf"/> resolves it
+/// <summary>The shell each kind of room is stamped in, as <see cref="RoomStyleScope.StylesOf(string)"/> resolves it
 /// from a board's finish: a bound style, that kind's built-in shell, or <b>null</b> for open ground.
 ///
 /// <para>Null is what <c>shellBound</c> answers false for, and the reason this travels rather than being

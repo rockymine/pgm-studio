@@ -171,9 +171,9 @@ builder.Services.AddScoped<Callers>();
 builder.Services.AddAuthentication(AccessOptions.Scheme)
     .AddPolicyScheme(AccessOptions.Scheme, null, scheme => scheme.ForwardDefaultSelector = http =>
         http.RequestServices.GetRequiredService<AccessOptions>().IsOpen
-            ? OpenAccessHandler.Scheme
+            ? OpenAccessHandler.SchemeName
             : CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddScheme<AuthenticationSchemeOptions, OpenAccessHandler>(OpenAccessHandler.Scheme, null)
+    .AddScheme<AuthenticationSchemeOptions, OpenAccessHandler>(OpenAccessHandler.SchemeName, null)
     .AddCookie(cookie =>
     {
         cookie.Cookie.Name = "pgm-studio.session";

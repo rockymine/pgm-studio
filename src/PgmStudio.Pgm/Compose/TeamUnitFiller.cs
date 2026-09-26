@@ -169,7 +169,7 @@ public static class TeamUnitFiller
         _ => BoxEdge.Left,
     };
 
-    /// <summary>The hub's edge a <paramref name="j"/>oint touches — the interface edge when the hub is
+    /// <summary>The hub's edge a joint touches — the interface edge when the hub is
     /// <see cref="BoxJoint.BoxA"/>, else its opposite (the interface is read on <c>BoxA</c>'s frame).</summary>
     /// <summary>The board direction a spawn docked on the hub's <paramref name="hubEdge"/> faces: into the hub.
     /// A spawn behind the hub faces the axis through it, and one beside it faces across it — never out over the

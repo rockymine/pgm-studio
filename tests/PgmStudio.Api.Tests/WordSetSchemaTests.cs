@@ -64,7 +64,7 @@ public sealed class WordSetSchemaTests
                 if (!properties.TryGetProperty(Wire(property), out var field)) continue;
 
                 var published = field.TryGetProperty("enum", out var words)
-                    ? words.EnumerateArray().Select(word => word.GetString()).ToList()
+                    ? words.EnumerateArray().Select(word => word.GetString()!).ToList()
                     : [];
                 await Assert.That(published).IsEquivalentTo(Words.Of(declaring))
                     .Because($"{record.Name}.{Wire(property)} takes {declaring.Name}'s words");

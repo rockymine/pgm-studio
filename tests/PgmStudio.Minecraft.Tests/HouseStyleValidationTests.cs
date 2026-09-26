@@ -82,7 +82,7 @@ public sealed class HouseStyleValidationTests
         // The fix is naming the right kind, not dropping the head: Desert's own blocks are a real stair and a
         // real slab, so restoring them clears the finding without touching the form.
         var style = HousePresets.Desert.Style;
-        await Assert.That(HouseStyleValidation.Check(style).Any(f => f.Field.StartsWith("doorHead"))).IsFalse();
+        await Assert.That(HouseStyleValidation.Check(style).Any(f => f.Field?.StartsWith("doorHead") == true)).IsFalse();
     }
 
     [Test]

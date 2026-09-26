@@ -329,7 +329,7 @@ public sealed class SchemaCompletenessTests
 
         var published = document.RootElement
             .GetProperty("components").GetProperty("schemas").GetProperty("Severity")
-            .GetProperty("enum").EnumerateArray().Select(value => value.GetString()).ToList();
+            .GetProperty("enum").EnumerateArray().Select(value => value.GetString()!).ToList();
         var written = Enum.GetValues<Severity>()
             .Select(severity => JsonSerializer.Serialize(severity).Trim('"'))
             .ToList();

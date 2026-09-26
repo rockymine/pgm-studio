@@ -254,7 +254,7 @@ public sealed class MapExportComposerTests
 
         var refused = JsonSerializer.Deserialize<JsonElement>(body);
         await Assert.That(refused.GetProperty("findings").EnumerateArray()
-            .Select(finding => finding.GetProperty("rule").GetString())).IsEquivalentTo(new[] { "EX2" });
+            .Select(finding => finding.GetProperty("rule").GetString()!)).IsEquivalentTo(new[] { "EX2" });
     }
 
     /// <summary>

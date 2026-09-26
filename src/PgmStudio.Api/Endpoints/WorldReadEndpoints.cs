@@ -675,7 +675,7 @@ internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, M
 /// account answer as characters.</para>
 ///
 /// <para>The header carries the terrain's <b>inclination</b> at the cell, in degrees from level — the same
-/// <see cref="TerrainProfile.Slope"/> an angle mask is read against (TP24), so what a theme's slope bands
+/// <see cref="ColumnProfile.Slope"/> an angle mask is read against (TP24), so what a theme's slope bands
 /// claim can be checked at a coordinate instead of inferred from the block that came out. Absent on a column
 /// the terrain surface does not cover.</para>
 /// </summary>

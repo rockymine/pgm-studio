@@ -440,7 +440,7 @@ public sealed class DressingPreviewTests
         var house = await (await PostSeatsAsync(client, slug, "?kind=house&width=5")).Content
             .ReadFromJsonAsync<JsonElement>();
         await Assert.That(house.GetProperty("slopeLimit").GetInt32()).IsGreaterThan(0);
-        await Assert.That(house.GetProperty("unasked").EnumerateArray().Select(rule => rule.GetString()))
+        await Assert.That(house.GetProperty("unasked").EnumerateArray().Select(rule => rule.GetString()!))
             .IsEquivalentTo(["DR-CROSS", "DR-WAY"]);
 
         var tree = await (await PostSeatsAsync(client, slug, "?kind=tree")).Content

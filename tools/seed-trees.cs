@@ -1,6 +1,8 @@
 #:project ../src/PgmStudio.Api/PgmStudio.Api.csproj
 // A file-based app turns reflection-based JSON off by default, and a recipe's body is serialized that way.
 #:property JsonSerializerIsReflectionEnabledByDefault=true
+// It runs under `dotnet run` and is never published ahead-of-time, so the AOT analysers have nothing to guard.
+#:property PublishAot=false
 // seed-trees: cut every hand-built tree out of a world and file each one in the tree library as a copied recipe.
 //
 //   dotnet run tools/seed-trees.cs <worldDir> [name] [--wool] [--dry] [connection string]

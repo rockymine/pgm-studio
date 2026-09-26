@@ -76,7 +76,7 @@ public sealed class PlanFeasibilityEndpointTests
             .Concat(body.GetProperty("boxes").EnumerateArray().SelectMany(b => b.GetProperty("findings").EnumerateArray()))
             .ToList();
         await Assert.That(findings).IsNotEmpty();
-        await Assert.That(findings.Select(f => f.GetProperty("severity").GetString()).Distinct())
+        await Assert.That(findings.Select(f => f.GetProperty("severity").GetString()!).Distinct())
             .IsEquivalentTo(new[] { "complaint" });
     }
 

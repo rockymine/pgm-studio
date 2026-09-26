@@ -106,7 +106,7 @@ public static class ObjectiveRules
     public const string NoModeLadder = "OB26";
 
     /// <summary>A capture point that ends the match the moment somebody takes it. <c>required</c> is a
-    /// <see cref="Goal"/>'s attribute and PGM defaults it to <b>true</b> at proto 1.4.0 and above, which is
+    /// PGM's <c>Goal</c> attribute and PGM defaults it to <b>true</b> at proto 1.4.0 and above, which is
     /// every map the studio reads, so a point that leaves it off is a goal a competitor completes by standing
     /// on it — and <c>GoalsVictoryCondition</c> ends the match the instant one competitor holds all of its
     /// required goals. A one-hill map finishes on the first capture; a three-hill map finishes when one team

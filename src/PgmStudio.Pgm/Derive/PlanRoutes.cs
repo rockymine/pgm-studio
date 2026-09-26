@@ -82,12 +82,18 @@ public static class PlanRoutes
     /// <summary>Holes smaller than this are gaps between rectangles, not places a route goes round.</summary>
     public const int HoleFloor = 2;
 
+    /// <summary>One journey across the board: its shortest walk, the other ways that survive, and how much
+    /// of the board it passes through.</summary>
+    /// <param name="nav">The plan's walkable ground, as cells.</param>
+    /// <param name="from">Where the journey starts.</param>
+    /// <param name="to">Where it ends.</param>
     /// <param name="walker">The orbit image making the journey, whose own ground it is then read over —
     /// another team's spawn and the wool room this one defends are shut to it. Null asks about the board
     /// rather than about a side, which is what a shape with no team on it can answer.</param>
     /// <param name="over">The ground this journey runs on, where the demand set narrows it further than the
     /// walker's own — a defence rotating behind its own hole does not bridge the neutral crossing to do it.
     /// Null walks the walker's whole ground.</param>
+    /// <param name="slack">How much longer than the shortest another way may be and still count as one.</param>
     public static StrokeRead Read(PlanNav nav, (int X, int Z) from, (int X, int Z) to,
         int? walker = null, WalkGround? over = null, double slack = CorridorSlack)
     {

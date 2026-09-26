@@ -217,6 +217,9 @@ renamed or retired changes its `vocabulary.md` row in the same commit.
   schema, expandable and sendable without a client — over the document at `/api/openapi/v1.json`, which is
   generated from the routes and the DTOs. A route that declares no request type appears there with no body
   schema, which is the honest reading of `RP12`.
+- **A warning fails the build.** `Directory.Build.props` sets `TreatWarningsAsErrors` for every project, tests
+  and tool scripts included, so a build that passes has none. A warning that states something true of deliberate
+  code is suppressed at the line with its reason beside it, never across a project.
 - **`dotnet test` is not the path** on the .NET 10 SDK (the VSTest bridge is gone) — run a project directly:
   `dotnet run --project tests/<Project>`.
 - **`./tools/e2e.sh all`** is the browser gate (icons · paint · plan refusals · smoke), on its own port and

@@ -63,7 +63,7 @@ public static class BlockLook
     };
 
     /// <summary>How a block reads on the face a surface or rim bucket paints, or null for a block the table
-    /// does not carry — it holds what <see cref="TerrainPalette"/> offers and a material may name any id.</summary>
+    /// does not carry — it holds what <see cref="Painting.TerrainPalette"/> offers and a material may name any id.</summary>
     public static FaceLook? Top(int id, int data) => Of(id, data)?.Top;
 
     /// <summary>How it reads on the face a wall or fill bucket paints.</summary>

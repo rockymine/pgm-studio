@@ -1,0 +1,10 @@
+<Project>
+
+  <!-- A warning is a defect the build found and nobody fixed: it fails the build here, the same way on a
+       developer's machine, in a cloud session and in CI. A warning that states something true of deliberate
+       code is suppressed at the line, with the reason beside it. -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>
