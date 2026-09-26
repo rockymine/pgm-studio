@@ -1,0 +1,58 @@
+@namespace PgmStudio.Client.Components
+
+@* One person's mark: their initial over a hue hashed from who they are, and — for an account — their skin's
+   face and hat over it, cut from the skin the studio serves at /api/minecraft/player/{uuid}/skin. The skin
+   comes from the studio's own origin, never from a third party; where the studio has none to give, nothing
+   is drawn over the initial and the initial is the mark. *@
+
+<span class="author-mark@(HasAccount ? " author-mark--account" : null)" style="@MarkStyle" title="@Title"
+      aria-hidden="true">
+    @Initial
+    @if (HasAccount)
+    {
+        <span class="player-head-face" style="@FaceStyle"></span>
+    }
+</span>
+
+@code {
+    /// <summary>The Minecraft uuid, where an account answered; empty or null for a pseudonym.</summary>
+    [Parameter] public string? Uuid { get; set; }
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public string? Title { get; set; }
+    /// <summary>The mark's edge in pixels.</summary>
+    [Parameter] public int Size { get; set; } = 16;
+
+    private bool HasAccount => !string.IsNullOrEmpty(Uuid);
+
+    private string Initial =>
+        (Name ?? "").Trim() is { Length: > 0 } typed ? char.ToUpperInvariant(typed[0]).ToString() : "–";
+
+    /// <summary>The hue, from the identity the mark stands for — the uuid where an account answered, the name
+    /// otherwise — so two people are told apart at a glance and one person keeps their colour everywhere.</summary>
+    private string MarkStyle
+    {
+        get
+        {
+            var identity = HasAccount ? Uuid! : (Name ?? "").Trim().ToLowerInvariant();
+            var size = $"width:{Size}px;height:{Size}px;font-size:{Size * 5 / 8}px";
+            if (identity.Length == 0) return size;
+            // FNV-1a over the identity, folded to a hue. Any stable hash does; this one is four lines.
+            var hash = 2166136261u;
+            foreach (var c in identity) { hash ^= c; hash *= 16777619u; }
+            return $"--author-hue:{hash % 360};{size}";
+        }
+    }
+
+    /// <summary>A skin is 64 pixels wide with the face at (8, 8) and the hat over it at (40, 8), each 8×8, so
+    /// the skin is scaled to eight marks wide and each layer shifted to its square. The hat is drawn first,
+    /// which in CSS is on top.</summary>
+    private string FaceStyle
+    {
+        get
+        {
+            var skin = $"url('api/minecraft/player/{Uri.EscapeDataString(Uuid!)}/skin')";
+            return $"background-image:{skin},{skin};background-size:{Size * 8}px auto;"
+                 + $"background-position:{-5 * Size}px {-Size}px,{-Size}px {-Size}px";
+        }
+    }
+}

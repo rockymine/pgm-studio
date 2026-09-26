@@ -79,7 +79,7 @@ Access__Mode=invited ./tools/dev.sh restart              # now closed
 
 ## What the browser shows
 
-The top bar says who the browser is on every page: the name and role signed in with a sign-out, a sign-in for
+The top bar says who the browser is on every page: the head, name and role signed in with a sign-out, a sign-in for
 a visitor, `local` in an open studio, and for an admin a link to the whitelist at `/admin/users`. That page
 adds a player by name or uuid in a role, changes a role, takes someone off, and opens an invitation whose link
 it shows once with a copy button — the same four routes as below.

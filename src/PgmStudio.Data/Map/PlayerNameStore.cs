@@ -34,6 +34,22 @@ public sealed class PlayerNameStore(PgmDb db)
         return (row.Uuid, row.Name);
     }
 
+    /// <summary>The kept skin for a uuid, or null where there is none or it has gone stale.</summary>
+    public async Task<byte[]?> SkinAsync(string uuid, CancellationToken ct = default)
+    {
+        var row = await db.MinecraftPlayers.Where(player => player.Uuid == uuid).FirstOrDefaultAsync(ct);
+        return row?.SkinPng is { Length: > 0 } skin && DateTime.UtcNow - row.SkinFetchedAt <= Freshness ? skin : null;
+    }
+
+    /// <summary>Keep the skin a lookup answered, with the name the same answer carried.</summary>
+    public async Task KeepSkinAsync(string uuid, string name, byte[] skin, CancellationToken ct = default)
+    {
+        await KeepAsync(uuid, name, ct);
+        await db.MinecraftPlayers.Where(player => player.Uuid == uuid)
+            .Set(player => player.SkinPng, skin).Set(player => player.SkinFetchedAt, DateTime.UtcNow)
+            .UpdateAsync(ct);
+    }
+
     /// <summary>Keep what a lookup answered, replacing whatever was held for that uuid.</summary>
     public async Task KeepAsync(string uuid, string name, CancellationToken ct = default)
     {

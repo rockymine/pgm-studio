@@ -108,27 +108,4 @@ public partial class AuthorsEditor
         var bare = value.Replace("-", "");
         return bare.Length == 32 && bare.All(Uri.IsHexDigit);
     }
-
-    /// <summary>The letter standing for a row, or a dash while it is empty.</summary>
-    private static string Initial(AuthorRow p)
-    {
-        var typed = p.Name.Trim();
-        return typed.Length == 0 ? "–" : char.ToUpperInvariant(typed[0]).ToString();
-    }
-
-    /// <summary>The row's mark, coloured from the identity it carries — the uuid where an account answered,
-    /// the typed name otherwise — so two people are told apart at a glance and one person keeps their colour
-    /// across every tool that draws this editor. Drawn from what the row already holds rather than fetched:
-    /// a head fetched per row is an unreviewed request from the author's own browser, and it is the first
-    /// thing to break on a restricted network.</summary>
-    private static string MarkStyle(AuthorRow p)
-    {
-        var identity = p.Uuid.Length > 0 ? p.Uuid : p.Name.Trim().ToLowerInvariant();
-        if (identity.Length == 0) return "";
-
-        // FNV-1a over the identity, folded to a hue. Any stable hash does; this one is four lines.
-        var hash = 2166136261u;
-        foreach (var c in identity) { hash ^= c; hash *= 16777619u; }
-        return $"--author-hue: {hash % 360}";
-    }
 }

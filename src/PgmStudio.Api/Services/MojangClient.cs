@@ -34,6 +34,47 @@ public sealed partial class MojangClient(HttpClient http)
         return (FormatUuid(id), name);
     }
 
+    /// <summary>The largest skin the studio keeps. A skin is a 64×64 PNG of a few kilobytes; anything past
+    /// this is not one.</summary>
+    public const int MaxSkinBytes = 64 * 1024;
+
+    private static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+
+    /// <summary>
+    /// A player's name and skin PNG, from the session server's profile and the texture it names. Only a
+    /// texture on <c>textures.minecraft.net</c> is fetched, over https, and only a PNG no larger than
+    /// <see cref="MaxSkinBytes"/> is answered. Null where the player has no skin or either server does not
+    /// answer with one.
+    /// </summary>
+    public async Task<(string Name, byte[] Skin)?> SkinAsync(string uuid, CancellationToken ct)
+    {
+        if (!UuidRe().IsMatch(uuid)) return null;
+        using var profile = await http.GetAsync(
+            $"https://sessionserver.mojang.com/session/minecraft/profile/{uuid.Replace("-", "")}", ct);
+        if (!profile.IsSuccessStatusCode) return null;
+        using var doc = JsonDocument.Parse(await profile.Content.ReadAsStringAsync(ct));
+        var name = doc.RootElement.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? "" : "";
+        if (!doc.RootElement.TryGetProperty("properties", out var properties)) return null;
+
+        string? url = null;
+        foreach (var property in properties.EnumerateArray())
+        {
+            if (property.GetProperty("name").GetString() != "textures") continue;
+            var textures = JsonDocument.Parse(Convert.FromBase64String(property.GetProperty("value").GetString() ?? ""));
+            if (textures.RootElement.GetProperty("textures").TryGetProperty("SKIN", out var skin))
+                url = skin.GetProperty("url").GetString();
+        }
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var texture) || texture.Host != "textures.minecraft.net")
+            return null;
+
+        using var response = await http.GetAsync(
+            new UriBuilder(texture) { Scheme = Uri.UriSchemeHttps, Port = -1 }.Uri,
+            HttpCompletionOption.ResponseHeadersRead, ct);
+        if (!response.IsSuccessStatusCode || response.Content.Headers.ContentLength > MaxSkinBytes) return null;
+        var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+        return bytes.Length <= MaxSkinBytes && bytes.AsSpan().StartsWith(PngSignature) ? (name, bytes) : null;
+    }
+
     /// <summary>Insert dashes into a 32-char undashed uuid; leave anything else unchanged.</summary>
     private static string FormatUuid(string raw) =>
         raw.Length == 32 && !raw.Contains('-')

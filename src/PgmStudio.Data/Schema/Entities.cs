@@ -897,4 +897,7 @@ public sealed class MinecraftPlayerRow
     [PrimaryKey, Column("uuid"), NotNull] public string Uuid { get; set; } = "";
     [Column("name"), NotNull] public string Name { get; set; } = "";
     [Column("fetched_at")] public DateTime FetchedAt { get; set; }
+    /// <summary>The skin Mojang's texture server answered for this player, or null until it is asked.</summary>
+    [Column("skin_png")] public byte[]? SkinPng { get; set; }
+    [Column("skin_fetched_at")] public DateTime? SkinFetchedAt { get; set; }
 }

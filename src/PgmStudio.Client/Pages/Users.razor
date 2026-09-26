@@ -57,16 +57,19 @@
                   {
                     <ListRow @key="user.Uuid">
                       <ChildContent>
+                        <PlayerHead Uuid="@user.Uuid" Name="@user.Name" Size="20" />
                         <span class="list-label">@user.Name</span>
                         <span class="list-label list-label--mono" title="Minecraft uuid">@user.Uuid</span>
                         <span class="list-tag">@SignInState(user)</span>
                       </ChildContent>
                       <Trailing>
+                        <div class="user-actions">
                         <Select Options="Roles" Value="@user.Role" ValueChanged="v => SetRoleAsync(user, v)" Title="Role" />
                         <Button Variant="icon" Icon="link" Title="Open an invitation and show its link"
                                 OnClick="() => InviteAsync(user)" />
                         <Button Variant="icon" Icon="trash-2" Title="Take off the whitelist"
                                 OnClick="() => RemoveAsync(user)" />
+                        </div>
                       </Trailing>
                     </ListRow>
                     @if (invites.TryGetValue(user.Uuid, out var invite))

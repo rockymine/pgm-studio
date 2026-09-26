@@ -33,7 +33,10 @@ By tier, each grounded in the classes it emits.
 
 **Primitives** — leaf, style-only. `Button` (`action-btn` plus its `--primary`/`--danger`/`--warn`/`--icon`
 variants, an optional lucide `Icon` name, and an `Href` that switches it to an `<a>`), `Badge`, `Chip`
-(`filter-chip`), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, and `Icon`.
+(`filter-chip`), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, `Icon`, and `PlayerHead` —
+a person's initial over a hue hashed from who they are, with an account's face and hat cut in CSS from the
+skin the studio serves at `/api/minecraft/player/{uuid}/skin`, so a browser asks no third party and a skin the
+studio cannot get leaves the initial showing.
 
 **Forms** — `Field` is the atom the whole system is built from: it owns the label, the required mark, the
 error line and the hint slots, and the input itself is `ChildContent`. `NumberField` and `CoordField` are the

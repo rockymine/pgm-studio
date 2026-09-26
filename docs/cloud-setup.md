@@ -110,8 +110,9 @@ refuses to wave through. Check `curl -m 10 https://api.mojang.com/users/profiles
 reading it as a defect: no answer at all means the run is on a network without egress, and every other spec
 passing is the real result.
 
-Nothing else on those pages wants the network. The author rows draw their own marks, and a name no lookup can
-answer is stored as a pseudonym, so a container with no egress renders and saves the Identity form intact.
+Nothing else on those pages wants the network. An author row draws a player's head from the skin the studio
+itself serves and their initial where it has none, and a name no lookup can answer is stored as a pseudonym,
+so a container with no egress renders and saves the Identity form intact.
 
 The suite drives **Chromium only**, so a rendering defect that exists in another engine cannot appear in it
 — which is why the browser-specific canvas artifact recorded in `BACKLOG.md` was found by hand and stays

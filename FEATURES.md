@@ -272,6 +272,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `mc-heads.net`, which was an unpinned third-party request from the user's own browser on every page
   carrying authors, and the first thing to fail on a restricted network; the e2e harness lost the
   `ALLOWED_FAULTS` entry that existed only to tolerate it. (C45, TC2)
+- **A player's head again, served by the studio (C65).** `GET /api/minecraft/player/{uuid}/skin` fetches the
+  skin from Mojang's session and texture servers — only `textures.minecraft.net`, over https, a PNG of at most
+  64 KB — and keeps it thirty days beside the name (`minecraft_player.skin_png`, `M0044`). `PlayerHead` cuts the
+  face and hat out of it in CSS over the initial the row already drew, so the head is back in the author rows,
+  the top bar and the whitelist, and nothing is fetched from the browser to a third party. A skin that cannot
+  be had leaves the initial.
 - **One keyboard, one registry, and the help is generated from it (C53).** `wwwroot/js/studio/shared/keys.js`
   owns the app's single `keydown` listener and the registry every binding lives in. An entry is
   `{ id, keys, label, group, run, when?, priority?, inField?, passive? }`, and `label` and `group` are

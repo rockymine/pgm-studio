@@ -23,6 +23,7 @@
         }
         else if (me.SignedIn)
         {
+            <PlayerHead Uuid="@me.Uuid" Name="@me.Name" Size="20" />
             <span class="account-name" title="@me.Uuid">@me.Name</span>
             <Badge Kind="dim">@(me.Role ?? "not on the whitelist")</Badge>
             <button class="account-link" title="Sign out" @onclick="SignOutAsync"><i data-lucide="log-out"></i></button>

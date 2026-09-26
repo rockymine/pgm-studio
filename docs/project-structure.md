@@ -102,15 +102,15 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 25 | 4,803 | `Playability/` 14 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 121 | 16,616 | `Endpoints/` 63 · `Services/` 46 · `Access/` 8 · `Http/` 3 · 1 at root |
-| `Client` | 198 | 24,758 | `Features/` 114 (nested) · `Components/` 65 (nested) · `Pages/` 9 · `Models/` 4 · `Layout/` 3 · 3 at root |
+| `Api` | 121 | 16,704 | `Endpoints/` 63 · `Services/` 46 · `Access/` 8 · `Http/` 3 · 1 at root |
+| `Client` | 199 | 24,796 | `Features/` 114 (nested) · `Components/` 66 (nested) · `Pages/` 9 · `Models/` 4 · `Layout/` 3 · 3 at root |
 | `Contracts` | 34 | 3,748 | flat |
-| `Data` | 18 | 3,088 | `Features/` 5 · `Map/` 5 · `Theme/` 4 · `Schema/` 2 · `Access/` 1 · `Plan/` 1 |
+| `Data` | 18 | 3,107 | `Features/` 5 · `Map/` 5 · `Theme/` 4 · `Schema/` 2 · `Access/` 1 · `Plan/` 1 |
 | `Domain` | 30 | 3,486 | flat |
 | `Export` | 17 | 4,004 | flat |
 | `Geom` | 50 | 6,428 | `Algorithms/` 19 · `Render/` 6 · `Relief/` 5 · 20 at root |
 | `Import` | 4 | 473 | flat |
-| `Migrations` | 44 | 2,633 | `Migrations/` 43 · 1 at root |
+| `Migrations` | 45 | 2,655 | `Migrations/` 44 · 1 at root |
 | `Minecraft` | 103 | 21,341 | `Palette/` 17 · `Stamping/` 17 · `Render/` 15 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 4 · `Suggest/` 1 · 1 at root |
 | `Pgm` | 160 | 30,745 | `Compose/` 43 (nested) · `Authoring/` 28 · `Evaluate/` 22 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Plan/` 9 · `Sketch/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
 | `Vocabulary` | 22 | 1,528 | flat |
