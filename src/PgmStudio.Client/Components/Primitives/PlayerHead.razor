@@ -1,11 +1,11 @@
 @namespace PgmStudio.Client.Components
 
-@* One person's mark: their initial over a hue hashed from who they are, and — for an account — their skin's
-   face and hat over it, cut from the skin the studio serves at /api/minecraft/player/{uuid}/skin. The skin
+@* One person's mark: their initial on a neutral tile, and — for an account — their skin's face and hat
+   over it, cut from the skin the studio serves at /api/minecraft/player/{uuid}/skin. The skin
    comes from the studio's own origin, never from a third party; where the studio has none to give, nothing
    is drawn over the initial and the initial is the mark. *@
 
-<span class="author-mark@(HasAccount ? " author-mark--account" : null)" style="@MarkStyle" title="@Title"
+<span class="author-mark@(HasAccount ? " author-mark--account" : null)" style="@SizeStyle" title="@Title"
       aria-hidden="true">
     @Initial
     @if (HasAccount)
@@ -27,21 +27,7 @@
     private string Initial =>
         (Name ?? "").Trim() is { Length: > 0 } typed ? char.ToUpperInvariant(typed[0]).ToString() : "–";
 
-    /// <summary>The hue, from the identity the mark stands for — the uuid where an account answered, the name
-    /// otherwise — so two people are told apart at a glance and one person keeps their colour everywhere.</summary>
-    private string MarkStyle
-    {
-        get
-        {
-            var identity = HasAccount ? Uuid! : (Name ?? "").Trim().ToLowerInvariant();
-            var size = $"width:{Size}px;height:{Size}px;font-size:{Size * 5 / 8}px";
-            if (identity.Length == 0) return size;
-            // FNV-1a over the identity, folded to a hue. Any stable hash does; this one is four lines.
-            var hash = 2166136261u;
-            foreach (var c in identity) { hash ^= c; hash *= 16777619u; }
-            return $"--author-hue:{hash % 360};{size}";
-        }
-    }
+    private string SizeStyle => $"width:{Size}px;height:{Size}px;font-size:{Size * 5 / 8}px";
 
     /// <summary>A skin is 64 pixels wide with the face at (8, 8) and the hat over it at (40, 8), each 8×8, so
     /// the skin is scaled to eight marks wide and each layer shifted to its square. The hat is drawn first,

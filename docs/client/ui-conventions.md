@@ -34,7 +34,7 @@ By tier, each grounded in the classes it emits.
 **Primitives** — leaf, style-only. `Button` (`action-btn` plus its `--primary`/`--danger`/`--warn`/`--icon`
 variants, an optional lucide `Icon` name, and an `Href` that switches it to an `<a>`), `Badge`, `Chip`
 (`filter-chip`), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, `Icon`, and `PlayerHead` —
-a person's initial over a hue hashed from who they are, with an account's face and hat cut in CSS from the
+a person's initial on a neutral tile, with an account's face and hat cut in CSS from the
 skin the studio serves at `/api/minecraft/player/{uuid}/skin`, so a browser asks no third party and a skin the
 studio cannot get leaves the initial showing.
 

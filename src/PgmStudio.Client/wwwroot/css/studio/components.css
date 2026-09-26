@@ -152,7 +152,6 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
   gap: var(--space-1) var(--space-2);
 }
 .author-mark {
-  --author-hue: 0;
   width: 16px;
   height: 16px;
   flex-shrink: 0;
@@ -164,11 +163,11 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
   font-weight: 600;
   line-height: 1;
   user-select: none;
-  color: hsl(var(--author-hue) 55% 25%);
-  background: hsl(var(--author-hue) 45% 82%);
+  color: var(--text-secondary);
+  background: var(--bg-deep);
 }
-/* An account answered for this row, so the mark is stated rather than assumed. */
-.author-mark--account { box-shadow: 0 0 0 1px hsl(var(--author-hue) 45% 45%); }
+/* An account answered for this row: its head covers the initial, and the edge says so where it has none. */
+.author-mark--account { box-shadow: 0 0 0 1px var(--border); }
 .author-name { min-width: 0; }
 .author-contribution { min-width: 0; grid-column: 2; }
 .author-row .btn-remove { grid-column: 3; grid-row: 1 / span 2; }
