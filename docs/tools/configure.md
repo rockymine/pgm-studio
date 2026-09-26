@@ -201,9 +201,13 @@ the sentence under it. That is also the only row the phase drops from what it sa
 in it to credit. The rule is one constant in `PgmStudio.Vocabulary`, read by the browser and by the API, so
 the two cannot disagree about what a name is.
 
-A row's mark is drawn from what the row already holds — an initial over a hue hashed from its identity, the
-uuid where an account answered and the name otherwise — rather than fetched as a player head from a host
-outside the studio. One person keeps their colour across every tool that draws this editor.
+A row's mark is the account's head where an account answered, served by the studio itself
+(`GET /api/minecraft/player/{uuid}/skin`), and a neutral tile with the name's initial otherwise; it carries no
+colour of its own, so nothing in it reads as a status (`docs/client/ui-conventions.md`).
+
+A map a signed-in person originates already credits them: the first row is theirs, as an `author`, under their
+account (`docs/access.md`). Taking the row out removes the credit and nothing else — they stay the map's owner.
+In an open studio the local admin has no account, and the list starts empty.
 
 The phase is complete with a name and at least one author, and that is the one gate that blocks the very
 first Next.

@@ -11,8 +11,8 @@ a refusal reads, and how the list of people is kept.
 **`open`** signs every request in as the *local admin*, an admin with no Minecraft account. It is the mode of a
 studio on one person's machine, and of everything that drives one: `appsettings.Development.json` sets it, so
 `./tools/dev.sh`, `./tools/e2e.sh` and the drivers in `pgm-studio-mapgen` see the studio exactly as they always
-have, and the API test factory sets it for the same reason. A map originated here has no owner, because the
-local admin has no account to own it under.
+have, and the API test factory sets it for the same reason. A map originated here has no owner and credits
+nobody, because the local admin has no account to own it under.
 
 **`invited`** is every other deployment, and it is what an unset `Access:Mode` means — a server whose
 configuration never mentions access is closed, not open. A request is signed in by the session cookie
@@ -107,7 +107,14 @@ signing out is anyone's.
 
 **Who may edit a map** is `Callers.MayEditAsync`: an admin; the map's **owner**, the person who originated it
 (`map.owner_uuid`, set by `MapOrigin` from the request that brought the row into existence); or someone the map
-credits with the role `author`. A `contributor` is credited and may not edit. A `map-editor` route whose slug
+credits with the role `author`. A `contributor` is credited and may not edit.
+
+**Whoever originates a map is also credited with it.** `MapOrigin` writes the originator's uuid and Minecraft
+name as the map's first `author` row in the same transaction as the map itself, so a new sketch or plan names
+its maker without them typing themselves in. The credit and the ownership are two things: removing oneself
+from the authors takes one's name off the `map.xml` and leaves the map one's own to edit. An intent written
+before anyone was named in it carries the map's credits into its `meta` (`IntentWrite`), since the export
+reads the intent and would otherwise say the map is by nobody (`EX6`). A `map-editor` route whose slug
 names no map passes the gate and answers its own 404, because a map that is not there is not an access
 question.
 

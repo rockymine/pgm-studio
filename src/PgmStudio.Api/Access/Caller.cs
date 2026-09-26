@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using PgmStudio.Api.Services;
 using PgmStudio.Data.Access;
 using PgmStudio.Data.Schema;
 using PgmStudio.Vocabulary;
@@ -58,6 +59,10 @@ public sealed class Callers(AccessOptions access, StudioUserStore users)
             || await users.IsAuthorOfAsync(map.Id, caller.Uuid, ct);
     }
 
-    /// <summary>The uuid a map originated by this request is owned under, or null for the local admin.</summary>
-    public static string? OwnerOf(HttpContext http) => http.User.FindFirstValue(StudioClaims.Uuid);
+    /// <summary>The person a map originated by this request belongs to and is credited to, or null for the
+    /// local admin, who has no account.</summary>
+    public static MapOriginator? OriginatorOf(HttpContext http) =>
+        http.User.FindFirstValue(StudioClaims.Uuid) is { Length: > 0 } uuid
+            ? new MapOriginator(uuid, http.User.FindFirstValue(StudioClaims.Name))
+            : null;
 }

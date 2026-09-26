@@ -185,7 +185,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
             }
 
             // ── 6. create record + scan into MariaDB ──
-            mapId = await MapOrigin.AtAsync(repo, slug, slug, MapStage.Configure, Callers.OwnerOf(HttpContext));
+            mapId = await MapOrigin.AtAsync(repo, slug, slug, MapStage.Configure, Callers.OriginatorOf(HttpContext));
             var c = await writer.WriteAsync(mapId.Value, regionDir, ct);
 
             await Send.OkAsync(WorldScans.Of(slug, c) with { McaFiles = mca }, ct);
@@ -337,7 +337,7 @@ public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter 
         var imported = await WorldFolderImport.FromAsync(
             repo, writer, policy, Logger,
             body["folder"]?.GetValue<string>() ?? "", body["slug"]?.GetValue<string>(),
-            Callers.OwnerOf(HttpContext), ct);
+            Callers.OriginatorOf(HttpContext), ct);
         if (imported.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
 
         await Send.OkAsync(imported.Scan!, ct);

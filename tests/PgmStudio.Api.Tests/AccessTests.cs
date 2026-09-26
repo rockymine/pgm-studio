@@ -88,6 +88,26 @@ public sealed class AccessTests
     }
 
     [Test]
+    public async Task A_map_is_credited_to_whoever_originated_it_and_they_stay_its_owner_without_the_credit()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+
+        using var owner = InvitedFactory.As(Owner);
+        var slug = await OriginateAsync(owner, "Weirgate");
+        var doc = await owner.GetFromJsonAsync<JsonElement>($"/api/map/{slug}");
+        var credits = doc.GetProperty("authors").EnumerateArray()
+            .Select(author => (author.GetProperty("uuid").GetString(), author.GetProperty("name").GetString())).ToList();
+        await Assert.That(credits).IsEquivalentTo(new[] { ((string?)Owner, (string?)NameOf(Owner)) });
+
+        using var dropped = await owner.PatchAsJsonAsync($"/api/map/{slug}/metadata", new { authors = Array.Empty<object>() });
+        await Assert.That(dropped.IsSuccessStatusCode).IsTrue().Because(await dropped.Content.ReadAsStringAsync());
+        await Assert.That(await ScalarAsync($"SELECT COUNT(*) FROM author a JOIN map m ON m.id = a.map_id WHERE m.slug = '{slug}'"))
+            .IsEqualTo("0");
+        await Assert.That((await owner.GetFromJsonAsync<MapAccessDto>($"/api/map/{slug}/access"))!.MayEdit).IsTrue();
+    }
+
+    [Test]
     public async Task An_author_a_map_credits_may_change_it_and_a_contributor_may_not()
     {
         await ApiTestFactory.ResetSchemaAsync();
@@ -309,7 +329,10 @@ public sealed class AccessTests
     }
 
     private static Task WhitelistAsync(string uuid, string role) => ApiTestFactory.ExecuteAsync(
-        $"INSERT INTO studio_user (uuid, name, role, created_at) VALUES ('{uuid}', 'p{uuid[^4..]}', '{role}', UTC_TIMESTAMP())");
+        $"INSERT INTO studio_user (uuid, name, role, created_at) VALUES ('{uuid}', '{NameOf(uuid)}', '{role}', UTC_TIMESTAMP())");
+
+    /// <summary>The Minecraft name the test whitelist and the test session both give a uuid.</summary>
+    private static string NameOf(string uuid) => $"p{uuid[^4..]}";
 
     private static async Task<string?> ScalarAsync(string sql)
     {
@@ -368,7 +391,8 @@ public sealed class AccessTests
         {
             if (Request.Headers[Header].ToString() is not { Length: > 0 } uuid)
                 return Task.FromResult(AuthenticateResult.NoResult());
-            var identity = new ClaimsIdentity([new Claim(StudioClaims.Uuid, uuid)], Name);
+            var identity = new ClaimsIdentity(
+                [new Claim(StudioClaims.Uuid, uuid), new Claim(StudioClaims.Name, NameOf(uuid))], Name);
             return Task.FromResult(AuthenticateResult.Success(
                 new AuthenticationTicket(new ClaimsPrincipal(identity), Name)));
         }

@@ -72,7 +72,8 @@ public sealed class IntentWriteTests
     }
 
     /// <summary>The plain write is the same rule: Configure edits the teams and the spawns, and says nothing
-    /// about the people, so it may not clear them either.</summary>
+    /// about the people, so it may not clear them either — and the intent it stores names them too, since the
+    /// export reads the intent and would otherwise say the map is by nobody.</summary>
     [Test]
     public async Task Storing_an_intent_that_names_nobody_keeps_the_authors()
     {
@@ -83,6 +84,10 @@ public sealed class IntentWriteTests
         await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
 
         await Assert.That(await AuthorsOfAsync(client, slug)).IsEquivalentTo(new[] { "Opus 5" });
+        var intent = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/intent");
+        await Assert.That(intent.GetProperty("meta").GetProperty("authors").EnumerateArray()
+            .Select(author => author.GetProperty("name").GetString() ?? "").ToList())
+            .IsEquivalentTo(new[] { "Opus 5" });
     }
 
     /// <summary>And an intent that <em>does</em> name people still states them — the guard is over a document

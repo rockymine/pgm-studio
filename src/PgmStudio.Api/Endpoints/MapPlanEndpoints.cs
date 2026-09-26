@@ -40,7 +40,7 @@ public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore arti
         catch { /* empty / invalid body → default name */ }
 
         var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
-            repo, name, MapStage.Plan, Callers.OwnerOf(HttpContext), ct);
+            repo, name, MapStage.Plan, Callers.OriginatorOf(HttpContext), ct);
         await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, "{}"u8.ToArray(), ct);
         await Send.OkAsync(new OriginatedDto(slug), ct);
     }
@@ -62,7 +62,7 @@ public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifact
 
         var name = string.IsNullOrWhiteSpace(candidate.Name) ? "Untitled plan" : candidate.Name.Trim();
         var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
-            repo, name, MapStage.Plan, Callers.OwnerOf(HttpContext), ct, planSource: candidate.Id);
+            repo, name, MapStage.Plan, Callers.OriginatorOf(HttpContext), ct, planSource: candidate.Id);
         await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, Encoding.UTF8.GetBytes(candidate.PlanJson), ct);
         await Send.OkAsync(new OriginatedDto(slug), ct);
     }

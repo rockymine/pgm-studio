@@ -93,7 +93,7 @@ public static class MapFromDocuments
             return Refuse(403, "not permitted", new Finding(RequestRules.NotPermitted,
                 $"a map is already stored under '{slug}', and only its owner, an author it credits, or an admin "
                 + "may replace it", Field: "slug"));
-        var mapId = await MapOrigin.ReplacingAsync(repo, slug, name, MapStage.Plan, Callers.OwnerOf(http), ct);
+        var mapId = await MapOrigin.ReplacingAsync(repo, slug, name, MapStage.Plan, Callers.OriginatorOf(http), ct);
 
         try
         {

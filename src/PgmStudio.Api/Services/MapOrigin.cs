@@ -14,8 +14,9 @@ namespace PgmStudio.Api.Services;
 /// newest-touched-first list is ordered by — is the same sentence for all six, and is said here.</para>
 ///
 /// <para><b>Every map has an owner from its first moment</b> — the person who originated it, who may always
-/// edit it whoever it later credits (<c>docs/access.md</c>). An open studio's local admin has no account, so a
-/// map it originates owns to nobody.</para>
+/// edit it whoever it later credits (<c>docs/access.md</c>) — and it is credited to them as its author, which
+/// they may take back from the map's metadata without ceasing to own it. An open studio's local admin has no
+/// account, so a map it originates belongs and is credited to nobody.</para>
 ///
 /// <para><b>Two ways to take a slug, and the difference is a product statement.</b> Everything an author
 /// originates suffixes past a collision, because two sketches called "Weirgate" are two maps. A load from
@@ -27,43 +28,56 @@ public static class MapOrigin
     /// <c>weirgate-2</c>. Answers the id and the slug it actually took, which is not always the one asked
     /// for.</summary>
     public static async Task<(long Id, string Slug)> UnderFreeSlugAsync(
-        MapRepository repo, string name, string stage, string? owner, CancellationToken ct,
+        MapRepository repo, string name, string stage, MapOriginator? originator, CancellationToken ct,
         long? planSource = null)
     {
         var slug = await repo.UniqueSlugAsync(Slugs.Of(name), ct);
-        return (await RowAsync(repo, slug, name, stage, owner, planSource), slug);
+        return (await RowAsync(repo, slug, name, stage, originator, originator?.Uuid, planSource), slug);
     }
 
     /// <summary>A map at exactly <paramref name="slug"/>, replacing whatever is stored there — the foreign
     /// keys cascade, so the old map's artifacts go with it. A replaced map keeps its owner.</summary>
     public static async Task<long> ReplacingAsync(
-        MapRepository repo, string slug, string name, string stage, string? owner, CancellationToken ct)
+        MapRepository repo, string slug, string name, string stage, MapOriginator? originator, CancellationToken ct)
     {
+        var owner = originator?.Uuid;
         if (await repo.GetBySlugAsync(slug, ct) is { } existing)
         {
             owner = existing.OwnerUuid ?? owner;
             await repo.DeleteMapAsync(existing.Id, ct);
         }
-        return await RowAsync(repo, slug, name, stage, owner, planSource: null);
+        return await RowAsync(repo, slug, name, stage, originator, owner, planSource: null);
     }
 
     /// <summary>A map at a slug the caller has already established is free — a world import, which refuses a
     /// taken slug outright rather than suffixing past it, because the slug is where the world's files sit.
     /// </summary>
-    public static Task<long> AtAsync(MapRepository repo, string slug, string name, string stage, string? owner) =>
-        RowAsync(repo, slug, name, stage, owner, planSource: null);
+    public static Task<long> AtAsync(
+        MapRepository repo, string slug, string name, string stage, MapOriginator? originator) =>
+        RowAsync(repo, slug, name, stage, originator, originator?.Uuid, planSource: null);
 
     /// <summary>The row itself. Every map is <c>ctw</c> at birth — the gamemode is derived from the objective
     /// modules a map ends up carrying, and the column holds the author's original label, which a map that has
     /// not been authored yet does not have.</summary>
-    private static Task<long> RowAsync(
-        MapRepository repo, string slug, string name, string stage, string? owner, long? planSource)
+    private static async Task<long> RowAsync(
+        MapRepository repo, string slug, string name, string stage, MapOriginator? originator, string? owner,
+        long? planSource)
     {
         var now = DateTime.UtcNow;
-        return repo.InsertAsync(new MapRow
+        var mapId = await repo.InsertAsync(new MapRow
         {
             Slug = slug, Name = name, Gamemode = "ctw", Stage = stage,
             PlanSourceId = planSource, CreatedAt = now, UpdatedAt = now, OwnerUuid = owner,
         });
+        if (originator is not null)
+            await repo.InsertAsync(new AuthorRow
+            {
+                MapId = mapId, Uuid = originator.Uuid, Name = originator.Name, Role = "author",
+            });
+        return mapId;
     }
 }
+
+/// <summary>The signed-in person a map is originated by: it is owned under their uuid and credited to them
+/// under their Minecraft name.</summary>
+public sealed record MapOriginator(string Uuid, string? Name);

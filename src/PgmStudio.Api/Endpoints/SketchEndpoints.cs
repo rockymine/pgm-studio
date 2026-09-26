@@ -67,7 +67,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
         catch { /* empty / invalid body → default name, no frame */ }
 
         var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
-            repo, name, MapStage.Sketch, Callers.OwnerOf(HttpContext), ct);
+            repo, name, MapStage.Sketch, Callers.OriginatorOf(HttpContext), ct);
         var seed = Seed(hasFrame ? Math.Max(16, width) : null, Math.Max(16, depth), mode, centerX, centerZ);
         await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson, seed, ct);
         await Send.OkAsync(new OriginatedDto(slug), ct);

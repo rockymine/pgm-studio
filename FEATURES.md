@@ -9665,6 +9665,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `ContentColumn` and the library editor grey their fields, and the dock keeps only the tools that look —
   decided once by `StudioShell` from the address and `GET /api/map/{slug}/access`. `tests/e2e/access.mjs`
   holds it against an invited server. `docs/access.md`, `docs/client/ui-conventions.md`.
+- **A map is credited to whoever originates it (`RP82`).** A sketch, plan, import or document load started
+  by a signed-in person writes them as the map's first `author`, uuid and name, beside the ownership, so
+  nobody types themselves in; removing the credit leaves them the owner. An intent stored while it names nobody
+  carries the map's credits into `meta`, so the export does not call a credited map authorless. `docs/access.md`.
 - **Signing in with Discord, bound to a Minecraft account by invitation (`RP75`).** An admin opens an
   invitation for someone on the whitelist (`POST /api/users/{uuid}/invite`) and hands them the one-time link;
   the first Discord account to sign in through it is bound to that person, and from then on
