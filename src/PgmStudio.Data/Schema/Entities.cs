@@ -40,6 +40,11 @@ public sealed class StudioUserRow
     [Column("name"), NotNull] public string Name { get; set; } = "";
     [Column("role"), NotNull] public string Role { get; set; } = "";
     [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
+    /// <summary>The Discord account that signs in as this person, or null until an invitation binds one.</summary>
+    [Column("discord_id")] public string? DiscordId { get; set; }
+    /// <summary>The SHA-256 of the open invitation's code, or null where none is open.</summary>
+    [Column("invite_hash")] public string? InviteHash { get; set; }
+    [Column("invite_expires_at")] public DateTime? InviteExpiresAt { get; set; }
 }
 
 [Table("author")]

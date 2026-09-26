@@ -435,16 +435,8 @@ and what a `subtract` takes away.
 
 ## Opening the studio to other people: sign-in, a server, and what a caller may ask for
 
-The access rules are in place and read-only for everyone an invited studio does not sign in (`docs/access.md`).
-What remains is the way in, the machine it runs on, and the client knowing who it is.
-
-- [ ] **RP75 — Sign in with Discord, bound to a whitelisted Minecraft account.** An OAuth2 authorization-code
-  flow (`AspNet.Security.OAuth.Discord`) under `GET /api/auth/discord` and its callback, writing the
-  `pgm-studio.session` cookie with the one `StudioClaims.Uuid` claim `Callers` reads. The binding is an
-  invitation: an admin's `POST /api/users` answers a one-time link, and the first Discord account to follow it
-  is stored against that uuid (a `discord_id` column on `studio_user`); a Discord account bound to nothing is
-  refused `RQ8`. `POST /api/auth/sign-out` clears the cookie. Rewrites `docs/access.md` § *Two modes* and its
-  first limit.
+The access rules and the Discord sign-in are in place (`docs/access.md`). What remains is a way in for callers
+without a browser, the machine it runs on, and the client knowing who it is.
 
 - [ ] **RP76 — A token for callers without a browser.** An admin- or self-issued bearer token, stored as a
   hash beside the user it acts as (`studio_token`: user id, hash, label, created, last used), accepted by a
@@ -457,7 +449,8 @@ What remains is the way in, the machine it runs on, and the client knowing who i
   signed-out page.
 
 - [ ] **RP78 — `docs/deployment.md`: the studio on a server.** A Hetzner Cloud VM, Caddy for HTTPS in front
-  of the API as a systemd service, MariaDB bound to localhost, a GitHub Actions job that publishes after a
+  of the API as a systemd service with `UseForwardedHeaders` so the Discord callback is `https://`, MariaDB
+  bound to localhost, a GitHub Actions job that publishes after a
   green `main`, runs `--migrate-only` behind a `mariadb-dump`, and restarts; nightly dumps to a Storage Box.
   `Access:Mode=invited` and `Access:Admins` set in the unit's environment.
 

@@ -42,6 +42,11 @@ public sealed class DocumentedFailureTests
         ["GET /api/users"] = "the whitelist, whose document is docs/access.md",
         ["POST /api/users"] = "the whitelist, whose document is docs/access.md",
         ["DELETE /api/users/{uuid}"] = "the whitelist, whose document is docs/access.md",
+        ["POST /api/users/{uuid}/invite"] = "the whitelist, whose document is docs/access.md",
+        ["GET /api/auth/discord"] = "signing in, whose document is docs/access.md",
+        ["GET /api/auth/discord/complete"] = "signing in, whose document is docs/access.md",
+        ["GET /api/auth/invite/{code}"] = "signing in, whose document is docs/access.md",
+        ["POST /api/auth/sign-out"] = "signing in, whose document is docs/access.md",
     };
 
     [Test]

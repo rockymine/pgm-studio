@@ -182,7 +182,8 @@ builder.Services.AddAuthentication(AccessOptions.Scheme)
         cookie.Cookie.SameSite = SameSiteMode.Lax;
         cookie.ExpireTimeSpan = TimeSpan.FromDays(30);
         cookie.SlidingExpiration = true;
-    });
+    })
+    .AddDiscordSignIn();
 builder.Services.AddAuthorization(AccessPolicies.Add);
 builder.Services.AddScoped<IAuthorizationHandler, AccessHandler>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AccessRefusals>();

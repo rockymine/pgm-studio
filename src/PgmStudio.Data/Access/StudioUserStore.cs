@@ -35,6 +35,34 @@ public sealed class StudioUserStore(PgmDb db)
     public async Task<bool> RemoveAsync(string uuid, CancellationToken ct = default) =>
         await db.StudioUsers.Where(user => user.Uuid == uuid).DeleteAsync(ct) > 0;
 
+    /// <summary>Open an invitation for the person: store the hash of its code and when it lapses, replacing any
+    /// invitation already open. False where the person is not on the whitelist.</summary>
+    public async Task<bool> OpenInviteAsync(
+        string uuid, string inviteHash, DateTime expiresAt, CancellationToken ct = default) =>
+        await db.StudioUsers.Where(user => user.Uuid == uuid)
+            .Set(user => user.InviteHash, inviteHash).Set(user => user.InviteExpiresAt, expiresAt)
+            .UpdateAsync(ct) > 0;
+
+    /// <summary>The person an open, unlapsed invitation is for, or null.</summary>
+    public Task<StudioUserRow?> GetByInviteAsync(string inviteHash, DateTime now, CancellationToken ct = default) =>
+        db.StudioUsers.FirstOrDefaultAsync(
+            user => user.InviteHash == inviteHash && user.InviteExpiresAt > now, ct);
+
+    public Task<StudioUserRow?> GetByDiscordAsync(string discordId, CancellationToken ct = default) =>
+        db.StudioUsers.FirstOrDefaultAsync(user => user.DiscordId == discordId, ct);
+
+    /// <summary>Bind a Discord account to the person and close their invitation. A Discord account signs in as
+    /// one person, so a binding it held to anyone else is released first.</summary>
+    public async Task BindDiscordAsync(string uuid, string discordId, CancellationToken ct = default)
+    {
+        await db.StudioUsers.Where(user => user.DiscordId == discordId && user.Uuid != uuid)
+            .Set(user => user.DiscordId, (string?)null).UpdateAsync(ct);
+        await db.StudioUsers.Where(user => user.Uuid == uuid)
+            .Set(user => user.DiscordId, discordId)
+            .Set(user => user.InviteHash, (string?)null).Set(user => user.InviteExpiresAt, (DateTime?)null)
+            .UpdateAsync(ct);
+    }
+
     /// <summary>Whether <paramref name="uuid"/> is credited as an author of the map — a contributor is
     /// credited too, and is not one.</summary>
     public Task<bool> IsAuthorOfAsync(long mapId, string uuid, CancellationToken ct = default) =>

@@ -9647,6 +9647,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST /regions/group` + `/ungroup`. (ex-R1a; wire-after-group is parked.)
 
 ## Data & ops (D)
+- **Signing in with Discord, bound to a Minecraft account by invitation (`RP75`).** An admin opens an
+  invitation for someone on the whitelist (`POST /api/users/{uuid}/invite`) and hands them the one-time link;
+  the first Discord account to sign in through it is bound to that person, and from then on
+  `GET /api/auth/discord` signs them in. OAuth2 with PKCE over ASP.NET's own handler, the `identify` scope
+  alone, the secret only in the environment, and only the hash of an invitation stored. `docs/access.md`.
 - **Reads are open and writes need someone on the whitelist (`RP80`).** `Access:Mode` is `open` on a
   developer's machine, where every request is the local admin, and `invited` everywhere else, where a write
   needs a person on the `studio_user` whitelist. Which route needs what is decided in one place from the route

@@ -15,13 +15,14 @@ namespace PgmStudio.Api.Access;
 /// <item>Every other write needs a person on the whitelist.</item>
 /// </list>
 ///
-/// An endpoint that names a policy itself keeps it — the whitelist's own routes, whose list is a read an
-/// admin alone makes.
+/// An endpoint that states its own access keeps it: the whitelist's routes are an admin's, list included, and
+/// signing out is anyone's.
 /// </summary>
 public static class AccessRules
 {
     public static void Apply(EndpointDefinition endpoint)
     {
+        if (endpoint.AnonymousVerbs is { Length: > 0 }) return;
         if (endpoint.PreBuiltUserPolicies is not { Count: > 0 })
         {
             if (endpoint.Verbs.All(IsRead))

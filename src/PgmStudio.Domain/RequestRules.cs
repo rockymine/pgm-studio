@@ -80,4 +80,12 @@ public static class RequestRules
     /// /api/me</c> says which role the request carries.</remarks>
     [Rule(RuleCategory.Forbidden, RuleConcern.Request)]
     public const string NotPermitted = "RQ8";
+
+    /// <summary>The route signs a person in with Discord, and this studio has no Discord application
+    /// configured. It answers <b>503</b>: nothing about the request is wrong, and no sign-in can happen here
+    /// until the deployment names one.</summary>
+    /// <remarks>Set <c>Discord:ClientId</c> and <c>Discord:ClientSecret</c> on the server — the secret as an
+    /// environment variable, never in a file the repository holds.</remarks>
+    [Rule(RuleCategory.Unavailable, RuleConcern.Studio)]
+    public const string SignInUnavailable = "RQ9";
 }

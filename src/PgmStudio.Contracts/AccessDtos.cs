@@ -32,3 +32,9 @@ public sealed record StudioUserDto(
 public sealed record StudioUserRequest(
     string Player,
     [property: WordSet(typeof(StudioRoles))] string Role);
+
+/// <summary>An invitation: the link that binds the first Discord account to follow it to one person on the
+/// whitelist, and when it lapses.</summary>
+/// <param name="Link">The one-time sign-in link to hand the person. It is shown once and stored only as a hash.</param>
+/// <param name="ExpiresAt">When it stops working, in UTC.</param>
+public sealed record InviteDto(string Link, DateTime ExpiresAt);

@@ -176,6 +176,10 @@ public sealed class AccessTests
         await Assert.That(me!.Role).IsNull().Because("taking someone off the whitelist holds at once");
     }
 
+    /// <summary>The routes that state their own access rather than taking the rule's.</summary>
+    private static readonly HashSet<string> StatesItsOwnAccess =
+        ["GET /api/users", "POST /api/auth/sign-out", "GET /api/auth/discord/complete"];
+
     [Test]
     public async Task Every_write_publishes_401_and_403_and_no_read_does()
     {
@@ -188,11 +192,107 @@ public sealed class AccessTests
             var responses = verb.Value.GetProperty("responses");
             var guarded = responses.TryGetProperty("401", out _) && responses.TryGetProperty("403", out _);
             var read = verb.Name is "get" or "head";
-            if (guarded == read && !(read && path.Name == "/api/users"))
-                wrong.Add($"{verb.Name.ToUpperInvariant()} {path.Name}");
+            var name = $"{verb.Name.ToUpperInvariant()} {path.Name}";
+            if (guarded == read && !StatesItsOwnAccess.Contains(name)) wrong.Add(name);
         }
         await Assert.That(wrong).IsEmpty()
             .Because($"these routes publish the wrong access answers: {string.Join(", ", wrong)}");
+    }
+
+    [Test]
+    public async Task A_studio_with_no_Discord_application_refuses_sign_in_with_RQ9()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        using var resp = await client.GetAsync("/api/auth/discord");
+        await AssertRefusedAsync(resp, HttpStatusCode.ServiceUnavailable, "RQ9");
+    }
+
+    [Test]
+    public async Task Signing_in_sends_the_browser_to_Discord_asking_for_identify_alone()
+    {
+        using var client = InvitedFactory.Shared.CreateClient(new() { AllowAutoRedirect = false });
+        using var resp = await client.GetAsync("/api/auth/discord?returnUrl=/maps");
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.Redirect);
+
+        var location = resp.Headers.Location!;
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(location.Query);
+        await Assert.That(location.GetLeftPart(UriPartial.Path)).IsEqualTo("https://discord.com/oauth2/authorize");
+        await Assert.That(query["client_id"].ToString()).IsEqualTo("1553430351484026980");
+        await Assert.That(query["scope"].ToString()).IsEqualTo("identify");
+        await Assert.That(query["redirect_uri"].ToString()).EndsWith("/api/auth/discord/callback");
+        await Assert.That(query["code_challenge_method"].ToString()).IsEqualTo("S256");
+    }
+
+    [Test]
+    public async Task An_admin_opens_an_invitation_and_only_an_open_one_is_followed()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+
+        using var member = InvitedFactory.As(Owner);
+        using var refused = await member.PostAsync($"/api/users/{Owner}/invite", null);
+        await AssertRefusedAsync(refused, HttpStatusCode.Forbidden, "RQ8");
+
+        using var admin = InvitedFactory.As(Admin);
+        using var nobody = await admin.PostAsync($"/api/users/{Stranger}/invite", null);
+        await AssertRefusedAsync(nobody, HttpStatusCode.NotFound, "RQ4");
+
+        using var issued = await admin.PostAsync($"/api/users/{Owner}/invite", null);
+        var invite = await issued.Content.ReadFromJsonAsync<InviteDto>();
+        var path = new Uri(invite!.Link).AbsolutePath;
+        await Assert.That(path).StartsWith("/api/auth/invite/");
+        await Assert.That(await ScalarAsync($"SELECT invite_hash FROM studio_user WHERE uuid = '{Owner}'"))
+            .IsEqualTo(DiscordSignIn.HashOf(path["/api/auth/invite/".Length..]))
+            .Because("the whitelist stores the code's hash, never the code");
+
+        using var browser = InvitedFactory.Shared.CreateClient(new() { AllowAutoRedirect = false });
+        using var followed = await browser.GetAsync(path);
+        await Assert.That(followed.StatusCode).IsEqualTo(HttpStatusCode.Redirect);
+        await Assert.That(followed.Headers.Location!.Host).IsEqualTo("discord.com");
+
+        using var unknown = await browser.GetAsync("/api/auth/invite/not-a-code");
+        await AssertRefusedAsync(unknown, HttpStatusCode.NotFound, "RQ4");
+    }
+
+    [Test]
+    public async Task An_invitation_binds_the_first_Discord_account_to_follow_it_and_closes()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        await WhitelistAsync(Stranger, "member");
+        using var db = new PgmStudio.Data.Schema.PgmDb(
+            PgmStudio.Data.Schema.PgmDataOptions.ForConnectionString(ApiTestFactory.ConnectionString));
+        var users = new PgmStudio.Data.Access.StudioUserStore(db);
+
+        var (code, hash) = DiscordSignIn.NewInvite();
+        await users.OpenInviteAsync(Owner, hash, DateTime.UtcNow.AddDays(1));
+
+        await Assert.That(await DiscordSignIn.ResolveAsync(users, "111", invite: null, default)).IsNull()
+            .Because("an account bound to nobody signs in as nobody");
+        var bound = await DiscordSignIn.ResolveAsync(users, "111", code, default);
+        await Assert.That(bound!.Uuid).IsEqualTo(Owner);
+        await Assert.That((await DiscordSignIn.ResolveAsync(users, "111", invite: null, default))!.Uuid).IsEqualTo(Owner);
+        await Assert.That(await DiscordSignIn.ResolveAsync(users, "222", code, default)).IsNull()
+            .Because("an invitation is followed once");
+
+        var (lapsed, lapsedHash) = DiscordSignIn.NewInvite();
+        await users.OpenInviteAsync(Stranger, lapsedHash, DateTime.UtcNow.AddMinutes(-1));
+        await Assert.That(await DiscordSignIn.ResolveAsync(users, "333", lapsed, default)).IsNull();
+
+        // One Discord account signs in as one person: following another invitation moves it.
+        var (second, secondHash) = DiscordSignIn.NewInvite();
+        await users.OpenInviteAsync(Stranger, secondHash, DateTime.UtcNow.AddDays(1));
+        await Assert.That((await DiscordSignIn.ResolveAsync(users, "111", second, default))!.Uuid).IsEqualTo(Stranger);
+        await Assert.That((await DiscordSignIn.ResolveAsync(users, "111", invite: null, default))!.Uuid).IsEqualTo(Stranger);
+        await Assert.That(await ScalarAsync($"SELECT discord_id FROM studio_user WHERE uuid = '{Owner}'")).IsNull();
+    }
+
+    [Test]
+    public async Task Signing_out_is_open_to_anyone()
+    {
+        using var client = InvitedFactory.Shared.CreateClient();
+        using var resp = await client.PostAsync("/api/auth/sign-out", null);
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }
 
     private static async Task<string> OriginateAsync(HttpClient client, string name)
@@ -211,7 +311,7 @@ public sealed class AccessTests
         await using var conn = new MySqlConnector.MySqlConnection(ApiTestFactory.ConnectionString);
         await conn.OpenAsync();
         await using var cmd = new MySqlConnector.MySqlCommand(sql, conn);
-        return (await cmd.ExecuteScalarAsync())?.ToString();
+        return await cmd.ExecuteScalarAsync() is { } value and not DBNull ? value.ToString() : null;
     }
 
     private static async Task AssertRefusedAsync(HttpResponseMessage resp, HttpStatusCode status, string rule)
@@ -244,6 +344,7 @@ public sealed class AccessTests
                 ["ConnectionStrings:PgmStudio"] = ApiTestFactory.ConnectionString,
                 ["Access:Mode"] = "invited",
                 ["Access:Admins:0"] = Admin,
+                ["Discord:ClientSecret"] = "test-secret",
             }));
             builder.ConfigureTestServices(services => services
                 .AddAuthentication(HeaderScheme.Name)
