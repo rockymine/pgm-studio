@@ -465,17 +465,17 @@ and what a `subtract` takes away.
   that drew one, and it is gone. Retire the field on both request DTOs (`EditRequests.cs`), `RegionNode`'s
   echo (`RegionTreeDtos.cs`), `RegionDrafts` and the artifact, and `docs/pgm/region-data-flow.md` §5 with them.
 
-- [ ] **WS74 — Traversability reads 290 of 911 corpus maps as not connected.** Two causes are measured and
-wait on the author's ruling. The segment scan counts cobwebs (30), wooden doors (64, 193–197), fence gates,
-trapdoors and wall signs as solid, which seals wool rooms; treating them as walk-through connects 56 maps, all
-but one CTW. And `Editability` grants the area a void rule leaves out but not the area a `never` rule over an
-unbounded region (`negative`, `complement` of everywhere) leaves out; granting it connects 53, 38 of them
-DTC/M. Both together connect 110. Of the 180 left, 71 are separate ground, 40 a point with no ground near,
-34 a team barred by an `enter` rule, 25 more sealed rooms and 10 a declared wool location outside the world.
-`docs/world-scan/read-backs.md`.
+- [~] **WS74 — Traversability reads 188 of 911 corpus maps as not connected.** These are played maps, so
+most verdicts are still the reading's. By first cause: 81 separate ground, 41 a point with no ground near,
+40 a team barred by an `enter` rule, 25 a sealed room, 1 a wool stated off the world with no spawner or chest
+to stand in for it. Nineteen read connected before the reading was corrected and now read apart, which is
+the correction exposing a gap it was hiding: 11 through a `<deny>` that answered "conditional" everywhere
+(`ki` forbids bridging between its bases, so how it is crossed is the author's question), 4 through water at
+the floor no rule opens, 1 (`standstill`) through a cobweb line read as a walkway. Take the rest per cause,
+reading each against PGM. `docs/world-scan/read-backs.md`.
 
-  *Evidence: `803`'s blue wool room (x 81–88, z 71–78) is entered through a wooden door at 83, 12–13, 72;
-  `coreo` states its build area as `<apply region="not-build-area" block="never">`.*
+  *Evidence: `ki` states `<apply block-place="deny(void)" region="bases">` "You may not bridge to the enemy
+  side!"; `outcast`'s halves are joined only by water at y ≤ 1.*
 
 - [ ] **PG19 — The `resize` region is refused.** PGM grows or shrinks a child region by a vector
 (`<resize min=… max=…>`); the parser does not read it, and `MapParser.EnsureSupported` refuses the five corpus

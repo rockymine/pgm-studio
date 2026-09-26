@@ -8012,6 +8012,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   PGM's list. Corpus traversability over the 347 CTW maps then scanned: not connected 193 → 146. (`WS73`,
   `B57`)
 
+- **The corpus is walked the way PGM plays it (`WS74`, part)** — the segment scan walks through cobwebs,
+  wooden doors, fence gates and wall signs, and water at y ≤ 1 is a floor mark; `Editability` grants the area
+  a `never` rule over an unbounded region leaves out, and a `<deny>` no player placement can match abstains;
+  `everywhere` and `nowhere` resolve as PGM's built-in regions (`RegionGeometry2d.Resolve`); a defender
+  reaches the border of the innermost named union around its goal. Corpus traversability: not connected
+  290 → 188 of 911. (`WS74`)
+
 - **A wool stated outside the world is judged at its source (`WS75`)** — `Traversability.Check` takes the wool
   sources the scan found (`FeatureData.WoolSourcesAsync` on the `traversability` endpoint, the parquet rows
   under `--goldens`), and a wool whose `location` lies outside the world's columns is seated at its colour's
