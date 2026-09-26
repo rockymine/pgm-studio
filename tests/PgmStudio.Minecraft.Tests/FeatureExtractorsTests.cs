@@ -167,4 +167,32 @@ public class FeatureExtractorsTests
         var segs = FeatureExtractors.Segments([FloorChunk()]).Select(s => (s.WorldX, s.WorldZ, s.WorldYStart, s.WorldYEnd)).ToList();
         await Assert.That(segs).IsEquivalentTo(new[] { (3, 0, 0, 0) });
     }
+
+    private static AnvilRegion.Chunk PassageChunk()
+    {
+        var blocks = new byte[4096];
+        blocks[Idx(0, 0, 0)] = 9;    // water laid at the world floor
+        blocks[Idx(1, 8, 0)] = 9;    // a lake's water, well above it
+        for (var y = 0; y < 5; y++) { blocks[Idx(2, y, 0)] = 1; blocks[Idx(3, y, 0)] = 1; blocks[Idx(4, y, 0)] = 1; }
+        blocks[Idx(2, 5, 0)] = 30;   // a cobweb over stone
+        blocks[Idx(3, 5, 0)] = 64;   // a wooden door's two halves over stone
+        blocks[Idx(3, 6, 0)] = 64;
+        blocks[Idx(4, 5, 0)] = 107;  // a fence gate over stone
+        var section = new NbtCompound
+        {
+            new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]),
+        };
+        return new AnvilRegion.Chunk(0, 0, new NbtCompound("Level") { new NbtList("Sections", new[] { section }) });
+    }
+
+    [Test]
+    public async Task A_cobweb_a_door_and_a_gate_are_walked_through_and_floor_water_is_a_mark()
+    {
+        var segs = FeatureExtractors.Segments([PassageChunk()]).Select(s => (s.WorldX, s.WorldZ, s.WorldYStart, s.WorldYEnd)).ToHashSet();
+        await Assert.That(segs.SetEquals(new[] { (1, 0, 8, 8), (2, 0, 0, 4), (3, 0, 0, 4), (4, 0, 0, 4) }))
+            .IsTrue().Because("each passage ends its column's run at the stone, and only the lake's water is ground");
+
+        var marks = FeatureExtractors.FloorMarks([PassageChunk()]).Select(m => (m.WorldX, m.WorldZ, m.BlockId)).ToHashSet();
+        await Assert.That(marks.SetEquals(new[] { (0, 0, 9) })).IsTrue();
+    }
 }

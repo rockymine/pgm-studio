@@ -252,4 +252,64 @@ public sealed class EditabilityTests
         await Assert.That(ZoneOf(res, 4, 0)).IsEqualTo(EditZone.Sealed).Because("east of x=0");
         await Assert.That(ZoneOf(res, -4, 0)).IsNotEqualTo(EditZone.Sealed).Because("west of x=0");
     }
+
+    /// <summary><b>A deny that cannot match a placement lets it through.</b> <c>&lt;deny&gt;</c> answers only
+    /// where its filter matches, and a player placing a block is never the world forming ice, so a map-wide
+    /// rule over that filter leaves every column to the rules after it — here the void rule, which refuses the
+    /// void it covers and grants the lanes it leaves out.</summary>
+    [Test]
+    public async Task A_deny_no_placement_matches_abstains_and_the_next_rule_decides()
+    {
+        var doc = Doc("""
+            <filters>
+              <deny id="deny-freezing"><all><cause>world</cause><material>ice</material></all></deny>
+            </filters>
+            <regions>
+              <rectangle id="lane" min="0,0" max="4,4"/>
+              <negative id="void-area"><region id="lane"/></negative>
+              <apply block-place="deny-freezing"/>
+              <apply block-place="deny(void)" region="void-area"/>
+            </regions>
+            """);
+        var res = Editability.Compute(doc, [], (-8, -8, 12, 12));
+        await Assert.That(BridgesAt(res, 8, 8)).IsFalse().Because("the void rule refuses the void outside the lane");
+        await Assert.That(BridgesAt(res, 2, 2)).IsTrue().Because("the lane the void rule leaves out");
+    }
+
+    /// <summary><b>A deny that matches every placement refuses it.</b> A player's placement is the
+    /// <c>player</c> cause, so denying that cause is a denial, not a condition.</summary>
+    [Test]
+    public async Task A_deny_of_the_player_cause_refuses_editing()
+    {
+        var doc = Doc("""
+            <filters>
+              <deny id="no-players"><cause>player</cause></deny>
+            </filters>
+            <regions>
+              <apply block="no-players"/>
+            </regions>
+            """);
+        var res = Editability.Compute(doc, [], (-8, -8, 12, 12));
+        await Assert.That(BridgesAt(res, 2, 2)).IsFalse();
+        await Assert.That(ZoneOf(res, 2, 2)).IsEqualTo(EditZone.Sealed);
+    }
+
+    /// <summary><b>A never rule over everything but an area grants that area.</b> Forbidding building
+    /// everywhere outside the build area is how most DTC/M maps state it — <c>block="never"</c> over the
+    /// <c>negative</c> of the area — and in PGM the area it leaves out is open, over the void too.</summary>
+    [Test]
+    public async Task A_never_rule_over_a_negative_grants_the_area_it_leaves_out()
+    {
+        var doc = Doc("""
+            <regions>
+              <rectangle id="build-area" min="0,0" max="4,4"/>
+              <negative id="not-build-area"><region id="build-area"/></negative>
+              <apply block="never" region="not-build-area"/>
+            </regions>
+            """);
+        var res = Editability.Compute(doc, [], (-8, -8, 12, 12));
+        await Assert.That(ZoneOf(res, 2, 2)).IsEqualTo(EditZone.BuildZone);
+        await Assert.That(BridgesAt(res, 2, 2)).IsTrue().Because("the build area, void or not");
+        await Assert.That(BridgesAt(res, 8, 8)).IsFalse().Because("the rule refuses everything else");
+    }
 }

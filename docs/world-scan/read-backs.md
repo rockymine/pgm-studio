@@ -333,10 +333,15 @@ bridged cell carries no height of its own and joins whatever it touches, which i
 Which void columns are bridged is not the picture's own reading: `Analysis.Playability.Editability` answers
 it once, walking the apply rules first-answer-wins on the place scope — a bridge is placed, so a column only
 breaking is permitted on stays void. A column is bridged where placing is conditional, where the map grants
-it (the area a void rule's region leaves out), or where a void rule passes it over a floor mark
-— a block-36 marker or a glass sheet at y=0, not void to PGM and nothing to stand on, which is how a map
-marks its build area over empty space (`terrain-ground-truth.md`). Solid ground the rule passes is stood on,
-not bridged. `Export.BridgeableColumns` hands that set to the render, the same
+it, or where a void rule passes it over a floor mark — a block-36 marker, a glass sheet or water at y=0, not
+void to PGM and nothing to stand on, which is how a map marks its build area over empty space
+(`terrain-ground-truth.md`). Solid ground the rule passes is stood on, not bridged. A map grants the area a
+rule states as its build zone by covering everything else: a void rule's region, or a `never` rule's over an
+unbounded region — the `negative` of the build area, the way most DTC/M maps write it, whose edge a cobweb or
+redstone line at y 0–1 traces one or two blocks off on the maps that draw one. A `<deny>` answers only
+where its filter matches, so one no player's placement matches (a material, ice forming, an explosion)
+abstains and the next rule decides; one over the `player` cause refuses, and one that turns on who places
+stays conditional. `Export.BridgeableColumns` hands that set to the render, the same
 set a scanned board's walk, coverage and dead-ground reads take, so `reach` and they cannot disagree about it.
 The export's reachability gate is deliberately not bounded this way: there the question is whether anyone
 *can* get somewhere, and a player carrying blocks pays for the climb.

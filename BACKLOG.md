@@ -477,6 +477,19 @@ DTC/M. Both together connect 110. Of the 180 left, 71 are separate ground, 40 a 
   *Evidence: `803`'s blue wool room (x 81–88, z 71–78) is entered through a wooden door at 83, 12–13, 72;
   `coreo` states its build area as `<apply region="not-build-area" block="never">`.*
 
+- [ ] **WS75 — A wool whose declared location is off the world stands where its source is.** On ten
+corpus CTW maps the `<wool location>` lies outside the scanned world (a value the author never set), and the
+wool reaches players from a chest, a spawner entity or wool blocks in its room. `Traversability.Check` seats
+the wool at the declared point and reads it off the ground. Where the point is outside the world, seat it at
+the wool source of that colour instead: `FeatureData.WoolSourcesAsync` already gathers them (wool blocks,
+chests holding wool, spawner entities, PGM `<spawner>` modules) for wool availability and
+`POST /map/{slug}/wool-sources`. `Check` takes them as an argument from its three callers
+(`AnalysisEndpoints`, `PreflightEndpoint`, `MapExportComposer`), and `--goldens` builds them from the
+parquet files.
+
+  *Evidence: `after_hours` declares orange at −210.5, 21.5, −201.5 while its world spans x −179…59,
+  z −82…0; `hobbit_ctw` and `surveillance` both declare blue at −6, 14, −76, outside both worlds.*
+
 - [ ] **PG19 — The `resize` region is refused.** PGM grows or shrinks a child region by a vector
 (`<resize min=… max=…>`); the parser does not read it, and `MapParser.EnsureSupported` refuses the five corpus
 maps using it rather than read a rule over it as covering the whole board. Read it as the child's footprint

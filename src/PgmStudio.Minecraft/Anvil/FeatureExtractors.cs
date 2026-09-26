@@ -37,12 +37,17 @@ public static class FeatureExtractors
 
     private static readonly HashSet<string> ChestTileIds = new(StringComparer.Ordinal) { "Chest", "TrappedChest" };
 
-    // Non-solid decorative ids skipped in segment extraction (NON_SOLID_BLOCK_IDS), plus the
-    // PISTON_MOVING_PIECE marker (36) many CTW maps use as an invisible build boundary.
+    // Blocks a player walks through, which segment extraction skips: plants, torches, redstone, signs and
+    // plates; what a player opens or pushes through (doors, fence gates) and the cobweb a wool-room entrance
+    // is guarded with; and the PISTON_MOVING_PIECE marker (36) many CTW maps use as an invisible build boundary.
     private static readonly HashSet<int> SegmentExclude = new()
     {
         6, 31, 32, 37, 38, 39, 40, 50, 55, 59, 63, 65, 66, 69, 70, 71, 72,
         75, 76, 77, 78, 83, 104, 105, 106, 115, 141, 142, 143, 147, 148, 166,
+        30,                                 // cobweb
+        64, 193, 194, 195, 196, 197,        // wooden doors
+        107, 183, 184, 185, 186, 187,       // fence gates
+        68,                                 // wall sign
         36,
     };
 
