@@ -115,14 +115,14 @@ public sealed class AccessTests
 
         using var owner = InvitedFactory.As(Owner);
         var untouched = await OriginateAsync(owner, "Untitled sketch");
-        var discarded = await owner.DeleteFromJsonAsync<JsonElement>($"/api/map/{untouched}/sketch/discard-if-empty");
+        var discarded = await owner.DeleteFromJsonAsync<JsonElement>($"/api/map/{untouched}/discard-if-empty");
         await Assert.That(discarded.GetProperty("discarded").GetBoolean()).IsTrue();
         await Assert.That(await ScalarAsync($"SELECT COUNT(*) FROM map WHERE slug = '{untouched}'")).IsEqualTo("0");
 
         var credited = await OriginateAsync(owner, "Untitled sketch");
         await ApiTestFactory.ExecuteAsync(
             $"INSERT INTO author (map_id, uuid, role) SELECT id, '{Credited}', 'author' FROM map WHERE slug = '{credited}'");
-        var kept = await owner.DeleteFromJsonAsync<JsonElement>($"/api/map/{credited}/sketch/discard-if-empty");
+        var kept = await owner.DeleteFromJsonAsync<JsonElement>($"/api/map/{credited}/discard-if-empty");
         await Assert.That(kept.GetProperty("discarded").GetBoolean()).IsFalse();
     }
 

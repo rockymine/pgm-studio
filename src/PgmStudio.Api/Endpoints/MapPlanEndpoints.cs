@@ -30,7 +30,7 @@ public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore arti
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var name = "Untitled plan";
+        var name = DraftDiscard.PlanName;
         try
         {
             using var doc = await JsonDocument.ParseAsync(HttpContext.Request.Body, cancellationToken: ct);
@@ -60,7 +60,7 @@ public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifact
         var candidate = await db.Plans.FirstOrDefaultAsync(p => p.Id == planId, ct);
         if (candidate is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
 
-        var name = string.IsNullOrWhiteSpace(candidate.Name) ? "Untitled plan" : candidate.Name.Trim();
+        var name = string.IsNullOrWhiteSpace(candidate.Name) ? DraftDiscard.PlanName : candidate.Name.Trim();
         var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
             repo, name, MapStage.Plan, Callers.OriginatorOf(HttpContext), ct, planSource: candidate.Id);
         await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, Encoding.UTF8.GetBytes(candidate.PlanJson), ct);

@@ -47,7 +47,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var name = SketchDiscard.UntouchedName;
+        var name = DraftDiscard.SketchName;
         var hasFrame = false;
         double width = DefaultWidth, depth = DefaultDepth, centerX = 0, centerZ = 0;
         var mode = DefaultMode;
@@ -859,24 +859,6 @@ public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore ar
         // What the board names and does not have rides on the success — this is the last stage that can say so.
         Complaints.Add(HttpContext, finished.Complaints?.Complaints ?? []);
         await Send.OkAsync(new SketchFinishedDto(map.Slug, $"/maps/{map.Slug}/configure"), ct);
-    }
-}
-
-/// <summary>DELETE /api/map/{slug}/sketch/discard-if-empty — drop a still-pristine sketch draft (the row
-/// "New sketch" creates up front, then abandoned). The client calls this best-effort when it leaves the
-/// Sketch tool. Discards only a draft that is genuinely untouched: sketch stage, still carrying the default
-/// name, no authors, and nothing drawn — anything else is real work and is left alone. Returns
-/// <c>{discarded}</c>; a missing map or a non-pristine one is a no-op success.</summary>
-public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
-    : EndpointWithoutRequest<DiscardedDto>
-{
-    public override void Configure() { Delete("/map/{slug}/sketch/discard-if-empty"); }
-
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        var discarded = await SketchDiscard.IfUntouchedAsync(
-            repo, db, artifacts, Route<string>("slug")!, ct);
-        await Send.OkAsync(new DiscardedDto(discarded), ct);
     }
 }
 

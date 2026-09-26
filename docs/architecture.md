@@ -189,7 +189,7 @@ seven, because several of the ten were one operation seen through different door
 guarded replace behind `PUT …/plan`, `PUT …/sketch`, `PUT …/sketch/from-plan` and the intent write: a plan
 and a layout are stored the same way and refuse the same two things, and what differs is what each document
 says about *itself*, which stays with the document that has it. `MapOrigin` is the row every one of the six
-ways into the studio writes. `IntentWrite` was already an operation and was simply misfiled. `SketchDiscard`,
+ways into the studio writes. `IntentWrite` was already an operation and was simply misfiled. `DraftDiscard`,
 `MapMetadata`, `SymmetryConfirm` and `WorldFolderImport` are the four that were only ever one route's, and
 are now reachable without one. `MapEdit` is the thirty-six edit routes' one path, moved off `Endpoints` and
 made HTTP-free with it.

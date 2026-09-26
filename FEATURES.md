@@ -575,9 +575,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   its own load/save (Edit → map metadata, Configure → the intent meta slice). `AuthorsEditor`
   now resolves a row either way — stored uuid → name **or** stored name → uuid — so a name-only row (the
   Configure intent's shape) is matched to its account on load. And a **New sketch** draft left untouched is auto-discarded
-  (`DELETE /api/map/{slug}/sketch/discard-if-empty`, called on the tool's dispose) when still pristine —
+  (`DELETE /api/map/{slug}/discard-if-empty`, called on the tool's dispose) when still pristine —
   sketch stage, default name, no authors, no shapes — so an abandoned click no longer litters the dashboard.
   Verified: curl (discard keeps renamed/drawn drafts) + Playwright (leave an empty draft → gone). (C27)
+- **An abandoned New plan is discarded like an abandoned New sketch (`TN23`).** Leaving the Plan tool asks
+  `DELETE /api/map/{slug}/discard-if-empty`, now one route for both tools over one judgement (`DraftDiscard`):
+  a plan still named *Untitled plan*, never saved, not forked from a generator candidate and credited to nobody
+  but its originator is deleted, and its slug is free for the next. `docs/tools/plan.md`.
 - **Plan tool on the phase model (map route)** — a map-backed plan (`/maps/{slug}/plan`) is now a phase host
   like Sketch: the rail is `Info`/`Draw`. The new `PlanInfoPhase` has an `Info` phase with **Identity**
   (plan name + authors via the shared `AuthorsEditor`, saved to the map-metadata endpoint)
@@ -1179,7 +1183,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   | `MapOrigin` | the row all six ways into the studio write, with three ways to take a slug because the three are a product statement |
   | `MapEdit` | the thirty-six edit routes' one path, off `Endpoints` and HTTP-free |
   | `IntentWrite` | already an operation, simply misfiled |
-  | `SketchDiscard` · `MapMetadata` · `SymmetryConfirm` · `WorldFolderImport` | the four that were only ever one route's, and are reachable without one now |
+  | `DraftDiscard` · `MapMetadata` · `SymmetryConfirm` · `WorldFolderImport` | the four that were only ever one route's, and are reachable without one now |
 
   Under them, one refusal shape (`Vocabulary.Refusal`) where three results had each declared the same triple
   and its own `IsError`; one load-or-404 prologue (`MapOfRoute`) where **47** had been written out; one slug
@@ -1314,7 +1318,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `RP29`'s edit routes, every one of them handing back what an editor returned.
 
   Ten answer the shape they were already sending, and no wire changed.
-  `DELETE …/sketch/discard-if-empty` declares `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare
+  `DELETE …/discard-if-empty` declares `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare
   `PlanDetail`; `PATCH /configure/{slug}/exclude-island` and `PATCH …/symmetry` answer the shared
   acknowledgement where each had built its own body, and `POST /themes/import` answers a shared `CreatedDto`. `GET …/segments` and
   `GET …/column-floor` get `SegmentsDto` and `ColumnFloorDto`, keeping the snake_case keys the side-view

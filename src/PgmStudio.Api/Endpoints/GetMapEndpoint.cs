@@ -50,6 +50,21 @@ public sealed class DeleteMapEndpoint(MapRepository repo) : EndpointWithoutReque
     }
 }
 
+/// <summary>DELETE /api/map/{slug}/discard-if-empty — drop a draft "New sketch" or "New plan" created and
+/// nobody worked on (<see cref="DraftDiscard"/>). Both tools call it best-effort on the way out; a map with any
+/// work in it, and a slug no map is stored under, answer <c>{discarded: false}</c>.</summary>
+public sealed class DraftDiscardEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<DiscardedDto>
+{
+    public override void Configure() { Delete("/map/{slug}/discard-if-empty"); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var discarded = await DraftDiscard.IfUntouchedAsync(repo, db, artifacts, Route<string>("slug")!, ct);
+        await Send.OkAsync(new DiscardedDto(discarded), ct);
+    }
+}
+
 /// <summary>GET /api/map/{slug}/findings — everything wrong with this map right now, as far as its stored
 /// documents can say, plus the gates a read cannot reach and where to ask them. The operation is
 /// <see cref="MapFindings"/>; this is the door to it.</summary>

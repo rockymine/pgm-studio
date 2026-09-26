@@ -877,7 +877,7 @@ public partial class SketchTool
         // re-checks the full pristine condition (default name, no authors, no shapes) before deleting.
         if (shapes.Count == 0 && groups.Count == 0)
         {
-            try { await Http.DeleteAsync($"api/map/{Slug}/sketch/discard-if-empty"); } catch { }
+            try { await Http.DeleteAsync($"api/map/{Slug}/discard-if-empty"); } catch { }
         }
         try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null)
