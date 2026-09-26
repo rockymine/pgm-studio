@@ -29,7 +29,7 @@ namespace PgmStudio.Api.Tests;
 public sealed class DocumentedFailureTests
 {
     /// <summary>The routes deliberately in no tool's table, and why each is. A tool document describes a
-    /// tool; these three belong to something else, and a row in one of the eight would be filed under the
+    /// tool; these belong to something else, and a row in one of the eight would be filed under the
     /// wrong subject rather than found.</summary>
     private static readonly Dictionary<string, string> Unlisted = new()
     {
@@ -38,6 +38,10 @@ public sealed class DocumentedFailureTests
                            + "place is what a caller reads it for, and no single tool owns them",
         ["GET /api/rules/terms"] = "the evaluator's term catalogue, whose document is "
                                  + "docs/generator/evaluator.md beside the deriver measurables it lists",
+        ["GET /api/me"] = "who a request is signed in as, whose document is docs/access.md",
+        ["GET /api/users"] = "the whitelist, whose document is docs/access.md",
+        ["POST /api/users"] = "the whitelist, whose document is docs/access.md",
+        ["DELETE /api/users/{uuid}"] = "the whitelist, whose document is docs/access.md",
     };
 
     [Test]

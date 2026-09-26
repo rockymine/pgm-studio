@@ -433,6 +433,39 @@ and what a `subtract` takes away.
   and its sub-intervals, so they are correct and should stay, which is exactly why the deriver's misuse
   is worth removing rather than tolerating.
 
+## Opening the studio to other people: sign-in, a server, and what a caller may ask for
+
+The access rules are in place and read-only for everyone an invited studio does not sign in (`docs/access.md`).
+What remains is the way in, the machine it runs on, and the client knowing who it is.
+
+- [ ] **RP75 — Sign in with Discord, bound to a whitelisted Minecraft account.** An OAuth2 authorization-code
+  flow (`AspNet.Security.OAuth.Discord`) under `GET /api/auth/discord` and its callback, writing the
+  `pgm-studio.session` cookie with the one `StudioClaims.Uuid` claim `Callers` reads. The binding is an
+  invitation: an admin's `POST /api/users` answers a one-time link, and the first Discord account to follow it
+  is stored against that uuid (a `discord_id` column on `studio_user`); a Discord account bound to nothing is
+  refused `RQ8`. `POST /api/auth/sign-out` clears the cookie. Rewrites `docs/access.md` § *Two modes* and its
+  first limit.
+
+- [ ] **RP76 — A token for callers without a browser.** An admin- or self-issued bearer token, stored as a
+  hash beside the user it acts as (`studio_token`: user id, hash, label, created, last used), accepted by a
+  second authentication scheme and revocable from `DELETE /api/users/me/tokens/{id}`. The agent that loads
+  maps with `POST /api/map/from-documents` carries one as an environment secret, never a password.
+
+- [ ] **RP77 — The client knows who it is.** `Layout/` reads `GET /api/me` once, shows who is signed in and a
+  sign-in link, and a tool opens a map read-only — no save, no drag — where `role` is null or the map is
+  neither theirs nor credited to them. The e2e harness gains an `invited` run that finds no write control on a
+  signed-out page.
+
+- [ ] **RP78 — `docs/deployment.md`: the studio on a server.** A Hetzner Cloud VM, Caddy for HTTPS in front
+  of the API as a systemd service, MariaDB bound to localhost, a GitHub Actions job that publishes after a
+  green `main`, runs `--migrate-only` behind a `mariadb-dump`, and restarts; nightly dumps to a Storage Box.
+  `Access:Mode=invited` and `Access:Admins` set in the unit's environment.
+
+- [ ] **RP79 — Bound what one caller may ask for at once.** A world export, a render and a compose are
+  seconds of CPU and a `GET` is open to anyone, so ASP.NET's rate limiter keyed on the caller — the uuid, or
+  the address when signed out — allows one export and a handful of renders in flight each, and answers the
+  rest 429 in the refusal envelope under a new `RQ` rule.
+
 ## The remainder: work no concept above has claimed
 
 - [ ] **WS72 — `GET /map/{slug}/coverage` and its `?format=png` each walk the whole board.** Both run

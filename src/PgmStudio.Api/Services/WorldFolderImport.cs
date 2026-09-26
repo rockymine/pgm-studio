@@ -32,7 +32,7 @@ public static class WorldFolderImport
 {
     public static async Task<WorldImported> FromAsync(
         MapRepository repo, WorldFeatureWriter writer, ImportPolicy policy, ILogger logger,
-        string folder, string? statedSlug, CancellationToken ct)
+        string folder, string? statedSlug, string? owner, CancellationToken ct)
     {
         folder = folder.Trim();
         // A candidate folder is a single path segment under the imports root — anything that could escape it
@@ -69,7 +69,7 @@ public static class WorldFolderImport
         long? mapId = null;
         try
         {
-            mapId = await MapOrigin.AtAsync(repo, slug, slug, MapStage.Configure);
+            mapId = await MapOrigin.AtAsync(repo, slug, slug, MapStage.Configure, owner);
             var counts = await writer.WriteAsync(mapId.Value, regionDir, ct);
             return new(null, WorldScans.Of(slug, counts));
         }

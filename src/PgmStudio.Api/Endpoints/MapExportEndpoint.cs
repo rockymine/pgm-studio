@@ -29,7 +29,6 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
     public override void Configure()
     {
         Get("/map/{slug}/export");
-        AllowAnonymous();
         Description(b => b.WorldZipOrMapXml().Refuses(404, 409, 422));
     }
 

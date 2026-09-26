@@ -65,4 +65,19 @@ public static class RequestRules
     /// <remarks>The stored copy is the problem, not what was just posted: open the tool that writes it and save it again, which replaces the unreadable copy with one in the current shape.</remarks>
     [Rule(RuleCategory.Internal, RuleConcern.Request, RuleConcern.Studio)]
     public const string StoredUnreadable = "RQ6";
+
+    /// <summary>The route writes, and the request names nobody who may write. It answers <b>401</b>: reading is
+    /// open to anyone, and every other verb needs a person on the studio's whitelist.</summary>
+    /// <remarks>Sign in as someone the studio's whitelist holds. <c>GET /api/me</c> says who the request is
+    /// signed in as, if anyone.</remarks>
+    [Rule(RuleCategory.Forbidden, RuleConcern.Request)]
+    public const string SignedOut = "RQ7";
+
+    /// <summary>The request names a person, and this write is not theirs to make: they are not on the
+    /// whitelist, the map is neither theirs nor credited to them, or the route keeps the whitelist or removes a
+    /// shared library row, which only an admin does. It answers <b>403</b>.</summary>
+    /// <remarks>Ask the map's owner to credit you as an author, or an admin to make the change. <c>GET
+    /// /api/me</c> says which role the request carries.</remarks>
+    [Rule(RuleCategory.Forbidden, RuleConcern.Request)]
+    public const string NotPermitted = "RQ8";
 }

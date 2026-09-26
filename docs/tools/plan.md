@@ -662,7 +662,8 @@ the document is empty — and `Completeness` reports it alone, returning before 
 
 ## The API
 
-Every endpoint is anonymous and rooted at `/api`. Inspect, evaluate, feasibility and compile all take a plan
+Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist, or
+who may edit the map it names ([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. Inspect, evaluate, feasibility and compile all take a plan
 document as the body and need no map, which is what lets a plan be checked before it is stored anywhere.
 
 **Originating and storing**

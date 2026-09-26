@@ -24,7 +24,7 @@ public sealed class SketchReliefRegistryEndpoint(MapRepository repo, MapArtifact
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/relief"); AllowAnonymous();
+        Get("/map/{slug}/sketch/relief");
         Description(b => b.Produces<Dictionary<string, SketchReliefJson>>(200, "application/json").Refuses(404));
     }
 
@@ -45,7 +45,7 @@ public sealed class SketchReliefOfGroupEndpoint(MapRepository repo, MapArtifactS
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/relief/{groupId}"); AllowAnonymous();
+        Get("/map/{slug}/sketch/relief/{groupId}");
         Description(b => b.Produces<SketchReliefJson>(200, "application/json").Refuses(404));
     }
 
@@ -75,7 +75,7 @@ public sealed class SketchReliefWriteEndpoint(MapRepository repo, MapArtifactSto
 {
     public override void Configure()
     {
-        Put("/map/{slug}/sketch/relief/{groupId}"); AllowAnonymous();
+        Put("/map/{slug}/sketch/relief/{groupId}");
         Description(b => b.Accepts<SketchReliefJson>("application/json")
                           .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -109,7 +109,7 @@ public sealed class SketchReliefDeleteEndpoint(MapRepository repo, MapArtifactSt
 {
     public override void Configure()
     {
-        Delete("/map/{slug}/sketch/relief/{groupId}"); AllowAnonymous();
+        Delete("/map/{slug}/sketch/relief/{groupId}");
         Description(b => b.Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
 

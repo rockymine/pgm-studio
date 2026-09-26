@@ -8,7 +8,6 @@ public sealed class HealthEndpoint : EndpointWithoutRequest<HealthResponse>
     public override void Configure()
     {
         Get("/health");
-        AllowAnonymous();
     }
 
     public override Task HandleAsync(CancellationToken ct)

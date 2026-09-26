@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using FastEndpoints;
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Features;
@@ -83,7 +84,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
 
     public override void Configure()
     {
-        Post("/map/import-url"); AllowAnonymous();
+        Post("/map/import-url");
         Description(b => b.Accepts<ImportUrlRequest>("application/json").Refuses(403, 413, 415, 422, 502));
     }
 
@@ -184,7 +185,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
             }
 
             // ── 6. create record + scan into MariaDB ──
-            mapId = await MapOrigin.AtAsync(repo, slug, slug, MapStage.Configure);
+            mapId = await MapOrigin.AtAsync(repo, slug, slug, MapStage.Configure, Callers.OwnerOf(HttpContext));
             var c = await writer.WriteAsync(mapId.Value, regionDir, ct);
 
             await Send.OkAsync(WorldScans.Of(slug, c) with { McaFiles = mca }, ct);
@@ -286,7 +287,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
 public sealed class ImportCandidatesEndpoint(MapRepository repo, ImportPolicy policy)
     : EndpointWithoutRequest<List<ImportCandidateDto>>
 {
-    public override void Configure() { Get("/maps/import-candidates"); AllowAnonymous(); }
+    public override void Configure() { Get("/maps/import-candidates"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -322,7 +323,7 @@ public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter 
 {
     public override void Configure()
     {
-        Post("/map/import-folder"); AllowAnonymous();
+        Post("/map/import-folder");
         Description(b => b.Accepts<ImportFolderRequest>("application/json").Refuses(404, 409, 422));
     }
 
@@ -335,7 +336,8 @@ public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter 
 
         var imported = await WorldFolderImport.FromAsync(
             repo, writer, policy, Logger,
-            body["folder"]?.GetValue<string>() ?? "", body["slug"]?.GetValue<string>(), ct);
+            body["folder"]?.GetValue<string>() ?? "", body["slug"]?.GetValue<string>(),
+            Callers.OwnerOf(HttpContext), ct);
         if (imported.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
 
         await Send.OkAsync(imported.Scan!, ct);

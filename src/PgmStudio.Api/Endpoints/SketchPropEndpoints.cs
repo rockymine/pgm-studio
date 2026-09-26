@@ -24,7 +24,7 @@ public sealed class SketchPropListEndpoint(MapRepository repo, MapArtifactStore 
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/props"); AllowAnonymous();
+        Get("/map/{slug}/sketch/props");
         Description(b => b.Produces<DressingDoc>(200, "application/json").Refuses(400, 404));
     }
 
@@ -55,7 +55,7 @@ public sealed class SketchPropCreateEndpoint(MapRepository repo, MapArtifactStor
 {
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/props"); AllowAnonymous();
+        Post("/map/{slug}/sketch/props");
         Description(b => b.Accepts<PlacedProp>("application/json")
                           .Produces<PropWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -78,7 +78,7 @@ public sealed class SketchPropUpdateEndpoint(MapRepository repo, MapArtifactStor
 {
     public override void Configure()
     {
-        Patch("/map/{slug}/sketch/props/{propId}"); AllowAnonymous();
+        Patch("/map/{slug}/sketch/props/{propId}");
         Description(b => b.Accepts<PlacedProp>("application/json")
                           .Produces<PropWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -101,7 +101,7 @@ public sealed class SketchPropDeleteEndpoint(MapRepository repo, MapArtifactStor
 {
     public override void Configure()
     {
-        Delete("/map/{slug}/sketch/props/{propId}"); AllowAnonymous();
+        Delete("/map/{slug}/sketch/props/{propId}");
         Description(b => b.Produces<PropWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
 

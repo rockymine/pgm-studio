@@ -3,9 +3,15 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FastEndpoints;
 using FastEndpoints.Swagger;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
+using PgmStudio.Api.Access;
 using PgmStudio.Domain;
 using PgmStudio.Api.Endpoints;
 using PgmStudio.Api.Http;
+using PgmStudio.Data.Access;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -52,7 +58,8 @@ builder.Services.SwaggerDocument(o =>
         doc.Title = "pgm-studio";
         doc.Version = "v1";
         doc.Description =
-            "The studio's whole surface. Every route is anonymous and rooted at /api. A refusal answers "
+            "The studio's whole surface, rooted at /api. Every read is open; a write needs someone on the "
+            + "studio's whitelist, and answers 401 or 403 where the caller is not (docs/access.md). A refusal answers "
             + "{error, message, findings[]} whichever route raised it — GET /api/rules explains any rule id "
             + "a finding carries. docs/tools/flow.md is the map over the four levels a map is described at.";
     };
@@ -154,6 +161,32 @@ builder.Services.AddScoped<MapWriter>();
 builder.Services.AddScoped<WorldFeatureWriter>();
 builder.Services.AddScoped<PgmStudio.Api.Services.FeatureData>();
 
+// Who may write (docs/access.md). An open studio signs every request in as the local admin; an invited one
+// reads a session cookie, and a request without one may read and nothing else. The mode is read from the built
+// configuration, per request, so a host that layers its settings on at build time is the one that decides.
+// Which policy a route takes is AccessRules' decision, applied to every endpoint by the configurator below.
+builder.Services.AddSingleton(services => AccessOptions.From(services.GetRequiredService<IConfiguration>()));
+builder.Services.AddScoped<StudioUserStore>();
+builder.Services.AddScoped<Callers>();
+builder.Services.AddAuthentication(AccessOptions.Scheme)
+    .AddPolicyScheme(AccessOptions.Scheme, null, scheme => scheme.ForwardDefaultSelector = http =>
+        http.RequestServices.GetRequiredService<AccessOptions>().IsOpen
+            ? OpenAccessHandler.Scheme
+            : CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddScheme<AuthenticationSchemeOptions, OpenAccessHandler>(OpenAccessHandler.Scheme, null)
+    .AddCookie(cookie =>
+    {
+        cookie.Cookie.Name = "pgm-studio.session";
+        cookie.Cookie.HttpOnly = true;
+        cookie.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        cookie.Cookie.SameSite = SameSiteMode.Lax;
+        cookie.ExpireTimeSpan = TimeSpan.FromDays(30);
+        cookie.SlidingExpiration = true;
+    });
+builder.Services.AddAuthorization(AccessPolicies.Add);
+builder.Services.AddScoped<IAuthorizationHandler, AccessHandler>();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AccessRefusals>();
+
 // Mojang username/uuid resolution for the Overview authors UI (typed HttpClient).
 builder.Services.AddHttpClient<PgmStudio.Api.Services.MojangClient>(c =>
 {
@@ -185,6 +218,9 @@ builder.Services.AddSingleton(new PgmStudio.Api.Services.MapsRoots(mapsRoots));
 builder.Services.AddSingleton<PgmStudio.Api.Services.ReliefPreviewCache>();
 
 var app = builder.Build();
+
+// Read the access mode once at startup, so a misspelt one stops the host here rather than at its first request.
+app.Logger.LogInformation("access mode: {Mode}", app.Services.GetRequiredService<AccessOptions>().Mode);
 
 // Serve the hosted Blazor WebAssembly client.
 app.UseBlazorFrameworkFiles();
@@ -270,6 +306,9 @@ app.Use(async (ctx, next) =>
 // (docs/refusals.md, "What a success carries").
 app.Use(PgmStudio.Api.Endpoints.Complaints.CarryAsync);
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 // All API endpoints live under /api.
 app.UseFastEndpoints(c =>
 {
@@ -284,6 +323,8 @@ app.UseFastEndpoints(c =>
         // A field the DTO declares non-nullable and the body did not carry is refused by name before any
         // handler reads it — see RequiredFields for why the annotation alone does not hold.
         ep.PreProcessor<PgmStudio.Api.Endpoints.RequiredFields>(Order.Before);
+        // Who may call the route: read open, write by policy — decided from the route, not by the endpoint.
+        AccessRules.Apply(ep);
         // And the two answers every route can give whatever else it does, so the document says so once
         // rather than leaving each endpoint to remember: a document that will not read is 400 and the
         // studio's own fault is 500, both in the envelope the middleware above guarantees.

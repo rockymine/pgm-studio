@@ -25,6 +25,21 @@ public sealed class MapRow
     /// answered as an <c>ETag</c>, and what an <c>If-Match</c> is checked against. Not
     /// <see cref="Version"/>, which is the version string PGM reads.</summary>
     [Column("revision"), NotNull] public long Revision { get; set; } = 1;
+    /// <summary>The Minecraft uuid of the person who originated this map, or null where it was originated with
+    /// nobody signed in. The owner may always edit the map, whoever its credited authors are.</summary>
+    [Column("owner_uuid")] public string? OwnerUuid { get; set; }
+}
+
+/// <summary>One person on the studio's whitelist: the Minecraft account they are credited under and the role
+/// that decides what they may write.</summary>
+[Table("studio_user")]
+public sealed class StudioUserRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("uuid"), NotNull] public string Uuid { get; set; } = "";
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("role"), NotNull] public string Role { get; set; } = "";
+    [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
 }
 
 [Table("author")]

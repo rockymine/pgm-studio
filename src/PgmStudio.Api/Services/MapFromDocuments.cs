@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Endpoints;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
@@ -41,7 +42,7 @@ public static class MapFromDocuments
     public static async Task<MapLoad> LoadAsync(
         HttpContext http, MapFromDocumentsRequest request,
         MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
-        WorldFeatureWriter features, PgmDb db, PlayerLookup players, CancellationToken ct)
+        WorldFeatureWriter features, PgmDb db, PlayerLookup players, Callers callers, CancellationToken ct)
     {
         // The layout and the intent are the load, and both are read as raw JSON — so a body omitting one
         // arrives as a `default(JsonElement)` whose every reader throws, and the fault would be answered as
@@ -87,7 +88,12 @@ public static class MapFromDocuments
 
         var slug = Slugs.Of(string.IsNullOrWhiteSpace(request.Slug) ? name : request.Slug!);
         var existing = await repo.GetBySlugAsync(slug, ct);
-        var mapId = await MapOrigin.ReplacingAsync(repo, slug, name, MapStage.Plan, ct);
+        // Loading over a stored map replaces it, which is an edit of that map and needs someone who may make one.
+        if (existing is not null && !await callers.MayEditAsync(await callers.OfAsync(http, ct), existing, ct))
+            return Refuse(403, "not permitted", new Finding(RequestRules.NotPermitted,
+                $"a map is already stored under '{slug}', and only its owner, an author it credits, or an admin "
+                + "may replace it", Field: "slug"));
+        var mapId = await MapOrigin.ReplacingAsync(repo, slug, name, MapStage.Plan, Callers.OwnerOf(http), ct);
 
         try
         {

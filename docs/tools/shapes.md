@@ -156,7 +156,7 @@ cannot pose it a question it answers no to.
 
 ## The API
 
-Both endpoints are anonymous, rooted at `/api`, and take no map.
+Both endpoints are reads open to anyone, rooted at `/api`, and take no map ([`docs/access.md`](../access.md)).
 
 | Endpoint | Answers | Fails with |
 |---|---|---|

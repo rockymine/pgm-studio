@@ -24,7 +24,6 @@ public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, MapArtifac
     public override void Configure()
     {
         Get("/map/{slug}/symmetry");
-        AllowAnonymous();
         // Declared rather than sent as the record: the answer is the stored row rebuilt into the
         // symmetry.json shape by SymmetryStore.ToJson, and a second builder here would be free to
         // disagree with it. SymmetryShapeTests holds the record to what that writes.
@@ -60,7 +59,7 @@ public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : Endpoi
 {
     public override void Configure()
     {
-        Patch("/map/{slug}/symmetry"); AllowAnonymous();
+        Patch("/map/{slug}/symmetry");
         Description(b => b.Accepts<SymmetryPatchRequest>("application/json").Refuses(404));
     }
 

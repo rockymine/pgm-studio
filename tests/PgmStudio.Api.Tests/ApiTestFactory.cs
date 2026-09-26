@@ -56,6 +56,7 @@ internal sealed class ApiTestFactory : WebApplicationFactory<Program>
         builder.ConfigureAppConfiguration((_, cfg) => cfg.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["ConnectionStrings:PgmStudio"] = ConnectionString,
+            ["Access:Mode"] = "open",
         }));
     }
 

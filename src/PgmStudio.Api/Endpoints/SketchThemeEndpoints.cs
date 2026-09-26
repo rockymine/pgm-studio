@@ -40,7 +40,7 @@ public sealed class SketchThemeListEndpoint(MapRepository repo, MapArtifactStore
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/themes"); AllowAnonymous();
+        Get("/map/{slug}/sketch/themes");
         Description(b => b.Produces<SketchThemesDto>(200, "application/json").Refuses(404));
     }
 
@@ -62,7 +62,7 @@ public sealed class SketchThemeReadEndpoint(MapRepository repo, MapArtifactStore
 {
     public override void Configure()
     {
-        Get("/map/{slug}/sketch/themes/{themeId}"); AllowAnonymous();
+        Get("/map/{slug}/sketch/themes/{themeId}");
         Description(b => b.Produces<TerrainTheme>(200, "application/json").Refuses(404));
     }
 
@@ -87,7 +87,7 @@ public sealed class SketchThemeWriteEndpoint(MapRepository repo, MapArtifactStor
 {
     public override void Configure()
     {
-        Put("/map/{slug}/sketch/themes/{themeId}"); AllowAnonymous();
+        Put("/map/{slug}/sketch/themes/{themeId}");
         Description(b => b.Accepts<TerrainTheme>("application/json")
                           .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
@@ -126,7 +126,7 @@ public sealed class SketchThemeDeleteEndpoint(MapRepository repo, MapArtifactSto
 {
     public override void Configure()
     {
-        Delete("/map/{slug}/sketch/themes/{themeId}"); AllowAnonymous();
+        Delete("/map/{slug}/sketch/themes/{themeId}");
         Description(b => b.Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }
 
@@ -152,7 +152,7 @@ public sealed class SketchMapThemeEndpoint(MapRepository repo, MapArtifactStore 
 {
     public override void Configure()
     {
-        Put("/map/{slug}/sketch/map-theme"); AllowAnonymous();
+        Put("/map/{slug}/sketch/map-theme");
         Description(b => b.Accepts<MapThemeRequest>("application/json")
                           .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
     }

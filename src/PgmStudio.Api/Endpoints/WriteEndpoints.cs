@@ -51,7 +51,6 @@ public sealed class MetadataEndpoint(MapRepository repo, PgmDb db, MapArtifactSt
     public override void Configure()
     {
         Patch("/map/{slug}/metadata");
-        AllowAnonymous();
         Description(b => b.Accepts<MapMetadataRequest>("application/json").Refuses(404));
     }
 
@@ -71,7 +70,6 @@ public sealed class TeamCreateEndpoint(MapRepository repo, MapReader reader, Map
     public override void Configure()
     {
         Post("/map/{slug}/teams");
-        AllowAnonymous();
         Description(b => b.Produces<TeamWrittenDto>(200, "application/json").Refuses(404, 409, 422));
     }
 
@@ -89,7 +87,6 @@ public sealed class TeamUpdateEndpoint(MapRepository repo, MapReader reader, Map
     public override void Configure()
     {
         Patch("/map/{slug}/teams/{teamId}");
-        AllowAnonymous();
         Description(b => b.Accepts<TeamUpdateRequest>("application/json").Produces<TeamWrittenDto>(200, "application/json").Refuses(404, 409, 422));
     }
 
@@ -108,7 +105,6 @@ public sealed class TeamDeleteEndpoint(MapRepository repo, MapReader reader, Map
     public override void Configure()
     {
         Delete("/map/{slug}/teams/{teamId}");
-        AllowAnonymous();
         Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
 

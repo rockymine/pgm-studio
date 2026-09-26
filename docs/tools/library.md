@@ -695,7 +695,9 @@ each geometry-carrying field names the kind of block its own form requires.
 
 ## The API
 
-Every endpoint is anonymous, rooted at `/api`, and takes no map.
+Every endpoint is rooted at `/api` and takes no map. A read is open to anyone, a write needs someone on the
+whitelist, and a `DELETE` needs an admin, because a library row is shared by every map that uses it
+([`docs/access.md`](../access.md)).
 
 | Endpoint | Does |
 |---|---|

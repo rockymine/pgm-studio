@@ -3,6 +3,7 @@ using System.Text.Json;
 using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
@@ -23,7 +24,7 @@ public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore arti
 {
     public override void Configure()
     {
-        Post("/plan"); AllowAnonymous();
+        Post("/plan");
         Description(b => b.Accepts<PlanOriginateRequest>("application/json"));
     }
 
@@ -38,7 +39,8 @@ public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore arti
         }
         catch { /* empty / invalid body → default name */ }
 
-        var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(repo, name, MapStage.Plan, ct);
+        var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
+            repo, name, MapStage.Plan, Callers.OwnerOf(HttpContext), ct);
         await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, "{}"u8.ToArray(), ct);
         await Send.OkAsync(new OriginatedDto(slug), ct);
     }
@@ -50,7 +52,7 @@ public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore arti
 /// <c>/maps/{slug}/plan</c>. 404 if the candidate doesn't exist.</summary>
 public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest<OriginatedDto>
 {
-    public override void Configure() { Post("/plan/{planId}/author"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Post("/plan/{planId}/author"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -60,7 +62,7 @@ public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifact
 
         var name = string.IsNullOrWhiteSpace(candidate.Name) ? "Untitled plan" : candidate.Name.Trim();
         var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
-            repo, name, MapStage.Plan, ct, planSource: candidate.Id);
+            repo, name, MapStage.Plan, Callers.OwnerOf(HttpContext), ct, planSource: candidate.Id);
         await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, Encoding.UTF8.GetBytes(candidate.PlanJson), ct);
         await Send.OkAsync(new OriginatedDto(slug), ct);
     }
@@ -72,7 +74,6 @@ public sealed class MapPlanGetEndpoint(MapRepository repo, MapArtifactStore arti
     public override void Configure()
     {
         Get("/map/{slug}/plan");
-        AllowAnonymous();
         // The blob as stored; see SketchGetEndpoint for why the shape is declared rather than sent.
         Description(b => b.Produces<PlanModel>(200, "application/json").Refuses(404));
     }
@@ -96,7 +97,6 @@ public sealed class MapPlanAsciiEndpoint(MapRepository repo, MapArtifactStore ar
     public override void Configure()
     {
         Get("/map/{slug}/plan/ascii");
-        AllowAnonymous();
         Description(b => b.PlainText().Refuses(404, 422));
     }
 
@@ -129,7 +129,6 @@ public sealed class MapPlanFlowEndpoint(MapRepository repo, MapArtifactStore art
     public override void Configure()
     {
         Get("/map/{slug}/plan/flow");
-        AllowAnonymous();
         Description(b => b.PlainText().Refuses(404, 422));
     }
 
@@ -152,7 +151,7 @@ public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore arti
 {
     public override void Configure()
     {
-        Put("/map/{slug}/plan"); AllowAnonymous();
+        Put("/map/{slug}/plan");
         Description(b => b.Accepts<PlanModel>("application/json").Refuses(404, 409));
     }
 

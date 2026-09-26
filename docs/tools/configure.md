@@ -525,7 +525,8 @@ rasterized ground, which only a sketch-origin map carries.
 
 ## The API
 
-Every endpoint is anonymous and rooted at `/api`. The striking thing about the list is how little of it
+Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone who may edit the map
+([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The striking thing about the list is how little of it
 writes: apart from the import and one island toggle, **Configure has exactly one write** — the intent PUT.
 
 **The one write**

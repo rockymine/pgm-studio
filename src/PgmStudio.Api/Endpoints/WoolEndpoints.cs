@@ -14,7 +14,6 @@ public sealed class WoolCreateEndpoint(MapRepository repo, MapReader reader, Map
     public override void Configure()
     {
         Post("/map/{slug}/wools");
-        AllowAnonymous();
         Description(b => b.Accepts<WoolCreateRequest>("application/json").Produces<WoolWrittenDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
@@ -31,7 +30,6 @@ public sealed class WoolUpdateEndpoint(MapRepository repo, MapReader reader, Map
     public override void Configure()
     {
         Patch("/map/{slug}/wools/{woolId}");
-        AllowAnonymous();
         Description(b => b.Accepts<WoolUpdateRequest>("application/json").Produces<WoolWrittenDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
@@ -49,7 +47,6 @@ public sealed class WoolDeleteEndpoint(MapRepository repo, MapReader reader, Map
     public override void Configure()
     {
         Delete("/map/{slug}/wools/{woolId}");
-        AllowAnonymous();
         Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
@@ -66,7 +63,6 @@ public sealed class MonumentCreateEndpoint(MapRepository repo, MapReader reader,
     public override void Configure()
     {
         Post("/map/{slug}/wools/{woolId}/monuments");
-        AllowAnonymous();
         Description(b => b.Accepts<MonumentWriteRequest>("application/json").Produces<MonumentWrittenDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
@@ -84,7 +80,6 @@ public sealed class MonumentUpdateEndpoint(MapRepository repo, MapReader reader,
     public override void Configure()
     {
         Patch("/map/{slug}/wools/{woolId}/monuments/{monId}");
-        AllowAnonymous();
         Description(b => b.Accepts<MonumentWriteRequest>("application/json").Produces<MonumentWrittenDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
@@ -102,7 +97,6 @@ public sealed class MonumentDeleteEndpoint(MapRepository repo, MapReader reader,
     public override void Configure()
     {
         Delete("/map/{slug}/wools/{woolId}/monuments/{monId}");
-        AllowAnonymous();
         Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)

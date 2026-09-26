@@ -232,7 +232,6 @@ internal sealed class TopDownReadEndpoint(MapRepository repo, MapReader reader, 
     public override void Configure()
     {
         Get("/map/{slug}/render/topdown");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/topdown"));
         Description(b => b.Png().Refuses(404, 422).Reads(
             new QueryWord("subject", "What to draw. Absent draws them all together. `made` is the made "
@@ -274,7 +273,6 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
     public override void Configure()
     {
         Get("/map/{slug}/render/section");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/section"));
         Description(b => b.Png().Refuses(404, 422).Reads(
             new QueryWord("axis", "Which way the cut runs. Absent runs along x.", ["x", "z"]),
@@ -347,7 +345,6 @@ internal sealed class HeightmapReadEndpoint(MapRepository repo, MapReader reader
     public override void Configure()
     {
         Get("/map/{slug}/render/heightmap");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/heightmap"));
         Description(b => b.Png().AlsoText().Refuses(404, 422).Reads(
             new QueryWord("contour", "Blocks between contour lines. Absent draws one every 4."),
@@ -429,7 +426,6 @@ internal sealed class ReachReadEndpoint(MapRepository repo, MapReader reader, Ma
     public override void Configure()
     {
         Get("/map/{slug}/reach");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("reach"));
         Description(b => b.PlainText().Refuses(404, 422));
     }
@@ -473,7 +469,6 @@ internal sealed class InclineReadEndpoint(MapRepository repo, MapReader reader, 
     public override void Configure()
     {
         Get("/map/{slug}/incline");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("incline"));
         Description(b => b.PlainText().Refuses(404, 422).Reads(
             new QueryWord("every", "Sample every Nth block, 1 to 8. Absent takes the smallest that keeps the "
@@ -526,7 +521,6 @@ internal sealed class SlopesReadEndpoint(MapRepository repo, MapReader reader, M
     public override void Configure()
     {
         Get("/map/{slug}/slopes");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("slopes"));
         Description(b => b.AlsoText().Refuses(404, 422).Reads(
             new QueryWord("every", "Sample every Nth block, 1 to 8. Absent reads every block.", Min: 1, Max: 8)));
@@ -580,7 +574,6 @@ internal sealed class SurfaceReadEndpoint(MapRepository repo, MapReader reader, 
     public override void Configure()
     {
         Get("/map/{slug}/render/surface");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/surface"));
         Description(b => b.Png().Refuses(404, 422).Reads(
             Storey,
@@ -604,7 +597,6 @@ internal sealed class TraversabilityReadEndpoint(MapRepository repo, MapReader r
     public override void Configure()
     {
         Get("/map/{slug}/render/traversability");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/traversability"));
         Description(b => b.Png().Refuses(404, 422).Reads(new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
     }
@@ -628,7 +620,6 @@ internal sealed class StructuresReadEndpoint(MapRepository repo, MapReader reade
     public override void Configure()
     {
         Get("/map/{slug}/render/structures");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/structures"));
         Description(b => b.Png().Refuses(404, 422).Reads(
             new QueryWord("minarea", "The smallest footprint counted as a structure, in blocks. Absent is 16."),
@@ -653,7 +644,6 @@ internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, M
     public override void Configure()
     {
         Get("/map/{slug}/render/mirror");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/mirror"));
         Description(b => b.Png().Refuses(404, 422).Reads(
             new QueryWord("mode", "Which symmetry to compare against. Absent uses the one the board was laid "
@@ -695,7 +685,6 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
     public override void Configure()
     {
         Get("/map/{slug}/column");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("column"));
         Description(b => b.PlainText().Refuses(404, 422).Reads(
             new QueryWord("at", "A column to read, as two whole numbers: `at=x,z`. Repeat it for more than "
@@ -853,7 +842,6 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
     public override void Configure()
     {
         Get("/map/{slug}/walk");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("walk"));
         Description(b => b.Refuses(404, 422).AlsoText().Reads(
             new QueryWord("from", "Where the journey starts, as `x,z`, or `x,z,y` to pick which storey of a "
@@ -947,7 +935,6 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
     public override void Configure()
     {
         Get("/map/{slug}/render/walk");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/walk"));
         Description(b => b.Png().Refuses(404, 422).Reads(
             new QueryWord("from", "Where the field is measured from, as `x,z`, or `x,z,y` to pick which "
@@ -1017,7 +1004,6 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
     public override void Configure()
     {
         Get("/map/{slug}/transect");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("transect"));
         Description(b => b.Refuses(404, 422).Reads(
             new QueryWord("points", "The line to walk, as `x,z;x,z[;x,z…]` — at least two points, walked "
@@ -1116,7 +1102,6 @@ internal sealed class RouteReadEndpoint(MapRepository repo, MapReader reader, Ma
     public override void Configure()
     {
         Get("/map/{slug}/stroke");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("stroke"));
         Description(b => b.AlsoText().Refuses(404, 422).Reads(
             new QueryWord("id", "Which stroke of the dressing document to walk, by its own id."),
@@ -1176,7 +1161,6 @@ internal sealed class ThemeCensusReadEndpoint(MapRepository repo, MapReader read
     public override void Configure()
     {
         Get("/map/{slug}/themes/census");
-        AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("themes/census"));
         Description(b => b.Refuses(404).AlsoText());
     }

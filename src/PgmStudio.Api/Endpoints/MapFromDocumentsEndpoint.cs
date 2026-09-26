@@ -1,4 +1,5 @@
 using FastEndpoints;
+using PgmStudio.Api.Access;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Features;
@@ -17,20 +18,21 @@ namespace PgmStudio.Api.Endpoints;
 /// to another as a world, arriving without its plan, its drawing or its intent. This takes the documents
 /// instead, and what it stores is a map Configure opens and the plan tool can rebuild.</para>
 ///
-/// <para>A map already stored under the slug is replaced. The work itself is
+/// <para>A map already stored under the slug is replaced, by someone who may edit it; anyone else is refused
+/// 403 and nothing is written. The work itself is
 /// <see cref="MapFromDocuments"/> — the order the steps run in is the operation's, not this route's.</para>
 /// </summary>
 public sealed class MapFromDocumentsEndpoint(
     MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
-    WorldFeatureWriter features, PgmDb db, PlayerLookup players)
+    WorldFeatureWriter features, PgmDb db, PlayerLookup players, Callers callers)
     : Endpoint<MapFromDocumentsRequest, MapLoadedDto>
 {
-    public override void Configure() { Post("/map/from-documents"); AllowAnonymous(); Description(b => b.Refuses(422)); }
+    public override void Configure() { Post("/map/from-documents"); Description(b => b.Refuses(422)); }
 
     public override async Task HandleAsync(MapFromDocumentsRequest request, CancellationToken ct)
     {
         var loaded = await MapFromDocuments.LoadAsync(
-            HttpContext, request, repo, reader, writer, artifacts, features, db, players, ct);
+            HttpContext, request, repo, reader, writer, artifacts, features, db, players, callers, ct);
 
         if (loaded.Refusal is { } refusal)
         {

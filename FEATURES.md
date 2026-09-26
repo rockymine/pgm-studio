@@ -9647,6 +9647,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST /regions/group` + `/ungroup`. (ex-R1a; wire-after-group is parked.)
 
 ## Data & ops (D)
+- **Reads are open and writes need someone on the whitelist (`RP80`).** `Access:Mode` is `open` on a
+  developer's machine, where every request is the local admin, and `invited` everywhere else, where a write
+  needs a person on the `studio_user` whitelist. Which route needs what is decided in one place from the route
+  itself (`AccessRules`), not by 149 endpoints: a write under `/map/{slug}` needs the map's owner, an author it
+  credits or an admin, a shared library `DELETE` needs an admin, and any other write a member. A map records who
+  originated it (`map.owner_uuid`), loading documents over someone else's map is refused, the whitelist is kept
+  over `/api/users`, and `GET /api/me` says who a request is. Refusals are `RQ7` (401) and `RQ8` (403) in the
+  one envelope. `docs/access.md`.
 - **The census is counted, not typed (`RP8`).** `project-structure.md` §3's size table was a snapshot nothing
   regenerated, and **every row had drifted** — `Client` read 80 files against 186, `Pgm` 137 against 148 — while
   the folder breakdowns were worse than stale: counted at one level where the folders nest, so `Compose/` read

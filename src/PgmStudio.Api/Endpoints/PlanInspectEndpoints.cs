@@ -34,7 +34,7 @@ public sealed class PlanAsciiPostEndpoint : EndpointWithoutRequest
 {
     public override void Configure()
     {
-        Post("/plan/ascii"); AllowAnonymous();
+        Post("/plan/ascii");
         Description(b => b.Accepts<PlanModel>("application/json").PlainText());
     }
 
@@ -72,7 +72,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
 {
     public override void Configure()
     {
-        Post("/plan/inspect"); AllowAnonymous();
+        Post("/plan/inspect");
         Description(b => b.Accepts<PlanModel>("application/json"));
     }
 
@@ -192,7 +192,7 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest<WorldColumnsDto
 {
     public override void Configure()
     {
-        Post("/plan/columns"); AllowAnonymous();
+        Post("/plan/columns");
         Description(b => b.Accepts<PlanModel>("application/json"));
     }
 
@@ -239,7 +239,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest<CompiledPlanDto
 {
     public override void Configure()
     {
-        Post("/plan/compile"); AllowAnonymous();
+        Post("/plan/compile");
         Description(b => b.Accepts<PlanModel>("application/json").Refuses(422));
     }
 
@@ -315,7 +315,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
 {
     public override void Configure()
     {
-        Post("/plan/evaluate"); AllowAnonymous();
+        Post("/plan/evaluate");
         Description(b => b.Accepts<PlanModel>("application/json"));
     }
 
@@ -448,7 +448,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
 {
     public override void Configure()
     {
-        Post("/plan/feasibility"); AllowAnonymous();
+        Post("/plan/feasibility");
         // The generator tags by the first path segment, which would file this with the loop it is
         // deliberately not part of.
         DontAutoTag();
@@ -531,7 +531,7 @@ public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
 {
     public override void Configure()
     {
-        Post("/plan/room"); AllowAnonymous();
+        Post("/plan/room");
         Description(b => b.Accepts<PlanModel>("application/json").Refuses(404));
     }
 

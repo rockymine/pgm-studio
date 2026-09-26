@@ -28,7 +28,7 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
     : EndpointWithoutRequest<PreflightDto>
 {
 
-    public override void Configure() { Get("/map/{slug}/preflight"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/preflight"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

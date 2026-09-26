@@ -292,7 +292,8 @@ that a pinned board is any good — the score is advice, and a board scoring 12 
 
 ## The API
 
-Every endpoint is anonymous and rooted at `/api`.
+Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist
+([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|

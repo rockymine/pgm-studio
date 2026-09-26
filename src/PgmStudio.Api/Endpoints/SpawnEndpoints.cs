@@ -15,7 +15,6 @@ public sealed class SpawnCreateEndpoint(MapRepository repo, MapReader reader, Ma
     public override void Configure()
     {
         Post("/map/{slug}/spawns");
-        AllowAnonymous();
         Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(SpawnCreateRequest req, CancellationToken ct)
@@ -32,7 +31,6 @@ public sealed class SpawnUpdateEndpoint(MapRepository repo, MapReader reader, Ma
     public override void Configure()
     {
         Patch("/map/{slug}/spawns/{regionId}");
-        AllowAnonymous();
         Description(b => b.Accepts<SpawnUpdateRequest>("application/json").Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
@@ -50,7 +48,6 @@ public sealed class SpawnDeleteEndpoint(MapRepository repo, MapReader reader, Ma
     public override void Configure()
     {
         Delete("/map/{slug}/spawns/{regionId}");
-        AllowAnonymous();
         Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
@@ -68,7 +65,6 @@ public sealed class ObserverSpawnSetEndpoint(MapRepository repo, MapReader reade
     public override void Configure()
     {
         Patch("/map/{slug}/observer-spawn");
-        AllowAnonymous();
         Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(ObserverSpawnRequest req, CancellationToken ct)
@@ -85,7 +81,6 @@ public sealed class ObserverSpawnDeleteEndpoint(MapRepository repo, MapReader re
     public override void Configure()
     {
         Delete("/map/{slug}/observer-spawn");
-        AllowAnonymous();
         Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)

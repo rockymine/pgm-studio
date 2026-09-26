@@ -458,6 +458,12 @@ a shape no reader claims. **422** rather than 500, because it is data rather tha
 document again clears it; and deliberately not `RQ1`, which would blame the request that merely asked to read
 it — an agent told its own posted document is unreadable looks in the wrong place.
 
+**`RQ7` and `RQ8` — the write is not the caller's to make.** A read is open to anyone and a write needs someone
+on the studio's whitelist, so a write from a signed-out request is **401** under `RQ7`, and one from a
+signed-in person it is not theirs to make — not on the whitelist, not the map's owner or credited author, or an
+admin's route — is **403** under `RQ8`. Both are written by the access layer rather than by any endpoint, so no
+route's own table repeats them; `docs/access.md` says which route needs what.
+
 **`RQ2` — the fault is the studio's own.** Something escaped an endpoint that no gate refused. It stays a
 **500**, because dressing a defect as a bad request sends an author hunting a mistake they did not make; what
 it buys is that the caller gets this envelope instead of a .NET stack trace, and the trace goes to the log. It

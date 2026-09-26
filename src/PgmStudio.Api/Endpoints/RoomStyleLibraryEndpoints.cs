@@ -103,7 +103,7 @@ internal static class RoomStyleMapping
 /// <summary>GET /api/room-styles — the room-style library, newest first, each with the shell it stamps.</summary>
 public sealed class RoomStyleListEndpoint(RoomStyleLibrary library) : EndpointWithoutRequest<List<RoomStyleSummary>>
 {
-    public override void Configure() { Get("/room-styles"); AllowAnonymous(); }
+    public override void Configure() { Get("/room-styles"); }
 
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ComposeAllAsync(ct))
@@ -118,7 +118,7 @@ public sealed class RoomStyleListEndpoint(RoomStyleLibrary library) : EndpointWi
 /// is built from, so a door offered here is always one an attacker can break.</summary>
 public sealed class RoomDoorListEndpoint : EndpointWithoutRequest<List<DoorOptionDto>>
 {
-    public override void Configure() { Get("/room-styles/doors"); AllowAnonymous(); }
+    public override void Configure() { Get("/room-styles/doors"); }
 
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync(DoorMaterials.All.Select(c => new DoorOptionDto(c.Slug, c.Label)).ToList(), ct);
@@ -134,7 +134,7 @@ public sealed class RoomDoorListEndpoint : EndpointWithoutRequest<List<DoorOptio
 /// way to learn that <c>doorHead.block</c> wants a stair is to be refused one.</para></summary>
 public sealed class HouseBlockKindsEndpoint : EndpointWithoutRequest<HouseBlockKindsDto>
 {
-    public override void Configure() { Get("/room-styles/block-kinds"); AllowAnonymous(); }
+    public override void Configure() { Get("/room-styles/block-kinds"); }
 
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync(new HouseBlockKindsDto(
@@ -148,7 +148,7 @@ public sealed class HouseBlockKindsEndpoint : EndpointWithoutRequest<HouseBlockK
 /// <summary>GET /api/room-styles/{id} — one room style with its per-part courses.</summary>
 public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithoutRequest<RoomStyleDetail>
 {
-    public override void Configure() { Get("/room-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/room-styles/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -168,7 +168,7 @@ public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithout
 public sealed class RoomStyleCreateEndpoint(RoomStyleStore store, RoomStyleLibrary library)
     : Endpoint<RoomStyleSaveRequest, RoomStyleDetail>
 {
-    public override void Configure() { Post("/room-styles"); AllowAnonymous(); }
+    public override void Configure() { Post("/room-styles"); }
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
@@ -186,7 +186,7 @@ public sealed class RoomStyleCreateEndpoint(RoomStyleStore store, RoomStyleLibra
 public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store, RoomStyleLibrary library)
     : Endpoint<RoomStyleSaveRequest, RoomStyleDetail>
 {
-    public override void Configure() { Put("/room-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Put("/room-styles/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
@@ -209,7 +209,6 @@ public sealed class RoomStyleDraftPreviewEndpoint(RoomStyleLibrary library)
     public override void Configure()
     {
         Post("/room-styles/preview");
-        AllowAnonymous();
         Description(b => b.AlsoPng(RoomStylePreview.PngViews));
     }
 
@@ -225,7 +224,7 @@ public sealed class RoomStyleDraftPreviewEndpoint(RoomStyleLibrary library)
 /// the export consumes and the form a map snapshots when it binds one.</summary>
 public sealed class RoomStyleJsonEndpoint(RoomStyleLibrary library) : EndpointWithoutRequest<StyleJsonDto>
 {
-    public override void Configure() { Get("/room-styles/{id}/json"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/room-styles/{id}/json"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -244,7 +243,6 @@ public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest<Ro
     public override void Configure()
     {
         Post("/room-styles/preview-snapshot");
-        AllowAnonymous();
         Description(b => b.Accepts<HouseStyle>("application/json").AlsoPng(RoomStylePreview.PngViews));
     }
 
@@ -265,7 +263,7 @@ public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest<Ro
 /// <summary>DELETE /api/room-styles/{id} — forget a room style (its courses cascade; the styles stay).</summary>
 public sealed class RoomStyleDeleteEndpoint(RoomStyleStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/room-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Delete("/room-styles/{id}"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

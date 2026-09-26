@@ -18,7 +18,7 @@ using Dict = Dictionary<string, object?>;
 /// (docs/pgm/new-map-authoring.md), empty if none yet.</summary>
 public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapIntent>
 {
-    public override void Configure() { Get("/map/{slug}/intent"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/intent"); Description(b => b.Refuses(404)); }
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
@@ -35,7 +35,6 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
     public override void Configure()
     {
         Put("/map/{slug}/intent");
-        AllowAnonymous();
         Description(b => b.Accepts<MapIntent>("application/json").Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
 
@@ -73,7 +72,6 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
     public override void Configure()
     {
         Put("/map/{slug}/intent/from-plan");
-        AllowAnonymous();
         Description(b => b.Accepts<MapIntent>("application/json").Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
 
@@ -114,7 +112,6 @@ public sealed class IntentRoomMoveEndpoint(
     public override void Configure()
     {
         Patch("/map/{slug}/intent/rooms/{reference}");
-        AllowAnonymous();
         Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(400, 404, 409, 422));
     }
 

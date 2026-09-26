@@ -18,7 +18,7 @@ public sealed class ShapeCatalogEndpoint : EndpointWithoutRequest<CatalogPage>
     /// grid shows dozens at once.</summary>
     private const int CardScale = 7;
 
-    public override void Configure() { Get("/shapes/catalog"); AllowAnonymous(); }
+    public override void Configure() { Get("/shapes/catalog"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

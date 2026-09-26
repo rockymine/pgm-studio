@@ -13,6 +13,10 @@ namespace PgmStudio.Api.Services;
 /// map row says about itself the moment it exists — the gamemode it is born at, the two timestamps a
 /// newest-touched-first list is ordered by — is the same sentence for all six, and is said here.</para>
 ///
+/// <para><b>Every map has an owner from its first moment</b> — the person who originated it, who may always
+/// edit it whoever it later credits (<c>docs/access.md</c>). An open studio's local admin has no account, so a
+/// map it originates owns to nobody.</para>
+///
 /// <para><b>Two ways to take a slug, and the difference is a product statement.</b> Everything an author
 /// originates suffixes past a collision, because two sketches called "Weirgate" are two maps. A load from
 /// documents replaces instead, because the documents name one map and loading them twice is a reload.</para>
@@ -23,38 +27,43 @@ public static class MapOrigin
     /// <c>weirgate-2</c>. Answers the id and the slug it actually took, which is not always the one asked
     /// for.</summary>
     public static async Task<(long Id, string Slug)> UnderFreeSlugAsync(
-        MapRepository repo, string name, string stage, CancellationToken ct, long? planSource = null)
+        MapRepository repo, string name, string stage, string? owner, CancellationToken ct,
+        long? planSource = null)
     {
         var slug = await repo.UniqueSlugAsync(Slugs.Of(name), ct);
-        return (await RowAsync(repo, slug, name, stage, planSource), slug);
+        return (await RowAsync(repo, slug, name, stage, owner, planSource), slug);
     }
 
     /// <summary>A map at exactly <paramref name="slug"/>, replacing whatever is stored there — the foreign
-    /// keys cascade, so the old map's artifacts go with it.</summary>
+    /// keys cascade, so the old map's artifacts go with it. A replaced map keeps its owner.</summary>
     public static async Task<long> ReplacingAsync(
-        MapRepository repo, string slug, string name, string stage, CancellationToken ct)
+        MapRepository repo, string slug, string name, string stage, string? owner, CancellationToken ct)
     {
-        if (await repo.GetBySlugAsync(slug, ct) is { } existing) await repo.DeleteMapAsync(existing.Id, ct);
-        return await RowAsync(repo, slug, name, stage, planSource: null);
+        if (await repo.GetBySlugAsync(slug, ct) is { } existing)
+        {
+            owner = existing.OwnerUuid ?? owner;
+            await repo.DeleteMapAsync(existing.Id, ct);
+        }
+        return await RowAsync(repo, slug, name, stage, owner, planSource: null);
     }
 
     /// <summary>A map at a slug the caller has already established is free — a world import, which refuses a
     /// taken slug outright rather than suffixing past it, because the slug is where the world's files sit.
     /// </summary>
-    public static Task<long> AtAsync(MapRepository repo, string slug, string name, string stage) =>
-        RowAsync(repo, slug, name, stage, planSource: null);
+    public static Task<long> AtAsync(MapRepository repo, string slug, string name, string stage, string? owner) =>
+        RowAsync(repo, slug, name, stage, owner, planSource: null);
 
     /// <summary>The row itself. Every map is <c>ctw</c> at birth — the gamemode is derived from the objective
     /// modules a map ends up carrying, and the column holds the author's original label, which a map that has
     /// not been authored yet does not have.</summary>
     private static Task<long> RowAsync(
-        MapRepository repo, string slug, string name, string stage, long? planSource)
+        MapRepository repo, string slug, string name, string stage, string? owner, long? planSource)
     {
         var now = DateTime.UtcNow;
         return repo.InsertAsync(new MapRow
         {
             Slug = slug, Name = name, Gamemode = "ctw", Stage = stage,
-            PlanSourceId = planSource, CreatedAt = now, UpdatedAt = now,
+            PlanSourceId = planSource, CreatedAt = now, UpdatedAt = now, OwnerUuid = owner,
         });
     }
 }

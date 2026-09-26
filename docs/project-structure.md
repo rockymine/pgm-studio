@@ -102,18 +102,18 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 25 | 4,803 | `Playability/` 14 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 111 | 15,939 | `Endpoints/` 61 · `Services/` 46 · `Http/` 3 · 1 at root |
+| `Api` | 119 | 16,308 | `Endpoints/` 62 · `Services/` 46 · `Access/` 7 · `Http/` 3 · 1 at root |
 | `Client` | 194 | 24,325 | `Features/` 114 (nested) · `Components/` 63 (nested) · `Pages/` 7 · `Models/` 4 · `Layout/` 3 · 3 at root |
-| `Contracts` | 33 | 3,699 | flat |
-| `Data` | 17 | 2,997 | `Features/` 5 · `Map/` 5 · `Theme/` 4 · `Schema/` 2 · `Plan/` 1 |
-| `Domain` | 30 | 3,463 | flat |
+| `Contracts` | 34 | 3,733 | flat |
+| `Data` | 18 | 3,055 | `Features/` 5 · `Map/` 5 · `Theme/` 4 · `Schema/` 2 · `Access/` 1 · `Plan/` 1 |
+| `Domain` | 30 | 3,478 | flat |
 | `Export` | 17 | 4,004 | flat |
 | `Geom` | 50 | 6,428 | `Algorithms/` 19 · `Render/` 6 · `Relief/` 5 · 20 at root |
 | `Import` | 4 | 473 | flat |
-| `Migrations` | 42 | 2,574 | `Migrations/` 41 · 1 at root |
+| `Migrations` | 43 | 2,606 | `Migrations/` 42 · 1 at root |
 | `Minecraft` | 103 | 21,341 | `Palette/` 17 · `Stamping/` 17 · `Render/` 15 · `Anvil/` 13 · `Dressing/` 12 · `Painting/` 12 · `Houses/` 11 · `Views/` 4 · `Suggest/` 1 · 1 at root |
 | `Pgm` | 160 | 30,745 | `Compose/` 43 (nested) · `Authoring/` 28 · `Evaluate/` 22 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Plan/` 9 · `Sketch/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
-| `Vocabulary` | 20 | 1,498 | flat |
+| `Vocabulary` | 22 | 1,528 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest
