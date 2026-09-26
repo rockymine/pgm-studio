@@ -18,7 +18,7 @@
     {
       <a class="card card--action lib-choice" href="@($"/library/{kind.Slug}")" @key="kind.Slug">
         <div class="card-head">
-          <span class="card-icon"><i data-lucide="@kind.Icon" @key="kind.Icon"></i></span>
+          <span class="card-icon"><Icon Name="@kind.Icon" /></span>
           <span class="card-title">@kind.Title</span>
         </div>
         <div class="lib-choice-fig">
@@ -28,7 +28,7 @@
         <p class="card-desc">@kind.Blurb</p>
         <span class="card-foot">
           <span class="card-foot-count">@CountLabel(kind)</span>
-          <span class="card-foot-go">Open <i data-lucide="arrow-right" @key="@($"go-{kind.Slug}")"></i></span>
+          <span class="card-foot-go">Open <Icon Name="arrow-right" /></span>
         </span>
       </a>
     }

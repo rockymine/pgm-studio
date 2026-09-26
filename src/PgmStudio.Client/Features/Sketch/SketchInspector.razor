@@ -26,7 +26,7 @@
         {
           <Button Full OnClick="() => OnPromoteShape.InvokeAsync(Shape.Id)"
                   Title="Turn this rectangle into a polygon — then drag corners, insert vertices, or curve edges (P)">
-            <i data-lucide="pentagon"></i> Convert to polygon
+            <Icon Name="pentagon" /> Convert to polygon
           </Button>
         }
         <Field Label="Height (thickness)">
@@ -107,7 +107,7 @@
               </Field>
             }
             <Button Full OnClick="() => OnApplySlope.InvokeAsync()">
-              <i data-lucide="move-3d"></i> Apply slope
+              <Icon Name="move-3d" /> Apply slope
             </Button>
             <p class="plan-readout">
               Fits a @(SlopeControls.Count == 2 ? "ramp" : "plane") through @SlopeControls.Count points · shift-click
@@ -127,7 +127,7 @@
           }
         }
         <Button Full Variant="danger" OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
-          <i data-lucide="trash-2"></i> Delete
+          <Icon Name="trash" /> Delete
         </Button>
         <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks@(Shape.Type == "rectangle" ? " · P = to polygon" : "")@(Shape.Type == "polyline" ? " · drag the points to move the route" : "")</p>
       }
@@ -153,7 +153,7 @@
         @foreach (var s in GroupShapes())
         {
           <ListRow Compact>
-            <span class="geo-type-icon" style="@(s.Operation == "subtract" ? "color:var(--canvas-sub-fill)" : null)"><i data-lucide="@TypeIcon(s.Type)"></i></span>
+            <span class="geo-type-icon" style="@(s.Operation == "subtract" ? "color:var(--canvas-sub-fill)" : null)"><Icon Name="@TypeIcon(s.Type)" /></span>
             <span class="list-label">@s.Type</span>
             <span class="list-tag">@s.Dim</span>
           </ListRow>

@@ -31,8 +31,6 @@ public partial class Users
         if (admin == true) await LoadAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
     private async Task LoadAsync() =>
         users = await Http.GetFromJsonAsync<List<StudioUserDto>>("api/users") ?? [];
 

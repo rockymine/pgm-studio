@@ -6,8 +6,8 @@
 #   tools/coverage.sh              collect every test project, merge, print the report
 #   tools/coverage.sh --report     re-print from the existing merge (no test run)
 #
-# JS coverage is separate and needs no tooling: `npm test -- --experimental-test-coverage`. Note it only
-# lists files a test imported — a module no test loads is absent, not zero.
+# The browser modules are not covered: their script tests (tests/PgmStudio.Client.Tests) run in Jint, which
+# reports no coverage.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

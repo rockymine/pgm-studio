@@ -294,15 +294,11 @@ public partial class ImportPhase : IAsyncDisposable
 
     private bool canvasBusy;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await JS.InvokeVoidAsync("studio.icons");
-        await SyncCanvas();
-    }
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await SyncCanvas();
 
-    // Reconcile the reused world canvas with the current step. Re-reads the live state AFTER the
-    // studio.icons await (so a step change mid-await is honoured) and serialises with a busy flag so two
-    // close renders can't double-mount onto the same <svg>. The handle is nulled the instant we leave
+    // Reconcile the reused world canvas with the current step. Reads the live state on each pass (so a step
+    // change mid-await is honoured) and serialises with a busy flag so two close renders can't double-mount
+    // onto the same <svg>. The handle is nulled the instant we leave
     // Found (SetStep), so re-entry always re-mounts on the recreated svg ref rather than a detached one.
     private async Task SyncCanvas()
     {

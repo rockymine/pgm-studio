@@ -6,7 +6,7 @@
 <div class="lib-page">
   <div class="lib-strip">
     <label class="lib-search">
-      <i data-lucide="search" @key="@("lib-search")"></i>
+      <Icon Name="search" />
       <input class="lib-search-input" type="search" placeholder="@($"Search {Kind.Title.ToLowerInvariant()} by name…")"
              value="@search" @oninput="OnSearch" />
     </label>

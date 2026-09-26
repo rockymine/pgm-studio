@@ -46,9 +46,6 @@ public partial class CoreCasingStep
         if (cores.Count > 0) selected = 0;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
-
     private Task OnCanvasReady() => Paint();
 
     private void OnCanvasSelect(string? id)

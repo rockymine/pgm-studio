@@ -47,7 +47,7 @@
         <Button OnClick="OpenDbBrowser" Title="Open a saved plan from the database">Open</Button>
         <Button Variant="primary" OnClick="OpenCompile" Busy="@(!documentLoaded)" BusyLabel="Loading…"
                 Title="Compile the plan into a layout + intent, then create a draft">
-          <i data-lucide="play"></i> Compile
+          <Icon Name="play" /> Compile
         </Button>
       </Right>
     </Topbar>
@@ -258,7 +258,7 @@
                 }
                 else if (evaluation.Violations.Count == 0)
                 {
-                  <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> No rules fired</div>
+                  <div class="plan-lint-ok"><Icon Name="circle-check" /> No rules fired</div>
                 }
                 else
                 {
@@ -403,12 +403,12 @@
                   @(sel.Mirrors ? "Exclude from mirror" : "Include in mirror")
                 </Button>
                 <Button Full Variant="danger" OnClick="DeleteSelected">
-                  <i data-lucide="trash-2"></i> Delete piece
+                  <Icon Name="trash" /> Delete piece
                 </Button>
               }
               else if (sel.Kind == "footprint")
               {
-                <DetailHeader Icon="home" Label="Building">
+                <DetailHeader Icon="house" Label="Building">
                   <span class="detail-header-badges"><Badge Kind="neutral">@sel.MarkerKind</Badge></span>
                 </DetailHeader>
                 <Field Label="On piece">
@@ -430,14 +430,14 @@
                   dashed rectangle to move it, its handles to resize.
                 </p>
                 <Button Full Variant="danger" OnClick="DeleteSelected">
-                  <i data-lucide="trash-2"></i> Clear building
+                  <Icon Name="trash" /> Clear building
                 </Button>
                 <p class="section-desc">Clearing states no building, and the default one comes back.</p>
               }
               else if (sel.Kind == "zone")
               {
                 var lane = sel.ZoneKind == "water-lane";
-                <DetailHeader Icon="@(lane ? "waves" : "square-dashed")" Label="@(lane ? "Water lane" : "Build area")" />
+                <DetailHeader Icon="@(lane ? "waves-horizontal" : "square-dashed")" Label="@(lane ? "Water lane" : "Build area")" />
                 <Field Label="Id">
                   <input class="field-input" value="@sel.Id" @onchange="OnZoneId" />
                 </Field>
@@ -447,7 +447,7 @@
                   </div>
                 </Field>
                 <Button Full Variant="danger" OnClick="DeleteSelected">
-                  <i data-lucide="trash-2"></i> @(lane ? "Delete water lane" : "Delete build area")
+                  <Icon Name="trash" /> @(lane ? "Delete water lane" : "Delete build area")
                 </Button>
               }
               else if (sel.Kind == "box")
@@ -477,7 +477,7 @@
                   @(sel.MembersNamed ? "Follow containment" : "Fix these members")
                 </Button>
                 <Button Full Variant="danger" OnClick="DeleteSelected">
-                  <i data-lucide="trash-2"></i> Delete box
+                  <Icon Name="trash" /> Delete box
                 </Button>
               }
               else
@@ -491,7 +491,7 @@
                   <Field Label="Facing">
                     <div class="ctrl-row">
                       <span class="plan-stepper-value">@sel.Facing</span>
-                      <Button Variant="icon" OnClick="CycleFacing" Title="Cycle facing"><i data-lucide="rotate-cw"></i></Button>
+                      <Button Variant="icon" OnClick="CycleFacing" Title="Cycle facing"><Icon Name="rotate-cw" /></Button>
                     </div>
                   </Field>
                 }
@@ -611,7 +611,7 @@
                   </p>
                 }
                 <Button Full Variant="danger" OnClick="DeleteSelected">
-                  <i data-lucide="trash-2"></i> Delete marker
+                  <Icon Name="trash" /> Delete marker
                 </Button>
               }
             </Section>
@@ -680,8 +680,8 @@
                       @key="id" @onclick="() => compileTab = id">@label</button>
             }
             <div class="plan-compile-tab-actions">
-              <Button Title="Copy to clipboard" OnClick="CopyTab"><i data-lucide="clipboard"></i> @(copied ? "Copied" : "Copy")</Button>
-              <Button Title="Download this file" OnClick="DownloadTab"><i data-lucide="download"></i> Download</Button>
+              <Button Title="Copy to clipboard" OnClick="CopyTab"><Icon Name="clipboard" /> @(copied ? "Copied" : "Copy")</Button>
+              <Button Title="Download this file" OnClick="DownloadTab"><Icon Name="download" /> Download</Button>
             </div>
           </div>
           <pre class="plan-compile-json">@TabText</pre>
@@ -708,7 +708,7 @@
               <div class="ctrl-row">
                 <Button Fill OnClick="KeepRelief">Cancel</Button>
                 <Button Variant="danger" Fill Disabled="@draftBusy" OnClick="DiscardReliefAndRebuild">
-                  <i data-lucide="hammer"></i> Discard it and rebuild
+                  <Icon Name="hammer" /> Discard it and rebuild
                 </Button>
               </div>
             </div>
@@ -718,9 +718,9 @@
             <div class="plan-rebuild-warn">
               <p class="section-desc"><strong>This map already has a board.</strong> Rebuilding it from the plan:</p>
               <ul class="plan-rebuild-list">
-                <li><span class="plan-rebuild-mark plan-rebuild-mark--drop"><i data-lucide="refresh-cw"></i></span>
+                <li><span class="plan-rebuild-mark plan-rebuild-mark--drop"><Icon Name="refresh-cw" /></span>
                   <span><strong>Replaces</strong> the terrain and islands with the plan's, drops any shape drawn in the sketch that the plan does not produce, and rewrites the teams, spawns, wools and build zones.</span></li>
-                <li><span class="plan-rebuild-mark plan-rebuild-mark--keep"><i data-lucide="check"></i></span>
+                <li><span class="plan-rebuild-mark plan-rebuild-mark--keep"><Icon Name="check" /></span>
                   <span><strong>Keeps</strong> your relief on every island the rebuild still has, a room height you corrected, your terrain themes, room shells and placed dressing, and the map's authors.</span></li>
               </ul>
               <p class="section-desc">Anything you changed in Configure about the teams, spawns or wools is written over.</p>
@@ -729,7 +729,7 @@
               <div class="ctrl-row">
                 <Button Fill OnClick="CancelRebuild">Cancel</Button>
                 <Button Variant="danger" Fill Disabled="@draftBusy" OnClick="BuildRequested">
-                  <i data-lucide="hammer"></i> Rebuild anyway
+                  <Icon Name="hammer" /> Rebuild anyway
                 </Button>
               </div>
             </div>
@@ -741,7 +741,7 @@
                being grey. The hammer goes with it — an icon for the act is wrong on a label that refuses it. *@
             <Button Variant="primary" Full Disabled="@(compiledLayout is null)" Busy="@draftBusy"
                     BusyLabel="@($"{draftStep}…")" OnClick="BuildRequested">
-              @if (compiledLayout is not null) { <i data-lucide="hammer"></i> }
+              @if (compiledLayout is not null) { <Icon Name="hammer" /> }
               @DraftLabel
             </Button>
           }
@@ -749,7 +749,7 @@
         else
         {
           <div class="plan-lint-ok">
-            <i data-lucide="check-circle-2"></i>
+            <Icon Name="circle-check" />
             @if (MapBacked) { <text>Built on this map — <strong>@draftSlug</strong></text> }
             else { <text>Draft <strong>@draftSlug</strong> created</text> }
           </div>
@@ -759,10 +759,10 @@
               does not produce — @string.Join(", ", droppedShapes).</p>
           }
           <Button Full Href="@($"/maps/{draftSlug}/sketch")" target="_blank" rel="noopener">
-            <i data-lucide="external-link"></i> Open in sketch editor
+            <Icon Name="external-link" /> Open in sketch editor
           </Button>
           <Button Variant="primary" Full OnClick="DownloadWorld">
-            <i data-lucide="download"></i> Download world ZIP
+            <Icon Name="download" /> Download world ZIP
           </Button>
         }
         @if (draftError is not null) { <p class="section-desc plan-compile-draft-error">@draftError</p> }

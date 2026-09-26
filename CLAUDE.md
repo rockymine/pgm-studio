@@ -450,20 +450,20 @@ produced a confident, filed, committed claim that every generated destroy map wa
 was right and the conclusion was invented. Neither the corpus nor the code would have corrected it; one
 question would have.
 
-## JS dependencies — vendor, never fetch
-**No npm dependencies in the repo**: no `node_modules`, no lockfile, nothing whose install step runs code.
-Node itself is load-bearing — `package.json` marks the hand-written `.js` as ESM and `npm test` runs Node's
-built-in runner (`tools/js-test.sh`), zero dependencies, which is what lets the suite run from the shared
-folder at all.
+## JavaScript — no Node, and nothing fetched at run time
+**Node is not part of the project.** No `package.json`, no `node_modules`, no lockfile, and no npm step in a
+build, a test or CI. The browser modules are tested by TUnit, which runs them in Jint — a JavaScript engine
+written in .NET (`tests/PgmStudio.Client.Tests`) — and the browser suite drives Chromium from .NET through
+PuppeteerSharp, which speaks the DevTools protocol itself. A tool that needs a JavaScript runtime installed is
+not added; the .NET package that does the same job is.
 
-**Browser libraries are vendored**: one reviewed, pinned, self-contained file under
-`wwwroot/js/studio/vendor/`, with its regenerate command in the header comment. **Build and test tools are
-never installed into the repo** — fetch with `npm pack` (download only, no lifecycle scripts, which is where
-npm's supply-chain risk lives) or expect them globally, as the e2e harness does with Playwright. **Never a
-runtime CDN tag**: unpinned, fetched by every user's browser, unreviewable, no integrity check, and dead the
-moment egress is restricted — `lucide@latest` was all five, and no icon rendered in the cloud container. If a
-vendored subset can miss a name (icons are named dynamically from C#), the shim must **fail loudly** with a
-console error, which the smoke sweep turns into a failed page; a silent blank is the bug being avoided.
+**A browser library the client cannot take as a NuGet package is vendored**: one reviewed, pinned,
+self-contained file under `wwwroot/js/studio/vendor/`, with where it came from in the header comment. Icons are
+not one of them — they are the LucideBlazor package, drawn by the `Icon` component in C#. **Never a runtime
+CDN tag**: unpinned, fetched by every user's browser, unreviewable, no integrity check, and dead the moment
+egress is restricted — `lucide@latest` was all five, and no icon rendered in the cloud container. Icons are
+named dynamically from C#, so a name the package does not have must **fail loudly**: `Icon` logs it as an
+error, which the smoke sweep turns into a failed page; a silent blank is the bug being avoided.
 
 ## Traps (each one has cost hours)
 - **`dotnet run <script>.cs` caches the built app and will NOT pick up `src/` changes.** The file-based tools

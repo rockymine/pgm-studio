@@ -19,11 +19,6 @@ public partial class WorldIslandsStep
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
-    // Convert any new <i data-lucide> placeholders to SVG after each render. This component re-renders on
-    // its own (the parent wizard doesn't), so its list-row icons would otherwise only appear once some
-    // other render — e.g. a canvas fit — happened to re-run the icon factory globally.
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
     private List<IslandDto> islands = new();
     private readonly HashSet<int> excluded = new();
     private int? selectedId;

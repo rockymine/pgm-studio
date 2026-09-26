@@ -15,7 +15,7 @@
           selected wool. Each wool needs <strong>@Expected</strong> (one per enemy team).</p>
         <Button Full Class="action-btn--separated" Busy="@detecting" BusyLabel="Detecting…"
                 OnClick="DetectMapWide">
-          <i data-lucide="scan-search"></i> Detect monuments (whole map)
+          <Icon Name="scan-search" /> Detect monuments (whole map)
         </Button>
         <div class="panel-list" style="margin-top:var(--space-3)">
           @if (wools.Count == 0) { <div class="list-empty">No wools — confirm objectives first.</div> }
@@ -23,7 +23,7 @@
           {
             var have = Capturers(w).Count(t => MonumentFor(w, t.Id) is not null);
             <ListRow Compact Selected="selectedColor == w.Color" @key="w.Color" OnClick="() => SelectWool(w.Color)">
-              <span class="geo-type-icon" style="color:@W.Hex(w.Color)"><i data-lucide="@PointIcon"></i></span>
+              <span class="geo-type-icon" style="color:@W.Hex(w.Color)"><Icon Name="@PointIcon" /></span>
               <span class="list-label list-label--mono">@w.Color</span>
               <Badge Class="@(have >= Expected ? "badge--success" : "badge--warning")">@have / @Expected</Badge>
             </ListRow>
@@ -63,7 +63,7 @@
                     <CoordField Prefix="X"><NumberField Value="m.X" ValueChanged="@(v => SetCoord(m, "x", v))" Step="1" CssClass="coord-input" /></CoordField>
                     <CoordField Prefix="Y"><NumberField Value="m.Y" ValueChanged="@(v => SetCoord(m, "y", v))" Step="1" CssClass="coord-input" /></CoordField>
                     <CoordField Prefix="Z"><NumberField Value="m.Z" ValueChanged="@(v => SetCoord(m, "z", v))" Step="1" CssClass="coord-input" /></CoordField>
-                    <Button Title="Remove" OnClick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></Button>
+                    <Button Title="Remove" OnClick="() => DeleteMonument(sel, m)"><Icon Name="trash" /></Button>
                   </div>
                   @if (selectedTeam == cap.Id)
                   {
@@ -94,7 +94,7 @@
                         <option value="@t.Id">@t.Name</option>
                       }
                     </select>
-                    <Button Title="Remove" OnClick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></Button>
+                    <Button Title="Remove" OnClick="() => DeleteMonument(sel, m)"><Icon Name="trash" /></Button>
                   </div>
                 }
                 </ChildContent>

@@ -89,7 +89,6 @@ public partial class WorldCanvas
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await JS.InvokeVoidAsync("studio.icons");
         if (firstRender)
         {
             selfRef = DotNetObjectReference.Create(this);

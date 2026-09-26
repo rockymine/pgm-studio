@@ -62,8 +62,6 @@ public partial class ReviewXmlStep : IDisposable
         loading = false;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
     // The flow-bar Export action — fetch the server export (a {slug}/ ZIP with map.xml + level.dat +
     // region/ for sketch maps, or plain map.xml otherwise) and save it. Fetching (rather than a blind
     // anchor click) lets a non-2xx response surface as an in-app error instead of writing the JSON error
@@ -111,7 +109,7 @@ public partial class ReviewXmlStep : IDisposable
         Add("teams", "Teams", "users", "teams", @"<team\b");
         Add("spawns", "Spawns", "dot", "spawns", @"<spawn\b|<default\b");
         Add("wools", "Wools", "square", "wools", @"<wool\b");
-        Add("filters", "Filters", "filter", "filters", @"(?m)^        <[a-zA-Z]");   // direct children (8-space)
+        Add("filters", "Filters", "funnel", "filters", @"(?m)^        <[a-zA-Z]");   // direct children (8-space)
         Add("regions", "Regions", "shapes", "regions", "id=\"");                    // total regions
         var applies = Regex.Matches(doc, @"(?m)^        <apply\b[^>]*?/>").Select(m => m.Value).ToList();
         if (applies.Count > 0)

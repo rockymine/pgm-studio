@@ -118,13 +118,13 @@
             <div class="ctrl-row" style="margin-top:var(--space-2)">
               @if (sel.Included)
               {
-                <Button Fill OnClick="() => Toggle(sel)"><i data-lucide="x"></i> Exclude</Button>
+                <Button Fill OnClick="() => Toggle(sel)"><Icon Name="x" /> Exclude</Button>
               }
               else
               {
-                <Button Variant="primary" Fill OnClick="() => Toggle(sel)"><i data-lucide="check"></i> Include@(string.IsNullOrEmpty(sel.ExcludeReason) ? "" : " anyway")</Button>
+                <Button Variant="primary" Fill OnClick="() => Toggle(sel)"><Icon Name="check" /> Include@(string.IsNullOrEmpty(sel.ExcludeReason) ? "" : " anyway")</Button>
               }
-              <Button Fill OnClick="() => Remove(sel)" Title="Remove from the list"><i data-lucide="trash-2"></i></Button>
+              <Button Fill OnClick="() => Remove(sel)" Title="Remove from the list"><Icon Name="trash" /></Button>
             </div>
             @if (!sel.Included && !string.IsNullOrEmpty(sel.ExcludeReason))
             {

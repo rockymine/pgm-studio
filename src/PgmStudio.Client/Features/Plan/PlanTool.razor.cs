@@ -305,7 +305,6 @@ public partial class PlanTool
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await JS.InvokeVoidAsync("studio.icons");
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
         // Everything the editor needs before it can be compiled, in one block, so the loading state ends

@@ -64,5 +64,4 @@ public partial class RegionTree
         if (!collapsed.Remove(id)) collapsed.Add(id);
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 }

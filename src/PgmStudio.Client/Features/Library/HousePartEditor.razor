@@ -169,7 +169,7 @@
               <input class="field-input field-input--slim" type="number" min="1" step="1"
                      title="How many courses this one runs"
                      value="@course.Height" @onchange="e => SetCourseHeight(stacked.Id, course.Ordinal, e)" />
-              <Button Variant="icon" Icon="trash-2" Title="Remove this course"
+              <Button Variant="icon" Icon="trash" Title="Remove this course"
                       OnClick="() => RemoveCourse(stacked.Id, course.Ordinal)" />
             </Trailing>
           </StyleSelect>
@@ -200,7 +200,7 @@
     </Button>
     @if (editingId is not null)
     {
-      <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
+      <Button Variant="danger" Icon="trash" OnClick="Delete">Delete</Button>
     }
   </Actions>
 </LibraryEditor>

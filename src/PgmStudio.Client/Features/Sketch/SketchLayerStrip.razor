@@ -31,7 +31,7 @@
         {
           <button type="button" class="canvas-layer-del" title="@($"Delete '{layer.Name}'")"
                   @onclick="() => OnDelete.InvokeAsync(layer.Id)">
-            <i data-lucide="x" @key="@($"del-{layer.Id}")"></i>
+            <Icon Name="x" />
           </button>
         }
       </span>
@@ -40,7 +40,7 @@
     @if (AllowEdit)
     {
       <button type="button" class="canvas-layer-add" title="Add a layer above" @onclick="OnAdd">
-        <i data-lucide="plus" @key="@("plus")"></i>
+        <Icon Name="plus" />
       </button>
     }
   </div>

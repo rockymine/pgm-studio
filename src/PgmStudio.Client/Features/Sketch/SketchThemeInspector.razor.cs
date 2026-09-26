@@ -55,8 +55,6 @@ public partial class SketchThemeInspector
     [Inject] public TerrainLibraryClient Library { get; set; } = default!;
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
     private IReadOnlyList<ThemeSummary> libraryThemes = [];
 
     /// <summary>The biome library's rows, each with the patch of ground it tints — what the map's biome is

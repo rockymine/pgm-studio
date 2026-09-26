@@ -65,7 +65,5 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 }

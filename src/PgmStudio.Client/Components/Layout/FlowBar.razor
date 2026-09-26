@@ -5,13 +5,10 @@
    numbered-circle step bars (.cfg-step-bar). *@
 
 <div class="@Cls">
-  @* @key the lucide-bearing regions by their content so Blazor RECREATES them on navigation instead of
-     patching DOM that studio.icons (lucide.createIcons) has replaced with <svg> — patching the mutated
-     nodes corrupts the reconciler (removeChild/non-text-child errors). *@
-  <div class="flow-bar-phase" @key="@PhaseTitle"><i data-lucide="@PhaseIcon"></i><span>@PhaseTitle</span></div>
+  <div class="flow-bar-phase"><Icon Name="@PhaseIcon" /><span>@PhaseTitle</span></div>
   @if (Steps.Count > 0)
   {
-    <div class="flow-steps" @key="@($"{PhaseTitle}:{CurrentStep}")">
+    <div class="flow-steps">
       @for (var j = 0; j < Steps.Count; j++)
       {
         var idx = j;

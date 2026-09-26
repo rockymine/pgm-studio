@@ -67,9 +67,6 @@ public partial class WoolObjectivesStep
         loading = false;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
-
     private void LoadContext()
     {
         teams.Clear(); teams.AddRange(Ctx.LoadTeams(Wizard.Intent));

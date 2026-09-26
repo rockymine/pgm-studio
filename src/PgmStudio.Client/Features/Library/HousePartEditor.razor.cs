@@ -60,7 +60,7 @@ public partial class HousePartEditor
             List<EditorPart> rows = [new(KnobsPart, Part.KnobsTitle, Part.Kind.Icon, Badge: KnobsBadge)];
             if (storey is not null)
             {
-                rows.Add(new EditorPart(WindowsPart, "Windows", "grid",
+                rows.Add(new EditorPart(WindowsPart, "Windows", "grid-3x3",
                     Badge: WindowForms.Canonical(storey.Windows.Form)));
             }
             rows.AddRange(Part.Stacked.Select(piece => new EditorPart(

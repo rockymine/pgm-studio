@@ -19,7 +19,7 @@
           {
             <ListRow Compact Selected="selectedTeamId == s.Team" @key="s.Team" OnClick="() => SelectTeam(s.Team)">
               <span class="list-swatch" style="background:@Hex(s.Team)"></span>
-              <span class="geo-type-icon"><i data-lucide="@PointIcon"></i></span>
+              <span class="geo-type-icon"><Icon Name="@PointIcon" /></span>
               <span class="list-label list-label--mono">@s.Team-spawn</span>
               <Badge Class="@(s.Authored ? "badge--success" : "badge--dim")">@(s.Authored ? "authored" : "orbit")</Badge>
             </ListRow>
@@ -28,7 +28,7 @@
           {
             <ListRow Compact Selected="selectedTeamId == ObserverId" @key="ObserverId" OnClick="() => SelectTeam(ObserverId)">
               <span class="list-swatch" style="background:@ObserverHex"></span>
-              <span class="geo-type-icon"><i data-lucide="@PointIcon"></i></span>
+              <span class="geo-type-icon"><Icon Name="@PointIcon" /></span>
               <span class="list-label list-label--mono">observer-spawn</span>
               <Badge Kind="dim">default</Badge>
             </ListRow>

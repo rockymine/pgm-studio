@@ -281,9 +281,6 @@ public partial class ConfigureTool
         finally { exporting = false; }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
-
     // ── intent slice helpers (presence checks over the camelCase intent JSON) ──
     private JsonObject? Obj(string key) => intent?[key] as JsonObject;
     private bool NonEmptyArray(string key) => intent?[key] is JsonArray a && a.Count > 0;

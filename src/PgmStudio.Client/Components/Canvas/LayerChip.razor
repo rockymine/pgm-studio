@@ -8,7 +8,7 @@
 <button class="@Cls" type="button" title="@Title" disabled="@Disabled" aria-pressed="@Active" @onclick="OnClick">
   @if (!string.IsNullOrEmpty(Icon))
   {
-    <i data-lucide="@Icon" @key="@Icon"></i>
+    <Icon Name="@Icon" />
   }
   @ChildContent
 </button>

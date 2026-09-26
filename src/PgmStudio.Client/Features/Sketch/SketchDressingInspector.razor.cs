@@ -66,8 +66,6 @@ public partial class SketchDressingInspector
     // so the picture is grown on what this map actually paints.
     private string? themeJson;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
     protected override async Task OnParametersSetAsync()
     {
         ReadState();
@@ -349,11 +347,11 @@ public partial class SketchDressingInspector
         new Dictionary<string, (string, string, string)>
         {
             [PropKinds.Stroke] = ("spline", "Stroke", "A band of surface along a line you draw. It swaps the ground it crosses rather than building on it — a road, a worn trail, a smear of dirt or a painted forest floor, depending on the brush and what it lays. Mark it as claiming its ground and trees, boulders and buildings will keep clear of it."),
-            [PropKinds.Water] = ("waves", "Water", "A channel of water. It cuts a bed into the ground and fills it to a level line — the one prop that takes terrain away rather than standing on it. Only existing ground is cut, and it is mirrored across the map's symmetry."),
+            [PropKinds.Water] = ("waves-horizontal", "Water", "A channel of water. It cuts a bed into the ground and fills it to a level line — the one prop that takes terrain away rather than standing on it. Only existing ground is cut, and it is mirrored across the map's symmetry."),
             [PropKinds.Flora] = ("flower", "Cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
             [PropKinds.Tree] = ("trees", "Tree", "One tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
             [PropKinds.Boulder] = ("mountain", "Boulder", "One erratic, standing where you put it and bedded into the ground. Mirrored across the map's symmetry, so both teams get the same cover."),
-            [PropKinds.House] = ("home", "Building", "A building on the rectangle you dragged, raised in a shell from the room-style library. It settles into the ground it covers, and it is mirrored across the map's symmetry, so both teams get the same cover."),
+            [PropKinds.House] = ("house", "Building", "A building on the rectangle you dragged, raised in a shell from the room-style library. It settles into the ground it covers, and it is mirrored across the map's symmetry, so both teams get the same cover."),
         };
 
     private (string Icon, string Title, string Blurb) Info
@@ -431,9 +429,9 @@ public static class DressingTools
     public static readonly (string Tool, string Kind, string Icon, string Name)[] All =
     [
         (Stroke, PropKinds.Stroke, "spline", "Stroke"),
-        (Water, PropKinds.Water, "waves", "Water"),
+        (Water, PropKinds.Water, "waves-horizontal", "Water"),
         (Flora, PropKinds.Flora, "flower", "Ground cover"),
-        (House, PropKinds.House, "home", "Building"),
+        (House, PropKinds.House, "house", "Building"),
         (Tree, PropKinds.Tree, "trees", "Tree"),
         (Boulder, PropKinds.Boulder, "mountain", "Boulder"),
     ];

@@ -19,7 +19,7 @@
             <ListRow Compact Selected="selectedId == b.Id"
                  @key="b.Id" OnClick="() => SelectBox(b.Id)">
               <span class="list-swatch" style="background:@(b.Hole ? HoleColor : AreaColor)"></span>
-              <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
+              <span class="geo-type-icon"><Icon Name="rectangle-horizontal" /></span>
               <span class="list-label list-label--mono">@Label(b)</span>
               <Badge Kind="dim">@(b.Hole ? "hole" : "bridge")</Badge>
             </ListRow>

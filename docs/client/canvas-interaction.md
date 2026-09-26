@@ -321,16 +321,22 @@ it says, and every in-flight caller no-ops instead.
 
 ## 7. What is tested, and what is not
 
-`npm test` (or `tools/js-test.sh`) runs Node's built-in runner over `tests/js/` — no `node_modules`, so it
-works from the shared folder. 333 tests over 19 files pass.
+The script tests live in `tests/PgmStudio.Client.Tests/Scripts/`, one `*.test.js` per module, and run as
+TUnit tests: `dotnet run --project tests/PgmStudio.Client.Tests`. Each file is loaded into its own
+[Jint](https://github.com/sebastienros/jint) engine — a JavaScript interpreter written in .NET, so the suite
+needs nothing installed beside the SDK — and every case it registers with `test(name, body)` from
+`_harness.js` runs in declaration order against that one module instance and is reported as its own TUnit
+test, named by file and case. Assertions come from `_assert.js` (strict: `equal` is `Object.is`, `deepEqual`
+compares prototypes and contents). The engine supplies what a browser module expects of its host — a
+`console`, `structuredClone`, `performance.now` and timers that never fire — and `readRepoFile(path)` reads a
+repository file by its path from the root. 457 cases over 28 files pass.
 
 Coverage splits cleanly along the DOM line. The modules the tests import average around 92% lines, several
 at 100% (`transform`, `symmetry`, `groups`, `polygon`, `plan-inspect`, `decompose-cut`, `shape-render`);
 `canvas-painter` is the one DOM-adjacent module under test, via a small context stub. Of the 60 studio
 modules (14,386 lines, the vendored ones aside), the tests reach 32 — the other **28 files, 8,952 lines, are
 never imported by a test at all**: every canvas, every bridge (`sketch-bridge` 1,164 lines, `plan-bridge`
-479), every controller, `iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage`
-reports such files as *absent*, not as zero, so the report reads healthier than the tree is.
+479), every controller, `iso-webgl` and `studio.js`.
 
 This is a coherent split rather than neglect: pure logic is tested, DOM-bound code is not. The painted
 render layer sits on the tested side of it because a stateless painter takes a stand-in — `_painter-stub.js`
@@ -341,7 +347,7 @@ already reaches.
 
 **The bridges are the exception, and the split has hidden it.** A bridge is not DOM-bound in the way a canvas
 is: `mount()` is handed its canvas and its elements, and the only other thing it touches is `fetch`. Both are
-already stubbable with what `tests/js/` has — `_dom-stub.js` and `_painter-stub.js` are precedent — so
+already stubbable with what `Scripts/` has — `_dom-stub.js` and `_painter-stub.js` are precedent — so
 `enterIso`/`fetchColumns` can be driven directly, with the canvas a recorder and `fetch` answering a canned
 payload or a refusal. That matters because `enterIso` is the most stateful function in the untested set: an
 await, a race guard, a cache stamp and two failure paths, and a rename inside it shipped a

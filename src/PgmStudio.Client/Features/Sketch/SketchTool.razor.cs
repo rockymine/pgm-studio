@@ -393,7 +393,6 @@ public partial class SketchTool
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await JS.InvokeVoidAsync("studio.icons");
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
         handle = await JS.InvokeAsync<IJSObjectReference>(

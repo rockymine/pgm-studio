@@ -32,11 +32,11 @@
               @if (n.HasKids)
               {
                 <button class="collapse-btn" @onclick="() => Toggle(n.Id)" @onclick:stopPropagation="true">
-                  <i data-lucide="@(collapsed.Contains(n.Id) ? "chevron-right" : "chevron-down")"></i>
+                  <Icon Name="@(collapsed.Contains(n.Id) ? "chevron-right" : "chevron-down")" />
                 </button>
               }
             </span>
-            <span class="geo-type-icon"><i data-lucide="@RegionNode.Icon(n.Type)"></i></span>
+            <span class="geo-type-icon"><Icon Name="@RegionNode.Icon(n.Type)" /></span>
             <span class="geo-label @(n.Synthetic ? "geo-label--synthetic" : null)" title="@n.Label">
               @(string.IsNullOrEmpty(n.Label) ? $"({n.Type})" : n.Label)
             </span>

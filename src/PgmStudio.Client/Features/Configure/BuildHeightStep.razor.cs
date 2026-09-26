@@ -34,8 +34,6 @@ public partial class BuildHeightStep
         // else: a build slice exists with no maxHeight → honour the author's "no ceiling" choice
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
     // Typed into the number input — the side-view picks up the new Height on re-render (blank = no ceiling).
     private void OnHeightInput(ChangeEventArgs e)
     {

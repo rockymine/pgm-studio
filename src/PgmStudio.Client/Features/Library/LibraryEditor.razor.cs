@@ -91,6 +91,4 @@ public partial class LibraryEditor
     /// the section it scrolls to cannot disagree about it.</summary>
     public static string SectionAnchor(string partId) => $"lib-section-{partId}";
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
 }

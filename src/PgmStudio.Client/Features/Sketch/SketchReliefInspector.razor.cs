@@ -56,8 +56,6 @@ public partial class SketchReliefInspector
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
     protected override async Task OnParametersSetAsync()
     {
         ReadState();

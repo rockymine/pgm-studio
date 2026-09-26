@@ -2,11 +2,7 @@
 
 @* One tool in the dock. A glyph when the thing it draws has a shape (rectangle, lasso, ruler); a colour
    swatch when the thing it draws is told apart by its colour on the canvas and not by its outline (a piece
-   role, a box kind) — the palette then reads like the drawing does.
-
-   The glyph is @keyed by its name because lucide replaces the <i> with an <svg> after render: a name that
-   changes (the flyout group promotes a picked tool into the main slot) has to recreate the node rather than
-   patch one the reconciler no longer owns. *@
+   role, a box kind) — the palette then reads like the drawing does. *@
 
 @* The name is aria-label + data-tip rather than title: the dock sits at the bottom of the canvas, and the
    browser's own tooltip renders BELOW the pointer, so on every one of these buttons it lands on the canvas
@@ -20,7 +16,7 @@
   }
   else if (!string.IsNullOrEmpty(Icon))
   {
-    <i data-lucide="@Icon" @key="@Icon"></i>
+    <Icon Name="@Icon" />
   }
   @ChildContent
 </button>

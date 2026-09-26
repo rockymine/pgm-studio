@@ -57,8 +57,6 @@ public partial class WorldSymmetryStep
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
 
     private async Task LoadIslandCount()
     {

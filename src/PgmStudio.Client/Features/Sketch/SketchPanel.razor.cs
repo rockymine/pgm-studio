@@ -40,6 +40,4 @@ public partial class SketchPanel
         _           => "square",
     };
 
-    // Re-render the lucide icons (chevrons / type glyphs) after the tree changes.
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 }

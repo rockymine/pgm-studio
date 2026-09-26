@@ -35,7 +35,7 @@
               <span class="list-swatch" style="background:@Hex(t.Color)"></span>
               <span class="list-label list-label--mono">@t.Id</span>
               <Badge Class="@(idx == 0 ? "badge--success" : "badge--dim")">@(idx == 0 ? "authored" : "orbit")</Badge>
-              <button class="btn-remove btn-remove--hover-only" title="Remove" @onclick:stopPropagation="true" @onclick="() => RemoveTeam(t)"><i data-lucide="x"></i></button>
+              <button class="btn-remove btn-remove--hover-only" title="Remove" @onclick:stopPropagation="true" @onclick="() => RemoveTeam(t)"><Icon Name="x" /></button>
             </ListRow>
           }
         </div>

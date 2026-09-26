@@ -9,14 +9,14 @@
     @if (HomeHref is not null)
     {
         <a class="topbar-breadcrumb-home" href="@HomeHref" title="@HomeTitle">
-            @if (HomeIcon is not null) { <i data-lucide="@HomeIcon"></i> }
+            @if (HomeIcon is not null) { <Icon Name="@HomeIcon" /> }
             <span>@HomeLabel</span>
         </a>
     }
     @Crumbs
     @if (ReadOnlyReason is not null)
     {
-        <span class="readonly-tag" role="status" title="@ReadOnlyReason"><i data-lucide="eye"></i><span>View only</span></span>
+        <span class="readonly-tag" role="status" title="@ReadOnlyReason"><Icon Name="eye" /><span>View only</span></span>
     }
     @if (Right is not null)
     {

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TUnit" Version="1.53.0" />
+    <!-- The studio's browser modules run in Jint, a JavaScript engine written in .NET, so the script tests need
+         no JavaScript runtime installed beside the SDK. -->
+    <PackageReference Include="Jint" Version="4.16.4" />
+    <!-- The icon set the client renders, so the names the markup asks for are checked against it. -->
+    <PackageReference Include="LucideBlazor" Version="1.0.6" />
+  </ItemGroup>
+
+</Project>

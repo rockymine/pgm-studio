@@ -20,11 +20,6 @@ public partial class CatalogTool
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
-    /// <summary>Re-run the lucide factory after every render: the panel's glyphs are created when it opens,
-    /// long after the page's first paint, and an unprocessed `&lt;i data-lucide&gt;` renders as a blank box.</summary>
-    protected override async Task OnAfterRenderAsync(bool firstRender) =>
-        await JS.InvokeVoidAsync("studio.icons");
-
     private IReadOnlyList<CatalogShapeDto> shapes = [];
     private IReadOnlyDictionary<string, int> byTier = new Dictionary<string, int>();
     private IReadOnlyDictionary<string, int> byFamily = new Dictionary<string, int>();

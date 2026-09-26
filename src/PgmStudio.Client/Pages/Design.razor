@@ -211,7 +211,7 @@
                   <div class="panel-list">
                     <ListRow Selected><span class="list-swatch ds-team-red"></span><span class="list-label">Red</span><Badge Kind="success">Ready</Badge></ListRow>
                     <ListRow><span class="list-swatch ds-team-blue"></span><span class="list-label">Blue</span><span class="list-tag">20 players</span></ListRow>
-                    <ListRow Compact><span class="geo-type-icon"><i data-lucide="cylinder"></i></span><span class="list-label list-label--mono">red-spawn</span><span class="list-tag">Red</span></ListRow>
+                    <ListRow Compact><span class="geo-type-icon"><Icon Name="cylinder" /></span><span class="list-label list-label--mono">red-spawn</span><span class="list-tag">Red</span></ListRow>
                     <ListRow>
                       <ChildContent><span class="list-label list-label--mono">drawn-map</span><span class="list-label">A row with its own action</span></ChildContent>
                       <Trailing><Button Icon="external-link">Open elsewhere</Button></Trailing>
@@ -235,13 +235,13 @@
                       <span class="author-mark author-mark--account">F</span>
                       <input class="field-input author-name" value="fakejustcupcakes"/>
                       <input class="field-input author-contribution" placeholder="Contribution (optional)"/>
-                      <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+                      <button class="btn-remove" title="Remove"><Icon Name="x" /></button>
                     </div>
                     <div class="author-row">
                       <span class="author-mark author-mark--account">K</span>
                       <input class="field-input author-name" value="killAce"/>
                       <input class="field-input author-contribution" value="Terrain"/>
-                      <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+                      <button class="btn-remove" title="Remove"><Icon Name="x" /></button>
                     </div>
                   </div>
                 </ChildContent>
@@ -273,19 +273,19 @@
                 <div class="region-tree">
                   <div class="geo-row geo-row--selected">
                     <span class="geo-indent">
-                      <button class="collapse-btn" title="Collapse"><i data-lucide="chevron-down"></i></button>
+                      <button class="collapse-btn" title="Collapse"><Icon Name="chevron-down" /></button>
                     </span>
-                    <span class="geo-type-icon"><i data-lucide="combine"></i></span>
+                    <span class="geo-type-icon"><Icon Name="combine" /></span>
                     <span class="geo-label">purple-wool-room</span>
                   </div>
                   <div class="geo-row geo-row--selected-child">
                     <span class="geo-indent"><span class="indent-pipe"></span></span>
-                    <span class="geo-type-icon"><i data-lucide="box"></i></span>
+                    <span class="geo-type-icon"><Icon Name="box" /></span>
                     <span class="geo-label">purple-wool-bounds</span>
                   </div>
                   <div class="geo-row">
                     <span class="geo-indent"></span>
-                    <span class="geo-type-icon"><i data-lucide="cylinder"></i></span>
+                    <span class="geo-type-icon"><Icon Name="cylinder" /></span>
                     <span class="geo-label">orange-wool-room</span>
                   </div>
                 </div>
@@ -312,8 +312,8 @@
             <Sidebar>
               <Section Title="Islands">
                 <div class="panel-list">
-                  <ListRow Selected><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Center</span></ListRow>
-                  <ListRow><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Team island</span></ListRow>
+                  <ListRow Selected><span class="geo-type-icon"><Icon Name="layers" /></span><span class="list-label">Center</span></ListRow>
+                  <ListRow><span class="geo-type-icon"><Icon Name="layers" /></span><span class="list-label">Team island</span></ListRow>
                 </div>
               </Section>
             </Sidebar>
@@ -380,7 +380,7 @@
         <span class="ds-axis ds-axis-z"></span>
         <CanvasReadout ZoomText="100%"><span class="canvas-readout-item">X 128 Z -64</span><span class="canvas-readout-item canvas-readout-item--size">48 × 32</span></CanvasReadout>
         <CanvasLayerBar>
-          <LayerChip Icon="grid" Active>Chunks</LayerChip>
+          <LayerChip Icon="grid-3x3" Active>Chunks</LayerChip>
           <LayerChip Icon="box">Blocks</LayerChip>
           <CanvasRoundButton Icon="scan" Title="Fit the working bounds" />
           <ViewModeToggle Title="Isometric height preview" />
@@ -513,24 +513,24 @@
       <div class="card-grid" style="margin-bottom: var(--space-4)">
         <a class="card card--action" href="#cards">
           <div class="card-head">
-            <span class="card-icon"><i data-lucide="pencil-ruler"></i></span>
+            <span class="card-icon"><Icon Name="pencil-ruler" /></span>
             <span class="card-title">Sketch</span>
           </div>
           <p class="card-desc">Draw a new map's islands from nothing — shapes, symmetry and mirror.</p>
           <span class="card-foot">
             <span class="card-foot-count">3 drafts</span>
-            <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
+            <span class="card-foot-go">Browse <Icon Name="arrow-right" /></span>
           </span>
         </a>
         <a class="card card--action" href="#cards">
           <div class="card-head">
-            <span class="card-icon"><i data-lucide="settings-2"></i></span>
+            <span class="card-icon"><Icon Name="settings-2" /></span>
             <span class="card-title">Configure</span>
           </div>
           <p class="card-desc">Turn a terrain-only world into a playable <code>map.xml</code>.</p>
           <span class="card-foot">
             <span class="card-foot-count">7 in progress</span>
-            <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
+            <span class="card-foot-go">Browse <Icon Name="arrow-right" /></span>
           </span>
         </a>
       </div>
@@ -539,12 +539,12 @@
           <ListRow Href="#cards">
             <span class="list-label list-label--mono">annealing_iv</span>
             <span class="list-label">Annealing IV</span>
-            <span class="list-go"><i data-lucide="arrow-right"></i></span>
+            <span class="list-go"><Icon Name="arrow-right" /></span>
           </ListRow>
           <ListRow Selected Href="#cards">
             <span class="list-label list-label--mono">somectwmap</span>
             <span class="list-label">somectwmap</span>
-            <span class="list-go"><i data-lucide="arrow-right"></i></span>
+            <span class="list-go"><Icon Name="arrow-right" /></span>
           </ListRow>
         </div>
       </div>

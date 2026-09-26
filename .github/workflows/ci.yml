@@ -1,9 +1,10 @@
 # The gates a contributor runs locally, on every pull request and every push to main.
 #
-# `checks` is everything that needs no database: the build, the seven test projects that stand alone, the JS
-# suite, the census and the file-based tool scripts. `database-and-browser` installs MariaDB on the runner the
-# way docs/cloud-setup.md does (the e2e script resets its schema through `sudo -n mariadb`, which a service
-# container cannot answer), then runs the three database test projects serially and the full browser sweep.
+# `checks` is everything that needs no database: the build, the eight test projects that stand alone (the
+# client's script tests among them, run in Jint), the census and the file-based tool scripts.
+# `database-and-browser` installs MariaDB on the runner the way docs/cloud-setup.md does (the e2e script resets
+# its schema through `sudo -n mariadb`, which a service container cannot answer), then runs the three database
+# test projects serially and the full browser sweep.
 #
 # Test projects run through `dotnet run --project`: `dotnet test` has no VSTest bridge on the .NET 10 SDK.
 
@@ -33,25 +34,18 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
       - name: Build
         run: dotnet build PgmStudio.slnx -v q
 
       - name: Test projects with no database
         run: |
           failed=0
-          for project in Vocabulary Geom Domain Pgm Analysis Minecraft Export; do
+          for project in Vocabulary Geom Domain Pgm Analysis Minecraft Export Client; do
             echo "::group::PgmStudio.$project.Tests"
             dotnet run --no-build --project "tests/PgmStudio.$project.Tests" || failed=1
             echo "::endgroup::"
           done
           exit $failed
-
-      - name: JS tests
-        run: bash tools/js-test.sh
 
       - name: Census is current
         run: bash tools/census.sh --check

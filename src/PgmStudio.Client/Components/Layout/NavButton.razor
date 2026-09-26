@@ -6,11 +6,11 @@
 
 @if (Href is not null)
 {
-    <a class="@Cls" href="@Href" title="@Title" data-status="@Status"><i data-lucide="@Icon"></i></a>
+    <a class="@Cls" href="@Href" title="@Title" data-status="@Status"><Icon Name="@Icon" /></a>
 }
 else
 {
-    <button class="@Cls" title="@Title" disabled="@Disabled" data-status="@Status" @onclick="OnClick"><i data-lucide="@Icon"></i></button>
+    <button class="@Cls" title="@Title" disabled="@Disabled" data-status="@Status" @onclick="OnClick"><Icon Name="@Icon" /></button>
 }
 
 @code {

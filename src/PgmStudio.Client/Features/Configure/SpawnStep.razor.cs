@@ -56,9 +56,6 @@ public partial class SpawnStep
         await EnsureObserverDefault();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
-
     private void LoadFromIntent()
     {
         teams.Clear();

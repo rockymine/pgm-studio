@@ -38,6 +38,4 @@ public partial class LibraryBrowser
 
     private void OnSearch(ChangeEventArgs e) => search = e.Value as string ?? "";
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
 }

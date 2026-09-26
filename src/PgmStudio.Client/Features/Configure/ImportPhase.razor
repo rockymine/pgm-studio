@@ -39,7 +39,7 @@
               @foreach (var c in candidates)
               {
                 <ListRow Compact Selected="c == selected" OnClick="() => Select(c)">
-                  <span class="geo-type-icon"><i data-lucide="@(c == selected ? "folder-open" : "folder")"></i></span>
+                  <span class="geo-type-icon"><Icon Name="@(c == selected ? "folder-open" : "folder")" /></span>
                   <span class="list-label list-label--mono">@c.Folder</span>
                   <span class="list-tag">@c.RegionFiles region files</span>
                   @if (c == selected) { <Badge Kind="success">selected</Badge> }
@@ -73,7 +73,7 @@
                      @onkeydown="@(e => { if (e.Key == "Enter") _ = ImportFromUrl(); })" />
               <Button Variant="primary" OnClick="ImportFromUrl" Busy="@importingUrl" BusyLabel="Fetching…"
                       Disabled="@(string.IsNullOrWhiteSpace(urlInput))">
-                <i data-lucide="download"></i><span>Fetch &amp; scan</span>
+                <Icon Name="download" /><span>Fetch &amp; scan</span>
               </Button>
             </div>
           </Field>
@@ -93,15 +93,15 @@
           <Section Title="Files">
             <div class="panel-list">
               <ListRow Compact Class="list-row--muted">
-                <span class="geo-type-icon"><i data-lucide="folder-open"></i></span>
+                <span class="geo-type-icon"><Icon Name="folder-open" /></span>
                 <span class="list-label list-label--mono">@SourceFolder/</span>
               </ListRow>
               <ListRow Compact Class="list-row--muted">
-                <span class="geo-type-icon"><i data-lucide="box"></i></span>
+                <span class="geo-type-icon"><Icon Name="box" /></span>
                 <span class="list-label list-label--mono">region/ · @SourceRegionFiles .mca</span>
               </ListRow>
               <ListRow Compact Class="list-row--muted">
-                <span class="geo-type-icon"><i data-lucide="file-x"></i></span>
+                <span class="geo-type-icon"><Icon Name="file-x" /></span>
                 <span class="list-label list-label--mono">map.xml</span>
                 <Badge Kind="dim">absent</Badge>
               </ListRow>
@@ -113,7 +113,7 @@
               @foreach (var f in Findings.Where(f => f.Group == "detected"))
               {
                 <ListRow Compact Selected="selectedFinding == f.Key" OnClick="() => SelectFinding(f.Key)">
-                  <span class="geo-type-icon"><i data-lucide="@f.Icon"></i></span>
+                  <span class="geo-type-icon"><Icon Name="@f.Icon" /></span>
                   <span class="list-label">@f.Label</span>
                   <span class="list-tag">@FindingTag(f.Key)</span>
                 </ListRow>
@@ -136,7 +136,7 @@
               @foreach (var f in Findings.Where(f => f.Group == "built"))
               {
                 <ListRow Compact Selected="selectedFinding == f.Key" OnClick="() => SelectFinding(f.Key)">
-                  <span class="geo-type-icon"><i data-lucide="@f.Icon"></i></span>
+                  <span class="geo-type-icon"><Icon Name="@f.Icon" /></span>
                   <span class="list-label">@f.Label</span>
                   <span class="list-tag">@FindingTag(f.Key)</span>
                 </ListRow>
@@ -232,7 +232,7 @@
             {
               <div class="card">
                 <div class="card-head">
-                  <span class="card-icon"><i data-lucide="@p.Icon"></i></span>
+                  <span class="card-icon"><Icon Name="@p.Icon" /></span>
                   <span class="card-title">@p.Title</span>
                   <span class="card-step">@(i + 1)</span>
                 </div>
@@ -242,7 +242,7 @@
           </div>
 
           <div class="callout">
-            <span class="callout-icon"><i data-lucide="repeat"></i></span>
+            <span class="callout-icon"><Icon Name="repeat" /></span>
             <p><strong>Build and reach go hand in hand.</strong> Before export, the studio checks that
               every team can actually reach every wool. If a path is missing it points you back to Build to
               drop in a bridge — so a map only ships once it's genuinely playable.</p>

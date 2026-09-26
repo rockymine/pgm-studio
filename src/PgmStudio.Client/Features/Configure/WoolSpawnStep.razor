@@ -19,7 +19,7 @@
           {
             <ListRow Compact Selected="selectedColor == w.Color"
                  @key="w.Color" OnClick="() => SelectWool(w.Color)">
-              <span class="geo-type-icon" style="color:@W.Hex(w.Color)"><i data-lucide="dot"></i></span>
+              <span class="geo-type-icon" style="color:@W.Hex(w.Color)"><Icon Name="dot" /></span>
               <span class="list-label list-label--mono">@w.Color</span>
               <Badge Class="@(IsAuthored(w) ? "badge--success" : "badge--dim")">@(IsAuthored(w) ? "authored" : "orbit")</Badge>
             </ListRow>

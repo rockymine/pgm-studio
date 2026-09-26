@@ -17,7 +17,7 @@
             var index = i;
             var core = cores[index];
             <ListRow Compact Selected="selected == index" @key="index" OnClick="() => Select(index)">
-              <span class="geo-type-icon" style="color:@TeamHex(core.Owner)"><i data-lucide="flame"></i></span>
+              <span class="geo-type-icon" style="color:@TeamHex(core.Owner)"><Icon Name="flame" /></span>
               <span class="list-label">@(string.IsNullOrEmpty(core.Name) ? "Core" : core.Name)</span>
               <Badge Kind="dim">@core.Size×@core.Height</Badge>
             </ListRow>

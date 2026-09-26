@@ -32,11 +32,11 @@
           @if (Just is not null && JustMap is not null)
           {
             <div class="callout">
-              <span class="callout-icon"><i data-lucide="check-circle-2"></i></span>
+              <span class="callout-icon"><Icon Name="circle-check" /></span>
               <p><strong>@JustMap.Name</strong> is rasterized and saved — ready to configure into a
                 playable <code>map.xml</code> whenever you are.</p>
               <Button Variant="primary" Href="@($"maps/{Just}/configure")" style="margin-left:auto;">
-                <i data-lucide="settings-2"></i><span>Continue to Configure</span>
+                <Icon Name="settings-2" /><span>Continue to Configure</span>
               </Button>
             </div>
           }
@@ -82,7 +82,7 @@
                         @foreach (var g in m.Gamemodes) { <span class="list-tag">@g.ToUpperInvariant()</span> }
                         @if (!string.IsNullOrEmpty(m.Version)) { <span class="list-tag">@($"v{m.Version}")</span> }
                       }
-                      <span class="list-go"><i data-lucide="arrow-right"></i></span>
+                      <span class="list-go"><Icon Name="arrow-right" /></span>
                     </ChildContent>
                     @* Every layer the map holds, each a direct link into that tool. A map keeps its plan and
                        its sketch after it has been built and configured, so this is where they stay

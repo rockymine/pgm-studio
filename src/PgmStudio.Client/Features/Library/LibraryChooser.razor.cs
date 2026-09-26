@@ -29,6 +29,4 @@ public partial class LibraryChooser
         return count == 1 ? $"1 {kind.One}" : $"{count} {kind.Title.ToLowerInvariant()}";
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
 }

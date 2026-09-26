@@ -42,9 +42,6 @@ public partial class WoolSpawnStep
         selectedColor = wools.FirstOrDefault()?.Color;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
-
     private Task OnCanvasReady() => Paint();
 
     private async Task OnPointPick((double X, double Z) p)

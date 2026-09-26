@@ -111,7 +111,7 @@
       @if (pinned.Count > 0)
       {
         <div class="gen-tray">
-          <span class="gen-tray-label"><i data-lucide="pin"></i> Held · @pinned.Count</span>
+          <span class="gen-tray-label"><Icon Name="pin" /> Held · @pinned.Count</span>
           <div class="gen-tray-items">
             @foreach (var p in pinned)
             {
@@ -125,7 +125,7 @@
                   <span class="gen-tray-stale" title="@StaleTitle(p)">@(p.ComposerVersion ?? "?")</span>
                 }
                 <span class="gen-tray-name" title="@p.Name">@p.Name</span>
-                <button class="gen-tray-x" @onclick="() => Unpin(p.Id)" title="Unpin"><i data-lucide="x"></i></button>
+                <button class="gen-tray-x" @onclick="() => Unpin(p.Id)" title="Unpin"><Icon Name="x" /></button>
               </div>
             }
           </div>
@@ -160,7 +160,7 @@
                 <span class="gen-card-land" title="@SpendTitle(spend)">@SpendShort(spend)</span>
               }
               <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
-                      title="@(IsPinned(card) ? "Unpin" : "Pin to hold tray")"><i data-lucide="pin"></i></button>
+                      title="@(IsPinned(card) ? "Unpin" : "Pin to hold tray")"><Icon Name="pin" /></button>
             </div>
           </div>
         }
@@ -246,7 +246,7 @@
       <Footer>
         <Button Full Icon="clipboard" OnClick="() => CopyDescriptor(d)">Copy descriptor</Button>
         <Button Full OnClick="() => TogglePin(d)">@(IsPinned(d) ? "Unpin" : "Pin to hold tray")</Button>
-        <Button Variant="primary" Full Icon="file-plus-2" OnClick="() => AuthorPlan(d)">Author this plan</Button>
+        <Button Variant="primary" Full Icon="file-plus-corner" OnClick="() => AuthorPlan(d)">Author this plan</Button>
       </Footer>
     </SideDrawer>
   }

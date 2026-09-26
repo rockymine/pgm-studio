@@ -22,7 +22,7 @@
         else if (admin == false)
         {
           <div class="callout">
-            <span class="callout-icon"><i data-lucide="shield"></i></span>
+            <span class="callout-icon"><Icon Name="shield" /></span>
             <p>Only an admin keeps the whitelist.</p>
           </div>
         }
@@ -67,7 +67,7 @@
                         <Select Options="Roles" Value="@user.Role" ValueChanged="v => SetRoleAsync(user, v)" Title="Role" />
                         <Button Variant="icon" Icon="link" Title="Open an invitation and show its link"
                                 OnClick="() => InviteAsync(user)" />
-                        <Button Variant="icon" Icon="trash-2" Title="Take off the whitelist"
+                        <Button Variant="icon" Icon="trash" Title="Take off the whitelist"
                                 OnClick="() => RemoveAsync(user)" />
                         </div>
                       </Trailing>

@@ -8,23 +8,18 @@
    Busy is the one state the button owns rather than reports: a control running its own action is
    disabled AND says what it is doing, and pairing the two here is what stops a call site doing one
    without the other. Busy replaces the icon and the child content with BusyLabel, because the verb a
-   button offers and the verb it is performing are different words.
-
-   The @key on the button is what makes that swap survive a Lucide glyph. Lucide replaces an
-   <i data-lucide> with an <svg> of its own, which detaches the <i> the renderer still holds; diffing
-   the children then removes a node whose parentNode is null. Keyed on Busy, the whole button is
-   replaced instead of walked, and the detached <i> goes with its parent. *@
+   button offers and the verb it is performing are different words. *@
 
 @if (Href is not null)
 {
     <a class="@Cls" href="@Href" title="@Title" @attributes="Extra">
-        @if (Icon is not null) { <i data-lucide="@Icon"></i> }
+        @if (Icon is not null) { <Icon Name="@Icon" /> }
         @ChildContent
     </a>
 }
 else
 {
-    <button @key="Busy" class="@Cls" type="@Type" title="@Title" disabled="@(Disabled || Busy)"
+    <button class="@Cls" type="@Type" title="@Title" disabled="@(Disabled || Busy)"
             @onclick="OnClick" @attributes="Extra">
         @if (Busy && BusyLabel is not null)
         {
@@ -32,7 +27,7 @@ else
         }
         else
         {
-            @if (Icon is not null) { <i data-lucide="@Icon"></i> }
+            @if (Icon is not null) { <Icon Name="@Icon" /> }
             @ChildContent
         }
     </button>

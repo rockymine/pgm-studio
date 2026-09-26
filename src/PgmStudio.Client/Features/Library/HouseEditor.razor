@@ -73,7 +73,7 @@
                   Disabled="@(index == 0)" OnClick="() => MoveStorey(index, -1)" />
           <Button Variant="icon" Icon="chevron-down" Title="Move up the building"
                   Disabled="@(index == draft.StoreyStack.Count - 1)" OnClick="() => MoveStorey(index, 1)" />
-          <Button Variant="icon" Icon="trash-2" Title="Remove this storey"
+          <Button Variant="icon" Icon="trash" Title="Remove this storey"
                   OnClick="() => RemoveStorey(index)" />
         </div>
       }
@@ -121,7 +121,7 @@
                      value="@course.Height" @onchange="e => SetCourseHeight(part.Id, course.Ordinal, e)" />
               @* Icon variant: the button carries a glyph and no label, which is what that variant is —
                  as a plain action-btn it kept the text padding and drew a wide box in a row of square ones. *@
-              <Button Variant="icon" Icon="trash-2" Title="Remove this course"
+              <Button Variant="icon" Icon="trash" Title="Remove this course"
                       OnClick="() => RemoveCourse(part.Id, course.Ordinal)" />
             </Trailing>
           </StyleSelect>
@@ -386,7 +386,7 @@
     @if (editingId is not null)
     {
       <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
-      <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
+      <Button Variant="danger" Icon="trash" OnClick="Delete">Delete</Button>
     }
   </Actions>
 </LibraryEditor>

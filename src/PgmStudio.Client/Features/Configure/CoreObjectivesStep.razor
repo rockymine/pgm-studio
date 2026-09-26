@@ -27,7 +27,7 @@
               var index = i;
               var core = cores[index];
               <ListRow Compact Selected="selected == index" @key="index" OnClick="() => Select(index)">
-                <span class="geo-type-icon" style="color:@TeamHex(core.Owner)"><i data-lucide="flame"></i></span>
+                <span class="geo-type-icon" style="color:@TeamHex(core.Owner)"><Icon Name="flame" /></span>
                 <span class="list-label">@(string.IsNullOrEmpty(core.Name) ? "Core" : core.Name)</span>
                 <Badge Kind="@(string.IsNullOrEmpty(core.Owner) ? "dim" : "neutral")">@(string.IsNullOrEmpty(core.Owner) ? "no team" : TeamName(core.Owner))</Badge>
               </ListRow>
@@ -44,19 +44,19 @@
               @foreach (var proposal in proposals)
               {
                 <ListRow Compact @key="proposal" OnClick="() => Confirm(proposal)">
-                  <span class="geo-type-icon text-muted"><i data-lucide="scan-search"></i></span>
+                  <span class="geo-type-icon text-muted"><Icon Name="scan-search" /></span>
                   <span class="list-label list-label--mono">@Where(proposal)</span>
                   <Badge Kind="dim">@proposal.Lava lava</Badge>
                 </ListRow>
               }
             </div>
             <Button Full Class="action-btn--separated" Variant="primary" OnClick="ConfirmAll">
-              <i data-lucide="check"></i> Confirm all @proposals.Count
+              <Icon Name="check" /> Confirm all @proposals.Count
             </Button>
           }
 
           <Button Full Class="action-btn--separated" Disabled="@loading" OnClick="DetectMapWide">
-            <i data-lucide="scan-search"></i> Re-read the scan (whole map)
+            <Icon Name="scan-search" /> Re-read the scan (whole map)
           </Button>
         }
         </ChildContent>
@@ -125,7 +125,7 @@
             }
 
             <div class="ctrl-row" style="margin-top:var(--space-2)">
-              <Button Fill OnClick="() => Remove(sel)" Title="Remove this core"><i data-lucide="trash-2"></i> Remove</Button>
+              <Button Fill OnClick="() => Remove(sel)" Title="Remove this core"><Icon Name="trash" /> Remove</Button>
             </div>
           </div>
         </Section>

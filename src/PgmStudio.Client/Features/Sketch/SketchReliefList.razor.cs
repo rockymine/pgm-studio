@@ -31,8 +31,6 @@ public partial class SketchReliefList
     private List<Group> groups = [];
     private string? selectedId;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
     protected override void OnParametersSet()
     {
         groups = [];

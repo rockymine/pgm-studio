@@ -11,10 +11,10 @@
   <div class="side-drawer" @onclick:stopPropagation="true">
     <div class="side-drawer-head">
       <div class="detail-header">
-        @if (!string.IsNullOrEmpty(Icon)) { <span class="geo-type-icon"><i data-lucide="@Icon"></i></span> }
+        @if (!string.IsNullOrEmpty(Icon)) { <span class="geo-type-icon"><Icon Name="@Icon" /></span> }
         <span class="detail-label">@Title</span>
       </div>
-      <button class="action-btn action-btn--icon" title="Close" @onclick="Close"><i data-lucide="x"></i></button>
+      <button class="action-btn action-btn--icon" title="Close" @onclick="Close"><Icon Name="x" /></button>
     </div>
     <div class="side-drawer-body">
       @Body

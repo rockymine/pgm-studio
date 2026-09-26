@@ -23,7 +23,7 @@
                 <PlayerHead Uuid="@me.Uuid" Name="@me.Name" Size="22" />
                 <span class="account-name">@me.Name</span>
                 <span class="account-role">@(me.Role ?? "guest")</span>
-                <i data-lucide="chevron-down"></i>
+                <Icon Name="chevron-down" />
             </button>
             @if (open)
             {
@@ -39,7 +39,7 @@
                         </div>
                     </div>
                     <button type="button" class="account-menu-item" role="menuitem" @onclick="SignOutAsync">
-                        <i data-lucide="log-out"></i><span>Sign out</span>
+                        <Icon Name="log-out" /><span>Sign out</span>
                     </button>
                 </div>
             }
@@ -48,7 +48,7 @@
     else
     {
         <a class="account-signin" href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))">
-            <i data-lucide="log-in"></i><span>Sign in with Discord</span>
+            <Icon Name="log-in" /><span>Sign in with Discord</span>
         </a>
     }
 }
@@ -58,8 +58,6 @@
     private bool open;
 
     protected override async Task OnInitializedAsync() => me = await Access.MeAsync();
-
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
     private async Task SignOutAsync()
     {

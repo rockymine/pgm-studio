@@ -60,9 +60,6 @@ public partial class DestroyableObjectivesStep
         loading = false;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
-
     private Task OnCanvasReady() => Paint();
 
     private void OnCanvasSelect(string? id)

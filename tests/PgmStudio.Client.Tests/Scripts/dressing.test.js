@@ -1,0 +1,653 @@
+// Placed dressing (dressing/dressing-doc.js + controllers/dressing-controller.js) — the half of the phase
+// that has no server in it. What is worth asserting is the interaction: that a drag places one thing and
+// ends when the button comes up, that a click drops a marker, and that the next thing placed inherits the
+// settings the last one was given — which is what lets an author place a stand of ten oaks.
+import { test } from "./_harness.js";
+import assert from "./_assert.js";
+
+import { DressingDoc, defaultProp, isMarker, isRect, MAX_FOOTPRINT, onLayer, propAnchor, propReach, rectFootprint,
+         translateProp } from "../../../src/PgmStudio.Client/wwwroot/js/studio/dressing/dressing-doc.js";
+import { DressingController, DRESSING_TOOLS }
+  from "../../../src/PgmStudio.Client/wwwroot/js/studio/controllers/dressing-controller.js";
+import { MIN_FOOTPRINT_SPAN } from "../../../src/PgmStudio.Client/wwwroot/js/studio/shared/building.js";
+import { layerAlpha, OFF_LAYER_ALPHA, paintDressing }
+  from "../../../src/PgmStudio.Client/wwwroot/js/studio/render/dressing-render.js";
+import { recordingPainter } from "./_painter-stub.js";
+
+// No handle layer and no viewport: the point grips are the one DOM-bearing part of the controller, and
+// `refreshHandles` is a no-op without a layer — so everything below exercises the interaction, not the SVG.
+const controller = (callbacks = {}) => {
+  const doc = new DressingDoc();
+  return { doc, tools: new DressingController(doc, null, null, callbacks) };
+};
+
+// A drag: press, trace, release — the whole interaction, and the reason there is no way to get stuck.
+function drag(tools, tool, points) {
+  tools.onMouseDown(points[0][0], points[0][1], tool);
+  for (const [x, z] of points.slice(1)) tools.onMouseMove(x, z, tool);
+  tools.onMouseUp();
+}
+
+// ── the document ──────────────────────────────────────────────────────────────
+test("a fresh prop of each kind starts at the same numbers the server does", () => {
+  assert.equal(defaultProp("stroke").radius, 3);
+  assert.equal(defaultProp("stroke").style, "solid");
+  // Water is drawn like a path but cuts a bed and fills it: a plain canal is what the other forms vary on.
+  assert.equal(defaultProp("water").form, "canal");
+  assert.equal(defaultProp("water").depth, 2);
+  assert.equal(defaultProp("water").shoreWander, true);
+  // Its bank (bed floor + beach) is a full terrain material, not one block — a cellular voronoi by default.
+  assert.equal(defaultProp("water").bank.kind, "voronoi");
+  assert.equal(defaultProp("water").bank.bands.length, 3);
+  // So is a path's paving, which is what lets it take a pattern.
+  assert.equal(defaultProp("stroke").pave.kind, "solid");
+  // A tree and a boulder are put down with a click, so what is placed is a position and what stands there is
+  // a recipe named from the library — empty until one is picked.
+  assert.equal(defaultProp("tree").style, "");
+  assert.equal(defaultProp("boulder").style, "");
+  assert.equal(defaultProp("tree").x, 0);
+  assert.equal(defaultProp("flora").spec.coverage, 0.45);
+  assert.throws(() => defaultProp("unicorn"));
+});
+
+test("markers are points and the rest are areas", () => {
+  assert.ok(isMarker("tree") && isMarker({ kind: "boulder" }));
+  assert.ok(!isMarker("stroke") && !isMarker({ kind: "flora" }));
+  assert.deepEqual(propAnchor({ kind: "tree", x: 4, z: 9 }), [4, 9]);
+  assert.deepEqual(propAnchor({ kind: "stroke", points: [[0, 0], [10, 20]] }), [5, 10]);
+});
+
+test("moving an area moves every point, so a drag keeps its shape", () => {
+  const moved = translateProp({ kind: "stroke", points: [[0, 0], [10, 4]] }, 3, -2);
+  assert.deepEqual(moved.points, [[3, -2], [13, 2]]);
+  assert.deepEqual(translateProp({ kind: "tree", x: 1, z: 1 }, 2, 2), { kind: "tree", x: 3, z: 3 });
+});
+
+test("a stored document round-trips, and a kind the client cannot draw is dropped", () => {
+  const doc = DressingDoc.from({ props: [
+    { kind: "tree", id: "d1", x: 1, z: 2 },
+    { kind: "wormhole", id: "d2" },
+  ] });
+  assert.equal(doc.props.length, 1);
+  assert.equal(doc.toJSON().props[0].kind, "tree");
+});
+
+test("ids are minted for props that arrive without one, and never collide with the ones that have", () => {
+  const doc = DressingDoc.from({ props: [{ kind: "tree", id: "d7", x: 0, z: 0 }, { kind: "tree", x: 1, z: 1 }] });
+  const ids = doc.props.map(p => p.id);
+  assert.equal(new Set(ids).size, 2);
+  const added = doc.add(defaultProp("boulder"));
+  assert.ok(!ids.includes(added.id));
+});
+
+// ── placing ───────────────────────────────────────────────────────────────────
+test("a click drops one marker where it was clicked", () => {
+  const { doc, tools } = controller();
+  tools.onMouseDown(12, 34, DRESSING_TOOLS ? "dress:tree" : "");
+  assert.equal(doc.props.length, 1);
+  assert.deepEqual([doc.props[0].x, doc.props[0].z], [12, 34]);
+  assert.equal(doc.props[0].kind, "tree");
+});
+
+test("a marker cannot be dropped into the void — it must land on terrain", () => {
+  // A tree seats on the ground; the export refuses one placed on nothing, so the canvas refuses it first. The
+  // terrain predicate the canvas supplies here says only the right half is land.
+  const doc = new DressingDoc();
+  const tools = new DressingController(doc, null, null, { onTerrain: (bx) => bx >= 0 });
+
+  tools.onMouseDown(-10, 5, "dress:tree");     // over the void
+  assert.equal(doc.props.length, 0);           // nothing placed
+  tools.onMouseDown(10, 5, "dress:boulder");   // over the land
+  assert.equal(doc.props.length, 1);
+  assert.deepEqual([doc.props[0].x, doc.props[0].z], [10, 5]);
+});
+
+test("a drag places one route, and releasing is what ends it", () => {
+  // The bug this replaced: a click-by-click path had no way to stop. Here the pointer-up *is* the end.
+  const { doc, tools } = controller();
+  drag(tools, "dress:stroke", [[0, 0], [4, 2], [9, 6], [14, 4], [20, 8]]);
+  assert.equal(doc.props.length, 1);
+  assert.equal(doc.props[0].kind, "stroke");
+  assert.ok(doc.props[0].points.length >= 2);
+  assert.deepEqual(doc.props[0].points[0], [0, 0]);
+  assert.deepEqual(doc.props[0].points.at(-1), [20, 8]);
+});
+
+test("a water channel is dragged as an open line, the same way a path is", () => {
+  // Water shares the path's press-trace-release: an open route kept in draw order, not a closed ring.
+  const { doc, tools } = controller();
+  drag(tools, "dress:water", [[0, 0], [6, 3], [12, 2], [20, 6]]);
+  assert.equal(doc.props.length, 1);
+  assert.equal(doc.props[0].kind, "water");
+  assert.ok(doc.props[0].points.length >= 2);
+  assert.deepEqual(doc.props[0].points[0], [0, 0]);
+  assert.deepEqual(doc.props[0].points.at(-1), [20, 6]);
+});
+
+test("a route keeps its direction; an area is simplified as an outline", () => {
+  const { doc, tools } = controller();
+  drag(tools, "dress:stroke", [[0, 0], [10, 0], [20, 0], [30, 0]]);
+  const route = doc.props[0].points;
+  assert.deepEqual(route[0], [0, 0]);
+  assert.deepEqual(route.at(-1), [30, 0]);
+
+  drag(tools, "dress:flora", [[0, 0], [10, 0], [10, 10], [0, 10], [0, 5]]);
+  assert.equal(doc.props[1].kind, "flora");
+  assert.ok(doc.props[1].points.length >= 3);
+});
+
+test("a drag too short to be anything places nothing", () => {
+  const { doc, tools } = controller();
+  tools.onMouseDown(5, 5, "dress:stroke");
+  tools.onMouseUp();
+  assert.equal(doc.props.length, 0);
+});
+
+test("two props of the same kind are two different props", () => {
+  // Same knobs, different seed — or a stand of oaks would be one oak stamped ten times.
+  const { doc, tools } = controller();
+  tools.onMouseDown(0, 0, "dress:boulder");
+  tools.onMouseDown(20, 20, "dress:boulder");
+  assert.notEqual(doc.props[0].seed, doc.props[1].seed);
+});
+
+// ── editing ───────────────────────────────────────────────────────────────────
+test("editing the selection carries into the next one placed", () => {
+  // The whole point of the tool having settings: widen one path and the next is already that wide.
+  const { doc, tools } = controller();
+  drag(tools, "dress:stroke", [[0, 0], [10, 0], [20, 0]]);
+  tools.updateSelected({ radius: 6, style: "rough" });
+
+  drag(tools, "dress:stroke", [[0, 40], [10, 40], [20, 40]]);
+  assert.equal(doc.props[1].radius, 6);
+  assert.equal(doc.props[1].style, "rough");
+});
+
+test("a click picks the prop under it, and the smallest one wins an overlap", () => {
+  const { doc, tools } = controller();
+  tools.onMouseDown(0, 0, "dress:tree");
+  drag(tools, "dress:flora", [[-20, -20], [20, -20], [20, 20], [-20, 20]]);
+
+  tools.onMouseDown(0, 0, "select");
+  assert.equal(doc.byId(tools.selectedId).kind, "tree");   // the marker, not the area it stands in
+  tools.onMouseDown(18, 18, "select");
+  assert.equal(doc.byId(tools.selectedId).kind, "flora");
+});
+
+test("dragging a placed prop moves it, and a press with nothing under it clears the selection", () => {
+  const { doc, tools } = controller();
+  tools.onMouseDown(10, 10, "dress:tree");
+  const id = tools.selectedId;
+
+  tools.onMouseDown(10, 10, "select");
+  tools.onMouseMove(16, 13, "select");
+  tools.onMouseUp();
+  assert.deepEqual([doc.byId(id).x, doc.byId(id).z], [16, 13]);
+
+  tools.onMouseDown(200, 200, "select");
+  assert.equal(tools.selectedId, null);
+});
+
+test("a placement ends its tool, so the next click picks the prop instead of dropping another", () => {
+  // The bug this replaced: the tree tool stayed armed, so clicking the tree you just placed planted a second
+  // one on top of it and there was no obvious way to pick one up.
+  let placed = 0;
+  const { tools } = controller({ onPlaced: () => placed++ });
+  tools.onMouseDown(4, 4, "dress:tree");
+  assert.equal(placed, 1);
+  drag(tools, "dress:stroke", [[0, 0], [10, 0], [20, 0]]);
+  assert.equal(placed, 2);
+  tools.updateSelected({ radius: 5 });        // a knob edit is not a placement
+  assert.equal(placed, 2);
+});
+
+test("a route's points are draggable one at a time — the band follows the line", () => {
+  const { doc, tools } = controller();
+  drag(tools, "dress:stroke", [[0, 0], [10, 0], [20, 0]]);
+  const id = tools.selectedId;
+  const before = doc.byId(id).points.length;
+
+  assert.ok(tools.beginPointDrag(id, 1));
+  tools.onHandleMove(10.4, 7.6);
+  assert.ok(tools.onHandleUp());
+  assert.deepEqual(doc.byId(id).points[1], [10, 8]);   // block-snapped where the cursor was
+  assert.equal(doc.byId(id).points.length, before);    // dragging a point never adds or drops one
+  assert.ok(!tools.onHandleUp());                      // the drag is over — nothing left to release
+});
+
+test("an area's outline is reshaped the same way, so a ground cover can be corrected in place", () => {
+  const { doc, tools } = controller();
+  drag(tools, "dress:flora", [[0, 0], [20, 0], [20, 20], [0, 20]]);
+  const id = tools.selectedId;
+
+  tools.beginPointDrag(id, 0);
+  tools.onHandleMove(-12, -9);
+  tools.onHandleUp();
+  assert.deepEqual(doc.byId(id).points[0], [-12, -9]);
+});
+
+test("a marker's grip drags it, and stops at the terrain edge like every other way of moving one", () => {
+  const doc = new DressingDoc();
+  const tools = new DressingController(doc, null, null, { onTerrain: (bx) => bx >= 0 });
+  tools.onMouseDown(10, 10, "dress:tree");
+  const id = tools.selectedId;
+
+  tools.beginPointDrag(id, -1);      // -1 is the anchor: a marker has one point and it is where it stands
+  tools.onHandleMove(24, 18);
+  assert.deepEqual([doc.byId(id).x, doc.byId(id).z], [24, 18]);
+  tools.onHandleMove(-30, 18);       // over the void — the drag simply doesn't follow
+  assert.deepEqual([doc.byId(id).x, doc.byId(id).z], [24, 18]);
+  tools.onHandleUp();
+});
+
+test("a point drag on a prop that is gone releases instead of throwing", () => {
+  const { tools } = controller();
+  tools.onMouseDown(0, 0, "dress:tree");
+  const id = tools.selectedId;
+  tools.beginPointDrag(id, -1);
+  tools.deleteSelected();
+  assert.ok(!tools.onHandleMove(5, 5));
+  assert.ok(!tools.onHandleUp());
+});
+
+test("delete removes the selection and nothing else", () => {
+  const { doc, tools } = controller();
+  tools.onMouseDown(0, 0, "dress:tree");
+  tools.onMouseDown(30, 30, "dress:boulder");
+  assert.ok(tools.deleteSelected());
+  assert.equal(doc.props.length, 1);
+  assert.equal(doc.props[0].kind, "tree");
+  assert.ok(!tools.deleteSelected());
+});
+
+// ── buildings: the third interaction ──────────────────────────────────────────
+test("a building is a rectangle, and reads the same whichever corner it was dragged from", () => {
+  assert.equal(isRect("house"), true);
+  assert.equal(isRect("flora"), false);
+
+  const forward = rectFootprint({ points: [[4, 6], [12, 14]] });
+  assert.deepEqual(forward, { minX: 4, minZ: 6, width: 9, depth: 9 });
+  assert.deepEqual(rectFootprint({ points: [[12, 14], [4, 6]] }), forward);
+  assert.deepEqual(rectFootprint({ points: [[12, 6], [4, 14]] }), forward);
+});
+
+test("a rectangle under the least span any footprint takes is no footprint at all", () => {
+  // MIN_FOOTPRINT_SPAN is the one law: a room's footprint is the single-wing case of a building's, so the
+  // floor a wing is held to is the floor a room is held to.
+  assert.equal(rectFootprint({ points: [[0, 0], [1, 8]] }), null);
+  assert.equal(rectFootprint({ points: [[0, 0], [MIN_FOOTPRINT_SPAN - 2, 8]] }), null);   // one short
+  assert.notEqual(rectFootprint({ points: [[0, 0], [MIN_FOOTPRINT_SPAN - 1, MIN_FOOTPRINT_SPAN - 1]] }), null);
+  assert.equal(rectFootprint({ points: [[0, 0]] }), null);
+});
+
+test("dragging a building keeps two corners however far the pointer wandered", () => {
+  // A rectangle's second corner is rewritten by every move where a traced outline appends one — otherwise a
+  // wandering drag would store a hundred points the stamp has no use for.
+  const { doc, tools } = controller();
+  drag(tools, "dress:house", [[2, 3], [5, 6], [9, 4], [12, 9]]);
+
+  assert.equal(doc.props.length, 1);
+  assert.equal(doc.props[0].kind, "house");
+  assert.equal(doc.props[0].wings.length, 1);
+  // A wing is stored as the server reads it — an AuthoredWing, corners under their own key, so the wing has
+  // somewhere to state its storeys, roof and ridge.
+  assert.equal(doc.props[0].wings[0].corners.length, 2);
+  assert.deepEqual(rectFootprint(doc.props[0]), { minX: 2, minZ: 3, width: 11, depth: 7 });
+});
+
+test("a building drag too small to stand up places nothing", () => {
+  const { doc, tools } = controller();
+  drag(tools, "dress:house", [[4, 4], [5, 9]]);
+  assert.equal(doc.props.length, 0);
+});
+
+test("a building moves as a whole, corners together", () => {
+  const moved = translateProp({ kind: "house", wings: [{ corners: [[2, 3], [10, 9]] }] }, 5, -2);
+  assert.deepEqual(moved.wings, [{ corners: [[7, 1], [15, 7]] }]);
+});
+
+test("moving a building keeps what each wing states about itself", () => {
+  // The corners move; the spec is the wing's own statement and has nothing to do with where it stands.
+  const moved = translateProp(
+    { kind: "house", wings: [{ corners: [[0, 0], [8, 6]], spec: { ridge: "AlongZ", storeysHigh: 2 } }] }, 3, 3);
+  assert.deepEqual(moved.wings[0].corners, [[3, 3], [11, 9]]);
+  assert.deepEqual(moved.wings[0].spec, { ridge: "AlongZ", storeysHigh: 2 });
+});
+
+test("a building of several wings moves every wing by the same delta", () => {
+  const moved = translateProp(
+    { kind: "house", wings: [{ corners: [[0, 0], [10, 6]] }, { corners: [[0, 7], [6, 12]] }] }, 5, -2);
+  assert.deepEqual(moved.wings,
+    [{ corners: [[5, -2], [15, 4]] }, { corners: [[5, 5], [11, 10]] }]);
+});
+
+test("a building tool is a tool like any other", () => {
+  assert.equal(DRESSING_TOOLS["dress:house"], "house");
+  assert.equal(isMarker("house"), false);
+  assert.deepEqual(defaultProp("house").wings, []);
+  assert.equal(defaultProp("house").front, null);
+});
+
+test("a building larger than a small house is refused, and the canvas refuses the same one the stamp does", () => {
+  assert.equal(MAX_FOOTPRINT, 192);
+  assert.notEqual(rectFootprint({ points: [[0, 0], [11, 15]] }), null);   // 12x16, the largest there is
+  assert.equal(rectFootprint({ points: [[0, 0], [11, 16]] }), null);      // 12x17
+  assert.notEqual(rectFootprint({ points: [[0, 0], [15, 11]] }), null);   // the same rectangle turned
+  assert.equal(rectFootprint({ points: [[0, 0], [19, 29]] }), null);      // 20x30, a building, not scenery
+});
+
+test("a building drag past the cap places nothing", () => {
+  const { doc, tools } = controller();
+  drag(tools, "dress:house", [[0, 0], [40, 40]]);
+  assert.equal(doc.props.length, 0);
+});
+
+test("a building of several wings anchors in the middle of the whole plan, not just the first wing", () => {
+  // An L: a hall along x, and a cross wing off its west end — the same shape HousePropTests.Ell() draws.
+  const ell = { kind: "house", wings: [{ corners: [[0, 0], [10, 6]] }, { corners: [[0, 7], [6, 12]] }] };
+  assert.deepEqual(propAnchor(ell), [5, 6]);   // middle of the box the whole plan spans, x:0-10, z:0-12
+});
+
+// ── the dressing layer draws, whatever a prop turns out to hold ────────────────
+// The layer is painted in one pass, so one prop that throws takes every other prop down with it — which is
+// how a wing shape the canvas did not recognise made the trees and boulders disappear along with the houses.
+
+test("a joined building paints one silhouette, not a box per wing", () => {
+  const painter = recordingPainter();
+  const ell = { id: "h1", kind: "house", front: "posZ",
+                wings: [{ corners: [[0, 0], [10, 6]] }, { corners: [[0, 7], [6, 12]], spec: { ridge: "AlongZ" } }] };
+
+  paintDressing(painter, [ell]);
+
+  // One building, one outline: the wings are stamped as a single shell under one roof, and drawn as a box
+  // each they read as two buildings with a seam down the middle.
+  const rings = painter.of("ring");
+  assert.equal(rings.length, 1);
+  const ring = rings[0][0];
+  assert.equal(ring.length, 6, "an L has six corners");
+  // The silhouette spans both wings and holds no point inside the notch the L cuts.
+  const xs = ring.map(([x]) => x), zs = ring.map(([, z]) => z);
+  assert.deepEqual([Math.min(...xs), Math.max(...xs)], [0, 11]);
+  assert.deepEqual([Math.min(...zs), Math.max(...zs)], [0, 13]);
+  assert.ok(!ring.some(([x, z]) => x === 11 && z === 13), "the notch is not filled in");
+});
+
+test("wings that do not touch still paint an outline each", () => {
+  const painter = recordingPainter();
+  const apart = { id: "h2", kind: "house",
+                  wings: [{ corners: [[0, 0], [9, 7]] }, { corners: [[40, 0], [49, 7]] }] };
+
+  paintDressing(painter, [apart]);
+  assert.equal(painter.of("ring").length, 2);
+});
+
+test("a prop the canvas cannot read is skipped, and the props beside it still paint", () => {
+  const painter = recordingPainter();
+  const broken = { id: "bad", kind: "house", wings: [{ nonsense: true }] };
+  const tree = { id: "t1", kind: "tree", x: 20, z: 20, height: 6 };
+
+  assert.doesNotThrow(() => paintDressing(painter, [broken, tree]));
+  assert.ok(painter.calls.length > 0, "the tree beside the unreadable building still drew");
+});
+
+// ── the storey a placement rests on ───────────────────────────────────────────
+// A layer is the board's, not the prop's: whatever is placed lands on the storey being drawn on, the way a
+// stroke lands on the active layer in any paint program.
+test("a prop placed on a stated layer records it", () => {
+  const doc = new DressingDoc().setLayer("upper");
+  const placed = doc.add(defaultProp("tree", 1));
+  assert.equal(placed.layer, "upper");
+  assert.equal(doc.toJSON().props[0].layer, "upper", "and it is what the layout stores");
+});
+
+test("a flat board names no layer, which is what an unstacked board has always meant", () => {
+  const placed = new DressingDoc().add(defaultProp("tree", 1));
+  assert.equal(placed.layer, undefined);
+});
+
+test("a prop that already names a layer keeps it", () => {
+  const doc = new DressingDoc().setLayer("upper");
+  const placed = doc.add({ ...defaultProp("boulder", 2), layer: "ground" });
+  assert.equal(placed.layer, "ground", "an edit re-placing a prop does not move it to the storey on screen");
+});
+
+test("a stored layer survives a read", () => {
+  const doc = DressingDoc.from({ props: [{ kind: "tree", id: "d1", layer: "upper", x: 0, z: 0 }] });
+  assert.equal(doc.props[0].layer, "upper");
+});
+
+// ── which storey a prop is drawn on ───────────────────────────────────────────
+// A stacked board's props are all drawn, and the ones on another storey dimmed, so a gallery-floor tree and
+// the roof tree over it read as two floors rather than one plane. A dimmed prop is context: a click reaches
+// only the storey being drawn on, the way another layer's shapes ghost and are not picked.
+test("a prop on the active storey draws at full strength, one on another storey dimmed", () => {
+  assert.equal(layerAlpha({ kind: "tree", layer: "roof" }, "roof"), 1);
+  assert.equal(layerAlpha({ kind: "tree", layer: "gallery" }, "roof"), OFF_LAYER_ALPHA);
+  assert.ok(OFF_LAYER_ALPHA > 0 && OFF_LAYER_ALPHA < 1, "dimmed, not hidden");
+});
+
+test("a prop naming no storey, or a board with none active, is never dimmed", () => {
+  assert.equal(layerAlpha({ kind: "tree" }, "roof"), 1, "an unlayered prop rests on the top surface");
+  assert.equal(layerAlpha({ kind: "tree", layer: "gallery" }, ""), 1);
+  assert.ok(onLayer({ kind: "tree" }, "roof"));
+});
+
+test("the dressing layer dims every ring of a prop on another storey, and only that prop", () => {
+  const painter = recordingPainter();
+  const here = { id: "t1", kind: "tree", x: 0, z: 0, height: 6, layer: "roof" };
+  const below = { id: "t2", kind: "tree", x: 40, z: 0, height: 6, layer: "gallery" };
+  paintDressing(painter, [here, below], { activeLayer: "roof" });
+  const [first, second] = painter.of("ring").map(call => call[1].alpha);
+  assert.equal(first, 1);
+  assert.equal(second, OFF_LAYER_ALPHA);
+});
+
+test("a click picks only a prop on the storey being drawn on", () => {
+  const { doc, tools } = controller();
+  doc.setLayer("gallery");
+  const under = doc.add({ ...defaultProp("tree", 1), x: 10, z: 10 });
+  doc.setLayer("roof");
+  tools.onMouseDown(10, 10, "select");
+  assert.equal(tools.selectedId, null, "the gallery tree under the roof is not reached from the roof");
+  doc.setLayer("gallery");
+  tools.onMouseDown(10, 10, "select");
+  assert.equal(tools.selectedId, under.id);
+});
+
+test("moving a selected prop to another storey writes its layer, and the next one placed still takes the active storey", () => {
+  const { doc, tools } = controller();
+  doc.setLayer("roof");
+  tools.onMouseDown(10, 10, "dress:tree");
+  const moved = tools.updateSelected({ layer: "gallery" });
+  assert.equal(moved.layer, "gallery");
+  assert.equal(doc.toJSON().props[0].layer, "gallery", "and it is what the layout stores");
+
+  tools.onMouseDown(30, 30, "dress:tree");
+  assert.equal(doc.props[1].layer, "roof", "a storey is where one prop rests, not a starting value");
+});
+
+// ── joining buildings into one ────────────────────────────────────────────────
+// A building is one rectangle or several touching ones. Two rectangles an author drew separately become one
+// building by being picked together and joined; the same chord takes a joined one apart. What is asserted is
+// that the pair round-trips and that the wings survive it, since a wing carries its own roof and ridge.
+
+/** Place a building at a rectangle, returning its id. */
+function building(tools, doc, [x0, z0], [x1, z1]) {
+  drag(tools, "dress:house", [[x0, z0], [x1, z1]]);
+  return doc.props[doc.props.length - 1].id;
+}
+
+test("two picked buildings join into one of two wings, and take apart again", () => {
+  const { doc, tools } = controller();
+  const west = building(tools, doc, [0, 0], [9, 7]);
+  const east = building(tools, doc, [10, 0], [19, 7]);   // abutting along x = 10
+  assert.equal(doc.props.length, 2);
+
+  tools.select(west);
+  tools.select(east, true);
+  assert.deepEqual(tools.selection, [west, east]);
+
+  assert.deepEqual(tools.joinSelection(), { done: "joined", wings: 2 });
+  assert.equal(doc.props.length, 1);
+  assert.equal(doc.byId(west).wings.length, 2);
+
+  assert.deepEqual(tools.joinSelection(), { done: "apart", wings: 2 });
+  assert.equal(doc.props.length, 2);
+  assert.equal(doc.byId(west).wings.length, 1);
+});
+
+test("a join is refused where the two buildings stand on the same ground", () => {
+  const { doc, tools } = controller();
+  const first = building(tools, doc, [0, 0], [9, 7]);
+  const second = building(tools, doc, [5, 0], [14, 7]);   // overlapping x = 5..9
+  tools.select(first);
+  tools.select(second, true);
+
+  const answer = tools.joinSelection();
+  assert.ok(answer.refused, "two buildings sharing ground are not one building");
+  assert.equal(doc.props.length, 2, "a refused join changes nothing");
+});
+
+test("a building is not dragged onto another building's ground", () => {
+  const { doc, tools } = controller();
+  const still = building(tools, doc, [0, 0], [9, 7]);
+  const moving = building(tools, doc, [20, 0], [29, 7]);
+  const before = JSON.stringify(doc.byId(moving).wings);
+
+  // Grab the moving building and push it straight through the standing one.
+  tools.onMouseDown(25, 4, "select");
+  for (let step = 1; step <= 20; step++) tools.onMouseMove(25 - step, 4, "select");
+  tools.onMouseUp();
+
+  const after = doc.byId(moving).wings;
+  assert.notEqual(JSON.stringify(after), before, "the drag still moves it as far as it legally goes");
+  const west = Math.min(after[0].corners[0][0], after[0].corners[1][0]);
+  assert.ok(west > 9, `stopped against the standing building, not through it (reached x=${west})`);
+  assert.equal(doc.props.length, 2);
+  assert.equal(doc.byId(still).wings.length, 1);
+});
+
+test("shift-clicking a picked building takes it back out of the selection", () => {
+  const { doc, tools } = controller();
+  const west = building(tools, doc, [0, 0], [9, 7]);
+  const east = building(tools, doc, [10, 0], [19, 7]);
+  tools.select(west);
+  tools.select(east, true);
+  tools.select(east, true);
+  assert.deepEqual(tools.selection, [west]);
+});
+
+test("a join is refused where the two buildings do not touch", () => {
+  const { doc, tools } = controller();
+  const here = building(tools, doc, [0, 0], [9, 7]);
+  const yonder = building(tools, doc, [40, 40], [49, 47]);
+  tools.select(here);
+  tools.select(yonder, true);
+
+  const answer = tools.joinSelection();
+  assert.ok(answer.refused, "wings that never meet are not one shell under one roof");
+  assert.equal(doc.props.length, 2);
+});
+
+test("a corner touch is not an edge to join on", () => {
+  const { doc, tools } = controller();
+  const first = building(tools, doc, [0, 0], [9, 7]);
+  const second = building(tools, doc, [10, 8], [19, 15]);   // meets the first at one corner only
+  tools.select(first);
+  tools.select(second, true);
+  assert.ok(tools.joinSelection().refused);
+});
+
+// ── the recipe registry ───────────────────────────────────────────────────────
+// A tree and a boulder are a click, so what is placed is a position and what stands there is a recipe the
+// document names once. The registry rides with the placements, because a key naming no recipe is a refusal
+// and the document is the only thing that can carry both halves.
+
+test("a pulled recipe is stated once however many placements name it", () => {
+  const doc = new DressingDoc();
+  doc.pull("oak-10", { kind: "tree", form: "template", species: "oak", height: 10 });
+  doc.add({ ...defaultProp("tree", 1), style: "oak-10", x: 0, z: 0 });
+  doc.add({ ...defaultProp("tree", 2), style: "oak-10", x: 9, z: 0 });
+
+  const stored = doc.toJSON();
+  assert.equal(stored.props.length, 2);
+  assert.equal(Object.keys(stored.styles).length, 1);
+  assert.equal(stored.styles["oak-10"].height, 10);
+  assert.deepEqual(stored.props.map(p => p.style), ["oak-10", "oak-10"]);
+});
+
+test("pulling the same recipe again is the entry already held", () => {
+  const doc = new DressingDoc();
+  const oak = { kind: "tree", form: "template", species: "oak", height: 10 };
+  assert.equal(doc.pull("oak-10", oak), "oak-10");
+  doc.add({ ...defaultProp("tree", 1), style: "oak-10" });
+
+  // The same recipe, arriving as a fresh object with its fields written in another order.
+  assert.equal(doc.pull("oak-10", { height: 10, species: "oak", form: "template", kind: "tree" }), "oak-10");
+  assert.equal(Object.keys(doc.toJSON().styles).length, 1);
+});
+
+test("a recipe already held answers its own key however the row pulling it is named", () => {
+  const doc = new DressingDoc();
+  doc.pull("oak-10", { kind: "tree", form: "template", species: "oak", height: 10 });
+  // A second library row, named differently and made of the same thing, is not a second recipe.
+  assert.equal(doc.pull("my-oak", { kind: "tree", form: "template", species: "oak", height: 10 }), "oak-10");
+  assert.deepEqual(Object.keys(doc.styles), ["oak-10"]);
+});
+
+test("two library rows sharing a name are two recipes, and the first keeps its placements", () => {
+  const doc = new DressingDoc();
+  assert.equal(doc.pull("oak", { kind: "tree", form: "template", species: "oak", height: 10 }), "oak");
+  doc.add({ ...defaultProp("tree", 1), style: "oak" });
+
+  // A different row, and the display name the author gave it is one the registry already holds.
+  assert.equal(doc.pull("oak", { kind: "tree", form: "template", species: "oak", height: 22 }), "oak-2");
+  assert.equal(doc.pull("oak", { kind: "tree", form: "template", species: "birch", height: 22 }), "oak-3");
+
+  // What the placement already down is made of did not move.
+  assert.equal(doc.styles["oak"].height, 10);
+  assert.equal(doc.styles["oak-2"].height, 22);
+  assert.equal(doc.props[0].style, "oak");
+});
+
+test("a pull states nothing without a name or a recipe", () => {
+  const doc = new DressingDoc();
+  assert.equal(doc.pull("", { kind: "tree" }), null);
+  assert.equal(doc.pull("oak", null), null);
+  assert.equal(Object.keys(doc.styles).length, 0);
+});
+
+test("a document with no recipes writes no registry", () => {
+  const { doc, tools } = controller();
+  drag(tools, "dress:stroke", [[0, 0], [5, 0]]);
+  assert.equal(doc.toJSON().styles, undefined);
+});
+
+test("a stored registry round-trips", () => {
+  const doc = new DressingDoc();
+  doc.pull("cairn-3", { kind: "boulder", form: "cairn", size: 3 });
+  doc.add({ ...defaultProp("boulder", 1), style: "cairn-3" });
+  const back = DressingDoc.from(doc.toJSON());
+  assert.equal(back.styles["cairn-3"].form, "cairn");
+  assert.equal(back.props[0].style, "cairn-3");
+});
+
+test("pruning drops the recipes nothing names", () => {
+  const doc = new DressingDoc();
+  doc.pull("kept", { kind: "tree", height: 10 });
+  doc.pull("tried-and-moved-off", { kind: "tree", height: 30 });
+  doc.add({ ...defaultProp("tree", 1), style: "kept" });
+
+  doc.prune();
+  assert.deepEqual(Object.keys(doc.styles), ["kept"]);
+});
+
+test("a marker's reach is its recipe's, so the hit test follows what stands there", () => {
+  const doc = new DressingDoc();
+  doc.pull("tall", { kind: "tree", form: "template", species: "oak", height: 40 });
+  const small = { ...defaultProp("tree", 1), style: "" };
+  const tall = { ...defaultProp("tree", 2), style: "tall" };
+
+  assert.equal(propReach(small, doc.styles), Math.max(3, 12 * 0.35));
+  assert.equal(propReach(tall, doc.styles), 40 * 0.35);
+});

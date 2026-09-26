@@ -79,7 +79,6 @@ public partial class GeneratorTool : IAsyncDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await JS.InvokeVoidAsync("studio.icons");
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
         await RefreshPinned();

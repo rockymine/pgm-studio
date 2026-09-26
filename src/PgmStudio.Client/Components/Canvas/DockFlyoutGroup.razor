@@ -20,20 +20,13 @@
    cannot close a sibling it does not know about. *@
 
 <div class="canvas-dock-collapsed">
-  @* Keyed on the option, so promoting one REPLACES this button rather than patching it.
-     A glyph cannot be swapped in place here: lucide replaces the <i data-lucide> with an <svg> after every
-     render, so by the time the slot changes there is no <i> left for Blazor to re-point — it patches a node
-     it no longer owns and the button keeps the old icon while its tooltip and armed state say otherwise
-     (a promoted "destroyable" that still showed a flag). Keying the whole button moves the swap up to the
-     one element in here that is still Blazor's: it removes the button, svg and all, and inserts a fresh
-     subtree whose <i data-lucide> studio.icons then converts. *@
-  <DockButton @key="Active.Key" Icon="@Active.Icon" Swatch="@Active.Swatch" SwatchClass="@Active.SwatchClass"
+  <DockButton Icon="@Active.Icon" Swatch="@Active.Swatch" SwatchClass="@Active.SwatchClass"
               Title="@Active.Name" Active="@Armed" OnClick="() => OnPick.InvokeAsync(Active.Key)" />
   @* The chevron is the flyout's anchor, not just its trigger — the menu hangs from this box's left edge. *@
   <span class="canvas-dock-chevron-anchor">
     <button class="canvas-dock-chevron" type="button" aria-label="@Label" data-tip="@Label"
             aria-expanded="@Open" @onclick="OnToggleOpen">
-      <i data-lucide="chevron-up" @key="@("chevron-up")"></i>
+      <Icon Name="chevron-up" />
     </button>
     @if (Open)
     {
@@ -46,7 +39,7 @@
             <span class="canvas-dock-flyout-check">
               @if (item.Key == Active.Key)
               {
-                <i data-lucide="check" @key="@("check")"></i>
+                <Icon Name="check" />
               }
             </span>
             <span class="canvas-dock-flyout-mark">
@@ -56,7 +49,7 @@
               }
               else if (!string.IsNullOrEmpty(item.Icon))
               {
-                <i data-lucide="@item.Icon" @key="item.Icon"></i>
+                <Icon Name="@item.Icon" />
               }
             </span>
             <span class="canvas-dock-flyout-label">@item.Name</span>

@@ -4,7 +4,7 @@
    through for external links. *@
 
 <a class="app-footer-link" href="@Href" @attributes="Extra">
-    @if (Icon is not null) { <i data-lucide="@Icon"></i> }
+    @if (Icon is not null) { <Icon Name="@Icon" /> }
     <span>@ChildContent</span>
 </a>
 

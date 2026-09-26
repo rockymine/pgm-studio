@@ -60,9 +60,6 @@ public partial class WoolMonumentsStep
             Selected is { } w0 ? Capturers(w0).FirstOrDefault(t => MonumentFor(w0, t.Id) is not null)?.Id : null);
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
-
     private Task OnCanvasReady() => Paint();
 
     private void OnCanvasSelect(string? id)

@@ -92,9 +92,6 @@ public partial class WoolRoomStep
                 ghosts[w.Color] = w.Rooms.ToList();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
-
     private Task OnCanvasReady() => Paint();
 
     private async Task OnRectDrawn((double MinX, double MinZ, double MaxX, double MaxZ) r)

@@ -31,7 +31,7 @@ public partial class HouseViews : IAsyncDisposable
     [
         (All, "All", "layout-grid", "The building over the three cuts"),
         (Iso, "3-D", "box", "The building standing up, turnable"),
-        (Plan, "Plan", "grid", "The roof from above — its form, its hole, its overhang"),
+        (Plan, "Plan", "grid-3x3", "The roof from above — its form, its hole, its overhang"),
         (Section, "Section", "layers", "The course stack, cut open"),
         (Cutaway, "Cutaway", "square-dashed", "One plane at the scale of the pieces in it"),
     ];

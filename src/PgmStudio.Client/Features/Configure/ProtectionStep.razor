@@ -18,7 +18,7 @@
             <ListRow Compact Selected="selectedRegionId == row.RegionId"
                  @key="row.RegionId" OnClick="() => SelectRow(row.RegionId)">
               <span class="list-swatch" style="background:@Hex(row.Team)"></span>
-              <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
+              <span class="geo-type-icon"><Icon Name="rectangle-horizontal" /></span>
               <span class="list-label list-label--mono">@row.Name</span>
               <Badge Class="@(row.Authored ? "badge--success" : "badge--dim")">@(row.Authored ? "authored" : "orbit")</Badge>
             </ListRow>
@@ -77,8 +77,8 @@
             <Actions><Badge Kind="dim">derived</Badge></Actions>
             <ChildContent>
             <div class="panel-list">
-              <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = only-@TeamSlug(sel.Team)</span></ListRow>
-              <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = never</span></ListRow>
+              <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><Icon Name="link" /></span><span class="list-label list-label--mono">enter = only-@TeamSlug(sel.Team)</span></ListRow>
+              <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><Icon Name="link" /></span><span class="list-label list-label--mono">block = never</span></ListRow>
             </div>
             <p class="section-desc">The generator wires these onto the whole zone — enemies can't enter and it
               can't be edited.</p>

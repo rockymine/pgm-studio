@@ -50,8 +50,6 @@ public partial class TeamAssignStep
         await LoadIslands();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-        => await JS.InvokeVoidAsync("studio.icons");
 
     private void LoadFromIntent()
     {
