@@ -465,14 +465,13 @@ and what a `subtract` takes away.
   that drew one, and it is gone. Retire the field on both request DTOs (`EditRequests.cs`), `RegionNode`'s
   echo (`RegionTreeDtos.cs`), `RegionDrafts` and the artifact, and `docs/pgm/region-data-flow.md` §5 with them.
 
-- [~] **WS74 — Traversability reads 187 of 911 corpus maps as not connected.** These are played maps, so
+- [~] **WS74 — Traversability reads 169 of 911 corpus maps as not connected.** These are played maps, so
 most verdicts are still the reading's. By first cause: 81 separate ground, 41 a point with no ground near,
-39 a team barred by an `enter` rule, 25 a sealed room, 1 a wool stated off the world with no spawner or chest
-to stand in for it. Nineteen read connected before the reading was corrected and now read apart, which is
-the correction exposing a gap it was hiding: 11 through a `<deny>` that answered "conditional" everywhere
-(`ki` forbids bridging between its bases, so how it is crossed is the author's question), 4 through water at
-the floor no rule opens, 1 (`standstill`) through a cobweb line read as a walkway. Take the rest per cause,
-reading each against PGM. `docs/world-scan/read-backs.md`.
+27 a team barred by an `enter` rule, 20 a sealed room. Known and left: `abstract` stacks six spawns per team
+one above another behind spawn filters, `curly_wools_ix` asks defenders to pillar up to their wool,
+`black_betty` has a broken void setup, the cannon maps fight across void, and `citadel` is attack/defend,
+where only the attackers need the wool. Take the rest per cause, reading each against PGM.
+`docs/world-scan/read-backs.md`.
 
   *Evidence: `ki` states `<apply block-place="deny(void)" region="bases">` "You may not bridge to the enemy
   side!"; `outcast`'s halves are joined only by water at y ≤ 1.*

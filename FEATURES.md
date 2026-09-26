@@ -8020,6 +8020,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   290 → 187 of 911, `columbia_ctw` among them: a wool stated on its room's edge stands in the barred room
   nearest it. (`WS74`)
 
+- **Protections have heights and doors can be broken (`WS74`, part)** — an `enter` rule bars only the heights
+  its region covers (`RegionGeometry2d.Heights`), so a cuboid wool room over a spawn leaves the spawn open; the
+  scan records door runs (glass, panes, their stained forms, nether brick fence: `door_run`, `M0041`) and the
+  walk opens them where the map lets players break (`Editability.Result.BreakableAt`); a spawner whose regions
+  are child elements is read. Corpus traversability: not connected 187 → 169 of 911. (`WS74`)
+
 - **A wool stated outside the world is judged at its source (`WS75`)** — `Traversability.Check` takes the wool
   sources the scan found (`FeatureData.WoolSourcesAsync` on the `traversability` endpoint, the parquet rows
   under `--goldens`), and a wool whose `location` lies outside the world's columns is seated at its colour's
