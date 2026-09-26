@@ -465,9 +465,9 @@ and what a `subtract` takes away.
   that drew one, and it is gone. Retire the field on both request DTOs (`EditRequests.cs`), `RegionNode`'s
   echo (`RegionTreeDtos.cs`), `RegionDrafts` and the artifact, and `docs/pgm/region-data-flow.md` §5 with them.
 
-- [~] **WS74 — Traversability reads 188 of 911 corpus maps as not connected.** These are played maps, so
+- [~] **WS74 — Traversability reads 187 of 911 corpus maps as not connected.** These are played maps, so
 most verdicts are still the reading's. By first cause: 81 separate ground, 41 a point with no ground near,
-40 a team barred by an `enter` rule, 25 a sealed room, 1 a wool stated off the world with no spawner or chest
+39 a team barred by an `enter` rule, 25 a sealed room, 1 a wool stated off the world with no spawner or chest
 to stand in for it. Nineteen read connected before the reading was corrected and now read apart, which is
 the correction exposing a gap it was hiding: 11 through a `<deny>` that answered "conditional" everywhere
 (`ki` forbids bridging between its bases, so how it is crossed is the author's question), 4 through water at

@@ -1431,7 +1431,7 @@
     "columbia_ctw": {
       "regions": "08D844BD31EA 18 regions · observer_spawn=1 other=1 spawn=10 wool=6",
       "build": "4AFB0FC1CF1F 373x185 · build_zone=0 filtered=5708 ground=62889 sealed=408",
-      "trav": "317145A24481 connected=False components=1 points=6 warning",
+      "trav": "29304117D234 connected=True components=1 points=6 ok",
       "wool": "28A6A34332A4 4/4 obtainable · 1 resources"
     },
     "comb_conquest": {

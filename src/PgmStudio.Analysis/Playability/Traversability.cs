@@ -147,6 +147,26 @@ public static class Traversability
         return point;
     }
 
+    /// <summary>The barred cell a goal stands in: its own, or the nearest within <see cref="SnapRadius"/>, since a
+    /// wool is stated on its room's edge as often as inside it — a location of 128.5 against a room whose
+    /// rectangle ends at 128 is a column the rule does not bar. Null where nothing near the goal is barred.</summary>
+    private static (int X, int Z)? BarredNear((int X, int Z) cell, IReadOnlySet<(int X, int Z)> denied)
+    {
+        for (var radius = 0; radius <= SnapRadius; radius++)
+        {
+            (int X, int Z)? nearest = null; var best = int.MaxValue;
+            for (var dx = -radius; dx <= radius; dx++)
+                for (var dz = -radius; dz <= radius; dz++)
+                {
+                    if (Math.Max(Math.Abs(dx), Math.Abs(dz)) != radius || !denied.Contains((cell.X + dx, cell.Z + dz))) continue;
+                    var distance = dx * dx + dz * dz;
+                    if (distance < best) (best, nearest) = (distance, (cell.X + dx, cell.Z + dz));
+                }
+            if (nearest is not null) return nearest;
+        }
+        return null;
+    }
+
     /// <summary>How far a marker's cell may be off the ground and still be read as standing on it.</summary>
     private const int SnapRadius = 3;
 
@@ -181,25 +201,26 @@ public static class Traversability
                 if (point.Kind == "spawn") continue;
                 var component = ComponentOf(point, ground, components);
                 if (component > 0 && spawnComponents.Contains(component)) continue;
-                if (point.Owner == team && Approaches(point, shared, denied, spawns,
-                        EntryDenials.Protection(data, team, point.Cell, over))) continue;
+                if (point.Owner == team && BarredNear(point.Cell, denied) is { } barred
+                    && Approaches(point, barred, shared, denied, spawns, EntryDenials.Protection(data, team, barred, over)))
+                    continue;
                 yield return new IsolatedPoint(point.Kind, point.Name, For: team);
             }
         }
     }
 
     /// <summary>Whether a team can walk up to a goal of its own it may not stand on: the same journey from its
-    /// own spawns, over its own ground plus the one barred patch the goal stands in. Reaching that patch is
+    /// own spawns, over its own ground plus the one barred patch the goal stands in (<paramref name="barred"/>). Reaching that patch is
     /// reaching the protection's border, which is as far as a defender of a wool room ever goes and is
     /// therefore the whole of what the goal asks of its own team. The patch is the goal's 4-connected area of
     /// this team's denied cells, together with the named protection it stands in
     /// (<see cref="EntryDenials.Protection"/>), and nothing else is given back, so a route that would have to
     /// cross a second protection is still cut. False where nothing bars the team at the goal at all — the goal is then simply
     /// out of reach, whoever walks.</summary>
-    private static bool Approaches(NavPoint goal, WalkGround shared, IReadOnlySet<(int X, int Z)> denied,
-        List<NavPoint> spawns, IReadOnlySet<(int X, int Z)> protection)
+    private static bool Approaches(NavPoint goal, (int X, int Z) barred, WalkGround shared,
+        IReadOnlySet<(int X, int Z)> denied, List<NavPoint> spawns, IReadOnlySet<(int X, int Z)> protection)
     {
-        var patch = Cells.Flood([goal.Cell], denied);
+        var patch = Cells.Flood([barred], denied);
         patch.UnionWith(protection.Where(denied.Contains));
         if (patch.Count == 0) return false;
 

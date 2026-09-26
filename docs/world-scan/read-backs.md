@@ -171,7 +171,9 @@ spawn's protection until it swallows the approach to its own wool and the shared
 refuses under `EX1` where the goal is one that team must take. A goal the team *defends* is asked a weaker
 question there, since its own wool room bars it by design: the walk only has to reach the barred ground's
 border, where the barred ground is the protection the goal stands in — the innermost union the author named
-around it, so a room and the lane into it are one border even where a row between them was missed. Both ends are snapped on the shared ground before the team's is walked, so a barred
+around it, so a room and the lane into it are one border even where a row between them was missed. A wool stated on
+its room's edge — 128.5 against a rectangle ending at 128 — stands in the barred cell nearest it within the
+3-block snap every point takes. Both ends are snapped on the shared ground before the team's is walked, so a barred
 objective answers unreachable rather than sliding sideways to the nearest cell the team may stand on.
 
 **A control point is a goal the reads count, and it is the one nobody owns.** `NavPoints` resolves the places

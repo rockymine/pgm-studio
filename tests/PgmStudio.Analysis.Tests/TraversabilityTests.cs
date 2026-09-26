@@ -451,4 +451,38 @@ public sealed class TraversabilityTests
         await Assert.That(res.Connected).IsTrue();
         await Assert.That(res.Isolated).IsEmpty();
     }
+
+    [Test]
+    public async Task A_wool_stated_on_its_rooms_edge_stands_in_the_room()
+    {
+        // The room's rectangle ends at x = 30 and the wool is stated at 30.5, so the wool's own column is past
+        // the rule — columbia_ctw states all four wools that way. Blue defends it and walks up to the room.
+        var data = new Dict
+        {
+            ["regions"] = new Dict
+            {
+                ["red-spawn"] = Rect(0, 0, 4, 4),
+                ["blue-spawn"] = Rect(8, 0, 12, 4),
+                ["wool-room"] = Rect(20, 0, 30, 4),
+            },
+            ["filters"] = new Dict
+            {
+                ["only-blue"] = new Dict { ["type"] = "team", ["team"] = "blue" },
+                ["not-blue"] = new Dict { ["type"] = "not", ["child"] = "only-blue" },
+            },
+            ["spawns"] = new List<object?>
+            {
+                new Dict { ["team"] = "red", ["region"] = "red-spawn" },
+                new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
+            },
+            ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["team"] = "blue", ["location"] = Xz(30.5, 2) } },
+            ["apply_rules"] = new List<object?> { new Dict { ["region"] = "wool-room", ["enter"] = "not-blue" } },
+        };
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x < 30; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+
+        var res = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 40, 15));
+
+        await Assert.That(res.Connected).IsTrue();
+    }
 }
