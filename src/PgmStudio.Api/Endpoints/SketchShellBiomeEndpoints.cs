@@ -78,13 +78,19 @@ public sealed class SketchRoomStyleWriteEndpoint(MapRepository repo, MapArtifact
             return;
         }
 
-        var stated = SketchFinishWrite.StyleStated(await RawBody.ReadAsync(HttpContext, ct));
+        var body = await RawBody.ReadAsync(HttpContext, ct);
+        var stated = SketchFinishWrite.StyleStated(body);
         if (!stated.Readable)
         {
             await Refusals.UnreadableAsync(HttpContext, "malformed room style",
                 "the body is not a house style. Post `null` to ask for open ground, or DELETE the binding to "
                 + "go back to the built-in shell.", ct, field: $"roomStyles.{part}");
             return;
+        }
+        if (stated.Node is not null)
+        {
+            HouseStyleJson.Deserialize(body, out var unread);
+            Complaints.Unread(HttpContext, unread);
         }
 
         var layoutJson = await SketchPartWrite.LayoutOf(artifacts, map.Id, ct);
@@ -167,13 +173,14 @@ public sealed class SketchBiomeWriteEndpoint(MapRepository repo, MapArtifactStor
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         var body = await RawBody.ReadAsync(HttpContext, ct);
-        if (SketchFinishWrite.BiomeStated(body) is null)
+        if (SketchFinishWrite.BiomeStated(body) is not { } field)
         {
             await Refusals.UnreadableAsync(HttpContext, "malformed biome",
                 "the body is not a biome field: it states `kind` as `solid`, `cell` or `noise`.",
                 ct, field: "biome");
             return;
         }
+        Complaints.Unread(HttpContext, body, field);
 
         var layoutJson = await SketchPartWrite.LayoutOf(artifacts, map.Id, ct);
         var written = await SketchPartWrite.StoreAsync(HttpContext, artifacts, map.Id,

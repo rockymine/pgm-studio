@@ -8113,6 +8113,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   drawn at full strength.
   `docs/world-scan/read-backs.md`. (`WS78`)
 
+- **A part write names the field it had no place for (`TS111`)** — `PUT …/sketch/biome`, `…/sketch/themes/{id}` and
+  `…/sketch/room-styles/{part}` read the posted body the way the stored document is read and answer every field
+  it has no place for as an `RQ3` complaint on `warnings`, so `{"kind":"solid","biome":3}` says `biome` was not
+  read instead of storing plains in silence. `docs/tools/sketch.md`. (`TS111`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
