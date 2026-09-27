@@ -398,7 +398,7 @@ coordinates there and the time of the cut (UTC), which a template never carries.
 ones it does not read are inert rather than wrong, and switching form keeps every field: a body survives a
 look at what the same recipe would be as a template, and the species chosen for it is still chosen on the way
 back. A `boulder_style` is four statements — form, size,
-whether moss takes its sky-lit faces, and the material it is cut from, which is a full terrain material and
+whether moss specks a tenth of its sky-lit faces, and the material it is cut from, which is a full terrain material and
 so may be any of the fourteen kinds.
 
 **A copied tree is cut out of a world, not typed in.** `dotnet run tools/seed-trees.cs <worldDir> [name]`

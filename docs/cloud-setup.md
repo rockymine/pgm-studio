@@ -82,6 +82,14 @@ connection to `pgm_studio_test` (a module initializer forces `ConnectionStrings_
 an ambient dev-server value can't redirect the tests at the live DB) and shares one `[NotInParallel("api-db")]`
 group so no per-test schema reset overlaps another test.
 
+## Block textures for `render/eye`
+
+`render/eye` draws with Minecraft's own block sprites, which the studio never ships (`docs/world-scan/read-backs.md`).
+In a container the simplest source is Mojang's server, which the network policy reaches: set
+`Textures__AcceptMojangEula=true` in the API's environment — which accepts Mojang's EULA — and the first eye
+read downloads the 1.8.9 client jar once, checks its hash and keeps it under the local application data
+folder. Without it every eye read answers **503** (`RQ10`) naming the setting.
+
 ## End-to-end (it runs here — don't assume otherwise)
 `./tools/e2e.sh all` works in the container, and it is the only check that exercises the Blazor surfaces at
 all. Nothing extra needs installing: **Playwright is already global** (`/opt/node22`, resolved by

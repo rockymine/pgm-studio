@@ -194,6 +194,14 @@ builder.Services.AddHttpClient<PgmStudio.Api.Services.MojangClient>(c =>
     c.Timeout = TimeSpan.FromSeconds(5);
     c.DefaultRequestHeaders.UserAgent.ParseAdd("pgm-studio/1.0");
 });
+// The game's own block sprites, for render/eye: read from a jar the operator names, or downloaded once from
+// Mojang when the operator has accepted its EULA (docs/world-scan/read-backs.md).
+builder.Services.AddSingleton<PgmStudio.Api.Services.BlockTextureStore>();
+builder.Services.AddHttpClient(PgmStudio.Api.Services.BlockTextureStore.ClientName, c =>
+{
+    c.Timeout = TimeSpan.FromMinutes(2);
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("pgm-studio/1.0");
+});
 // What actually resolves a person: the name's own shape and what is already known come first, so the same
 // few people an author types are asked of Mojang once rather than on every intent write.
 builder.Services.AddScoped<PlayerNameStore>();

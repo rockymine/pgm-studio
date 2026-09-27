@@ -1061,8 +1061,8 @@ and one row, and retuning that row retunes the grove.
 **A boulder** is a glacial erratic: a mass standing on the ground, bedded a third of its height into it. It
 takes a `form` — `round` (a weathered erratic), `angular` (the same rock, its surface broken), `outcrop` (wide
 flat lobes with their middle at the surface, a low shelf rather than a rock) or `cairn` (three shrinking lobes
-stacked) — a `size` from 2 to 10 blocks of reach, default 4, a `mossy` flag for whether moss creeps onto the
-sky-lit faces, and `rock`, a full terrain material like a stroke's paving. All four are the recipe's. A rock's material resolves in the
+stacked) — a `size` from 2 to 10 blocks of reach, default 4, a `mossy` flag for whether moss specks a tenth of
+the sky-lit faces, and `rock`, a full terrain material like a stroke's paving. All four are the recipe's. A rock's material resolves in the
 **boulder's own frame** rather than the map's, so a mottled stone carries the same mottling to every image of
 its orbit instead of sampling whatever the world pattern says where each image happened to land.
 

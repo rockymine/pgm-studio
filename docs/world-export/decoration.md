@@ -404,7 +404,8 @@ objective stampers already build. Seat a `BlockBox` on `SurfaceTop` (via `Surfac
 cells that pass an ellipsoid test — `((x−cx)/rx)² + (y/ry)² ≤ 1`, the squared-distance mask `StampCore`'s
 `Inset` and `StampDestroyable`'s `InPlusSection` are the precedent for. The finish is a material and a
 micro-mask: stone, andesite, mossy cobble, blackstone — and moss creeping onto the top-lit faces, itself a
-tiny `Unit` mask, so the finish carries its own micro-flora.
+tiny `Unit` mask, so the finish carries its own micro-flora. The moss takes a tenth of those faces: mossy
+cobblestone reads as rock only as rare specks beside the stone it grows on (the author's ruling).
 
 **What a boulder is, is a glacial erratic** (the author's ruling): a mass a glacier carried and left, large,
 rounded but irregular, standing on the ground with weight. That decides its proportion, its seating and its

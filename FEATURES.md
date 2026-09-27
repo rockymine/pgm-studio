@@ -8054,6 +8054,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   axis it keeps (`RegionBoundsDeriver.Mirror`, shared by the parser and the storage round-trip), which lets
   `mont_blanc`, `royal_ascend` and `cargo` serialize at all. (`RP74`)
 
+- **A board seen from a player's eye, in the game's own sprites (`WS76`)** — `GET …/render/eye` draws the built
+  world in perspective with Minecraft's 1.8 block textures (`Render/EyeScene`, `Render/BlockFaces`,
+  `Render/BlockTextureSet`, `Geom/Render/PngReader`). `look=x,z` frames a thing the document places — a
+  boulder, a spawn, a house — from open ground with a clear sight line; `from=x,z` stands the eye by hand;
+  `flat=1` draws the same frame one colour a block; `?format=text` answers the camera and the frame's blocks
+  by share. The sprites come from a jar the operator names (`Textures:Jar`) or from Mojang once its EULA is
+  accepted (`Textures:AcceptMojangEula`), checked by hash and never shipped; without them the read is `RQ10`
+  at 503. `docs/world-scan/read-backs.md`. (`WS76`)
+
+- **Moss on a boulder is a sprinkle (`WE136`)** — a mossy boulder takes mossy cobblestone on a tenth of its
+  sky-lit faces rather than more than half, which is the author's limit for it on a rock
+  (`Decorator.MossShare`). `docs/world-export/decoration.md`. (`WE136`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
