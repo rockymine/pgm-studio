@@ -115,4 +115,21 @@ public sealed class SketchThemeEndpointsTests
         await Assert.That((await client.DeleteAsync($"{Themes}/nope")).StatusCode)
             .IsEqualTo(HttpStatusCode.NotFound);
     }
+
+    /// <summary>A theme posted with a field no theme has is stored, and the answer names the field — a
+    /// misspelled bucket paints the default in silence otherwise.</summary>
+    [Test]
+    public async Task A_theme_field_it_does_not_have_is_answered_unread()
+    {
+        using var client = await SketchBoard.FreshAsync();
+        var theme = JsonSerializer.SerializeToNode(SketchBoard.Theme())!.AsObject();
+        theme["surfase"] = JsonSerializer.SerializeToNode(new { material = new { kind = "solid", id = 12 }, depth = 1 });
+
+        var resp = await client.PutAsJsonAsync($"{Themes}/meadow", theme);
+
+        await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
+        var warnings = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("warnings").EnumerateArray()
+            .Where(w => w.GetProperty("rule").GetString() == "RQ3").Select(w => w.GetProperty("field").GetString()!);
+        await Assert.That(warnings).IsEquivalentTo(new[] { "surfase" });
+    }
 }

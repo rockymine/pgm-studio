@@ -106,6 +106,8 @@ public sealed class SketchThemeWriteEndpoint(MapRepository repo, MapArtifactStor
                 ct, field: "themes");
             return;
         }
+        TerrainThemeJson.Deserialize(body, out var unread);
+        Complaints.Unread(HttpContext, unread);
 
         var layoutJson = await SketchPartWrite.LayoutOf(artifacts, map.Id, ct);
         var edited = SketchThemeWrite.With(layoutJson, id, JsonNode.Parse(body));

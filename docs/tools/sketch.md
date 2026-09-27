@@ -946,7 +946,9 @@ as `(a shell the library does not hold)` rather than as the built-in one.
 ```
 
 That map stamps its wool cages with the bound style and gives its spawns no building at all. Leaving `spawn`
-out entirely — rather than writing `null` — is the third state, and stamps the built-in spawn shell.
+out entirely — rather than writing `null` — is the third state, and stamps the built-in spawn shell. The built-in shell is the placeholder a board is drawn with, so every build of a board whose rooms of a
+kind still stand in it answers `WX14` on `warnings`, once per kind, naming the rooms and the `roomStyles`
+field to bind (`docs/world-export/structures.md` §9).
 
 **All three are one select per kind**: `(the built-in shell)`, `(no building)`, then every room style the
 library holds. The row's ✕ appears once a kind is off the built-in and returns it there, which is the state
@@ -1285,7 +1287,8 @@ forgiving than the writer: a prop's own enum fields (`style`, `form`) are matche
 `"Worn"` or `"WORN"` reads the same as `"worn"`, and `kind` — the discriminator that says which prop or which
 material an object is — no longer has to be an object's first key (`DR-DOC`). What `kind` cannot be is a word the
 reader does not know: `"boulderr"` or a missing `kind` both refuse the document by name rather than being
-silently misread. A document that fails to parse anywhere — one bad field, one unrecognized `kind` — refuses
+silently misread — in a placement and in a recipe alike, down to a material inside a house recipe's shell, whose
+refusal names the recipe and the field (`shell.storeys[1].deck`). A document that fails to parse anywhere — one bad field, one unrecognized `kind` — refuses
 the whole export rather than exporting with fewer props than it was asked for; see *What it refuses* in
 `configure.md`, since the refusal fires at export, not while the sketch is merely saved.
 
@@ -1312,12 +1315,18 @@ the dressing placed; and the first two boulders. Spawns and objectives are shown
 a different team's first sight of the board; a prop is shown once, at the first image of its orbit.
 
 **A building is framed from its footprint rather than by the eye.** The eye finds its own place for a small
-thing — a boulder, a monument — but what it reads as a thing's ground and top is the columns around it, and
-inside a building those are its roof, with a wool room's marker floating over that. So a spawn, a wool room or a
-house is looked at from the terrain outside it, on the side facing the board's middle (a spawn's front), far
-enough back that its width and height fit the frame, and tipped to the middle of its body. A side whose sight
-line meets a hill, a rock or a wall is passed over for a nearer stand and then for the next side round; where
-none is clear, the eye is left to find its own place.
+thing — a boulder — but what it reads as a thing's ground and top is the columns around it, and inside a
+building those are its roof, with a wool room's marker floating over that. So a spawn, a wool room or a house is
+looked at from the terrain outside it, on the side facing the board's middle (a spawn's front), far enough back
+that its width and height fit the frame, and tipped to the middle of its body. A side whose sight line meets a
+hill, a rock or a wall is passed over for a nearer stand and then for the next side round, and so is a stand
+so far below the thing that the eye would look up at it more steeply than 20°.
+
+**A goal is framed from the box it was built in.** A destroyable or a core is seen from its box and a control
+point from its pad, the ground under it to the box's top, so the sky marker hanging over the goal is never what
+the eye aims at. Where no stand on the ground sees a building or a goal — a monument down in a crater — the eye
+rises into the air over the same stands and looks down at 25°, 45° and then 65°; where none of those is clear
+either, it is left to find its own place.
 
 **A picture opens large**, at 1280×720, with its name and where the eye stands; `←` and `→` step through the
 gallery, `Esc` closes it, and **Full size** opens the 1920×1080 picture in a tab of its own. A kept view can be
@@ -1803,7 +1812,7 @@ in the same two registers.
 | `DELETE /map/{slug}/sketch/props/{propId}` | `{id}` — take one placement off the board. The recipe it named stays in the registry, since a key is shared by every placement wearing it | 409 · **404 the id names no placement** |
 | `GET /map/{slug}/sketch/themes` | `{themes{}, mapTheme}` — the registry by the id an author registered each theme under, and which of it covers every cell no shape scope claims. A registry entry the painter cannot read as a theme is left out, the same way the painter drops it | 404 |
 | `GET /map/{slug}/sketch/themes/{themeId}` | one `TerrainTheme`, as the painter reads it | 404 the registry carries no such id |
-| `PUT /map/{slug}/sketch/themes/{themeId}` | `{id}` — register a theme under an id, replacing whatever that id carried. The one write in the sketch that creates and replaces through the same verb, because a registry entry is addressed by the name an author gave it | 400 `malformed theme` `RQ1` · 400 `invalid style or theme` `PT*` · 409 stale `If-Match` · 404 |
+| `PUT /map/{slug}/sketch/themes/{themeId}` | `{id}` — register a theme under an id, replacing whatever that id carried. The one write in the sketch that creates and replaces through the same verb, because a registry entry is addressed by the name an author gave it. A field no theme has — a misspelled bucket — is stored as posted and named on `warnings` as `RQ3` | 400 `malformed theme` `RQ1` · 400 `invalid style or theme` `PT*` · 409 stale `If-Match` · 404 |
 | `DELETE /map/{slug}/sketch/themes/{themeId}` | `{id}` — take a theme out of the registry. **It does not refuse over what still names the id**: a shape painting with a theme the registry stopped carrying takes the map default, and the map default naming one takes unthemed stone, both already `SK3` complaints on the stored document. They ride back on this write | 409 · 404 the registry carries no such id |
 | `PUT /map/{slug}/sketch/map-theme` | `{id}` — which registered theme covers every cell no shape's own scope claims. Body `{"theme": "<id>"}`; a null or absent theme clears it, which paints unthemed stone. Naming a theme the registry does not carry is stored and complained about (`SK3`) rather than refused | 400 `malformed request` `RQ1` · 409 · 404 |
 | `GET /map/{slug}/sketch/relief` | every group's relief, by the group id it is solved over — a group rather than a shape, because a relief solved per shape leaves a seam wherever two of them meet and disagree about the height they share | 404 |
@@ -1811,10 +1820,10 @@ in the same two registers.
 | `PUT /map/{slug}/sketch/relief/{groupId}` | `{id}` — state one group's interior elevation, replacing whatever that group carried. **It does not check the group exists**: whether the id still names a fusion is `SK1`'s question on the compile path, where losing hand-authored terrain is the risk worth refusing over, and answering it here would refuse a relief written before the geometry it belongs to | 400 `malformed relief` `RQ1` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/relief/{groupId}` | `{id}` — take one group's relief off the board, leaving its ground as flat as the shapes drew it | 409 · 404 |
 | `GET /map/{slug}/sketch/room-styles` | `{wool, spawn}` — both shells **resolved**, which is what the stampers will read: a part that is absent answers its built-in shell and a part bound to open ground answers null. Raw snapshots would not say which of the three states a caller is in | 404 |
-| `PUT /map/{slug}/sketch/room-styles/{part}` | `{id}` — bind the shell one kind of room is stamped in; `part` is `wool` or `spawn`. **A body of literal `null` is a statement, not an omission**: it asks for open ground, a pad rather than a building over it, which is what a spawn on a plateau the plan already shaped often wants to be | 400 `unknown room part` / `malformed room style` `RQ1` · 400 `invalid style or theme` `HS*` · 409 · 404 |
+| `PUT /map/{slug}/sketch/room-styles/{part}` | `{id}` — bind the shell one kind of room is stamped in; `part` is `wool` or `spawn`. **A body of literal `null` is a statement, not an omission**: it asks for open ground, a pad rather than a building over it, which is what a spawn on a plateau the plan already shaped often wants to be. A field no house style has is named on `warnings` as `RQ3` | 400 `unknown room part` / `malformed room style` `RQ1` · 400 `invalid style or theme` `HS*` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/room-styles/{part}` | `{id}` — unbind, which puts that kind of room back to its **built-in** shell. Not the same as binding null | 409 · 404 nothing is bound |
 | `GET /map/{slug}/sketch/biome` | one `BiomeField` — `solid`, `cell` or `noise`. The library's own rows are `GET /api/biome-patterns`, and every biome with the colours it tints with and the biomes of the same colour is `GET /api/terrain/biomes` | 400 `unreadable biome` `RQ1` · 404 the board states none, which is plains everywhere |
-| `PUT /map/{slug}/sketch/biome` | `{id}` — which biome each column of the exported world carries. Map-wide and answered per chunk, because a biome's tint is blended across a radius and a region drawn to a finer edge never reaches its own colour there | 400 `malformed biome` `RQ1` · 409 · 404 |
+| `PUT /map/{slug}/sketch/biome` | `{id}` — which biome each column of the exported world carries. Map-wide and answered per chunk, because a biome's tint is blended across a radius and a region drawn to a finer edge never reaches its own colour there. A field the field's kind has no place for — `biome` where a `solid` field states `id` — is named on `warnings` as `RQ3` rather than read as plains in silence | 400 `malformed biome` `RQ1` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/biome` | `{id}` — take the field off the board, which is plains everywhere | 409 · 404 |
 
 **The pictures from a player's eye** — what the In game phase lists and draws. Each view answers the

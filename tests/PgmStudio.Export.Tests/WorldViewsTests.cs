@@ -90,6 +90,114 @@ public sealed class WorldViewsTests
         await Assert.That(overview.Y!.Value).IsGreaterThan(Top + 6);
     }
 
+    /// <summary>A wool room eight by eleven on the board's ground: walls six high round its edge, a roof over
+    /// the whole of it, and — where <paramref name="marked"/> — a marker three wide floating over its middle,
+    /// as the built-in room carries one.</summary>
+    private static BuiltWorld WoolRoom(bool marked)
+    {
+        var world = new VoxelWorld();
+        for (var x = 10; x <= 17; x++)
+            for (var z = -5; z <= 5; z++)
+            {
+                var edge = x is 10 or 17 || z is -5 or 5;
+                for (var y = Top + 1; y <= Top + 6; y++)
+                    if (edge) world.SetBlock(x, y, z, 5);
+                world.SetBlock(x, Top + 7, z, 5);
+            }
+        if (marked)
+            for (var x = 12; x <= 14; x++)
+                for (var z = -1; z <= 1; z++)
+                    for (var y = Top + 26; y <= Top + 28; y++)
+                        world.SetBlock(x, y, z, 35, 14);
+        var intent = new MapIntent { Wools = [new WoolIntent { Owner = "red", Footprint = new Rect(10, -5, 17, 5) }] };
+        return new BuiltWorld(world, 0, Top + 1, 0, intent, new WorldProvenance(), RoomShells.BuiltIn, Ground: Ground());
+    }
+
+    [Test]
+    public async Task A_marker_floating_over_a_room_does_not_move_the_view_of_it()
+    {
+        var bare = WorldViews.Suggested(WoolRoom(marked: false)).Single(view => view.Id == "wool-0");
+        var marked = WorldViews.Suggested(WoolRoom(marked: true)).Single(view => view.Id == "wool-0");
+
+        await Assert.That(marked).IsEqualTo(bare);
+        await Assert.That(bare.Pitch!.Value).IsGreaterThan(-15.0);
+    }
+
+    /// <summary>A monument three wide and three tall floating four blocks over the board at (−20, 0), built in
+    /// the box the intent carries. Where <paramref name="marked"/> its sky marker hangs twenty-two blocks
+    /// over it; where <paramref name="walled"/> a ring of rock eight high stands round it five blocks out, so
+    /// no eye on the ground sees in.</summary>
+    private static BuiltWorld Monument(bool marked, bool walled = false)
+    {
+        var world = new VoxelWorld();
+        var box = new BlockBox(-21, Top + 5, -1, -19, Top + 7, 1);
+        for (var x = box.MinX; x <= box.MaxX; x++)
+            for (var z = box.MinZ; z <= box.MaxZ; z++)
+                for (var y = box.MinY; y <= box.MaxY; y++)
+                    world.SetBlock(x, y, z, 49);
+        if (marked)
+            for (var y = Top + 29; y <= Top + 31; y++)
+                world.SetBlock(-20, y, 0, 35, 14);
+        if (walled)
+            for (var x = -27; x <= -13; x++)
+                for (var z = -7; z <= 7; z++)
+                    if (Math.Max(Math.Abs(x + 20), Math.Abs(z)) is 6 or 7)
+                        for (var y = Top + 1; y <= Top + 8; y++)
+                            world.SetBlock(x, y, z, 1);
+        var intent = new MapIntent
+        {
+            Destroyables = [new DestroyableIntent { Owner = "red", Anchor = new Pt(-20, Top, 0), Box = box }],
+        };
+        return new BuiltWorld(world, 0, Top + 1, 0, intent, new WorldProvenance(), RoomShells.BuiltIn, Ground: Ground());
+    }
+
+    [Test]
+    public async Task A_goal_is_framed_on_the_box_it_was_built_in_and_not_on_its_sky_marker()
+    {
+        var bare = WorldViews.Suggested(Monument(marked: false)).Single(view => view.Id == "destroyable-0");
+        var marked = WorldViews.Suggested(Monument(marked: true)).Single(view => view.Id == "destroyable-0");
+
+        await Assert.That(marked).IsEqualTo(bare);
+        await Assert.That(marked.FromX).IsNotNull();
+        // Level with the monument's body, not tipped up at a marker twenty-two blocks over it.
+        await Assert.That(Math.Abs(marked.Pitch!.Value)).IsLessThan(15.0);
+    }
+
+    [Test]
+    public async Task A_goal_no_stand_on_the_ground_sees_is_looked_down_on_from_the_air()
+    {
+        var pit = WorldViews.Suggested(Monument(marked: true, walled: true)).Single(view => view.Id == "destroyable-0");
+
+        await Assert.That(pit.FromX).IsNotNull();
+        await Assert.That(pit.Y!.Value).IsGreaterThan(Top + 8.0);
+        await Assert.That(pit.Pitch!.Value).IsGreaterThan(0.0);
+    }
+
+    [Test]
+    public async Task A_goal_on_a_rise_is_not_looked_up_at_from_the_ground_below_it()
+    {
+        // The monument's own ground stands twelve blocks over the board, eleven wide, so every stand far enough
+        // back to frame it is on the low ground at its foot.
+        var mesa = Monument(marked: true);
+        var ground = Ground();
+        for (var x = -25; x <= -15; x++)
+            for (var z = -5; z <= 5; z++)
+                ground[(x, z)] = Top + 12;
+        var box = new BlockBox(-21, Top + 17, -1, -19, Top + 19, 1);
+        var raised = mesa with
+        {
+            Ground = ground,
+            ResolvedIntent = new MapIntent
+            {
+                Destroyables = [new DestroyableIntent { Owner = "red", Anchor = new Pt(-20, Top + 12, 0), Box = box }],
+            },
+        };
+
+        var view = WorldViews.Suggested(raised).Single(suggested => suggested.Id == "destroyable-0");
+
+        await Assert.That(view.Pitch!.Value).IsGreaterThanOrEqualTo(-20.0);
+    }
+
     [Test]
     public async Task A_view_is_drawn_by_the_query_words_it_states()
     {

@@ -53,6 +53,17 @@ public static class RoomFrameRules
     [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Spawn)]
     public const string RoomIsAField = "WX13";
 
+    /// <summary>A spawn or a wool room stands in the studio's own shell — bedrock walls, a bedrock lid and a
+    /// team band. That shell is what a board is drawn with before it is finished, so a room left in it is a
+    /// room nobody built: the board ships a placeholder where its most-seen buildings should be. Raised once
+    /// per kind of room, naming every room of that kind, whether the kind binds nothing or binds a copy of the
+    /// shell itself.</summary>
+    /// <remarks>Bind a room style of the board's own for that kind: `PUT /map/{slug}/sketch/room-styles/{part}`
+    /// with `part` `wool` or `spawn`, a style from the library or one written for the board. Binding `null`
+    /// raises no building at all, which is the answer where the ground already is the room.</remarks>
+    [Rule(RuleCategory.Forbidden, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Spawn, RuleConcern.Objective)]
+    public const string BuiltInShell = "WX14";
+
     /// <summary>The marker's block-lattice parity differs between axes, and the pad is always square.</summary>
     /// <remarks>Move the marker half a block on one axis. The pad is square, so both axes must round the same way off the block lattice.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Spawn)]

@@ -36,12 +36,18 @@ public sealed record WorldView(string Id, string Name, int LookX, int LookZ,
 /// what it reads as a thing's ground and top is the columns around it, and inside a building those are its
 /// roof — and a wool room's marker floats above that. What is known here is the building's footprint, so the
 /// eye is stood on the terrain outside it, far enough back that its width and height fit the frame, and
-/// tipped to the middle of its body: the ground under it to the height most of its footprint reaches.</para>
+/// tipped to the middle of its body: the ground under it to the height its walls reach from that ground.</para>
+///
+/// <para><b>So is a goal</b>, from the box it was built in: the ground under it to the box's top. The goal's
+/// sky marker hangs far over that box and is not part of it.</para>
 /// </summary>
 public static class WorldViews
 {
     private const int HousesShown = 4, BouldersShown = 2, OutOfTheRoom = 4, DownTheRoad = 24;
     private const double EyeHeight = 1.62;
+
+    /// <summary>The most air a building's own column holds between one block and the next — a doorway.</summary>
+    private const int DoorwayGap = 3;
 
     /// <summary>How far past its footprint a building's roof may reach — where a sight meeting something is
     /// meeting the building itself.</summary>
@@ -50,6 +56,14 @@ public static class WorldViews
     /// <summary>How much of the frame a framed building may fill across and down — the tangents of the eye's
     /// default half-angles, 35° across and about 21.5° down a 16:9 frame, with a margin.</summary>
     private const double AcrossFill = 0.56, DownFill = 0.3;
+
+    /// <summary>How steeply the eye looks down on a thing, in degrees, where no stand on the ground sees it:
+    /// from the ground first, then from ever higher in the air.</summary>
+    private static readonly double?[] Lifts = [null, 25, 45, 65];
+
+    /// <summary>How steeply, in degrees, an eye on the ground may look up at a thing: past it the stand is
+    /// under a cliff the thing stands on, and the picture is of sky.</summary>
+    private const double SteepestUp = 20;
 
     /// <summary>The views <paramref name="built"/> suggests, in the order a player meets the board: the whole
     /// of it, where they arrive, what they play for, and what stands on the way.</summary>
@@ -86,11 +100,14 @@ public static class WorldViews
                 : At($"wool-{index}", name, wool.Spawn));
         }
         foreach (var (goal, index) in (intent.Destroyables ?? []).Select((goal, index) => (goal, index)))
-            views.Add(At($"destroyable-{index}", goal.Name.Length > 0 ? goal.Name : $"{TeamName(intent, goal.Owner)} monument", goal.Anchor));
+            views.Add(Goal($"destroyable-{index}", goal.Name.Length > 0 ? goal.Name : $"{TeamName(intent, goal.Owner)} monument",
+                           built, goal.Box, goal.Anchor, middle));
         foreach (var (core, index) in (intent.Cores ?? []).Select((core, index) => (core, index)))
-            views.Add(At($"core-{index}", core.Name.Length > 0 ? core.Name : $"{TeamName(intent, core.Owner)} core", core.Anchor));
+            views.Add(Goal($"core-{index}", core.Name.Length > 0 ? core.Name : $"{TeamName(intent, core.Owner)} core",
+                           built, core.Box, core.Anchor, middle));
         foreach (var (point, index) in (intent.ControlPoints ?? []).Select((point, index) => (point, index)))
-            views.Add(At($"point-{index}", point.Name.Length > 0 ? point.Name : "Control point", point.Anchor));
+            views.Add(Goal($"point-{index}", point.Name.Length > 0 ? point.Name : "Control point",
+                           built, point.PadBox, point.Anchor, middle));
 
         var placements = built.Dressing.Placements.Where(claim => claim.Owner.Image == 0 && claim.Cells.Count > 0).ToList();
         foreach (var (house, index) in placements.Where(claim => claim.Owner.Kind == PropKinds.House).Take(HousesShown).Select((claim, index) => (claim, index)))
@@ -100,27 +117,37 @@ public static class WorldViews
         return views;
     }
 
+    /// <summary>A goal framed on the box it was built in, or left to the eye where the build resolved
+    /// none.</summary>
+    private static WorldView Goal(string id, string name, BuiltWorld built, BlockBox? box, Pt anchor, (double X, double Z) toward) =>
+        box is { } volume ? Framed(id, name, built, new Rect(volume.MinX, volume.MinZ, volume.MaxX, volume.MaxZ), toward, volume.MaxY)
+                         : At(id, name, anchor);
+
     /// <summary>
     /// A building over <paramref name="room"/> seen whole from the side facing <paramref name="toward"/>, or
     /// from the nearest side to it where the eye has terrain to stand on and nothing between it and the
     /// building. The eye stands back until the footprint across the view and the body's height both fit, and
-    /// comes closer where that is what clears the way. Where no side is clear the eye is left to find its own
-    /// place, as it does for a small thing.
+    /// comes closer where that is what clears the way, and never stands so far below it that it looks up more
+    /// steeply than <see cref="SteepestUp"/>. Where no stand on the ground is clear the eye rises
+    /// into the air over the same places (<see cref="Lifts"/>), and where none of those is either it is left
+    /// to find its own place, as it does for a small thing. <paramref name="stated"/> is the thing's top where
+    /// its box states one, in place of the height its columns reach from the ground.
     /// </summary>
-    private static WorldView Framed(string id, string name, BuiltWorld built, Rect room, (double X, double Z) toward)
+    private static WorldView Framed(string id, string name, BuiltWorld built, Rect room, (double X, double Z) toward,
+                                    int? stated = null)
     {
         var (lookX, lookZ) = Centre(room);
         var cells = Cells(room).ToList();
         var grounds = cells.Where(built.Surface.ContainsKey).Select(cell => built.Surface[cell]).Order().ToList();
         if (grounds.Count == 0) return new WorldView(id, name, lookX, lookZ);
         var ground = grounds[grounds.Count / 2];
-        var tops = cells.Select(cell => TopOf(built.World, cell.X, cell.Z) ?? ground).Order().ToList();
-        var top = Math.Max(ground, tops[(int)(tops.Count * 0.9)]);
+        var top = stated ?? cells.Max(cell => Rise(built.World, cell.X, cell.Z, ground));
         var aim = (ground + 1 + top + 1) / 2.0;
 
         double centreX = (room.MinX + room.MaxX) / 2, centreZ = (room.MinZ + room.MaxZ) / 2;
         double halfX = (room.MaxX - room.MinX + 1) / 2, halfZ = (room.MaxZ - room.MinZ + 1) / 2;
         var facing = Math.Atan2(toward.Z - centreZ, toward.X - centreX);
+        foreach (var lift in Lifts)
         foreach (var turn in (int[])[0, 1, -1, 2, -2, 3, -3, 4])
         {
             var angle = facing + turn * Math.PI / 4;
@@ -133,10 +160,18 @@ public static class WorldViews
             {
                 var distance = reach + Math.Max(6, back * closer);
                 int x = (int)Math.Round(centreX + dx * distance), z = (int)Math.Round(centreZ + dz * distance);
-                if (!built.Surface.TryGetValue((x, z), out var underfoot)) continue;
-                var eye = underfoot + 1 + EyeHeight;
-                if (!Clear(built.World, (x + 0.5, eye, z + 0.5), (centreX + 0.5, aim, centreZ + 0.5), room)) continue;
+                var standing = built.Surface.TryGetValue((x, z), out var underfoot);
+                double eye;
+                if (lift is { } degrees)
+                {
+                    eye = aim + distance * Math.Tan(degrees * Math.PI / 180);
+                    if (standing && eye < underfoot + 1 + EyeHeight) continue;
+                }
+                else if (standing) eye = underfoot + 1 + EyeHeight;
+                else continue;
                 var pitch = Math.Atan2(eye - aim, distance) * 180 / Math.PI;
+                if (pitch < -SteepestUp) continue;
+                if (!Clear(built.World, (x + 0.5, eye, z + 0.5), (centreX + 0.5, aim, centreZ + 0.5), room)) continue;
                 return new WorldView(id, name, lookX, lookZ, x, z, Math.Round(eye, 2), Math.Round(pitch, 1));
             }
         }
@@ -210,12 +245,19 @@ public static class WorldViews
                 yield return (x, z);
     }
 
-    /// <summary>The highest block standing in a column, or null over an empty one.</summary>
-    private static int? TopOf(VoxelWorld world, int x, int z)
+    /// <summary>How high a column stands joined to <paramref name="ground"/>: the highest block reached from it
+    /// upward without crossing more than <see cref="DoorwayGap"/> blocks of air. A wall reaches its eaves; a room's
+    /// inside stops at its floor; and a marker floating over the roof is never reached.</summary>
+    private static int Rise(VoxelWorld world, int x, int z, int ground)
     {
-        for (var y = VoxelWorld.MaxHeight - 1; y >= 0; y--)
-            if (world.GetBlock(x, y, z).Id != 0) return y;
-        return null;
+        int top = ground, air = 0;
+        for (var y = ground + 1; y < VoxelWorld.MaxHeight && air <= DoorwayGap; y++)
+        {
+            if (world.GetBlock(x, y, z).Id == 0) { air++; continue; }
+            top = y;
+            air = 0;
+        }
+        return top;
     }
 
     private static (int X, int Z) Centre(Rect rect) =>

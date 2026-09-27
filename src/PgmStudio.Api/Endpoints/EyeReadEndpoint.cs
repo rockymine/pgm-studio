@@ -139,11 +139,15 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
                 : throw new ArgumentException($"`{name}` is a number, and '{asked}' is not")
             : null;
 
+    /// <summary>Which way a pitch looks, since the number alone leaves it to the reader: the game counts
+    /// degrees below the horizon, so a positive pitch looks down.</summary>
+    private static string Tilt(double pitch) => pitch switch { > 0.5 => "down", < -0.5 => "up", _ => "level" };
+
     private static string Describe(EyePicture picture, EyeCamera camera, string aim)
     {
         var text = new StringBuilder();
         text.Append(CultureInfo.InvariantCulture,
-            $"eye   x {camera.X:0.#}  y {camera.Y:0.##}  z {camera.Z:0.#}   yaw {camera.Yaw:0}  pitch {camera.Pitch:0}  fov {camera.Fov:0}\n");
+            $"eye   x {camera.X:0.#}  y {camera.Y:0.##}  z {camera.Z:0.#}   yaw {camera.Yaw:0}  pitch {camera.Pitch:0} ({Tilt(camera.Pitch)})  fov {camera.Fov:0}\n");
         text.Append(CultureInfo.InvariantCulture, $"      {aim}\n");
         text.Append(CultureInfo.InvariantCulture,
             $"frame {picture.Width}x{picture.Height}   sky {picture.Sky:P0}   drawn without a sprite {picture.Untextured:P1}\n\n");

@@ -272,6 +272,12 @@ structure, and structures never fuse.
   have been stamped on. It refuses where the style is **bound** — `PUT /api/map/{slug}/sketch`, 400 — rather
   than correcting at stamp time, because silently shortening a building the author drew is the worse answer.
 
+- **WX14** *A room is not left in the built-in shell.* The shipped shell — bedrock walls, a bedrock lid and a
+  team band — is what a board is drawn with before it is finished, not a building, so a spawn or a wool room
+  still standing in it is complained of at every build: once per kind of room, naming every room of that kind
+  and the `roomStyles` field to bind. A complaint rather than a refusal because the world is whole and
+  playable; the finish is what is missing.
+
 ## 6. The code shape — frame, shell, furnishers, style
 
 The layering follows the destroyable/core precedent — one box function that the world build **and**
@@ -1132,6 +1138,12 @@ one to take.
 An **absent or unreadable** snapshot falls back to the built-in shell for its kind, so a map that never opened
 the step exports the shipped rooms and a hand-edited layout that broke its snapshot loses its chosen shell
 rather than its export.
+
+**The built-in shell is a placeholder, and the build says so** (`WX14`). Every build of a board whose rooms of
+a kind stand in it — never bound, bound to a snapshot that did not read, or bound to a copy of the shell
+itself, since the shell is compared by what it builds — carries one complaint for that kind, on the preview's
+and the export's `warnings` alike. A kind with no rooms on the board raises nothing, and neither does `null`:
+a room on open ground is a decision, not a placeholder.
 
 A snapshot that is present and **null** is the third answer: no building. The pad and its monuments are stamped
 on whatever ground the plan already shaped, and nothing is raised over them — which is what a spawn wants

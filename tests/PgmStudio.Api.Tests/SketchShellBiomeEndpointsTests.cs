@@ -105,4 +105,38 @@ public sealed class SketchShellBiomeEndpointsTests
         await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
         await Assert.That(finding.GetProperty("message").GetString()).Contains("noise");
     }
+
+    /// <summary>The fields a write answers <c>RQ3</c> for, by name.</summary>
+    private static async Task<List<string>> UnreadAsync(HttpResponseMessage resp)
+    {
+        var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
+        return body.TryGetProperty("warnings", out var warnings)
+            ? [.. warnings.EnumerateArray().Where(w => w.GetProperty("rule").GetString() == "RQ3")
+                                            .Select(w => w.GetProperty("field").GetString()!)]
+            : [];
+    }
+
+    /// <summary>A field the biome field has no place for is named rather than dropped: the write succeeds,
+    /// since a stored document may carry a name an upgrade retired, and the answer says what was not read.</summary>
+    [Test]
+    public async Task A_biome_field_under_a_name_it_does_not_have_is_answered_unread()
+    {
+        using var client = await SketchBoard.FreshAsync();
+
+        var resp = await client.PutAsync(Biome, Json("""{"kind":"solid","biome":3}"""));
+
+        await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
+        await Assert.That(await UnreadAsync(resp)).IsEquivalentTo(new[] { "biome" });
+    }
+
+    [Test]
+    public async Task A_room_style_field_it_does_not_have_is_answered_unread()
+    {
+        using var client = await SketchBoard.FreshAsync();
+
+        var resp = await client.PutAsync($"{Shells}/wool", Json("""{"wallz":{"kind":"solid","id":5}}"""));
+
+        await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
+        await Assert.That(await UnreadAsync(resp)).IsEquivalentTo(new[] { "wallz" });
+    }
 }

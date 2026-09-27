@@ -172,9 +172,9 @@ public static class DressingJson
             {
                 if (value.Deserialize<PropStyle>(Options) is { } style) styles[key] = style;
             }
-            catch (JsonException ex)
+            catch (Exception ex) when (ex is JsonException or NotSupportedException)
             {
-                throw new DressingParseException($"recipe '{key}'", null, StripPath(ex.Message));
+                throw Explain($"recipe '{key}'", ex);
             }
         }
         return styles;
