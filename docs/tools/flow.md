@@ -235,6 +235,7 @@ separately addressable.
 | dressing | `DressingDoc` | under `dressing` | `GET·POST /sketch/props`, `PATCH·DELETE /sketch/props/{propId}` |
 | biome | `BiomeField` | under `biome` | `GET·PUT·DELETE /sketch/biome` |
 | room styles | `HouseStyle` | under `roomStyles` | `GET·PUT·DELETE /sketch/room-styles/{part}`, library at `/room-styles` |
+| kept views | `WorldView` | its own sidecar, beside the layout | `GET·POST /map/{slug}/views`, `DELETE /map/{slug}/views/{viewId}` |
 | intent | `MapIntent` | its own layer | `GET·PUT /map/{slug}/intent` |
 | map.xml | `MapXml` | written, never stored | `GET /map/{slug}/xml`; `MapParser` reads one back |
 

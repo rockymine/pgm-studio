@@ -8097,6 +8097,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   three colours and the biomes each is the same colour as, and the library seeds one flat pattern per biome.
   `docs/world-export/terrain-painting.md` §5b. (`WE139`)
 
+- **The board in game, in the studio (`TS110`)** — the Sketch tool's sixth phase, **In game**, is a gallery of
+  the stored board drawn from a player's eye in the game's own sprites: the studio's suggestions from the built
+  board (`WorldViews` — the whole board, every team's spawn from its front and the view out of it, every wool
+  room, goal and point, the first buildings and boulders, a building framed from its footprint with a clear
+  sight line) and the views an author placed on the canvas with the eye tool and kept. A picture opens large
+  and steps through the rest. Kept views are a sidecar beside the layout (`map_views_json`), listed, kept and let
+  go through `GET`/`POST /map/{slug}/views` and `DELETE /map/{slug}/views/{viewId}`. `docs/tools/sketch.md`.
+  (`TS110`)
+
+- **The eye hovers where no ground sees, and keeps what it drew (`WS78`)** — `render/eye`'s `look` rises into the
+  air over a thing no ground spot sees; `from` with `look` takes `y` and `pitch` and hovers level with the thing
+  over a column with no ground. Pictures are drawn one at a time and kept with the world they were drawn from
+  (`EyeRenders`), so an unchanged board's pictures answer at once, and the fog is the game's at twelve chunks.
+  `docs/world-scan/read-backs.md`. (`WS78`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each

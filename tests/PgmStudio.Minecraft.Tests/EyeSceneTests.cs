@@ -204,18 +204,56 @@ public sealed class EyeSceneTests
         await Assert.That(boulder.Share).IsGreaterThan(0.02);
     }
 
-    [Test]
-    public async Task A_thing_walled_in_on_every_side_cannot_be_framed()
+    /// <summary>A gold block in a pit of cobblestone <paramref name="deep"/> blocks deep, ringed three blocks
+    /// out.</summary>
+    private static VoxelWorld Pit(int deep)
     {
         var world = FloorWorld();
         world.SetBlock(24, Floor + 1, 24, GoldBlock);
         for (var x = 21; x <= 27; x++)
             for (var z = 21; z <= 27; z++)
                 if (Math.Max(Math.Abs(x - 24), Math.Abs(z - 24)) == 3)
-                    for (var y = Floor + 1; y <= Floor + 8; y++)
+                    for (var y = Floor + 1; y <= Floor + deep; y++)
                         world.SetBlock(x, y, z, Cobblestone);
+        return world;
+    }
 
-        await Assert.That(EyeScene.Of(world, Sprites()).Frame(24, 24)).IsNull();
+    [Test]
+    public async Task A_thing_no_ground_can_see_is_framed_from_the_air_over_it()
+    {
+        var scene = EyeScene.Of(Pit(deep: 8), Sprites());
+
+        var camera = scene.Frame(24, 24);
+
+        await Assert.That(camera).IsNotNull();
+        await Assert.That(camera!.Value.Y).IsGreaterThan(Floor + 8);
+        var gold = scene.Draw(camera.Value, 80, 45).Seen.FirstOrDefault(seen => seen.Id == GoldBlock);
+        await Assert.That(gold.Share).IsGreaterThan(0.0);
+    }
+
+    [Test]
+    public async Task A_thing_walled_in_higher_than_the_eye_rises_cannot_be_framed()
+    {
+        await Assert.That(EyeScene.Of(Pit(deep: 80), Sprites()).Frame(24, 24)).IsNull();
+    }
+
+    [Test]
+    public async Task An_eye_facing_a_thing_from_over_the_void_hovers_level_with_its_middle()
+    {
+        var world = FloorWorld();
+        for (var x = 23; x <= 25; x++)
+            for (var y = Floor + 1; y <= Floor + 3; y++)
+                for (var z = 23; z <= 25; z++)
+                    world.SetBlock(x, y, z, Cobblestone);
+        var scene = EyeScene.Of(world, Sprites());
+
+        var hovering = scene.Facing(-12, 24, 24, 24);
+        var raised = scene.Facing(-12, 24, 24, 24, eyeY: Floor + 20);
+
+        await Assert.That(Math.Abs(hovering.Pitch)).IsLessThan(0.001);
+        await Assert.That(raised.Y).IsEqualTo(Floor + 20.0);
+        var boulder = scene.Draw(hovering, 80, 45).Seen.FirstOrDefault(seen => seen.Id == Cobblestone);
+        await Assert.That(boulder.Share).IsGreaterThan(0.0);
     }
 
     [Test]

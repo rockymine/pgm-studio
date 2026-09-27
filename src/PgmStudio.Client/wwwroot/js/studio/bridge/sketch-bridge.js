@@ -158,6 +158,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onShapeDeleted:  edit((id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); }),
     onShapePromote:  edit((id) => promoteShape(id)),
     onSplit:         edit((a, b) => splitAt(a, b)),
+    // A view is not an edit to the board — it is kept beside it — so it is relayed rather than stepped.
+    onViewPicked:    (from, look) => fire("OnViewPicked", from?.[0] ?? null, from?.[1] ?? null, look[0], look[1]),
     onVertexSelected: (shapeId, idx) => {
       const s = canvas.getShape(shapeId);
       const h = s ? clampHeight(s.anchor_heights?.[idx] ?? s.base_height) : MIN_HEIGHT;
@@ -913,6 +915,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (selectOnly) canvas.setActiveTool("select");
     },
     setOperation(op)   { canvas.setOperation(op); },
+    // ── In game: the views kept, and the one being placed ──
+    setViews(viewsJson) { try { canvas.setViews(JSON.parse(viewsJson)); } catch { canvas.setViews([]); } },
+    setViewDraft(viewJson) { canvas.setViewDraft(viewJson ? JSON.parse(viewJson) : null); },
     setMode(mode)      { applySetup({ mirror_mode: mode }); markDirty(); },
     setCenter(cx, cz)  { applySetup({ center: { cx, cz } }); markDirty(); },
     setBbox(b)         { applySetup({ bbox: b }); markDirty(); },

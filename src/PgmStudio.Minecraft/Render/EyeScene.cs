@@ -40,8 +40,13 @@ public sealed record EyePicture(int Width, int Height, byte[] Rgb, IReadOnlyList
 public sealed class EyeScene
 {
     private const int SkyRgb = 0x9EC0F2;
-    private const double FogStart = 60, FogSpan = 110, FarEnough = 200;
+    /// <summary>The game's own fog at twelve chunks of render distance: it starts at three quarters of the
+    /// far plane and closes at the far plane, 192 blocks out.</summary>
+    private const double FogStart = 144, FogSpan = 48, FarEnough = 192;
     private const double EyeHeight = 1.62;
+
+    /// <summary>How far over a thing's top a framing eye rises, looking for a place in the air that sees it.</summary>
+    private const int HoverHighest = 43;
 
     private readonly ushort[] _cells;
     private readonly Material[] _materials;
@@ -167,13 +172,18 @@ public sealed class EyeScene
     /// above the highest ground there with two blocks of room over it, or null for a column with none.</summary>
     public double? EyeAt(int x, int z) => StandingTop(x - _minX, z - _minZ) is { } top ? top + 1 + EyeHeight : null;
 
-    /// <summary>An eye standing at <paramref name="fromX"/>, <paramref name="fromZ"/> and turned to look at the
-    /// middle of whatever stands at <paramref name="atX"/>, <paramref name="atZ"/>.</summary>
-    public EyeCamera? Facing(int fromX, int fromZ, int atX, int atZ, double fov = 70)
+    /// <summary>An eye at <paramref name="fromX"/>, <paramref name="fromZ"/> turned to look at the middle of
+    /// whatever stands at <paramref name="atX"/>, <paramref name="atZ"/>, or tipped
+    /// <paramref name="pitch"/> degrees down where that is given. It stands at <paramref name="eyeY"/> where
+    /// that is given, on the ground where there is some, and otherwise hovers level with the thing's middle —
+    /// the view from over the void beside a board.</summary>
+    public EyeCamera Facing(int fromX, int fromZ, int atX, int atZ, double fov = 70, double? eyeY = null,
+                            double? pitch = null)
     {
-        if (EyeAt(fromX, fromZ) is not { } eye) return null;
         var (_, _, middle) = Extent(atX - _minX, atZ - _minZ);
-        return Toward((fromX + 0.5, eye, fromZ + 0.5), (atX + 0.5, middle, atZ + 0.5), fov);
+        var eye = eyeY ?? EyeAt(fromX, fromZ) ?? middle;
+        var camera = Toward((fromX + 0.5, eye, fromZ + 0.5), (atX + 0.5, middle, atZ + 0.5), fov);
+        return pitch is { } tipped ? camera with { Pitch = tipped } : camera;
     }
 
     /// <summary>
@@ -185,6 +195,10 @@ public sealed class EyeScene
     /// only a place that sees the thing's middle, both flanks and its top with nothing solid in between and
     /// nothing solid in the first three blocks in front of the eye. Of those it takes the one standing on the
     /// ground the thing stands on, at about ten blocks.</para>
+    ///
+    /// <para>Where no ground sees it — a goal floating over the void, a thing walled in by its own hill — the
+    /// eye hovers instead: it rises over the thing's top a few blocks at a time and takes the lowest place in
+    /// the air that sees it the same way.</para>
     /// </summary>
     public EyeCamera? Frame(int atX, int atZ, int nearest = 7, int farthest = 14, double fov = 62)
     {
@@ -198,29 +212,52 @@ public sealed class EyeScene
         var reach = Math.Max(1.6, Math.Sqrt(body / Math.PI) + 0.5);
         var target = (gx + 0.5, middle, gz + 0.5);
 
+        int closest = Math.Max(nearest, (int)reach + 4), furthest = Math.Max(farthest, (int)reach + 12);
+
+        bool Sees((double X, double Y, double Z) eye, double ux, double uz)
+        {
+            double px = -uz, pz = ux;
+            (double, double, double)[] sights =
+            [
+                target,
+                (target.Item1 + px * 1.5, middle, target.Item3 + pz * 1.5),
+                (target.Item1 - px * 1.5, middle, target.Item3 - pz * 1.5),
+                (target.Item1, topY + 0.9, target.Item3),
+            ];
+            return !sights.Any(sight => Blocked(eye, sight, reach)) && !Crowded(eye, ux, uz);
+        }
+
         (double Score, (double X, double Y, double Z) Eye)? best = null;
         for (var k = 0; k < 16; k++)
         {
             var angle = k * Math.PI / 8;
             double ux = Math.Cos(angle), uz = Math.Sin(angle);
-            for (var distance = Math.Max(nearest, (int)reach + 4); distance <= Math.Max(farthest, (int)reach + 12); distance++)
+            for (var distance = closest; distance <= furthest; distance++)
             {
                 int cx = (int)Math.Floor(gx + ux * distance), cz = (int)Math.Floor(gz + uz * distance);
                 if (StandingTop(cx, cz) is not { } ground) continue;
                 (double X, double Y, double Z) eye = (cx + 0.5, ground + 1 + EyeHeight, cz + 0.5);
-                double px = -uz, pz = ux;
-                (double, double, double)[] sights =
-                [
-                    target,
-                    (target.Item1 + px * 1.5, middle, target.Item3 + pz * 1.5),
-                    (target.Item1 - px * 1.5, middle, target.Item3 - pz * 1.5),
-                    (target.Item1, topY + 0.9, target.Item3),
-                ];
-                if (sights.Any(sight => Blocked(eye, sight, reach)) || Crowded(eye, ux, uz)) continue;
+                if (!Sees(eye, ux, uz)) continue;
                 var score = -Math.Abs(ground - baseY) * 1.5 - Math.Abs(distance - 10) * 0.4;
                 if (best is null || score > best.Value.Score) best = (score, eye);
             }
         }
+
+        for (var lift = 3; best is null && lift <= HoverHighest; lift += 4)
+            for (var k = 0; k < 16; k++)
+            {
+                var angle = k * Math.PI / 8;
+                double ux = Math.Cos(angle), uz = Math.Sin(angle);
+                for (var distance = closest; distance <= furthest; distance++)
+                {
+                    (double X, double Y, double Z) eye = (gx + ux * distance + 0.5, topY + lift, gz + uz * distance + 0.5);
+                    if (At((int)Math.Floor(eye.X), (int)Math.Floor(eye.Y), (int)Math.Floor(eye.Z)) is not null
+                        || !Sees(eye, ux, uz)) continue;
+                    var score = -Math.Abs(distance - 10) * 0.4;
+                    if (best is null || score > best.Value.Score) best = (score, eye);
+                }
+            }
+
         if (best is not { Eye: var found }) return null;
         return Toward((found.X + _minX, found.Y, found.Z + _minZ), (atX + 0.5, middle, atZ + 0.5), fov);
     }

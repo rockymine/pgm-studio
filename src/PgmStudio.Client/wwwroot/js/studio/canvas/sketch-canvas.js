@@ -152,6 +152,8 @@ export class SketchCanvas extends CanvasBase {
   #dimEl     = null;
   #measure   = null;   // { ax, az, bx, bz, live } — the ruler measurement (drag across a void gap)
   #split     = null;   // { ax, az, bx, bz } — the first cut point (S14) + the cursor, awaiting the second click
+  #view      = null;   // { ax, az, bx, bz, live } — an eye being stood (a) and turned toward (b), In game's view tool
+  #views     = [];     // [{ fromX, fromZ, lookX, lookZ }] — the views already kept, drawn where they stand
   #guides     = { x: null, z: null };   // alignment guide lines drawn during a snapped move/resize
   #dragStartShape = null;  // snapshot of the grabbed shape at drag start (absolute snap-aware move, S9)
   #dragStartShapes = null; // id→snapshot of every member when body-dragging a whole group (S20)
@@ -214,6 +216,19 @@ export class SketchCanvas extends CanvasBase {
     this.#painter?.dispose();
     this.#canvasEl?.remove();
     this._disposeCanvasBase();
+  }
+
+  /**
+   * The views an author has kept, drawn as where each eye stands and the way it looks — so a new one is
+   * placed knowing where the pictures already are. A view that leaves the eye to find its own place draws
+   * only what it looks at.
+   */
+  setViews(views) { this.#views = Array.isArray(views) ? views : []; this.#paintWorld(); }
+
+  /** The view being placed, or null to clear it — the host clears it once the view is kept or let go. */
+  setViewDraft(view) {
+    this.#view = view ? { ax: view.fromX ?? view.lookX, az: view.fromZ ?? view.lookZ, bx: view.lookX, bz: view.lookZ, live: false } : null;
+    this.#paintWorld();
   }
 
   setActiveTool(tool) {
@@ -473,6 +488,7 @@ export class SketchCanvas extends CanvasBase {
     this.#placementClick = false;
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
+    if (this._activeTool === "eye") { this.#view = { ax: bx, az: bz, bx, bz, live: true }; this.#paintWorld(); return; }
     if (this._activeTool === "split") { this.#onSplitClick(bx, bz); return; }
     if (this.#reliefOn && this.#reliefTools?.onMouseDown(bx, bz, this._activeTool)) return;
     if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool, e.shiftKey)) return;
@@ -484,6 +500,8 @@ export class SketchCanvas extends CanvasBase {
     if (this.#cursorEl) this.#cursorEl.textContent = `X ${bx}  Z ${bz}`;
     if (this._activeTool === "measure") {
       if (this.#measure?.live) { this.#measure.bx = bx; this.#measure.bz = bz; this.#renderMeasure(); }
+    } else if (this._activeTool === "eye") {
+      if (this.#view?.live) { this.#view.bx = bx; this.#view.bz = bz; this.#paintWorld(); }
     } else if (this._activeTool === "split") {
       if (this.#split) { this.#split.bx = bx; this.#split.bz = bz; this.#paintWorld(); }
     } else if (this.#reliefOn && this.#reliefTools?.onMouseMove(bx, bz, this._activeTool)) {
@@ -499,6 +517,7 @@ export class SketchCanvas extends CanvasBase {
 
   _onToolMouseup(e, svgPt) {
     if (this._activeTool === "measure") { if (this.#measure) this.#measure.live = false; return; }
+    if (this._activeTool === "eye") { this.#onViewReleased(); return; }
     if (this.#reliefOn && this.#reliefTools?.onMouseUp()) return;
     if (this.#dressingOn && this.#dressing?.onMouseUp()) return;
     this.#draw?.onMouseUp();
@@ -865,6 +884,7 @@ export class SketchCanvas extends CanvasBase {
     painter.layer("dressing",  () => this.#paintDressing(painter));
     painter.layer("draw",      () => this.#draw?.paint(painter));
     painter.layer("measure",   () => this.#paintMeasure());
+    painter.layer("views",     () => this.#paintViews());
     painter.layer("guide",     () => this.#paintGuides());
     // The scale bar is screen-space chrome and stays in the svg, but it reads the zoom, so it is
     // refreshed on the same beat as the world.
@@ -1372,6 +1392,36 @@ export class SketchCanvas extends CanvasBase {
   }
 
   #clearMeasure() { this.#measure = null; this.#renderMeasure(); this.#updateDim(); }
+
+  // The view tool: a press stands the eye, a drag turns it toward what it looks at, and the release hands
+  // both to the host. A press released where it began names only what to look at, and the eye finds its own
+  // place to see it from.
+  #onViewReleased() {
+    const v = this.#view;
+    if (!v?.live) return;
+    v.live = false;
+    const stood = v.ax !== v.bx || v.az !== v.bz;
+    this.#callbacks.onViewPicked?.(stood ? [v.ax, v.az] : null, [v.bx, v.bz]);
+    this.#paintWorld();
+  }
+
+  // Each view as the eye it is: a ring where it stands, a line the way it looks, a dot on what it sees. The
+  // one being placed is drawn in the axis colour over the kept ones.
+  #paintViews() {
+    const eye = (fromX, fromZ, lookX, lookZ, stroke) => {
+      const toCentre = (value) => value + 0.5;
+      if (fromX != null && fromZ != null) {
+        this.#painter.line(toCentre(fromX), toCentre(fromZ), toCentre(lookX), toCentre(lookZ), { stroke, width: 1.5 });
+        this.#painter.dot(toCentre(fromX), toCentre(fromZ), { radiusPx: 6, stroke, width: 2, fill: "var(--canvas-bg)" });
+      }
+      this.#painter.dot(toCentre(lookX), toCentre(lookZ), { radiusPx: 3, fill: stroke });
+    };
+    for (const kept of this.#views) eye(kept.fromX, kept.fromZ, kept.lookX, kept.lookZ, "var(--canvas-marker-stroke)");
+    const v = this.#view;
+    if (!v) return;
+    const stood = v.ax !== v.bx || v.az !== v.bz;
+    eye(stood ? v.ax : null, stood ? v.az : null, v.bx, v.bz, "var(--canvas-axis)");
+  }
 
   // Split tool (S14): first click sets the cut's start + a preview line; the second click fires onSplit
   // (the host cuts the crossed shape into two). The slice line rides the measure layer.

@@ -1871,3 +1871,59 @@ button.app-footer-link { border: 0; background: none; padding: 0; font: inherit;
   font-family: inherit;
   font-size: var(--font-xs);
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   IN GAME  (the Sketch tool's gallery of pictures from a player's eye)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* One picture: the frame holds its aspect before the image arrives, so a gallery does not reflow as the
+   server draws it one picture at a time. */
+.eye-picture {
+  position: relative; margin: 0; width: 100%;
+  background: var(--bg-canvas); border-radius: var(--radius-sm); overflow: hidden;
+}
+.eye-picture img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 120ms; }
+.eye-picture img.is-loaded { opacity: 1; }
+.eye-picture__drawing,
+.eye-picture__why {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  padding: var(--space-3); text-align: center;
+  color: var(--text-muted); font-size: var(--font-sm);
+}
+.eye-picture__why { color: var(--color-warning); }
+
+.ingame { flex: 1; min-height: 0; overflow: auto; padding: var(--space-4); }
+.ingame__lede { margin: 0 0 var(--space-3); max-width: 72ch; color: var(--text-secondary); font-size: var(--font-base); }
+.ingame__note { margin: var(--space-4) 0; max-width: 72ch; color: var(--text-secondary); }
+.ingame__note--warn { color: var(--color-warning); }
+.ingame__grid {
+  display: grid; gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+.ingame__card {
+  display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2);
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md);
+  color: inherit; font: inherit; text-align: left; cursor: zoom-in;
+}
+.ingame__card:hover, .ingame__card:focus-visible { border-color: var(--accent); outline: none; }
+.ingame__caption { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.ingame__name { color: var(--text-bright); font-size: var(--font-base); }
+
+/* The picture open large, over everything, with its name and what can be done with it under it. */
+.ingame-lightbox {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center; padding: var(--space-5);
+  background: rgba(0, 0, 0, 0.72); outline: none;
+}
+.ingame-lightbox__frame {
+  margin: 0; width: min(1280px, 100%, calc((100vh - 120px) * 16 / 9));
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.ingame-lightbox__bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.ingame-lightbox__name { color: var(--text-strong); font-weight: 600; }
+.ingame-lightbox__where { flex: 1; min-width: 12ch; color: var(--text-muted); font-size: var(--font-sm); }

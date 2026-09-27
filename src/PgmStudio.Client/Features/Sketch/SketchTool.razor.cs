@@ -149,6 +149,106 @@ public partial class SketchTool
     private string dressingJson = "";
     private Task GoDressing() { tool = DressingTools.Tree; return SetPhase("dressing"); }
 
+    // ── In game phase (docs/tools/sketch.md): the board as a player sees it ──
+    // A gallery of pictures drawn with the game's own textures, over the board as stored — so entering it
+    // saves first. Placing a view of one's own is the canvas's, so while one is placed the shared canvas comes
+    // back with the eye tool armed and the view being placed in the inspector.
+    private bool InGameActive => active == "ingame";
+    private bool placingView;
+    private bool PlacingViewActive => InGameActive && placingView;
+    private MapViewsDto? views;
+    private string? viewsError;
+    /// <summary>Bumped on every entry, so a picture of a board that has changed since is asked for again.</summary>
+    private int viewRound;
+    private SketchViewDraft.ViewDraft? viewDraft;
+    private string? viewNote;
+
+    private IReadOnlyList<MapViewDto> KeptViews => views?.Views.Where(view => view.Kept).ToList() ?? [];
+
+    private async Task GoInGame()
+    {
+        placingView = false;
+        tool = "select";
+        saveCts?.Cancel();
+        await SaveAsync(CancellationToken.None);
+        viewRound++;
+        await SetPhase("ingame");
+        await LoadViewsAsync();
+    }
+
+    private async Task LoadViewsAsync()
+    {
+        views = null;
+        viewsError = null;
+        StateHasChanged();
+        try { views = await Http.GetFromJsonAsync<MapViewsDto>($"api/map/{Slug}/views"); }
+        catch { viewsError = "The views could not be read — the studio could not be reached."; }
+        if (handle is not null)
+            await handle.InvokeVoidAsync("setViews", JsonSerializer.Serialize(KeptViews.Select(view =>
+                new { fromX = view.FromX, fromZ = view.FromZ, lookX = view.LookX, lookZ = view.LookZ })));
+        StateHasChanged();
+    }
+
+    private async Task PlaceView()
+    {
+        placingView = true;
+        viewDraft = null;
+        viewNote = null;
+        await SetTool("eye");
+    }
+
+    private async Task ShowGallery()
+    {
+        placingView = false;
+        viewDraft = null;
+        if (handle is not null) await handle.InvokeVoidAsync("setViewDraft", (string?)null);
+        await SetTool("select");
+    }
+
+    /// <summary>The canvas's eye tool was released: a stand point and what it looks at, or only the latter.</summary>
+    [JSInvokable]
+    public void OnViewPicked(int? fromX, int? fromZ, int lookX, int lookZ)
+    {
+        viewDraft = new SketchViewDraft.ViewDraft(fromX, fromZ, lookX, lookZ);
+        viewNote = null;
+        StateHasChanged();
+    }
+
+    private async Task KeepView(MapViewKeepRequest request)
+    {
+        try
+        {
+            var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/views", request);
+            if (!answer.IsSuccessStatusCode)
+            {
+                var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
+                viewNote = refusal?.Message is { Length: > 0 } why ? why : "The view was not kept.";
+                return;
+            }
+        }
+        catch
+        {
+            viewNote = "The view was not kept — the studio could not be reached.";
+            return;
+        }
+        await ShowGallery();
+        await LoadViewsAsync();
+    }
+
+    private async Task DiscardView()
+    {
+        viewDraft = null;
+        viewNote = null;
+        if (handle is not null) await handle.InvokeVoidAsync("setViewDraft", (string?)null);
+    }
+
+    private async Task LetGoView(MapViewDto view)
+    {
+        try { await Http.DeleteAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(view.Id)}"); }
+        catch { viewsError = "The view was not let go — the studio could not be reached."; return; }
+        await LoadViewsAsync();
+    }
+
     // ── Relief phase (docs/world-export/relief.md §15) ──
     // One step, like Dressing and for the same reason: every part of a relief is a thing stated somewhere, so
     // the phase is the canvas with its own tools and an inspector for whatever is under the cursor. It sits
@@ -218,10 +318,10 @@ public partial class SketchTool
         // selects a group is also the gesture that reshapes it. Dressing places props rather than shapes,
         // so it is not select-only in that sense: its own tools are armed and the shape tools are simply not
         // offered.
-        await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief" or "dressing");
+        await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief" or "dressing" or "ingame");
         // Both finishing phases show the paint: Theme is authoring it, and Dressing is placing things on it,
         // which is a judgement about the finish as much as about the planting.
-        await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing");
+        await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing" or "ingame");
         await handle.InvokeVoidAsync("setDressingMode", phase == "dressing");
         // Entering Relief turns the contour overlay on with it: the phase shows the statement and the surface
         // it produced at once, which is the only way a mark can be tuned by eye. Leaving does not turn it off
@@ -235,6 +335,14 @@ public partial class SketchTool
         if (phase != "theme") { themeAddOpen = false; await SetThemeBrush(""); }
         if (phase == "relief") reliefOn = true;
         if (phase == "theme") { await ReadThemes(); await ReadBiome(); }
+        // The kept views and the one being placed are drawn only while the phase that places them is up.
+        if (phase != "ingame")
+        {
+            placingView = false;
+            viewDraft = null;
+            await handle.InvokeVoidAsync("setViews", "[]");
+            await handle.InvokeVoidAsync("setViewDraft", (string?)null);
+        }
         await PushPhaseOverlays(phase);
     }
 
@@ -260,6 +368,7 @@ public partial class SketchTool
         ["relief"]   = new([ChipRelief, ChipShapes, ChipMirror, ChipChunks, ChipBlocks], [ChipShapes]),
         ["theme"]    = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks, ChipShapes]),
         ["dressing"] = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks, ChipShapes]),
+        ["ingame"]   = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks]),
     };
 
     private static PhaseOverlay OverlaysOf(string phase) => Overlays.GetValueOrDefault(phase, Overlays["draw"]);
@@ -339,6 +448,7 @@ public partial class SketchTool
             case "sketch.phase.relief": await GoRelief(); break;
             case "sketch.phase.theme": await GoTheme(); break;
             case "sketch.phase.dressing": await GoDressing(); break;
+            case "sketch.phase.ingame": await GoInGame(); break;
             case "sketch.tool.select": await SetTool("select"); break;
             case "sketch.tool.move": await SetTool("move"); break;
             case "sketch.tool.rectangle": await SetTool("rectangle"); break;
@@ -371,6 +481,7 @@ public partial class SketchTool
         new { id = "sketch.phase.relief",    keys = "3", label = "Go to Relief",   group = "Phases" },
         new { id = "sketch.phase.theme",     keys = "4", label = "Go to Theme",    group = "Phases" },
         new { id = "sketch.phase.dressing",  keys = "5", label = "Go to Dressing", group = "Phases" },
+        new { id = "sketch.phase.ingame",    keys = "6", label = "Go to In game",  group = "Phases" },
         new { id = "sketch.tool.select",     keys = "v", label = "Select",  group = "Tools" },
         new { id = "sketch.tool.move",       keys = "h", label = "Pan",     group = "Tools" },
         new { id = "sketch.tool.rectangle",  keys = "r", label = "Rectangle", group = "Tools" },

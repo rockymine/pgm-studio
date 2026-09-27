@@ -142,3 +142,38 @@ public sealed record WalkNeighbourDto(string Kind, string Unit, int Image, int X
 public sealed record WalkReadDto(bool Reachable, int Distance, int Blocks, int Drops, int WorstDrop,
     string Aim, IReadOnlyList<int[]> Cells, IReadOnlyList<int[]> Places, IReadOnlyList<WalkStepDto> Steps,
     int Rises, int Falls, int WorstStep, IReadOnlyList<WalkNeighbourDto> Beside);
+
+/// <summary>One picture of the board from a player's eye (<c>GET /api/map/{slug}/views</c>): what it looks at,
+/// where the eye stands where the view says so, and the <c>render/eye</c> query words that draw it.</summary>
+/// <param name="Id">The view's id — <c>view-N</c> for one an author kept, a word naming the thing for one
+/// the studio suggests.</param>
+/// <param name="Name">What the gallery calls it.</param>
+/// <param name="Kept">Whether an author kept it; false for one the studio suggests from the board.</param>
+/// <param name="LookX">The thing looked at, east–west.</param>
+/// <param name="LookZ">The same, north–south.</param>
+/// <param name="FromX">Where the eye stands, east–west, or null for a view that leaves the eye to find its
+/// own place.</param>
+/// <param name="FromZ">The same, north–south.</param>
+/// <param name="Y">The eye's height, or null for a player's eye over the ground it stands on.</param>
+/// <param name="Pitch">How far the eye tips down, in degrees, or null to tip it to the middle of what it
+/// looks at.</param>
+/// <param name="Query">The query words <c>GET …/render/eye</c> draws this view with; a caller adds its own
+/// <c>width</c> and <c>height</c>.</param>
+public sealed record MapViewDto(string Id, string Name, bool Kept, int LookX, int LookZ,
+    int? FromX, int? FromZ, double? Y, double? Pitch, string Query);
+
+/// <summary>Every view a map has: the studio's suggestions first, then the ones kept.</summary>
+/// <param name="Views">The views, suggestions first.</param>
+/// <param name="Undrawable">Why none of them can be drawn on this server — the block textures are not
+/// there — or null where they can.</param>
+public sealed record MapViewsDto(IReadOnlyList<MapViewDto> Views, string? Undrawable);
+
+/// <summary>A view to keep (<c>POST /api/map/{slug}/views</c>).</summary>
+/// <param name="Name">What to call it. Blank takes <c>View N</c>.</param>
+/// <param name="LookX">The thing to look at, east–west.</param>
+/// <param name="LookZ">The same, north–south.</param>
+/// <param name="FromX">Where to stand, east–west; null leaves the eye to find its own place.</param>
+/// <param name="FromZ">The same, north–south, stated together with <paramref name="FromX"/>.</param>
+/// <param name="Y">The eye's height, 0 to 320; null stands it a player's eye over the ground.</param>
+public sealed record MapViewKeepRequest(string? Name, int LookX, int LookZ,
+    int? FromX = null, int? FromZ = null, double? Y = null);

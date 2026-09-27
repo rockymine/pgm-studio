@@ -1,0 +1,75 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* In game — the board as a player sees it, drawn with the game's own block textures. A gallery of the views
+   the studio suggests from what stands on the board and the ones the author kept; a picture opens large, and
+   a view of the author's own is placed on the canvas (the host's picking step). *@
+
+<div class="phase-body">
+  <FlowBar Class="flow-bar--flush" PhaseIcon="eye" PhaseTitle="In game"
+           BackEnabled="true" NextLabel="Place a view" NextEnabled="@(Views is { Undrawable: null })"
+           OnBack="OnBack" OnNext="OnPlace" />
+  <Workspace>
+    <div class="ingame">
+      @if (Error is not null)
+      {
+        <p class="ingame__note ingame__note--warn">@Error</p>
+      }
+      else if (Views is null)
+      {
+        <p class="ingame__note">Reading the board…</p>
+      }
+      else if (Views.Undrawable is { } why)
+      {
+        <p class="ingame__note ingame__note--warn">
+          In-game pictures are drawn with Minecraft 1.8.9's own block textures, and this server has none: @why
+        </p>
+      }
+      else if (Views.Views.Count == 0)
+      {
+        <p class="ingame__note">There is nothing on the board to look at yet. Draw some ground, then come back.</p>
+      }
+      else
+      {
+        <p class="ingame__lede">
+          The board as a player sees it. The studio suggests these from what stands on the board; place a view
+          of your own to keep it. Pictures are drawn one at a time and kept until the board changes.
+        </p>
+        <div class="ingame__grid">
+          @foreach (var view in Views.Views)
+          {
+            <button type="button" class="ingame__card" @key="view.Id" title="@Where(view)" @onclick="() => Open(view)">
+              <SketchEyePicture Slug="@Slug" Query="@view.Query" Round="Round" Alt="@view.Name" />
+              <span class="ingame__caption">
+                <span class="ingame__name">@view.Name</span>
+                @if (view.Kept) { <Badge Kind="neutral">kept</Badge> }
+              </span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </Workspace>
+
+  @if (open is { } shown)
+  {
+    <div class="ingame-lightbox" tabindex="0" @ref="lightbox" @onclick="Close" @onkeydown="OnKey">
+      <figure class="ingame-lightbox__frame" @onclick:stopPropagation="true">
+        <SketchEyePicture Slug="@Slug" Query="@shown.Query" Width="1280" Height="720" Round="Round" Alt="@shown.Name" />
+        <figcaption class="ingame-lightbox__bar">
+          <span class="ingame-lightbox__name">@shown.Name</span>
+          <span class="ingame-lightbox__where">@Where(shown)</span>
+          <Button OnClick="() => Step(-1)" Title="The view before (←)">Previous</Button>
+          <Button OnClick="() => Step(1)" Title="The view after (→)">Next</Button>
+          <Button Icon="external-link" Href="@FullSize(shown)" target="_blank" rel="noopener"
+                  Title="The picture at 1920 × 1080, in a tab of its own">Full size</Button>
+          @if (shown.Kept)
+          {
+            <Button Variant="danger" Icon="trash-2" Busy="lettingGo" BusyLabel="Letting go…"
+                    OnClick="() => LetGo(shown)">Let go</Button>
+          }
+          <Button Variant="icon" Icon="x" Title="Close (Esc)" OnClick="Close" />
+        </figcaption>
+      </figure>
+    </div>
+  }
+</div>

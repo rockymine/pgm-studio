@@ -1,0 +1,100 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using System.Globalization
+@inject IJSRuntime JS
+
+@* The view being placed on the canvas: what it will look like, what to call it and how high the eye stands,
+   and whether to keep it. Nothing is stored until it is kept. *@
+
+<Inspector>
+  <Section>
+    <DetailHeader Icon="eye" Label="A view of your own" />
+    @if (Draft is not { } draft)
+    {
+      <p class="plan-readout">
+        Press where the eye should stand and drag to what it looks at. A click without a drag names only what to
+        look at, and the eye finds its own place to see it from.
+      </p>
+    }
+    else
+    {
+      <SketchEyePicture Slug="@Slug" Query="@Query(draft)" Round="Round" Alt="The view being placed" />
+      <p class="plan-readout">@Where(draft)</p>
+      <Field Label="Name" For="view-name">
+        <input id="view-name" class="field-input" type="text" placeholder="View" maxlength="80"
+               value="@name" @oninput="e => name = e.Value?.ToString() ?? string.Empty" />
+      </Field>
+      @if (draft.FromX is not null)
+      {
+        <Field Label="Eye height" For="view-y">
+          <LabelHint>(y; blank is a player's eye on the ground)</LabelHint>
+          <ChildContent>
+            <input id="view-y" class="field-input" type="number" min="0" max="320" step="0.5"
+                   value="@(eyeY?.ToString(CultureInfo.InvariantCulture))" @onchange="OnEyeY" />
+          </ChildContent>
+        </Field>
+      }
+      @if (Note is not null) { <p class="dressing-refusal">@Note</p> }
+      <div class="panel-actions">
+        <Button Variant="primary" Busy="keeping" BusyLabel="Keeping…" OnClick="Keep">Keep</Button>
+        <Button OnClick="OnDiscard">Discard</Button>
+      </div>
+    }
+  </Section>
+</Inspector>
+
+@code {
+    /// <summary>A view before it is kept: where the eye stands, if the author stood it, and what it looks at.</summary>
+    public sealed record ViewDraft(int? FromX, int? FromZ, int LookX, int LookZ);
+
+    [Parameter, EditorRequired] public string Slug { get; set; } = "";
+    [Parameter] public ViewDraft? Draft { get; set; }
+    [Parameter] public int Round { get; set; }
+
+    /// <summary>Why the last keep did not land, or null.</summary>
+    [Parameter] public string? Note { get; set; }
+
+    [Parameter] public EventCallback<MapViewKeepRequest> OnKeep { get; set; }
+    [Parameter] public EventCallback OnDiscard { get; set; }
+
+    private string name = "";
+    private double? eyeY;
+    private bool keeping;
+    private ViewDraft? seen;
+
+    protected override void OnParametersSet()
+    {
+        if (Draft == seen) return;
+        seen = Draft;
+        eyeY = null;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+
+    private void OnEyeY(ChangeEventArgs change) =>
+        eyeY = double.TryParse(change.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var y)
+            ? Math.Clamp(y, 0, 320) : null;
+
+    private async Task Keep()
+    {
+        if (Draft is not { } draft) return;
+        keeping = true;
+        try
+        {
+            await OnKeep.InvokeAsync(new MapViewKeepRequest(name, draft.LookX, draft.LookZ, draft.FromX, draft.FromZ,
+                                                            draft.FromX is null ? null : eyeY));
+            name = "";
+        }
+        finally { keeping = false; }
+    }
+
+    /// <summary>The <c>render/eye</c> query words that draw the view as it stands in the card.</summary>
+    private string Query(ViewDraft draft) =>
+        string.Create(CultureInfo.InvariantCulture, $"look={draft.LookX},{draft.LookZ}")
+        + (draft.FromX is { } x && draft.FromZ is { } z ? string.Create(CultureInfo.InvariantCulture, $"&from={x},{z}") : "")
+        + (draft.FromX is not null && eyeY is { } y ? string.Create(CultureInfo.InvariantCulture, $"&y={y:0.##}") : "");
+
+    private static string Where(ViewDraft draft) =>
+        draft.FromX is { } x && draft.FromZ is { } z
+            ? string.Create(CultureInfo.InvariantCulture, $"Standing at {x}, {z}, looking at {draft.LookX}, {draft.LookZ}.")
+            : string.Create(CultureInfo.InvariantCulture, $"Looking at {draft.LookX}, {draft.LookZ}; the eye finds its own place.");
+}

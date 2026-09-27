@@ -12,14 +12,16 @@ namespace PgmStudio.Api.Endpoints;
 /// own block sprites (<see cref="EyeScene"/>). <c>look</c> names a thing to see and the eye finds a place to
 /// see it from; <c>from</c> says where to stand; both together stand there and face it. <c>flat</c> draws the
 /// same frame with every sprite reduced to its mean. <c>?format=text</c> answers where the eye ended up and
-/// what fills the frame, by share. Without the sprites it is a 503 (<c>RQ10</c>).</summary>
+/// what fills the frame, by share. Without the sprites it is a 503 (<c>RQ10</c>).
+///
+/// <para>Pictures are drawn one at a time and kept with the world they were drawn from
+/// (<see cref="EyeRenders"/>), so asking again for a picture of an unchanged board answers at once.</para></summary>
 internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts,
                                       BlockTextureStore textures)
     : WorldRenderEndpoint(repo, reader, artifacts)
 {
     private BlockTextureSet? _textures;
     private string _empty = "nothing to draw";
-    private (EyePicture Picture, EyeCamera Camera, string Aim)? _drawn;
 
     public override void Configure()
     {
@@ -28,13 +30,16 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
         Description(b => b.Png().Refuses(400, 404, 422, 503).AlsoText().Reads(
             new QueryWord("look", "A thing to see, as `x,z` — a boulder, a spawn, a wall, a house. Alone, the eye "
                 + "finds a place on ground within about ten blocks that sees its middle, both flanks and its top "
-                + "with nothing in the way; with `from`, the eye stands at `from` and faces it."),
-            new QueryWord("from", "Where the eye stands, as `x,z`: a player's eye height over the ground there."),
-            new QueryWord("y", "The eye's height, overriding the one `from` stands at. Ignored with `look`."),
+                + "with nothing in the way, and hovers over it where no ground does; with `from`, the eye stands "
+                + "at `from` and faces it."),
+            new QueryWord("from", "Where the eye stands, as `x,z`: a player's eye height over the ground there. "
+                + "Facing a `look` from a column with no ground, the eye hovers level with the thing's middle."),
+            new QueryWord("y", "The eye's height, overriding the one `from` stands at. Ignored with `look` alone."),
             new QueryWord("yaw", "Which way the eye faces with `from` alone, in the game's own degrees: 0 south "
                 + "(+z), 90 west, 180 north, 270 east. Absent is 0. Ignored with `look`."),
-            new QueryWord("pitch", "Degrees below the horizon, negative looking up. Absent is 10. Ignored with "
-                + "`look`."),
+            new QueryWord("pitch", "Degrees below the horizon, negative looking up. Absent is 10 with `from` "
+                + "alone; with `look` and `from`, absent tips the eye to the thing's middle. Ignored with `look` "
+                + "alone."),
             new QueryWord("fov", "Horizontal field of view, 30 to 110 degrees. Absent is 70.", Min: 30, Max: 110),
             new QueryWord("width", "Pixels across, 160 to 1920. Absent is 960.", Min: 160, Max: 1920),
             new QueryWord("height", "Pixels down, 90 to 1080. Absent is 540.", Min: 90, Max: 1080),
@@ -52,19 +57,18 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
             return;
         }
         _textures = set;
-        await base.HandleAsync(ct);
+        using (await EyeRenders.TurnAsync(ct))
+            await base.HandleAsync(ct);
     }
 
     protected override string Empty => _empty;
 
-    protected override byte[]? Draw(BuiltRead read) => Picture(read)?.Picture.Png();
+    protected override byte[]? Draw(BuiltRead read) => Shot(read)?.Png;
 
-    protected override string? Text(BuiltRead read) =>
-        Picture(read) is { } drawn ? Describe(drawn.Picture, drawn.Camera, drawn.Aim) : null;
+    protected override string? Text(BuiltRead read) => Shot(read)?.Text;
 
-    private (EyePicture Picture, EyeCamera Camera, string Aim)? Picture(BuiltRead read)
+    private EyeShot? Shot(BuiltRead read)
     {
-        if (_drawn is { } done) return done;
         var look = Pair("look");
         var from = Pair("from");
         if (look is null && from is null)
@@ -72,38 +76,49 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
                 + "for where it stands");
 
         var fov = Math.Clamp(Number("fov") ?? 70, 30, 110);
-        var scene = EyeScene.Of(read.Built.World, _textures!, flat: Query<string?>("flat", isRequired: false) is "1" or "true");
-        EyeCamera? camera;
-        string aim;
-        if (look is { } seen && from is { } stand)
+        var flat = Query<string?>("flat", isRequired: false) is "1" or "true";
+        var width = Math.Clamp(OptionalInt("width") ?? 960, 160, 1920);
+        var height = Math.Clamp(OptionalInt("height") ?? 540, 90, 1080);
+        var y = Number("y");
+        var yaw = Number("yaw") ?? 0;
+        var pitch = Number("pitch");
+        _empty = (look, from) switch
         {
-            camera = scene.Facing(stand.X, stand.Z, seen.X, seen.Z, fov);
-            aim = $"standing at {stand.X},{stand.Z} and facing {seen.X},{seen.Z}";
-            _empty = $"there is no ground to stand on at {stand.X},{stand.Z}";
-        }
-        else if (look is { } target)
-        {
-            camera = scene.Frame(target.X, target.Z, fov: fov);
-            aim = $"placed to see {target.X},{target.Z}";
-            _empty = $"no place on ground within reach of {target.X},{target.Z} sees it with nothing in the way — "
-                + "stand the eye yourself with `from`";
-        }
-        else
-        {
-            var (x, z) = from!.Value;
-            var eye = Number("y") ?? scene.EyeAt(x, z);
-            camera = eye is { } height
-                ? new EyeCamera(x + 0.5, height, z + 0.5, Number("yaw") ?? 0, Number("pitch") ?? 10, fov)
-                : null;
-            aim = $"standing at {x},{z}";
-            _empty = $"there is no ground to stand on at {x},{z}; give `y` to stand the eye in the air";
-        }
-        if (camera is not { } resolved) return null;
+            ({ } seen, null) => $"no place within reach of {seen.X},{seen.Z} sees it with nothing in the way — "
+                + "stand the eye yourself with `from`",
+            (null, { } stand) => $"there is no ground to stand on at {stand.X},{stand.Z}; give `y` to stand the "
+                + "eye in the air",
+            _ => "nothing to draw",
+        };
+        var asked = string.Create(CultureInfo.InvariantCulture,
+            $"{look}|{from}|{y}|{yaw}|{pitch}|{fov}|{width}|{height}|{flat}");
 
-        var picture = scene.Draw(resolved, Math.Clamp(OptionalInt("width") ?? 960, 160, 1920),
-                                           Math.Clamp(OptionalInt("height") ?? 540, 90, 1080));
-        _drawn = (picture, resolved, aim);
-        return _drawn;
+        return EyeRenders.Of(read.Built, _textures!, flat, asked, scene =>
+        {
+            EyeCamera? camera;
+            string aim;
+            if (look is { } seen && from is { } stand)
+            {
+                camera = scene.Facing(stand.X, stand.Z, seen.X, seen.Z, fov, y, pitch);
+                aim = $"standing at {stand.X},{stand.Z} and facing {seen.X},{seen.Z}";
+            }
+            else if (look is { } target)
+            {
+                camera = scene.Frame(target.X, target.Z, fov: fov);
+                aim = $"placed to see {target.X},{target.Z}";
+            }
+            else
+            {
+                var (x, z) = from!.Value;
+                camera = (y ?? scene.EyeAt(x, z)) is { } eye
+                    ? new EyeCamera(x + 0.5, eye, z + 0.5, yaw, pitch ?? 10, fov)
+                    : null;
+                aim = $"standing at {x},{z}";
+            }
+            if (camera is not { } resolved) return null;
+            var picture = scene.Draw(resolved, width, height);
+            return new EyeShot(picture.Png(), Describe(picture, resolved, aim));
+        });
     }
 
     private (int X, int Z)? Pair(string name)
