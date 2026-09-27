@@ -1109,7 +1109,7 @@ and lands in the same realize seam.
 | The ways past a building | `Walk` + `WalkGround.OfSpans` — the one traversal every distance is measured with, and `Walk.Detour`'s ten blocks | `WayThrough` — the waypoint-pair routes read off the bare terrain, held as each building is admitted to them | `DR-WAY` |
 | A road a building stands on | the stroke's own placed cells, per orbit image | `RouteCrossing` — the runs the paving falls into with the footprint out of it, before against after | `DR-CROSS` |
 | Where a prop may stand | the same five seat predicates a decline is raised by; the preview's `claims` raster | `ClaimRaster.Seat` — the mask over every anchor, and the tally of which rule refused the rest (`WE34`) | `DR-*` |
-| The document itself | — | `DressingParseException` — a parse failure anywhere in the stored document names the prop and the field rather than being read as though nothing had been placed; joins the export gate as a 422 (`docs/tools/configure.md`) | `DR-DOC` |
+| The document itself | — | `DressingParseException` — a parse failure anywhere in the stored document names the prop or the recipe and the field rather than being read as though nothing had been placed; joins the export gate as a 422 (`docs/tools/configure.md`) | `DR-DOC` |
 
 Two neighbours bound the stage. G32-C (structures & elevation, the "second generator") is the sibling pass
 that gives a flat layout its heights; a boulder or tree seats on whatever surface that pass leaves, so the

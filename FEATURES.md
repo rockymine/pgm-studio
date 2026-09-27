@@ -8129,6 +8129,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   longer what the eye aims at; and where no stand on the ground sees a building or a goal, the eye rises into
   the air over the same stands and looks down. `docs/tools/sketch.md`. (`TS112`)
 
+- **A recipe's material with no kind is the document's fault (`TS113`)** — a material inside a dressing recipe
+  that names no `kind`, such as a storey `deck` written as a band stack, answers `DR-DOC` naming the recipe and
+  the field on every read of the dressing, where it answered 500 `RQ2` with the field only in the server log.
+  `docs/tools/sketch.md`. (`TS113`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each

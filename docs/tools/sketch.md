@@ -1287,7 +1287,8 @@ forgiving than the writer: a prop's own enum fields (`style`, `form`) are matche
 `"Worn"` or `"WORN"` reads the same as `"worn"`, and `kind` — the discriminator that says which prop or which
 material an object is — no longer has to be an object's first key (`DR-DOC`). What `kind` cannot be is a word the
 reader does not know: `"boulderr"` or a missing `kind` both refuse the document by name rather than being
-silently misread. A document that fails to parse anywhere — one bad field, one unrecognized `kind` — refuses
+silently misread — in a placement and in a recipe alike, down to a material inside a house recipe's shell, whose
+refusal names the recipe and the field (`shell.storeys[1].deck`). A document that fails to parse anywhere — one bad field, one unrecognized `kind` — refuses
 the whole export rather than exporting with fewer props than it was asked for; see *What it refuses* in
 `configure.md`, since the refusal fires at export, not while the sketch is merely saved.
 

@@ -242,6 +242,19 @@ public sealed class DressingJsonTests
     }
 
     [Test]
+    public async Task A_recipe_material_with_no_kind_is_named_by_its_field_rather_than_failing_the_studio()
+    {
+        // A storey's deck is a material, and a band stack written in its place names no kind: the codec's
+        // NotSupportedException, which is the document's fault and has to leave here as one.
+        var ex = Assert.Throws<DressingParseException>(() => DressingJson.Deserialize(
+            """{"styles":{"lookout":{"kind":"house","shell":{"storeys":[{"clear":3,"deck":{"stack":{"bands":[]},"extent":1}}]}}},"props":[]}"""));
+
+        await Assert.That(ex.Subject).Contains("lookout");
+        await Assert.That(ex.Field ?? "").Contains("deck");
+        await Assert.That(ex.Message).DoesNotContain("System.Text.Json");
+    }
+
+    [Test]
     public async Task A_malformed_field_names_the_prop_and_the_field_rather_than_the_raw_codec_text()
     {
         var ex = Assert.Throws<DressingParseException>(() =>
