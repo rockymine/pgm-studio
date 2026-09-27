@@ -11,8 +11,11 @@ generated one. The numbers below are still the artifact — re-taking a reading 
 world against today's code (`CLAUDE.md`, *Investigation stays local*).
 
 The world is worth describing before the numbers, because its layout is what makes them clean. Every tree body
-fits entirely inside its own platform and no crown reaches across a gap, so a plain connected-component pass
-assigns leaves to trunks with no arbitration at all — none of the nearest-trunk machinery that reading a
+fits entirely inside its own platform, so a connected-component pass finds each trunk with its branches and
+leaves and no crown is ever claimed by two trunks. A hand-built crown does carry pieces clear of its own wood —
+eighteen over the corpus, each one block off its tree, the largest the top 107 blocks of `r12-3`'s crown — which
+no 26-connected step reaches, so the seeder gives each to the standing tree whose blocks come nearest it, within
+four blocks. That is the only arbitration the world needs; none of the nearest-trunk machinery that reading a
 planted forest demands. The platforms are a 19×19 oak plank frame around a 13×13 grass centre, laid in bands
 along z, and each band holds one family. Every frame holds one tree and none stands empty.
 

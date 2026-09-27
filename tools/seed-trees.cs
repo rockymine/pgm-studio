@@ -8,15 +8,16 @@
 //   dotnet run tools/seed-trees.cs <worldDir> [name] [--wool] [--dry] [connection string]
 //
 // <worldDir> holds region/*.mca — a showcase world where every tree stands on its own, clear of every other,
-// so a plain connected-component pass over the tree blocks assigns every branch and leaf to one trunk with no
-// arbitration. A tree is logs, leaves, and the carpentry an author branches with — wooden slabs, wooden stairs,
-// fences and vines; --wool counts wool too, for a corpus that builds a tree out of it. Each tree is normalised to
+// so a connected-component pass over the tree blocks finds each trunk with its branches and leaves. A hand-built
+// crown also carries pieces clear of its own wood, which no 26-connected step reaches; each joins the standing
+// tree whose blocks come nearest it, within four blocks. A tree is logs, leaves, and the carpentry an author
+// branches with — wooden slabs, wooden stairs, fences and vines; --wool counts wool too, for a corpus that builds
+// a tree out of it. Each tree is normalised to
 // its foot — the lowest log, or the lowest block where there is none — and stored as [x, y, z, id, data] rows,
 // with the cut recorded beside them: the world directory, the foot's world coordinates and the time of the run.
 // The cut is what makes a row `copied`; the library refuses that form to any save without one (DR-COPY).
 // A body counts as a tree when it rests on something: a solid block that is not tree material within two
-// courses under its foot. A leaf cloud or a stray log hanging in the air is a fragment of a tree that broke,
-// and is reported rather than filed.
+// courses under its foot. A piece with no tree within reach is a fragment, and is reported rather than filed.
 //
 // Rows are named <name>-r<row>-<n>: trees are sorted into rows by the z they stand at (a new row opens where the
 // gap between one foot and the next is over 20 blocks) and numbered along x inside the row, so a re-run over
@@ -92,27 +93,55 @@ List<List<(int X, int Y, int Z)>> Bodies(Dictionary<(int X, int Y, int Z), (int 
     return found;
 }
 
-var trees = Bodies(body)
-    .Where(cells => cells.Any(cell => IsLog(body[cell].Id)) || cells.Count >= 20)
-    .Select(cells => (Cells: cells, Filed: true));
-var woolTrees = Bodies(wool).Where(cells => cells.Count >= 20).Select(cells => (Cells: cells, Filed: false));
+// ── standing trees, and the crown pieces that hang clear of them ────────────────────────────────────
+// A tree stands when it holds a log (or is big enough to be one) and rests on something. Everything else a
+// pass finds is a piece of crown a hand-built tree carries clear of its own wood — leaves and a log or two
+// no 26-connected step reaches — and it belongs to the standing tree whose blocks come nearest it. A piece
+// with no tree within reach is a fragment, reported rather than filed.
+(int X, int Y, int Z) FootOf(List<(int X, int Y, int Z)> cells, Dictionary<(int X, int Y, int Z), (int Id, int Data)> blocks)
+{
+    var logs = cells.Where(cell => IsLog(blocks[cell].Id)).ToList();
+    return (logs.Count > 0 ? logs : cells).MinBy(cell => (cell.Y, cell.X, cell.Z));
+}
+bool Rests((int X, int Y, int Z) foot) =>
+    solid.Contains((foot.X, foot.Y - 1, foot.Z)) || solid.Contains((foot.X, foot.Y - 2, foot.Z));
+
+const int CrownReach = 4;
+var standing = new List<(List<(int X, int Y, int Z)> Cells, (int X, int Y, int Z) Foot)>();
+var hanging = new List<List<(int X, int Y, int Z)>>();
+foreach (var cells in Bodies(body))
+{
+    var foot = FootOf(cells, body);
+    if ((cells.Any(cell => IsLog(body[cell].Id)) || cells.Count >= 20) && Rests(foot)) standing.Add((cells, foot));
+    else hanging.Add(cells);
+}
+foreach (var piece in hanging)
+{
+    var nearest = standing
+        .Select(tree => (Tree: tree, Gap: Gap(piece, tree.Cells)))
+        .Where(tree => tree.Gap <= CrownReach)
+        .OrderBy(tree => tree.Gap)
+        .FirstOrDefault();
+    if (nearest.Tree.Cells is null)
+    {
+        var at = piece.MinBy(cell => (cell.Y, cell.X, cell.Z));
+        Console.WriteLine($"  {piece.Count,3} block(s) from ({at.X},{at.Y},{at.Z}) reach no tree and are left as a fragment");
+        continue;
+    }
+    nearest.Tree.Cells.AddRange(piece);
+    var low = piece.MinBy(cell => (cell.Y, cell.X, cell.Z));
+    Console.WriteLine($"  {piece.Count,3} block(s) of crown from ({low.X},{low.Y},{low.Z}) join the tree at " +
+                      $"({nearest.Tree.Foot.X},{nearest.Tree.Foot.Y},{nearest.Tree.Foot.Z}), {nearest.Gap} block(s) clear of it");
+}
+
+var woolTrees = Bodies(wool).Where(cells => cells.Count >= 20)
+    .Select(cells => (Cells: cells, Foot: FootOf(cells, wool)))
+    .Where(tree => Rests(tree.Foot));
 
 // ── rows by z, numbered along x ─────────────────────────────────────────────────────────────────────
-var fragments = 0;
-var cut = trees.Concat(woolTrees).Select(tree =>
-{
-    var blocks = tree.Filed ? body : wool;
-    var logs = tree.Cells.Where(cell => IsLog(blocks[cell].Id)).ToList();
-    var foot = (logs.Count > 0 ? logs : tree.Cells).MinBy(cell => (cell.Y, cell.X, cell.Z));
-    return (Foot: foot, tree.Cells, tree.Filed);
-}).Where(tree =>
-{
-    var rests = solid.Contains((tree.Foot.X, tree.Foot.Y - 1, tree.Foot.Z))
-                || solid.Contains((tree.Foot.X, tree.Foot.Y - 2, tree.Foot.Z));
-    if (!rests && tree.Filed) fragments++;
-    return rests;
-}).OrderBy(tree => tree.Foot.Z).ThenBy(tree => tree.Foot.X).ToList();
-if (fragments > 0) Console.WriteLine($"  {fragments} body(ies) hang in the air and are left as fragments");
+var cut = standing.Select(tree => (tree.Foot, tree.Cells, Filed: true))
+    .Concat(woolTrees.Select(tree => (tree.Foot, tree.Cells, Filed: false)))
+    .OrderBy(tree => tree.Foot.Z).ThenBy(tree => tree.Foot.X).ToList();
 var unfiled = cut.Count(tree => !tree.Filed);
 if (unfiled > 0) Console.WriteLine($"  {unfiled} wool tree(s) hold a row of their own; --wool files them");
 
@@ -187,6 +216,17 @@ Console.WriteLine($"\n{added} added, {updated} updated — {named.Count} copied 
 return 0;
 
 static bool IsLog(int id) => id is Blocks.Log or Blocks.Log2;
+
+// The widest gap a piece of crown may hang clear of its tree across: the blocks between the piece and the
+// tree's nearest block, counted the way a 26-connected step counts them.
+static int Gap(List<(int X, int Y, int Z)> piece, List<(int X, int Y, int Z)> tree)
+{
+    var gap = int.MaxValue;
+    foreach (var a in piece)
+        foreach (var b in tree)
+            gap = Math.Min(gap, Math.Max(Math.Abs(a.X - b.X), Math.Max(Math.Abs(a.Y - b.Y), Math.Abs(a.Z - b.Z))) - 1);
+    return gap;
+}
 
 static bool IsTreeBlock(int id, bool withWool) =>
     id is Blocks.Log or Blocks.Log2 or Blocks.Leaves or Blocks.Leaves2
