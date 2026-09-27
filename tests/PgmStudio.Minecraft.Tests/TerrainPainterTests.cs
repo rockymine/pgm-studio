@@ -639,6 +639,38 @@ public sealed class TerrainPainterTests
     }
 
     /// <summary>
+    /// <b>Under a wall the whole surface stack is skipped, not its top course alone</b> (TP25). Grass over two
+    /// dirt is a surface three deep; where the wall layer stands on it none of the three is laid, so the
+    /// column goes straight to the stone fill beneath, while the open ground beside it keeps grass over dirt.
+    /// </summary>
+    [Test]
+    public async Task A_surface_stack_several_courses_deep_is_skipped_whole_under_a_wall()
+    {
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 7; x++)
+        for (var z = 0; z < 7; z++)
+        {
+            columns.Add(new ColumnSegment(x, z, 1, 6, "ground"));
+            if (z == 3) columns.Add(new ColumnSegment(x, z, 6, 9, "wall"));
+        }
+        var terrain = TerrainBuilder.Build(columns);
+        var meadow = TerrainTheme.Default with
+        {
+            Surface = new TopBand(new LayeredMaterial(new BandStack(
+                [new Band(new SolidMaterial(Blocks.Grass), 1), new Band(new SolidMaterial(Blocks.Dirt), 2)])), Depth: 3),
+            Wall = new SolidMaterial(Blocks.Stone),
+            Fill = new SolidMaterial(Blocks.Stone),
+        };
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
+                             (layer, _, _) => layer == "ground" ? meadow : TerrainTheme.Default, floorByLayer: terrain.FloorByLayer);
+
+        foreach (var y in (int[])[3, 4, 5])
+            await Assert.That(terrain.World.GetBlock(3, y, 3).Id).IsEqualTo(Blocks.Stone);
+        await Assert.That(terrain.World.GetBlock(3, 5, 1).Id).IsEqualTo(Blocks.Grass);
+        await Assert.That(terrain.World.GetBlock(3, 4, 1).Id).IsEqualTo(Blocks.Dirt);
+    }
+
+    /// <summary>
     /// <b>A lower layer finished in a stone variant is finished.</b> Stone's id is shared by granite, diorite,
     /// andesite and their polished forms, so a stone-only test that reads the id alone counts a finished
     /// course as unpainted ground and the next layer's pass writes through it — a plinth in polished diorite

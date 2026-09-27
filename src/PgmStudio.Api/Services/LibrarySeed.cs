@@ -81,7 +81,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     }
 
     // ── the biome patterns ────────────────────────────────────────────────────────────────────────────
-    /// <summary>One flat pattern per named biome, so wanting a board that is simply desert is a pick rather
+    /// <summary>One flat pattern per biome, so wanting a board that is simply desert is a pick rather
     /// than a document to write. They are the whole library out of the box: a field of several biomes is a
     /// composition an author makes, and one biome everywhere is the plainest thing to say and the most asked
     /// for.
@@ -93,14 +93,14 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         var named = (await styles.ListBiomesAsync(ct: ct))
             .Select(row => row.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var (id, name) in PgmStudio.Minecraft.Palette.Biome.All)
+        foreach (var biome in PgmStudio.Minecraft.Palette.Biome.All)
         {
-            if (named.Contains(name)) continue;
+            if (named.Contains(biome.Name)) continue;
             await styles.CreateBiomeAsync(new BiomePatternRow
             {
-                Name = name,
+                Name = biome.Name,
                 Kind = BiomeKinds.Solid,
-                Params = TerrainThemeJson.SerializeBiome(new SolidBiome(id)),
+                Params = TerrainThemeJson.SerializeBiome(new SolidBiome(biome.Id)),
             }, ct);
         }
     }

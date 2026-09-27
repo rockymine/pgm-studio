@@ -47,10 +47,11 @@ public sealed class TerrainLooksEndpoint : EndpointWithoutRequest<List<LookFlagD
         => Send.OkAsync(BlockLook.Flags.Select(f => new LookFlagDto(f.Key, f.Value)).ToList(), ct);
 }
 
-/// <summary>GET /api/terrain/biomes — the biomes a field may name, each with the grass colour it tints ground
-/// with (docs/world-export/terrain-painting.md §5b). Served rather than restated in the client for the reason
-/// the block palette is: the ids live in <see cref="Biome"/> and the colours in <see cref="BiomeTint"/>, and a
-/// second copy on the far side of the wire is a picker free to offer what the export does not write.</summary>
+/// <summary>GET /api/terrain/biomes — every biome 1.8 stores, each with the grass, foliage and water colours
+/// it tints with and the biomes it is the same colour as (docs/world-export/terrain-painting.md §5b). Served
+/// rather than restated in the client for the reason the block palette is: the ids and their colours live in
+/// <see cref="Biome"/>, and a second copy on the far side of the wire is a picker free to offer what the
+/// export does not write.</summary>
 public sealed class TerrainBiomesEndpoint : EndpointWithoutRequest<List<BiomeOptionDto>>
 {
     public override void Configure() { Get("/terrain/biomes"); }
@@ -58,7 +59,8 @@ public sealed class TerrainBiomesEndpoint : EndpointWithoutRequest<List<BiomeOpt
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync(Biome.All
             .Select(entry => new BiomeOptionDto(entry.Id, entry.Name,
-                $"#{BiomeTint.Of(entry.Id, TintChannel.Grass, 0, 0):x6}"))
+                $"#{BiomeTint.Of(entry.Id, TintChannel.Grass, 0, 0):x6}", $"#{entry.Foliage:x6}", $"#{entry.Water:x6}",
+                [.. Biome.SharingTint(entry.Id).Select(other => other.Name)]))
             .ToList(), ct);
 }
 

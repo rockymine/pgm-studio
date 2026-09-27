@@ -83,13 +83,60 @@ public sealed class BiomeTintTests
             .IsNotEqualTo(BiomeTint.ReferenceWater);
     }
 
+    /// <summary>Every biome 1.8 stores is named, once: the forty base ids and the twenty-one mutations past
+    /// 128, cold beach among them.</summary>
+    [Test]
+    public async Task Every_biome_the_game_stores_is_named_once()
+    {
+        await Assert.That(Biome.All.Length).IsEqualTo(61);
+        await Assert.That(Biome.All.Select(biome => biome.Id).Distinct().Count()).IsEqualTo(61);
+        await Assert.That(Biome.NameOf(Biome.ColdBeach)).IsEqualTo("Cold beach");
+        await Assert.That(Biome.All.Count(biome => biome.Id > 128)).IsEqualTo(21);
+    }
+
+    /// <summary>A mutated biome takes its parent's colours, the three that override the colour map included.</summary>
+    [Test]
+    public async Task A_mutated_biome_is_the_colour_of_its_parent()
+    {
+        foreach (var (mutated, parent) in new (byte, byte)[] { (157, Biome.RoofedForest), (134, Biome.Swampland), (165, Biome.Mesa), (130, Biome.Desert) })
+        {
+            var (child, source) = (Biome.Row(mutated)!.Value, Biome.Row(parent)!.Value);
+            await Assert.That((child.Grass, child.Foliage, child.Water)).IsEqualTo((source.Grass, source.Foliage, source.Water));
+        }
+    }
+
+    /// <summary>Roofed forest averages the forest's grass with a fixed brown, which is the darker floor it is
+    /// known for; its leaves stay the forest's.</summary>
+    [Test]
+    public async Task Roofed_forest_darkens_the_forest_grass_and_keeps_its_leaves()
+    {
+        var forest = Biome.Row(Biome.Forest)!.Value;
+        var roofed = Biome.Row(Biome.RoofedForest)!.Value;
+
+        await Assert.That(roofed.Grass).IsEqualTo(((forest.Grass & 0xFEFEFE) + 0x28340A) >> 1);
+        await Assert.That(roofed.Foliage).IsEqualTo(forest.Foliage);
+    }
+
+    /// <summary>Biomes of one colour are named as one another's, and a biome of its own colour shares with
+    /// none: river is the ocean's green, plains the beach's, and cold beach sits just off the frozen ones.</summary>
+    [Test]
+    public async Task A_biome_names_the_ones_that_are_the_same_colour()
+    {
+        var plains = Biome.SharingTint(Biome.Plains).Select(biome => biome.Name).ToList();
+
+        await Assert.That(plains).IsEquivalentTo(new[] { "Beach", "Sunflower plains" });
+        await Assert.That(Biome.SharingTint(Biome.River).Select(biome => biome.Name)).Contains("Ocean");
+        await Assert.That(Biome.SharingTint(Biome.ColdBeach)).IsEmpty();
+        await Assert.That(Biome.SharingTint(Biome.IcePlains).Count()).IsEqualTo(7);
+    }
+
     /// <summary>Every biome the picker offers has a tint of its own to show, and one no row names falls to
     /// plains rather than to nothing.</summary>
     [Test]
     public async Task Every_named_biome_answers_a_tint_and_an_unnamed_one_falls_to_plains()
     {
-        foreach (var (id, _) in Biome.All)
-            await Assert.That(BiomeTint.Of(id, TintChannel.Grass, 0, 0)).IsNotEqualTo(0u);
+        foreach (var biome in Biome.All)
+            await Assert.That(BiomeTint.Of(biome.Id, TintChannel.Grass, 0, 0)).IsNotEqualTo(0u);
 
         await Assert.That(BiomeTint.Of(200, TintChannel.Grass, 0, 0))
             .IsEqualTo(BiomeTint.Of(Biome.Plains, TintChannel.Grass, 0, 0));

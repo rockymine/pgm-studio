@@ -8090,6 +8090,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   reads as rock in the cliff rather than as a buried stripe of turf, and a `boundary` rim lips the floor along
   what stands on it. `docs/world-export/terrain-painting.md`, `docs/tools/library.md`. (`WE138`)
 
+- **Every biome 1.8 stores (`WE139`)** — `Biome.All` is the whole table, sixty-one rows of id, name and the
+  grass, foliage and water tints read off the 1.8 colour maps (mesa, swampland and roofed forest override
+  them; a mutation takes its parent's), and `BiomeTint` reads its colours from it. River carries the ocean's
+  green, roofed forest its darkened grass and swampland its own water. `GET /api/terrain/biomes` answers all
+  three colours and the biomes each is the same colour as, and the library seeds one flat pattern per biome.
+  `docs/world-export/terrain-painting.md` §5b. (`WE139`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each

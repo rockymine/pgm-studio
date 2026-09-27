@@ -623,9 +623,13 @@ The field is map-wide, stated on the layout beside the other finish keys:
 { "biome": { "kind": "cell", "seed": 91, "cellSize": 28, "jitter": 85, "palette": [2, 5, 21] } }
 ```
 
-`PgmStudio.Minecraft.Palette.Biome` names the ids worth reaching for; a field may state any id whatever is
-listed there, and `GET /api/terrain/biomes` answers the named ones with the grass colour each tints ground
-with. The pass runs after every pass that could add a chunk — a chunk arriving later would otherwise
+`PgmStudio.Minecraft.Palette.Biome` names every biome 1.8 stores — the forty base ids and the twenty-one
+mutations past 128 — with the grass, foliage and water colours each tints with, read off the 1.8 colour maps
+at the biome's temperature and rainfall; mesa, swampland and roofed forest override the maps, and a mutation
+takes its parent's colours. Many are one colour — plains and beach, the eight frozen and cold biomes, every
+desert and savanna — and all are listed anyway, so a document names the biome it means. `GET
+/api/terrain/biomes` answers each with its three colours and the biomes it shares them with, since two of one
+colour side by side are one biome to a player. The pass runs after every pass that could add a chunk — a chunk arriving later would otherwise
 keep the plains it was created with — and folds every column through the board's symmetry the way the painter
 folds every cell (TP21), so a mirrored board answers one biome at a cell and at its image rather than putting
 a desert against a forest across the axis. **On a mirrored board the field therefore only varies over the
@@ -634,8 +638,7 @@ primary half**, which is the half a scale should be chosen against.
 **A field is a library row, picked rather than authored where it is applied.** Choosing a kind, a scale and
 a palette is the same weight of decision a material recipe is, and the same thing worth naming once and
 reusing — so a field is a row in the biome library (`docs/tools/library.md`), and the map states which one it
-copied. Sixteen flat patterns are seeded, one per named biome, so a board that is simply desert is a pick with
-nothing to author. A map takes a **snapshot** the way it takes a theme: `biome` holds the field itself and
+copied. One flat pattern is seeded per biome, so a board that is simply desert is a pick with nothing to author. A map takes a **snapshot** the way it takes a theme: `biome` holds the field itself and
 `biomeSource` the row it came from, so editing the library retints nothing already built.
 
 **Swampland paints itself, and no other biome does** (author, confirmed in 1.8.9 and in WorldEdit). Vanilla
