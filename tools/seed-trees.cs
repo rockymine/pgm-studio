@@ -9,12 +9,14 @@
 //
 // <worldDir> holds region/*.mca — a showcase world where every tree stands on its own, clear of every other,
 // so a connected-component pass over the tree blocks finds each trunk with its branches and leaves. A hand-built
-// crown also carries pieces clear of its own wood, which no 26-connected step reaches; each joins the standing
-// tree whose blocks come nearest it, within four blocks. A tree is logs, leaves, and the carpentry an author
-// branches with — wooden slabs, wooden stairs, fences and vines; --wool counts wool too, for a corpus that builds
-// a tree out of it. Each tree is normalised to
-// its foot — the lowest log, or the lowest block where there is none — and stored as [x, y, z, id, data] rows,
-// with the cut recorded beside them: the world directory, the foot's world coordinates and the time of the run.
+// crown also carries a tip or two clear of its own wood, which no 26-connected step reaches; each joins the
+// standing tree whose blocks come nearest it, within four blocks. A tree is logs, leaves, and the carpentry an author
+// builds and branches with — planks, wooden slabs, wooden stairs, fences and vines; --wool counts wool too, for
+// a corpus that builds a tree out of it. A plank is tree above the world's lowest course and platform on it, which
+// is where a showcase lays its platforms. Each tree is normalised to its foot — its lowest wood nearest the
+// trunk, a plank where the trunk stands on one, or the lowest block where there is no log — and stored as
+// [x, y, z, id, data] rows, with the cut recorded beside them: the world directory, the foot's world coordinates
+// and the time of the run.
 // The cut is what makes a row `copied`; the library refuses that form to any save without one (DR-COPY).
 // A body counts as a tree when it rests on something: a solid block that is not tree material within two
 // courses under its foot. A piece with no tree within reach is a fragment, and is reported rather than filed.
@@ -52,17 +54,21 @@ var regionDir = Directory.Exists(Path.Combine(worldDir, "region")) ? Path.Combin
 var body = new Dictionary<(int X, int Y, int Z), (int Id, int Data)>();
 var wool = new Dictionary<(int X, int Y, int Z), (int Id, int Data)>();
 var solid = new HashSet<(int X, int Y, int Z)>();
-foreach (var chunk in Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks))
-    foreach (var block in AnvilRegion.Blocks(chunk))
+var world = Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks)
+    .SelectMany(chunk => AnvilRegion.Blocks(chunk)).ToList();
+// The course the platforms are laid on: the world's lowest. A plank on it is platform; a plank over it is tree.
+var floor = world.Min(block => block.Y);
+foreach (var block in world)
+{
+    if (IsTreeBlock(block.Id, withWool) || block.Id == Blocks.Planks && block.Y > floor)
+        body[(block.X, block.Y, block.Z)] = (block.Id, block.Data);
+    else
     {
-        if (IsTreeBlock(block.Id, withWool)) body[(block.X, block.Y, block.Z)] = (block.Id, block.Data);
-        else
-        {
-            solid.Add((block.X, block.Y, block.Z));
-            // Wool the run does not file is ground, and is kept apart so a wool tree can still open its row.
-            if (block.Id == Blocks.Wool) wool[(block.X, block.Y, block.Z)] = (block.Id, block.Data);
-        }
+        solid.Add((block.X, block.Y, block.Z));
+        // Wool the run does not file is ground, and is kept apart so a wool tree can still open its row.
+        if (block.Id == Blocks.Wool) wool[(block.X, block.Y, block.Z)] = (block.Id, block.Data);
     }
+}
 Console.WriteLine($"{name}: {body.Count} tree blocks in {regionDir}");
 
 // ── one tree per connected component ────────────────────────────────────────────────────────────────
@@ -95,13 +101,19 @@ List<List<(int X, int Y, int Z)>> Bodies(Dictionary<(int X, int Y, int Z), (int 
 
 // ── standing trees, and the crown pieces that hang clear of them ────────────────────────────────────
 // A tree stands when it holds a log (or is big enough to be one) and rests on something. Everything else a
-// pass finds is a piece of crown a hand-built tree carries clear of its own wood — leaves and a log or two
-// no 26-connected step reaches — and it belongs to the standing tree whose blocks come nearest it. A piece
+// pass finds is a piece of crown a hand-built tree carries clear of its own wood — a tip no 26-connected step
+// reaches — and it belongs to the standing tree whose blocks come nearest it. A piece
 // with no tree within reach is a fragment, reported rather than filed.
+// A tree's foot is its lowest wood — a log, or a plank a trunk stands on — nearest the trunk's own column.
 (int X, int Y, int Z) FootOf(List<(int X, int Y, int Z)> cells, Dictionary<(int X, int Y, int Z), (int Id, int Data)> blocks)
 {
     var logs = cells.Where(cell => IsLog(blocks[cell].Id)).ToList();
-    return (logs.Count > 0 ? logs : cells).MinBy(cell => (cell.Y, cell.X, cell.Z));
+    if (logs.Count == 0) return cells.MinBy(cell => (cell.Y, cell.X, cell.Z));
+    var trunk = logs.MinBy(cell => (cell.Y, cell.X, cell.Z));
+    var wood = cells.Where(cell => IsLog(blocks[cell].Id) || blocks[cell].Id == Blocks.Planks).ToList();
+    var lowest = wood.Min(cell => cell.Y);
+    return wood.Where(cell => cell.Y == lowest)
+        .MinBy(cell => (Math.Abs(cell.X - trunk.X) + Math.Abs(cell.Z - trunk.Z), cell.X, cell.Z));
 }
 bool Rests((int X, int Y, int Z) foot) =>
     solid.Contains((foot.X, foot.Y - 1, foot.Z)) || solid.Contains((foot.X, foot.Y - 2, foot.Z));

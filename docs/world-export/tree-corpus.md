@@ -12,11 +12,14 @@ world against today's code (`CLAUDE.md`, *Investigation stays local*).
 
 The world is worth describing before the numbers, because its layout is what makes them clean. Every tree body
 fits entirely inside its own platform, so a connected-component pass finds each trunk with its branches and
-leaves and no crown is ever claimed by two trunks. A hand-built crown does carry pieces clear of its own wood —
-eighteen over the corpus, each one block off its tree, the largest the top 107 blocks of `r12-3`'s crown — which
-no 26-connected step reaches, so the seeder gives each to the standing tree whose blocks come nearest it, within
-four blocks. That is the only arbitration the world needs; none of the nearest-trunk machinery that reading a
-planted forest demands. The platforms are a 19×19 oak plank frame around a 13×13 grass centre, laid in bands
+leaves and no crown is ever claimed by two trunks. **Planks are tree** above the world's lowest course, which is
+the course the platforms lie on: 33 trees build with them, 359 blocks between them, and 30 stand on a plank laid
+under the trunk, which is their foot. A crown built through planks falls apart without them — `r12-3` holds 39
+spruce planks, and read without them the top 107 blocks of its crown hang clear of its wood. What a crown still
+carries clear of its own wood is nine tips of a block or two, each one block off its tree, which no 26-connected
+step reaches; the seeder gives each to the standing tree whose blocks come nearest it, within four blocks. That
+is the only arbitration the world needs; none of the nearest-trunk machinery that reading a planted forest
+demands. The platforms are a 19×19 oak plank frame around a 13×13 grass centre, laid in bands
 along z, and each band holds one family. Every frame holds one tree and none stands empty.
 
 Two properties of the corpus break the tools that already read worlds. Every log in it is **all-bark** — 3670

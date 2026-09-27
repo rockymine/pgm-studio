@@ -8134,10 +8134,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the field on every read of the dressing, where it answered 500 `RQ2` with the field only in the server log.
   `docs/tools/sketch.md`. (`TS113`)
 
-- **A copied tree carries its whole crown (`WE141`)** — `tools/seed-trees.cs` gives every piece of crown that
-  hangs clear of its own wood to the standing tree whose blocks come nearest it, within four blocks, so a
-  library tree is the whole tree the author built: `showcase-r12-3` is 547 blocks and 15 tall where it was 438
-  and 12, the top of its crown missing. `docs/world-export/tree-corpus.md`. (`WE141`)
+- **A copied tree carries its whole crown (`WE141`)** — `tools/seed-trees.cs` counts planks as tree above the
+  course the showcase's platforms lie on, stands a tree on the plank under its trunk where it has one, and gives
+  every tip that still hangs clear of its own wood to the standing tree whose blocks come nearest it, within four
+  blocks, so a library tree is the whole tree the author built: `showcase-r12-3` is 586 blocks and 16 tall with
+  its 39 spruce planks, where it was 438 and 12 with the top of its crown missing. `docs/world-export/tree-corpus.md`. (`WE141`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
