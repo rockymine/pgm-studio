@@ -46,7 +46,8 @@ public sealed class BandEndingConverter()
 /// two fields.</para>
 /// </summary>
 /// <param name="Bands">The bands in the order they are laid, read from the stack's own base outward.</param>
-/// <param name="Ending">What happens past the last band: repeat the run, or hold its final course.</param>
+/// <param name="Ending">What happens past the last band: <c>repeat</c> carries the last band on for good — the
+/// bands are not cycled — and <c>handOver</c> claims nothing more, so what is under the stack shows.</param>
 public sealed record BandStack(IReadOnlyList<Band> Bands, BandEnding Ending = BandEnding.Repeat)
 {
     /// <summary>A stack of one material, claiming everything.</summary>

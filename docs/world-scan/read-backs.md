@@ -356,7 +356,8 @@ for as long as the world is. A board that changes builds a new world, which star
 picture of an unchanged board answers at once.
 
 **The text twin says where the eye ended up and what it saw.** It names the camera the read chose — its
-`x`, `y`, `z`, `yaw` and `pitch`, so the same frame can be asked for again with `from` — and every block in the
+`x`, `y`, `z`, `yaw` and `pitch`, with the way the pitch looks beside it (the game counts degrees below the
+horizon, so a positive pitch looks down), so the same frame can be asked for again with `from` — and every block in the
 frame by the share of pixels it fills, with the share that is sky and the share drawn in a palette colour
 because no sprite is named for the block.
 
