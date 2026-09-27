@@ -946,7 +946,9 @@ as `(a shell the library does not hold)` rather than as the built-in one.
 ```
 
 That map stamps its wool cages with the bound style and gives its spawns no building at all. Leaving `spawn`
-out entirely — rather than writing `null` — is the third state, and stamps the built-in spawn shell.
+out entirely — rather than writing `null` — is the third state, and stamps the built-in spawn shell. The built-in shell is the placeholder a board is drawn with, so every build of a board whose rooms of a
+kind still stand in it answers `WX14` on `warnings`, once per kind, naming the rooms and the `roomStyles`
+field to bind (`docs/world-export/structures.md` §9).
 
 **All three are one select per kind**: `(the built-in shell)`, `(no building)`, then every room style the
 library holds. The row's ✕ appears once a kind is off the built-in and returns it there, which is the state

@@ -38,6 +38,7 @@ public sealed class ExportWarningsTests
 
         var layout = JsonNode.Parse(compiled.GetProperty("layout").GetRawText())!.AsObject();
         layout["dressing"] = JsonNode.Parse(OffTheBoard);
+        layout["roomStyles"] = OpenGround();
 
         var create = await client.PostAsJsonAsync("/api/sketch", new { name });
         var slug = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
@@ -68,6 +69,10 @@ public sealed class ExportWarningsTests
         node["meta"] = meta;
         return node.ToJsonString();
     }
+
+    /// <summary>Both kinds of room on open ground. A room left in the built-in shell is `WX14`, and this suite
+    /// is about what the dressing pass dropped, so the fixture binds its rooms the way it names its author.</summary>
+    private static JsonObject OpenGround() => new() { ["wool"] = null, ["spawn"] = null };
 
     private static string? Warnings(HttpResponseMessage resp) =>
         resp.Headers.TryGetValues("Pgm-Warnings", out var values) ? values.FirstOrDefault() : null;
@@ -123,8 +128,10 @@ public sealed class ExportWarningsTests
 
         var create = await client.PostAsJsonAsync("/api/sketch", new { name = "Clean Export" });
         var slug = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+        var layout = JsonNode.Parse(compiled.GetProperty("layout").GetRawText())!.AsObject();
+        layout["roomStyles"] = OpenGround();
         await client.PutAsync($"/api/map/{slug}/sketch",
-            new StringContent(compiled.GetProperty("layout").GetRawText(), Encoding.UTF8, "application/json"));
+            new StringContent(layout.ToJsonString(), Encoding.UTF8, "application/json"));
         await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
         await client.PutAsync($"/api/map/{slug}/intent",
             new StringContent(Authored(compiled.GetProperty("intent")), Encoding.UTF8, "application/json"));

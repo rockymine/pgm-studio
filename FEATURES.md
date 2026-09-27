@@ -8118,6 +8118,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   it has no place for as an `RQ3` complaint on `warnings`, so `{"kind":"solid","biome":3}` says `biome` was not
   read instead of storing plains in silence. `docs/tools/sketch.md`. (`TS111`)
 
+- **A room left in the built-in shell is complained of (`WE140`)** — a board built with its spawns or its wool
+  rooms in the studio's own bedrock shell answers `WX14`, one complaint per kind naming every room of it and
+  the `roomStyles` field to bind, on the preview, the export and every other build. A binding that copies the
+  shell is the shell; a binding of `null` (no building) raises nothing. `docs/world-export/structures.md` §9.
+  (`WE140`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each

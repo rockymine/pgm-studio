@@ -10,6 +10,8 @@ using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Domain;
+using PgmStudio.Minecraft.Houses;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export.Tests;
 
@@ -56,6 +58,53 @@ public sealed class WorldBuilderTests
 
         // Wool cage at the (snapped) red wool spawn: 2×2 wool marker on the floor (surface top y=1).
         await Assert.That(built.World.GetBlock(-10, 1, 10)).IsEqualTo((Blocks.Wool, 14));   // red = 14
+    }
+
+    // ── the built-in shell ────────────────────────────────────────────────────────────────────────
+    private static string WithRoomStyles(string wool, string spawn) =>
+        Layout.TrimEnd()[..^1] + $",\"roomStyles\":{{\"wool\":{wool},\"spawn\":{spawn}}}}}";
+
+    private static List<Finding> ShellComplaints(BuiltWorld built) =>
+        [.. built.Declines.Where(finding => finding.Rule == RoomFrameRules.BuiltInShell)];
+
+    [Test]
+    public async Task A_board_that_binds_no_room_style_is_told_so_once_for_each_kind_of_room()
+    {
+        var complaints = ShellComplaints(WorldBuilder.Build(Layout, SampleIntent()));
+
+        await Assert.That(complaints.Select(finding => finding.Field ?? ""))
+            .IsEquivalentTo(new[] { "roomStyles.wool", "roomStyles.spawn" });
+        await Assert.That(complaints.All(finding => finding.Severity == Severity.Complaint)).IsTrue();
+        await Assert.That(complaints.All(finding => finding.SubjectIds.Count == 2)).IsTrue()
+            .Because("both teams' rooms of a kind stand in the one shell the kind binds");
+    }
+
+    [Test]
+    public async Task A_room_style_of_the_boards_own_or_no_building_raises_nothing()
+    {
+        var timber = HouseStyle.Wool with { Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks), HouseStyle.Wool.Wall.Extent) };
+        var built = WorldBuilder.Build(WithRoomStyles(HouseStyleJson.Serialize(timber), "null"), SampleIntent());
+
+        await Assert.That(ShellComplaints(built)).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_binding_that_copies_the_shell_is_still_the_shell()
+    {
+        var built = WorldBuilder.Build(
+            WithRoomStyles(HouseStyleJson.Serialize(HouseStyle.Wool), HouseStyleJson.Serialize(HouseStyle.Spawn)),
+            SampleIntent());
+
+        await Assert.That(ShellComplaints(built).Count).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task A_board_with_no_wool_rooms_is_not_told_about_their_shell()
+    {
+        var built = WorldBuilder.Build(Layout, SampleIntent() with { Wools = [] });
+
+        await Assert.That(ShellComplaints(built).Select(finding => finding.Field ?? ""))
+            .IsEquivalentTo(new[] { "roomStyles.spawn" });
     }
 
     [Test]
