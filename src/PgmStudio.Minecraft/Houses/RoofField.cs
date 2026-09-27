@@ -215,13 +215,20 @@ public sealed class RoofField
 
     /// <summary>How many courses the column writes. A step of more than one course leaves the slope open between
     /// its treads, so each column carries its own riser as well as its tread — as deep as the deepest step down
-    /// to a neighbour the roof also covers. A cell with nothing lower beside it is the eave and stays one.</summary>
+    /// to a neighbour the roof also covers. A neighbour topped by a <see cref="Half"/> fills only the lower half
+    /// of its crown's cell, so a column standing above it reaches down into that cell too; stopping one course
+    /// short leaves the slab's upper half open onto the inside of the roof. A cell with nothing lower beside it
+    /// is the eave and stays one.</summary>
     public int Riser(int x, int z)
     {
         var crown = Crown(x, z);
         var drop = 0;
         foreach (var (nextX, nextZ) in new[] { (x - 1, z), (x + 1, z), (x, z - 1), (x, z + 1) })
-            if (Covers(nextX, nextZ)) drop = Math.Max(drop, crown - Crown(nextX, nextZ));
+        {
+            if (!Covers(nextX, nextZ)) continue;
+            var below = Crown(nextX, nextZ);
+            if (below < crown) drop = Math.Max(drop, crown - below + (Half(nextX, nextZ) ? 1 : 0));
+        }
         return Math.Max(1, drop);
     }
 

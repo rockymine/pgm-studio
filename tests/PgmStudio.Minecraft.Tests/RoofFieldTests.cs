@@ -217,6 +217,29 @@ public sealed class RoofFieldTests
         await Assert.That(slabs.Peak - 20).IsEqualTo((cubes.Peak - 20 + 1) / 2);
     }
 
+    /// <summary>A slab fills the lower half of its cell, so a column standing above a slab-topped neighbour has to
+    /// fill that cell's course itself or the slab's upper half opens onto the inside of the roof. At pitch 1
+    /// the steps meet flush; at pitch 3 a slab roof climbs a block and a half a step and every ridge-side
+    /// column is a course short without it.</summary>
+    [Test]
+    public async Task A_slab_roof_is_closed_where_a_column_stands_above_a_slab()
+    {
+        foreach (var form in (RoofForm[])[RoofForm.Gable, RoofForm.Hip, RoofForm.Gambrel, RoofForm.Saltbox, RoofForm.Shed])
+            foreach (var pitch in (int[])[1, 2, 3, 4, 5])
+            {
+                var field = new RoofField(form, 0, 0, 6, 4, 1, 20, pitch, RoomEdge.NegZ, inHalves: true);
+                for (var x = field.MinX; x <= field.MaxX; x++)
+                    for (var z = field.MinZ; z <= field.MaxZ; z++)
+                        foreach (var (nextX, nextZ) in new[] { (x - 1, z), (x + 1, z), (x, z - 1), (x, z + 1) })
+                        {
+                            if (!field.Covers(nextX, nextZ) || !field.Half(nextX, nextZ)) continue;
+                            if (field.Crown(x, z) <= field.Crown(nextX, nextZ)) continue;
+                            await Assert.That(field.Underside(x, z)).IsLessThanOrEqualTo(field.Crown(nextX, nextZ))
+                                .Because($"{form} pitch {pitch}: ({x},{z}) over the slab at ({nextX},{nextZ})");
+                        }
+            }
+    }
+
     [Test]
     public async Task The_eave_of_a_slab_roof_falls_below_its_base_rather_than_rounding_back_up_to_it()
     {

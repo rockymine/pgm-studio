@@ -8080,6 +8080,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   naming the field, rather than stored as the default recipe under a freshly minted key.
   `docs/tools/sketch.md`. (`TS109`)
 
+- **A steep slab roof is closed (`WE137`)** — a roof column standing above a slab-topped neighbour reaches down
+  into the slab's course (`RoofField.Riser`), so a slab roof at pitch 3 or more no longer leaves the slab's upper
+  half open onto the attic along its ridge and every other step. `docs/world-export/structures.md`. (`WE137`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
