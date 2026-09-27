@@ -33,4 +33,22 @@
     <UserSecretsId>4249fc15-7c58-46ac-82a7-128f030a6a0f</UserSecretsId>
   </PropertyGroup>
 
+  <!-- A hosted publish leaves wwwroot/index.html with its placeholders unfilled
+       (`_framework/blazor.webassembly#[.{fingerprint}].js`, an empty import map): the SDK fills them only when the
+       client itself is published, and Development never notices because it serves the build's filled copy from the
+       static web assets manifest. Production serves the file on disk, so the page asks for a name that does not
+       exist and sits on "Loading". Publishing the client too and taking its host page closes that; the names it
+       fills in are the same fingerprinted files this publish already carries. -->
+  <Target Name="PublishClientHostPage" AfterTargets="Publish">
+    <PropertyGroup>
+      <_ClientPublishDir>$(MSBuildProjectDirectory)/$(IntermediateOutputPath)client-publish/</_ClientPublishDir>
+      <_HostPage>$(PublishDir)wwwroot/index.html</_HostPage>
+    </PropertyGroup>
+    <MSBuild Projects="../PgmStudio.Client/PgmStudio.Client.csproj" Targets="Publish"
+             Properties="Configuration=$(Configuration);PublishDir=$(_ClientPublishDir)" />
+    <Copy SourceFiles="$(_ClientPublishDir)wwwroot/index.html" DestinationFiles="$(_HostPage)" />
+    <Error Condition="$([System.IO.File]::ReadAllText('$(_HostPage)').Contains('{fingerprint}'))"
+           Text="$(_HostPage) still carries an unfilled fingerprint placeholder; the published studio would never load." />
+  </Target>
+
 </Project>
