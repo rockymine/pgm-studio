@@ -40,9 +40,9 @@ public sealed record EyePicture(int Width, int Height, byte[] Rgb, IReadOnlyList
 public sealed class EyeScene
 {
     private const int SkyRgb = 0x9EC0F2;
-    /// <summary>The game's own fog at twelve chunks of render distance: it starts at three quarters of the
-    /// far plane and closes at the far plane, 192 blocks out.</summary>
-    private const double FogStart = 144, FogSpan = 48, FarEnough = 192;
+    /// <summary>How far a ray is followed: sixteen chunks of render distance, with no fog before it — the game
+    /// as it is played with fog off.</summary>
+    private const double FarEnough = 256;
     private const double EyeHeight = 1.62;
 
     /// <summary>How far over a thing's top a framing eye rises, looking for a place in the air that sees it.</summary>
@@ -401,7 +401,7 @@ public sealed class EyeScene
             sky / total, untextured / total);
     }
 
-    /// <summary>What one ray hits: the shaded, fogged colour and the material slot, 0 for sky.</summary>
+    /// <summary>What one ray hits: the shaded colour and the material slot, 0 for sky.</summary>
     private (int Colour, int Slot) Cast((double X, double Y, double Z) origin, (double X, double Y, double Z) ray)
     {
         if (_width == 0) return (SkyRgb, 0);
@@ -427,7 +427,7 @@ public sealed class EyeScene
             var slot = _cells[(cellX * _height + cellY) * _depth + cellZ];
             if (slot > 0 && axis >= 0 && Hit(_materials[slot], origin, ray, travelled, axis, cellX, cellY, cellZ,
                     Math.Min(nextX, Math.Min(nextY, nextZ))) is { } colour)
-                return (Fog(colour, travelled), slot);
+                return (colour, slot);
 
             if (nextX < nextY && nextX < nextZ) { cellX += stepX; travelled = nextX; nextX += deltaX; axis = 0; }
             else if (nextY < nextZ) { cellY += stepY; travelled = nextY; nextY += deltaY; axis = 1; }
@@ -572,12 +572,6 @@ public sealed class EyeScene
     private static int Shade(uint texel, double shade) =>
         ((int)(((texel >> 16) & 0xFF) * shade) << 16) | ((int)(((texel >> 8) & 0xFF) * shade) << 8)
         | (int)((texel & 0xFF) * shade);
-
-    private static int Fog(int colour, double distance)
-    {
-        var fog = Math.Clamp((distance - FogStart) / FogSpan, 0, 1);
-        return fog <= 0 ? colour : Raster.Lerp(colour, SkyRgb, fog);
-    }
 
     /// <summary>Each sprite tinted once per colour, and in flat mode reduced to its mean.</summary>
     private sealed class SpriteCache(BlockTextureSet textures, bool flat)

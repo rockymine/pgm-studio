@@ -505,5 +505,6 @@ and the bands they are judged against were measured in its unit.
 are drawn in their own shapes — a stair lattice reads as a lattice — and a log lying down shows its sawn end
 on the two faces it points out of, with its bark running along it; a stair beside another is drawn
 straight rather than turned into the corner the game would join them in; torches, signs, rails, carpets,
-doors, trapdoors and iron bars are not drawn; the only lighting is a shade per face; and the fog is the game's
-at twelve chunks of render distance — it starts 144 blocks out and closes at 192, past which nothing is drawn. A block no sprite is named for is drawn in its palette colour and counted in the text twin.
+doors, trapdoors and iron bars are not drawn; the only lighting is a shade per face; and there is no fog —
+the game as it is played with fog off at sixteen chunks, so everything within 256 blocks is drawn at full
+strength and nothing past it is. A block no sprite is named for is drawn in its palette colour and counted in the text twin.

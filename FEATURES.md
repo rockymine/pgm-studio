@@ -8109,7 +8109,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **The eye hovers where no ground sees, and keeps what it drew (`WS78`)** — `render/eye`'s `look` rises into the
   air over a thing no ground spot sees; `from` with `look` takes `y` and `pitch` and hovers level with the thing
   over a column with no ground. Pictures are drawn one at a time and kept with the world they were drawn from
-  (`EyeRenders`), so an unchanged board's pictures answer at once, and the fog is the game's at twelve chunks.
+  (`EyeRenders`), so an unchanged board's pictures answer at once, and there is no fog: everything within sixteen chunks is
+  drawn at full strength.
   `docs/world-scan/read-backs.md`. (`WS78`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
