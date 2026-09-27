@@ -17,14 +17,25 @@ public enum FaceForm
     Hidden,
 }
 
+/// <summary>Which way a block's grain runs: the axis out of whose two faces its end shows — a log's sawn
+/// rings, a quartz pillar's cap.</summary>
+public enum Grain
+{
+    Up,
+    AlongX,
+    AlongZ,
+}
+
 /// <summary>
-/// The sprites one block shows. <paramref name="Tint"/> is a fixed multiplier for a block the game colours
-/// the same everywhere — spruce and birch leaves — or white for one <see cref="BlockTints"/> would otherwise
-/// tint and the game does not; null leaves it to the biome. <paramref name="SideOverlay"/> is the mask a
-/// grass block's side is re-tinted through.
+/// The sprites one block shows. <paramref name="Top"/> is its end — the faces seen from above and below on a
+/// block standing up, the two faces its <paramref name="Grain"/> runs out of on one lying down.
+/// <paramref name="Tint"/> is a fixed multiplier for a block the game colours the same everywhere — spruce
+/// and birch leaves — or white for one <see cref="BlockTints"/> would otherwise tint and the game does not;
+/// null leaves it to the biome. <paramref name="SideOverlay"/> is the mask a grass block's side is re-tinted
+/// through.
 /// </summary>
 public readonly record struct BlockFaces(string Top, string Side, FaceForm Form, uint? Tint = null,
-                                         string? SideOverlay = null)
+                                         string? SideOverlay = null, Grain Grain = Grain.Up)
 {
     private static readonly string[] Woods = ["oak", "spruce", "birch", "jungle", "acacia", "big_oak"];
 
@@ -144,6 +155,8 @@ public readonly record struct BlockFaces(string Top, string Side, FaceForm Form,
         155 => (data & 7) switch
         {
             1 => Cube("quartz_block_chiseled_top", "quartz_block_chiseled"),
+            3 => new BlockFaces("quartz_block_lines_top", "quartz_block_lines", FaceForm.Cube, Grain: Grain.AlongX),
+            4 => new BlockFaces("quartz_block_lines_top", "quartz_block_lines", FaceForm.Cube, Grain: Grain.AlongZ),
             >= 2 => Cube("quartz_block_lines_top", "quartz_block_lines"),
             _ => Cube("quartz_block_top", "quartz_block_side"),
         },
@@ -172,11 +185,18 @@ public readonly record struct BlockFaces(string Top, string Side, FaceForm Form,
         _ => null,
     };
 
+    /// <summary>A log by its axis bits: standing up, lying along x, lying along z, or bark on all six faces —
+    /// the last is a tree's, and the only one that shows no sawn end.</summary>
     private static BlockFaces Log(int id, int data)
     {
         var wood = Woods[Math.Min((data & 3) + (id == Blocks.Log2 ? 4 : 0), Woods.Length - 1)];
-        var upright = (data & 12) == 0;
-        return Cube(upright ? $"log_{wood}_top" : $"log_{wood}", $"log_{wood}");
+        return (data & 12) switch
+        {
+            4 => new BlockFaces($"log_{wood}_top", $"log_{wood}", FaceForm.Cube, Grain: Grain.AlongX),
+            8 => new BlockFaces($"log_{wood}_top", $"log_{wood}", FaceForm.Cube, Grain: Grain.AlongZ),
+            12 => Cube($"log_{wood}", $"log_{wood}"),
+            _ => Cube($"log_{wood}_top", $"log_{wood}"),
+        };
     }
 
     private static BlockFaces Leaves(int id, int data)

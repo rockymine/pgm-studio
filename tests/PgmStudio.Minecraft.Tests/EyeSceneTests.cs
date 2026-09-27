@@ -11,7 +11,7 @@ namespace PgmStudio.Minecraft.Tests;
 /// </summary>
 public sealed class EyeSceneTests
 {
-    private const int Stone = 1, Cobblestone = 4, Glass = 20, GoldBlock = 41, StoneSlab = 44, OakFence = 85, Floor = 10;
+    private const int Stone = 1, Cobblestone = 4, Glass = 20, GoldBlock = 41, StoneSlab = 44, OakFence = 85, OakLog = 17, Floor = 10;
 
     private static BlockTextureSet Sprites(bool withStone = true)
     {
@@ -21,6 +21,8 @@ public sealed class EyeSceneTests
             ["cobblestone"] = Uniform(90, 90, 90),
             ["glass"] = new(2, new byte[16]),
             ["planks_oak"] = Uniform(150, 120, 70),
+            ["log_oak_top"] = Uniform(180, 150, 100),
+            ["log_oak"] = new(2, [40, 40, 40, 255, 200, 200, 200, 255, 40, 40, 40, 255, 200, 200, 200, 255]),
             ["stone_slab_top"] = Uniform(120, 120, 120),
             ["stone_slab_side"] = Uniform(120, 120, 120),
         };
@@ -143,6 +145,45 @@ public sealed class EyeSceneTests
 
         await Assert.That(Centre(alone)).IsEqualTo((160, 144, 0));
         await Assert.That(Centre(joined)).IsEqualTo((120, 96, 56));
+    }
+
+    /// <summary>An eye level with a block standing four blocks south of it, looking straight at its north
+    /// face.</summary>
+    private static EyeCamera LevelWithTheLog => new(16.5, Floor + 1.5, 14.5, Yaw: 0, Pitch: 0, Fov: 40);
+
+    private static (int Red, int Green, int Blue) Pixel(EyePicture picture, int row, int column)
+    {
+        var at = (row * picture.Width + column) * 3;
+        return (picture.Rgb[at], picture.Rgb[at + 1], picture.Rgb[at + 2]);
+    }
+
+    [Test]
+    public async Task A_log_lying_toward_the_eye_shows_its_sawn_end_and_one_standing_shows_bark()
+    {
+        var lying = FloorWorld();
+        lying.SetBlock(16, Floor + 1, 18, OakLog, 8);
+        var standing = FloorWorld();
+        standing.SetBlock(16, Floor + 1, 18, OakLog);
+
+        var end = EyeScene.Of(lying, Sprites()).Draw(LevelWithTheLog, 64, 36, supersample: 1);
+        var bark = EyeScene.Of(standing, Sprites()).Draw(LevelWithTheLog, 64, 36, supersample: 1);
+
+        await Assert.That(Centre(end)).IsEqualTo((144, 120, 80));
+        await Assert.That(Centre(bark)).IsNotEqualTo((144, 120, 80));
+    }
+
+    /// <summary>The bark sprite here is dark on its left half and light on its right, so which way it varies
+    /// across a face says which way the grain was turned: across a standing log's face, up a lying one's.</summary>
+    [Test]
+    public async Task The_bark_of_a_log_lying_across_the_eye_runs_along_the_log()
+    {
+        var world = FloorWorld();
+        world.SetBlock(16, Floor + 1, 18, OakLog, 4);
+
+        var picture = EyeScene.Of(world, Sprites()).Draw(LevelWithTheLog, 64, 36, supersample: 1);
+
+        await Assert.That(Pixel(picture, 18, 26)).IsEqualTo(Pixel(picture, 18, 38));
+        await Assert.That(Pixel(picture, 12, 32)).IsNotEqualTo(Pixel(picture, 24, 32));
     }
 
     [Test]

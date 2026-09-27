@@ -24,6 +24,21 @@ public sealed class BlockFacesTests
     }
 
     [Test]
+    public async Task A_log_shows_its_sawn_end_on_the_axis_it_lies_along_and_a_trees_log_shows_none()
+    {
+        var upright = BlockFaces.Of(17, 0)!.Value;
+        var alongX = BlockFaces.Of(17, 4)!.Value;
+        var alongZ = BlockFaces.Of(17, 9)!.Value;
+        var barkAllRound = BlockFaces.Of(17, 12)!.Value;
+
+        await Assert.That((upright.Grain, upright.Top)).IsEqualTo((Grain.Up, "log_oak_top"));
+        await Assert.That((alongX.Grain, alongX.Top)).IsEqualTo((Grain.AlongX, "log_oak_top"));
+        await Assert.That((alongZ.Grain, alongZ.Top)).IsEqualTo((Grain.AlongZ, "log_spruce_top"));
+        await Assert.That(barkAllRound.Top).IsEqualTo("log_oak");
+        await Assert.That(BlockFaces.Of(162, 1)!.Value.Side).IsEqualTo("log_big_oak");
+    }
+
+    [Test]
     public async Task What_is_too_thin_to_read_the_ground_by_is_not_drawn()
     {
         foreach (var id in (int[])[0, 50, 63, 66, 171])
@@ -46,14 +61,6 @@ public sealed class BlockFacesTests
         await Assert.That(BlockFaces.UpperHalf(2).Tint).IsNull();
         await Assert.That(BlockFaces.UpperHalf(4).Top).IsEqualTo("double_plant_rose_top");
         await Assert.That(BlockFaces.UpperHalf(4).Tint).IsEqualTo(0xFFFFFFu);
-    }
-
-    [Test]
-    public async Task An_upright_log_shows_its_rings_on_top_and_a_felled_one_its_bark()
-    {
-        await Assert.That(BlockFaces.Of(17, 0)!.Value.Top).IsEqualTo("log_oak_top");
-        await Assert.That(BlockFaces.Of(17, 4)!.Value.Top).IsEqualTo("log_oak");
-        await Assert.That(BlockFaces.Of(162, 1)!.Value.Side).IsEqualTo("log_big_oak");
     }
 
     [Test]

@@ -8070,7 +8070,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **The eye sees a stair as a stair (`WS77`)** — `render/eye` draws slabs, stairs, fences, gates, panes and
   walls in their own shapes rather than as the cube they stand in (`Render/BlockShape`): a slab's half, a
   stair's base and step turned the way its data says, and a fence, a pane or a wall reaching out to the
-  neighbours it meets, so a stair-lattice window reads as a lattice. `docs/world-scan/read-backs.md`. (`WS77`)
+  neighbours it meets, so a stair-lattice window reads as a lattice. A log shows its sawn end on the two faces
+  its axis runs out of, with its bark turned along it, so a beam reads as a beam and only a tree's log shows
+  bark all round. `docs/world-scan/read-backs.md`. (`WS77`)
 
 - **A placement wears the recipe it names (`TS109`)** — `POST` and `PATCH …/sketch/props` read a posted
   placement the way the stored document's are read: its `style` key resolves against the map's own registry,

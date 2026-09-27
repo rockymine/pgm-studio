@@ -489,7 +489,8 @@ terms, the plan tier's route and coverage reads and the destroy-goal ratio all s
 and the bands they are judged against were measured in its unit.
 
 **`render/eye` is a picture of the materials, not a screenshot.** Slabs, stairs, fences, gates, panes and walls
-are drawn in their own shapes — a stair lattice reads as a lattice — but a stair beside another is drawn
+are drawn in their own shapes — a stair lattice reads as a lattice — and a log lying down shows its sawn end
+on the two faces it points out of, with its bark running along it; a stair beside another is drawn
 straight rather than turned into the corner the game would join them in; torches, signs, rails, carpets,
 doors, trapdoors and iron bars are not drawn; the only lighting is a shade per face; and ground past sixty
 blocks fades into the sky, which is where a distant finish reads as its mean colour anyway. A block no sprite is named for is drawn in its palette colour and counted in the text twin.

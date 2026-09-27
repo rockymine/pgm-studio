@@ -48,7 +48,7 @@ public sealed class EyeScene
     private readonly int _minX, _minZ, _width, _height, _depth;
 
     private sealed record Material(int Id, int Data, FaceForm Form, BlockSprite? Top, BlockSprite? Side,
-                                   bool Untextured, bool Ground, CellBox[]? Boxes);
+                                   bool Untextured, bool Ground, CellBox[]? Boxes, Grain Grain);
 
     private EyeScene(ushort[] cells, Material[] materials, int minX, int minZ, int width, int height, int depth)
     {
@@ -155,10 +155,12 @@ public sealed class EyeScene
         {
             var side = known.Form == FaceForm.Cross ? top
                 : sprites.Get(known.Side, known.SideOverlay is null ? tint : 0xFFFFFF, known.SideOverlay, tint) ?? top;
-            return new Material(id, data, known.Form, top, side, Untextured: false, ground, BlockShape.Of(id, data));
+            return new Material(id, data, known.Form, top, side, Untextured: false, ground, BlockShape.Of(id, data),
+                                known.Grain);
         }
         var colour = sprites.Solid((uint)BlockPalette.PackedRgb(id, data));
-        return new Material(id, data, FaceForm.Cube, colour, colour, Untextured: true, ground, BlockShape.Of(id, data));
+        return new Material(id, data, FaceForm.Cube, colour, colour, Untextured: true, ground, BlockShape.Of(id, data),
+                            Grain.Up);
     }
 
     /// <summary>The height an eye stands at over <paramref name="x"/>, <paramref name="z"/>: a player's eye
@@ -437,12 +439,7 @@ public sealed class EyeScene
 
         var point = (X: origin.X + ray.X * entered - cellX, Y: origin.Y + ray.Y * entered - cellY,
                      Z: origin.Z + ray.Z * entered - cellZ);
-        var (sprite, u, v, shade) = axis switch
-        {
-            1 => (material.Top, point.X, point.Z, ray.Y < 0 ? 1.0 : 0.5),
-            0 => (material.Side, point.Z, 1 - point.Y, 0.6),
-            _ => (material.Side, point.X, 1 - point.Y, 0.8),
-        };
+        var (sprite, u, v, shade) = Face(material, axis, point, ray.Y);
         if (sprite is null) return null;
         var texel = sprite.At(u, v);
         if (texel >> 24 < 128) return null;
@@ -479,12 +476,7 @@ public sealed class EyeScene
             }
             if (missed || near > far || near >= nearest) continue;
             var point = (X: local.X + ray.X * near, Y: local.Y + ray.Y * near, Z: local.Z + ray.Z * near);
-            var (sprite, u, v, shade) = face switch
-            {
-                1 => (material.Top, point.X, point.Z, ray.Y < 0 ? 1.0 : 0.5),
-                0 => (material.Side, point.Z, 1 - point.Y, 0.6),
-                _ => (material.Side, point.X, 1 - point.Y, 0.8),
-            };
+            var (sprite, u, v, shade) = Face(material, face, point, ray.Y);
             if (sprite is null) continue;
             var texel = sprite.At(Math.Clamp(u, 0, 0.9999), Math.Clamp(v, 0, 0.9999));
             if (texel >> 24 < 128) continue;
@@ -492,6 +484,28 @@ public sealed class EyeScene
             colour = Shade(texel, shade);
         }
         return colour;
+    }
+
+    /// <summary>The sprite the face across <paramref name="face"/>'s axis shows, where on it a point in the cell
+    /// falls, and the shade a face pointing that way takes. The end sprite goes on the two faces the grain runs
+    /// out of, and on a block lying down the side sprite is turned so its grain runs along the block — the bark
+    /// of a beam runs the way the beam does.</summary>
+    private static (BlockSprite? Sprite, double U, double V, double Shade) Face(
+        Material material, int face, (double X, double Y, double Z) point, double rayY)
+    {
+        var shade = face switch { 1 => rayY < 0 ? 1.0 : 0.5, 0 => 0.6, _ => 0.8 };
+        return (material.Grain, face) switch
+        {
+            (Grain.AlongX, 0) => (material.Top, point.Z, 1 - point.Y, shade),
+            (Grain.AlongX, 1) => (material.Side, point.Z, point.X, shade),
+            (Grain.AlongX, _) => (material.Side, 1 - point.Y, point.X, shade),
+            (Grain.AlongZ, 2) => (material.Top, point.X, 1 - point.Y, shade),
+            (Grain.AlongZ, 1) => (material.Side, point.X, point.Z, shade),
+            (Grain.AlongZ, _) => (material.Side, 1 - point.Y, point.Z, shade),
+            (_, 1) => (material.Top, point.X, point.Z, shade),
+            (_, 0) => (material.Side, point.Z, 1 - point.Y, shade),
+            _ => (material.Side, point.X, 1 - point.Y, shade),
+        };
     }
 
     /// <summary>Two quads crossing through the cell's centre on its diagonals; the nearer opaque texel wins.</summary>
