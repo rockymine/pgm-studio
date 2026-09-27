@@ -1063,24 +1063,26 @@ public static class WorldBuilder
     }
 
     /// <summary>The complaint each kind of room raises when it stands in the studio's own shell (<c>WX14</c>):
-    /// one per kind, naming every room of that kind. The shell is compared by what it builds, so a binding
+    /// one per kind, counting its rooms and naming their units. The shell is compared by what it builds, so a binding
     /// that copies the shipped shell is the shipped shell; open ground (a null shell) raises none.</summary>
     private static IEnumerable<Finding> BuiltInShells(
         IReadOnlyList<WoolIntent> wools, HouseStyle? woolStyle, IReadOnlyList<SpawnIntent> spawns, HouseStyle? spawnStyle)
     {
         if (wools.Count > 0 && IsShipped(woolStyle, HouseStyle.Wool))
-            yield return Shipped("wool", [.. wools.Select(w => w.Stamp.Unit)]);
+            yield return Shipped("wool", wools.Count, [.. wools.Select(w => w.Stamp.Unit)]);
         if (spawns.Count > 0 && IsShipped(spawnStyle, HouseStyle.Spawn))
-            yield return Shipped("spawn", [.. spawns.Select(s => s.Stamp.Unit)]);
+            yield return Shipped("spawn", spawns.Count, [.. spawns.Select(s => s.Stamp.Unit)]);
 
         static bool IsShipped(HouseStyle? style, HouseStyle shipped) =>
             style is not null
             && (ReferenceEquals(style, shipped) || HouseStyleJson.Serialize(style) == HouseStyleJson.Serialize(shipped));
 
-        static Finding Shipped(string kind, IReadOnlyList<string> stamps)
+        // Counted by room and named by unit: a room's orbit images are one unit, which is what the canvas
+        // highlights, and every image of it stands in the shell.
+        static Finding Shipped(string kind, int count, IReadOnlyList<string> stamps)
         {
             var units = stamps.Distinct().ToList();
-            var rooms = units.Count == 1 ? $"1 {kind} room stands" : $"{units.Count} {kind} rooms stand";
+            var rooms = count == 1 ? $"1 {kind} room stands" : $"{count} {kind} rooms stand";
             return new Finding(RoomFrameRules.BuiltInShell,
                 $"{rooms} in the studio's built-in shell — bedrock walls, a bedrock lid and a team band — which is "
                 + "the placeholder a board is drawn with, not a building. Bind a room style of the board's own to "

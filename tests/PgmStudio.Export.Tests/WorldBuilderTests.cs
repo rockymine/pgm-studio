@@ -80,6 +80,22 @@ public sealed class WorldBuilderTests
     }
 
     [Test]
+    public async Task The_complaint_counts_every_orbit_image_and_names_the_unit_once()
+    {
+        // Two images of one wool unit, the way a fanned plan carries a mirrored pair of rooms.
+        var intent = SampleIntent();
+        intent = intent with
+        {
+            Wools = [.. intent.Wools!.Select((wool, image) => wool with { Stamp = new StampId("wool", "0", image) })],
+        };
+
+        var wool = ShellComplaints(WorldBuilder.Build(Layout, intent)).Single(finding => finding.Field == "roomStyles.wool");
+
+        await Assert.That(wool.Message).StartsWith("2 wool rooms stand");
+        await Assert.That(wool.SubjectIds).IsEquivalentTo(new[] { "0" });
+    }
+
+    [Test]
     public async Task A_room_style_of_the_boards_own_or_no_building_raises_nothing()
     {
         var timber = HouseStyle.Wool with { Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks), HouseStyle.Wool.Wall.Extent) };
