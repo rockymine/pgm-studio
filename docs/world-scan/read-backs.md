@@ -53,6 +53,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `transect` | — | a polyline walked block by block, as JSON: `{stations, rises, falls, worstStep, barriers, scrambles, drops, events, beside}`. `?points=x,z;x,z[;x,z…]`, `every` thins the stations, `beside` lists every claim within that many cells of the line; `?format=text` answers the same walk as a table |
 | `stroke` | — | a drawn stroke walked end to end down its own centreline: per block the ground, whether the paving reaches it, what it is made of and the step from the block before, then the worst step, the materials and every stretch the paving misses. `?id=` names the stroke, `image` which of the orbit's roads; `?format=text` answers the station table |
 | `themes/census` | — | every ground cell counted by the theme that paints it: cells and share per theme, its distinct surface materials, which theme borders which, and the board's whole palette count |
+| `render/eye` | — | the board seen from a player's eye, drawn with Minecraft's own block sprites. `look=x,z` names a thing and the eye finds a place to see it from, `from=x,z` stands the eye there (`yaw`, `pitch`, `y`), both together face the one from the other (`y` and `pitch` still apply); `fov`, `width`, `height`; `flat=1` draws the same frame in one colour a block. `?format=text` answers where the eye ended up and what fills the frame, by share. 503 (`RQ10`) on a studio with no textures. The Sketch tool's **In game** phase is a gallery of these, and `GET /map/{slug}/views` lists the views it draws (`docs/tools/sketch.md`) |
 
 `column` answers characters rather than JSON for the reason the plan grid and the flow account do: it is read
 by a person or an agent rather than parsed, and it is the one read a caller with no image reader can act on.
@@ -319,6 +320,53 @@ over the terrain they stand on or fly above, with nothing the dressing placed in
 And one that is not a fault: **`surface`'s magenta is not a material.** It is the honest answer for a block no
 tone family claims, and the legend says how many there were.
 
+## Seen from a player's eye
+
+**Every other read draws a block as one colour, and a finish is judged on its sprite.** Two noisy blocks of one
+colour are one calm grey in a flat picture and static on the ground, and two quiet blocks of different colours
+are a hard seam in a flat picture and one weathered ground in the game — so the pictures above can show where a
+material is and cannot show whether it works. `render/eye` draws the built world in perspective, from the
+height a player's eye stands at, with the game's own 1.8 block sprites.
+
+**`look` is the word to reach for, because the document already says where everything is.** A boulder, a
+spawn, a wall or a house has a coordinate in the layout, so `look=x,z` is enough: the eye tries sixteen
+directions at seven to fourteen blocks (farther for a large thing), keeps a place on ground with room for a
+player over it that sees the thing's middle, both flanks and its top with nothing solid between and nothing in
+the first three blocks, and faces it. Where no ground sees it — a goal over the void, a thing walled in by its
+own hill — the eye hovers instead, rising over the thing's top four blocks at a time to about forty and taking
+the lowest place in the air that sees it the same way. Only where neither exists is the answer a **422** saying
+so, and `from=x,z` stands the eye by hand.
+
+**`from` with `look` stands there and faces the thing.** The eye stands at `y` where that is given, a player's
+eye over the ground where there is some, and otherwise hovers level with the thing's middle — the view from over
+the void beside a board. It tips to the thing's middle unless `pitch` says how far down to look, which is what a
+caller that knows how tall the thing is states.
+
+```text
+GET /api/map/{slug}/render/eye?look=-17,-44                 a boulder, framed
+GET /api/map/{slug}/render/eye?look=-17,-44&format=text     where the eye stood and what fills the frame
+GET /api/map/{slug}/render/eye?from=0,60&yaw=180&pitch=15   standing on the spawn side, looking north
+GET /api/map/{slug}/render/eye?look=-17,-44&flat=1          the same frame, one colour a block
+```
+
+**Pictures are drawn one at a time and kept with the world they were drawn from.** A picture is seconds of
+every core and a gallery asks for a dozen at once, so the read takes a turn before drawing, and every picture of
+a world — its scene and the last twenty-four pictures asked of it, by every query word but `format` — is kept
+for as long as the world is. A board that changes builds a new world, which starts with none; asking again for a
+picture of an unchanged board answers at once.
+
+**The text twin says where the eye ended up and what it saw.** It names the camera the read chose — its
+`x`, `y`, `z`, `yaw` and `pitch`, so the same frame can be asked for again with `from` — and every block in the
+frame by the share of pixels it fills, with the share that is sky and the share drawn in a palette colour
+because no sprite is named for the block.
+
+**The sprites are Mojang's, and the studio never ships them.** It reads them out of the 1.8.9 client jar, from
+one of two places: a jar the operator already has, named by `Textures:Jar`, or Mojang's own server, once
+`Textures:AcceptMojangEula` is `true` — setting it accepts Mojang's EULA. A download is checked against the
+SHA-1 Mojang's launcher metadata declares for that jar and kept under `Textures:Cache` (the local application
+data folder by default), so it happens once per machine. What leaves the studio is a picture drawn with the
+sprites, never the sprites. A studio given neither answers **503** under `RQ10`, naming both settings.
+
 ## What each read is for
 
 `answer-shapes.md`, beside this document, measures which of these reads a model can subtract from and
@@ -452,3 +500,11 @@ The walk runs over **a place per standable surface**, so an overhang, a tunnel a
 somewhere of their own. Every distance the studio reports is this walk: the evaluator's spawn, wool and frontline
 terms, the plan tier's route and coverage reads and the destroy-goal ratio all solve over a `WalkGround`,
 and the bands they are judged against were measured in its unit.
+
+**`render/eye` is a picture of the materials, not a screenshot.** Slabs, stairs, fences, gates, panes and walls
+are drawn in their own shapes — a stair lattice reads as a lattice — and a log lying down shows its sawn end
+on the two faces it points out of, with its bark running along it; a stair beside another is drawn
+straight rather than turned into the corner the game would join them in; torches, signs, rails, carpets,
+doors, trapdoors and iron bars are not drawn; the only lighting is a shade per face; and there is no fog —
+the game as it is played with fog off at sixteen chunks, so everything within 256 blocks is drawn at full
+strength and nothing past it is. A block no sprite is named for is drawn in its palette colour and counted in the text twin.

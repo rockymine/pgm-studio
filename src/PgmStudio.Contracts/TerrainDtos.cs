@@ -16,8 +16,13 @@ public sealed record DoorOptionDto(string Slug, string Label);
 /// <param name="Id">The byte a chunk's <c>Biomes</c> array carries.</param>
 /// <param name="Name">The biome as an author reads it.</param>
 /// <param name="Hex">The grass colour it tints ground with, so a picker shows what choosing it does. Swampland
-/// is two-tone and answers the greener of its two.</param>
-public sealed record BiomeOptionDto(int Id, string Name, string Hex);
+/// is two-tone and answers the one its field shows at the origin.</param>
+/// <param name="Foliage">The colour it tints leaves and vines with.</param>
+/// <param name="Water">The colour it tints water with — white everywhere but swampland.</param>
+/// <param name="SharesTintWith">The other biomes whose grass, foliage and water are all this one's: the same
+/// ground in any picture, so choosing between them changes nothing a player sees.</param>
+public sealed record BiomeOptionDto(int Id, string Name, string Hex, string Foliage, string Water,
+                                    IReadOnlyList<string> SharesTintWith);
 
 /// <summary>One house-style field that names a block for its <b>geometry</b>
 /// (<c>GET /api/room-styles/block-kinds</c>). A stair turns a corner by its own facing and a slab fills half

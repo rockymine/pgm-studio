@@ -88,4 +88,14 @@ public static class RequestRules
     /// environment variable, never in a file the repository holds.</remarks>
     [Rule(RuleCategory.Unavailable, RuleConcern.Studio)]
     public const string SignInUnavailable = "RQ9";
+
+    /// <summary>The read draws with Minecraft's own block textures, and this studio has none. It answers
+    /// <b>503</b>: nothing about the request is wrong, and no such picture can be drawn here until the
+    /// deployment says where the textures come from.</summary>
+    /// <remarks>The textures are Mojang's and the studio never ships them. Set <c>Textures:Jar</c> to a 1.8.9
+    /// client jar the operator has, or set <c>Textures:AcceptMojangEula</c> to <c>true</c> — which accepts
+    /// Mojang's EULA — and the studio downloads that jar from Mojang once, checked against the hash Mojang's
+    /// metadata declares. The finding's message says which of the two is missing, or what failed.</remarks>
+    [Rule(RuleCategory.Unavailable, RuleConcern.Studio)]
+    public const string TexturesUnavailable = "RQ10";
 }

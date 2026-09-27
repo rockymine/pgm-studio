@@ -8054,6 +8054,65 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   axis it keeps (`RegionBoundsDeriver.Mirror`, shared by the parser and the storage round-trip), which lets
   `mont_blanc`, `royal_ascend` and `cargo` serialize at all. (`RP74`)
 
+- **A board seen from a player's eye, in the game's own sprites (`WS76`)** — `GET …/render/eye` draws the built
+  world in perspective with Minecraft's 1.8 block textures (`Render/EyeScene`, `Render/BlockFaces`,
+  `Render/BlockTextureSet`, `Geom/Render/PngReader`). `look=x,z` frames a thing the document places — a
+  boulder, a spawn, a house — from open ground with a clear sight line; `from=x,z` stands the eye by hand;
+  `flat=1` draws the same frame one colour a block; `?format=text` answers the camera and the frame's blocks
+  by share. The sprites come from a jar the operator names (`Textures:Jar`) or from Mojang once its EULA is
+  accepted (`Textures:AcceptMojangEula`), checked by hash and never shipped; without them the read is `RQ10`
+  at 503. `docs/world-scan/read-backs.md`. (`WS76`)
+
+- **Moss on a boulder is a sprinkle (`WE136`)** — a mossy boulder takes mossy cobblestone on a tenth of its
+  sky-lit faces rather than more than half, which is the author's limit for it on a rock
+  (`Decorator.MossShare`). `docs/world-export/decoration.md`. (`WE136`)
+
+- **The eye sees a stair as a stair (`WS77`)** — `render/eye` draws slabs, stairs, fences, gates, panes and
+  walls in their own shapes rather than as the cube they stand in (`Render/BlockShape`): a slab's half, a
+  stair's base and step turned the way its data says, and a fence, a pane or a wall reaching out to the
+  neighbours it meets, so a stair-lattice window reads as a lattice. A log shows its sawn end on the two faces
+  its axis runs out of, with its bark turned along it, so a beam reads as a beam and only a tree's log shows
+  bark all round. `docs/world-scan/read-backs.md`. (`WS77`)
+
+- **A placement wears the recipe it names (`TS109`)** — `POST` and `PATCH …/sketch/props` read a posted
+  placement the way the stored document's are read: its `style` key resolves against the map's own registry,
+  a recipe stated inline is lifted into it, and a key the registry holds nothing under is refused `DR-DOC`
+  naming the field, rather than stored as the default recipe under a freshly minted key.
+  `docs/tools/sketch.md`. (`TS109`)
+
+- **A steep slab roof is closed (`WE137`)** — a roof column standing above a slab-topped neighbour reaches down
+  into the slab's course (`RoofField.Riser`), so a slab roof at pitch 3 or more no longer leaves the slab's upper
+  half open onto the attic along its ridge and every other step. `docs/world-export/structures.md`. (`WE137`)
+
+- **Ground something rests on is not open ground (`WE138`)** — a column whose top course has another layer's
+  stone or a stamp standing on it takes no rim or surface (`TerrainProfile` · `ColumnProfile.Covered`, `TP25`):
+  the wall paints it where its face shows and the fill where it does not, so the ground a tunnel wall rises from
+  reads as rock in the cliff rather than as a buried stripe of turf, and a `boundary` rim lips the floor along
+  what stands on it. `docs/world-export/terrain-painting.md`, `docs/tools/library.md`. (`WE138`)
+
+- **Every biome 1.8 stores (`WE139`)** — `Biome.All` is the whole table, sixty-one rows of id, name and the
+  grass, foliage and water tints read off the 1.8 colour maps (mesa, swampland and roofed forest override
+  them; a mutation takes its parent's), and `BiomeTint` reads its colours from it. River carries the ocean's
+  green, roofed forest its darkened grass and swampland its own water. `GET /api/terrain/biomes` answers all
+  three colours and the biomes each is the same colour as, and the library seeds one flat pattern per biome.
+  `docs/world-export/terrain-painting.md` §5b. (`WE139`)
+
+- **The board in game, in the studio (`TS110`)** — the Sketch tool's sixth phase, **In game**, is a gallery of
+  the stored board drawn from a player's eye in the game's own sprites: the studio's suggestions from the built
+  board (`WorldViews` — the whole board, every team's spawn from its front and the view out of it, every wool
+  room, goal and point, the first buildings and boulders, a building framed from its footprint with a clear
+  sight line) and the views an author placed on the canvas with the eye tool and kept. A picture opens large
+  and steps through the rest. Kept views are a sidecar beside the layout (`map_views_json`), listed, kept and let
+  go through `GET`/`POST /map/{slug}/views` and `DELETE /map/{slug}/views/{viewId}`. `docs/tools/sketch.md`.
+  (`TS110`)
+
+- **The eye hovers where no ground sees, and keeps what it drew (`WS78`)** — `render/eye`'s `look` rises into the
+  air over a thing no ground spot sees; `from` with `look` takes `y` and `pitch` and hovers level with the thing
+  over a column with no ground. Pictures are drawn one at a time and kept with the world they were drawn from
+  (`EyeRenders`), so an unchanged board's pictures answer at once, and there is no fog: everything within sixteen chunks is
+  drawn at full strength.
+  `docs/world-scan/read-backs.md`. (`WS78`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each

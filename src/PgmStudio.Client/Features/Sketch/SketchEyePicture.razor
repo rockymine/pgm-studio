@@ -1,0 +1,68 @@
+@namespace PgmStudio.Client.Features.Sketch
+@inject HttpClient Http
+
+@* One picture of the board from a player's eye: GET …/render/eye with a view's query words, at the size asked.
+   The browser loads it as an image, so a gallery streams in as the server draws it one picture at a time; a
+   picture that will not draw is asked again as a request so the studio's own sentence can say why. *@
+
+<figure class="eye-picture @Class" style="aspect-ratio: @Width / @Height">
+  @if (why is not null)
+  {
+    <figcaption class="eye-picture__why">@why</figcaption>
+  }
+  else
+  {
+    <img src="@Source" alt="@Alt" loading="lazy" class="@(loaded ? "is-loaded" : null)"
+         @onload="() => loaded = true" @onerror="ExplainAsync" />
+    @if (!loaded)
+    {
+      <span class="eye-picture__drawing">Drawing…</span>
+    }
+  }
+</figure>
+
+@code {
+    [Parameter, EditorRequired] public string Slug { get; set; } = "";
+
+    /// <summary>The view's <c>render/eye</c> query words, without a size.</summary>
+    [Parameter, EditorRequired] public string Query { get; set; } = "";
+
+    [Parameter] public int Width { get; set; } = 480;
+    [Parameter] public int Height { get; set; } = 270;
+
+    /// <summary>Changes whenever the board may have changed, so the browser asks again rather than showing
+    /// the picture it already holds. The server keeps its own pictures for as long as the board is the same,
+    /// so asking again for an unchanged board costs nothing.</summary>
+    [Parameter] public int Round { get; set; }
+
+    [Parameter] public string? Alt { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private string Source => $"api/map/{Slug}/render/eye?{Query}&width={Width}&height={Height}&round={Round}";
+
+    private string? shown;
+    private bool loaded;
+    private string? why;
+
+    protected override void OnParametersSet()
+    {
+        if (Source == shown) return;
+        shown = Source;
+        loaded = false;
+        why = null;
+    }
+
+    private async Task ExplainAsync()
+    {
+        try
+        {
+            var answer = await Http.GetAsync(Source);
+            if (answer.IsSuccessStatusCode) { why = "The picture was drawn but could not be shown."; return; }
+            var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
+            why = refusal?.Findings.FirstOrDefault()?.Message is { Length: > 0 } sentence ? sentence
+                : refusal?.Message is { Length: > 0 } message ? message
+                : "This view could not be drawn.";
+        }
+        catch { why = "The studio could not be reached."; }
+    }
+}

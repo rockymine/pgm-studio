@@ -162,6 +162,17 @@ public static class WorldReadCatalog
             + "distinct surface materials each carries, which theme borders which and over how many cells, "
             + "and the board's whole palette count. The number for a board that mashes its themes, which "
             + "`render/surface`'s tone-family legend has no count for."),
+
+        new("render/eye", null,
+            "The board seen from a player's eye, drawn with the game's own block sprites: `look=x,z` names a "
+            + "thing and the eye finds a place on ground that sees it whole, `from=x,z` stands the eye there, "
+            + "and both together face the one from the other. The read for how a finish looks where a player "
+            + "stands — whether two blocks merge into one ground or into static — which every other read "
+            + "answers in one colour a block. `flat=1` draws the same frame in those colours. `?format=text` "
+            + "answers where the eye ended up and what fills the frame, by share.",
+            "Stairs, slabs and fences are drawn as the whole cube they stand in, there is no lighting beyond "
+            + "a shade per face, and ground past sixty blocks fades into the sky — it is a picture of the "
+            + "materials, not a screenshot."),
     ];
 
     /// <summary>What one read answers, and where it misleads — the sentence a route publishes as its own
@@ -181,7 +192,7 @@ public static class WorldReadCatalog
         written.AppendLine();
         foreach (var read in All)
         {
-            written.AppendLine($"  {read.Flag ?? "(HTTP only — it reads the map's own build zones and dressing)"}");
+            written.AppendLine($"  {read.Flag ?? "(HTTP only — it needs what only the server holds: the map's documents, or the block textures)"}");
             written.AppendLine($"      route: {read.Route}");
             foreach (var line in Wrapped(read.Answers)) written.AppendLine($"      {line}");
             if (read.Misleads is { } trap)

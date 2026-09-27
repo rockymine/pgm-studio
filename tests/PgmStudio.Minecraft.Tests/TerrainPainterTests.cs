@@ -597,6 +597,80 @@ public sealed class TerrainPainterTests
     }
 
     /// <summary>
+    /// <b>Ground something rests on is not open ground</b> (TP25). A 7×7 ground to y4 with a wall layer standing
+    /// on its middle row from y5: the ground's courses under the wall take no surface, so where the row meets
+    /// the void its face is wall material all the way up and where it is buried it is fill — never a stripe of
+    /// turf between two rocks. Its open neighbours keep their surface, and a <c>boundary</c> rim lips them
+    /// along the wall the way it lips a structure.
+    /// </summary>
+    [Test]
+    public async Task Ground_under_another_layers_stone_takes_no_surface_and_bounds_its_neighbours()
+    {
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 7; x++)
+        for (var z = 0; z < 7; z++)
+        {
+            columns.Add(new ColumnSegment(x, z, 1, 5, "ground"));
+            if (z == 3) columns.Add(new ColumnSegment(x, z, 5, 9, "wall"));
+        }
+        var terrain = TerrainBuilder.Build(columns);
+        var ground = TerrainTheme.Default with
+        {
+            RimEdges = RimEdges.Boundary,
+            Rim = new TopBand(new SolidMaterial(Blocks.QuartzBlock)),
+            Surface = new TopBand(new SolidMaterial(Blocks.Grass)),
+            Wall = new SolidMaterial(Blocks.HardenedClay),
+            Fill = new SolidMaterial(Blocks.Dirt),
+        };
+        var rock = TerrainTheme.Default with
+        {
+            Rim = new TopBand(new SolidMaterial(Blocks.Cobblestone)),
+            Surface = new TopBand(new SolidMaterial(Blocks.Cobblestone)),
+            Wall = new SolidMaterial(Blocks.Cobblestone),
+            Fill = new SolidMaterial(Blocks.Cobblestone),
+        };
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
+                             (layer, _, _) => layer == "ground" ? ground : rock, floorByLayer: terrain.FloorByLayer);
+
+        await Assert.That(terrain.World.GetBlock(3, 4, 3).Id).IsEqualTo(Blocks.Dirt);
+        await Assert.That(terrain.World.GetBlock(0, 4, 3).Id).IsEqualTo(Blocks.HardenedClay);
+        await Assert.That(terrain.World.GetBlock(3, 4, 1).Id).IsEqualTo(Blocks.Grass);
+        await Assert.That(terrain.World.GetBlock(3, 4, 2).Id).IsEqualTo(Blocks.QuartzBlock);
+    }
+
+    /// <summary>
+    /// <b>Under a wall the whole surface stack is skipped, not its top course alone</b> (TP25). Grass over two
+    /// dirt is a surface three deep; where the wall layer stands on it none of the three is laid, so the
+    /// column goes straight to the stone fill beneath, while the open ground beside it keeps grass over dirt.
+    /// </summary>
+    [Test]
+    public async Task A_surface_stack_several_courses_deep_is_skipped_whole_under_a_wall()
+    {
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 7; x++)
+        for (var z = 0; z < 7; z++)
+        {
+            columns.Add(new ColumnSegment(x, z, 1, 6, "ground"));
+            if (z == 3) columns.Add(new ColumnSegment(x, z, 6, 9, "wall"));
+        }
+        var terrain = TerrainBuilder.Build(columns);
+        var meadow = TerrainTheme.Default with
+        {
+            Surface = new TopBand(new LayeredMaterial(new BandStack(
+                [new Band(new SolidMaterial(Blocks.Grass), 1), new Band(new SolidMaterial(Blocks.Dirt), 2)])), Depth: 3),
+            Wall = new SolidMaterial(Blocks.Stone),
+            Fill = new SolidMaterial(Blocks.Stone),
+        };
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
+                             (layer, _, _) => layer == "ground" ? meadow : TerrainTheme.Default, floorByLayer: terrain.FloorByLayer);
+
+        foreach (var y in (int[])[3, 4, 5])
+            await Assert.That(terrain.World.GetBlock(3, y, 3).Id).IsEqualTo(Blocks.Stone);
+        await Assert.That(terrain.World.GetBlock(3, 5, 1).Id).IsEqualTo(Blocks.Grass);
+        await Assert.That(terrain.World.GetBlock(3, 4, 1).Id).IsEqualTo(Blocks.Dirt);
+    }
+
+    /// <summary>
     /// <b>A lower layer finished in a stone variant is finished.</b> Stone's id is shared by granite, diorite,
     /// andesite and their polished forms, so a stone-only test that reads the id alone counts a finished
     /// course as unpainted ground and the next layer's pass writes through it — a plinth in polished diorite
@@ -635,9 +709,9 @@ public sealed class TerrainPainterTests
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
                              (layer, _, _) => layer == "plinth" ? diorite : wool);
 
-        // The plinth keeps its own courses.
+        // The plinth keeps its own courses; the block rests on its top one, so that course is fill (TP25).
         await Assert.That(terrain.World.GetBlock(2, 3, 2)).IsEqualTo((Blocks.Stone, 3));
-        await Assert.That(terrain.World.GetBlock(2, 5, 2)).IsEqualTo((Blocks.Stone, 4));
+        await Assert.That(terrain.World.GetBlock(2, 5, 2)).IsEqualTo((Blocks.Stone, 3));
         // And what stands on it is still wool.
         await Assert.That(terrain.World.GetBlock(2, 7, 2)).IsEqualTo((Blocks.Wool, 14));
         await Assert.That(terrain.World.GetBlock(2, 9, 2)).IsEqualTo((Blocks.Wool, 14));

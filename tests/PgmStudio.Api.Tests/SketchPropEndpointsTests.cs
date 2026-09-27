@@ -40,7 +40,7 @@ public sealed class SketchPropEndpointsTests
 
         await Assert.That((await ListAsync(client)).GetProperty("props").GetArrayLength()).IsEqualTo(0);
 
-        var id = await AddAsync(client, new { kind = "tree", x = 10, z = -14, seed = 7, style = "oak-1" });
+        var id = await AddAsync(client, new { kind = "tree", x = 10, z = -14, seed = 7 });
         await Assert.That(id).IsEqualTo("tree-1");
 
         var props = (await ListAsync(client)).GetProperty("props");
@@ -104,6 +104,44 @@ public sealed class SketchPropEndpointsTests
 
         var deleted = await client.DeleteAsync($"{Props}/tree-9");
         await Assert.That(deleted.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    /// <summary>A placement naming a recipe the map's registry holds wears that recipe: the second building
+    /// names the hipped shell the first stated inline, and both end up under the one key with no default shell
+    /// minted beside it.</summary>
+    [Test]
+    public async Task A_placement_naming_a_recipe_the_map_holds_wears_it()
+    {
+        using var client = await BoardAsync();
+        await AddAsync(client, new { kind = "house", seed = 1, points = new[] { new[] { -12, -12 }, new[] { -6, -6 } },
+                                     style = new { roof = new { form = "hip" } } });
+        var key = (await ListAsync(client)).GetProperty("props")[0].GetProperty("style").GetString()!;
+
+        await AddAsync(client, new { kind = "house", seed = 2, points = new[] { new[] { 4, 4 }, new[] { 10, 10 } },
+                                     style = key });
+
+        var listed = await ListAsync(client);
+        var styles = listed.GetProperty("props").EnumerateArray()
+            .Select(prop => prop.GetProperty("style").GetString()!).ToList();
+        await Assert.That(styles).IsEquivalentTo(new[] { key, key });
+        var keys = listed.GetProperty("styles").EnumerateObject().Select(entry => entry.Name).ToList();
+        await Assert.That(keys).IsEquivalentTo(new[] { key });
+    }
+
+    /// <summary>A key the registry holds no recipe under is refused naming the field, the answer every read
+    /// of the document gives, rather than stored as the default recipe under a fresh key.</summary>
+    [Test]
+    public async Task A_placement_naming_a_recipe_the_map_does_not_hold_is_refused()
+    {
+        using var client = await BoardAsync();
+
+        var resp = await client.PostAsJsonAsync(Props, new { kind = "boulder", x = 2, z = 2, seed = 2, style = "granite-9" });
+
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var finding = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("style");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("granite-9");
+        await Assert.That((await ListAsync(client)).GetProperty("props").GetArrayLength()).IsEqualTo(0);
     }
 
     /// <summary>A kind the reader does not know is refused where it is posted, naming the field and every

@@ -464,6 +464,11 @@ signed-in person it is not theirs to make — not on the whitelist, not the map'
 admin's route — is **403** under `RQ8`. Both are written by the access layer rather than by any endpoint, so no
 route's own table repeats them; `docs/access.md` says which route needs what.
 
+**`RQ9` and `RQ10` — nothing is wrong with the request, and the deployment lacks what the route needs.** A
+sign-in on a studio with no Discord application is `RQ9` (`docs/access.md`), and a read drawn with Minecraft's
+own block textures on a studio that has none is `RQ10` (`docs/world-scan/read-backs.md`). Both are **503**,
+because no change to the request helps, and each finding names the settings that would.
+
 **`RQ2` — the fault is the studio's own.** Something escaped an endpoint that no gate refused. It stays a
 **500**, because dressing a defect as a bad request sends an author hunting a mistake they did not make; what
 it buys is that the caller gets this envelope instead of a .NET stack trace, and the trace goes to the log. It

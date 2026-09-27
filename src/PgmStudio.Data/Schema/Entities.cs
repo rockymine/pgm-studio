@@ -569,6 +569,10 @@ public static class ArtifactKind
     // Hand-cut lane decompositions gathered with the retired decompose surface (island_sketch outlines
     // cut into role-tagged lane polygons, sketch layout format). Stored data kept; no writer remains.
     public const string LaneDecompositionJson = "lane_decomposition_json";
+    // The pictures an author kept of a board from a player's eye (docs/tools/sketch.md, In game): a list of
+    // named views. A sidecar rather than a part of the layout, so keeping a picture is not an edit to the
+    // board and the world it builds.
+    public const string MapViewsJson = "map_views_json";
 }
 
 /// <summary>A persisted layout plan (see M0008_Plan). A standalone corpus row — no map FK. <see cref="Origin"/>

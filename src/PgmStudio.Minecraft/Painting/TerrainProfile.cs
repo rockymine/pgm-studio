@@ -39,11 +39,14 @@ namespace PgmStudio.Minecraft.Painting;
 /// somebody else's.</para>
 /// <para><b>Structure</b> — Whether the column's <em>top</em> course is a stamp rather than stone. It says
 /// nothing about the courses under it, which are ground and are painted like ground; what it answers is a
-/// question about the surface, for a caller reading what a board shows from above.</para></summary>
+/// question about the surface, for a caller reading what a board shows from above.</para>
+/// <para><b>Covered</b> — Whether something already rests directly on the column's top course: another layer's
+/// stone standing on this ground, or a stamp set down on it. A covered course is not open ground, so it takes
+/// no surface or rim (TP25), and it bounds its neighbours the way a structure does.</para></summary>
 public readonly record struct ColumnProfile(
     int SurfaceTop, bool VoidEdge, bool OpenEdge, bool ClosedEdge, int VoidDrop, int TerrainDrop,
     int PerimeterArc = -1, int PerimeterTurn = 0, int PerimeterRun = 0, int Inset = -1, int Base = 0,
-    int Slope = 0, bool Structure = false);
+    int Slope = 0, bool Structure = false, bool Covered = false);
 
 /// <summary>
 /// The shared core of terrain painting (docs/world-export/terrain-painting.md §5, stage 1): classifies every
@@ -61,7 +64,7 @@ public sealed class TerrainProfile
     /// because the pass reads a dozen neighbours per cell and the lookups, not the work between them, are the
     /// cost: held as three separate tables this was three or four hashes of the same coordinate pair per
     /// neighbour.</summary>
-    private readonly record struct CellFacts(int Top, bool IsStructure, int Plateau);
+    private readonly record struct CellFacts(int Top, bool IsStructure, int Plateau, bool Covered);
 
     private readonly Dictionary<(int, int), CellFacts> _facts;
     private readonly Dictionary<(int, int), int> _perimeterArc = [];
@@ -104,9 +107,16 @@ public sealed class TerrainProfile
 
         var plateaus = LabelPlateaus(surfaceTop);
 
+        // A column is covered when the course over its top is not air. The painter runs after every stamp and
+        // before the dressing, and paints the lowest layer first, so what rests there is a stamp or a higher
+        // layer's ground — never a tree or a house, which are placed after it.
         _facts = new Dictionary<(int, int), CellFacts>(surfaceTop.Count);
         foreach (var (cell, top) in surfaceTop)
-            _facts[cell] = new CellFacts(top, structures.Contains(cell), plateaus[cell]);
+        {
+            var structure = structures.Contains(cell);
+            var covered = !structure && top < VoxelWorld.MaxHeight && world.GetBlock(cell.X, top, cell.Z).Id != 0;
+            _facts[cell] = new CellFacts(top, structure, plateaus[cell], covered);
+        }
 
         LabelPerimeter(surfaceTop.Keys);
 
@@ -139,7 +149,7 @@ public sealed class TerrainProfile
             // Off the footprint is the void, and the void is an edge under every test — it is the only one a
             // plateau standing on other plateaus never has.
             if (!_facts.TryGetValue((x + dx, z + dz), out var n)) { voidEdge = true; openEdge = true; closedEdge = true; continue; }
-            if (n.IsStructure) { closedEdge = true; continue; }
+            if (n.IsStructure || n.Covered) { closedEdge = true; continue; }
             if (n.Top < self.Top) openEdge = true;                   // a drop — base rim + wall
             if (n.Plateau != self.Plateau) closedEdge = true;         // any plateau boundary — closed rim
         }
@@ -150,7 +160,7 @@ public sealed class TerrainProfile
         foreach (var (dx, dz) in GridComponents.N4)
         {
             if (!_facts.TryGetValue((x + dx, z + dz), out var n)) { voidDrop = 1; continue; }
-            if (n.IsStructure) continue;
+            if (n.IsStructure || n.Covered) continue;
             if (n.Top < self.Top) terrainDrop = terrainDrop < 0 ? n.Top : Math.Min(terrainDrop, n.Top);
         }
         return new ColumnProfile(self.Top, voidEdge, openEdge, closedEdge, voidDrop, terrainDrop,
@@ -159,7 +169,7 @@ public sealed class TerrainProfile
             _perimeterRun.GetValueOrDefault((x, z), 0),
             _inset.GetValueOrDefault((x, z), -1),
             _base?.GetValueOrDefault((x, z), 0) ?? 0,
-            Slope(x, z, self), self.IsStructure);
+            Slope(x, z, self), self.IsStructure, self.Covered);
     }
 
     /// <summary>How steeply the surface is inclined at one cell, in whole degrees from level. Horn's 3×3

@@ -449,6 +449,12 @@ the eave's rise goes negative below the base plane and rounding those cells back
 the slope it belongs to. The slab is a block id rather than a material, for the reason a window's is: which
 half of its cube a slab fills is geometry.
 
+**A column standing above a slab reaches down into the slab's cell.** A column's riser closes the step to its
+lowest neighbour, and a slab-topped neighbour fills only the lower half of its crown's course, so the column
+above it carries that course too. At pitch 1 the steps meet flush and nothing changes; from pitch 3 a slab roof
+climbs a block and a half a step, and without the extra course every column beside a slab — the ridge of a
+gable first of all — leaves the slab's upper half open onto the inside of the roof.
+
 **A roof is one material, and the slab is that material in halves.** The body and the verge are each a single
 block — a pattern is refused in either (`HS3`), because a roof is read as one plane from below and a voronoi
 across it is several blocks in one surface — and the slab continues the body, so it is the body's own

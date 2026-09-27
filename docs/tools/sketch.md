@@ -11,11 +11,12 @@ more: a sketch alone produces geometry and states no intent, so a map begun here
 no objective until Configure gives it one. Opened on a map that came from a plan, it receives the compiled
 layout — the plan's abutting same-height pieces already fused into single polygons — and refines it.
 
-The route is `/maps/{slug}/sketch`. Five phases sit on the rail in the order the work is done: **Info**,
-**Draw**, **Relief**, **Theme** and **Dressing**. Info states what the board is and is its own body; the
-other four share the one live canvas, which stays mounted while Info is up so the drawing state and the zoom
-survive the trip. None of the four has steps: each swaps what the columns hold and which overlays the layer
-bar offers, and the canvas is reused as it stands.
+The route is `/maps/{slug}/sketch`. Six phases sit on the rail in the order the work is done: **Info**,
+**Draw**, **Relief**, **Theme**, **Dressing** and **In game**. Info states what the board is and is its own
+body; In game is a gallery of the board as a player sees it, and is its own body too until a view is being
+placed. The other four share the one live canvas, which stays mounted while Info or the gallery is up so the
+drawing state and the zoom survive the trip. None of the four has steps: each swaps what the columns hold and
+which overlays the layer bar offers, and the canvas is reused as it stands.
 
 The tool saves continuously — every change schedules a debounced write 800 ms later — and leaves by
 **Finish**, which flushes the layout, rasterizes it server-side into world geometry, and moves the map to
@@ -39,6 +40,11 @@ and a deletion therefore sticks. Only the plan-compile path merges (below).
 
 The identity of the map — its display name and authors — lives on the map row and is saved through
 `PATCH /api/map/{slug}/metadata`, not in the layout.
+
+**The views an author keeps in the In game phase are a second artifact beside it**, `map_views_json`: a list of
+`{id, name, lookX, lookZ, fromX?, fromZ?, y?, pitch?}`, where a view is only where the eye stands and what it
+looks at. It sits beside the layout rather than in it, so keeping a picture is not an edit to the board and does
+not change the world the board builds.
 
 ### The layout document
 
@@ -565,7 +571,7 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 
 | Chord | Does | Group |
 |---|---|---|
-| `1`–`5` | Go to Info · Draw · Relief · Theme · Dressing | Phases |
+| `1`–`6` | Go to Info · Draw · Relief · Theme · Dressing · In game | Phases |
 | `V` | Select | Tools |
 | `H` | Pan | Tools |
 | `R` | Rectangle | Tools |
@@ -1061,8 +1067,8 @@ and one row, and retuning that row retunes the grove.
 **A boulder** is a glacial erratic: a mass standing on the ground, bedded a third of its height into it. It
 takes a `form` — `round` (a weathered erratic), `angular` (the same rock, its surface broken), `outcrop` (wide
 flat lobes with their middle at the surface, a low shelf rather than a rock) or `cairn` (three shrinking lobes
-stacked) — a `size` from 2 to 10 blocks of reach, default 4, a `mossy` flag for whether moss creeps onto the
-sky-lit faces, and `rock`, a full terrain material like a stroke's paving. All four are the recipe's. A rock's material resolves in the
+stacked) — a `size` from 2 to 10 blocks of reach, default 4, a `mossy` flag for whether moss specks a tenth of
+the sky-lit faces, and `rock`, a full terrain material like a stroke's paving. All four are the recipe's. A rock's material resolves in the
 **boulder's own frame** rather than the map's, so a mottled stone carries the same mottling to every image of
 its orbit instead of sampling whatever the world pattern says where each image happened to land.
 
@@ -1284,7 +1290,45 @@ the whole export rather than exporting with fewer props than it was asked for; s
 `configure.md`, since the refusal fires at export, not while the sketch is merely saved.
 
 Dressing does not repaint the Blocks overlay, which shows the painter's surface colours — a prop adds blocks
-*above* the surface.
+*above* the surface. Its **Done** leads on to In game, where what was placed is seen standing.
+
+### In game
+
+**In game is the board as a player sees it**, drawn by `render/eye` with Minecraft 1.8.9's own block sprites
+(`docs/world-scan/read-backs.md`, *Seen from a player's eye*). It is the one phase that asks whether the finish
+works rather than where it is: two noisy blocks of one colour are static on the ground and one calm grey from
+above, and only a picture in the game's own sprites shows which. The server needs the sprites to draw it; one
+without them answers the list with the reason, and the phase says so instead of showing a gallery.
+
+**Entering it saves the board first**, because every picture is of the board as stored. A board that has
+changed builds a new world, and every picture is drawn again the first time it is asked for; a board that has
+not answers from the pictures already drawn.
+
+**The gallery opens on what the studio suggests, then on what the author kept.** The suggestions are read off
+the built board (`WorldViews`): the whole board from above the middle of its long side; every team's spawn seen
+from its front, and the view a player gets on arriving there — four blocks out of the room on the heading its
+yaw faces, looking on down it; every wool room, destroyable, core and control point; the first four buildings
+the dressing placed; and the first two boulders. Spawns and objectives are shown for every team, since each is
+a different team's first sight of the board; a prop is shown once, at the first image of its orbit.
+
+**A building is framed from its footprint rather than by the eye.** The eye finds its own place for a small
+thing — a boulder, a monument — but what it reads as a thing's ground and top is the columns around it, and
+inside a building those are its roof, with a wool room's marker floating over that. So a spawn, a wool room or a
+house is looked at from the terrain outside it, on the side facing the board's middle (a spawn's front), far
+enough back that its width and height fit the frame, and tipped to the middle of its body. A side whose sight
+line meets a hill, a rock or a wall is passed over for a nearer stand and then for the next side round; where
+none is clear, the eye is left to find its own place.
+
+**A picture opens large**, at 1280×720, with its name and where the eye stands; `←` and `→` step through the
+gallery, `Esc` closes it, and **Full size** opens the 1920×1080 picture in a tab of its own. A kept view can be
+let go from there.
+
+**Place a view brings the canvas back with the eye tool armed.** A press stands the eye and a drag turns it
+toward what it looks at; a click without a drag names only what to look at, and the eye finds its own place. The
+inspector draws the view as it stands, takes a name and an eye height — blank is a player's eye over the ground,
+and over the void the eye hovers level with what it faces — and **Keep** stores it and returns to the gallery.
+The views kept are drawn on the canvas while one is placed: a ring where each eye stands and a line to what it
+sees.
 
 ## Refusals and complaints
 
@@ -1754,7 +1798,7 @@ in the same two registers.
 | `DELETE /map/{slug}/sketch/shapes/{shapeId}/vertices/{index}` | `{id, index, vertices}` — take one point out, leaving every other where it was drawn | 400 `the edit cannot be made` `RQ1` — as above, plus an outline down to its last three, since two points draw no ground · 409 · 404 the id names no shape |
 | `DELETE /map/{slug}/sketch/shapes/{shapeId}` | `{id}` — rub one shape out, and take it out of every group that listed it | 409 · 404 the id names no shape |
 | `GET /map/{slug}/sketch/props` | `{props[], styles{}}` — every placement the map carries and the recipes they name, typed as `PlacedProp` so the six kinds, their knobs and their styles are in the published schema. The recipes ride with the placements because a placement naming a key nobody can resolve is not readable on its own | 400 `unreadable dressing` `DR-DOC` · 404 |
-| `POST /map/{slug}/sketch/props` | `{id}` — place one prop, without sending the board it stands on. A body stating a free id keeps it; one stating none, or one already taken, is minted `{kind}-{n}`. The placement goes on the end, since the pass runs in placement order and an addition has not been placed before anything | 400 `malformed prop` `RQ1` (the message names every kind) · 400 `invalid style or theme` `HS*`/`PT*` · 409 stale `If-Match` · 404 |
+| `POST /map/{slug}/sketch/props` | `{id}` — place one prop, without sending the board it stands on. A body stating a free id keeps it; one stating none, or one already taken, is minted `{kind}-{n}`. The placement goes on the end, since the pass runs in placement order and an addition has not been placed before anything. Its `style` is read the way the stored document's are: a key names the recipe the map's registry holds under it, and a recipe stated inline — a house's shell as an object, a tree's or a boulder's fields spread on the placement — is lifted into the registry under a key read off it | 400 `malformed prop` `RQ1` (the message names every kind) · **400 `malformed prop` `DR-DOC` a `style` key the registry holds no recipe under** · 400 `invalid style or theme` `HS*`/`PT*` · 409 stale `If-Match` · 404 |
 | `PATCH /map/{slug}/sketch/props/{propId}` | `{id}` — replace one placement, keeping its position in the pass's order and the id it is addressed by. Editing a prop must not move it past what the pass places after it | 400 as above · 409 · **404 the id names no placement** |
 | `DELETE /map/{slug}/sketch/props/{propId}` | `{id}` — take one placement off the board. The recipe it named stays in the registry, since a key is shared by every placement wearing it | 409 · **404 the id names no placement** |
 | `GET /map/{slug}/sketch/themes` | `{themes{}, mapTheme}` — the registry by the id an author registered each theme under, and which of it covers every cell no shape scope claims. A registry entry the painter cannot read as a theme is left out, the same way the painter drops it | 404 |
@@ -1769,9 +1813,22 @@ in the same two registers.
 | `GET /map/{slug}/sketch/room-styles` | `{wool, spawn}` — both shells **resolved**, which is what the stampers will read: a part that is absent answers its built-in shell and a part bound to open ground answers null. Raw snapshots would not say which of the three states a caller is in | 404 |
 | `PUT /map/{slug}/sketch/room-styles/{part}` | `{id}` — bind the shell one kind of room is stamped in; `part` is `wool` or `spawn`. **A body of literal `null` is a statement, not an omission**: it asks for open ground, a pad rather than a building over it, which is what a spawn on a plateau the plan already shaped often wants to be | 400 `unknown room part` / `malformed room style` `RQ1` · 400 `invalid style or theme` `HS*` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/room-styles/{part}` | `{id}` — unbind, which puts that kind of room back to its **built-in** shell. Not the same as binding null | 409 · 404 nothing is bound |
-| `GET /map/{slug}/sketch/biome` | one `BiomeField` — `solid`, `cell` or `noise`. The library's own rows are `GET /api/biome-patterns`, and the biomes worth naming with the colour each tints ground with are `GET /api/terrain/biomes` | 400 `unreadable biome` `RQ1` · 404 the board states none, which is plains everywhere |
+| `GET /map/{slug}/sketch/biome` | one `BiomeField` — `solid`, `cell` or `noise`. The library's own rows are `GET /api/biome-patterns`, and every biome with the colours it tints with and the biomes of the same colour is `GET /api/terrain/biomes` | 400 `unreadable biome` `RQ1` · 404 the board states none, which is plains everywhere |
 | `PUT /map/{slug}/sketch/biome` | `{id}` — which biome each column of the exported world carries. Map-wide and answered per chunk, because a biome's tint is blended across a radius and a region drawn to a finer edge never reaches its own colour there | 400 `malformed biome` `RQ1` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/biome` | `{id}` — take the field off the board, which is plains everywhere | 409 · 404 |
+
+**The pictures from a player's eye** — what the In game phase lists and draws. Each view answers the
+`render/eye` query words that draw it, so a caller adds only a size.
+
+| Endpoint | Answers | Fails with |
+|---|---|---|
+| `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: the studio's suggestions from the built board first, then the ones kept, each `{id, name, kept, lookX, lookZ, fromX, fromZ, y, pitch, query}`. A map with no sketch layout has no world to suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server — the block textures are not there — or null | 404 |
+| `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?}`; a blank name is `View {n}` | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, or an eye height below the world's floor or far over its build ceiling · 404 |
+| `DELETE /map/{slug}/views/{viewId}` | the view let go. A suggestion is not kept, so it cannot be deleted | 404 no kept view has that id |
+
+```json POST /api/map/{slug}/views
+{"name": "Across the middle", "lookX": 25, "lookZ": -22, "fromX": -26, "fromZ": 21}
+```
 
 **A placement is looked up rather than tried, and `seats` is the half that says where.** The `claims` raster
 answers what holds every cell; `seats` runs the pass's own five seat rules forwards over the whole board for
@@ -1957,16 +2014,10 @@ and an agent that can only open a raster could not.
 `GET /map/{slug}/top-surface` for the per-column surface colours, `GET /map/{slug}/segments` and
 `GET /map/{slug}/column-floor`. Data again, not pictures.
 
-**No picture of a sketch exists as an endpoint.** The API's only raster is the plan board —
-`GET /plans/{id}/png` beside its `/svg`, both off one shared scene so the two encodings cannot disagree
-(`B90`). The named stage images an agent can genuinely look at — **heightmap, contour, surface, topdown,
-foliage, objectives, traversability, structures, mirror** — are CLI flags on `tools/PgmStudio.RoundTrip`
-(`--topdown`, `--heightmap`, `--contour`, `--surface`, `--structures`, `--traversability-map`, `--mirror`)
-over a built world, which is what `GET /map/{slug}/export` hands back;
-`--topdown` also takes `--subject ground|structure|foliage|objectives`
-to isolate one of those questions instead of drawing the combined view. So an agent wanting to *see* a sketch
-has two honest options: render the data it already gets from the three reads above, or build the world and
-take the stage set.
+**The pictures of a stored sketch are the world reads.** `GET /map/{slug}/render/…` builds the world the
+stored layout and intent describe and draws it — from above, in section, walked, or from a player's eye in the
+game's own sprites — each with a `?format=text` twin; `docs/world-scan/read-backs.md` is the catalogue, and
+`GET /map/{slug}/views` lists the eye's views the In game phase shows.
 
 Two things are worth knowing before hand-writing a document. **Editor defaults and wire defaults are not the
 same numbers.** A mark placed in the editor is seeded from the client's own starting values; a hand-written
@@ -2050,11 +2101,10 @@ whether a recompile would orphan hand-authored terrain, and — since the house-
 bound room style is one its own geometry can be built from; there is no lint, no rule set and no score over the
 drawing itself. What a board plays like is Configure's pre-flight and, past that, a human's.
 
-**And nothing pictures one.** The sketch is the only stage between a plan and a world with no raster of its
-own: `GET /plans/{id}/png` renders the plan board and the eight stage images render the built world (`B90`),
-but a sketch answers only in data — palette runs, contour polylines, a numeric readback — and in SVG for the
-finish previews. An agent that wants to look at what it drew must render that data itself or build the world
-first. A `sketch/png` over the paint and relief it already computes would close the gap.
+**Only a stored board is pictured.** The world reads and the In game phase draw the world the *stored* layout
+and intent build, which is why the phase saves before it draws. A working layout posted as a body — what
+`Gauging the result` checks before saving — answers only in data: palette runs, contour polylines, a numeric
+readback, and SVG for the finish previews.
 
 **The pictures that do exist are now built to be read.** They used to imitate what a map looks like — grass
 green, leaves green, stone grey — and a green tree on green ground was invisible in a picture meant for

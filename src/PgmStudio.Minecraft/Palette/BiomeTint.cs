@@ -48,35 +48,7 @@ public static class BiomeTint
     public const uint ReferenceFoliage = 0x59AE30;
     public const uint ReferenceWater = 0xFFFFFF;
 
-    /// <summary>One biome's three multipliers.</summary>
-    private readonly record struct Tints(uint Grass, uint Foliage, uint Water);
-
-    // The 1.8 colormap read at each biome's own temperature and rainfall, plus the two biomes that override
-    // it outright: mesa states its grass and foliage directly, and swampland states both and is the only one
-    // that tints water.
-    private static readonly Dictionary<byte, Tints> Table = new()
-    {
-        [Biome.Plains] = new(0x91BD59, 0x77AB2F, ReferenceWater),
-        [Biome.Desert] = new(0xBFB755, 0xAEA42A, ReferenceWater),
-        [Biome.ExtremeHills] = new(0x8AB689, 0x6DA36B, ReferenceWater),
-        [Biome.Forest] = new(0x79C05A, 0x59AE30, ReferenceWater),
-        [Biome.Taiga] = new(0x86B783, 0x68A464, ReferenceWater),
-        [Biome.Swampland] = new(SwampGreen, SwampGreen, 0xE0FF70),
-        [Biome.River] = new(0x91BD59, 0x77AB2F, ReferenceWater),
-        [Biome.FrozenRiver] = new(0x80B497, 0x60A17B, ReferenceWater),
-        [Biome.IcePlains] = new(0x80B497, 0x60A17B, ReferenceWater),
-        [Biome.MushroomIsland] = new(0x55C93F, 0x2BBB0F, ReferenceWater),
-        [Biome.Jungle] = new(0x59C93C, 0x30BB0B, ReferenceWater),
-        [Biome.BirchForest] = new(0x88BB67, 0x6BA941, ReferenceWater),
-        [Biome.RoofedForest] = new(0x79C05A, 0x59AE30, ReferenceWater),
-        [Biome.ColdTaiga] = new(0x80B497, 0x60A17B, ReferenceWater),
-        [Biome.Savanna] = new(0xBFB755, 0xAEA42A, ReferenceWater),
-        [Biome.Mesa] = new(0x90814D, 0x9E814D, ReferenceWater),
-    };
-
-    /// <summary>The two colours swampland's own noise chooses between: the brown it mostly is, and the dark
-    /// green of the wetter patches.</summary>
-    private const uint SwampGreen = 0x6A7039;
+    /// <summary>The dark green of swampland's wetter patches; the brown it mostly is is its own row's grass.</summary>
     private const uint SwampDark = 0x4C763C;
 
     /// <summary>How wide swampland's mottling runs, in blocks. Vanilla samples its noise at 0.0225 per block,
@@ -94,12 +66,12 @@ public static class BiomeTint
     /// every other answer is the biome's alone.</summary>
     public static uint Of(byte biome, TintChannel channel, int x, int z)
     {
-        var tints = Table.TryGetValue(biome, out var found) ? found : Table[Biome.Plains];
+        var row = Biome.Row(biome) ?? Biome.Row(Biome.Plains)!.Value;
         return channel switch
         {
-            TintChannel.Grass => biome == Biome.Swampland ? SwampGrass(x, z) : tints.Grass,
-            TintChannel.Foliage => tints.Foliage,
-            TintChannel.Water => tints.Water,
+            TintChannel.Grass => row.Id is Biome.Swampland or Biome.SwamplandM ? SwampGrass(row.Grass, x, z) : row.Grass,
+            TintChannel.Foliage => row.Foliage,
+            TintChannel.Water => row.Water,
             _ => 0xFFFFFF,
         };
     }
@@ -137,6 +109,6 @@ public static class BiomeTint
 
     /// <summary>Swampland's grass over one column: the darker green where its own field is low, the brown
     /// elsewhere.</summary>
-    private static uint SwampGrass(int x, int z) =>
-        PatternNoise.Value(x, z, SwampSeed, SwampScale) < SwampDarkShare ? SwampDark : SwampGreen;
+    private static uint SwampGrass(uint brown, int x, int z) =>
+        PatternNoise.Value(x, z, SwampSeed, SwampScale) < SwampDarkShare ? SwampDark : brown;
 }

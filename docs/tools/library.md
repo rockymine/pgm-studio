@@ -262,6 +262,12 @@ and the four are read in that order:
 - **`fill`** — every block no other bucket claimed, the body of the terrain under the surface and behind the
   wall. It takes what is left, so it has no depth either.
 
+**Ground something rests on has no rim and no surface.** Where another layer's stone stands on a column — a
+tunnel wall on the ground it rises from — or a stamp is set down on it, that column's top course is not open
+ground: the wall takes it where its face shows and the fill where it does not, so a cliff under a wall reads as
+rock rather than as a buried stripe of turf. Its open neighbours keep their surface, and a `boundary` rim lips
+them along it the way it lips a room (TP25).
+
 They **fall through** in that order: an unpainted rim falls to the surface, an unpainted surface or wall to the
 fill, and the fill to nothing — which is why the fill alone cannot be switched off. Only the rim and the
 surface carry a `depth`. Both, and the wall, may be disabled outright, and disabled is not the same as unbound:
@@ -358,7 +364,7 @@ once and reused. What it states is not a block but the byte a client reads to ti
 a board wearing one changes colour without a single extra block being placed.
 
 The three kinds are the three a field takes. **`solid`** is one biome over the whole area — the plainest thing
-to say, and what the sixteen seeded presets are: one per named biome, so a board that is simply desert is a
+to say, and what the seeded presets are: one per biome, so a board that is simply desert is a
 pick rather than a document to write. **`cell`** is jittered regions each taking one biome from a palette,
 which is the shape a biome map actually has, and states a `seed`, a `cellSize` in blocks and a `jitter` from 0
 (a grid) to 100 (a fully wandering boundary). **`noise`** is a fractal field cut into bands, one biome per
@@ -398,7 +404,7 @@ coordinates there and the time of the cut (UTC), which a template never carries.
 ones it does not read are inert rather than wrong, and switching form keeps every field: a body survives a
 look at what the same recipe would be as a template, and the species chosen for it is still chosen on the way
 back. A `boulder_style` is four statements — form, size,
-whether moss takes its sky-lit faces, and the material it is cut from, which is a full terrain material and
+whether moss specks a tenth of its sky-lit faces, and the material it is cut from, which is a full terrain material and
 so may be any of the fourteen kinds.
 
 **A copied tree is cut out of a world, not typed in.** `dotnet run tools/seed-trees.cs <worldDir> [name]`
@@ -722,7 +728,7 @@ whitelist, and a `DELETE` needs an admin, because a library row is shared by eve
 | `GET /tree-styles/{id}/json` · `GET /boulder-styles/{id}/json` | the recipe as a dressing document states it, as `{styleJson: "…"}` — what a pull copies into a map's `styles` registry under a key |
 | `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette — each block's id/data, name, tone family, swatch, and what it **looks like** per face (below) — and every material kind with its fields, defaults and the cell facts it varies with |
 | `GET /terrain/looks` | the construction words a face's `construction` is drawn from, each with what it means |
-| `GET /terrain/biomes` | the biomes a field may name — `{id, name, hex}` per row, the colour being the grass tint choosing it produces (`docs/world-export/terrain-painting.md` §5b) |
+| `GET /terrain/biomes` | every biome 1.8 stores — `{id, name, hex, foliage, water, sharesTintWith[]}` per row: the grass tint choosing it produces, the leaf and water tints, and the biomes that are the same colour on all three (`docs/world-export/terrain-painting.md` §5b) |
 | `GET`·`POST`·`PUT`·`DELETE /biome-patterns[/{id}]` | the biome library; each row `{id, name, kind, params, preview}`, the preview being a patch of grass under the field. `POST`/`PUT` answer 400 `malformed biome` when `params` does not read as a field. A delete asks nothing: a map holds a snapshot |
 | `POST /biome-patterns/preview` | what a draft field draws, saving nothing — body is a **bare** `BiomeField`, unwrapped, answering `{card}` |
 | `POST /terrain/material-preview` | one material drawn in plan and section — body is a **bare material**, `{kind, …}`, unwrapped. One column, not an area: a pattern cannot be judged from it |
@@ -797,7 +803,7 @@ Both `/json` endpoints answer a **string in a field** rather than the document �
 `{styleJson: "…"}` — so what a sketch stores is the parse of that string, not the response.
 
 **The built-in presets are put in at startup, not by a migration.** `LibrarySeed` runs as the API comes up and
-writes six of the nine libraries — the sixteen flat biome patterns among them, one per named biome, so the
+writes six of the nine libraries — the flat biome patterns among them, one per biome, so the
 select that picks one is never empty and a board that is simply desert needs nothing authored. It writes: the materials the house presets are made of, the storeys, roofs and porches
 they are built from, the houses that bind those, and six terrain finishes — `meadow`, `dunes`, `ashfall`,
 `firnline`, `claybed`, `oldstone` — decomposed out of `ThemePresets` into one style per bucket plus a theme

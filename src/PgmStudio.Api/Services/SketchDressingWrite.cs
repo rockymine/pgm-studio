@@ -47,12 +47,22 @@ public static class SketchDressingWrite
         return layout.ToJsonString();
     }
 
-    /// <summary>What a body states as one placement, or null where it states none. A body that will not read
-    /// is the request's own fault (<c>RQ1</c>), answered where the body is read.</summary>
-    public static PlacedProp? Stated(string json)
+    /// <summary>Whether a body states one placement of a kind the reader knows. One that does not is the
+    /// request's own fault (<c>RQ1</c>), answered where the body is read.</summary>
+    public static bool StatesPlacement(string json)
     {
-        try { return JsonSerializer.Deserialize<PlacedProp>(json, DressingJson.Options); }
-        catch (JsonException) { return null; }
+        try
+        {
+            return JsonNode.Parse(json) is JsonObject body && body["kind"] is JsonValue kind
+                && kind.TryGetValue<string>(out var word) && PlacedProp.Kinds.Contains(word);
+        }
+        catch (JsonException) { return false; }
     }
+
+    /// <summary>The placement a body states, read as it will stand in <paramref name="doc"/>: a recipe it
+    /// states inline is lifted into the registry, and a <c>style</c> key is the recipe
+    /// <paramref name="doc"/>'s registry holds under it. A key naming no recipe throws
+    /// <see cref="DressingParseException"/> naming the field, the refusal every read of the document gives.</summary>
+    public static PlacedProp Stated(string json, DressingDoc doc) => DressingJson.DeserializeProp(json, doc.Styles);
 
 }

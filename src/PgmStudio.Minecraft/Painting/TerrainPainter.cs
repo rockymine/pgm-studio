@@ -149,9 +149,13 @@ public static class TerrainPainter
             RimEdges.Boundary => column.ClosedEdge,
             _ => column.OpenEdge,
         };
+        // A column something already rests on has no top course of its own (TP25): the wall takes it where its
+        // face is exposed and the fill where it is not, so ground under another layer's stone reads as rock in
+        // the face it shows rather than as a buried stripe of turf.
         TerrainBucket topBucket;
         int topDepth;
-        if (isRim && theme.Rim.Enabled) { topBucket = TerrainBucket.Rim; topDepth = Math.Max(1, theme.Rim.Depth); }
+        if (column.Covered) { topBucket = TerrainBucket.Fill; topDepth = 0; }
+        else if (isRim && theme.Rim.Enabled) { topBucket = TerrainBucket.Rim; topDepth = Math.Max(1, theme.Rim.Depth); }
         else if (theme.Surface.Enabled) { topBucket = TerrainBucket.Surface; topDepth = Math.Max(1, theme.Surface.Depth); }
         else { topBucket = TerrainBucket.Fill; topDepth = 0; }
         var treatLo = topDepth > 0 ? Math.Max(paintFloor, top - topDepth) : top;

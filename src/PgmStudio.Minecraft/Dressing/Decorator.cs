@@ -1132,7 +1132,7 @@ public static class Decorator
         {
             if (!Blob.Contains(lobes, new Vec3(x, y, z), boulder.Seed)) continue;
             var lit = y >= 0 && !Blob.Contains(lobes, new Vec3(x, y + 1, z), boulder.Seed);
-            var mossy = boulder.Style.Mossy && lit && PatternNoise.Unit(x, z, boulder.Seed + 3) < 0.55;
+            var mossy = boulder.Style.Mossy && lit && PatternNoise.Unit(x, z, boulder.Seed + 3) < MossShare;
             // Depth is measured down from the rock's own crust, not the map's surface, so a layer stack reads
             // as a weathered skin over a core rather than as the terrain bands it would name anywhere else.
             var depth = Crust(lobes, boulder, x, y, z, top);
@@ -1308,6 +1308,10 @@ public static class Decorator
     private readonly record struct PropCell(int X, int Y, int Z, int Id, int Data, bool Buried);
 
     private const int MossyCobblestone = 48;
+
+    /// <summary>How much of a mossy boulder's sky-lit faces the moss takes. Mossy cobblestone reads as a rock only
+    /// as rare specks beside the stone it grows on; more than that and its veins are all the boulder is.</summary>
+    private const double MossShare = 0.1;
 
     /// <summary>Stamp a prop at every image of its orbit, each turned by that image's own transform, and return
     /// how many landed. <b>Decided once for the whole orbit</b>, not once per image: every image has to seat
