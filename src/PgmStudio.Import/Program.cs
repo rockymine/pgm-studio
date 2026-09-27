@@ -244,7 +244,7 @@ Console.WriteLine($"  round-trip: {rtOk} ok, {rtBad} drift");
 Console.WriteLine($"\nimport: {ok} ok, {failed} failed; row-count verification: {(mismatches == 0 ? "all match" : $"{mismatches} mismatch(es)")}; round-trip: {rtBad} drift");
 return failed == 0 && mismatches == 0 && rtBad == 0 ? 0 : 1;
 
-static string Mask(string cs) => System.Text.RegularExpressions.Regex.Replace(cs, "(?i)password=[^;]*", "password=***");
+static string Mask(string cs) => System.Text.RegularExpressions.Regex.Replace(cs, @"(?i)\b(password|pwd)=[^;]*", "$1=***");
 
 // Resolve the connection string the same way the API does, so a migration applied here lands on the
 // database the API reads. Precedence:
