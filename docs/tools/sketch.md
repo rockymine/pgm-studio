@@ -1314,12 +1314,17 @@ the dressing placed; and the first two boulders. Spawns and objectives are shown
 a different team's first sight of the board; a prop is shown once, at the first image of its orbit.
 
 **A building is framed from its footprint rather than by the eye.** The eye finds its own place for a small
-thing — a boulder, a monument — but what it reads as a thing's ground and top is the columns around it, and
-inside a building those are its roof, with a wool room's marker floating over that. So a spawn, a wool room or a
-house is looked at from the terrain outside it, on the side facing the board's middle (a spawn's front), far
-enough back that its width and height fit the frame, and tipped to the middle of its body. A side whose sight
-line meets a hill, a rock or a wall is passed over for a nearer stand and then for the next side round; where
-none is clear, the eye is left to find its own place.
+thing — a boulder — but what it reads as a thing's ground and top is the columns around it, and inside a
+building those are its roof, with a wool room's marker floating over that. So a spawn, a wool room or a house is
+looked at from the terrain outside it, on the side facing the board's middle (a spawn's front), far enough back
+that its width and height fit the frame, and tipped to the middle of its body. A side whose sight line meets a
+hill, a rock or a wall is passed over for a nearer stand and then for the next side round.
+
+**A goal is framed from the box it was built in.** A destroyable or a core is seen from its box and a control
+point from its pad, the ground under it to the box's top, so the sky marker hanging over the goal is never what
+the eye aims at. Where no stand on the ground sees a building or a goal — a monument down in a crater — the eye
+rises into the air over the same stands and looks down at 25°, 45° and then 65°; where none of those is clear
+either, it is left to find its own place.
 
 **A picture opens large**, at 1280×720, with its name and where the eye stands; `←` and `→` step through the
 gallery, `Esc` closes it, and **Full size** opens the 1920×1080 picture in a tab of its own. A kept view can be

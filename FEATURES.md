@@ -8124,6 +8124,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   shell is the shell; a binding of `null` (no building) raises nothing. `docs/world-export/structures.md` §9.
   (`WE140`)
 
+- **A goal's picture is framed on its own box (`TS112`)** — the In game suggestions frame a destroyable or a
+  core from the box it was built in and a control point from its pad, so the sky marker over the goal is no
+  longer what the eye aims at; and where no stand on the ground sees a building or a goal, the eye rises into
+  the air over the same stands and looks down. `docs/tools/sketch.md`. (`TS112`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
