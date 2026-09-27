@@ -36,12 +36,15 @@ public sealed record WorldView(string Id, string Name, int LookX, int LookZ,
 /// what it reads as a thing's ground and top is the columns around it, and inside a building those are its
 /// roof — and a wool room's marker floats above that. What is known here is the building's footprint, so the
 /// eye is stood on the terrain outside it, far enough back that its width and height fit the frame, and
-/// tipped to the middle of its body: the ground under it to the height most of its footprint reaches.</para>
+/// tipped to the middle of its body: the ground under it to the height its walls reach from that ground.</para>
 /// </summary>
 public static class WorldViews
 {
     private const int HousesShown = 4, BouldersShown = 2, OutOfTheRoom = 4, DownTheRoad = 24;
     private const double EyeHeight = 1.62;
+
+    /// <summary>The most air a building's own column holds between one block and the next — a doorway.</summary>
+    private const int DoorwayGap = 3;
 
     /// <summary>How far past its footprint a building's roof may reach — where a sight meeting something is
     /// meeting the building itself.</summary>
@@ -114,8 +117,7 @@ public static class WorldViews
         var grounds = cells.Where(built.Surface.ContainsKey).Select(cell => built.Surface[cell]).Order().ToList();
         if (grounds.Count == 0) return new WorldView(id, name, lookX, lookZ);
         var ground = grounds[grounds.Count / 2];
-        var tops = cells.Select(cell => TopOf(built.World, cell.X, cell.Z) ?? ground).Order().ToList();
-        var top = Math.Max(ground, tops[(int)(tops.Count * 0.9)]);
+        var top = cells.Max(cell => Rise(built.World, cell.X, cell.Z, ground));
         var aim = (ground + 1 + top + 1) / 2.0;
 
         double centreX = (room.MinX + room.MaxX) / 2, centreZ = (room.MinZ + room.MaxZ) / 2;
@@ -210,12 +212,19 @@ public static class WorldViews
                 yield return (x, z);
     }
 
-    /// <summary>The highest block standing in a column, or null over an empty one.</summary>
-    private static int? TopOf(VoxelWorld world, int x, int z)
+    /// <summary>How high a column stands joined to <paramref name="ground"/>: the highest block reached from it
+    /// upward without crossing more than <see cref="DoorwayGap"/> blocks of air. A wall reaches its eaves; a room's
+    /// inside stops at its floor; and a marker floating over the roof is never reached.</summary>
+    private static int Rise(VoxelWorld world, int x, int z, int ground)
     {
-        for (var y = VoxelWorld.MaxHeight - 1; y >= 0; y--)
-            if (world.GetBlock(x, y, z).Id != 0) return y;
-        return null;
+        int top = ground, air = 0;
+        for (var y = ground + 1; y < VoxelWorld.MaxHeight && air <= DoorwayGap; y++)
+        {
+            if (world.GetBlock(x, y, z).Id == 0) { air++; continue; }
+            top = y;
+            air = 0;
+        }
+        return top;
     }
 
     private static (int X, int Z) Centre(Rect rect) =>

@@ -90,6 +90,39 @@ public sealed class WorldViewsTests
         await Assert.That(overview.Y!.Value).IsGreaterThan(Top + 6);
     }
 
+    /// <summary>A wool room eight by eleven on the board's ground: walls six high round its edge, a roof over
+    /// the whole of it, and — where <paramref name="marked"/> — a marker three wide floating over its middle,
+    /// as the built-in room carries one.</summary>
+    private static BuiltWorld WoolRoom(bool marked)
+    {
+        var world = new VoxelWorld();
+        for (var x = 10; x <= 17; x++)
+            for (var z = -5; z <= 5; z++)
+            {
+                var edge = x is 10 or 17 || z is -5 or 5;
+                for (var y = Top + 1; y <= Top + 6; y++)
+                    if (edge) world.SetBlock(x, y, z, 5);
+                world.SetBlock(x, Top + 7, z, 5);
+            }
+        if (marked)
+            for (var x = 12; x <= 14; x++)
+                for (var z = -1; z <= 1; z++)
+                    for (var y = Top + 26; y <= Top + 28; y++)
+                        world.SetBlock(x, y, z, 35, 14);
+        var intent = new MapIntent { Wools = [new WoolIntent { Owner = "red", Footprint = new Rect(10, -5, 17, 5) }] };
+        return new BuiltWorld(world, 0, Top + 1, 0, intent, new WorldProvenance(), RoomShells.BuiltIn, Ground: Ground());
+    }
+
+    [Test]
+    public async Task A_marker_floating_over_a_room_does_not_move_the_view_of_it()
+    {
+        var bare = WorldViews.Suggested(WoolRoom(marked: false)).Single(view => view.Id == "wool-0");
+        var marked = WorldViews.Suggested(WoolRoom(marked: true)).Single(view => view.Id == "wool-0");
+
+        await Assert.That(marked).IsEqualTo(bare);
+        await Assert.That(bare.Pitch!.Value).IsGreaterThan(-15.0);
+    }
+
     [Test]
     public async Task A_view_is_drawn_by_the_query_words_it_states()
     {
