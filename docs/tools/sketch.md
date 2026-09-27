@@ -1319,7 +1319,8 @@ thing — a boulder — but what it reads as a thing's ground and top is the col
 building those are its roof, with a wool room's marker floating over that. So a spawn, a wool room or a house is
 looked at from the terrain outside it, on the side facing the board's middle (a spawn's front), far enough back
 that its width and height fit the frame, and tipped to the middle of its body. A side whose sight line meets a
-hill, a rock or a wall is passed over for a nearer stand and then for the next side round.
+hill, a rock or a wall is passed over for a nearer stand and then for the next side round, and so is a stand
+so far below the thing that the eye would look up at it more steeply than 20°.
 
 **A goal is framed from the box it was built in.** A destroyable or a core is seen from its box and a control
 point from its pad, the ground under it to the box's top, so the sky marker hanging over the goal is never what

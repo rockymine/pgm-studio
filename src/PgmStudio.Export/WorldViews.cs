@@ -61,6 +61,10 @@ public static class WorldViews
     /// from the ground first, then from ever higher in the air.</summary>
     private static readonly double?[] Lifts = [null, 25, 45, 65];
 
+    /// <summary>How steeply, in degrees, an eye on the ground may look up at a thing: past it the stand is
+    /// under a cliff the thing stands on, and the picture is of sky.</summary>
+    private const double SteepestUp = 20;
+
     /// <summary>The views <paramref name="built"/> suggests, in the order a player meets the board: the whole
     /// of it, where they arrive, what they play for, and what stands on the way.</summary>
     public static IReadOnlyList<WorldView> Suggested(BuiltWorld built)
@@ -123,7 +127,8 @@ public static class WorldViews
     /// A building over <paramref name="room"/> seen whole from the side facing <paramref name="toward"/>, or
     /// from the nearest side to it where the eye has terrain to stand on and nothing between it and the
     /// building. The eye stands back until the footprint across the view and the body's height both fit, and
-    /// comes closer where that is what clears the way. Where no stand on the ground is clear the eye rises
+    /// comes closer where that is what clears the way, and never stands so far below it that it looks up more
+    /// steeply than <see cref="SteepestUp"/>. Where no stand on the ground is clear the eye rises
     /// into the air over the same places (<see cref="Lifts"/>), and where none of those is either it is left
     /// to find its own place, as it does for a small thing. <paramref name="stated"/> is the thing's top where
     /// its box states one, in place of the height its columns reach from the ground.
@@ -164,8 +169,9 @@ public static class WorldViews
                 }
                 else if (standing) eye = underfoot + 1 + EyeHeight;
                 else continue;
-                if (!Clear(built.World, (x + 0.5, eye, z + 0.5), (centreX + 0.5, aim, centreZ + 0.5), room)) continue;
                 var pitch = Math.Atan2(eye - aim, distance) * 180 / Math.PI;
+                if (pitch < -SteepestUp) continue;
+                if (!Clear(built.World, (x + 0.5, eye, z + 0.5), (centreX + 0.5, aim, centreZ + 0.5), room)) continue;
                 return new WorldView(id, name, lookX, lookZ, x, z, Math.Round(eye, 2), Math.Round(pitch, 1));
             }
         }

@@ -174,6 +174,31 @@ public sealed class WorldViewsTests
     }
 
     [Test]
+    public async Task A_goal_on_a_rise_is_not_looked_up_at_from_the_ground_below_it()
+    {
+        // The monument's own ground stands twelve blocks over the board, eleven wide, so every stand far enough
+        // back to frame it is on the low ground at its foot.
+        var mesa = Monument(marked: true);
+        var ground = Ground();
+        for (var x = -25; x <= -15; x++)
+            for (var z = -5; z <= 5; z++)
+                ground[(x, z)] = Top + 12;
+        var box = new BlockBox(-21, Top + 17, -1, -19, Top + 19, 1);
+        var raised = mesa with
+        {
+            Ground = ground,
+            ResolvedIntent = new MapIntent
+            {
+                Destroyables = [new DestroyableIntent { Owner = "red", Anchor = new Pt(-20, Top + 12, 0), Box = box }],
+            },
+        };
+
+        var view = WorldViews.Suggested(raised).Single(suggested => suggested.Id == "destroyable-0");
+
+        await Assert.That(view.Pitch!.Value).IsGreaterThanOrEqualTo(-20.0);
+    }
+
+    [Test]
     public async Task A_view_is_drawn_by_the_query_words_it_states()
     {
         await Assert.That(new WorldView("v", "A", 3, -4).Query).IsEqualTo("look=3,-4");
