@@ -488,7 +488,8 @@ somewhere of their own. Every distance the studio reports is this walk: the eval
 terms, the plan tier's route and coverage reads and the destroy-goal ratio all solve over a `WalkGround`,
 and the bands they are judged against were measured in its unit.
 
-**`render/eye` is a picture of the materials, not a screenshot.** Stairs, slabs, fences and panes are drawn as
-the whole cube they stand in; torches, signs, rails and carpets are not drawn; the only lighting is a shade per
-face; and ground past sixty blocks fades into the sky, which is where a distant finish reads as its mean colour
-anyway. A block no sprite is named for is drawn in its palette colour and counted in the text twin.
+**`render/eye` is a picture of the materials, not a screenshot.** Slabs, stairs, fences, gates, panes and walls
+are drawn in their own shapes — a stair lattice reads as a lattice — but a stair beside another is drawn
+straight rather than turned into the corner the game would join them in; torches, signs, rails, carpets,
+doors, trapdoors and iron bars are not drawn; the only lighting is a shade per face; and ground past sixty
+blocks fades into the sky, which is where a distant finish reads as its mean colour anyway. A block no sprite is named for is drawn in its palette colour and counted in the text twin.

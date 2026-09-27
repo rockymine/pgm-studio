@@ -32,8 +32,9 @@ public sealed record EyePicture(int Width, int Height, byte[] Rgb, IReadOnlyList
 ///
 /// <para>A ray is walked cell by cell through a dense copy of the world. A cube shows the sprite of the face
 /// the ray entered through, shaded by which way that face points; a plant is two crossed quads; a texel
-/// with no alpha lets the ray through, which is what makes leaves and glass read as they do. Far ground
-/// fades into the sky. Stairs, slabs and fences are drawn as the whole cube they stand in, and a block no
+/// with no alpha lets the ray through, which is what makes leaves and glass read as they do. A slab, a
+/// stair, a fence, a pane or a wall fills only the boxes <see cref="BlockShape"/> names for it, a fence, a
+/// pane or a wall reaching out to the neighbours it meets. Far ground fades into the sky, and a block no
 /// sprite is named for is drawn in its palette colour and counted as such.</para>
 /// </summary>
 public sealed class EyeScene
@@ -47,7 +48,7 @@ public sealed class EyeScene
     private readonly int _minX, _minZ, _width, _height, _depth;
 
     private sealed record Material(int Id, int Data, FaceForm Form, BlockSprite? Top, BlockSprite? Side,
-                                   bool Untextured, bool Ground);
+                                   bool Untextured, bool Ground, CellBox[]? Boxes);
 
     private EyeScene(ushort[] cells, Material[] materials, int minX, int minZ, int width, int height, int depth)
     {
@@ -70,8 +71,9 @@ public sealed class EyeScene
 
         var cells = new ushort[width * height * depth];
         var materials = new List<Material> { null! };
-        var index = new Dictionary<(int Id, int Data, uint Tint), ushort>();
+        var index = new Dictionary<(int Id, int Data, uint Tint, Joins Joins), ushort>();
         var sprites = new SpriteCache(textures, flat);
+        var joining = new List<(int X, int Y, int Z)>();
 
         foreach (var ((cx, cz), chunk) in chunks)
             for (var sy = 0; sy < chunk.Ids.Length; sy++)
@@ -89,16 +91,54 @@ public sealed class EyeScene
                         : BlockFaces.Of(id, nibble);
                     if (faces is { Form: FaceForm.Hidden }) continue;
                     var tint = Tint(faces, id, nibble, world.GetBiome(x, z), x, z);
-                    if (!index.TryGetValue((id, nibble, tint), out var slot))
+                    if (!index.TryGetValue((id, nibble, tint, Joins.None), out var slot))
                     {
                         slot = (ushort)materials.Count;
-                        index[(id, nibble, tint)] = slot;
+                        index[(id, nibble, tint, Joins.None)] = slot;
                         materials.Add(Describe(id, nibble, faces, tint, sprites));
                     }
                     cells[((x - minX) * height + y) * depth + (z - minZ)] = slot;
+                    if (BlockShape.Joining(id) != JoinKind.None) joining.Add((x - minX, y, z - minZ));
                 }
             }
+        Join(cells, materials, index, joining, width, height, depth);
         return new EyeScene(cells, [.. materials], minX, minZ, width, height, depth);
+    }
+
+    /// <summary>Gives every fence, pane and wall the shape of the neighbours it meets, once every cell is
+    /// known.</summary>
+    private static void Join(ushort[] cells, List<Material> materials,
+        Dictionary<(int Id, int Data, uint Tint, Joins Joins), ushort> index, List<(int X, int Y, int Z)> joining,
+        int width, int height, int depth)
+    {
+        Material? Neighbour(int x, int y, int z) =>
+            x >= 0 && x < width && z >= 0 && z < depth && cells[(x * height + y) * depth + z] is var slot and > 0
+                ? materials[slot] : null;
+
+        var tints = index.ToDictionary(entry => entry.Value, entry => entry.Key.Tint);
+        var updates = new List<(int Cell, ushort Slot)>();
+        foreach (var (x, y, z) in joining)
+        {
+            var at = (x * height + y) * depth + z;
+            var material = materials[cells[at]];
+            var kind = BlockShape.Joining(material.Id);
+            var joins = Joins.None;
+            foreach (var (side, dx, dz) in (ReadOnlySpan<(Joins, int, int)>)
+                     [(Joins.North, 0, -1), (Joins.South, 0, 1), (Joins.West, -1, 0), (Joins.East, 1, 0)])
+                if (Neighbour(x + dx, y, z + dz) is { } neighbour
+                    && BlockShape.Meets(kind, neighbour.Id, neighbour is { Form: FaceForm.Cube, Boxes: null }))
+                    joins |= side;
+            if (joins == Joins.None) continue;
+            var key = (material.Id, material.Data, tints[cells[at]], joins);
+            if (!index.TryGetValue(key, out var slot))
+            {
+                slot = (ushort)materials.Count;
+                index[key] = slot;
+                materials.Add(material with { Boxes = BlockShape.Of(material.Id, material.Data, joins) });
+            }
+            updates.Add((at, slot));
+        }
+        foreach (var (cell, slot) in updates) cells[cell] = slot;
     }
 
     private static uint Tint(BlockFaces? faces, int id, int data, byte biome, int x, int z)
@@ -115,10 +155,10 @@ public sealed class EyeScene
         {
             var side = known.Form == FaceForm.Cross ? top
                 : sprites.Get(known.Side, known.SideOverlay is null ? tint : 0xFFFFFF, known.SideOverlay, tint) ?? top;
-            return new Material(id, data, known.Form, top, side, Untextured: false, ground);
+            return new Material(id, data, known.Form, top, side, Untextured: false, ground, BlockShape.Of(id, data));
         }
         var colour = sprites.Solid((uint)BlockPalette.PackedRgb(id, data));
-        return new Material(id, data, FaceForm.Cube, colour, colour, Untextured: true, ground);
+        return new Material(id, data, FaceForm.Cube, colour, colour, Untextured: true, ground, BlockShape.Of(id, data));
     }
 
     /// <summary>The height an eye stands at over <paramref name="x"/>, <paramref name="z"/>: a player's eye
@@ -393,6 +433,7 @@ public sealed class EyeScene
         double entered, int axis, int cellX, int cellY, int cellZ, double leaves)
     {
         if (material.Form == FaceForm.Cross) return Plant(material, origin, ray, entered, leaves, cellX, cellY, cellZ);
+        if (material.Boxes is { } boxes) return Shaped(material, boxes, origin, ray, entered, axis, leaves, cellX, cellY, cellZ);
 
         var point = (X: origin.X + ray.X * entered - cellX, Y: origin.Y + ray.Y * entered - cellY,
                      Z: origin.Z + ray.Z * entered - cellZ);
@@ -406,6 +447,51 @@ public sealed class EyeScene
         var texel = sprite.At(u, v);
         if (texel >> 24 < 128) return null;
         return Shade(texel, shade);
+    }
+
+    /// <summary>The nearest face of a box the block fills that the ray meets inside the cell, in the sprite of
+    /// that face at the point it is met — so a slab's side shows the half of the sprite it stands in, as the
+    /// game draws it.</summary>
+    private static int? Shaped(Material material, CellBox[] boxes, (double X, double Y, double Z) origin,
+        (double X, double Y, double Z) ray, double entered, int axis, double leaves, int cellX, int cellY, int cellZ)
+    {
+        var local = (X: origin.X - cellX, Y: origin.Y - cellY, Z: origin.Z - cellZ);
+        double nearest = double.MaxValue;
+        int? colour = null;
+        foreach (var box in boxes)
+        {
+            double near = entered, far = leaves;
+            var face = axis;
+            var missed = false;
+            foreach (var (start, direction, low, high, which) in (ReadOnlySpan<(double, double, double, double, int)>)
+                     [(local.X, ray.X, box.MinX, box.MaxX, 0), (local.Y, ray.Y, box.MinY, box.MaxY, 1),
+                      (local.Z, ray.Z, box.MinZ, box.MaxZ, 2)])
+            {
+                if (Math.Abs(direction) < 1e-12)
+                {
+                    var at = start + direction * entered;
+                    if (at < low || at > high) missed = true;
+                    continue;
+                }
+                double first = (low - start) / direction, second = (high - start) / direction;
+                if (Math.Min(first, second) > near) { near = Math.Min(first, second); face = which; }
+                far = Math.Min(far, Math.Max(first, second));
+            }
+            if (missed || near > far || near >= nearest) continue;
+            var point = (X: local.X + ray.X * near, Y: local.Y + ray.Y * near, Z: local.Z + ray.Z * near);
+            var (sprite, u, v, shade) = face switch
+            {
+                1 => (material.Top, point.X, point.Z, ray.Y < 0 ? 1.0 : 0.5),
+                0 => (material.Side, point.Z, 1 - point.Y, 0.6),
+                _ => (material.Side, point.X, 1 - point.Y, 0.8),
+            };
+            if (sprite is null) continue;
+            var texel = sprite.At(Math.Clamp(u, 0, 0.9999), Math.Clamp(v, 0, 0.9999));
+            if (texel >> 24 < 128) continue;
+            nearest = near;
+            colour = Shade(texel, shade);
+        }
+        return colour;
     }
 
     /// <summary>Two quads crossing through the cell's centre on its diagonals; the nearer opaque texel wins.</summary>

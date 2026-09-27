@@ -11,7 +11,7 @@ namespace PgmStudio.Minecraft.Tests;
 /// </summary>
 public sealed class EyeSceneTests
 {
-    private const int Stone = 1, Cobblestone = 4, Glass = 20, GoldBlock = 41, Floor = 10;
+    private const int Stone = 1, Cobblestone = 4, Glass = 20, GoldBlock = 41, StoneSlab = 44, OakFence = 85, Floor = 10;
 
     private static BlockTextureSet Sprites(bool withStone = true)
     {
@@ -20,6 +20,9 @@ public sealed class EyeSceneTests
             ["gold_block"] = Uniform(200, 180, 0),
             ["cobblestone"] = Uniform(90, 90, 90),
             ["glass"] = new(2, new byte[16]),
+            ["planks_oak"] = Uniform(150, 120, 70),
+            ["stone_slab_top"] = Uniform(120, 120, 120),
+            ["stone_slab_side"] = Uniform(120, 120, 120),
         };
         if (withStone) sprites["stone"] = Checker();
         return BlockTextureSet.Of(sprites);
@@ -98,6 +101,48 @@ public sealed class EyeSceneTests
         var picture = EyeScene.Of(world, Sprites()).Draw(FacingTheGold, 64, 36);
 
         await Assert.That(Centre(picture)).IsEqualTo((160, 144, 0));
+    }
+
+    [Test]
+    public async Task A_bottom_slab_fills_only_its_lower_half_so_the_eye_sees_over_it()
+    {
+        var world = FloorWorld();
+        world.SetBlock(16, Floor + 1, 20, GoldBlock);
+        world.SetBlock(16, Floor + 1, 18, StoneSlab);
+
+        var picture = EyeScene.Of(world, Sprites()).Draw(FacingTheGold, 64, 36);
+
+        await Assert.That(Centre(picture)).IsEqualTo((160, 144, 0));
+        await Assert.That(picture.Seen.Select(seen => seen.Id)).Contains(StoneSlab);
+    }
+
+    [Test]
+    public async Task A_top_slab_fills_its_upper_half_and_hides_what_is_behind_it()
+    {
+        var world = FloorWorld();
+        world.SetBlock(16, Floor + 1, 20, GoldBlock);
+        world.SetBlock(16, Floor + 1, 18, StoneSlab, 8);
+
+        var picture = EyeScene.Of(world, Sprites()).Draw(FacingTheGold, 64, 36);
+
+        await Assert.That(Centre(picture)).IsEqualTo((96, 96, 96));
+    }
+
+    [Test]
+    public async Task A_fence_between_two_blocks_reaches_out_to_both_with_its_rails()
+    {
+        var beside = FacingTheGold with { X = 16.2, Pitch = 7.5 };
+        var world = FloorWorld();
+        world.SetBlock(16, Floor + 1, 20, GoldBlock);
+        world.SetBlock(16, Floor + 1, 18, OakFence);
+        var alone = EyeScene.Of(world, Sprites()).Draw(beside, 64, 36);
+        world.SetBlock(15, Floor + 1, 18, Stone);
+        world.SetBlock(17, Floor + 1, 18, Stone);
+
+        var joined = EyeScene.Of(world, Sprites()).Draw(beside, 64, 36);
+
+        await Assert.That(Centre(alone)).IsEqualTo((160, 144, 0));
+        await Assert.That(Centre(joined)).IsEqualTo((120, 96, 56));
     }
 
     [Test]

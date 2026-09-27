@@ -8067,6 +8067,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   sky-lit faces rather than more than half, which is the author's limit for it on a rock
   (`Decorator.MossShare`). `docs/world-export/decoration.md`. (`WE136`)
 
+- **The eye sees a stair as a stair (`WS77`)** — `render/eye` draws slabs, stairs, fences, gates, panes and
+  walls in their own shapes rather than as the cube they stand in (`Render/BlockShape`): a slab's half, a
+  stair's base and step turned the way its data says, and a fence, a pane or a wall reaching out to the
+  neighbours it meets, so a stair-lattice window reads as a lattice. `docs/world-scan/read-backs.md`. (`WS77`)
+
+- **A placement wears the recipe it names (`TS109`)** — `POST` and `PATCH …/sketch/props` read a posted
+  placement the way the stored document's are read: its `style` key resolves against the map's own registry,
+  a recipe stated inline is lifted into it, and a key the registry holds nothing under is refused `DR-DOC`
+  naming the field, rather than stored as the default recipe under a freshly minted key.
+  `docs/tools/sketch.md`. (`TS109`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each

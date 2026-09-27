@@ -62,9 +62,9 @@ public sealed class SketchPropCreateEndpoint(MapRepository repo, MapArtifactStor
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await SketchPropWrite.PropBodyAsync(HttpContext, ct) is not { } prop) return;
+        if (await SketchPropWrite.PropBodyAsync(HttpContext, ct) is not { } body) return;
         var outcome = await SketchPropWrite.RunAsync(repo, artifacts, HttpContext, ct,
-            doc => DressingEdit.Add(doc, prop));
+            doc => DressingEdit.Add(doc, SketchDressingWrite.Stated(body, doc)));
         if (outcome.IsAnswered) return;
         if (outcome.IsMissing) { await Send.NotFoundAsync(ct); return; }
         await Send.OkAsync(new PropWrittenDto(outcome.Id), ct);
@@ -85,9 +85,9 @@ public sealed class SketchPropUpdateEndpoint(MapRepository repo, MapArtifactStor
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await SketchPropWrite.PropBodyAsync(HttpContext, ct) is not { } prop) return;
+        if (await SketchPropWrite.PropBodyAsync(HttpContext, ct) is not { } body) return;
         var outcome = await SketchPropWrite.RunAsync(repo, artifacts, HttpContext, ct,
-            doc => DressingEdit.Replace(doc, Route<string>("propId")!, prop));
+            doc => DressingEdit.Replace(doc, Route<string>("propId")!, SketchDressingWrite.Stated(body, doc)));
         if (outcome.IsAnswered) return;
         if (outcome.IsMissing) { await Send.NotFoundAsync(ct); return; }
         await Send.OkAsync(new PropWrittenDto(outcome.Id), ct);

@@ -300,6 +300,20 @@ public sealed class DressingJsonTests
     }
 
     [Test]
+    public async Task DeserializeProp_resolves_a_key_against_the_registry_it_is_joining()
+    {
+        var registry = new Dictionary<string, PropStyle> { ["granite-6"] = new BoulderStyle { Size = 6 } };
+
+        var prop = (BoulderProp)DressingJson.DeserializeProp(
+            """{"kind":"boulder","id":"b1","seed":1,"x":0,"z":0,"style":"granite-6"}""", registry);
+
+        await Assert.That(prop.Style.Size).IsEqualTo(6.0);
+        var ex = Assert.Throws<DressingParseException>(() => DressingJson.DeserializeProp(
+            """{"kind":"boulder","id":"b2","seed":1,"x":0,"z":0,"style":"granite-9"}""", registry));
+        await Assert.That(ex.Field).IsEqualTo("style");
+    }
+
+    [Test]
     public async Task DeserializeProp_names_an_unknown_kind_rather_than_returning_null()
     {
         var ex = Assert.Throws<DressingParseException>(() => DressingJson.DeserializeProp("""{"kind":"unicorn"}"""));

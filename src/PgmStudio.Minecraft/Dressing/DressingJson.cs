@@ -213,15 +213,18 @@ public static class DressingJson
     /// <summary>One recipe as a document states it — what a library row is pulled into a map's registry as.</summary>
     public static string SerializeStyle(PropStyle style) => JsonSerializer.Serialize(style, Options);
 
-    /// <summary>One prop, parsed and upgraded. Throws <see cref="DressingParseException"/> naming the field
-    /// that did not parse, rather than returning null for every kind of failure alike.</summary>
-    public static PlacedProp DeserializeProp(string json)
+    /// <summary>One prop, parsed and upgraded, carrying the recipe its <c>style</c> names — out of
+    /// <paramref name="registry"/>, the registry of the document it is joining, or out of the recipe it states
+    /// inline, which the lift puts in a registry of its own. Throws <see cref="DressingParseException"/> naming
+    /// the field that did not parse, and for a key neither registry states, rather than returning null for
+    /// every kind of failure alike.</summary>
+    public static PlacedProp DeserializeProp(string json, IReadOnlyDictionary<string, PropStyle>? registry = null)
     {
         var node = ParseNode(json, "the prop");
         var subject = Label(node, index: null);
-        // A prop on its own has no document behind it, so its recipe travels with it: the lift puts it in a
-        // registry of one, which is what the preview and the picker cards each hand over.
-        var styles = node is JsonObject bare ? ParseStyles(bare["styles"]) : [];
+        var styles = new Dictionary<string, PropStyle>(registry ?? new Dictionary<string, PropStyle>(), StringComparer.Ordinal);
+        if (node is JsonObject bare)
+            foreach (var (key, style) in ParseStyles(bare["styles"])) styles[key] = style;
         return Resolved(ParseProp(node, subject), styles, subject);
     }
 

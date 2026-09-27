@@ -30,7 +30,15 @@ internal static class SketchPropWrite
             return PropWriteOutcome.Answered;
         }
 
-        var result = edit(doc);
+        DressingEditResult result;
+        try { result = edit(doc); }
+        // The reader's own finding, naming the placement and the field: the refusal the export gives the same
+        // placement, so the two cannot disagree about a key the registry does not hold.
+        catch (DressingParseException fault)
+        {
+            await Refusals.WriteAsync(http, 400, "malformed prop", [fault.Finding], ct);
+            return PropWriteOutcome.Answered;
+        }
         if (!result.Applied) return PropWriteOutcome.Missing;
 
         var written = await SketchPartWrite.StoreAsync(
@@ -41,12 +49,13 @@ internal static class SketchPropWrite
             : PropWriteOutcome.Wrote(written.Id);
     }
 
-    /// <summary>The placement a request body states, or null once the refusal for a body that states none is
-    /// on the wire.</summary>
-    public static async Task<PlacedProp?> PropBodyAsync(HttpContext http, CancellationToken ct)
+    /// <summary>The request body, where it states one placement, or null once the refusal for a body that
+    /// states none is on the wire. The edit reads it against the document it joins, since a <c>style</c> key
+    /// means what that document's registry holds under it.</summary>
+    public static async Task<string?> PropBodyAsync(HttpContext http, CancellationToken ct)
     {
-        var prop = SketchDressingWrite.Stated(await RawBody.ReadAsync(http, ct));
-        if (prop is not null) return prop;
+        var body = await RawBody.ReadAsync(http, ct);
+        if (SketchDressingWrite.StatesPlacement(body)) return body;
         await Refusals.UnreadableAsync(http, "malformed prop",
             "the body is not one placement: it states no `kind`, or a kind the dressing reader does "
             + $"not know. The kinds are {string.Join(", ", PlacedProp.Kinds)}.", ct, field: "kind");

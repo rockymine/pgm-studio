@@ -6,7 +6,7 @@ namespace PgmStudio.Minecraft.Render;
 public enum FaceForm
 {
     /// <summary>A cube: the top sprite on the faces seen from above and below, the side sprite on the four
-    /// others. Stairs, slabs and fences are drawn as the whole cube they stand in.</summary>
+    /// others — on the boxes <see cref="BlockShape"/> names, for a block that fills less than its cell.</summary>
     Cube,
 
     /// <summary>Two crossed quads through the cell's centre, the way a plant is drawn.</summary>
