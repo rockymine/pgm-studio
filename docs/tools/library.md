@@ -262,6 +262,12 @@ and the four are read in that order:
 - **`fill`** — every block no other bucket claimed, the body of the terrain under the surface and behind the
   wall. It takes what is left, so it has no depth either.
 
+**Ground something rests on has no rim and no surface.** Where another layer's stone stands on a column — a
+tunnel wall on the ground it rises from — or a stamp is set down on it, that column's top course is not open
+ground: the wall takes it where its face shows and the fill where it does not, so a cliff under a wall reads as
+rock rather than as a buried stripe of turf. Its open neighbours keep their surface, and a `boundary` rim lips
+them along it the way it lips a room (TP25).
+
 They **fall through** in that order: an unpainted rim falls to the surface, an unpainted surface or wall to the
 fill, and the fill to nothing — which is why the fill alone cannot be switched off. Only the rim and the
 surface carry a `depth`. Both, and the wall, may be disabled outright, and disabled is not the same as unbound:

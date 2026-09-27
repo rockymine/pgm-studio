@@ -8084,6 +8084,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   into the slab's course (`RoofField.Riser`), so a slab roof at pitch 3 or more no longer leaves the slab's upper
   half open onto the attic along its ridge and every other step. `docs/world-export/structures.md`. (`WE137`)
 
+- **Ground something rests on is not open ground (`WE138`)** — a column whose top course has another layer's
+  stone or a stamp standing on it takes no rim or surface (`TerrainProfile` · `ColumnProfile.Covered`, `TP25`):
+  the wall paints it where its face shows and the fill where it does not, so the ground a tunnel wall rises from
+  reads as rock in the cliff rather than as a buried stripe of turf, and a `boundary` rim lips the floor along
+  what stands on it. `docs/world-export/terrain-painting.md`, `docs/tools/library.md`. (`WE138`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
