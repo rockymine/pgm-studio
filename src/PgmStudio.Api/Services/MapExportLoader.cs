@@ -48,8 +48,9 @@ public static class MapExportLoader
         return MapExportComposer.Compose(doc, layoutBytes, isIntent, segments, intent, surfacePalette, resources, accounts);
     }
 
-    /// <summary>The account behind each tree builder the layout names, where one answers. A dressing document
-    /// that does not parse names nobody here; the composer refuses it by name.</summary>
+    /// <summary>The account behind each tree builder the layout names (<see cref="StudioCredits.Named"/>, which
+    /// bounds how many), where one answers. A dressing document that does not parse names nobody here; the
+    /// composer refuses it by name.</summary>
     private static async Task<IReadOnlyDictionary<string, (string Uuid, string Name)>> AccountsAsync(
         string layoutJson, PlayerLookup players, CancellationToken ct)
     {

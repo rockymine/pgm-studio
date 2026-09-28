@@ -26,17 +26,23 @@ public static class StudioCredits
     /// map is not theirs.</summary>
     public const string TreeContribution = "Original builder of the copied trees";
 
-    /// <summary>Everyone a copied tree recipe in <paramref name="layoutJson"/> names as its builder, placed or
-    /// not — the names a caller resolves to accounts before the build, since which trees land is the build's
-    /// answer. Throws <see cref="DressingParseException"/> on a dressing document that does not parse, the way
-    /// the build itself does.</summary>
+    /// <summary>The most builders one export resolves to accounts. A map's recipes can name anyone and its
+    /// export is open to anyone, so the lookups one request can set off are bounded; a builder past the bound
+    /// is credited by name.</summary>
+    public const int MaxResolved = 4;
+
+    /// <summary>The first <see cref="MaxResolved"/> builders the copied tree recipes in
+    /// <paramref name="layoutJson"/> name, placed or not — the names a caller resolves to accounts before the
+    /// build, since which trees land is the build's answer. Throws <see cref="DressingParseException"/> on a
+    /// dressing document that does not parse, the way the build itself does.</summary>
     public static IReadOnlyList<string> Named(string layoutJson) =>
     [
         .. DressingScope.DocOf(layoutJson).Styles.Values.OfType<TreeStyle>()
             .Where(style => style.Form == TreeForm.Copied)
             .Select(style => style.Builder?.Trim() ?? "")
             .Where(name => name.Length > 0)
-            .Distinct(StringComparer.OrdinalIgnoreCase),
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(MaxResolved),
     ];
 
     /// <summary>Add the studio and every tree builder in <paramref name="treeBuilders"/> to

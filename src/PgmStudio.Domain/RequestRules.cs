@@ -75,8 +75,9 @@ public static class RequestRules
     public const string SignedOut = "RQ7";
 
     /// <summary>The request names a person, and this write is not theirs to make: they are not on the
-    /// whitelist, the map is neither theirs nor credited to them, or the route keeps the whitelist or removes a
-    /// shared library row, which only an admin does. It answers <b>403</b>.</summary>
+    /// whitelist, the map is neither theirs nor credited to them, the route keeps the whitelist or removes a
+    /// shared library row, which only an admin does, or a request signed in by a token asks for what a token
+    /// never may — an admin's route, or another token. It answers <b>403</b>.</summary>
     /// <remarks>Ask the map's owner to credit you as an author, or an admin to make the change. <c>GET
     /// /api/me</c> says which role the request carries.</remarks>
     [Rule(RuleCategory.Forbidden, RuleConcern.Request)]

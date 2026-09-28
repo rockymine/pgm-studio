@@ -83,7 +83,14 @@ Access__Mode=invited ./tools/dev.sh restart              # now closed
 `Authorization: Bearer pgms_…`, and the access scheme hands any request naming a token to the `token` scheme
 (`TokenAccessHandler`) rather than to the session cookie. A token signs in as the person it was issued for —
 their uuid and nothing else, the same as a session — so the whitelist decides what it may do on every
-request: the same role, the same maps, and the same credit on a map it originates.
+request: the same maps, and the same credit on a map it originates.
+
+**A token never carries more than a member's rights, and never issues a token.** An admin's token is a
+member's: it keeps no whitelist, opens no invitation and changes no map its person does not own
+(`Callers`), since a token lives in an environment a browser session does not, and one that leaks there
+should not hand over the studio. And a request signed in by a token is refused `RQ8` when it asks for a token
+of its own or anyone's, so a leaked token cannot outlive its revocation by issuing another. Both are asked
+from a browser.
 
 **A token is issued once and kept only as a hash.** Its person issues one from *Tokens* in the account menu or
 `POST /api/users/me/tokens`, and an admin issues one for anyone on the whitelist with

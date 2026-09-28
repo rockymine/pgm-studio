@@ -102,12 +102,12 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 25 | 4,803 | `Playability/` 14 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 129 | 17,492 | `Endpoints/` 66 · `Services/` 48 · `Access/` 11 · `Http/` 3 · 1 at root |
+| `Api` | 129 | 17,546 | `Endpoints/` 66 · `Services/` 48 · `Access/` 11 · `Http/` 3 · 1 at root |
 | `Client` | 206 | 25,543 | `Features/` 118 (nested) · `Components/` 67 (nested) · `Pages/` 11 · `Models/` 4 · `Layout/` 3 · 3 at root |
 | `Contracts` | 34 | 3,811 | flat |
 | `Data` | 19 | 3,181 | `Features/` 5 · `Map/` 5 · `Theme/` 4 · `Access/` 2 · `Schema/` 2 · `Plan/` 1 |
-| `Domain` | 30 | 3,508 | flat |
-| `Export` | 19 | 4,406 | flat |
+| `Domain` | 30 | 3,509 | flat |
+| `Export` | 19 | 4,412 | flat |
 | `Geom` | 51 | 6,667 | `Algorithms/` 19 · `Render/` 7 · `Relief/` 5 · 20 at root |
 | `Import` | 4 | 473 | flat |
 | `Migrations` | 47 | 2,841 | `Migrations/` 46 · 1 at root |

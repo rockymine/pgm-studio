@@ -64,6 +64,21 @@ public sealed class StudioCreditsTests
         await Assert.That(People(doc).Count).IsEqualTo(2);
     }
 
+    /// <summary>A map may name as many builders as its recipes like, and anyone may ask for its export, so the
+    /// names one export resolves to accounts are bounded.</summary>
+    [Test]
+    public async Task An_export_resolves_at_most_a_bounded_number_of_builders()
+    {
+        var styles = string.Join(",", Enumerable.Range(1, StudioCredits.MaxResolved + 2).Select(n =>
+            $$$"""
+            "t{{{n}}}":{"kind":"tree","form":"copied","body":[[0,0,0,17,0]],"builder":"builder{{{n}}}"}
+            """));
+        var layout = """{"dressing":{"props":[],"styles":{""" + styles + "}}}";
+        var named = StudioCredits.Named(layout);
+        await Assert.That(named.Count).IsEqualTo(StudioCredits.MaxResolved);
+        await Assert.That(named.Distinct().Count()).IsEqualTo(named.Count);
+    }
+
     // ── on the way to map.xml ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>One plate, with a copied tree standing on it whose recipe names <paramref name="builder"/>, or

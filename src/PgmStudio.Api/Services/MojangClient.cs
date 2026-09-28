@@ -13,23 +13,26 @@ public sealed partial class MojangClient(HttpClient http)
     [GeneratedRegex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")]
     private static partial Regex UuidRe();
 
-    /// <summary>Look up a player. Throws <see cref="InvalidOperationException"/> when not found.</summary>
-    public async Task<(string Uuid, string Name)> LookupAsync(string nameOrUuid, CancellationToken ct)
+    /// <summary>Look up a player: null where Mojang says there is none, and a throw where it could not be
+    /// asked or did not answer — a refusal, a limit, a fault — so a caller can remember the one and retry the
+    /// other.</summary>
+    public async Task<(string Uuid, string Name)?> LookupAsync(string nameOrUuid, CancellationToken ct)
     {
         var url = UuidRe().IsMatch(nameOrUuid)
             ? $"https://sessionserver.mojang.com/session/minecraft/profile/{nameOrUuid.Replace("-", "")}"
             : $"https://api.mojang.com/users/profiles/minecraft/{Uri.EscapeDataString(nameOrUuid)}";
 
         using var resp = await http.GetAsync(url, ct);
-        // Mojang returns 204/404 (and historically an empty 200) for an unknown player.
+        // Mojang answers 204 or 404 (and has answered an empty 200) for an unknown player.
+        if (resp.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.NoContent) return null;
+        resp.EnsureSuccessStatusCode();
         var raw = await resp.Content.ReadAsStringAsync(ct);
-        if (!resp.IsSuccessStatusCode || string.IsNullOrWhiteSpace(raw))
-            throw new InvalidOperationException($"Player not found: {nameOrUuid} ({(int)resp.StatusCode})");
+        if (string.IsNullOrWhiteSpace(raw)) return null;
 
         using var doc = JsonDocument.Parse(raw);
         var root = doc.RootElement;
         var id = root.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? "" : "";
-        if (string.IsNullOrEmpty(id)) throw new InvalidOperationException($"Player not found: {nameOrUuid}");
+        if (string.IsNullOrEmpty(id)) return null;
         var name = root.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? nameOrUuid : nameOrUuid;
         return (FormatUuid(id), name);
     }

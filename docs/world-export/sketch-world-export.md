@@ -219,7 +219,9 @@ neither: they are read off the map on its way out.
 
 A person the map already credits, in either role and by name or account, is not credited a second time. A
 builder whose name an account answers is written by `uuid`, which `GET /map/{slug}/xml` and
-`GET /map/{slug}/export` look up before the build; one that answers nothing is written as a pseudonym. The
+`GET /map/{slug}/export` look up before the build; one that answers nothing is written as a pseudonym. Both
+routes are open to anyone and a map's recipes may name anyone, so one export looks up at most four builders
+(`StudioCredits.MaxResolved`) and the rest are credited by name. The
 studio is always a pseudonym. With the showcase's trees on a board, the block reads:
 
 ```xml

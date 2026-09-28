@@ -208,6 +208,7 @@ builder.Services.AddHttpClient(PgmStudio.Api.Services.BlockTextureStore.ClientNa
 // What actually resolves a person: the name's own shape and what is already known come first, so the same
 // few people an author types are asked of Mojang once rather than on every intent write.
 builder.Services.AddScoped<PlayerNameStore>();
+builder.Services.AddSingleton<PgmStudio.Api.Services.PlayerMisses>();
 builder.Services.AddScoped<PgmStudio.Api.Services.PlayerLookup>();
 
 // B8 import-from-url (docs/tools/configure.md, the Import phase): a hardcoded SSRF allowlist + a dedicated

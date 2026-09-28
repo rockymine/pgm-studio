@@ -192,7 +192,9 @@ answers the row takes its canonical uuid and spelling — the uuid is what the `
 it is worth the request. Everything else is a **pseudonym**, in three cases that are deliberately one: a
 value no account could be called, so nothing is asked; a value that is shaped like one and answers nothing;
 and a lookup that could not be made at all. In each the stated name stands, the uuid stays empty, and the row
-is saved. An author working with no route to Mojang states the people on their map and the credits hold.
+is saved. An author working with no route to Mojang states the people on their map and the credits hold. A
+name Mojang has said nobody has is remembered for an hour (`PlayerMisses`) and not asked again in that time,
+while a question Mojang could not answer is asked again the next time.
 
 What the field refuses is narrower, and it refuses out loud. A string that is not a name anybody could be
 called — empty, past thirty-two characters, opening or closing on a space, carrying two in a row, or holding

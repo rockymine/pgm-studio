@@ -21,8 +21,10 @@ namespace PgmStudio.Api.Services;
 /// carries and for a host that could not be reached, and deliberately so: an author working offline states
 /// the people on their map and the credits stand.</para>
 /// </summary>
-public sealed class PlayerLookup(MojangClient mojang, PlayerNameStore kept)
+public sealed class PlayerLookup(MojangClient mojang, PlayerNameStore kept, PlayerMisses? missed = null)
 {
+    private readonly PlayerMisses misses = missed ?? new PlayerMisses();
+
     /// <summary>The account behind a typed name or uuid, or null where there is none.</summary>
     public async Task<(string Uuid, string Name)?> ResolveAsync(string nameOrUuid, CancellationToken ct = default)
     {
@@ -31,12 +33,17 @@ public sealed class PlayerLookup(MojangClient mojang, PlayerNameStore kept)
         if (!AuthorNames.IsAccountName(asked) && !LooksLikeUuid(asked)) return null;
 
         if (await kept.LookAsync(asked, ct) is { } known) return known;
+        if (misses.Recently(asked, DateTime.UtcNow)) return null;
 
         try
         {
-            var (uuid, name) = await mojang.LookupAsync(asked, ct);
-            await kept.KeepAsync(uuid, name, ct);
-            return (uuid, name);
+            if (await mojang.LookupAsync(asked, ct) is not { } account)
+            {
+                misses.Note(asked, DateTime.UtcNow);
+                return null;
+            }
+            await kept.KeepAsync(account.Uuid, account.Name, ct);
+            return account;
         }
         catch
         {
@@ -68,5 +75,31 @@ public sealed class PlayerLookup(MojangClient mojang, PlayerNameStore kept)
     {
         var bare = value.Replace("-", "");
         return bare.Length == 32 && bare.All(Uri.IsHexDigit);
+    }
+}
+
+/// <summary>
+/// The names Mojang has said nobody has, remembered for <see cref="Lifetime"/> so a name no account carries is
+/// not asked about again on every request that names it — a map's recipes can name anyone, and its export is
+/// open to anyone. Only a confirmed miss is remembered; a host that could not be reached is asked again. One per
+/// studio, bounded to <see cref="MaxKept"/> names, forgotten all at once when it fills.
+/// </summary>
+public sealed class PlayerMisses
+{
+    public static readonly TimeSpan Lifetime = TimeSpan.FromHours(1);
+    public const int MaxKept = 4096;
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> missed =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Whether Mojang said nobody has <paramref name="name"/> within <see cref="Lifetime"/> of
+    /// <paramref name="now"/>.</summary>
+    public bool Recently(string name, DateTime now) =>
+        missed.TryGetValue(name, out var at) && now - at < Lifetime;
+
+    public void Note(string name, DateTime now)
+    {
+        if (missed.Count >= MaxKept) missed.Clear();
+        missed[name] = now;
     }
 }

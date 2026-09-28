@@ -9784,7 +9784,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`POST /api/users/me/tokens`) or by an admin for anyone on the whitelist (`POST /api/users/{uuid}/tokens`),
   kept only as a SHA-256 in `studio_token` (`M0046`) with a label and its last use, revoked from the same page
   (`DELETE /api/users/me/tokens/{id}`) or by taking its person off the whitelist; an unknown token is refused
-  `RQ7`. It is what lets a Claude Code session drive the deployed studio (`PGM_STUDIO_API`,
+  `RQ7`. A token is capped at a member's rights and cannot issue a token (`RQ8`), so one that leaks neither
+  hands over the studio nor outlives its revocation. A map's builders resolved per export are bounded to
+  four, and a name Mojang says nobody has is remembered for an hour. It is what lets a Claude Code session drive the deployed studio (`PGM_STUDIO_API`,
   `PGM_STUDIO_TOKEN`). `docs/access.md`.
 - **Anyone signed in sees how a map is made (`RP83`).** A Sketch page's paint, relief contours and 3-D world
   are built on request from the layout the page posts, so they were refused as writes to anyone who may not

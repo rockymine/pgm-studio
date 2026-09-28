@@ -233,6 +233,38 @@ public sealed class AccessTests
         await Assert.That(await visitor.GetFromJsonAsync<List<StudioTokenDto>>("/api/users/me/tokens")).IsEmpty();
     }
 
+    /// <summary>A token acts as its person on their own maps and nothing wider. An admin's token is a member's
+    /// — it keeps no whitelist and changes no map its person does not own — and no token issues a token, so one
+    /// that leaks cannot outlive its revocation. It may still revoke itself.</summary>
+    [Test]
+    public async Task A_token_never_carries_an_admins_rights_and_never_issues_a_token()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        using var owner = InvitedFactory.As(Owner);
+        var slug = await OriginateAsync(owner, "Weirgate");
+
+        using var admin = InvitedFactory.As(Admin);
+        var issued = await (await admin.PostAsJsonAsync("/api/users/me/tokens", new StudioTokenRequest("agent")))
+            .Content.ReadFromJsonAsync<StudioTokenIssuedDto>();
+        using var agent = WithToken(issued!.Token);
+
+        await Assert.That((await agent.GetFromJsonAsync<CallerDto>("/api/me"))!.Role).IsEqualTo("member");
+        using var whitelist = await agent.GetAsync("/api/users");
+        await AssertRefusedAsync(whitelist, HttpStatusCode.Forbidden, "RQ8");
+        using var othersMap = await agent.DeleteAsync($"/api/map/{slug}");
+        await AssertRefusedAsync(othersMap, HttpStatusCode.Forbidden, "RQ8");
+
+        using var another = await agent.PostAsJsonAsync("/api/users/me/tokens", new StudioTokenRequest("second"));
+        await AssertRefusedAsync(another, HttpStatusCode.Forbidden, "RQ8");
+        using var forSomeone = await agent.PostAsJsonAsync($"/api/users/{Owner}/tokens", new StudioTokenRequest("x"));
+        await AssertRefusedAsync(forSomeone, HttpStatusCode.Forbidden, "RQ8");
+        await Assert.That(await ScalarAsync("SELECT COUNT(*) FROM studio_token")).IsEqualTo("1");
+
+        using var revoked = await agent.DeleteAsync($"/api/users/me/tokens/{issued.Id}");
+        await Assert.That(revoked.IsSuccessStatusCode).IsTrue();
+    }
+
     private static HttpClient WithToken(string token)
     {
         var client = InvitedFactory.Shared.CreateClient();

@@ -25,7 +25,9 @@ public sealed class MyTokensEndpoint(Callers callers, StudioTokenStore tokens) :
 }
 
 /// <summary>POST /api/users/me/tokens — issue a token that signs in as the caller. The answer is the only
-/// one that carries the token. 404 for the local admin of an open studio, who has no account to act as.</summary>
+/// one that carries the token. 403 to a request signed in by a token, so a token cannot outlive its own
+/// revocation by issuing another; 404 for the local admin of an open studio, who has no account to act
+/// as.</summary>
 public sealed class MyTokenIssueEndpoint(Callers callers, StudioTokenStore tokens, StudioUserStore users)
     : Endpoint<StudioTokenRequest, StudioTokenIssuedDto>
 {
@@ -38,6 +40,13 @@ public sealed class MyTokenIssueEndpoint(Callers callers, StudioTokenStore token
     public override async Task HandleAsync(StudioTokenRequest request, CancellationToken ct)
     {
         var caller = await callers.OfAsync(HttpContext, ct);
+        if (caller.ViaToken)
+        {
+            await Refusals.WriteAsync(HttpContext, 403, "not permitted",
+                [new Finding(RequestRules.NotPermitted,
+                    "a token cannot issue a token — issue one from a browser signed in as its person")], ct);
+            return;
+        }
         if (caller.Uuid is not { } uuid)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no account",
@@ -76,7 +85,8 @@ public sealed class MyTokenRevokeEndpoint(Callers callers, StudioTokenStore toke
 }
 
 /// <summary>POST /api/users/{uuid}/tokens — issue a token that signs in as someone on the whitelist, for an
-/// agent acting as them. Admin only. 404 for a uuid the whitelist does not hold.</summary>
+/// agent acting as them. Admin only, which a token never is. 404 for a uuid the whitelist does not
+/// hold.</summary>
 public sealed class UserTokenIssueEndpoint(StudioTokenStore tokens, StudioUserStore users)
     : Endpoint<StudioTokenRequest, StudioTokenIssuedDto>
 {
