@@ -329,6 +329,28 @@ public sealed class DecoratorTests
         }
     }
 
+    /// <summary>A copied tree's builder is reported once the tree stands — once for every tree of theirs, and
+    /// never for a tree declined everywhere, which is not in the map to be credited for.</summary>
+    [Test]
+    public async Task The_builders_of_the_copied_trees_that_stand_are_reported_once_each()
+    {
+        var (world, top) = Plateau();
+        var placed = Decorator.Decorate(world, Context(top,
+        [
+            new TreeProp { Id = "a", X = 10, Z = 10, Seed = 5, Style = Copied() with { Builder = "rockymine" } },
+            new TreeProp { Id = "b", X = 30, Z = 30, Seed = 5, Style = Copied() with { Builder = "Rockymine" } },
+            new TreeProp { Id = "off", X = 200, Z = 200, Seed = 5, Style = Copied() with { Builder = "elsewhere" } },
+            new TreeProp { Id = "c", X = 10, Z = 30, Seed = 5, Style = Copied() },
+            new TreeProp { Id = "t", X = 30, Z = 10, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } },
+        ]));
+        await Assert.That(placed.Trees).IsEqualTo(4);
+        await Assert.That(placed.TreeBuilders).IsEquivalentTo(["rockymine"]);
+
+        var (bare, bareTop) = Plateau();
+        var none = Decorator.Decorate(bare, Context(bareTop, [new TreeProp { Id = "c", X = 10, Z = 10, Seed = 5, Style = Copied() }]));
+        await Assert.That(none.Builders).IsNull();
+    }
+
     // ── a prop stands where it was placed ──────────────────────────────────────────────────────────
     [Test]
     public async Task A_tree_grows_where_it_was_placed_and_nowhere_else()

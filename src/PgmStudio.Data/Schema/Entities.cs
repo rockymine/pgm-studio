@@ -812,6 +812,9 @@ public sealed class TreeStyleRow
     [Column("cut_y")] public int? CutY { get; set; }
     [Column("cut_z")] public int? CutZ { get; set; }
     [Column("cut_at")] public DateTime? CutAt { get; set; }
+    /// <summary>Copied only — who built the tree in the world it was cut from (M0045), as a Minecraft name.
+    /// Null where the cutter was not told.</summary>
+    [Column("cut_builder")] public string? CutBuilder { get; set; }
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }
 

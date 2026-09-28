@@ -51,6 +51,11 @@
           @if (tree.Cut is { } cut)
           {
             <text> Cut from <code>@cut.World</code> at (@cut.X, @cut.Y, @cut.Z) on @cut.At.ToString("yyyy-MM-dd").</text>
+            @if (cut.Builder is { Length: > 0 } builder)
+            {
+              <text> Built by <strong>@builder</strong>, whom a map it stands on credits as a contributor for its
+                trees.</text>
+            }
           }
           else
           {

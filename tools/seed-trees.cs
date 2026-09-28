@@ -5,7 +5,7 @@
 #:property PublishAot=false
 // seed-trees: cut every hand-built tree out of a world and file each one in the tree library as a copied recipe.
 //
-//   dotnet run tools/seed-trees.cs <worldDir> [name] [--wool] [--dry] [connection string]
+//   dotnet run tools/seed-trees.cs <worldDir> [name] [--builder=<name>] [--wool] [--dry] [connection string]
 //
 // <worldDir> holds region/*.mca — a showcase world where every tree stands on its own, clear of every other,
 // so a connected-component pass over the tree blocks finds each trunk with its branches and leaves. A hand-built
@@ -15,8 +15,9 @@
 // a corpus that builds a tree out of it. A plank is tree above the world's lowest course and platform on it, which
 // is where a showcase lays its platforms. Each tree is normalised to its foot — its lowest wood nearest the
 // trunk, a plank where the trunk stands on one, or the lowest block where there is no log — and stored as
-// [x, y, z, id, data] rows, with the cut recorded beside them: the world directory, the foot's world coordinates
-// and the time of the run.
+// [x, y, z, id, data] rows, with the cut recorded beside them: the world directory, the foot's world coordinates,
+// the time of the run and, with --builder, who built the world's trees — a map a copied tree stands on credits
+// them as a contributor for its trees.
 // The cut is what makes a row `copied`; the library refuses that form to any save without one (DR-COPY).
 // A body counts as a tree when it rests on something: a solid block that is not tree material within two
 // courses under its foot. A piece with no tree within reach is a fragment, and is reported rather than filed.
@@ -38,7 +39,7 @@ using PgmStudio.Minecraft.Palette;
 var positional = args.Where(arg => !arg.StartsWith("--")).ToList();
 if (positional.Count == 0)
 {
-    Console.Error.WriteLine("usage: dotnet run tools/seed-trees.cs <worldDir> [name] [--wool] [--dry] [connection]");
+    Console.Error.WriteLine("usage: dotnet run tools/seed-trees.cs <worldDir> [name] [--builder=<name>] [--wool] [--dry] [connection]");
     return 2;
 }
 var worldDir = positional[0];
@@ -47,6 +48,8 @@ var connection = positional.Count > 2 ? positional[2]
     : Environment.GetEnvironmentVariable("PGM_STUDIO_DB")
     ?? "Server=localhost;Database=pgm_studio;User ID=pgm;Password=pgm_dev_pw;";
 var withWool = args.Contains("--wool");
+var builder = args.Where(arg => arg.StartsWith("--builder=")).Select(arg => arg["--builder=".Length..].Trim())
+    .LastOrDefault(named => named.Length > 0);
 var dry = args.Contains("--dry");
 
 // ── the world's tree blocks ─────────────────────────────────────────────────────────────────────────
@@ -212,6 +215,7 @@ foreach (var (treeName, foot, blocks) in named)
         CutY = foot.Y,
         CutZ = foot.Z,
         CutAt = cutAt,
+        CutBuilder = builder,
     };
     if (existing.TryGetValue(treeName, out var have))
     {
@@ -224,7 +228,8 @@ foreach (var (treeName, foot, blocks) in named)
         added++;
     }
 }
-Console.WriteLine($"\n{added} added, {updated} updated — {named.Count} copied trees under '{name}-r*'");
+Console.WriteLine($"\n{added} added, {updated} updated — {named.Count} copied trees under '{name}-r*'"
+    + (builder is null ? ", built by nobody named" : $", built by {builder}"));
 return 0;
 
 static bool IsLog(int id) => id is Blocks.Log or Blocks.Log2;

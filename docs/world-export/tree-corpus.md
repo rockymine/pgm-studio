@@ -6,8 +6,9 @@ thresholds it supports are what any generated foliage is judged against. Every r
 fifteen bands `r1`–`r15` — 74 leafed trees and the wool one, 20,906 leaves — so the jungle band `r16` and the
 willow band `r17` are outside all of them. The world is committed at `pgm-studio-mapgen/corpus/tree-showcase`,
 and it is read by one operational tool: `tools/seed-trees.cs` cuts every tree standing in it into the library
-as a **copied** recipe with its cut recorded — this world's directory, the foot there, the time (`decoration.md` §6), which is how a board plants the author's own trees rather than a
-generated one. The numbers below are still the artifact — re-taking a reading means a scratch pass over that
+as a **copied** recipe with its cut recorded — this world's directory, the foot there, the time and its builder,
+rockymine (`decoration.md` §6), which is how a board plants the author's own trees rather than a generated one,
+and how a board planting them credits their builder. The numbers below are still the artifact — re-taking a reading means a scratch pass over that
 world against today's code (`CLAUDE.md`, *Investigation stays local*).
 
 The world is worth describing before the numbers, because its layout is what makes them clean. Every tree body

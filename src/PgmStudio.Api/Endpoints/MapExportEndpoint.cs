@@ -24,7 +24,9 @@ using PgmStudio.Minecraft.Anvil;
 /// (those already ship a world). Shares the gate + compose pipeline with <see cref="MapXmlEndpoint"/> via
 /// <see cref="MapExportLoader"/>, diverging only to bundle the region files for a sketch map.
 /// </summary>
-public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class MapExportEndpoint(
+    MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts, PlayerLookup players)
+    : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -39,7 +41,7 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
 
         var doc = await reader.ReadDocAsync(map, ct);
         var layoutBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
-        var result = await MapExportLoader.ComposeAsync(map.Id, doc, layoutBytes, feature, artifacts, ct);
+        var result = await MapExportLoader.ComposeAsync(map.Id, doc, layoutBytes, feature, artifacts, players, ct);
         if (result.Refusal is { } refusal)
         {
             await Refusals.WriteAsync(HttpContext, refusal, ct);

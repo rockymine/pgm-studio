@@ -126,11 +126,18 @@ public sealed record DressingContext(
 /// on a column kept clear or already claimed, or stands nearer to the road than its own kind's standoff allows.
 /// <para>Each is a <see cref="Finding"/> like every other thing this studio says is wrong: a <c>DR-*</c> rule,
 /// one sentence carrying the cell and the cause, the prop's id as its subject, and <see cref="Severity.Decline"/>
-/// — the world was built, and some props are not standing in it.</para></para></summary>
+/// — the world was built, and some props are not standing in it.</para></para>
+/// <para><b>Builders</b> — Who built the copied trees that stand in the world (<see cref="TreeStyle.Builder"/>),
+/// each once in the order first met, or null where none of them names anybody. Read <see cref="TreeBuilders"/>.
+/// A tree declined everywhere credits nobody, since it is not in the map.</para></summary>
 public readonly record struct DressingPlacement(
     int Plants = 0, int Boulders = 0, int Trees = 0, int PathCells = 0, int WaterCells = 0, int Houses = 0,
-    IReadOnlyList<PlacementClaim>? Claimed = null, IReadOnlyList<Finding>? Declined = null)
+    IReadOnlyList<PlacementClaim>? Claimed = null, IReadOnlyList<Finding>? Declined = null,
+    IReadOnlyList<string>? Builders = null)
 {
+    /// <summary>Who built the copied trees standing in the world. Never null.</summary>
+    public IReadOnlyList<string> TreeBuilders => Builders ?? [];
+
     /// <summary>Everything this pass actually put down, each with the columns it owns. Never null.</summary>
     public IReadOnlyList<PlacementClaim> Placements => Claimed ?? [];
 
@@ -262,11 +269,16 @@ public static class Decorator
             placed = placed with { Boulders = placed.Boulders + result.Count };
             propIndex++;
         }
+        var builders = new List<string>();
         foreach (var prop in context.Props.OfType<TreeProp>())
         {
             var result = PlaceTree(world, context, prop, claims.On(prop.Layer), declined);
             Cover(result, "tree", prop.Id);
             placed = placed with { Trees = placed.Trees + result.Count };
+            if (result.Count > 0 && prop.Style is { Form: TreeForm.Copied, Builder: { } builder }
+                && builder.Trim() is { Length: > 0 } named
+                && !builders.Contains(named, StringComparer.OrdinalIgnoreCase))
+                builders.Add(named);
             propIndex++;
         }
         foreach (var prop in context.Props.OfType<FloraProp>())
@@ -284,6 +296,7 @@ public static class Decorator
         {
             Claimed = structures.Count > 0 ? structures : null,
             Declined = declined.Count > 0 ? declined : null,
+            Builders = builders.Count > 0 ? builders : null,
         };
     }
 
