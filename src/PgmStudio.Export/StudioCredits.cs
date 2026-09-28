@@ -15,14 +15,16 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public static class StudioCredits
 {
-    /// <summary>The studio, credited by the address it is reached at.</summary>
-    public const string Studio = "pgmstudio.de";
+    /// <summary>The studio, credited by its name and the address it is reached at.</summary>
+    public const string Studio = "PGM Studio (pgmstudio.de)";
 
-    /// <summary>What the studio is credited with.</summary>
-    public const string StudioContribution = "Map tool";
+    /// <summary>What the studio is credited with. The link stands as a word of its own, so a chat that links
+    /// addresses links all of it.</summary>
+    public const string StudioContribution = "Built with the PGM Studio authoring API at https://pgmstudio.de";
 
-    /// <summary>What a tree's builder is credited with.</summary>
-    public const string TreeContribution = "Trees";
+    /// <summary>What a tree's builder is credited with — the copied trees only, since a vanilla tree on the same
+    /// map is not theirs.</summary>
+    public const string TreeContribution = "Original builder of the copied trees";
 
     /// <summary>Everyone a copied tree recipe in <paramref name="layoutJson"/> names as its builder, placed or
     /// not — the names a caller resolves to accounts before the build, since which trees land is the build's

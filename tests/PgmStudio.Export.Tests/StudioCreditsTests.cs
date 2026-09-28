@@ -56,7 +56,7 @@ public sealed class StudioCreditsTests
             ["authors"] = new List<object?>
             {
                 Person("RockyMine", "author", uuid: "0f00-uuid"),
-                Person("PGMStudio.de", "contributor", contribution: "Everything"),
+                Person("pgm studio (PGMSTUDIO.DE)", "contributor", contribution: "Everything"),
             },
         };
         StudioCredits.Apply(doc, ["rockymine"],

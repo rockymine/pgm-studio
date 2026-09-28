@@ -208,9 +208,12 @@ world's date field). Crib the exact tag set from a real 1.8-era CTW `level.dat` 
 (`docs/tools/configure.md`). The export adds two kinds of contributor after them (`StudioCredits`), and stores
 neither: they are read off the map on its way out.
 
-- **The studio**, as `pgmstudio.de`, contribution `Map tool`. Every map carrying an intent gets it, since the
-  studio wrote its `map.xml`. A corpus map is left as its authors credited it.
-- **The builder of every copied tree that stands in the world**, contribution `Trees`. A copied tree cut from a
+- **The studio**, as `PGM Studio (pgmstudio.de)`, contribution `Built with the PGM Studio authoring API at
+  https://pgmstudio.de` — the link a word of its own, so a chat that links addresses links all of it. Every map
+  carrying an intent gets it, since the studio wrote its `map.xml`. A corpus map is left as its authors credited
+  it.
+- **The builder of every copied tree that stands in the world**, contribution `Original builder of the copied
+  trees` — the copied ones only, since a vanilla tree on the same map is not theirs. A copied tree cut from a
   world whose builder was named carries the name as `builder` (`decoration.md` §6), and the dressing pass reports
   the builders of the trees that landed. A tree declined everywhere credits nobody, since it is not in the map.
 
@@ -221,9 +224,9 @@ studio is always a pseudonym. With the showcase's trees on a board, the block re
 
 ```xml
 <contributors>
-    <contributor uuid="…" contribution="Trees"/>
+    <contributor uuid="…" contribution="Original builder of the copied trees"/>
     <!-- rockymine -->
-    <contributor contribution="Map tool">pgmstudio.de</contributor>
+    <contributor contribution="Built with the PGM Studio authoring API at https://pgmstudio.de">PGM Studio (pgmstudio.de)</contributor>
 </contributors>
 ```
 

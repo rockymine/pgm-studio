@@ -107,7 +107,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Contracts` | 34 | 3,791 | flat |
 | `Data` | 18 | 3,115 | `Features/` 5 · `Map/` 5 · `Theme/` 4 · `Schema/` 2 · `Access/` 1 · `Plan/` 1 |
 | `Domain` | 30 | 3,507 | flat |
-| `Export` | 19 | 4,404 | flat |
+| `Export` | 19 | 4,406 | flat |
 | `Geom` | 51 | 6,667 | `Algorithms/` 19 · `Render/` 7 · `Relief/` 5 · 20 at root |
 | `Import` | 4 | 473 | flat |
 | `Migrations` | 46 | 2,818 | `Migrations/` 45 · 1 at root |

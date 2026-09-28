@@ -583,7 +583,7 @@ branches are carpentry still answers a radius. `tree-corpus.md` says where the b
 **A copied tree names who built it, and a map it stands on credits them.** A cut can record the tree's
 builder (`docs/tools/library.md`), and a pull carries it into the map's recipe as `builder`, a Minecraft name.
 The dressing pass reports the builder of every copied tree that lands (`DressingPlacement.TreeBuilders`), each
-once, and the export writes them into `map.xml` as contributors for their `Trees` (`sketch-world-export.md`
+once, and the export writes them into `map.xml` as the original builders of the copied trees (`sketch-world-export.md`
 §4a). A tree declined everywhere is not in the map and credits nobody.
 
 A placement carrying its recipe inline, as `POST /api/terrain/prop-preview` takes one in `propJson`:

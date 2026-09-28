@@ -421,7 +421,7 @@ and four erratics, and knows nothing about any world.
 
 **A cut can name who built the tree.** `--builder=<name>` records a Minecraft name on every cut the run files,
 answered as `cut.builder`; a pull carries it into the map's recipe as `builder`, and a map the tree stands on
-credits them as a contributor for its `Trees` (`docs/world-export/sketch-world-export.md` §4a). Every tree of
+credits them as the original builder of the copied trees (`docs/world-export/sketch-world-export.md` §4a). Every tree of
 the showcase was built by rockymine, so a showcase row names them and a cut from another world names nobody
 until it is filed with the flag. The editor shows the name under the cut.
 
