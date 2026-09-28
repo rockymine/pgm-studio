@@ -104,12 +104,17 @@ revokes one of the caller's own, and taking a person off the whitelist revokes e
 A token the studio does not hold fails the sign-in outright, so a write carrying one is refused `RQ7` rather
 than read as a visitor's. A token does not lapse on its own: it lives until one of the two.
 
-**It is a secret of the environment that drives, never of a prompt.** A Claude Code session driving the
-deployed studio carries `PGM_STUDIO_API` (the studio's `…/api`) and `PGM_STUDIO_TOKEN` as the environment's
-secrets, and the pgm-studio-mapgen tools send the token on every request. Whether a session drives the
-deployed studio or sets up its own is the author's decision, taken per chat (`pgm-studio-mapgen/CLAUDE.md`).
-An open studio needs no token — every request is already its admin — and `POST /api/users/me/tokens` answers
-the local admin 404, since there is no account for a token to act as.
+**It is a secret of the environment that drives, never of a prompt.** A Claude Code cloud session holds it
+as its environment's **API credential** for `pgmstudio.de`: the session's proxy adds `Authorization: Bearer`
+to every request for that host after it leaves the session, so a plain `curl` is signed in and the token is
+never in the session to leak. Off the cloud it is `PGM_STUDIO_TOKEN`, which the pgm-studio-mapgen tools send on
+every request, and only over https or to the same machine.
+
+**The studio's address is the chat's, not the environment's.** Whether a session drives the deployed studio
+or sets up its own is the author's decision, taken per chat (`pgm-studio-mapgen/CLAUDE.md`), so
+`PGM_STUDIO_API` is set by the session that was asked for the deployed one. An open studio needs no token —
+every request is already its admin — and `POST /api/users/me/tokens` answers the local admin 404, since there
+is no account for a token to act as.
 
 ## What the browser shows
 
@@ -150,7 +155,7 @@ contours and its 3-D world from the live layout, which it posts to `sketch/paint
 the same way. Each computes an answer and stores nothing, and says so with `[PostedRead]`, which gives it the
 `member` policy whichever map it names: anyone signed in sees how a map they may not change is made. A
 visitor who is not signed in is refused them with `RQ7`, because each answer is a build — `sketch/columns`
-builds the whole world — and bounding what one caller may ask for is `RP79`.
+builds the whole world — and it waits its turn like every build (below).
 
 **Who may edit a map** is `Callers.MayEditAsync`: an admin; the map's **owner**, the person who originated it
 (`map.owner_uuid`, set by `MapOrigin` from the request that brought the row into existence); or someone the map
@@ -169,6 +174,45 @@ question.
 see which map it touches. It asks itself: loading over a stored slug replaces that map, and a caller who may
 not edit it is refused 403 before anything is written. A replaced map keeps its owner.
 
+## What the studio builds at once
+
+**A request that builds a world waits its turn.** A world export, `map.xml`, every render and every read
+measured off the built world — `reach`, `incline`, `slopes`, `column`, `walk`, `transect`, `stroke`,
+`themes/census`, `views`, `coverage` — the posts that build one (`sketch/columns`, `sketch/dressing`,
+`sketch/seats`, `plan/columns`) and the compose feed are marked `[Queued]`. Each costs seconds of CPU and a
+share of memory on a machine every caller shares: a cold export takes 3–12 s on a two-core server, and a
+compose with a structural filter 14 s on a four-core one. `BuildQueue` holds such a request until the studio has
+a turn free and the caller has one of their own, and gives both back when the response is written. Every other
+route never waits.
+
+**A caller runs one build at a time, and waits behind their own.** The studio runs three queued requests at
+once and one caller one of them, so a caller who sends eight exports gets them one after another while another
+caller's first export takes the next free turn. The caller is the account a signed-in request acts as, a
+token's included; a visitor is their address, which behind a reverse proxy is the forwarded one; every request
+to an open studio is its one local admin.
+
+**A request that cannot wait is refused `RQ11` at 429.** The queue holds 32 waiting requests, 8 of them one
+caller's, and a request waits 60 s for its turn; past any of those it answers the refusal envelope with
+`Retry-After: 10`, before its handler runs. Access is decided first, so a request the rules refuse never takes
+a turn. Every queued route publishes the 429 in the schema, and like the 401 and 403 no endpoint table in
+`docs/tools/` repeats it.
+
+The bounds are the operator's, under `Builds` in `appsettings.json`:
+
+| Setting | Default | Bounds |
+|---|---|---|
+| `Builds:Slots` | 3 | queued requests running at once on the studio |
+| `Builds:PerCaller` | 1 | of those, one caller's — 3 in `Development`, where every request is the local admin |
+| `Builds:Waiting` | 32 | requests waiting for a turn |
+| `Builds:WaitingPerCaller` | 8 | of those, one caller's |
+| `Builds:MaxWaitSeconds` | 60 | how long a request waits before it is refused |
+
+**The thread pool starts at sixteen threads.** A build runs synchronously on a pool thread, and the pool's
+floor is the machine's core count, so on two cores two builds left nothing to answer the cheap routes while the
+pool grew: pinned to two cores, `/api/health` took 1.1 s behind two renders and 3.3 s behind two exports.
+`ThreadPoolMinThreads` in `PgmStudio.Api.csproj` raises the floor to 16, and the same measurements answer in at
+most 40 ms, 50 ms with four builds running; the builds take as long as they did.
+
 ## What it refuses
 
 A request the rules turn away answers the refusal envelope every gate uses (`docs/refusals.md`), written by
@@ -179,8 +223,9 @@ A request the rules turn away answers the refusal envelope every gate uses (`doc
 | `RQ7` | 401 | the route writes, or builds a view on request, and the request is signed out |
 | `RQ8` | 403 | the request is signed in and this write is not theirs: not on the whitelist, not the map's owner or credited author, or an admin's route — and a Discord sign-in that resolves to nobody on the whitelist |
 | `RQ9` | 503 | a sign-in route, on a studio with no Discord application configured |
+| `RQ11` | 429 | a route that builds a world, and the build queue is full or the request waited past its limit |
 
-Every write publishes both in the schema at `/api/openapi/v1.json`, and no read does, so an endpoint table in
+Every write publishes the first two in the schema at `/api/openapi/v1.json`, and no read does, so an endpoint table in
 `docs/tools/` does not repeat them — they are declared in one place, like the 400 and 500 every route carries.
 
 ## The API
@@ -236,6 +281,9 @@ curl -s -X POST "$PGM_STUDIO_API/sketch" -H "Authorization: Bearer $PGM_STUDIO_T
      -H 'content-type: application/json' -d '{"name":"Weirgate"}'
 ```
 
+In a cloud session whose environment holds the token as its API credential, the same reads carry no header:
+`curl -s https://pgmstudio.de/api/me` answers signed in.
+
 ## Limits
 
 - **Behind a reverse proxy the callback needs the forwarded scheme.** The handler builds its
@@ -245,5 +293,6 @@ curl -s -X POST "$PGM_STUDIO_API/sketch" -H "Authorization: Bearer $PGM_STUDIO_T
   drawing tools (`docs/client/ui-conventions.md`), but a sidebar's own inputs, a select-and-drag on the canvas
   and a phase bar's finish are not reached; each is refused by the server and springs back. Closing them is
   `RP81`.
-- **A read is open, and some reads are expensive.** A world export or a render is a `GET` anyone may send;
-  bounding what one caller can ask for at once is `RP79`.
+- **A world already built still waits its turn.** The queue does not know that a request would be answered
+  from the studio's store of built worlds in milliseconds, so a caller's second read of the same board waits
+  behind their first.

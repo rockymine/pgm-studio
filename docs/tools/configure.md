@@ -537,7 +537,7 @@ rasterized ground, which only a sketch-origin map carries.
 ## The API
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone who may edit the map
-([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The striking thing about the list is how little of it
+([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. A route that builds a world waits its turn in the build queue and answers 429 when it cannot, which no row repeats either. The striking thing about the list is how little of it
 writes: apart from the import and one island toggle, **Configure has exactly one write** — the intent PUT.
 
 **The one write**

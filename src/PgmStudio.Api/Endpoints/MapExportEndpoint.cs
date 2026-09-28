@@ -24,6 +24,7 @@ using PgmStudio.Minecraft.Anvil;
 /// (those already ship a world). Shares the gate + compose pipeline with <see cref="MapXmlEndpoint"/> via
 /// <see cref="MapExportLoader"/>, diverging only to bundle the region files for a sketch map.
 /// </summary>
+[Queued]
 public sealed class MapExportEndpoint(
     MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts, PlayerLookup players)
     : EndpointWithoutRequest

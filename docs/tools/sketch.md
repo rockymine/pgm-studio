@@ -1758,7 +1758,7 @@ before anything walks a column of it.
 ## The API
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone who may edit the map
-([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are.
+([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. A route that builds a world waits its turn in the build queue and answers 429 when it cannot, which no row repeats either.
 
 **The map's layout**
 
@@ -2001,8 +2001,9 @@ in **numbers**: per group the cell count, low, high and relief, the step count a
 cliffs qualified, crossings measured in both directions, and the symmetry error. That last one is the one to
 reach for first, because it is the only preview that says whether terrain is any *good* without an eye — it is
 what makes a relief correctable by a generator. `POST .../sketch/columns` answers the whole built world as
-per-column runs; it is the heaviest of the four (it builds the map) and the only one that reports what stands
-*above* the surface, so it is the read for asking what a structure or a marker actually occupies.
+per-column runs; it is the heaviest of the four (it builds the map, and the answer is kept with the built
+world, so the same layout and intent asked again is read rather than rebuilt) and the only one that reports
+what stands *above* the surface, so it is the read for asking what a structure or a marker actually occupies.
 
 **The finish previews draw, in SVG — or as PNG on request.** `POST /terrain/material-preview` and
 `/terrain/theme-preview` answer a material and a theme as they will paint — the theme as a cut-open sample

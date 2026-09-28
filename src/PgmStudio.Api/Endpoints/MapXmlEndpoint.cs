@@ -22,6 +22,7 @@ namespace PgmStudio.Api.Endpoints;
 /// bridged), and this is the only check that catches it. Corpus maps have no intent and export
 /// unconditionally (unchanged).</para>
 /// </summary>
+[Queued]
 public sealed class MapXmlEndpoint(
     MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts, PlayerLookup players)
     : EndpointWithoutRequest

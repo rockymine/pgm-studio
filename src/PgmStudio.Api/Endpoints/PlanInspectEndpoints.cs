@@ -188,6 +188,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
 /// <para><b>What did not land comes back with what did</b>, under <c>warnings</c>: every prop the dressing
 /// pass declined, as a <c>DR-*</c> finding naming the rule, the cell and the prop. Complaints on a success —
 /// the world was built and some of what was authored is not standing in it.</para></summary>
+[Queued]
 public sealed class PlanColumnsEndpoint : EndpointWithoutRequest<WorldColumnsDto>
 {
     public override void Configure()

@@ -129,6 +129,48 @@ public sealed class SketchEndpointTests
         await Assert.That(payload.TryGetProperty("warnings", out _)).IsFalse();
     }
 
+    /// <summary>A board previewed again unchanged answers exactly what it answered the first time — the columns,
+    /// and the findings the layout draws — although the second answer is the one kept with the built world
+    /// rather than read afresh.</summary>
+    [Test]
+    public async Task A_board_previewed_again_answers_the_same_columns_and_warnings()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Previewed twice" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        // A hole with the ground put back under it by a second layer draws SK13, so there is a finding to
+        // carry; the heights are this test's own, so no other test has built this world first.
+        const string layout = """
+            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
+             "layers":[
+               {"id":"rock","base_y":0,"layout":{"shapes":[
+                  {"id":"mass","type":"rectangle","operation":"add","min_x":-15,"min_z":-10,"max_x":15,"max_z":10,"floor":0,"base_height":27},
+                  {"id":"hole","type":"rectangle","operation":"subtract","min_x":-2,"min_z":-6,"max_x":10,"max_z":6,"floor":0}],
+                "groups":[{"id":"g","mirrors":false,"shapeIds":["mass","hole"]}]}},
+               {"id":"floor","base_y":0,"layout":{"shapes":[
+                  {"id":"f","type":"rectangle","operation":"add","override":true,"min_x":-2,"min_z":-6,"max_x":10,"max_z":6,"floor":0,"base_height":5}],
+                "groups":[{"id":"h","mirrors":false,"shapeIds":["f"]}]}}]}
+            """;
+
+        async Task<(string Body, string? Warned)> PreviewAsync()
+        {
+            using var answer = await client.PostAsync($"/api/map/{slug}/sketch/columns",
+                new StringContent(layout, Encoding.UTF8, "application/json"));
+            await Assert.That(answer.StatusCode).IsEqualTo(HttpStatusCode.OK);
+            return (await answer.Content.ReadAsStringAsync(),
+                answer.Headers.TryGetValues("Pgm-Warnings", out var warned) ? string.Join(" ", warned) : null);
+        }
+
+        var first = await PreviewAsync();
+        var second = await PreviewAsync();
+
+        await Assert.That(first.Warned).Contains("SK13");
+        await Assert.That(second).IsEqualTo(first);
+    }
+
     [Test]
     public async Task Create_with_a_frame_seeds_the_working_setup()
     {

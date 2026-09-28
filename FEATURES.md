@@ -8615,6 +8615,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   payload topping out at y91 instead of y103, and the stored sketch rewritten. With the seed it stays `team`,
   the payload tops out at y103, and the document is untouched.
 
+- **A board previewed again is read, not re-derived (`TS114`).** `POST /map/{slug}/sketch/columns` keeps its
+  answer with the built world (`SketchPreviews`, keyed on the `BuiltWorld` instance as `EyeRenders` keeps its
+  pictures): the layout's own findings, every column's runs and the goal-placement and structure-site checks,
+  gone when `BuiltWorlds` lets the world go. On the largest board, pinned to two cores, a warm preview went
+  from 0.6–0.8 s to 0.22–0.28 s; the cold one is the build and unchanged. `docs/tools/sketch.md`.
 - **A storey can be taken off the 3-D preview (C48).** `WorldColumnPayload.Of` read the finished `VoxelWorld`
   and emitted runs with no idea what had made any of them, so the preview was one rendering of a stack with
   no way to look inside it — and the overlay chips, which mean something in 2-D, had nothing to say in 3-D.
@@ -9778,6 +9783,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `ContentColumn` and the library editor grey their fields, and the dock keeps only the tools that look —
   decided once by `StudioShell` from the address and `GET /api/map/{slug}/access`. `tests/e2e/access.mjs`
   holds it against an invited server. `docs/access.md`, `docs/client/ui-conventions.md`.
+- **Builds wait their turn (`RP79`).** Every route that builds or renders a world — the export, `map.xml`,
+  the renders and the reads measured off the built world, the Sketch and Plan posts that build one — and the
+  compose feed and `coverage` are `[Queued]`: `BuildQueue` runs three at once on the studio and one per
+  caller (the account, or the address when signed out), holds 32 waiting and 8 of one caller's for up to
+  60 s, and refuses the rest `RQ11` at 429 with `Retry-After`, all under `Builds` in `appsettings.json`. The
+  thread pool's floor is 16, so the cheap routes answer while builds run: `/api/health` behind two exports
+  on two cores went from 3.3 s to 40 ms. `docs/access.md`.
 - **A token for a caller without a browser (`RP76`).** A driver or an agent sends `Authorization: Bearer
   pgms_…` and is the person the token was issued for — their uuid, role, maps and credits, decided by the
   whitelist on every request like a session. Issued once from *Tokens* in the account menu
@@ -9786,8 +9798,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`DELETE /api/users/me/tokens/{id}`) or by taking its person off the whitelist; an unknown token is refused
   `RQ7`. A token is capped at a member's rights and cannot issue a token (`RQ8`), so one that leaks neither
   hands over the studio nor outlives its revocation. A map's builders resolved per export are bounded to
-  four, and a name Mojang says nobody has is remembered for an hour. It is what lets a Claude Code session drive the deployed studio (`PGM_STUDIO_API`,
-  `PGM_STUDIO_TOKEN`). `docs/access.md`.
+  four, and a name Mojang says nobody has is remembered for an hour. It is what lets a Claude Code session drive the deployed studio (`PGM_STUDIO_API`, and the token
+  as its environment's API credential). `docs/access.md`.
 - **Anyone signed in sees how a map is made (`RP83`).** A Sketch page's paint, relief contours and 3-D world
   are built on request from the layout the page posts, so they were refused as writes to anyone who may not
   edit the map. Those seven routes are `[PostedRead]` — `sketch/paint`, `relief`, `relief/read`, `columns`,

@@ -310,9 +310,10 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 ///
 /// <para>This is the paint overlay widened from the surface to the whole column. That preview resolves every
 /// block and then keeps only each column's top because resolving the rest was the bulk of the call; here the
-/// rest is the answer, so nothing is thrown away. The cost is the build rather than the payload — measured at
-/// roughly a second on a full board against forty milliseconds to read the columns out of it — which is why
-/// the client fetches this on entering the preview and not on every edit.</para>
+/// rest is the answer, so nothing is thrown away. The cost is the build, seconds on a full board, which is why
+/// the client fetches this on entering the preview and not on every edit; the answer is kept with the world
+/// (<see cref="SketchPreviews"/>), so a board previewed again unchanged is read rather than checked and walked
+/// again.</para>
 ///
 /// <para>A map begun in Sketch has no intent, and an empty one is the right answer rather than a gap: it
 /// states no objectives, so a preview showing none is showing what is there. 400 on a layout that cannot be
@@ -323,6 +324,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 /// these are complaints rather than refusals — but a caller looking at a preview with no tree in it needs to
 /// be told the tree was declined, not left to notice.</para></summary>
 [PostedRead]
+[Queued]
 public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<WorldColumnsDto>
 {
     public override void Configure()
@@ -341,31 +343,31 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
 
         var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
-        Findings document;
-        try { document = SketchLayoutCheck.Check(layoutJson); }
+        SketchLayout? layout;
+        try { layout = SketchLayout.Stated(layoutJson); }
         catch (JsonException fault)
         { await Refusals.UnreadableAsync(HttpContext, "invalid layout", fault.Message, ct); return; }
-        Complaints.Add(HttpContext, document.AsComplaints());
 
-        WorldColumnsDto payload;
+        SketchPreview preview;
         try
         {
             var built = BuiltWorlds.Of(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
-            payload = WorldColumnPayload.Of(built.World, built.Columns);
-            Complaints.Add(HttpContext, built.Declines);
-
-            // OB17, asked here because this build already paid for everything it needs — the same ground the
-            // export reads and the same resolved goals. A refusal at the export door is the last place to
-            // learn a goal stands over the void; carried here it reaches an author while they are still
-            // drawing, as a complaint, since nothing about this request is being refused.
-            Complaints.Add(HttpContext,
-                MapExportComposer.CheckGoalPlacement(built.Columns!, built.ResolvedIntent, built.Shells).AsComplaints());
-
-            // WX11, for the same reason and off the same build: a building whose neighbours have no ground
-            // to meet it on shows the world a sheer face of its own foundation, and nothing else reports it.
-            Complaints.Add(HttpContext,
+            preview = SketchPreviews.Of(built, () => new SketchPreview(
+                SketchLayoutCheck.Check(layout),
+                WorldColumnPayload.Of(built.World, built.Columns),
+                // OB17, asked here because this build already paid for everything it needs — the same ground
+                // the export reads and the same resolved goals. A refusal at the export door is the last place
+                // to learn a goal stands over the void; carried here it reaches an author while they are still
+                // drawing, as a complaint, since nothing about this request is being refused.
+                MapExportComposer.CheckGoalPlacement(built.Columns!, built.ResolvedIntent, built.Shells),
+                // WX11, for the same reason and off the same build: a building whose neighbours have no ground
+                // to meet it on shows the world a sheer face of its own foundation, and nothing else reports it.
                 MapExportComposer.CheckStructureSites(built.Surface, built.Provenance,
-                    GroupLookup(SketchRasterizer.GroupOwners(layoutJson))));
+                    GroupLookup(SketchRasterizer.GroupOwners(layoutJson)))));
+            Complaints.Add(HttpContext, preview.Layout.AsComplaints());
+            Complaints.Add(HttpContext, built.Declines);
+            Complaints.Add(HttpContext, preview.Goals.AsComplaints());
+            Complaints.Add(HttpContext, preview.Sites);
         }
         // A dressing document that will not read is refused by name, exactly as the export refuses it — the
         // preview and the export cannot disagree about what a malformed prop list is.
@@ -376,7 +378,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
                                           or OverflowException or KeyNotFoundException)
         { await Refusals.UnreadableAsync(HttpContext, "could not build layout", fault.Message, ct); return; }
 
-        await Send.OkAsync(payload, ct);
+        await Send.OkAsync(preview.Columns, ct);
     }
 }
 
@@ -396,6 +398,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
 /// its findings ride back as complaints, by the same names
 /// the export refuses them under.</para></summary>
 [PostedRead]
+[Queued]
 public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<DressingRunDto>
 {
@@ -501,6 +504,7 @@ internal static class DressedBoard
 ///
 /// <para>Body: the layout, as <c>sketch/dressing</c> takes it. The cost is the same build.</para></summary>
 [PostedRead]
+[Queued]
 public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<SeatsDto>
 {
