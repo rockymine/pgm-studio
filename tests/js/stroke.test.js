@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { strokeRing, strokeCenterline, valueNoise, SMOOTH_SAMPLES }
+import { strokeRing, strokeCenterline, strokePath, valueNoise, SMOOTH_SAMPLES, DEFAULT_WANDER_LENGTH, MAX_WANDER }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/stroke.js";
 
 const line = (radius, extra = {}) => ({ points: [[0, 0], [40, 0]], radius, ...extra });
@@ -96,4 +96,41 @@ test("the lattice hash matches Geom.PatternNoise bit for bit", () => {
 
 test("SMOOTH_SAMPLES matches the C# parity constant", () => {
   assert.equal(SMOOTH_SAMPLES, 8);
+});
+
+// ── wander (twin of Centerline.Of(vertices, wander, length, seed)) ─────────────────
+test("the wander constants are the C# ones", () => {
+  assert.equal(DEFAULT_WANDER_LENGTH, 16);
+  assert.equal(MAX_WANDER, 8);
+});
+
+test("a path that does not wander is its smoothed line", () => {
+  assert.deepEqual(strokePath(bent()), strokeCenterline(bent().points));
+});
+
+test("a wandering path starts and ends where it was drawn", () => {
+  const line = strokePath(bent({ wander: 6, wanderLength: 10, seed: 7 }));
+  assert.deepEqual(line[0], [0, 0]);
+  assert.deepEqual(line[line.length - 1], [50, 24]);
+});
+
+test("a wandering path is the line the map paves", () => {
+  // The same numbers CenterlineTests.A_wandering_line_is_the_one_the_canvas_draws asserts on the C# side.
+  const near = (point, x, z) => assert.ok(Math.abs(point[0] - x) < 1e-9 && Math.abs(point[1] - z) < 1e-9, `${point} vs ${[x, z]}`);
+  const straight = strokePath({ points: [[0, 0], [40, 0]], wander: 4, wanderLength: 16, seed: 7 });
+  assert.equal(straight.length, 41);
+  near(straight[10], 10, 1.7314490375516476);
+  near(straight[20], 20, 1.9731107185594743);
+  near(straight[30], 30, -2.130037984627416);
+  const curved = strokePath(bent({ wander: 3, wanderLength: 12, seed: 11 }));
+  assert.equal(curved.length, 65);
+  near(curved[5], 5.0044117901701926, -0.03763960969302771);
+  near(curved[25], 21.197025938442764, 4.377416662103313);
+  near(curved[45], 31.1441099054315, 21.50995563459855);
+});
+
+test("the band follows the wandering line", () => {
+  // Off the straight band's own width somewhere: the outline is drawn round the path, not the drawn line.
+  const ring = strokeRing(line(1, { wander: 4, wanderLength: 16, seed: 7 }));
+  assert.ok(Math.max(...ring.map(([, z]) => Math.abs(z))) > 2);
 });

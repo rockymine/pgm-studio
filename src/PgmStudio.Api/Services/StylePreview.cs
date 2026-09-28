@@ -110,10 +110,14 @@ public static class StylePreview
         int columns = 32, int courses = 10, int cell = 4)
         => SectionRaster(material, bucket, columns, courses, cell).Svg();
 
-    /// <summary>The cut-open view as its raster, the <see cref="PlanRaster"/> sibling.</summary>
+    /// <summary>The cut-open view as its raster, the <see cref="PlanRaster"/> sibling. The cut stands under
+    /// level ground at its top course, so a height stack that follows the ground (TP26) shows the courses just
+    /// under it rather than whatever world Y the picture happens to span.</summary>
     public static CellRaster SectionRaster(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,
         int columns = 32, int courses = 10, int cell = 4)
-        => new(columns, courses, cell, (x, depth) =>
+    {
+        var level = new SmoothedGround(Enumerable.Range(0, columns).ToDictionary(x => (x, 0), _ => courses));
+        return new(columns, courses, cell, (x, depth) =>
         {
             // A section is a straight wall seen face on, so its geometry is honest by construction: walking
             // along it the arc advances with x, it never bends, and it runs along x the whole way — which is
@@ -124,9 +128,10 @@ public static class StylePreview
                 x, courses - 1 - depth, 0, bucket, depth, TeamOf(x, columns),
                 PerimeterArc: x, HeightFromBottom: courses - 1 - depth,
                 PerimeterTurn: 0, PerimeterRun: Geom.Algorithms.GridBoundary.RunAlongX,
-                Inset: Math.Min(x, columns - 1 - x)));
+                Inset: Math.Min(x, columns - 1 - x)) { Ground = level });
             return BlockPalette.Hex(id, data);
         });
+    }
 
     /// <summary>An area pattern is a <em>field</em>, so a swatch has to be wide enough to hold several of
     /// whatever it repeats — a voronoi with ten-block cells shown over twenty blocks is two cells and reads as a
@@ -196,7 +201,8 @@ public static class StylePreview
         {
             if (!SampleTerrain.Profile.TryGetColumn((x, SampleTerrain.SectionRow), out var column)) continue;
             foreach (var (y, id, data) in TerrainPainter.ColumnBlocks(
-                         x, SampleTerrain.SectionRow, column, theme, TeamOf(x, SampleTerrain.Width)))
+                         x, SampleTerrain.SectionRow, column, theme, TeamOf(x, SampleTerrain.Width),
+                         ground: SampleTerrain.Profile.Ground))
                 if (y >= 0 && y < SampleTerrain.Height) courses[x, y] = BlockPalette.Hex(id, data);
         }
         // The raster's rows run downward and a course index runs upward, so the top row is the tallest course.

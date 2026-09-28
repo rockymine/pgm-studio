@@ -809,6 +809,71 @@ public sealed class TerrainPainterTests
                     .IsEqualTo((Blocks.QuartzBlock, 0));
     }
 
+    // ── a height stack that follows the ground (TP26) ──────────────────────────────────────────────────
+
+    /// <summary>A ramp climbing one block a cell along x, 40 long and 15 deep, and a fill of twelve one-course
+    /// bands each its own colour. What a following stack is for: on ground that tilts, a level stack cuts across
+    /// the slope, and a following one lays every band parallel to it.</summary>
+    private static (BuiltTerrain Terrain, Func<int, int> Top) Ramp()
+    {
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 40; x++)
+        for (var z = 0; z < 15; z++)
+            columns.Add(Seg(x, z, 1, 10 + x));
+        return (TerrainBuilder.Build(columns), x => 10 + x);
+    }
+
+    private static LayeredMaterial Beds(int follow, int from) => new(
+        new BandStack([.. Enumerable.Range(0, 12).Select(i => new Band(new SolidMaterial(Blocks.Wool, i + 1), 1))]),
+        BandAxis.Height, From: from, Follow: follow, Reach: 4);
+
+    /// <summary>The block each column holds <paramref name="depth"/> courses under its surface, across the
+    /// middle of the ramp where the window is clear of both ends.</summary>
+    private static List<(int Id, int Data)> AtDepth(LayeredMaterial beds, int depth)
+    {
+        var (terrain, top) = Ramp();
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, TerrainTheme.OfMaterial(beds, TerrainTheme.Default));
+        return [.. Enumerable.Range(4, 32).Select(x => terrain.World.GetBlock(x, top(x) - 1 - depth, 7))];
+    }
+
+    /// <summary><b>A following stack keeps each band at one depth under the ground.</b> Fully following over
+    /// an even grade, the course <c>d</c> blocks down is the same band in every column of the ramp, and each
+    /// depth is a different band — the stack is laid along the slope rather than across it.</summary>
+    [Test]
+    public async Task A_following_height_stack_lays_each_band_at_one_depth_under_a_grade()
+    {
+        var seen = new List<(int Id, int Data)>();
+        for (var depth = 0; depth < 9; depth++)
+        {
+            var row = AtDepth(Beds(follow: 100, from: -12), depth).Distinct().ToList();
+            await Assert.That((depth, row.Count)).IsEqualTo((depth, 1));
+            seen.Add(row[0]);
+        }
+        await Assert.That(seen.Distinct().Count()).IsEqualTo(9);
+    }
+
+    /// <summary>The same stack left level cuts across the slope: a course at one depth under the ramp crosses a
+    /// new band with every block the ground climbs.</summary>
+    [Test]
+    public async Task A_level_height_stack_cuts_across_a_grade()
+    {
+        // Two courses down the ramp runs y 11..42, so a level stack starting at y 11 meets every band on it.
+        var row = AtDepth(Beds(follow: 0, from: 11), depth: 2);
+        await Assert.That(row.Distinct().Count()).IsGreaterThan(1);
+    }
+
+    /// <summary>With no ground to follow — a swatch, a house course — a following stack reads world Y exactly as
+    /// the same stack left level does, rather than lifting its bands by nothing in particular.</summary>
+    [Test]
+    public async Task A_following_stack_with_no_ground_reads_world_height()
+    {
+        var following = Beds(follow: 100, from: 3);
+        var level = Beds(follow: 0, from: 3);
+        for (var y = 0; y < 20; y++)
+            await Assert.That(following.Resolve(new BucketContext(5, y, 5, TerrainBucket.Fill, 0)))
+                        .IsEqualTo(level.Resolve(new BucketContext(5, y, 5, TerrainBucket.Fill, 0)));
+    }
+
     // ── the angle mask (TP24) ──────────────────────────────────────────────────────────────────────────
 
     /// <summary>A board 27 wide: a level field at x 0..8, a ramp climbing one block a cell at x 9..17, and a

@@ -13,8 +13,8 @@ namespace PgmStudio.Export;
 /// and nothing read the stroke itself: <c>walk</c> answers the way a player finds between two points, which is not the way the
 /// author drew, and a picture of the board shows paving without saying what a player crossing it meets.
 ///
-/// <para>The line walked is the stroke's <b>own</b> centreline, taken through the same spline
-/// (<see cref="Centerline.Of"/>) and the same orbit fan (<see cref="DressingSymmetry.ImageRing"/>) the
+/// <para>The line walked is the stroke's <b>own</b> centreline, taken through the same spline and wander
+/// (<see cref="StrokeProp.Line"/>) and the same orbit fan (<see cref="DressingSymmetry.ImageRing"/>) the
 /// pass laid it with, so a curve is followed rather than cut across and the mirrored image is the road that
 /// image actually stands on. Whether a station is <b>paved</b> is read off the claim the pass recorded, since
 /// the style, the coverage and the seed decide which cells of the band take surface and none of the three can
@@ -65,7 +65,7 @@ public static class StrokeRead
 
         var stations = new List<Station>();
         int? before = null;
-        foreach (var cell in Down(Centerline.Of(symmetry.ImageRing(stroke.Points, image))))
+        foreach (var cell in Down(symmetry.ImageRing(stroke.Line(), image)))
         {
             var ground = built.Surface.TryGetValue(cell, out var top) ? top : (int?)null;
             int? step = before is { } prior && ground is { } here ? here - prior : null;

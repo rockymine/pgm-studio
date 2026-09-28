@@ -74,6 +74,10 @@ public sealed class TerrainProfile
     private readonly Dictionary<(int, int), ColumnProfile> _columns = [];
 
     private readonly IReadOnlyDictionary<(int X, int Z), int>? _base;
+
+    /// <summary>This surface averaged round each column — the datum a height stack that follows the ground
+    /// reads (TP26). Built on the first question, so a board nothing follows pays nothing for it.</summary>
+    public SmoothedGround Ground { get; }
     private readonly int _slopeWindow;
 
     /// <summary>How far either side of a column the gradient is measured, in cells (TP24). <b>Two, because a
@@ -98,6 +102,7 @@ public sealed class TerrainProfile
                           int slopeWindow = SlopeWindow)
     {
         _base = floorAt;
+        Ground = new SmoothedGround(surfaceTop);
         _slopeWindow = Math.Max(1, slopeWindow);
         // A column carries a structure when its surface block is not stone — a stamp's bedrock/wool/obsidian
         // sits there, or the column is a bare bedrock course.

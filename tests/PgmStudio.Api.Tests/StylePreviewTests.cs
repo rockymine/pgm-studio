@@ -37,6 +37,24 @@ public sealed class StylePreviewTests
         await Assert.That(section).Contains(BlockPalette.Hex(Blocks.Dirt, 0));
     }
 
+    /// <summary>A height stack that follows the ground (TP26) states its bands from the ground, so the section
+    /// shows them under level ground at its top course. Read at world Y instead, a belt starting three courses
+    /// under the ground would sit below anything the ten-course cut spans and the card would show only the body
+    /// around it.</summary>
+    [Test]
+    public async Task A_following_stack_is_cut_open_under_level_ground()
+    {
+        var belt = new LayeredMaterial(
+            new BandStack([new Band(new SolidMaterial(Blocks.Wool, 14), 2), new Band(new SolidMaterial(Blocks.Wool, 11), 2)],
+                          BandEnding.HandOver),
+            BandAxis.Height, new SolidMaterial(Blocks.HardenedClay), From: -3, Follow: 100);
+
+        var section = Fills(StylePreview.SectionSvg(belt));
+        await Assert.That(section).Contains(BlockPalette.Hex(Blocks.Wool, 14));
+        await Assert.That(section).Contains(BlockPalette.Hex(Blocks.Wool, 11));
+        await Assert.That(section).Contains(BlockPalette.Hex(Blocks.HardenedClay, 0));
+    }
+
     [Test]
     public async Task The_card_view_is_the_one_that_shows_the_kind_something()
     {

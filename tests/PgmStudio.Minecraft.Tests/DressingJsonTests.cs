@@ -44,6 +44,24 @@ public sealed class DressingJsonTests
         await Assert.That(DressingJson.Serialize(back)).IsEqualTo(json);
     }
 
+    /// <summary>A path's wander is written only by a path that wanders, so every path already stored reads and
+    /// writes as it did; one that does carries both numbers through a round trip.</summary>
+    [Test]
+    public async Task A_paths_wander_is_written_only_when_it_wanders()
+    {
+        var still = DressingJson.Serialize(new DressingDoc { Props = [new StrokeProp { Id = "p", Points = [[0, 0], [10, 0]] }] });
+        await Assert.That(still).DoesNotContain("wander");
+
+        var json = DressingJson.Serialize(new DressingDoc
+        {
+            Props = [new StrokeProp { Id = "p", Points = [[0, 0], [10, 0]], Wander = 3, WanderLength = 12 }],
+        });
+        await Assert.That(json).Contains("\"wander\":3");
+        await Assert.That(json).Contains("\"wanderLength\":12");
+        var back = (StrokeProp)DressingJson.Deserialize(json).Props[0];
+        await Assert.That((back.Wander, back.WanderLength)).IsEqualTo((3.0, (int?)12));
+    }
+
     // ── the first-key constraint (B130) ────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_copied_tree_round_trips_with_its_body_and_names_its_key_by_its_block_count()

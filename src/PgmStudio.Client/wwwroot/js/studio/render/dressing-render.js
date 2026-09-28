@@ -16,7 +16,7 @@
  */
 
 import { BUILDING_COLORS } from "./primitive-style.js";
-import { strokeRing, strokeCenterline } from "../geometry/stroke.js";
+import { strokeRing, strokePath } from "../geometry/stroke.js";
 import { isMarker, isRect, MAX_FOOTPRINT, onLayer, propAnchor, propReach, rectFootprint, rectPlan, wingCorners }
   from "../dressing/dressing-doc.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
@@ -69,7 +69,7 @@ export function paintDressing(painter, props,
     // The line an author dragged, over the band it implies — a path and a water channel are edited as their
     // route, so the route has to stay visible inside its own band.
     if ((prop.kind === "stroke" || prop.kind === "water") && (prop.points?.length ?? 0) >= 2) {
-      const curve = strokeCenterline(prop.points);
+      const curve = strokePath(prop);
       const runs = [];
       for (let i = 1; i < curve.length; i++)
         runs.push({ x1: curve[i - 1][0], z1: curve[i - 1][1], x2: curve[i][0], z2: curve[i][1] });

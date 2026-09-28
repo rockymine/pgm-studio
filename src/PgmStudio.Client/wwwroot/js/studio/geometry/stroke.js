@@ -21,6 +21,12 @@ const ROUGH_SWING  = 0.45;          // how much of the width a rough edge may ga
 const ROUGH_SIDE   = 512;           // the noise row the right edge reads, so the two sides differ
 const TAPER_ENDS   = 0.35;          // what is left of the width where a tapered stroke runs out
 
+// Parity constants — must match C# Geom.Algorithms.Centerline's wander.
+export const DEFAULT_WANDER_LENGTH = 16;   // blocks of line one bend takes when none is stated
+export const MAX_WANDER = 8;               // the farthest a wandering line strays, in blocks
+const MIN_WANDER_LENGTH = 4, MAX_WANDER_LENGTH = 64;
+const WANDER_SALT = 0x5A17;                // the drift's noise, apart from the rough edge's
+
 /**
  * The drawn points as the dense curve the band is centred on — what a preview strokes, too.
  *
@@ -32,6 +38,86 @@ export function strokeCenterline(vertices) {
   if (!vertices || vertices.length < 2) return [];
   if (vertices.length === 2) return subdivide(vertices[0], vertices[1]);
   return catmullRom(vertices, SMOOTH_SAMPLES);
+}
+
+/**
+ * The line a stroke prop is laid along: its drawn points as the dense curve, drawn aside by the prop's
+ * `wander` — resampled at one block of arc and each sample pushed along its normal, swinging side to side
+ * every `wanderLength` blocks with a finer octave of noise over it, and easing to nothing over the first and
+ * last half bend so the ends stay where they were drawn. The twin of C# `Centerline.Of(vertices, wander, length, seed)`; a wander of nought is the curve itself.
+ */
+export function strokePath(prop) {
+  const line = strokeCenterline(prop.points);
+  const reach = Math.min(Math.max(prop.wander ?? 0, 0), MAX_WANDER);
+  if (reach <= 0 || line.length < 2) return line;
+  const period = Math.min(Math.max(prop.wanderLength ?? DEFAULT_WANDER_LENGTH, MIN_WANDER_LENGTH), MAX_WANDER_LENGTH);
+  const seed = ((prop.seed ?? 0) + WANDER_SALT) >>> 0;
+
+  let total = 0;
+  for (let i = 0; i < line.length - 1; i++) total += span(line, i);
+  const steps = Math.ceil(total);
+  if (steps < 2) return line;
+  const even = resample(line, total, steps);
+  const ease = Math.min(period / 2, total / 4);
+  const flip = hash(0, 2, seed) & 1;
+
+  const drawn = [];
+  for (let i = 0; i < even.length; i++) {
+    const along = total * i / steps;
+    let fade = Math.min(Math.max(Math.min(along, total - along) / ease, 0), 1);
+    fade = fade * fade * (3 - 2 * fade);
+    const drift = Math.min(Math.max(swing(i, period, flip, seed)
+                   + 0.25 * (2 * valueNoise(i, 1, seed, Math.max(1, Math.floor(period / 2))) - 1), -1), 1);
+    const [nx, nz] = normalAt(even, i);
+    const offset = reach * fade * drift;
+    drawn.push([even[i][0] + nx * offset, even[i][1] + nz * offset]);
+  }
+  return drawn;
+}
+
+// Which side the line is pushed to at sample i: a bend every `period` samples, alternating sides, each
+// reaching a random 55–100% of the wander, eased between bends.
+function swing(i, period, flip, seed) {
+  const f = i / period;
+  const n = Math.floor(f);
+  const t = f - n;
+  const a = bend(n, flip, seed), b = bend(n + 1, flip, seed);
+  return a + (b - a) * (t * t * (3 - 2 * t));
+}
+function bend(n, flip, seed) {
+  return (((n + flip) & 1) === 0 ? 1 : -1) * (0.55 + 0.45 * unit(n, 0, seed));
+}
+
+// The line as steps + 1 points an equal arc apart, first and last exactly where they were.
+function resample(line, total, steps) {
+  const even = [[line[0][0], line[0][1]]];
+  let segment = 0, start = 0, length = span(line, 0);
+  for (let k = 1; k < steps; k++) {
+    const target = total * k / steps;
+    while (start + length < target && segment < line.length - 2) {
+      start += length;
+      segment++;
+      length = span(line, segment);
+    }
+    const t = length > 0 ? (target - start) / length : 0;
+    const a = line[segment], b = line[segment + 1];
+    even.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+  }
+  even.push([line[line.length - 1][0], line[line.length - 1][1]]);
+  return even;
+}
+
+function span(line, segment) {
+  const dx = line[segment + 1][0] - line[segment][0], dz = line[segment + 1][1] - line[segment][1];
+  return Math.sqrt(dx * dx + dz * dz);
+}
+
+// The left-hand unit normal at sample i, from the samples either side of it.
+function normalAt(line, i) {
+  const before = line[Math.max(0, i - 1)], after = line[Math.min(line.length - 1, i + 1)];
+  const tx = after[0] - before[0], tz = after[1] - before[1];
+  const length = Math.sqrt(tx * tx + tz * tz);
+  return length < 1e-9 ? [0, 0] : [-tz / length, tx / length];
 }
 
 // The same point count a spline of one segment gives, so a straight stroke and a curved one vary at the same
@@ -54,7 +140,7 @@ function subdivide(from, to) {
  * shows here as the corridor its stones fall along — which is the right thing to see while placing it.
  */
 export function strokeRing(prop) {
-  const centerline = strokeCenterline(prop.points);
+  const centerline = strokePath(prop);
   const radius = prop.radius ?? 2;
   if (centerline.length < 2 || radius <= 0) return [];
   // Only the two styles that vary a width change the outline; the rest gate cells inside it.

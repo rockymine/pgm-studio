@@ -110,7 +110,8 @@ shows there.
 The axis is what the thickness is measured in. `depth` (the default) is courses down from the top of the
 bucket; `inward` is steps in from the landmass's void-facing edge, so the bands are concentric rings; `height`
 is courses up from the stack's own `from` in world Y, so the banding is pinned to the world rather than to the
-column; `slope` is **degrees of inclination**, which makes the stack an angle mask — one band for the flat,
+column — unless it states `follow` (0–100%), which carries the bands with the ground averaged `reach` cells either
+side, so strata rise and fall with the land (TP26); `slope` is **degrees of inclination**, which makes the stack an angle mask — one band for the flat,
 another for the shoulder, another for the face of the same hill.
 
 ```json

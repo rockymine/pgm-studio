@@ -378,6 +378,24 @@ distance field with one extra gate (`Geom.StrokeFill`):
   the disconnected band, stones across a void.
 - **Tapered** — `R` varied along the arc (fat middle, thin ends).
 
+**A stroke may wander, which bends the line itself rather than the band round it.** The drawn points are
+smoothed into a curve through them, so a path of four points is four straight-ish runs with rounded corners —
+and a path stated that way reads as ruled however its edge is brushed. `wander` draws that curve aside by up to
+that many blocks (at most 8): the line is resampled at one block of arc and pushed along its normal, swinging to
+one side and then the other every `wanderLength` blocks of path (16 unstated, 4 to 64), each bend a random 55–100%
+of the wander with a finer octave of noise over it so no two bends are the same shape. The drift eases in over
+the first and last half bend, so a path still starts at the door and ends at the bridge it was drawn to; a point
+it must pass through is an end of its own stroke. The drift is laid in the authored frame before the orbit fan,
+so every image of the path bends alike, and the line it makes is the one every reader takes —
+`Centerline.Of(points, wander, length, seed)`, which the fill paves round, `StrokeRead` walks and the canvas
+twin (`geometry/stroke.js`, `strokePath`) draws, with a fixture pinning the two to the same numbers. Nought, the
+default, is the line as drawn, and a stroke that does not wander writes no `wander` at all:
+
+```json
+{"kind":"stroke","id":"farm-track","points":[[-127,-30],[-104,-24],[-86,-12]],"radius":1.5,
+ "wander":3,"wanderLength":14,"claimsGround":true,"pave":{"kind":"solid","id":3,"data":1}}
+```
+
 What a style decides is the **band**; what fills it is the stroke's **pave**, and the pave is a full
 `TerrainMaterial` — a solid, a cell fabric, a noise ramp, any pattern the painter offers, edited by the same
 `MaterialEditor` a theme bucket is. The two are independent, so a worn cobble and a solid cobble are both

@@ -71,7 +71,8 @@ public static class TerrainPainter
         foreach (var (cell, column) in profile.Columns())
         {
             var sample = foldAt?.Invoke(cell.X, cell.Z) ?? cell;
-            foreach (var (y, id, data) in ColumnBlocks(cell.X, cell.Z, column, themeAt(cell.X, cell.Z), team(cell.X, cell.Z), sample))
+            foreach (var (y, id, data) in ColumnBlocks(cell.X, cell.Z, column, themeAt(cell.X, cell.Z), team(cell.X, cell.Z), sample,
+                         profile.Ground))
             {
                 // The stone-only invariant, over the whole block and not its id alone: stone's id is shared
                 // by granite, diorite, andesite and their polished forms, so a course a lower layer has
@@ -92,10 +93,12 @@ public static class TerrainPainter
     /// and building its every block to read one of them.
     /// <para>What the world already holds is not consulted here: the caller applies the stone-only invariant,
     /// because whether a cell may be overwritten is a fact about the world, not about the column.</para>
+    /// <para><paramref name="ground"/> is the painted layer's <see cref="TerrainProfile.Ground"/>, which a height
+    /// stack that follows the ground measures from (TP26); left null, such a stack reads world Y.</para>
     /// </summary>
     public static IEnumerable<(int Y, int Id, int Data)> ColumnBlocks(
         int x, int z, ColumnProfile column, TerrainTheme theme, int teamDamage = -1,
-        (int X, int Z)? sample = null)
+        (int X, int Z)? sample = null, SmoothedGround? ground = null)
     {
         var bands = Resolve(column, theme);
         for (var i = bands.Count - 1; i >= 0; i--)   // top band first — the preview wants only its top cell
@@ -107,7 +110,7 @@ public static class TerrainPainter
                 var (id, data) = material.Resolve(
                     new BucketContext(x, y, z, band.Bucket, band.HiY - 1 - y, teamDamage, column.PerimeterArc,
                         y - band.LoY, column.PerimeterTurn, column.PerimeterRun, column.Inset, column.Slope)
-                    { Sample = sample ?? (x, z) });
+                    { Sample = sample ?? (x, z), Ground = ground });
                 yield return (y, id, data);
             }
         }
@@ -117,9 +120,9 @@ public static class TerrainPainter
     /// is the top cell of the topmost band. Null only for a column that paints nothing at all.</summary>
     public static (int Y, int Id, int Data)? TopBlock(
         int x, int z, ColumnProfile column, TerrainTheme theme, int teamDamage = -1,
-        (int X, int Z)? sample = null)
+        (int X, int Z)? sample = null, SmoothedGround? ground = null)
     {
-        foreach (var block in ColumnBlocks(x, z, column, theme, teamDamage, sample)) return block;
+        foreach (var block in ColumnBlocks(x, z, column, theme, teamDamage, sample, ground)) return block;
         return null;
     }
 

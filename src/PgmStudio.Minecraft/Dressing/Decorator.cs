@@ -315,7 +315,8 @@ public static class Decorator
         var ground = context.GroundFor(path);
         if (path.Points.Count < 2) return Placed.None;
         var images = new List<List<(int X, int Z)>>();
-        var stroke = StrokeFill.Cells(path.Points, path.Radius, path.Style, path.Coverage, path.Seed).ToList();
+        var stroke = StrokeFill.Cells(path.Points, path.Radius, path.Style, path.Coverage, path.Seed,
+            path.Wander, path.WanderLength).ToList();
 
         for (var k = 0; k < context.Symmetry.Order; k++)
         {

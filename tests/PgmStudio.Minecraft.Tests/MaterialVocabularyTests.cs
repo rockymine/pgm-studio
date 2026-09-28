@@ -58,6 +58,13 @@ public sealed class MaterialVocabularyTests
         await Assert.That(from.Required).IsFalse();
         await Assert.That(from.Default).IsEqualTo(0);
 
+        // Following the ground is optional in the same way: a stack that names no `follow` is level, and one
+        // that names no `reach` averages the ground over the default window.
+        var follow = layered.Fields.Single(f => f.Name == "follow");
+        await Assert.That((follow.Type, follow.Required, follow.Default)).IsEqualTo(("int", false, (object?)0));
+        var reach = layered.Fields.Single(f => f.Name == "reach");
+        await Assert.That((reach.Type, reach.Required, reach.Default)).IsEqualTo(("int", false, (object?)null));
+
         var frame = MaterialVocabulary.Of("wallFrame")!.Value;
         await Assert.That(frame.Fields.Single(f => f.Name == "angle").Default).IsEqualTo(45);
         await Assert.That(frame.Fields.Single(f => f.Name == "thickness").Default).IsEqualTo(1);

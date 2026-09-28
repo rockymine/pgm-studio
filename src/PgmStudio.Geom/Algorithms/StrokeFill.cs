@@ -38,11 +38,15 @@ public static class StrokeFill
     private const double StoneGap = 1.9;         // stone spacing as a multiple of the stone's own width
 
     /// <summary>The cells the stroke through <paramref name="points"/> paves. <paramref name="coverage"/> is
-    /// what a worn stroke keeps; every other style paves its whole band.</summary>
+    /// what a worn stroke keeps; every other style paves its whole band. <paramref name="wander"/> and
+    /// <paramref name="wanderLength"/> draw the line itself aside between its ends
+    /// (<see cref="Centerline.Of(IReadOnlyList{double[]}, double, int?, uint)"/>), so every style meanders
+    /// alike.</summary>
     public static IEnumerable<StrokeCell> Cells(
-        IReadOnlyList<double[]> points, double radius, StrokeStyle style, double coverage, uint seed)
+        IReadOnlyList<double[]> points, double radius, StrokeStyle style, double coverage, uint seed,
+        double wander = 0, int? wanderLength = null)
     {
-        var centerline = Centerline.Of(points);
+        var centerline = Centerline.Of(points, wander, wanderLength, seed);
         if (centerline.Count < 2 || radius <= 0) yield break;
 
         // Stones are the one style whose gate is not a width, so its reach must cover a whole stone rather
