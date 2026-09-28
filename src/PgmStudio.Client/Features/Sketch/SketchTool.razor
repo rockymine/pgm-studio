@@ -46,7 +46,7 @@
          the shared body below comes back for it. *@
       @if (InGameActive && !placingView)
       {
-        <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Round="viewRound"
+        <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Round="viewRound" LinkedNote="Note"
                            OnBack="GoDressing" OnPlace="PlaceView" OnLetGo="LetGoView" />
       }
       @* Every phase that draws shares the one mounted canvas, so this body stays present (hidden while Info is
@@ -96,16 +96,35 @@
           }
           else if (PlacingViewActive)
           {
+            @* Every camera the gallery has, as the canvas draws it: the views kept, then the studio's
+               suggestions. Choosing one here picks it up as a press on its camera would. *@
             <Section Title="Kept views">
-              @if (KeptViews.Count == 0)
-              {
-                <p class="plan-readout">None yet. A view kept is drawn on the canvas where its eye stands.</p>
-              }
-              @foreach (var kept in KeptViews)
-              {
-                <p class="plan-readout" @key="kept.Id"><strong>@kept.Name</strong> — looking at @kept.LookX, @kept.LookZ</p>
-              }
+              <div class="panel-list">
+                @foreach (var kept in KeptViews)
+                {
+                  <ListRow Compact Selected="@(viewDraft?.Source?.Id == kept.Id)" @key="kept.Id" OnClick="() => SelectView(kept)">
+                    <span class="geo-type-icon"><i data-lucide="camera"></i></span>
+                    <span class="list-label">@kept.Name</span>
+                    <span class="list-tag">@kept.LookX, @kept.LookZ</span>
+                  </ListRow>
+                }
+              </div>
             </Section>
+            @if (SuggestedViews.Count > 0)
+            {
+              <Section Title="Suggested">
+                <div class="panel-list">
+                  @foreach (var suggested in SuggestedViews)
+                  {
+                    <ListRow Compact Selected="@(viewDraft?.Source?.Id == suggested.Id)" @key="suggested.Id" OnClick="() => SelectView(suggested)">
+                      <span class="geo-type-icon"><i data-lucide="camera"></i></span>
+                      <span class="list-label">@suggested.Name</span>
+                      <span class="list-tag">@suggested.LookX, @suggested.LookZ</span>
+                    </ListRow>
+                  }
+                </div>
+              </Section>
+            }
           }
           else if (ReliefActive)
           {
@@ -189,9 +208,13 @@
                 drawn and built differ: @string.Join(", ", IsoContested)
               </span>
             }
-            <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
-                            Title="@(isoUnavailable ? IsoNoteTitle : "Isometric height preview (read-only)")"
-                            OnClick="Toggle3D" />
+            @* Placing a view is 2-D only: the eye is stood on a map of the board. *@
+            @if (!PlacingViewActive)
+            {
+              <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
+                              Title="@(isoUnavailable ? IsoNoteTitle : "Isometric height preview (read-only)")"
+                              OnClick="Toggle3D" />
+            }
           </CanvasLayerBar>
 
           @* A layer is the board's rather than a phase's, so the switch is chrome and every phase that
@@ -234,7 +257,7 @@
             else if (PlacingViewActive)
             {
               <DockGroup>
-                <DockButton Icon="eye" Title="Place a view: press where to stand, drag to what to look at"
+                <DockButton Icon="camera" Title="Place a view: press where to stand, drag to what to look at"
                             Active="@(tool == "eye")" OnClick='() => SetTool("eye")' />
               </DockGroup>
             }
@@ -285,7 +308,7 @@
         else if (PlacingViewActive)
         {
           <div class="sidebar-handle"></div>
-          <SketchViewDraft Slug="@Slug" Draft="viewDraft" Round="viewRound" Note="@viewNote"
+          <SketchViewDraft Slug="@Slug" Draft="viewDraft" Round="viewRound" Note="@viewNote" OnAimed="OnViewAimed"
                            OnKeep="KeepView" OnDiscard="DiscardView" />
         }
         else if (ReliefActive)

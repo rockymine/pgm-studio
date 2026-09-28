@@ -93,10 +93,13 @@ public static class MapFromDocuments
             return Refuse(403, "not permitted", new Finding(RequestRules.NotPermitted,
                 $"a map is already stored under '{slug}', and only its owner, an author it credits, or an admin "
                 + "may replace it", Field: "slug"));
+        // The views an author kept are pictures of the board rather than part of it, so a rebuild keeps them.
+        var keptViews = existing is null ? null : await artifacts.LoadAsync(existing.Id, ArtifactKind.MapViewsJson, ct);
         var mapId = await MapOrigin.ReplacingAsync(repo, slug, name, MapStage.Plan, Callers.OriginatorOf(http), ct);
 
         try
         {
+            if (keptViews is not null) await artifacts.SaveAsync(mapId, ArtifactKind.MapViewsJson, keptViews, ct);
             await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson,
                                       Bytes(request.Plan ?? Empty), ct);
             await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson, Bytes(request.Layout), ct);

@@ -12,6 +12,34 @@ window.studio = {
     }
   },
 
+  // The size an element is drawn at, in CSS pixels — what a mark drawn on a scaled picture is divided by to
+  // count it in the picture's own pixels.
+  elementSize(el) {
+    const box = el ? el.getBoundingClientRect() : null;
+    return box ? { width: box.width, height: box.height } : { width: 0, height: 0 };
+  },
+
+  // Keep a picture for a note: the image at `src` (already in the browser's cache, since it is on screen) is
+  // drawn to a canvas, encoded as WebP at quality 85 — a PNG where the browser cannot encode WebP — and posted
+  // to api/notes/pictures. Answers the hash the studio names it by, or null where any step failed.
+  async keepPicture(src) {
+    try {
+      const image = new Image();
+      image.src = src;
+      await image.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      canvas.getContext("2d").drawImage(image, 0, 0);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", 0.85));
+      if (!blob) return null;
+      const answer = await fetch("api/notes/pictures", {
+        method: "POST", body: blob, headers: { "content-type": blob.type || "application/octet-stream" },
+      });
+      return answer.ok ? (await answer.json()).hash : null;
+    } catch { return null; }
+  },
+
   // Smooth-scroll an in-page section into view by id. Used by the /authoring concept page's left
   // nav: plain `<a href="#id">` anchors get intercepted by Blazor's router (they resolve to the app
   // root), so the nav calls this with preventDefault instead.

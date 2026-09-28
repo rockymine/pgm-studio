@@ -10,16 +10,21 @@ namespace PgmStudio.Export;
 /// <summary>
 /// One picture of a board from a player's eye, by name: the thing it looks at, and where the eye stands, how
 /// high, and how far it tips down, where the view says. A view without <see cref="FromX"/> leaves the eye to
-/// find its own place when the picture is drawn, which is <c>render/eye</c>'s <c>look</c>.
+/// find its own place when the picture is drawn, which is <c>render/eye</c>'s <c>look</c>. A view that states
+/// its <see cref="Yaw"/> is a camera stated whole — where it stands, how high, which way it turns and how far it
+/// tips — and its look point is only where that camera's middle lands, kept to draw and list it by.
 /// </summary>
 public sealed record WorldView(string Id, string Name, int LookX, int LookZ,
-                               int? FromX = null, int? FromZ = null, double? Y = null, double? Pitch = null)
+                               int? FromX = null, int? FromZ = null, double? Y = null, double? Pitch = null,
+                               double? Yaw = null)
 {
     /// <summary>The <c>render/eye</c> query words that draw this view.</summary>
     [JsonIgnore]
     public string Query =>
-        string.Create(CultureInfo.InvariantCulture, $"look={LookX},{LookZ}")
-        + (FromX is { } x && FromZ is { } z ? string.Create(CultureInfo.InvariantCulture, $"&from={x},{z}") : "")
+        (Yaw is { } yaw && FromX is { } standX && FromZ is { } standZ
+            ? string.Create(CultureInfo.InvariantCulture, $"from={standX},{standZ}&yaw={yaw:0.#}")
+            : string.Create(CultureInfo.InvariantCulture, $"look={LookX},{LookZ}")
+              + (FromX is { } x && FromZ is { } z ? string.Create(CultureInfo.InvariantCulture, $"&from={x},{z}") : ""))
         + (Y is { } y ? string.Create(CultureInfo.InvariantCulture, $"&y={y:0.##}") : "")
         + (Pitch is { } pitch ? string.Create(CultureInfo.InvariantCulture, $"&pitch={pitch:0.#}") : "");
 }
@@ -43,7 +48,7 @@ public sealed record WorldView(string Id, string Name, int LookX, int LookZ,
 /// </summary>
 public static class WorldViews
 {
-    private const int HousesShown = 4, BouldersShown = 2, OutOfTheRoom = 4, DownTheRoad = 24;
+    private const int HousesShown = 4, BouldersShown = 2, DownTheRoad = 24;
     private const double EyeHeight = 1.62;
 
     /// <summary>The most air a building's own column holds between one block and the next — a doorway.</summary>
@@ -78,17 +83,14 @@ public static class WorldViews
         {
             var team = TeamName(intent, spawn.Team);
             var name = $"{team} spawn";
-            if ((spawn.Footprint ?? Bounds(spawn.Protection)) is not { } room)
+            if ((spawn.Footprint ?? Bounds(spawn.Protection)) is { } room)
             {
-                views.Add(At($"spawn-{index}", name, spawn.Point));
-                continue;
+                var (dx, dz) = Step(spawn.Yaw);
+                var (centreX, centreZ) = Centre(room);
+                views.Add(Framed($"spawn-{index}", name, built, room, (centreX + dx * 100, centreZ + dz * 100)));
             }
-            var (dx, dz) = Heading(spawn.Yaw);
-            var (centreX, centreZ) = Centre(room);
-            views.Add(Framed($"spawn-{index}", name, built, room, (centreX + dx * 100, centreZ + dz * 100)));
-            var (standX, standZ, lookX, lookZ) = Arriving(room, dx, dz);
-            views.Add(new WorldView($"spawn-{index}-out", $"Out of the {team.ToLowerInvariant()} spawn",
-                lookX, lookZ, standX, standZ));
+            else views.Add(At($"spawn-{index}", name, spawn.Point));
+            views.Add(FromSpawn($"spawn-{index}-out", $"From the {team.ToLowerInvariant()} spawn", spawn));
         }
 
         foreach (var (wool, index) in (intent.Wools ?? []).Select((wool, index) => (wool, index)))
@@ -215,6 +217,37 @@ public static class WorldViews
         return new WorldView("overview", "The whole board", centreX, centreZ, fromX, fromZ, top + 0.6 * back);
     }
 
+    /// <summary>The id of every board's own straight-down view.</summary>
+    public const string StraightDownId = "above";
+
+    /// <summary>
+    /// Every board's own view, kept by default rather than suggested: the whole board seen straight down,
+    /// north at the top: the eye over the board's middle, high enough that
+    /// its width fits across a 16:9 frame at the default field of view and its depth fits down it. From there
+    /// almost nothing is hidden, so a mark drawn on it reads like a mark on a map while the picture is still the
+    /// board as it is built.
+    ///
+    /// <para>The eye stands one block south of the middle and looks at it, which is what turns it to face north;
+    /// tipped straight down, the block of offset is lost in the frame.</para>
+    /// </summary>
+    public static WorldView? StraightDown(BuiltWorld built)
+    {
+        var surface = built.Surface;
+        if (surface.Count == 0) return null;
+        int minX = surface.Keys.Min(cell => cell.X), maxX = surface.Keys.Max(cell => cell.X);
+        int minZ = surface.Keys.Min(cell => cell.Z), maxZ = surface.Keys.Max(cell => cell.Z);
+        int centreX = (minX + maxX) / 2, centreZ = (minZ + maxZ) / 2;
+        var over = Math.Max((maxX - minX + 1) / 2.0 / AboveAcross, (maxZ - minZ + 1) / 2.0 / AboveDown) + 4;
+        var height = Math.Min(surface.Values.Max() + over, HighestEye);
+        return new WorldView(StraightDownId, "Straight down", centreX, centreZ, centreX, centreZ + 1, Math.Round(height, 1), 90);
+    }
+
+    /// <summary>The tangents of a 70° eye's half-angles across and down a 16:9 frame.</summary>
+    private const double AboveAcross = 0.7002, AboveDown = 0.3939;
+
+    /// <summary>The highest an eye may stand: the top of the world.</summary>
+    private const double HighestEye = 320;
+
     /// <summary>The middle of the board's ground, which a building is seen from the side facing.</summary>
     private static (double X, double Z) Middle(IReadOnlyDictionary<(int X, int Z), int> surface) =>
         surface.Count == 0 ? (0, 0)
@@ -265,22 +298,21 @@ public static class WorldViews
 
     /// <summary>The way a yaw faces, as a step on the board. The yaw is the game's — 0 faces south (+z), 90
     /// west.</summary>
-    private static (double Dx, double Dz) Heading(double yaw)
+    private static (double Dx, double Dz) Step(double yaw)
     {
         var radians = yaw * Math.PI / 180;
         return (-Math.Sin(radians), Math.Cos(radians));
     }
 
-    /// <summary>Where a player arriving in <paramref name="room"/> heading <paramref name="dx"/>,
-    /// <paramref name="dz"/> stands once out of it, and what is ahead: a few blocks past the room's wall on that
-    /// heading, looking on down it.</summary>
-    private static (int StandX, int StandZ, int LookX, int LookZ) Arriving(Rect room, double dx, double dz)
+    /// <summary>What a player sees on arriving, as the map's spawn states it: the eye at the spawn point, a
+    /// player's height over it, facing the spawn's yaw and level, since a spawn states no pitch and PGM's is then
+    /// 0. The look point is down the yaw, kept to draw and list the camera by.</summary>
+    private static WorldView FromSpawn(string id, string name, SpawnIntent spawn)
     {
-        double centreX = (room.MinX + room.MaxX) / 2, centreZ = (room.MinZ + room.MaxZ) / 2;
-        var across = Math.Min(Math.Abs(dx) > 1e-6 ? (room.MaxX - room.MinX) / 2 / Math.Abs(dx) : double.MaxValue,
-                              Math.Abs(dz) > 1e-6 ? (room.MaxZ - room.MinZ) / 2 / Math.Abs(dz) : double.MaxValue);
-        double standX = centreX + dx * (across + OutOfTheRoom), standZ = centreZ + dz * (across + OutOfTheRoom);
-        return ((int)Math.Round(standX), (int)Math.Round(standZ),
-                (int)Math.Round(standX + dx * DownTheRoad), (int)Math.Round(standZ + dz * DownTheRoad));
+        var (dx, dz) = Step(spawn.Yaw);
+        return new WorldView(id, name,
+            (int)Math.Floor(spawn.Point.X + dx * DownTheRoad), (int)Math.Floor(spawn.Point.Z + dz * DownTheRoad),
+            (int)Math.Floor(spawn.Point.X), (int)Math.Floor(spawn.Point.Z),
+            Math.Round(spawn.Point.Y + EyeHeight, 2), Pitch: 0, Yaw: Heading.Wrap(spawn.Yaw));
     }
 }

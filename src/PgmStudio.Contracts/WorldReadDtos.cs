@@ -159,8 +159,16 @@ public sealed record WalkReadDto(bool Reachable, int Distance, int Blocks, int D
 /// looks at.</param>
 /// <param name="Query">The query words <c>GET …/render/eye</c> draws this view with; a caller adds its own
 /// <c>width</c> and <c>height</c>.</param>
+/// <param name="Eye">The camera the view resolves to on the board as it is built — where the eye ends up
+/// standing when the view leaves it to find its own place — or null where the server has no block textures to
+/// resolve it with, or no place sees what the view looks at.</param>
+/// <param name="Own">Whether this is the board's own straight-down view, which every board keeps: it can be
+/// changed, and it is never let go.</param>
+/// <param name="Yaw">Which way the eye turns, in the game's degrees, where the view states it whole; null for a
+/// view that faces what it looks at.</param>
 public sealed record MapViewDto(string Id, string Name, bool Kept, int LookX, int LookZ,
-    int? FromX, int? FromZ, double? Y, double? Pitch, string Query);
+    int? FromX, int? FromZ, double? Y, double? Pitch, string Query, EyeCameraDto? Eye = null, bool Own = false,
+    double? Yaw = null);
 
 /// <summary>Every view a map has: the studio's suggestions first, then the ones kept.</summary>
 /// <param name="Views">The views, suggestions first.</param>
@@ -168,12 +176,21 @@ public sealed record MapViewDto(string Id, string Name, bool Kept, int LookX, in
 /// there — or null where they can.</param>
 public sealed record MapViewsDto(IReadOnlyList<MapViewDto> Views, string? Undrawable);
 
-/// <summary>A view to keep (<c>POST /api/map/{slug}/views</c>).</summary>
-/// <param name="Name">What to call it. Blank takes <c>View N</c>.</param>
+/// <summary>A view to keep (<c>POST /api/map/{slug}/views</c>), or what a kept view becomes
+/// (<c>PUT /api/map/{slug}/views/{viewId}</c>).</summary>
+/// <param name="Name">What to call it. Blank takes <c>View N</c> for a new view and keeps the name of one
+/// being changed.</param>
 /// <param name="LookX">The thing to look at, east–west.</param>
 /// <param name="LookZ">The same, north–south.</param>
 /// <param name="FromX">Where to stand, east–west; null leaves the eye to find its own place.</param>
 /// <param name="FromZ">The same, north–south, stated together with <paramref name="FromX"/>.</param>
 /// <param name="Y">The eye's height, 0 to 320; null stands it a player's eye over the ground.</param>
+/// <param name="Pitch">How far the eye tips down, −90 to 90 degrees, 90 straight down — an aerial shot is an eye
+/// raised with <paramref name="Y"/> and tipped down with this; null tips it to the middle of what it looks
+/// at.</param>
+/// <param name="Yaw">Which way the eye turns, in the game's degrees — 0 south, 90 west, 180 north, −90 east, from −180 to 180.
+/// Stated with <paramref name="FromX"/>, <paramref name="FromZ"/> and <paramref name="Y"/>, it states the camera
+/// whole and <paramref name="LookX"/>, <paramref name="LookZ"/> is only where its middle lands; null faces what
+/// it looks at.</param>
 public sealed record MapViewKeepRequest(string? Name, int LookX, int LookZ,
-    int? FromX = null, int? FromZ = null, double? Y = null);
+    int? FromX = null, int? FromZ = null, double? Y = null, double? Pitch = null, double? Yaw = null);

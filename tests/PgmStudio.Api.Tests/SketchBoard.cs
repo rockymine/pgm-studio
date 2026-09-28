@@ -21,6 +21,13 @@ internal static class SketchBoard
     {
         await ApiTestFactory.ResetSchemaAsync();
         var client = ApiTestFactory.Shared.CreateClient();
+        await RebuildAsync(client);
+        return client;
+    }
+
+    /// <summary>Load the board over its own slug again, which is what a driver does on every build.</summary>
+    public static async Task RebuildAsync(HttpClient client)
+    {
         var made = await client.PostAsJsonAsync("/api/map/from-documents", new
         {
             plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
@@ -29,7 +36,6 @@ internal static class SketchBoard
             name = "Dressed",
         });
         made.EnsureSuccessStatusCode();
-        return client;
     }
 
     /// <summary>A theme whose four buckets all resolve — the clean shape every case that is about something

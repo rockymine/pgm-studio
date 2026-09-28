@@ -80,6 +80,40 @@ public sealed class EyeReadEndpointTests
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
 
+    [Test]
+    public async Task A_pick_casts_the_pictures_own_ray_and_names_the_camera_exactly()
+    {
+        using var client = TexturedFactory.Shared.CreateClient();
+        var slug = await FinishedAsync(client);
+        const string Picture = "from=0,20&yaw=180&pitch=30&width=320&height=180";
+
+        var point = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/render/eye/pick?{Picture}&at=160,120");
+        var hit = point.GetProperty("hit");
+        await Assert.That(hit.GetProperty("z").GetInt32()).IsLessThan(20);
+        await Assert.That(point.GetProperty("ground").GetProperty("y").GetInt32()).IsLessThanOrEqualTo(hit.GetProperty("y").GetInt32());
+        await Assert.That(point.GetProperty("camera").GetProperty("x").GetDouble()).IsEqualTo(0.5);
+        await Assert.That(point.GetProperty("standing").GetInt32())
+            .IsEqualTo((int)Math.Round(point.GetProperty("camera").GetProperty("y").GetDouble() - 2.62));
+
+        var again = await client.GetAsync($"/api/map/{slug}/render/eye?{point.GetProperty("query").GetString()}");
+        await Assert.That(again.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(PngReader.Decode(await again.Content.ReadAsByteArrayAsync()).Width).IsEqualTo(320);
+
+        var area = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/render/eye/pick?{Picture}&lasso=100,100;220,100;160,170");
+        await Assert.That(area.GetProperty("columns").GetArrayLength()).IsGreaterThan(0);
+        await Assert.That(area.GetProperty("hit").ValueKind).IsEqualTo(JsonValueKind.Null);
+
+        var outside = await client.GetAsync($"/api/map/{slug}/render/eye/pick?{Picture}&at=400,10");
+        await Assert.That(outside.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+
+        // Every view listed carries the camera it resolves to, so a view that leaves the eye to find its own
+        // place can still be drawn where it stands.
+        var views = (await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/views")).GetProperty("views");
+        var straightDown = views.EnumerateArray().First();
+        await Assert.That(straightDown.GetProperty("id").GetString()).IsEqualTo("above");
+        await Assert.That(straightDown.GetProperty("eye").GetProperty("pitch").GetDouble()).IsEqualTo(90.0);
+    }
+
     /// <summary>A host whose <c>Textures:Jar</c> names a jar of a few flat sprites, written once for the run.</summary>
     private sealed class TexturedFactory : WebApplicationFactory<Program>
     {

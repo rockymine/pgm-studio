@@ -32,9 +32,10 @@ public sealed class GetMapEndpoint(MapRepository repo, MapReader reader, MapWrit
 }
 
 /// <summary>DELETE /api/map/{slug} — remove the map and everything stored under it: every row keyed on the
-/// map cascades from its <c>map</c> row. A world folder under a maps root is the source a map was scanned from
-/// rather than something the map holds, so it is left where it is.</summary>
-public sealed class DeleteMapEndpoint(MapRepository repo) : EndpointWithoutRequest
+/// map cascades from its <c>map</c> row, and the notes on it, which name it by slug, go with it. A world folder
+/// under a maps root is the source a map was scanned from rather than something the map holds, so it is left
+/// where it is.</summary>
+public sealed class DeleteMapEndpoint(MapRepository repo, MapNoteStore notes) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -46,6 +47,7 @@ public sealed class DeleteMapEndpoint(MapRepository repo) : EndpointWithoutReque
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         await repo.DeleteMapAsync(map.Id, ct);
+        await notes.DeleteMapAsync(map.Slug, ct);
         await Send.NoContentAsync(ct);
     }
 }

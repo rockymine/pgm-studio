@@ -19,10 +19,15 @@ public sealed class StudioTokenStore(PgmDb db)
     public Task<List<StudioTokenRow>> ListAsync(string uuid, CancellationToken ct = default) =>
         db.StudioTokens.Where(token => token.UserUuid == uuid).OrderByDescending(token => token.Id).ToListAsync(ct);
 
-    /// <summary>Keep a token for <paramref name="uuid"/> under its hash. Answers the row as stored.</summary>
-    public async Task<StudioTokenRow> IssueAsync(string uuid, string hash, string label, CancellationToken ct = default)
+    /// <summary>Keep a token for <paramref name="uuid"/> under its hash, carrying the notes permission where
+    /// <paramref name="notes"/> says. Answers the row as stored.</summary>
+    public async Task<StudioTokenRow> IssueAsync(string uuid, string hash, string label, bool notes = false,
+                                                 CancellationToken ct = default)
     {
-        var row = new StudioTokenRow { UserUuid = uuid, Hash = hash, Label = label, CreatedAt = DateTime.UtcNow };
+        var row = new StudioTokenRow
+        {
+            UserUuid = uuid, Hash = hash, Label = label, Notes = notes, CreatedAt = DateTime.UtcNow,
+        };
         row.Id = await db.InsertWithInt64IdentityAsync(row, token: ct);
         return row;
     }

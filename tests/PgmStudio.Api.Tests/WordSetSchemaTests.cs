@@ -32,6 +32,7 @@ public sealed class WordSetSchemaTests
         typeof(WoolColors), typeof(TreeForms), typeof(TreeSpeciesNames),
         typeof(BoulderForms), typeof(BlockKinds), typeof(BiomeKinds), typeof(StructuralRoles),
         typeof(NegativeSpaceKinds), typeof(SizeBands), typeof(AccessModes), typeof(StudioRoles),
+        typeof(NoteStatuses), typeof(NoteTags), typeof(NoteAnchors),
     ];
 
     /// <summary>The fields marked today. Nothing in the compiler can say a field <em>ought</em> to be

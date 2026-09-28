@@ -80,6 +80,11 @@ function bestSnap(edges, targets, tol) {
   return best;
 }
 
+// Lucide's `camera`, in its own 24-unit box: what a kept view is drawn as on the canvas.
+const CAMERA_BODY = typeof Path2D === "undefined" ? null
+  : new Path2D("M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z");
+const CAMERA_LENS = typeof Path2D === "undefined" ? null : new Path2D("M15 13a3 3 0 1 1-6 0 3 3 0 0 1 6 0");
+
 export class SketchCanvas extends CanvasBase {
   #bbox    = null;    // the current working bounds (content + buffer); recomputed by #renderSetup
   #tight   = null;    // the exact content bounds — the frame outline, and null when the sketch is empty
@@ -225,9 +230,36 @@ export class SketchCanvas extends CanvasBase {
    */
   setViews(views) { this.#views = Array.isArray(views) ? views : []; this.#paintWorld(); }
 
+  /**
+   * The board as it is built, for placing a view: while it is on, the canvas draws the Board layer — the
+   * top-down of the full build, shaded like the game's map — and the views, and nothing else. The shapes, the blocks, the mirror, the chunk grid, the work bounds, the axis,
+   * the group outlines and the objective labels are all left out, whatever their own switches say, so
+   * leaving the mode gives every one of them back as the author had it.
+   */
+  setBoardView(on) { this.#boardView = !!on; this.#refreshCenter(); this.#paintWorld(); }
+
+  /** The board map (`board-map.js`), decoded once into a bitmap; null clears it. */
+  loadBoardLayer(map) {
+    this.#boardMap = map;
+    this.#boardImage = null;
+    if (map && typeof document !== "undefined") {
+      const bitmap = document.createElement("canvas");
+      bitmap.width = map.width;
+      bitmap.height = map.depth;
+      bitmap.getContext("2d").putImageData(new ImageData(map.rgba, map.width, map.depth), 0, 0);
+      this.#boardImage = bitmap;
+    }
+    this.#paintWorld();
+  }
+
+  #boardView = false;
+  #boardMap = null;
+  #boardImage = null;
+
   /** The view being placed, or null to clear it — the host clears it once the view is kept or let go. */
   setViewDraft(view) {
-    this.#view = view ? { ax: view.fromX ?? view.lookX, az: view.fromZ ?? view.lookZ, bx: view.lookX, bz: view.lookZ, live: false } : null;
+    this.#view = view ? { ax: view.fromX ?? view.lookX, az: view.fromZ ?? view.lookZ, bx: view.lookX, bz: view.lookZ,
+                          live: false, id: view.id ?? null } : null;
     this.#paintWorld();
   }
 
@@ -488,7 +520,7 @@ export class SketchCanvas extends CanvasBase {
     this.#placementClick = false;
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
-    if (this._activeTool === "eye") { this.#view = { ax: bx, az: bz, bx, bz, live: true }; this.#paintWorld(); return; }
+    if (this._activeTool === "eye") { this.#view = this.#grabView(svgPt) ?? { ax: bx, az: bz, bx, bz, live: true, grab: "look" }; this.#paintWorld(); return; }
     if (this._activeTool === "split") { this.#onSplitClick(bx, bz); return; }
     if (this.#reliefOn && this.#reliefTools?.onMouseDown(bx, bz, this._activeTool)) return;
     if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool, e.shiftKey)) return;
@@ -501,7 +533,11 @@ export class SketchCanvas extends CanvasBase {
     if (this._activeTool === "measure") {
       if (this.#measure?.live) { this.#measure.bx = bx; this.#measure.bz = bz; this.#renderMeasure(); }
     } else if (this._activeTool === "eye") {
-      if (this.#view?.live) { this.#view.bx = bx; this.#view.bz = bz; this.#paintWorld(); }
+      if (this.#view?.live) {
+        if (this.#view.grab === "stand") { this.#view.ax = bx; this.#view.az = bz; }
+        else { this.#view.bx = bx; this.#view.bz = bz; }
+        this.#paintWorld();
+      }
     } else if (this._activeTool === "split") {
       if (this.#split) { this.#split.bx = bx; this.#split.bz = bz; this.#paintWorld(); }
     } else if (this.#reliefOn && this.#reliefTools?.onMouseMove(bx, bz, this._activeTool)) {
@@ -846,6 +882,13 @@ export class SketchCanvas extends CanvasBase {
     if (!this.#painter) return;
     const painter = this.#painter;
     painter.begin(this._scale, this._panX, this._panY);
+    if (this.#boardView) {
+      painter.layer("board", () => { if (this.#boardImage) painter.image(this.#boardImage, this.#boardMap); });
+      painter.layer("views", () => this.#paintViews());
+      const { w, h } = this._viewSize ?? this._size();
+      renderScaleBar(this.#screen.scale, { w, h, scale: this._scale });
+      return;
+    }
     painter.layer("work",      () => paintWorkArea(painter, this.#bbox));
     painter.layer("bbox",      () => paintBbox(painter, this.#tight));
     painter.layer("chunk",     () => { if (this.#chunkVisible) paintChunkGrid(painter, this.#gridBounds(), gridStep(CHUNK * this._scale)); });
@@ -1353,6 +1396,7 @@ export class SketchCanvas extends CanvasBase {
     const layer = this.#screen.center;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
+    if (this.#boardView) return;   // placing a view draws the board and the cameras, and nothing else
     const { x: sx, y: sy } = this._toScreen(this.#center.cx, this.#center.cz);
     const arm = 10, col = "var(--canvas-axis)";
     layer.appendChild(svgEl("line", { x1: sx - arm, y1: sy, x2: sx + arm, y2: sy, stroke: col, "stroke-width": "1" }));
@@ -1400,28 +1444,93 @@ export class SketchCanvas extends CanvasBase {
     const v = this.#view;
     if (!v?.live) return;
     v.live = false;
-    const stood = v.ax !== v.bx || v.az !== v.bz;
-    this.#callbacks.onViewPicked?.(stood ? [v.ax, v.az] : null, [v.bx, v.bz]);
+    // A camera picked up keeps standing somewhere, even where it was only clicked: it becomes the view being
+    // placed, stood where the eye was.
+    const stood = v.id != null || v.ax !== v.bx || v.az !== v.bz;
+    this.#callbacks.onViewPicked?.(stood ? [v.ax, v.az] : null, [v.bx, v.bz], v.id ?? null);
     this.#paintWorld();
   }
 
-  // Each view as the eye it is: a ring where it stands, a line the way it looks, a dot on what it sees. The
-  // one being placed is drawn in the axis colour over the kept ones.
-  #paintViews() {
-    const eye = (fromX, fromZ, lookX, lookZ, stroke) => {
-      const toCentre = (value) => value + 0.5;
-      if (fromX != null && fromZ != null) {
-        this.#painter.line(toCentre(fromX), toCentre(fromZ), toCentre(lookX), toCentre(lookZ), { stroke, width: 1.5 });
-        this.#painter.dot(toCentre(fromX), toCentre(fromZ), { radiusPx: 6, stroke, width: 2, fill: "var(--canvas-bg)" });
-      }
-      this.#painter.dot(toCentre(lookX), toCentre(lookZ), { radiusPx: 3, fill: stroke });
-    };
-    for (const kept of this.#views) eye(kept.fromX, kept.fromZ, kept.lookX, kept.lookZ, "var(--canvas-marker-stroke)");
-    const v = this.#view;
-    if (!v) return;
-    const stood = v.ax !== v.bx || v.az !== v.bz;
-    eye(stood ? v.ax : null, stood ? v.az : null, v.bx, v.bz, "var(--canvas-axis)");
+  /** Where a view's eye stands on the canvas: where it was stood, else where it resolved to, else nowhere. */
+  #standOf(view) {
+    if (view.fromX != null && view.fromZ != null) return { x: view.fromX, z: view.fromZ };
+    if (view.eyeX != null && view.eyeZ != null) return { x: Math.floor(view.eyeX), z: Math.floor(view.eyeZ) };
+    return null;
   }
+
+  /**
+   * The camera a press lands on, picked up to be moved. The camera in hand shows what it looks at, so its eye
+   * stands it elsewhere and its target turns it; any other camera is only its eye, and a press on it picks it
+   * up to stand it elsewhere. A press on neither places a new view.
+   */
+  #grabView(svgPt) {
+    const reach = 11 / this._scale;
+    const near = (x, z) => Math.hypot(x + 0.5 - svgPt.x, z + 0.5 - svgPt.y) <= reach;
+    const held = this.#view;
+    if (held && !held.live) {
+      if (near(held.bx, held.bz)) return { ...held, live: true, grab: "look" };
+      if (near(held.ax, held.az)) return { ...held, live: true, grab: "stand" };
+    }
+    let best = null;
+    for (const view of this.#views) {
+      const stand = this.#standOf(view);
+      if (!stand || (held?.id != null && held.id === view.id)) continue;
+      const distance = Math.hypot(stand.x + 0.5 - svgPt.x, stand.z + 0.5 - svgPt.y);
+      if (distance <= reach && (!best || distance < best.distance)) best = { view, stand, distance };
+    }
+    if (!best) return null;
+    return { ax: best.stand.x, az: best.stand.z, bx: best.view.lookX, bz: best.view.lookZ, live: true,
+             grab: "stand", id: best.view.id };
+  }
+
+
+  // Each view as the camera it is, where it stands: the views kept drawn full and the studio's suggestions
+  // faint. The camera in hand — being placed, or picked up — is drawn in the axis colour in place of the camera
+  // it was picked up from, with the line it looks along and the target its middle lands on.
+  #paintViews() {
+    const held = this.#view;
+    for (const view of this.#views) {
+      if (held && held.id != null && held.id === view.id) continue;
+      const stand = this.#standOf(view);
+      if (stand) this.#paintCamera(stand.x, stand.z, "var(--canvas-marker-stroke)", view.kept ? 1 : 0.5);
+    }
+    if (!held) return;
+    const toCentre = (value) => value + 0.5;
+    const stood = held.id != null || held.ax !== held.bx || held.az !== held.bz;
+    if (stood) {
+      this.#painter.line(toCentre(held.ax), toCentre(held.az), toCentre(held.bx), toCentre(held.bz),
+                         { stroke: "var(--canvas-axis)", width: 1.5 });
+    }
+    this.#painter.dot(toCentre(held.bx), toCentre(held.bz), { radiusPx: 4, fill: "var(--canvas-axis)" });
+    if (stood) this.#paintCamera(held.ax, held.az, "var(--canvas-axis)", 1);
+  }
+
+  /** A camera glyph standing on block `x`, `z`, the same size at every zoom: lucide's camera, on a disc of
+   * the canvas background so it reads over any ground. */
+  #paintCamera(x, z, stroke, alpha) {
+    const painter = this.#painter;
+    painter.layer("camera", (ctx) => {
+      const size = painter.screenPx(20) / 24;
+      ctx.setLineDash([]);
+      ctx.globalAlpha = alpha;
+      ctx.translate(x + 0.5, z + 0.5);
+      ctx.scale(size, size);
+      ctx.beginPath();
+      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.fillStyle = painter.color("var(--canvas-bg)");
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = painter.color(stroke);
+      ctx.stroke();
+      ctx.translate(-12, -12.5);
+      ctx.lineWidth = 2;
+      ctx.lineJoin = "round";
+      ctx.stroke(CAMERA_BODY);
+      ctx.stroke(CAMERA_LENS);
+    });
+  }
+
+
 
   // Split tool (S14): first click sets the cut's start + a preview line; the second click fires onSplit
   // (the host cuts the crossed shape into two). The slice line rides the measure layer.

@@ -47,7 +47,11 @@ public static class DraftDiscard
         untouched = untouched
             && !await db.Authors.AnyAsync(author => author.MapId == map.Id && author.Uuid != map.OwnerUuid, ct);
 
-        if (untouched) await repo.DeleteMapAsync(map.Id, ct);   // FK cascade removes the artifacts
+        if (untouched)
+        {
+            await repo.DeleteMapAsync(map.Id, ct);   // FK cascade removes the artifacts
+            await new MapNoteStore(db).DeleteMapAsync(map.Slug, ct);
+        }
         return untouched;
     }
 

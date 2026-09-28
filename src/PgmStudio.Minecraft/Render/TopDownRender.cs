@@ -410,12 +410,22 @@ public static class TopDownRender
         return pixels;
     }
 
+    /// <summary>Water's colour darkened by how deep it stands, to <see cref="DeepWaterKeep"/> of itself at
+    /// <see cref="FullDepth"/>.</summary>
+    private static int Deepened(int waterRgb, int depth) =>
+        Raster.Scale(waterRgb, 1 - (1 - DeepWaterKeep) * Math.Min(1.0, depth / (double)FullDepth));
+
     private static int BaseColor(Column column, TopDownColorMode colorMode, TopDownSubject subject)
     {
-        if (colorMode == TopDownColorMode.Material) return BlockPalette.PackedRgb(column.BlockId, column.BlockData);
+        // A flooded column is water in either reading: its bed is what the depth is measured to, not what is
+        // seen from above.
+        if (colorMode == TopDownColorMode.Material)
+            return column.Category == RenderCategory.Water
+                ? Deepened(BlockPalette.PackedRgb(Blocks.StationaryWater, 0), column.WaterDepth)
+                : BlockPalette.PackedRgb(column.BlockId, column.BlockData);
 
         var categoryRgb = column.Category == RenderCategory.Water
-            ? Raster.Scale(RenderCategories.WaterRgb, 1 - (1 - DeepWaterKeep) * Math.Min(1.0, column.WaterDepth / (double)FullDepth))
+            ? Deepened(RenderCategories.WaterRgb, column.WaterDepth)
             : RenderCategories.ColourOf(column.Category);
 
         return subject switch

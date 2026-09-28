@@ -166,7 +166,8 @@ public static class WorldReadCatalog
         new("render/eye", null,
             "The board seen from a player's eye, drawn with the game's own block sprites: `look=x,z` names a "
             + "thing and the eye finds a place on ground that sees it whole, `from=x,z` stands the eye there, "
-            + "and both together face the one from the other. The read for how a finish looks where a player "
+            + "and both together face the one from the other; `eye=x,y,z` with `yaw` and `pitch` stands it "
+            + "exactly, which is how a picture is drawn again. The read for how a finish looks where a player "
             + "stands — whether two blocks merge into one ground or into static — which every other read "
             + "answers in one colour a block. `flat=1` draws the same frame in those colours. `?format=text` "
             + "answers where the eye ended up and what fills the frame, by share.",

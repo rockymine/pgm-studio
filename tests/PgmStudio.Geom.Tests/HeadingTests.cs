@@ -33,4 +33,37 @@ public sealed class HeadingTests
     {
         await Assert.That(Heading.YawTo(100, 200, 110, 200)).IsEqualTo(Heading.YawTo(0, 0, 10, 0)).Within(1e-9);
     }
+
+    [Test]
+    [Arguments(270.0, -90.0)]
+    [Arguments(-270.0, 90.0)]
+    [Arguments(180.0, 180.0)]
+    [Arguments(-180.0, 180.0)]
+    [Arguments(540.0, 180.0)]
+    [Arguments(-45.0, -45.0)]
+    public async Task Wrap_bringsAnyYawIntoTheGamesRange(double yaw, double expected)
+    {
+        await Assert.That(Heading.Wrap(yaw)).IsEqualTo(expected).Within(1e-9);
+    }
+
+    [Test]
+    [Arguments(0, 10, 0, 0, 0, 0, 90.0)]     // straight down
+    [Arguments(0, 0, 0, 0, 10, 0, -90.0)]    // straight up
+    [Arguments(0, 10, 0, 10, 0, 0, 45.0)]    // down a 45° slope
+    [Arguments(0, 5, 0, 0, 5, 10, 0.0)]      // level
+    public async Task Pitch_isDegreesBelowTheHorizon(double x, double y, double z, double tx, double ty, double tz, double expected)
+    {
+        await Assert.That(Heading.PitchTo(x, y, z, tx, ty, tz)).IsEqualTo(expected).Within(1e-9);
+    }
+
+    [Test]
+    public async Task YawTo_isAlwaysInTheGamesRange()
+    {
+        for (var degrees = 0; degrees < 360; degrees += 15)
+        {
+            var radians = degrees * Math.PI / 180;
+            var yaw = Heading.YawTo(0, 0, Math.Cos(radians), Math.Sin(radians));
+            await Assert.That(yaw > -180 && yaw <= 180).IsTrue();
+        }
+    }
 }

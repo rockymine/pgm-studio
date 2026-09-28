@@ -147,6 +147,9 @@ builder.Services.AddSingleton(PgmDataOptions.ForConnectionString(connectionStrin
 builder.Services.AddScoped<PgmDb>();
 builder.Services.AddScoped<MapRepository>();
 builder.Services.AddScoped<MapArtifactStore>();
+builder.Services.AddScoped<MapNoteStore>();
+builder.Services.AddSingleton<PgmStudio.Api.Services.NotePictures>();
+builder.Services.AddHostedService<PgmStudio.Api.Services.NotePictureSweep>();
 builder.Services.AddScoped<PgmStudio.Data.Plan.PlanStore>();
 builder.Services.AddScoped<PgmStudio.Data.Compose.ComposedBoardStore>();
 builder.Services.AddScoped<PgmStudio.Data.Theme.ThemeStore>();

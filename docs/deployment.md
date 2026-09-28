@@ -24,7 +24,8 @@ and change only by hand.
 
 **The studio keeps its state in three places outside a release.** The database; `/var/lib/pgm-studio`, the
 service user's home, which holds the data-protection keys a sign-in cookie is sealed with (lose them and
-every session ends) and the Minecraft texture jar; and `/etc/pgm-studio/pgm-studio.env`. A release under
+every session ends), the Minecraft texture jar, and the pictures map notes carry, under `Notes__Pictures`
+(`/var/lib/pgm-studio/pictures`); and `/etc/pgm-studio/pgm-studio.env`. A release under
 `/opt/pgm-studio/releases/<commit>` holds nothing that is not rebuilt from the commit.
 
 ## The environment
@@ -70,7 +71,9 @@ that fails:
 1. fetch and check out the commit;
 2. publish the API and the migrator into `releases/<commit>`, at low priority because the live studio shares
    the two cores, and stop the build servers the publish leaves behind (~800 MB idle on a box with no swap);
-3. dump the database to `/var/backups/pgm-studio/pgm_studio-<time>-before-<commit>.sql.gz`;
+3. dump the database to `/var/backups/pgm-studio/pgm_studio-<time>-before-<commit>.sql.gz`, and copy the
+   note pictures it does not hold yet into `/var/backups/pgm-studio/pictures` — a picture is named by its hash
+   and never changes, so the copy only adds, and a picture does not compress, so it rides in no dump;
 4. run `--migrate-only`;
 5. point `/opt/pgm-studio/app` at the release and restart the service;
 6. wait up to 30 s for `/api/health`, and check the served `index.html` carries no unfilled placeholder;
@@ -119,8 +122,8 @@ agent's token acts as the person who issued it.
 
 ## Limits
 
-- **Backups stay on the machine.** The dumps in `/var/backups/pgm-studio` are taken before each deploy, on
-  the disk the database is on, and nothing takes one nightly; a lost disk loses both. Off-machine dumps are
+- **Backups stay on the machine.** The dumps and the picture copies in `/var/backups/pgm-studio` are taken
+  before each deploy, on the disk the database is on, and nothing takes one nightly; a lost disk loses both. Off-machine dumps are
   `RP84`.
 - **A failed deploy tells nobody.** It is in the journal and in `/var/lib/pgm-studio-deploy/failed`, and the
   site keeps running the release before it, but no message goes out; also `RP84`.

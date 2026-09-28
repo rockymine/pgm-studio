@@ -9,9 +9,12 @@ namespace PgmStudio.Api.Access;
 /// <summary>
 /// Who a request is: signed out, signed in as an account the whitelist does not hold, or a person on it in
 /// one of <see cref="StudioRoles"/>. The local admin of an open studio is the last kind with no account.
-/// <paramref name="ViaToken"/> is a request signed in by a token rather than a browser session.
+/// <paramref name="ViaToken"/> is a request signed in by a token rather than a browser session, and
+/// <paramref name="Token"/> that token's label. <paramref name="MayNote"/> is whether the request may read and
+/// answer map notes: an admin in a browser, or a token carrying the notes permission whose person is an admin.
 /// </summary>
-public sealed record Caller(string? Uuid, string? Name, string? Role, bool ViaToken = false)
+public sealed record Caller(string? Uuid, string? Name, string? Role, bool ViaToken = false, bool MayNote = false,
+                            string? Token = null)
 {
     public static readonly Caller SignedOut = new(null, null, null);
 
@@ -39,20 +42,23 @@ public sealed class Callers(AccessOptions access, StudioUserStore users)
 
     /// <summary>The caller a principal is. A token is capped at <see cref="StudioRoles.Member"/>: it acts as
     /// its person on their maps and nothing wider, so a token that leaks from the environment holding it can
-    /// neither keep the whitelist, nor issue invitations, nor change a map its person does not own.</summary>
+    /// neither keep the whitelist, nor issue invitations, nor change a map its person does not own. The notes
+    /// permission is the one thing a token lifts the cap for, and only where its person is an admin.</summary>
     private async Task<Caller> ResolveAsync(ClaimsPrincipal principal, CancellationToken ct)
     {
         if (principal.Identity is not { IsAuthenticated: true }) return Caller.SignedOut;
         if (principal.HasClaim(claim => claim.Type == StudioClaims.LocalAdmin))
-            return new(null, principal.FindFirstValue(StudioClaims.Name), StudioRoles.Admin);
+            return new(null, principal.FindFirstValue(StudioClaims.Name), StudioRoles.Admin, MayNote: true);
         if (principal.FindFirstValue(StudioClaims.Uuid) is not { Length: > 0 } uuid) return Caller.SignedOut;
 
         var viaToken = principal.Identity.AuthenticationType == TokenAccessHandler.SchemeName;
         var name = principal.FindFirstValue(StudioClaims.Name);
         var row = access.Admins.Contains(uuid) ? null : await users.GetAsync(uuid, ct);
         var role = access.Admins.Contains(uuid) ? StudioRoles.Admin : row?.Role;
+        var mayNote = role == StudioRoles.Admin && (!viaToken || principal.HasClaim(claim => claim.Type == StudioClaims.Notes));
         if (viaToken && role == StudioRoles.Admin) role = StudioRoles.Member;
-        return new(uuid, row?.Name ?? name, role, viaToken);
+        return new(uuid, row?.Name ?? name, role, viaToken, mayNote,
+                   viaToken ? principal.FindFirstValue(StudioClaims.TokenLabel) : null);
     }
 
     /// <summary>Whether <paramref name="caller"/> may change <paramref name="map"/>: an admin may change any

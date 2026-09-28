@@ -1,75 +1,150 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* In game — the board as a player sees it, drawn with the game's own block textures. A gallery of the views
-   the studio suggests from what stands on the board and the ones the author kept; a picture opens large, and
-   a view of the author's own is placed on the canvas (the host's picking step). *@
+@* In game — the board as a player sees it, drawn with the game's own block textures. One picture enlarged,
+   the gallery of views under it, and beside it the notes column: an admin's notes on the picture in view and
+   on the whole map. A note is pinned by arming a tool in the dock on the picture — a point, a box or a lasso,
+   which the studio projects onto the ground — or to the picture or the map as a whole. A view of the author's
+   own is placed on the canvas (the host's picking step). *@
 
 <div class="phase-body">
   <FlowBar Class="flow-bar--flush" PhaseIcon="eye" PhaseTitle="In game"
            BackEnabled="true" NextLabel="Place a view" NextEnabled="@(Views is { Undrawable: null })"
            OnBack="OnBack" OnNext="OnPlace" />
   <Workspace>
-    <div class="ingame">
-      @if (Error is not null)
-      {
-        <p class="ingame__note ingame__note--warn">@Error</p>
-      }
-      else if (Views is null)
-      {
-        <p class="ingame__note">Reading the board…</p>
-      }
-      else if (Views.Undrawable is { } why)
-      {
+    @if (Error is not null)
+    {
+      <div class="ingame"><p class="ingame__note ingame__note--warn">@Error</p></div>
+    }
+    else if (Views is null)
+    {
+      <div class="ingame"><p class="ingame__note">Reading the board…</p></div>
+    }
+    else if (Views.Undrawable is { } why)
+    {
+      <div class="ingame">
         <p class="ingame__note ingame__note--warn">
           In-game pictures are drawn with Minecraft 1.8.9's own block textures, and this server has none: @why
         </p>
-      }
-      else if (Views.Views.Count == 0)
-      {
+      </div>
+    }
+    else if (Views.Views.Count == 0 || Shown is not { } shown)
+    {
+      <div class="ingame">
         <p class="ingame__note">There is nothing on the board to look at yet. Draw some ground, then come back.</p>
-      }
-      else
-      {
-        <p class="ingame__lede">
-          The board as a player sees it. The studio suggests these from what stands on the board; place a view
-          of your own to keep it. Pictures are drawn one at a time and kept until the board changes.
-        </p>
-        <div class="ingame__grid">
-          @foreach (var view in Views.Views)
-          {
-            <button type="button" class="ingame__card" @key="view.Id" title="@Where(view)" @onclick="() => Open(view)">
-              <SketchEyePicture Slug="@Slug" Query="@view.Query" Round="Round" Alt="@view.Name" />
-              <span class="ingame__caption">
-                <span class="ingame__name">@view.Name</span>
-                @if (view.Kept) { <Badge Kind="neutral">kept</Badge> }
-              </span>
-            </button>
-          }
-        </div>
-      }
-    </div>
-  </Workspace>
+      </div>
+    }
+    else
+    {
+      <div class="ingame ingame--stage">
+        <div class="ingame__main" tabindex="0" @ref="main" @onkeydown="OnKey">
+          <div class="ingame__head">
+            <span class="ingame__name">@shown.Name</span>
+            <span class="ingame__where">@Where(shown)</span>
+            <Button Icon="external-link" Href="@FullSize(shown)" target="_blank" rel="noopener"
+                    Title="The picture at 1920 × 1080, in a tab of its own">Full size</Button>
+            @if (shown.Kept && !shown.Own)
+            {
+              <Button Variant="danger" Icon="trash-2" Busy="lettingGo" BusyLabel="Letting go…"
+                      OnClick="() => LetGo(shown)">Let go</Button>
+            }
+          </div>
 
-  @if (open is { } shown)
-  {
-    <div class="ingame-lightbox" tabindex="0" @ref="lightbox" @onclick="Close" @onkeydown="OnKey">
-      <figure class="ingame-lightbox__frame" @onclick:stopPropagation="true">
-        <SketchEyePicture Slug="@Slug" Query="@shown.Query" Width="1280" Height="720" Round="Round" Alt="@shown.Name" />
-        <figcaption class="ingame-lightbox__bar">
-          <span class="ingame-lightbox__name">@shown.Name</span>
-          <span class="ingame-lightbox__where">@Where(shown)</span>
-          <Button OnClick="() => Step(-1)" Title="The view before (←)">Previous</Button>
-          <Button OnClick="() => Step(1)" Title="The view after (→)">Next</Button>
-          <Button Icon="external-link" Href="@FullSize(shown)" target="_blank" rel="noopener"
-                  Title="The picture at 1920 × 1080, in a tab of its own">Full size</Button>
-          @if (shown.Kept)
-          {
-            <Button Variant="danger" Icon="trash-2" Busy="lettingGo" BusyLabel="Letting go…"
-                    OnClick="() => LetGo(shown)">Let go</Button>
-          }
-          <Button Variant="icon" Icon="x" Title="Close (Esc)" OnClick="Close" />
-        </figcaption>
-      </figure>
-    </div>
-  }
+          <div class="ingame__frame">
+            <SketchEyePicture Slug="@Slug" Query="@shown.Query" Width="PictureWidth" Height="PictureHeight"
+                              Round="Round" Alt="@shown.Name" Class="ingame__picture" />
+            @if (mayNote)
+            {
+              @if (showMarks)
+              {
+                <svg class="ingame__marks" viewBox="0 0 @PictureWidth @PictureHeight" preserveAspectRatio="none" aria-hidden="true">
+                  @if (OpenHere is { } open && open.Anchor.Marks is { Count: > 0 } openMarks)
+                  {
+                    @Shape(open.Anchor.Kind, openMarks, "ingame__mark ingame__mark--open")
+                  }
+                  @if (step == NotesStep.New && mark is { } drawn)
+                  {
+                    @Shape(drawn.Kind, drawn.Pixels, "ingame__mark ingame__mark--draft")
+                  }
+                  @if (drawing is { } live)
+                  {
+                    @Shape(live.Kind, live.Pixels, "ingame__mark ingame__mark--draft")
+                  }
+                </svg>
+                @foreach (var note in PinnedHere)
+                {
+                  var (x, y) = PinAt(note);
+                  <button type="button" class="@(SketchNotesColumn.PinClass(note) + " ingame__pin")" @key="note.Id"
+                          style="@PinStyle(x, y)" aria-label="@($"Open note {note.Id}")" @onclick="() => OpenNote(note)">@note.Id</button>
+                }
+              }
+              @if (tool is not null)
+              {
+                <div class="ingame__trap" @ref="trap"
+                     @onpointerdown="PointerDown" @onpointermove="PointerMove" @onpointerup="PointerUp"
+                     @onpointerleave="PointerUp"></div>
+                <div class="ingame__hint">@ToolHint</div>
+              }
+              <CanvasDock>
+                <DockGroup Viewing="true">
+                  <DockButton Icon="crosshair" Title="Point: pin a note to one block" Active="@(tool == NoteAnchors.Point)"
+                              OnClick="() => Arm(NoteAnchors.Point)" />
+                  <DockButton Icon="square" Title="Box: pin a note to the ground in a rectangle" Active="@(tool == NoteAnchors.Box)"
+                              OnClick="() => Arm(NoteAnchors.Box)" />
+                  <DockButton Icon="lasso" Title="Lasso: pin a note to the ground inside an outline" Active="@(tool == NoteAnchors.Lasso)"
+                              OnClick="() => Arm(NoteAnchors.Lasso)" />
+                  <span class="ingame__divider"></span>
+                  <DockButton Icon="eye" Title="@(showMarks ? "Hide the notes' pins and marks" : "Show the notes' pins and marks")"
+                              Active="showMarks" OnClick="() => showMarks = !showMarks" />
+                </DockGroup>
+              </CanvasDock>
+            }
+          </div>
+
+          <div class="ingame__strip">
+            @foreach (var view in Views.Views)
+            {
+              var count = Waiting(view.Id);
+              <button type="button" class="@(view.Id == shown.Id ? "ingame__card ingame__card--on" : "ingame__card")"
+                      @key="view.Id" title="@Where(view)" @onclick="() => Show(view)">
+                <span class="ingame__thumb">
+                  <SketchEyePicture Slug="@Slug" Query="@view.Query" Round="Round" Alt="@view.Name" />
+                  @if (mayNote && count > 0) { <span class="ingame__count">@count</span> }
+                </span>
+                <span class="ingame__caption">
+                  <span class="ingame__cardname">@view.Name</span>
+                  @if (view.Kept) { <Badge Kind="neutral">kept</Badge> }
+                </span>
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (mayNote)
+        {
+          <SketchNotesColumn Step="step" Notes="notes" ViewIds="ViewIds" ViewId="@shown.Id" ViewName="@shown.Name"
+                             Current="Current" Filter="@filter" AnchorTitle="@AnchorTitle" AnchorBody="@AnchorBody"
+                             HasMark="@(mark is not null)" WholeMap="wholeMap" Ready="Ready" Busy="busy" Error="@notesError"
+                             OnFilter="f => filter = f" OnOpen="OpenNote" OnBack="BackToOverview" OnNew="StartNote"
+                             OnClearMark="ClearMark" OnWholeMap="PinToMap" OnResolve="() => ChangeAsync(NoteStatuses.Resolved)"
+                             OnReopen="() => ChangeAsync(NoteStatuses.Open)" OnSend="SendNoteAsync" OnReply="ReplyAsync" />
+        }
+      </div>
+    }
+  </Workspace>
 </div>
+
+@code {
+    /// <summary>A mark drawn on the picture, in its pixels — one for a point, two corners for a box, an outline
+    /// for a lasso.</summary>
+    private RenderFragment Shape(string kind, IReadOnlyList<PixelDto> pixels, string css) => kind switch
+    {
+        NoteAnchors.Point when pixels.Count > 0 =>
+            @<circle class="@css" cx="@pixels[0].X" cy="@pixels[0].Y" r="12" />,
+        NoteAnchors.Box when pixels.Count > 1 =>
+            @<rect class="@css" x="@Math.Min(pixels[0].X, pixels[1].X)" y="@Math.Min(pixels[0].Y, pixels[1].Y)"
+                   width="@Math.Abs(pixels[1].X - pixels[0].X)" height="@Math.Abs(pixels[1].Y - pixels[0].Y)" />,
+        NoteAnchors.Lasso when pixels.Count > 1 =>
+            @<polygon class="@css" points="@string.Join(' ', pixels.Select(pixel => $"{pixel.X},{pixel.Y}"))" />,
+        _ => @<g></g>,
+    };
+}

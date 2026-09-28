@@ -42,6 +42,10 @@ public partial class SketchTool
     // ── Phases (rail): Info (Identity + Settings steps) · Draw (the canvas). Draw stays mounted while
     //    Info is up (hidden, not torn down) so the drawing state + zoom survive the trip. ──
     [SupplyParameterFromQuery] public string? Phase { get; set; }
+
+    /// <summary>A note to open, which opens the In game phase on its thread — the link a ruling written into
+    /// the gameplay law carries back to where it was decided.</summary>
+    [SupplyParameterFromQuery] public long? Note { get; set; }
     private string active = "draw";
     private bool InfoActive => active == "info";
     private bool DrawActive => active == "draw";
@@ -184,9 +188,49 @@ public partial class SketchTool
         try { views = await Http.GetFromJsonAsync<MapViewsDto>($"api/map/{Slug}/views"); }
         catch { viewsError = "The views could not be read — the studio could not be reached."; }
         if (handle is not null)
-            await handle.InvokeVoidAsync("setViews", JsonSerializer.Serialize(KeptViews.Select(view =>
-                new { fromX = view.FromX, fromZ = view.FromZ, lookX = view.LookX, lookZ = view.LookZ })));
+            await handle.InvokeVoidAsync("setViews", JsonSerializer.Serialize((views?.Views ?? []).Select(view => new
+            {
+                id = view.Id, kept = view.Kept, fromX = view.FromX, fromZ = view.FromZ, lookX = view.LookX, lookZ = view.LookZ,
+                eyeX = view.Eye?.X, eyeZ = view.Eye?.Z,
+            })));
         StateHasChanged();
+    }
+
+    private IReadOnlyList<MapViewDto> SuggestedViews => views?.Views.Where(view => !view.Kept).ToList() ?? [];
+
+    /// <summary>A view picked up to change or to copy: stood where it stands — where its eye resolved to, for
+    /// one that leaves the eye to find its own place — at the height and tip it states or resolved to.</summary>
+    private static SketchViewDraft.ViewDraft DraftOf(MapViewDto view, int? fromX, int? fromZ, int lookX, int lookZ)
+    {
+        var resolved = view.FromX is null ? view.Eye : null;
+        return new SketchViewDraft.ViewDraft(
+            fromX ?? view.FromX ?? (view.Eye is { } eye ? (int)Math.Floor(eye.X) : null),
+            fromZ ?? view.FromZ ?? (view.Eye is { } seen ? (int)Math.Floor(seen.Z) : null),
+            lookX, lookZ,
+            view.Y ?? resolved?.Y, view.Pitch ?? resolved?.Pitch, view, view.Yaw);
+    }
+
+    /// <summary>The inspector resolved the camera in hand: the canvas draws it where it stands and where its
+    /// middle lands.</summary>
+    private async Task OnViewAimed((int FromX, int FromZ, int LookX, int LookZ) aim)
+    {
+        if (handle is null) return;
+        await handle.InvokeVoidAsync("setViewDraft", JsonSerializer.Serialize(new
+        {
+            id = viewDraft?.Source?.Id, fromX = aim.FromX, fromZ = aim.FromZ, lookX = aim.LookX, lookZ = aim.LookZ,
+        }));
+    }
+
+    /// <summary>Pick a view up from the list beside the canvas, as a press on its camera would.</summary>
+    private async Task SelectView(MapViewDto view)
+    {
+        viewDraft = DraftOf(view, null, null, view.LookX, view.LookZ);
+        viewNote = null;
+        if (handle is not null)
+            await handle.InvokeVoidAsync("setViewDraft", JsonSerializer.Serialize(new
+            {
+                id = view.Id, fromX = viewDraft.FromX, fromZ = viewDraft.FromZ, lookX = view.LookX, lookZ = view.LookZ,
+            }));
     }
 
     private async Task PlaceView()
@@ -194,6 +238,15 @@ public partial class SketchTool
         placingView = true;
         viewDraft = null;
         viewNote = null;
+        if (handle is not null)
+        {
+            if (threeD)
+            {
+                threeD = false;
+                await handle.InvokeVoidAsync("setView", "2d");
+            }
+            await handle.InvokeVoidAsync("setBoardView", true);
+        }
         await SetTool("eye");
     }
 
@@ -201,24 +254,44 @@ public partial class SketchTool
     {
         placingView = false;
         viewDraft = null;
-        if (handle is not null) await handle.InvokeVoidAsync("setViewDraft", (string?)null);
+        if (handle is not null)
+        {
+            await handle.InvokeVoidAsync("setViewDraft", (string?)null);
+            await handle.InvokeVoidAsync("setBoardView", false);
+        }
         await SetTool("select");
     }
 
-    /// <summary>The canvas's eye tool was released: a stand point and what it looks at, or only the latter.</summary>
+    /// <summary>The board could not be built for the Board layer: the canvas stays empty under the views, and
+    /// the inspector says why.</summary>
     [JSInvokable]
-    public void OnViewPicked(int? fromX, int? fromZ, int lookX, int lookZ)
+    public void OnBoardUnavailable(string reason)
     {
-        viewDraft = new SketchViewDraft.ViewDraft(fromX, fromZ, lookX, lookZ);
+        viewNote = reason is { Length: > 0 } ? $"The board could not be drawn: {reason}" : "The board could not be drawn.";
+        StateHasChanged();
+    }
+
+    /// <summary>The canvas's eye tool was released: a stand point and what it looks at, or only the latter —
+    /// for a new view, or for the camera <paramref name="id"/> names, picked up and moved.</summary>
+    [JSInvokable]
+    public void OnViewPicked(int? fromX, int? fromZ, int lookX, int lookZ, string? id)
+    {
+        viewDraft = views?.Views.FirstOrDefault(view => view.Id == id) is { } picked
+            ? DraftOf(picked, fromX, fromZ, lookX, lookZ)
+            : new SketchViewDraft.ViewDraft(fromX, fromZ, lookX, lookZ);
         viewNote = null;
         StateHasChanged();
     }
 
+    /// <summary>Store the view in the inspector: a kept view picked up is changed in place, and anything else —
+    /// a new view, or a suggestion picked up — is kept as a new one.</summary>
     private async Task KeepView(MapViewKeepRequest request)
     {
         try
         {
-            var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/views", request);
+            var answer = viewDraft?.Source is { Kept: true } changed
+                ? await Http.PutAsJsonAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(changed.Id)}", request)
+                : await Http.PostAsJsonAsync($"api/map/{Slug}/views", request);
             if (!answer.IsSuccessStatusCode)
             {
                 var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
@@ -342,6 +415,7 @@ public partial class SketchTool
             viewDraft = null;
             await handle.InvokeVoidAsync("setViews", "[]");
             await handle.InvokeVoidAsync("setViewDraft", (string?)null);
+            await handle.InvokeVoidAsync("setBoardView", false);
         }
         await PushPhaseOverlays(phase);
     }
@@ -368,7 +442,10 @@ public partial class SketchTool
         ["relief"]   = new([ChipRelief, ChipShapes, ChipMirror, ChipChunks, ChipBlocks], [ChipShapes]),
         ["theme"]    = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks, ChipShapes]),
         ["dressing"] = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks, ChipShapes]),
-        ["ingame"]   = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks]),
+        // Placing a view draws the Board layer and the views, and nothing else, whatever the other chips say;
+        // leaving gives them back as the author had them. The shaded board carries the height, so no chip is
+        // offered over it.
+        ["ingame"]   = new([], []),
     };
 
     private static PhaseOverlay OverlaysOf(string phase) => Overlays.GetValueOrDefault(phase, Overlays["draw"]);
@@ -531,6 +608,7 @@ public partial class SketchTool
         await LoadObjectives();
         await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
             System.Text.Json.JsonSerializer.Serialize(Shortcuts));
+        if (Phase == "ingame" || Note is not null) await GoInGame();
     }
 
     /// <summary>The name this tool's chords are registered and dropped under.</summary>

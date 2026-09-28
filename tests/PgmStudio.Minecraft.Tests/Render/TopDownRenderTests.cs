@@ -143,6 +143,25 @@ public sealed class TopDownRenderTests
     }
 
     [Test]
+    public async Task Material_mode_draws_a_flooded_column_as_water_rather_than_as_its_bed()
+    {
+        var world = new VoxelWorld();
+        world.SetBlock(0, 5, 0, Blocks.Stone);
+        world.SetBlock(1, 5, 0, Blocks.Stone);
+        world.SetBlock(1, 6, 0, Blocks.StationaryWater);
+
+        var result = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
+            TopDownColorMode.Material, TopDownSubject.Combined)!;
+
+        var water = PixelAt(result.Pixels, result.BlocksWide, 1, 0);
+        int red = (water >> 16) & 0xFF, green = (water >> 8) & 0xFF, blue = water & 0xFF;
+        await Assert.That(blue).IsGreaterThan(red);
+        await Assert.That(blue).IsGreaterThan(green);
+        await Assert.That(PixelAt(result.Pixels, result.BlocksWide, 1, 0))
+            .IsNotEqualTo(PixelAt(result.Pixels, result.BlocksWide, 0, 0));
+    }
+
+    [Test]
     public async Task Foliage_and_ground_columns_paint_different_categories_even_side_by_side()
     {
         // The exact failure a realistic render cannot avoid: a tree standing on ground its own colour is

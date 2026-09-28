@@ -1,41 +1,77 @@
 @namespace PgmStudio.Client.Features.Sketch
 @using System.Globalization
+@using PgmStudio.Geom
 @inject IJSRuntime JS
+@inject HttpClient Http
 
-@* The view being placed on the canvas: what it will look like, what to call it and how high the eye stands,
-   and whether to keep it. Nothing is stored until it is kept. *@
+@* The camera in hand, stated whole: where it stands — X, Y and Z, the Y being the eye's own height — which way
+   it turns (yaw) and how far it tips (pitch), in the game's own terms and ranges. Its angle is the block it looks
+   at, as PGM's spawn `angle` is: read off the picture's middle, and stating one turns the camera onto it. A camera placed on the canvas opens here resolved: the studio says where the
+   eye ended up and fills every field, so nothing is left blank for the reader to guess. A camera picked up off
+   the canvas opens with its own values: a kept one is changed in place, a suggestion is kept as a new view.
+   Nothing is stored until it is kept. *@
 
 <Inspector>
   <Section>
-    <DetailHeader Icon="eye" Label="A view of your own" />
-    @if (Draft is not { } draft)
+    <DetailHeader Icon="camera" Label="@Title" />
+    @if (Draft is null)
     {
       <p class="plan-readout">
         Press where the eye should stand and drag to what it looks at. A click without a drag names only what to
         look at, and the eye finds its own place to see it from.
       </p>
+      <p class="plan-readout">
+        To change a camera already there, press it and drag to stand it elsewhere; a click opens it here as it is,
+        with the line it looks along, and its target is then dragged to turn it. Faint cameras are the studio's
+        suggestions, and keeping one keeps a copy.
+      </p>
+      @if (Note is not null) { <p class="dressing-refusal">@Note</p> }
     }
     else
     {
-      <SketchEyePicture Slug="@Slug" Query="@Query(draft)" Round="Round" Alt="The view being placed" />
-      <p class="plan-readout">@Where(draft)</p>
+      <SketchEyePicture Slug="@Slug" Query="@(Query ?? DraftQuery(Draft))" Round="Round" Alt="The view being placed" />
       <Field Label="Name" For="view-name">
         <input id="view-name" class="field-input" type="text" placeholder="View" maxlength="80"
                value="@name" @oninput="e => name = e.Value?.ToString() ?? string.Empty" />
       </Field>
-      @if (draft.FromX is not null)
+      @if (standX is null)
       {
-        <Field Label="Eye height" For="view-y">
-          <LabelHint>(y; blank is a player's eye on the ground)</LabelHint>
-          <ChildContent>
-            <input id="view-y" class="field-input" type="number" min="0" max="320" step="0.5"
-                   value="@(eyeY?.ToString(CultureInfo.InvariantCulture))" @onchange="OnEyeY" />
-          </ChildContent>
+        <p class="plan-readout">@(error ?? "Finding where the eye stands…")</p>
+      }
+      else
+      {
+        <Field Label="Standing at">
+          <div class="ctrl-row">
+            <CoordField Prefix="X" Type="number" Value="@standX" step="1" OnChange="e => Set(ref standX, e)" />
+            <CoordField Prefix="Y" Type="number" Value="@Shown(eyeY)" step="0.5" min="0" max="320" OnChange="OnEyeY" />
+            <CoordField Prefix="Z" Type="number" Value="@standZ" step="1" OnChange="e => Set(ref standZ, e)" />
+          </div>
         </Field>
+        <p class="plan-readout">
+          @Height
+          @if (AtEyeHeight is { } eye && !OnTheGround)
+          {
+            <text> </text><a href="" @onclick="() => SetEye(eye)" @onclick:preventDefault="true">Stand it on the ground</a>
+          }
+        </p>
+        <Field Label="Facing">
+          <div class="ctrl-row">
+            <CoordField Prefix="Yaw" Type="number" Value="@Shown(yaw)" step="5" min="-180" max="180" OnChange="OnYaw" />
+            <CoordField Prefix="Pitch" Type="number" Value="@Shown(pitch)" step="5" min="-90" max="90" OnChange="OnPitch" />
+          </div>
+        </Field>
+        <Field Label="Angle">
+          <div class="ctrl-row">
+            <CoordField Prefix="X" Type="number" Value="@angleX" step="1" OnChange="e => Aim(ref angleX, e)" />
+            <CoordField Prefix="Y" Type="number" Value="@angleY" step="1" OnChange="e => Aim(ref angleY, e)" />
+            <CoordField Prefix="Z" Type="number" Value="@angleZ" step="1" OnChange="e => Aim(ref angleZ, e)" />
+          </div>
+        </Field>
+        <p class="plan-readout">@Looking</p>
       }
       @if (Note is not null) { <p class="dressing-refusal">@Note</p> }
       <div class="panel-actions">
-        <Button Variant="primary" Busy="keeping" BusyLabel="Keeping…" OnClick="Keep">Keep</Button>
+        <Button Variant="primary" Busy="keeping" BusyLabel="Keeping…" Disabled="@(standX is null)" OnClick="Keep">@(Changing ? "Save" : "Keep")</Button>
         <Button OnClick="OnDiscard">Discard</Button>
       </div>
     }
@@ -43,8 +79,16 @@
 </Inspector>
 
 @code {
-    /// <summary>A view before it is kept: where the eye stands, if the author stood it, and what it looks at.</summary>
-    public sealed record ViewDraft(int? FromX, int? FromZ, int LookX, int LookZ);
+    /// <summary>A view before it is kept: where the eye stands, if the author stood it, what it looks at, the
+    /// height, pitch and yaw it starts from, and the view it was picked up from, if it was one.</summary>
+    public sealed record ViewDraft(int? FromX, int? FromZ, int LookX, int LookZ,
+                                   double? Y = null, double? Pitch = null, MapViewDto? Source = null, double? Yaw = null);
+
+    /// <summary>The size the middle of the picture is read at: any picture of the camera has the same middle.</summary>
+    private const int ProbeWidth = 480, ProbeHeight = 270;
+
+    /// <summary>A player's eye over the block they stand on: one block to stand in, and 1.62 up it.</summary>
+    private const double EyeOverGround = 2.62;
 
     [Parameter, EditorRequired] public string Slug { get; set; } = "";
     [Parameter] public ViewDraft? Draft { get; set; }
@@ -56,45 +100,216 @@
     [Parameter] public EventCallback<MapViewKeepRequest> OnKeep { get; set; }
     [Parameter] public EventCallback OnDiscard { get; set; }
 
+    /// <summary>Where the camera in hand stands and what its middle lands on, for the canvas to draw it by:
+    /// stand x, z and look x, z.</summary>
+    [Parameter] public EventCallback<(int FromX, int FromZ, int LookX, int LookZ)> OnAimed { get; set; }
+
     private string name = "";
-    private double? eyeY;
+    private int? standX, standZ;
+    private double? eyeY, yaw, pitch;
+    private int? angleX, angleY, angleZ;
+
+    /// <summary>Whether the angle was stated rather than read off the picture, so a new reading keeps it.</summary>
+    private bool angleStated;
+    private EyePickDto? read;
+    private string? error;
     private bool keeping;
     private ViewDraft? seen;
+    private int asked;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         if (Draft == seen) return;
+        var sameCamera = Draft?.Source?.Id is { } id && id == seen?.Source?.Id;
+        var wasHeld = seen is not null && standX is not null;
         seen = Draft;
-        eyeY = null;
+        angleStated = false;
+        if (Draft is not { } draft)
+        {
+            standX = standZ = null;
+            read = null;
+            return;
+        }
+        if (!sameCamera) name = draft.Source?.Name ?? "";
+
+        // A camera picked up again, or one already in hand moved on the canvas, keeps the height and pitch it
+        // has; anything else starts from what the draft states and lets the studio resolve the rest.
+        var keep = sameCamera || (wasHeld && draft.Source is null);
+        var y = keep ? eyeY : draft.Y;
+        var tip = keep ? pitch : draft.Pitch;
+        var query = draft.Yaw is { } turned && draft.FromX is { } x && draft.FromZ is { } z && draft.Y is not null && !keep
+            ? Words($"from={x},{z}&yaw={turned:0.#}", draft.Y, draft.Pitch)
+            : draft.FromX is { } fx && draft.FromZ is { } fz
+                ? Words($"look={draft.LookX},{draft.LookZ}&from={fx},{fz}", y, tip)
+                : $"look={draft.LookX},{draft.LookZ}";
+        await ResolveAsync(query, adopt: true);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    private void OnEyeY(ChangeEventArgs change) =>
-        eyeY = double.TryParse(change.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var y)
-            ? Math.Clamp(y, 0, 320) : null;
+    /// <summary>The camera the fields state, as <c>render/eye</c> draws it.</summary>
+    private string? Query => standX is { } x && standZ is { } z && eyeY is { } y && yaw is { } turned
+        ? Words($"from={x},{z}&yaw={turned:0.#}", y, pitch)
+        : null;
+
+    private static string Words(FormattableString stem, double? y, double? tip) =>
+        stem.ToString(CultureInfo.InvariantCulture)
+        + (y is { } height ? string.Create(CultureInfo.InvariantCulture, $"&y={height:0.##}") : "")
+        + (tip is { } tipped ? string.Create(CultureInfo.InvariantCulture, $"&pitch={tipped:0.#}") : "");
+
+    private static string DraftQuery(ViewDraft draft) =>
+        draft.FromX is { } x && draft.FromZ is { } z
+            ? string.Create(CultureInfo.InvariantCulture, $"look={draft.LookX},{draft.LookZ}&from={x},{z}")
+            : string.Create(CultureInfo.InvariantCulture, $"look={draft.LookX},{draft.LookZ}");
+
+    /// <summary>Ask the studio where <paramref name="query"/>'s camera stands and what the middle of its picture
+    /// lands on. <paramref name="adopt"/> fills the fields from the camera it resolved to.</summary>
+    private async Task ResolveAsync(string query, bool adopt)
+    {
+        var ask = ++asked;
+        error = null;
+        try
+        {
+            var answer = await Http.GetAsync(
+                $"api/map/{Slug}/render/eye/pick?{query}&width={ProbeWidth}&height={ProbeHeight}&at={ProbeWidth / 2},{ProbeHeight / 2}");
+            if (ask != asked) return;
+            if (!answer.IsSuccessStatusCode)
+            {
+                error = await ServerRefusal.SentenceAsync(answer);
+                return;
+            }
+            read = await answer.Content.ReadFromJsonAsync<EyePickDto>();
+        }
+        catch
+        {
+            error = "The camera could not be read — the studio could not be reached.";
+            return;
+        }
+        if (read is not { Camera: var camera }) return;
+        if (adopt)
+        {
+            standX = (int)Math.Floor(camera.X);
+            standZ = (int)Math.Floor(camera.Z);
+            eyeY = Math.Round(camera.Y, 2);
+            yaw = Math.Round(camera.Yaw, 1);
+            pitch = Math.Round(camera.Pitch, 1);
+        }
+        if (!angleStated) (angleX, angleY, angleZ) = read.Hit is { } hit ? (hit.X, hit.Y, hit.Z) : ((int?)null, (int?)null, (int?)null);
+        if (standX is { } fx && standZ is { } fz)
+        {
+            var (lookX, lookZ) = LookPoint(camera);
+            await OnAimed.InvokeAsync((fx, fz, lookX, lookZ));
+        }
+        StateHasChanged();
+    }
+
+    /// <summary>Where the camera looks: its angle, the block its middle hits, or, over the sky, a point along its
+    /// yaw.</summary>
+    private (int X, int Z) LookPoint(EyeCameraDto camera)
+    {
+        if (angleX is { } x && angleZ is { } z) return (x, z);
+        if (read?.Hit is { } hit) return (hit.X, hit.Z);
+        var radians = camera.Yaw * Math.PI / 180;
+        return ((int)Math.Floor(camera.X - Math.Sin(radians) * 32), (int)Math.Floor(camera.Z + Math.Cos(radians) * 32));
+    }
+
+    private Task Changed() => Query is { } query ? ResolveAsync(query, adopt: false) : Task.CompletedTask;
+
+    /// <summary>A field of the stand or the facing changed: the angle is read off the picture again.</summary>
+    private Task Moved()
+    {
+        angleStated = false;
+        return Changed();
+    }
+
+    /// <summary>An angle field changed: the camera turns onto the middle of that block from where it stands.</summary>
+    private Task Aim(ref int? field, ChangeEventArgs change)
+    {
+        if (!int.TryParse(change.Value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+            return Task.CompletedTask;
+        field = value;
+        if (standX is not { } x || standZ is not { } z || eyeY is not { } y
+            || angleX is not { } ax || angleY is not { } ay || angleZ is not { } az) return Task.CompletedTask;
+        double eyeX = x + 0.5, eyeZ = z + 0.5, atX = ax + 0.5, atY = ay + 0.5, atZ = az + 0.5;
+        yaw = Math.Round(Heading.YawTo(eyeX, eyeZ, atX, atZ), 1);
+        pitch = Math.Round(Heading.PitchTo(eyeX, y, eyeZ, atX, atY, atZ), 1);
+        angleStated = true;
+        return Changed();
+    }
+
+    private Task Set(ref int? field, ChangeEventArgs change)
+    {
+        if (int.TryParse(change.Value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+            field = value;
+        return Moved();
+    }
+
+    private Task OnEyeY(ChangeEventArgs change)
+    {
+        if (Parse(change) is { } y) eyeY = Math.Clamp(y, 0, 320);
+        return Moved();
+    }
+
+    private Task OnYaw(ChangeEventArgs change)
+    {
+        if (Parse(change) is { } turned) yaw = Heading.Wrap(turned);
+        return Moved();
+    }
+
+    private Task OnPitch(ChangeEventArgs change)
+    {
+        if (Parse(change) is { } tipped) pitch = Math.Clamp(tipped, -90, 90);
+        return Moved();
+    }
+
+    private Task SetEye(double y)
+    {
+        eyeY = y;
+        return Moved();
+    }
+
+    private static double? Parse(ChangeEventArgs change) =>
+        double.TryParse(change.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+        && double.IsFinite(value) ? value : null;
+
+    private static string? Shown(double? value) => value?.ToString("0.##", CultureInfo.InvariantCulture);
+
+    /// <summary>A player's eye over the ground under the camera, or null over the void.</summary>
+    private double? AtEyeHeight => read?.Standing is { } ground ? ground + EyeOverGround : null;
+
+    private bool OnTheGround => AtEyeHeight is { } eye && eyeY is { } y && Math.Abs(y - eye) < 0.05;
+
+    /// <summary>How high the eye stands, against the ground under it.</summary>
+    private string Height => read?.Standing is not { } ground
+        ? "Over the void: no ground under the camera."
+        : OnTheGround
+            ? string.Create(CultureInfo.InvariantCulture, $"At a player's eye, standing on the ground at y {ground + 1}.")
+            : eyeY is { } y
+                ? string.Create(CultureInfo.InvariantCulture, $"{y - (ground + 1):0.#} blocks over the ground at y {ground + 1}.")
+                : "";
+
+    /// <summary>What the middle of the picture lands on, against the angle stated.</summary>
+    private string Looking => read?.Hit is not { } hit
+        ? "The middle of the picture lands on the sky."
+        : angleStated && (hit.X, hit.Y, hit.Z) != (angleX, angleY, angleZ)
+            ? string.Create(CultureInfo.InvariantCulture, $"The middle of the picture lands on {hit.X}, {hit.Y}, {hit.Z}, not on the angle: that block is open, or something stands before it.")
+            : "The block the middle of the picture lands on.";
+
+    /// <summary>Whether the draft changes a kept view rather than keeping a new one.</summary>
+    private bool Changing => Draft?.Source is { Kept: true };
+
+    private string Title => Draft?.Source?.Name ?? "A view of your own";
 
     private async Task Keep()
     {
-        if (Draft is not { } draft) return;
+        if (standX is not { } x || standZ is not { } z || read is not { Camera: var camera }) return;
         keeping = true;
         try
         {
-            await OnKeep.InvokeAsync(new MapViewKeepRequest(name, draft.LookX, draft.LookZ, draft.FromX, draft.FromZ,
-                                                            draft.FromX is null ? null : eyeY));
+            var (lookX, lookZ) = LookPoint(camera);
+            await OnKeep.InvokeAsync(new MapViewKeepRequest(name, lookX, lookZ, x, z, eyeY, pitch, yaw));
             name = "";
         }
         finally { keeping = false; }
     }
-
-    /// <summary>The <c>render/eye</c> query words that draw the view as it stands in the card.</summary>
-    private string Query(ViewDraft draft) =>
-        string.Create(CultureInfo.InvariantCulture, $"look={draft.LookX},{draft.LookZ}")
-        + (draft.FromX is { } x && draft.FromZ is { } z ? string.Create(CultureInfo.InvariantCulture, $"&from={x},{z}") : "")
-        + (draft.FromX is not null && eyeY is { } y ? string.Create(CultureInfo.InvariantCulture, $"&y={y:0.##}") : "");
-
-    private static string Where(ViewDraft draft) =>
-        draft.FromX is { } x && draft.FromZ is { } z
-            ? string.Create(CultureInfo.InvariantCulture, $"Standing at {x}, {z}, looking at {draft.LookX}, {draft.LookZ}.")
-            : string.Create(CultureInfo.InvariantCulture, $"Looking at {draft.LookX}, {draft.LookZ}; the eye finds its own place.");
 }

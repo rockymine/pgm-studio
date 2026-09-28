@@ -36,9 +36,13 @@ public sealed class DocumentedBodyTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var route = example.Route.Contains("{slug}")
-            ? example.Route.Replace("{slug}", await OriginateMapAsync(client))
-            : example.Route;
+        var route = example.Route;
+        if (route.Contains("{slug}"))
+        {
+            var slug = await OriginateMapAsync(client);
+            route = route.Replace("{slug}", slug);
+            if (route.Contains("/notes/{id}")) route = route.Replace("{id}", await NoteAsync(client, slug));
+        }
 
         var resp = await client.PostAsync(route, new StringContent(example.Body, Encoding.UTF8, "application/json"));
 
@@ -84,6 +88,16 @@ public sealed class DocumentedBodyTests
             "/api/sketch", new StringContent("{\"name\":\"documented-body\"}", Encoding.UTF8, "application/json"));
         return (await created.Content.ReadFromJsonAsync<Originated>())!.Slug;
     }
+
+    /// <summary>A note on that map, for the routes that answer in a note's thread.</summary>
+    private static async Task<string> NoteAsync(HttpClient client, string slug)
+    {
+        var written = await client.PostAsync($"/api/map/{slug}/notes",
+            new StringContent("{\"body\":\"documented-body\",\"anchor\":{\"kind\":\"map\"}}", Encoding.UTF8, "application/json"));
+        return (await written.Content.ReadFromJsonAsync<Written>())!.Id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private sealed record Written(long Id);
 
     public static IEnumerable<DocumentedBody> Examples()
     {

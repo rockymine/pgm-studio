@@ -92,6 +92,15 @@ should not hand over the studio. And a request signed in by a token is refused `
 of its own or anyone's, so a leaked token cannot outlive its revocation by issuing another. Both are asked
 from a browser.
 
+**The notes permission is the one thing a token lifts the cap for.** Map notes — an admin's feedback pinned
+to a board, and an agent's answers to it (`docs/tools/sketch.md`, *Notes*) — are read and written by an admin,
+so an agent answering them needs an admin's reach for exactly that and nothing else. A token issued with
+`notes` carries it (`studio_token.notes`), and it holds only while the token's person is an admin: a person
+taken down to member keeps their token and loses its notes on the very next request, since the role is read
+from the whitelist every time. It is asked for when the token is issued, and refused `RQ8` on a member's
+token, so no token ever exceeds its person. A leaked notes token still cannot keep the whitelist, issue an
+invitation or change a map its person does not own.
+
 **A token is issued once and kept only as a hash.** Its person issues one from *Tokens* in the account menu or
 `POST /api/users/me/tokens`, and an admin issues one for anyone on the whitelist with
 `POST /api/users/{uuid}/tokens`. The answer is the only one that carries the token; `studio_token` keeps its
@@ -125,7 +134,9 @@ adds a player by name or uuid in a role, changes a role, takes someone off, and 
 it shows once with a copy button — the same four routes as below.
 
 Someone on the whitelist also finds *Tokens* in the account menu, at `/tokens`: it issues a token and shows it
-once with a copy button, and lists theirs with what each is for and when it was last used, to revoke.
+once with a copy button, and lists theirs with what each is for and when it was last used, to revoke. An admin
+sees one more box there, *May read and answer map notes*, and a token issued with it is marked `notes` in the
+list.
 
 A page the caller may not write opens read-only: the tool's bar says *View only*, with the reason on hover, the
 panels grey their fields and the canvas keeps only the tools that look. Signed in, a read-only Sketch page
@@ -145,9 +156,11 @@ configurator in `Program.cs` and decides from the verb and the path:
 | a write under `/map/{slug}` | someone who may edit that map | `map-editor` |
 | `DELETE` of anything else | an admin, since a library row is shared by every map using it | `admin` |
 | any other write | a person on the whitelist | `member` |
+| a map-notes route, reads included — `/notes`, `/map/{slug}/notes` | an admin, or a token carrying the notes permission | `notes` |
 
 An endpoint that states its own access keeps it: the whitelist's routes are an admin's, list included,
-revoking one's own token is a member's, and signing out is anyone's.
+revoking one's own token is a member's, the notes routes are the `notes` policy's, reads included, and signing
+out is anyone's.
 
 **A read that carries a body is a `POST`, and it is still a read.** The Sketch page draws its paint, its relief
 contours and its 3-D world from the live layout, which it posts to `sketch/paint`, `sketch/relief` and
@@ -219,7 +232,7 @@ A request the rules turn away answers the refusal envelope every gate uses (`doc
 
 | Rule | Status | When |
 |---|---|---|
-| `RQ7` | 401 | the route writes, or builds a view on request, and the request is signed out |
+| `RQ7` | 401 | the route writes, builds a view on request, or reads map notes, and the request is signed out |
 | `RQ8` | 403 | the request is signed in and this write is not theirs: not on the whitelist, not the map's owner or credited author, or an admin's route — and a Discord sign-in that resolves to nobody on the whitelist |
 | `RQ9` | 503 | a sign-in route, on a studio with no Discord application configured |
 | `RQ11` | 429 | a route that builds a world, and the build queue is full or the request waited past its limit |
@@ -231,16 +244,16 @@ Every write publishes the first two in the schema at `/api/openapi/v1.json`, and
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /api/me` | `{mode, signedIn, uuid, name, role}` — who the request is and what role it carries | — |
+| `GET /api/me` | `{mode, signedIn, uuid, name, role, notes}` — who the request is, what role it carries, and whether it may read and answer map notes | — |
 | `GET /api/map/{slug}/access` | `{mayEdit}` — whether this request's writes to the map would be accepted; the client opens it read-only where not | 404 |
 | `GET /api/users` | the whitelist, by name: `[{uuid, name, role, addedAt, signsIn, inviteExpiresAt}]` — `signsIn` once a Discord account is bound, `inviteExpiresAt` while an invitation is open | 403 |
 | `POST /api/users` `{player, role}` | puts the account `player` names — a name or a uuid, resolved through Mojang — on the whitelist in `role`, or changes the role of one already on it; answers the stored row | 400, 404 |
 | `DELETE /api/users/{uuid}` | takes the person off; they keep every credit and write nothing more | 404 |
 | `POST /api/users/{uuid}/invite` | opens an invitation for someone on the whitelist, replacing any open one: `{link, expiresAt}`. The link is shown this once | 404 |
-| `GET /api/users/me/tokens` | the caller's tokens, newest first: `[{id, label, issuedAt, lastUsedAt}]`; empty for a visitor or an open studio's admin | — |
-| `POST /api/users/me/tokens` `{label}` | issues a token acting as the caller: `{id, label, token, actsAs}`. The token is shown this once; a blank label is `token` | 404 (no account) |
+| `GET /api/users/me/tokens` | the caller's tokens, newest first: `[{id, label, issuedAt, lastUsedAt, notes}]`; empty for a visitor or an open studio's admin | — |
+| `POST /api/users/me/tokens` `{label, notes?}` | issues a token acting as the caller: `{id, label, token, actsAs, notes}`. The token is shown this once; a blank label is `token`; `notes` asks for the notes permission, which only an admin's token carries | 403 `RQ8` (notes on a member's token) · 404 (no account) |
 | `DELETE /api/users/me/tokens/{id}` | revokes one of the caller's tokens | 404 |
-| `POST /api/users/{uuid}/tokens` `{label}` | issues a token acting as someone on the whitelist; admin only | 404 |
+| `POST /api/users/{uuid}/tokens` `{label, notes?}` | issues a token acting as someone on the whitelist; admin only. `notes` is refused where that person is not an admin | 403 `RQ8` · 404 |
 | `GET /api/auth/discord?returnUrl=` | 302 to Discord, to sign in with an account already bound | 503 |
 | `GET /api/auth/invite/{code}` | 302 to Discord, binding the account that signs in to the invitation's person | 404, 503 |
 | `GET /api/auth/discord/complete` | where the sign-in lands: writes the session and 302s to `returnUrl` | 401, 403 |
