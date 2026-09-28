@@ -7084,6 +7084,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   step rather than reseeding at it (author, 2026-08-15), so a staircase of plateaus takes one band set running
   over the treads and up the hill. `docs/world-export/terrain-painting.md` carries the axis table and a worked
   example. **The Theme phase's material editor does not offer it yet** — that is what is left of `B200`.
+- **A path can wander (`WE144`).** A stroke's `wander` (0–8 blocks) bends its line between its ends: the
+  curve through the drawn points is resampled at one block of arc and pushed side to side every `wanderLength`
+  blocks (16 unstated), each bend a random 55–100% of the wander, easing out at both ends so the path still
+  arrives where it was drawn. One line (`Centerline.Of(points, wander, length, seed)`) is what the pass paves,
+  `StrokeRead` walks and the canvas twin `strokePath` draws, with a shared fixture pinning C# and JS to the same
+  numbers. The dressing inspector offers Wander and Bend length; a path that does not wander writes and reads
+  as before. `docs/world-export/decoration.md` §4. (`WE144`)
 - **A height stack can follow the ground (`WE142`, `TP26`).** `follow` (0–100%) lifts a height stack's datum
   with the ground and `reach` says how far either side that ground is averaged (16 unstated, at most 64), read
   off `TerrainProfile.Ground` — the layer's surface averaged over its footprint cells by one summed-area table, so

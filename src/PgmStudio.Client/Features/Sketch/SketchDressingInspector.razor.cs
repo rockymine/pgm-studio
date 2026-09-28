@@ -371,6 +371,12 @@ public static class PropFields
     public const string Style = "style";
     public const string Coverage = "coverage";
 
+    /// <summary>How far a path strays either side of the line through its points, in blocks. Nought runs as
+    /// drawn.</summary>
+    public const string Wander = "wander";
+    /// <summary>How many blocks of path one bend of a wandering path takes.</summary>
+    public const string WanderLength = "wanderLength";
+
     /// <summary>Whether a stroke is a way through rather than paint. It is what a tree's and a boulder's
     /// standoff is measured to, and the style says nothing about it.</summary>
     public const string ClaimsGround = "claimsGround";

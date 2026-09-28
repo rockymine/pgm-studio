@@ -1020,7 +1020,11 @@ a per-cell dice (that is what `coverage` spends), `rough` wanders the width by a
 organic rather than ruled, `stones` lays discs at intervals with gaps between them — stepping stones across a
 void — and `tapered` runs it fat in the middle and thin at the ends. What fills the band is `pave`, a **full
 terrain material**: a solid block, a layer stack, a Voronoi patchwork, a noise ramp, any pattern the painter
-offers. The two are independent, so a worn cobble and a solid cobble are both sayable.
+offers. The two are independent, so a worn cobble and a solid cobble are both sayable. **`wander`** is the
+line's own question rather than the band's: it bends the path up to that many blocks either side of the curve
+through its points, swinging side to side every `wanderLength` blocks, with both ends left where they were drawn
+— the inspector's **Wander** and **Bend length** sliders, and the canvas draws the bent line
+(`docs/world-export/decoration.md` §4).
 
 **`claimsGround` is the third question, and neither of the first two answers it.** A style is a brush; it
 says nothing about whether the paving is a thing on the board or a finish on the ground, and the same brush at

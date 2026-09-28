@@ -127,6 +127,22 @@ public sealed record StrokeProp : PlacedProp
     /// <summary>0–1; what a <see cref="StrokeStyle.Worn"/> stroke keeps. Every other style covers its whole band.</summary>
     public double Coverage { get; init; } = 0.7;
 
+    /// <summary>How far the path strays to either side of the line through its points, in blocks, up to
+    /// <see cref="Centerline.MaxWander"/>. Nought, the default, runs as drawn; anything more meanders between the
+    /// ends, which stay where they were drawn. The drift is laid before the orbit fan, so every image of the
+    /// path bends alike.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public double Wander { get; init; }
+
+    /// <summary>How many blocks of path one bend of a wandering path takes — short is a twisting track, long a
+    /// lazy curve. Absent is <see cref="Centerline.DefaultWanderLength"/>.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? WanderLength { get; init; }
+
+    /// <summary>The line the path is laid along: the drawn points smoothed, then drawn aside by its
+    /// <see cref="Wander"/>. What the pass paves round and what a read of the path walks.</summary>
+    public List<double[]> Line() => Centerline.Of(Points, Wander, WanderLength, Seed);
+
     /// <summary>What the stroke lays down — a full terrain material, so a road is a solid, a cobbled fabric, a
     /// noise ramp or any pattern the painter offers. The style shapes the <em>band</em>; this decides what
     /// fills it, and the two are independent: a worn cobble and a solid cobble are both sayable.</summary>

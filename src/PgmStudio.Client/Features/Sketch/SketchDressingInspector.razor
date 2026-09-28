@@ -63,6 +63,19 @@
         <Field Label="Width (blocks)">
           <NumberField Value="Num(PropFields.Radius, 3) * 2" ValueChanged="v => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, v / 2)))" Min="2" Step="2" />
         </Field>
+        <Field Label="Wander (blocks)"><LabelHint>how far it strays either side of the line you drew; the ends stay put</LabelHint>
+          <LabelEnd><strong>@($"{Num(PropFields.Wander, 0):0}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="8" step="1"
+                 value="@((int)Num(PropFields.Wander, 0))"
+                 @oninput="e => Set(PropFields.Wander, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+        @if (Num(PropFields.Wander, 0) > 0)
+        {
+          <Field Label="Bend length (blocks)"><LabelHint>short twists, long curves lazily</LabelHint>
+            <LabelEnd><strong>@($"{Num(PropFields.WanderLength, 16):0}")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="4" max="64" step="2"
+                   value="@((int)Num(PropFields.WanderLength, 16))"
+                   @oninput="e => Set(PropFields.WanderLength, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
+        }
         <div class="section-header section-header--ruled"><h2 class="section-title">Style</h2></div>
         <div class="prop-cards">
           @foreach (var option in strokeStyles)
