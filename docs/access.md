@@ -86,7 +86,8 @@ adds a player by name or uuid in a role, changes a role, takes someone off, and 
 it shows once with a copy button — the same four routes as below.
 
 A page the caller may not write opens read-only: the tool's bar says *View only*, with the reason on hover, the
-panels grey their fields and the canvas keeps only the tools that look. `docs/client/ui-conventions.md` says
+panels grey their fields and the canvas keeps only the tools that look. Signed in, a read-only Sketch page
+still draws the ground's relief, its paint and the 3-D preview; signed out, it draws the outlines alone. `docs/client/ui-conventions.md` says
 how the shell decides it. `tests/e2e/access.mjs` holds it, against a second server over the suite's database
 running invited with the browser signed out.
 
@@ -98,12 +99,21 @@ configurator in `Program.cs` and decides from the verb and the path:
 | Route | Needs | Policy |
 |---|---|---|
 | `GET`, `HEAD` — any | nobody | open |
+| a `POST` that only reads, marked `[PostedRead]` | someone signed in | `member` |
 | a write under `/map/{slug}` | someone who may edit that map | `map-editor` |
 | `DELETE` of anything else | an admin, since a library row is shared by every map using it | `admin` |
 | any other write | a person on the whitelist | `member` |
 
 An endpoint that states its own access keeps it: the whitelist's routes are an admin's, list included, and
 signing out is anyone's.
+
+**A read that carries a body is a `POST`, and it is still a read.** The Sketch page draws its paint, its relief
+contours and its 3-D world from the live layout, which it posts to `sketch/paint`, `sketch/relief` and
+`sketch/columns`; `sketch/relief/read`, `sketch/dressing`, `sketch/seats` and `sketch/probe-footprint` answer
+the same way. Each computes an answer and stores nothing, and says so with `[PostedRead]`, which gives it the
+`member` policy whichever map it names: anyone signed in sees how a map they may not change is made. A
+visitor who is not signed in is refused them with `RQ7`, because each answer is a build — `sketch/columns`
+builds the whole world — and bounding what one caller may ask for is `RP79`.
 
 **Who may edit a map** is `Callers.MayEditAsync`: an admin; the map's **owner**, the person who originated it
 (`map.owner_uuid`, set by `MapOrigin` from the request that brought the row into existence); or someone the map
@@ -129,7 +139,7 @@ A request the rules turn away answers the refusal envelope every gate uses (`doc
 
 | Rule | Status | When |
 |---|---|---|
-| `RQ7` | 401 | the route writes and the request is signed out |
+| `RQ7` | 401 | the route writes, or builds a view on request, and the request is signed out |
 | `RQ8` | 403 | the request is signed in and this write is not theirs: not on the whitelist, not the map's owner or credited author, or an admin's route — and a Discord sign-in that resolves to nobody on the whitelist |
 | `RQ9` | 503 | a sign-in route, on a studio with no Discord application configured |
 

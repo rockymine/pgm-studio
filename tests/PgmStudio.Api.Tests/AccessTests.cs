@@ -126,6 +126,45 @@ public sealed class AccessTests
         await Assert.That(kept.GetProperty("discarded").GetBoolean()).IsFalse();
     }
 
+    /// <summary>One plate, as the Sketch page posts its live layout to the routes that draw it.</summary>
+    private const string Plate = """
+        {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layers":[{"id":"ground","base_y":0,"layout":{"shapes":[
+          {"id":"a","type":"rectangle","operation":"add","min_x":0,"min_z":0,"max_x":24,"max_z":24,"base_height":6}],
+         "groups":[{"id":"g","name":"Plate","mirrors":false,"shapeIds":["a"]}]}}]}
+        """;
+
+    /// <summary>The views a Sketch page is drawn from — its paint, its relief and the built world — are reads
+    /// sent as a <c>POST</c>, so anyone signed in sees them on a map they may not change, and the same person is
+    /// still refused a write to it. Signed out, they are refused like a write.</summary>
+    [Test]
+    public async Task Anyone_signed_in_sees_a_maps_sketch_views_and_only_its_editors_change_it()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        await WhitelistAsync(Stranger, "member");
+
+        using var owner = InvitedFactory.As(Owner);
+        var slug = await OriginateAsync(owner, "Weirgate");
+
+        using var stranger = InvitedFactory.As(Stranger);
+        foreach (var view in (string[])["paint", "relief", "columns"])
+        {
+            using var seen = await stranger.PostAsync($"/api/map/{slug}/sketch/{view}",
+                new StringContent(Plate, System.Text.Encoding.UTF8, "application/json"));
+            await Assert.That(seen.StatusCode).IsEqualTo(HttpStatusCode.OK)
+                .Because($"sketch/{view} answered {await seen.Content.ReadAsStringAsync()}");
+        }
+
+        using var write = await stranger.PostAsJsonAsync($"/api/map/{slug}/sketch/props",
+            new { kind = "tree", id = "t", x = 4, z = 4, seed = 1 });
+        await AssertRefusedAsync(write, HttpStatusCode.Forbidden, "RQ8");
+
+        using var signedOut = InvitedFactory.Shared.CreateClient();
+        using var unseen = await signedOut.PostAsync($"/api/map/{slug}/sketch/columns",
+            new StringContent(Plate, System.Text.Encoding.UTF8, "application/json"));
+        await AssertRefusedAsync(unseen, HttpStatusCode.Unauthorized, "RQ7");
+    }
+
     [Test]
     public async Task An_author_a_map_credits_may_change_it_and_a_contributor_may_not()
     {

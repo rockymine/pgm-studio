@@ -66,8 +66,9 @@ public static class RequestRules
     [Rule(RuleCategory.Internal, RuleConcern.Request, RuleConcern.Studio)]
     public const string StoredUnreadable = "RQ6";
 
-    /// <summary>The route writes, and the request names nobody who may write. It answers <b>401</b>: reading is
-    /// open to anyone, and every other verb needs a person on the studio's whitelist.</summary>
+    /// <summary>The route writes, or builds a view from the document it is posted, and the request names nobody
+    /// on the studio's whitelist. It answers <b>401</b>: a <c>GET</c> is open to anyone, and every other verb
+    /// needs a person on the whitelist.</summary>
     /// <remarks>Sign in as someone the studio's whitelist holds. <c>GET /api/me</c> says who the request is
     /// signed in as, if anyone.</remarks>
     [Rule(RuleCategory.Forbidden, RuleConcern.Request)]

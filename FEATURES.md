@@ -9778,6 +9778,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `ContentColumn` and the library editor grey their fields, and the dock keeps only the tools that look —
   decided once by `StudioShell` from the address and `GET /api/map/{slug}/access`. `tests/e2e/access.mjs`
   holds it against an invited server. `docs/access.md`, `docs/client/ui-conventions.md`.
+- **Anyone signed in sees how a map is made (`RP83`).** A Sketch page's paint, relief contours and 3-D world
+  are built on request from the layout the page posts, so they were refused as writes to anyone who may not
+  edit the map. Those seven routes are `[PostedRead]` — `sketch/paint`, `relief`, `relief/read`, `columns`,
+  `dressing`, `seats` and `probe-footprint` compute an answer and store nothing — and `AccessRules` gives them
+  the `member` policy whichever map they name: a signed-in viewer sees the whole Sketch page of a map they may
+  not change, and a signed-out visitor still gets `RQ7`, since each is a build. `docs/access.md`.
 - **A map is credited to whoever originates it (`RP82`).** A sketch, plan, import or document load started
   by a signed-in person writes them as the map's first `author`, uuid and name, beside the ownership, so
   nobody types themselves in; removing the credit leaves them the owner. An intent stored while it names nobody
