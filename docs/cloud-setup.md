@@ -5,6 +5,11 @@ string set, and a firewalled network** by default. These are the steps that actu
 project and DB up — and the traps that waste time if you don't know them. (Local/VM dev is covered by the
 `CLAUDE.md` *Environment* section; this file is the cloud-specific runbook.)
 
+**A session driving the deployed studio needs none of this.** With `PGM_STUDIO_API` (the studio's `…/api`)
+and `PGM_STUDIO_TOKEN` among the environment's secrets it drives pgmstudio.de over HTTPS, signed in by the token
+(`docs/access.md`, *A token for a caller without a browser*). Which of the two a chat uses is the author's call,
+not the session's. The rest of this file is for a session that runs its own.
+
 ## Gotchas that cost time (avoid these)
 - **Foreground shell commands are sandboxed** (no outbound network beyond the local git proxy, restricted
   PATH). Anything needing the network — `apt`, `dotnet restore`/`build`/`run` on a cold cache — must run as a

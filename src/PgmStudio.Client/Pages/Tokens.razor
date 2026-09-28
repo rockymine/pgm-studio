@@ -1,0 +1,95 @@
+@page "/tokens"
+@layout StudioLayout
+
+<PageTitle>PGM Studio — Tokens</PageTitle>
+
+@* The tokens that sign in as the person looking: for an agent or a script that drives the studio over HTTP
+   without a browser. A token is shown once, when it is issued; the list says what each is for and when it was
+   last used, and revokes it. *@
+
+<StudioShell>
+  <Bar>
+    <Topbar>
+      <Crumbs><Crumb Sep="false" Dim>Tokens</Crumb></Crumbs>
+    </Topbar>
+  </Bar>
+  <ChildContent>
+    <Workspace>
+      <ContentColumn MaxWidth="820">
+        @if (me is null)
+        {
+          <div class="list-empty">Loading…</div>
+        }
+        else if (me.Mode == AccessModes.Open)
+        {
+          <div class="callout">
+            <span class="callout-icon"><i data-lucide="shield"></i></span>
+            <p>This studio is open: every request is its local admin, so a caller needs no token.</p>
+          </div>
+        }
+        else if (me.Role is null)
+        {
+          <div class="callout">
+            <span class="callout-icon"><i data-lucide="shield"></i></span>
+            <p>A token acts as someone on the whitelist. Sign in as them to issue one.</p>
+          </div>
+        }
+        else
+        {
+          <Section Title="Issue a token">
+            <Description>
+              A token lets an agent or a script write to this studio as @me.Name, with your role, without a browser.
+              It is shown once. Keep it as a secret in the environment that holds it, never in a prompt or a file
+              that is committed, and revoke it here when that environment is done with it.
+            </Description>
+            <ChildContent>
+              <div class="invite-link">
+                <input class="field-input" placeholder="What it is for — an agent, a machine" maxlength="100"
+                       @bind="label" @bind:event="oninput" />
+                <Button Variant="primary" Icon="shield-check" OnClick="IssueAsync" Busy="issuing" BusyLabel="Issuing…">Issue</Button>
+              </div>
+              @if (error is not null) { <div class="field-error">@error</div> }
+              @if (issued is not null)
+              {
+                <div class="invite-link">
+                  <input class="field-input" readonly value="@issued.Token" />
+                  <Button Icon="copy" OnClick="() => CopyAsync(issued.Token)">@(copied ? "Copied" : "Copy")</Button>
+                </div>
+                <p class="section-desc">
+                  Shown only now. A client sends it as <code>Authorization: Bearer &lt;token&gt;</code>; the mapgen
+                  tools read it from <code>PGM_STUDIO_TOKEN</code>, beside <code>PGM_STUDIO_API=@ApiRoot</code>.
+                </p>
+              }
+            </ChildContent>
+          </Section>
+
+          <Section Title="Your tokens">
+            <Actions><Badge Kind="dim">@(tokens?.Count ?? 0)</Badge></Actions>
+            <ChildContent>
+              <div class="panel-list" style="margin-top: var(--space-3);">
+                @if (tokens is null) { <div class="list-empty">Loading…</div> }
+                else if (tokens.Count == 0) { <div class="list-empty">No token signs in as you.</div> }
+                else
+                {
+                  @foreach (var token in tokens)
+                  {
+                    <ListRow @key="token.Id">
+                      <ChildContent>
+                        <span class="list-label">@token.Label</span>
+                        <span class="list-tag">issued @token.IssuedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                        <span class="list-tag">@LastUse(token)</span>
+                      </ChildContent>
+                      <Trailing>
+                        <Button Variant="icon" Icon="trash-2" Title="Revoke" OnClick="() => RevokeAsync(token)" />
+                      </Trailing>
+                    </ListRow>
+                  }
+                }
+              </div>
+            </ChildContent>
+          </Section>
+        }
+      </ContentColumn>
+    </Workspace>
+  </ChildContent>
+</StudioShell>

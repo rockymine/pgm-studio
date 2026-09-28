@@ -9778,6 +9778,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `ContentColumn` and the library editor grey their fields, and the dock keeps only the tools that look —
   decided once by `StudioShell` from the address and `GET /api/map/{slug}/access`. `tests/e2e/access.mjs`
   holds it against an invited server. `docs/access.md`, `docs/client/ui-conventions.md`.
+- **A token for a caller without a browser (`RP76`).** A driver or an agent sends `Authorization: Bearer
+  pgms_…` and is the person the token was issued for — their uuid, role, maps and credits, decided by the
+  whitelist on every request like a session. Issued once from *Tokens* in the account menu
+  (`POST /api/users/me/tokens`) or by an admin for anyone on the whitelist (`POST /api/users/{uuid}/tokens`),
+  kept only as a SHA-256 in `studio_token` (`M0046`) with a label and its last use, revoked from the same page
+  (`DELETE /api/users/me/tokens/{id}`) or by taking its person off the whitelist; an unknown token is refused
+  `RQ7`. It is what lets a Claude Code session drive the deployed studio (`PGM_STUDIO_API`,
+  `PGM_STUDIO_TOKEN`). `docs/access.md`.
 - **Anyone signed in sees how a map is made (`RP83`).** A Sketch page's paint, relief contours and 3-D world
   are built on request from the layout the page posts, so they were refused as writes to anyone who may not
   edit the map. Those seven routes are `[PostedRead]` — `sketch/paint`, `relief`, `relief/read`, `columns`,

@@ -37,6 +37,8 @@ const ROUTES = [
   { path: `/maps/${seed.sketchSlug}/sketch`,      name: "sketch tool",    expect: "body" },
   { path: `/maps/${seed.mapSlug}/configure`,      name: "configure tool", expect: "body" },
   { path: "/maps/new",                            name: "new map",        expect: "body" },
+  // an open studio says a caller needs no token; an invited one lists them — either is the page alive
+  { path: "/tokens",                              name: "tokens",         expect: ".callout, .panel-list" },
   { path: "/not-found",                           name: "not found",      expect: "body" },
   { path: "/definitely-not-a-route",              name: "unknown route",  expect: "body" },
 ];

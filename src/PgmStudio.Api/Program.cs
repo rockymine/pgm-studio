@@ -162,18 +162,21 @@ builder.Services.AddScoped<WorldFeatureWriter>();
 builder.Services.AddScoped<PgmStudio.Api.Services.FeatureData>();
 
 // Who may write (docs/access.md). An open studio signs every request in as the local admin; an invited one
-// reads a session cookie, and a request without one may read and nothing else. The mode is read from the built
-// configuration, per request, so a host that layers its settings on at build time is the one that decides.
+// reads a session cookie or a bearer token, and a request with neither may read and nothing else. The mode is
+// read from the built configuration, per request, so a host that layers its settings on at build time is the
+// one that decides.
 // Which policy a route takes is AccessRules' decision, applied to every endpoint by the configurator below.
 builder.Services.AddSingleton(services => AccessOptions.From(services.GetRequiredService<IConfiguration>()));
 builder.Services.AddScoped<StudioUserStore>();
+builder.Services.AddScoped<StudioTokenStore>();
 builder.Services.AddScoped<Callers>();
 builder.Services.AddAuthentication(AccessOptions.Scheme)
     .AddPolicyScheme(AccessOptions.Scheme, null, scheme => scheme.ForwardDefaultSelector = http =>
-        http.RequestServices.GetRequiredService<AccessOptions>().IsOpen
-            ? OpenAccessHandler.SchemeName
-            : CookieAuthenticationDefaults.AuthenticationScheme)
+        http.RequestServices.GetRequiredService<AccessOptions>().IsOpen ? OpenAccessHandler.SchemeName
+        : TokenAccessHandler.Carries(http.Request) ? TokenAccessHandler.SchemeName
+        : CookieAuthenticationDefaults.AuthenticationScheme)
     .AddScheme<AuthenticationSchemeOptions, OpenAccessHandler>(OpenAccessHandler.SchemeName, null)
+    .AddScheme<AuthenticationSchemeOptions, TokenAccessHandler>(TokenAccessHandler.SchemeName, null)
     .AddCookie(cookie =>
     {
         cookie.Cookie.Name = "pgm-studio.session";

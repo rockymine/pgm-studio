@@ -1844,6 +1844,7 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   color: var(--text-primary);
   font: inherit;
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
 }
 .account-menu-item:hover { background: var(--bg-selected-hover); }

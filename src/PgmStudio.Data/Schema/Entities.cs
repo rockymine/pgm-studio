@@ -47,6 +47,22 @@ public sealed class StudioUserRow
     [Column("invite_expires_at")] public DateTime? InviteExpiresAt { get; set; }
 }
 
+/// <summary>A token a caller without a browser signs in with, acting as the person on the whitelist it was
+/// issued for (M0046). Only the SHA-256 of the token is kept; the token itself is shown once, when it is
+/// issued.</summary>
+[Table("studio_token")]
+public sealed class StudioTokenRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    /// <summary>The Minecraft uuid of the person the token acts as.</summary>
+    [Column("user_uuid"), NotNull] public string UserUuid { get; set; } = "";
+    [Column("hash"), NotNull] public string Hash { get; set; } = "";
+    /// <summary>What its holder calls it — the agent or the machine it was issued for.</summary>
+    [Column("label"), NotNull] public string Label { get; set; } = "";
+    [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
+    [Column("last_used_at")] public DateTime? LastUsedAt { get; set; }
+}
+
 [Table("author")]
 public sealed class AuthorRow
 {

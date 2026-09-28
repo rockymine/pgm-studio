@@ -443,14 +443,9 @@ and what a `subtract` takes away.
 
 ## Opening the studio to other people: sign-in, a server, and what a caller may ask for
 
-The access rules, the Discord sign-in and the read-only client are in place (`docs/access.md`). What remains
-is a way in for callers without a browser, the machine it runs on, and the edits a read-only page still lets
-start.
-
-- [ ] **RP76 — A token for callers without a browser.** An admin- or self-issued bearer token, stored as a
-  hash beside the user it acts as (`studio_token`: user id, hash, label, created, last used), accepted by a
-  second authentication scheme and revocable from `DELETE /api/users/me/tokens/{id}`. The agent that loads
-  maps with `POST /api/map/from-documents` carries one as an environment secret, never a password.
+The access rules, the Discord sign-in, tokens for callers without a browser and the read-only client are in
+place (`docs/access.md`). What remains is the machine it runs on, what one caller may ask for at once, and the
+edits a read-only page still lets start.
 
 - [ ] **RP81 — The edits a read-only page still lets start.** Three reach past the shells that grey a page
   (`docs/client/ui-conventions.md`): a `Sidebar`'s own inputs (the sketch layer's rename and base height), the
