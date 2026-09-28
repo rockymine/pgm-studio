@@ -142,4 +142,26 @@ public sealed class TerrainThemeJsonTests
         // An absent bucket keeps its default and is not a fault: every bucket has one.
         await Assert.That(TerrainThemeJson.Deserialize("{}")).IsEqualTo(TerrainTheme.Default);
     }
+
+    /// <summary>A height stack that follows the ground (TP26) carries <c>follow</c> and <c>reach</c> on the wire
+    /// and reads them back with nothing left over; a level stack writes neither, so every stack already stored
+    /// reads and writes exactly as it did.</summary>
+    [Test]
+    public async Task Follow_and_reach_are_written_only_by_a_stack_that_follows()
+    {
+        var bands = new BandStack([new Band(new SolidMaterial(Blocks.HardenedClay), 3),
+                                   new Band(new SolidMaterial(Blocks.StainedClay, 1), 2)]);
+        var following = new LayeredMaterial(bands, BandAxis.Height, From: -40, Follow: 100, Reach: 24);
+        var json = TerrainThemeJson.Serialize(following);
+        await Assert.That(json).Contains("\"follow\":100");
+        await Assert.That(json).Contains("\"reach\":24");
+
+        var back = TerrainThemeJson.DeserializeMaterial(json, out var unread);
+        await Assert.That(unread).IsEmpty();
+        await Assert.That(TerrainThemeJson.Serialize(back)).IsEqualTo(json);
+
+        var level = TerrainThemeJson.Serialize(new LayeredMaterial(bands, BandAxis.Height, From: 12));
+        await Assert.That(level).DoesNotContain("follow");
+        await Assert.That(level).DoesNotContain("reach");
+    }
 }

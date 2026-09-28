@@ -70,6 +70,14 @@ what is gathered here is the parked and dormant slices of the same surface.
   `BandEndings.Repeat` in `ThemeVocabulary` plus the `"repeat"` on the wire and `TerrainThemeJson:139` move
   with it. A stored theme carrying the old word has no second reading, so the callers change in one commit.
 
+- [ ] **WE143 — A band stack that cycles.** Strata are a short run of beds meant to recur, and a stack
+  can only hold its last band or hand over, so a `height` strata is written out longhand to the tallest face:
+  `specs/whitstone-weald/build-spec.py` `strata()` states its ten beds four times over to cover 76 courses. A
+  stack following the ground (TP26) has to span the lowest ground to the highest, which makes that longer still.
+  A third `BandEnding`, `cycle`, reads `BandStack.At(step % span)` past the last band, with `BandEndings` in
+  `PgmStudio.Vocabulary` and the editor's ending toggle offering it. Lands with or after `WE60`, since both
+  change the words the ending is spelled in.
+
 - [ ] **TS51 — Scoping the paint repaint, and the preview it would pay for.** A full board paint is ~2.0s and
   the column read ~2.9s / 2.6MB on a real agent board, tracking board *area* rather than shape count — a
   112-shape board and a 534-shape board of the same size cost the same. So the Blocks overlay refreshes on

@@ -179,11 +179,24 @@
           </Field>
           @if (Axis == BandAxes.Height)
           {
-            <Field Label="From y">
+            <Field Label="@(Follows ? "From" : "From y")">
               <input class="field-input field-input--slim" type="number" step="1"
-                     title="The world height the first band sits at."
+                     title="@(Follows ? "Where the first band sits, in blocks from the followed ground." : "The world height the first band sits at.")"
                      value="@Int(ThemeFields.From, 0)" @onchange="SetFrom" />
             </Field>
+            <Field Label="Follow %">
+              <input class="field-input field-input--slim" type="number" min="0" max="100" step="5"
+                     title="How far the bands rise and fall with the ground: 0 keeps them level, 100 carries them with it."
+                     value="@Int(ThemeFields.Follow, 0)" @onchange="SetFollow" />
+            </Field>
+            @if (Follows)
+            {
+              <Field Label="Reach">
+                <input class="field-input field-input--slim" type="number" min="1" max="64" step="1"
+                       title="How many blocks either side the ground is averaged over. Small lays the bands along every bump; wide keeps the broad shape of the land and lets a hill cut through them."
+                       value="@Int(ThemeFields.Reach, 16)" @onchange="SetReach" />
+              </Field>
+            }
           }
         </div>
         @foreach (var layer in List(ThemeFields.StackBands))

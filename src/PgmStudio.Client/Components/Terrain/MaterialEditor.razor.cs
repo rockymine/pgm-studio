@@ -95,6 +95,23 @@ public partial class MaterialEditor
         return Changed();
     }
 
+    /// <summary>Whether this height stack rises and falls with the ground, which is when its reach means
+    /// anything and its <c>from</c> is an offset from the ground rather than a world height.</summary>
+    private bool Follows => Int(ThemeFields.Follow, 0) > 0;
+
+    /// <summary>Follow is a percentage, so it clamps at both ends the way jitter does.</summary>
+    private Task SetFollow(ChangeEventArgs e)
+    {
+        JsonEdit.Set(Node, ThemeFields.Follow, Math.Clamp(Parse(e, 0), 0, 100));
+        return Changed();
+    }
+
+    private Task SetReach(ChangeEventArgs e)
+    {
+        JsonEdit.Set(Node, ThemeFields.Reach, Math.Clamp(Parse(e, 16), 1, 64));
+        return Changed();
+    }
+
     private Task ToggleEnding()
     {
         JsonEdit.Set(Stack, ThemeFields.Ending,

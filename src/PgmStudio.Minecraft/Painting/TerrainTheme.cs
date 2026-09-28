@@ -68,6 +68,12 @@ public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket B
         get => sample ?? (X, Z);
         init => sample = value;
     }
+
+    /// <summary>The ground the column stands on, averaged round it — what a height stack that follows the ground
+    /// measures from (TP26). The painter sets it to the layer being painted; a context built off no terrain — a
+    /// swatch, a house course, a boulder — leaves it null, and a following stack then reads world Y like any
+    /// other.</summary>
+    public SmoothedGround? Ground { get; init; }
 }
 
 /// <summary>
@@ -310,6 +316,12 @@ public static class Materials
 /// nothing is ever unclaimed and this is never reached.</para>
 /// <para><b>From</b> — Where a <see cref="BandAxis.Height"/> stack's first band sits, in world Y. Read on no
 /// other axis, and zero everywhere else.</para>
+/// <para><b>Follow</b> and <b>Reach</b> — How far a height stack rises and falls with the ground, 0–100%, and
+/// over how many cells either side that ground is averaged (TP26). At 100 the datum is the smoothed ground plus
+/// <see cref="From"/>, so <c>from</c> becomes the offset from the ground; at 0, the default, the bands are level
+/// planes. A reach of a few cells lays the bands along every bump, so a slope only ever shows its top one; a wide
+/// reach keeps the broad shape of the land and lets a hill cut through the bands. Absent is
+/// <see cref="DefaultReach"/>; both are read on the height axis only.</para>
 /// <para><b>On the <see cref="BandAxis.Slope"/> axis a thickness is a span of degrees</b>, not of blocks: a
 /// stack of grass at 20 then coarse dirt at 15 is meadow up to 19° and coarse dirt from 20° to 34°, with
 /// <see cref="Beyond"/> — or the last band under <see cref="BandEnding.Repeat"/> — taking every steeper
@@ -318,9 +330,18 @@ public sealed record LayeredMaterial(
     BandStack Stack,
     BandAxis Axis = BandAxis.Depth,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TerrainMaterial? Beyond = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int From = 0)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int From = 0,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Follow = 0,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Reach = null)
     : TerrainMaterial
 {
+    /// <summary>How many cells either side the ground is averaged over when <see cref="Reach"/> is left out —
+    /// wide enough that one hill cuts through the bands rather than lifting them with it.</summary>
+    public const int DefaultReach = 16;
+
+    /// <summary>The widest reach a stack may state, in cells either side.</summary>
+    public const int MaxReach = 64;
+
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
         // A stated layered carrying no stack is a document fault, not a crash: it falls through to the same
@@ -330,7 +351,7 @@ public sealed record LayeredMaterial(
         var step = Axis switch
         {
             BandAxis.Inward => ctx.Inset,
-            BandAxis.Height => ctx.Y - From,
+            BandAxis.Height => ctx.Y - From - Lift(in ctx),
             BandAxis.Slope => ctx.SlopeDegrees,
             _ => ctx.DepthFromTop,
         };
@@ -340,6 +361,20 @@ public sealed record LayeredMaterial(
         return Stack.At(step).Material?.Resolve(in ctx)
             ?? Beyond?.Resolve(in ctx)
             ?? (Blocks.Stone, 0);
+    }
+
+    /// <summary>How far this column raises a following height stack: <see cref="Follow"/> percent of the ground
+    /// averaged over <see cref="Reach"/> cells round it. Read at the folded cell, as a pattern is (TP21), so the
+    /// two halves of a symmetric board band alike. Nought where the stack does not follow or no ground was
+    /// supplied.</summary>
+    private int Lift(in BucketContext ctx)
+    {
+        var follow = Math.Clamp(Follow, 0, 100);
+        if (follow == 0 || ctx.Ground is not { } ground) return 0;
+        var (x, z) = ctx.Sample;
+        return ground.Height(x, z, Math.Clamp(Reach ?? DefaultReach, 1, MaxReach)) is { } height
+            ? (int)Math.Round(height * follow / 100.0, MidpointRounding.AwayFromZero)
+            : 0;
     }
 }
 

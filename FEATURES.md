@@ -7084,6 +7084,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   step rather than reseeding at it (author, 2026-08-15), so a staircase of plateaus takes one band set running
   over the treads and up the hill. `docs/world-export/terrain-painting.md` carries the axis table and a worked
   example. **The Theme phase's material editor does not offer it yet** — that is what is left of `B200`.
+- **A height stack can follow the ground (`WE142`, `TP26`).** `follow` (0–100%) lifts a height stack's datum
+  with the ground and `reach` says how far either side that ground is averaged (16 unstated, at most 64), read
+  off `TerrainProfile.Ground` — the layer's surface averaged over its footprint cells by one summed-area table, so
+  any reach costs the same and the void beside a coast is not ground. A wide reach keeps the land's tilt and lets
+  a hill cut through the beds; a narrow one lays them along every bump. The Theme phase's material editor offers
+  both on the height axis, and a stack that does not follow writes and reads exactly as before.
+  `docs/world-export/terrain-painting.md` §3.1. (`WE142`)
 - **A band stack reads the ground's inclination, which is the angle mask (`WE97`, `TP24`).** Every paintable
   column carries `ColumnProfile.Slope` — Horn's 3x3 gradient over the neighbouring surface tops, in whole
   degrees from level, 0-89 — and `BandAxis.Slope` reads it off `BucketContext.SlopeDegrees`, so a thickness on

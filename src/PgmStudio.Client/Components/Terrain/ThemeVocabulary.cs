@@ -32,6 +32,10 @@ public static class ThemeFields
     public const string Ending = "ending";
     /// <summary>The world Y a height stack's first band sits at. Read on no other axis.</summary>
     public const string From = "from";
+    /// <summary>How far a height stack rises and falls with the ground, 0–100%. Nought is level bands.</summary>
+    public const string Follow = "follow";
+    /// <summary>How many cells either side the ground a following height stack reads is averaged over.</summary>
+    public const string Reach = "reach";
     /// <summary>The path from a layered material to its bands. A path rather than a field because the list is
     /// one level down, and <c>bands</c> alone names two lists — a voronoi's, measured in depth, and a stack's,
     /// measured in thickness.</summary>
