@@ -48,6 +48,13 @@
                        @bind="label" @bind:event="oninput" />
                 <Button Variant="primary" Icon="shield-check" OnClick="IssueAsync" Busy="issuing" BusyLabel="Issuing…">Issue</Button>
               </div>
+              @if (me.Role == StudioRoles.Admin)
+              {
+                <label class="check-row">
+                  <input type="checkbox" checked="@notes" @onchange="e => notes = e.Value is true" />
+                  May read and answer map notes — the one thing a token does beyond a member's rights
+                </label>
+              }
               @if (error is not null) { <div class="field-error">@error</div> }
               @if (issued is not null)
               {
@@ -76,6 +83,7 @@
                     <ListRow @key="token.Id">
                       <ChildContent>
                         <span class="list-label">@token.Label</span>
+                        @if (token.Notes) { <Badge Kind="neutral">notes</Badge> }
                         <span class="list-tag">issued @token.IssuedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
                         <span class="list-tag">@LastUse(token)</span>
                       </ChildContent>

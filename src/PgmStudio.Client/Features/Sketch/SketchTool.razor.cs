@@ -42,6 +42,10 @@ public partial class SketchTool
     // ── Phases (rail): Info (Identity + Settings steps) · Draw (the canvas). Draw stays mounted while
     //    Info is up (hidden, not torn down) so the drawing state + zoom survive the trip. ──
     [SupplyParameterFromQuery] public string? Phase { get; set; }
+
+    /// <summary>A note to open, which opens the In game phase on its thread — the link a ruling written into
+    /// the gameplay law carries back to where it was decided.</summary>
+    [SupplyParameterFromQuery] public long? Note { get; set; }
     private string active = "draw";
     private bool InfoActive => active == "info";
     private bool DrawActive => active == "draw";
@@ -194,6 +198,15 @@ public partial class SketchTool
         placingView = true;
         viewDraft = null;
         viewNote = null;
+        if (handle is not null)
+        {
+            if (threeD)
+            {
+                threeD = false;
+                await handle.InvokeVoidAsync("setView", "2d");
+            }
+            await handle.InvokeVoidAsync("setBoardView", true);
+        }
         await SetTool("eye");
     }
 
@@ -201,8 +214,21 @@ public partial class SketchTool
     {
         placingView = false;
         viewDraft = null;
-        if (handle is not null) await handle.InvokeVoidAsync("setViewDraft", (string?)null);
+        if (handle is not null)
+        {
+            await handle.InvokeVoidAsync("setViewDraft", (string?)null);
+            await handle.InvokeVoidAsync("setBoardView", false);
+        }
         await SetTool("select");
+    }
+
+    /// <summary>The board could not be built for the Board layer: the canvas stays empty under the views, and
+    /// the inspector says why.</summary>
+    [JSInvokable]
+    public void OnBoardUnavailable(string reason)
+    {
+        viewNote = reason is { Length: > 0 } ? $"The board could not be drawn: {reason}" : "The board could not be drawn.";
+        StateHasChanged();
     }
 
     /// <summary>The canvas's eye tool was released: a stand point and what it looks at, or only the latter.</summary>
@@ -342,6 +368,7 @@ public partial class SketchTool
             viewDraft = null;
             await handle.InvokeVoidAsync("setViews", "[]");
             await handle.InvokeVoidAsync("setViewDraft", (string?)null);
+            await handle.InvokeVoidAsync("setBoardView", false);
         }
         await PushPhaseOverlays(phase);
     }
@@ -368,7 +395,10 @@ public partial class SketchTool
         ["relief"]   = new([ChipRelief, ChipShapes, ChipMirror, ChipChunks, ChipBlocks], [ChipShapes]),
         ["theme"]    = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks, ChipShapes]),
         ["dressing"] = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks, ChipShapes]),
-        ["ingame"]   = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks]),
+        // Placing a view draws the Board layer and the views, and nothing else, whatever the other chips say;
+        // leaving gives them back as the author had them. The shaded board carries the height, so no chip is
+        // offered over it.
+        ["ingame"]   = new([], []),
     };
 
     private static PhaseOverlay OverlaysOf(string phase) => Overlays.GetValueOrDefault(phase, Overlays["draw"]);
@@ -531,6 +561,7 @@ public partial class SketchTool
         await LoadObjectives();
         await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
             System.Text.Json.JsonSerializer.Serialize(Shortcuts));
+        if (Phase == "ingame" || Note is not null) await GoInGame();
     }
 
     /// <summary>The name this tool's chords are registered and dropped under.</summary>

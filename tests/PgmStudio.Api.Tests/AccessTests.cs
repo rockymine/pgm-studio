@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PgmStudio.Api.Access;
 using PgmStudio.Contracts;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Tests;
 
@@ -265,6 +266,77 @@ public sealed class AccessTests
         await Assert.That(revoked.IsSuccessStatusCode).IsTrue();
     }
 
+    [Test]
+    public async Task Notes_are_read_and_answered_by_an_admin_or_a_token_carrying_the_notes_permission()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        using var admin = InvitedFactory.As(Admin);
+        var slug = await OriginateAsync(admin, "Tarnholm");
+        var note = new MapNoteRequest("The monuments sit too close.", new NoteAnchorDto(NoteAnchors.Map));
+
+        using var signedOut = InvitedFactory.Shared.CreateClient();
+        await AssertRefusedAsync(await signedOut.GetAsync($"/api/map/{slug}/notes"), HttpStatusCode.Unauthorized, "RQ7");
+        using var member = InvitedFactory.As(Owner);
+        await AssertRefusedAsync(await member.GetAsync("/api/notes"), HttpStatusCode.Forbidden, "RQ8");
+        await AssertRefusedAsync(await member.PostAsJsonAsync($"/api/map/{slug}/notes", note), HttpStatusCode.Forbidden, "RQ8");
+        await Assert.That((await member.GetFromJsonAsync<CallerDto>("/api/me"))!.Notes).IsFalse();
+
+        var written = await (await admin.PostAsJsonAsync($"/api/map/{slug}/notes", note)).Content.ReadFromJsonAsync<MapNoteDto>();
+        await Assert.That(written!.Status).IsEqualTo(NoteStatuses.Open);
+        await Assert.That(written.Messages[0].Token).IsNull();
+
+        var plain = await (await admin.PostAsJsonAsync("/api/users/me/tokens", new StudioTokenRequest("plain")))
+            .Content.ReadFromJsonAsync<StudioTokenIssuedDto>();
+        using var plainAgent = WithToken(plain!.Token);
+        await AssertRefusedAsync(await plainAgent.GetAsync("/api/notes"), HttpStatusCode.Forbidden, "RQ8");
+
+        var issued = await (await admin.PostAsJsonAsync("/api/users/me/tokens", new StudioTokenRequest("mapgen", Notes: true)))
+            .Content.ReadFromJsonAsync<StudioTokenIssuedDto>();
+        await Assert.That(issued!.Notes).IsTrue();
+        using var agent = WithToken(issued.Token);
+        await Assert.That((await agent.GetFromJsonAsync<CallerDto>("/api/me"))!.Notes).IsTrue();
+        var open = await agent.GetFromJsonAsync<List<MapNoteDto>>("/api/notes?status=open");
+        await Assert.That(open!.Select(found => found.Id)).IsEquivalentTo([written.Id]);
+
+        var answered = await (await agent.PostAsJsonAsync($"/api/map/{slug}/notes/{written.Id}/replies",
+            new NoteReplyRequest("Moved the red monument eight blocks back."))).Content.ReadFromJsonAsync<MapNoteDto>();
+        await Assert.That(answered!.Status).IsEqualTo(NoteStatuses.Answered);
+        await Assert.That(answered.Messages[1].Token).IsEqualTo("mapgen");
+        await AssertRefusedAsync(await agent.PatchAsJsonAsync($"/api/map/{slug}/notes/{written.Id}",
+            new NoteChangeRequest(NoteStatuses.Resolved)), HttpStatusCode.Forbidden, "RQ8");
+        var asked = await (await agent.PostAsJsonAsync($"/api/map/{slug}/notes",
+            new MapNoteRequest("Upper bench or lower?", new NoteAnchorDto(NoteAnchors.Map)))).Content.ReadFromJsonAsync<MapNoteDto>();
+        await Assert.That(asked!.Status).IsEqualTo(NoteStatuses.NeedsInfo);
+
+        var resolved = await (await admin.PatchAsJsonAsync($"/api/map/{slug}/notes/{written.Id}",
+            new NoteChangeRequest(NoteStatuses.Resolved))).Content.ReadFromJsonAsync<MapNoteDto>();
+        await Assert.That(resolved!.Status).IsEqualTo(NoteStatuses.Resolved);
+    }
+
+    [Test]
+    public async Task Only_an_admins_token_may_carry_the_notes_permission()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        using var member = InvitedFactory.As(Owner);
+        await AssertRefusedAsync(await member.PostAsJsonAsync("/api/users/me/tokens", new StudioTokenRequest("x", Notes: true)),
+            HttpStatusCode.Forbidden, "RQ8");
+        using var admin = InvitedFactory.As(Admin);
+        await AssertRefusedAsync(await admin.PostAsJsonAsync($"/api/users/{Owner}/tokens", new StudioTokenRequest("x", Notes: true)),
+            HttpStatusCode.Forbidden, "RQ8");
+        await Assert.That(await ScalarAsync("SELECT COUNT(*) FROM studio_token")).IsEqualTo("0");
+
+        await WhitelistAsync(Credited, "admin");
+        var issued = await (await admin.PostAsJsonAsync($"/api/users/{Credited}/tokens", new StudioTokenRequest("mapgen", Notes: true)))
+            .Content.ReadFromJsonAsync<StudioTokenIssuedDto>();
+        using var agent = WithToken(issued!.Token);
+        await Assert.That((await agent.GetFromJsonAsync<CallerDto>("/api/me"))!.Notes).IsTrue();
+
+        await ApiTestFactory.ExecuteAsync($"UPDATE studio_user SET role = 'member' WHERE uuid = '{Credited}'");
+        await Assert.That((await agent.GetFromJsonAsync<CallerDto>("/api/me"))!.Notes).IsFalse();
+    }
+
     private static HttpClient WithToken(string token)
     {
         var client = InvitedFactory.Shared.CreateClient();
@@ -368,7 +440,10 @@ public sealed class AccessTests
 
     /// <summary>The routes that state their own access rather than taking the rule's.</summary>
     private static readonly HashSet<string> StatesItsOwnAccess =
-        ["GET /api/users", "POST /api/auth/sign-out", "GET /api/auth/discord/complete"];
+    [
+        "GET /api/users", "POST /api/auth/sign-out", "GET /api/auth/discord/complete",
+        "GET /api/notes", "GET /api/map/{slug}/notes", "GET /api/notes/pictures/{hash}",
+    ];
 
     [Test]
     public async Task Every_write_publishes_401_and_403_and_no_read_does()

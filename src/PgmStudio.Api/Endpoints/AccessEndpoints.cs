@@ -18,7 +18,7 @@ public sealed class MeEndpoint(Callers callers, AccessOptions access) : Endpoint
     public override async Task HandleAsync(CancellationToken ct)
     {
         var caller = await callers.OfAsync(HttpContext, ct);
-        await Send.OkAsync(new CallerDto(access.Mode, caller.SignedIn, caller.Uuid, caller.Name, caller.Role), ct);
+        await Send.OkAsync(new CallerDto(access.Mode, caller.SignedIn, caller.Uuid, caller.Name, caller.Role, caller.MayNote), ct);
     }
 }
 

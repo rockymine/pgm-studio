@@ -8,12 +8,15 @@ namespace PgmStudio.Contracts;
 /// <param name="Uuid">The Minecraft uuid signed in, or null — signed out, or an open studio's local admin.</param>
 /// <param name="Name">Their Minecraft name, or null where nobody is signed in.</param>
 /// <param name="Role">Their role on the whitelist, or null where they are not on it and may write nothing.</param>
+/// <param name="Notes">Whether the request may read and answer map notes: an admin, or a token carrying the
+/// notes permission.</param>
 public sealed record CallerDto(
     [property: WordSet(typeof(AccessModes))] string Mode,
     bool SignedIn,
     string? Uuid,
     string? Name,
-    [property: WordSet(typeof(StudioRoles))] string? Role);
+    [property: WordSet(typeof(StudioRoles))] string? Role,
+    bool Notes = false);
 
 /// <summary>One person on the whitelist.</summary>
 /// <param name="Uuid">The Minecraft uuid they are credited and signed in under.</param>
@@ -51,14 +54,16 @@ public sealed record MapAccessDto(bool MayEdit);
 /// <summary>Issue a token for a caller without a browser.</summary>
 /// <param name="Label">What the token is for — the agent or the machine that will hold it. Up to 100
 /// characters; blank names it <c>token</c>.</param>
-public sealed record StudioTokenRequest(string? Label);
+/// <param name="Notes">Whether the token may read and answer map notes. Only an admin's token may carry it.</param>
+public sealed record StudioTokenRequest(string? Label, bool Notes = false);
 
 /// <summary>One token, as its holder lists it. The token itself is never answered again after it is issued.</summary>
 /// <param name="Id">What revokes it.</param>
 /// <param name="Label">What it was issued for.</param>
 /// <param name="IssuedAt">When it was issued, in UTC.</param>
 /// <param name="LastUsedAt">When it last signed a request in, in UTC to the minute, or null where it never has.</param>
-public sealed record StudioTokenDto(long Id, string Label, DateTime IssuedAt, DateTime? LastUsedAt);
+/// <param name="Notes">Whether it carries the notes permission.</param>
+public sealed record StudioTokenDto(long Id, string Label, DateTime IssuedAt, DateTime? LastUsedAt, bool Notes = false);
 
 /// <summary>A token just issued: the one answer that carries it.</summary>
 /// <param name="Id">What revokes it.</param>
@@ -66,4 +71,5 @@ public sealed record StudioTokenDto(long Id, string Label, DateTime IssuedAt, Da
 /// <param name="Token">The token, sent as <c>Authorization: Bearer &lt;token&gt;</c>. The studio keeps only its
 /// hash, so this is the only time it can be read.</param>
 /// <param name="ActsAs">The Minecraft name of the person it signs in as.</param>
-public sealed record StudioTokenIssuedDto(long Id, string Label, string Token, string ActsAs);
+/// <param name="Notes">Whether it carries the notes permission.</param>
+public sealed record StudioTokenIssuedDto(long Id, string Label, string Token, string ActsAs, bool Notes = false);

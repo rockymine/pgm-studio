@@ -15,6 +15,12 @@ that mark becomes a rule while it still does, and the mark exists because of how
 collects what the author said and sorts it, and a sentence nobody has read back is exactly the kind that
 turns an unreviewed opinion into a constraint.
 
+**A claim decided on a map note links back to the thread it was decided in.** An author's note tagged
+`ruling` is a gameplay decision meant to hold on every map, and once the author resolves it the claim is
+written here marked **[author](/maps/{slug}/sketch?note={id})** — the link opens the In game phase on that
+note's thread, with the place it was about and the words it was settled in (`docs/tools/sketch.md`, *Notes*).
+A claim without a link was stated elsewhere — in a conversation or a review — and stands the same.
+
 The failure this separation prevents has already happened once, and it is worth stating so nobody repeats it.
 A destroyable and a core **float a few blocks above the terrain by design** — a core resting on the ground
 cannot leak, and a destroyable resting on it is trivially covered — and that has been PGM's behaviour from the

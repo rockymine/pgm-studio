@@ -57,13 +57,28 @@ internal static class EyeRenders
     public static EyeShot? Of(BuiltWorld world, BlockTextureSet textures, bool flat, string asked,
                               Func<EyeScene, EyeShot?> draw)
     {
+        var held = HeldFor(world, textures);
+        return held.Shots.Of(Encoding.UTF8.GetBytes(asked), () => draw(SceneOf(held, world, flat)));
+    }
+
+    /// <summary>The scene <paramref name="world"/> is drawn from, the same one its pictures were, for a read
+    /// that casts rays through a picture rather than drawing one.</summary>
+    public static EyeScene Scene(BuiltWorld world, BlockTextureSet textures, bool flat) =>
+        SceneOf(HeldFor(world, textures), world, flat);
+
+    private static Held HeldFor(BuiltWorld world, BlockTextureSet textures)
+    {
         if (!Worlds.TryGetValue(world, out var held) || !ReferenceEquals(held.Textures, textures))
         {
             held = new Held(textures);
             Worlds.AddOrUpdate(world, held);
         }
+        return held;
+    }
+
+    private static EyeScene SceneOf(Held held, BuiltWorld world, bool flat)
+    {
         var slot = flat ? 1 : 0;
-        return held.Shots.Of(Encoding.UTF8.GetBytes(asked),
-            () => draw(held.Scenes[slot] ??= EyeScene.Of(world.World, textures, flat)));
+        return held.Scenes[slot] ??= EyeScene.Of(world.World, held.Textures, flat);
     }
 }

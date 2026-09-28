@@ -46,7 +46,7 @@
          the shared body below comes back for it. *@
       @if (InGameActive && !placingView)
       {
-        <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Round="viewRound"
+        <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Round="viewRound" LinkedNote="Note"
                            OnBack="GoDressing" OnPlace="PlaceView" OnLetGo="LetGoView" />
       }
       @* Every phase that draws shares the one mounted canvas, so this body stays present (hidden while Info is
@@ -189,9 +189,13 @@
                 drawn and built differ: @string.Join(", ", IsoContested)
               </span>
             }
-            <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
-                            Title="@(isoUnavailable ? IsoNoteTitle : "Isometric height preview (read-only)")"
-                            OnClick="Toggle3D" />
+            @* Placing a view is 2-D only: the eye is stood on a map of the board. *@
+            @if (!PlacingViewActive)
+            {
+              <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
+                              Title="@(isoUnavailable ? IsoNoteTitle : "Isometric height preview (read-only)")"
+                              OnClick="Toggle3D" />
+            }
           </CanvasLayerBar>
 
           @* A layer is the board's rather than a phase's, so the switch is chrome and every phase that

@@ -17,6 +17,7 @@ public partial class Tokens
     private List<StudioTokenDto>? tokens;
     private StudioTokenIssuedDto? issued;
     private string label = "";
+    private bool notes;
     private bool issuing;
     private bool copied;
     private string? error;
@@ -43,11 +44,12 @@ public partial class Tokens
         issuing = true;
         error = null;
         copied = false;
-        using var response = await Http.PostAsJsonAsync("api/users/me/tokens", new StudioTokenRequest(label.Trim()));
+        using var response = await Http.PostAsJsonAsync("api/users/me/tokens", new StudioTokenRequest(label.Trim(), notes));
         if (response.IsSuccessStatusCode)
         {
             issued = await response.Content.ReadFromJsonAsync<StudioTokenIssuedDto>();
             label = "";
+            notes = false;
             await LoadAsync();
         }
         else error = await ServerRefusal.SentenceAsync(response);

@@ -9,6 +9,15 @@ namespace PgmStudio.Minecraft.Render;
 /// looking up. <paramref name="Fov"/> is the horizontal field of view in degrees.</summary>
 public readonly record struct EyeCamera(double X, double Y, double Z, double Yaw, double Pitch, double Fov = 70);
 
+/// <summary>What one pixel's ray hits: the block, in world coordinates, and the ground under it — the highest
+/// ground at or below the block, which for a floating tree's leaves is the grass the tree should stand on.
+/// <paramref name="Ground"/> is null where the column under the block holds none.</summary>
+public readonly record struct EyeHit((int X, int Y, int Z) Block, (int X, int Y, int Z)? Ground);
+
+/// <summary>The ground a set of pixels' rays hit: every column once, at the highest height a ray hit it, and
+/// how many of the pixels hit nothing.</summary>
+public sealed record EyeArea(IReadOnlyDictionary<(int X, int Z), int> Columns, int Sky);
+
 /// <summary>One block and the share of the picture's pixels it fills.</summary>
 public readonly record struct SeenBlock(int Id, int Data, double Share);
 
@@ -40,8 +49,9 @@ public sealed record EyePicture(int Width, int Height, byte[] Rgb, IReadOnlyList
 public sealed class EyeScene
 {
     private const int SkyRgb = 0x9EC0F2;
-    /// <summary>How far a ray is followed: sixteen chunks of render distance, with no fog before it — the game
-    /// as it is played with fog off.</summary>
+    /// <summary>How far a ray is followed once it is in the world: sixteen chunks of render distance, with no
+    /// fog before it — the game as it is played with fog off. Counted from where the ray enters the world's box,
+    /// so an eye raised over the board sees as far into it as one standing on it.</summary>
     private const double FarEnough = 256;
     private const double EyeHeight = 1.62;
 
@@ -339,15 +349,7 @@ public sealed class EyeScene
         var rgb = new byte[pixelsWide * pixelsHigh * 3];
         var hits = new int[_materials.Length];
         var sky = 0;
-        var yaw = camera.Yaw * Math.PI / 180;
-        var pitch = camera.Pitch * Math.PI / 180;
-        var forward = (X: -Math.Sin(yaw) * Math.Cos(pitch), Y: -Math.Sin(pitch), Z: Math.Cos(yaw) * Math.Cos(pitch));
-        var right = (X: -Math.Cos(yaw), Y: 0.0, Z: -Math.Sin(yaw));
-        var up = (X: right.Y * forward.Z - right.Z * forward.Y,
-                  Y: right.Z * forward.X - right.X * forward.Z,
-                  Z: right.X * forward.Y - right.Y * forward.X);
-        if (up.Y < 0) up = (-up.X, -up.Y, -up.Z);
-        var half = Math.Tan(camera.Fov * Math.PI / 360);
+        var lens = Lens.Of(camera, pixelsWide, pixelsHigh);
         var origin = (X: camera.X - _minX, Y: camera.Y, Z: camera.Z - _minZ);
         var lockObject = new object();
 
@@ -361,13 +363,8 @@ public sealed class EyeScene
                 for (var sy = 0; sy < supersample; sy++)
                     for (var sx = 0; sx < supersample; sx++)
                     {
-                        var across = ((column + (sx + 0.5) / supersample) / pixelsWide * 2 - 1) * half;
-                        var down = (1 - (row + (sy + 0.5) / supersample) / pixelsHigh * 2) * half * pixelsHigh / pixelsWide;
-                        var ray = (X: forward.X + across * right.X + down * up.X,
-                                   Y: forward.Y + across * right.Y + down * up.Y,
-                                   Z: forward.Z + across * right.Z + down * up.Z);
-                        var norm = Math.Sqrt(ray.X * ray.X + ray.Y * ray.Y + ray.Z * ray.Z);
-                        var (colour, slot) = Cast(origin, (ray.X / norm, ray.Y / norm, ray.Z / norm));
+                        var (colour, slot, _) = Cast(origin,
+                            lens.Ray(column + (sx + 0.5) / supersample, row + (sy + 0.5) / supersample));
                         red += (colour >> 16) & 0xFF; green += (colour >> 8) & 0xFF; blue += colour & 0xFF;
                         if (sx == 0 && sy == 0)
                         {
@@ -401,13 +398,99 @@ public sealed class EyeScene
             sky / total, untextured / total);
     }
 
-    /// <summary>What one ray hits: the shaded colour and the material slot, 0 for sky.</summary>
-    private (int Colour, int Slot) Cast((double X, double Y, double Z) origin, (double X, double Y, double Z) ray)
+    /// <summary>The block the ray through pixel <paramref name="px"/>, <paramref name="py"/> of a
+    /// <paramref name="pixelsWide"/> × <paramref name="pixelsHigh"/> picture from <paramref name="camera"/>
+    /// hits — the same ray <see cref="Draw"/> casts through that pixel's middle — or null for sky.</summary>
+    public EyeHit? Pick(EyeCamera camera, int pixelsWide, int pixelsHigh, int px, int py)
     {
-        if (_width == 0) return (SkyRgb, 0);
+        var origin = (X: camera.X - _minX, Y: camera.Y, Z: camera.Z - _minZ);
+        var (_, slot, cell) = Cast(origin, Lens.Of(camera, pixelsWide, pixelsHigh).Ray(px + 0.5, py + 0.5));
+        if (slot == 0) return null;
+        (int X, int Y, int Z)? ground = null;
+        for (var y = cell.Y; y >= 0; y--)
+            if (At(cell.X, y, cell.Z) is { Form: FaceForm.Cube, Ground: true })
+            {
+                ground = (cell.X + _minX, y, cell.Z + _minZ);
+                break;
+            }
+        return new EyeHit((cell.X + _minX, cell.Y, cell.Z + _minZ), ground);
+    }
+
+    /// <summary>The ground <paramref name="pixels"/>' rays hit in a <paramref name="pixelsWide"/> ×
+    /// <paramref name="pixelsHigh"/> picture from <paramref name="camera"/>: each column once, at the highest
+    /// block a ray hit in it. Ground hidden behind a hill is not in it, because no ray reached it, and a pixel of
+    /// sky adds nothing but to <see cref="EyeArea.Sky"/>.</summary>
+    public EyeArea Project(EyeCamera camera, int pixelsWide, int pixelsHigh, IReadOnlyList<(int X, int Y)> pixels)
+    {
+        var origin = (X: camera.X - _minX, Y: camera.Y, Z: camera.Z - _minZ);
+        var lens = Lens.Of(camera, pixelsWide, pixelsHigh);
+        var columns = new Dictionary<(int X, int Z), int>();
+        var sky = 0;
+        var lockObject = new object();
+        Parallel.ForEach(System.Collections.Concurrent.Partitioner.Create(0, pixels.Count, 4096), range =>
+        {
+            var found = new Dictionary<(int X, int Z), int>();
+            var missed = 0;
+            for (var i = range.Item1; i < range.Item2; i++)
+            {
+                var (px, py) = pixels[i];
+                var (_, slot, cell) = Cast(origin, lens.Ray(px + 0.5, py + 0.5));
+                if (slot == 0) { missed++; continue; }
+                var key = (cell.X + _minX, cell.Z + _minZ);
+                if (!found.TryGetValue(key, out var y) || cell.Y > y) found[key] = cell.Y;
+            }
+            lock (lockObject)
+            {
+                sky += missed;
+                foreach (var (key, y) in found)
+                    if (!columns.TryGetValue(key, out var kept) || y > kept) columns[key] = y;
+            }
+        });
+        return new EyeArea(columns, sky);
+    }
+
+    /// <summary>How a camera turns a pixel into a ray: its forward, right and up axes and the half-width of its
+    /// field of view, for a picture of a given size.</summary>
+    private readonly record struct Lens(
+        (double X, double Y, double Z) Forward, (double X, double Y, double Z) Right, (double X, double Y, double Z) Up,
+        double Half, int Wide, int High)
+    {
+        public static Lens Of(EyeCamera camera, int pixelsWide, int pixelsHigh)
+        {
+            var yaw = camera.Yaw * Math.PI / 180;
+            var pitch = camera.Pitch * Math.PI / 180;
+            var forward = (X: -Math.Sin(yaw) * Math.Cos(pitch), Y: -Math.Sin(pitch), Z: Math.Cos(yaw) * Math.Cos(pitch));
+            var right = (X: -Math.Cos(yaw), Y: 0.0, Z: -Math.Sin(yaw));
+            var up = (X: right.Y * forward.Z - right.Z * forward.Y,
+                      Y: right.Z * forward.X - right.X * forward.Z,
+                      Z: right.X * forward.Y - right.Y * forward.X);
+            if (up.Y < 0) up = (-up.X, -up.Y, -up.Z);
+            return new Lens(forward, right, up, Math.Tan(camera.Fov * Math.PI / 360), pixelsWide, pixelsHigh);
+        }
+
+        /// <summary>The unit ray through the point <paramref name="across"/>, <paramref name="down"/> pixels
+        /// from the picture's top-left corner.</summary>
+        public (double X, double Y, double Z) Ray(double across, double down)
+        {
+            var sideways = (across / Wide * 2 - 1) * Half;
+            var lift = (1 - down / High * 2) * Half * High / Wide;
+            var ray = (X: Forward.X + sideways * Right.X + lift * Up.X,
+                       Y: Forward.Y + sideways * Right.Y + lift * Up.Y,
+                       Z: Forward.Z + sideways * Right.Z + lift * Up.Z);
+            var norm = Math.Sqrt(ray.X * ray.X + ray.Y * ray.Y + ray.Z * ray.Z);
+            return (ray.X / norm, ray.Y / norm, ray.Z / norm);
+        }
+    }
+
+    /// <summary>What one ray hits: the shaded colour, the material slot, 0 for sky, and the cell it hit in the
+    /// scene's own coordinates.</summary>
+    private (int Colour, int Slot, (int X, int Y, int Z) Cell) Cast((double X, double Y, double Z) origin,
+                                                                   (double X, double Y, double Z) ray)
+    {
+        if (_width == 0) return (SkyRgb, 0, default);
         // Start where the ray enters the world's box, for an eye standing outside it.
         var entry = EnterBox(origin, ray);
-        if (entry is not { } start) return (SkyRgb, 0);
+        if (entry is not { } start) return (SkyRgb, 0, default);
         var position = (X: origin.X + ray.X * start, Y: origin.Y + ray.Y * start, Z: origin.Z + ray.Z * start);
         int cellX = Math.Clamp((int)Math.Floor(position.X), 0, _width - 1);
         int cellY = Math.Clamp((int)Math.Floor(position.Y), 0, _height - 1);
@@ -422,20 +505,20 @@ public sealed class EyeScene
         var travelled = start;
         var axis = start > 0 ? EntryAxis(origin, ray, start) : -1;
 
-        while (travelled < FarEnough)
+        while (travelled - start < FarEnough)
         {
             var slot = _cells[(cellX * _height + cellY) * _depth + cellZ];
             if (slot > 0 && axis >= 0 && Hit(_materials[slot], origin, ray, travelled, axis, cellX, cellY, cellZ,
                     Math.Min(nextX, Math.Min(nextY, nextZ))) is { } colour)
-                return (colour, slot);
+                return (colour, slot, (cellX, cellY, cellZ));
 
             if (nextX < nextY && nextX < nextZ) { cellX += stepX; travelled = nextX; nextX += deltaX; axis = 0; }
             else if (nextY < nextZ) { cellY += stepY; travelled = nextY; nextY += deltaY; axis = 1; }
             else { cellZ += stepZ; travelled = nextZ; nextZ += deltaZ; axis = 2; }
             if (cellX < 0 || cellX >= _width || cellY < 0 || cellY >= _height || cellZ < 0 || cellZ >= _depth)
-                return (SkyRgb, 0);
+                return (SkyRgb, 0, default);
         }
-        return (SkyRgb, 0);
+        return (SkyRgb, 0, default);
     }
 
     /// <summary>How far along the ray it enters the world's box, 0 for an eye already inside, or null for a

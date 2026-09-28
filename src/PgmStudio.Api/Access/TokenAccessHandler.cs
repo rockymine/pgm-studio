@@ -40,8 +40,13 @@ public sealed class TokenAccessHandler(
         await tokens.TouchAsync(token, DateTime.UtcNow, Context.RequestAborted);
 
         var name = (await users.GetAsync(token.UserUuid, Context.RequestAborted))?.Name ?? "";
-        var identity = new ClaimsIdentity(
-            [new Claim(StudioClaims.Uuid, token.UserUuid), new Claim(StudioClaims.Name, name)], SchemeName);
+        List<Claim> claims =
+        [
+            new(StudioClaims.Uuid, token.UserUuid), new(StudioClaims.Name, name),
+            new(StudioClaims.TokenLabel, token.Label),
+        ];
+        if (token.Notes) claims.Add(new Claim(StudioClaims.Notes, "true"));
+        var identity = new ClaimsIdentity(claims, SchemeName);
         return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName));
     }
 }

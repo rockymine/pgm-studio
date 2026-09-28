@@ -225,6 +225,32 @@ export class SketchCanvas extends CanvasBase {
    */
   setViews(views) { this.#views = Array.isArray(views) ? views : []; this.#paintWorld(); }
 
+  /**
+   * The board as it is built, for placing a view: while it is on, the canvas draws the Board layer — the
+   * top-down of the full build, shaded like the game's map — and the views, and nothing else. The shapes, the blocks, the mirror, the chunk grid, the work bounds, the axis,
+   * the group outlines and the objective labels are all left out, whatever their own switches say, so
+   * leaving the mode gives every one of them back as the author had it.
+   */
+  setBoardView(on) { this.#boardView = !!on; this.#paintWorld(); }
+
+  /** The board map (`board-map.js`), decoded once into a bitmap; null clears it. */
+  loadBoardLayer(map) {
+    this.#boardMap = map;
+    this.#boardImage = null;
+    if (map && typeof document !== "undefined") {
+      const bitmap = document.createElement("canvas");
+      bitmap.width = map.width;
+      bitmap.height = map.depth;
+      bitmap.getContext("2d").putImageData(new ImageData(map.rgba, map.width, map.depth), 0, 0);
+      this.#boardImage = bitmap;
+    }
+    this.#paintWorld();
+  }
+
+  #boardView = false;
+  #boardMap = null;
+  #boardImage = null;
+
   /** The view being placed, or null to clear it — the host clears it once the view is kept or let go. */
   setViewDraft(view) {
     this.#view = view ? { ax: view.fromX ?? view.lookX, az: view.fromZ ?? view.lookZ, bx: view.lookX, bz: view.lookZ, live: false } : null;
@@ -846,6 +872,13 @@ export class SketchCanvas extends CanvasBase {
     if (!this.#painter) return;
     const painter = this.#painter;
     painter.begin(this._scale, this._panX, this._panY);
+    if (this.#boardView) {
+      painter.layer("board", () => { if (this.#boardImage) painter.image(this.#boardImage, this.#boardMap); });
+      painter.layer("views", () => this.#paintViews());
+      const { w, h } = this._viewSize ?? this._size();
+      renderScaleBar(this.#screen.scale, { w, h, scale: this._scale });
+      return;
+    }
     painter.layer("work",      () => paintWorkArea(painter, this.#bbox));
     painter.layer("bbox",      () => paintBbox(painter, this.#tight));
     painter.layer("chunk",     () => { if (this.#chunkVisible) paintChunkGrid(painter, this.#gridBounds(), gridStep(CHUNK * this._scale)); });

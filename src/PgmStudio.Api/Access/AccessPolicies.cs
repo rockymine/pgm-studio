@@ -4,7 +4,7 @@ using PgmStudio.Data.Map;
 namespace PgmStudio.Api.Access;
 
 /// <summary>
-/// The three things a write can require, as named authorization policies. Which one a route takes is decided
+/// The four things a route can require, as named authorization policies. Which one a route takes is decided
 /// in one place, <see cref="AccessRules"/>, rather than in each endpoint.
 /// </summary>
 public static class AccessPolicies
@@ -18,9 +18,13 @@ public static class AccessPolicies
     /// <summary>An admin.</summary>
     public const string Admin = "admin";
 
+    /// <summary>Someone who may read and answer map notes: an admin, or a token carrying the notes permission.
+    /// A notes route states it for its reads too, since a read is otherwise open to anyone.</summary>
+    public const string Notes = "notes";
+
     public static void Add(AuthorizationOptions options)
     {
-        foreach (var name in (string[])[Member, MapEditor, Admin])
+        foreach (var name in (string[])[Member, MapEditor, Admin, Notes])
             options.AddPolicy(name, policy => policy.AddRequirements(new AccessRequirement(name)));
     }
 }
@@ -37,6 +41,11 @@ public sealed class AccessHandler(Callers callers, MapRepository maps) : Authori
     {
         if (context.Resource is not HttpContext http) return;
         var caller = await callers.OfAsync(http, http.RequestAborted);
+        if (requirement.Policy == AccessPolicies.Notes)
+        {
+            if (caller.MayNote) context.Succeed(requirement);
+            return;
+        }
         if (!caller.Whitelisted) return;
 
         var granted = requirement.Policy switch

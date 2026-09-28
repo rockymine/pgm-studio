@@ -13,8 +13,8 @@ layout — the plan's abutting same-height pieces already fused into single poly
 
 The route is `/maps/{slug}/sketch`. Six phases sit on the rail in the order the work is done: **Info**,
 **Draw**, **Relief**, **Theme**, **Dressing** and **In game**. Info states what the board is and is its own
-body; In game is a gallery of the board as a player sees it, and is its own body too until a view is being
-placed. The other four share the one live canvas, which stays mounted while Info or the gallery is up so the
+body; In game is the board as a player sees it, with the author's notes on it, and is its own body too until a
+view is being placed. The other four share the one live canvas, which stays mounted while Info or the gallery is up so the
 drawing state and the zoom survive the trip. None of the four has steps: each swaps what the columns hold and
 which overlays the layer bar offers, and the canvas is reused as it stands.
 
@@ -44,7 +44,15 @@ The identity of the map — its display name and authors — lives on the map ro
 **The views an author keeps in the In game phase are a second artifact beside it**, `map_views_json`: a list of
 `{id, name, lookX, lookZ, fromX?, fromZ?, y?, pitch?}`, where a view is only where the eye stands and what it
 looks at. It sits beside the layout rather than in it, so keeping a picture is not an edit to the board and does
-not change the world the board builds.
+not change the world the board builds — and a board loaded again over its own slug keeps its views.
+
+**The notes an admin leaves in the In game phase are rows, not an artifact.** `map_note` holds one per note —
+its map by slug, what it is pinned to, its tag and its status — and `map_note_message` its thread, each message
+with who wrote it, the token it was written with where it was one, the map's revision it was written against,
+and the picture it carries by hash. A note names its map by slug rather than by row because a driver replaces
+the map row on every build, and a thread outlives every rebuild of the board it is about; deleting the map is
+what lets its notes go. The pictures themselves are files, named by the SHA-256 of their bytes under
+`Notes:Pictures` (*Notes*, under In game).
 
 ### The layout document
 
@@ -547,7 +555,10 @@ Shapes on** — the paint is what they act on and the outlines say what carries 
 because the painted ground already carries the height. Snap is in none of them: it changes what a drag does
 rather than what is drawn, so it sits in the dock beside the shape tools, in Draw, the one phase that drags a
 shape edge onto another. Entering a phase switches on what that phase works with and never switches anything
-off, so an overlay asked for by hand is not taken away by walking through the phases.
+off, so an overlay asked for by hand is not taken away by walking through the phases. Placing a view in In
+game is the one exception, and it takes nothing away either: the canvas draws the Board layer and the views
+alone whatever the other chips say, offers no chip at all, and gives every other layer back as the author had
+it on the way out.
 
 **How big the selection is reads as a pill under it** — the same pill Configure draws under a region and the
 plan draws under a piece, from the one function all three call. The corner readout is for what is being drawn
@@ -1312,7 +1323,8 @@ changed builds a new world, and every picture is drawn again the first time it i
 not answers from the pictures already drawn.
 
 **The gallery opens on what the studio suggests, then on what the author kept.** The suggestions are read off
-the built board (`WorldViews`): the whole board from above the middle of its long side; every team's spawn seen
+the built board (`WorldViews`): the whole board from above the middle of its long side; the whole board
+straight down; every team's spawn seen
 from its front, and the view a player gets on arriving there — four blocks out of the room on the heading its
 yaw faces, looking on down it; every wool room, destroyable, core and control point; the first four buildings
 the dressing placed; and the first two boulders. Spawns and objectives are shown for every team, since each is
@@ -1332,16 +1344,100 @@ the eye aims at. Where no stand on the ground sees a building or a goal — a mo
 rises into the air over the same stands and looks down at 25°, 45° and then 65°; where none of those is clear
 either, it is left to find its own place.
 
-**A picture opens large**, at 1280×720, with its name and where the eye stands; `←` and `→` step through the
-gallery, `Esc` closes it, and **Full size** opens the 1920×1080 picture in a tab of its own. A kept view can be
-let go from there.
+**One picture is shown large, with the gallery under it.** The enlarged picture is drawn at 1280×720, under its
+name and where the eye stands; choosing a card in the gallery shows it instead, `←` and `→` step through the
+gallery, and **Full size** opens the 1920×1080 picture in a tab of its own. A kept view is let go from there.
+The gallery opens on the suggestions and then on the views kept, and the second suggestion is the whole board
+**straight down** — the eye over the board's middle, north at the top, high enough that the board's width fits
+across the frame and its depth down it. From there almost nothing is hidden, so a mark on it reads like a mark
+on a map while still showing the board as it is built.
 
 **Place a view brings the canvas back with the eye tool armed.** A press stands the eye and a drag turns it
 toward what it looks at; a click without a drag names only what to look at, and the eye finds its own place. The
-inspector draws the view as it stands, takes a name and an eye height — blank is a player's eye over the ground,
-and over the void the eye hovers level with what it faces — and **Keep** stores it and returns to the gallery.
-The views kept are drawn on the canvas while one is placed: a ring where each eye stands and a line to what it
-sees.
+inspector draws the view as it stands, takes a name, an eye height and how far the eye tips down — blank height
+is a player's eye over the ground, and over the void the eye hovers level with what it faces; a raised eye
+tipped down is an aerial shot, and 90 is straight down — and **Keep** stores it and returns to the gallery.
+
+**Placing a view draws the board as it is built, and nothing over it.** The canvas shows the **Board layer** —
+the full build from straight above, one pixel a column in the colour of the block on top of it, so the trees, the
+houses and the water are in it — shaded the way the game's own map item shades, each column against its
+northern neighbour, with a light height term over that. It is drawn from the same columns the 3-D preview
+meshes (`sketch/columns`), asked for once when the placing starts. The shapes, the blocks, the mirror, the chunk
+grid, the work bounds, the axis, the group outlines and the objective labels are all left off whatever their
+chips say; the views kept — a ring where each eye stands and a line to what it sees — and the one being placed
+are what the canvas adds. No chip is offered over it: the shading already reads the lie of the ground, and a
+contour traced over the built columns would run round every tree and house as readily as round a hill. Placing
+a view is 2-D only; the 2-D / 3-D switch is not offered.
+
+#### Notes
+
+**An admin leaves a note pinned to exactly the place it is about; an agent answers it on the note; the author
+closes it.** Nobody types a coordinate: the anchor carries them. The notes column sits beside the picture for a
+caller who may read and answer notes — an admin, or a token an admin issued with the notes permission
+(`docs/access.md`) — and nobody else sees it. Notes exist in this phase alone; no other phase, page or rail item
+shows them, and the sketch surface never draws them.
+
+**A note is one piece of text with one anchor**, and the anchor is what makes it directed. Every note is written
+on the picture in view, so every anchor but the last is a picture, and each of those keeps the exact camera the
+picture was drawn with and the picture's size:
+
+| Anchor | Made with | What it keeps |
+|---|---|---|
+| `point` | the **Point** tool: a click on the picture | the pixel, the block its ray hits and the ground under that block — the leaves of a floating tree, and the grass it should stand on |
+| `box` | the **Box** tool: a drag | the two corners, and every ground column the rays through the rectangle's pixels hit |
+| `lasso` | the **Lasso** tool: an outline | the outline, and every ground column the rays through the pixels inside it hit |
+| `view` | a new note with no mark | the camera and the picture |
+| `map` | **Pin to the whole map instead** | nothing spatial |
+
+**The area is what was seen.** The studio does the projection, not the browser: the column sends the mark in
+the picture's pixels, and `render/eye/pick` re-casts the ray through each pixel against the world the picture
+was drawn from, answering the ground columns hit as `[x, y, z]`. Ground hidden behind a hill is not selected,
+because no ray reached it, and a pixel of sky selects nothing — which is the honest reading of "I looked at
+this", and why the straight-down view and an aerial shot matter. The camera is answered exactly, because a view
+that leaves the eye to find its own place may find another once the board changes; `render/eye?eye=x,y,z&yaw=&pitch=`
+draws it again.
+
+**A picture note keeps the picture.** The board changes after the note, and a view draws the board as it is now,
+so the note stores the image it was written on: the browser encodes the picture on screen as WebP at quality 85
+and posts it to `POST /api/notes/pictures`, which keeps it once under its hash. A 1280×720 picture is about
+100 KB that way, a sixth of the PNG. An agent's reply carries the same camera drawn after its change, and the
+two are the before and after.
+
+**The tools sit in the dock at the bottom centre of the picture**: Point, Box and Lasso, and a switch that hides
+the notes' pins and marks. Arming a tool opens a new note; the column arms none. A mark is projected as soon as it
+is drawn, and the new note says what it landed on — the block and its ground, or how many columns and how much
+sky — before it can be sent.
+
+**The column works in two steps.** The overview lists the notes on the picture in view under four filters — All,
+Waiting on you, With agent, Resolved — then the notes on the whole map, then any on a picture the gallery no
+longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **‹ All notes**
+goes back. A thread is its messages top to bottom, each with who wrote it, the token an agent wrote it with, and
+the revision it was written against; its pictures; **Resolve** or **Reopen**; and the reply box. A new note shows
+what it is pinned to over its text box and an optional tag. The gallery counts each view's notes that are not
+resolved, and choosing another view switches the overview with it. `?note={id}` on the route opens the phase on
+that note's thread, which is the link a ruling written into `docs/gameplay/approaches.md` carries back to where it
+was decided.
+
+**A thread has one status, and only the author closes it.**
+
+| Status | Set by | Means |
+|---|---|---|
+| `open` | a new note, the author's reply, or the author reopening | waiting for an agent |
+| `answered` | an agent's reply | a change landed, waiting for the author |
+| `needs-info` | an agent's reply, or a note an agent opens | the agent could not act without more, and asks what |
+| `wont-do` | an agent's reply with its reason, or the author | stays visible, and the author can reopen it |
+| `resolved` | the author | done |
+
+A reply leaves the thread where its `status` says; absent, a reply written with a token is `answered` and one
+written in a browser is `open`. An agent never resolves, declines or reopens by `PATCH` — it answers, asks or
+declines in a reply — so a fix that looks right in a number but wrong in the game is caught by the person who
+asked. An agent may open a note too, as a question in the place it is about, and it waits for the author the
+same way.
+
+**A tag is optional.** A note can be only its text; the agent works out what it is about and says so in its reply,
+so a wrong reading is caught on the thread. `look`, `terrain` and `gameplay` go to the map; `studio` means the
+studio got something wrong or cannot do it, and becomes a backlog task instead; `ruling` is a gameplay decision
+that holds on every map, and a resolved one is written into the gameplay law with a link to its thread.
 
 ## Refusals and complaints
 
@@ -1836,11 +1932,30 @@ in the same two registers.
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: the studio's suggestions from the built board first, then the ones kept, each `{id, name, kept, lookX, lookZ, fromX, fromZ, y, pitch, query}`. A map with no sketch layout has no world to suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server — the block textures are not there — or null | 404 |
-| `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?}`; a blank name is `View {n}` | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, or an eye height below the world's floor or far over its build ceiling · 404 |
+| `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?}`; a blank name is `View {n}`. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, or a pitch past straight up or down · 404 |
 | `DELETE /map/{slug}/views/{viewId}` | the view let go. A suggestion is not kept, so it cannot be deleted | 404 no kept view has that id |
 
 ```json POST /api/map/{slug}/views
 {"name": "Across the middle", "lookX": 25, "lookZ": -22, "fromX": -26, "fromZ": 21}
+```
+
+**Notes** — what the notes column reads and writes (*Notes*, under In game). Every route here, the reads
+included, takes the `notes` policy: an admin in a browser, or a token an admin issued with the notes
+permission (`docs/access.md`). A member, and every other token, is refused `RQ8`.
+
+| Endpoint | Answers | Fails with |
+|---|---|---|
+| `GET /notes?status=` | every note on every map, newest change first, each a `MapNoteDto` with its map's slug and name. `status` takes one status or several between commas — `open` is what an agent starts on | 400 `no such status` `RQ1` |
+| `GET /map/{slug}/notes` | the map's notes, newest change first: `[{id, map, mapName, anchor, tag, status, createdAt, updatedAt, messages[]}]`, each message `{id, author, authorUuid, token, body, revision, picture, at}` — `token` is the label of the token an agent wrote it with, null for a browser | 404 |
+| `POST /map/{slug}/notes` | the note written. Body `{body, anchor, tag?, picture?, revision?}`; a note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a tag of no known word, a picture no upload answered · 404 |
+| `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, revision?}`; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH` · 404 no such map, or no note by that id on it |
+| `PATCH /map/{slug}/notes/{id}` | the note changed. Body `{status?, tag?}`: `resolved`, `wont-do` or `open` to reopen; a tag, or `""` to clear it | 400 `not a change` `RQ1` · 403 `RQ8` to a token — an agent answers in a reply, and only the author closes a thread · 404 |
+| `POST /notes/pictures` | `{hash, bytes}` — the picture kept under the SHA-256 of its bytes. The body is the picture itself, a WebP or a PNG sent as `image/webp`, `image/png` or `application/octet-stream`, up to 8 MB; the same bytes answer the same hash | 400 `not a picture` `RQ1` |
+| `GET /notes/pictures/{hash}` | the picture, `image/webp` or `image/png`, with a year's private cache — it never changes under its hash | 404 |
+| `GET /map/{slug}/render/eye/pick` | `{camera, query, hit, ground, columns[], sky}` — what a mark on a `render/eye` picture is on the ground. It takes the picture's own query words, so it resolves the same camera, and `at=x,y` (one pixel: the block `hit` and the `ground` under it), `box=x,y,x,y` or `lasso=x,y;x,y;…` (every ground column the rays hit, each `[x, y, z]`); none of the three answers the camera alone. `query` is the camera exactly, as `eye=x,y,z&yaw=&pitch=&fov=&width=&height=`, which draws the same picture again. Open to anyone, like `render/eye` | 404 · 422 no place sees what `look` names · 503 `RQ10` no block textures |
+
+```json POST /api/map/{slug}/notes
+{"body": "The monuments sit too close to the spawns.", "anchor": {"kind": "map"}, "tag": "gameplay"}
 ```
 
 **A placement is looked up rather than tried, and `seats` is the half that says where.** The `claims` raster
@@ -1925,6 +2040,31 @@ A map that already came from a plan needs only the last two — the layout is al
 /api/map/{slug}/sketch` returns it to be edited and put back. Note the difference between the two write paths:
 the plain `PUT` replaces the blob, so a document that omits `themes` deletes them, while
 `.../sketch/from-plan` merges the finish onto fresh geometry.
+
+### Answering the notes an author left
+
+**An agent starts a revision by reading the open notes, and it is not done while one is still open without a
+reply.** It holds a token an admin issued with the notes permission (`docs/access.md`), and every step after the
+read is an instrument the studio already has; the note only says where to point it. The author says when there
+are new notes — nothing polls for them.
+
+```
+GET   /api/notes?status=open                                   every open note, on every map
+GET   /api/map/{slug}/render/eye?<anchor.camera as eye=…>      stand where the author stood
+GET   /api/map/{slug}/column?at=<anchor.hit x,z>               what is at a point
+POST  /api/notes/pictures            <the same camera drawn after the change, as PNG or WebP>
+POST  /api/map/{slug}/notes/{id}/replies   {"body": …, "status": "answered", "picture": <hash>}
+```
+
+A note's `anchor.camera` is drawn again exactly by `render/eye?eye={x},{y},{z}&yaw={yaw}&pitch={pitch}&fov={fov}&width={width}&height={height}`;
+an area's `anchor.columns` are the ground it names, each `[x, y, z]`. The reply says what changed, the revision
+it landed at — the map's revision counts on across every rebuild — and the number that moved; where the remark
+could mean two places or two things, the reply is the question, with `"status": "needs-info"`, and nothing is
+built on a guess. A declined note is `"status": "wont-do"` with the reason in the body.
+
+```json POST /api/map/{slug}/notes/{id}/replies
+{"body": "Read as look, not gameplay: swapped the roof to spruce slabs under a dark-oak ridge.", "status": "answered"}
+```
 
 ### Reshaping ground the plan compiled
 
@@ -2062,6 +2202,13 @@ the gesture that selects a group the gesture that reshapes it, from a rail with 
 controls to make sense of it. Dressing was the one that did not, and the way it showed was a plinth dragged
 out from under a spawn: the piece the plan projected stayed where it was, the ground under it did not, and
 the ground it left behind fused into an island of its own.
+
+**Notes are an admin's alone.** A member reads and writes none, and a token carries the notes permission only
+where its person is an admin, so the author's feedback is not a channel anyone on the whitelist can post to.
+Nothing tells an agent there are new notes; the author does. A lasso drawn in the column sends at most 300
+points of its outline, which keeps the pick's query inside a request line — the outline is thinned evenly, not
+cut short. The pictures sit in a folder beside the database rather than in it, so a backup of the database
+alone is not a backup of the notes (`docs/deployment.md`).
 
 The structural pieces a plan projects in keep their **geometry read-only**. A spawn or wool room and the
 building inside it are rendered so they stay visible while the ground around them is refined, and neither can

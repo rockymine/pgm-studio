@@ -175,5 +175,8 @@ public sealed record MapViewsDto(IReadOnlyList<MapViewDto> Views, string? Undraw
 /// <param name="FromX">Where to stand, east–west; null leaves the eye to find its own place.</param>
 /// <param name="FromZ">The same, north–south, stated together with <paramref name="FromX"/>.</param>
 /// <param name="Y">The eye's height, 0 to 320; null stands it a player's eye over the ground.</param>
+/// <param name="Pitch">How far the eye tips down, −90 to 90 degrees, 90 straight down — an aerial shot is an eye
+/// raised with <paramref name="Y"/> and tipped down with this; null tips it to the middle of what it looks
+/// at.</param>
 public sealed record MapViewKeepRequest(string? Name, int LookX, int LookZ,
-    int? FromX = null, int? FromZ = null, double? Y = null);
+    int? FromX = null, int? FromZ = null, double? Y = null, double? Pitch = null);

@@ -61,6 +61,41 @@ public sealed class StudioTokenRow
     [Column("label"), NotNull] public string Label { get; set; } = "";
     [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
     [Column("last_used_at")] public DateTime? LastUsedAt { get; set; }
+    /// <summary>Whether the token may read and answer map notes, which only an admin's token carries (M0048).</summary>
+    [Column("notes"), NotNull] public bool Notes { get; set; }
+}
+
+/// <summary>A note on a map, pinned to the place it is about (M0048). It names its map by slug, so it outlives
+/// the map row being replaced by a rebuild. <c>anchor_json</c> is the anchor as the wire carries it;
+/// <c>view_key</c> is the gallery view it was written on, for the notes a picture shows.</summary>
+[Table("map_note")]
+public sealed class MapNoteRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_slug"), NotNull] public string MapSlug { get; set; } = "";
+    [Column("anchor_kind"), NotNull] public string AnchorKind { get; set; } = "";
+    [Column("anchor_json"), NotNull] public string AnchorJson { get; set; } = "";
+    [Column("view_key")] public string? ViewKey { get; set; }
+    [Column("tag")] public string? Tag { get; set; }
+    [Column("status"), NotNull] public string Status { get; set; } = "";
+    [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
+    [Column("updated_at"), NotNull] public DateTime UpdatedAt { get; set; }
+}
+
+/// <summary>One message in a note's thread (M0048): who wrote it, with which token where it was one, against
+/// which revision of the map, and the picture it carries by hash.</summary>
+[Table("map_note_message")]
+public sealed class MapNoteMessageRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("note_id"), NotNull] public long NoteId { get; set; }
+    [Column("author_uuid")] public string? AuthorUuid { get; set; }
+    [Column("author_name"), NotNull] public string AuthorName { get; set; } = "";
+    [Column("token_label")] public string? TokenLabel { get; set; }
+    [Column("body"), NotNull] public string Body { get; set; } = "";
+    [Column("revision"), NotNull] public long Revision { get; set; }
+    [Column("picture")] public string? Picture { get; set; }
+    [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
 }
 
 /// <summary>One board of the composed-board library (M0047): what the composer made for a size band, a symmetry,

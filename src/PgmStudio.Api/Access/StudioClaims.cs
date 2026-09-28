@@ -14,4 +14,10 @@ public static class StudioClaims
 
     /// <summary>Set only by the open scheme, which is an admin without an account.</summary>
     public const string LocalAdmin = "pgm-studio/local-admin";
+
+    /// <summary>Set by the token scheme for a token carrying the notes permission.</summary>
+    public const string Notes = "pgm-studio/notes";
+
+    /// <summary>Set by the token scheme: the label of the token that signed the request in.</summary>
+    public const string TokenLabel = "pgm-studio/token-label";
 }

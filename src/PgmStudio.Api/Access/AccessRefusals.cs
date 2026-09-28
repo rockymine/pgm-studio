@@ -24,8 +24,8 @@ public sealed class AccessRefusals : IAuthorizationMiddlewareResultHandler
         return result.Challenged
             ? Refusals.WriteAsync(context, 401, "not signed in",
                 [new Finding(RequestRules.SignedOut,
-                    "this route writes, or builds a view on request, and either needs someone on the studio's "
-                    + "whitelist to be signed in")],
+                    "this route writes, builds a view on request, or reads map notes, and each needs someone on "
+                    + "the studio's whitelist to be signed in")],
                 context.RequestAborted)
             : Refusals.WriteAsync(context, 403, "not permitted",
                 [new Finding(RequestRules.NotPermitted, Sentence(policy))], context.RequestAborted);
@@ -37,6 +37,8 @@ public sealed class AccessRefusals : IAuthorizationMiddlewareResultHandler
             AccessPolicies.MapEditor =>
                 "only this map's owner, an author it credits, or an admin may change it",
             AccessPolicies.Admin => "only an admin may do this",
+            AccessPolicies.Notes =>
+                "map notes are read and answered by an admin, or by a token an admin issued with the notes permission",
             _ => "only someone on the studio's whitelist may do this",
         };
 }

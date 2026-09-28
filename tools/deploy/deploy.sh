@@ -56,6 +56,15 @@ DUMP=$BACKUPS/pgm_studio-$(date -u +%Y%m%dT%H%M%SZ)-before-$SHA.sql.gz
 mariadb-dump --single-transaction --routines --triggers pgm_studio | gzip > "$DUMP"
 echo "$DUMP ($(du -h "$DUMP" | cut -f1))"
 
+# The pictures notes carry are files beside the database rather than rows in it. Each is named by its hash and
+# never changes, so the copy only ever adds the ones it does not hold yet.
+PICTURES=$( set -a; . "$ENV_FILE"; set +a; echo "${Notes__Pictures:-/var/lib/pgm-studio/.local/share/pgm-studio/pictures}" )
+if [ -d "$PICTURES" ]; then
+  install -d -m 700 "$BACKUPS/pictures"
+  cp -a -n "$PICTURES/." "$BACKUPS/pictures/"
+  echo "$BACKUPS/pictures ($(du -sh "$BACKUPS/pictures" | cut -f1))"
+fi
+
 log "migrating"
 ( set -a; . "$ENV_FILE"; set +a; cd "$REL/migrator" && dotnet PgmStudio.Import.dll --migrate-only ) \
   || fail "the migration failed; the studio still runs the release before, and $DUMP restores the schema"

@@ -10,7 +10,8 @@ namespace PgmStudio.Api.Endpoints;
 
 /// <summary>GET /api/map/{slug}/render/eye — the built world seen from a player's eye, drawn with the game's
 /// own block sprites (<see cref="EyeScene"/>). <c>look</c> names a thing to see and the eye finds a place to
-/// see it from; <c>from</c> says where to stand; both together stand there and face it. <c>flat</c> draws the
+/// see it from; <c>from</c> says where to stand; both together stand there and face it; <c>eye</c> stands the
+/// camera exactly (<see cref="EyeAim"/>). <c>flat</c> draws the
 /// same frame with every sprite reduced to its mean. <c>?format=text</c> answers where the eye ended up and
 /// what fills the frame, by share. Without the sprites it is a 503 (<c>RQ10</c>).
 ///
@@ -35,12 +36,15 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
                 + "at `from` and faces it."),
             new QueryWord("from", "Where the eye stands, as `x,z`: a player's eye height over the ground there. "
                 + "Facing a `look` from a column with no ground, the eye hovers level with the thing's middle."),
+            new QueryWord("eye", "Exactly where the eye stands, as `x,y,z`, facing `yaw` and `pitch` — the camera "
+                + "any other aim resolved to, which `render/eye/pick` answers as `query`, drawn again. Takes neither "
+                + "`look` nor `from`."),
             new QueryWord("y", "The eye's height, overriding the one `from` stands at. Ignored with `look` alone."),
-            new QueryWord("yaw", "Which way the eye faces with `from` alone, in the game's own degrees: 0 south "
-                + "(+z), 90 west, 180 north, 270 east. Absent is 0. Ignored with `look`."),
-            new QueryWord("pitch", "Degrees below the horizon, negative looking up. Absent is 10 with `from` "
-                + "alone; with `look` and `from`, absent tips the eye to the thing's middle. Ignored with `look` "
-                + "alone."),
+            new QueryWord("yaw", "Which way the eye faces with `from` or `eye` alone, in the game's own degrees: 0 "
+                + "south (+z), 90 west, 180 north, 270 east. Absent is 0. Ignored with `look`."),
+            new QueryWord("pitch", "Degrees below the horizon, negative looking up; 90 looks straight down. Absent "
+                + "is 10 with `from` or `eye` alone; with `look` and `from`, absent tips the eye to the thing's "
+                + "middle. Ignored with `look` alone."),
             new QueryWord("fov", "Horizontal field of view, 30 to 110 degrees. Absent is 70.", Min: 30, Max: 110),
             new QueryWord("width", "Pixels across, 160 to 1920. Absent is 960.", Min: 160, Max: 1920),
             new QueryWord("height", "Pixels down, 90 to 1080. Absent is 540.", Min: 90, Max: 1080),
@@ -70,75 +74,15 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
 
     private EyeShot? Shot(BuiltRead read)
     {
-        var look = Pair("look");
-        var from = Pair("from");
-        if (look is null && from is null)
-            throw new ArgumentException("name `look=x,z` for the eye to find a place to see it from, or `from=x,z` "
-                + "for where it stands");
-
-        var fov = Math.Clamp(Number("fov") ?? 70, 30, 110);
-        var flat = Query<string?>("flat", isRequired: false) is "1" or "true";
-        var width = Math.Clamp(OptionalInt("width") ?? 960, 160, 1920);
-        var height = Math.Clamp(OptionalInt("height") ?? 540, 90, 1080);
-        var y = Number("y");
-        var yaw = Number("yaw") ?? 0;
-        var pitch = Number("pitch");
-        _empty = (look, from) switch
+        var aim = EyeAim.Read(word => Query<string?>(word, isRequired: false));
+        _empty = aim.Empty;
+        return EyeRenders.Of(read.Built, _textures!, aim.Flat, aim.Key, scene =>
         {
-            ({ } seen, null) => $"no place within reach of {seen.X},{seen.Z} sees it with nothing in the way — "
-                + "stand the eye yourself with `from`",
-            (null, { } stand) => $"there is no ground to stand on at {stand.X},{stand.Z}; give `y` to stand the "
-                + "eye in the air",
-            _ => "nothing to draw",
-        };
-        var asked = string.Create(CultureInfo.InvariantCulture,
-            $"{look}|{from}|{y}|{yaw}|{pitch}|{fov}|{width}|{height}|{flat}");
-
-        return EyeRenders.Of(read.Built, _textures!, flat, asked, scene =>
-        {
-            EyeCamera? camera;
-            string aim;
-            if (look is { } seen && from is { } stand)
-            {
-                camera = scene.Facing(stand.X, stand.Z, seen.X, seen.Z, fov, y, pitch);
-                aim = $"standing at {stand.X},{stand.Z} and facing {seen.X},{seen.Z}";
-            }
-            else if (look is { } target)
-            {
-                camera = scene.Frame(target.X, target.Z, fov: fov);
-                aim = $"placed to see {target.X},{target.Z}";
-            }
-            else
-            {
-                var (x, z) = from!.Value;
-                camera = (y ?? scene.EyeAt(x, z)) is { } eye
-                    ? new EyeCamera(x + 0.5, eye, z + 0.5, yaw, pitch ?? 10, fov)
-                    : null;
-                aim = $"standing at {x},{z}";
-            }
-            if (camera is not { } resolved) return null;
-            var picture = scene.Draw(resolved, width, height);
-            return new EyeShot(picture.Png(), Describe(picture, resolved, aim));
+            if (aim.Resolve(scene) is not ({ } camera, var how)) return null;
+            var picture = scene.Draw(camera, aim.Width, aim.Height);
+            return new EyeShot(picture.Png(), Describe(picture, camera, how));
         });
     }
-
-    private (int X, int Z)? Pair(string name)
-    {
-        if (Query<string?>(name, isRequired: false) is not { Length: > 0 } asked) return null;
-        var parts = asked.Split(',');
-        if (parts.Length == 2
-            && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
-            && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var z))
-            return ((int)Math.Floor(x), (int)Math.Floor(z));
-        throw new ArgumentException($"`{name}` is `x,z`, and '{asked}' is not");
-    }
-
-    private double? Number(string name) =>
-        Query<string?>(name, isRequired: false) is { Length: > 0 } asked
-            ? double.TryParse(asked, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
-                ? value
-                : throw new ArgumentException($"`{name}` is a number, and '{asked}' is not")
-            : null;
 
     /// <summary>Which way a pitch looks, since the number alone leaves it to the reader: the game counts
     /// degrees below the horizon, so a positive pitch looks down.</summary>

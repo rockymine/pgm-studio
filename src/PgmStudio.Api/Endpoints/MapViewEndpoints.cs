@@ -58,8 +58,8 @@ public sealed class MapViewListEndpoint(
 }
 
 /// <summary>POST /api/map/{slug}/views — keep a view, answering it with the id it was given. 400 where a
-/// stand point states one coordinate without the other, a coordinate is off any board, or the eye's height is
-/// outside the world.</summary>
+/// stand point states one coordinate without the other, a coordinate is off any board, the eye's height is
+/// outside the world, or its pitch is past straight up or down.</summary>
 public sealed class MapViewKeepEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : Endpoint<MapViewKeepRequest, MapViewDto>
 {
@@ -88,7 +88,7 @@ public sealed class MapViewKeepEndpoint(MapRepository repo, MapArtifactStore art
             ? stated[..Math.Min(stated.Length, LongestName)]
             : string.Create(CultureInfo.InvariantCulture, $"View {number}");
         var view = new WorldView(string.Create(CultureInfo.InvariantCulture, $"view-{number}"), name,
-                                 req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y);
+                                 req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch);
         kept.Add(view);
         await KeptViews.SaveAsync(artifacts, map.Id, kept, ct);
         await Send.OkAsync(KeptViews.Dto(view, kept: true), ct);
@@ -104,6 +104,8 @@ public sealed class MapViewKeepEndpoint(MapRepository repo, MapArtifactStore art
                 return (field, $"`{field}` is {coordinate}, which is off any board — within ±{Reach}");
         if (req.Y is { } y && (double.IsNaN(y) || y < 0 || y > 320))
             return ("y", "`y` is the eye's height, from 0 to 320");
+        if (req.Pitch is { } pitch && (double.IsNaN(pitch) || pitch < -90 || pitch > 90))
+            return ("pitch", "`pitch` is degrees below the horizon, from −90 to 90");
         return null;
     }
 }

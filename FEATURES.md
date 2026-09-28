@@ -8176,6 +8176,39 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   showcase and carries the name onto the copied trees already stored in maps.
   `docs/world-export/sketch-world-export.md` §4a. (`WE145`)
 
+- **Notes on a map, and the threads under them (`TS115`)** — an admin leaves a note in the In game phase, pinned
+  to the whole map or to the picture in view, with an optional tag (`look`, `terrain`, `gameplay`, `studio`,
+  `ruling`); an agent answers in its thread, and only the author resolves it. A thread is `open` (waiting on an
+  agent), `answered`, `needs-info` or `wont-do` (waiting on the author) or `resolved`, and each message records
+  who wrote it, the token an agent wrote it with, and the map's revision. Notes are rows keyed by slug
+  (`map_note`, `map_note_message`, `M0048`), so a board rebuilt over its own slug keeps its threads, its kept
+  views and a revision that counts on. The routes take the `notes` policy, reads included: an admin, or a token
+  an admin issued with the notes permission (`studio_token.notes`), which a member's token is refused. The notes
+  column is two steps, an overview under four filters and a thread or a new note. `docs/tools/sketch.md`,
+  `docs/access.md`. (`TS115`)
+
+- **A note pinned to ground on a picture (`TS116`)** — Point, Box and Lasso in a dock on the In game picture pin a
+  note to a block, a rectangle or an outline, which `GET …/render/eye/pick` projects onto the ground the
+  picture's own rays hit — a point's block and the ground under it, an area's columns, never ground no ray
+  reached — and answers the exact camera, which `render/eye?eye=x,y,z&yaw=&pitch=` draws again. The note keeps
+  the picture it was written on, encoded in the browser as WebP and kept once under its hash
+  (`POST`/`GET /api/notes/pictures`, `NotePictures`, `Notes:Pictures`), swept of files no message names and
+  copied beside the database dumps on deploy. A kept view takes a pitch, so a raised eye tipped down is an
+  aerial shot. `docs/tools/sketch.md`, `docs/world-scan/read-backs.md`, `docs/deployment.md`. (`TS116`)
+
+- **The board seen whole (`TS117`)** — placing a view draws the Board layer: the full build from straight above,
+  trees, houses and water included, shaded like the game's map item, with every other layer, chip and mark
+  left off and given back on leaving; placing is 2-D only. The gallery's
+  second suggestion is the whole board straight down, and it takes notes like any other picture; a ray is
+  followed 256 blocks from where it enters the world, so a raised eye sees the ground. `render/topdown?material`
+  draws a flooded column as water rather than as its bed. `docs/tools/sketch.md`,
+  `docs/world-scan/read-backs.md`. (`TS117`)
+
+- **The loop closed (`TS118`)** — an agent's reply carries the same camera drawn after its change, shown under
+  the note's own picture as its after, and `?note={id}` on the Sketch route opens the In game phase on that
+  thread, the link a resolved `ruling` carries into `docs/gameplay/approaches.md`. The mapgen skills read the open
+  notes first and reply on every note a drive answered. `docs/tools/sketch.md`. (`TS118`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each

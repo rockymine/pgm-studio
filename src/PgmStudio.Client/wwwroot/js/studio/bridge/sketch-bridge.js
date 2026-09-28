@@ -393,6 +393,24 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     refreshIso();
   }
 
+  // ── the Board layer: the built board from straight above, for placing a view ──
+  // Drawn from the same columns the 3-D preview meshes, so it is the full build — trees, houses, water — and
+  // it is asked for once per layout: placing a view edits nothing, so the board it shows cannot go stale
+  // while it is up.
+  let boardView = false, boardStamp = null, boardSeq = 0;
+
+  async function loadBoard() {
+    const state = JSON.stringify(handle.getState());
+    if (boardStamp === state) return;
+    const seq = ++boardSeq;
+    const built = await fetchColumns(state);
+    if (seq !== boardSeq || !boardView) return;
+    if (!built.payload) { fire("OnBoardUnavailable", built.error ?? ""); return; }
+    const { boardMap } = await import("../render/board-map.js");
+    boardStamp = state;
+    canvas.loadBoardLayer(boardMap(built.payload));
+  }
+
   // An edit invalidates the picture. A stale mesh redrawn on rotate would show the board as it was two edits
   // ago and give no sign of it.
   function dropIsoMesh() { isoMesh = null; isoPayload = null; isoStamp = null; }
@@ -922,6 +940,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setCenter(cx, cz)  { applySetup({ center: { cx, cz } }); markDirty(); },
     setBbox(b)         { applySetup({ bbox: b }); markDirty(); },
     setShapesVisible(v){ canvas.setShapesVisible(v); },
+    // Placing a view: the canvas shows the Board layer and the views alone.
+    setBoardView(on)   {
+      boardView = !!on;
+      canvas.setBoardView(boardView);
+      if (boardView) loadBoard();
+    },
     setMirrorVisible(v){ mirrorVisible = v; canvas.setMirrorVisible(v); refreshMirror(); },
     setChunkVisible(v) { canvas.setChunkVisible(v); },
     setBlocksVisible(v){

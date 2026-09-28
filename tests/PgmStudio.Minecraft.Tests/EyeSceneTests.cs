@@ -267,6 +267,48 @@ public sealed class EyeSceneTests
         await Assert.That(picture.Sky).IsEqualTo(0.0);
     }
 
+    [Test]
+    public async Task A_pick_names_the_block_its_pixel_hits_and_the_ground_under_it()
+    {
+        const int Leaves = 18;
+        var world = FloorWorld();
+        world.SetBlock(16, Floor + 1, 20, Leaves);
+
+        var hit = EyeScene.Of(world, Sprites()).Pick(FacingTheGold, 64, 36, 32, 18);
+
+        await Assert.That(hit).IsNotNull();
+        await Assert.That(hit!.Value.Block).IsEqualTo((16, Floor + 1, 20));
+        await Assert.That(hit.Value.Ground).IsEqualTo((16, Floor, 20));
+    }
+
+    [Test]
+    public async Task A_pick_of_sky_answers_nothing()
+    {
+        var up = new EyeCamera(24.5, Floor + 2, 24.5, Yaw: 0, Pitch: -80, Fov: 40);
+
+        await Assert.That(EyeScene.Of(FloorWorld(), Sprites()).Pick(up, 32, 18, 16, 9)).IsNull();
+    }
+
+    [Test]
+    public async Task An_area_projects_onto_the_ground_its_rays_reach_and_no_further()
+    {
+        var world = FloorWorld();
+        for (var x = 0; x < 48; x++)
+            for (var y = Floor + 1; y <= Floor + 12; y++)
+                world.SetBlock(x, y, 20, Cobblestone);
+        var scene = EyeScene.Of(world, Sprites());
+        var looking = new EyeCamera(24.5, Floor + 4, 8.5, Yaw: 0, Pitch: 5, Fov: 70);
+        var every = Enumerable.Range(0, 36).SelectMany(row => Enumerable.Range(0, 64).Select(column => (column, row))).ToList();
+
+        var area = scene.Project(looking, 64, 36, every);
+
+        await Assert.That(area.Columns.Count).IsGreaterThan(0);
+        await Assert.That(area.Columns.Keys.All(column => column.Z <= 20)).IsTrue();
+        var (pickX, pickY) = every[every.Count / 2 + 7];
+        var picked = scene.Pick(looking, 64, 36, pickX, pickY)!.Value.Block;
+        await Assert.That(area.Columns[(picked.X, picked.Z)]).IsGreaterThanOrEqualTo(picked.Y);
+    }
+
     private static (double Mean, double Variance) Spread(EyePicture picture)
     {
         var values = Enumerable.Range(0, picture.Width * picture.Height).Select(pixel => (double)picture.Rgb[pixel * 3]).ToList();
