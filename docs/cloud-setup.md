@@ -5,10 +5,39 @@ string set, and a firewalled network** by default. These are the steps that actu
 project and DB up — and the traps that waste time if you don't know them. (Local/VM dev is covered by the
 `CLAUDE.md` *Environment* section; this file is the cloud-specific runbook.)
 
-**A session driving the deployed studio needs none of this.** With `PGM_STUDIO_API` (the studio's `…/api`)
-and `PGM_STUDIO_TOKEN` among the environment's secrets it drives pgmstudio.de over HTTPS, signed in by the token
-(`docs/access.md`, *A token for a caller without a browser*). Which of the two a chat uses is the author's call,
-not the session's. The rest of this file is for a session that runs its own.
+**A session driving the deployed studio needs none of this.** Its environment holds the token as an API
+credential for `pgmstudio.de`, so `curl https://pgmstudio.de/api/me` answers signed in, and the session asked
+for the deployed studio sets `PGM_STUDIO_API=https://pgmstudio.de/api` itself (`docs/access.md`, *A token for a
+caller without a browser*). Which of the two a chat uses is the author's call, not the session's. The rest of
+this file is for a session that runs its own.
+
+## An environment made for this repository
+
+**A cloud environment can do most of what follows before the session starts.** Its setup script installs the
+SDK and MariaDB and makes the databases once, and the environment keeps the result for later sessions, which
+then only start MariaDB:
+
+```bash
+#!/bin/bash
+rm -f /etc/apt/sources.list.d/deadsnakes-* /etc/apt/sources.list.d/ondrej-*
+apt-get update
+apt-get install -y dotnet-sdk-10.0 mariadb-server
+service mariadb start
+mariadb <<'SQL'
+CREATE DATABASE IF NOT EXISTS pgm_studio;
+CREATE DATABASE IF NOT EXISTS pgm_studio_test;
+CREATE USER IF NOT EXISTS 'pgm'@'localhost' IDENTIFIED BY 'pgm_dev_pw';
+GRANT ALL ON pgm_studio.* TO 'pgm'@'localhost';
+GRANT ALL ON pgm_studio_test.* TO 'pgm'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+```
+
+Its variables carry the dev connection string, `ConnectionStrings__PgmStudio="Server=localhost;Database=pgm_studio;Uid=pgm;Pwd=pgm_dev_pw;"`,
+and never the token or the studio's address. Its network is the default allowlist plus the four Mojang hosts
+the studio calls — `api.mojang.com`, `sessionserver.mojang.com`, `textures.minecraft.net` and
+`launcher.mojang.com` — for names, skins and the texture jar; `pgmstudio.de` is reachable through its
+credential.
 
 ## Gotchas that cost time (avoid these)
 - **Foreground shell commands are sandboxed** (no outbound network beyond the local git proxy, restricted

@@ -104,12 +104,17 @@ revokes one of the caller's own, and taking a person off the whitelist revokes e
 A token the studio does not hold fails the sign-in outright, so a write carrying one is refused `RQ7` rather
 than read as a visitor's. A token does not lapse on its own: it lives until one of the two.
 
-**It is a secret of the environment that drives, never of a prompt.** A Claude Code session driving the
-deployed studio carries `PGM_STUDIO_API` (the studio's `…/api`) and `PGM_STUDIO_TOKEN` as the environment's
-secrets, and the pgm-studio-mapgen tools send the token on every request. Whether a session drives the
-deployed studio or sets up its own is the author's decision, taken per chat (`pgm-studio-mapgen/CLAUDE.md`).
-An open studio needs no token — every request is already its admin — and `POST /api/users/me/tokens` answers
-the local admin 404, since there is no account for a token to act as.
+**It is a secret of the environment that drives, never of a prompt.** A Claude Code cloud session holds it
+as its environment's **API credential** for `pgmstudio.de`: the session's proxy adds `Authorization: Bearer`
+to every request for that host after it leaves the session, so a plain `curl` is signed in and the token is
+never in the session to leak. Off the cloud it is `PGM_STUDIO_TOKEN`, which the pgm-studio-mapgen tools send on
+every request, and only over https or to the same machine.
+
+**The studio's address is the chat's, not the environment's.** Whether a session drives the deployed studio
+or sets up its own is the author's decision, taken per chat (`pgm-studio-mapgen/CLAUDE.md`), so
+`PGM_STUDIO_API` is set by the session that was asked for the deployed one. An open studio needs no token —
+every request is already its admin — and `POST /api/users/me/tokens` answers the local admin 404, since there
+is no account for a token to act as.
 
 ## What the browser shows
 
@@ -275,6 +280,9 @@ curl -s "$PGM_STUDIO_API/me" -H "Authorization: Bearer $PGM_STUDIO_TOKEN"
 curl -s -X POST "$PGM_STUDIO_API/sketch" -H "Authorization: Bearer $PGM_STUDIO_TOKEN" \
      -H 'content-type: application/json' -d '{"name":"Weirgate"}'
 ```
+
+In a cloud session whose environment holds the token as its API credential, the same reads carry no header:
+`curl -s https://pgmstudio.de/api/me` answers signed in.
 
 ## Limits
 
