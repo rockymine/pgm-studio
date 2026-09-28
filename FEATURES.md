@@ -8198,11 +8198,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **The board seen whole (`TS117`)** — placing a view draws the Board layer: the full build from straight above,
   trees, houses and water included, shaded like the game's map item, with every other layer, chip and mark
-  left off and given back on leaving; placing is 2-D only. The gallery's
-  second suggestion is the whole board straight down, and it takes notes like any other picture; a ray is
+  left off and given back on leaving; placing is 2-D only. The gallery
+  gains the whole board straight down, and it takes notes like any other picture; a ray is
   followed 256 blocks from where it enters the world, so a raised eye sees the ground. `render/topdown?material`
   draws a flooded column as water rather than as its bed. `docs/tools/sketch.md`,
   `docs/world-scan/read-backs.md`. (`TS117`)
+
+- **Every camera on the canvas, and every board's own straight-down view (`TS119`)** — every board keeps the
+  whole board seen straight down as its own view, framed from the built board, first in the gallery and on the
+  canvas; it is changed like any kept view and never let go. Placing a view draws every camera the gallery has,
+  the kept ones solid and the suggestions dashed at where each resolves (`GET …/views` answers each view's
+  `eye`), and lists them beside the canvas. A press on a camera's ring stands it elsewhere, on the dot it looks
+  at turns it, and a click opens it in the inspector with its own name, height and tip: a kept view is changed
+  in place (`PUT /map/{slug}/views/{viewId}`), a suggestion kept as a new view. `docs/tools/sketch.md`. (`TS119`)
 
 - **The loop closed (`TS118`)** — an agent's reply carries the same camera drawn after its change, shown under
   the note's own picture as its after, and `?note={id}` on the Sketch route opens the In game phase on that

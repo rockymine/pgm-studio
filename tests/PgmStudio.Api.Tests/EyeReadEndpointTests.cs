@@ -103,6 +103,13 @@ public sealed class EyeReadEndpointTests
 
         var outside = await client.GetAsync($"/api/map/{slug}/render/eye/pick?{Picture}&at=400,10");
         await Assert.That(outside.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+
+        // Every view listed carries the camera it resolves to, so a view that leaves the eye to find its own
+        // place can still be drawn where it stands.
+        var views = (await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/views")).GetProperty("views");
+        var straightDown = views.EnumerateArray().First();
+        await Assert.That(straightDown.GetProperty("id").GetString()).IsEqualTo("above");
+        await Assert.That(straightDown.GetProperty("eye").GetProperty("pitch").GetDouble()).IsEqualTo(90.0);
     }
 
     /// <summary>A host whose <c>Textures:Jar</c> names a jar of a few flat sprites, written once for the run.</summary>

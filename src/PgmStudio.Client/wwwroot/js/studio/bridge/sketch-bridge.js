@@ -159,7 +159,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onShapePromote:  edit((id) => promoteShape(id)),
     onSplit:         edit((a, b) => splitAt(a, b)),
     // A view is not an edit to the board — it is kept beside it — so it is relayed rather than stepped.
-    onViewPicked:    (from, look) => fire("OnViewPicked", from?.[0] ?? null, from?.[1] ?? null, look[0], look[1]),
+    onViewPicked:    (from, look, id) => fire("OnViewPicked", from?.[0] ?? null, from?.[1] ?? null, look[0], look[1], id ?? null),
     onVertexSelected: (shapeId, idx) => {
       const s = canvas.getShape(shapeId);
       const h = s ? clampHeight(s.anchor_heights?.[idx] ?? s.base_height) : MIN_HEIGHT;

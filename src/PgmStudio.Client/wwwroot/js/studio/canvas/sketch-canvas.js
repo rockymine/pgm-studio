@@ -253,7 +253,8 @@ export class SketchCanvas extends CanvasBase {
 
   /** The view being placed, or null to clear it — the host clears it once the view is kept or let go. */
   setViewDraft(view) {
-    this.#view = view ? { ax: view.fromX ?? view.lookX, az: view.fromZ ?? view.lookZ, bx: view.lookX, bz: view.lookZ, live: false } : null;
+    this.#view = view ? { ax: view.fromX ?? view.lookX, az: view.fromZ ?? view.lookZ, bx: view.lookX, bz: view.lookZ,
+                          live: false, id: view.id ?? null } : null;
     this.#paintWorld();
   }
 
@@ -514,7 +515,7 @@ export class SketchCanvas extends CanvasBase {
     this.#placementClick = false;
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
-    if (this._activeTool === "eye") { this.#view = { ax: bx, az: bz, bx, bz, live: true }; this.#paintWorld(); return; }
+    if (this._activeTool === "eye") { this.#view = this.#grabView(svgPt) ?? { ax: bx, az: bz, bx, bz, live: true, grab: "look" }; this.#paintWorld(); return; }
     if (this._activeTool === "split") { this.#onSplitClick(bx, bz); return; }
     if (this.#reliefOn && this.#reliefTools?.onMouseDown(bx, bz, this._activeTool)) return;
     if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool, e.shiftKey)) return;
@@ -527,7 +528,11 @@ export class SketchCanvas extends CanvasBase {
     if (this._activeTool === "measure") {
       if (this.#measure?.live) { this.#measure.bx = bx; this.#measure.bz = bz; this.#renderMeasure(); }
     } else if (this._activeTool === "eye") {
-      if (this.#view?.live) { this.#view.bx = bx; this.#view.bz = bz; this.#paintWorld(); }
+      if (this.#view?.live) {
+        if (this.#view.grab === "stand") { this.#view.ax = bx; this.#view.az = bz; }
+        else { this.#view.bx = bx; this.#view.bz = bz; }
+        this.#paintWorld();
+      }
     } else if (this._activeTool === "split") {
       if (this.#split) { this.#split.bx = bx; this.#split.bz = bz; this.#paintWorld(); }
     } else if (this.#reliefOn && this.#reliefTools?.onMouseMove(bx, bz, this._activeTool)) {
@@ -1433,28 +1438,67 @@ export class SketchCanvas extends CanvasBase {
     const v = this.#view;
     if (!v?.live) return;
     v.live = false;
-    const stood = v.ax !== v.bx || v.az !== v.bz;
-    this.#callbacks.onViewPicked?.(stood ? [v.ax, v.az] : null, [v.bx, v.bz]);
+    // A camera picked up keeps standing somewhere, even where it was only clicked: it becomes the view being
+    // placed, stood where the eye was.
+    const stood = v.id != null || v.ax !== v.bx || v.az !== v.bz;
+    this.#callbacks.onViewPicked?.(stood ? [v.ax, v.az] : null, [v.bx, v.bz], v.id ?? null);
     this.#paintWorld();
   }
 
-  // Each view as the eye it is: a ring where it stands, a line the way it looks, a dot on what it sees. The
-  // one being placed is drawn in the axis colour over the kept ones.
-  #paintViews() {
-    const eye = (fromX, fromZ, lookX, lookZ, stroke) => {
-      const toCentre = (value) => value + 0.5;
-      if (fromX != null && fromZ != null) {
-        this.#painter.line(toCentre(fromX), toCentre(fromZ), toCentre(lookX), toCentre(lookZ), { stroke, width: 1.5 });
-        this.#painter.dot(toCentre(fromX), toCentre(fromZ), { radiusPx: 6, stroke, width: 2, fill: "var(--canvas-bg)" });
-      }
-      this.#painter.dot(toCentre(lookX), toCentre(lookZ), { radiusPx: 3, fill: stroke });
-    };
-    for (const kept of this.#views) eye(kept.fromX, kept.fromZ, kept.lookX, kept.lookZ, "var(--canvas-marker-stroke)");
-    const v = this.#view;
-    if (!v) return;
-    const stood = v.ax !== v.bx || v.az !== v.bz;
-    eye(stood ? v.ax : null, stood ? v.az : null, v.bx, v.bz, "var(--canvas-axis)");
+  /** Where a view's eye stands on the canvas: where it was stood, else where it resolved to, else nowhere. */
+  #standOf(view) {
+    if (view.fromX != null && view.fromZ != null) return { x: view.fromX, z: view.fromZ };
+    if (view.eyeX != null && view.eyeZ != null) return { x: Math.floor(view.eyeX), z: Math.floor(view.eyeZ) };
+    return null;
   }
+
+  /**
+   * The camera a press lands on, picked up to be moved: its eye to stand it elsewhere, or what it looks at to
+   * turn it. The nearest dot within a few screen pixels wins; a press on neither places a new view.
+   */
+  #grabView(svgPt) {
+    const reach = 9 / this._scale;
+    let best = null;
+    for (const view of this.#views) {
+      const stand = this.#standOf(view);
+      const look = { x: view.lookX, z: view.lookZ };
+      for (const [point, grab] of [[stand, "stand"], [look, "look"]]) {
+        if (!point) continue;
+        const distance = Math.hypot(point.x + 0.5 - svgPt.x, point.z + 0.5 - svgPt.y);
+        if (distance <= reach && (!best || distance < best.distance)) best = { view, grab, stand, distance };
+      }
+    }
+    if (!best) return null;
+    const stand = best.stand ?? { x: best.view.lookX, z: best.view.lookZ };
+    return { ax: stand.x, az: stand.z, bx: best.view.lookX, bz: best.view.lookZ, live: true,
+             grab: best.grab, id: best.view.id };
+  }
+
+  // Each view as the eye it is: a ring where it stands, a line the way it looks, a dot on what it sees. The views
+  // kept are drawn solid and the studio's suggestions dashed and faint, and the one being placed or moved is
+  // drawn in the axis colour in place of the camera it was picked up from.
+  #paintViews() {
+    const eye = (stand, lookX, lookZ, stroke, faint) => {
+      const toCentre = (value) => value + 0.5;
+      const alpha = faint ? 0.55 : 1;
+      if (stand) {
+        this.#painter.line(toCentre(stand.x), toCentre(stand.z), toCentre(lookX), toCentre(lookZ),
+                           { stroke, width: 1.5, dash: faint ? "5 4" : null, strokeAlpha: alpha });
+        this.#painter.dot(toCentre(stand.x), toCentre(stand.z),
+                          { radiusPx: 6, stroke, width: 2, fill: "var(--canvas-bg)", strokeAlpha: alpha });
+      }
+      this.#painter.dot(toCentre(lookX), toCentre(lookZ), { radiusPx: 3, fill: stroke, fillAlpha: alpha });
+    };
+    const v = this.#view;
+    for (const view of this.#views) {
+      if (v && v.id != null && v.id === view.id) continue;
+      eye(this.#standOf(view), view.lookX, view.lookZ, "var(--canvas-marker-stroke)", !view.kept);
+    }
+    if (!v) return;
+    const stood = v.id != null || v.ax !== v.bx || v.az !== v.bz;
+    eye(stood ? { x: v.ax, z: v.az } : null, v.bx, v.bz, "var(--canvas-axis)", false);
+  }
+
 
   // Split tool (S14): first click sets the cut's start + a preview line; the second click fires onSplit
   // (the host cuts the crossed shape into two). The slice line rides the measure layer.

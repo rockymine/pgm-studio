@@ -1322,9 +1322,16 @@ without them answers the list with the reason, and the phase says so instead of 
 changed builds a new world, and every picture is drawn again the first time it is asked for; a board that has
 not answers from the pictures already drawn.
 
-**The gallery opens on what the studio suggests, then on what the author kept.** The suggestions are read off
-the built board (`WorldViews`): the whole board from above the middle of its long side; the whole board
-straight down; every team's spawn seen
+**Every board keeps one view of its own: the whole board straight down.** The eye stands over the board's
+middle, north at the top, high enough that the board's width fits across the frame and its depth down it, so
+almost nothing is hidden and a mark on it reads like a mark on a map while still showing the board as it is
+built. It is the first picture in the gallery and the first camera on the canvas, and it is framed from the
+built board every time the views are listed, so it follows the board as the board grows. It can be changed like
+any kept view, and the change is kept in its place; it is never let go, and deleting a changed one puts the
+framed one back.
+
+**Then the gallery shows what the studio suggests, and then what the author kept.** The suggestions are read
+off the built board (`WorldViews`): the whole board from above the middle of its long side; every team's spawn seen
 from its front, and the view a player gets on arriving there — four blocks out of the room on the heading its
 yaw faces, looking on down it; every wool room, destroyable, core and control point; the first four buildings
 the dressing placed; and the first two boulders. Spawns and objectives are shown for every team, since each is
@@ -1346,17 +1353,26 @@ either, it is left to find its own place.
 
 **One picture is shown large, with the gallery under it.** The enlarged picture is drawn at 1280×720, under its
 name and where the eye stands; choosing a card in the gallery shows it instead, `←` and `→` step through the
-gallery, and **Full size** opens the 1920×1080 picture in a tab of its own. A kept view is let go from there.
-The gallery opens on the suggestions and then on the views kept, and the second suggestion is the whole board
-**straight down** — the eye over the board's middle, north at the top, high enough that the board's width fits
-across the frame and its depth down it. From there almost nothing is hidden, so a mark on it reads like a mark
-on a map while still showing the board as it is built.
+gallery, and **Full size** opens the 1920×1080 picture in a tab of its own. A kept view other than the board's
+own is let go from there.
 
-**Place a view brings the canvas back with the eye tool armed.** A press stands the eye and a drag turns it
-toward what it looks at; a click without a drag names only what to look at, and the eye finds its own place. The
-inspector draws the view as it stands, takes a name, an eye height and how far the eye tips down — blank height
-is a player's eye over the ground, and over the void the eye hovers level with what it faces; a raised eye
-tipped down is an aerial shot, and 90 is straight down — and **Keep** stores it and returns to the gallery.
+**Place a view brings the canvas back with the eye tool armed, and every camera the gallery has on it.** Each
+view is drawn as the eye it is — a ring where it stands, a line the way it looks, a dot on what it sees — the
+views kept solid and the studio's suggestions dashed and faint. A suggestion that leaves the eye to find its own
+place is drawn where the eye resolved to on the board as built, which `GET …/views` answers as each view's `eye`.
+The same cameras are listed beside the canvas, kept first and then suggested.
+
+**A press on empty ground places a new view.** It stands the eye and a drag turns it toward what it looks at; a
+click without a drag names only what to look at, and the eye finds its own place. The inspector draws the view
+as it stands, takes a name, an eye height and how far the eye tips down — blank height is a player's eye over
+the ground, and over the void the eye hovers level with what it faces; a raised eye tipped down is an aerial
+shot, and 90 is straight down — and **Keep** stores it and returns to the gallery.
+
+**A press on a camera picks it up.** Pressing its ring and dragging stands it elsewhere; pressing the dot it
+looks at and dragging turns it; a click, or choosing it in the list, opens it as it is. The inspector opens with
+the view's own name, height and tip — for a suggestion that found its own place, the height and tip it resolved
+to — and a kept view is changed in place with **Save** (`PUT …/views/{viewId}`), while a suggestion is kept as a
+new view of its own, since a suggestion is not stored and cannot be changed.
 
 **Placing a view draws the board as it is built, and nothing over it.** The canvas shows the **Board layer** —
 the full build from straight above, one pixel a column in the colour of the block on top of it, so the trees, the
@@ -1364,8 +1380,7 @@ houses and the water are in it — shaded the way the game's own map item shades
 northern neighbour, with a light height term over that. It is drawn from the same columns the 3-D preview
 meshes (`sketch/columns`), asked for once when the placing starts. The shapes, the blocks, the mirror, the chunk
 grid, the work bounds, the axis, the group outlines and the objective labels are all left off whatever their
-chips say; the views kept — a ring where each eye stands and a line to what it sees — and the one being placed
-are what the canvas adds. No chip is offered over it: the shading already reads the lie of the ground, and a
+chips say; the cameras and the one being placed are what the canvas adds. No chip is offered over it: the shading already reads the lie of the ground, and a
 contour traced over the built columns would run round every tree and house as readily as round a hill. Placing
 a view is 2-D only; the 2-D / 3-D switch is not offered.
 
@@ -1931,9 +1946,10 @@ in the same two registers.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: the studio's suggestions from the built board first, then the ones kept, each `{id, name, kept, lookX, lookZ, fromX, fromZ, y, pitch, query}`. A map with no sketch layout has no world to suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server — the block textures are not there — or null | 404 |
+| `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, query, eye}`. `own` marks the straight-down view (`above`), kept by every board; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null | 404 |
 | `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?}`; a blank name is `View {n}`. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, or a pitch past straight up or down · 404 |
-| `DELETE /map/{slug}/views/{viewId}` | the view let go. A suggestion is not kept, so it cannot be deleted | 404 no kept view has that id |
+| `PUT /map/{slug}/views/{viewId}` | the view changed in place, keeping its id. Body as for keeping one; a blank name keeps the view's own. The board's own `above` is changed the same way, and the change is then kept in place of the framed one | 400 `not a view` `RQ1` · 404 no kept view has that id — a suggestion is not stored, so it cannot be changed |
+| `DELETE /map/{slug}/views/{viewId}` | the view let go. A suggestion is not kept, so it cannot be deleted; deleting a changed `above` puts the framed one back | 404 no kept view has that id · 409 `RQ5` the framed `above`, which is never let go |
 
 ```json POST /api/map/{slug}/views
 {"name": "Across the middle", "lookX": 25, "lookZ": -22, "fromX": -26, "fromZ": 21}

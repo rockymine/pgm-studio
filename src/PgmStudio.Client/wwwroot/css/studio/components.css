@@ -1923,6 +1923,15 @@ button.app-footer-link { border: 0; background: none; padding: 0; font: inherit;
   font-size: var(--font-sm);
 }
 .ingame__pin { position: absolute; z-index: 1; transform: translate(-50%, -100%); cursor: pointer; border: 0; }
+/* A camera in the list beside the place-a-view canvas: choosing one picks it up as a press on it would. */
+.view-row {
+  display: flex; flex-direction: column; gap: 2px; width: 100%; padding: var(--space-1) var(--space-2);
+  border: 1px solid transparent; border-radius: var(--radius-sm); background: none;
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.view-row span { color: var(--text-muted); font-size: var(--font-sm); }
+.view-row:hover, .view-row:focus-visible { border-color: var(--border); outline: none; }
+.view-row--on { border-color: var(--accent); background: var(--bg-selected); }
 .ingame__divider { width: 1px; height: 20px; margin: 0 4px; background: var(--canvas-float-border); }
 
 .ingame__strip { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-1); }

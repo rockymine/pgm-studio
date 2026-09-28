@@ -124,7 +124,7 @@ public sealed class NoteEndpointsTests
         var map = await client.GetAsync($"/api/map/{SketchBoard.Slug}");
         await Assert.That(long.Parse(map.Headers.ETag!.Tag.Trim('"'))).IsGreaterThan(note.Messages[0].Revision);
         var views = await client.GetFromJsonAsync<MapViewsDto>($"/api/map/{SketchBoard.Slug}/views");
-        await Assert.That(views!.Views.Single(view => view.Kept).Pitch).IsEqualTo(60.0);
+        await Assert.That(views!.Views.Single(view => view.Kept && !view.Own).Pitch).IsEqualTo(60.0);
 
         await client.DeleteAsync($"/api/map/{SketchBoard.Slug}");
         await SketchBoard.RebuildAsync(client);

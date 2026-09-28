@@ -96,16 +96,29 @@
           }
           else if (PlacingViewActive)
           {
+            @* Every camera the gallery has, as the canvas draws it: the views kept solid, the studio's suggestions
+               dashed. Choosing one here picks it up as a press on its camera would. *@
             <Section Title="Kept views">
-              @if (KeptViews.Count == 0)
-              {
-                <p class="plan-readout">None yet. A view kept is drawn on the canvas where its eye stands.</p>
-              }
               @foreach (var kept in KeptViews)
               {
-                <p class="plan-readout" @key="kept.Id"><strong>@kept.Name</strong> — looking at @kept.LookX, @kept.LookZ</p>
+                <button type="button" class="@(viewDraft?.Source?.Id == kept.Id ? "view-row view-row--on" : "view-row")"
+                        @key="kept.Id" @onclick="() => SelectView(kept)">
+                  <strong>@kept.Name</strong><span>looking at @kept.LookX, @kept.LookZ</span>
+                </button>
               }
             </Section>
+            @if (SuggestedViews.Count > 0)
+            {
+              <Section Title="Suggested">
+                @foreach (var suggested in SuggestedViews)
+                {
+                  <button type="button" class="@(viewDraft?.Source?.Id == suggested.Id ? "view-row view-row--on" : "view-row")"
+                          @key="suggested.Id" @onclick="() => SelectView(suggested)">
+                    <strong>@suggested.Name</strong><span>looking at @suggested.LookX, @suggested.LookZ</span>
+                  </button>
+                }
+              </Section>
+            }
           }
           else if (ReliefActive)
           {

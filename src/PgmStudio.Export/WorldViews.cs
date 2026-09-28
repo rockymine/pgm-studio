@@ -73,7 +73,6 @@ public static class WorldViews
         var views = new List<WorldView>();
         var middle = Middle(built.Surface);
         if (Overview(built.Surface) is { } overview) views.Add(overview);
-        if (Above(built.Surface) is { } above) views.Add(above);
 
         foreach (var (spawn, index) in intent.Spawns.Select((spawn, index) => (spawn, index)))
         {
@@ -216,8 +215,12 @@ public static class WorldViews
         return new WorldView("overview", "The whole board", centreX, centreZ, fromX, fromZ, top + 0.6 * back);
     }
 
+    /// <summary>The id of every board's own straight-down view.</summary>
+    public const string StraightDownId = "above";
+
     /// <summary>
-    /// The whole board seen straight down, north at the top: the eye over the board's middle, high enough that
+    /// Every board's own view, kept by default rather than suggested: the whole board seen straight down,
+    /// north at the top: the eye over the board's middle, high enough that
     /// its width fits across a 16:9 frame at the default field of view and its depth fits down it. From there
     /// almost nothing is hidden, so a mark drawn on it reads like a mark on a map while the picture is still the
     /// board as it is built.
@@ -225,15 +228,16 @@ public static class WorldViews
     /// <para>The eye stands one block south of the middle and looks at it, which is what turns it to face north;
     /// tipped straight down, the block of offset is lost in the frame.</para>
     /// </summary>
-    private static WorldView? Above(IReadOnlyDictionary<(int X, int Z), int> surface)
+    public static WorldView? StraightDown(BuiltWorld built)
     {
+        var surface = built.Surface;
         if (surface.Count == 0) return null;
         int minX = surface.Keys.Min(cell => cell.X), maxX = surface.Keys.Max(cell => cell.X);
         int minZ = surface.Keys.Min(cell => cell.Z), maxZ = surface.Keys.Max(cell => cell.Z);
         int centreX = (minX + maxX) / 2, centreZ = (minZ + maxZ) / 2;
         var over = Math.Max((maxX - minX + 1) / 2.0 / AboveAcross, (maxZ - minZ + 1) / 2.0 / AboveDown) + 4;
         var height = Math.Min(surface.Values.Max() + over, HighestEye);
-        return new WorldView("above", "Straight down", centreX, centreZ, centreX, centreZ + 1, Math.Round(height, 1), 90);
+        return new WorldView(StraightDownId, "Straight down", centreX, centreZ, centreX, centreZ + 1, Math.Round(height, 1), 90);
     }
 
     /// <summary>The tangents of a 70° eye's half-angles across and down a 16:9 frame.</summary>

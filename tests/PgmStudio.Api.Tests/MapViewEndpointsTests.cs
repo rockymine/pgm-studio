@@ -5,8 +5,8 @@ using System.Text.Json;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The views of a board from a player's eye: the studio suggests some from the built board, an author keeps
-/// others, and a kept one is let go by its id. A view is only where to stand and what to look at, so what is
+/// The views of a board from a player's eye: every board keeps its own straight-down view, the studio suggests
+/// others from the built board, an author keeps more, and a kept one is changed or let go by its id. A view is only where to stand and what to look at, so what is
 /// held is the list and its query words — the picture is <c>render/eye</c>'s.
 ///
 /// <para>Runs against the <c>pgm_studio_test</c> schema, so it runs serially with the other DB suites.</para>
@@ -31,7 +31,8 @@ public sealed class MapViewEndpointsTests
 
         await Assert.That(views.Any(view => view.GetProperty("id").GetString() == "overview")).IsTrue();
         await Assert.That(views.Any(view => view.GetProperty("name").GetString() == "Boulder 1")).IsTrue();
-        await Assert.That(views.All(view => !view.GetProperty("kept").GetBoolean())).IsTrue();
+        await Assert.That(views.Where(view => view.GetProperty("kept").GetBoolean()).Select(view => view.GetProperty("id").GetString()!))
+            .IsEquivalentTo(["above"]);
     }
 
     [Test]
@@ -51,7 +52,49 @@ public sealed class MapViewEndpointsTests
 
         await Assert.That((await client.DeleteAsync($"{Views}/view-1")).StatusCode).IsEqualTo(HttpStatusCode.OK);
         await Assert.That((await client.DeleteAsync($"{Views}/view-1")).StatusCode).IsEqualTo(HttpStatusCode.NotFound);
-        await Assert.That((await ListAsync(client)).Any(entry => entry.GetProperty("kept").GetBoolean())).IsFalse();
+        await Assert.That((await ListAsync(client)).Where(entry => entry.GetProperty("kept").GetBoolean())
+            .Select(entry => entry.GetProperty("id").GetString()!)).IsEquivalentTo(["above"]);
+    }
+
+    [Test]
+    public async Task Every_board_keeps_its_straight_down_view_first_and_it_is_changed_rather_than_let_go()
+    {
+        using var client = await SketchBoard.FreshAsync();
+
+        var first = (await ListAsync(client))[0];
+        await Assert.That(first.GetProperty("id").GetString()).IsEqualTo("above");
+        await Assert.That(first.GetProperty("kept").GetBoolean()).IsTrue();
+        await Assert.That(first.GetProperty("own").GetBoolean()).IsTrue();
+        await Assert.That(first.GetProperty("pitch").GetDouble()).IsEqualTo(90.0);
+        var refused = await client.DeleteAsync($"{Views}/above");
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+
+        var changed = await client.PutAsJsonAsync($"{Views}/above", new { lookX = 0, lookZ = 0, fromX = 0, fromZ = 1, y = 150, pitch = 80 });
+        await Assert.That(changed.IsSuccessStatusCode).IsTrue().Because(await changed.Content.ReadAsStringAsync());
+        var adjusted = (await ListAsync(client))[0];
+        await Assert.That(adjusted.GetProperty("name").GetString()).IsEqualTo("Straight down");
+        await Assert.That(adjusted.GetProperty("pitch").GetDouble()).IsEqualTo(80.0);
+
+        await Assert.That((await client.DeleteAsync($"{Views}/above")).StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That((await ListAsync(client))[0].GetProperty("pitch").GetDouble()).IsEqualTo(90.0);
+    }
+
+    [Test]
+    public async Task A_kept_view_is_changed_in_place_by_its_id_and_an_unknown_one_is_not_found()
+    {
+        using var client = await SketchBoard.FreshAsync();
+        await client.PostAsJsonAsync(Views, new { name = "Porch", lookX = 3, lookZ = 4, fromX = 10, fromZ = 10 });
+
+        var changed = await client.PutAsJsonAsync($"{Views}/view-1", new { lookX = 5, lookZ = 5, fromX = 12, fromZ = 12, y = 40 });
+        await Assert.That(changed.IsSuccessStatusCode).IsTrue();
+        var view = (await ListAsync(client)).Single(entry => entry.GetProperty("id").GetString() == "view-1");
+        await Assert.That(view.GetProperty("name").GetString()).IsEqualTo("Porch");
+        await Assert.That(view.GetProperty("query").GetString()).IsEqualTo("look=5,5&from=12,12&y=40");
+
+        var missing = await client.PutAsJsonAsync($"{Views}/view-9", new { lookX = 0, lookZ = 0 });
+        await Assert.That(missing.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+        var suggestion = await client.PutAsJsonAsync($"{Views}/overview", new { lookX = 0, lookZ = 0 });
+        await Assert.That(suggestion.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
     [Test]

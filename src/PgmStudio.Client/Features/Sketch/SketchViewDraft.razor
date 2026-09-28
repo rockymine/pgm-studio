@@ -3,17 +3,23 @@
 @inject IJSRuntime JS
 
 @* The view being placed on the canvas: what it will look like, what to call it, how high the eye stands and
-   how far it tips down — raised and tipped, it is an aerial shot — and whether to keep it. Nothing is stored
-   until it is kept. *@
+   how far it tips down — raised and tipped, it is an aerial shot — and whether to keep it. A camera picked up
+   off the canvas opens here with its own values: a kept one is changed in place, a suggestion is kept as a new
+   view. Nothing is stored until it is kept. *@
 
 <Inspector>
   <Section>
-    <DetailHeader Icon="eye" Label="A view of your own" />
+    <DetailHeader Icon="eye" Label="@Title" />
     @if (Draft is not { } draft)
     {
       <p class="plan-readout">
         Press where the eye should stand and drag to what it looks at. A click without a drag names only what to
         look at, and the eye finds its own place to see it from.
+      </p>
+      <p class="plan-readout">
+        To change a camera already there, press its ring and drag to stand it elsewhere, or press the dot it looks
+        at and drag to turn it; a click opens it here as it is. Dashed cameras are the studio's suggestions, and
+        keeping one keeps a copy.
       </p>
       @if (Note is not null) { <p class="dressing-refusal">@Note</p> }
     }
@@ -44,7 +50,7 @@
       }
       @if (Note is not null) { <p class="dressing-refusal">@Note</p> }
       <div class="panel-actions">
-        <Button Variant="primary" Busy="keeping" BusyLabel="Keeping…" OnClick="Keep">Keep</Button>
+        <Button Variant="primary" Busy="keeping" BusyLabel="Keeping…" OnClick="Keep">@(Changing ? "Save" : "Keep")</Button>
         <Button OnClick="OnDiscard">Discard</Button>
       </div>
     }
@@ -52,8 +58,10 @@
 </Inspector>
 
 @code {
-    /// <summary>A view before it is kept: where the eye stands, if the author stood it, and what it looks at.</summary>
-    public sealed record ViewDraft(int? FromX, int? FromZ, int LookX, int LookZ);
+    /// <summary>A view before it is kept: where the eye stands, if the author stood it, what it looks at, the
+    /// height and tip it starts from, and the view it was picked up from, if it was one.</summary>
+    public sealed record ViewDraft(int? FromX, int? FromZ, int LookX, int LookZ,
+                                   double? Y = null, double? Pitch = null, MapViewDto? Source = null);
 
     [Parameter, EditorRequired] public string Slug { get; set; } = "";
     [Parameter] public ViewDraft? Draft { get; set; }
@@ -74,9 +82,16 @@
     protected override void OnParametersSet()
     {
         if (Draft == seen) return;
+        // A different draft starts from its own values; the same camera dragged again keeps what was typed.
+        if (Draft?.Source?.Id is { } id && id == seen?.Source?.Id)
+        {
+            seen = Draft;
+            return;
+        }
         seen = Draft;
-        eyeY = null;
-        pitch = null;
+        eyeY = Draft?.Y;
+        pitch = Draft?.Pitch;
+        name = Draft?.Source?.Name ?? "";
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
@@ -84,6 +99,13 @@
     private void OnEyeY(ChangeEventArgs change) =>
         eyeY = double.TryParse(change.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var y)
             ? Math.Clamp(y, 0, 320) : null;
+
+    /// <summary>Whether the draft changes a kept view rather than keeping a new one.</summary>
+    private bool Changing => Draft?.Source is { Kept: true };
+
+    private string Title => Draft?.Source is { } source
+        ? source.Kept ? $"Changing {source.Name}" : $"From the suggestion {source.Name}"
+        : "A view of your own";
 
     private void OnPitch(ChangeEventArgs change) =>
         pitch = double.TryParse(change.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var tipped)
