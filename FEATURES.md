@@ -8206,10 +8206,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **Every camera on the canvas, and every board's own straight-down view (`TS119`)** — every board keeps the
   whole board seen straight down as its own view, framed from the built board, first in the gallery and on the
-  canvas; it is changed like any kept view and never let go. Placing a view draws every camera the gallery has,
-  the kept ones solid and the suggestions dashed at where each resolves (`GET …/views` answers each view's
-  `eye`), and lists them beside the canvas. A press on a camera's ring stands it elsewhere, on the dot it looks
-  at turns it, and a click opens it in the inspector with its own name, height and tip: a kept view is changed
+  canvas; it is changed like any kept view and never let go. Placing a view draws every camera the gallery has as
+  a camera glyph where its eye stands, the kept ones full and the suggestions faint (`GET …/views` answers each
+  view's `eye`), and lists them beside the canvas; only the camera in hand shows its sight line and target. A
+  press on a camera stands it elsewhere, its target turns it, and a click opens it in the inspector with its
+  own name, height and tip: a kept view is changed
   in place (`PUT /map/{slug}/views/{viewId}`), a suggestion kept as a new view. `docs/tools/sketch.md`. (`TS119`)
 
 - **The loop closed (`TS118`)** — an agent's reply carries the same camera drawn after its change, shown under

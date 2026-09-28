@@ -9,7 +9,7 @@
 
 <Inspector>
   <Section>
-    <DetailHeader Icon="eye" Label="@Title" />
+    <DetailHeader Icon="camera" Label="@Title" />
     @if (Draft is not { } draft)
     {
       <p class="plan-readout">
@@ -17,9 +17,9 @@
         look at, and the eye finds its own place to see it from.
       </p>
       <p class="plan-readout">
-        To change a camera already there, press its ring and drag to stand it elsewhere, or press the dot it looks
-        at and drag to turn it; a click opens it here as it is. Dashed cameras are the studio's suggestions, and
-        keeping one keeps a copy.
+        To change a camera already there, press it and drag to stand it elsewhere; a click opens it here as it is,
+        with the line it looks along, and its target is then dragged to turn it. Faint cameras are the studio's
+        suggestions, and keeping one keeps a copy.
       </p>
       @if (Note is not null) { <p class="dressing-refusal">@Note</p> }
     }

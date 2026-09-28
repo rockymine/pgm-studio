@@ -1356,11 +1356,11 @@ name and where the eye stands; choosing a card in the gallery shows it instead, 
 gallery, and **Full size** opens the 1920×1080 picture in a tab of its own. A kept view other than the board's
 own is let go from there.
 
-**Place a view brings the canvas back with the eye tool armed, and every camera the gallery has on it.** Each
-view is drawn as the eye it is — a ring where it stands, a line the way it looks, a dot on what it sees — the
-views kept solid and the studio's suggestions dashed and faint. A suggestion that leaves the eye to find its own
-place is drawn where the eye resolved to on the board as built, which `GET …/views` answers as each view's `eye`.
-The same cameras are listed beside the canvas, kept first and then suggested.
+**Place a view brings the canvas back with the camera tool armed, and every camera the gallery has on it.** Each
+view is drawn as a camera where its eye stands, and nothing more — the views kept in full, the studio's
+suggestions faint. A suggestion that leaves the eye to find its own place is drawn where the eye resolved to on
+the board as built, which `GET …/views` answers as each view's `eye`. The same cameras are listed beside the
+canvas, kept first and then suggested.
 
 **A press on empty ground places a new view.** It stands the eye and a drag turns it toward what it looks at; a
 click without a drag names only what to look at, and the eye finds its own place. The inspector draws the view
@@ -1368,8 +1368,9 @@ as it stands, takes a name, an eye height and how far the eye tips down — blan
 the ground, and over the void the eye hovers level with what it faces; a raised eye tipped down is an aerial
 shot, and 90 is straight down — and **Keep** stores it and returns to the gallery.
 
-**A press on a camera picks it up.** Pressing its ring and dragging stands it elsewhere; pressing the dot it
-looks at and dragging turns it; a click, or choosing it in the list, opens it as it is. The inspector opens with
+**A press on a camera picks it up.** Pressing it and dragging stands it elsewhere; a click, or choosing it in
+the list, opens it as it is. Only the camera in hand shows the line it looks along and the target at its end,
+and dragging that target turns it. The inspector opens with
 the view's own name, height and tip — for a suggestion that found its own place, the height and tip it resolved
 to — and a kept view is changed in place with **Save** (`PUT …/views/{viewId}`), while a suggestion is kept as a
 new view of its own, since a suggestion is not stored and cannot be changed.
@@ -1380,7 +1381,7 @@ houses and the water are in it — shaded the way the game's own map item shades
 northern neighbour, with a light height term over that. It is drawn from the same columns the 3-D preview
 meshes (`sketch/columns`), asked for once when the placing starts. The shapes, the blocks, the mirror, the chunk
 grid, the work bounds, the axis, the group outlines and the objective labels are all left off whatever their
-chips say; the cameras and the one being placed are what the canvas adds. No chip is offered over it: the shading already reads the lie of the ground, and a
+chips say, and so is the symmetry centre's cross; the cameras and the one in hand are what the canvas adds. No chip is offered over it: the shading already reads the lie of the ground, and a
 contour traced over the built columns would run round every tree and house as readily as round a hill. Placing
 a view is 2-D only; the 2-D / 3-D switch is not offered.
 

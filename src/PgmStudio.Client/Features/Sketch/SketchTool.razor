@@ -96,27 +96,33 @@
           }
           else if (PlacingViewActive)
           {
-            @* Every camera the gallery has, as the canvas draws it: the views kept solid, the studio's suggestions
-               dashed. Choosing one here picks it up as a press on its camera would. *@
+            @* Every camera the gallery has, as the canvas draws it: the views kept, then the studio's
+               suggestions. Choosing one here picks it up as a press on its camera would. *@
             <Section Title="Kept views">
-              @foreach (var kept in KeptViews)
-              {
-                <button type="button" class="@(viewDraft?.Source?.Id == kept.Id ? "view-row view-row--on" : "view-row")"
-                        @key="kept.Id" @onclick="() => SelectView(kept)">
-                  <strong>@kept.Name</strong><span>looking at @kept.LookX, @kept.LookZ</span>
-                </button>
-              }
+              <div class="panel-list">
+                @foreach (var kept in KeptViews)
+                {
+                  <ListRow Compact Selected="@(viewDraft?.Source?.Id == kept.Id)" @key="kept.Id" OnClick="() => SelectView(kept)">
+                    <span class="geo-type-icon"><i data-lucide="camera"></i></span>
+                    <span class="list-label">@kept.Name</span>
+                    <span class="list-tag">@kept.LookX, @kept.LookZ</span>
+                  </ListRow>
+                }
+              </div>
             </Section>
             @if (SuggestedViews.Count > 0)
             {
               <Section Title="Suggested">
-                @foreach (var suggested in SuggestedViews)
-                {
-                  <button type="button" class="@(viewDraft?.Source?.Id == suggested.Id ? "view-row view-row--on" : "view-row")"
-                          @key="suggested.Id" @onclick="() => SelectView(suggested)">
-                    <strong>@suggested.Name</strong><span>looking at @suggested.LookX, @suggested.LookZ</span>
-                  </button>
-                }
+                <div class="panel-list">
+                  @foreach (var suggested in SuggestedViews)
+                  {
+                    <ListRow Compact Selected="@(viewDraft?.Source?.Id == suggested.Id)" @key="suggested.Id" OnClick="() => SelectView(suggested)">
+                      <span class="geo-type-icon"><i data-lucide="camera"></i></span>
+                      <span class="list-label">@suggested.Name</span>
+                      <span class="list-tag">@suggested.LookX, @suggested.LookZ</span>
+                    </ListRow>
+                  }
+                </div>
               </Section>
             }
           }
@@ -251,7 +257,7 @@
             else if (PlacingViewActive)
             {
               <DockGroup>
-                <DockButton Icon="eye" Title="Place a view: press where to stand, drag to what to look at"
+                <DockButton Icon="camera" Title="Place a view: press where to stand, drag to what to look at"
                             Active="@(tool == "eye")" OnClick='() => SetTool("eye")' />
               </DockGroup>
             }
