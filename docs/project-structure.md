@@ -270,6 +270,11 @@ is what `tools/build-scripts.sh` exists to catch (`B227`). Run it after moving a
 retries a build once, because the shared folder produces the odd spurious NuGet failure and a gate that cries
 wolf is not one.
 
+**One folder is the server, not the studio**: `deploy/` — the shell scripts pgmstudio.de deploys and admits
+people with (`deploy.sh`, `autodeploy.sh`, `invite.sh`, `install.sh`), the timer that runs them, and the
+unit, Caddyfile and environment the machine was set up from. Nothing builds it; `docs/deployment.md` is what
+it is for.
+
 **One folder holds fixtures, not code**: `seeds/` — the checked-in plan, intent and layout documents that
 22 test files across `Pgm`, `Export` and `Minecraft` read, including the traced real maps `envelope-stats`
 learns the evaluator's bands from. It references no project.

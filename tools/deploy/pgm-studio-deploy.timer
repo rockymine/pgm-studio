@@ -1,0 +1,10 @@
+[Unit]
+Description=Look for a new green main every five minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+
+[Install]
+WantedBy=timers.target

@@ -9783,6 +9783,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `ContentColumn` and the library editor grey their fields, and the dock keeps only the tools that look —
   decided once by `StudioShell` from the address and `GET /api/map/{slug}/access`. `tests/e2e/access.mjs`
   holds it against an invited server. `docs/access.md`, `docs/client/ui-conventions.md`.
+- **The studio on a server, deploying itself (`RP78`).** pgmstudio.de is one Hetzner VM: Caddy for TLS in
+  front of the API as `pgm-studio.service` on loopback, with the forwarded scheme and address honoured,
+  MariaDB on localhost, `Access:Mode=invited`. `pgm-studio-deploy.timer` deploys `main` about five minutes
+  after both CI checks pass: `deploy.sh` publishes into `releases/<commit>`, dumps the database, runs
+  `--migrate-only`, switches and restarts, and points back at the release before when `/api/health` does not
+  answer; a failed commit is not retried. `invite.sh` adds a player and prints their invitation from the
+  server. Everything the server was set up from is in `tools/deploy/`. `docs/deployment.md`.
 - **Builds wait their turn (`RP79`).** Every route that builds or renders a world — the export, `map.xml`,
   the renders and the reads measured off the built world, the Sketch and Plan posts that build one — and the
   compose feed and `coverage` are `[Queued]`: `BuildQueue` runs three at once on the studio and one per

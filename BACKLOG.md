@@ -444,8 +444,8 @@ and what a `subtract` takes away.
 ## Opening the studio to other people: sign-in, a server, and what a caller may ask for
 
 The access rules, the Discord sign-in, tokens for callers without a browser and the read-only client are in
-place (`docs/access.md`). What remains is the machine it runs on and the edits a read-only page still lets
-start.
+place (`docs/access.md`), and the studio runs at pgmstudio.de (`docs/deployment.md`). What remains is the
+server's backups and the edits a read-only page still lets start.
 
 - [ ] **RP81 — The edits a read-only page still lets start.** Three reach past the shells that grey a page
   (`docs/client/ui-conventions.md`): a `Sidebar`'s own inputs (the sketch layer's rename and base height), the
@@ -453,11 +453,13 @@ start.
   step writes (the sketch's Finish). Pass the cascaded `StudioReadOnly` into the canvas controllers as a flag
   that refuses a drag, and let `FlowBar` disable a writing step. The server refuses all three today.
 
-- [ ] **RP78 — `docs/deployment.md`: the studio on a server.** A Hetzner Cloud VM, Caddy for HTTPS in front
-  of the API as a systemd service with `UseForwardedHeaders` so the Discord callback is `https://`, MariaDB
-  bound to localhost, a GitHub Actions job that publishes after a
-  green `main`, runs `--migrate-only` behind a `mariadb-dump`, and restarts; nightly dumps to a Storage Box.
-  `Access:Mode=invited` and `Access:Admins` set in the unit's environment.
+- [ ] **RP84 — The server's backups leave the machine, and a failed deploy says so.** Every dump in
+  `/var/backups/pgm-studio` is taken before a deploy and sits on the disk the database is on, and nothing takes
+  one nightly. A nightly timer beside `pgm-studio-deploy.timer` dumps the database and
+  `/var/lib/pgm-studio` (the data-protection keys and the texture cache) to a Hetzner Storage Box over SFTP,
+  keeping a week of nightlies and a month of weeklies. The same pass gives `autodeploy.sh` somewhere to say a
+  deploy failed — a GitHub issue opened with a fine-grained token scoped to issues, or mail — since today a
+  failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
 ## The remainder: work no concept above has claimed
 

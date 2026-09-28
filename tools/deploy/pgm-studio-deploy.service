@@ -1,0 +1,9 @@
+[Unit]
+Description=Deploy pgm-studio's main when it has moved and CI is green
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/pgm-studio/bin/autodeploy.sh
+TimeoutStartSec=30min

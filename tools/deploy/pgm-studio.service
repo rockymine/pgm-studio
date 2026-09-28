@@ -1,0 +1,28 @@
+[Unit]
+Description=PGM Studio API
+After=network-online.target mariadb.service
+Wants=network-online.target
+Requires=mariadb.service
+
+[Service]
+Type=simple
+User=pgm-studio
+Group=pgm-studio
+WorkingDirectory=/opt/pgm-studio/app
+EnvironmentFile=/etc/pgm-studio/pgm-studio.env
+# Data-protection keys (sign-in cookies) persist under $HOME/.aspnet so restarts keep sessions.
+Environment=HOME=/var/lib/pgm-studio
+Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+ExecStart=/usr/bin/dotnet /opt/pgm-studio/app/PgmStudio.Api.dll
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=30
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/pgm-studio
+
+[Install]
+WantedBy=multi-user.target

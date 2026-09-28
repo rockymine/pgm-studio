@@ -286,9 +286,10 @@ In a cloud session whose environment holds the token as its API credential, the 
 
 ## Limits
 
-- **Behind a reverse proxy the callback needs the forwarded scheme.** The handler builds its
-  `redirect_uri` from the request it sees, so a server behind Caddy has to honour `X-Forwarded-Proto` or
-  Discord is asked to return to `http://`; that is part of `RP78`.
+The handler builds Discord's `redirect_uri` from the request it sees, so a studio behind a proxy has to
+honour `X-Forwarded-Proto`; the deployed one does, and `docs/deployment.md` says how.
+
+
 - **A read-only page still lets a few edits start.** The panels grey their fields and the dock drops its
   drawing tools (`docs/client/ui-conventions.md`), but a sidebar's own inputs, a select-and-drag on the canvas
   and a phase bar's finish are not reached; each is refused by the server and springs back. Closing them is

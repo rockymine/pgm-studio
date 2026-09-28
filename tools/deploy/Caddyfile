@@ -1,0 +1,8 @@
+pgmstudio.de {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:7894
+}
+
+www.pgmstudio.de {
+	redir https://pgmstudio.de{uri} permanent
+}
