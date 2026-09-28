@@ -95,20 +95,21 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
     {
         var lens = new EyeCameraDto(camera.X, camera.Y, camera.Z, camera.Yaw, camera.Pitch, camera.Fov);
         var query = aim.Exact(camera);
+        var standing = scene.GroundAt((int)Math.Floor(camera.X), (int)Math.Floor(camera.Z));
         if (mark.Point is { } pixel)
         {
             var hit = scene.Pick(camera, aim.Width, aim.Height, pixel.X, pixel.Y);
             return new EyePickDto(lens, query,
                 hit is { Block: var block } ? new BlockAtDto(block.X, block.Y, block.Z) : null,
                 hit?.Ground is { } ground ? new BlockAtDto(ground.X, ground.Y, ground.Z) : null,
-                [], hit is null ? 1 : 0);
+                [], hit is null ? 1 : 0, standing);
         }
-        if (mark.Pixels.Count == 0) return new EyePickDto(lens, query, null, null, [], 0);
+        if (mark.Pixels.Count == 0) return new EyePickDto(lens, query, null, null, [], 0, standing);
         var area = scene.Project(camera, aim.Width, aim.Height, mark.Pixels);
         return new EyePickDto(lens, query, null, null,
             [.. area.Columns.OrderBy(entry => entry.Key.X).ThenBy(entry => entry.Key.Z)
                 .Select(entry => new[] { entry.Key.X, entry.Value, entry.Key.Z })],
-            area.Sky);
+            area.Sky, standing);
     }
 
     /// <summary>A mark in a picture's pixels: one pixel, or the pixels an area covers. Neither is the camera

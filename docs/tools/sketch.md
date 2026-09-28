@@ -42,8 +42,8 @@ The identity of the map — its display name and authors — lives on the map ro
 `PATCH /api/map/{slug}/metadata`, not in the layout.
 
 **The views an author keeps in the In game phase are a second artifact beside it**, `map_views_json`: a list of
-`{id, name, lookX, lookZ, fromX?, fromZ?, y?, pitch?}`, where a view is only where the eye stands and what it
-looks at. It sits beside the layout rather than in it, so keeping a picture is not an edit to the board and does
+`{id, name, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?}`, where a view is only where the eye stands and what it
+looks at, or which way it turns. It sits beside the layout rather than in it, so keeping a picture is not an edit to the board and does
 not change the world the board builds — and a board loaded again over its own slug keeps its views.
 
 **The notes an admin leaves in the In game phase are rows, not an artifact.** `map_note` holds one per note —
@@ -1363,16 +1363,21 @@ the board as built, which `GET …/views` answers as each view's `eye`. The same
 canvas, kept first and then suggested.
 
 **A press on empty ground places a new view.** It stands the eye and a drag turns it toward what it looks at; a
-click without a drag names only what to look at, and the eye finds its own place. The inspector draws the view
-as it stands, takes a name, an eye height and how far the eye tips down — blank height is a player's eye over
-the ground, and over the void the eye hovers level with what it faces; a raised eye tipped down is an aerial
-shot, and 90 is straight down — and **Keep** stores it and returns to the gallery.
+click without a drag names only what to look at, and the eye finds its own place. The inspector then states the
+camera whole, in the game's own terms, with every field filled from where the studio resolved the eye to:
+**Standing at** X, Y and Z, the Y being the eye's own height; **Facing** as a yaw, the game's compass (0 south,
+90 west, 180 north, 270 east), and a pitch, the degrees the eye tips down, 90 straight down and negative up. A
+line under the stand says what its height is: at a player's eye over the ground, so many blocks over it, or over
+the void, and **Stand it on the ground** puts a raised eye back at a player's height. A line under the facing
+names the block the middle of the picture lands on, read off the picture rather than typed, since where a camera
+looks follows from where it stands and which way it faces. Changing any field draws the picture again, and
+**Keep** stores the camera as stated and returns to the gallery.
 
 **A press on a camera picks it up.** Pressing it and dragging stands it elsewhere; a click, or choosing it in
 the list, opens it as it is. Only the camera in hand shows the line it looks along and the target at its end,
 and dragging that target turns it. The inspector opens with
-the view's own name, height and tip — for a suggestion that found its own place, the height and tip it resolved
-to — and a kept view is changed in place with **Save** (`PUT …/views/{viewId}`), while a suggestion is kept as a
+the view's own name and camera — for a suggestion that found its own place, the camera it resolved to — and the
+canvas follows what the fields state. A kept view is changed in place with **Save** (`PUT …/views/{viewId}`), while a suggestion is kept as a
 new view of its own, since a suggestion is not stored and cannot be changed.
 
 **Placing a view draws the board as it is built, and nothing over it.** The canvas shows the **Board layer** —
@@ -1947,8 +1952,8 @@ in the same two registers.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, query, eye}`. `own` marks the straight-down view (`above`), kept by every board; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null | 404 |
-| `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?}`; a blank name is `View {n}`. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, or a pitch past straight up or down · 404 |
+| `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, yaw, query, eye}`. `own` marks the straight-down view (`above`), kept by every board; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null | 404 |
+| `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?}`; a blank name is `View {n}`. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down. `yaw` states the camera whole — it turns from `fromX`, `fromZ` at `y`, and `look` is then only where the canvas draws its target; it is kept between 0 and 360 | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, a pitch past straight up or down, or a `yaw` without its stand and `y` · 404 |
 | `PUT /map/{slug}/views/{viewId}` | the view changed in place, keeping its id. Body as for keeping one; a blank name keeps the view's own. The board's own `above` is changed the same way, and the change is then kept in place of the framed one | 400 `not a view` `RQ1` · 404 no kept view has that id — a suggestion is not stored, so it cannot be changed |
 | `DELETE /map/{slug}/views/{viewId}` | the view let go. A suggestion is not kept, so it cannot be deleted; deleting a changed `above` puts the framed one back | 404 no kept view has that id · 409 `RQ5` the framed `above`, which is never let go |
 
@@ -1969,7 +1974,7 @@ permission (`docs/access.md`). A member, and every other token, is refused `RQ8`
 | `PATCH /map/{slug}/notes/{id}` | the note changed. Body `{status?, tag?}`: `resolved`, `wont-do` or `open` to reopen; a tag, or `""` to clear it | 400 `not a change` `RQ1` · 403 `RQ8` to a token — an agent answers in a reply, and only the author closes a thread · 404 |
 | `POST /notes/pictures` | `{hash, bytes}` — the picture kept under the SHA-256 of its bytes. The body is the picture itself, a WebP or a PNG sent as `image/webp`, `image/png` or `application/octet-stream`, up to 8 MB; the same bytes answer the same hash | 400 `not a picture` `RQ1` |
 | `GET /notes/pictures/{hash}` | the picture, `image/webp` or `image/png`, with a year's private cache — it never changes under its hash | 404 |
-| `GET /map/{slug}/render/eye/pick` | `{camera, query, hit, ground, columns[], sky}` — what a mark on a `render/eye` picture is on the ground. It takes the picture's own query words, so it resolves the same camera, and `at=x,y` (one pixel: the block `hit` and the `ground` under it), `box=x,y,x,y` or `lasso=x,y;x,y;…` (every ground column the rays hit, each `[x, y, z]`); none of the three answers the camera alone. `query` is the camera exactly, as `eye=x,y,z&yaw=&pitch=&fov=&width=&height=`, which draws the same picture again. Open to anyone, like `render/eye` | 404 · 422 no place sees what `look` names · 503 `RQ10` no block textures |
+| `GET /map/{slug}/render/eye/pick` | `{camera, query, hit, ground, columns[], sky, standing}` — what a mark on a `render/eye` picture is on the ground. It takes the picture's own query words, so it resolves the same camera, and `at=x,y` (one pixel: the block `hit` and the `ground` under it), `box=x,y,x,y` or `lasso=x,y;x,y;…` (every ground column the rays hit, each `[x, y, z]`); none of the three answers the camera alone. `query` is the camera exactly, as `eye=x,y,z&yaw=&pitch=&fov=&width=&height=`, which draws the same picture again. `standing` is the top of the ground under the eye, null over the void. Open to anyone, like `render/eye` | 404 · 422 no place sees what `look` names · 503 `RQ10` no block textures |
 
 ```json POST /api/map/{slug}/notes
 {"body": "The monuments sit too close to the spawns.", "anchor": {"kind": "map"}, "tag": "gameplay"}

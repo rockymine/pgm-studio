@@ -1485,8 +1485,8 @@ export class SketchCanvas extends CanvasBase {
 
 
   // Each view as the camera it is, where it stands: the views kept drawn full and the studio's suggestions
-  // faint. Only the camera in hand — being placed, or picked up — draws the line it looks along and the target
-  // it looks at, in the axis colour, in place of the camera it was picked up from.
+  // faint. The camera in hand — being placed, or picked up — is drawn in the axis colour in place of the camera
+  // it was picked up from, with the line it looks along and the target its middle lands on.
   #paintViews() {
     const held = this.#view;
     for (const view of this.#views) {
@@ -1499,7 +1499,7 @@ export class SketchCanvas extends CanvasBase {
     const stood = held.id != null || held.ax !== held.bx || held.az !== held.bz;
     if (stood) {
       this.#painter.line(toCentre(held.ax), toCentre(held.az), toCentre(held.bx), toCentre(held.bz),
-                         { stroke: "var(--canvas-axis)", width: 1.5, dash: "5 4" });
+                         { stroke: "var(--canvas-axis)", width: 1.5 });
     }
     this.#painter.dot(toCentre(held.bx), toCentre(held.bz), { radiusPx: 4, fill: "var(--canvas-axis)" });
     if (stood) this.#paintCamera(held.ax, held.az, "var(--canvas-axis)", 1);
@@ -1511,6 +1511,7 @@ export class SketchCanvas extends CanvasBase {
     const painter = this.#painter;
     painter.layer("camera", (ctx) => {
       const size = painter.screenPx(20) / 24;
+      ctx.setLineDash([]);
       ctx.globalAlpha = alpha;
       ctx.translate(x + 0.5, z + 0.5);
       ctx.scale(size, size);

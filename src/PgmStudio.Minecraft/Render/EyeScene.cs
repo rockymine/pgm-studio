@@ -182,6 +182,10 @@ public sealed class EyeScene
     /// above the highest ground there with two blocks of room over it, or null for a column with none.</summary>
     public double? EyeAt(int x, int z) => StandingTop(x - _minX, z - _minZ) is { } top ? top + 1 + EyeHeight : null;
 
+    /// <summary>The ground a player would stand on at <paramref name="x"/>, <paramref name="z"/> — its top
+    /// block's height — or null for a column with none.</summary>
+    public int? GroundAt(int x, int z) => StandingTop(x - _minX, z - _minZ);
+
     /// <summary>An eye at <paramref name="fromX"/>, <paramref name="fromZ"/> turned to look at the middle of
     /// whatever stands at <paramref name="atX"/>, <paramref name="atZ"/>, or tipped
     /// <paramref name="pitch"/> degrees down where that is given. It stands at <paramref name="eyeY"/> where

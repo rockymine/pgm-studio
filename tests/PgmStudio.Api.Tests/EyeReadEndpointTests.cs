@@ -92,6 +92,8 @@ public sealed class EyeReadEndpointTests
         await Assert.That(hit.GetProperty("z").GetInt32()).IsLessThan(20);
         await Assert.That(point.GetProperty("ground").GetProperty("y").GetInt32()).IsLessThanOrEqualTo(hit.GetProperty("y").GetInt32());
         await Assert.That(point.GetProperty("camera").GetProperty("x").GetDouble()).IsEqualTo(0.5);
+        await Assert.That(point.GetProperty("standing").GetInt32())
+            .IsEqualTo((int)Math.Round(point.GetProperty("camera").GetProperty("y").GetDouble() - 2.62));
 
         var again = await client.GetAsync($"/api/map/{slug}/render/eye?{point.GetProperty("query").GetString()}");
         await Assert.That(again.StatusCode).IsEqualTo(HttpStatusCode.OK);

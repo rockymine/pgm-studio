@@ -98,6 +98,23 @@ public sealed class MapViewEndpointsTests
     }
 
     [Test]
+    public async Task A_camera_stated_whole_is_drawn_from_its_yaw_and_needs_its_stand_and_height()
+    {
+        using var client = await SketchBoard.FreshAsync();
+
+        var kept = await client.PostAsJsonAsync(Views, new { lookX = 30, lookZ = 12, fromX = 12, fromZ = 12, y = 40, pitch = 20, yaw = -270 });
+        var view = await kept.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(kept.IsSuccessStatusCode).IsTrue().Because(view.ToString());
+        await Assert.That(view.GetProperty("query").GetString()).IsEqualTo("from=12,12&yaw=90&y=40&pitch=20");
+        await Assert.That(view.GetProperty("yaw").GetDouble()).IsEqualTo(90.0);
+
+        var refused = await client.PostAsJsonAsync(Views, new { lookX = 0, lookZ = 0, fromX = 12, fromZ = 12, yaw = 90 });
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("yaw");
+    }
+
+    [Test]
     public async Task A_stand_point_with_one_coordinate_is_refused_naming_it()
     {
         using var client = await SketchBoard.FreshAsync();

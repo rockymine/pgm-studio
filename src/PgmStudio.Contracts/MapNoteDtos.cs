@@ -32,8 +32,11 @@ public sealed record PixelDto(int X, int Y);
 /// <param name="Columns">For an area, every ground column its pixels' rays hit, each <c>[x, y, z]</c> with
 /// <c>y</c> the height the ground was hit at, sorted by <c>x</c> then <c>z</c>. Empty for a point.</param>
 /// <param name="Sky">How many of the mark's pixels hit nothing.</param>
+/// <param name="Standing">The height of the ground under the camera — the top block a player would stand on
+/// there — or null where the camera is over the void; a camera at a player's eye is 2.62 over it.</param>
 public sealed record EyePickDto(
-    EyeCameraDto Camera, string Query, BlockAtDto? Hit, BlockAtDto? Ground, IReadOnlyList<int[]> Columns, int Sky);
+    EyeCameraDto Camera, string Query, BlockAtDto? Hit, BlockAtDto? Ground, IReadOnlyList<int[]> Columns, int Sky,
+    int? Standing = null);
 
 /// <summary>
 /// What a note is pinned to. A <c>map</c> note names nothing spatial. Every other kind was written on a picture

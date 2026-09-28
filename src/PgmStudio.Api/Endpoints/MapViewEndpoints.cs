@@ -37,7 +37,7 @@ internal static class KeptViews
     public static MapViewDto Dto(WorldView view, bool kept, EyeCamera? eye = null) =>
         new(view.Id, view.Name, kept, view.LookX, view.LookZ, view.FromX, view.FromZ, view.Y, view.Pitch, view.Query,
             eye is { } camera ? new EyeCameraDto(camera.X, camera.Y, camera.Z, camera.Yaw, camera.Pitch, camera.Fov) : null,
-            view.Id == WorldViews.StraightDownId);
+            view.Id == WorldViews.StraightDownId, view.Yaw);
 
     /// <summary>Every view the board keeps: its own straight-down view first — the author's adjustment of it
     /// where one is stored, else the one framed from the built board — then the others kept, in the order
@@ -63,8 +63,15 @@ internal static class KeptViews
             return ("y", "`y` is the eye's height, from 0 to 320");
         if (req.Pitch is { } pitch && (double.IsNaN(pitch) || pitch < -90 || pitch > 90))
             return ("pitch", "`pitch` is degrees below the horizon, from −90 to 90");
+        if (req.Yaw is { } yaw && !double.IsFinite(yaw))
+            return ("yaw", "`yaw` is a number of degrees");
+        if (req.Yaw is not null && (req.FromX is null || req.Y is null))
+            return ("yaw", "a view that states its `yaw` states the camera whole: `fromX`, `fromZ` and `y` with it");
         return null;
     }
+
+    /// <summary>A yaw brought into 0–360, the range the game shows it in.</summary>
+    public static double? Turn(double? yaw) => yaw is { } degrees ? ((degrees % 360) + 360) % 360 : null;
 
     /// <summary>The name a request states, cut to <see cref="LongestName"/>, or null where it states none.</summary>
     public static string? Named(MapViewKeepRequest req) =>
@@ -151,7 +158,7 @@ public sealed class MapViewKeepEndpoint(MapRepository repo, MapArtifactStore art
                          .DefaultIfEmpty(0).Max() + 1;
         var name = KeptViews.Named(req) ?? string.Create(CultureInfo.InvariantCulture, $"View {number}");
         var view = new WorldView(string.Create(CultureInfo.InvariantCulture, $"view-{number}"), name,
-                                 req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch);
+                                 req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch, KeptViews.Turn(req.Yaw));
         kept.Add(view);
         await KeptViews.SaveAsync(artifacts, map.Id, kept, ct);
         await Send.OkAsync(KeptViews.Dto(view, kept: true), ct);
@@ -189,7 +196,7 @@ public sealed class MapViewChangeEndpoint(MapRepository repo, MapArtifactStore a
             return;
         }
         var name = KeptViews.Named(req) ?? (was >= 0 ? kept[was].Name : "Straight down");
-        var view = new WorldView(id, name, req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch);
+        var view = new WorldView(id, name, req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch, KeptViews.Turn(req.Yaw));
         if (was >= 0) kept[was] = view;
         else kept.Insert(0, view);
         await KeptViews.SaveAsync(artifacts, map.Id, kept, ct);

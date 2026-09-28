@@ -207,7 +207,18 @@ public partial class SketchTool
             fromX ?? view.FromX ?? (view.Eye is { } eye ? (int)Math.Floor(eye.X) : null),
             fromZ ?? view.FromZ ?? (view.Eye is { } seen ? (int)Math.Floor(seen.Z) : null),
             lookX, lookZ,
-            view.Y ?? resolved?.Y, view.Pitch ?? resolved?.Pitch, view);
+            view.Y ?? resolved?.Y, view.Pitch ?? resolved?.Pitch, view, view.Yaw);
+    }
+
+    /// <summary>The inspector resolved the camera in hand: the canvas draws it where it stands and where its
+    /// middle lands.</summary>
+    private async Task OnViewAimed((int FromX, int FromZ, int LookX, int LookZ) aim)
+    {
+        if (handle is null) return;
+        await handle.InvokeVoidAsync("setViewDraft", JsonSerializer.Serialize(new
+        {
+            id = viewDraft?.Source?.Id, fromX = aim.FromX, fromZ = aim.FromZ, lookX = aim.LookX, lookZ = aim.LookZ,
+        }));
     }
 
     /// <summary>Pick a view up from the list beside the canvas, as a press on its camera would.</summary>

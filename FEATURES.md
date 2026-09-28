@@ -8209,8 +8209,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   canvas; it is changed like any kept view and never let go. Placing a view draws every camera the gallery has as
   a camera glyph where its eye stands, the kept ones full and the suggestions faint (`GET …/views` answers each
   view's `eye`), and lists them beside the canvas; only the camera in hand shows its sight line and target. A
-  press on a camera stands it elsewhere, its target turns it, and a click opens it in the inspector with its
-  own name, height and tip: a kept view is changed
+  press on a camera stands it elsewhere, its target turns it, and a click opens it in the inspector stated whole —
+  standing at X, Y and Z, facing by yaw and pitch, with what it looks at read off the picture's middle and its
+  height against the ground under it: a kept view is changed
   in place (`PUT /map/{slug}/views/{viewId}`), a suggestion kept as a new view. `docs/tools/sketch.md`. (`TS119`)
 
 - **The loop closed (`TS118`)** — an agent's reply carries the same camera drawn after its change, shown under

@@ -10,16 +10,21 @@ namespace PgmStudio.Export;
 /// <summary>
 /// One picture of a board from a player's eye, by name: the thing it looks at, and where the eye stands, how
 /// high, and how far it tips down, where the view says. A view without <see cref="FromX"/> leaves the eye to
-/// find its own place when the picture is drawn, which is <c>render/eye</c>'s <c>look</c>.
+/// find its own place when the picture is drawn, which is <c>render/eye</c>'s <c>look</c>. A view that states
+/// its <see cref="Yaw"/> is a camera stated whole — where it stands, how high, which way it turns and how far it
+/// tips — and its look point is only where that camera's middle lands, kept to draw and list it by.
 /// </summary>
 public sealed record WorldView(string Id, string Name, int LookX, int LookZ,
-                               int? FromX = null, int? FromZ = null, double? Y = null, double? Pitch = null)
+                               int? FromX = null, int? FromZ = null, double? Y = null, double? Pitch = null,
+                               double? Yaw = null)
 {
     /// <summary>The <c>render/eye</c> query words that draw this view.</summary>
     [JsonIgnore]
     public string Query =>
-        string.Create(CultureInfo.InvariantCulture, $"look={LookX},{LookZ}")
-        + (FromX is { } x && FromZ is { } z ? string.Create(CultureInfo.InvariantCulture, $"&from={x},{z}") : "")
+        (Yaw is { } yaw && FromX is { } standX && FromZ is { } standZ
+            ? string.Create(CultureInfo.InvariantCulture, $"from={standX},{standZ}&yaw={yaw:0.#}")
+            : string.Create(CultureInfo.InvariantCulture, $"look={LookX},{LookZ}")
+              + (FromX is { } x && FromZ is { } z ? string.Create(CultureInfo.InvariantCulture, $"&from={x},{z}") : ""))
         + (Y is { } y ? string.Create(CultureInfo.InvariantCulture, $"&y={y:0.##}") : "")
         + (Pitch is { } pitch ? string.Create(CultureInfo.InvariantCulture, $"&pitch={pitch:0.#}") : "");
 }
