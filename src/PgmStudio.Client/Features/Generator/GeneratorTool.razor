@@ -2,8 +2,8 @@
 @layout StudioLayout
 @implements IAsyncDisposable
 
-@* Generator browse (G117): compose boards interactively, sieve them, and pin the keepers. Cards are
-   server-rendered SVGs of the full fanned board; pin/open re-compose from the reproducible descriptor. *@
+@* Generator browse (G117): page through the composed-board library, sieve it, and pin the keepers. Cards are
+   server-rendered SVGs of the full fanned board; pin/open keep the stored board the descriptor names. *@
 
 <StudioShell Bare="true">
   <Bar>
@@ -54,8 +54,8 @@
         @if (censusBoards > 0)
         {
           <p class="section-desc gen-census">
-            Counts are what this request produced across @censusBoards board@(censusBoards == 1 ? "" : "s")
-            scanned@(CensusIsTelling ? " — a form still at zero is one it does not make." : " so far.")
+            Counts are what the library holds for these settings, across @censusBoards
+            board@(censusBoards == 1 ? "" : "s")@(CensusIsTelling ? " — a form at zero is one they do not make." : ".")
           </p>
         }
 
@@ -132,9 +132,9 @@
         </div>
       }
 
-      @if (StructuralActive)
+      @if (censusBoards > 0)
       {
-        <p class="gen-scanned">scanned @totalScanned · matched @cards.Count@(totalScanned > 0 && cards.Count * 12 < totalScanned ? " — rare mix; a candidate to promote to a held target" : "")</p>
+        <p class="gen-scanned">@matching of @censusBoards boards match</p>
       }
 
       <div class="gen-grid">
@@ -167,12 +167,12 @@
       </div>
 
       @if (feedError is not null) { <p class="gen-status">@feedError</p> }
-      else if (loading) { <p class="gen-status">Composing…</p> }
+      else if (loading) { <p class="gen-status">Loading…</p> }
       else if (cards.Count == 0) { <p class="gen-status">@EmptyFeedMessage()</p> }
-      else if (exhausted) { <p class="gen-status">End of the run for these filters.</p> }
+      else if (atEnd) { <p class="gen-status">That is every board for these settings.</p> }
 
       <div @ref="sentinelRef" class="gen-sentinel"></div>
-      @if (!exhausted && !loading && cards.Count > 0)
+      @if (!atEnd && !loading && cards.Count > 0)
       {
         <Button Full Class="gen-more" OnClick="LoadMore">Load more</Button>
       }

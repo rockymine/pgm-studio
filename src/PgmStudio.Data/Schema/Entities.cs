@@ -63,6 +63,29 @@ public sealed class StudioTokenRow
     [Column("last_used_at")] public DateTime? LastUsedAt { get; set; }
 }
 
+/// <summary>One board of the composed-board library (M0047): what the composer made for a size band, a symmetry,
+/// a cell and a seed under one composer version. <c>wools</c> holds the wool families between commas
+/// (<c>,i,l,</c>) so a filter can ask for each; <c>card_json</c> is the rest of the card, its fired hard terms,
+/// costliest soft terms and land spend.</summary>
+[Table("composed_board")]
+public sealed class ComposedBoardRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("composer_version"), NotNull] public string ComposerVersion { get; set; } = "";
+    [Column("band"), NotNull] public string Band { get; set; } = "";
+    [Column("symmetry"), NotNull] public string Symmetry { get; set; } = "";
+    [Column("cell"), NotNull] public int Cell { get; set; }
+    [Column("seed"), NotNull] public ulong Seed { get; set; }
+    [Column("score"), NotNull] public double Score { get; set; }
+    [Column("wool_count"), NotNull] public int WoolCount { get; set; }
+    [Column("wools"), NotNull] public string Wools { get; set; } = "";
+    [Column("hub"), NotNull] public string Hub { get; set; } = "";
+    [Column("frontline"), NotNull] public string Frontline { get; set; } = "";
+    [Column("card_json"), NotNull] public string CardJson { get; set; } = "";
+    [Column("plan_json"), NotNull] public string PlanJson { get; set; } = "";
+    [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
+}
+
 [Table("author")]
 public sealed class AuthorRow
 {

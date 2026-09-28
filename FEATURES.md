@@ -5152,6 +5152,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   name · date), file import/export untouched. Data 16 + Api 67 + Pgm 683 tests green. Prerequisite for
   G117/G118/G120. (G119)
 
+- **The Generator browses a composed-board library (`TG1`).** The composer's boards are composed ahead of
+  time, 500 per size band and symmetry for the running composer version, into `composed_board` (`M0047`):
+  the plan with its box annotation, score, wool count and structure as columns, and the rest of the card as
+  JSON. `PgmStudio.Import --compose-library` fills what is missing, and `deploy.sh` starts it after each deploy
+  as the unit `pgm-studio-library` at `Nice=19`, a tenth of the CPU weight and idle I/O; old versions' boards
+  go once the new set is complete, and the feed shows the previous version meanwhile. `GET /api/compose` reads
+  a page of it best score first (seed breaking ties), every filter a query and the census the whole set, and
+  ends where the library does — nothing is composed on request, so the feed is no longer queued;
+  `POST /api/compose/pin` keeps the stored board labelled for the player count asked (`Composer.Label`), 404
+  for one the library does not hold. A board is stored once per band, since the counts of one band compose
+  the same board. The whole library composed in fifteen minutes on one core of the cloud container and takes 23 MB.
+  `docs/tools/generator.md`, `docs/deployment.md`.
+
 - **Browse mode — the interactive generator in the studio** — `Pgm/Render/PlanBoardSvg.cs` +
   `Api/Endpoints/ComposeEndpoints.cs` + `Contracts/ComposeDtos.cs` + `Client/Pages/Generator/`. A studio
   page (`/generator`) that composes boards ahead and lets the author sieve and keep them. `GET /api/compose`

@@ -2,10 +2,11 @@
 
 ## What it is
 
-The generator rolls whole boards. It is the one tool in the studio that authors nothing: a board here is not
-drawn, it is **composed** — out of a player count, a team count, a symmetry mode and a seed, and out of
-nothing else. Its route is `/generator`, and what it shows is a feed of candidates, each one a complete plan
-document rendered as a picture of the fanned board.
+The generator shows whole boards. It is the one tool in the studio that authors nothing: a board here is not
+drawn, it is **composed** — out of a size band, a team count, a symmetry mode and a seed, and out of nothing
+else. The boards are composed ahead of time into a **library**, 500 for every size band and symmetry, and the
+tool browses it. Its route is `/generator`, and what it shows is a feed of those candidates, each one a
+complete plan document rendered as a picture of the fanned board.
 
 The work it supports is sieving, not editing. Every knob on the page decides which boards are *shown*; none
 of them changes a board. A candidate worth keeping is **pinned**, which stores it, and leaves the tool by
@@ -21,15 +22,22 @@ how to drive the whole thing without a browser.
 
 ## What it writes
 
-**Browsing writes nothing.** Every card in the feed is composed on demand from its seed and thrown away when
-the page reloads; there is no cache, no draft and no row behind a board that has not been kept.
+**Browsing writes nothing, and composes nothing.** Every card is read from the library, a `composed_board`
+row the fill wrote (below); the feed has no way to compose a board on request.
 
-**Pinning writes a `plan` row** with origin `generated` (`PlanStore.SaveGeneratedAsync`), holding the
-canonical plan document, the descriptor that reproduces it, the composer version that made it, and its
-structural bucket key. Two things happen only at this point rather than in the feed: the partition is written
-into the document as the authored `boxes` annotation, so a kept board opens in the editor already carrying the
-grouping that produced it, and the row is **deduplicated by content hash** — pinning a board whose geometry is
-already stored returns the existing row instead of a second copy.
+**Filling writes the library.** `PgmStudio.Import --compose-library` composes what the running composer
+version is missing, up to `ComposedBoardLibrary.PerBand` — 500 — boards for each of the four size bands and
+the two symmetries the feed offers, seed 0 upward, and stores each as a `composed_board` row: its plan with the
+partition written in as the `boxes` annotation, its score, wool count and structure as columns the feed
+filters and orders on, and the rest of its card — the fired hard terms, the top three soft terms and the land
+spend — as `card_json`. A seed that composes nothing is skipped. Once every band and symmetry holds its 500, the
+boards any other composer version made are deleted; they are the composer's output under settings the library
+states, so nothing is lost that the fill cannot make again.
+
+**Pinning writes a `plan` row** with origin `generated` (`PlanStore.SaveGeneratedAsync`), holding the library
+board's plan document labelled for the card's player count, the descriptor that names it, the composer version
+that made it, and its structural bucket key. The row is **deduplicated by content hash** — pinning a board
+whose document is already stored returns the existing row instead of a second copy.
 
 **Authoring writes a `map` row** at `stage=plan` (`POST /api/plan/{planId}/author`), seeded with the
 candidate's plan document and carrying a `plan_source_id` back to it. The candidate is left in the pool: the
@@ -40,25 +48,26 @@ row the database holds, so a board pinned weeks ago is still in it, and unpinnin
 
 ## The request
 
-A compose takes five values and no geometry.
+A composed board is named by five values and no geometry.
 
 | Field | Default | Is |
 |---|---|---|
-| `players` | 12 | Players per team, clamped 6–47. The only size input, and its job is to name a **size band** — nano 6–13, micro 14–21, milli 22–31, centi 32 and up — which is what the land budget and every structural ladder read. Two counts in one band compose to the same budget, and a count above centi's range is clamped into it because centi is the top of the ladder. |
-| `teams` | 2 | 2 or 4 at the plan tier. The browse endpoint composes two-team boards only and answers 400 `RQ1` on any other count, naming the field — a board that is not the one asked for is worse than no board. |
-| `symmetry` | `rot_180` | `rot_180` or `mirror_z` through the feed. `mirror_x` and `rot_90` are legal `ComposeRequest` values but the endpoint answers 400. |
-| `cell` | 4 | Blocks per proxy cell — the plan grid's scale. No control writes it; it is honoured as a query parameter. |
-| `seed` | — | Any unsigned 64-bit integer. Drives every draw the composer makes. |
+| `players` | 12 | Players per team, clamped 6–47. The only size input, and its job is to name a **size band** — nano 6–13, micro 14–21, milli 22–31, centi 32 and up — which is what the land budget and every structural ladder read. Two counts in one band compose the **same board** from the same seed, differing only in the plan's name and `maxPlayers` (`Composer.Label`), so the library holds a board once per band and a card is labelled with the count asked for. A count above centi's range is clamped into it because centi is the top of the ladder. |
+| `teams` | 2 | 2 or 4 at the plan tier. The library holds two-team boards only and the feed answers 400 `RQ1` on any other count, naming the field — a board that is not the one asked for is worse than no board. |
+| `symmetry` | `rot_180` | `rot_180` or `mirror_z`, the two the library holds. `mirror_x` and `rot_90` are legal `ComposeRequest` values but the feed answers 400. |
+| `cell` | 4 | Blocks per proxy cell — the plan grid's scale. The library holds the default cell only. |
+| `seed` | — | Any unsigned 64-bit integer. Drives every draw the composer makes; the library holds seeds from 0 up. |
 
-The feed walks the seed axis and holds the other four fixed, so a request is really the first four values plus
-a cursor. `seedStart` is where the walk resumes and `count` how many *matching* boards to return (clamped
-1–48; the page asks for 9).
+The feed holds players and symmetry fixed and pages through the library's boards for them, **best score first,
+the seed breaking ties**, so a request is those two values, the filters, and a position: `from` is where the
+page starts and `count` how many boards it returns (clamped 1–48; the page asks for 9).
 
 **A seed reproduces its board exactly, within one composer version.** The generator behind it is a small
 deterministic one chosen for that reason rather than the platform's, and no clock or identifier enters it.
 Sampling *order* is part of the promise: draws come off in one fixed sequence, so inserting a draw anywhere
 re-rolls every seed downstream of it. That is why any change to composition geometry bumps
-`ComposerVersion.Current` — `marker-id-1` today — and why the version rides on every stored candidate.
+`ComposerVersion.Current` — `walled-4` today — and why the version rides on every library board and every
+stored candidate.
 
 A stored row whose version is not the current one is **stale**, and the tray badges it. Nothing about the
 stored board has changed: it is loaded, never recomposed, and opens exactly as it was kept. What has lapsed is
@@ -68,7 +77,7 @@ The descriptor is the card's identity and the whole of what a pin needs:
 
 ```json
 { "players": 12, "teams": 2, "symmetry": "rot_180", "cell": 4, "seed": 0,
-  "composerVersion": "marker-id-1", "schema": 1 }
+  "composerVersion": "walled-4", "schema": 1 }
 ```
 
 `schema` is the descriptor's own shape version, bumped if these fields change, so an old stored descriptor
@@ -173,11 +182,10 @@ the ladders sit roughly a dozen sampling weights — how often a wool bends, how
 square hub takes the ring — which steer the output's character more than anything else in the generator and
 are, by `docs/generator/audit.md`'s own account, the least principled part of the model.
 
-What that produces is measurable rather than arguable, and the endpoint reports it. Every response carries an
-`observed` tally of the forms it saw, counted **before** the sieve, so asking for something a request never
-makes still says what it does make. Four hundred boards per row, `rot_180`, taken from
-`GET /api/compose?players=N&wools=z` — a filter nothing matches, which is what makes the scan run its full
-budget:
+What that produces is measurable rather than arguable, and the feed reports it. Every response carries an
+`observed` tally of the forms the library holds for the band and symmetry, counted **before** the filters, so
+asking for something the settings never make still says what they do make. Four hundred composed boards per
+row, `rot_180`:
 
 | Players | Wool families seen | Hub forms | Frontline |
 |---|---|---|---|
@@ -192,13 +200,47 @@ size, and the wide holed bodies — double-hole, G and P — arrive only at thir
 keep a bar beside a ring whose hole is still 12 blocks. A wool count sums past the board count because a family
 is counted once per board however many approaches of it that board carries.
 
+## The library
+
+**The server composes its own library, after each deploy, at the lowest priority it has.** `deploy.sh` starts
+`PgmStudio.Import --compose-library` from the release it has just brought up, as a transient unit of its own
+(`pgm-studio-library`, `journalctl -u pgm-studio-library` to watch it) running as the studio's user at
+`Nice=19`, a tenth of the default CPU weight and idle I/O, so the live studio always has the cores first. A
+release whose composer already has its library composes nothing and exits, and a fill still running from the
+release before is stopped, since the new composer is the one the library is for (`docs/deployment.md`).
+
+**What it costs is the scoring, not the composing.** Evaluating a board is most of its cost and grows with the
+board, so a band's 500 take longer the bigger it is. On a four-core cloud container, one core, a release build:
+
+| Band | 500 boards, one symmetry |
+|---|---|
+| nano | 34–40 s |
+| micro | 66–67 s |
+| milli | 146–151 s |
+| centi | 182–196 s |
+
+The whole library of 4,000 boards is fifteen minutes there, and 23 MB in the database with its indexes. The
+deployed studio's cores are slower and yield to every request, so its fill takes longer; it runs in full only
+when a deploy brings a new composer version.
+
+**While a new composer's library is being filled, the feed shows the version before it.** For each band and
+symmetry the feed reads the running composer's boards once they number 500, else the boards of the version
+stored most recently, else whatever part of the running composer's set exists
+(`ComposedBoardStore.ServedVersionAsync`). A card carries the version that made its board, so keeping one from the older set keeps the board it showed.
+Once the running composer's set is complete, the older boards are deleted.
+
+**The library is fixed at 500 per band and symmetry, and nothing composes more on request.** That is the
+author's decision: the feed is for inspiration, finite by design, and every filter reads the same stored set.
+The command's `--per-band`, `--bands` and `--symmetries` narrow a fill for a test or a local look; the deploy
+passes none of them.
+
 ## The feed
 
 One workspace, no phases. The rail on the left holds the filters, the grid in the middle holds the cards, and
 the hold tray sits above them when anything is pinned.
 
-**The filters split in two, and the split is about cost.** Players, symmetry, max score and wool count apply
-on the Apply button and start the seed walk over. The structural filters — wool families, hub form, frontline
+**The filters split in two.** Players, symmetry, max score and wool count apply on the Apply button and start
+the page from the library's first board. The structural filters — wool families, hub form, frontline
 form — apply the moment a chip is clicked. Wool families are **must-include**: every family named has to be
 present on the board. Hub and frontline are **any-of**. Max score is a slider to 8 where 8 means *any* and the
 bound is simply not sent; wool count is a min/max pair where 0 means unset. The player slider runs 6 to 32 in
@@ -210,25 +252,17 @@ mix — the Z is on the fill menu and asked for by no sampler, the scythe is off
 same distinction the shape catalog badges as *reachable* against *emitter only*, and `shapes.md` has the
 reasons.
 
-**The sieve runs cheapest-first, and that ordering is why a strict filter stays responsive.** For each seed
-the endpoint composes the board, derives its structure — which is a classification of a handful of tiny cell
-masks — and applies the structural filter. Only survivors are evaluated and only survivors are rendered, so a
-board rejected on its wool families costs no evaluation and no SVG. Crucially the filters live wholly
-*outside* the compose call and never abort an attempt mid-loop, which is what keeps a seed meaning the same
-board under every filter and keeps the descriptor's reproduction promise honest.
+**Every filter is a query over the library.** The score, the wool count, the wool families, the hub form and
+the frontline form are columns of `composed_board`, so a filter narrows the stored set in the database and a
+strict conjunction costs what a loose one does. The response says how many boards match, and the page shows
+`M of N boards match` above the grid. **The feed ends where the library does**: scrolling and *Load more* stop
+at the last matching board, and the page says *that is every board for these settings*.
 
-The scan is bounded rather than open-ended. Without a structural filter the endpoint gives up after
-`count × 4` seeds; with one it scans up to 400, because a conjunction like *donut and L* can be a few percent
-of seeds. The response reports how many it scanned, and the page shows `scanned N · matched M` whenever a
-structural filter is on — with a nudge when the match rate is under one in twelve, since a mix that rare is
-better promoted to a held target than fished for.
-
-**The census is what makes an empty grid legible.** Counts accumulate across pages into per-chip tallies, and
-past 150 boards an absence starts being reported as an absence: a chip nothing has produced is dimmed, and an
-empty grid says *this is not a mix these players and symmetry produce* rather than *no boards match*. The
-census survives a re-sieve of the same request — it is counted before the sieve, so picking a filter cannot
-hide the forms it filters against — and resets when players or symmetry change, because that is a different
-request making different forms.
+**The census is what makes an empty grid legible.** Every page carries the census over every board the library
+holds for the band and symmetry, counted before the filters, so picking a filter cannot hide the forms it
+filters against. Past 150 boards an absence is reported as an absence: a chip nothing in the library has is
+dimmed, and an empty grid says *this is not a mix these players and symmetry produce* rather than *no boards
+match*. A library with nothing for the settings says it is still being composed.
 
 **A card carries the board and its verdicts.** The picture is the whole fanned board, server-rendered from the
 same scene the PNG endpoint draws, coloured by role — hub violet, spawn green, wool amber, frontline orange —
@@ -260,15 +294,15 @@ stands nearer the wool at the back than the one across the hub, however squarely
 one board in five crosses a middle thinner than its size's floor or longer than twice its width (`MD7`). A hard violation would add 1000 and dominate any
 soft sum, which is why the slider stops at 8.
 
-**Pinning and authoring are the two exits.** The pin toggle stores the descriptor's board and refreshes the
-tray; the tray's thumbnails come from the stored rows rather than from the cards, so a board held in an
+**Pinning and authoring are the two exits.** The pin toggle keeps the library board the descriptor names and
+refreshes the tray; the tray's thumbnails come from the stored rows rather than from the cards, so a board held in an
 earlier session looks the same as one held a moment ago. *Author this plan* pins first if the board is not
 already held, then commits the candidate to a map and navigates to `/maps/{slug}/plan`.
 
 ## What it refuses
 
-The generator has almost no gate, because the gate it needs already ran inside the compose. Three things
-nonetheless refuse.
+The generator has almost no gate, because the gate it needs already ran inside the compose, when the library
+was filled. Three things nonetheless refuse.
 
 **An unsupported symmetry is 400.** `rot_90` and `mirror_x` answer the refusal envelope every gate answers in
 — `{"error": "unsupported symmetry", "message", "findings": [{"rule": "RQ1", "field": "symmetry", …}]}` —
@@ -278,14 +312,12 @@ symmetry that team count cannot fan — is 400 the same way, thrown where the re
 surfacing deep inside generation.
 
 **A seed that composes nothing is skipped, silently.** Sixty attempts that all fail the acceptance gate raise
-a `ComposeException`, and the browse loop catches it and moves to the next seed. That is deliberate — one
-unusable seed is not a failure of the request — but it means the feed cannot distinguish a seed that produced
-nothing from one that produced a board the filter rejected, and neither is reported. The scanned count
-includes both.
+a `ComposeException`, and the fill catches it and moves to the next seed, so the library simply holds no board
+for that seed. One unusable seed is not a failure of the fill, and none has been seen in thousands.
 
-**A descriptor that will not compose is 422 on pin.** `POST /api/compose/pin` re-composes from the descriptor
-rather than trusting anything the client sends, so a descriptor from a different composer version can fail
-there; a malformed one is 400.
+**A descriptor the library does not hold is 404 on pin.** `POST /api/compose/pin` keeps the stored board the
+descriptor names rather than anything the client sends, so a descriptor for a seed never filled, or from a
+composer version whose boards have been deleted, answers 404; a malformed one is 400.
 
 Nothing else is refused. There is no minimum board, no rule about what a candidate must contain, and no check
 that a pinned board is any good — the score is advice, and a board scoring 12 is as pinnable as one scoring 0.
@@ -293,14 +325,14 @@ that a pinned board is any good — the score is advice, and a board scoring 12 
 ## The API
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist
-([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The compose feed is seconds of work and waits its turn in the build queue, answering 429 when it cannot, which no row repeats either.
+([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /compose?players=&symmetry=&cell=&seedStart=&count=` | `{cards, nextSeed, exhausted, scanned, observed}` — each card its descriptor, score, wool count, structural read, hard terms, top three soft terms, board SVG and land spend | 400 unsupported symmetry · 400 invalid parameters |
+| `GET /compose?players=&symmetry=&from=&count=` | `{cards, next, end, matching, observed}` — a page of the library, best score first: each card its descriptor, score, wool count, structural read, hard terms, top three soft terms, board SVG and land spend; `next` the position to ask from, `end` whether this page reaches the last matching board, `matching` how many match, `observed` the census of every board held for the band and symmetry | 400 unsupported symmetry · 400 unsupported team count |
 | … `&maxScore=&woolMin=&woolMax=` | the same, sieved on the evaluator score and the wool count | — |
 | … `&wools=&hub=&front=` | the same, sieved structurally — `wools` must-include, `hub` and `front` any-of, all CSV | — |
-| `POST /compose/pin` | the stored `PlanDetail` — re-composes from a **descriptor body**, the same `{players, teams, symmetry, seed, …}` record `GET /compose` is queried with, annotates its boxes and saves it as a generated row (idempotent by content hash) | 400 `RQ1` invalid descriptor · 422 `CO1` a board the composer cannot emit, its message naming the knob and the value |
+| `POST /compose/pin` | the stored `PlanDetail` — keeps the library board a **descriptor body** names, the `{players, teams, symmetry, seed, …}` record a card carries, labelled for its player count and saved as a generated row (idempotent by content hash) | 400 `RQ1` invalid descriptor · 404 a board the library does not hold |
 | `GET /plans?origin=generated` | the hold tray: summaries newest-touched first, each with its descriptor and whether it is stale | — |
 | `GET /plans/{id}` | the row plus its `planJson` | 404 |
 | `GET /plans/{id}/svg` · `GET /plans/{id}/png` | the stored board as a thumbnail or as an image an image reader can open — both off one shared scene, so the encodings cannot disagree | 404 unknown · 422 unreadable plan |
@@ -312,10 +344,10 @@ Plan tool's and takes the document as its body. `plan.md` has them.
 
 ## Driving it without the UI
 
-The whole loop is three calls, and the first one does the work.
+The whole loop is three calls.
 
 ```
-GET  /api/compose?players=20&symmetry=rot_180&seedStart=0&count=9
+GET  /api/compose?players=20&symmetry=rot_180&count=9
 POST /api/compose/pin        <the chosen card's descriptor verbatim>   → {"id": 18, …}
 POST /api/plan/18/author                                               → {"slug": "composed-p20-t2-42"}
 ```
@@ -324,18 +356,15 @@ From there the map is an ordinary plan-stage map and `plan.md`'s six-call chain 
 the candidate's name slugified — `Composed p20 t2 #42` becomes `composed-p20-t2-42`.
 
 **The feed never hands over a plan document**, which is the one thing worth knowing before scripting against
-it: a card carries its descriptor and a picture, and the only call that turns a descriptor back into the
-document is `POST /api/compose/pin`. An agent that wants the JSON rather than a map therefore pins, reads
-`planJson` off the response, and deletes the row — three calls where one would do, and the reason is that the
-composer is the only thing that can build it.
+it: a card carries its descriptor and a picture, so a page of 48 stays light, and the only call that hands over
+the document is `POST /api/compose/pin`. An agent that wants the JSON rather than a map therefore pins, reads
+`planJson` off the response, and deletes the row.
 
-Three habits make the feed usable from a script. **Walk with the cursor**: pass the previous response's
-`nextSeed` as the next `seedStart` and stop on `exhausted`, rather than guessing a stride. **Ask for the
-census before filtering**: a request with a filter nothing matches (`&wools=z` is the reliable one, since no
-sampler draws a Z) runs the full 400-seed budget and returns `observed` for the whole scan, which says what
-that player count and symmetry actually produce before a single card is fetched. And **read `scanned` against
-the card count**: a strict conjunction returning three cards from four hundred seeds is a signal about the
-request, not about the run.
+Three habits make the feed usable from a script. **Walk with the position**: pass the previous response's
+`next` as the next `from` and stop on `end`, rather than guessing a stride. **Read the census first**: every
+response carries `observed` for every board held for the band and symmetry, so the first page already says
+what those settings produce. And **read `matching`**: it counts the whole library's matches for the filters,
+so a strict conjunction says at once how rare it is.
 
 The composer is also reachable without the server. `tools/compose/` holds file-based scripts that reference
 `PgmStudio.Pgm` directly — `reproduction-gate.cs` checks every composed board reads back as producible, and
@@ -346,6 +375,10 @@ for fetching a board. Their cache is keyed on the
 numbers with no error — `CLAUDE.md`'s runfile note is load-bearing before any before/after measurement.
 
 ## Limits
+
+**The library is all there is.** The feed shows the 500 boards per band and symmetry the fill composed and
+nothing else: no seed past them, no cell but the default, and no board composed on request. That is the
+author's decision rather than a gap, and `--per-band` exists for tests and local looks, not for the deploy.
 
 **Nothing composed can be adjusted here.** There is no way to nudge a hub, re-roll one wool, or ask for the
 same board a little wider. The unit of work is a whole board, and the only response to a board that is nearly

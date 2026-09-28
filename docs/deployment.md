@@ -74,8 +74,17 @@ that fails:
 4. run `--migrate-only`;
 5. point `/opt/pgm-studio/app` at the release and restart the service;
 6. wait up to 30 s for `/api/health`, and check the served `index.html` carries no unfilled placeholder;
-7. keep the three newest releases, install the commit's `tools/deploy/*.sh` into `/opt/pgm-studio/bin`, and
+7. start the Generator's board library fill for this release's composer in the background (below);
+8. keep the three newest releases, install the commit's `tools/deploy/*.sh` into `/opt/pgm-studio/bin`, and
    record the commit as deployed in `/var/lib/pgm-studio-deploy/deployed`.
+
+**The board library is composed on the server, after a deploy and behind everything else.** Step 7 starts
+`PgmStudio.Import --compose-library` from the new release as the transient unit `pgm-studio-library`, as the
+`pgm-studio` user with the studio's environment, at `Nice=19`, a tenth of the default CPU weight and idle I/O,
+so it outlives the deploy and the live studio always has the cores first. It composes only what the running
+composer version is missing, so a deploy that does not change the composer finishes it at once, and a fill left
+running by the release before is stopped first. `journalctl -u pgm-studio-library` shows it band by band, and
+`docs/tools/generator.md` is what it writes.
 
 **A studio that does not come up is pointed back at the release before it.** The schema stays migrated, since
 a migration is not undone by pointing at older code; the dump from step 3 is what restores it. A lock in

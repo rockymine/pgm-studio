@@ -8,9 +8,9 @@ using PgmStudio.Contracts;
 namespace PgmStudio.Client.Features.Generator;
 
 /// <summary>
-/// The generator browse feed (G117): compose boards ahead from the server, sieve them by size/symmetry/score/
-/// wool count, and keep the ones worth keeping. Cards carry only their reproducible descriptor + SVG; pinning
-/// or opening a card re-composes it server-side. The hold tray is the persisted generated corpus (G119); it
+/// The generator browse feed (G117): page through the composed-board library the server holds, sieve it by
+/// size/symmetry/score/wool count, and keep the ones worth keeping. Cards carry only their descriptor + SVG;
+/// pinning or opening a card keeps the stored board the descriptor names. The hold tray is the persisted generated corpus (G119); it
 /// survives reload because pinned means stored.
 /// </summary>
 public partial class GeneratorTool : IAsyncDisposable
@@ -59,12 +59,10 @@ public partial class GeneratorTool : IAsyncDisposable
 
     // ── feed ─────────────────────────────────────────────────────────────────────
     private readonly List<ComposeCard> cards = [];
-    private int cursor;              // next seed to request
-    private int totalScanned;        // seeds composed for the current filter (matched = cards.Count)
-    private bool loading, exhausted;
+    private int cursor;              // the library position to ask from next
+    private int matching;            // how many library boards the current filters match
+    private bool loading, atEnd;
     private string? feedError;
-
-    private bool StructuralActive => woolFilter.Count > 0 || hubFilter.Count > 0 || frontFilter.Count > 0;
 
     // ── hold tray (persisted generated plans, keyed by descriptor) ────────────────
     private List<PlanSummary> pinned = [];
@@ -89,9 +87,9 @@ public partial class GeneratorTool : IAsyncDisposable
     }
 
     // ── loading ────────────────────────────────────────────────────────────────────
-    private string QueryString(int seedStart)
+    private string QueryString(int from)
     {
-        var q = $"players={players}&symmetry={symmetry}&seedStart={seedStart}&count={PageSize}";
+        var q = $"players={players}&symmetry={symmetry}&from={from}&count={PageSize}";
         if (maxScore < ScoreCap) q += $"&maxScore={maxScore.ToString(CultureInfo.InvariantCulture)}";
         if (woolMin > 0) q += $"&woolMin={woolMin}";
         if (woolMax > 0) q += $"&woolMax={woolMax}";
@@ -101,24 +99,20 @@ public partial class GeneratorTool : IAsyncDisposable
         return q;
     }
 
-    // Apply the filters: clear the feed and start the seed cursor over. The structural census survives a
-    // re-sieve of the same request — it is counted before the sieve, so picking a filter never invalidates it —
-    // but not a change of players or symmetry, which is a different request producing different forms. Keyed on
-    // the request rather than on which control fired, so no caller can forget.
+    // Apply the filters: clear the feed and start from the library's first board.
     private async Task Reload()
     {
         cards.Clear();
         cursor = 0;
-        totalScanned = 0;
-        exhausted = false;
+        matching = 0;
+        atEnd = false;
         feedError = null;
-        if (censusKey != RequestKey) ResetCensus();
         await LoadPage();
     }
 
     private async Task LoadPage()
     {
-        if (loading || exhausted) return;
+        if (loading || atEnd) return;
         loading = true;
         StateHasChanged();
         try
@@ -127,43 +121,34 @@ public partial class GeneratorTool : IAsyncDisposable
             if (page is not null)
             {
                 cards.AddRange(page.Cards);
-                cursor = page.NextSeed;
-                totalScanned += page.Scanned;
-                exhausted = page.Exhausted;
-                Accumulate(page.Observed);
+                cursor = page.Next;
+                matching = page.Matching;
+                atEnd = page.End;
+                SetCensus(page.Observed);
             }
         }
-        catch { feedError = "Could not load boards."; exhausted = true; }
+        catch { feedError = "Could not load boards."; atEnd = true; }
         finally { loading = false; StateHasChanged(); }
     }
 
-    // ── the structural census (what this request actually produces) ──────────────────────────────────
-    // Accumulated across pages because one page is a small sample: a form absent from 48 boards may simply not
-    // have come up, while one absent from several hundred is telling you the request cannot make it.
+    // ── the structural census (what the library holds for these settings) ─────────────────────────────
+    // Every page carries the census over the whole library for the band and symmetry, before the filters.
     private readonly Dictionary<string, int> seenWools = [], seenHubs = [], seenFronts = [];
     private int censusBoards;
-    private string censusKey = "";
 
-    private string RequestKey => $"{players}/{symmetry}";
-
-    private void ResetCensus()
-    {
-        seenWools.Clear(); seenHubs.Clear(); seenFronts.Clear();
-        censusBoards = 0;
-        censusKey = RequestKey;
-    }
-
-    /// <summary>How many boards must be seen before a token's absence is worth reporting as absence rather than
-    /// as a small sample. Below it the chips carry their counts but nothing is called unavailable.</summary>
+    /// <summary>How many boards must be held before a token's absence is worth reporting as absence rather than
+    /// as a small sample — which matters only while a library is still being filled. Below it the chips carry
+    /// their counts but nothing is called unavailable.</summary>
     private const int CensusConfidence = 150;
 
-    private void Accumulate(ObservedForms? o)
+    private void SetCensus(ObservedForms? o)
     {
+        seenWools.Clear(); seenHubs.Clear(); seenFronts.Clear();
+        censusBoards = o?.Boards ?? 0;
         if (o is null) return;
-        censusBoards += o.Boards;
-        foreach (var (k, v) in o.Wools) seenWools[k] = seenWools.GetValueOrDefault(k) + v;
-        foreach (var (k, v) in o.Hubs) seenHubs[k] = seenHubs.GetValueOrDefault(k) + v;
-        foreach (var (k, v) in o.Frontlines) seenFronts[k] = seenFronts.GetValueOrDefault(k) + v;
+        foreach (var (k, v) in o.Wools) seenWools[k] = v;
+        foreach (var (k, v) in o.Hubs) seenHubs[k] = v;
+        foreach (var (k, v) in o.Frontlines) seenFronts[k] = v;
     }
 
     private bool CensusIsTelling => censusBoards >= CensusConfidence;
@@ -181,10 +166,12 @@ public partial class GeneratorTool : IAsyncDisposable
             .Where(f => Unseen(f.Seen, f.Token))
             .Select(f => f.Label)
             .ToList();
+        if (censusBoards == 0)
+            return "The board library for these settings is still being composed. Check back later.";
         if (never.Count == 0)
-            return $"No boards match these filters in the {totalScanned} scanned.";
-        return $"{string.Join(" and ", never)} did not turn up in any of the {censusBoards} boards this request "
-             + "composed — it is not a mix these players and symmetry produce.";
+            return $"No boards match these filters among the {censusBoards} held for these settings.";
+        return $"{string.Join(" and ", never)} did not turn up in any of the {censusBoards} boards held for these "
+             + "settings — it is not a mix these players and symmetry produce.";
     }
 
     // every structural filter currently picked, with the census it reads against
@@ -201,10 +188,10 @@ public partial class GeneratorTool : IAsyncDisposable
     private string ChipTitle(Dictionary<string, int> seen, string token, string label)
     {
         var n = seen.GetValueOrDefault(token);
-        if (n > 0) return $"{label} — {n} of the {censusBoards} boards scanned so far";
+        if (n > 0) return $"{label} — {n} of the {censusBoards} boards held for these settings";
         return CensusIsTelling
-            ? $"{label} — not produced by this request (none in {censusBoards} boards scanned)"
-            : $"{label} — none yet in {censusBoards} board{(censusBoards == 1 ? "" : "s")} scanned";
+            ? $"{label} — not produced by these settings (none in {censusBoards} boards)"
+            : $"{label} — none yet in {censusBoards} board{(censusBoards == 1 ? "" : "s")} held";
     }
 
     // ── structural filters (chips + card badges; toggling re-sieves the feed immediately) ────────────

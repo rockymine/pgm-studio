@@ -3,11 +3,14 @@ using LinqToDB;
 using LinqToDB.Async;
 using LinqToDB.Data;
 using Microsoft.Extensions.Configuration;
+using PgmStudio.Data.Compose;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Import;
 using PgmStudio.Migrations;
 using PgmStudio.Pgm;
+using PgmStudio.Pgm.Compose;
+using PgmStudio.Vocabulary;
 
 // Numbers are dot-separated whatever the host's regional settings say — the same pin the API and the client
 // hold. This process reads map.xml coordinates and writes them into the database, so a comma-decimal locale
@@ -56,6 +59,26 @@ if (args.Contains("--migrate-only"))
 }
 
 await using var db = new PgmDb(PgmDataOptions.ForConnectionString(connectionString));
+
+// --compose-library: compose what the Generator page's board library is missing for the running composer
+// version, 500 boards per size band and symmetry (docs/tools/generator.md). The deploy starts it at the lowest
+// CPU priority after each release; --per-band, --bands and --symmetries narrow it, for a test or a first look.
+if (args.Contains("--compose-library"))
+{
+    string? Option(string name) => args.FirstOrDefault(arg => arg.StartsWith(name + "="))?[(name.Length + 1)..];
+    var perBand = Option("--per-band") is { } stated ? int.Parse(stated, invariant) : ComposedBoardLibrary.PerBand;
+    var bands = Option("--bands")?.Split(',') ?? SizeBands.All;
+    var symmetries = Option("--symmetries")?.Split(',') ?? ComposedBoardLibrary.Symmetries;
+    if (bands.Except(SizeBands.All).FirstOrDefault() is { } band)
+    { Console.Error.WriteLine($"--bands names '{band}', which is not a size band ({string.Join(", ", SizeBands.All)})."); return 1; }
+    if (symmetries.Except(ComposedBoardLibrary.Symmetries).FirstOrDefault() is { } symmetry)
+    { Console.Error.WriteLine($"--symmetries names '{symmetry}', which the library does not hold ({string.Join(", ", ComposedBoardLibrary.Symmetries)})."); return 1; }
+
+    Console.WriteLine($"composing the board library for composer {ComposerVersion.Current}, {perBand} per band and symmetry");
+    var composed = await ComposedBoardLibrary.FillAsync(new ComposedBoardStore(db), perBand, bands, symmetries, Console.WriteLine);
+    Console.WriteLine($"composed {composed} boards");
+    return 0;
+}
 var artifacts = new MapArtifactStore(db);
 var importer = new MapImporter(db, artifacts);
 

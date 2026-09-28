@@ -398,8 +398,9 @@ verdicts** that become the labeled positive/negative corpus every later refineme
 (G121), the persistence foundation (G119), browse mode (G117), its structural sieve (G128) and the shape
 catalog page (G144) have shipped (`FEATURES.md`); verdicts are next when the theme resumes.
 
-**Persistence doctrine for the whole slice: the feed is ephemeral; only human attention persists.** A plan
-enters the database exactly when it is voted on, pinned, or saved from the editor — never while scrolling.
+**Persistence doctrine for the whole slice: only human attention writes a plan.** The feed reads the
+composed-board library (`docs/tools/generator.md`), and a plan enters the `plan` table exactly when it is
+voted on, pinned, or saved from the editor — never while scrolling.
 Generated rows are **immutable**: editing one forks a new `authored` row with a `parent_id` back-reference,
 so the labeled corpus cannot be contaminated after the fact. Browse votes (absolute) and duel results
 (pairwise preference) are **separate datasets**, unified only at analysis time.

@@ -18,16 +18,18 @@ const OUT = TMP_DIR;
 await mkdir(OUT, { recursive: true });
 const checks = new Checks("theming · per-shape (sketch · Theme phase)");
 
-// The terrain (non-structural) shapes wherever the layout keeps them — legacy single `layout`, or `layers[]`
-// once the editor has saved through getState().
-const terrainShapes = (l) => (l?.layers?.[0]?.layout?.shapes ?? l?.layout?.shapes ?? []).filter(s => !s.role);
+// The terrain shapes a theme paints, wherever the layout keeps them — legacy single `layout`, or `layers[]`
+// once the editor has saved through getState(). Structural rooms are left out, and so are cuts: a hole with no
+// floor is void, so a theme a click lands on one with paints nothing, and the drive moves on to the next point.
+const terrainShapes = (l) => (l?.layers?.[0]?.layout?.shapes ?? l?.layout?.shapes ?? [])
+  .filter(s => !s.role && s.operation !== "subtract");
 
 // ── build a multi-shape sketch from a height-randomized generator plan ─────────────────────────────────
 checks.section("a height-randomized plan compiles to several themeable shapes");
 
 // The descriptor comes from a browsed card: it carries the composer's own version and schema, and a
 // hand-built one is refused (RQ1) the next time either moves.
-const { cards } = await api("/compose?players=12&symmetry=rot_180&cell=5&count=1");
+const { cards } = await api("/compose?players=12&symmetry=rot_180&count=1");
 const pinned = await api("/compose/pin", { method: "POST", body: cards[0].descriptor });
 const plan = JSON.parse(pinned.planJson);
 plan.pieces.forEach((p, i) => { p.surface = 9 + (i % 3) * 6; });   // 9 / 15 / 21 — distinct plateaus, so pieces don't all fuse
