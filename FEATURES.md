@@ -9784,7 +9784,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   caller (the account, or the address when signed out), holds 32 waiting and 8 of one caller's for up to
   60 s, and refuses the rest `RQ11` at 429 with `Retry-After`, all under `Builds` in `appsettings.json`. The
   thread pool's floor is 16, so the cheap routes answer while builds run: `/api/health` behind two exports
-  on two cores went from 6.8 s to 10–40 ms. `docs/access.md`.
+  on two cores went from 3.3 s to 40 ms. `docs/access.md`.
 - **A token for a caller without a browser (`RP76`).** A driver or an agent sends `Authorization: Bearer
   pgms_…` and is the person the token was issued for — their uuid, role, maps and credits, decided by the
   whitelist on every request like a session. Issued once from *Tokens* in the account menu

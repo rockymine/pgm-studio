@@ -204,8 +204,9 @@ The bounds are the operator's, under `Builds` in `appsettings.json`:
 
 **The thread pool starts at sixteen threads.** A build runs synchronously on a pool thread, and the pool's
 floor is the machine's core count, so on two cores two builds left nothing to answer the cheap routes while the
-pool grew: `/api/health` took up to 6.8 s behind two exports. `ThreadPoolMinThreads` in `PgmStudio.Api.csproj`
-raises the floor to 16, and the same measurement answers in 10–40 ms; the builds take as long as they did.
+pool grew: pinned to two cores, `/api/health` took 1.1 s behind two renders and 3.3 s behind two exports.
+`ThreadPoolMinThreads` in `PgmStudio.Api.csproj` raises the floor to 16, and the same measurements answer in at
+most 40 ms, 50 ms with four builds running; the builds take as long as they did.
 
 ## What it refuses
 
