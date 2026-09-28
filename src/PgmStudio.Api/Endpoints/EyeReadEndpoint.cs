@@ -41,7 +41,7 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
                 + "`look` nor `from`."),
             new QueryWord("y", "The eye's height, overriding the one `from` stands at. Ignored with `look` alone."),
             new QueryWord("yaw", "Which way the eye faces with `from` or `eye` alone, in the game's own degrees: 0 "
-                + "south (+z), 90 west, 180 north, 270 east. Absent is 0. Ignored with `look`."),
+                + "south (+z), 90 west, 180 north, −90 east, from −180 to 180. Absent is 0. Ignored with `look`."),
             new QueryWord("pitch", "Degrees below the horizon, negative looking up; 90 looks straight down. Absent "
                 + "is 10 with `from` or `eye` alone; with `look` and `from`, absent tips the eye to the thing's "
                 + "middle. Ignored with `look` alone."),

@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
@@ -5,7 +6,7 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Render;
 
 /// <summary>Where an eye stands and where it looks. <paramref name="Yaw"/> is the game's own: 0 looks south
-/// (+z), 90 west (−x), 180 north, 270 east. <paramref name="Pitch"/> is degrees below the horizon, negative
+/// (+z), 90 west (−x), 180 north, −90 east, within (−180, 180]. <paramref name="Pitch"/> is degrees below the horizon, negative
 /// looking up. <paramref name="Fov"/> is the horizontal field of view in degrees.</summary>
 public readonly record struct EyeCamera(double X, double Y, double Z, double Yaw, double Pitch, double Fov = 70);
 
@@ -278,9 +279,8 @@ public sealed class EyeScene
 
     private static EyeCamera Toward((double X, double Y, double Z) eye, (double X, double Y, double Z) at, double fov)
     {
-        double dx = at.X - eye.X, dy = at.Y - eye.Y, dz = at.Z - eye.Z;
-        var yaw = (Math.Atan2(-dx, dz) * 180 / Math.PI + 360) % 360;
-        var pitch = -Math.Atan2(dy, Math.Sqrt(dx * dx + dz * dz)) * 180 / Math.PI;
+        var yaw = Heading.YawTo(eye.X, eye.Z, at.X, at.Z);
+        var pitch = Heading.PitchTo(eye.X, eye.Y, eye.Z, at.X, at.Y, at.Z);
         return new EyeCamera(eye.X, eye.Y, eye.Z, yaw, pitch, fov);
     }
 

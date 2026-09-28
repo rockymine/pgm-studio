@@ -7,7 +7,7 @@ namespace PgmStudio.Contracts;
 /// <param name="X">East–west, in blocks.</param>
 /// <param name="Y">The eye's height.</param>
 /// <param name="Z">North–south.</param>
-/// <param name="Yaw">The game's own: 0 looks south (+z), 90 west, 180 north, 270 east.</param>
+/// <param name="Yaw">The game's own, from −180 to 180: 0 looks south (+z), 90 west, 180 north, −90 east.</param>
 /// <param name="Pitch">Degrees below the horizon, negative looking up.</param>
 /// <param name="Fov">Horizontal field of view, in degrees.</param>
 public sealed record EyeCameraDto(double X, double Y, double Z, double Yaw, double Pitch, double Fov);

@@ -188,7 +188,7 @@ public sealed record MapViewsDto(IReadOnlyList<MapViewDto> Views, string? Undraw
 /// <param name="Pitch">How far the eye tips down, −90 to 90 degrees, 90 straight down — an aerial shot is an eye
 /// raised with <paramref name="Y"/> and tipped down with this; null tips it to the middle of what it looks
 /// at.</param>
-/// <param name="Yaw">Which way the eye turns, in the game's degrees — 0 south, 90 west, 180 north, 270 east.
+/// <param name="Yaw">Which way the eye turns, in the game's degrees — 0 south, 90 west, 180 north, −90 east, from −180 to 180.
 /// Stated with <paramref name="FromX"/>, <paramref name="FromZ"/> and <paramref name="Y"/>, it states the camera
 /// whole and <paramref name="LookX"/>, <paramref name="LookZ"/> is only where its middle lands; null faces what
 /// it looks at.</param>

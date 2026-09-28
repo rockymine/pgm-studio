@@ -1,11 +1,12 @@
 @namespace PgmStudio.Client.Features.Sketch
 @using System.Globalization
+@using PgmStudio.Geom
 @inject IJSRuntime JS
 @inject HttpClient Http
 
 @* The camera in hand, stated whole: where it stands — X, Y and Z, the Y being the eye's own height — which way
-   it turns (yaw) and how far it tips (pitch), in the game's own terms. Where it looks at follows from those, and
-   is read off the picture's middle. A camera placed on the canvas opens here resolved: the studio says where the
+   it turns (yaw) and how far it tips (pitch), in the game's own terms and ranges. Its angle is the block it looks
+   at, as PGM's spawn `angle` is: read off the picture's middle, and stating one turns the camera onto it. A camera placed on the canvas opens here resolved: the studio says where the
    eye ended up and fills every field, so nothing is left blank for the reader to guess. A camera picked up off
    the canvas opens with its own values: a kept one is changed in place, a suggestion is kept as a new view.
    Nothing is stored until it is kept. *@
@@ -55,8 +56,15 @@
         </p>
         <Field Label="Facing">
           <div class="ctrl-row">
-            <CoordField Prefix="Yaw" Type="number" Value="@Shown(yaw)" step="5" OnChange="OnYaw" />
+            <CoordField Prefix="Yaw" Type="number" Value="@Shown(yaw)" step="5" min="-180" max="180" OnChange="OnYaw" />
             <CoordField Prefix="Pitch" Type="number" Value="@Shown(pitch)" step="5" min="-90" max="90" OnChange="OnPitch" />
+          </div>
+        </Field>
+        <Field Label="Angle">
+          <div class="ctrl-row">
+            <CoordField Prefix="X" Type="number" Value="@angleX" step="1" OnChange="e => Aim(ref angleX, e)" />
+            <CoordField Prefix="Y" Type="number" Value="@angleY" step="1" OnChange="e => Aim(ref angleY, e)" />
+            <CoordField Prefix="Z" Type="number" Value="@angleZ" step="1" OnChange="e => Aim(ref angleZ, e)" />
           </div>
         </Field>
         <p class="plan-readout">@Looking</p>
@@ -99,6 +107,10 @@
     private string name = "";
     private int? standX, standZ;
     private double? eyeY, yaw, pitch;
+    private int? angleX, angleY, angleZ;
+
+    /// <summary>Whether the angle was stated rather than read off the picture, so a new reading keeps it.</summary>
+    private bool angleStated;
     private EyePickDto? read;
     private string? error;
     private bool keeping;
@@ -111,6 +123,7 @@
         var sameCamera = Draft?.Source?.Id is { } id && id == seen?.Source?.Id;
         var wasHeld = seen is not null && standX is not null;
         seen = Draft;
+        angleStated = false;
         if (Draft is not { } draft)
         {
             standX = standZ = null;
@@ -181,6 +194,7 @@
             yaw = Math.Round(camera.Yaw, 1);
             pitch = Math.Round(camera.Pitch, 1);
         }
+        if (!angleStated) (angleX, angleY, angleZ) = read.Hit is { } hit ? (hit.X, hit.Y, hit.Z) : ((int?)null, (int?)null, (int?)null);
         if (standX is { } fx && standZ is { } fz)
         {
             var (lookX, lookZ) = LookPoint(camera);
@@ -189,9 +203,11 @@
         StateHasChanged();
     }
 
-    /// <summary>Where the camera's middle lands: the block it hits, or, over the sky, a point along its yaw.</summary>
+    /// <summary>Where the camera looks: its angle, the block its middle hits, or, over the sky, a point along its
+    /// yaw.</summary>
     private (int X, int Z) LookPoint(EyeCameraDto camera)
     {
+        if (angleX is { } x && angleZ is { } z) return (x, z);
         if (read?.Hit is { } hit) return (hit.X, hit.Z);
         var radians = camera.Yaw * Math.PI / 180;
         return ((int)Math.Floor(camera.X - Math.Sin(radians) * 32), (int)Math.Floor(camera.Z + Math.Cos(radians) * 32));
@@ -199,35 +215,57 @@
 
     private Task Changed() => Query is { } query ? ResolveAsync(query, adopt: false) : Task.CompletedTask;
 
+    /// <summary>A field of the stand or the facing changed: the angle is read off the picture again.</summary>
+    private Task Moved()
+    {
+        angleStated = false;
+        return Changed();
+    }
+
+    /// <summary>An angle field changed: the camera turns onto the middle of that block from where it stands.</summary>
+    private Task Aim(ref int? field, ChangeEventArgs change)
+    {
+        if (!int.TryParse(change.Value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+            return Task.CompletedTask;
+        field = value;
+        if (standX is not { } x || standZ is not { } z || eyeY is not { } y
+            || angleX is not { } ax || angleY is not { } ay || angleZ is not { } az) return Task.CompletedTask;
+        double eyeX = x + 0.5, eyeZ = z + 0.5, atX = ax + 0.5, atY = ay + 0.5, atZ = az + 0.5;
+        yaw = Math.Round(Heading.YawTo(eyeX, eyeZ, atX, atZ), 1);
+        pitch = Math.Round(Heading.PitchTo(eyeX, y, eyeZ, atX, atY, atZ), 1);
+        angleStated = true;
+        return Changed();
+    }
+
     private Task Set(ref int? field, ChangeEventArgs change)
     {
         if (int.TryParse(change.Value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
             field = value;
-        return Changed();
+        return Moved();
     }
 
     private Task OnEyeY(ChangeEventArgs change)
     {
         if (Parse(change) is { } y) eyeY = Math.Clamp(y, 0, 320);
-        return Changed();
+        return Moved();
     }
 
     private Task OnYaw(ChangeEventArgs change)
     {
-        if (Parse(change) is { } turned) yaw = ((turned % 360) + 360) % 360;
-        return Changed();
+        if (Parse(change) is { } turned) yaw = Heading.Wrap(turned);
+        return Moved();
     }
 
     private Task OnPitch(ChangeEventArgs change)
     {
         if (Parse(change) is { } tipped) pitch = Math.Clamp(tipped, -90, 90);
-        return Changed();
+        return Moved();
     }
 
     private Task SetEye(double y)
     {
         eyeY = y;
-        return Changed();
+        return Moved();
     }
 
     private static double? Parse(ChangeEventArgs change) =>
@@ -250,10 +288,12 @@
                 ? string.Create(CultureInfo.InvariantCulture, $"{y - (ground + 1):0.#} blocks over the ground at y {ground + 1}.")
                 : "";
 
-    /// <summary>What the middle of the picture lands on.</summary>
-    private string Looking => read?.Hit is { } hit
-        ? string.Create(CultureInfo.InvariantCulture, $"Looking at {hit.X}, {hit.Y}, {hit.Z} — the block the middle of the picture lands on.")
-        : "Looking at the sky: the middle of the picture lands on nothing.";
+    /// <summary>What the middle of the picture lands on, against the angle stated.</summary>
+    private string Looking => read?.Hit is not { } hit
+        ? "The middle of the picture lands on the sky."
+        : angleStated && (hit.X, hit.Y, hit.Z) != (angleX, angleY, angleZ)
+            ? string.Create(CultureInfo.InvariantCulture, $"The middle of the picture lands on {hit.X}, {hit.Y}, {hit.Z}, not on the angle: that block is open, or something stands before it.")
+            : "The block the middle of the picture lands on.";
 
     /// <summary>Whether the draft changes a kept view rather than keeping a new one.</summary>
     private bool Changing => Draft?.Source is { Kept: true };

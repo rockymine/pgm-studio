@@ -1364,14 +1364,19 @@ canvas, kept first and then suggested.
 
 **A press on empty ground places a new view.** It stands the eye and a drag turns it toward what it looks at; a
 click without a drag names only what to look at, and the eye finds its own place. The inspector then states the
-camera whole, in the game's own terms, with every field filled from where the studio resolved the eye to:
-**Standing at** X, Y and Z, the Y being the eye's own height; **Facing** as a yaw, the game's compass (0 south,
-90 west, 180 north, 270 east), and a pitch, the degrees the eye tips down, 90 straight down and negative up. A
-line under the stand says what its height is: at a player's eye over the ground, so many blocks over it, or over
-the void, and **Stand it on the ground** puts a raised eye back at a player's height. A line under the facing
-names the block the middle of the picture lands on, read off the picture rather than typed, since where a camera
-looks follows from where it stands and which way it faces. Changing any field draws the picture again, and
-**Keep** stores the camera as stated and returns to the gallery.
+camera whole, in the terms and ranges PGM's spawn `yaw`, `pitch` and `angle` are written in, with every field
+filled from where the studio resolved the eye to. **Standing at** is X, Y and Z, the Y being the eye's own
+height. **Facing** is a yaw from −180 to 180 (south 0, west 90, north 180, east −90, as the game's `F3` screen
+shows it) and a pitch from −90 straight up to 90 straight down; a yaw typed outside the range is wrapped into it.
+**Angle** is the block the camera looks at: it is read off the middle of the picture, and stating one turns the
+camera onto the middle of that block from where it stands, the way PGM's `angle` overrides a spawn's yaw and
+pitch.
+
+A line under the stand says what its height is: at a player's eye over the ground, so many blocks over it, or
+over the void, and **Stand it on the ground** puts a raised eye back at a player's height. A line under the angle
+says where the middle of the picture lands when that is not the angle stated — the block is open, or something
+stands before it. Changing any field draws the
+picture again, and **Keep** stores the camera as stated and returns to the gallery.
 
 **A press on a camera picks it up.** Pressing it and dragging stands it elsewhere; a click, or choosing it in
 the list, opens it as it is. Only the camera in hand shows the line it looks along and the target at its end,
@@ -1953,7 +1958,7 @@ in the same two registers.
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, yaw, query, eye}`. `own` marks the straight-down view (`above`), kept by every board; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null | 404 |
-| `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?}`; a blank name is `View {n}`. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down. `yaw` states the camera whole — it turns from `fromX`, `fromZ` at `y`, and `look` is then only where the canvas draws its target; it is kept between 0 and 360 | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, a pitch past straight up or down, or a `yaw` without its stand and `y` · 404 |
+| `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?}`; a blank name is `View {n}`. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down. `yaw` states the camera whole — it turns from `fromX`, `fromZ` at `y`, and `look` is then only where the canvas draws its target; it is wrapped into the game's −180 to 180 | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, a pitch past straight up or down, or a `yaw` without its stand and `y` · 404 |
 | `PUT /map/{slug}/views/{viewId}` | the view changed in place, keeping its id. Body as for keeping one; a blank name keeps the view's own. The board's own `above` is changed the same way, and the change is then kept in place of the framed one | 400 `not a view` `RQ1` · 404 no kept view has that id — a suggestion is not stored, so it cannot be changed |
 | `DELETE /map/{slug}/views/{viewId}` | the view let go. A suggestion is not kept, so it cannot be deleted; deleting a changed `above` puts the framed one back | 404 no kept view has that id · 409 `RQ5` the framed `above`, which is never let go |
 

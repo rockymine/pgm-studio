@@ -1,4 +1,5 @@
 using System.Globalization;
+using PgmStudio.Geom;
 using PgmStudio.Minecraft.Render;
 
 namespace PgmStudio.Api.Services;
@@ -11,7 +12,7 @@ namespace PgmStudio.Api.Services;
 /// <para>Four ways to aim, by which words are given: <c>look</c> alone lets the eye find its own place;
 /// <c>from</c> and <c>look</c> stand at one and face the other; <c>from</c> alone stands there facing
 /// <c>yaw</c>; <c>eye=x,y,z</c> stands exactly there facing <c>yaw</c> and <c>pitch</c>, which is how a camera
-/// any of the others resolved to is drawn again.</para>
+/// any of the others resolved to is drawn again. A yaw is wrapped into the game's (−180, 180].</para>
 /// </summary>
 internal sealed record EyeAim(
     (int X, int Z)? Look, (int X, int Z)? From, (double X, double Y, double Z)? Eye,
@@ -30,7 +31,7 @@ internal sealed record EyeAim(
         if (look is null && from is null && eye is null)
             throw new ArgumentException("name `look=x,z` for the eye to find a place to see it from, `from=x,z` "
                 + "for where it stands, or `eye=x,y,z` for exactly where");
-        return new EyeAim(look, from, eye, Number(word, "y"), Number(word, "yaw") ?? 0, Number(word, "pitch"),
+        return new EyeAim(look, from, eye, Number(word, "y"), Heading.Wrap(Number(word, "yaw") ?? 0), Number(word, "pitch"),
             Math.Clamp(Number(word, "fov") ?? 70, 30, 110),
             Math.Clamp(Whole(word, "width") ?? 960, 160, 1920),
             Math.Clamp(Whole(word, "height") ?? 540, 90, 1080),

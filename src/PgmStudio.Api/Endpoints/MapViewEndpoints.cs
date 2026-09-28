@@ -7,6 +7,7 @@ using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Export;
+using PgmStudio.Geom;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Render;
 
@@ -69,9 +70,6 @@ internal static class KeptViews
             return ("yaw", "a view that states its `yaw` states the camera whole: `fromX`, `fromZ` and `y` with it");
         return null;
     }
-
-    /// <summary>A yaw brought into 0–360, the range the game shows it in.</summary>
-    public static double? Turn(double? yaw) => yaw is { } degrees ? ((degrees % 360) + 360) % 360 : null;
 
     /// <summary>The name a request states, cut to <see cref="LongestName"/>, or null where it states none.</summary>
     public static string? Named(MapViewKeepRequest req) =>
@@ -158,7 +156,7 @@ public sealed class MapViewKeepEndpoint(MapRepository repo, MapArtifactStore art
                          .DefaultIfEmpty(0).Max() + 1;
         var name = KeptViews.Named(req) ?? string.Create(CultureInfo.InvariantCulture, $"View {number}");
         var view = new WorldView(string.Create(CultureInfo.InvariantCulture, $"view-{number}"), name,
-                                 req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch, KeptViews.Turn(req.Yaw));
+                                 req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch, req.Yaw is { } yaw ? Heading.Wrap(yaw) : null);
         kept.Add(view);
         await KeptViews.SaveAsync(artifacts, map.Id, kept, ct);
         await Send.OkAsync(KeptViews.Dto(view, kept: true), ct);
@@ -196,7 +194,7 @@ public sealed class MapViewChangeEndpoint(MapRepository repo, MapArtifactStore a
             return;
         }
         var name = KeptViews.Named(req) ?? (was >= 0 ? kept[was].Name : "Straight down");
-        var view = new WorldView(id, name, req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch, KeptViews.Turn(req.Yaw));
+        var view = new WorldView(id, name, req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch, req.Yaw is { } yaw ? Heading.Wrap(yaw) : null);
         if (was >= 0) kept[was] = view;
         else kept.Insert(0, view);
         await KeptViews.SaveAsync(artifacts, map.Id, kept, ct);
