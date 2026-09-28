@@ -669,7 +669,7 @@ the document is empty — and `Completeness` reports it alone, returning before 
 ## The API
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist, or
-who may edit the map it names ([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. Inspect, evaluate, feasibility and compile all take a plan
+who may edit the map it names ([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. A route that builds a world waits its turn in the build queue and answers 429 when it cannot, which no row repeats either. Inspect, evaluate, feasibility and compile all take a plan
 document as the body and need no map, which is what lets a plan be checked before it is stored anywhere.
 
 **Originating and storing**

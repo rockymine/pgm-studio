@@ -1,4 +1,5 @@
 using FastEndpoints;
+using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Plan;
 using PgmStudio.Pgm.Compose;
@@ -23,6 +24,7 @@ namespace PgmStudio.Api.Endpoints;
 /// and the seeds scanned (matched = card count); a low match rate under a strict filter is the signal to
 /// promote it to a held target (G98). An unsupported symmetry and any team count but two are answered 400.
 /// </summary>
+[Queued]
 public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
 {
     private static readonly string[] Supported = ["rot_180", "mirror_z"];

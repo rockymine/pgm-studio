@@ -444,8 +444,8 @@ and what a `subtract` takes away.
 ## Opening the studio to other people: sign-in, a server, and what a caller may ask for
 
 The access rules, the Discord sign-in, tokens for callers without a browser and the read-only client are in
-place (`docs/access.md`). What remains is the machine it runs on, what one caller may ask for at once, and the
-edits a read-only page still lets start.
+place (`docs/access.md`). What remains is the machine it runs on and the edits a read-only page still lets
+start.
 
 - [ ] **RP81 — The edits a read-only page still lets start.** Three reach past the shells that grey a page
   (`docs/client/ui-conventions.md`): a `Sidebar`'s own inputs (the sketch layer's rename and base height), the
@@ -458,11 +458,6 @@ edits a read-only page still lets start.
   bound to localhost, a GitHub Actions job that publishes after a
   green `main`, runs `--migrate-only` behind a `mariadb-dump`, and restarts; nightly dumps to a Storage Box.
   `Access:Mode=invited` and `Access:Admins` set in the unit's environment.
-
-- [ ] **RP79 — Bound what one caller may ask for at once.** A world export, a render and a compose are
-  seconds of CPU and a `GET` is open to anyone, so ASP.NET's rate limiter keyed on the caller — the uuid, or
-  the address when signed out — allows one export and a handful of renders in flight each, and answers the
-  rest 429 in the refusal envelope under a new `RQ` rule.
 
 ## The remainder: work no concept above has claimed
 

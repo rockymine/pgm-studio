@@ -293,7 +293,7 @@ that a pinned board is any good — the score is advice, and a board scoring 12 
 ## The API
 
 Every endpoint is rooted at `/api`; a read is open to anyone and a write needs someone on the whitelist
-([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are.
+([`docs/access.md`](../access.md)), which is what the 401 and 403 no row repeats are. The compose feed is seconds of work and waits its turn in the build queue, answering 429 when it cannot, which no row repeats either.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|

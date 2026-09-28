@@ -100,4 +100,14 @@ public static class RequestRules
     /// metadata declares. The finding's message says which of the two is missing, or what failed.</remarks>
     [Rule(RuleCategory.Unavailable, RuleConcern.Studio)]
     public const string TexturesUnavailable = "RQ10";
+
+    /// <summary>The route is seconds of work — a world built or rendered, a feed of boards composed — the
+    /// studio is running as many of those as it runs at once, and this request could not wait its turn: the
+    /// queue was full, or the request waited as long as one waits. It answers <b>429</b> with
+    /// <c>Retry-After</c>. Nothing about the request is wrong.</summary>
+    /// <remarks>Send it again after the seconds <c>Retry-After</c> names. A caller runs one such request at a
+    /// time and the rest of theirs wait in turn, so a client sending many at once is answered in order until the
+    /// queue holds as many of theirs as it keeps; send fewer at once.</remarks>
+    [Rule(RuleCategory.Unavailable, RuleConcern.Request, RuleConcern.Studio)]
+    public const string Busy = "RQ11";
 }

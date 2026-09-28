@@ -469,6 +469,11 @@ sign-in on a studio with no Discord application is `RQ9` (`docs/access.md`), and
 own block textures on a studio that has none is `RQ10` (`docs/world-scan/read-backs.md`). Both are **503**,
 because no change to the request helps, and each finding names the settings that would.
 
+**`RQ11` — the studio is building as much as it builds at once.** A route that builds a world waits its turn
+in the build queue, and one that finds the queue full or waits past its limit is **429** with a `Retry-After`,
+refused before its handler runs. Nothing is wrong with the request and asking again later answers it; the
+queue and its bounds are in `docs/access.md`, and no route's own table repeats the code.
+
 **`RQ2` — the fault is the studio's own.** Something escaped an endpoint that no gate refused. It stays a
 **500**, because dressing a defect as a bad request sends an author hunting a mistake they did not make; what
 it buys is that the caller gets this envelope instead of a .NET stack trace, and the trace goes to the log. It

@@ -209,6 +209,11 @@ builder.Services.AddHttpClient(PgmStudio.Api.Services.BlockTextureStore.ClientNa
 // few people an author types are asked of Mojang once rather than on every intent write.
 builder.Services.AddScoped<PlayerNameStore>();
 builder.Services.AddSingleton<PgmStudio.Api.Services.PlayerMisses>();
+// The queue in front of every route that is seconds of work (docs/access.md, "What the studio builds at
+// once"), sized from `Builds` in the configuration.
+builder.Services.AddSingleton(services => PgmStudio.Api.Services.BuildQueueOptions.From(
+    services.GetRequiredService<IConfiguration>()));
+builder.Services.AddSingleton<PgmStudio.Api.Services.BuildQueue>();
 builder.Services.AddScoped<PgmStudio.Api.Services.PlayerLookup>();
 
 // B8 import-from-url (docs/tools/configure.md, the Import phase): a hardcoded SSRF allowlist + a dedicated
@@ -321,6 +326,7 @@ app.Use(PgmStudio.Api.Endpoints.Complaints.CarryAsync);
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.Use(PgmStudio.Api.Services.BuildQueue.QueueAsync);
 
 // All API endpoints live under /api.
 app.UseFastEndpoints(c =>
@@ -338,6 +344,8 @@ app.UseFastEndpoints(c =>
         ep.PreProcessor<PgmStudio.Api.Endpoints.RequiredFields>(Order.Before);
         // Who may call the route: read open, write by policy — decided from the route, not by the endpoint.
         AccessRules.Apply(ep);
+        // And whether it waits its turn in the build queue, which the route's class says.
+        PgmStudio.Api.Services.BuildQueue.Apply(ep);
         // And the two answers every route can give whatever else it does, so the document says so once
         // rather than leaving each endpoint to remember: a document that will not read is 400 and the
         // studio's own fault is 500, both in the envelope the middleware above guarantees.

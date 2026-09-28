@@ -16,6 +16,7 @@ namespace PgmStudio.Api.Endpoints;
 ///
 /// <para>Pictures are drawn one at a time and kept with the world they were drawn from
 /// (<see cref="EyeRenders"/>), so asking again for a picture of an unchanged board answers at once.</para></summary>
+[Queued]
 internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts,
                                       BlockTextureStore textures)
     : WorldRenderEndpoint(repo, reader, artifacts)

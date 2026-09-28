@@ -9778,6 +9778,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `ContentColumn` and the library editor grey their fields, and the dock keeps only the tools that look —
   decided once by `StudioShell` from the address and `GET /api/map/{slug}/access`. `tests/e2e/access.mjs`
   holds it against an invited server. `docs/access.md`, `docs/client/ui-conventions.md`.
+- **Builds wait their turn (`RP79`).** Every route that builds or renders a world — the export, `map.xml`,
+  the renders and the reads measured off the built world, the Sketch and Plan posts that build one — and the
+  compose feed and `coverage` are `[Queued]`: `BuildQueue` runs three at once on the studio and one per
+  caller (the account, or the address when signed out), holds 32 waiting and 8 of one caller's for up to
+  60 s, and refuses the rest `RQ11` at 429 with `Retry-After`, all under `Builds` in `appsettings.json`. The
+  thread pool's floor is 16, so the cheap routes answer while builds run: `/api/health` behind two exports
+  on two cores went from 6.8 s to 10–40 ms. `docs/access.md`.
 - **A token for a caller without a browser (`RP76`).** A driver or an agent sends `Authorization: Bearer
   pgms_…` and is the person the token was issued for — their uuid, role, maps and credits, decided by the
   whitelist on every request like a session. Issued once from *Tokens* in the account menu

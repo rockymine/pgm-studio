@@ -33,6 +33,7 @@ internal static class KeptViews
 /// from the built board first (<see cref="WorldViews"/>), then the views kept. A map with no sketch layout has
 /// no world to suggest from and answers only what it kept. <c>undrawable</c> says why no picture can be drawn
 /// here, where the server has no block textures.</summary>
+[Queued]
 public sealed class MapViewListEndpoint(
     MapRepository repo, MapReader reader, MapArtifactStore artifacts, BlockTextureStore textures)
     : EndpointWithoutRequest<MapViewsDto>

@@ -109,6 +109,7 @@ internal static class WorldReads
 
 /// <summary>One world read that answers a picture: the world is loaded once, the view is drawn, and a view
 /// that draws nothing is a 422 rather than an empty image.</summary>
+[Queued]
 internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest
 {
@@ -420,6 +421,7 @@ internal static class GridReads
 /// <para>It states nothing as wrong. A board is free to carry ground no player reaches — scenery, a side
 /// observer island, a shelf above the build ceiling — and the reading exists because a shape stranded by
 /// accident looks exactly the same, and only the author knows which they drew.</para></summary>
+[Queued]
 internal sealed class ReachReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest
 {
@@ -463,6 +465,7 @@ internal sealed class ReachReadEndpoint(MapRepository repo, MapReader reader, Ma
 /// the angle a slope band is picked by (TP24), in the grid the heightmap already reads elevation in.
 /// <c>text/plain</c> always, because the picture that would answer the same question is
 /// <c>render/surface</c> — what a mask <em>did</em> — and this is the number it did it on.</summary>
+[Queued]
 internal sealed class InclineReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest
 {
@@ -515,6 +518,7 @@ internal sealed class InclineReadEndpoint(MapRepository repo, MapReader reader, 
 /// <summary>GET /api/map/{slug}/slopes — the worst step to a neighbour per sampled cell, classed by
 /// <see cref="Walk"/>'s own tiers: the grid a cliff reads as a line in, a ramp as a band crossing it, and an
 /// overdone relief as a page. JSON by default, the same reading as characters on <c>?format=text</c>.</summary>
+[Queued]
 internal sealed class SlopesReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest<SlopesDto>
 {
@@ -679,6 +683,7 @@ internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, M
 /// claim can be checked at a coordinate instead of inferred from the block that came out. Absent on a column
 /// the terrain surface does not cover.</para>
 /// </summary>
+[Queued]
 internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest
 {
@@ -836,6 +841,7 @@ internal static class WalkReads
 /// <summary>GET /api/map/{slug}/walk — what one journey over this board costs. The read that says whether a
 /// place can be got to, how far it is, how many blocks a player must place to get there and what it falls
 /// down on the way; four answers in four units, none of them weighed against the others.</summary>
+[Queued]
 internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest<WalkReadDto>
 {
@@ -929,6 +935,7 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
 /// <summary>GET /api/map/{slug}/render/walk — the same walk, drawn. Every passable cell shaded by what
 /// reaching it costs from `from`, with the route to `to` over the top. `field` picks which of the walk's
 /// answers is shaded, because a picture ramps one number at a time.</summary>
+[Queued]
 internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest
 {
@@ -998,6 +1005,7 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
 /// a shape — a bank, a wall, a stair, a basin — is a profile and never a point. <c>points</c> is the line as
 /// <c>x,z;x,z[;x,z…]</c>, at least two; <c>every</c> thins the stations, and <c>beside</c> above zero also
 /// lists every distinct claim within that many cells of the line.</summary>
+[Queued]
 internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest<TransectDto>
 {
@@ -1096,6 +1104,7 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
 /// marked <c>route: true</c> makes every other prop keep its distance and nothing read the stroke itself:
 /// <c>walk</c> answers the way a player would choose between two points, which is not the way the author
 /// drew. <c>id</c> names the stroke, <c>image</c> which of the symmetry orbit's roads to walk.</summary>
+[Queued]
 internal sealed class RouteReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest<StrokeReadDto>
 {
@@ -1155,6 +1164,7 @@ internal sealed class RouteReadEndpoint(MapRepository repo, MapReader reader, Ma
 /// <summary>GET /api/map/{slug}/themes/census — the board's ground cells counted by the theme that paints
 /// them: how many cells each theme owns, what it is made of, and which theme borders which. The number for a
 /// board that mashes its themes, which `render/surface`'s tone-family legend has no count for.</summary>
+[Queued]
 internal sealed class ThemeCensusReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest<ThemeCensusResultDto>
 {

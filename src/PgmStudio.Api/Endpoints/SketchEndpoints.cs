@@ -323,6 +323,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 /// these are complaints rather than refusals — but a caller looking at a preview with no tree in it needs to
 /// be told the tree was declined, not left to notice.</para></summary>
 [PostedRead]
+[Queued]
 public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<WorldColumnsDto>
 {
     public override void Configure()
@@ -396,6 +397,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
 /// its findings ride back as complaints, by the same names
 /// the export refuses them under.</para></summary>
 [PostedRead]
+[Queued]
 public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<DressingRunDto>
 {
@@ -501,6 +503,7 @@ internal static class DressedBoard
 ///
 /// <para>Body: the layout, as <c>sketch/dressing</c> takes it. The cost is the same build.</para></summary>
 [PostedRead]
+[Queued]
 public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<SeatsDto>
 {
