@@ -149,7 +149,7 @@ public sealed class RefusalEnvelopeTests
             .ToDictionary(r => r.GetProperty("rule").GetString()!, r => r.GetProperty("means").GetString() ?? "");
 
         foreach (var id in (string[])["RQ1", "RQ2", "RQ3", "RQ4", "RQ5", "RQ6", "ED1", "ED2",
-                                      "IM1", "IM2", "IM3", "IM4", "IM5", "IM6", "CO1", "SK6", "SK7"])
+                                      "IM1", "IM2", "IM3", "IM4", "IM5", "IM6", "SK6", "SK7"])
         {
             await Assert.That(known.ContainsKey(id)).IsTrue().Because($"{id} is cited by an endpoint");
             await Assert.That(known[id]).IsNotNullOrEmpty().Because($"{id} answers no sentence");

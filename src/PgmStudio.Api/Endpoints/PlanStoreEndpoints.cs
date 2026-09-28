@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FastEndpoints;
 using PgmStudio.Contracts;
+using PgmStudio.Data.Compose;
 using PgmStudio.Data.Plan;
 using PgmStudio.Data.Schema;
 using PgmStudio.Pgm.Compose;
@@ -29,9 +30,7 @@ internal static class PlanStoreMapping
         if (r.RequestJson is null) return null;
         try
         {
-            return ComposeDescriptor.Parse(r.RequestJson) is { } d
-                ? new ComposeRequestDto(d.PlayersPerTeam, d.Teams, d.Symmetry, d.Cell, d.Seed, d.ComposerVersion, d.Schema)
-                : null;
+            return ComposeDescriptor.Parse(r.RequestJson) is { } d ? ComposedBoardLibrary.DtoOf(d) : null;
         }
         catch (JsonException) { return null; }
     }

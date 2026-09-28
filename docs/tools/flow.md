@@ -58,8 +58,8 @@ document, and it is the one an agent should reach for.
 **From a sketch.** `/maps/{slug}/sketch` on a fresh map. Ground first, and only ground: a sketch states no
 teams, no spawns and no objective, so a map begun here arrives at Configure with geometry and nothing else.
 
-**From the generator.** `/generator` rolls whole boards from a player count, a symmetry and a seed. Keeping
-one stores it as a candidate; authoring it originates a map at the plan stage. From that point it is an
+**From the generator.** `/generator` browses a library of whole boards the composer made from a size band, a
+symmetry and a seed, 500 for each band and symmetry. Keeping one stores it as a candidate; authoring it originates a map at the plan stage. From that point it is an
 ordinary planned map.
 
 **From a world built outside the studio.** `/maps/new` imports a Minecraft world that has terrain and no
@@ -380,7 +380,7 @@ once rather than one per round trip. `docs/refusals.md` has the envelope.
 | `plan.md` | the board: the plan document field by field, what a compile produces, the refusals |
 | `sketch.md` | the ground: shapes, groups, relief, themes, dressing — the largest tool |
 | `configure.md` | the play: the intent, the import path, the objective phases, the export gate |
-| `generator.md` | rolling boards: the request, what a compose produces, the browse feed |
+| `generator.md` | composed boards: the request, what a compose produces, the library and the browse feed |
 | `shapes.md` | the vocabulary the generator fills boxes with, and how far each shape actually gets |
 | `library.md` | materials, themes, house parts and room styles — the fourteen material kinds |
 

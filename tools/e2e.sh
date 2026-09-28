@@ -62,6 +62,11 @@ printf '%s\n' \
 dotnet run --project "$ROOT/src/PgmStudio.Import" -- --migrate-only >"$TMP/e2e-migrate.log" 2>&1 \
   || { echo "migrations failed — see $TMP/e2e-migrate.log"; exit 1; }
 echo "· schema up to date"
+# The Generator feed reads the board library and composes nothing on request, so the suite composes the few
+# nano boards the seed and the Generator page read.
+dotnet run --project "$ROOT/src/PgmStudio.Import" -- --compose-library --per-band=4 --bands=nano --symmetries=rot_180 \
+  >"$TMP/e2e-library.log" 2>&1 || { echo "the board library failed — see $TMP/e2e-library.log"; exit 1; }
+echo "· board library composed"
 
 echo "── build ──"
 dotnet build "$API_CSPROJ" -v q --nologo >"$TMP/e2e-build.log" 2>&1 \

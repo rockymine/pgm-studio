@@ -3,9 +3,9 @@
  *
  * The geometry comes from the **composer**, not from hand-drawn boxes: a composed board is a real
  * layout — spawns, wools, a hub, a frontline, connected build zones — so the pages under test render
- * something representative instead of two rectangles. It is also reproducible: a descriptor
- * (players, teams, symmetry, seed, cell) composes the same plan every time, so the fixtures are stable
- * run to run without committing a fixture file.
+ * something representative instead of two rectangles. It is also reproducible: `e2e.sh` composes the
+ * board library the feed reads, and the same seeds compose the same boards every time, so the fixtures
+ * are stable run to run without committing a fixture file.
  *
  * Three maps, one per stage the routes need:
  *   plan      — a composed candidate committed to authoring    → /maps/{slug}/plan
@@ -16,7 +16,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { api, BASE, TMP_DIR } from "./lib/harness.mjs";
 
-const REQUEST = "players=12&symmetry=rot_180&cell=5&count=1";
+const REQUEST = "players=12&symmetry=rot_180&count=1";
 
 /**
  * Pin a composed board so it exists as a stored candidate, then commit it to authoring.

@@ -79,6 +79,18 @@ fi
 grep -q '{fingerprint}' "$BASE/app/wwwroot/index.html" \
   && fail "the served index.html carries an unfilled placeholder"
 
+# The Generator page's board library, composed for this release's composer (docs/tools/generator.md). It runs
+# as a unit of its own so it outlives this script, at the lowest CPU and I/O priority so the live studio always
+# has the cores first; a release whose composer already has its library composes nothing and exits. A fill the
+# release before started is stopped, since this release's composer is the one the library is for.
+log "composing the board library in the background (journalctl -u pgm-studio-library)"
+systemctl stop pgm-studio-library 2>/dev/null || true
+systemctl reset-failed pgm-studio-library 2>/dev/null || true
+systemd-run --unit=pgm-studio-library --uid=pgm-studio --gid=pgm-studio \
+  --setenv=HOME=/var/lib/pgm-studio --property=EnvironmentFile="$ENV_FILE" --property=Nice=19 --property=CPUWeight=10 --property=IOSchedulingClass=idle \
+  --working-directory="$REL/migrator" "$(command -v dotnet)" PgmStudio.Import.dll --compose-library \
+  || echo "!! the board library could not be started; the studio serves the library it has"
+
 log "pruning old releases (keeping $KEEP)"
 ls -1dt "$RELEASES"/*/ 2>/dev/null | tail -n +$((KEEP + 1)) | while read -r old; do
   [[ $(readlink -f "$BASE/app") == "${old%/}/app" ]] || rm -rf "$old"

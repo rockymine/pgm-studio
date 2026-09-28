@@ -74,9 +74,11 @@ public sealed record StructureSummary(
     /// <summary>A stable, lowercase, order-independent key: <c>wools:donut,l|hub:ring|front:none</c>. Persisted
     /// on a pinned plan and used as the verdict/duel bucket key.</summary>
     public string Canonical() =>
-        $"wools:{string.Join(",", Wools.Select(StructureNames.Family))}" +
-        $"|hub:{StructureNames.Form(Hub)}" +
-        $"|front:{StructureNames.Form(Frontline)}";
+        CanonicalOf(Wools.Select(StructureNames.Family), StructureNames.Form(Hub), StructureNames.Form(Frontline));
+
+    /// <summary>The canonical key of a structure already read into its tokens.</summary>
+    public static string CanonicalOf(IEnumerable<string> wools, string hub, string frontline) =>
+        $"wools:{string.Join(",", wools)}|hub:{hub}|front:{frontline}";
 }
 
 /// <summary>The display/filter tokens for the structural vocabulary — one mapping shared by the card badges,

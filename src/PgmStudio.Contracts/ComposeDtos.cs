@@ -2,10 +2,10 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Contracts;
 
 /// <summary>The wire form of a generated plan's canonical versioned request descriptor — a browse card's
-/// identity. Reproducible within a composer version: the server re-composes the exact plan from these fields
-/// to pin or open it, so a card never has to carry its plan JSON.</summary>
-/// <param name="Players">Players per team, 5–32 — the range the seed envelopes are calibrated over. It is
-/// what drives the board's size.</param>
+/// identity. It names a board of the composed-board library, which the server keeps or opens from these fields,
+/// so a card never has to carry its plan JSON.</summary>
+/// <param name="Players">Players per team, 6–47. The size band it falls in picks the board, and the count
+/// labels it.</param>
 /// <param name="Teams">2 or 4.</param>
 /// <param name="Symmetry">The board's symmetry: <c>rot_180</c>, <c>mirror_x</c> or <c>mirror_z</c> for two
 /// teams, and <c>rot_90</c> for four, which take no other.</param>
@@ -108,15 +108,14 @@ public sealed record ComposeCard(
     string Svg,
     LandSpendDto? Spend = null);
 
-/// <summary>What the structural vocabulary actually turned up over the boards a page composed, counted
-/// <b>before</b> the sieve so a filter never hides the alternatives it is filtering against.
-/// <paramref name="Boards"/> is how many boards the counts are drawn from (composed, not matched).
+/// <summary>What the structural vocabulary turned up over every board the library holds for a size band and
+/// symmetry, counted <b>before</b> the filters so a filter never hides the alternatives it is filtering
+/// against. <paramref name="Boards"/> is how many boards the counts are drawn from.
 ///
-/// <para>This is what makes a filter chip say something. Which forms a request can produce is a property of the
-/// <em>request</em>, not a constant — it rides on the box sizes the land budget buys, so a small board never
-/// reaches the wide hub forms at all. Rather than predict that, the feed reports what it saw, and a token
-/// missing from a large enough sample is the honest version of "this request does not make one".</para></summary>
-/// <param name="Boards">How many boards the counts are drawn from — composed, not matched.</param>
+/// <para>This is what makes a filter chip say something. Which forms a band produces is not a constant — it
+/// rides on the box sizes the land budget buys, so a small board never reaches the wide hub forms at all — and
+/// a token missing from the whole library is the answer "these settings do not make one".</para></summary>
+/// <param name="Boards">How many boards the counts are drawn from — held, not matched.</param>
 /// <param name="Wools">How often each wool approach family turned up.</param>
 /// <param name="Hubs">How often each hub form turned up.</param>
 /// <param name="Frontlines">How often each frontline form turned up.</param>
@@ -126,23 +125,20 @@ public sealed record ObservedForms(
     IReadOnlyDictionary<string, int> Hubs,
     IReadOnlyDictionary<string, int> Frontlines);
 
-/// <summary>A page of browse cards. <paramref name="NextSeed"/> is the seed cursor to resume from (feed
-/// forward for infinite scroll); <paramref name="Exhausted"/> is true when the per-request scan budget was
-/// reached before filling the page, so the client can stop requesting; <paramref name="Scanned"/> is how many
-/// seeds this page composed (matched = Cards.Count) — under a strict structural filter the low match rate is
-/// itself the signal to promote that filter to a held target. <paramref name="Observed"/> is the structural
-/// census over those same boards, which the filter chips read to say what this request produces.</summary>
-/// <param name="Cards">The boards this page matched.</param>
-/// <param name="NextSeed">The seed cursor to resume from, for a feed that scrolls forward.</param>
-/// <param name="Exhausted">Whether the scan budget ran out before the page filled, so a client stops
-/// asking.</param>
-/// <param name="Scanned">How many seeds this page composed. Against the card count it is the match rate,
-/// and a low one under a strict filter is itself the signal to promote that filter to a held target.</param>
-/// <param name="Observed">The structural census over those same boards, counted <b>before</b> the sieve so
-/// a filter chip never hides the alternatives it is filtering against.</param>
+/// <summary>A page of the board library: <paramref name="Cards"/> from the position asked for,
+/// <paramref name="Next"/> the position to ask from next, <paramref name="End"/> true once the page reaches the
+/// last board the filters match, and <paramref name="Matching"/> how many they match in all.
+/// <paramref name="Observed"/> is the census over every board the library holds for the band and symmetry,
+/// which the filter chips read to say what these settings produce.</summary>
+/// <param name="Cards">The boards on this page, best score first.</param>
+/// <param name="Next">The position to ask from for the next page.</param>
+/// <param name="End">Whether this page reaches the last matching board, so a client stops asking.</param>
+/// <param name="Matching">How many boards the filters match in the library.</param>
+/// <param name="Observed">The census over every board the library holds for the band and symmetry, counted
+/// <b>before</b> the filters so a chip never hides the alternatives it is filtering against.</param>
 public sealed record ComposePage(
     IReadOnlyList<ComposeCard> Cards,
-    int NextSeed,
-    bool Exhausted,
-    int Scanned,
+    int Next,
+    bool End,
+    int Matching,
     ObservedForms? Observed = null);

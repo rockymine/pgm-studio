@@ -1,10 +1,8 @@
 using FastEndpoints;
-using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
+using PgmStudio.Data.Compose;
 using PgmStudio.Data.Plan;
 using PgmStudio.Pgm.Compose;
-using PgmStudio.Pgm.Derive;
-using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Render;
 
@@ -14,220 +12,101 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>
-/// GET /api/compose — the browse feed. For each seed from the cursor it composes a board, reads its
-/// <see cref="StructureSummary"/>, applies the <b>structural</b> sieve (wool families must-include; hub /
-/// frontline forms any-of), then — for survivors only — evaluates, applies the score/wool sieve, and renders
-/// the SVG. Structural classification on the tiny box masks is cheaper than evaluation, so structural rejects
-/// skip the evaluator and the render entirely. The filters live wholly outside the compose call (never
-/// aborting attempts mid-loop), so the same seed yields the same board under every filter and the descriptor's
-/// reproduction promise — and the pin path — hold. Returns a page with the resume cursor, an exhausted flag,
-/// and the seeds scanned (matched = card count); a low match rate under a strict filter is the signal to
-/// promote it to a held target (G98). An unsupported symmetry and any team count but two are answered 400.
+/// GET /api/compose — the browse feed: a page of the composed-board library (<see cref="ComposedBoardLibrary"/>)
+/// for the size band <c>players</c> falls in and a symmetry, best score first with the seed breaking ties.
+/// <c>wools</c> must each be present, <c>hub</c> and <c>front</c> take any one form named, <c>maxScore</c> caps
+/// the score and <c>woolMin</c>/<c>woolMax</c> bound the wool count. Nothing is composed on request, so a page is
+/// a read and the feed ends where the library does. Every card is labelled for <c>players</c>. The census counts
+/// every board the library holds for the band and symmetry, before the filters, so a chip can say what these
+/// settings produce.
 /// </summary>
-[Queued]
-public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
+public sealed class ComposeBrowseEndpoint(ComposedBoardStore library) : EndpointWithoutRequest<ComposePage>
 {
-    private static readonly string[] Supported = ["rot_180", "mirror_z"];
-
-    /// <summary>The only team count the browse feed composes for. A request naming another is refused
-    /// rather than answered with a two-team board, because a board that is not what was asked for is
-    /// worse than no board.</summary>
-    private const int ComposedTeams = 2;
-
-    // A structural filter (donut ∧ L, say) can be a few percent of seeds, so bound the scan generously and
-    // report what was scanned rather than hanging. Compose is milliseconds, so a few hundred stays responsive.
-    private const int StructuralScanBudget = 400;
+    private const int MaxPage = 48;
 
     public override void Configure() { Get("/compose"); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var players = Query<int?>("players", isRequired: false) ?? 12;
-        var teams = Query<int?>("teams", isRequired: false) ?? ComposedTeams;
+        var players = Math.Clamp(Query<int?>("players", isRequired: false) ?? 12, 6, SizeBands.Players(SizeBands.Centi).High);
+        var teams = Query<int?>("teams", isRequired: false) ?? ComposedBoardLibrary.Teams;
         var symmetry = Query<string?>("symmetry", isRequired: false) ?? "rot_180";
-        var cell = Query<int?>("cell", isRequired: false) ?? ComposeRequest.DefaultCell;
-        var seedStart = Math.Max(0, Query<int?>("seedStart", isRequired: false) ?? 0);
-        var count = Math.Clamp(Query<int?>("count", isRequired: false) ?? 12, 1, 48);
-        var maxScore = Query<double?>("maxScore", isRequired: false);
-        var woolMin = Query<int?>("woolMin", isRequired: false);
-        var woolMax = Query<int?>("woolMax", isRequired: false);
-        var woolReq = Csv("wools");    // approach families — must-include (each named present at least once)
-        var hubReq = Csv("hub");       // hub form — any-of
-        var frontReq = Csv("front");   // frontline form — any-of
+        var from = Math.Max(0, Query<int?>("from", isRequired: false) ?? 0);
+        var count = Math.Clamp(Query<int?>("count", isRequired: false) ?? 12, 1, MaxPage);
 
-        if (!Supported.Contains(symmetry))
+        if (!ComposedBoardLibrary.Symmetries.Contains(symmetry))
         {
             await Refusals.UnreadableAsync(HttpContext, "unsupported symmetry",
-                $"'{symmetry}' is not a symmetry the composer builds for; it takes "
-                + $"{string.Join(" or ", Supported)}", ct, field: "symmetry");
+                $"'{symmetry}' is not a symmetry the board library holds; it holds "
+                + $"{string.Join(" and ", ComposedBoardLibrary.Symmetries)}", ct, field: "symmetry");
             return;
         }
-
-        if (teams != ComposedTeams)
+        if (teams != ComposedBoardLibrary.Teams)
         {
             await Refusals.UnreadableAsync(HttpContext, "unsupported team count",
-                $"the composer builds {ComposedTeams}-team boards; '{teams}' is not a count it composes for",
+                $"the board library holds {ComposedBoardLibrary.Teams}-team boards; '{teams}' is not a count it holds",
                 ct, field: "teams");
             return;
         }
 
-        var profile = EvaluationProfile.Composer;
-        var structural = woolReq.Count > 0 || hubReq.Count > 0 || frontReq.Count > 0;
-        var cards = new List<ComposeCard>();
-        // the structural census over every board composed here, tallied before the sieve — a filter must not
-        // hide the forms it is filtering against, or the chips would read as dead the moment one was picked
-        var observed = new ObservedTally();
-        var seed = seedStart;
-        var scanCap = seedStart + (structural ? StructuralScanBudget : count * 4);
-        var exhausted = false;
-
-        while (cards.Count < count)
+        var band = SizeBands.Of(players);
+        if (await library.ServedVersionAsync(band, symmetry, ComposerVersion.Current, ComposedBoardLibrary.PerBand, ct)
+            is not { } version)
         {
-            if (seed >= scanCap) { exhausted = true; break; }
-            var s = (ulong)seed++;
-            ct.ThrowIfCancellationRequested();
-
-            ComposeRequest request;
-            try { request = new ComposeRequest(players, teams, symmetry, s, cell); }
-            catch (ArgumentException fault)
-            { await Refusals.UnreadableAsync(HttpContext, "invalid request parameters", fault.Message, ct); return; }
-
-            ComposedStages stages;
-            try { stages = Composer.ComposeStages(request); }
-            catch (ComposeException) { continue; }   // this seed produced no acceptable board — skip
-
-            var summary = StructureSummary.Derive(stages.Unit);
-            observed.Add(summary);
-            if (!StructuralPass(summary, woolReq, hubReq, frontReq)) continue;   // structural reject: no evaluate, no render
-
-            var eval = LayoutEvaluator.Evaluate(stages.Plan, profile);
-            var woolCount = stages.Plan.Placements.Wools.Count;
-            if (maxScore is double mx && eval.Score > mx) continue;
-            if (woolMin is int wmin && woolCount < wmin) continue;
-            if (woolMax is int wmax && woolCount > wmax) continue;
-
-            var hardTerms = eval.Terms
-                .Where(t => t.Kind == TermKind.Hard && t.Violation is not null)
-                .Select(t => t.TermId).ToList();
-            var topSoft = eval.Terms
-                .Where(t => t.Kind == TermKind.Soft && t.Distance > 0)
-                .Select(t => new TermContribDto(t.TermId, t.Violation?.RuleId ?? "", profile.Weight(t.TermId) * t.Distance))
-                .OrderByDescending(t => t.Contribution).Take(3).ToList();
-
-            cards.Add(new ComposeCard(
-                ToDto(ComposeDescriptor.For(request)), eval.Score, woolCount, ToDto(summary),
-                hardTerms, topSoft, PlanBoardSvg.Render(stages.Plan), Spend(stages)));
-        }
-
-        await Send.OkAsync(new ComposePage(cards, seed, exhausted, seed - seedStart, observed.ToDto()), ct);
-    }
-
-    /// <summary>What the unit spent, from the partition the box pipeline already produced (G148). The
-    /// per-kind rows are box footprints, which is the only currency a box carries before it is filled; the
-    /// unit's <b>land</b> is read off the filled pieces, the same reading the spend gate takes. The budget is
-    /// the envelope's own <see cref="ComposeEnvelope.LandPerTeam"/> — the one this board was built to, not a
-    /// re-derived one (the envelope samples, so re-deriving would answer about a different board) — converted
-    /// from blocks² to cells here so the client never has to know the cell size.</summary>
-    private static LandSpendDto Spend(ComposedStages stages)
-    {
-        var boxes = BoxPartition.Of(stages.Unit).Boxes;
-        var byKind = boxes
-            .GroupBy(b => b.Kind)
-            .Select(g => new BoxSpendDto(
-                g.Key.ToString().ToLowerInvariant(),
-                g.Count(),
-                g.Sum(b => b.LandTargetCells),
-                g.Sum(b => b.Rect.Width * b.Rect.Height)))
-            .OrderByDescending(k => k.LandCells)
-            .ToList();
-        return new LandSpendDto(
-            stages.Envelope.Band,
-            new LandAgainstBudgetDto(Composer.LandCells(stages.Unit), stages.Envelope.UnitBudgetCells),
-            new LandAgainstBudgetDto(
-                MidCarver.StoneLandCells(stages.Envelope, stages.Mid.Stones), stages.Envelope.MidLandCells),
-            byKind.Sum(k => k.FootprintCells),
-            byKind);
-    }
-
-    private List<string> Csv(string key) =>
-        (Query<string?>(key, isRequired: false) ?? "")
-        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        .Select(x => x.ToLowerInvariant()).ToList();
-
-    // structural sieve: wools must-include (each named family present ≥ once), hub/front any-of the named forms
-    private static bool StructuralPass(StructureSummary s, List<string> wools, List<string> hub, List<string> front)
-    {
-        if (wools.Count > 0)
-        {
-            var have = s.Wools.Select(StructureNames.Family).ToHashSet();
-            if (!wools.All(have.Contains)) return false;
-        }
-        if (hub.Count > 0 && !hub.Contains(StructureNames.Form(s.Hub))) return false;
-        if (front.Count > 0 && !front.Contains(StructureNames.Form(s.Frontline))) return false;
-        return true;
-    }
-
-    internal static ComposeRequestDto ToDto(ComposeDescriptor d) =>
-        new(d.PlayersPerTeam, d.Teams, d.Symmetry, d.Cell, d.Seed, d.ComposerVersion, d.Schema);
-
-    internal static StructureSummaryDto ToDto(StructureSummary s) =>
-        new(s.Wools.Select(StructureNames.Family).ToList(), StructureNames.Form(s.Hub), StructureNames.Form(s.Frontline));
-
-    /// <summary>Counts each structural token as boards go by. A wool family counts once per board however many
-    /// approaches of it the board has, so every tally reads against the same denominator.</summary>
-    private sealed class ObservedTally
-    {
-        private readonly Dictionary<string, int> wools = [], hubs = [], fronts = [];
-        private int boards;
-
-        public void Add(StructureSummary s)
-        {
-            boards++;
-            foreach (var family in s.Wools.Select(StructureNames.Family).Distinct()) Bump(wools, family);
-            Bump(hubs, StructureNames.Form(s.Hub));
-            Bump(fronts, StructureNames.Form(s.Frontline));
-        }
-
-        public ObservedForms ToDto() => new(boards, wools, hubs, fronts);
-
-        private static void Bump(Dictionary<string, int> into, string key) =>
-            into[key] = into.GetValueOrDefault(key) + 1;
-    }
-}
-
-/// <summary>
-/// POST /api/compose/pin — keep a browse card. Re-composes the plan from its reproducible descriptor
-/// (<see cref="Composer.ComposeStages"/>, so the structural bucket key comes for free) and saves it as a
-/// generated row (<see cref="PlanStore.SaveGeneratedAsync"/>, idempotent by content hash) with its structure.
-/// Returns the stored <see cref="PlanDetail"/>. The hold tray and unpin are the G119 endpoints.
-/// </summary>
-public sealed class ComposePinEndpoint(PlanStore store) : Endpoint<ComposeRequestDto, PlanDetail>
-{
-    public override void Configure() { Post("/compose/pin"); Description(b => b.Refuses(422)); }
-
-    public override async Task HandleAsync(ComposeRequestDto req, CancellationToken ct)
-    {
-        ComposeRequest request;
-        try { request = new ComposeRequest(req.Players, req.Teams, req.Symmetry, req.Seed, req.Cell); }
-        catch (ArgumentException fault)
-        { await Refusals.UnreadableAsync(HttpContext, "invalid descriptor", fault.Message, ct); return; }
-
-        ComposedStages stages;
-        try { stages = Composer.ComposeStages(request); }
-        // The composer's sentence names the knob and the value that stopped it, which is the half a caller
-        // can act on — so it rides as the finding's message rather than being replaced by a label.
-        catch (ComposeException fault)
-        {
-            await Refusals.WriteAsync(HttpContext, 422, "descriptor cannot be composed",
-                [new Finding(ComposeRules.Uncomposable, fault.Message)], ct);
+            await Send.OkAsync(new ComposePage([], 0, true, 0, ComposedBoardLibrary.Census([])), ct);
             return;
         }
 
-        var structure = StructureSummary.Derive(stages.Unit).Canonical();
-        // A kept board carries its partition as the authored box annotation, so it opens in the editor with the
-        // boxes that produced it (the browse feed stays label-free — this is the keep step, not the compose).
-        PlanBoxAnnotation.Apply(stages.Plan, stages.Unit);
-        var row = await store.SaveGeneratedAsync(stages.Plan.ToJson(), ComposeDescriptor.For(request), structure, ct);
+        var query = new ComposedBoardQuery(
+            version, band, symmetry,
+            Query<double?>("maxScore", isRequired: false),
+            Query<int?>("woolMin", isRequired: false),
+            Query<int?>("woolMax", isRequired: false),
+            Csv("wools"), Csv("hub"), Csv("front"));
+        var (rows, matching) = await library.PageAsync(query, from, count, ct);
+        var census = ComposedBoardLibrary.Census(await library.FormsAsync(version, band, symmetry, ct));
+        var next = from + rows.Count;
+        await Send.OkAsync(new ComposePage(
+            [.. rows.Select(row => ComposedBoardLibrary.CardOf(row, players))], next, next >= matching, matching, census), ct);
+    }
+
+    private List<string> Csv(string key) =>
+        [
+            .. (Query<string?>(key, isRequired: false) ?? "")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(token => token.ToLowerInvariant()),
+        ];
+}
+
+/// <summary>
+/// POST /api/compose/pin — keep a browse card: the library board its descriptor names, saved as a generated plan
+/// row (<see cref="PlanStore.SaveGeneratedAsync"/>, idempotent by content hash) with its structure, labelled for
+/// the descriptor's player count. The board is the one the card showed, whichever composer version made it.
+/// Returns the stored <see cref="PlanDetail"/>; 404 for a board the library does not hold. The hold tray and
+/// unpin are the G119 endpoints.
+/// </summary>
+public sealed class ComposePinEndpoint(PlanStore store, ComposedBoardStore library) : Endpoint<ComposeRequestDto, PlanDetail>
+{
+    public override void Configure() { Post("/compose/pin"); Description(b => b.Refuses(404)); }
+
+    public override async Task HandleAsync(ComposeRequestDto req, CancellationToken ct)
+    {
+        try { _ = new ComposeRequest(req.Players, req.Teams, req.Symmetry, req.Seed, req.Cell); }
+        catch (ArgumentException fault)
+        { await Refusals.UnreadableAsync(HttpContext, "invalid descriptor", fault.Message, ct); return; }
+
+        var band = SizeBands.Of(req.Players);
+        if (await library.GetAsync(req.ComposerVersion, band, req.Symmetry, req.Cell, req.Seed, ct) is not { } board)
+        {
+            await Refusals.NotFoundAsync(HttpContext, "library board", ct,
+                $"{band} {req.Symmetry} seed {req.Seed} by composer {req.ComposerVersion}");
+            return;
+        }
+
+        var plan = ComposedBoardLibrary.PlanOf(board, req.Players);
+        var descriptor = new ComposeDescriptor(ComposeDescriptor.CurrentSchema, board.ComposerVersion, req.Players,
+            ComposedBoardLibrary.Teams, board.Symmetry, board.Cell, board.Seed);
+        var row = await store.SaveGeneratedAsync(plan.ToJson(), descriptor, ComposedBoardLibrary.StructureOf(board), ct);
         await Send.OkAsync(PlanStoreMapping.ToDetail(row), ct);
     }
 }

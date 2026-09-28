@@ -156,21 +156,29 @@ public static class Composer
         return Math.Max(ownHi, -ownLo) - Math.Min(ownLo, -ownHi) - (ownHi - ownLo);
     }
 
+    /// <summary>Write the player count a composed plan is for into its name and its <c>maxPlayers</c> — the only
+    /// two places a board differs across the player counts of one size band.</summary>
+    public static void Label(PlanModel plan, int playersPerTeam, int teams, ulong seed)
+    {
+        plan.Meta ??= new PlanMeta();
+        plan.Meta.Name = $"Composed p{playersPerTeam} t{teams} #{seed}";
+        plan.Globals.MaxPlayers = playersPerTeam;
+    }
+
     internal static PlanModel Assemble(
         ComposeRequest request, ComposeEnvelope envelope, GrownUnit unit, MidResult mid,
         IReadOnlyList<ComposedWall> walls)
     {
         var plan = new PlanModel
         {
-            Meta = new PlanMeta { Name = $"Composed p{request.PlayersPerTeam} t{request.Teams} #{request.Seed}" },
             Globals = new PlanGlobals
             {
                 Cell = envelope.Cell,
                 Symmetry = envelope.Symmetry,
-                MaxPlayers = request.PlayersPerTeam,
                 Surface = envelope.Surface,
             },
         };
+        Label(plan, request.PlayersPerTeam, request.Teams, request.Seed);
 
         foreach (var piece in unit.Pieces)
             plan.Pieces.Add(new PlanPiece { Id = piece.Id, Role = piece.Role, Rect = piece.Rect });
