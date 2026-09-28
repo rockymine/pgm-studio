@@ -1332,8 +1332,9 @@ framed one back.
 
 **Then the gallery shows what the studio suggests, and then what the author kept.** The suggestions are read
 off the built board (`WorldViews`): the whole board from above the middle of its long side; every team's spawn seen
-from its front, and the view a player gets on arriving there — four blocks out of the room on the heading its
-yaw faces, looking on down it; every wool room, destroyable, core and control point; the first four buildings
+from its front, and the view from it — the spawn as the map's `<spawn>` states it, the eye at its point a
+player's height up, facing its `yaw` and level, since the studio writes no `pitch` and PGM's is then 0; every
+wool room, destroyable, core and control point; the first four buildings
 the dressing placed; and the first two boulders. Spawns and objectives are shown for every team, since each is
 a different team's first sight of the board; a prop is shown once, at the first image of its orbit.
 

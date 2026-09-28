@@ -10,8 +10,8 @@ namespace PgmStudio.Export.Tests;
 
 /// <summary>
 /// The views a built board suggests. What is held is what makes a suggestion worth drawing: every team's spawn
-/// and objective is shown and a prop once for its orbit, the view out of a spawn stands outside it on the
-/// heading players arrive facing and looks on down it, and the view of the whole board stands off its long
+/// and objective is shown and a prop once for its orbit, the view from a spawn is the spawn as the map states it
+/// — its point at a player's eye, its yaw, and level, and the view of the whole board stands off its long
 /// side, above its highest ground, facing its middle.
 /// </summary>
 public sealed class WorldViewsTests
@@ -67,16 +67,27 @@ public sealed class WorldViewsTests
     }
 
     [Test]
-    public async Task The_view_out_of_a_spawn_stands_past_its_wall_on_the_heading_players_arrive_facing()
+    public async Task The_view_from_a_spawn_is_the_spawn_as_the_map_states_it_at_a_player_s_eye_and_level()
     {
         var intent = new MapIntent { Spawns = [Spawn("red", -30, -3, 270)] };
 
-        var door = WorldViews.Suggested(Built(intent)).Single(view => view.Id == "spawn-0-out");
+        var arriving = WorldViews.Suggested(Built(intent)).Single(view => view.Id == "spawn-0-out");
 
-        await Assert.That(door.FromX!.Value).IsGreaterThan(-24);
-        await Assert.That(door.FromZ).IsEqualTo(0);
-        await Assert.That(door.LookX).IsGreaterThan(door.FromX.Value);
-        await Assert.That(door.LookZ).IsEqualTo(door.FromZ);
+        await Assert.That((arriving.FromX, arriving.FromZ)).IsEqualTo(((int?)-27, (int?)0));
+        await Assert.That(arriving.Y!.Value).IsEqualTo(Top + 1 + 1.62).Within(1e-9);
+        await Assert.That(arriving.Yaw).IsEqualTo(-90.0);
+        await Assert.That(arriving.Pitch).IsEqualTo(0.0);
+        await Assert.That(arriving.Query).IsEqualTo("from=-27,0&yaw=-90&y=22.62&pitch=0");
+    }
+
+    [Test]
+    public async Task A_spawn_with_no_room_still_suggests_the_view_from_it()
+    {
+        var intent = new MapIntent { Spawns = [new SpawnIntent { Team = "red", Point = new Pt(4.5, Top + 1, 8.5) }] };
+
+        var arriving = WorldViews.Suggested(Built(intent)).Single(view => view.Id == "spawn-0-out");
+
+        await Assert.That((arriving.FromX, arriving.FromZ, arriving.Yaw, arriving.Pitch)).IsEqualTo(((int?)4, (int?)8, (double?)0.0, (double?)0.0));
     }
 
     [Test]

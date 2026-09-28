@@ -298,9 +298,7 @@
     /// <summary>Whether the draft changes a kept view rather than keeping a new one.</summary>
     private bool Changing => Draft?.Source is { Kept: true };
 
-    private string Title => Draft?.Source is { } source
-        ? source.Kept ? $"Changing {source.Name}" : $"From the suggestion {source.Name}"
-        : "A view of your own";
+    private string Title => Draft?.Source?.Name ?? "A view of your own";
 
     private async Task Keep()
     {

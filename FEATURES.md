@@ -8206,7 +8206,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **Every camera on the canvas, and every board's own straight-down view (`TS119`)** — every board keeps the
   whole board seen straight down as its own view, framed from the built board, first in the gallery and on the
-  canvas; it is changed like any kept view and never let go. Placing a view draws every camera the gallery has as
+  canvas; it is changed like any kept view and never let go. Each team's view from its spawn is the spawn as
+  map.xml states it: its point at a player's eye, its yaw, and pitch 0, PGM's default. Placing a view draws every camera the gallery has as
   a camera glyph where its eye stands, the kept ones full and the suggestions faint (`GET …/views` answers each
   view's `eye`), and lists them beside the canvas; only the camera in hand shows its sight line and target. A
   press on a camera stands it elsewhere, its target turns it, and a click opens it in the inspector stated whole —

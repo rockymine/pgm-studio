@@ -48,7 +48,7 @@ public sealed record WorldView(string Id, string Name, int LookX, int LookZ,
 /// </summary>
 public static class WorldViews
 {
-    private const int HousesShown = 4, BouldersShown = 2, OutOfTheRoom = 4, DownTheRoad = 24;
+    private const int HousesShown = 4, BouldersShown = 2, DownTheRoad = 24;
     private const double EyeHeight = 1.62;
 
     /// <summary>The most air a building's own column holds between one block and the next — a doorway.</summary>
@@ -83,17 +83,14 @@ public static class WorldViews
         {
             var team = TeamName(intent, spawn.Team);
             var name = $"{team} spawn";
-            if ((spawn.Footprint ?? Bounds(spawn.Protection)) is not { } room)
+            if ((spawn.Footprint ?? Bounds(spawn.Protection)) is { } room)
             {
-                views.Add(At($"spawn-{index}", name, spawn.Point));
-                continue;
+                var (dx, dz) = Step(spawn.Yaw);
+                var (centreX, centreZ) = Centre(room);
+                views.Add(Framed($"spawn-{index}", name, built, room, (centreX + dx * 100, centreZ + dz * 100)));
             }
-            var (dx, dz) = Heading(spawn.Yaw);
-            var (centreX, centreZ) = Centre(room);
-            views.Add(Framed($"spawn-{index}", name, built, room, (centreX + dx * 100, centreZ + dz * 100)));
-            var (standX, standZ, lookX, lookZ) = Arriving(room, dx, dz);
-            views.Add(new WorldView($"spawn-{index}-out", $"Out of the {team.ToLowerInvariant()} spawn",
-                lookX, lookZ, standX, standZ));
+            else views.Add(At($"spawn-{index}", name, spawn.Point));
+            views.Add(FromSpawn($"spawn-{index}-out", $"From the {team.ToLowerInvariant()} spawn", spawn));
         }
 
         foreach (var (wool, index) in (intent.Wools ?? []).Select((wool, index) => (wool, index)))
@@ -301,22 +298,21 @@ public static class WorldViews
 
     /// <summary>The way a yaw faces, as a step on the board. The yaw is the game's — 0 faces south (+z), 90
     /// west.</summary>
-    private static (double Dx, double Dz) Heading(double yaw)
+    private static (double Dx, double Dz) Step(double yaw)
     {
         var radians = yaw * Math.PI / 180;
         return (-Math.Sin(radians), Math.Cos(radians));
     }
 
-    /// <summary>Where a player arriving in <paramref name="room"/> heading <paramref name="dx"/>,
-    /// <paramref name="dz"/> stands once out of it, and what is ahead: a few blocks past the room's wall on that
-    /// heading, looking on down it.</summary>
-    private static (int StandX, int StandZ, int LookX, int LookZ) Arriving(Rect room, double dx, double dz)
+    /// <summary>What a player sees on arriving, as the map's spawn states it: the eye at the spawn point, a
+    /// player's height over it, facing the spawn's yaw and level, since a spawn states no pitch and PGM's is then
+    /// 0. The look point is down the yaw, kept to draw and list the camera by.</summary>
+    private static WorldView FromSpawn(string id, string name, SpawnIntent spawn)
     {
-        double centreX = (room.MinX + room.MaxX) / 2, centreZ = (room.MinZ + room.MaxZ) / 2;
-        var across = Math.Min(Math.Abs(dx) > 1e-6 ? (room.MaxX - room.MinX) / 2 / Math.Abs(dx) : double.MaxValue,
-                              Math.Abs(dz) > 1e-6 ? (room.MaxZ - room.MinZ) / 2 / Math.Abs(dz) : double.MaxValue);
-        double standX = centreX + dx * (across + OutOfTheRoom), standZ = centreZ + dz * (across + OutOfTheRoom);
-        return ((int)Math.Round(standX), (int)Math.Round(standZ),
-                (int)Math.Round(standX + dx * DownTheRoad), (int)Math.Round(standZ + dz * DownTheRoad));
+        var (dx, dz) = Step(spawn.Yaw);
+        return new WorldView(id, name,
+            (int)Math.Floor(spawn.Point.X + dx * DownTheRoad), (int)Math.Floor(spawn.Point.Z + dz * DownTheRoad),
+            (int)Math.Floor(spawn.Point.X), (int)Math.Floor(spawn.Point.Z),
+            Math.Round(spawn.Point.Y + EyeHeight, 2), Pitch: 0, Yaw: Heading.Wrap(spawn.Yaw));
     }
 }
