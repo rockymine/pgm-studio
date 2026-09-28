@@ -108,7 +108,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Data` | 18 | 3,111 | `Features/` 5 · `Map/` 5 · `Theme/` 4 · `Schema/` 2 · `Access/` 1 · `Plan/` 1 |
 | `Domain` | 30 | 3,507 | flat |
 | `Export` | 18 | 4,321 | flat |
-| `Geom` | 51 | 6,666 | `Algorithms/` 19 · `Render/` 7 · `Relief/` 5 · 20 at root |
+| `Geom` | 51 | 6,667 | `Algorithms/` 19 · `Render/` 7 · `Relief/` 5 · 20 at root |
 | `Import` | 4 | 473 | flat |
 | `Migrations` | 45 | 2,655 | `Migrations/` 44 · 1 at root |
 | `Minecraft` | 108 | 22,640 | `Render/` 19 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Painting/` 13 · `Dressing/` 12 · `Houses/` 11 · `Views/` 4 · `Suggest/` 1 · 1 at root |
