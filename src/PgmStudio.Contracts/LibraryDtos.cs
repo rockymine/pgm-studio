@@ -322,15 +322,18 @@ public sealed record TreeStyleDetail(
     long Id, string Name, string Form, string Species, double Height, int[][]? Body = null, TreeCut? Cut = null)
     : TreeStyleSaveRequest(Name, Form, Species, Height, Body, Cut);
 
-/// <summary>Where a copied tree was cut: the world it stood in, its foot there, and when. Written by the cutter
-/// and carried by no other recipe, so a <c>copied</c> row is one somebody took out of a world rather than a
-/// block list somebody typed.</summary>
+/// <summary>Where a copied tree was cut: the world it stood in, its foot there, when, and who built it there.
+/// Written by the cutter and carried by no other recipe, so a <c>copied</c> row is one somebody took out of a
+/// world rather than a block list somebody typed.</summary>
 /// <param name="World">The world directory the tree was cut from.</param>
 /// <param name="X">The foot's world x — the lowest log, or the lowest block where there is none.</param>
 /// <param name="Y">The foot's world y.</param>
 /// <param name="Z">The foot's world z.</param>
 /// <param name="At">When it was cut, UTC.</param>
-public sealed record TreeCut(string World, int X, int Y, int Z, DateTime At);
+/// <param name="Builder">Who built the tree in that world, as a Minecraft name, or null where the cutter was
+/// not told. A pull carries it into the map's recipe, and a map the tree stands on credits them as a
+/// contributor for its trees.</param>
+public sealed record TreeCut(string World, int X, int Y, int Z, DateTime At, string? Builder = null);
 
 /// <summary>Create or replace a tree recipe — one of <b>two</b> trees, which <paramref name="Form"/> picks. A
 /// <c>template</c> tree is vanilla and reads its species; a <c>copied</c> tree is cut out of a world and reads

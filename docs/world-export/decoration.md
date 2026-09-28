@@ -564,8 +564,8 @@ one recipe carrying an arbitrary `[x, y, z, id, data]`. Measured over the 81 cop
 of those carry a block the generative forms cannot emit. Hand-built props are not wanted (the author's ruling),
 so the tree library records each copied row's cut — the world, the foot there, the time — and refuses a
 `copied` save without one (`DR-COPY`, `docs/tools/library.md`); no second form word takes the hand-written
-bodies. A map's own dressing registry holds its copy of a recipe and carries no cut, so a body written straight
-into a document's `styles` is not asked this question.
+bodies. A map's own dressing registry holds its copy of a recipe and carries no cut — only the builder the cut
+named, below — so a body written straight into a document's `styles` is not asked this question.
 
 **The second tree is copied, and it decides nothing about its own shape.** A `TreeForm.Copied` recipe carries
 a `body` — every block of a tree an author built, as `[x, y, z, id, data]` offsets from its foot, the lowest
@@ -579,6 +579,20 @@ keeps climbing toward the same side of the tree it was cut from (`BlockGeometry.
 a facing to its opposite. Everything else — a slab branch, a wool bough, a fence — is written as it was cut.
 The crown's reach for the foliage render is measured on the leaf blocks alone, so a copied tree whose
 branches are carpentry still answers a radius. `tree-corpus.md` says where the bodies come from.
+
+**A copied tree names who built it, and a map it stands on credits them.** A cut can record the tree's
+builder (`docs/tools/library.md`), and a pull carries it into the map's recipe as `builder`, a Minecraft name.
+The dressing pass reports the builder of every copied tree that lands (`DressingPlacement.TreeBuilders`), each
+once, and the export writes them into `map.xml` as the original builders of the copied trees (`sketch-world-export.md`
+§4a). A tree declined everywhere is not in the map and credits nobody.
+
+A placement carrying its recipe inline, as `POST /api/terrain/prop-preview` takes one in `propJson`:
+
+```json
+{"kind":"tree","id":"oak-1","x":0,"z":0,"seed":1,"style":"showcase-r6-1",
+ "styles":{"showcase-r6-1":{"kind":"tree","form":"copied",
+   "body":[[0,0,0,17,12],[0,1,0,17,12],[0,2,0,18,4]],"builder":"rockymine"}}}
+```
 
 A grove is therefore a handful of trees an author placed rather than a density field, and that is the
 intended trade: a forest that clumps by itself is quicker to get and impossible to aim, and a treeline

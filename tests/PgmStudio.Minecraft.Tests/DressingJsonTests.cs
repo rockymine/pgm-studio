@@ -91,6 +91,20 @@ public sealed class DressingJsonTests
         await Assert.That(((TreeProp)inline.Props[0]).StyleKey).IsEqualTo("copied-2");
     }
 
+    /// <summary>A copied tree carries who built it into the map's registry, and one nobody named writes no
+    /// <c>builder</c>.</summary>
+    [Test]
+    public async Task A_copied_trees_builder_is_written_only_when_it_names_one()
+    {
+        var built = new TreeStyle { Form = TreeForm.Copied, Body = [[0, 0, 0, 17, 12]], Builder = "rockymine" };
+        var json = DressingJson.SerializeStyle(built);
+        await Assert.That(json).Contains("\"builder\":\"rockymine\"");
+        var doc = DressingJson.Deserialize("""{"props":[],"styles":{"cut":""" + json + "}}");
+        await Assert.That(((TreeStyle)doc.Styles["cut"]).Builder).IsEqualTo("rockymine");
+
+        await Assert.That(DressingJson.SerializeStyle(built with { Builder = null })).DoesNotContain("builder");
+    }
+
     [Test]
     public async Task A_props_kind_reads_regardless_of_where_it_falls_in_the_object()
     {

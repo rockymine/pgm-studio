@@ -199,6 +199,12 @@ public sealed record TreeStyle : PropStyle
     [JsonIgnore] public IEnumerable<(int X, int Y, int Z, int Id, int Data)> BodyCells =>
         (Body ?? []).Where(row => row.Length >= 5).Select(row => (row[0], row[1], row[2], row[3], row[4]));
 
+    /// <summary>Copied only — who built the tree in the world it was cut from, as a Minecraft name. A pull
+    /// carries it from the library's cut, and a map the tree stands on credits them as a contributor for its
+    /// trees (<see cref="DressingPlacement.TreeBuilders"/>).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Builder { get; init; }
+
     /// <summary>How many courses the body stands, or nought where it carries none.</summary>
     [JsonIgnore] public int BodyHeight =>
         Body is { Count: > 0 } ? BodyCells.Max(cell => cell.Y) - BodyCells.Min(cell => cell.Y) + 1 : 0;

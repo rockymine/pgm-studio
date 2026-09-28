@@ -31,9 +31,13 @@ public sealed class StudioUserStore(PgmDb db)
         return (await GetAsync(uuid, ct))!;
     }
 
-    /// <summary>Take a person off the whitelist. False where they were not on it.</summary>
-    public async Task<bool> RemoveAsync(string uuid, CancellationToken ct = default) =>
-        await db.StudioUsers.Where(user => user.Uuid == uuid).DeleteAsync(ct) > 0;
+    /// <summary>Take a person off the whitelist, and revoke every token that acts as them. False where they
+    /// were not on it.</summary>
+    public async Task<bool> RemoveAsync(string uuid, CancellationToken ct = default)
+    {
+        await db.StudioTokens.Where(token => token.UserUuid == uuid).DeleteAsync(ct);
+        return await db.StudioUsers.Where(user => user.Uuid == uuid).DeleteAsync(ct) > 0;
+    }
 
     /// <summary>Open an invitation for the person: store the hash of its code and when it lapses, replacing any
     /// invitation already open. False where the person is not on the whitelist.</summary>

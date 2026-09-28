@@ -9,6 +9,8 @@ namespace PgmStudio.Api.Access;
 ///
 /// <list type="bullet">
 /// <item>A read — <c>GET</c> or <c>HEAD</c> — is open to anyone.</item>
+/// <item>A <see cref="PostedReadAttribute"/> route reads with a body, so it needs someone signed in and nothing
+/// more, whichever map it names.</item>
 /// <item>A write to a route under <c>{slug}</c> changes that map, so it needs someone who may edit it.</item>
 /// <item>A <c>DELETE</c> of anything else removes a shared library row other maps may use, so it needs an
 /// admin.</item>
@@ -38,7 +40,8 @@ public static class AccessRules
     }
 
     private static string PolicyOf(EndpointDefinition endpoint) =>
-        endpoint.Routes.Any(route => route.Contains("{slug}")) ? AccessPolicies.MapEditor
+        endpoint.EndpointType.IsDefined(typeof(PostedReadAttribute), inherit: false) ? AccessPolicies.Member
+        : endpoint.Routes.Any(route => route.Contains("{slug}")) ? AccessPolicies.MapEditor
         : endpoint.Verbs.Contains("DELETE", StringComparer.OrdinalIgnoreCase) ? AccessPolicies.Admin
         : AccessPolicies.Member;
 

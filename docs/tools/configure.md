@@ -192,7 +192,9 @@ answers the row takes its canonical uuid and spelling — the uuid is what the `
 it is worth the request. Everything else is a **pseudonym**, in three cases that are deliberately one: a
 value no account could be called, so nothing is asked; a value that is shaped like one and answers nothing;
 and a lookup that could not be made at all. In each the stated name stands, the uuid stays empty, and the row
-is saved. An author working with no route to Mojang states the people on their map and the credits hold.
+is saved. An author working with no route to Mojang states the people on their map and the credits hold. A
+name Mojang has said nobody has is remembered for an hour (`PlayerMisses`) and not asked again in that time,
+while a question Mojang could not answer is asked again the next time.
 
 What the field refuses is narrower, and it refuses out loud. A string that is not a name anybody could be
 called — empty, past thirty-two characters, opening or closing on a space, carrying two in a row, or holding
@@ -208,6 +210,11 @@ colour of its own, so nothing in it reads as a status (`docs/client/ui-conventio
 A map a signed-in person originates already credits them: the first row is theirs, as an `author`, under their
 account (`docs/access.md`). Taking the row out removes the credit and nothing else — they stay the map's owner.
 In an open studio the local admin has no account, and the list starts empty.
+
+The people stated here are the map's own. The export adds two contributors after them that no row holds —
+`PGM Studio (pgmstudio.de)` for the tool the map was made with, and the builder of every copied tree standing on the board
+(`docs/world-export/sketch-world-export.md` §4a) — and credits neither a second time where the phase already
+names them.
 
 The phase is complete with a name and at least one author, and that is the one gate that blocks the very
 first Next.

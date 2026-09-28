@@ -8154,6 +8154,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   blocks, so a library tree is the whole tree the author built: `showcase-r12-3` is 586 blocks and 16 tall with
   its 39 spruce planks, where it was 438 and 12 with the top of its crown missing. `docs/world-export/tree-corpus.md`. (`WE141`)
 
+- **A map credits the studio and the builders of its trees (`WE145`)** — a copied tree's cut can name who built
+  it (`tools/seed-trees.cs --builder=<name>`, `cut.builder`), a pull carries the name into the map's recipe as
+  `builder`, and the export writes `map.xml` contributors for the builder of every copied tree that stands
+  ("Original builder of the copied trees") and for `PGM Studio (pgmstudio.de)` ("Built with the PGM Studio
+  authoring API at https://pgmstudio.de") on every map the studio authors, by account where one answers
+  and never twice for a person the map already credits. `M0045` names rockymine on every tree cut from the
+  showcase and carries the name onto the copied trees already stored in maps.
+  `docs/world-export/sketch-world-export.md` §4a. (`WE145`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
@@ -9769,6 +9778,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `ContentColumn` and the library editor grey their fields, and the dock keeps only the tools that look —
   decided once by `StudioShell` from the address and `GET /api/map/{slug}/access`. `tests/e2e/access.mjs`
   holds it against an invited server. `docs/access.md`, `docs/client/ui-conventions.md`.
+- **A token for a caller without a browser (`RP76`).** A driver or an agent sends `Authorization: Bearer
+  pgms_…` and is the person the token was issued for — their uuid, role, maps and credits, decided by the
+  whitelist on every request like a session. Issued once from *Tokens* in the account menu
+  (`POST /api/users/me/tokens`) or by an admin for anyone on the whitelist (`POST /api/users/{uuid}/tokens`),
+  kept only as a SHA-256 in `studio_token` (`M0046`) with a label and its last use, revoked from the same page
+  (`DELETE /api/users/me/tokens/{id}`) or by taking its person off the whitelist; an unknown token is refused
+  `RQ7`. A token is capped at a member's rights and cannot issue a token (`RQ8`), so one that leaks neither
+  hands over the studio nor outlives its revocation. A map's builders resolved per export are bounded to
+  four, and a name Mojang says nobody has is remembered for an hour. It is what lets a Claude Code session drive the deployed studio (`PGM_STUDIO_API`,
+  `PGM_STUDIO_TOKEN`). `docs/access.md`.
+- **Anyone signed in sees how a map is made (`RP83`).** A Sketch page's paint, relief contours and 3-D world
+  are built on request from the layout the page posts, so they were refused as writes to anyone who may not
+  edit the map. Those seven routes are `[PostedRead]` — `sketch/paint`, `relief`, `relief/read`, `columns`,
+  `dressing`, `seats` and `probe-footprint` compute an answer and store nothing — and `AccessRules` gives them
+  the `member` policy whichever map they name: a signed-in viewer sees the whole Sketch page of a map they may
+  not change, and a signed-out visitor still gets `RQ7`, since each is a build. `docs/access.md`.
 - **A map is credited to whoever originates it (`RP82`).** A sketch, plan, import or document load started
   by a signed-in person writes them as the map's first `author`, uuid and name, beside the ownership, so
   nobody types themselves in; removing the credit leaves them the owner. An intent stored while it names nobody

@@ -270,6 +270,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
 /// bridge's <c>getState()</c>, not the stored blob — so the overlay tracks unsaved edits; the stored intent
 /// supplies team ownership, which is what a team-tinted material reads. Empty payload when nothing is
 /// drawn; 400 on unparseable JSON.</summary>
+[PostedRead]
 public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<BlockPixelsDto>
 {
     public override void Configure()
@@ -321,6 +322,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 /// pass declined, as a <c>DR-*</c> finding naming the rule, the cell and the prop. The build succeeded, so
 /// these are complaints rather than refusals — but a caller looking at a preview with no tree in it needs to
 /// be told the tree was declined, not left to notice.</para></summary>
+[PostedRead]
 public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<WorldColumnsDto>
 {
     public override void Configure()
@@ -393,6 +395,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
 /// pushed. 422 on a dressing document that will not read; a layout that cannot be built is drawn anyway and
 /// its findings ride back as complaints, by the same names
 /// the export refuses them under.</para></summary>
+[PostedRead]
 public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<DressingRunDto>
 {
@@ -497,6 +500,7 @@ internal static class DressedBoard
 /// walk the board's routes and waypoints with the footprint taken out.</para>
 ///
 /// <para>Body: the layout, as <c>sketch/dressing</c> takes it. The cost is the same build.</para></summary>
+[PostedRead]
 public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<SeatsDto>
 {
@@ -601,6 +605,7 @@ internal static class SurfaceSoil
 ///
 /// <para>Body: <c>{ "layout": {…}, "ring": [[x, z], …] }</c>, three points or more. 422 on a ring with fewer,
 /// on a layout that will not read, and on a board too large.</para></summary>
+[PostedRead]
 public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointWithoutRequest<FootprintProbeDto>
 {
     public override void Configure()
@@ -676,6 +681,7 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
 /// that edit left to carry rather than the whole surface to build — and because it stops when the field stops
 /// moving, a resumed solve that settles has settled on the same answer. Nothing about the reply depends on
 /// whether a head start was available.</para></summary>
+[PostedRead]
 public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache warm)
     : EndpointWithoutRequest<ReliefContoursDto>
 {
@@ -751,6 +757,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
 ///
 /// <para>It sits next to the document it describes, which is what makes a relief correctable by a generator or
 /// an agent rather than only by eye. Same body as the contour endpoint — the live layout.</para></summary>
+[PostedRead]
 public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCache warm)
     : EndpointWithoutRequest<ReliefReadDto>
 {

@@ -88,6 +88,44 @@ public sealed class PlayerLookupTests
             .Because("the name IS shaped like an account, so the question was worth asking");
     }
 
+    /// <summary>A Mojang that answers <paramref name="status"/> to every question and counts them.</summary>
+    private sealed class Answering(System.Net.HttpStatusCode status) : HttpMessageHandler
+    {
+        public int Asked { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Asked++;
+            return Task.FromResult(new HttpResponseMessage(status));
+        }
+    }
+
+    /// <summary>A name Mojang says nobody has is not asked about again for an hour, so a map naming someone who
+    /// does not exist does not send Mojang a question on every request for its export. A Mojang that could not
+    /// answer is asked again: that miss says nothing about the name.</summary>
+    [Test]
+    public async Task A_name_nobody_has_is_asked_once_and_a_failed_question_is_asked_again()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var kept = scope.ServiceProvider.GetRequiredService<PlayerNameStore>();
+
+        var nobody = new Answering(System.Net.HttpStatusCode.NotFound);
+        var misses = new PlayerMisses();
+        for (var attempt = 0; attempt < 3; attempt++)
+            await Assert.That(await new PlayerLookup(new MojangClient(new HttpClient(nobody)), kept, misses)
+                .ResolveAsync("nobodyhasthis")).IsNull();
+        await Assert.That(nobody.Asked).IsEqualTo(1);
+
+        var failing = new Answering(System.Net.HttpStatusCode.TooManyRequests);
+        var unremembered = new PlayerMisses();
+        for (var attempt = 0; attempt < 2; attempt++)
+            await Assert.That(await new PlayerLookup(new MojangClient(new HttpClient(failing)), kept, unremembered)
+                .ResolveAsync("nobodyhasthis")).IsNull();
+        await Assert.That(failing.Asked).IsEqualTo(2);
+    }
+
     /// <summary>A Mojang that answers one profile whose skin lives at <paramref name="texture"/>, serves a
     /// small PNG there, and records every address it was asked.</summary>
     private sealed class SkinServer(string texture) : HttpMessageHandler

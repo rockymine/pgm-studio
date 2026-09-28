@@ -74,7 +74,7 @@ public sealed class InviteFollowEndpoint(IConfiguration configuration, StudioUse
     {
         if (await SignIn.UnavailableAsync(HttpContext, configuration, ct)) return;
         var code = Route<string>("code") ?? "";
-        if (await users.GetByInviteAsync(DiscordSignIn.HashOf(code), DateTime.UtcNow, ct) is null)
+        if (await users.GetByInviteAsync(StudioSecret.HashOf(code), DateTime.UtcNow, ct) is null)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no such invitation",
                 [new Finding(RequestRules.NoSuchSubject,
@@ -153,7 +153,7 @@ public sealed class UserInviteEndpoint(StudioUserStore users) : EndpointWithoutR
     public override async Task HandleAsync(CancellationToken ct)
     {
         var uuid = Route<string>("uuid") ?? "";
-        var (code, hash) = DiscordSignIn.NewInvite();
+        var (code, hash) = StudioSecret.New();
         var expiresAt = DateTime.UtcNow + DiscordSignIn.InviteLifetime;
         if (!await users.OpenInviteAsync(uuid, hash, expiresAt, ct))
         {

@@ -35,6 +35,8 @@ public sealed class PropStyleLibrary(PropStyleStore store)
         Species = TreeSpeciesNames.Canonical(row.Species),
         Height = row.Height,
         Body = BodyOf(row.Body),
+        Builder = TreeForms.Canonical(row.Form) == TreeForms.Copied && row.CutBuilder is { Length: > 0 } builder
+            ? builder : null,
     };
 
     /// <summary>The tree gate a save passes: a <c>copied</c> recipe states where it was cut
@@ -68,6 +70,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
             CutY = cut?.Y,
             CutZ = cut?.Z,
             CutAt = cut?.At,
+            CutBuilder = cut?.Builder is { } builder && builder.Trim() is { Length: > 0 } named ? named : null,
         };
     }
 
@@ -78,7 +81,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
     /// <summary>The cut a row records, or none where it records no world.</summary>
     private static TreeCut? CutOf(TreeStyleRow row) =>
         row is { CutWorld.Length: > 0, CutX: { } x, CutY: { } y, CutZ: { } z, CutAt: { } at }
-            ? new TreeCut(row.CutWorld, x, y, z, DateTime.SpecifyKind(at, DateTimeKind.Utc))
+            ? new TreeCut(row.CutWorld, x, y, z, DateTime.SpecifyKind(at, DateTimeKind.Utc), row.CutBuilder)
             : null;
 
     /// <summary>The body a row stores, or nothing where it stores none or stores something that is not a

@@ -22,7 +22,9 @@ namespace PgmStudio.Api.Endpoints;
 /// bridged), and this is the only check that catches it. Corpus maps have no intent and export
 /// unconditionally (unchanged).</para>
 /// </summary>
-public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class MapXmlEndpoint(
+    MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts, PlayerLookup players)
+    : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -37,7 +39,7 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
 
         var doc = await reader.ReadDocAsync(map, ct);
         var layoutBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
-        var result = await MapExportLoader.ComposeAsync(map.Id, doc, layoutBytes, feature, artifacts, ct);
+        var result = await MapExportLoader.ComposeAsync(map.Id, doc, layoutBytes, feature, artifacts, players, ct);
         if (result.Refusal is { } refusal)
         {
             await Refusals.WriteAsync(HttpContext, refusal, ct);

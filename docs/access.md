@@ -77,6 +77,40 @@ Access__Mode=invited ./tools/dev.sh restart              # now closed
 # open the link in a browser, sign in with Discord, then http://localhost:7894/api/me names you
 ```
 
+## A token for a caller without a browser
+
+**A driver or an agent signs in with a token instead of a browser.** It sends
+`Authorization: Bearer pgms_…`, and the access scheme hands any request naming a token to the `token` scheme
+(`TokenAccessHandler`) rather than to the session cookie. A token signs in as the person it was issued for —
+their uuid and nothing else, the same as a session — so the whitelist decides what it may do on every
+request: the same maps, and the same credit on a map it originates.
+
+**A token never carries more than a member's rights, and never issues a token.** An admin's token is a
+member's: it keeps no whitelist, opens no invitation and changes no map its person does not own
+(`Callers`), since a token lives in an environment a browser session does not, and one that leaks there
+should not hand over the studio. And a request signed in by a token is refused `RQ8` when it asks for a token
+of its own or anyone's, so a leaked token cannot outlive its revocation by issuing another. Both are asked
+from a browser.
+
+**A token is issued once and kept only as a hash.** Its person issues one from *Tokens* in the account menu or
+`POST /api/users/me/tokens`, and an admin issues one for anyone on the whitelist with
+`POST /api/users/{uuid}/tokens`. The answer is the only one that carries the token; `studio_token` keeps its
+SHA-256 beside the person it acts as, a label saying what it is for, when it was issued and when it last
+signed a request in, to the minute. The secret is made the way an invitation's code is (`StudioSecret`), with
+`pgms_` in front so a token is recognisable wherever it is pasted.
+
+**A token ends when it is revoked or its person leaves the whitelist.** `DELETE /api/users/me/tokens/{id}`
+revokes one of the caller's own, and taking a person off the whitelist revokes every token that acts as them.
+A token the studio does not hold fails the sign-in outright, so a write carrying one is refused `RQ7` rather
+than read as a visitor's. A token does not lapse on its own: it lives until one of the two.
+
+**It is a secret of the environment that drives, never of a prompt.** A Claude Code session driving the
+deployed studio carries `PGM_STUDIO_API` (the studio's `…/api`) and `PGM_STUDIO_TOKEN` as the environment's
+secrets, and the pgm-studio-mapgen tools send the token on every request. Whether a session drives the
+deployed studio or sets up its own is the author's decision, taken per chat (`pgm-studio-mapgen/CLAUDE.md`).
+An open studio needs no token — every request is already its admin — and `POST /api/users/me/tokens` answers
+the local admin 404, since there is no account for a token to act as.
+
 ## What the browser shows
 
 The studio's bar says who the browser is on every page: the head, name and role signed in, opening a menu to
@@ -85,8 +119,12 @@ the whitelist at `/admin/users`. That page
 adds a player by name or uuid in a role, changes a role, takes someone off, and opens an invitation whose link
 it shows once with a copy button — the same four routes as below.
 
+Someone on the whitelist also finds *Tokens* in the account menu, at `/tokens`: it issues a token and shows it
+once with a copy button, and lists theirs with what each is for and when it was last used, to revoke.
+
 A page the caller may not write opens read-only: the tool's bar says *View only*, with the reason on hover, the
-panels grey their fields and the canvas keeps only the tools that look. `docs/client/ui-conventions.md` says
+panels grey their fields and the canvas keeps only the tools that look. Signed in, a read-only Sketch page
+still draws the ground's relief, its paint and the 3-D preview; signed out, it draws the outlines alone. `docs/client/ui-conventions.md` says
 how the shell decides it. `tests/e2e/access.mjs` holds it, against a second server over the suite's database
 running invited with the browser signed out.
 
@@ -98,12 +136,21 @@ configurator in `Program.cs` and decides from the verb and the path:
 | Route | Needs | Policy |
 |---|---|---|
 | `GET`, `HEAD` — any | nobody | open |
+| a `POST` that only reads, marked `[PostedRead]` | someone signed in | `member` |
 | a write under `/map/{slug}` | someone who may edit that map | `map-editor` |
 | `DELETE` of anything else | an admin, since a library row is shared by every map using it | `admin` |
 | any other write | a person on the whitelist | `member` |
 
-An endpoint that states its own access keeps it: the whitelist's routes are an admin's, list included, and
-signing out is anyone's.
+An endpoint that states its own access keeps it: the whitelist's routes are an admin's, list included,
+revoking one's own token is a member's, and signing out is anyone's.
+
+**A read that carries a body is a `POST`, and it is still a read.** The Sketch page draws its paint, its relief
+contours and its 3-D world from the live layout, which it posts to `sketch/paint`, `sketch/relief` and
+`sketch/columns`; `sketch/relief/read`, `sketch/dressing`, `sketch/seats` and `sketch/probe-footprint` answer
+the same way. Each computes an answer and stores nothing, and says so with `[PostedRead]`, which gives it the
+`member` policy whichever map it names: anyone signed in sees how a map they may not change is made. A
+visitor who is not signed in is refused them with `RQ7`, because each answer is a build — `sketch/columns`
+builds the whole world — and bounding what one caller may ask for is `RP79`.
 
 **Who may edit a map** is `Callers.MayEditAsync`: an admin; the map's **owner**, the person who originated it
 (`map.owner_uuid`, set by `MapOrigin` from the request that brought the row into existence); or someone the map
@@ -129,7 +176,7 @@ A request the rules turn away answers the refusal envelope every gate uses (`doc
 
 | Rule | Status | When |
 |---|---|---|
-| `RQ7` | 401 | the route writes and the request is signed out |
+| `RQ7` | 401 | the route writes, or builds a view on request, and the request is signed out |
 | `RQ8` | 403 | the request is signed in and this write is not theirs: not on the whitelist, not the map's owner or credited author, or an admin's route — and a Discord sign-in that resolves to nobody on the whitelist |
 | `RQ9` | 503 | a sign-in route, on a studio with no Discord application configured |
 
@@ -146,6 +193,10 @@ Every write publishes both in the schema at `/api/openapi/v1.json`, and no read 
 | `POST /api/users` `{player, role}` | puts the account `player` names — a name or a uuid, resolved through Mojang — on the whitelist in `role`, or changes the role of one already on it; answers the stored row | 400, 404 |
 | `DELETE /api/users/{uuid}` | takes the person off; they keep every credit and write nothing more | 404 |
 | `POST /api/users/{uuid}/invite` | opens an invitation for someone on the whitelist, replacing any open one: `{link, expiresAt}`. The link is shown this once | 404 |
+| `GET /api/users/me/tokens` | the caller's tokens, newest first: `[{id, label, issuedAt, lastUsedAt}]`; empty for a visitor or an open studio's admin | — |
+| `POST /api/users/me/tokens` `{label}` | issues a token acting as the caller: `{id, label, token, actsAs}`. The token is shown this once; a blank label is `token` | 404 (no account) |
+| `DELETE /api/users/me/tokens/{id}` | revokes one of the caller's tokens | 404 |
+| `POST /api/users/{uuid}/tokens` `{label}` | issues a token acting as someone on the whitelist; admin only | 404 |
 | `GET /api/auth/discord?returnUrl=` | 302 to Discord, to sign in with an account already bound | 503 |
 | `GET /api/auth/invite/{code}` | 302 to Discord, binding the account that signs in to the invitation's person | 404, 503 |
 | `GET /api/auth/discord/complete` | where the sign-in lands: writes the session and 302s to `returnUrl` | 401, 403 |
@@ -175,13 +226,21 @@ curl -s -X DELETE localhost:7894/api/users/069a79f4-44e9-4726-a5be-fca90e38aaf5
 The `POST` needs Mojang to answer for a name it has not seen; a container with no egress refuses it 404, and
 the uuid of an account the studio has already resolved goes through.
 
+An invited studio is driven with a token, issued once from a browser that is signed in:
+
+```bash
+export PGM_STUDIO_API=https://pgmstudio.de/api PGM_STUDIO_TOKEN=pgms_…
+curl -s "$PGM_STUDIO_API/me" -H "Authorization: Bearer $PGM_STUDIO_TOKEN"
+# {"mode":"invited","signedIn":true,"uuid":"…","name":"…","role":"member"}
+curl -s -X POST "$PGM_STUDIO_API/sketch" -H "Authorization: Bearer $PGM_STUDIO_TOKEN" \
+     -H 'content-type: application/json' -d '{"name":"Weirgate"}'
+```
+
 ## Limits
 
 - **Behind a reverse proxy the callback needs the forwarded scheme.** The handler builds its
   `redirect_uri` from the request it sees, so a server behind Caddy has to honour `X-Forwarded-Proto` or
   Discord is asked to return to `http://`; that is part of `RP78`.
-- **A caller without a browser has no way in.** A token for the drivers and agents that write over HTTP is
-  `RP76`.
 - **A read-only page still lets a few edits start.** The panels grey their fields and the dock drops its
   drawing tools (`docs/client/ui-conventions.md`), but a sidebar's own inputs, a select-and-drag on the canvas
   and a phase bar's finish are not reached; each is refused by the server and springs back. Closing them is

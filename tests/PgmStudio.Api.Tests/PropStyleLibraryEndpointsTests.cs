@@ -62,6 +62,28 @@ public sealed class PropStyleLibraryEndpointsTests
         await Assert.That(reread.Cut).IsEqualTo(Cut);
     }
 
+    /// <summary>The cut's builder is stored with it and pulled into the recipe a map files, so the map can
+    /// credit them; a cut naming nobody pulls a recipe naming nobody.</summary>
+    [Test]
+    public async Task A_copied_trees_builder_is_stored_on_its_cut_and_carried_by_a_pull()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var built = Cut with { Builder = "rockymine" };
+        var created = await (await client.PostAsJsonAsync("/api/tree-styles", Copied("showcase-r1-1", built)))
+            .Content.ReadFromJsonAsync<TreeStyleDetail>();
+        var detail = await client.GetFromJsonAsync<TreeStyleDetail>($"/api/tree-styles/{created!.Id}");
+        await Assert.That(detail!.Cut).IsEqualTo(built);
+        var pulled = await client.GetFromJsonAsync<StyleJsonDto>($"/api/tree-styles/{created.Id}/json");
+        await Assert.That(pulled!.StyleJson).Contains("\"builder\":\"rockymine\"");
+
+        var anonymous = await (await client.PostAsJsonAsync("/api/tree-styles", Copied("showcase-r1-2", Cut)))
+            .Content.ReadFromJsonAsync<TreeStyleDetail>();
+        var unnamed = await client.GetFromJsonAsync<StyleJsonDto>($"/api/tree-styles/{anonymous!.Id}/json");
+        await Assert.That(unnamed!.StyleJson).DoesNotContain("builder");
+    }
+
     [Test]
     public async Task A_template_tree_needs_no_cut_and_keeps_none()
     {

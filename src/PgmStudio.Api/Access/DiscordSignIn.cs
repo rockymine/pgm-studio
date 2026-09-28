@@ -1,7 +1,5 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -81,16 +79,6 @@ public static class DiscordSignIn
         return builder;
     }
 
-    /// <summary>A fresh invitation code, and the hash the whitelist stores it under.</summary>
-    public static (string Code, string Hash) NewInvite()
-    {
-        var code = Base64Url(RandomNumberGenerator.GetBytes(32));
-        return (code, HashOf(code));
-    }
-
-    public static string HashOf(string code) =>
-        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(code)));
-
     /// <summary>
     /// Who a Discord account signs in as. With an invitation, the person it was issued for — binding the account
     /// to them and closing it; without one, the person the account is already bound to. Null where neither
@@ -101,7 +89,7 @@ public static class DiscordSignIn
     {
         if (invite is { Length: > 0 })
         {
-            if (await users.GetByInviteAsync(HashOf(invite), DateTime.UtcNow, ct) is not { } invited) return null;
+            if (await users.GetByInviteAsync(StudioSecret.HashOf(invite), DateTime.UtcNow, ct) is not { } invited) return null;
             await users.BindDiscordAsync(invited.Uuid, discordId, ct);
             return invited;
         }
@@ -113,7 +101,4 @@ public static class DiscordSignIn
         new(new ClaimsIdentity(
             [new Claim(StudioClaims.Uuid, user.Uuid), new Claim(StudioClaims.Name, user.Name)],
             CookieAuthenticationDefaults.AuthenticationScheme));
-
-    private static string Base64Url(byte[] bytes) =>
-        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 }

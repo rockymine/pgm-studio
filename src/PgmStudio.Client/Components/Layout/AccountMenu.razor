@@ -5,7 +5,8 @@
 @inject IJSRuntime JS
 
 @* Who the browser is, at the right of the studio's bar: the head, name and role signed in, opening a menu
-   to sign out; the sign-in for a visitor; and "local" in an open studio, whose admin has no account. *@
+   to the tokens that sign in as them and to sign out; the sign-in for a visitor; and "local" in an open studio,
+   whose admin has no account. *@
 
 @if (me is not null)
 {
@@ -38,6 +39,12 @@
                             </span>
                         </div>
                     </div>
+                    @if (me.Role is not null)
+                    {
+                        <a class="account-menu-item" role="menuitem" href="tokens" @onclick="() => open = false">
+                            <i data-lucide="shield-check"></i><span>Tokens</span>
+                        </a>
+                    }
                     <button type="button" class="account-menu-item" role="menuitem" @onclick="SignOutAsync">
                         <i data-lucide="log-out"></i><span>Sign out</span>
                     </button>
