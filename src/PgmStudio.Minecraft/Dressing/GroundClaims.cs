@@ -215,6 +215,14 @@ public static class DressingRules
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string SteepBank = "DR-BANK";
 
+    /// <summary>A body of water left dry across ground the map keeps clear. A kept column — a spawn, a wool
+    /// room, a stated structure, a built column, a door's approach — is filled and never cut, so where the
+    /// water's line stands no higher than the ground there the bed stays ground and no water stands on it. The
+    /// finding counts the dry columns and names the first and what keeps it clear.</summary>
+    /// <remarks>Move the water off the kept ground, or state a `level` above it so the fill stands there without a cut. A complaint: the world is built and the rest of the water is in it; the dry columns are not the channel's in any read-back.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
+    public const string HeldDry = "DR-HELD";
+
     /// <summary>A boulder built out of nothing but the tones of the ground it stands on. A rock is an
     /// erratic — a mass carried here and left — so it reads as a rock by not being made of the field it sits
     /// in, and one whose every tone family the ground already states has no silhouette at any size: it is a

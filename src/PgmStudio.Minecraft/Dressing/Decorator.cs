@@ -410,6 +410,8 @@ public static class Decorator
         // The tallest bank the carve cut, and where. A cut is bounded below by the bed floor and above by the
         // column's own surface, and nothing bounds how far above the water line that surface stands.
         var cutWall = (Courses: 0, At: default((int X, int Z)?), Line: 0);
+        // Bed columns a keep-out held uncut and the fill left dry, and the first of them.
+        var heldDry = (Count: 0, At: default((int X, int Z, KeepOut For)?));
         for (var image = 0; image < context.Symmetry.Order; image++)
         {
             // Added before the channel is walked and kept even where it finds nothing, so the list index is
@@ -448,12 +450,21 @@ public static class Decorator
                 // column's own surface and reaches the higher of that surface and the line, so a channel cut into
                 // standing ground replaces only what was there while a basin already dug out fills to the line.
                 var from = fillOnly ? surfaceSolid + 1 : Math.Min(bedFloor, surfaceSolid) + 1;
+                var filled = false;
                 for (var y = from; y <= Math.Max(surfaceSolid, line); y++)
                 {
                     // Over the column's own surface the pass is filling what was air, and anything standing
                     // there belongs to something else — a hull, a mast, a pier. The water goes round it.
                     if (y > surfaceSolid && world.GetBlock(x, y, z).Id != Blocks.Air) continue;
                     world.SetBlock(x, y, z, y <= line ? Blocks.StationaryWater : Blocks.Air);
+                    filled |= y <= line;
+                }
+                // A kept column the fill put no water in is ground, not water: nothing claims it, nothing
+                // reads it as the channel's, and the complaint below names it.
+                if (fillOnly && !filled)
+                {
+                    heldDry = (heldDry.Count + 1, heldDry.At ?? (x, z, context.KeptClearAt(x, z)!.Value));
+                    continue;
                 }
                 // The bank floor the shallows show through, laid only where terrain already stood — a bed floor
                 // above the ground the column actually has would be a shelf hanging in the basin.
@@ -486,7 +497,23 @@ public static class Decorator
 
         DryEdge(world, ground, wet, water, declined);
         SteepBank(cutWall, water, declined);
+        HeldDry(heldDry, water, declined);
         return new Placed(images.Sum(cells => cells.Count), images);
+    }
+
+    /// <summary>DR-HELD — bed columns a keep-out held uncut, left without water. A kept column is filled and
+    /// never cut, so where the line stands no higher than the ground there the bed is the ground as it was,
+    /// and the channel carries no water across it.</summary>
+    private static void HeldDry(
+        (int Count, (int X, int Z, KeepOut For)? At) held, WaterProp water, List<Finding> declined)
+    {
+        if (held.At is not { } at) return;
+        declined.Add(new Finding(DressingRules.HeldDry,
+            $"water '{water.Id}' is dry across {held.Count} column(s) of its bed — first at ({at.X}, {at.Z}), "
+            + $"{KeptFor(at.For)}. A kept column is filled but never cut, and the line stands no higher than "
+            + "the ground there, so the bed is left as ground and no water stands in it. Move the channel off "
+            + "the kept ground, or state a `level` above it.",
+            Severity.Complaint, Subjects: [water.Id]));
     }
 
     /// <summary>DR-BANK — a pool that dug a shaft rather than filled a hollow.

@@ -1060,6 +1060,34 @@ public sealed class DecoratorTests
         await Assert.That(world.GetBlock(20, 2, 20).Id).IsEqualTo(Blocks.Stone);
     }
 
+    /// <summary>A channel across a door's approach on level ground: the kept columns are filled and never
+    /// cut, and with the line at the ground no water stands on them. They are not the channel's in the
+    /// placement, so no read draws water there, and <c>DR-HELD</c> names them.</summary>
+    [Test]
+    public async Task A_channel_left_dry_by_a_keep_out_is_not_claimed_as_water_and_is_named()
+    {
+        var (world, top) = Plateau();
+        KeepOut? approach(int x, int z) => x is >= 18 and <= 21 ? KeepOut.Approach : null;
+        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "canal", Points = [[20, 4], [20, 35]], Radius = 5, Depth = 2, Seed = 5, Shore = 0,
+            Bank = new SolidMaterial(Blocks.Sand),
+        }], keptClear: approach));
+
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Grass);
+        await Assert.That(world.GetBlock(16, 7, 20).Id).IsEqualTo(Blocks.StationaryWater);
+        var water = report.Placements.Where(claim => claim.Owner.Kind == "water").SelectMany(claim => claim.Cells)
+            .ToHashSet();
+        await Assert.That(water.Contains((16, 20))).IsTrue();
+        await Assert.That(water.Any(cell => cell.X is >= 18 and <= 21)).IsFalse();
+
+        var held = report.Declines.SingleOrDefault(finding => finding.Rule == DressingRules.HeldDry);
+        await Assert.That(held).IsNotNull();
+        await Assert.That(held!.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(held.Message).Contains("canal");
+        await Assert.That(held.Message).Contains("approach");
+    }
+
     [Test]
     public async Task A_pool_fills_a_ring_and_shelves_in_from_its_shore()
     {

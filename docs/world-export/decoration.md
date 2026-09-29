@@ -697,6 +697,13 @@ under the ship floating in it is not a harbour. So a kept column is filled and n
 not laid and it claims nothing; and above any column's own surface the pass writes only into air, so the
 water goes round a hull, a mast or a stamp rather than through it.
 
+**A kept column the fill leaves dry is ground, and `DR-HELD` says so.** Filling reaches only up to the line,
+and a derived line is the lowest surface the channel crosses, so a channel across a door's approach on level
+ground puts no water on the approach at all: the bed there is the ground as it stood. Such a column is not
+the channel's in the placement record, so the claims raster, the heightmap text and the water count all read
+it as the ground it is, and `DR-HELD` — a complaint — counts the dry columns and names the first and what
+keeps it clear. Moving the channel off the kept ground, or stating a `level` above it, is what puts water there.
+
 Like every prop, a channel is **fanned across the symmetry orbit**, so both teams get the same water from the
 same side; a stated line is the same Y at every image, a level plane being level in all of them.
 
