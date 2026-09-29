@@ -482,14 +482,6 @@ and what a `subtract` takes away.
   meaning ground actually seen; a ray pointing up stays sky. *Evidence: Gypsum Reach note 74, a lasso over the
   void beside the frontline.* `docs/tools/sketch.md` § Notes; `docs/world-scan/read-backs.md`.
 
-- [ ] **C67 — One dye colour table.** Every block picture draws stained clay at the 1.8 texture means
-  (`BlockPaletteData.StainedClayRgb`), but three other tables carry Bukkit's `DyeColor` — `WoolColors.Swatch`,
-  `game-colors.json` with its `palette.js` mirror, and `BlockPaletteData.StainedGlassRgb` — where grey is
-  `#4C4C4C` and cyan a pale blue-grey, and they disagree with `WoolRgb`'s texture means. Wool markers, the
-  Configure swatches and the canvas glyphs read those. Move the dye ramp into `PgmStudio.Vocabulary` once and
-  have the others read it. *Evidence: the author read grey and cyan stained clay as grey and blue-grey against
-  the game's brown and dark grey.* `docs/client/ui-conventions.md`.
-
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** *Parked (author): imports
   are not a priority.* When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
