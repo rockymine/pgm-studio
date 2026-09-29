@@ -449,14 +449,6 @@ and what a `subtract` takes away.
 
 ## User Experience
 
-- [ ] **WS79 — The eye draws what stands on the ground.** `BlockFaces.Thin` hides redstone wire, redstone
-  and plain torches, ladders, carpets, vines and lily pads, and `EyeScene` passes a ray through them, so an
-  in-game picture of a board built with them leaves them out. Torches are `Cross` sprites; wire is a
-  one-sixteenth box of `redstone_dust_cross` tinted by its power (the sprite is greyscale); a ladder is a
-  one-sixteenth box on the face its data names; a carpet a one-sixteenth box of its wool. *Evidence: Sootcombe
-  note 44 — redstone laid on the board is absent from every picture.* `docs/world-scan/read-backs.md` § Seen
-  from a player's eye.
-
 - [ ] **TS121 — A lasso over the void carries coordinates.** `EyeScene.Project` counts a ray that hits nothing
   as sky and adds no column, so a note drawn over void has no `columns` and its place is read off the
   picture's pixels. Where a ray points down, meet it with a level plane — the median ground of the columns the

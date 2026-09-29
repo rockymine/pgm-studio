@@ -8199,6 +8199,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   ground a 1.8 bush stays on, so sand, gravel and mycelium no longer carry cover that drops at the first
   update. The Dressing inspector offers both shares. `docs/world-export/decoration.md` §3. (`WE150`)
 
+- **The eye draws what stands on the ground (`WS79`)** — `render/eye` draws torches and redstone torches as
+  crossed sprites, redstone wire as a floor sheet tinted by its power the way the game tints it, ladders on the
+  face they hang from, carpets, vines and lily pads, and chests — plain, trapped and ender — as the inset box
+  cut from the game's own chest texture with the front where the chest faces. A sheet a sixteenth thick is
+  drawn but neither stood on nor blocks a sight line. `docs/world-scan/read-backs.md`. (`WS79`)
+
 - **Notes on a map, and the threads under them (`TS115`)** — an admin leaves a note in the In game phase, pinned
   to the whole map or to the picture in view, with an optional tag (`look`, `terrain`, `gameplay`, `studio`,
   `ruling`); an agent answers in its thread, and only the author resolves it. A thread is `open` (waiting on an
