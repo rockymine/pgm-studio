@@ -147,6 +147,24 @@ what is gathered here is the parked and dormant slices of the same surface.
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
+- [ ] **WE148 — A mark or a push that lands nowhere says why.** `RL4` fires on a mark that pinned no cell
+  and names only "off its group's ground"; two causes read alike under it. A mark stated over ground another
+  group owns — a `team` mark on the mid stone — should name that group, which the rasterizer knows. A bevel of
+  at least half the ring's short side leaves every pin under weight 1, and `ReliefSolver` drops such pins over
+  unclaimed ground, so a small area mark with a wide bevel pins nothing; that is its own sentence. And a push
+  whose ring covers no cell has no finding at all: `ReliefReadback.Check` reads pushes only where `Cells > 0`,
+  so a push keyed on the wrong group is silent where a mark is `RL4`. *Evidence: a 10 × 6 area mark on Gypsum
+  Reach (note 52's wash rim) raised `RL4` and nothing else; Sootcombe's `mid-rise`/`mid-lip` pushes are keyed
+  `team` over the mid stone and cover 0 cells.* `docs/world-export/relief.md` §6.
+
+- [ ] **WE149 — Pushes that overlap, and a mark under a push.** *Parked (author): whether two pushes summing
+  over one cell is a fault or a tool.* `Sculpt` adds every push's lift (`ReliefSolver.cs`) and applies the sum
+  over the marked field, so two pushes stack and a mark under a push moves the base it lifts from — as
+  `relief.md` §5 states, on purpose. Nothing reports it: the read gives each push's gradients, not where two
+  meet. If the author rules it a fault, the finding is the push twin of `RL3` — the pair, the overlap's cell
+  count, and at the worst cell the summed lift against each push's own. *Evidence: a second push over Gypsum
+  Reach's wash rim dug a pit to y7, and a line mark there did the same by lowering the base.*
+
 ### Water
 
 - [ ] **S46 — Water reads the relief; a river on the axis is a canal.** A dressing path draping over whatever
@@ -171,6 +189,15 @@ what is gathered here is the parked and dormant slices of the same surface.
   than air in `Decorator.Fan` if it were. The author brushed about twenty rocks into Millrace's bed and the
   studio plants none. Let a boulder seat on a bed the water claims and write through the water, keeping the
   claim for everything else; `docs/world-export/decoration.md` §5 and §7.
+
+- [ ] **WE147 — A body of water may be lava.** `WaterProp` has no fluid: `Decorator.PlaceWater` writes
+  `Blocks.StationaryWater` at `Decorator.cs` (the fill loop) and tests the same id to gather `wet` for `DR-DRY`,
+  and the only lava in a world is a core's casing (`ObjectiveStamper.cs:114`). Add `fluid: water|lava` to
+  `WaterProp`, a chip in `SketchDressingInspector` and the default in `dressing-doc.js`. Lava is not water to
+  everything downstream, and each is a question before it is a line: the walk reads ids 10/11 as a slow swim
+  (`Geom/Walk.cs` `WaterSlowdown`), the beach is laid round it, and flora, trees and a timber deck beside it
+  burn. *Evidence: Gypsum Reach note 72 asks for lava in the wash, whose bridge stands on dark-oak posts in
+  it.* `docs/world-export/decoration.md` §7.
 
 ### Placing something on a storey that is not the top one
 
@@ -208,6 +235,16 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   image index is what the fan already knows — so one authored statue fans into a red one and a blue one.
   `docs/tools/sketch.md` § A made thing; `docs/world-export/terrain-painting.md` § 5.
 
+- [ ] **WE146 — A layer fanned onto its images turns its blocks with it.** The painter writes a resolved
+  material unchanged on every image (`TerrainPainter.Paint`), so a ladder facing north on red faces north on
+  blue, away from its beam; stairs, logs and anything with a facing do the same. `BlockGeometry.Turned`
+  already turns them for a placed prop (`Decorator.cs`, via `DressingSymmetry.TurnCell`). Carry the image index
+  from `SketchRasterizer.ShapeScopeOwners` through `TerrainThemeScope.ThemeAt` and turn the block where it is
+  not 0 — read from the fan, never from the fold, which would turn a shape the author already drew on the image
+  half a second time. Shares its image index with `WE74`. *Evidence: Sootcombe's archer-tower ladders are
+  stated once per team on an unmirrored layer to face their beams; `(-12, -37)` reads `65:3`.*
+  `docs/tools/sketch.md` § A made thing; `docs/world-export/terrain-painting.md` §5.
+
 - [ ] **TS63 — A form library: the round structures a layer already draws.** `ring_wall`, `ellipse_wall`,
   `dome`, `spire`, `ziggurat`, `arch`, `colonnade`, `tapered_tower`, `bowl`, `crenellated_wall`, `drum_tower`,
   and a `gatehouse` composing five of them — a footprint and a few numbers each, emitting circles and polygons
@@ -219,7 +256,53 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   built out of — an annulus as one even-odd polygon, and an override add laying a floor inside a wall — are
   written up in `docs/tools/sketch.md`, so a library emits what an author can already draw by hand.
 
+### Dressing: what the pass can place
+
+- [ ] **WE150 — Cactus and dead bush in the flora.** The flora vocabulary is grass, fern, four flowers and the
+  two tall plants (`DressingPalette.cs`), and `FloraSpec` shares only fern, flower and tall, so a desert board
+  places both by hand on a made layer, each in a sand patch. Add dead bush (32:0) on sand, hardened and stained
+  clay and dirt, and cactus (81) on sand only, one to three tall, never beside a solid block or another cactus,
+  and kept off goal ground as tall grass is (`AllowsCover`). Check in game first whether 1.8 keeps the grass
+  and flowers the pass already puts on sand, gravel and mycelium (`SoilShare`): `BlockBush` accepts only
+  grass, dirt and farmland, which would pop them at the first update. *Evidence: Gypsum Reach notes 60, 66,
+  73 — 28 dead bushes and seven cacti a team, placed as made layers.* `docs/world-export/decoration.md` § flora.
+
+- [ ] **WE151 — A chest whose contents the author states.** Three chests are filled, each with contents fixed
+  in code (`DefenseChest`, `StructureStamper.StampDefenseChest`, `WoolChests`), and a chest painted by a made
+  layer is written with no tile entity, so it is empty. A `chest` prop — a cell, a facing, and items as
+  `{slot, id, count, damage, enchantments}` — reusing `ChestBuilder` and `VoxelWorld.AddTileEntity`. Read PGM
+  first for whether a map's own fill or kit module is the route a chest's contents are meant to take.
+  *Evidence: Sootcombe note 45 asks for a chest with a Power I bow and 32 arrows on each archer tower.*
+  `docs/world-export/decoration.md`.
+
+- [ ] **WE152 — A room's door width, stated by its style.** *Parked (author): what a stored `door_width` of 2
+  means.* `WX7` cuts a room's door from its wall (`RoomFrames.DoorWidth`: 4 on an even interior of six or more,
+  3 on an odd one, 2 at four across) and a style's `doorway.width` reaches only the dressing's houses. Honouring
+  it is `clamp(stated, 2, interior − 2)`, dropped by one where its parity differs from the wall's so the door
+  stays centred — carried on `RoomShells`, since `Domain` cannot see `HouseStyle`, and re-checked against the
+  iron cube the plan seats beside the door (`PieceRoom.Iron`, `WX8`). The field is `NOT NULL DEFAULT 2`
+  (`M0027`), and 11 of the deployed 13 room styles hold 2, so read as stated every room door narrows: it has to
+  become nullable with a migration, and whether a stored 2 is a statement is the author's. *Evidence: Sootcombe
+  note 10 asks for a 2-wide wool-room door.* `docs/world-export/structures.md` §7.
+
+- [ ] **TL31 — A copied tree says what it is.** The library lists 84 copied recipes as `tree-showcase-rN-M`
+  and every one as `species: "oak"`, because `TreeStyleRow.Species` defaults to it and a copied body never
+  reads it; the willows are band `r17` (`docs/world-export/tree-corpus.md`) and nothing a caller can search
+  says so. Add a nullable `family` column with a migration that fills it from the band, `Family` on the save,
+  detail and summary DTOs, `?family=` on `GET /tree-styles`, and the band-to-family map in `seed-trees.cs`.
+  *Evidence: an authoring run scored all 90 rows for hanging leaves, found round oaks, and wrote a willow by
+  hand.* `docs/tools/library.md`.
+
 ### Shapes
+
+- [ ] **TS120 — A browser save restates the groups an API caller drew.** The editor re-derives a layer's
+  groups from its shapes' geometry (`boolean.js` `computeGroups`) and matches the stored ones back by shape
+  overlap and centroid, so a group whose shapes are not one island — or a shape the API put in a group of its
+  own — comes back under a new `isl_…` id with `mirrors: true`, and the relief keyed on the old id and the
+  opt-out of the fan are gone. Keep a stored group's id, name, `mirrors` and `shapeIds` whenever its shapes are
+  unchanged, and re-derive only the groups an edit actually touched. *Evidence: on Sootcombe the mid stone
+  moved to `isl_1790704492818_1` (2026-09-29 17:54 UTC), leaving its relief on `team` covering nothing, and
+  `archer-ladder-0` moved into a mirroring `Group 2`.* `docs/tools/sketch.md` § the two rasterizers.
 
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
@@ -391,6 +474,29 @@ and what a `subtract` takes away.
   from 2 isolated markers to **0** — the direction that reads as an improvement.*
 
 ## User Experience
+
+- [ ] **WS79 — The eye draws what stands on the ground.** `BlockFaces.Thin` hides redstone wire, redstone
+  and plain torches, ladders, carpets, vines and lily pads, and `EyeScene` passes a ray through them, so an
+  in-game picture of a board built with them leaves them out. Torches are `Cross` sprites; wire is a
+  one-sixteenth box of `redstone_dust_cross` tinted by its power (the sprite is greyscale); a ladder is a
+  one-sixteenth box on the face its data names; a carpet a one-sixteenth box of its wool. *Evidence: Sootcombe
+  note 44 — redstone laid on the board is absent from every picture.* `docs/world-scan/read-backs.md` § Seen
+  from a player's eye.
+
+- [ ] **TS121 — A lasso over the void carries coordinates.** `EyeScene.Project` counts a ray that hits nothing
+  as sky and adds no column, so a note drawn over void has no `columns` and its place is read off the
+  picture's pixels. Where a ray points down, meet it with a level plane — the median ground of the columns the
+  same mark did hit, else the board's — and carry those cells as their own set beside `columns`, which keeps
+  meaning ground actually seen; a ray pointing up stays sky. *Evidence: Gypsum Reach note 74, a lasso over the
+  void beside the frontline.* `docs/tools/sketch.md` § Notes; `docs/world-scan/read-backs.md`.
+
+- [ ] **C67 — One dye colour table.** Every block picture draws stained clay at the 1.8 texture means
+  (`BlockPaletteData.StainedClayRgb`), but three other tables carry Bukkit's `DyeColor` — `WoolColors.Swatch`,
+  `game-colors.json` with its `palette.js` mirror, and `BlockPaletteData.StainedGlassRgb` — where grey is
+  `#4C4C4C` and cyan a pale blue-grey, and they disagree with `WoolRgb`'s texture means. Wool markers, the
+  Configure swatches and the canvas glyphs read those. Move the dye ramp into `PgmStudio.Vocabulary` once and
+  have the others read it. *Evidence: the author read grey and cyan stained clay as grey and blue-grey against
+  the game's brown and dark grey.* `docs/client/ui-conventions.md`.
 
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** *Parked (author): imports
   are not a priority.* When an author tweaks the
