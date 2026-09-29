@@ -8205,6 +8205,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cut from the game's own chest texture with the front where the chest faces. A sheet a sixteenth thick is
   drawn but neither stood on nor blocks a sight line. `docs/world-scan/read-backs.md`. (`WS79`)
 
+- **A layer fanned onto its images turns its blocks with it (`WE146`)** — each cell a fanned shape paints
+  carries the orbit image that won it, and what a material states — a ladder's side, a stair's climb, a log's
+  axis, a torch, a chest, a fence gate — turns through `BlockGeometry.Turned` by that image's transform:
+  reflected under `mirror_x` and `mirror_z`, reversed under `rot_180`, a quarter turn per image under
+  `rot_90`. A direction a material reads off the ground itself, as a laid log reads its wall, is not turned
+  again. `docs/tools/sketch.md` § A made thing; `docs/world-export/terrain-painting.md` §5. (`WE146`)
+
 - **Notes on a map, and the threads under them (`TS115`)** — an admin leaves a note in the In game phase, pinned
   to the whole map or to the picture in view, with an optional tag (`look`, `terrain`, `gameplay`, `studio`,
   `ruling`); an agent answers in its thread, and only the author resolves it. A thread is `open` (waiting on an

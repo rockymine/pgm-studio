@@ -226,16 +226,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   image index is what the fan already knows — so one authored statue fans into a red one and a blue one.
   `docs/tools/sketch.md` § A made thing; `docs/world-export/terrain-painting.md` § 5.
 
-- [ ] **WE146 — A layer fanned onto its images turns its blocks with it.** The painter writes a resolved
-  material unchanged on every image (`TerrainPainter.Paint`), so a ladder facing north on red faces north on
-  blue, away from its beam; stairs, logs and anything with a facing do the same. `BlockGeometry.Turned`
-  already turns them for a placed prop (`Decorator.cs`, via `DressingSymmetry.TurnCell`). Carry the image index
-  from `SketchRasterizer.ShapeScopeOwners` through `TerrainThemeScope.ThemeAt` and turn the block where it is
-  not 0 — read from the fan, never from the fold, which would turn a shape the author already drew on the image
-  half a second time. Shares its image index with `WE74`. *Evidence: Sootcombe's archer-tower ladders are
-  stated once per team on an unmirrored layer to face their beams; `(-12, -37)` reads `65:3`.*
-  `docs/tools/sketch.md` § A made thing; `docs/world-export/terrain-painting.md` §5.
-
 - [ ] **TS63 — A form library: the round structures a layer already draws.** `ring_wall`, `ellipse_wall`,
   `dome`, `spire`, `ziggurat`, `arch`, `colonnade`, `tapered_tower`, `bowl`, `crenellated_wall`, `drum_tower`,
   and a `gatehouse` composing five of them — a footprint and a few numbers each, emitting circles and polygons
