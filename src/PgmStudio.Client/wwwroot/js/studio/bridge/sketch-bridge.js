@@ -1281,16 +1281,23 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
       // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (groups, raster,
       // mirror, edit) so they can neither be reshaped nor double-cover the ground. Everything else is terrain.
+      // What the editor does not draw — a layer's `kind`, `part_of` and `seat`, and any other field the document
+      // carries on a layer or its layout — is held as it was read and written back with it, so saving a board
+      // from the browser cannot strip what an API caller stated.
       layers = raw.map((L, i) => {
         const all = (L.layout?.shapes ?? []).map(sh => ({ ...sh }));
+        const { id, name, base_y, layout, ...stated } = L;
+        const { shapes, groups, ...layoutStated } = layout ?? {};
         return {
-          id: L.id || genId(),
-          name: L.name || (i === 0 ? "Ground" : `Layer ${i + 1}`),
-          baseY: L.base_y ?? 0,
+          id: id || genId(),
+          name: name || (i === 0 ? "Ground" : `Layer ${i + 1}`),
+          baseY: base_y ?? 0,
+          stated,
+          layoutStated,
           shapes: all.filter(sh => !sh.role),
           structural: all.filter(sh => sh.role),
           groups: [],
-          savedMetas: L.layout?.groups ?? [],
+          savedMetas: groups ?? [],
         };
       });
       if (!layers.length) layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], groups: [], savedMetas: [] }];
@@ -1338,8 +1345,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // nothing is stated, so opening the phase and leaving it cannot add a key to the layout.
         relief: canvas.relief.isEmpty ? undefined : canvas.relief.toJSON(),
         layers: layers.map(L => ({
+          ...L.stated,
           id: L.id, name: L.name, base_y: L.baseY,
           layout: {
+            ...L.layoutStated,
             // Merge the locked plan pieces (S25) back in so they persist with the terrain they annotate.
             shapes: [...L.shapes, ...(L.structural ?? [])],
             groups: (L.groups ?? []).map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds })),

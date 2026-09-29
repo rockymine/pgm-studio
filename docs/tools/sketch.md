@@ -27,7 +27,9 @@ was read at and states it as `If-Match` on every save, so where the stored board
 driving the API, a second tab — the save is refused `RQ5` at 409 rather than writing the older board back over
 the newer. The topbar then says so, no further save is sent until the page is reloaded, and **Finish** stops
 rather than build a board that is not the one on screen. A flush with no edit behind it — entering In game,
-leaving the tool — sends nothing at all.
+leaving the tool — sends nothing at all. What a layer states and the canvas has no control for — `kind`,
+`part_of`, `seat` — is held as it was read and written back with the layer, so a made thing an API caller
+seated stays seated through a save from the browser.
 
 **What the later phases state, `docs/world-export/` executes**, and that folder is where the depth is. This
 document is the tool: what each phase authors, what it writes, and what refuses. Beside it sit five that each
