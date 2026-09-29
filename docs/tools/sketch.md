@@ -1084,8 +1084,9 @@ here — pre-authoring a river form is authoring a shape without its place — a
 (author).
 
 **A tree is two different things rather than one thing with a switch.** A `template` tree is vanilla: its
-`species` — oak, birch, spruce, jungle, acacia or dark oak — names its wood, its canopy profile and its
-proportions together, since a notched cone is a spruce and a flat umbrella on a leaning trunk is an acacia,
+`species` — oak, birch, spruce, jungle, acacia, dark oak or willow — names its wood, its canopy profile and its
+proportions together, since a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia and a
+low dome hung with curtains is a willow,
 and neither is a knob setting of the other; `height` scales the lot. A `copied` tree is one an author built by
 hand and cut out of a world, carried as its own `body` of `[x, y, z, id, data]` offsets: it states no species
 and no height, because what it looks like is what was built. Each form reads only its own fields, so the

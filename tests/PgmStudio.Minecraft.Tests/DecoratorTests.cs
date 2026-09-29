@@ -814,6 +814,28 @@ public sealed class DecoratorTests
         await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.UnheldFace)).IsFalse();
     }
 
+    /// <summary>A template willow is written in the willow's own wood — dark-oak bark under oak leaves that
+    /// never decay — and its curtains reach down toward the ground it stands on.</summary>
+    [Test]
+    public async Task A_willow_is_dark_oak_under_oak_leaves_and_its_curtains_hang()
+    {
+        var (world, top) = Plateau();
+        var tally = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "w", X = 20, Z = 20, Seed = 5, Style = new TreeStyle { Species = "willow", Height = 11 } }]));
+
+        await Assert.That(tally.Trees).IsEqualTo(1);
+        await Assert.That(world.GetBlock(20, 8, 20)).IsEqualTo((Blocks.Log2, 1 | DressingPalette.LogAllBark));
+        var leaves = new List<(int X, int Y, int Z)>();
+        for (var x = 10; x <= 30; x++)
+        for (var z = 10; z <= 30; z++)
+        for (var y = 8; y < 24; y++)
+            if (world.GetBlock(x, y, z).Id == Blocks.Leaves) leaves.Add((x, y, z));
+        await Assert.That(leaves.Count).IsGreaterThan(100);
+        await Assert.That(leaves.All(cell => world.GetBlock(cell.X, cell.Y, cell.Z).Data == DressingPalette.LeafNoDecay))
+            .IsTrue();
+        await Assert.That(leaves.Min(cell => cell.Y)).IsLessThanOrEqualTo(11);
+    }
+
     // ── water carves and fills ─────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_channel_cuts_a_bed_and_fills_it_with_water()

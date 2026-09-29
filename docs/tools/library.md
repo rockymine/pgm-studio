@@ -423,7 +423,7 @@ dark-oak log under oak leaves. A library row is matched by its **cut** — the w
 it stood on — so a re-run updates the same rows and a relabelled row renames them. A wool tree opens a row of
 its own whether or not `--wool` files it, so one flag does not move every row behind it. The 84 trees of `pgm-studio-mapgen/corpus/tree-showcase` are the corpus it was
 written for, and
-cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the six vanilla species
+cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the seven template species
 and four erratics, and knows nothing about any world.
 
 **A cut can name who built the tree.** `--builder=<name>` records a Minecraft name on every cut the run files,
@@ -445,8 +445,9 @@ A row filed before the cut was recorded loads, browses and places as it did and 
 be saved again as `copied` until the cutter files it again — re-running `tools/seed-trees.cs` over the same
 world files every tree again with the cut recorded.
 
-**The card is the whole picture, and that is the point.** Six woods differ in colour and six species differ in
-*shape* — a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia — and neither reads off a
+**The card is the whole picture, and that is the point.** Seven woods differ in colour and seven species differ in
+*shape* — a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia, a dome hung with curtains
+is a willow — and neither reads off a
 number; a copied tree has no number at all. So both kinds browse as one card each, drawn through the pass that
 builds them, and the editor's own stage draws the draft larger for the same reason: a recipe is tuned by
 watching one knob move the picture.

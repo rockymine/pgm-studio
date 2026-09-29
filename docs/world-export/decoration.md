@@ -498,14 +498,22 @@ the ground, so where it stands is cover, which is why it is placed rather than s
 The vanilla tree copies Minecraft's own: a trunk of a known height and a canopy of a known profile,
 parameterised per species — oak's blob, birch's tall slim crown, spruce's layered cone, acacia's leaning flat
 top, jungle's broad canopy, dark oak's two-wide trunk. Each is a parametric template (trunk height, canopy
-radius, canopy profile), not a copied schematic, so adding a species adds a row rather than a code path, and an
-oak grove is genuinely all most maps need. Every irregularity in it is hash-keyed off the seed, so a seed
-always builds the same tree and a map re-exports identically.
+radius, canopy profile), not a copied schematic, so adding a species that shares a profile adds a row rather
+than a code path, and an oak grove is genuinely all most maps need. Every irregularity in it is hash-keyed off
+the seed, so a seed always builds the same tree and a map re-exports identically.
+
+**A willow is the seventh species, and the one whose profile is more than a radius table.** Its crown is a
+low dome held up by four short arms rising out of the trunk's top. From the dome's widest ring leaves hang in
+curtains most of the way to the ground, from every rim column but a fifth of them, each to a hashed course
+between the first and four under the trunk's top: a curtain on every column is a block of leaves, and one gap
+in five is what reads as strands. Its wood is dark-oak bark under oak leaves, which is what the author's own
+willows in the tree showcase are built of, and at its natural 11 blocks it is an 8-course trunk under a dome
+ten across.
 
 A `TreeProp` is placed at a cell and names which of the two it is. **The forms are two trees, not two settings
 of one**: a template names a **species** (`TreeSpecies`: its wood, its canopy profile, its proportions) and
 scales it by height, while a copy names nothing at all and carries its blocks. What a template can say about
-itself is exhausted by those two fields, which is why the picker draws six species cards that differ in
+itself is exhausted by those two fields, which is why the picker draws seven species cards that differ in
 *shape* — a picker whose cards differ only in palette would be claiming the wood decides the silhouette.
 
 Both trees end at one place that turns cells into blocks, so the wood, the no-decay bit every leaf carries and

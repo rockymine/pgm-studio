@@ -8,7 +8,7 @@ namespace PgmStudio.Api.Endpoints;
 
 // ── trees ─────────────────────────────────────────────────────────────────────────────────────────────
 /// <summary>GET /api/tree-styles — the tree library, newest first, each drawn through the grower the export
-/// runs. A tree is picked by what it looks like: six woods differ in colour and six species in shape, and
+/// runs. A tree is picked by what it looks like: seven woods differ in colour and seven species in shape, and
 /// neither reads off a number.</summary>
 public sealed class TreeStyleListEndpoint(PropStyleLibrary library) : EndpointWithoutRequest<List<TreeStyleSummary>>
 {

@@ -47,7 +47,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     }
 
     // ── the prop recipes ──────────────────────────────────────────────────────────────────────────────
-    /// <summary>The recipes a click puts down: the six vanilla species at their own natural heights, and the
+    /// <summary>The recipes a click puts down: the seven template species at their own natural heights, and the
     /// four erratics. Without them a studio opens two of its eight libraries on nothing, and a picker with no
     /// rows in it is a picker an author cannot use at all.
     ///

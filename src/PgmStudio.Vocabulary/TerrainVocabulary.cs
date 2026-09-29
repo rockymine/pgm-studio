@@ -200,12 +200,12 @@ public static class TreeForms
     public static string Canonical(string? form) => All.Contains(form) ? form! : Template;
 }
 
-/// <summary>The six vanilla species a template tree may be — the wire words for <c>DressingPalette.Species</c>.
-/// The profiles are what separate them: a notched cone is a spruce and a flat umbrella on a leaning trunk is an
-/// acacia.</summary>
+/// <summary>The species a template tree may be — the wire words for <c>DressingPalette.Species</c>: the six
+/// vanilla ones and a willow. The profiles are what separate them: a notched cone is a spruce, a flat umbrella on
+/// a leaning trunk is an acacia, and a low dome hung with curtains is a willow.</summary>
 public static class TreeSpeciesNames
 {
-    public static readonly string[] All = ["oak", "birch", "spruce", "jungle", "acacia", "dark oak"];
+    public static readonly string[] All = ["oak", "birch", "spruce", "jungle", "acacia", "dark oak", "willow"];
 
     public static string Canonical(string? name) => All.Contains(name) ? name! : All[0];
 }

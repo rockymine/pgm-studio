@@ -8182,6 +8182,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   showcase's 84 trees are `willow-1`…`5`, `sequoia-1`, `oak-1`…`10` and their kin where they were
   `tree-showcase-r<row>-<n>`, and `M0049` renames the rows already stored. `docs/tools/library.md`. (`TL31`)
 
+- **A willow is a template tree (`WE153`)** — the seventh species: dark-oak bark under oak leaves, as the
+  author's own willows are built, a low dome held up by four short arms, and curtains hanging from every rim
+  column of the dome's widest ring but a fifth of them, most of the way to the ground (`CanopyProfile.Weeping`).
+  At its natural 11 blocks it is an 8-course trunk under a dome ten across; the library seeds it as `willow`.
+  `docs/world-export/decoration.md` §6. (`WE153`)
+
 - **Notes on a map, and the threads under them (`TS115`)** — an admin leaves a note in the In game phase, pinned
   to the whole map or to the picture in view, with an optional tag (`look`, `terrain`, `gameplay`, `studio`,
   `ruling`); an agent answers in its thread, and only the author resolves it. A thread is `open` (waiting on an

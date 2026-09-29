@@ -99,7 +99,9 @@ public static class DressingPalette
     /// which wood a log paints as.</summary>
     public const int LogAllBark = 12;
 
-    /// <summary>The six woods a tree can be cut from — the block pair each <see cref="Species"/> row names.</summary>
+    /// <summary>The woods a tree can be cut from — the block pair each <see cref="Species"/> row names. The six
+    /// vanilla pairs, and a willow's dark-oak log under oak leaves, which is how the author's own willows are
+    /// built.</summary>
     public static readonly IReadOnlyList<TreeWood> Woods =
     [
         new("oak", Blocks.Log, 0, Blocks.Leaves, 0),
@@ -108,6 +110,7 @@ public static class DressingPalette
         new("jungle", Blocks.Log, 3, Blocks.Leaves, 3),
         new("acacia", Blocks.Log2, 0, Blocks.Leaves2, 0),
         new("dark oak", Blocks.Log2, 1, Blocks.Leaves2, 1),
+        new("willow", Blocks.Log2, 1, Blocks.Leaves, 0),
     ];
 
     /// <summary>The vanilla species: each its own wood, canopy profile and proportions. The profiles are what
@@ -123,6 +126,7 @@ public static class DressingPalette
         new("jungle", Woods[3], CanopyProfile.Blob, Height: 13, CanopyRadius: 3.2),
         new("acacia", Woods[4], CanopyProfile.Umbrella, Height: 8, CanopyRadius: 4.0, Lean: 3),
         new("dark oak", Woods[5], CanopyProfile.Blob, Height: 9, CanopyRadius: 3.4, WideTrunk: true),
+        new("willow", Woods[6], CanopyProfile.Weeping, Height: 11, CanopyRadius: 5.0),
     ];
 
     public static TreeSpecies SpeciesNamed(string name)
