@@ -104,15 +104,8 @@ public static class BlockGeometry
             // a vertical front is its own image under every orbit, and a floor skull's rotation is in its
             // tile entity rather than in the nibble. The bits above the front — a dropper's triggered flag,
             // a hopper's enabled one — are not geometry and are carried through.
-            var front = data & 7;
-            if (front is < 2 or > 5) return data;
-            var (dx, dz) = front switch
-            {
-                2 => (0, -1),
-                3 => (0, 1),
-                4 => (-1, 0),
-                _ => (1, 0),
-            };
+            if (Front(data) is not { } front) return data;
+            var (dx, dz) = front.Outward();
             var (tx, tz) = turn(dx, dz);
             return (data & ~7) | Fronting(Math.Abs(tx) >= Math.Abs(tz)
                 ? tx < 0 ? RoomEdge.NegX : RoomEdge.PosX
@@ -124,9 +117,9 @@ public static class BlockGeometry
             // mask is rebuilt from the results. A vine hanging from the block above states no side and turns
             // to itself.
             var sides = 0;
-            foreach (var (bit, dx, dz) in VineSides)
+            foreach (var side in ClingsTo(data))
             {
-                if ((data & bit) == 0) continue;
+                var (dx, dz) = side.Outward();
                 var (tx, tz) = turn(dx, dz);
                 sides |= Math.Abs(tx) >= Math.Abs(tz)
                     ? tx < 0 ? VineWest : VineEast
@@ -137,12 +130,26 @@ public static class BlockGeometry
         return data;
     }
 
-    /// <summary>Which side of its own block a vine clings to, as the bit and the offset to the block holding
-    /// it up.</summary>
+    /// <summary>The way a fronted block's data says it looks — the reading of <see cref="Fronting"/> — or
+    /// null for a front facing up or down.</summary>
+    public static RoomEdge? Front(int data) => (data & 7) switch
+    {
+        2 => RoomEdge.NegZ,
+        3 => RoomEdge.PosZ,
+        4 => RoomEdge.NegX,
+        5 => RoomEdge.PosX,
+        _ => null,
+    };
+
+    /// <summary>The sides of its own cell a vine's mask says it clings to, each the side the block holding it
+    /// up stands on. A vine hanging from the block above clings to none of them.</summary>
+    public static IEnumerable<RoomEdge> ClingsTo(int vineData) =>
+        VineSides.Where(side => (vineData & side.Bit) != 0).Select(side => side.Edge);
+
     private const int VineSouth = 1, VineWest = 2, VineNorth = 4, VineEast = 8;
 
-    private static readonly (int Bit, int X, int Z)[] VineSides =
-        [(VineSouth, 0, 1), (VineWest, -1, 0), (VineNorth, 0, -1), (VineEast, 1, 0)];
+    private static readonly (int Bit, RoomEdge Edge)[] VineSides =
+        [(VineSouth, RoomEdge.PosZ), (VineWest, RoomEdge.NegX), (VineNorth, RoomEdge.NegZ), (VineEast, RoomEdge.PosX)];
 
     /// <summary>A slab in the upper or lower half of its cube, keeping the three low bits that say what it is
     /// made of. An upper slab is the lintel over an opening and the underside of a course; a lower one is the

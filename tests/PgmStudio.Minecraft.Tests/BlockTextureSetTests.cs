@@ -51,6 +51,60 @@ public sealed class BlockTextureSetTests
         await Assert.That(sprite.At(0.9, 0.9) >> 24).IsEqualTo(0u);
     }
 
+    /// <summary>A chest texture at the game's size whose every texel says where it is: red four times its
+    /// column, green four times its row.</summary>
+    private static byte[] Addressed()
+    {
+        var pixels = new byte[64 * 64 * 3];
+        for (var row = 0; row < 64; row++)
+            for (var column = 0; column < 64; column++)
+            {
+                pixels[(row * 64 + column) * 3] = (byte)(column * 4);
+                pixels[(row * 64 + column) * 3 + 1] = (byte)(row * 4);
+            }
+        return PngWriter.Encode(64, 64, pixels);
+    }
+
+    /// <summary>The texel of the chest texture a sprite's texel at <paramref name="column"/>,
+    /// <paramref name="row"/> of sixteen came from.</summary>
+    private static (uint Column, uint Row) Source(BlockSprite sprite, int column, int row)
+    {
+        var texel = sprite.At((column + 0.5) / 16, (row + 0.5) / 16);
+        return (((texel >> 16) & 0xFF) / 4, ((texel >> 8) & 0xFF) / 4);
+    }
+
+    [Test]
+    public async Task A_chest_texture_is_cut_into_the_faces_its_box_shows()
+    {
+        var set = BlockTextureSet.FromJar(Jar(
+            ("assets/minecraft/textures/entity/chest/normal.png", Addressed()),
+            ("assets/minecraft/textures/entity/chest/normal_double.png", Solid(128, 64, 0x404040))));
+
+        await Assert.That(set.Count).IsEqualTo(3);
+        var top = set.Get("chest_normal_top")!;
+        var side = set.Get("chest_normal_side")!;
+        var front = set.Get("chest_normal_front")!;
+        await Assert.That(top.Size).IsEqualTo(16);
+        await Assert.That(Source(top, 1, 1)).IsEqualTo((14u, 0u));
+        await Assert.That(Source(top, 14, 14)).IsEqualTo((27u, 13u));
+        await Assert.That(Source(side, 1, 2)).IsEqualTo((0u, 14u));
+        await Assert.That(Source(side, 1, 6)).IsEqualTo((0u, 18u));
+        await Assert.That(Source(side, 1, 7)).IsEqualTo((0u, 34u));
+        await Assert.That(Source(side, 14, 15)).IsEqualTo((13u, 42u));
+        await Assert.That(Source(front, 1, 2)).IsEqualTo((14u, 14u));
+        await Assert.That(Source(front, 7, 5)).IsEqualTo((1u, 1u));
+        await Assert.That(Source(front, 8, 8)).IsEqualTo((2u, 4u));
+        await Assert.That(Source(side, 0, 0)).IsEqualTo(Source(side, 1, 2));
+    }
+
+    [Test]
+    public async Task A_chest_texture_not_laid_out_the_way_the_games_is_gives_no_faces()
+    {
+        var set = BlockTextureSet.FromJar(Jar(("assets/minecraft/textures/entity/chest/ender.png", Solid(40, 40, 0x202020))));
+
+        await Assert.That(set.Count).IsEqualTo(0);
+    }
+
     private static byte[] Solid(int width, int height, int rgb)
     {
         var pixels = new byte[width * height * 3];

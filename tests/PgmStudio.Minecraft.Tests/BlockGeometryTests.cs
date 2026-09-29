@@ -196,6 +196,24 @@ public class BlockGeometryTests
             .IsEqualTo(BlockGeometry.Fronting(RoomEdge.PosX));                                      // north -> east
     }
 
+    /// <summary>Reading a front back gives the edge it was written for, whatever rides in the bits above it,
+    /// and a front facing up or down reads as none.</summary>
+    [Test]
+    public async Task A_front_reads_back_the_way_it_was_written_to_look()
+    {
+        foreach (var edge in RoomEdges.All)
+            await Assert.That(BlockGeometry.Front(BlockGeometry.Fronting(edge) | 8)).IsEqualTo(edge);
+        await Assert.That(BlockGeometry.Front(1)).IsNull();
+    }
+
+    [Test]
+    public async Task A_vine_mask_reads_as_the_sides_it_clings_to()
+    {
+        await Assert.That(BlockGeometry.ClingsTo(1 | 4).ToList()).IsEquivalentTo([RoomEdge.PosZ, RoomEdge.NegZ]);
+        await Assert.That(BlockGeometry.ClingsTo(2 | 8).ToList()).IsEquivalentTo([RoomEdge.NegX, RoomEdge.PosX]);
+        await Assert.That(BlockGeometry.ClingsTo(0)).IsEmpty();
+    }
+
     /// <summary>A fronted block's non-geometry bits ride through a turn: a dropper's triggered flag is not a
     /// direction, and a floor skull's rotation is in its tile entity rather than its nibble.</summary>
     [Test]

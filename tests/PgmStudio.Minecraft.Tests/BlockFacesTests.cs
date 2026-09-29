@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Render;
 
@@ -39,10 +40,60 @@ public sealed class BlockFacesTests
     }
 
     [Test]
-    public async Task What_is_too_thin_to_read_the_ground_by_is_not_drawn()
+    public async Task What_no_shape_is_named_for_is_not_drawn()
     {
-        foreach (var id in (int[])[0, 50, 63, 66, 171])
+        foreach (var id in (int[])[0, 63, 64, 66, 77])
             await Assert.That(BlockFaces.Of(id, 0)!.Value.Form).IsEqualTo(FaceForm.Hidden);
+    }
+
+    [Test]
+    public async Task A_torch_is_crossed_quads_of_its_own_sprite_lit_or_not()
+    {
+        foreach (var (id, sprite) in ((int, string)[])
+                 [(50, "torch_on"), (75, "redstone_torch_off"), (76, "redstone_torch_on")])
+        {
+            var torch = BlockFaces.Of(id, 5)!.Value;
+            await Assert.That((torch.Form, torch.Top)).IsEqualTo((FaceForm.Cross, sprite));
+        }
+    }
+
+    [Test]
+    public async Task What_lies_on_the_ground_or_hangs_on_a_wall_is_drawn_on_its_shape()
+    {
+        foreach (var (id, data, sprite) in ((int, int, string)[])
+                 [(55, 7, "redstone_dust_cross"), (65, 3, "ladder"), (106, 1, "vine"), (111, 0, "waterlily"),
+                  (171, 14, "wool_colored_red")])
+        {
+            var faces = BlockFaces.Of(id, data)!.Value;
+            await Assert.That((faces.Form, faces.Top)).IsEqualTo((FaceForm.Cube, sprite));
+            await Assert.That(BlockShape.Of(id, data)).IsNotNull();
+        }
+    }
+
+    [Test]
+    public async Task Redstone_wire_is_tinted_by_its_power_the_way_the_game_tints_it()
+    {
+        await Assert.That(BlockFaces.Of(55, 15)!.Value.Tint).IsEqualTo(0xFF3200u);
+        await Assert.That(BlockFaces.Of(55, 0)!.Value.Tint).IsEqualTo(0x4C0000u);
+        await Assert.That(BlockFaces.RedstonePower(8)).IsEqualTo(0xB70000u);
+        var reds = Enumerable.Range(1, 15).Select(power => (BlockFaces.RedstonePower(power) >> 16) & 0xFF).ToList();
+        await Assert.That(reds.Zip(reds.Skip(1)).All(pair => pair.Second > pair.First)).IsTrue();
+    }
+
+    [Test]
+    public async Task A_lily_pad_keeps_the_one_green_the_game_gives_it()
+    {
+        await Assert.That(BlockFaces.Of(111, 0)!.Value.Tint).IsEqualTo(0x208030u);
+    }
+
+    [Test]
+    public async Task A_chest_wears_the_faces_cut_from_its_own_texture_with_its_front_where_its_data_looks()
+    {
+        var chest = BlockFaces.Of(54, 4)!.Value;
+        await Assert.That((chest.Top, chest.Side, chest.Front)).IsEqualTo(("chest_normal_top", "chest_normal_side", "chest_normal_front"));
+        await Assert.That(chest.Facing).IsEqualTo(RoomEdge.NegX);
+        await Assert.That(BlockFaces.Of(146, 5)!.Value.Front).IsEqualTo("chest_trapped_front");
+        await Assert.That(BlockFaces.Of(130, 3)!.Value.Facing).IsEqualTo(RoomEdge.PosZ);
     }
 
     [Test]

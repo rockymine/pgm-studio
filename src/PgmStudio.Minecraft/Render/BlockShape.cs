@@ -1,3 +1,6 @@
+using PgmStudio.Domain;
+using PgmStudio.Minecraft.Palette;
+
 namespace PgmStudio.Minecraft.Render;
 
 /// <summary>A box inside one block's cell, in block units from the cell's minimum corner.</summary>
@@ -26,12 +29,19 @@ public enum JoinKind
 /// <summary>
 /// The part of its cell a block fills, for a block that fills less than all of it: a slab's half, a stair's
 /// half and step, a fence's post and rails, a pane's sheet, a wall's post and arms. A stair's corner join
-/// with the stair beside it is not drawn — each stair is its straight shape.
+/// with the stair beside it is not drawn — each stair is its straight shape. A carpet, a redstone wire and a
+/// lily pad are a sheet on the floor of their cell, a ladder and a vine a sheet against the side that holds
+/// them up, and a chest the box inset a sixteenth from each side of its cell.
 /// </summary>
 public static class BlockShape
 {
     private const double RailLow = 0.375, RailLowTop = 0.5625, RailHigh = 0.75, RailHighTop = 0.9375;
     private const double WallTop = 0.8125;
+
+    /// <summary>How thick a sheet is: one texel of a sixteen-texel sprite.</summary>
+    private const double SheetThickness = 1.0 / 16;
+
+    private const double ChestInset = 1.0 / 16, ChestTop = 14.0 / 16;
 
     /// <summary>The boxes <paramref name="id"/>:<paramref name="data"/> fills, joined on
     /// <paramref name="joins"/>, or null for a block that fills its whole cell.</summary>
@@ -39,6 +49,11 @@ public static class BlockShape
     {
         44 or 126 or 182 => (data & 8) != 0 ? [new(0, 0.5, 0, 1, 1, 1)] : [new(0, 0, 0, 1, 0.5, 1)],
         53 or 67 or 108 or 109 or 114 or 128 or 134 or 135 or 136 or 156 or 163 or 164 or 180 => Stair(data),
+        Blocks.RedstoneWire or 111 or 171 => [new(0, 0, 0, 1, SheetThickness, 1)],
+        Blocks.Ladder => [Against((BlockGeometry.Front(data) ?? RoomEdge.NegZ).Opposite())],
+        Blocks.Vine => Vine(data),
+        Blocks.Chest or 130 or 146 =>
+            [new(ChestInset, 0, ChestInset, 1 - ChestInset, ChestTop, 1 - ChestInset)],
         _ => Joining(id) switch
         {
             JoinKind.Fence => Fence(joins),
@@ -47,6 +62,12 @@ public static class BlockShape
             _ => id is 107 or (>= 183 and <= 187) ? Gate(data) : null,
         },
     };
+
+    /// <summary>Whether every box is a sheet no thicker than <see cref="SheetThickness"/> — a carpet, a wire, a
+    /// ladder: drawn, but nothing to stand on or to block a line of sight.</summary>
+    public static bool Sheet(CellBox[]? boxes) =>
+        boxes is { Length: > 0 } && boxes.All(box => Math.Min(box.MaxX - box.MinX,
+            Math.Min(box.MaxY - box.MinY, box.MaxZ - box.MinZ)) <= SheetThickness + 1e-9);
 
     /// <summary>Which neighbours <paramref name="id"/> reaches out to, if its shape depends on them.</summary>
     public static JoinKind Joining(int id) => id switch
@@ -88,6 +109,23 @@ public static class BlockShape
             _ => new CellBox(0, stepLow, 0, 1, stepLow + 0.5, 0.5),
         };
         return [new(0, baseLow, 0, 1, baseLow + 0.5, 1), step];
+    }
+
+    /// <summary>A sheet against the side <paramref name="edge"/> of its cell.</summary>
+    private static CellBox Against(RoomEdge edge) => edge switch
+    {
+        RoomEdge.NegZ => new CellBox(0, 0, 0, 1, 1, SheetThickness),
+        RoomEdge.PosZ => new CellBox(0, 0, 1 - SheetThickness, 1, 1, 1),
+        RoomEdge.NegX => new CellBox(0, 0, 0, SheetThickness, 1, 1),
+        _ => new CellBox(1 - SheetThickness, 0, 0, 1, 1, 1),
+    };
+
+    /// <summary>A vine is a sheet against each side it clings to, or under the ceiling of its cell where it
+    /// hangs from the block above.</summary>
+    private static CellBox[] Vine(int data)
+    {
+        CellBox[] sides = [.. BlockGeometry.ClingsTo(data).Select(Against)];
+        return sides.Length > 0 ? sides : [new(0, 1 - SheetThickness, 0, 1, 1, 1)];
     }
 
     private static CellBox[] Fence(Joins joins)

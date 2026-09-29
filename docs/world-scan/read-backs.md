@@ -506,8 +506,20 @@ and the bands they are judged against were measured in its unit.
 **`render/eye` is a picture of the materials, not a screenshot.** Slabs, stairs, fences, gates, panes and walls
 are drawn in their own shapes — a stair lattice reads as a lattice — and a log lying down shows its sawn end
 on the two faces it points out of, with its bark running along it; a stair beside another is drawn
-straight rather than turned into the corner the game would join them in; torches, signs, rails, carpets,
-doors, trapdoors and iron bars are not drawn; the only lighting is a shade per face; and there is no fog —
+straight rather than turned into the corner the game would join them in. What stands on the ground is drawn
+too. A torch, lit or redstone, is crossed quads of its sprite, and one on a wall stands upright in the middle
+of its cell rather than leaning off the wall. Redstone wire is a sheet a sixteenth thick on the floor, in the
+cross sprite whatever it connects to, tinted by its power the way the game tints it, from a dull red at 0 to
+a bright one at 15. A carpet is a sheet of its wool, a lily pad a sheet in the game's one lily green, and a
+ladder and a vine a sheet against the side that holds them up. Those sheets are seen and never stood on: the
+eye stands on the floor under a carpet, and a sheet blocks no line of sight a framing eye is judged by.
+
+A chest, a trapped chest and an ender chest are the game's box a sixteenth in from each side and fourteen
+sixteenths tall, wearing faces cut out of the jar's `entity/chest` textures — the lid's top, the lid over the
+base down each side, and the latch painted flat on the side the chest's data says it looks toward. Two chests
+side by side are two single chests rather than the game's double one. Signs, rails, doors, trapdoors,
+levers, buttons, pressure plates, repeaters, comparators, banners, beds and iron bars are not drawn; the only
+lighting is a shade per face; and there is no fog —
 the game as it is played with fog off at sixteen chunks, so everything within 256 blocks is drawn at full
 strength and nothing past it is. The 256 are counted from where a ray enters the built world, so an eye raised
 over the board — the straight-down view, an aerial shot — sees as far into it as one standing on it. A block no sprite is named for is drawn in its palette colour and counted in the text twin.

@@ -309,6 +309,113 @@ public sealed class EyeSceneTests
         await Assert.That(area.Columns[(picked.X, picked.Z)]).IsGreaterThanOrEqualTo(picked.Y);
     }
 
+    private const int Torch = 50, RedstoneWire = 55, Ladder = 65, Carpet = 171, Chest = 54;
+
+    /// <summary>The sprites of what stands on the ground, each one colour, beside the floor's own.</summary>
+    private static BlockTextureSet FittingSprites()
+    {
+        var sprites = new Dictionary<string, BlockSprite>
+        {
+            ["stone"] = Checker(),
+            ["gold_block"] = Uniform(200, 180, 0),
+            ["planks_oak"] = Uniform(150, 120, 70),
+            ["torch_on"] = Uniform(250, 200, 50),
+            ["redstone_dust_cross"] = Uniform(255, 255, 255),
+            ["ladder"] = Uniform(100, 60, 20),
+            ["wool_colored_red"] = Uniform(160, 40, 40),
+            ["chest_normal_top"] = Uniform(30, 60, 90),
+            ["chest_normal_side"] = Uniform(60, 90, 30),
+            ["chest_normal_front"] = Uniform(90, 30, 60),
+        };
+        return BlockTextureSet.Of(sprites);
+    }
+
+    private static EyeCamera StraightDown => new(24.5, Floor + 6, 24.5, Yaw: 0, Pitch: 89, Fov: 40);
+
+    [Test]
+    public async Task A_torch_in_front_of_the_eye_is_drawn_as_crossed_quads_of_its_sprite()
+    {
+        var world = FloorWorld();
+        world.SetBlock(16, Floor + 1, 20, GoldBlock);
+        world.SetBlock(16, Floor + 1, 18, Torch, 5);
+
+        var picture = EyeScene.Of(world, FittingSprites()).Draw(FacingTheGold, 64, 36);
+
+        await Assert.That(Centre(picture)).IsEqualTo((225, 180, 45));
+        await Assert.That(picture.Seen.Select(seen => seen.Id)).Contains(Torch);
+    }
+
+    [Test]
+    public async Task Redstone_wire_lies_on_the_floor_in_the_red_its_power_tints_it()
+    {
+        var powered = FloorWorld();
+        powered.SetBlock(24, Floor + 1, 24, RedstoneWire, 15);
+        var dead = FloorWorld();
+        dead.SetBlock(24, Floor + 1, 24, RedstoneWire, 0);
+
+        var bright = EyeScene.Of(powered, FittingSprites()).Draw(StraightDown, 40, 40);
+        var dull = EyeScene.Of(dead, FittingSprites()).Draw(StraightDown, 40, 40);
+
+        await Assert.That(Centre(bright)).IsEqualTo((255, 50, 0));
+        await Assert.That(Centre(dull)).IsEqualTo((76, 0, 0));
+    }
+
+    [Test]
+    public async Task A_carpet_is_drawn_in_its_wool_and_the_eye_still_stands_on_the_floor_under_it()
+    {
+        var world = FloorWorld();
+        world.SetBlock(24, Floor + 1, 24, Carpet, 14);
+        var scene = EyeScene.Of(world, FittingSprites());
+
+        var picture = scene.Draw(StraightDown, 40, 40);
+
+        await Assert.That(Centre(picture)).IsEqualTo((160, 40, 40));
+        await Assert.That(scene.GroundAt(24, 24)).IsEqualTo(Floor);
+    }
+
+    [Test]
+    public async Task A_ladder_hangs_on_the_face_of_the_block_behind_it()
+    {
+        var world = FloorWorld();
+        world.SetBlock(16, Floor + 1, 20, GoldBlock);
+        world.SetBlock(16, Floor + 1, 19, Ladder, 2);
+
+        var picture = EyeScene.Of(world, FittingSprites()).Draw(FacingTheGold, 64, 36);
+
+        await Assert.That(Centre(picture)).IsEqualTo((80, 48, 16));
+        await Assert.That(picture.Seen.Select(seen => seen.Id)).Contains(Ladder);
+    }
+
+    [Test]
+    public async Task A_chest_shows_its_front_on_the_side_it_looks_toward_and_its_side_elsewhere()
+    {
+        var facing = FloorWorld();
+        facing.SetBlock(16, Floor + 1, 18, Chest, 2);
+        var turned = FloorWorld();
+        turned.SetBlock(16, Floor + 1, 18, Chest, 3);
+
+        var front = EyeScene.Of(facing, FittingSprites()).Draw(LevelWithTheLog, 64, 36, supersample: 1);
+        var side = EyeScene.Of(turned, FittingSprites()).Draw(LevelWithTheLog, 64, 36, supersample: 1);
+
+        await Assert.That(Centre(front)).IsEqualTo((72, 24, 48));
+        await Assert.That(Centre(side)).IsEqualTo((48, 72, 24));
+    }
+
+    /// <summary>A chest stands fourteen sixteenths tall, so an eye just over its top sees past it to the block
+    /// behind.</summary>
+    [Test]
+    public async Task A_chest_is_shorter_than_its_cell_and_the_eye_sees_over_it()
+    {
+        var world = FloorWorld();
+        world.SetBlock(16, Floor + 1, 18, Chest, 2);
+        world.SetBlock(16, Floor + 1, 20, GoldBlock);
+        var overTheLid = LevelWithTheLog with { Y = Floor + 1.95 };
+
+        var picture = EyeScene.Of(world, FittingSprites()).Draw(overTheLid, 64, 36, supersample: 1);
+
+        await Assert.That(Centre(picture)).IsEqualTo((160, 144, 0));
+    }
+
     private static (double Mean, double Variance) Spread(EyePicture picture)
     {
         var values = Enumerable.Range(0, picture.Width * picture.Height).Select(pixel => (double)picture.Rgb[pixel * 3]).ToList();
