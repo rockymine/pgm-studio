@@ -110,7 +110,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Export` | 19 | 4,444 | flat |
 | `Geom` | 51 | 6,700 | `Algorithms/` 19 · `Render/` 7 · `Relief/` 5 · 20 at root |
 | `Import` | 4 | 496 | flat |
-| `Migrations` | 49 | 2,951 | `Migrations/` 48 · 1 at root |
+| `Migrations` | 50 | 3,030 | `Migrations/` 49 · 1 at root |
 | `Minecraft` | 108 | 22,804 | `Render/` 19 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Painting/` 13 · `Dressing/` 12 · `Houses/` 11 · `Views/` 4 · `Suggest/` 1 · 1 at root |
 | `Pgm` | 160 | 30,747 | `Compose/` 43 (nested) · `Authoring/` 28 · `Evaluate/` 22 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Plan/` 9 · `Sketch/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
 | `Vocabulary` | 23 | 1,612 | flat |

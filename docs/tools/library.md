@@ -408,13 +408,20 @@ back. A `boulder_style` is four statements — form, size,
 whether moss specks a tenth of its sky-lit faces, and the material it is cut from, which is a full terrain material and
 so may be any of the fourteen kinds.
 
-**A copied tree is cut out of a world, not typed in.** `dotnet run tools/seed-trees.cs <worldDir> [name]`
+**A copied tree is cut out of a world, not typed in.** `dotnet run tools/seed-trees.cs <worldDir>`
 reads a world where every tree stands clear of every other, takes each connected body of logs, leaves and
-carpentry — wooden slabs and stairs, fences, vines — that rests on something, and files it here as
-`<name>-r<row>-<n>`, rows by the z the trees stand at and numbered along x, so a re-run over the same world
-updates the same rows. A body hanging in the air is a fragment of a tree that broke and is reported rather
-than filed. A wool tree opens a row of its own whether or not `--wool` files it, so one flag does not
-renumber every row behind it. The 84 trees of `pgm-studio-mapgen/corpus/tree-showcase` are the corpus it was
+carpentry — wooden slabs and stairs, fences, vines — that rests on something, and files it here. A body
+hanging in the air is a fragment of a tree that broke and is reported rather than filed.
+
+**A copied tree is named for what it is.** The trees sort into rows by the z they stand at, placed along x,
+and what each row is — a willow, a large pine, a tiny oak — is the author's statement, in `kinds.json` beside
+the world's `region/`: `{"rows": {"17": "willow"}, "trees": {"7-4": "sequoia"}}`, the second for a tree its
+row does not describe. A tree is filed as `<kind>-<n>`, counted through the world in row order and along x,
+so two rows of one kind share one count — `oak-1` to `oak-10` over three rows. A world with a filed row the
+file names no kind for is refused, since nothing in the blocks says what a tree is: the showcase's willows are
+dark-oak log under oak leaves. A library row is matched by its **cut** — the world it came from and the foot
+it stood on — so a re-run updates the same rows and a relabelled row renames them. A wool tree opens a row of
+its own whether or not `--wool` files it, so one flag does not move every row behind it. The 84 trees of `pgm-studio-mapgen/corpus/tree-showcase` are the corpus it was
 written for, and
 cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the six vanilla species
 and four erratics, and knows nothing about any world.
@@ -426,7 +433,7 @@ the showcase was built by rockymine, so a showcase row names them and a cut from
 until it is filed with the flag. The editor shows the name under the cut.
 
 ```
-dotnet run tools/seed-trees.cs ../pgm-studio-mapgen/corpus/tree-showcase showcase --builder=rockymine
+dotnet run tools/seed-trees.cs ../pgm-studio-mapgen/corpus/tree-showcase --builder=rockymine
 ```
 
 **A `copied` save without a cut is refused.** The cutter is what writes a cut and nothing else does, so a
@@ -436,7 +443,7 @@ such thing as one. There is no form word for a hand-built body: a prop that is n
 not filed here at all. A re-save carries the `cut` the recipe's `GET` answered, which is what the editor sends.
 A row filed before the cut was recorded loads, browses and places as it did and answers no `cut`, so it cannot
 be saved again as `copied` until the cutter files it again — re-running `tools/seed-trees.cs` over the same
-world updates every row it cut, by name, with the cut recorded.
+world files every tree again with the cut recorded.
 
 **The card is the whole picture, and that is the point.** Six woods differ in colour and six species differ in
 *shape* — a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia — and neither reads off a

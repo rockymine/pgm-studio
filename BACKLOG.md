@@ -285,14 +285,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   become nullable with a migration, and whether a stored 2 is a statement is the author's. *Evidence: Sootcombe
   note 10 asks for a 2-wide wool-room door.* `docs/world-export/structures.md` §7.
 
-- [ ] **TL31 — A copied tree says what it is.** The library lists 84 copied recipes as `tree-showcase-rN-M`
-  and every one as `species: "oak"`, because `TreeStyleRow.Species` defaults to it and a copied body never
-  reads it; the willows are band `r17` (`docs/world-export/tree-corpus.md`) and nothing a caller can search
-  says so. Add a nullable `family` column with a migration that fills it from the band, `Family` on the save,
-  detail and summary DTOs, `?family=` on `GET /tree-styles`, and the band-to-family map in `seed-trees.cs`.
-  *Evidence: an authoring run scored all 90 rows for hanging leaves, found round oaks, and wrote a willow by
-  hand.* `docs/tools/library.md`.
-
 ### Shapes
 
 - [ ] **TS120 — A browser save restates the groups an API caller drew.** The editor re-derives a layer's

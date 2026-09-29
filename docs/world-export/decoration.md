@@ -589,8 +589,8 @@ once, and the export writes them into `map.xml` as the original builders of the 
 A placement carrying its recipe inline, as `POST /api/terrain/prop-preview` takes one in `propJson`:
 
 ```json
-{"kind":"tree","id":"oak-1","x":0,"z":0,"seed":1,"style":"showcase-r6-1",
- "styles":{"showcase-r6-1":{"kind":"tree","form":"copied",
+{"kind":"tree","id":"oak-1","x":0,"z":0,"seed":1,"style":"tiny-oak-1",
+ "styles":{"tiny-oak-1":{"kind":"tree","form":"copied",
    "body":[[0,0,0,17,12],[0,1,0,17,12],[0,2,0,18,4]],"builder":"rockymine"}}}
 ```
 

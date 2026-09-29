@@ -8,7 +8,9 @@ willow band `r17` are outside all of them. The world is committed at `pgm-studio
 and it is read by one operational tool: `tools/seed-trees.cs` cuts every tree standing in it into the library
 as a **copied** recipe with its cut recorded — this world's directory, the foot there, the time and its builder,
 rockymine (`decoration.md` §6), which is how a board plants the author's own trees rather than a generated one,
-and how a board planting them credits their builder. The numbers below are still the artifact — re-taking a reading means a scratch pass over that
+and how a board planting them credits their builder. Each is filed under the kind the author states for its band
+in the world's `kinds.json` — `willow-1` to `willow-5` are band `r17`, `sequoia-1` the one tree of `r7` that is
+not a tall spruce — so the band ids below are the world's rows and the library's names are what those rows are. The numbers below are still the artifact — re-taking a reading means a scratch pass over that
 world against today's code (`CLAUDE.md`, *Investigation stays local*).
 
 The world is worth describing before the numbers, because its layout is what makes them clean. Every tree body

@@ -8176,6 +8176,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   showcase and carries the name onto the copied trees already stored in maps.
   `docs/world-export/sketch-world-export.md` §4a. (`WE145`)
 
+- **A copied tree is named for what it is (`TL31`)** — `tools/seed-trees.cs` files each tree as `<kind>-<n>`,
+  the kind being the author's statement for its row in the world's `kinds.json` and the count running through
+  every row of that kind, and matches a library row by its cut rather than its name, so a relabel renames. The
+  showcase's 84 trees are `willow-1`…`5`, `sequoia-1`, `oak-1`…`10` and their kin where they were
+  `tree-showcase-r<row>-<n>`, and `M0049` renames the rows already stored. `docs/tools/library.md`. (`TL31`)
+
 - **Notes on a map, and the threads under them (`TS115`)** — an admin leaves a note in the In game phase, pinned
   to the whole map or to the picture in view, with an optional tag (`look`, `terrain`, `gameplay`, `studio`,
   `ruling`); an agent answers in its thread, and only the author resolves it. A thread is `open` (waiting on an

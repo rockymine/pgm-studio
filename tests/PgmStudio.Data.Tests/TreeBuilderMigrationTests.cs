@@ -50,8 +50,8 @@ public sealed class TreeBuilderMigrationTests
             SchemaMigrator.MigrateUp(TestDb.ConnectionString);
             await using (var db = TestDb.Connect())
             {
-                await Assert.That(db.Execute<string?>("SELECT cut_builder FROM tree_style WHERE name = 'showcase-r1-1'")).IsEqualTo("rockymine");
-                await Assert.That(db.Execute<string?>("SELECT cut_builder FROM tree_style WHERE name = 'grove-r1-1'")).IsNull();
+                await Assert.That(db.Execute<string?>("SELECT cut_builder FROM tree_style WHERE cut_world = '/srv/mapgen/corpus/tree-showcase'")).IsEqualTo("rockymine");
+                await Assert.That(db.Execute<string?>("SELECT cut_builder FROM tree_style WHERE cut_world = '/srv/grove'")).IsNull();
             }
             var styles = Styles(mapId);
             await Assert.That(styles["now"]?["builder"]?.GetValue<string>()).IsEqualTo("rockymine");
