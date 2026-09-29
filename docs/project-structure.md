@@ -102,18 +102,18 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 25 | 4,803 | `Playability/` 14 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 135 | 18,547 | `Endpoints/` 68 · `Services/` 52 · `Access/` 11 · `Http/` 3 · 1 at root |
-| `Client` | 208 | 26,614 | `Features/` 120 (nested) · `Components/` 67 (nested) · `Pages/` 11 · `Models/` 4 · `Layout/` 3 · 3 at root |
+| `Api` | 135 | 18,549 | `Endpoints/` 68 · `Services/` 52 · `Access/` 11 · `Http/` 3 · 1 at root |
+| `Client` | 208 | 26,749 | `Features/` 120 (nested) · `Components/` 67 (nested) · `Pages/` 11 · `Models/` 4 · `Layout/` 3 · 3 at root |
 | `Contracts` | 35 | 3,964 | flat |
 | `Data` | 22 | 3,634 | `Map/` 6 · `Features/` 5 · `Theme/` 4 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 30 | 3,519 | flat |
-| `Export` | 19 | 4,444 | flat |
+| `Export` | 19 | 4,461 | flat |
 | `Geom` | 51 | 6,761 | `Algorithms/` 19 · `Render/` 7 · `Relief/` 5 · 20 at root |
 | `Import` | 4 | 496 | flat |
 | `Migrations` | 50 | 3,030 | `Migrations/` 49 · 1 at root |
-| `Minecraft` | 108 | 22,808 | `Render/` 19 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Painting/` 13 · `Dressing/` 12 · `Houses/` 11 · `Views/` 4 · `Suggest/` 1 · 1 at root |
-| `Pgm` | 160 | 30,747 | `Compose/` 43 (nested) · `Authoring/` 28 · `Evaluate/` 22 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Plan/` 9 · `Sketch/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
-| `Vocabulary` | 23 | 1,612 | flat |
+| `Minecraft` | 108 | 23,416 | `Render/` 19 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Painting/` 13 · `Dressing/` 12 · `Houses/` 11 · `Views/` 4 · `Suggest/` 1 · 1 at root |
+| `Pgm` | 160 | 30,758 | `Compose/` 43 (nested) · `Authoring/` 28 · `Evaluate/` 22 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Plan/` 9 · `Sketch/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
+| `Vocabulary` | 23 | 1,615 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest

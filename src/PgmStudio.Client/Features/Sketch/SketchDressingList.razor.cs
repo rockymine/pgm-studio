@@ -58,6 +58,7 @@ public partial class SketchDressingList
             PropKinds.Water => new Row(id, "waves", $"{Field(prop, "form", "canal")} channel", Span(prop)),
             PropKinds.Flora => new Row(id, "flower", "ground cover", Span(prop)),
             PropKinds.House => new Row(id, "house", "building", Footprint(prop)),
+            PropKinds.Chest => new Row(id, "box", "chest", Cell(prop)),
             _ => new Row(id, "shapes", kind, ""),
         };
     }

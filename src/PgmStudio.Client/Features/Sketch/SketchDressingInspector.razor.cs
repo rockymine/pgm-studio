@@ -286,6 +286,62 @@ public partial class SketchDressingInspector
 
     private Task Delete() => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("deleteProp").AsTask();
 
+    // ── a chest's stacks ─────────────────────────────────────────────────────────
+    private static readonly string[] ChestFacings = ["north", "south", "west", "east"];
+
+    private JsonArray ChestItems() => prop?[PropFields.Items] as JsonArray ?? [];
+
+    /// <summary>Write the stacks back whole: the list is small, and one patch of it is the edit the canvas takes.</summary>
+    private Task WriteChestItems(JsonArray items) => Set(PropFields.Items, items);
+
+    private Task AddChestItem()
+    {
+        var items = (JsonArray)ChestItems().DeepClone();
+        items.Add(new JsonObject { [ChestItemFields.Item] = "minecraft:arrow", [ChestItemFields.Count] = 16 });
+        return WriteChestItems(items);
+    }
+
+    private Task RemoveChestItem(int index)
+    {
+        var items = (JsonArray)ChestItems().DeepClone();
+        if (index < items.Count) items.RemoveAt(index);
+        return WriteChestItems(items);
+    }
+
+    private Task SetChestItem(int index, string field, JsonNode? value)
+    {
+        var items = (JsonArray)ChestItems().DeepClone();
+        if (index < items.Count && items[index] is JsonObject item) item[field] = value;
+        return WriteChestItems(items);
+    }
+
+    private JsonObject? Stack(int index) => index < ChestItems().Count ? ChestItems()[index] as JsonObject : null;
+
+    private string StackItem(int index) => Stack(index)?[ChestItemFields.Item]?.GetValue<string>() ?? "";
+
+    private double StackCount(int index) =>
+        Stack(index)?[ChestItemFields.Count] is { } node && double.TryParse(node.ToString(), out var count) ? count : 1;
+
+    /// <summary>A stack's enchantments as the one line the inspector edits them in: <c>power:1, infinity:1</c>.</summary>
+    private string EnchantmentText(int index) =>
+        Stack(index)?[ChestItemFields.Enchantments] is JsonArray list
+            ? string.Join(", ", list.OfType<JsonObject>().Select(enchantment =>
+                $"{enchantment["name"]?.GetValue<string>()}:{enchantment["level"]?.GetValue<int>() ?? 1}"))
+            : "";
+
+    /// <summary>That line read back as the list the document carries; a name without a level is level 1.</summary>
+    private static JsonArray Enchantments(string? line)
+    {
+        var list = new JsonArray();
+        foreach (var part in (line ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var (name, level) = part.Split(':', 2) is [var named, var stated] && int.TryParse(stated, out var parsed)
+                ? (named.Trim(), parsed) : (part, 1);
+            list.Add(new JsonObject { ["name"] = name, ["level"] = level });
+        }
+        return list;
+    }
+
     /// <summary>A new seed for the same knobs — the one control that changes the result without changing the
     /// recipe, so an author who likes the shape but not this particular rock can roll again.</summary>
     private Task Reroll() => Set(PropFields.Seed, JsonValue.Create(Number(prop) + 1));
@@ -354,6 +410,7 @@ public partial class SketchDressingInspector
             [PropKinds.Tree] = ("trees", "Tree", "One tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
             [PropKinds.Boulder] = ("mountain", "Boulder", "One erratic, standing where you put it and bedded into the ground. Mirrored across the map's symmetry, so both teams get the same cover."),
             [PropKinds.House] = ("home", "Building", "A building on the rectangle you dragged, raised in a shell from the room-style library. It settles into the ground it covers, and it is mirrored across the map's symmetry, so both teams get the same cover."),
+            [PropKinds.Chest] = ("box", "Chest", "One chest holding the stacks you list, on the ground where you put it or at a course you state — a tower's deck, a made thing's floor. Mirrored across the map's symmetry, so both teams get the same loot."),
         };
 
     private (string Icon, string Title, string Blurb) Info
@@ -386,6 +443,10 @@ public static class PropFields
     public const string Edge = "edge";
     public const string Shore = "shore";
     public const string ShoreWander = "shoreWander";
+    /// <summary>A chest's front, the course it stands at, and its stacks.</summary>
+    public const string Facing = "facing";
+    public const string Y = "y";
+    public const string Items = "items";
     /// <summary>What a water prop's bed is filled with, and its two words.</summary>
     public const string Fluid = "fluid";
     public const string WaterFluid = "water";
@@ -414,6 +475,14 @@ public static class PropFields
     public const string CanalForm = "canal";
 }
 
+/// <summary>A chest stack's fields.</summary>
+public static class ChestItemFields
+{
+    public const string Item = "item";
+    public const string Count = "count";
+    public const string Enchantments = "enchantments";
+}
+
 /// <summary>The flora spec's fields — one level down from a prop, because the spec is the shared recipe the
 /// pass and the preview both read.</summary>
 public static class SpecFields
@@ -437,6 +506,7 @@ public static class DressingTools
     public const string House = "dress:house";
     public const string Tree = "dress:tree";
     public const string Boulder = "dress:boulder";
+    public const string Chest = "dress:chest";
 
     /// <summary>Tool id, the prop kind it places, its glyph, and what it is called. The name names the tool
     /// and does not explain it — a dock tooltip is a label, not a manual.</summary>
@@ -448,6 +518,7 @@ public static class DressingTools
         (House, PropKinds.House, "home", "Building"),
         (Tree, PropKinds.Tree, "trees", "Tree"),
         (Boulder, PropKinds.Boulder, "mountain", "Boulder"),
+        (Chest, PropKinds.Chest, "box", "Chest"),
     ];
 
     /// <summary>The kind of prop a tool places, or null when the tool places none.</summary>

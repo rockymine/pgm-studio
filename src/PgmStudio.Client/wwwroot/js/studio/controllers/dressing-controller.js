@@ -32,7 +32,7 @@ import { toScreen } from "../geometry/transform.js";
 
 /** Tool name → the kind of prop it places. The canvas passes tool names through, so this is also the test for
  *  "is a dressing tool active at all". */
-export const DRESSING_TOOLS = { "dress:stroke": "stroke", "dress:water": "water", "dress:flora": "flora", "dress:house": "house", "dress:tree": "tree", "dress:boulder": "boulder" };
+export const DRESSING_TOOLS = { "dress:stroke": "stroke", "dress:water": "water", "dress:flora": "flora", "dress:house": "house", "dress:tree": "tree", "dress:boulder": "boulder", "dress:chest": "chest" };
 
 // A dragged trace is one point per block of pointer travel — unreadable to edit and pointless to store, so it
 // is simplified to the points at real bends on release. Same simplifier as the lasso, one step tighter than
@@ -75,7 +75,7 @@ export class DressingController {
     this.#getViewport = getViewport ?? (() => ({ scale: 1, panX: 0, panY: 0 }));
     this.#callbacks = callbacks;
     this.#onTerrain = callbacks.onTerrain ?? (() => true);
-    for (const kind of ["stroke", "water", "flora", "house", "tree", "boulder"]) this.#settings[kind] = defaultProp(kind, seedFor(kind));
+    for (const kind of ["stroke", "water", "flora", "house", "tree", "boulder", "chest"]) this.#settings[kind] = defaultProp(kind, seedFor(kind));
   }
 
   setDoc(doc) { this.#doc = doc; this.#selectedId = null; this.refreshHandles(); }
@@ -471,7 +471,7 @@ export class DressingController {
 }
 
 // A distinct starting seed per kind, so a map's first path and its first tree do not share a field.
-function seedFor(kind) { return { path: 5, water: 11, flora: 7, house: 13, tree: 23, boulder: 17 }[kind] ?? 1; }
+function seedFor(kind) { return { path: 5, water: 11, flora: 7, house: 13, tree: 23, boulder: 17, chest: 19 }[kind] ?? 1; }
 
 // How far an area prop reaches from its own middle — its bounding radius, which is what a click is measured
 // against. Coarse on purpose: picking is about reaching the thing, not about its exact edge.

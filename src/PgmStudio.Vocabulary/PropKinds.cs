@@ -29,6 +29,9 @@ public static class PropKinds
     /// <summary>One building, stamped from a room style.</summary>
     public const string House = "house";
 
-    /// <summary>The six, in the order the pass places them.</summary>
-    public static readonly string[] All = [Water, Stroke, Flora, Tree, Boulder, House];
+    /// <summary>One chest, holding the items its author stated.</summary>
+    public const string Chest = "chest";
+
+    /// <summary>The seven.</summary>
+    public static readonly string[] All = [Water, Stroke, Flora, Tree, Boulder, House, Chest];
 }

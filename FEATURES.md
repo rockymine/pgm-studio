@@ -8212,6 +8212,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `rot_90`. A direction a material reads off the ground itself, as a laid log reads its wall, is not turned
   again. `docs/tools/sketch.md` § A made thing; `docs/world-export/terrain-painting.md` §5. (`WE146`)
 
+- **A chest holding what its author lists (`WE151`)** — a `chest` prop names a cell, a facing and up to 27
+  stacks — a 1.8 item id, a count, a damage and enchantments by PGM's names or the game's numbers — each
+  stating a slot or filling the next free one. It stands on the ground as a placed prop, or at a stated `y` on
+  whatever holds it up, and is fanned with each image fronting its own turn. Every chest in a built world —
+  the prop's, a wall's defence chests, a wool room's corners — is set by `ChestBuilder.Place`. The Dressing
+  phase places one with a click and lists its stacks in the inspector. `docs/world-export/decoration.md` §8a. (`WE151`)
+
 - **Notes on a map, and the threads under them (`TS115`)** — an admin leaves a note in the In game phase, pinned
   to the whole map or to the picture in view, with an optional tag (`look`, `terrain`, `gameplay`, `studio`,
   `ruling`); an agent answers in its thread, and only the author resolves it. A thread is `open` (waiting on an

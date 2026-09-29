@@ -188,6 +188,21 @@ try {
   checks.add("a drag places a water channel, with its own depth + form knobs",
     await page.locator("text=Depth").count() > 0 && await page.locator("text=Form").count() > 0);
   await shot("dressing-water.png");
+
+  // Drop a chest with a click and give it a stack: the inspector lists what it holds, and the stack is what
+  // the stored board carries.
+  await page.click('button[aria-label^="Chest"]');
+  await page.mouse.click(box.x + box.width * 0.6, box.y + box.height * 0.5);
+  await page.waitForTimeout(1500);
+  await page.locator("button", { hasText: "Add a stack" }).click();
+  await page.waitForTimeout(2500);
+  checks.add("a click places a chest, and its inspector lists the stack added to it",
+    await page.locator(".chest-item").count() === 1, `${await page.locator(".chest-item").count()} stack row(s)`);
+  const stored = await api(`/map/${seed.sketchSlug}/sketch`);
+  const chests = (stored.dressing?.props ?? []).filter(prop => prop.kind === "chest");
+  checks.add("and the stored board carries the chest with its stack",
+    chests.length === 1 && chests[0].items?.length === 1, JSON.stringify(chests.map(chest => chest.items)));
+  await shot("dressing-chest.png");
   ok = true;
 } catch (e) {
   page.faults.push(`dressing phase drive: ${String(e).split("\n")[0]}`);

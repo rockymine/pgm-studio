@@ -132,6 +132,7 @@ public sealed record DressingContext(
 /// A tree declined everywhere credits nobody, since it is not in the map.</para></summary>
 public readonly record struct DressingPlacement(
     int Plants = 0, int Boulders = 0, int Trees = 0, int PathCells = 0, int WaterCells = 0, int Houses = 0,
+    int Chests = 0,
     IReadOnlyList<PlacementClaim>? Claimed = null, IReadOnlyList<Finding>? Declined = null,
     IReadOnlyList<string>? Builders = null)
 {
@@ -261,6 +262,13 @@ public static class Decorator
             var raised = PlaceHouse(world, context, prop, claims.On(prop.Layer), declined, ways, roads, groups);
             structures.AddRange(raised);
             placed = placed with { Houses = placed.Houses + raised.Count };
+        }
+        foreach (var prop in context.Props.OfType<ChestProp>())
+        {
+            var result = PlaceChest(world, context, prop, claims.On(prop.Layer), declined);
+            Cover(result, PropKinds.Chest, prop.Id);
+            placed = placed with { Chests = placed.Chests + result.Count };
+            propIndex++;
         }
         foreach (var prop in context.Props.OfType<BoulderProp>())
         {
@@ -1256,6 +1264,70 @@ public static class Decorator
         var depth = 0;
         while (y + depth + 1 <= top && Blob.Contains(lobes, new Vec3(x, y + depth + 1, z), boulder.Seed)) depth++;
         return depth;
+    }
+
+    // ── chests ──────────────────────────────────────────────────────────────────
+    /// <summary>Set a chest at every image of its orbit, each fronting its own turn of the stated facing and
+    /// holding the stated items. On the ground it is a prop like any other, seated through <see cref="Fan"/>
+    /// under every rule a placed prop keeps; at a stated course it stands exactly there, on whatever is under
+    /// it — the way a chest is put on a made thing — and is declined whole where any image's cell is taken
+    /// or has nothing under it.</summary>
+    private static Placed PlaceChest(
+        VoxelWorld world, DressingContext context, ChestProp chest, GroundClaims.Storey claims, List<Finding> declined)
+    {
+        var facing = chest.Facing switch
+        {
+            ChestFacing.North => 2, ChestFacing.South => 3, ChestFacing.West => 4, _ => 5,
+        };
+        int FacingAt(int image) => image == 0 ? facing
+            : BlockGeometry.Turned(Blocks.Chest, facing, (dx, dz) => context.Symmetry.TurnCell(dx, dz, image));
+
+        if (chest.Y is not { } stated)
+        {
+            var ground = context.GroundFor(chest);
+            var fanned = Fan(world, context, ground, (chest.X, chest.Z),
+                [new PropCell(0, 0, 0, Blocks.Chest, facing, Buried: false)], claims, chest.RouteStandoff,
+                chest.Id, PropKinds.Chest, declined);
+            if (fanned.Count == 0) return fanned;
+            for (var image = 0; image < context.Symmetry.Order; image++)
+            {
+                var (x, z) = context.Symmetry.ImageCell(chest.X, chest.Z, image);
+                if (ground.TryGetValue((x, z), out var top) && world.GetBlock(x, top, z).Id == Blocks.Chest)
+                    ChestBuilder.Place(world, x, top, z, world.GetBlock(x, top, z).Data, ChestBuilder.Contents(chest.Items));
+            }
+            return fanned;
+        }
+
+        var sites = Enumerable.Range(0, context.Symmetry.Order)
+            .Select(image => (Cell: context.Symmetry.ImageCell(chest.X, chest.Z, image), Image: image)).ToList();
+        foreach (var ((x, z), _) in sites)
+        {
+            if (world.GetBlock(x, stated, z).Id != Blocks.Air)
+            {
+                declined.Add(new Finding(DressingRules.GroundTaken,
+                    $"chest '{chest.Id}' is stated at ({x}, {stated}, {z}), where {world.GetBlock(x, stated, z).Id} "
+                    + "already stands. Move it to a course that is open, or clear the block there",
+                    Severity.Decline, Subjects: [chest.Id]));
+                return Placed.None;
+            }
+            if (world.GetBlock(x, stated - 1, z).Id == Blocks.Air)
+            {
+                declined.Add(new Finding(DressingRules.NoGround,
+                    $"chest '{chest.Id}' is stated at ({x}, {stated}, {z}) with nothing under it. State the course "
+                    + "just above the floor it stands on",
+                    Severity.Decline, Subjects: [chest.Id]));
+                return Placed.None;
+            }
+        }
+
+        var covered = new List<List<(int X, int Z)>>();
+        foreach (var ((x, z), image) in sites)
+        {
+            ChestBuilder.Place(world, x, stated, z, FacingAt(image), ChestBuilder.Contents(chest.Items));
+            claims.Claim(x, z, ClaimKind.Scatter, chest.Id);
+            covered.Add([(x, z)]);
+        }
+        return new Placed(sites.Count, covered);
     }
 
     // ── trees (DR-TR) ───────────────────────────────────────────────────────────

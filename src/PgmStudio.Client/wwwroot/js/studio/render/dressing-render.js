@@ -30,6 +30,7 @@ const KIND_STYLE = {
   house:   BUILDING_COLORS,
   tree:    { fill: "#2f7d46", stroke: "#1f5a31" },
   boulder: { fill: "#8a8f96", stroke: "#5f656d" },
+  chest: { fill: "#a0722f", stroke: "#5c3d14" },
 };
 
 const FILL_ALPHA = 0.34;

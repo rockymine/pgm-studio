@@ -11,7 +11,7 @@
 import { MIN_FOOTPRINT_SPAN } from "../shared/building.js";
 
 /** The things that can be placed, in the order their tools sit on the toolbar. */
-export const PROP_KINDS = ["stroke", "water", "flora", "house", "tree", "boulder"];
+export const PROP_KINDS = ["stroke", "water", "flora", "house", "tree", "boulder", "chest"];
 
 /** A fresh prop of each kind, before the author has touched a knob. The numbers mirror the C# record defaults,
  *  so a prop drawn on the canvas and one deserialized from an empty object are the same prop. */
@@ -35,6 +35,9 @@ export function defaultProp(kind, seed) {
         ] } };
     case "flora":
       return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0, deadBushShare: 0, cactusShare: 0 } };
+    case "chest":
+      // A chest on the ground, fronting north, holding nothing until the author lists its stacks.
+      return { ...base, x: 0, z: 0, facing: "north", items: [] };
     case "tree":
     case "boulder":
       // A click puts down a position; what stands there is a recipe the document names once. `style` is the
@@ -56,7 +59,7 @@ export function defaultProp(kind, seed) {
  *  name. Takes a kind or a prop, since callers have one or the other and neither should have to unwrap. */
 export const isMarker = (propOrKind) => {
   const kind = typeof propOrKind === "string" ? propOrKind : propOrKind?.kind;
-  return kind === "tree" || kind === "boulder";
+  return kind === "tree" || kind === "boulder" || kind === "chest";
 };
 
 /** Whether a prop rests on the storey `layer` names. A prop naming no layer rests on the top surface and a

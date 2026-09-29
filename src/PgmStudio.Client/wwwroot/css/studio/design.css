@@ -322,6 +322,9 @@
    Every option is a picture the pass itself produced, so the card is mostly art with a small label under it.
    A grid rather than a select, because what separates a worn path from stepping stones is what they look
    like — a dropdown of six words says nothing an author can act on. */
+/* One stack of a chest: its item, its count, its enchantments, and a way to take it out. */
+.chest-item { display: grid; grid-template-columns: minmax(0, 2fr) 4.5rem minmax(0, 2fr) auto; gap: var(--space-1); align-items: center; margin-bottom: var(--space-1); }
+
 .prop-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-1); margin-bottom: var(--space-2); }
 .prop-cards--tall { grid-template-columns: repeat(3, 1fr); }
 .prop-card {

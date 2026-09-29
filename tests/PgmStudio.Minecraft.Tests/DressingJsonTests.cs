@@ -376,4 +376,32 @@ public sealed class DressingJsonTests
     [Test]
     public async Task Every_refusal_carries_the_export_gates_rule_id()
         => await Assert.That(DressingParseException.Rule).IsEqualTo("DR-DOC");
+
+    /// <summary>A chest's contents are read as stated and refused where the game could not hold them.</summary>
+    [Test]
+    [Arguments("""{"kind":"chest","id":"c","items":[{"item":"bow","slot":3},{"item":"arrow","slot":3}]}""", "items[1].slot")]
+    [Arguments("""{"kind":"chest","id":"c","items":[{"item":"bow","slot":27}]}""", "items[0].slot")]
+    [Arguments("""{"kind":"chest","id":"c","items":[{"item":"arrow","count":65}]}""", "items[0].count")]
+    [Arguments("""{"kind":"chest","id":"c","items":[{"item":""}]}""", "items[0].item")]
+    [Arguments("""{"kind":"chest","id":"c","items":[{"item":"bow","enchantments":[{"name":"vorpal"}]}]}""", "items[0].enchantments[0].name")]
+    public async Task A_chest_the_game_could_not_hold_is_refused_naming_the_field(string prop, string field)
+    {
+        var refused = Assert.Throws<DressingParseException>(() => DressingJson.Deserialize($$"""{"props":[{{prop}}]}"""));
+        await Assert.That(refused.Message).Contains(field);
+    }
+
+    [Test]
+    public async Task A_chest_reads_its_items_facing_and_course()
+    {
+        var chest = DressingJson.Deserialize("""
+            {"props":[{"kind":"chest","id":"c","x":4,"z":-2,"y":18,"facing":"east",
+              "items":[{"item":"bow","slot":0,"enchantments":[{"name":"power","level":1}]},{"item":"arrow","count":32}]}]}
+            """).Props.OfType<ChestProp>().Single();
+
+        await Assert.That(chest.Facing).IsEqualTo(ChestFacing.East);
+        await Assert.That(chest.Y).IsEqualTo(18);
+        await Assert.That(chest.Items.Count).IsEqualTo(2);
+        await Assert.That(chest.Items[0].Enchantments.Single().Name).IsEqualTo("power");
+        await Assert.That(chest.Items[1].Count).IsEqualTo(32);
+    }
 }

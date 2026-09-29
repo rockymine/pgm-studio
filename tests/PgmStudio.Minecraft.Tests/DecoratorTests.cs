@@ -901,6 +901,78 @@ public sealed class DecoratorTests
         await Assert.That(standing.All(z => world.GetBlock(20, 9, z).Id != DressingPalette.CactusBlock)).IsTrue();
     }
 
+    /// <summary>The chest tile entities a world carries, by where they stand.</summary>
+    private static Dictionary<(int X, int Y, int Z), fNbt.NbtCompound> Chests(VoxelWorld world)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "chests_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            AnvilRegionWriter.Write(world, dir);
+            var tiles = new Dictionary<(int X, int Y, int Z), fNbt.NbtCompound>();
+            foreach (var mca in Directory.GetFiles(dir, "*.mca"))
+                foreach (var chunk in AnvilRegion.ReadChunks(mca))
+                    if (chunk.Level.Get<fNbt.NbtList>("TileEntities") is { } list)
+                        foreach (var tile in list.OfType<fNbt.NbtCompound>())
+                            if (tile.Get<fNbt.NbtString>("id")?.Value == "Chest")
+                                tiles[(tile.Get<fNbt.NbtInt>("x")!.Value, tile.Get<fNbt.NbtInt>("y")!.Value, tile.Get<fNbt.NbtInt>("z")!.Value)] = tile;
+            return tiles;
+        }
+        finally { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); }
+    }
+
+    private static readonly ChestItem[] ABowAndArrows =
+    [
+        new() { Item = "bow", Enchantments = [new ChestEnchantment { Name = "power", Level = 1 }] },
+        new() { Item = "arrow", Count = 32 },
+    ];
+
+    /// <summary>A chest on the ground stands at every image of the board's orbit, fronting its own turn of the
+    /// stated facing, and every image holds the stated stacks.</summary>
+    [Test]
+    public async Task A_chest_stands_at_every_image_fronting_its_turn_and_holding_what_it_was_given()
+    {
+        var (world, top) = Plateau();
+        var tally = Decorator.Decorate(world, Context(top,
+            [new ChestProp { Id = "loot", X = 10, Z = 12, Facing = ChestFacing.North, Items = ABowAndArrows }],
+            symmetry: "rot_180", centerX: 20, centerZ: 20));
+
+        await Assert.That(tally.Chests).IsEqualTo(2);
+        await Assert.That(world.GetBlock(10, 8, 12)).IsEqualTo((Blocks.Chest, 2));
+        await Assert.That(world.GetBlock(29, 8, 27)).IsEqualTo((Blocks.Chest, 3));
+        var chests = Chests(world);
+        await Assert.That(chests.Keys).IsEquivalentTo([(10, 8, 12), (29, 8, 27)]);
+        foreach (var chest in chests.Values)
+        {
+            var items = chest.Get<fNbt.NbtList>("Items")!.OfType<fNbt.NbtCompound>().ToList();
+            await Assert.That(items.Select(item => item.Get<fNbt.NbtString>("id")!.Value))
+                .IsEquivalentTo(["minecraft:bow", "minecraft:arrow"]);
+        }
+    }
+
+    /// <summary>A chest stated at a course stands exactly there on whatever holds it up — a deck, a made
+    /// thing's floor — and is declined whole where an image has nothing under it.</summary>
+    [Test]
+    public async Task A_chest_stated_at_a_course_stands_on_the_deck_under_it()
+    {
+        var (world, top) = Plateau();
+        foreach (var (x, z) in new[] { (10, 12), (29, 27) }) world.SetBlock(x, 17, z, Blocks.Planks);
+        var tally = Decorator.Decorate(world, Context(top,
+            [new ChestProp { Id = "deck", X = 10, Z = 12, Y = 18, Items = ABowAndArrows }],
+            symmetry: "rot_180", centerX: 20, centerZ: 20));
+
+        await Assert.That(tally.Chests).IsEqualTo(2);
+        await Assert.That(Chests(world).Keys).IsEquivalentTo([(10, 18, 12), (29, 18, 27)]);
+
+        var (bare, bareTop) = Plateau();
+        bare.SetBlock(10, 17, 12, Blocks.Planks);
+        var refused = Decorator.Decorate(bare, Context(bareTop,
+            [new ChestProp { Id = "deck", X = 10, Z = 12, Y = 18, Items = ABowAndArrows }],
+            symmetry: "rot_180", centerX: 20, centerZ: 20));
+        await Assert.That(refused.Chests).IsEqualTo(0);
+        await Assert.That(bare.GetBlock(10, 18, 12).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(refused.Declines.Single().Rule).IsEqualTo(DressingRules.NoGround);
+    }
+
     // ── water carves and fills ─────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_channel_cuts_a_bed_and_fills_it_with_water()

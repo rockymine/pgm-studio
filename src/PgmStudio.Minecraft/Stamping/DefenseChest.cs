@@ -90,9 +90,8 @@ public static class DefenseChest
     public static void Embed(VoxelWorld world, int x, int y, int z, int facing)
     {
         if (y < 1 || y >= VoxelWorld.MaxHeight - 1) return;
-        world.SetBlock(x, y, z, Blocks.Chest, facing);
+        ChestBuilder.Place(world, x, y, z, facing, Contents());
         world.SetBlock(x, y + 1, z, Blocks.Air);   // the one air block that lets the lid open
-        world.AddTileEntity(x, z, ChestBuilder.Chest(x, y, z, Contents()));
     }
 
     /// <summary>A chest's facing data: the direction its front points. A chest with no approach to front — the

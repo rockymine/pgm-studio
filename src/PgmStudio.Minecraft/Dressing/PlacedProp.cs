@@ -31,6 +31,7 @@ namespace PgmStudio.Minecraft.Dressing;
 [JsonDerivedType(typeof(BoulderProp), PropKinds.Boulder)]
 [JsonDerivedType(typeof(FloraProp), PropKinds.Flora)]
 [JsonDerivedType(typeof(HouseProp), PropKinds.House)]
+[JsonDerivedType(typeof(ChestProp), PropKinds.Chest)]
 public abstract record PlacedProp
 {
     /// <summary>Stable id, so a canvas can select, move and delete one prop among many.</summary>
@@ -261,6 +262,65 @@ public sealed record TreeProp : PlacedProp
     /// over the route, which stops reading as a road through trees and starts reading as trees in the
     /// road.</summary>
     public override int RouteStandoff => 3;
+}
+
+/// <summary>One chest and what is in it. It stands on the ground at <see cref="X"/>/<see cref="Z"/>, or at
+/// <see cref="Y"/> where one is stated — a deck, a tower's floor, a made thing's ledge, none of which is ground
+/// a prop seats on — and it is fanned like every prop, each image fronting its own turn of
+/// <see cref="Facing"/> and holding the same items.</summary>
+public sealed record ChestProp : PlacedProp
+{
+    /// <summary>a chest goes down after the buildings and before the boulders and trees, so a wood grows round
+    /// it rather than over it (<see cref="PlacementOrder"/>).</summary>
+    public override int PlacementOrder => 3;
+
+    public int X { get; init; }
+    public int Z { get; init; }
+
+    /// <summary>The course the chest stands in, where the author states one. Unstated, it stands on the ground
+    /// under <see cref="X"/>/<see cref="Z"/> under every rule a placed prop keeps; stated, it stands exactly
+    /// there on whatever is under it, which is what puts one on a made thing.</summary>
+    public int? Y { get; init; }
+
+    /// <summary>The side the chest's front — the latch, the side it opens toward — looks at.</summary>
+    public ChestFacing Facing { get; init; } = ChestFacing.North;
+
+    /// <summary>What is in it, at most <see cref="ChestItem.Slots"/> stacks. A stack stating a slot takes that
+    /// slot; the rest fill the free slots in order.</summary>
+    public IReadOnlyList<ChestItem> Items { get; init; } = [];
+}
+
+/// <summary>The four sides a chest can front.</summary>
+public enum ChestFacing
+{
+    North,
+    South,
+    West,
+    East,
+}
+
+/// <summary>One stack in a chest: a 1.8 item id (<c>minecraft:bow</c>, or <c>bow</c>), how many, its damage
+/// value, and its enchantments by PGM's names (<c>power</c>, <c>infinity</c>, <c>sharpness</c>, …) or by
+/// the game's numbers.</summary>
+public sealed record ChestItem
+{
+    /// <summary>A single chest's slots.</summary>
+    public const int Slots = 27;
+
+    /// <summary>Which slot, 0 at the top left and 26 at the bottom right, or null for the next free one.</summary>
+    public int? Slot { get; init; }
+
+    public string Item { get; init; } = "";
+    public int Count { get; init; } = 1;
+    public int Damage { get; init; }
+    public IReadOnlyList<ChestEnchantment> Enchantments { get; init; } = [];
+}
+
+/// <summary>An enchantment on a chest's stack: by PGM's name or the game's number, and its level.</summary>
+public sealed record ChestEnchantment
+{
+    public string Name { get; init; } = "";
+    public int Level { get; init; } = 1;
 }
 
 public sealed record BoulderProp : PlacedProp

@@ -1160,6 +1160,31 @@ its notch no eave reaches. That single formula is also what a stamped porch neve
 carved out of the footprint it was handed rather than added past it, so its own canopy overhangs by the same
 `Overhang` and never reaches further than the main roof already does.
 
+## 8a. Chests — what a board hands its players
+
+**A chest is one block holding the stacks its author listed.** A `chest` prop names a cell, the side its
+front looks at (`facing`: `north`, `south`, `west` or `east`) and up to 27 `items`, each a 1.8 item id
+(`minecraft:bow`, or `bow`), a `count` of 1 to 64, a `damage` value and its `enchantments` by PGM's names —
+`power`, `infinity`, `sharpness`, `efficiency` and their kin — or by the game's numbers. A stack stating a
+`slot` takes it, and the rest fill the free slots in order, so the order the list is written in is the order a
+player opening the chest reads it in. A slot outside the chest or taken twice, a count outside a stack and an
+enchantment neither PGM nor the game names are refused `DR-DOC`, naming the stack.
+
+**It stands on the ground, or at a course the author states.** Unstated, it is a prop like a boulder: seated
+on the ground under its cell and held to every rule a placed prop keeps, claiming that cell against what comes
+after. A tower's deck, a made thing's floor and a ledge are none of them ground a prop seats on, so `y` puts
+the chest exactly at that course on whatever holds it up — refused `DR-SITE` where an image has nothing under
+it and `DR-CLAIM` where the course is already taken, in either case at every image. It is fanned like every
+prop, each image fronting its own turn of the facing and holding the same stacks, and it goes down after the
+buildings and before the boulders and the trees, so a wood grows round it rather than through it.
+
+**Every chest in a built world is set by one placer.** `ChestBuilder.Place` writes the block and the tile
+entity carrying its items; a prop's chest, a bedrock wall's defence chests and a wool room's corner chests all
+go through it, and only what is in them differs. What is written is what the chest holds for the whole match:
+the world's own contents, never refilled. PGM's `<lootables>` fills a chest the other way — each item into a
+random free slot, cleared and refilled on an interval or a trigger — so a chest that refills cannot keep the
+order its stacks were listed in, and the studio does not write one (`WE154`).
+
 ## 9. What it reuses, and what it adds
 
 The stage leans hard on machinery G157 and the sketch tools already shipped; the net-new surface is small

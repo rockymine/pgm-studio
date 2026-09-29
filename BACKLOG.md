@@ -239,13 +239,17 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ### Dressing: what the pass can place
 
-- [ ] **WE151 — A chest whose contents the author states.** Three chests are filled, each with contents fixed
-  in code (`DefenseChest`, `StructureStamper.StampDefenseChest`, `WoolChests`), and a chest painted by a made
-  layer is written with no tile entity, so it is empty. A `chest` prop — a cell, a facing, and items as
-  `{slot, id, count, damage, enchantments}` — reusing `ChestBuilder` and `VoxelWorld.AddTileEntity`. Read PGM
-  first for whether a map's own fill or kit module is the route a chest's contents are meant to take.
-  *Evidence: Sootcombe note 45 asks for a chest with a Power I bow and 32 arrows on each archer tower.*
-  `docs/world-export/decoration.md`.
+- [ ] **WE154 — A chest PGM refills.** A `chest` prop's stacks are written into the world and never
+  refilled. PGM's `<lootables>` refills one: `<loot id>` states items the way a kit does, and `<fill loot=…
+  filter=… refill-interval=…|refill-trigger=…>` fills every container its filter admits the first time it is
+  opened and again on the interval or trigger, clearing it first unless `refill-clear="false"`
+  (`core/…/loot/LootableModule.java`); each item goes into a **random free slot**
+  (`LootableMatchModule.fill`), so a refilled chest cannot keep its stacks' order. Add `refill` to the prop —
+  an interval or a trigger — carried through the codec as a `<lootables>` section beside `<kits>` (model,
+  `MapParser`, both serializers, `XmlWriter.WriteItemSpec` for the items) with a cuboid region per image as
+  the fill's filter. Item names differ by path: the world takes 1.8 ids (`minecraft:planks`) and a 1.8 PGM
+  parses Bukkit's (`WOOD`), so the prop needs one table between them. `docs/world-export/decoration.md` §8a;
+  `docs/pgm/`.
 
 - [ ] **WE152 — A room's door width, stated by its style.** *Parked (author): what a stored `door_width` of 2
   means.* `WX7` cuts a room's door from its wall (`RoomFrames.DoorWidth`: 4 on an even interior of six or more,
