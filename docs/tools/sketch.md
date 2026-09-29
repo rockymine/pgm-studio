@@ -454,8 +454,10 @@ not in the world, and `SK11` reads a mass under open sky that nothing reaches as
 forgot to draw. Both are right about terrain and wrong about a sculpture: a solid form sinking into a hill has
 no gap to lose, and a raised arm, a dome on columns, an antenna is not standable ground. A `made` layer is
 therefore out of `SK10`'s pair walk and out of `SK11`'s detached-mass walk, and the rules stay exactly as
-strict about the ground they were written for. Nothing else reads `kind`: a `made` layer rasterizes, paints,
-themes and mirrors identically.
+strict about the ground they were written for. The painter reads `kind` too: it
+paints `made` layers before the ground, so a made thing is its own material in every course it spans and the
+ground under a ladder or a cactus keeps its surface (`docs/world-export/terrain-painting.md` TP25). Otherwise a
+`made` layer rasterizes, themes and mirrors identically.
 
 **`seat` is where the house model is borrowed from.** A house prop seats on the lowest column of its own
 footprint one course down, carves the terrain standing over that floor out of every footprint column, and

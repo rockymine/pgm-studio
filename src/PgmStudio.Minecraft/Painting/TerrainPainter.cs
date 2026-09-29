@@ -30,8 +30,10 @@ public static class TerrainPainter
     /// gallery floor and a meadow on the deck roofing it. The stone-only invariant keeps the passes from
     /// treading on each other: a course a lower layer has already finished is no longer stone.
     ///
-    /// <para><b>Layers paint from the bottom of the stack up</b>, ordered by the lowest surface each one
-    /// carries, and layers standing at the same height keep the order the document draws them in. Each pass
+    /// <para><b>Made layers paint first, then the rest from the bottom of the stack up</b>, each group ordered
+    /// by the lowest surface each layer carries, and layers standing at the same height keep the order the
+    /// document draws them in. A made thing is what it is stated to be in every course it spans, the ground's
+    /// top course included, and the ground under it reads what it finished to. Each pass
     /// paints its column from the bedrock course upward, so a storey painted before the one it stands over
     /// finds that ground already finished and leaves it alone — and the storey under it never gets its own
     /// bands. Where a compile emits the ground first, that ground is not the bottom of every board: an
@@ -41,9 +43,12 @@ public static class TerrainPainter
         IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> surfaceByLayer,
         Func<string, int, int, TerrainTheme> themeAt, Func<int, int, int>? teamDamageAt = null,
         Func<int, int, (int X, int Z)>? foldAt = null,
-        IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? floorByLayer = null)
+        IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? floorByLayer = null,
+        IReadOnlySet<string>? madeLayers = null)
     {
-        foreach (var (layer, tops) in surfaceByLayer.OrderBy(entry => Lowest(entry.Value)))
+        foreach (var (layer, tops) in surfaceByLayer
+                     .OrderBy(entry => madeLayers?.Contains(entry.Key) == true ? 0 : 1)
+                     .ThenBy(entry => Lowest(entry.Value)))
             Paint(world, tops, (x, z) => themeAt(layer, x, z), teamDamageAt, foldAt,
                   floorByLayer?.GetValueOrDefault(layer));
     }

@@ -344,7 +344,7 @@ public static class WorldBuilder
         TerrainPainter.Paint(world, PaintSurface(terrain.SurfaceByLayer, plinths),
                              themeAt,
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
-                             terrain.FloorByLayer);
+                             terrain.FloorByLayer, madeLayers);
 
         // ── The generators' ground — the block each spawner's stack lands on, laid into the course under its
         // drop. After the finish for the reason a room's pad is stamped after its shell: the pad is the floor

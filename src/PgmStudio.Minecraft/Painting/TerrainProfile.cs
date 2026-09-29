@@ -112,14 +112,17 @@ public sealed class TerrainProfile
 
         var plateaus = LabelPlateaus(surfaceTop);
 
-        // A column is covered when the course over its top is not air. The painter runs after every stamp and
-        // before the dressing, and paints the lowest layer first, so what rests there is a stamp or a higher
-        // layer's ground — never a tree or a house, which are placed after it.
+        // A column is covered when the course over its top holds a whole block or a liquid. The painter runs
+        // after every stamp and before the dressing, and paints made layers first and then the stack from the
+        // bottom up, so what rests there is a stamp, a higher layer's ground or a made thing's finished block —
+        // never a tree or a house, which are placed after it. A ladder, a cactus or a dust line stands on the
+        // ground without hiding it, so the ground under one keeps its own top.
         _facts = new Dictionary<(int, int), CellFacts>(surfaceTop.Count);
         foreach (var (cell, top) in surfaceTop)
         {
             var structure = structures.Contains(cell);
-            var covered = !structure && top < VoxelWorld.MaxHeight && world.GetBlock(cell.X, top, cell.Z).Id != 0;
+            var covered = !structure && top < VoxelWorld.MaxHeight
+                          && Covers(world.GetBlock(cell.X, top, cell.Z).Id);
             _facts[cell] = new CellFacts(top, structure, plateaus[cell], covered);
         }
 
@@ -135,6 +138,10 @@ public sealed class TerrainProfile
         foreach (var (cell, facts) in _facts)
             _columns[cell] = Classify(cell.Item1, cell.Item2, facts);
     }
+
+    /// <summary>Whether a block over a column's top takes the column's top course from it: a whole block does,
+    /// and so does a liquid, which stands on a bed rather than on open ground.</summary>
+    private static bool Covers(int blockId) => BlockRoles.IsFullCube(blockId) || BlockRoles.IsLiquid(blockId);
 
     /// <summary>Every column of the footprint with its facts — what the band resolver consumes. A column
     /// carrying a stamp is among them: its bands are resolved like any other and the stone-only rule decides,
