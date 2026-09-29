@@ -95,7 +95,7 @@ public static class ReliefSolver
             foreach (var (cell, height, weight) in mark.Pins(footprint))
             {
                 if (!footprint.Inside(cell.X, cell.Z)) continue;
-                var index = footprint.Index(cell.X, cell.Z);
+                var index = Stated(footprint, cell.X, cell.Z, spec);
                 if (weight < 1 && !isPinned[index]) continue;
                 pinned[index] = weight >= 1
                     ? height
@@ -112,7 +112,7 @@ public static class ReliefSolver
         // bedrock under it column by column.
         if (spec.Pushes.Count > 0)
         {
-            var lift = Sculpt(footprint, spec.Pushes);
+            var lift = Sculpt(footprint, spec);
             for (var index = 0; index < field.Length; index++)
                 if (!isRigid[index]) field[index] += lift[index];
         }
@@ -187,7 +187,7 @@ public static class ReliefSolver
             foreach (var (cell, stated, weight) in mark.Pins(footprint))
             {
                 if (!footprint.Inside(cell.X, cell.Z)) continue;
-                var index = footprint.Index(cell.X, cell.Z);
+                var index = Stated(footprint, cell.X, cell.Z, spec);
                 if (weight < 1 && owner[index] is null) continue;
                 height[index] = weight >= 1
                     ? stated
@@ -230,6 +230,17 @@ public static class ReliefSolver
                                                   pair.Value.Cells))],
             silent,
             ReadPushes(footprint, spec));
+    }
+
+    /// <summary>The cell a statement over <c>(x, z)</c> lands on: its canonical image where that image is ground
+    /// of this footprint, else the cell itself. The solved field is folded from the canonical half, so a mark
+    /// or a push stated on the other half of a group spanning the axis is carried to the half the fold reads
+    /// rather than overwritten by it; a group lying wholly on one side has no image in its own footprint and
+    /// keeps every statement where it was made.</summary>
+    private static int Stated(Footprint footprint, int x, int z, ReliefSpec spec)
+    {
+        var (sx, sz) = Fold(x, z, spec);
+        return footprint.Inside(sx, sz) ? footprint.Index(sx, sz) : footprint.Index(x, z);
     }
 
     /// <summary>Whether the spec declares a symmetry with an image to fold onto. <c>none</c>, an empty mode
@@ -429,10 +440,10 @@ public static class ReliefSolver
         return grades;
     }
 
-    private static double[] Sculpt(Footprint footprint, IReadOnlyList<PushMark> pushes)
+    private static double[] Sculpt(Footprint footprint, ReliefSpec spec)
     {
         var lift = new double[footprint.Cells];
-        foreach (var push in pushes)
+        foreach (var push in spec.Pushes)
         {
             if (push.Ring.Length < 3) continue;
 
@@ -458,6 +469,7 @@ public static class ReliefSolver
             // rather than stopping at the last drawn vertex.
             var closed = push.Ring.Append(push.Ring[0]).ToArray();
             var falloff = Math.Max(0.5, push.Falloff);
+            var mine = new double[lift.Length];
 
             foreach (var (x, z) in footprint.Land())
             {
@@ -479,8 +491,14 @@ public static class ReliefSolver
                     if (!double.IsPositiveInfinity(depth) && depth > 0)
                         amount += push.Crown * PushMark.Ease(1 - depth / deepest);
                 }
-                lift[index] += amount * PushMark.Ease(away / falloff);
+                var own = amount * PushMark.Ease(away / falloff);
+                // Stated on the half the fold overwrites, the lift is carried to the canonical one; a push
+                // spanning the axis lifts a cell and its image alike, and the larger of the two is the push's
+                // own, so a centred push is not counted twice.
+                var landing = Stated(footprint, x, z, spec);
+                if (Math.Abs(own) > Math.Abs(mine[landing])) mine[landing] = own;
             }
+            for (var index = 0; index < lift.Length; index++) lift[index] += mine[index];
         }
         return lift;
     }
