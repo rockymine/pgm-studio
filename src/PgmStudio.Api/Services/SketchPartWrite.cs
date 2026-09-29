@@ -31,7 +31,8 @@ public static class SketchPartWrite
         // same word, so neither can be reading a different board from the other. What is left out is named on
         // the answer, and `GET /map/{slug}/findings` is where a caller asks for it.
         var findings = SketchMaterialGate.Check(layoutJson, LayoutReading.Document);
-        if (findings.Count > 0) return new(null, id, findings);
+        if (findings.Refuses) return new(null, id, findings);
+        Complaints.Add(http, findings.Complaints);
 
         var layout = SketchLayout.Stated(layoutJson);
         Complaints.Unread(http, layoutJson, layout);
@@ -52,7 +53,7 @@ public static class SketchPartWrite
     public static async Task<bool> RefusedAsync(HttpContext http, PartWritten written, CancellationToken ct)
     {
         if (written.Refusal is { } refusal) { await Refusals.WriteAsync(http, refusal, ct); return true; }
-        if (written.Findings.Count > 0)
+        if (written.Findings.Refuses)
             return await Refusals.StopAsync(http, 400, "invalid style or theme", written.Findings, ct);
 
         Revisions.Answer(http, written.Revision!.Value);
