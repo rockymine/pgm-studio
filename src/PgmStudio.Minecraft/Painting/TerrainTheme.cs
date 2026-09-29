@@ -74,6 +74,13 @@ public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket B
     /// swatch, a house course, a boulder — leaves it null, and a following stack then reads world Y like any
     /// other.</summary>
     public SmoothedGround? Ground { get; init; }
+
+    /// <summary>How the orbit image this block is painted on turns a horizontal direction — the transform
+    /// <see cref="BlockGeometry.Turned"/> takes — or null on the authored image and on a board with no orbit.
+    /// A material turns a direction it <em>states</em> through it, so a ladder keeps its back to the image of
+    /// its wall and a stair climbs toward the image of its side; a direction it reads off the ground is left
+    /// alone, because the wall's run a laid log follows is measured on the image itself.</summary>
+    public Func<int, int, (int X, int Z)>? Turn { get; init; }
 }
 
 /// <summary>
@@ -140,7 +147,8 @@ public abstract record TerrainMaterial
 /// <summary>One block everywhere in the bucket.</summary>
 public sealed record SolidMaterial(int Id, int Data = 0) : TerrainMaterial
 {
-    public override (int Id, int Data) Resolve(in BucketContext ctx) => (Id, Data);
+    public override (int Id, int Data) Resolve(in BucketContext ctx) =>
+        ctx.Turn is { } turn ? (Id, BlockGeometry.Turned(Id, Data, turn)) : (Id, Data);
 }
 
 /// <summary>What a material can be asked <b>without a cell to ask it at</b>.</summary>

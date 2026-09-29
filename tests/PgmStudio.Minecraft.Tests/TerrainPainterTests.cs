@@ -630,7 +630,7 @@ public sealed class TerrainPainterTests
             Fill = new SolidMaterial(Blocks.Cobblestone),
         };
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
-                             (layer, _, _) => layer == "ground" ? ground : rock, floorByLayer: terrain.FloorByLayer);
+                             (layer, _, _) => new CellPaint(layer == "ground" ? ground : rock), floorByLayer: terrain.FloorByLayer);
 
         await Assert.That(terrain.World.GetBlock(3, 4, 3).Id).IsEqualTo(Blocks.Dirt);
         await Assert.That(terrain.World.GetBlock(0, 4, 3).Id).IsEqualTo(Blocks.HardenedClay);
@@ -661,7 +661,7 @@ public sealed class TerrainPainterTests
             Fill = new SolidMaterial(Blocks.Dirt),
         };
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
-                             (layer, _, _) => layer == "ground" ? meadow : TerrainTheme.OfMaterial(new SolidMaterial(made), meadow),
+                             (layer, _, _) => new CellPaint(layer == "ground" ? meadow : TerrainTheme.OfMaterial(new SolidMaterial(made), meadow)),
                              floorByLayer: terrain.FloorByLayer, madeLayers: new HashSet<string> { "thing" });
 
         await Assert.That(terrain.World.GetBlock(3, 5, 3).Id).IsEqualTo(made);
@@ -689,7 +689,7 @@ public sealed class TerrainPainterTests
             Fill = new SolidMaterial(Blocks.Sandstone),
         };
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
-                             (layer, _, _) => layer == "ground" ? desert : TerrainTheme.OfMaterial(new SolidMaterial(Blocks.Sand), desert),
+                             (layer, _, _) => new CellPaint(layer == "ground" ? desert : TerrainTheme.OfMaterial(new SolidMaterial(Blocks.Sand), desert)),
                              floorByLayer: terrain.FloorByLayer, madeLayers: new HashSet<string> { "bed" });
 
         await Assert.That(terrain.World.GetBlock(3, 4, 3).Id).IsEqualTo(Blocks.Sand);
@@ -721,7 +721,7 @@ public sealed class TerrainPainterTests
             Fill = new SolidMaterial(Blocks.Stone),
         };
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
-                             (layer, _, _) => layer == "ground" ? meadow : TerrainTheme.Default, floorByLayer: terrain.FloorByLayer);
+                             (layer, _, _) => new CellPaint(layer == "ground" ? meadow : TerrainTheme.Default), floorByLayer: terrain.FloorByLayer);
 
         foreach (var y in (int[])[3, 4, 5])
             await Assert.That(terrain.World.GetBlock(3, y, 3).Id).IsEqualTo(Blocks.Stone);
@@ -766,7 +766,7 @@ public sealed class TerrainPainterTests
             Fill = new SolidMaterial(Blocks.Wool, 14),
         };
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
-                             (layer, _, _) => layer == "plinth" ? diorite : wool);
+                             (layer, _, _) => new CellPaint(layer == "plinth" ? diorite : wool));
 
         // The plinth keeps its own courses; the block rests on its top one, so that course is fill (TP25).
         await Assert.That(terrain.World.GetBlock(2, 3, 2)).IsEqualTo((Blocks.Stone, 3));
@@ -812,7 +812,7 @@ public sealed class TerrainPainterTests
             Fill = new SolidMaterial(Blocks.Wool, 14),
         };
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
-                             (layer, _, _) => layer == "undercroft" ? below : above);
+                             (layer, _, _) => new CellPaint(layer == "undercroft" ? below : above));
 
         // The undercroft's own courses are its own — not the deck's paint run down through them.
         await Assert.That(terrain.World.GetBlock(2, 3, 2)).IsEqualTo((Blocks.Wool, 4));

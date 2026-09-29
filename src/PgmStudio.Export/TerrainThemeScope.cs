@@ -1,5 +1,6 @@
 using PgmStudio.Geom;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
@@ -25,9 +26,14 @@ namespace PgmStudio.Export;
 /// </summary>
 public static class TerrainThemeScope
 {
-    /// <summary>The per-cell theme resolver for <see cref="TerrainPainter"/>. Returns a constant map-default
-    /// resolver when nothing is themed (a plain sketch), so the common path allocates nothing per cell.</summary>
-    public static Func<string, int, int, TerrainTheme> ThemeAt(string layoutJson)
+    /// <summary>The per-cell paint resolver for <see cref="TerrainPainter"/>: the theme a cell paints with, and
+    /// the turn of the orbit image of its shape that claimed it. Returns a constant map-default resolver when
+    /// nothing is themed (a plain sketch), so the common path allocates nothing per cell.
+    ///
+    /// <para>The turn is read from the fan — which image of the shape's orbit covers the cell — and never from
+    /// the board's fold, which would turn a second time a shape the author drew on the far half. A cell the map
+    /// default paints belongs to no shape's orbit and is painted as stated.</para></summary>
+    public static Func<string, int, int, CellPaint> ThemeAt(string layoutJson)
     {
         var layout = SketchLayout.Parse(layoutJson);
 
@@ -56,16 +62,27 @@ public static class TerrainThemeScope
                 else if (s.Theme is { } tid && themes.TryGetValue(tid, out var theme)) shapeTheme[(layer.Id!, s.Id)] = theme;
             }
 
-        if (shapeTheme.Count == 0) return (_, _, _) => mapDefault;
+        var plain = new CellPaint(mapDefault);
+        if (shapeTheme.Count == 0) return (_, _, _) => plain;
 
         // A theme saying its edges are the ground's is composed against the map default, which is the board's
         // own answer to what its landmass looks like where it stops (TP23). Composed here rather than stored
         // composed, because the same paint scoped onto a board with a different default takes that board's.
         var cellToShape = SketchRasterizer.ShapeThemeOwners(layoutJson);
-        return (layer, x, z) => cellToShape.TryGetValue((layer, x, z), out var shapeId)
-            && shapeTheme.TryGetValue((layer, shapeId), out var theme)
-                ? TerrainTheme.OverGround(theme, mapDefault)
-                : mapDefault;
+
+        // One turn per image, about the origin: a block's direction is an offset and has no position to fan.
+        var symmetry = new DressingSymmetry(SketchLayout.MirrorModeOf(layout));
+        var turns = new Func<int, int, (int X, int Z)>?[symmetry.Order];
+        for (var image = 1; image < turns.Length; image++)
+        {
+            var orbitImage = image;
+            turns[image] = (dx, dz) => symmetry.TurnCell(dx, dz, orbitImage);
+        }
+
+        return (layer, x, z) => cellToShape.TryGetValue((layer, x, z), out var owner)
+            && shapeTheme.TryGetValue((layer, owner.Shape), out var theme)
+                ? new CellPaint(TerrainTheme.OverGround(theme, mapDefault), turns[owner.Image])
+                : plain;
     }
 
     /// <summary>SK23 — every themed shape whose theme cannot show itself on it, because the shape has no
@@ -109,7 +126,7 @@ public static class TerrainThemeScope
         }
 
         var owned = new Dictionary<(string Layer, string Shape), List<(int X, int Z)>>();
-        foreach (var ((layer, x, z), shape) in SketchRasterizer.ShapeThemeOwners(layoutJson))
+        foreach (var ((layer, x, z), (shape, _)) in SketchRasterizer.ShapeThemeOwners(layoutJson))
         {
             if (!watched.ContainsKey((layer, shape))) continue;
             if (!owned.TryGetValue((layer, shape), out var cells)) owned[(layer, shape)] = cells = [];

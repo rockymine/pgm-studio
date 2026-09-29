@@ -151,6 +151,10 @@ public sealed class SketchLayout
         return layers;
     }
 
+    /// <summary>The mode a document's mirroring groups are fanned by: its setup's, or the setup's own default
+    /// where it states no setup — so every reader of the orbit fans a setup-less document the same way.</summary>
+    public static string MirrorModeOf(SketchLayout? state) => state?.Setup?.MirrorMode ?? new SketchSetup().MirrorMode;
+
     /// <summary>Every group id a layout names, across all its layers.</summary>
     public static IEnumerable<string> GroupIds(SketchLayout? state)
     {

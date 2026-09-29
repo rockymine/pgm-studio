@@ -459,6 +459,17 @@ paints `made` layers before the ground, so a made thing is its own material in e
 ground under a ladder or a cactus keeps its surface (`docs/world-export/terrain-painting.md` TP25). Otherwise a
 `made` layer rasterizes, themes and mirrors identically.
 
+**A made thing fanned onto its images turns its blocks with it.** A block whose data is a direction — a ladder,
+a stair, a log's axis, a torch, a fence gate, a chest — is stated once, on the authored half, and on every
+other image of a mirroring group it is written turned by that image's transform. So a ladder with its back to a
+wall has its back to the image of that wall on a `mirror_x`, `mirror_z` or `rot_180` board and on all four
+images of a `rot_90` one, and a stair climbing into a wall keeps climbing into it. A reflection swaps the
+facings across its own axis and keeps the rest; a quarter-turn swaps the axes.
+
+**The turn is read from the fan, never from the fold.** What decides it is which image of a shape's orbit
+claimed the cell, so a thing the author drew a second time on the far half of a group that does not mirror is
+image 0 there and is written exactly as drawn. `docs/world-export/terrain-painting.md` §5 carries the mechanism.
+
 **`seat` is where the house model is borrowed from.** A house prop seats on the lowest column of its own
 footprint one course down, carves the terrain standing over that floor out of every footprint column, and
 declines rather than half-lands (`docs/world-export/structures.md` §6). A seated layer does the same thing

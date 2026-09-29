@@ -284,7 +284,7 @@ public static class SketchLayoutCheck
                 + "state — pull it into `dressing.styles` under that key, or name one the registry has",
                 Severity.Refusal, Field: "dressing", Subjects: [subject]));
 
-        var mode = layout.Setup?.MirrorMode ?? "rot_180";
+        var mode = SketchLayout.MirrorModeOf(layout);
         double centerX = layout.Setup?.Center?.Cx ?? 0, centerZ = layout.Setup?.Center?.Cz ?? 0;
 
         if (!Modes.Contains(mode))
@@ -565,7 +565,7 @@ public static class SketchLayoutCheck
     /// where the board fits, and for a board with no bounded shape in it at all.</summary>
     private static Finding? TooLarge(SketchLayout layout)
     {
-        var mode = layout.Setup?.MirrorMode ?? "rot_180";
+        var mode = SketchLayout.MirrorModeOf(layout);
         double centerX = layout.Setup?.Center?.Cx ?? 0, centerZ = layout.Setup?.Center?.Cz ?? 0;
         var extent = (MinX: double.MaxValue, MinZ: double.MaxValue, MaxX: double.MinValue, MaxZ: double.MinValue);
 

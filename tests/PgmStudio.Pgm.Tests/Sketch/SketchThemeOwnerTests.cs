@@ -43,7 +43,7 @@ public sealed class SketchThemeOwnerTests
         + @"""mirrors"":false,""shapeIds"":[""island""]}]}}]}";
 
     private static string? OwnerAt(string board, int x, int z) =>
-        SketchRasterizer.ShapeThemeOwners(board).TryGetValue(("ground", x, z), out var id) ? id : null;
+        SketchRasterizer.ShapeThemeOwners(board).TryGetValue(("ground", x, z), out var owner) ? owner.Shape : null;
 
     [Test]
     public async Task A_column_wears_the_theme_of_the_shape_that_forms_its_surface()

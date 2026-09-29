@@ -5,6 +5,12 @@ namespace PgmStudio.Minecraft.Painting;
 /// <summary>One vertical run of a column assigned to a bucket, min-inclusive / max-exclusive in Y.</summary>
 public readonly record struct TerrainBand(int LoY, int HiY, TerrainBucket Bucket);
 
+/// <summary>What paints one cell: the theme its scope resolves to, and <see cref="BucketContext.Turn"/> — how
+/// the orbit image of that scope the cell lies on turns a direction, null on the authored image. The turn is
+/// the fan's, read from which image of a shape claimed the cell, so ground the author drew on the far half
+/// is painted exactly as drawn.</summary>
+public readonly record struct CellPaint(TerrainTheme Theme, Func<int, int, (int X, int Z)>? Turn = null);
+
 /// <summary>
 /// Terrain painting (docs/world-export/terrain-painting.md): dresses the raw stone a finished world exports —
 /// clay walls, quartz rims, grass surface — reading the <see cref="TerrainProfile"/> core and a
@@ -23,9 +29,10 @@ public static class TerrainPainter
     /// on any bucket; the default is neutral everywhere.</summary>
     public static void Paint(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, TerrainTheme theme,
         Func<int, int, int>? teamDamageAt = null, Func<int, int, (int X, int Z)>? foldAt = null)
-        => Paint(world, surfaceTop, (_, _) => theme, teamDamageAt, foldAt);
+        => Paint(world, surfaceTop, (_, _) => new CellPaint(theme), teamDamageAt, foldAt);
 
-    /// <summary>Paint a board one layer at a time, each against its own surface and its own theme.
+    /// <summary>Paint a board one layer at a time, each against its own surface and its own theme, each block
+    /// turned with the orbit image its cell's scope lies on (<see cref="CellPaint"/>).
     /// A cell on two layers is painted twice — once per surface it carries — which is what puts turf on a
     /// gallery floor and a meadow on the deck roofing it. The stone-only invariant keeps the passes from
     /// treading on each other: a course a lower layer has already finished is no longer stone.
@@ -41,7 +48,7 @@ public static class TerrainPainter
     /// than a statement about the stack.</para></summary>
     public static void Paint(VoxelWorld world,
         IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> surfaceByLayer,
-        Func<string, int, int, TerrainTheme> themeAt, Func<int, int, int>? teamDamageAt = null,
+        Func<string, int, int, CellPaint> paintAt, Func<int, int, int>? teamDamageAt = null,
         Func<int, int, (int X, int Z)>? foldAt = null,
         IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? floorByLayer = null,
         IReadOnlySet<string>? madeLayers = null)
@@ -49,7 +56,7 @@ public static class TerrainPainter
         foreach (var (layer, tops) in surfaceByLayer
                      .OrderBy(entry => madeLayers?.Contains(entry.Key) == true ? 0 : 1)
                      .ThenBy(entry => Lowest(entry.Value)))
-            Paint(world, tops, (x, z) => themeAt(layer, x, z), teamDamageAt, foldAt,
+            Paint(world, tops, (x, z) => paintAt(layer, x, z), teamDamageAt, foldAt,
                   floorByLayer?.GetValueOrDefault(layer));
     }
 
@@ -58,16 +65,17 @@ public static class TerrainPainter
     private static int Lowest(IReadOnlyDictionary<(int X, int Z), int> tops) =>
         tops.Count == 0 ? int.MinValue : tops.Values.Min();
 
-    /// <summary>Paint the footprint with a <b>per-cell</b> theme (TP10): <paramref name="themeAt"/> resolves the
-    /// theme governing each cell — a piece override, its collection, or the map default. Each column resolves
-    /// its bands and materials against its own theme; the profile is theme-agnostic, so per-cell theming needs
-    /// no new geometry. The single-theme overload is this with a constant resolver.
+    /// <summary>Paint the footprint with a <b>per-cell</b> theme (TP10): <paramref name="paintAt"/> resolves the
+    /// theme governing each cell — a piece override, its collection, or the map default — and the turn of the
+    /// orbit image it lies on. Each column resolves its bands and materials against its own theme; the profile
+    /// is theme-agnostic, so per-cell theming needs no new geometry. The single-theme overload is this with a
+    /// constant resolver.
     /// <para><paramref name="foldAt"/> is the board's symmetry fold (TP21): a cell to the representative of its
     /// orbit, which is what a pattern samples at (<see cref="BucketContext.Sample"/>) so the two halves of a
     /// mirrored board are painted alike. Once per column rather than once per block — the fold is of the plane.
     /// Unset, every cell samples itself, which is a board with no symmetry.</para></summary>
     public static void Paint(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
-        Func<int, int, TerrainTheme> themeAt, Func<int, int, int>? teamDamageAt = null,
+        Func<int, int, CellPaint> paintAt, Func<int, int, int>? teamDamageAt = null,
         Func<int, int, (int X, int Z)>? foldAt = null,
         IReadOnlyDictionary<(int X, int Z), int>? floorAt = null)
     {
@@ -76,8 +84,9 @@ public static class TerrainPainter
         foreach (var (cell, column) in profile.Columns())
         {
             var sample = foldAt?.Invoke(cell.X, cell.Z) ?? cell;
-            foreach (var (y, id, data) in ColumnBlocks(cell.X, cell.Z, column, themeAt(cell.X, cell.Z), team(cell.X, cell.Z), sample,
-                         profile.Ground))
+            var paint = paintAt(cell.X, cell.Z);
+            foreach (var (y, id, data) in ColumnBlocks(cell.X, cell.Z, column, paint.Theme, team(cell.X, cell.Z), sample,
+                         profile.Ground, paint.Turn))
             {
                 // The stone-only invariant, over the whole block and not its id alone: stone's id is shared
                 // by granite, diorite, andesite and their polished forms, so a course a lower layer has
@@ -99,11 +108,12 @@ public static class TerrainPainter
     /// <para>What the world already holds is not consulted here: the caller applies the stone-only invariant,
     /// because whether a cell may be overwritten is a fact about the world, not about the column.</para>
     /// <para><paramref name="ground"/> is the painted layer's <see cref="TerrainProfile.Ground"/>, which a height
-    /// stack that follows the ground measures from (TP26); left null, such a stack reads world Y.</para>
+    /// stack that follows the ground measures from (TP26); left null, such a stack reads world Y.
+    /// <paramref name="turn"/> is the cell's <see cref="CellPaint.Turn"/>.</para>
     /// </summary>
     public static IEnumerable<(int Y, int Id, int Data)> ColumnBlocks(
         int x, int z, ColumnProfile column, TerrainTheme theme, int teamDamage = -1,
-        (int X, int Z)? sample = null, SmoothedGround? ground = null)
+        (int X, int Z)? sample = null, SmoothedGround? ground = null, Func<int, int, (int X, int Z)>? turn = null)
     {
         var bands = Resolve(column, theme);
         for (var i = bands.Count - 1; i >= 0; i--)   // top band first — the preview wants only its top cell
@@ -115,7 +125,7 @@ public static class TerrainPainter
                 var (id, data) = material.Resolve(
                     new BucketContext(x, y, z, band.Bucket, band.HiY - 1 - y, teamDamage, column.PerimeterArc,
                         y - band.LoY, column.PerimeterTurn, column.PerimeterRun, column.Inset, column.Slope)
-                    { Sample = sample ?? (x, z), Ground = ground });
+                    { Sample = sample ?? (x, z), Ground = ground, Turn = turn });
                 yield return (y, id, data);
             }
         }
@@ -125,9 +135,9 @@ public static class TerrainPainter
     /// is the top cell of the topmost band. Null only for a column that paints nothing at all.</summary>
     public static (int Y, int Id, int Data)? TopBlock(
         int x, int z, ColumnProfile column, TerrainTheme theme, int teamDamage = -1,
-        (int X, int Z)? sample = null, SmoothedGround? ground = null)
+        (int X, int Z)? sample = null, SmoothedGround? ground = null, Func<int, int, (int X, int Z)>? turn = null)
     {
-        foreach (var block in ColumnBlocks(x, z, column, theme, teamDamage, sample, ground)) return block;
+        foreach (var block in ColumnBlocks(x, z, column, theme, teamDamage, sample, ground, turn)) return block;
         return null;
     }
 

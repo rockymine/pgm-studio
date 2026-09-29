@@ -1,6 +1,9 @@
 using System.Text.Json;
 using PgmStudio.Export;
+using PgmStudio.Geom;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Minecraft.Painting;
@@ -49,8 +52,8 @@ public sealed class TerrainThemeScopeTests
     public async Task No_theming_resolves_the_builtin_default_everywhere()
     {
         var at = TerrainThemeScope.ThemeAt(Layout(null, null, Rect("s0", 0, 0, 4, 4, null)));
-        await Assert.That(at("ground", 3, 3)).IsEqualTo(TerrainTheme.Default);
-        await Assert.That(at("ground", -99, 99)).IsEqualTo(TerrainTheme.Default);
+        await Assert.That(at("ground", 3, 3).Theme).IsEqualTo(TerrainTheme.Default);
+        await Assert.That(at("ground", -99, 99).Theme).IsEqualTo(TerrainTheme.Default);
     }
 
     [Test]
@@ -60,9 +63,9 @@ public sealed class TerrainThemeScopeTests
         var at = TerrainThemeScope.ThemeAt(Layout(themes, "map",
             Rect("p1", 0, 0, 4, 4, "red"),
             Rect("p2", 10, 10, 14, 14, null)));   // present but unthemed
-        await Assert.That(FillId(at("ground", 2, 2))).IsEqualTo(200);     // inside p1 → red theme
-        await Assert.That(FillId(at("ground", 12, 12))).IsEqualTo(100);   // inside p2, unthemed → map default
-        await Assert.That(FillId(at("ground", 50, 50))).IsEqualTo(100);   // no shape → map default
+        await Assert.That(FillId(at("ground", 2, 2).Theme)).IsEqualTo(200);     // inside p1 → red theme
+        await Assert.That(FillId(at("ground", 12, 12).Theme)).IsEqualTo(100);   // inside p2, unthemed → map default
+        await Assert.That(FillId(at("ground", 50, 50).Theme)).IsEqualTo(100);   // no shape → map default
     }
 
     [Test]
@@ -72,8 +75,8 @@ public sealed class TerrainThemeScopeTests
         var at = TerrainThemeScope.ThemeAt(Layout(themes, null,
             Rect("big", 0, 0, 10, 10, "big"),
             Rect("small", 1, 1, 3, 3, "small")));
-        await Assert.That(FillId(at("ground", 2, 2))).IsEqualTo(300);   // in both → the smaller (more specific) shape
-        await Assert.That(FillId(at("ground", 6, 6))).IsEqualTo(400);   // only the big shape
+        await Assert.That(FillId(at("ground", 2, 2).Theme)).IsEqualTo(300);   // in both → the smaller (more specific) shape
+        await Assert.That(FillId(at("ground", 6, 6).Theme)).IsEqualTo(400);   // only the big shape
     }
 
     [Test]
@@ -81,20 +84,20 @@ public sealed class TerrainThemeScopeTests
     {
         var themes = new Dictionary<string, JsonElement> { ["map"] = Fill(100), ["red"] = Fill(200) };
         var before = TerrainThemeScope.ThemeAt(Layout(themes, "map", Rect("s0", 0, 0, 2, 2, "red")));
-        await Assert.That(FillId(before("ground", 1, 1))).IsEqualTo(200);
-        await Assert.That(FillId(before("ground", 5, 5))).IsEqualTo(100);
+        await Assert.That(FillId(before("ground", 1, 1).Theme)).IsEqualTo(200);
+        await Assert.That(FillId(before("ground", 5, 5).Theme)).IsEqualTo(100);
 
         // Same shape id, moved: the theme follows the new footprint with no re-assignment.
         var after = TerrainThemeScope.ThemeAt(Layout(themes, "map", Rect("s0", 4, 4, 6, 6, "red")));
-        await Assert.That(FillId(after("ground", 1, 1))).IsEqualTo(100);
-        await Assert.That(FillId(after("ground", 5, 5))).IsEqualTo(200);
+        await Assert.That(FillId(after("ground", 1, 1).Theme)).IsEqualTo(100);
+        await Assert.That(FillId(after("ground", 5, 5).Theme)).IsEqualTo(200);
     }
 
     [Test]
     public async Task An_unknown_map_theme_id_falls_back_to_the_builtin_default()
     {
         var at = TerrainThemeScope.ThemeAt(Layout(null, "missing", Rect("s0", 0, 0, 4, 4, null)));
-        await Assert.That(at("ground", 0, 0)).IsEqualTo(TerrainTheme.Default);
+        await Assert.That(at("ground", 0, 0).Theme).IsEqualTo(TerrainTheme.Default);
     }
 
     // ── A stacked board wears one theme per storey ───────────────────────────────────────────────────────
@@ -129,8 +132,8 @@ public sealed class TerrainThemeScopeTests
         var at = TerrainThemeScope.ThemeAt(Stacked(themes, "map",
             Slab("gallery", 0, 4, "floor"), Slab("deck", 0, 6, "roof")));
 
-        await Assert.That(FillId(at("ground", 4, 4))).IsEqualTo(200);
-        await Assert.That(FillId(at("deck", 4, 4))).IsEqualTo(300);
+        await Assert.That(FillId(at("ground", 4, 4).Theme)).IsEqualTo(200);
+        await Assert.That(FillId(at("deck", 4, 4).Theme)).IsEqualTo(300);
     }
 
     /// <summary>A shape id is unique within its layer and not across the stack: two made things compiled by one
@@ -144,8 +147,8 @@ public sealed class TerrainThemeScopeTests
         var at = TerrainThemeScope.ThemeAt(Stacked(themes, "map",
             Slab("statue-0", 0, 4, "red"), Slab("statue-0", 0, 6, "blue")));
 
-        await Assert.That(FillId(at("ground", 4, 4))).IsEqualTo(200);
-        await Assert.That(FillId(at("deck", 4, 4))).IsEqualTo(300);
+        await Assert.That(FillId(at("ground", 4, 4).Theme)).IsEqualTo(200);
+        await Assert.That(FillId(at("deck", 4, 4).Theme)).IsEqualTo(300);
     }
 
     /// <summary>And the paint follows: each storey's own surface takes its own theme's material, so a themed
@@ -188,7 +191,7 @@ public sealed class TerrainThemeScopeTests
         var at = TerrainThemeScope.ThemeAt(Layout(
             new Dictionary<string, JsonElement> { ["map"] = Fill(100) }, "map",
             Made("rail", 0, 0, 2, 2, 42)));
-        var theme = at("ground", 1, 1);
+        var theme = at("ground", 1, 1).Theme;
 
         TerrainBucket[] buckets = [TerrainBucket.Fill, TerrainBucket.Wall, TerrainBucket.Surface, TerrainBucket.Rim];
         foreach (var bucket in buckets)
@@ -226,8 +229,8 @@ public sealed class TerrainThemeScopeTests
         // One two-by-two column standing free: every side is void, so it is a rim column under any rimEdges.
         var column = new ColumnProfile(SurfaceTop: 6, Base: 1, VoidEdge: true, OpenEdge: true, ClosedEdge: true,
                                        VoidDrop: 1, TerrainDrop: -1);
-        var themed = TerrainPainter.ColumnBlocks(0, 0, column, at("ground", 1, 1)).Select(b => b.Id).ToList();
-        var made = TerrainPainter.ColumnBlocks(10, 10, column, at("ground", 11, 11)).Select(b => b.Id).ToList();
+        var themed = TerrainPainter.ColumnBlocks(0, 0, column, at("ground", 1, 1).Theme).Select(b => b.Id).ToList();
+        var made = TerrainPainter.ColumnBlocks(10, 10, column, at("ground", 11, 11).Theme).Select(b => b.Id).ToList();
 
         await Assert.That(themed[0]).IsEqualTo(7).Because("the theme's rim caps the column");
         await Assert.That(themed.Skip(1).Distinct().ToList()).IsEquivalentTo(new List<int> { 8 })
@@ -343,7 +346,7 @@ public sealed class TerrainThemeScopeTests
             Rect("ground", 0, 0, 20, 20, "moor"),
             Rect("brake", 4, 4, 8, 8, "stroke")));
 
-        var paint = at("ground", 5, 5);
+        var paint = at("ground", 5, 5).Theme;
         await Assert.That(BucketId(paint, TerrainBucket.Surface)).IsEqualTo(22).Because("the stroke's own top");
         await Assert.That(BucketId(paint, TerrainBucket.Fill)).IsEqualTo(23).Because("and its own fill");
         await Assert.That(BucketId(paint, TerrainBucket.Rim)).IsEqualTo(10).Because("the landmass's edge");
@@ -364,7 +367,7 @@ public sealed class TerrainThemeScopeTests
             Rect("ground", 0, 0, 20, 20, "moor"),
             Rect("brake", 4, 4, 8, 8, "stroke")));
 
-        var paint = at("ground", 5, 5);
+        var paint = at("ground", 5, 5).Theme;
         foreach (var (bucket, id) in new[]
                  { (TerrainBucket.Rim, 20), (TerrainBucket.Wall, 21),
                    (TerrainBucket.Surface, 22), (TerrainBucket.Fill, 23) })
@@ -404,8 +407,8 @@ public sealed class TerrainThemeScopeTests
             new Dictionary<string, JsonElement> { ["map"] = Fill(100) }, "map",
             Made("road", 4, 4, 8, 8, 42)));
 
-        await Assert.That(FillId(at("ground", 5, 5))).IsEqualTo(42).Because("the drawn half");
-        await Assert.That(FillId(at("ground", -6, -6))).IsEqualTo(42).Because("its rot_180 image");
+        await Assert.That(FillId(at("ground", 5, 5).Theme)).IsEqualTo(42).Because("the drawn half");
+        await Assert.That(FillId(at("ground", -6, -6).Theme)).IsEqualTo(42).Because("its rot_180 image");
     }
 
     /// <summary>The same for the other grain, so the two are not allowed to drift apart again.</summary>
@@ -416,8 +419,150 @@ public sealed class TerrainThemeScopeTests
             new Dictionary<string, JsonElement> { ["map"] = Fill(100), ["road"] = Fill(42) }, "map",
             Rect("road", 4, 4, 8, 8, "road")));
 
-        await Assert.That(FillId(at("ground", 5, 5))).IsEqualTo(42);
-        await Assert.That(FillId(at("ground", -6, -6))).IsEqualTo(42);
+        await Assert.That(FillId(at("ground", 5, 5).Theme)).IsEqualTo(42);
+        await Assert.That(FillId(at("ground", -6, -6).Theme)).IsEqualTo(42);
+    }
+
+    // ── a made thing fanned onto its images turns its blocks with it ─────────────────────────────
+
+    private const int Wall = 98, Course = 10;
+    private const int LadderLookingNorth = 2, StairClimbingEast = 0, LogAlongX = 4;
+    private static readonly (int X, int Z) WallCell = (6, 6), LadderCell = (6, 5), StairCell = (5, 6), LogCell = (7, 6);
+
+    /// <summary>A one-cell shape one course thick stating the block it is made of.</summary>
+    private static SketchShape Block(string id, (int X, int Z) cell, int blockId, int data) => new()
+    {
+        Id = id, Type = "rectangle", Operation = "add",
+        MinX = cell.X, MinZ = cell.Z, MaxX = cell.X + 1, MaxZ = cell.Z + 1, BaseHeight = 1,
+        Material = JsonSerializer.Deserialize<JsonElement>(TerrainThemeJson.Serialize(new SolidMaterial(blockId, data))),
+    };
+
+    /// <summary>A made layer ten courses up holding the given shapes as one group, fanned by
+    /// <paramref name="mode"/> about the origin where <paramref name="mirrors"/> says so.</summary>
+    private static string Thing(string mode, bool mirrors, params SketchShape[] shapes) => new SketchLayout
+    {
+        Setup = new SketchSetup { MirrorMode = mode, Center = new SketchCenter { Cx = 0, Cz = 0 } },
+        Layers =
+        [
+            new SketchLayer
+            {
+                Id = "thing", BaseY = Course, Kind = SketchLayer.MadeKind,
+                Layout = new SketchShapes
+                {
+                    Shapes = [.. shapes],
+                    Groups = [new SketchGroup { Id = "thing", Mirrors = mirrors, ShapeIds = [.. shapes.Select(s => s.Id)] }],
+                },
+            },
+        ],
+    }.ToJson();
+
+    /// <summary>A wall block with three blocks that each point at it: a ladder on its north face with its back
+    /// to it, a stair west of it climbing into it, and a log east of it lying along the line to it.</summary>
+    private static SketchShape[] Pointing() =>
+    [
+        Block("wall", WallCell, Wall, 0),
+        Block("ladder", LadderCell, Blocks.Ladder, LadderLookingNorth),
+        Block("stair", StairCell, Blocks.OakStairs, StairClimbingEast),
+        Block("log", LogCell, Blocks.Log, LogAlongX),
+    ];
+
+    /// <summary>The world the export paints: the scope's resolver, the board's fold, each layer over its own
+    /// span and the made layer first.</summary>
+    private static VoxelWorld Painted(string layoutJson)
+    {
+        var terrain = TerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layoutJson));
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer, TerrainThemeScope.ThemeAt(layoutJson),
+                             foldAt: DressingScope.SymmetryOf(layoutJson).Canonical,
+                             floorByLayer: terrain.FloorByLayer, madeLayers: new HashSet<string> { "thing" });
+        return terrain.World;
+    }
+
+    private static (int Id, int Data) At(VoxelWorld world, (int X, int Z) cell) =>
+        world.GetBlock(cell.X, Course, cell.Z);
+
+    private static (int X, int Z) Offset((int X, int Z) from, (int X, int Z) to) => (to.X - from.X, to.Z - from.Z);
+
+    /// <summary>The way a ladder's back points — the side opposite the one it looks toward (north 2, south 3,
+    /// west 4, east 5), which is the block holding it up.</summary>
+    private static (int X, int Z) LadderBack(int data) => (data & 7) switch
+    {
+        2 => (0, 1),
+        3 => (0, -1),
+        4 => (1, 0),
+        _ => (-1, 0),
+    };
+
+    /// <summary>The side a stair climbs toward (east 0, west 1, south 2, north 3).</summary>
+    private static (int X, int Z) StairClimb(int data) => (data & 3) switch
+    {
+        0 => (1, 0),
+        1 => (-1, 0),
+        2 => (0, 1),
+        _ => (0, -1),
+    };
+
+    /// <summary>The axis a log lies along, as a unit offset (along x 4, along z 8), or none for upright.</summary>
+    private static (int X, int Z) LogAxis(int data) => (data & 12) switch
+    {
+        4 => (1, 0),
+        8 => (0, 1),
+        _ => (0, 0),
+    };
+
+    /// <summary>
+    /// <b>Every image of a fanned made thing points at the image of what the authored one points at.</b> A
+    /// ladder keeps its back to the image of its wall, a stair keeps climbing into it and a log keeps lying
+    /// along the line to it — under both reflections, the half-turn, and all four images of a quarter-turn.
+    /// Each block is judged by where its data points in the painted world, not against a transcribed table,
+    /// so a mirror that swaps east for west and a quarter-turn that swaps the axes are both caught.
+    /// </summary>
+    [Test]
+    [Arguments("mirror_x")]
+    [Arguments("mirror_z")]
+    [Arguments("rot_180")]
+    [Arguments("rot_90")]
+    public async Task Every_image_of_a_fanned_made_thing_points_at_the_image_of_its_wall(string mode)
+    {
+        var world = Painted(Thing(mode, mirrors: true, Pointing()));
+
+        for (var image = 0; image < Symmetry.Order(mode); image++)
+        {
+            (int X, int Z) Image((int X, int Z) cell) => Symmetry.Cell(cell.X, cell.Z, mode, 0, 0, image);
+            var wall = Image(WallCell);
+            var ladder = At(world, Image(LadderCell));
+            var stair = At(world, Image(StairCell));
+            var log = At(world, Image(LogCell));
+
+            await Assert.That((mode, image, At(world, wall).Id, ladder.Id, stair.Id, log.Id))
+                .IsEqualTo((mode, image, Wall, Blocks.Ladder, Blocks.OakStairs, Blocks.Log));
+            await Assert.That((mode, image, "ladder", LadderBack(ladder.Data)))
+                .IsEqualTo((mode, image, "ladder", Offset(Image(LadderCell), wall)));
+            await Assert.That((mode, image, "stair", StairClimb(stair.Data)))
+                .IsEqualTo((mode, image, "stair", Offset(Image(StairCell), wall)));
+            var toWall = Offset(Image(LogCell), wall);
+            await Assert.That((mode, image, "log", LogAxis(log.Data)))
+                .IsEqualTo((mode, image, "log", (Math.Abs(toWall.X), Math.Abs(toWall.Z))));
+        }
+    }
+
+    /// <summary>
+    /// <b>The turn is the fan's, never the fold's.</b> A thing the author drew a second time on the far half,
+    /// in a group that does not mirror, already points where it should, and is written as drawn: folding its
+    /// cells into the primary image and turning them from there would turn it a second time, away from the
+    /// wall it was drawn against.
+    /// </summary>
+    [Test]
+    public async Task A_thing_drawn_on_the_far_half_of_an_unmirrored_group_is_painted_as_drawn()
+    {
+        const int LadderLookingSouth = 3;
+        var wall = Symmetry.Cell(WallCell.X, WallCell.Z, "rot_180", 0, 0, 1);
+        var ladderCell = (wall.X, wall.Z + 1);
+        var world = Painted(Thing("rot_180", mirrors: false,
+            Block("wall", wall, Wall, 0),
+            Block("ladder", ladderCell, Blocks.Ladder, LadderLookingSouth)));
+
+        await Assert.That(At(world, ladderCell)).IsEqualTo((Blocks.Ladder, LadderLookingSouth));
+        await Assert.That(LadderBack(At(world, ladderCell).Data)).IsEqualTo(Offset(ladderCell, wall));
     }
 
     /// <summary>The footprint an interior is judged against is the layer's: the same two-block shape has a

@@ -89,6 +89,21 @@ public static class BlockFamilies
         23, 61, 62, 130, 144, 146, 154, 158,   // dispenser · furnace, lit · ender chest · skull · trapped chest · hopper · dropper
     };
 
+    /// <summary>The torches — plain, and redstone lit and unlit. Each names the way it points in the low three
+    /// bits (east 1, west 2, south 3, north 4, standing 5), away from the block it is fixed to — a table of its
+    /// own, which is why a torch is not <see cref="Fronted"/>.</summary>
+    public static readonly IReadOnlySet<int> Torches = new HashSet<int> { 50, 75, Blocks.RedstoneTorch };
+
+    /// <summary>The fence gates, one per wood. Each names the way it faces in its two low bits (south 0, west 1,
+    /// north 2, east 3) with its open flag above them.</summary>
+    public static readonly IReadOnlySet<int> FenceGates = new HashSet<int> { 107, 183, 184, 185, 186, 187 };
+
+    /// <summary>Whether the id is a torch — see <see cref="Torches"/>.</summary>
+    public static bool IsTorch(int blockId) => Torches.Contains(blockId);
+
+    /// <summary>Whether the id is a fence gate — see <see cref="FenceGates"/>.</summary>
+    public static bool IsFenceGate(int blockId) => FenceGates.Contains(blockId);
+
     /// <summary>Whether the id mounts with a front — see <see cref="Fronted"/> for what that excludes.</summary>
     public static bool IsFronted(int blockId) => Fronted.Contains(blockId);
 

@@ -737,6 +737,28 @@ public sealed class TerrainPatternsTests
             PerimeterRun: GridBoundary.RunAlongX))).IsEqualTo((Blocks.Log, 1 | AlongX));
     }
 
+    /// <summary>
+    /// <b>A laid log reads its run off the image it is painted on, so the image's turn does not touch it.</b>
+    /// The wall's run is measured on the image itself and is already that image's, so a quarter-turned beam
+    /// course lies along the wall there exactly as on the authored half. A log floor has no run to read and
+    /// lies along x by statement, so on a quarter-turned image it lies along z.
+    /// </summary>
+    [Test]
+    public async Task A_laid_log_follows_the_run_of_the_image_it_is_painted_on_and_turns_only_its_floor()
+    {
+        Func<int, int, (int X, int Z)> quarterTurn = (dx, dz) => (-dz, dx);
+        var beam = new LaidLogMaterial(Blocks.Log, 0);
+        foreach (var (run, axis) in new[] { (GridBoundary.RunAlongX, AlongX), (GridBoundary.RunAlongZ, AlongZ) })
+        {
+            var wall = new BucketContext(0, 0, 0, TerrainBucket.Wall, 0, PerimeterRun: run) { Turn = quarterTurn };
+            await Assert.That((run, beam.Resolve(wall))).IsEqualTo((run, (Blocks.Log, axis)));
+        }
+
+        var floor = new BucketContext(0, 0, 0, TerrainBucket.Surface, 0);
+        await Assert.That(beam.Resolve(floor)).IsEqualTo((Blocks.Log, AlongX));
+        await Assert.That(beam.Resolve(floor with { Turn = quarterTurn })).IsEqualTo((Blocks.Log, AlongZ));
+    }
+
     /// <summary>A freestanding column is a face with no run to follow, and a log laid on it shows a sawn end
     /// to the player on every side. Both log patterns stand it up there instead — upright, a log wears bark
     /// on all four sides a pillar has.</summary>

@@ -579,6 +579,15 @@ difference shows.
    footprints the rasterizer produces (a cell → shape → theme resolver, the `TeamTerritory` shape), so it adds
    only the lookup, no new geometry.
 
+   **The resolver answers which orbit image a cell is painted on, alongside its theme.** The rasterizer's
+   footprint walk (`SketchRasterizer.ShapeScopeOwners`) records for every cell both the shape that owns it and
+   the image of that shape's orbit that claimed it — 0 for the drawn footprint, `k` for the `k`-th axis a
+   mirroring group is fanned by — and `TerrainThemeScope.ThemeAt` hands the painter a `CellPaint`: the theme,
+   and the turn that image applies to a direction (`DressingSymmetry.TurnCell`, about the origin, since a
+   direction has no position to mirror). The image is the fan's and never the fold's, so a shape the author
+   drew on the far half of a group that does not mirror is image 0 there and is not turned a second time. A
+   cell the map default paints belongs to no shape's orbit and takes no turn.
+
 3. **Bands — the resolver (pure depth math).** Given `(Profile column, resolved Theme)`, compute the vertical
    band assignment: which y-range is bedrock, rim, wall, surface, fill. Every depth and toggle rule lives here
    and nowhere else (TP7/TP8/TP9/TP11/TP12) — bedrock claims the bottom, rim or surface the top, wall the
@@ -603,13 +612,28 @@ difference shows.
    seam; it is no longer the only thing doing it.
 
 4. **Materials — the painter (the pattern seam).** For each band, the bucket's `TerrainMaterial` resolves the
-   actual block per `BucketContext` (`x/y/z`, bucket, depth-from-top, team nibble, perimeter arc) and writes it.
+   actual block per `BucketContext` (`x/y/z`, bucket, depth-from-top, team nibble, perimeter arc, the image's
+   turn) and writes it.
    The material is the plug-in point: `SolidMaterial`, `LayeredMaterial` (surface's grass-over-dirt, a wall's
    vertical bands), `TeamTintedMaterial`, and the patterns `VoronoiMaterial` / `NoiseMaterial` (area) and
    `WallRunMaterial` (perimeter stripes) — composable (each nests any material) and deterministic (hashed from a
    seed and the cell, never RNG, the same discipline as the rest of the generator). Adding a pattern was a new
    `TerrainMaterial` and nothing else; the whole graph serializes through `TerrainThemeJson` under one `kind`
    discriminator.
+
+   **A block a material states turns with the image it is painted on.** The turn rides on
+   `BucketContext.Turn`, and a `SolidMaterial` — the leaf every picking pattern ends in — writes its data
+   through `BlockGeometry.Turned`, so a ladder, a stair, a log's axis, a wall torch, a fence gate and every
+   fronted block stated on the authored half faces the image of what it faced there: under `mirror_x` a stair
+   climbing east climbs west and a ladder looking north still looks north, and on the four images of a
+   `rot_90` board it takes each quarter in turn. A pattern sampled through the fold (TP21) picks the same leaf
+   at every image, and the leaf's turn is what makes the pick face the right way there.
+
+   **A direction a material reads off the ground is already the image's and is not turned.** `LaidLogMaterial`
+   and `LogCheckerMaterial` take a log's axis from the wall's own run (`BucketContext.PerimeterRun`, TP20),
+   which the profile measures on the image being painted, so a beam course on a quarter-turned image lies along
+   its own wall rather than across it. Only their log floor — laid along x where there is no run — is a
+   statement, and it turns with the image.
 
 **Why the split holds.** Each kind of change touches exactly one seam:
 
@@ -751,7 +775,8 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   registry** (`themes`, `themeId → theme JSON`) and the **map default** (`mapTheme`), and a shape carries the
   id of the theme it takes (`shape.theme`). At export `TerrainThemeScope` walks the rasterizer's own shape
   footprints — the primary plus every orbit copy, since a mirrored image keeps its shape id — and hands the
-  painter a per-cell `themeAt(x, z)` instead of one theme; an image carries **what its shape states** as well
+  painter a per-cell `themeAt(x, z)` instead of one theme, carrying the turn of the image the cell lies on (§5);
+  an image carries **what its shape states** as well
   as where it stands, both grains of it, because the resolver asks a shape whether it states a `theme` or a
   `material` and an image that answers neither is ground the map default finishes; because the band resolver and the materials already
   run per column against one theme-agnostic `ColumnProfile`, the per-cell lookup needs no new geometry. A
