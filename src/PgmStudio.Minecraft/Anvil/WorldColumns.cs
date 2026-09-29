@@ -1,4 +1,5 @@
 using PgmStudio.Geom;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Anvil;
 
@@ -90,7 +91,8 @@ public static class WorldColumns
     /// boulder stamped (<see cref="WorldProvenance.PropVolumeAt"/>), which are solid and never stood on. In a
     /// column a prop claimed, a block inside a span the rasterizer laid (<paramref name="terrain"/>) is the
     /// ground it stands in and every other block is the prop's, so a crown hanging past a board's rim is the
-    /// prop's all the way down.</summary>
+    /// prop's all the way down. Lava is taken the way a prop is: nobody stands in it and nothing under it is a
+    /// place to stand, where water is ground a player swims.</summary>
     public static (List<(int X, int Z, int YFloor, int YTop)> Ground, List<(int X, int Z, int YFloor, int YTop)> Props)
         ForWalk(VoxelWorld world, WorldProvenance provenance, IReadOnlyList<ColumnSegment> terrain)
     {
@@ -102,12 +104,13 @@ public static class WorldColumns
         {
             if (!provenance.PropVolumeAt(x, z))
             {
-                foreach (var run in runs) ground.Add((x, z, run.YBottom, run.YTop));
+                foreach (var run in runs) (IsLava(run.BlockId) ? props : ground).Add((x, z, run.YBottom, run.YTop));
                 continue;
             }
             var spans = laid.GetValueOrDefault((x, z)) ?? [];
             foreach (var run in runs)
             {
+                if (IsLava(run.BlockId)) { props.Add((x, z, run.YBottom, run.YTop)); continue; }
                 // Walk the run bottom up, cutting it wherever it passes between the terrain and the prop.
                 var start = run.YBottom;
                 var inTerrain = Laid(spans, start);
@@ -121,6 +124,8 @@ public static class WorldColumns
             }
         }
         return (ground, props);
+
+        static bool IsLava(int blockId) => blockId is Blocks.Lava or Blocks.StationaryLava;
 
         // The bedrock course a grounded column rests on is terrain as much as the stone over it.
         static bool Laid(List<(int YFloor, int YTop)> spans, int y) =>

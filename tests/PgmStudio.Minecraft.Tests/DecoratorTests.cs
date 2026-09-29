@@ -1085,6 +1085,48 @@ public sealed class DecoratorTests
     /// <summary>A channel across a door's approach on level ground: the kept columns are filled and never
     /// cut, and with the line at the ground no water stands on them. They are not the channel's in the
     /// placement, so no read draws water there, and <c>DR-HELD</c> names them.</summary>
+    /// <summary>A body stated as lava fills its bed with stationary lava and nothing else changes: the same
+    /// carve, the same line, the same bank.</summary>
+    [Test]
+    public async Task A_channel_of_lava_is_the_same_bed_filled_with_lava()
+    {
+        WaterProp Channel(Fluid fluid) => new()
+        {
+            Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
+            Bank = new SolidMaterial(Blocks.Sand), Fluid = fluid,
+        };
+        var (water, waterTop) = Plateau();
+        var (lava, lavaTop) = Plateau();
+        Decorator.Decorate(water, Context(waterTop, [Channel(Fluid.Water)]));
+        Decorator.Decorate(lava, Context(lavaTop, [Channel(Fluid.Lava)]));
+
+        var filled = 0;
+        for (var x = 0; x < 40; x++)
+        for (var z = 0; z < 40; z++)
+        for (var y = 0; y < 12; y++)
+        {
+            var wet = water.GetBlock(x, y, z);
+            var hot = lava.GetBlock(x, y, z);
+            if (wet.Id == Blocks.StationaryWater)
+            {
+                filled++;
+                await Assert.That(hot.Id).IsEqualTo(Blocks.StationaryLava);
+            }
+            else await Assert.That(hot).IsEqualTo(wet);
+        }
+        await Assert.That(filled).IsGreaterThan(60);
+    }
+
+    /// <summary>The fluid is a word on the prop, and a prop stating none is water.</summary>
+    [Test]
+    public async Task A_water_prop_reads_its_fluid_and_defaults_to_water()
+    {
+        var stated = DressingJson.Deserialize("""{"props":[{"kind":"water","id":"a","points":[[0,0],[4,0]],"fluid":"lava"},{"kind":"water","id":"b","points":[[0,0],[4,0]]}]}""");
+        var props = stated.Props.OfType<WaterProp>().ToList();
+        await Assert.That(props[0].Fluid).IsEqualTo(Fluid.Lava);
+        await Assert.That(props[1].Fluid).IsEqualTo(Fluid.Water);
+    }
+
     [Test]
     public async Task A_channel_left_dry_by_a_keep_out_is_not_claimed_as_water_and_is_named()
     {

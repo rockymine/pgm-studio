@@ -190,15 +190,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   studio plants none. Let a boulder seat on a bed the water claims and write through the water, keeping the
   claim for everything else; `docs/world-export/decoration.md` §5 and §7.
 
-- [ ] **WE147 — A body of water may be lava.** `WaterProp` has no fluid: `Decorator.PlaceWater` writes
-  `Blocks.StationaryWater` at `Decorator.cs` (the fill loop) and tests the same id to gather `wet` for `DR-DRY`,
-  and the only lava in a world is a core's casing (`ObjectiveStamper.cs:114`). Add `fluid: water|lava` to
-  `WaterProp`, a chip in `SketchDressingInspector` and the default in `dressing-doc.js`. Lava is not water to
-  everything downstream, and each is a question before it is a line: the walk reads ids 10/11 as a slow swim
-  (`Geom/Walk.cs` `WaterSlowdown`), the beach is laid round it, and flora, trees and a timber deck beside it
-  burn. *Evidence: Gypsum Reach note 72 asks for lava in the wash, whose bridge stands on dark-oak posts in
-  it.* `docs/world-export/decoration.md` §7.
-
 ### Placing something on a storey that is not the top one
 
 All six placement kinds carry an optional `Layer`, a prop carries one, and `BuiltTerrain.SurfaceFor(layer)`

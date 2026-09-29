@@ -420,7 +420,7 @@ approach reads as a colour step exactly on the room's footprint, and a pond read
 
 Its key is two-dimensional, because the picture is: **reading across a ramp is how dear a cell is, reading
 down the three ramps is what a player is standing on to be there** — ground for nothing, void at a block a
-cell, water at twice the walk. One number line serves all three, since the value axis is the same for every
+cell, water at twice the walk; lava is not stood in, so a lava bed is no footing at all. One number line serves all three, since the value axis is the same for every
 footing. A flat list of swatches cannot say that, and a reader given one reads the hue as a class and the
 class as a hue.
 

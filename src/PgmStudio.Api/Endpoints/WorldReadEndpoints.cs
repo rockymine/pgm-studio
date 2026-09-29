@@ -792,14 +792,16 @@ internal static class WalkReads
             : null;
 
     /// <summary>Where the board's water is, carved by the same bed the decorator lays it with. A dressing
-    /// that states none answers null, which is what a plan and an undressed board both are.</summary>
+    /// that states none answers null, which is what a plan and an undressed board both are. A bed of lava is not
+    /// a swim, and the walk reads it off the world instead (<c>WorldColumns.ForWalk</c>).</summary>
     private static HashSet<(int X, int Z)>? Water(string layoutJson)
     {
         var dressing = SketchLayout.Parse(layoutJson)?.Dressing;
         if (dressing is not { } element) return null;
 
         var cells = new HashSet<(int X, int Z)>();
-        foreach (var prop in DressingJson.Deserialize(element.ToString()).Props.OfType<WaterProp>())
+        foreach (var prop in DressingJson.Deserialize(element.ToString()).Props.OfType<WaterProp>()
+                     .Where(prop => prop.Fluid == Fluid.Water))
             foreach (var cell in WaterBed.Cells(prop.Points, prop.Radius, prop.Depth, prop.Form, prop.Edge,
                                                 unchecked((uint)prop.Seed)))
                 cells.Add((cell.X, cell.Z));

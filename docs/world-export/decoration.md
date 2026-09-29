@@ -663,6 +663,14 @@ tool is that it **cannot drape on the surface** the way gravel can: laid on a sl
 Water has to sit in a **carved bed** and fill to a **level plane**, so water is the one prop that takes the
 ground *out* rather than standing on it.
 
+**The bed is filled with water or with lava, and `fluid` says which.** Everything else about the prop is the
+same either way — the carve, the line, the bowl, the bank and the beach — and lava is written as stationary
+lava, so it stays in the bed it was given. The two are not the same to a player: water is swum and lava is
+not entered at all, so the walk reads a run of lava as a prop's volume rather than as ground (`WorldColumns.ForWalk`)
+— neither its top nor the bed under it is a place to stand, where water stays ground at twice the walk. Lava
+sets fire to what burns beside it, so a timber deck, a tree or a grass bank against a lava bed is the author's
+to keep clear. Unstated, `fluid` is `water`.
+
 **A body of water is drawn one of two ways, and `shape` says which its points mean.** A `channel` strokes them
 as a centerline and takes its width from `radius` — a canal, a river, a moat. A `pool` closes them into a ring
 and fills it, corners and all: a harbour, a lake, a flooded basin, the shape a stroked line cannot make

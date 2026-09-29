@@ -386,6 +386,10 @@ public static class PropFields
     public const string Edge = "edge";
     public const string Shore = "shore";
     public const string ShoreWander = "shoreWander";
+    /// <summary>What a water prop's bed is filled with, and its two words.</summary>
+    public const string Fluid = "fluid";
+    public const string WaterFluid = "water";
+    public const string LavaFluid = "lava";
     public const string Bank = "bank";
     public const string Species = "species";
     public const string Height = "height";

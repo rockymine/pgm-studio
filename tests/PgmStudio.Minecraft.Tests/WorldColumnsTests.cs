@@ -249,6 +249,27 @@ public sealed class WorldColumnsTests
         await Assert.That(y0.Count).IsEqualTo(0);
     }
 
+    /// <summary>Lava is not stood in: its run goes with the props, so neither its top nor the bed under it is
+    /// a place, where water's run stays ground a player swims.</summary>
+    [Test]
+    public async Task A_walk_stands_on_water_and_never_in_lava()
+    {
+        var world = new VoxelWorld();
+        foreach (var x in new[] { 0, 1 })
+        {
+            world.SetBlock(x, 0, 0, Blocks.Bedrock);
+            for (var y = 1; y < 6; y++) world.SetBlock(x, y, 0, Blocks.Stone);
+            for (var y = 6; y < 8; y++) world.SetBlock(x, y, 0, x == 0 ? Blocks.StationaryWater : Blocks.StationaryLava);
+        }
+        ColumnSegment[] terrain = [new(0, 0, 1, 6, "ground"), new(1, 0, 1, 6, "ground")];
+
+        var (ground, props) = WorldColumns.ForWalk(world, new WorldProvenance(), terrain);
+
+        await Assert.That(ground.Any(run => run.X == 0 && run.YTop == 7)).IsTrue();
+        await Assert.That(ground.Any(run => run.X == 1 && run.YTop == 7)).IsFalse();
+        await Assert.That(props.Any(run => run.X == 1 && run.YFloor == 6 && run.YTop == 7)).IsTrue();
+    }
+
     [Test]
     public async Task A_walk_takes_a_trees_blocks_apart_from_the_ground_they_stand_in()
     {

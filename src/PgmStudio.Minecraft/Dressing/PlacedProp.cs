@@ -219,6 +219,22 @@ public sealed record WaterProp : PlacedProp
     /// block, so it can be a solid, a voronoi patchwork or any pattern the painter offers. The shallows show it
     /// through the water, and the beach is the same material meeting the land.</summary>
     public TerrainMaterial Bank { get; init; } = DefaultBank;
+
+    /// <summary>What fills the bed: water, or lava. The carve, the line, the bowl and the beach are the same
+    /// either way; lava is written as stationary lava, and a walk reads it as ground nobody stands on rather
+    /// than as a swim.</summary>
+    public Fluid Fluid { get; init; } = Fluid.Water;
+
+    /// <summary>The block the bed is filled with.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int FluidBlock => Fluid == Fluid.Lava ? Palette.Blocks.StationaryLava : Palette.Blocks.StationaryWater;
+}
+
+/// <summary>What a <see cref="WaterProp"/>'s bed is filled with.</summary>
+public enum Fluid
+{
+    Water,
+    Lava,
 }
 
 /// <summary>

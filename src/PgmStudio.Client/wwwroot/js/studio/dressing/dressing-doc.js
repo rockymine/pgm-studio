@@ -27,7 +27,7 @@ export function defaultProp(kind, seed) {
       // A three-block-wide canal, cut two deep, meeting the land through a shore beach, over a bank of
       // cellular gravel / coarse dirt / sand. The bank is a full terrain material, not one block — the same
       // pattern the painter tiles. Numbers + the material mirror the C# WaterProp defaults.
-      return { ...base, points: [], radius: 3, depth: 2, form: "canal", edge: 0.8, shore: 2, shoreWander: true, bank: {
+      return { ...base, points: [], fluid: "water", radius: 3, depth: 2, form: "canal", edge: 0.8, shore: 2, shoreWander: true, bank: {
         kind: "voronoi", seed: 1, cellSize: 5, rise: 0, bands: [
           { material: { kind: "solid", id: 13, data: 0 }, depth: 2 },
           { material: { kind: "solid", id: 3, data: 1 }, depth: 1 },

@@ -456,7 +456,7 @@ public static class Decorator
                     // Over the column's own surface the pass is filling what was air, and anything standing
                     // there belongs to something else — a hull, a mast, a pier. The water goes round it.
                     if (y > surfaceSolid && world.GetBlock(x, y, z).Id != Blocks.Air) continue;
-                    world.SetBlock(x, y, z, y <= line ? Blocks.StationaryWater : Blocks.Air);
+                    world.SetBlock(x, y, z, y <= line ? water.FluidBlock : Blocks.Air);
                     filled |= y <= line;
                 }
                 // A kept column the fill put no water in is ground, not water: nothing claims it, nothing
@@ -472,7 +472,7 @@ public static class Decorator
                 { var (id, data) = Bank(x, bedFloor, z); world.SetBlock(x, bedFloor, z, id, data); }
                 if (!fillOnly) claims.Claim(x, z, ClaimKind.Water, water.Id);
                 covered.Add((x, z));
-                if (line >= 1 && world.GetBlock(x, line, z).Id == Blocks.StationaryWater) wet.Add((x, z, line));
+                if (line >= 1 && world.GetBlock(x, line, z).Id == water.FluidBlock) wet.Add((x, z, line));
                 if (!fillOnly && surfaceSolid - line > cutWall.Courses)
                     cutWall = (surfaceSolid - line, (x, z), line);
             }

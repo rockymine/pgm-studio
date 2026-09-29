@@ -103,6 +103,14 @@
       }
       else if (kind == PropKinds.Water)
       {
+        <Field Label="Fluid"><LabelHint>what fills the bed</LabelHint>
+          <ChildContent>
+            <Chip Active="Text(PropFields.Fluid, PropFields.WaterFluid) == PropFields.WaterFluid"
+                  OnClick="() => Set(PropFields.Fluid, JsonValue.Create(PropFields.WaterFluid))">Water</Chip>
+            <Chip Active="Text(PropFields.Fluid, PropFields.WaterFluid) == PropFields.LavaFluid"
+                  OnClick="() => Set(PropFields.Fluid, JsonValue.Create(PropFields.LavaFluid))">Lava</Chip>
+          </ChildContent>
+        </Field>
         <Field Label="Width (blocks)">
           <NumberField Value="Num(PropFields.Radius, 3) * 2" ValueChanged="v => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, v / 2)))" Min="2" Step="2" />
         </Field>
