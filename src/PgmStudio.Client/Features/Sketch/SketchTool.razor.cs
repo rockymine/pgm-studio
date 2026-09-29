@@ -589,7 +589,10 @@ public partial class SketchTool
         // Restore the saved layout (empty {} for a fresh sketch); the bridge handles an empty state.
         try
         {
-            var state = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/sketch");
+            using var read = await Http.GetAsync($"api/map/{Slug}/sketch");
+            read.EnsureSuccessStatusCode();
+            heldRevision = read.Headers.ETag?.Tag;
+            var state = await read.Content.ReadFromJsonAsync<JsonElement>();
             await handle.InvokeVoidAsync("load", state);
             // Sync the Setup controls with the loaded setup (the canvas already uses it).
             if (state.ValueKind == JsonValueKind.Object && state.TryGetProperty("setup", out var su)
@@ -965,6 +968,7 @@ public partial class SketchTool
     public void OnDirty(int groupCount)
     {
         groupLabel = groupCount == 1 ? "1 group" : $"{groupCount} groups";
+        edits++;
         StateHasChanged();
         ScheduleSave();
     }
@@ -989,6 +993,25 @@ public partial class SketchTool
     /// <summary>What the last save did, for the topbar to say. Null while every save has landed.</summary>
     private string? saveError;
 
+    /// <summary>The revision of the stored layout this tab's drawing stands on, as the <c>ETag</c> answered it
+    /// — sent back as <c>If-Match</c> on every save, so a tab holding an older board than the studio's is
+    /// refused (<c>RQ5</c>, 409) instead of writing it back over the newer one. Null where the map had no
+    /// layout stored, which is the one write that states no precondition.</summary>
+    private string? heldRevision;
+
+    /// <summary>Edits made in this tab, and how many of them the last landed save carried. A save with nothing
+    /// new to carry is not sent, so entering In game or leaving the tool writes only when something was
+    /// drawn.</summary>
+    private int edits, savedEdits;
+
+    /// <summary>Set once a save is refused as stale: the stored board has moved on without this tab, and every
+    /// further save would be refused the same way, so none is sent until the page is reloaded.</summary>
+    private bool superseded;
+
+    /// <summary>One save at a time — two in flight would state the same <c>If-Match</c>, and the second would
+    /// be refused against the revision the first just wrote.</summary>
+    private readonly SemaphoreSlim saving = new(1, 1);
+
     /// <summary>Store the bridge's state, and <b>read the answer</b>.
     ///
     /// <para>A refused or failed PUT is a completed HTTP round-trip, so nothing is thrown and the status is
@@ -999,22 +1022,44 @@ public partial class SketchTool
     private async Task SaveAsync(CancellationToken token)
     {
         if (handle is null) return;
+        try { await saving.WaitAsync(token); }
+        catch (OperationCanceledException) { return; }   // superseded by a later edit; that one reports
         var was = saveError;
         try
         {
-            var state = await handle.InvokeAsync<JsonElement>("getState", token);
-            var resp = await Http.PutAsJsonAsync($"api/map/{Slug}/sketch", state, token);
-            if (resp.IsSuccessStatusCode) saveError = null;
+            if (superseded || edits == savedEdits) return;
+            var carrying = edits;
+            var state = await handle.InvokeAsync<JsonElement>("getState", CancellationToken.None);
+            using var request = new HttpRequestMessage(HttpMethod.Put, $"api/map/{Slug}/sketch")
+            {
+                Content = JsonContent.Create(state),
+            };
+            if (heldRevision is not null) request.Headers.TryAddWithoutValidation("If-Match", heldRevision);
+            // Not cancelled once sent: a write the studio took and this tab never heard the answer to would
+            // leave the held revision behind the stored one, and the next save would be refused as stale.
+            using var resp = await Http.SendAsync(request, CancellationToken.None);
+            if (resp.IsSuccessStatusCode)
+            {
+                heldRevision = resp.Headers.ETag?.Tag ?? heldRevision;
+                savedEdits = carrying;
+                saveError = null;
+            }
+            else if (resp.StatusCode == System.Net.HttpStatusCode.Conflict && heldRevision is not null)
+            {
+                superseded = true;
+                saveError = "Not saved — this board was saved from somewhere else after this tab opened it. "
+                          + "Reload the page to take up the stored board; the edits made here since are not in it.";
+            }
             else
             {
-                var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>(token);
+                var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
                 saveError = "Not saved — " + (refusal?.Message is { Length: > 0 } why ? why
                                               : refusal?.Error is { Length: > 0 } label ? label
                                               : $"the studio answered {(int)resp.StatusCode}.");
             }
         }
-        catch (TaskCanceledException) { return; }        // superseded by a later edit; that one reports
         catch { saveError = "Not saved — the studio could not be reached."; }
+        finally { saving.Release(); }
         if (saveError != was) await InvokeAsync(StateHasChanged);
     }
 
@@ -1032,6 +1077,15 @@ public partial class SketchTool
 
         saveCts?.Cancel();          // flush the latest layout before the server rasterizes it
         await SaveAsync(CancellationToken.None);
+        if (superseded)
+        {
+            // The stored board is not the one on screen, so finishing would build a board the author is not
+            // looking at.
+            finishError = saveError;
+            finishing = false;
+            StateHasChanged();
+            return;
+        }
 
         try
         {

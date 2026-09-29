@@ -22,6 +22,13 @@ The tool saves continuously — every change schedules a debounced write 800 ms 
 **Finish**, which flushes the layout, rasterizes it server-side into world geometry, and moves the map to
 `stage=configure`. A draft that was never drawn on is discarded on the way out.
 
+**A tab writes only what was drawn in it, and only over the board it read.** It holds the `ETag` the layout
+was read at and states it as `If-Match` on every save, so where the stored board has moved on since — an agent
+driving the API, a second tab — the save is refused `RQ5` at 409 rather than writing the older board back over
+the newer. The topbar then says so, no further save is sent until the page is reloaded, and **Finish** stops
+rather than build a board that is not the one on screen. A flush with no edit behind it — entering In game,
+leaving the tool — sends nothing at all.
+
 **What the later phases state, `docs/world-export/` executes**, and that folder is where the depth is. This
 document is the tool: what each phase authors, what it writes, and what refuses. Beside it sit five that each
 take one of those statements through to the blocks it becomes — `relief.md` (the elevation solver behind the
@@ -1318,7 +1325,7 @@ works rather than where it is: two noisy blocks of one colour are static on the 
 above, and only a picture in the game's own sprites shows which. The server needs the sprites to draw it; one
 without them answers the list with the reason, and the phase says so instead of showing a gallery.
 
-**Entering it saves the board first**, because every picture is of the board as stored. A board that has
+**Entering it saves the board's unsaved edits first**, because every picture is of the board as stored. A board that has
 changed builds a new world, and every picture is drawn again the first time it is asked for; a board that has
 not answers from the pictures already drawn.
 
