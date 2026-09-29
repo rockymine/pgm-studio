@@ -16,6 +16,10 @@ namespace PgmStudio.Minecraft.Dressing;
 /// <param name="FlowerScale">The flower field's feature size — how big a patch of one colour gets.</param>
 /// <param name="TallShare">0–1; how much of the plain cover is tall (two-block) grass, which is the part of
 /// the overlay that hides a player and so stays off a goal's own ground.</param>
+/// <param name="DeadBushShare">0–1; how much of the cover on dry ground is dead bush: all the cover sand and
+/// clay carry that is not cactus, and this share of the grass and fern on dirt.</param>
+/// <param name="CactusShare">0–1; how much of the cover on sand is cactus, each one to
+/// <see cref="DressingPalette.CactusTallest"/> blocks tall.</param>
 public sealed record FloraSpec(
     double Coverage = 0.45,
     int Scale = 12,
@@ -23,7 +27,9 @@ public sealed record FloraSpec(
     double FernShare = 0.25,
     double FlowerShare = 0.18,
     int FlowerScale = 18,
-    double TallShare = 0.0);
+    double TallShare = 0.0,
+    double DeadBushShare = 0.0,
+    double CactusShare = 0.0);
 
 /// <summary>The shape family a boulder takes. Each is a list of lobes, not a code path — see
 /// <see cref="BoulderShapes"/>.</summary>

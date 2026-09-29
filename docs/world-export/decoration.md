@@ -229,8 +229,9 @@ the prop or makes it smaller, and neither is a decision the pass can take for th
 
 The plainest decoration is WorldEdit's `//overlay`: put 70% air and 30% grass-and-fern on top of
 everything. The studio can do better than *everything* because it just painted the surface. Grass, fern
-and flowers belong over grass-block, dirt, coarse dirt and podzol, sparsely over sand, and nowhere over the
-quartz of a plaza or the wool of a monument. The overlay is masked by the paint beneath it — the eligible
+and flowers belong over grass-block, dirt, coarse dirt and podzol — the only ground a 1.8 bush stays on, since
+anywhere else it drops at the first block update — dead bushes and cacti over sand, dead bushes over clay, and
+nothing over gravel, the quartz of a plaza or the wool of a monument. The overlay is masked by the paint beneath it — the eligible
 set is a property of the top block, read the way `TerrainProfile` reads a column.
 
 Two knobs do the work, and both are noise. A **density field** decides which eligible cells get anything:
@@ -247,8 +248,20 @@ authored part and the field is what fills it: nobody wants to place nine hundred
 wants grass everywhere either. It adds one block per cell and never touches the ground — the lightest of the
 four passes, and the one that reuses the most. `FloraSpec` carries the knobs: `Coverage` against the
 density field, `Scale`/`Octaves` shaping it, and `FernShare`/`FlowerShare`/`FlowerScale`/`TallShare` mixing
-the species. `DressingPalette.SoilShare` is the eligibility read — sand takes a fraction of what grass does,
-quartz none.
+the species. `DressingPalette.SoilShare` is the eligibility read — sand and clay take a third of what grass
+does, gravel and quartz none — and `DressingPalette.SoilOf` says what that ground may grow.
+
+**Dry ground grows the two plants 1.8 lets stand on it.** On sand, `CactusShare` of the cover the density field
+admits is cactus and `DeadBushShare` of the rest is dead bush, and what is left is bare; on hardened or stained
+clay the cover is dead bush at `DeadBushShare`; on dirt `DeadBushShare` of the grass and fern is dead bush
+instead. Both shares are 0 unless stated, so a board that never asks grows neither.
+
+**A cactus is one to four blocks tall and stands alone.** 1.8 breaks a cactus block with anything solid on any
+of its four sides, so its height — a hashed one to `DressingPalette.CactusTallest` (**4**) — is cut short at the
+first course that is hemmed in, and one hemmed in at its foot is not grown. Two cacti side by side break each
+other, so of two neighbours that both draw one, the one whose draw came lower stands; the draws are read at
+the folded cells, so every image settles the pair the same way. It hurts whoever stands against it, so a goal's
+own ground (§3.1) grows none.
 
 **Every field the overlay reads is read at the cell folded into the board's primary image**, exactly as a
 terrain pattern is (`terrain-painting.md` TP21) — the density field, the flower field, the species shares and
@@ -542,9 +555,8 @@ where the surface block under a placement is not one `DressingPalette.RootsInto`
 **landed** — one the pass turned away is standing nowhere and has nothing to be rooted in — and at the
 placement rather than at every image of its orbit.
 
-That is stricter than the flora overlay's own `SoilShare`, which takes sand at a third and gravel a little
-under it, and the difference is deliberate: a tuft of grass in a shingle is ordinary and a trunk out of one is
-not. Two questions with two answers — what will *grow* on a surface, and what a tree may be *rooted* in (the
+That is stricter than the flora overlay's own `SoilShare`, which takes sand and clay at a third, and the
+difference is deliberate: a dead bush or a cactus in sand is ordinary and a trunk out of it is not. Two questions with two answers — what will *grow* on a surface, and what a tree may be *rooted* in (the
 author's ruling).
 
 The fix for it is usually the **paint** rather than the position. A theme whose surface is rock all the way up

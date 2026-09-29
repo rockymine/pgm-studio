@@ -34,7 +34,7 @@ export function defaultProp(kind, seed) {
           { material: { kind: "solid", id: 12, data: 0 }, depth: 1 },
         ] } };
     case "flora":
-      return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0 } };
+      return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0, deadBushShare: 0, cactusShare: 0 } };
     case "tree":
     case "boulder":
       // A click puts down a position; what stands there is a recipe the document names once. `style` is the

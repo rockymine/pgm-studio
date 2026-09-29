@@ -249,15 +249,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ### Dressing: what the pass can place
 
-- [ ] **WE150 — Cactus and dead bush in the flora.** The flora vocabulary is grass, fern, four flowers and the
-  two tall plants (`DressingPalette.cs`), and `FloraSpec` shares only fern, flower and tall, so a desert board
-  places both by hand on a made layer, each in a sand patch. Add dead bush (32:0) on sand, hardened and stained
-  clay and dirt, and cactus (81) on sand only, one to three tall, never beside a solid block or another cactus,
-  and kept off goal ground as tall grass is (`AllowsCover`). Check in game first whether 1.8 keeps the grass
-  and flowers the pass already puts on sand, gravel and mycelium (`SoilShare`): `BlockBush` accepts only
-  grass, dirt and farmland, which would pop them at the first update. *Evidence: Gypsum Reach notes 60, 66,
-  73 — 28 dead bushes and seven cacti a team, placed as made layers.* `docs/world-export/decoration.md` § flora.
-
 - [ ] **WE151 — A chest whose contents the author states.** Three chests are filled, each with contents fixed
   in code (`DefenseChest`, `StructureStamper.StampDefenseChest`, `WoolChests`), and a chest painted by a made
   layer is written with no tile entity, so it is empty. A `chest` prop — a cell, a facing, and items as

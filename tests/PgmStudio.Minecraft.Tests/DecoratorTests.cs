@@ -836,6 +836,71 @@ public sealed class DecoratorTests
         await Assert.That(leaves.Min(cell => cell.Y)).IsLessThanOrEqualTo(11);
     }
 
+    /// <summary>On sand the overlay grows what 1.8 lets stand on it and nothing else: dead bushes, never a
+    /// grass tuft, fern or flower, which drop off sand at the first update.</summary>
+    [Test]
+    public async Task Sand_grows_dead_bushes_and_never_grass_or_flowers()
+    {
+        var (world, top) = Plateau(surfaceBlock: Blocks.Sand);
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0, DeadBushShare: 1.0), Seed = 7 }]));
+
+        var grown = Enumerable.Range(0, 40).SelectMany(x => Enumerable.Range(0, 40).Select(z => world.GetBlock(x, 8, z).Id))
+            .Where(id => id != Blocks.Air).ToList();
+        await Assert.That(grown.Count).IsGreaterThan(20);
+        await Assert.That(grown.All(id => id == DressingPalette.DeadBushBlock)).IsTrue();
+    }
+
+    /// <summary>Cacti on sand stand one to four blocks tall, never beside another cactus or anything solid, and
+    /// a board fanned about its centre grows each one at every image.</summary>
+    [Test]
+    public async Task Cacti_stand_one_to_four_tall_apart_from_each_other_and_mirrored()
+    {
+        var (world, top) = Plateau(surfaceBlock: Blocks.Sand);
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp
+            {
+                Id = "f", Points = [[0, 0], [40, 0], [40, 20], [0, 20]],
+                Spec = new FloraSpec(Coverage: 1.0, CactusShare: 0.5), Seed = 7,
+            }], symmetry: "rot_180", centerX: 20, centerZ: 20));
+
+        int Tall(int x, int z)
+        {
+            var courses = 0;
+            while (world.GetBlock(x, 8 + courses, z).Id == DressingPalette.CactusBlock) courses++;
+            return courses;
+        }
+        var cacti = new List<(int X, int Z, int Tall)>();
+        for (var x = 0; x < 40; x++)
+        for (var z = 0; z < 40; z++)
+            if (Tall(x, z) is > 0 and var tall) cacti.Add((x, z, tall));
+
+        await Assert.That(cacti.Count).IsGreaterThan(4);
+        await Assert.That(cacti.All(cactus => cactus.Tall is >= 1 and <= DressingPalette.CactusTallest)).IsTrue();
+        await Assert.That(cacti.Select(cactus => cactus.Tall).Distinct().Count()).IsGreaterThan(1);
+        var at = cacti.ToDictionary(cactus => (cactus.X, cactus.Z), cactus => cactus.Tall);
+        await Assert.That(cacti.Any(cactus => at.ContainsKey((cactus.X + 1, cactus.Z)) || at.ContainsKey((cactus.X, cactus.Z + 1))))
+            .IsFalse();
+        await Assert.That(cacti.All(cactus => at.GetValueOrDefault((39 - cactus.X, 39 - cactus.Z)) == cactus.Tall)).IsTrue();
+    }
+
+    /// <summary>A cactus is cut short where a side stops being open: against a wall three blocks high it grows
+    /// no higher than the course the wall starts beside it.</summary>
+    [Test]
+    public async Task A_cactus_grows_no_higher_than_its_sides_stay_open()
+    {
+        var (world, top) = Plateau(surfaceBlock: Blocks.Sand);
+        for (var z = 0; z < 40; z++)
+        for (var y = 9; y < 12; y++)
+            world.SetBlock(21, y, z, Blocks.Stone);
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = [[20, 0], [21, 0], [21, 40], [20, 40]], Spec = new FloraSpec(Coverage: 1.0, CactusShare: 1.0), Seed = 3 }]));
+
+        var standing = Enumerable.Range(0, 40).Where(z => world.GetBlock(20, 8, z).Id == DressingPalette.CactusBlock).ToList();
+        await Assert.That(standing.Count).IsGreaterThan(0);
+        await Assert.That(standing.All(z => world.GetBlock(20, 9, z).Id != DressingPalette.CactusBlock)).IsTrue();
+    }
+
     // ── water carves and fills ─────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_channel_cuts_a_bed_and_fills_it_with_water()

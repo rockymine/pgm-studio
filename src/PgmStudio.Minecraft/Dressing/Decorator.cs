@@ -663,11 +663,23 @@ public static class Decorator
             var share = DressingPalette.SoilShare(groundId, groundData);
             if (share <= 0) continue;
 
-            if (PickPlant(area.Spec, area.Seed, x, z, share, context.Symmetry) is not { } plant) continue;
+            var soil = DressingPalette.SoilOf(groundId);
+            if (PickPlant(area.Spec, area.Seed, x, z, share, soil, groundId == Blocks.Dirt, context.Symmetry)
+                is not { } plant) continue;
             // Tall grass is the one plant that is cover rather than colour, so it is the one the goal's own
             // ground turns away — the field simply grows its short cover there instead of skipping the cell,
-            // which keeps the meadow continuous across a monument instead of ringing it with bare dirt.
-            if (plant.Tall && !context.AllowsCover(x, z)) continue;
+            // which keeps the meadow continuous across a monument instead of ringing it with bare dirt. A
+            // cactus is kept off it too, since it hurts whoever stands against it.
+            if ((plant.Tall || plant.Id == DressingPalette.CactusBlock) && !context.AllowsCover(x, z)) continue;
+            if (plant.Id == DressingPalette.CactusBlock)
+            {
+                if (!Stood(area.Spec, area.Seed, x, z, context.Symmetry)) continue;
+                var courses = CactusCourses(world, area.Seed, x, top, z, context.Symmetry);
+                if (courses == 0) continue;
+                for (var course = 0; course < courses; course++) world.SetBlock(x, top + course, z, plant.Id, 0);
+                cells.Add((x, z));
+                continue;
+            }
             world.SetBlock(x, top, z, plant.Id, plant.Data);
             if (plant.Tall && top + 1 < VoxelWorld.MaxHeight)
                 world.SetBlock(x, top + 1, z, plant.Id, DressingPalette.DoublePlantUpper);
@@ -706,12 +718,21 @@ public static class Decorator
     /// orbit's representative once, so a cell grows what its image grows. What the cell itself still decides
     /// is what it is made of: <paramref name="soilShare"/> is the paint actually under this block, which is
     /// symmetric already because it was painted through the same fold.</para></summary>
-    private static Plant? PickPlant(FloraSpec flora, uint seed, int x, int z, double soilShare, DressingSymmetry symmetry)
+    private static Plant? PickPlant(FloraSpec flora, uint seed, int x, int z, double soilShare, Soil soil,
+        bool onDirt, DressingSymmetry symmetry)
     {
         var (fx, fz) = symmetry.Canonical(x, z);
 
         var density = PatternNoise.Fbm(fx, fz, seed, flora.Scale, flora.Octaves);
         if (density < 1 - flora.Coverage * soilShare) return null;
+
+        // Dry ground grows only what 1.8 lets stand on it: a cactus on sand, a dead bush on sand or clay.
+        if (soil is Soil.Sand or Soil.Clay)
+        {
+            if (soil == Soil.Sand && Cactus(flora, seed, fx, fz)) return DressingPalette.Cactus;
+            return PatternNoise.Unit(fx, fz, seed + 71) < flora.DeadBushShare ? DressingPalette.DeadBush : null;
+        }
+        if (soil != Soil.Fertile) return null;
 
         if (flora.TallShare > 0 && PatternNoise.Unit(fx, fz, seed + 61) < flora.TallShare)
             return PatternNoise.Unit(fx, fz, seed + 62) < flora.FernShare
@@ -723,8 +744,51 @@ public static class Decorator
             var pick = PatternNoise.Unit(fx, fz, seed + 88);
             return DressingPalette.Flowers[(int)(pick * DressingPalette.Flowers.Length) % DressingPalette.Flowers.Length];
         }
+        if (onDirt && PatternNoise.Unit(fx, fz, seed + 71) < flora.DeadBushShare) return DressingPalette.DeadBush;
         return PatternNoise.Unit(fx, fz, seed + 21) < flora.FernShare
             ? DressingPalette.Fern : DressingPalette.Grass;
+    }
+
+    /// <summary>Whether the canonical cell <c>(fx, fz)</c> draws a cactus. Read in the folded frame, so a cell
+    /// and its every image draw alike.</summary>
+    private static bool Cactus(FloraSpec flora, uint seed, int fx, int fz)
+        => flora.CactusShare > 0 && PatternNoise.Unit(fx, fz, seed + 81) < flora.CactusShare;
+
+    /// <summary>Whether a cactus drawn at <c>(x, z)</c> stands. Two cacti side by side break each other in 1.8,
+    /// so of two neighbours that both draw one, the one whose draw came lower stands and the other does not.
+    /// Asked of the neighbours' canonical cells, which are the images of the canonical cell's neighbours, so
+    /// every image settles the same pair the same way whatever order the cells are visited in.</summary>
+    private static bool Stood(FloraSpec flora, uint seed, int x, int z, DressingSymmetry symmetry)
+    {
+        var (fx, fz) = symmetry.Canonical(x, z);
+        var mine = PatternNoise.Unit(fx, fz, seed + 81);
+        foreach (var (dx, dz) in Sides)
+        {
+            var (nx, nz) = symmetry.Canonical(x + dx, z + dz);
+            if (Cactus(flora, seed, nx, nz) && PatternNoise.Unit(nx, nz, seed + 81) <= mine && (nx, nz) != (fx, fz))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>How many blocks tall a cactus at <c>(x, z)</c> stands: a hashed one to
+    /// <see cref="DressingPalette.CactusTallest"/>, cut short at the first course with anything solid beside it,
+    /// since a cactus block with a solid neighbour breaks. Zero where even the first course is hemmed in.</summary>
+    private static int CactusCourses(VoxelWorld world, uint seed, int x, int top, int z, DressingSymmetry symmetry)
+    {
+        var (fx, fz) = symmetry.Canonical(x, z);
+        var wanted = 1 + (int)(PatternNoise.Unit(fx, fz, seed + 82) * DressingPalette.CactusTallest);
+        var courses = 0;
+        while (courses < Math.Min(wanted, DressingPalette.CactusTallest) && top + courses < VoxelWorld.MaxHeight)
+        {
+            var y = top + courses;
+            if (world.GetBlock(x, y, z).Id != Blocks.Air) break;
+            if (Sides.Any(side => !Open(world.GetBlock(x + side.Dx, y, z + side.Dz).Id))) break;
+            courses++;
+        }
+        return courses;
+
+        static bool Open(int blockId) => blockId == Blocks.Air || BlockRoles.IsFlora(blockId) || BlockRoles.IsLiquid(blockId);
     }
 
     // ── boulders (DR-SC) ────────────────────────────────────────────────────────

@@ -8193,6 +8193,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   prop's volume — never stood in, and roofing the bed under it — where water stays ground swum at twice the
   walk. The Dressing inspector offers the two. `docs/world-export/decoration.md` §7. (`WE147`)
 
+- **Dead bushes and cacti in the flora (`WE150`)** — a flora area grows dead bushes on sand, clay and dirt at
+  `deadBushShare` and cacti on sand at `cactusShare`, each cactus one to four blocks tall, cut short where a
+  side stops being open, and never beside another; grass, fern and flowers grow only on grass and dirt, the
+  ground a 1.8 bush stays on, so sand, gravel and mycelium no longer carry cover that drops at the first
+  update. The Dressing inspector offers both shares. `docs/world-export/decoration.md` §3. (`WE150`)
+
 - **Notes on a map, and the threads under them (`TS115`)** — an admin leaves a note in the In game phase, pinned
   to the whole map or to the picture in view, with an optional tag (`look`, `terrain`, `gameplay`, `studio`,
   `ruling`); an agent answers in its thread, and only the author resolves it. A thread is `open` (waiting on an

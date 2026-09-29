@@ -175,6 +175,16 @@
           <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
                  value="@((int)(Spec(SpecFields.TallShare, 0) * 100))"
                  @oninput="e => SetSpec(SpecFields.TallShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Dead bushes"><LabelHint>the cover sand and clay carry, and a share of it on dirt</LabelHint>
+          <LabelEnd><strong>@($"{Spec(SpecFields.DeadBushShare, 0) * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Spec(SpecFields.DeadBushShare, 0) * 100))"
+                 @oninput="e => SetSpec(SpecFields.DeadBushShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Cacti"><LabelHint>on sand only, one to four blocks tall</LabelHint>
+          <LabelEnd><strong>@($"{Spec(SpecFields.CactusShare, 0) * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Spec(SpecFields.CactusShare, 0) * 100))"
+                 @oninput="e => SetSpec(SpecFields.CactusShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
       }
       else if (kind == PropKinds.Tree || kind == PropKinds.Boulder)
       {
