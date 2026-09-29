@@ -45,6 +45,9 @@ checks.add("the studio bar names the local admin", /local/.test(state.account), 
 checks.add("the studio bar links the whitelist for an admin", state.users);
 
 await visit(BASE, "/admin/users");
+// The page says "Loading…" until it has asked who is signed in, and only then draws the form or the refusal.
+await page.waitForFunction(() => !!document.querySelector('input[placeholder="Minecraft name or uuid"]')
+  || /Only an admin/.test(document.body.textContent), null, { timeout: 15000 }).catch(() => {});
 const adminPage = await page.evaluate(() => ({
   add: !!document.querySelector('input[placeholder="Minecraft name or uuid"]'),
   refused: /Only an admin/.test(document.body.textContent),
