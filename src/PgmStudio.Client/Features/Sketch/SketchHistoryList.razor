@@ -1,0 +1,34 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* Every change to the board's documents, newest first: its number, what its writer said it is or which documents
+   it wrote, who wrote it and when. Picking one draws what it did on the canvas and opens it in the inspector. *@
+
+<Section Title="Changes" Variant="list">
+  <div class="panel-list">
+    @if (Error is not null)
+    {
+      <p class="plan-readout">@Error</p>
+    }
+    else if (Changes is null)
+    {
+      <p class="plan-readout">Reading the board's changes…</p>
+    }
+    else if (Changes.Count == 0)
+    {
+      <p class="plan-readout">No change to this board has been kept.</p>
+    }
+    else
+    {
+      @foreach (var change in Changes.Reverse())
+      {
+        <ListRow Compact Selected="@(Picked == change.Number)" @key="change.Number"
+                 OnClick="() => OnPick.InvokeAsync(change.Number)"
+                 title="@($"#{change.Number} · {Who(change)} · {Moments.Ago(change.At)} — {Said(change)}")">
+          <span class="list-tag">#@change.Number</span>
+          <span class="list-label">@Said(change)</span>
+          <span class="list-tag">@Moments.Ago(change.At)</span>
+        </ListRow>
+      }
+    }
+  </div>
+</Section>

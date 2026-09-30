@@ -126,7 +126,8 @@
                              HasMark="@(mark is not null)" WholeMap="wholeMap" Ready="Ready" Busy="busy" Error="@notesError"
                              OnFilter="f => filter = f" OnOpen="OpenNote" OnBack="BackToOverview" OnNew="StartNote"
                              OnClearMark="ClearMark" OnWholeMap="PinToMap" OnResolve="() => ChangeAsync(NoteStatuses.Resolved)"
-                             OnReopen="() => ChangeAsync(NoteStatuses.Open)" OnSend="SendNoteAsync" OnReply="ReplyAsync" />
+                             OnReopen="() => ChangeAsync(NoteStatuses.Open)" OnSend="SendNoteAsync" OnReply="ReplyAsync"
+                             Changes="Changes" OnChangesSince="OnChangesSince" />
         }
       </div>
     }

@@ -1,0 +1,84 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* One change, or the changes since one: who wrote it and why, where its documents came from, every edit it made
+   to the three documents, and the columns the build moved with them — the same colours the canvas draws them in.
+   Putting the board back writes the documents as they stood at the start of what is shown, as a new change. *@
+
+<Inspector>
+  <Section>
+    <DetailHeader Icon="history" Label="@Title" />
+    @if (Change is null)
+    {
+      <p class="plan-readout">
+        Pick a change to see what it did. Its shapes are drawn over the board — added green, taken away red,
+        reshaped amber with the old outline dashed, otherwise changed blue — and so are its props, from where they
+        stood to where they stand.
+      </p>
+    }
+    else
+    {
+      <p class="plan-readout">@SketchHistoryList.Who(Change) · @Moments.Ago(Change.At) · wrote the @string.Join(", ", Change.Documents)</p>
+      @if (Change.Note is { Length: > 0 } note) { <p class="change-note">“@note”</p> }
+      @if (OriginLink is { } link)
+      {
+        <p class="plan-readout"><a href="@link" target="_blank" rel="noopener">@OriginText</a></p>
+      }
+    }
+  </Section>
+  @if (Change is not null)
+  {
+    <Section Title="What it did">
+      @if (Diff is null)
+      {
+        <p class="plan-readout">Comparing the documents…</p>
+      }
+      else if (Diff.Edits.Count == 0)
+      {
+        <p class="plan-readout">Nothing in the documents differs.</p>
+      }
+      else
+      {
+        <div class="change-edits">
+          @foreach (var edit in Diff.Edits.Take(Shown))
+          {
+            <div class="change-edit" title="@($"{edit.Document} {edit.Op} {edit.Path}")">
+              <span class="change-edit__subject">@Subject(edit)</span>
+              <span class="change-edit__says">@edit.Says</span>
+            </div>
+          }
+        </div>
+        @if (Diff.Edits.Count > Shown)
+        {
+          <p class="plan-readout">and @(Diff.Edits.Count - Shown) more — <code>GET /api/map/…/diff?from=@From&amp;to=@To&amp;format=text</code> lists them all.</p>
+        }
+      }
+    </Section>
+    <Section Title="What it built">
+      @if (World is { } world)
+      {
+        <div class="change-world">
+          <span class="change-world__swatch change-world__swatch--ground"></span>ground @world.Ground.Columns
+          <span class="change-world__swatch change-world__swatch--surface"></span>surface @world.Surface.Columns
+          <span class="change-world__swatch change-world__swatch--structure"></span>structure @world.Structure.Columns
+        </div>
+        <p class="plan-readout">Columns whose ground, surface block or structure the change moved, boxed on the canvas.</p>
+      }
+      else if (WorldError is not null)
+      {
+        <p class="plan-readout">@WorldError</p>
+      }
+      else
+      {
+        <p class="plan-readout">Building the board at both changes…</p>
+      }
+    </Section>
+    <Section>
+      <Button Variant="primary" Icon="undo-2" Disabled="@(From == 0 || From == Latest)" Busy="Restoring"
+              BusyLabel="Putting it back…" OnClick="() => OnRestore.InvokeAsync(From)">
+        Put the board back as it stood at #@From
+      </Button>
+      <p class="plan-readout">@RestoreReadout</p>
+      @if (RestoreError is not null) { <p class="dressing-refusal">@RestoreError</p> }
+    </Section>
+  }
+</Inspector>

@@ -38,6 +38,7 @@ import { paintDressing } from "../render/dressing-render.js";
 import { ReliefController } from "../controllers/relief-controller.js";
 import { ReliefDoc } from "../relief/relief-doc.js";
 import { paintReliefMarks } from "../render/relief-render.js";
+import { paintDiff } from "../render/diff-render.js";
 import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
@@ -96,6 +97,7 @@ export class SketchCanvas extends CanvasBase {
   #selectedStructuralId = null;   // the picked plan piece, where the phase editing geometry may pick one
   #dragStartPiece = null;         // where the dragged piece stood, so a refused move can be answered
   #objectives  = [];          // {kind, x, z} — where the intent's destroyables and cores stand, marker only
+  #diff        = null;        // what a change did, from diffOverlay — drawn over the board while one is picked
   #selectedId  = null;        // drilled/single-member shape (drives the edit-controller handles)
   #selectedGroupId = null;   // selected group (drives the group bbox chrome + whole-group drag)
   // Which rung of the selection ladder the pointer is working at, and the ONE thing that decides which
@@ -925,6 +927,7 @@ export class SketchCanvas extends CanvasBase {
     painter.layer("selection", () => this.#paintSelectionHighlight());
     painter.layer("marks",     () => this.#paintReliefMarks(painter));
     painter.layer("dressing",  () => this.#paintDressing(painter));
+    painter.layer("diff",      () => paintDiff(painter, this.#diff));
     painter.layer("draw",      () => this.#draw?.paint(painter));
     painter.layer("measure",   () => this.#paintMeasure());
     painter.layer("views",     () => this.#paintViews());
@@ -988,6 +991,9 @@ export class SketchCanvas extends CanvasBase {
 
   /** Where the map's destroyables and cores stand: `[{kind, x, z}]`, drawn as markers and nothing else. */
   setObjectives(objectives) { this.#objectives = objectives ?? []; this.#paintWorld(); }
+
+  /** What a change did, as `diffOverlay` reads it, drawn over everything the board holds; null takes it away. */
+  setDiff(overlay) { this.#diff = overlay ?? null; this.#paintWorld(); }
 
   #paintGuides() {
     const { min_x, max_x, min_z, max_z } = this.#gridBounds();   // guides run the full visible width/height

@@ -7785,6 +7785,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   A finding's fix and an edit that landed are one record, `DocumentEdit` (was `FindingEdit`), which gained
   `remove` and `before`; a run of cells with its box is `CellRunDto` for the slopes read and the diff alike.
   `docs/tools/flow.md`, `docs/world-scan/read-backs.md`, `docs/refusals.md`, `docs/architecture.md`.
+- **The Sketch tool shows a board's changes, and a note knows what changed since it was written (TS124).**
+  A History phase lists every change newest first and draws the one picked over the board — shapes added,
+  taken away, reshaped (the old outline dashed) or otherwise changed, props placed, moved and removed, and the
+  runs of changed columns — read by `diffOverlay` off the layouts at both ends; the inspector names the writer,
+  the origin linked to its commit and folder, every edit and the columns moved, and puts the board back as a new
+  change, the tab taking up what the restore wrote. A note's message records the change it was written at
+  (`M0053` carried every stored message to the change its map stood at then), a stated one must have landed,
+  and a thread counts the changes since its last message and opens History on them. `docs/tools/sketch.md`.
 - **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
   and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
   five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a

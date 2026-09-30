@@ -71,6 +71,11 @@ public sealed class MapChangeLog(PgmDb db)
             new MapChangeDocumentRow { ChangeId = changeId, Kind = kind, BlobHash = hash }, token: ct);
     }
 
+    /// <summary>The number of the slug's latest change, or 0 where it has none.</summary>
+    public async Task<long> LatestAsync(string slug, CancellationToken ct = default) =>
+        await db.MapChanges.Where(change => change.MapSlug == slug)
+            .Select(change => (long?)change.Number).MaxAsync(ct) ?? 0;
+
     /// <summary>The slug's changes, oldest first.</summary>
     public async Task<IReadOnlyList<MapChange>> ListAsync(string slug, CancellationToken ct = default)
     {

@@ -33,6 +33,7 @@
       <NavButton Icon="palette" Title="Theme" Active="@ThemeActive" OnClick="GoTheme" />
       <NavButton Icon="trees" Title="Dressing" Active="@DressingActive" OnClick="GoDressing" />
       <NavButton Icon="eye" Title="In game" Active="@InGameActive" OnClick="GoInGame" />
+      <NavButton Icon="history" Title="History" Active="@HistoryActive" OnClick="GoHistory" />
     </NavRail>
   </Rail>
   <ChildContent>
@@ -47,12 +48,13 @@
       @if (InGameActive && !placingView)
       {
         <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Round="viewRound" LinkedNote="Note"
-                           OnBack="GoDressing" OnPlace="PlaceView" OnLetGo="LetGoView" />
+                           OnBack="GoDressing" OnPlace="PlaceView" OnLetGo="LetGoView"
+                           Changes="ChangeNumbers" OnChangesSince="ShowChangesSince" />
       }
       @* Every phase that draws shares the one mounted canvas, so this body stays present (hidden while Info is
          up) — [hidden] is display:none, and the canvas re-measures on unhide. A phase swaps what the columns
          hold and which overlays the bar offers; the canvas is reused as it stands. *@
-      <div class="phase-body" hidden="@(!(DrawActive || ThemeActive || DressingActive || ReliefActive || PlacingViewActive))">
+      <div class="phase-body" hidden="@(!(DrawActive || ThemeActive || DressingActive || ReliefActive || PlacingViewActive || HistoryActive))">
       @if (ThemeActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
@@ -67,6 +69,11 @@
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="mountain" PhaseTitle="Relief"
                  BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoDraw" OnNext="GoTheme" />
+      }
+      else if (HistoryActive)
+      {
+        <FlowBar Class="flow-bar--flush" PhaseIcon="history" PhaseTitle="History"
+                 BackEnabled="true" NextLabel="Draw" NextEnabled="true" OnBack="GoInGame" OnNext="GoDraw" />
       }
       else if (PlacingViewActive)
       {
@@ -87,6 +94,10 @@
                inspector, so the column stays the one list a phase can always show. *@
             <SketchPanel Groups="groups" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedGroupId="@selectedGroupId"
                          OnSelectShape="SelectShape" OnSelectGroup="SelectGroup" />
+          }
+          else if (HistoryActive)
+          {
+            <SketchHistoryList Changes="changes?.Changes" Picked="spanTo" Error="@changesError" OnPick="PickChange" />
           }
           else if (DressingActive)
           {
@@ -271,7 +282,7 @@
                 }
               </DockGroup>
             }
-            else if (!ScopeApplyActive)
+            else if (!ScopeApplyActive && !HistoryActive)
             {
               @* The three tools that make a shape, and the operation the shape will perform, in one box wearing
                  one colour — so an armed carve cannot be read as an armed build. What a drawn shape does to
@@ -300,7 +311,14 @@
           </CanvasDock>
           }
         </div>
-        @if (DressingActive)
+        @if (HistoryActive)
+        {
+          <div class="sidebar-handle"></div>
+          <SketchChangeInspector Change="SpanChange" From="spanFrom" To="@(spanTo ?? 0)" Latest="LatestChange"
+                                 Diff="spanDiff" World="spanWorld" WorldError="@spanWorldError"
+                                 Restoring="restoring" RestoreError="@restoreError" OnRestore="RestoreAsync" />
+        }
+        else if (DressingActive)
         {
           <div class="sidebar-handle"></div>
           <SketchDressingInspector Handle="handle" ActiveTool="@tool" StateJson="@dressingJson" Layers="layerRows" />

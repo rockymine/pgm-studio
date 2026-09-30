@@ -187,10 +187,25 @@ public static class DocumentDiff
     private static List<double[]> Points(JsonArray list) =>
         [.. list.Select(point => point!.AsArray().Select(axis => Number(axis)!.Value).ToArray())];
 
-    /// <summary>How an outline changed: its points aligned where they stayed, and the rest paired off within
-    /// each stretch that differs — a pair is a point that moved, the remainder points inserted or removed.</summary>
+    /// <summary>How an outline changed. One that kept its number of points is paired by place, so a point is the
+    /// same point wherever the others went, and one whose every point moved by one offset moved whole. One that
+    /// gained or lost points is aligned where it stayed, and the rest paired off within each stretch that differs
+    /// — a pair is a point that moved, the remainder points inserted or removed.</summary>
     private static string Outline(string noun, List<double[]> was, List<double[]> now)
     {
+        if (was.Count == now.Count)
+        {
+            var shifted = Enumerable.Range(0, was.Count).Where(index => !was[index].SequenceEqual(now[index])).ToList();
+            if (shifted.Count == 0) return $"{noun} changed";
+            var offsets = shifted.Select(index => (X: now[index][0] - was[index][0], Z: now[index][1] - was[index][1]))
+                .Distinct().ToList();
+            if (shifted.Count == was.Count && offsets.Count == 1)
+                return $"all {was.Count} {noun} moved {Blocks(Math.Sqrt(offsets[0].X * offsets[0].X + offsets[0].Z * offsets[0].Z))}, "
+                       + $"by ({Text(offsets[0].X)}, {Text(offsets[0].Z)})";
+            return $"{shifted.Count} of {was.Count} {noun} moved "
+                   + $"(up to {Blocks(shifted.Max(index => Distance(was[index], now[index])))})";
+        }
+
         var lead = 0;
         while (lead < was.Count && lead < now.Count && was[lead].SequenceEqual(now[lead])) lead++;
         var trail = 0;

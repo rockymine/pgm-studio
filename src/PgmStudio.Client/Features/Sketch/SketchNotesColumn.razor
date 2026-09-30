@@ -51,6 +51,12 @@
           <span class="@StatusClass(note.Status)">@NoteStatuses.Label(note.Status)</span>
         </div>
         @if (note.Tag is { } noteTag) { <span class="notes-column__tag">@noteTag</span> }
+        @if (ChangesSince(note) is > 0 and var since)
+        {
+          <button type="button" class="notes-column__since" @onclick="() => OnChangesSince.InvokeAsync(LastChange(note))">
+            @since @(since == 1 ? "change" : "changes") since the last message ›
+          </button>
+        }
       </div>
       <div class="notes-column__thread">
         @for (var i = 0; i < note.Messages.Count; i++)
@@ -60,14 +66,14 @@
           <div class="@(message.Token is null ? "note-message" : "note-message note-message--agent")" @key="message.Id">
             <div class="note-message__who">
               <b>@message.Author</b>
-              <span>· @Ago(message.At)@(message.Token is { } token ? $" · token “{token}”" : "") · rev @message.Revision</span>
+              <span>· @Ago(message.At)@(message.Token is { } token ? $" · token “{token}”" : "") · change @message.Change</span>
             </div>
             <div class="note-message__body">@message.Body</div>
             @if (message.Picture is { } picture)
             {
               <a class="note-message__picture" href="@($"api/notes/pictures/{picture}")" target="_blank" rel="noopener">
                 <img src="@($"api/notes/pictures/{picture}")" alt="@(first ? "The picture the note was written on" : "The same camera after the change")" loading="lazy" />
-                <span>@(first ? "before" : "after") · rev @message.Revision</span>
+                <span>@(first ? "before" : "after") · change @message.Change</span>
               </a>
             }
           </div>

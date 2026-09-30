@@ -82,8 +82,8 @@ public sealed class MapNoteRow
     [Column("updated_at"), NotNull] public DateTime UpdatedAt { get; set; }
 }
 
-/// <summary>One message in a note's thread (M0048): who wrote it, with which token where it was one, against
-/// which revision of the map, and the picture it carries by hash.</summary>
+/// <summary>One message in a note's thread (M0048): who wrote it, with which token where it was one, at which
+/// of the map's changes (M0053), and the picture it carries by hash.</summary>
 [Table("map_note_message")]
 public sealed class MapNoteMessageRow
 {
@@ -93,7 +93,7 @@ public sealed class MapNoteMessageRow
     [Column("author_name"), NotNull] public string AuthorName { get; set; } = "";
     [Column("token_label")] public string? TokenLabel { get; set; }
     [Column("body"), NotNull] public string Body { get; set; } = "";
-    [Column("revision"), NotNull] public long Revision { get; set; }
+    [Column("change_number"), NotNull] public long Change { get; set; }
     [Column("picture")] public string? Picture { get; set; }
     [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
 }

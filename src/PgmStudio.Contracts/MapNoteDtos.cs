@@ -73,12 +73,13 @@ public sealed record NoteAnchorDto(
 /// <param name="Token">The label of the token it was written with, which is what marks an agent's message;
 /// null for one written in a browser.</param>
 /// <param name="Body">What it says.</param>
-/// <param name="Revision">The map's revision it was written against.</param>
+/// <param name="Change">The map's change it was written at: the latest change to its documents when it was
+/// written, or the one its writer stated; 0 is before the map's first kept change.</param>
 /// <param name="Picture">The picture it carries, by hash — the one a note was written on, or the same camera
 /// after an agent's change — served at <c>GET /api/notes/pictures/{hash}</c>; null for none.</param>
 /// <param name="At">When it was written, in UTC.</param>
 public sealed record NoteMessageDto(
-    long Id, string Author, string? AuthorUuid, string? Token, string Body, long Revision, string? Picture, DateTime At);
+    long Id, string Author, string? AuthorUuid, string? Token, string Body, long Change, string? Picture, DateTime At);
 
 /// <summary>A note and its thread.</summary>
 /// <param name="Id">Its id.</param>
@@ -101,12 +102,12 @@ public sealed record MapNoteDto(
 /// <param name="Anchor">What it is pinned to.</param>
 /// <param name="Tag">What it is about, or null.</param>
 /// <param name="Picture">The picture it was written on, by the hash <c>POST /api/notes/pictures</c> answered.</param>
-/// <param name="Revision">The map's revision it was written against; absent takes the map's current one.</param>
+/// <param name="Change">The map's change it was written at; absent takes the latest.</param>
 public sealed record MapNoteRequest(
     string Body, NoteAnchorDto Anchor,
     [property: WordSet(typeof(NoteTags))] string? Tag = null,
     string? Picture = null,
-    long? Revision = null);
+    long? Change = null);
 
 /// <summary>A reply in a note's thread (<c>POST /api/map/{slug}/notes/{id}/replies</c>).</summary>
 /// <param name="Body">What it says.</param>
@@ -114,12 +115,12 @@ public sealed record MapNoteRequest(
 /// for an agent, <c>open</c> to hand it back to one. Absent is <c>answered</c> for a reply written with a token
 /// and <c>open</c> for one written in a browser.</param>
 /// <param name="Picture">The same camera after the change, by hash, or null.</param>
-/// <param name="Revision">The map's revision the reply was written against; absent takes the current one.</param>
+/// <param name="Change">The map's change the reply was written at; absent takes the latest.</param>
 public sealed record NoteReplyRequest(
     string Body,
     [property: WordSet(typeof(NoteStatuses))] string? Status = null,
     string? Picture = null,
-    long? Revision = null);
+    long? Change = null);
 
 /// <summary>A change to a note (<c>PATCH /api/map/{slug}/notes/{id}</c>): its status, its tag, or both.</summary>
 /// <param name="Status"><c>resolved</c>, <c>wont-do</c> or <c>open</c> to reopen it; absent leaves it.</param>

@@ -12,11 +12,13 @@ no objective until Configure gives it one. Opened on a map that came from a plan
 layout — the plan's abutting same-height pieces already fused into single polygons — and refines it.
 
 The route is `/maps/{slug}/sketch`. Six phases sit on the rail in the order the work is done: **Info**,
-**Draw**, **Relief**, **Theme**, **Dressing** and **In game**. Info states what the board is and is its own
-body; In game is the board as a player sees it, with the author's notes on it, and is its own body too until a
-view is being placed. The other four share the one live canvas, which stays mounted while Info or the gallery is up so the
-drawing state and the zoom survive the trip. None of the four has steps: each swaps what the columns hold and
-which overlays the layer bar offers, and the canvas is reused as it stands.
+**Draw**, **Relief**, **Theme**, **Dressing** and **In game** — and a seventh after them, **History**, which is the
+board's changes rather than a step in making it. Info states what the board is and is its own body; In game is
+the board as a player sees it, with the author's notes on it, and is its own body too until a view is being
+placed. The other five share the one live canvas, which stays mounted while Info or the gallery is up so the
+drawing state and the zoom survive the trip. None of the five has steps: each swaps what the columns hold and
+which overlays the layer bar offers, and the canvas is reused as it stands. `?phase=history` opens the tool on
+History.
 
 The tool saves continuously — every change schedules a debounced write 800 ms later — and leaves by
 **Finish**, which flushes the layout, rasterizes it server-side into world geometry, and moves the map to
@@ -68,8 +70,8 @@ not change the world the board builds — and a board loaded again over its own 
 
 **The notes an admin leaves in the In game phase are rows, not an artifact.** `map_note` holds one per note —
 its map by slug, what it is pinned to, its tag and its status — and `map_note_message` its thread, each message
-with who wrote it, the token it was written with where it was one, the map's revision it was written against,
-and the picture it carries by hash. A note names its map by slug rather than by row because a driver replaces
+with who wrote it, the token it was written with where it was one, the change to the map's documents it was
+written at, and the picture it carries by hash. A note names its map by slug rather than by row because a driver replaces
 the map row on every build, and a thread outlives every rebuild of the board it is about; deleting the map is
 what lets its notes go. The pictures themselves are files, named by the SHA-256 of their bytes under
 `Notes:Pictures` (*Notes*, under In game).
@@ -624,7 +626,7 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 
 | Chord | Does | Group |
 |---|---|---|
-| `1`–`6` | Go to Info · Draw · Relief · Theme · Dressing · In game | Phases |
+| `1`–`7` | Go to Info · Draw · Relief · Theme · Dressing · In game · History | Phases |
 | `V` | Select | Tools |
 | `H` | Pan | Tools |
 | `R` | Rectangle | Tools |
@@ -1483,7 +1485,7 @@ sky — before it can be sent.
 Waiting on you, With agent, Resolved — then the notes on the whole map, then any on a picture the gallery no
 longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **‹ All notes**
 goes back. A thread is its messages top to bottom, each with who wrote it, the token an agent wrote it with, and
-the revision it was written against; its pictures; **Resolve** or **Reopen**; and the reply box. A new note shows
+the change it was written at; its pictures; **Resolve** or **Reopen**; and the reply box. A new note shows
 what it is pinned to over its text box and an optional tag. The gallery counts each view's notes that are not
 resolved, and choosing another view switches the overview with it. `?note={id}` on the route opens the phase on
 that note's thread, which is the link a ruling written into `docs/gameplay/approaches.md` carries back to where it
@@ -1505,10 +1507,39 @@ declines in a reply — so a fix that looks right in a number but wrong in the g
 asked. An agent may open a note too, as a question in the place it is about, and it waits for the author the
 same way.
 
+**A thread says how many changes have landed since its last message.** A message records the latest change to
+the board's documents when it was written, or the one its writer stated, so the count is every change numbered
+above the thread's last message — an agent's pass, the author's own edit, a restore. The count is a link: it
+opens History on the span from that change to the latest, which is the answer to what happened since this was
+said.
+
 **A tag is optional.** A note can be only its text; the agent works out what it is about and says so in its reply,
 so a wrong reading is caught on the thread. `look`, `terrain` and `gameplay` go to the map; `studio` means the
 studio got something wrong or cannot do it, and becomes a backlog task instead; `ruling` is a gameplay decision
 that holds on every map, and a resolved one is written into the gameplay law with a link to its thread.
+
+### History
+
+**History is the board's changes, what each one did, and the way back to any of them.** The column lists every
+change to the board's documents newest first — its number, what its writer said it is or which documents it
+wrote, and when; hovering a row says who wrote it and with which token. The phase opens on the latest change,
+and picking one draws what it did over the board with the canvas as a selection surface and Shapes on: a shape
+added in green, taken away in red, reshaped in amber with its old outline dashed beside the new one, and changed
+in any other field — a theme, a floor — in blue; a prop placed, removed or moved, a hollow dot where it stood and
+a filled one where it stands; and the runs of columns whose ground, surface block or structure the build moved,
+boxed in the colours `docs/world-scan/read-backs.md` names.
+
+**The inspector says the rest.** Who wrote the change, when, what they said, and where its documents were built,
+linked to the commit and folder where the writer stated an origin; then every edit it made to the three
+documents, one a line, the thing it is about beside the change in words; then how many columns it moved of
+each kind. The edits come first and the columns when both boards are built, which on a large board is seconds.
+
+**Putting the board back writes the documents as they stood at the start of what is shown, as one new change.**
+For a single change that is the change before it, so the button takes the change back — and every change after
+it, which the inspector counts before it is pressed. The tab saves what was drawn in it first, then takes up the
+board the restore wrote, so the canvas and the store agree afterwards; a tab whose board is behind the stored one
+is refused until it is reloaded. The four routes underneath are `docs/tools/flow.md`'s, *Every change a map
+keeps*.
 
 ## Refusals and complaints
 
@@ -2018,9 +2049,9 @@ permission (`docs/access.md`). A member, and every other token, is refused `RQ8`
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `GET /notes?status=` | every note on every map, newest change first, each a `MapNoteDto` with its map's slug and name. `status` takes one status or several between commas — `open` is what an agent starts on | 400 `no such status` `RQ1` |
-| `GET /map/{slug}/notes` | the map's notes, newest change first: `[{id, map, mapName, anchor, tag, status, createdAt, updatedAt, messages[]}]`, each message `{id, author, authorUuid, token, body, revision, picture, at}` — `token` is the label of the token an agent wrote it with, null for a browser | 404 |
-| `POST /map/{slug}/notes` | the note written. Body `{body, anchor, tag?, picture?, revision?}`; a note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a tag of no known word, a picture no upload answered · 404 |
-| `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, revision?}`; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH` · 404 no such map, or no note by that id on it |
+| `GET /map/{slug}/notes` | the map's notes, newest change first: `[{id, map, mapName, anchor, tag, status, createdAt, updatedAt, messages[]}]`, each message `{id, author, authorUuid, token, body, change, picture, at}` — `token` is the label of the token an agent wrote it with, null for a browser | 404 |
+| `POST /map/{slug}/notes` | the note written. Body `{body, anchor, tag?, picture?, change?}`; `change` is the map's change it was written at, and absent takes the latest. A note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a tag of no known word, a picture no upload answered, a `change` that has not landed · 404 |
+| `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, change?}`; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH`, or a `change` that has not landed · 404 no such map, or no note by that id on it |
 | `PATCH /map/{slug}/notes/{id}` | the note changed. Body `{status?, tag?}`: `resolved`, `wont-do` or `open` to reopen; a tag, or `""` to clear it | 400 `not a change` `RQ1` · 403 `RQ8` to a token — an agent answers in a reply, and only the author closes a thread · 404 |
 | `POST /notes/pictures` | `{hash, bytes}` — the picture kept under the SHA-256 of its bytes. The body is the picture itself, a WebP or a PNG sent as `image/webp`, `image/png` or `application/octet-stream`, up to 8 MB; the same bytes answer the same hash | 400 `not a picture` `RQ1` |
 | `GET /notes/pictures/{hash}` | the picture, `image/webp` or `image/png`, with a year's private cache — it never changes under its hash | 404 |
@@ -2129,8 +2160,9 @@ POST  /api/map/{slug}/notes/{id}/replies   {"body": …, "status": "answered", "
 ```
 
 A note's `anchor.camera` is drawn again exactly by `render/eye?eye={x},{y},{z}&yaw={yaw}&pitch={pitch}&fov={fov}&width={width}&height={height}`;
-an area's `anchor.columns` are the ground it names, each `[x, y, z]`. The reply says what changed, the revision
-it landed at — the map's revision counts on across every rebuild — and the number that moved; where the remark
+an area's `anchor.columns` are the ground it names, each `[x, y, z]`. The reply says what changed, the change
+it landed as — change numbers count on across every rebuild, and the reply records the latest by itself — and
+the number that moved; where the remark
 could mean two places or two things, the reply is the question, with `"status": "needs-info"`, and nothing is
 built on a guess. A declined note is `"status": "wont-do"` with the reason in the body.
 

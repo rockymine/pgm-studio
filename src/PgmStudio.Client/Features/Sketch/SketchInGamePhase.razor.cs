@@ -45,6 +45,12 @@ public partial class SketchInGamePhase
     /// <summary>A note to open on arriving, by id — a link into its thread.</summary>
     [Parameter] public long? LinkedNote { get; set; }
 
+    /// <summary>The numbers of the board's changes, handed on to the notes column.</summary>
+    [Parameter] public IReadOnlyList<long> Changes { get; set; } = [];
+
+    /// <summary>Open what changed after a thread's last message.</summary>
+    [Parameter] public EventCallback<long> OnChangesSince { get; set; }
+
     /// <summary>A mark on the picture: the tool that drew it and its pixels.</summary>
     private sealed record Mark(string Kind, List<PixelDto> Pixels);
 

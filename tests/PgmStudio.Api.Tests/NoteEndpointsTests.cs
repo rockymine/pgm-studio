@@ -31,7 +31,7 @@ public sealed class NoteEndpointsTests
         await Assert.That(note!.Status).IsEqualTo(NoteStatuses.Open);
         await Assert.That(note.Anchor.Hit).IsEqualTo(new BlockAtDto(0, 21, 0));
         await Assert.That(note.Anchor.Marks!.Single()).IsEqualTo(new PixelDto(640, 360));
-        await Assert.That(note.Messages.Single().Revision).IsGreaterThan(0);
+        await Assert.That(note.Messages.Single().Change).IsGreaterThan(0);
 
         var asked = await (await client.PostAsJsonAsync($"{Notes}/{note.Id}/replies",
             new NoteReplyRequest("The tree, or the boulder beside it?", NoteStatuses.NeedsInfo))).Content.ReadFromJsonAsync<MapNoteDto>();
@@ -110,7 +110,7 @@ public sealed class NoteEndpointsTests
     }
 
     [Test]
-    public async Task A_rebuild_under_the_same_slug_keeps_the_threads_and_counts_the_revision_on()
+    public async Task A_rebuild_under_the_same_slug_keeps_the_threads_and_counts_the_changes_on()
     {
         using var client = await SketchBoard.FreshAsync();
         var note = await (await client.PostAsJsonAsync(Notes, new MapNoteRequest("Too flat.", new NoteAnchorDto(NoteAnchors.Map))))
@@ -121,14 +121,49 @@ public sealed class NoteEndpointsTests
 
         var kept = (await client.GetFromJsonAsync<List<MapNoteDto>>(Notes))!.Single();
         await Assert.That(kept.Id).IsEqualTo(note!.Id);
-        var map = await client.GetAsync($"/api/map/{SketchBoard.Slug}");
-        await Assert.That(long.Parse(map.Headers.ETag!.Tag.Trim('"'))).IsGreaterThan(note.Messages[0].Revision);
+        await Assert.That(await LatestChangeAsync(client)).IsGreaterThan(note.Messages[0].Change)
+            .Because("the rebuild landed as a change after the one the note was written at");
         var views = await client.GetFromJsonAsync<MapViewsDto>($"/api/map/{SketchBoard.Slug}/views");
         await Assert.That(views!.Views.Single(view => view.Kept && !view.Own).Pitch).IsEqualTo(60.0);
 
         await client.DeleteAsync($"/api/map/{SketchBoard.Slug}");
         await SketchBoard.RebuildAsync(client);
         await Assert.That(await client.GetFromJsonAsync<List<MapNoteDto>>(Notes)).IsEmpty();
+    }
+
+    /// <summary>A message records the change its board stood at when it was written, which is what a layout edit
+    /// moves; a message stating one keeps it, and one naming a change that has not landed is refused.</summary>
+    [Test]
+    public async Task A_message_records_the_change_the_board_stood_at()
+    {
+        using var client = await SketchBoard.FreshAsync();
+        var loaded = await LatestChangeAsync(client);
+        var layout = await client.GetStringAsync($"/api/map/{SketchBoard.Slug}/sketch");
+        await client.PutAsync($"/api/map/{SketchBoard.Slug}/sketch",
+            new StringContent(layout.Replace("\"max_x\":20", "\"max_x\":24"), System.Text.Encoding.UTF8, "application/json"));
+        var edited = await LatestChangeAsync(client);
+
+        var note = await (await client.PostAsJsonAsync(Notes, new MapNoteRequest("Too wide.", new NoteAnchorDto(NoteAnchors.Map))))
+            .Content.ReadFromJsonAsync<MapNoteDto>();
+        await Assert.That(edited).IsGreaterThan(loaded);
+        await Assert.That(note!.Messages[0].Change).IsEqualTo(edited)
+            .Because("the layout edit is a change, and the note was written after it");
+
+        var stated = await (await client.PostAsJsonAsync($"{Notes}/{note.Id}/replies",
+            new NoteReplyRequest("Seen at the load.", Change: loaded))).Content.ReadFromJsonAsync<MapNoteDto>();
+        await Assert.That(stated!.Messages[^1].Change).IsEqualTo(loaded);
+
+        using var ahead = await client.PostAsJsonAsync($"{Notes}/{note.Id}/replies",
+            new NoteReplyRequest("From the future.", Change: edited + 5));
+        await Assert.That(ahead.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var finding = (await ahead.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("change");
+    }
+
+    private static async Task<long> LatestChangeAsync(HttpClient client)
+    {
+        var changes = (await client.GetFromJsonAsync<JsonElement>($"/api/map/{SketchBoard.Slug}/changes")).GetProperty("changes");
+        return changes[changes.GetArrayLength() - 1].GetProperty("number").GetInt64();
     }
 
     private static async Task<NotePictureDto> Keep(HttpClient client, byte[] bytes, string type)

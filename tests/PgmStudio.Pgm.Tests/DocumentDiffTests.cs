@@ -103,6 +103,20 @@ public sealed class DocumentDiffTests
     }
 
     [Test]
+    public async Task An_outline_that_kept_its_points_pairs_them_by_place_and_names_a_whole_move()
+    {
+        var shifted = Edited(root => Shapes(root)[1]!["vertices"] = JsonNode.Parse("[[8,0],[18,0],[18,10],[8,10]]"));
+        var nudged = Edited(root => Shapes(root)[1]!["vertices"] = JsonNode.Parse("[[0,0],[10,0],[13,14],[0,10]]"));
+
+        var whole = await Only(Diff(shifted), "layers[ground].layout.shapes[p1].vertices");
+        var one = await Only(Diff(nudged), "layers[ground].layout.shapes[p1].vertices");
+
+        await Assert.That(whole.Says).IsEqualTo("all 4 vertices moved 8 blocks, by (8, 0)")
+            .Because("a translated outline is one move, whatever points it happens to share with where it was");
+        await Assert.That(one.Says).IsEqualTo("1 of 4 vertices moved (up to 5 blocks)");
+    }
+
+    [Test]
     public async Task A_member_stated_for_the_first_time_is_set_and_one_dropped_is_removed()
     {
         var after = Edited(root =>

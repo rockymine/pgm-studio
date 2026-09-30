@@ -22,17 +22,6 @@ it.
 
 ### A map is its source and every change to it
 
-- [ ] **TS124 — The Sketch tool shows a board's changes, and a note knows what changed since it was
-  written.** A history list — each change's writer, its origin linked to the commit and folder where one was
-  stated, and its summary — and picking one draws its diff on the canvas: shapes added, taken away and
-  reshaped, props placed, moved and removed, and the changed columns as an overlay, with restore on the
-  change. A note records the change it was written at; today it records the map row's revision
-  (`NoteEndpoints.cs:189`, `:228`), which a layout edit does not move. A thread shows how many changes have
-  landed since, with that diff one click away. `docs/tools/sketch.md` § In game.
-
-  *Evidence: 77 notes on pgmstudio.de, 31 of them on Gypsum Reach over seven passes, and every round is
-  reviewed from the whole board.*
-
 - [ ] **RP91 — The finish becomes a studio document, the refinement, and one route stores a map from its
   source.** `pgm-studio-mapgen/tools/drive.py` applies the finish to the compiled documents in Python
   (`patch_layout`, `patch_intent`), stores the result through `POST /map/from-documents`, posts each vertex
