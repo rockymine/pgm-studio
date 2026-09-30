@@ -33,7 +33,7 @@ public sealed class DressingJsonTests
             Props =
             [
                 new StrokeProp { Id = "p", Seed = 1, Points = [[0, 0], [10, 10]], Pave = new SolidMaterial(Blocks.Gravel) },
-                new WaterProp { Id = "w", Seed = 2, Points = [[0, 0], [10, 10]] },
+                new FluidProp { Id = "w", Seed = 2, Points = [[0, 0], [10, 10]] },
                 new TreeProp { Id = "t", Seed = 3, X = 1, Z = 1 },
                 new BoulderProp { Id = "b", Seed = 4, X = 2, Z = 2 },
                 new FloraProp { Id = "f", Seed = 5, Points = [[0, 0], [10, 0], [10, 10]] },
@@ -221,8 +221,8 @@ public sealed class DressingJsonTests
         // (PascalCase) rather than the documented camelCase wire form. The converter tolerates either, so
         // this is not a fault the parser has to refuse — only the documentation had to settle on one case.
         var doc = DressingJson.Deserialize(
-            """{"props":[{"kind":"water","id":"w1","seed":1,"points":[[0,0],[1,1]],"form":"Natural"}]}""");
-        await Assert.That(((WaterProp)doc.Props[0]).Form).IsEqualTo(ChannelForm.Natural);
+            """{"props":[{"kind":"fluid","id":"w1","seed":1,"points":[[0,0],[1,1]],"form":"Natural"}]}""");
+        await Assert.That(((FluidProp)doc.Props[0]).Form).IsEqualTo(ChannelForm.Natural);
     }
 
     // ── what still has to refuse ───────────────────────────────────────────────────────────────────────

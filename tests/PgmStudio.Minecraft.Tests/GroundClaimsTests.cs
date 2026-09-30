@@ -48,7 +48,7 @@ public sealed class GroundClaimsTests
         // A tree's standoff names the road; a wall of water or an earlier rock nearby is occupancy's
         // question, not distance's.
         var claims = new GroundClaims().On(null);
-        claims.Claim(10, 10, ClaimKind.Water, "channel");
+        claims.Claim(10, 10, ClaimKind.Fluid, "channel");
         claims.Claim(11, 10, ClaimKind.Scatter, "rock");
 
         await Assert.That(claims.NearerThan(12, 10, ClaimKind.Paving, 3)).IsNull();
@@ -60,12 +60,12 @@ public sealed class GroundClaimsTests
         // A stacked board carries a surface per storey, so the same (x, z) is a different cell on each. A
         // channel carved into the ground must leave a prop resting on an island above it alone.
         var book = new GroundClaims();
-        book.On("ground").Claim(7, 7, ClaimKind.Water, "river");
+        book.On("ground").Claim(7, 7, ClaimKind.Fluid, "river");
 
         await Assert.That(book.On("ground").Holds(7, 7)).IsTrue();
         await Assert.That(book.On("sky").Holds(7, 7)).IsFalse();
         await Assert.That(book.On("sky").At(7, 7)).IsNull();
-        await Assert.That(book.On("sky").NearerThan(7, 7, ClaimKind.Water, 4)).IsNull();
+        await Assert.That(book.On("sky").NearerThan(7, 7, ClaimKind.Fluid, 4)).IsNull();
         // And a prop that names no layer rests on the top surface, which is a storey of its own.
         await Assert.That(book.On(null).Holds(7, 7)).IsFalse();
     }

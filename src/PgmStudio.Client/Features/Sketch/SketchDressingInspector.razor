@@ -101,7 +101,7 @@
           <MaterialEditor Node="pave" Blocks="blocks" Styles="styles" OnChanged="() => MaterialChanged(PropFields.Pave)" />
         }
       }
-      else if (kind == PropKinds.Water)
+      else if (kind == PropKinds.Fluid)
       {
         <Field Label="Fluid"><LabelHint>what fills the bed</LabelHint>
           <ChildContent><div class="chip-row">
@@ -136,7 +136,7 @@
                  @oninput="e => Set(PropFields.Edge, JsonValue.Create(Whole(e) / 10.0))" /></ChildContent></Field>
         <div class="section-header section-header--ruled"><h2 class="section-title">Form</h2></div>
         <div class="prop-cards">
-          @foreach (var option in waterForms)
+          @foreach (var option in fluidForms)
           {
             <button class="prop-card @(Text(PropFields.Form, PropFields.CanalForm) == option.Key ? "prop-card--active" : null)"
                     title="@option.Label" @onclick="() => Pick(PropFields.Form, option)">

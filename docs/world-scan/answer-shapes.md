@@ -87,7 +87,7 @@ speaks to it, the shape that gate speaks in, and the read that shows it as a thi
 | a path that does not work | `EL1` and `SP8` on the seams between pieces | a step size per seam | the same route profile: rises, falls, the worst step and where, along the cells a player actually walks |
 | many themes mashed together | nothing; `render/surface` counts tone families in a legend baked into a PNG | a picture | a theme census — cells per theme, distinct materials, which theme borders which — which no read answers yet |
 | a spawn platform raised, and a stair that makes no geometric sense | `SP8` on the egress, `WX11` on a foundation face | a step size, one coordinate | a transect through the spawn along both axes with eight blocks of overshoot, where a platform standing five over the ground beside it is `+5` at a coordinate — the driver's `transect-spawn-*.txt` |
-| a pit with a puddle at the bottom | nothing | — | a transect through the water prop's own box: `BARRIER +8 at (-52, 0)` |
+| a pit with a puddle at the bottom | nothing | — | a transect through the fluid prop's own box: `BARRIER +8 at (-52, 0)` |
 
 Every one of these is a claim about a **shape** — a bank, a wall, a slope, a stair, a basin — and a shape is
 a profile, never a point. A single column answers what is at a coordinate; a render answers what a place
@@ -98,7 +98,7 @@ looks like; only a run of columns with the steps between them named answers whet
 The driver writes the board as text beside every picture, each file the API's own `?format=text` answer
 (`tools/render/textreads.py`): the heightmap with the houses, water, spawns and goals overprinted; the slope
 grid; the two axis sections with `#` ground, `L` a storey, `~` liquid, `H` a hall, `M` a made thing; a
-transect along x and along z through every spawn, goal, house, water prop, boulder and made thing, its box
+transect along x and along z through every spawn, goal, house, fluid prop, boulder and made thing, its box
 taken from the documents and padded eight blocks each side, with what stands within two cells of the line;
 the profile along each team's walk to each goal with what stands beside it; the theme census; and the
 dressing pass's claims. What the driver decides is the extent, and nothing else. The summaries print inline

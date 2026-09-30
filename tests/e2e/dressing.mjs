@@ -47,14 +47,14 @@ checks.add("a marker kept its cell", props[2]?.x === 10 && props[2]?.z === 12, J
 checks.section("every option is drawn by the pass");
 
 const styles = await api("/terrain/stroke-styles");
-const waterFormCards = await api("/terrain/water-forms");
+const fluidFormCards = await api("/terrain/fluid-forms");
 const forms = await api("/terrain/boulder-forms");
 const species = await api("/terrain/species");
 
 checks.add("five stroke styles, each drawn", styles.length === 5 && styles.every(s => s.svg?.includes("<rect")),
   styles.map(s => s.key).join(" "));
-checks.add("three channel forms, each drawn", waterFormCards.length === 3 && waterFormCards.every(f => f.svg?.includes("<rect")),
-  waterFormCards.map(f => f.key).join(" "));
+checks.add("three channel forms, each drawn", fluidFormCards.length === 3 && fluidFormCards.every(f => f.svg?.includes("<rect")),
+  fluidFormCards.map(f => f.key).join(" "));
 checks.add("four boulder forms, each drawn", forms.length === 4 && forms.every(f => f.svg?.includes("<rect")),
   forms.map(f => f.key).join(" "));
 checks.add("every species drawn, and carrying its own proportions",
@@ -80,16 +80,16 @@ const lush = await preview({ kind: "flora", points: [[0, 0], [40, 0], [40, 40], 
 const road = await preview({ kind: "stroke", points: [[0, 20], [40, 20]], radius: 3, seed: 5, pave: { kind: "solid", id: 13, data: 0 } });
 const trail = await preview({ kind: "stroke", points: [[0, 20], [40, 20]], radius: 3, style: "stones", seed: 5, pave: { kind: "solid", id: 13, data: 0 } });
 const tree = await preview({ kind: "tree", x: 0, z: 0, species: "spruce", height: 24, seed: 5 });
-const shallow = await preview({ kind: "water", points: [[0, 20], [40, 20]], radius: 4, depth: 1, seed: 5 });
-const deep = await preview({ kind: "water", points: [[0, 20], [40, 20]], radius: 4, depth: 5, seed: 5 });
+const shallow = await preview({ kind: "fluid", points: [[0, 20], [40, 20]], radius: 4, depth: 1, seed: 5 });
+const deep = await preview({ kind: "fluid", points: [[0, 20], [40, 20]], radius: 4, depth: 5, seed: 5 });
 
 checks.add("coverage moves the plant count", lush.counts.plants > sparse.counts.plants,
   `${sparse.counts.plants} → ${lush.counts.plants}`);
 checks.add("stepping stones pave less than a road", trail.counts.pathCells < road.counts.pathCells && trail.counts.pathCells > 0,
   `${road.counts.pathCells} → ${trail.counts.pathCells}`);
-checks.add("a channel carves and fills, and a deeper one is drawn no shorter", deep.counts.waterCells > 0
-  && shallow.counts.waterCells > 0 && (deep.section?.length ?? 0) > 100,
-  `shallow ${shallow.counts.waterCells} · deep ${deep.counts.waterCells} · section ${deep.section?.length}`);
+checks.add("a channel carves and fills, and a deeper one is drawn no shorter", deep.counts.fluidCells > 0
+  && shallow.counts.fluidCells > 0 && (deep.section?.length ?? 0) > 100,
+  `shallow ${shallow.counts.fluidCells} · deep ${deep.counts.fluidCells} · section ${deep.section?.length}`);
 checks.add("one tree is one tree", tree.counts.trees === 1, JSON.stringify(tree.counts));
 checks.add("both views are drawn", (tree.plan?.length ?? 0) > 100 && (tree.section?.length ?? 0) > 100,
   `plan ${tree.plan?.length} · section ${tree.section?.length}`);
@@ -99,7 +99,7 @@ checks.section("the sketch Dressing phase places things");
 
 // The placing tools this spec drives, named once: the dock check asserts they are offered and the drive
 // clicks them, so a renamed tool fails both together rather than passing one and timing out in the other.
-const DRIVEN = { stroke: "Stroke", water: "Water", tree: "Tree" };
+const DRIVEN = { stroke: "Stroke", fluid: "Fluid", tree: "Tree" };
 
 const browser = await openBrowser();
 const page = await newPage(browser, { width: 1600, height: 1000 });
@@ -174,9 +174,9 @@ try {
   checks.add("a drag places a path, and releasing ends it", await page.locator("text=Style").count() > 0);
   await shot("dressing-path.png");
 
-  // Drag a water channel: the same press-trace-release, but its inspector is the water one — a depth and a
+  // Drag a fluid channel: the same press-trace-release, but its inspector is the fluid one — a depth and a
   // form, the knobs a channel has and a path does not.
-  await page.click(`button[aria-label^="${DRIVEN.water}"]`);
+  await page.click(`button[aria-label^="${DRIVEN.fluid}"]`);
   await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.35);
   await page.mouse.down();
   for (const step of [0.35, 0.45, 0.55, 0.65, 0.75]) {
@@ -185,9 +185,9 @@ try {
   }
   await page.mouse.up();
   await page.waitForTimeout(2000);
-  checks.add("a drag places a water channel, with its own depth + form knobs",
+  checks.add("a drag places a fluid channel, with its own depth + form knobs",
     await page.locator("text=Depth").count() > 0 && await page.locator("text=Form").count() > 0);
-  await shot("dressing-water.png");
+  await shot("dressing-fluid.png");
 
   // Drop a chest with a click and give it a stack: the inspector lists what it holds, and the stack is what
   // the stored board carries.

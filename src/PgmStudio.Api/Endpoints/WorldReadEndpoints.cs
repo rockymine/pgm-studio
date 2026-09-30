@@ -800,9 +800,9 @@ internal static class WalkReads
         if (dressing is not { } element) return null;
 
         var cells = new HashSet<(int X, int Z)>();
-        foreach (var prop in DressingJson.Deserialize(element.ToString()).Props.OfType<WaterProp>()
+        foreach (var prop in DressingJson.Deserialize(element.ToString()).Props.OfType<FluidProp>()
                      .Where(prop => prop.Fluid == Fluid.Water))
-            foreach (var cell in WaterBed.Cells(prop.Points, prop.Radius, prop.Depth, prop.Form, prop.Edge,
+            foreach (var cell in FluidBed.Cells(prop.Points, prop.Radius, prop.Depth, prop.Form, prop.Edge,
                                                 unchecked((uint)prop.Seed)))
                 cells.Add((cell.X, cell.Z));
         return cells.Count == 0 ? null : cells;

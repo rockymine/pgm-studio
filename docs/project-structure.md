@@ -110,10 +110,10 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Export` | 19 | 4,456 | flat |
 | `Geom` | 51 | 6,761 | `Algorithms/` 19 · `Render/` 7 · `Relief/` 5 · 20 at root |
 | `Import` | 4 | 496 | flat |
-| `Migrations` | 50 | 3,030 | `Migrations/` 49 · 1 at root |
-| `Minecraft` | 108 | 23,403 | `Render/` 19 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Painting/` 13 · `Dressing/` 12 · `Houses/` 11 · `Views/` 4 · `Suggest/` 1 · 1 at root |
+| `Migrations` | 51 | 3,108 | `Migrations/` 50 · 1 at root |
+| `Minecraft` | 108 | 23,405 | `Render/` 19 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Painting/` 13 · `Dressing/` 12 · `Houses/` 11 · `Views/` 4 · `Suggest/` 1 · 1 at root |
 | `Pgm` | 160 | 30,758 | `Compose/` 43 (nested) · `Authoring/` 28 · `Evaluate/` 22 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Plan/` 9 · `Sketch/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
-| `Vocabulary` | 23 | 1,615 | flat |
+| `Vocabulary` | 23 | 1,616 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest

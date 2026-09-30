@@ -8,8 +8,8 @@ namespace PgmStudio.Contracts;
 /// <param name="Trees">Trees grown on the patch, counted by trunk rather than by leaf.</param>
 /// <param name="PathCells">Cells a path repainted. A band that reads as a ruled stripe and one that reads as
 /// a track differ by this number more than by anything in the document.</param>
-/// <param name="WaterCells">Cells a water prop filled.</param>
-public sealed record DressingCountsDto(int Plants, int Boulders, int Trees, int PathCells, int WaterCells);
+/// <param name="FluidCells">Cells a fluid prop filled.</param>
+public sealed record DressingCountsDto(int Plants, int Boulders, int Trees, int PathCells, int FluidCells);
 
 /// <summary>Both views of one placed prop (POST /api/terrain/prop-preview), produced by running the real pass
 /// over a sample patch.</summary>

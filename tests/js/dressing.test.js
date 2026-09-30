@@ -33,12 +33,12 @@ test("a fresh prop of each kind starts at the same numbers the server does", () 
   assert.equal(defaultProp("stroke").radius, 3);
   assert.equal(defaultProp("stroke").style, "solid");
   // Water is drawn like a path but cuts a bed and fills it: a plain canal is what the other forms vary on.
-  assert.equal(defaultProp("water").form, "canal");
-  assert.equal(defaultProp("water").depth, 2);
-  assert.equal(defaultProp("water").shoreWander, true);
+  assert.equal(defaultProp("fluid").form, "canal");
+  assert.equal(defaultProp("fluid").depth, 2);
+  assert.equal(defaultProp("fluid").shoreWander, true);
   // Its bank (bed floor + beach) is a full terrain material, not one block — a cellular voronoi by default.
-  assert.equal(defaultProp("water").bank.kind, "voronoi");
-  assert.equal(defaultProp("water").bank.bands.length, 3);
+  assert.equal(defaultProp("fluid").bank.kind, "voronoi");
+  assert.equal(defaultProp("fluid").bank.bands.length, 3);
   // So is a path's paving, which is what lets it take a pattern.
   assert.equal(defaultProp("stroke").pave.kind, "solid");
   // A tree and a boulder are put down with a click, so what is placed is a position and what stands there is
@@ -113,12 +113,12 @@ test("a drag places one route, and releasing is what ends it", () => {
   assert.deepEqual(doc.props[0].points.at(-1), [20, 8]);
 });
 
-test("a water channel is dragged as an open line, the same way a path is", () => {
+test("a fluid channel is dragged as an open line, the same way a path is", () => {
   // Water shares the path's press-trace-release: an open route kept in draw order, not a closed ring.
   const { doc, tools } = controller();
-  drag(tools, "dress:water", [[0, 0], [6, 3], [12, 2], [20, 6]]);
+  drag(tools, "dress:fluid", [[0, 0], [6, 3], [12, 2], [20, 6]]);
   assert.equal(doc.props.length, 1);
-  assert.equal(doc.props[0].kind, "water");
+  assert.equal(doc.props[0].kind, "fluid");
   assert.ok(doc.props[0].points.length >= 2);
   assert.deepEqual(doc.props[0].points[0], [0, 0]);
   assert.deepEqual(doc.props[0].points.at(-1), [20, 6]);

@@ -66,12 +66,12 @@ public static class WalkProfile
     public readonly record struct Neighbour(StampId Owner, int X, int Z, int Distance);
 
     /// <summary>The claims a player meets standing beside a route: a wall, a wool room's redstone line, an
-    /// iron cube, a spawn, a wool, a destroyable, a core, a control point, a house, a tree, a boulder and
-    /// water.</summary>
+    /// iron cube, a spawn, a wool, a destroyable, a core, a control point, a house, a tree, a boulder, a
+    /// chest and a fluid.</summary>
     private static readonly HashSet<string> StandingKinds =
     [
         "wall", "redstoneline", "ironcube", "spawn", "wool", "destroyable", "core", "controlpoint",
-        "house", "tree", "boulder", "water",
+        "house", "tree", "boulder", "chest", "fluid",
     ];
 
     private static readonly (int Dx, int Dz)[] EightNeighbours =

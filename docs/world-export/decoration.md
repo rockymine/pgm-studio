@@ -667,10 +667,10 @@ provenance state gives when a region carries no sidecar. `PgmStudio.RoundTrip --
 takes an optional `--dressing <layout.json>` naming the document a bare region directory cannot otherwise
 reach, and falls back to the mass without one.
 
-## 7. Water — channels (`DR-WA`)
+## 7. Fluid — channels and pools of water or lava (`DR-WA`)
 
 A channel begins exactly where the §4 stroke does — a dragged centerline and a radius, the same swept-disc
-band (`Geom.WaterBed` reuses `Centerline.Of` and `Polyline`'s distance field). What makes water its own
+band (`Geom.FluidBed` reuses `Centerline.Of` and `Polyline`'s distance field). What makes water its own
 tool is that it **cannot drape on the surface** the way gravel can: laid on a slope it reads as blue paint.
 Water has to sit in a **carved bed** and fill to a **level plane**, so water is the one prop that takes the
 ground *out* rather than standing on it.
@@ -693,8 +693,8 @@ bed takes to reach full depth, so a harbour shallows against its quays rather th
 wall. `edge` wobbles either boundary by a value field, so a lake is not a ruled polygon.
 
 The carve is a shallow U — deepest on the centerline, rising to a single block at the band's edge — so the
-fill sits in a bowl rather than a walled trench. `WaterBed` yields a depth per cell from that parabolic law;
-the dressing pass (`Decorator.PlaceWater`) turns each depth into a cut against the surface the cell actually
+fill sits in a bowl rather than a walled trench. `FluidBed` yields a depth per cell from that parabolic law;
+the dressing pass (`Decorator.PlaceFluid`) turns each depth into a cut against the surface the cell actually
 crosses. The fill is one **water line** for the whole run, and where that line comes from decides what the
 carve may touch.
 
@@ -737,13 +737,13 @@ same side; a stated line is the same Y at every image, a level plane being level
 
 The water meets the land through a **beach**. The shore is its own pass — the band *outside* the water, out to
 a width that wanders with a noise field and drops to nothing in places, so the water meets the grass directly
-in some stretches and spreads into a flat in others (`WaterBed.ShoreCells`). Both the beach and the bed floor
+in some stretches and spreads into a flat in others (`FluidBed.ShoreCells`). Both the beach and the bed floor
 are laid with the channel's **bank**, and the bank is not a block but a full **`TerrainMaterial`** — a solid, or
 by default a cellular voronoi of gravel, coarse dirt and sand, the same pattern the painter tiles
 and edited by the same `MaterialEditor`. So the floor the shallows show through and the shore the water meets
 read as one ground, drawn from one palette.
 
-Channels take a **form**, and it drives both the water and the land. The three laws live in `WaterBed`, which
+Channels take a **form**, and it drives both the water and the land. The three laws live in `FluidBed`, which
 cuts the bed and the beach together so they cannot disagree. A clean-banked **canal** holds a uniform width. A
 **natural** edge wobbles its width off the nominal by a value field (± the *bank roughness* knob, in blocks). A
 **stream beads**: its width runs a rectified sine along the *arc* — pinching to half the radius and swelling
@@ -772,7 +772,7 @@ there is instead of making one.
 lake; the hollow it sits in is very often somebody else's — a relief mark, a shape's floor — and where that
 hollow reaches further than the bed does, the extra is excavated and never filled: a trench as deep as the
 water is, running alongside it. `opus5-scarrow-delph`'s tarn is the case. Its relief mark `pan` digs
-z −8…7 down to y4 and the water prop fills z −7…6, so both end rows stand four courses of open air against the
+z −8…7 down to y4 and the fluid prop fills z −7…6, so both end rows stand four courses of open air against the
 water for the lake's whole length, and nothing said so. The test is the water line's own course at each of a
 wet cell's four neighbours: air there is a fault, **unless the neighbour has no terrain column at all**. That
 exception is the whole of the rule's judgement and it is the author's — a pool reaching the board's own edge
@@ -790,8 +790,9 @@ grows, and `PATCH /map/{slug}/sketch/props/{propId}` is what changes it.
 water," and the closed form: **depth shading** warped off-centre so one bank runs deeper than the other; an
 **irregular shoreline** whose width wanders to zero in places; a **voronoi-patterned** bed and shore (sand,
 pale gravel, coarse dirt) showing through the shallows; **edge life** reusing the §3 flora overlay masked to
-the bank (reeds, lily pads); and **ponds** — the closed version, an organic basin (the §5 boulder blob read
-concave), scattered onto low ground and joined to channels into one watershed on a single water level.
+the bank (reeds, lily pads) — on a water fill only, since a lava bed grows neither; and **ponds** — the closed
+version, an organic basin (the §5 boulder blob read concave), scattered onto low ground and joined to channels
+into one watershed on a single water level.
 
 ## 8. Buildings — a rectangle and a shell (`DR-HO`)
 
@@ -1196,7 +1197,7 @@ and lands in the same realize seam.
 | Strokes | `CatmullRom`; `Ribbon`; `Polyline`'s distance field; the lasso's own press-trace-release | `StrokeFill`'s six gates; `StrokeOutline` + its `geometry/stroke.js` twin for the drawn outline | `DR-PA` |
 | Boulders | `SurfaceTop`; the squared-distance masks the objective stampers fill by | `Blob`; `BoulderShapes` | `DR-SC` |
 | Trees | the boulder's seating | `TreeTemplate`; `CanopyProfiles`; the species rows | `DR-TR` |
-| Water | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `WaterBed` + `Decorator.PlaceWater` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
+| Water | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `FluidBed` + `Decorator.PlaceFluid` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
 | Buildings | `HouseStamper` + `HouseStyle` whole; the room-style library; `DressingSymmetry`'s outline fan | `HouseProp` + `Decorator.PlaceHouse`; the rectangle drag; `TurnEdge` for the door | `DR-HO` |
 | The ways past a building | `Walk` + `WalkGround.OfSpans` — the one traversal every distance is measured with, and `Walk.Detour`'s ten blocks | `WayThrough` — the waypoint-pair routes read off the bare terrain, held as each building is admitted to them | `DR-WAY` |
 | A road a building stands on | the stroke's own placed cells, per orbit image | `RouteCrossing` — the runs the paving falls into with the footprint out of it, before against after | `DR-CROSS` |
@@ -1235,7 +1236,7 @@ there:
 - `TreeTemplate` and `CanopyProfiles` — the vanilla tree: a trunk under a canopy whose profile is a radius per
   course, so a species is a row rather than a code path. No block ever appears in either.
 - `StrokeFill` — which cells a stroke paves, one gate per style; `StrokeOutline` — the outline the canvas draws
-  it as, and the one C# side of the `geometry/stroke.js` parity pair; `WaterBed` — the same swept-disc band read
+  it as, and the one C# side of the `geometry/stroke.js` parity pair; `FluidBed` — the same swept-disc band read
   as a carve, a bed depth per cell (deepest on the line, one at the shore) for the three channel forms.
 - `OrbitScatter` — which cell of an orbit is its representative, the answer §2's fan is built on.
 - `BlueNoise` — even, non-touching scatter sites. Nothing in the shipped stage places by it any more, since
@@ -1244,7 +1245,7 @@ there:
 **`PgmStudio.Minecraft/Dressing` — the world-writing pass.** `Decorator`, sibling to `ObjectiveStamper` and
 `TerrainPainter`: it takes a `DressingContext` (the surface, the placed props, the keep-out mask and what
 each cell is held for, the symmetry, the cells the map is played between) and writes blocks via `SetBlock`. It reaches `Geom` for the algorithms and `DressingSymmetry` for
-the orbit fan. The props themselves (`StrokeProp`, `WaterProp`, `FloraProp`, `HouseProp`, `TreeProp`,
+the orbit fan. The props themselves (`StrokeProp`, `FluidProp`, `FloraProp`, `HouseProp`, `TreeProp`,
 `BoulderProp` under one `PlacedProp` discriminator) and the block palette live here beside
 `Blocks`/`BlockPalette`. `WayThrough` is here too, for the same reason: it reads `Walk` out of `Geom` and
 answers a question only the pass asks. A building's own stamper is **not** here — `HouseStamper` sits a folder up, where the

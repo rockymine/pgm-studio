@@ -980,13 +980,13 @@ public sealed class DecoratorTests
         // The distinction water is built on: a path repaints the surface, water takes the surface *out*. So the
         // centerline is water down through several courses, over a bed floor — not a single repainted block.
         var (world, top) = Plateau();
-        var tally = Decorator.Decorate(world, Context(top, [new WaterProp
+        var tally = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand),
         }]));
 
-        await Assert.That(tally.WaterCells).IsGreaterThan(60);
+        await Assert.That(tally.FluidCells).IsGreaterThan(60);
         await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.StationaryWater);   // the old surface, now water
         await Assert.That(world.GetBlock(20, 6, 20).Id).IsEqualTo(Blocks.StationaryWater);   // cut deeper on the line
         await Assert.That(world.GetBlock(20, 4, 20).Id).IsEqualTo(Blocks.Sand);              // a sand bed under it
@@ -996,7 +996,7 @@ public sealed class DecoratorTests
     /// <summary><b>A hollow dug wider than the pool that fills it leaves a dry trench beside the water.</b>
     /// The bed a pool carves and the hollow it sits in are two statements about one lake — the second is
     /// usually a relief mark — and where the hollow reaches further the extra is excavated and holds nothing.
-    /// `opus5-scarrow-delph`'s tarn is that lake: its relief `pan` digs z -8..7 to y4 and the water prop fills
+    /// `opus5-scarrow-delph`'s tarn is that lake: its relief `pan` digs z -8..7 to y4 and the fluid prop fills
     /// z -7..6, so both end rows are four courses of air with the water standing against them.</summary>
     [Test]
     public async Task Water_standing_against_a_dug_column_that_holds_none_is_named()
@@ -1011,7 +1011,7 @@ public sealed class DecoratorTests
             top[(x, z)] = 5;                                  // the slot's own floor, well under the pool
         }
 
-        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "tarn", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand),
@@ -1031,7 +1031,7 @@ public sealed class DecoratorTests
     {
         // The plateau runs 0..39; the channel is drawn straight off its z = 0 side into the void.
         var (world, top) = Plateau();
-        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "inlet", Points = [[20, -6], [20, 14]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand),
@@ -1059,7 +1059,7 @@ public sealed class DecoratorTests
             top[(x, z)] = 13;
         }
 
-        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "mere", Points = [[12, 20], [28, 20]], Radius = 4, Depth = 2, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand),
@@ -1078,7 +1078,7 @@ public sealed class DecoratorTests
     public async Task A_pool_on_level_ground_is_not_named()
     {
         var (world, top) = Plateau();
-        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "mere", Points = [[12, 20], [28, 20]], Radius = 4, Depth = 2, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand),
@@ -1094,7 +1094,7 @@ public sealed class DecoratorTests
         // dirt by default. So the floor under the water and the beach beside it are drawn from the same palette.
         var (world, top) = Plateau();
         var bank = new HashSet<int> { Blocks.Sand, Blocks.Gravel, Blocks.Dirt };
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Shore = 4, Seed = 5,
         }]));
@@ -1114,7 +1114,7 @@ public sealed class DecoratorTests
         // Shore 0 is a valid channel: a hard bank, no sand. Nothing but water and the bed is written, so the
         // grass runs right up to the water.
         var (world, top) = Plateau();
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 3, Depth = 3, Shore = 0, Seed = 5,
             Bank = new SolidMaterial(Blocks.Sand),
@@ -1131,7 +1131,7 @@ public sealed class DecoratorTests
         // The rule the tool has to keep: it lowers the ground and fills the hollow, but it writes nothing into
         // what was already air. So there is no water above the old surface anywhere on the plateau.
         var (world, top) = Plateau();
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5,
         }]));
@@ -1153,7 +1153,7 @@ public sealed class DecoratorTests
             top[(x, z)] = 3;
         }
 
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[20, 16], [20, 24]], Radius = 6, Depth = 2, Shore = 0, Level = 6, Seed = 5,
         }]));
@@ -1172,7 +1172,7 @@ public sealed class DecoratorTests
         // Water rises to the line inside the prop's own cells and nowhere else — the rim is the author's, and
         // the pass never floods outward looking for one.
         var (world, top) = Plateau();
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[20, 16], [20, 24]], Radius = 3, Depth = 2, Shore = 0, Level = 9, Seed = 5,
         }]));
@@ -1203,9 +1203,9 @@ public sealed class DecoratorTests
 
         KeepOut? hull(int x, int z) =>
             x is >= 19 and <= 21 && z is >= 19 and <= 21 ? KeepOut.Structure : null;
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
-            Id = "harbour", Shape = WaterShape.Pool, Points = [[14, 14], [26, 14], [26, 26], [14, 26]],
+            Id = "harbour", Shape = FluidShape.Pool, Points = [[14, 14], [26, 14], [26, 26], [14, 26]],
             Radius = 3, Depth = 2, Shore = 0, Level = 6, Seed = 5,
         }], keptClear: hull));
 
@@ -1227,7 +1227,7 @@ public sealed class DecoratorTests
     [Test]
     public async Task A_channel_of_lava_is_the_same_bed_filled_with_lava()
     {
-        WaterProp Channel(Fluid fluid) => new()
+        FluidProp Channel(Fluid fluid) => new()
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand), Fluid = fluid,
@@ -1256,10 +1256,10 @@ public sealed class DecoratorTests
 
     /// <summary>The fluid is a word on the prop, and a prop stating none is water.</summary>
     [Test]
-    public async Task A_water_prop_reads_its_fluid_and_defaults_to_water()
+    public async Task A_fluid_prop_reads_its_fluid_and_defaults_to_water()
     {
-        var stated = DressingJson.Deserialize("""{"props":[{"kind":"water","id":"a","points":[[0,0],[4,0]],"fluid":"lava"},{"kind":"water","id":"b","points":[[0,0],[4,0]]}]}""");
-        var props = stated.Props.OfType<WaterProp>().ToList();
+        var stated = DressingJson.Deserialize("""{"props":[{"kind":"fluid","id":"a","points":[[0,0],[4,0]],"fluid":"lava"},{"kind":"fluid","id":"b","points":[[0,0],[4,0]]}]}""");
+        var props = stated.Props.OfType<FluidProp>().ToList();
         await Assert.That(props[0].Fluid).IsEqualTo(Fluid.Lava);
         await Assert.That(props[1].Fluid).IsEqualTo(Fluid.Water);
     }
@@ -1269,7 +1269,7 @@ public sealed class DecoratorTests
     {
         var (world, top) = Plateau();
         KeepOut? approach(int x, int z) => x is >= 18 and <= 21 ? KeepOut.Approach : null;
-        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "canal", Points = [[20, 4], [20, 35]], Radius = 5, Depth = 2, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand),
@@ -1277,7 +1277,7 @@ public sealed class DecoratorTests
 
         await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Grass);
         await Assert.That(world.GetBlock(16, 7, 20).Id).IsEqualTo(Blocks.StationaryWater);
-        var water = report.Placements.Where(claim => claim.Owner.Kind == "water").SelectMany(claim => claim.Cells)
+        var water = report.Placements.Where(claim => claim.Owner.Kind == PropKinds.Fluid).SelectMany(claim => claim.Cells)
             .ToHashSet();
         await Assert.That(water.Contains((16, 20))).IsTrue();
         await Assert.That(water.Any(cell => cell.X is >= 18 and <= 21)).IsFalse();
@@ -1295,9 +1295,9 @@ public sealed class DecoratorTests
         // A pool is the footprint a harbour needs: a filled outline rather than a stroked line, its bed one
         // block deep at the ring and full depth once the shelf is crossed.
         var (world, top) = Plateau(size: 60);
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
-            Id = "lake", Shape = WaterShape.Pool, Seed = 5, Shore = 0, Edge = 0,
+            Id = "lake", Shape = FluidShape.Pool, Seed = 5, Shore = 0, Edge = 0,
             Points = [[10, 10], [50, 10], [50, 50], [10, 50]], Radius = 8, Depth = 5,
         }]));
 
@@ -1317,7 +1317,7 @@ public sealed class DecoratorTests
         // ground — not one hung across a gap. The cell is skipped rather than floored with water.
         var (world, top) = Plateau();
         top.Remove((20, 20));
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5,
         }]));
@@ -1333,7 +1333,7 @@ public sealed class DecoratorTests
         var (world, top) = Plateau();
         world.SetBlock(20, 7, 20, Blocks.Wool, 14);
 
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5,
         }]));
@@ -1345,12 +1345,12 @@ public sealed class DecoratorTests
     public async Task A_channel_is_mirrored_as_a_whole_route_for_every_team()
     {
         var (world, top) = Plateau(80, from: -40);
-        var tally = Decorator.Decorate(world, Context(top, [new WaterProp
+        var tally = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[6, 6], [20, 14], [30, 8]], Radius = 3, Depth = 3, Seed = 5,
         }], symmetry: "rot_180"));
 
-        await Assert.That(tally.WaterCells).IsGreaterThan(80);
+        await Assert.That(tally.FluidCells).IsGreaterThan(80);
         var wet = top.Keys.Where(cell => world.GetBlock(cell.X, 7, cell.Z).Id == Blocks.StationaryWater).ToHashSet();
         var unmirrored = wet.Count(cell => !wet.Contains((-cell.X - 1, -cell.Z - 1)));
         await Assert.That(unmirrored).IsEqualTo(0);
@@ -2335,7 +2335,7 @@ public sealed class DecoratorTests
                 Id = "p", Points = [[4, 48], [55, 48]], Radius = 2, Seed = 5, ClaimsGround = true,
                 Pave = new SolidMaterial(Blocks.Gravel),
             },
-            new WaterProp
+            new FluidProp
             {
                 Id = "w", Points = [[4, 54], [50, 54]], Radius = 3, Depth = 2, Seed = 5, Shore = 0,
                 Bank = new SolidMaterial(Blocks.Sand),

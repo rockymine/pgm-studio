@@ -338,13 +338,13 @@ public static class TopDownRender
         }
 
         // Only the water columns need the second, deeper read, so the bed lookup is built for those alone.
-        var waterCells = surface
+        var fluidCells = surface
             .Where(block => block.BlockId is Blocks.Water or Blocks.StationaryWater)
             .Select(block => ((block.WorldX, block.WorldZ), block.WorldY))
             .ToDictionary(entry => entry.Item1, entry => entry.WorldY);
-        if (waterCells.Count == 0) return (byCell, claimed);
+        if (fluidCells.Count == 0) return (byCell, claimed);
 
-        foreach (var (cell, bed, depth) in Beds(chunks, waterCells))
+        foreach (var (cell, bed, depth) in Beds(chunks, fluidCells))
             byCell[cell] = new Column(bed.Y, RenderCategory.Water, bed.BlockId, bed.BlockData, depth);
         return (byCell, claimed);
     }

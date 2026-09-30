@@ -97,7 +97,7 @@ public static class DressingPreview
         var section = SectionRaster(view, TopCourse(view), cell);
 
         return (plan, section,
-            new DressingCountsDto(placed.Plants, placed.Boulders, placed.Trees, placed.PathCells, placed.WaterCells));
+            new DressingCountsDto(placed.Plants, placed.Boulders, placed.Trees, placed.PathCells, placed.FluidCells));
     }
 
     /// <summary>The six path styles at card size, each drawn by paving the same stroke — a picker showing
@@ -111,7 +111,7 @@ public static class DressingPreview
 
     /// <summary>The three channel forms at card size, each an actual dug channel seen from above — where its
     /// banks run clean, wander or taper reads in the outline, which is what the picker is choosing between.</summary>
-    public static IReadOnlyList<PropOptionDto> WaterFormCards(WaterProp template, TerrainTheme theme, int cell = 3)
+    public static IReadOnlyList<PropOptionDto> WaterFormCards(FluidProp template, TerrainTheme theme, int cell = 3)
         => PlanCards(theme, cell, [.. Enum.GetValues<ChannelForm>().Select(form => (
             Key: form.ToString().ToLowerInvariant(),
             Label: form.ToString(),
@@ -232,7 +232,7 @@ public static class DressingPreview
         TreeProp tree => tree with { X = x, Z = z },
         BoulderProp boulder => boulder with { X = x, Z = z },
         StrokeProp path => path with { Points = Recentre(path.Points, x, z) },
-        WaterProp water => water with { Points = Recentre(water.Points, x, z) },
+        FluidProp fluid => fluid with { Points = Recentre(fluid.Points, x, z) },
         FloraProp area => area with { Points = Recentre(area.Points, x, z) },
         HouseProp house => house with { Wings = RecentreWings(house.Wings, x, z) },
         _ => prop,

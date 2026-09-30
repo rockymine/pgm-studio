@@ -303,8 +303,8 @@ public enum KeepOut
 /// against the road rather than against everything.</summary>
 public enum ClaimKind
 {
-    /// <summary>A water channel's bed and beach — carved ground nothing else may take.</summary>
-    Water,
+    /// <summary>A fluid's bed and beach — carved ground nothing else may take.</summary>
+    Fluid,
     /// <summary>The paved cells of a stroke that claims its ground. The one kind a building ignores, and the
     /// one a standoff measures to.</summary>
     Paving,

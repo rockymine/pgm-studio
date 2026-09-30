@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
 
@@ -45,7 +46,7 @@ public static class HeightmapText
                 var owner = provenance.OwnerAt(x, z);
                 if (owner?.Kind == "house" || provenance.PassAt(x, z) == ProvenancePass.Structure)
                     glyph[col, row] = 'H';
-                else if (owner?.Kind == "water")
+                else if (owner?.Kind == PropKinds.Fluid)
                     glyph[col, row] = '~';
             }
 
@@ -61,7 +62,7 @@ public static class HeightmapText
         text.Append($"HEIGHTMAP  1 char = {every}x{every} blocks (the top-left block of each)  ")
             .Append($"x {minX}..{minX + (width - 1) * every} across, z {minZ}..{minZ + (height - 1) * every} down\n");
         text.Append($"KEY  char = ground height above y{low} in bands of {band} block(s): ")
-            .Append($"0 = y{low}..{low + band - 1}, 1 = …; H house or hall  ~ water  @ spawn point  ")
+            .Append($"0 = y{low}..{low + band - 1}, 1 = …; H house or hall  ~ water or lava  @ spawn point  ")
             .Append("! goal  space = void\n");
         TextGrid.Frame(text, minX, minZ, width, height, every, (col, row) => glyph[col, row]);
         text.Append($"low y{low}, high y{high}, range {high - low}\n");

@@ -1035,16 +1035,17 @@ Two of those reach further. A tree's foliage is scored against `tree-corpus.md`,
 are the measured ground truth for what a tree looks like; and the building prop stamps `structures.md`'s
 house, which is why what it can be made of runs past what this phase can state.
 
-Six things can be placed, in three placement geometries.
+Seven things can be placed, in three placement geometries.
 
 | Tool | Kind | Placed by | Starts as |
 |---|---|---|---|
 | Stroke | `stroke` | tracing a line | gravel, radius 3, `solid`, coverage 0.7, paint rather than a route |
-| Water | `water` | tracing a line | a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank; `shape: pool` fills a drawn ring instead, and `level` states a world Y where a basin has to hold water |
+| Fluid | `fluid` | tracing a line | water, a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank; `fluid: lava` fills the bed with lava, `shape: pool` fills a drawn ring instead, and `level` states a world Y where a basin has to hold it |
 | Ground cover | `flora` | tracing a ring | coverage 0.45 at scale 12, with fern and flower shares |
 | Building | `house` | dragging a rectangle | no style of its own until one is picked from the room-style library |
 | Tree | `tree` | a click | no recipe of its own until one is picked from the tree library |
 | Boulder | `boulder` | a click | no recipe of its own until one is picked from the boulder library |
+| Chest | `chest` | a click | on the ground, fronting `negZ`, holding nothing until its stacks are listed (`docs/world-export/decoration.md` §8a) |
 
 **Every one of them takes a style, and for the two that lay ground the style and the material are separate
 questions.** A **stroke** replaces the surface it crosses rather than adding to it — it is a finish, not
@@ -1117,7 +1118,7 @@ its orbit instead of sampling whatever the world pattern says where each image h
 
 The pickers show **your** prop rather than a stock one. `GET /terrain/stroke-styles?pave=…` draws the five band
 styles in the material already chosen, `/terrain/boulder-forms?rock=…` the four rock shapes in the author's
-stone, and `/terrain/water-forms` the three channels as actual dug beds — so the question answered is
+stone, and `/terrain/fluid-forms` the three channels as actual dug beds — so the question answered is
 "what would mine look like", not "what does the catalogue contain". A tree and a boulder are picked from their
 own libraries instead, each row drawn through the pass that builds it. `POST /terrain/prop-preview` renders one
 before it is placed — and a building whose wings make no building is refused there with the same `HJ*`/`HP*`
@@ -1240,10 +1241,10 @@ each:
   { "id": "d1", "kind": "stroke", "seed": 1, "points": [[-36, 0], [-20, 4], [-4, 0]],
     "radius": 3, "style": "worn", "coverage": 0.7, "claimsGround": true,
     "pave": { "kind": "solid", "id": 13, "data": 0 } },
-  { "id": "d2", "kind": "water", "seed": 2, "points": [[-30, -16], [-16, -12]],
+  { "id": "d2", "kind": "fluid", "seed": 2, "points": [[-30, -16], [-16, -12]],
     "radius": 3, "depth": 2, "form": "stream", "edge": 0.8, "shore": 2, "shoreWander": true,
     "bank": { "kind": "solid", "id": 12, "data": 0 } },
-  { "id": "d2b", "kind": "water", "seed": 6, "shape": "pool", "layer": "ground", "level": 12,
+  { "id": "d2b", "kind": "fluid", "seed": 6, "shape": "pool", "layer": "ground", "level": 12,
     "points": [[-30, 16], [-6, 16], [-6, 34], [-30, 34]], "radius": 6, "depth": 3, "shore": 2,
     "bank": { "kind": "solid", "id": 12, "data": 0 } },
   { "id": "d3", "kind": "flora", "seed": 3,
@@ -2074,7 +2075,7 @@ the terrain-paint library a theme is copied from or saved to; `/room-styles` is 
 phase binds from, with `/room-styles/{id}/json` for the stamper's own form; `/roof-styles`, `/storey-styles` and
 `/porch-styles` are the parts a room style is composed from. `/terrain/blocks` is the
 block palette, and `/terrain/material-preview`, `/terrain/theme-preview`, `/terrain/theme-map-preview` and
-`/terrain/prop-preview` render what an edit will look like; `/terrain/stroke-styles`, `/terrain/water-forms`,
+`/terrain/prop-preview` render what an edit will look like; `/terrain/stroke-styles`, `/terrain/fluid-forms`,
 `/terrain/boulder-forms` and `/terrain/species` are the dressing vocabularies.
 
 ## Driving it without the UI
@@ -2199,7 +2200,7 @@ what stands *above* the surface, so it is the read for asking what a structure o
 **The finish previews draw, in SVG — or as PNG on request.** `POST /terrain/material-preview` and
 `/terrain/theme-preview` answer a material and a theme as they will paint — the theme as a cut-open sample
 plateau plus a top-down swatch per bucket. `POST /terrain/prop-preview` and the five card sets
-(`/terrain/stroke-styles`, `/water-forms`, `/boulder-forms`, `/species`, `/woods`) answer a prop as it will be
+(`/terrain/stroke-styles`, `/fluid-forms`, `/boulder-forms`, `/species`, `/woods`) answer a prop as it will be
 built. `POST /room-styles/preview`, its `-snapshot` twin, and `/roof-styles/preview`, `/storey-styles/preview`,
 `/porch-styles/preview` answer a building in plan, section, isometric and cutaway. The default is **SVG text
 inside JSON**, which the client renders inline — and every one of them also answers

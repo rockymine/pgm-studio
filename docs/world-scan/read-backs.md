@@ -220,7 +220,7 @@ and `worstStep` leaves it out, answering the worst step the ground makes. `?besi
 every thing a player meets that the provenance record names within `N` cells of any cell the route passes
 through, with the first cell it is met at and its distance. Those are a `wall`, a wool room's `redstoneline`,
 an `ironcube`, a `spawn`, a `wool`, a `destroyable`, a `core`, a `controlpoint`, a `house`, a `tree`, a
-`boulder` and `water`, which is every kind a stamp claims but the ground cover (`flora`) and the paint
+`boulder`, a `chest` and a `fluid`, which is every kind a stamp claims but the ground cover (`flora`) and the paint
 (`stroke`). `?format=text` answers
 the same reading as characters: the route's own numbers, a station at every place it stood with the word and
 the signed step where it left a walk, the totals, and what stands beside it.

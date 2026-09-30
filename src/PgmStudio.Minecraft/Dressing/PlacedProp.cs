@@ -26,7 +26,7 @@ namespace PgmStudio.Minecraft.Dressing;
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(StrokeProp), PropKinds.Stroke)]
-[JsonDerivedType(typeof(WaterProp), PropKinds.Water)]
+[JsonDerivedType(typeof(FluidProp), PropKinds.Fluid)]
 [JsonDerivedType(typeof(TreeProp), PropKinds.Tree)]
 [JsonDerivedType(typeof(BoulderProp), PropKinds.Boulder)]
 [JsonDerivedType(typeof(FloraProp), PropKinds.Flora)]
@@ -150,14 +150,14 @@ public sealed record StrokeProp : PlacedProp
     public TerrainMaterial Pave { get; init; } = new SolidMaterial(Palette.Blocks.Gravel);
 }
 
-/// <summary>A channel of water: the line the author drew, and how wide and deep a bed is cut under it. Unlike a
-/// <see cref="StrokeProp"/>, which repaints the surface and adds no cell, water is the one prop that changes the
-/// ground — it takes material <em>out</em> to a carved bed and fills that bed to a level water line, because
-/// water laid flat on a surface reads as blue paint rather than water. It only ever cuts existing terrain: the
+/// <summary>A channel or pool of water or lava: the line the author drew, and how wide and deep a bed is cut
+/// under it. Unlike a <see cref="StrokeProp"/>, which repaints the surface and adds no cell, a fluid is the one
+/// prop that changes the ground — it takes material <em>out</em> to a carved bed and fills that bed to a level
+/// line, because water laid flat on a surface reads as blue paint rather than water. It only ever cuts existing terrain: the
 /// carve stops at the surface it crosses and never fills what was already air.</summary>
-public sealed record WaterProp : PlacedProp
+public sealed record FluidProp : PlacedProp
 {
-    /// <summary>water is carved first: it is the one prop that changes the ground, and everything after it seats on what it leaves (<see cref="PlacementOrder"/>).</summary>
+    /// <summary>A fluid is carved first: it is the one prop that changes the ground, and everything after it seats on what it leaves (<see cref="PlacementOrder"/>).</summary>
     public override int PlacementOrder => 0;
 
     /// <summary>The default bank: a cellular voronoi — gravel picking out the cell edges, coarse dirt just
@@ -170,17 +170,17 @@ public sealed record WaterProp : PlacedProp
         new VoronoiBand(new SolidMaterial(Palette.Blocks.Sand), 1),
     ]);
 
-    /// <summary>What the water is drawn as, which is what <see cref="Points"/> means: a
-    /// <see cref="WaterShape.Channel"/> strokes them as a centerline, a <see cref="WaterShape.Pool"/> closes
+    /// <summary>What the fluid is drawn as, which is what <see cref="Points"/> means: a
+    /// <see cref="FluidShape.Channel"/> strokes them as a centerline, a <see cref="FluidShape.Pool"/> closes
     /// them into a ring and fills it. A harbour, a lake or a flooded basin is a pool; a canal, a river or a
     /// moat is a channel.</summary>
-    public WaterShape Shape { get; init; } = WaterShape.Channel;
+    public FluidShape Shape { get; init; } = FluidShape.Channel;
 
     /// <summary>The drawn points, as <c>[x, z]</c> pairs — a centerline for a channel, an outline for a pool.
     /// Two points or more for a channel, three or more for a pool.</summary>
     public IReadOnlyList<double[]> Points { get; init; } = [];
 
-    /// <summary>Half the channel's water width, in blocks. On a <see cref="WaterShape.Pool"/> it is the
+    /// <summary>Half the channel's water width, in blocks. On a <see cref="FluidShape.Pool"/> it is the
     /// <b>shelf</b> instead: how far in from the shore the bed reaches its full depth, so a harbour shelves
     /// off its quays rather than dropping to a trench at the wall.</summary>
     public double Radius { get; init; } = 3;
@@ -231,7 +231,7 @@ public sealed record WaterProp : PlacedProp
     public int FluidBlock => Fluid == Fluid.Lava ? Palette.Blocks.StationaryLava : Palette.Blocks.StationaryWater;
 }
 
-/// <summary>What a <see cref="WaterProp"/>'s bed is filled with.</summary>
+/// <summary>What a <see cref="FluidProp"/>'s bed is filled with.</summary>
 public enum Fluid
 {
     Water,

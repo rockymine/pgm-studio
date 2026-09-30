@@ -11,7 +11,7 @@
 import { MIN_FOOTPRINT_SPAN } from "../shared/building.js";
 
 /** The things that can be placed, in the order their tools sit on the toolbar. */
-export const PROP_KINDS = ["stroke", "water", "flora", "house", "tree", "boulder", "chest"];
+export const PROP_KINDS = ["stroke", "fluid", "flora", "house", "tree", "boulder", "chest"];
 
 /** A fresh prop of each kind, before the author has touched a knob. The numbers mirror the C# record defaults,
  *  so a prop drawn on the canvas and one deserialized from an empty object are the same prop. */
@@ -23,10 +23,10 @@ export function defaultProp(kind, seed) {
       // every other style is a variation on. Route is declared, because it is what other props stand off.
       return { ...base, points: [], radius: 3, style: "solid", coverage: 0.7, route: false,
                pave: { kind: "solid", id: 13, data: 0 } };
-    case "water":
+    case "fluid":
       // A three-block-wide canal, cut two deep, meeting the land through a shore beach, over a bank of
       // cellular gravel / coarse dirt / sand. The bank is a full terrain material, not one block — the same
-      // pattern the painter tiles. Numbers + the material mirror the C# WaterProp defaults.
+      // pattern the painter tiles. Numbers + the material mirror the C# FluidProp defaults.
       return { ...base, points: [], fluid: "water", radius: 3, depth: 2, form: "canal", edge: 0.8, shore: 2, shoreWander: true, bank: {
         kind: "voronoi", seed: 1, cellSize: 5, rise: 0, bands: [
           { material: { kind: "solid", id: 13, data: 0 }, depth: 2 },

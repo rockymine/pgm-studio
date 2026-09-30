@@ -100,12 +100,13 @@ says so.
 ## The fifth tool
 
 - **G169 — water: the richer reads and ponds (`DR-WA`)** — the **channel** shipped (the fifth tool: a
-  dragged centerline that cuts a U-bed and fills it to a level line, three forms, `Geom.WaterBed` +
-  `Decorator.PlaceWater`; see `decoration.md` §7 and `FEATURES.md`). What remains is the read that takes a
+  dragged centerline that cuts a U-bed and fills it to a level line, three forms, `Geom.FluidBed` +
+  `Decorator.PlaceFluid`; see `decoration.md` §7 and `FEATURES.md`). What remains is the read that takes a
   channel from "a filled cut" to "water that looks like water," and the closed form. **Depth shading** warped
   off-centre so one bank runs deeper than the other; an **irregular shoreline** whose width wanders to zero in
   places; a **voronoi-patterned** bed and shore (sand, pale gravel, coarse dirt) showing through the shallows;
-  **edge life** reusing the §3 flora overlay masked to the bank (reeds, lily pads); and **ponds** — the closed
+  **edge life** reusing the §3 flora overlay masked to the bank (reeds, lily pads) — keyed to a `fluid: water` fill and never to the prop, which a
+  lava bed shares; and **ponds** — the closed
   version, the §5 blob read concave with an FBM-wandered outline, scattered onto low ground and joined to
   channels into one watershed. The bed carve reads best once the **G32-C** elevation pass gives layouts their
   heights, so a channel becomes a cut valley rather than a trench in a flat. What a channel has to do

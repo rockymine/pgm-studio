@@ -8188,7 +8188,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   At its natural 11 blocks it is an 8-course trunk under a dome ten across; the library seeds it as `willow`.
   `docs/world-export/decoration.md` §6. (`WE153`)
 
-- **A body of water may be lava (`WE147`)** — a water prop states `fluid: water|lava`, water unstated; the carve,
+- **A body of water may be lava (`WE147`)** — the prop is kind `fluid` and states `fluid: water|lava`, water
+  unstated (`M0050` carried every stored `water` prop to the new kind); the carve,
   the line, the bowl and the bank are the same and lava is written stationary. The walk takes a lava run as a
   prop's volume — never stood in, and roofing the bed under it — where water stays ground swum at twice the
   walk. The Dressing inspector offers the two. `docs/world-export/decoration.md` §7. (`WE147`)

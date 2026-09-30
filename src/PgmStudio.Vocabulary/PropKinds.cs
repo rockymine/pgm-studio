@@ -14,8 +14,9 @@ public static class PropKinds
     /// no cell.</summary>
     public const string Stroke = "stroke";
 
-    /// <summary>A channel or pool. The one kind that changes the ground rather than the surface.</summary>
-    public const string Water = "water";
+    /// <summary>A channel or pool of water or lava. The one kind that changes the ground rather than the
+    /// surface.</summary>
+    public const string Fluid = "fluid";
 
     /// <summary>Scattered greenery — grass, flowers, the ground's own cover.</summary>
     public const string Flora = "flora";
@@ -33,5 +34,5 @@ public static class PropKinds
     public const string Chest = "chest";
 
     /// <summary>The seven.</summary>
-    public static readonly string[] All = [Water, Stroke, Flora, Tree, Boulder, House, Chest];
+    public static readonly string[] All = [Fluid, Stroke, Flora, Tree, Boulder, House, Chest];
 }

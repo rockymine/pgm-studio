@@ -55,7 +55,7 @@ public partial class SketchDressingInspector
     private JsonObject? styleRegistry;
     private string previewedFor = "";
     private IReadOnlyList<PropOptionDto> strokeStyles = [];
-    private IReadOnlyList<PropOptionDto> waterForms = [];
+    private IReadOnlyList<PropOptionDto> fluidForms = [];
     private IReadOnlyList<PropOptionDto> boulderForms = [];
     private IReadOnlyList<PropOptionDto> species = [];
     private IReadOnlyList<PaintBlockDto> blocks = [];
@@ -134,10 +134,10 @@ public partial class SketchDressingInspector
     {
         // The block picker's offered list is the export's own palette, so a path and a rock cannot be paved
         // with something the painter has no colour for.
-        if (blocks.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Water) blocks = await Library.BlocksAsync();
-        if (styles.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Water) styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+        if (blocks.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Fluid) blocks = await Library.BlocksAsync();
+        if (styles.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Fluid) styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
         if (kind == PropKinds.Stroke && strokeStyles.Count == 0) strokeStyles = await Library.StrokeStylesAsync(Spec(PropFields.Pave));
-        if (kind == PropKinds.Water && waterForms.Count == 0) waterForms = await Library.WaterFormsAsync();
+        if (kind == PropKinds.Fluid && fluidForms.Count == 0) fluidForms = await Library.FluidFormsAsync();
         if (kind == PropKinds.House && shells.Count == 0) shells = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
         if (RecipeKind is { } recipeKind && recipesFor != recipeKind.Slug)
         {
@@ -404,7 +404,7 @@ public partial class SketchDressingInspector
         new Dictionary<string, (string, string, string)>
         {
             [PropKinds.Stroke] = ("spline", "Stroke", "A band of surface along a line you draw. It swaps the ground it crosses rather than building on it — a road, a worn trail, a smear of dirt or a painted forest floor, depending on the brush and what it lays. Mark it as claiming its ground and trees, boulders and buildings will keep clear of it."),
-            [PropKinds.Water] = ("waves", "Water", "A channel of water. It cuts a bed into the ground and fills it to a level line — the one prop that takes terrain away rather than standing on it. Only existing ground is cut, and it is mirrored across the map's symmetry."),
+            [PropKinds.Fluid] = ("waves", "Fluid", "A channel or pool of water or lava. It cuts a bed into the ground and fills it to a level line — the one prop that takes terrain away rather than standing on it. Only existing ground is cut, and it is mirrored across the map's symmetry."),
             [PropKinds.Flora] = ("flower", "Cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
             [PropKinds.Tree] = ("trees", "Tree", "One tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
             [PropKinds.Boulder] = ("mountain", "Boulder", "One erratic, standing where you put it and bedded into the ground. Mirrored across the map's symmetry, so both teams get the same cover."),
@@ -446,7 +446,7 @@ public static class PropFields
     public const string Facing = "facing";
     public const string Y = "y";
     public const string Items = "items";
-    /// <summary>What a water prop's bed is filled with, and its two words.</summary>
+    /// <summary>What a fluid prop's bed is filled with, and its two words.</summary>
     public const string Fluid = "fluid";
     public const string WaterFluid = "water";
     public const string LavaFluid = "lava";
@@ -500,7 +500,7 @@ public static class SpecFields
 public static class DressingTools
 {
     public const string Stroke = "dress:stroke";
-    public const string Water = "dress:water";
+    public const string Fluid = "dress:fluid";
     public const string Flora = "dress:flora";
     public const string House = "dress:house";
     public const string Tree = "dress:tree";
@@ -512,7 +512,7 @@ public static class DressingTools
     public static readonly (string Tool, string Kind, string Icon, string Name)[] All =
     [
         (Stroke, PropKinds.Stroke, "spline", "Stroke"),
-        (Water, PropKinds.Water, "waves", "Water"),
+        (Fluid, PropKinds.Fluid, "waves", "Fluid"),
         (Flora, PropKinds.Flora, "flower", "Ground cover"),
         (House, PropKinds.House, "home", "Building"),
         (Tree, PropKinds.Tree, "trees", "Tree"),

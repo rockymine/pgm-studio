@@ -15,11 +15,11 @@ public enum ChannelForm
     Stream,
 }
 
-/// <summary>What a body of water is drawn as, which is what its own points mean. A <see cref="Channel"/>
+/// <summary>What a body of water or lava is drawn as, which is what its own points mean. A <see cref="Channel"/>
 /// strokes them as a centerline and takes its width from a radius; a <see cref="Pool"/> closes them into a
 /// ring and fills it. The bowl is the same law either way — deepest away from the shore, one block at it —
 /// and only the distance it is measured along differs, which is the argument for one prop rather than two.</summary>
-public enum WaterShape
+public enum FluidShape
 {
     /// <summary>A stroked line: a canal, a river, a moat.</summary>
     Channel,
@@ -29,11 +29,11 @@ public enum WaterShape
 
 /// <summary>One cell a channel carves: where it is, and how deep the bed is cut below the water line there —
 /// deepest on the centerline, one block at the shore.</summary>
-public readonly record struct WaterCell(int X, int Z, int Depth);
+public readonly record struct BedCell(int X, int Z, int Depth);
 
 /// <summary>
-/// The bed a drawn channel cuts. Water cannot drape on a slope the way gravel can — laid on the surface it
-/// reads as blue paint — so a channel is not a finish over the ground but a shape taken <em>out</em> of it: a
+/// The bed a drawn channel cuts. A fluid cannot drape on a slope the way gravel can — water laid on the
+/// surface reads as blue paint — so a channel is not a finish over the ground but a shape taken <em>out</em> of it: a
 /// carved bed under a level fill. This is the pure side of that, the same distance field a
 /// <see cref="StrokeFill"/> is (a swept disc of a line), yielding a depth per cell rather than a paving block.
 ///
@@ -42,7 +42,7 @@ public readonly record struct WaterCell(int X, int Z, int Depth);
 /// dressing pass) turns a depth into a carve-and-fill against the surface it actually crosses; here there is
 /// no world, only the profile.</para>
 /// </summary>
-public static class WaterBed
+public static class FluidBed
 {
     // The channel constants the bed and beach are cut to, stated once here because the width and shore laws
     // below all read them (`docs/world-export/decoration.md` §5).
@@ -55,7 +55,7 @@ public static class WaterBed
     /// cut to below the water line. <paramref name="radius"/> is the nominal half-width, <paramref name="depth"/>
     /// the deepest cut on the centerline, and <paramref name="edge"/> the amplitude of the width wobble a natural
     /// or stream form carries (in blocks).</summary>
-    public static IEnumerable<WaterCell> Cells(
+    public static IEnumerable<BedCell> Cells(
         IReadOnlyList<double[]> points, double radius, double depth, ChannelForm form, double edge, uint seed)
     {
         var centerline = Centerline.Of(points);
@@ -75,7 +75,7 @@ public static class WaterBed
             var run = form == ChannelForm.Stream ? StreamDepth : 1.0;
 
             var cellDepth = (int)Math.Round(1 + (depth - 1) * bowl * run);
-            yield return new WaterCell(x, z, Math.Max(1, cellDepth));
+            yield return new BedCell(x, z, Math.Max(1, cellDepth));
         }
     }
 
@@ -112,7 +112,7 @@ public static class WaterBed
     /// <paramref name="shelf"/> blocks in, so a harbour shelves off its quays rather than dropping to a
     /// trench at the wall. A ring narrower than twice the shelf never reaches full depth, which is what a
     /// shallow pool is.</summary>
-    public static IEnumerable<WaterCell> PoolCells(
+    public static IEnumerable<BedCell> PoolCells(
         IReadOnlyList<double[]> ring, double shelf, double depth, double edge, uint seed)
     {
         if (ring.Count < 3 || depth <= 0) yield break;
@@ -121,7 +121,7 @@ public static class WaterBed
         foreach (var (x, z, inset) in RingCells(ring, edge, seed))
         {
             var bowl = Math.Clamp(inset / reach, 0, 1);
-            yield return new WaterCell(x, z, Math.Max(1, (int)Math.Round(1 + (depth - 1) * bowl)));
+            yield return new BedCell(x, z, Math.Max(1, (int)Math.Round(1 + (depth - 1) * bowl)));
         }
     }
 
