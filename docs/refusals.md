@@ -452,12 +452,12 @@ precisely that.
 writers: a caller holding the sketch layout's revision has said nothing about the map's, and one counter would
 refuse a metadata patch because somebody saved a drawing.
 
-**A revision never names two boards.** A load from documents replaces the map under its slug and writes every
-document afresh, and those documents are numbered above every revision the replaced map's reached
-(`map.artifact_revision_floor`). A drive makes the same writes on every run, so numbering them from 1 again
-would stand the rebuilt board at the revision a browser tab read before the rebuild, and that tab's save would
-pass its guard and write the old board back. A tab holding a revision from before a reload is refused `RQ5`
-like any other stale write.
+**A revision never names two boards.** A plan's, a sketch layout's and an intent's revision is the number of
+the change that last wrote it, numbered per slug by the map's change log, and the slug's last number outlives
+a reload, which replaces the map's row, and a deletion. A drive makes the same writes on every run, so a count
+restarted by the reload would stand the rebuilt board at the revision a browser tab read before it, and that
+tab's save would pass its guard and write the old board back. A tab holding a revision from before a reload is
+refused `RQ5` like any other stale write.
 
 **`RQ6` — a document the studio stored will not read back.** A plan row, an artifact, a snapshot written under
 a shape no reader claims. **422** rather than 500, because it is data rather than a defect and writing the

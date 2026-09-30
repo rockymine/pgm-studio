@@ -23,13 +23,27 @@ namespace PgmStudio.Contracts;
 /// <param name="Authors">Who to credit, as a bare pseudonym or as <c>{uuid, name, role, contribution}</c>.
 /// Stated separately because a compiled intent carries an empty <c>meta.authors</c>, and applied after the
 /// intent for the reason that projection exists.</param>
+/// <param name="Origin">Where the documents were built from, kept on the change the load lands as.</param>
+/// <param name="Note">What this load is, in a sentence — a pass, the notes it answers — kept on the change it
+/// lands as. At most 1,000 characters.</param>
 public sealed record MapFromDocumentsRequest(
     JsonElement Layout,
     JsonElement Intent,
     JsonElement? Plan = null,
     string? Name = null,
     string? Slug = null,
-    IReadOnlyList<JsonElement>? Authors = null);
+    IReadOnlyList<JsonElement>? Authors = null,
+    ChangeOrigin? Origin = null,
+    string? Note = null);
+
+/// <summary>Where a map's documents were built from: the repository, the commit and the folder of the script
+/// that wrote them, and whether the working tree differed from the commit.</summary>
+/// <param name="Repo">The repository, as <c>owner/name</c>.</param>
+/// <param name="Commit">The commit the documents were built at.</param>
+/// <param name="Path">The folder in the repository the documents and their script sit in.</param>
+/// <param name="Dirty">Whether the working tree held changes the commit does not, so the commit alone does not
+/// rebuild these documents.</param>
+public sealed record ChangeOrigin(string? Repo = null, string? Commit = null, string? Path = null, bool? Dirty = null);
 
 /// <summary>A map loaded from its documents, and what the drawing turned out to hold.</summary>
 /// <param name="Replaced">Whether a map stored under this slug was dropped to make room. False is an

@@ -380,6 +380,15 @@ document and each artifact are counted apart — a caller holding the sketch lay
 about the map's. The compare is one statement with the revision in its `where`, so the database decides which
 of two writers wins rather than a read-then-write that both can pass.
 
+**Every write to a map's plan, sketch layout and intent is a change the map keeps.** `MapChangeLog` numbers
+the changes per slug, stamps each with its writer — the account, and the token's label where a token wrote
+it — and the origin and note a load states, and keeps the documents it wrote once each under their hash. A kept
+document's revision is the number of the change that last wrote it, and the documents one request writes land
+as one change. The slug's last number outlives the map's row and its history, so a reload carries the history
+on and no revision ever names two boards. `Callers.StampWritesAsync` stamps each writing request after it is
+signed in, and `MapArtifactStore` records the change as it writes a kept document, so no route writes one
+without the other.
+
 **A revision survives the proxy in front of it.** Caddy encodes a response it compresses into its tag, so
 the `"44"` the studio answers reaches a browser as `"44-gzip"` or `"44-zstd"` — and a browser always asks
 for compression and states the tag back verbatim. The suffix after the revision is the proxy's, and an

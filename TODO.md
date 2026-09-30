@@ -22,20 +22,6 @@ it.
 
 ### A map is its source and every change to it
 
-- [ ] **RP89 — Every write to a map's documents is a change the studio keeps.** A save replaces the
-  artifact's bytes (`MapArtifactStore.SaveAsync`) and no route reads an earlier state. Record each write — a
-  browser save, a part-route edit, a load, a restore — as a change: a number per map that only counts up, the
-  writer (the account, and the token's label where a token wrote it), the origin a caller states (`{repo,
-  commit, path, dirty}`), a free note, and the documents it wrote, each kept once under its content hash,
-  compressed. The changes are keyed by slug, as notes are, so a reload's changes continue the board's
-  history, and an artifact's revision becomes the number of the change that last wrote it, so an `ETag` never
-  repeats. Every writer goes through one path (`DocumentWrite`, `SketchPartWrite`, `IntentWrite`, the load),
-  and `M0052` carries every stored artifact in as the board's first change, numbered above
-  `map.artifact_revision_floor`. `docs/architecture.md`, `docs/tools/flow.md`.
-
-  *Evidence: a board's plan, finish, layout and intent compress to 10–23 KB together — Gypsum Reach 19 KB,
-  Sootcombe 10 KB — so fifty changes of a board come to about a megabyte.*
-
 - [ ] **RP90 — Two changes of a map can be compared, document by document and column by column.**
   `GET /map/{slug}/diff?from=&to=` answers the document diff keyed by id: plan pieces; layers, shapes (vertices
   moved, inserted, removed), groups, themes, relief, props and how far each moved, room styles and biome; the

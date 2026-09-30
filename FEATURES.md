@@ -7763,6 +7763,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   binder, the style gate, a person nobody could be called, a drawing the finish refuses
   (`SketchFinish.Prepare`) — is decided before the stored map is touched, where a refused reload used to leave
   no map at all. `docs/tools/flow.md`, `docs/refusals.md`.
+- **Every write to a map's documents is a change the map keeps (RP89).** A write to a plan, a sketch layout or
+  an intent is recorded by `MapChangeLog` (`M0052`): a number per slug that never repeats, the writer — the
+  account, and the token's label where a token wrote it, stamped on each writing request by
+  `Callers.StampWritesAsync` — the `origin` (`{repo, commit, path, dirty}`) and `note` a load states, and the
+  documents it wrote, kept once each under their SHA-256 and gzipped. The documents one request writes land as
+  one change, a kept document's revision is the number of the change that last wrote it, and a stale write
+  opens none. The history and the slug's last number are keyed by slug, so a reload carries the history on;
+  `MapRepository.RemoveAsync` takes the map, its notes and its history together, and the last number stays, so
+  a map made again under the slug numbers on. The migration carries every stored map's documents in as its
+  first change and drops `map.artifact_revision_floor`, whose work the slug's number does.
+  `docs/architecture.md`, `docs/tools/flow.md`, `docs/refusals.md`.
 - **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
   and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
   five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a

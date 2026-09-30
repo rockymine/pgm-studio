@@ -101,7 +101,18 @@ public sealed class MapRepository(PgmDb db)
     public Task<List<MonumentRow>> MonumentsForWoolAsync(long woolId, CancellationToken ct = default)
         => db.Monuments.Where(m => m.WoolId == woolId).OrderBy(m => m.Id).ToListAsync(ct);
 
-    /// <summary>Delete a map; FK cascade removes all child rows.</summary>
+    /// <summary>Delete a map's row; FK cascade removes all child rows. What is keyed by slug — its notes and
+    /// the changes to its documents — stays, which is what a reload over the slug wants and a deletion does not
+    /// (<see cref="RemoveAsync"/>).</summary>
     public Task<int> DeleteMapAsync(long mapId, CancellationToken ct = default)
         => db.Maps.Where(m => m.Id == mapId).DeleteAsync(ct);
+
+    /// <summary>Remove a map outright: its row with everything under it, its notes, and the changes to its
+    /// documents, in one write.</summary>
+    public Task RemoveAsync(MapRow map, CancellationToken ct = default) => db.InOneWriteAsync(async () =>
+    {
+        await DeleteMapAsync(map.Id, ct);
+        await new MapNoteStore(db).DeleteMapAsync(map.Slug, ct);
+        await new MapChangeLog(db).ForgetAsync(map.Slug, ct);
+    }, ct);
 }

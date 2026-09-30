@@ -147,6 +147,7 @@ builder.Services.AddSingleton(PgmDataOptions.ForConnectionString(connectionStrin
 builder.Services.AddScoped<PgmDb>();
 builder.Services.AddScoped<MapRepository>();
 builder.Services.AddScoped<MapArtifactStore>();
+builder.Services.AddScoped<MapChangeLog>();
 builder.Services.AddScoped<MapNoteStore>();
 builder.Services.AddSingleton<PgmStudio.Api.Services.NotePictures>();
 builder.Services.AddHostedService<PgmStudio.Api.Services.NotePictureSweep>();
@@ -330,6 +331,7 @@ app.Use(PgmStudio.Api.Endpoints.Complaints.CarryAsync);
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.Use(PgmStudio.Api.Access.Callers.StampWritesAsync);
 app.Use(PgmStudio.Api.Services.BuildQueue.QueueAsync);
 
 // All API endpoints live under /api.

@@ -61,6 +61,9 @@ public static class MapFromDocuments
         if (string.IsNullOrWhiteSpace(name))
             return Refuse(400, "no name given", new Finding(RequestRules.Unreadable,
                 "neither a name nor the intent's own meta.name says what this map is called", Field: "name"));
+        if (request.Note is { Length: > NoteLength })
+            return Refuse(400, "note too long", new Finding(RequestRules.Unreadable,
+                $"the note is {request.Note.Length} characters and a change keeps at most {NoteLength}", Field: "note"));
 
         // Each document binds onto its record before anything is stored: a lenient read of one that does not
         // is a default instance, and a map stored from it is a map with none of what the document stated.
@@ -105,8 +108,12 @@ public static class MapFromDocuments
 
         // The views an author kept are pictures of the board rather than part of it, so a rebuild keeps them.
         var keptViews = existing is null ? null : await artifacts.LoadAsync(existing.Id, ArtifactKind.MapViewsJson, ct);
-        var mapId = await MapOrigin.ReplacingAsync(
-            repo, artifacts, slug, name, MapStage.Plan, Callers.OriginatorOf(http), ct);
+        var mapId = await MapOrigin.ReplacingAsync(repo, slug, name, MapStage.Plan, Callers.OriginatorOf(http), ct);
+        artifacts.Stamp = artifacts.Stamp with
+        {
+            OriginJson = request.Origin is { } origin ? JsonSerializer.Serialize(origin, MapArtifactStore.Json) : null,
+            Note = request.Note,
+        };
 
         try
         {
@@ -183,4 +190,7 @@ public static class MapFromDocuments
 
     private static MapLoad Refuse(int status, string error, params Finding[] findings) =>
         new(Refusal.At(status, error, findings));
+
+    /// <summary>The longest note a change keeps: a sentence or a few, never a report.</summary>
+    private const int NoteLength = 1000;
 }

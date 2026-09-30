@@ -28,10 +28,6 @@ public sealed class MapRow
     /// <summary>The Minecraft uuid of the person who originated this map, or null where it was originated with
     /// nobody signed in. The owner may always edit the map, whoever its credited authors are.</summary>
     [Column("owner_uuid")] public string? OwnerUuid { get; set; }
-    /// <summary>The revision this map's artifacts are written above: the highest any artifact of a map it
-    /// replaced ever reached, and 0 for a map that replaced none. A reload writes every document afresh, and
-    /// numbering them from the floor rather than from 1 keeps an <c>ETag</c> from ever naming two boards.</summary>
-    [Column("artifact_revision_floor"), NotNull] public long ArtifactRevisionFloor { get; set; }
 }
 
 /// <summary>One person on the studio's whitelist: the Minecraft account they are credited under and the role
@@ -651,6 +647,55 @@ public static class ArtifactKind
     // named views. A sidecar rather than a part of the layout, so keeping a picture is not an edit to the
     // board and the world it builds.
     public const string MapViewsJson = "map_views_json";
+
+    /// <summary>The documents a map is authored in, whose every write is a change the map keeps
+    /// (<see cref="MapChangeRow"/>) and whose revision is the number of the change that last wrote it. The
+    /// rest are derived from them or are pictures of the board, and count their own revisions.</summary>
+    public static readonly IReadOnlySet<string> Kept = new HashSet<string> { PlanJson, SketchLayoutJson, MapIntentJson };
+}
+
+/// <summary>One write to a map's documents (M0052): its number, which counts up per slug and never repeats,
+/// who wrote it, where its documents came from where the writer said, and a note. Keyed by slug, as a note is,
+/// so a board rebuilt over its own slug carries on its history.</summary>
+[Table("map_change")]
+public sealed class MapChangeRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_slug"), NotNull] public string MapSlug { get; set; } = "";
+    [Column("number"), NotNull] public long Number { get; set; }
+    [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
+    [Column("writer_uuid")] public string? WriterUuid { get; set; }
+    [Column("writer_name")] public string? WriterName { get; set; }
+    [Column("token_label")] public string? TokenLabel { get; set; }
+    [Column("origin_json")] public string? OriginJson { get; set; }
+    [Column("note")] public string? Note { get; set; }
+}
+
+/// <summary>A document a change wrote: its kind and the hash of its bytes in <see cref="DocumentBlobRow"/>.</summary>
+[Table("map_change_document")]
+public sealed class MapChangeDocumentRow
+{
+    [PrimaryKey(0), Column("change_id")] public long ChangeId { get; set; }
+    [PrimaryKey(1), Column("kind"), NotNull] public string Kind { get; set; } = "";
+    [Column("blob_hash"), NotNull] public string BlobHash { get; set; } = "";
+}
+
+/// <summary>A document's bytes, kept once under the SHA-256 of what was written and stored gzipped.</summary>
+[Table("document_blob")]
+public sealed class DocumentBlobRow
+{
+    [PrimaryKey, Column("hash")] public string Hash { get; set; } = "";
+    [Column("data"), NotNull] public byte[] Data { get; set; } = [];
+    [Column("length"), NotNull] public long Length { get; set; }
+}
+
+/// <summary>The last change number a slug has used. It outlives the map's row and its history, so a map
+/// rebuilt or recreated under a slug numbers on from every change the slug ever answered.</summary>
+[Table("map_change_sequence")]
+public sealed class MapChangeSequenceRow
+{
+    [PrimaryKey, Column("map_slug")] public string MapSlug { get; set; } = "";
+    [Column("last_number"), NotNull] public long LastNumber { get; set; }
 }
 
 /// <summary>A persisted layout plan (see M0008_Plan). A standalone corpus row — no map FK. <see cref="Origin"/>

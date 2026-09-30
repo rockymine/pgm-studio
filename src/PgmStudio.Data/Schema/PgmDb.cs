@@ -47,6 +47,10 @@ public sealed class PgmDb : DataConnection
     public ITable<FloorMarkRow> FloorMarks => this.GetTable<FloorMarkRow>();
     public ITable<DoorRunRow> DoorRuns => this.GetTable<DoorRunRow>();
     public ITable<MapArtifactRow> Artifacts => this.GetTable<MapArtifactRow>();
+    public ITable<MapChangeRow> MapChanges => this.GetTable<MapChangeRow>();
+    public ITable<MapChangeDocumentRow> MapChangeDocuments => this.GetTable<MapChangeDocumentRow>();
+    public ITable<DocumentBlobRow> DocumentBlobs => this.GetTable<DocumentBlobRow>();
+    public ITable<MapChangeSequenceRow> MapChangeSequences => this.GetTable<MapChangeSequenceRow>();
     public ITable<SymmetryRow> Symmetries => this.GetTable<SymmetryRow>();
     public ITable<MinecraftPlayerRow> MinecraftPlayers => this.GetTable<MinecraftPlayerRow>();
     public ITable<PlanRow> Plans => this.GetTable<PlanRow>();

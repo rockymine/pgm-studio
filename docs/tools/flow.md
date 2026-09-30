@@ -145,9 +145,11 @@ reload.
 **A reload is decided before it replaces anything.** Everything the load is refused for — a document the
 binder cannot read, a style or theme the gate refuses, a person nobody could be called, a drawing the finish
 would refuse — is decided from the documents alone, before the stored map is touched, so a refused reload
-leaves the board it would have replaced. The documents it writes are numbered above every revision the
-replaced map's reached, so a browser tab that read the old board is refused `RQ5` when it saves rather than
-writing it back over the new one (`docs/refusals.md`).
+leaves the board it would have replaced. The documents it writes land as one change on the slug's history,
+numbered above every change the slug has answered, so a browser tab that read the old board is refused `RQ5`
+when it saves rather than writing it back over the new one (`docs/refusals.md`). A load may state its
+`origin` — `{repo, commit, path, dirty}`, where its documents were built — and a `note` of at most 1,000
+characters, and both are kept on that change.
 
 **The layout and the intent are required; the plan is not.** A grid board has no plan — its plots are discs
 and crosses where a plan piece is a rectangle — so a layout emitter states none and the load takes two
