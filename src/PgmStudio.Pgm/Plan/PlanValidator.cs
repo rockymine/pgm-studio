@@ -573,7 +573,7 @@ public static class PlanValidator
     private static Finding Lint(string rule, string msg, params string[] subjects) =>
         new(rule, msg, Severity.Complaint, Subjects: subjects.Length > 0 ? subjects : null);
 
-    private static Finding Lint(string rule, string msg, FindingEdit? edit, params string[] subjects) =>
+    private static Finding Lint(string rule, string msg, DocumentEdit? edit, params string[] subjects) =>
         new(rule, msg, Severity.Complaint, Subjects: subjects.Length > 0 ? subjects : null, Edit: edit);
 
     /// <summary>The change that grades a seam two pieces step across: a <c>line</c> relief mark six wide,
@@ -581,7 +581,7 @@ public static class PlanValidator
     /// at its ends. The run is the step's own size each side of the seam, so the mark solves to a slope a
     /// player walks. It lands on the group the compile fuses the two pieces into — <c>team</c> for pieces
     /// that mirror, <c>neutral</c> otherwise.</summary>
-    private static FindingEdit? RampEdit(PieceInterfaces.Seam seam, DerivedPiece a, DerivedPiece b)
+    private static DocumentEdit? RampEdit(PieceInterfaces.Seam seam, DerivedPiece a, DerivedPiece b)
     {
         var (high, low) = a.Surface >= b.Surface ? (a, b) : (b, a);
         var delta = high.Surface - low.Surface;
@@ -598,7 +598,7 @@ public static class PlanValidator
         var start = acrossX ? new[] { midX - towardLow * run, midZ } : new[] { midX, midZ - towardLow * run };
         var end = acrossX ? new[] { midX + towardLow * run, midZ } : new[] { midX, midZ + towardLow * run };
         var group = high.Mirrors ? "team" : "neutral";
-        return FindingEdit.Of(FindingEdit.Layout, $"relief.{group}.marks", FindingEdit.Add,
+        return DocumentEdit.Of(MapDocuments.Layout, $"relief.{group}.marks", DocumentEdit.Add,
             new
             {
                 id = $"ramp-{high.Id}-{low.Id}", kind = "line", width = 6,

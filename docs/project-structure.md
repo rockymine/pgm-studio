@@ -102,18 +102,18 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 26 | 4,917 | `Playability/` 15 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 136 | 18,820 | `Endpoints/` 68 · `Services/` 52 · `Access/` 12 · `Http/` 3 · 1 at root |
+| `Api` | 138 | 19,194 | `Endpoints/` 69 · `Services/` 53 · `Access/` 12 · `Http/` 3 · 1 at root |
 | `Client` | 208 | 26,782 | `Features/` 120 (nested) · `Components/` 67 (nested) · `Pages/` 11 · `Models/` 4 · `Layout/` 3 · 3 at root |
-| `Contracts` | 35 | 3,983 | flat |
-| `Data` | 23 | 3,906 | `Map/` 7 · `Features/` 5 · `Theme/` 4 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
+| `Contracts` | 36 | 4,056 | flat |
+| `Data` | 23 | 3,915 | `Map/` 7 · `Features/` 5 · `Theme/` 4 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 30 | 3,519 | flat |
-| `Export` | 20 | 4,550 | flat |
+| `Export` | 21 | 4,648 | flat |
 | `Geom` | 51 | 6,761 | `Algorithms/` 19 · `Render/` 7 · `Relief/` 5 · 20 at root |
 | `Import` | 4 | 496 | flat |
 | `Migrations` | 53 | 3,278 | `Migrations/` 52 · 1 at root |
-| `Minecraft` | 108 | 23,409 | `Render/` 19 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Painting/` 13 · `Dressing/` 12 · `Houses/` 11 · `Views/` 4 · `Suggest/` 1 · 1 at root |
-| `Pgm` | 160 | 30,777 | `Compose/` 43 (nested) · `Authoring/` 28 · `Evaluate/` 22 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Plan/` 9 · `Sketch/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
-| `Vocabulary` | 23 | 1,617 | flat |
+| `Minecraft` | 108 | 23,451 | `Render/` 19 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Painting/` 13 · `Dressing/` 12 · `Houses/` 11 · `Views/` 4 · `Suggest/` 1 · 1 at root |
+| `Pgm` | 161 | 31,083 | `Compose/` 43 (nested) · `Authoring/` 28 · `Evaluate/` 22 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Plan/` 9 · `Sketch/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
+| `Vocabulary` | 24 | 1,636 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest

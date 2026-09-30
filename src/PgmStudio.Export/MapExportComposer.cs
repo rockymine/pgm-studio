@@ -542,7 +542,7 @@ public static class MapExportComposer
     /// <summary>The change that meets a structure on falling ground: an <c>area</c> mark on its group's
     /// relief, held at the structure's own floor over a ring two cells past its footprint, so the ground
     /// beside it is level with it rather than under it. Null where no group owns the footprint's cells.</summary>
-    private static FindingEdit? BenchEdit(string identity, List<(int X, int Z)> cells, int floor,
+    private static DocumentEdit? BenchEdit(string identity, List<(int X, int Z)> cells, int floor,
                                           Func<(int X, int Z), string?>? groupAt)
     {
         if (groupAt is null || cells.Count == 0) return null;
@@ -551,7 +551,7 @@ public static class MapExportComposer
         int minX = cells.Min(cell => cell.X) - 2, maxX = cells.Max(cell => cell.X) + 2;
         int minZ = cells.Min(cell => cell.Z) - 2, maxZ = cells.Max(cell => cell.Z) + 2;
         var unit = identity.Split(':') is { Length: 3 } parts ? $"{parts[1]}-{parts[2]}" : identity;
-        return FindingEdit.Of(FindingEdit.Layout, $"relief.{group}.marks", FindingEdit.Add,
+        return DocumentEdit.Of(MapDocuments.Layout, $"relief.{group}.marks", DocumentEdit.Add,
             new
             {
                 id = $"bench-{unit}", kind = "area", h = floor,

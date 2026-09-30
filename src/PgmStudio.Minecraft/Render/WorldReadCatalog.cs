@@ -174,6 +174,18 @@ public static class WorldReadCatalog
             "Stairs, slabs and fences are drawn as the whole cube they stand in, there is no lighting beyond "
             + "a shade per face, and ground past sixty blocks fades into the sky — it is a picture of the "
             + "materials, not a screenshot."),
+
+        new("diff", null,
+            "What changed between two of a map's changes (`from`, `to`; unasked, what the latest change did): "
+            + "every edit to its plan, layout and intent, named by the path it lands on and carrying the value "
+            + "it replaced. `world=true` builds the board at both and adds the columns they disagree on — "
+            + "`ground` where the ground rose, fell, came or went, `surface` where it held its height and its "
+            + "top block is another, `structure` where both held and something else in the column changed — "
+            + "each as a count and its largest runs with the box to find each in. `?format=png` draws those "
+            + "columns over both boards' ground; `?format=text` answers the edits one a line with the runs "
+            + "beneath.",
+            "A column is counted once, under the first of the three that changed in it, so ground that rose "
+            + "under a house reads as `ground` however much of the house changed with it."),
     ];
 
     /// <summary>What one read answers, and where it misleads — the sentence a route publishes as its own

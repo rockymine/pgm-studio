@@ -197,6 +197,57 @@ is re-derived. That stops the moment an author does hand work a plan cannot expr
 theme, a placed tree. From then on the sketch and the intent are the working artifacts and the plan is
 provenance. Nothing enforces this; the 409 above is the one place the system notices and asks.
 
+## Every change a map keeps
+
+**A write to a map's plan, layout or intent is a change the map keeps.** Whichever road it comes by — a tool
+saving, a load, a restore — it lands as one change per request: numbered per slug, counting up and never
+repeating, stamped with the person it was written as and the label of the token that wrote it, and carrying
+the `origin` and `note` a load states. The documents are kept whole, once each however many changes write the
+same bytes, so a map can be read, compared and put back as it stood at any of its changes
+(`docs/architecture.md` has how they are stored).
+
+**Two changes compare document by document, in the shape a finding's fix is stated in.**
+`GET /map/{slug}/diff?from=&to=` answers the edits taking the three documents at `from` to those at `to`,
+each naming its document, the path it lands on, one of `add`, `set`, `move` and `remove`, the value, the value
+it replaced, and the change in words (`docs/refusals.md`). A thing in a list is named by its `id` wherever it
+sits, so a shape drawn ahead of the others is one `add` rather than every later shape changing; a list whose
+ids changed order is one `set` of the whole list, because a shape's place is its draw order; an outline is one
+`set` saying how many of its points moved, how far, and how many were inserted or removed; and a prop whose
+`x` and `z` changed is one `move` saying how far it went. Unasked, the diff is what the latest change did, and
+`from=0` compares against nothing stated at all.
+
+```text
+diff fable-hollin-tarn #1 → #2: 3 edits
+layout set    layers[ground].layout.shapes[dale-18].vertices  1 of 6 vertices moved (up to 3.6 blocks)
+layout move   dressing.props[fir-1]  moved 5 blocks, from (-40, -65) to (-36, -68)
+layout set    relief.team.base  base 12 → 14
+```
+
+**And column by column.** `world=true` builds the board at both changes and adds the columns the two builds
+disagree on, sorted into ground, surface block and structure, each as a count and its largest runs with the
+box to find each in; `?format=png` draws them over both boards' ground. What each class means is
+`docs/world-scan/read-backs.md`'s. The edits say what was written, the columns what it built, and the second
+is what a note about the ground is answered against.
+
+**A change is put back by writing its documents again, as a new change.**
+`POST /map/{slug}/changes/{number}/restore` writes back each document that differs from what the map holds,
+through the road that writes it anywhere else: the intent is stored and projected into the map document, the
+plan and the layout are stored, and a finished board's ground is read again from the layout the next time
+anything asks for it. The map row, its notes and the pictures kept of it stay where they are, which is what
+separates a restore from a reload. The change is noted as the restore unless the body states a note, and it is
+a change like any other — compared, listed, and put back in its turn.
+
+```json POST /api/map/{slug}/changes/{number}/restore
+{"note": "back to the load, before the east shore was redrawn"}
+```
+
+| Endpoint | Answers | Fails with |
+|---|---|---|
+| `GET /map/{slug}/changes[?since=]` | every change, oldest first: `number`, `at`, `writer`, `writerUuid`, `token`, `origin`, `note`, and the `documents` it wrote — `plan`, `layout`, `intent`. `since` keeps the changes after a number, which is what a round asks for; `?format=text` answers one line a change | 404 `RQ4` no map at that slug |
+| `GET /map/{slug}/changes/{number}` | `{number, plan, layout, intent}` — each document as the latest change at or before `number` wrote it, absent where none had | 404 `RQ4` no map at that slug, or no change of that number |
+| `GET /map/{slug}/diff[?from=&to=&world=true]` | `{from, to, edits, world}` — the edits taking the documents at `from` to those at `to`, and with `world=true` the changed columns. `?format=text` answers the edits one a line and the runs under them; `?format=png` draws the columns, `scale` 1–16 pixels a block | 404 `RQ4` no map, no kept change, or no change of that number · 422 a side holds no layout, so there is no board to build there |
+| `POST /map/{slug}/changes/{number}/restore` | `{restored, change, documents}` — the change the restore landed as and the documents it wrote; `change` is absent and `documents` empty where every document already stood as it did then | 400 a note over 1,000 characters · 404 `RQ4` no map at that slug, or no change of that number |
+
 ## Stages and layers
 
 A map row carries a **stage** — `plan`, `sketch`, `configure`, `edit` — and separately the **layers** it

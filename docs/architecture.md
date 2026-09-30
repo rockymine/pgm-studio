@@ -387,7 +387,9 @@ document's revision is the number of the change that last wrote it, and the docu
 as one change. The slug's last number outlives the map's row and its history, so a reload carries the history
 on and no revision ever names two boards. `Callers.StampWritesAsync` stamps each writing request after it is
 signed in, and `MapArtifactStore` records the change as it writes a kept document, so no route writes one
-without the other.
+without the other. What is kept is read back through four routes — the list, the documents at a change, the
+difference between two, and a restore that writes a change's documents back as a new one — and
+`docs/tools/flow.md` has them.
 
 **A revision survives the proxy in front of it.** Caddy encodes a response it compresses into its tag, so
 the `"44"` the studio answers reaches a browser as `"44-gzip"` or `"44-zstd"` — and a browser always asks

@@ -55,6 +55,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `themes/census` | — | every ground cell counted by the theme that paints it: cells and share per theme, its distinct surface materials, which theme borders which, and the board's whole palette count |
 | `render/eye` | — | the board seen from a player's eye, drawn with Minecraft's own block sprites. `look=x,z` names a thing and the eye finds a place to see it from, `from=x,z` stands the eye there (`yaw`, `pitch`, `y`), both together face the one from the other (`y` and `pitch` still apply), and `eye=x,y,z` stands it exactly, facing `yaw` and `pitch` — 90 is straight down; `fov`, `width`, `height`; `flat=1` draws the same frame in one colour a block. `?format=text` answers where the eye ended up and what fills the frame, by share. 503 (`RQ10`) on a studio with no textures. The Sketch tool's **In game** phase is a gallery of these, and `GET /map/{slug}/views` lists the views it draws (`docs/tools/sketch.md`) |
 | `render/eye/pick` | — | what a mark on a `render/eye` picture is on the ground, as JSON: the picture's own query words, and `at=x,y` (one pixel: the block its ray hits and the ground under it), `box=x,y,x,y` or `lasso=x,y;x,y;…` (every ground column the rays through its pixels hit, each `[x, y, z]`). Ground no ray reached is not in it. `query` answers the camera exactly as `eye=…&yaw=&pitch=&fov=`, which is how a note's picture is drawn again (`docs/tools/sketch.md`, *Notes*) |
+| `diff` | — | what changed between two of a map's changes (`from`, `to`; unasked, what the latest change did): every edit to its plan, layout and intent by the path it lands on (`docs/tools/flow.md`), and with `world=true` the columns the two builds disagree on — `ground` · `surface` · `structure` — each as a count and its largest runs with the box to find each in. `?format=png` draws those columns over both boards' ground, `?format=text` answers the edits one a line with the runs beneath |
 
 `column` answers characters rather than JSON for the reason the plan grid and the flow account do: it is read
 by a person or an agent rather than parsed, and it is the one read a caller with no image reader can act on.
@@ -301,6 +302,26 @@ naming which theme spent which block.
 with its cells, share and materials, then `borders:` and one row per bordering pair with the cells that cross
 it.
 
+## Two builds of one board, compared
+
+`diff?world=true` builds the board at two of its changes and reads every column the two worlds disagree on —
+any course, any block — skipping whole the sections both hold identically. Each changed column is counted
+once, under the first of three things that changed in it: **`ground`** where the ground's top rose, fell, came
+or went; **`surface`** where it held its height and the block on top of it is another, which is what a theme
+changed or a road repainted reads as; and **`structure`** where both held and something else in the column
+changed — a building, a prop, a room, a made thing, a course under the surface. So ground that rose under a
+house reads as `ground` however much of the house changed with it, and a tree moved along a meadow is two
+patches of `structure`, the one it left and the one it stands on, at every image of the orbit it is fanned to.
+
+Each class answers its column count and its largest twelve 4-connected runs, each with the box to find it in;
+`?format=text` lists them under the edits, a line a run. The picture frames every column either build stands
+on, so ground taken away is drawn where it was, shades both boards' ground lighter where it stands higher, and
+draws each changed column over it in its class's colour — amber, blue, magenta. Unlike every other picture
+here its key names the corner and the extent, because the question it answers is where.
+
+The two builds are two of the four boards `BuiltWorlds` keeps, so the board a caller goes on to read after a
+diff is usually already built, and a diff between two changes nobody has read pays for two.
+
 ## One of them misleads, and it has cost a reader a conclusion
 
 A caveat met *after* a conclusion has already cost the conclusion, so each rides in its own route's summary
@@ -472,9 +493,9 @@ The first read after an edit pays for the build, and on a large board that is th
 read after it is answered from the same build until the documents change. Four boards are kept, so a caller
 reading a fifth has the least recently read one built again when it returns to it.
 
-**A picture says whether and a text read says where.** Every PNG here is framed on the world's own occupied
-extent and carries a scale bar naming pixels-per-block and the size in blocks — and never the corner it
-started from, so nothing in the image converts a pixel back to an `x, z`. The text reads do carry it:
+**A picture says whether and a text read says where.** Every PNG here but the diff's is framed on the
+world's own occupied extent and carries a scale bar naming pixels-per-block and the size in blocks — and never
+the corner it started from, so nothing in the image converts a pixel back to an `x, z`. The text reads do carry it:
 `TextGrid.Frame` writes an x ruler above the grid and the z of every row beside it, which is why `heightmap`,
 `incline`, `slopes` and `section` answer `?format=text` at all. A read whose answer is a coordinate to go and
 check — a column to name, a transect to walk, a patch to stand in — is asked in text and read there; the

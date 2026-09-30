@@ -22,19 +22,6 @@ it.
 
 ### A map is its source and every change to it
 
-- [ ] **RP90 — Two changes of a map can be compared, document by document and column by column.**
-  `GET /map/{slug}/diff?from=&to=` answers the document diff keyed by id: plan pieces; layers, shapes (vertices
-  moved, inserted, removed), groups, themes, relief, props and how far each moved, room styles and biome; the
-  intent's parts. `&world=true` builds both boards and adds the columns whose ground, surface block or
-  structure changed, as counts and boxes, and `&format=png` draws them over the board. `GET …/changes[?since=]`
-  lists the changes with one line each, `GET …/changes/{n}` answers the documents at `n`, and
-  `POST …/changes/{n}/restore` writes them back as a new change. The layout diff lives in `Pgm` beside
-  `SketchLayout.DroppedShapes`, which already compares two layouts for one purpose. `docs/tools/flow.md`,
-  `docs/world-scan/read-backs.md`.
-
-  *Evidence: Gypsum Reach took seven passes over 31 notes; what each pass moved is written only in its
-  script's docstring, and `review/opus55-gypsum-reach.md` in `pgm-studio-mapgen` stops at the sixth.*
-
 - [ ] **TS124 — The Sketch tool shows a board's changes, and a note knows what changed since it was
   written.** A history list — each change's writer, its origin linked to the commit and folder where one was
   stated, and its summary — and picking one draws its diff on the canvas: shapes added, taken away and

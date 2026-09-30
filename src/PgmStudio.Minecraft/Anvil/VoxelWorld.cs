@@ -83,6 +83,36 @@ public sealed class VoxelWorld
         return (ids[idx], chunk!.Data[y >> 4]?[idx] ?? 0);
     }
 
+    /// <summary>Every column whose blocks differ between this world and <paramref name="other"/> — any course, any
+    /// block or data value — where a chunk or a section a world does not hold reads as air. A section both
+    /// worlds hold identically is skipped whole.</summary>
+    public IEnumerable<(int X, int Z)> ColumnsDifferingFrom(VoxelWorld other)
+    {
+        foreach (var key in _chunks.Keys.Union(other._chunks.Keys))
+        {
+            _chunks.TryGetValue(key, out var mine);
+            other._chunks.TryGetValue(key, out var theirs);
+            var differs = new bool[256];
+            for (var section = 0; section < 16; section++)
+            {
+                ushort[]? ids = mine?.Ids[section], otherIds = theirs?.Ids[section];
+                byte[]? data = mine?.Data[section], otherData = theirs?.Data[section];
+                if (ids is null && otherIds is null) continue;
+                if (ids is not null && otherIds is not null && ids.AsSpan().SequenceEqual(otherIds)
+                    && (data ?? []).AsSpan().SequenceEqual(otherData ?? [])) continue;
+                for (var index = 0; index < 4096; index++)
+                {
+                    var column = index & 255;
+                    if (differs[column]) continue;
+                    if ((ids?[index] ?? 0) != (otherIds?[index] ?? 0)
+                        || (data?[index] ?? 0) != (otherData?[index] ?? 0)) differs[column] = true;
+                }
+            }
+            for (var column = 0; column < 256; column++)
+                if (differs[column]) yield return ((key.Cx << 4) | (column & 15), (key.Cz << 4) | (column >> 4));
+        }
+    }
+
     /// <summary>Attach a tile entity (sign, chest, …) to the chunk containing <paramref name="x"/>/<paramref name="z"/>.
     /// The compound must already carry its own <c>x</c>/<c>y</c>/<c>z</c> + <c>id</c> tags.</summary>
     public void AddTileEntity(int x, int z, NbtCompound tile)

@@ -33,12 +33,19 @@ falling ground wants a bench held flat under it; a prop inside a road's standoff
 of blocks the other way. Where the gate can say that in the document's own vocabulary it does, as an
 **edit** beside the sentence: which document (`plan`, `layout` or `intent`), the path the change lands on,
 spelled the way an unread field is (`relief.team.marks`; an array element by its `id` in brackets where it
-carries one, by its index otherwise — `dressing.props[erratic-broken]`), one of three operations — `add`
+carries one, by its index otherwise — `dressing.props[erratic-broken]`), one of four operations — `add`
 appends the value to the array at the path, `set` replaces the value there, `move` sets the `x` and `z` the
-value carries on the object there — the value as the document would carry it, and the change in words. A
-reader applies it rather than re-deriving it from the rule's prose, which is the half of a finding a model
-acts on where the sentence alone is inspected and left. `SP8` and `EL1` state the ramp, `WX11` the bench and
-`DR-ROAD` the move; a finding whose fix is a decision rather than a change carries none.
+value carries on the object there, `remove` takes away what the path names — the value as the document would
+carry it, and the change in words. A reader applies it rather than re-deriving it from the rule's prose, which
+is the half of a finding a model acts on where the sentence alone is inspected and left. `SP8` and `EL1` state
+the ramp, `WX11` the bench and `DR-ROAD` the move; a finding whose fix is a decision rather than a change
+carries none.
+
+**An edit that landed is the same record, carrying what it replaced.** `GET /map/{slug}/diff` answers what
+changed between two of a map's changes as a list of these edits (`docs/tools/flow.md`), each with `before`
+beside its `value`: what the path held, absent where it held nothing. A gate proposing an edit states no
+`before`, which is how the two read apart — one record for a change proposed and a change made, so a reader
+that can apply the first can apply the second.
 
 ```json
 {

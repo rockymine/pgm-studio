@@ -649,9 +649,15 @@ public static class ArtifactKind
     public const string MapViewsJson = "map_views_json";
 
     /// <summary>The documents a map is authored in, whose every write is a change the map keeps
-    /// (<see cref="MapChangeRow"/>) and whose revision is the number of the change that last wrote it. The
-    /// rest are derived from them or are pictures of the board, and count their own revisions.</summary>
-    public static readonly IReadOnlySet<string> Kept = new HashSet<string> { PlanJson, SketchLayoutJson, MapIntentJson };
+    /// (<see cref="MapChangeRow"/>) and whose revision is the number of the change that last wrote it, each with
+    /// the word it is named by on the wire (<see cref="Vocabulary.MapDocuments"/>). The rest are derived from
+    /// them or are pictures of the board, and count their own revisions.</summary>
+    public static readonly IReadOnlyDictionary<string, string> Kept = new Dictionary<string, string>
+    {
+        [PlanJson] = Vocabulary.MapDocuments.Plan,
+        [SketchLayoutJson] = Vocabulary.MapDocuments.Layout,
+        [MapIntentJson] = Vocabulary.MapDocuments.Intent,
+    };
 }
 
 /// <summary>One write to a map's documents (M0052): its number, which counts up per slug and never repeats,

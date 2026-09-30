@@ -44,7 +44,7 @@ public class FindingsTests
 
         var stated = Complaint with
         {
-            Edit = FindingEdit.Of(FindingEdit.Layout, "relief.team.marks", FindingEdit.Add,
+            Edit = DocumentEdit.Of(MapDocuments.Layout, "relief.team.marks", DocumentEdit.Add,
                 new { id = "ramp-a-b", kind = "line", h = new[] { 12, 9 } }, "a ramp"),
         };
         var json = JsonSerializer.Serialize(stated, wire);

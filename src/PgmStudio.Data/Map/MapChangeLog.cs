@@ -34,6 +34,9 @@ public sealed record MapChange(
 /// </summary>
 public sealed class MapChangeLog(PgmDb db)
 {
+    /// <summary>The longest note a change keeps, in characters: a sentence or a few, never a report.</summary>
+    public const int NoteLength = 1000;
+
     /// <summary>A new change on <paramref name="slug"/>, stamped, under the slug's next number.</summary>
     public async Task<(long Id, long Number)> OpenAsync(string slug, ChangeStamp stamp, CancellationToken ct = default)
     {

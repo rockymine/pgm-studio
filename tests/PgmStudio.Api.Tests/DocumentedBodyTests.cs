@@ -42,6 +42,7 @@ public sealed class DocumentedBodyTests
             var slug = await OriginateMapAsync(client);
             route = route.Replace("{slug}", slug);
             if (route.Contains("/notes/{id}")) route = route.Replace("{id}", await NoteAsync(client, slug));
+            if (route.Contains("/changes/{number}")) route = route.Replace("{number}", await ChangeAsync(client, slug));
         }
 
         var resp = await client.PostAsync(route, new StringContent(example.Body, Encoding.UTF8, "application/json"));
@@ -98,6 +99,17 @@ public sealed class DocumentedBodyTests
     }
 
     private sealed record Written(long Id);
+
+    /// <summary>The map's latest change, for the routes that name one.</summary>
+    private static async Task<string> ChangeAsync(HttpClient client, string slug)
+    {
+        var listed = await client.GetFromJsonAsync<ChangeList>($"/api/map/{slug}/changes");
+        return listed!.Changes[^1].Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private sealed record ChangeList(IReadOnlyList<Change> Changes);
+
+    private sealed record Change(long Number);
 
     public static IEnumerable<DocumentedBody> Examples()
     {

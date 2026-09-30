@@ -63,7 +63,7 @@ public sealed class MapArtifactStore(PgmDb db)
     /// change the map keeps, and its revision is that change's number.</summary>
     public async Task<long> SaveAsync(long mapId, string kind, byte[] data, CancellationToken ct = default)
     {
-        if (ArtifactKind.Kept.Contains(kind)) return (await SaveKeptAsync(mapId, kind, data, null, ct))!.Value;
+        if (ArtifactKind.Kept.ContainsKey(kind)) return (await SaveKeptAsync(mapId, kind, data, null, ct))!.Value;
 
         var revision = 1L;
         await db.InOneWriteAsync(async () =>
@@ -92,7 +92,7 @@ public sealed class MapArtifactStore(PgmDb db)
     public async Task<long?> SaveIfUnchangedAsync(
         long mapId, string kind, byte[] data, long expected, CancellationToken ct = default)
     {
-        if (ArtifactKind.Kept.Contains(kind)) return await SaveKeptAsync(mapId, kind, data, expected, ct);
+        if (ArtifactKind.Kept.ContainsKey(kind)) return await SaveKeptAsync(mapId, kind, data, expected, ct);
 
         var written = await db.Artifacts
             .Where(a => a.MapId == mapId && a.Kind == kind && a.Revision == expected)

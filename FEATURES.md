@@ -7774,6 +7774,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a map made again under the slug numbers on. The migration carries every stored map's documents in as its
   first change and drops `map.artifact_revision_floor`, whose work the slug's number does.
   `docs/architecture.md`, `docs/tools/flow.md`, `docs/refusals.md`.
+- **Two changes of a map compare, document by document and column by column, and a change is restored
+  (RP90).** `GET /map/{slug}/changes[?since=]` lists a map's changes with their writer, token, origin, note and
+  documents; `GET …/changes/{number}` answers the documents as they stood there; `GET …/diff?from=&to=` answers
+  `DocumentDiff.Between` over each document — edits naming a list element by its `id`, an outline as one `set`
+  saying which points moved and how far, a placed thing as one `move` — and with `world=true`
+  `WorldDiff.Between` sorts the columns two builds disagree on into ground, surface block and structure, as
+  counts and runs, drawn on `?format=png` and listed on `?format=text`. `POST …/changes/{number}/restore`
+  writes back the documents that differ, through the roads that write them anywhere else, as one new change.
+  A finding's fix and an edit that landed are one record, `DocumentEdit` (was `FindingEdit`), which gained
+  `remove` and `before`; a run of cells with its box is `CellRunDto` for the slopes read and the diff alike.
+  `docs/tools/flow.md`, `docs/world-scan/read-backs.md`, `docs/refusals.md`, `docs/architecture.md`.
 - **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
   and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
   five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a

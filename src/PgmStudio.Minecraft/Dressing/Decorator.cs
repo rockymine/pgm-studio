@@ -1709,7 +1709,7 @@ public static class Decorator
     /// cleared by a move in z however the nearest paved cell lies — with the direction taken from where the
     /// resting cell stands relative to that cell. Null where no move of the standoff's own length clears it,
     /// which is a prop inside a bend of the road.</summary>
-    private static FindingEdit? MovedOffRoad(string id, (int X, int Z) anchor, (int X, int Z) rests,
+    private static DocumentEdit? MovedOffRoad(string id, (int X, int Z) anchor, (int X, int Z) rests,
                                              (int X, int Z) road, int standoff, GroundClaims.Storey claims)
     {
         var awayX = Math.Sign(rests.X - road.X);
@@ -1728,7 +1728,7 @@ public static class Decorator
             }
         if (best is not { } move) return null;
         var to = (X: anchor.X + move.StepX * move.By, Z: anchor.Z + move.StepZ * move.By);
-        return FindingEdit.Of(FindingEdit.Layout, $"dressing.props[{id}]", FindingEdit.Move,
+        return DocumentEdit.Of(MapDocuments.Layout, $"dressing.props[{id}]", DocumentEdit.Move,
             new { x = to.X, z = to.Z },
             $"move it {move.By} block(s) {Direction(move.StepX, move.StepZ)} to ({to.X}, {to.Z}), "
             + $"which stands {standoff} off the road");

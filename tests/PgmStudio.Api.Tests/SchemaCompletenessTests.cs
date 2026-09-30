@@ -441,8 +441,8 @@ public sealed class SchemaCompletenessTests
                     .Because($"{name} declares a view parameter over {views.Count} name(s)");
             }
 
-        await Assert.That(checked_).IsEqualTo(6)
-            .Because($"{checked_} route(s) answer a picture beside their JSON, and six do");
+        await Assert.That(checked_).IsEqualTo(7)
+            .Because($"{checked_} route(s) answer a picture beside their JSON, and seven do");
     }
 
     private static async Task<List<Operation>> OperationsAsync()
