@@ -36,8 +36,8 @@ export function defaultProp(kind, seed) {
     case "flora":
       return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0, deadBushShare: 0, cactusShare: 0 } };
     case "chest":
-      // A chest on the ground, fronting north, holding nothing until the author lists its stacks.
-      return { ...base, x: 0, z: 0, facing: "north", items: [] };
+      // A chest on the ground, fronting −z, holding nothing until the author lists its stacks.
+      return { ...base, x: 0, z: 0, facing: "negZ", items: [] };
     case "tree":
     case "boulder":
       // A click puts down a position; what stands there is a recipe the document names once. `style` is the

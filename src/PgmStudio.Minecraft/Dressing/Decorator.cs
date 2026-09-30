@@ -1275,18 +1275,12 @@ public static class Decorator
     private static Placed PlaceChest(
         VoxelWorld world, DressingContext context, ChestProp chest, GroundClaims.Storey claims, List<Finding> declined)
     {
-        var facing = chest.Facing switch
-        {
-            ChestFacing.North => 2, ChestFacing.South => 3, ChestFacing.West => 4, _ => 5,
-        };
-        int FacingAt(int image) => image == 0 ? facing
-            : BlockGeometry.Turned(Blocks.Chest, facing, (dx, dz) => context.Symmetry.TurnCell(dx, dz, image));
+        List<PropCell> block = [new(0, 0, 0, Blocks.Chest, BlockGeometry.Fronting(chest.Facing), Buried: false)];
 
         if (chest.Y is not { } stated)
         {
             var ground = context.GroundFor(chest);
-            var fanned = Fan(world, context, ground, (chest.X, chest.Z),
-                [new PropCell(0, 0, 0, Blocks.Chest, facing, Buried: false)], claims, chest.RouteStandoff,
+            var fanned = Fan(world, context, ground, (chest.X, chest.Z), block, claims, chest.RouteStandoff,
                 chest.Id, PropKinds.Chest, declined);
             if (fanned.Count == 0) return fanned;
             for (var image = 0; image < context.Symmetry.Order; image++)
@@ -1298,8 +1292,7 @@ public static class Decorator
             return fanned;
         }
 
-        var sites = Enumerable.Range(0, context.Symmetry.Order)
-            .Select(image => (Cell: context.Symmetry.ImageCell(chest.X, chest.Z, image), Image: image)).ToList();
+        var sites = Images(context, (chest.X, chest.Z), block).ToList();
         foreach (var ((x, z), _) in sites)
         {
             if (world.GetBlock(x, stated, z).Id != Blocks.Air)
@@ -1321,9 +1314,9 @@ public static class Decorator
         }
 
         var covered = new List<List<(int X, int Z)>>();
-        foreach (var ((x, z), image) in sites)
+        foreach (var ((x, z), turned) in sites)
         {
-            ChestBuilder.Place(world, x, stated, z, FacingAt(image), ChestBuilder.Contents(chest.Items));
+            ChestBuilder.Place(world, x, stated, z, turned[0].Data, ChestBuilder.Contents(chest.Items));
             claims.Claim(x, z, ClaimKind.Scatter, chest.Id);
             covered.Add([(x, z)]);
         }
@@ -1502,21 +1495,8 @@ public static class Decorator
         if (prop.Count == 0) return Placed.None;
 
         var images = new List<((int X, int Z) Anchor, List<PropCell> Turned, int BaseY)>(context.Symmetry.Order);
-        for (var k = 0; k < context.Symmetry.Order; k++)
+        foreach (var (anchor, turned) in Images(context, site, prop))
         {
-            var anchor = context.Symmetry.ImageCell(site.X, site.Z, k);
-            var image = k;
-            var turned = prop.Select(cell =>
-            {
-                var (tx, tz) = context.Symmetry.TurnCell(cell.X, cell.Z, image);
-                // A block with a direction in its data turns with the body it belongs to: a log laid along x
-                // on the original lies along z on a quarter-turned image, and a stair keeps climbing toward
-                // the same side of the tree it was cut from.
-                var data = image == 0 ? cell.Data
-                    : BlockGeometry.Turned(cell.Id, cell.Data, (dx, dz) => context.Symmetry.TurnCell(dx, dz, image));
-                return cell with { X = tx, Z = tz, Data = data };
-            }).ToList();
-
             // Decided once for the whole orbit, so the report is too: whichever image seats first refuses the
             // whole prop, and that is the one image and cell named — a second orbit image failing the same
             // way is not a second entry.
@@ -1577,6 +1557,26 @@ public static class Decorator
                 Severity.Complaint, Subjects: [id]));
 
         return new Placed(images.Count, covered);
+    }
+
+    /// <summary>A prop at every image of its orbit: where each image's anchor lands, and the prop's cells
+    /// turned by that image's own transform. A block with a direction in its data turns with the body it
+    /// belongs to: a log laid along x on the original lies along z on a quarter-turned image, a stair keeps
+    /// climbing toward the same side of the tree it was cut from, and a chest keeps fronting away from what it
+    /// was set against.</summary>
+    private static IEnumerable<((int X, int Z) Anchor, List<PropCell> Turned)> Images(
+        DressingContext context, (int X, int Z) site, List<PropCell> prop)
+    {
+        for (var image = 0; image < context.Symmetry.Order; image++)
+        {
+            var k = image;
+            yield return (context.Symmetry.ImageCell(site.X, site.Z, k), prop.Select(cell =>
+            {
+                var (tx, tz) = context.Symmetry.TurnCell(cell.X, cell.Z, k);
+                var data = context.Symmetry.Turn(k) is { } turn ? BlockGeometry.Turned(cell.Id, cell.Data, turn) : cell.Data;
+                return cell with { X = tx, Z = tz, Data = data };
+            }).ToList());
+        }
     }
 
     /// <summary>What the clip cost this prop: the blocks it could not write, plus the blocks it did write that

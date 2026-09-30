@@ -201,7 +201,7 @@ public static class StructureStamper
         var groundTop = PositionSnap.SurfaceYOver(surfaceTop, minX, minZ, maxX, maxZ, 1);
         var (chestX, chestZ) = ((minX + maxX) / 2, (minZ + maxZ) / 2);
         DefenseChest.Embed(world, chestX, surfaceTop.GetValueOrDefault((chestX, chestZ), groundTop), chestZ,
-                           DefenseChest.Facing(0, 1));
+                           BlockGeometry.Fronting(RoomEdge.PosZ));
     }
 
     /// <summary>Raise a solid bedrock wall over a seam footprint from y=0 to <see cref="RoomFrames.WallCourses"/>

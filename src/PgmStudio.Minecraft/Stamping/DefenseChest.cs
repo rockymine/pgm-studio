@@ -1,4 +1,5 @@
 using fNbt;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
 
@@ -80,7 +81,7 @@ public static class DefenseChest
             ? outside
             : surfaceTop.GetValueOrDefault((faceX, faceZ), 1);
         if (groundTop < 1 || groundTop >= VoxelWorld.MaxHeight - 1) return;
-        Embed(world, faceX, groundTop, faceZ, Facing(dirX, dirZ));
+        Embed(world, faceX, groundTop, faceZ, BlockGeometry.Fronting(RoomEdges.Nearest((dirX, dirZ), RoomEdges.All)!.Value));
     }
 
     /// <summary>Set one chest at <paramref name="x"/>/<paramref name="y"/>/<paramref name="z"/>, facing
@@ -93,10 +94,6 @@ public static class DefenseChest
         ChestBuilder.Place(world, x, y, z, facing, Contents());
         world.SetBlock(x, y + 1, z, Blocks.Air);   // the one air block that lets the lid open
     }
-
-    /// <summary>A chest's facing data: the direction its front points. A chest with no approach to front — the
-    /// one beside a goal, which the monument over it is reached from every side of — takes the default.</summary>
-    public static int Facing(int dirX, int dirZ) => dirX == -1 ? 4 : dirX == 1 ? 5 : dirZ == -1 ? 2 : 3;
 
     /// <summary>The 27-slot loadout, assigned to slots in order: dark-oak and spruce planks and crafting tables
     /// to build with, end stone and a redstone block to reinforce, and two Efficiency II iron pickaxes.</summary>

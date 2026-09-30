@@ -282,21 +282,13 @@ public sealed record ChestProp : PlacedProp
     /// there on whatever is under it, which is what puts one on a made thing.</summary>
     public int? Y { get; init; }
 
-    /// <summary>The side the chest's front — the latch, the side it opens toward — looks at.</summary>
-    public ChestFacing Facing { get; init; } = ChestFacing.North;
+    /// <summary>The side the chest's front — the latch, the side it opens toward — looks at, in the words a
+    /// building's <see cref="HouseProp.Front"/> takes.</summary>
+    public RoomEdge Facing { get; init; } = RoomEdge.NegZ;
 
     /// <summary>What is in it, at most <see cref="ChestItem.Slots"/> stacks. A stack stating a slot takes that
     /// slot; the rest fill the free slots in order.</summary>
     public IReadOnlyList<ChestItem> Items { get; init; } = [];
-}
-
-/// <summary>The four sides a chest can front.</summary>
-public enum ChestFacing
-{
-    North,
-    South,
-    West,
-    East,
 }
 
 /// <summary>One stack in a chest: a 1.8 item id (<c>minecraft:bow</c>, or <c>bow</c>), how many, its damage

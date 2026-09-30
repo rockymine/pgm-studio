@@ -933,7 +933,7 @@ public sealed class DecoratorTests
     {
         var (world, top) = Plateau();
         var tally = Decorator.Decorate(world, Context(top,
-            [new ChestProp { Id = "loot", X = 10, Z = 12, Facing = ChestFacing.North, Items = ABowAndArrows }],
+            [new ChestProp { Id = "loot", X = 10, Z = 12, Facing = RoomEdge.NegZ, Items = ABowAndArrows }],
             symmetry: "rot_180", centerX: 20, centerZ: 20));
 
         await Assert.That(tally.Chests).IsEqualTo(2);

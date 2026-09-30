@@ -1163,7 +1163,7 @@ carved out of the footprint it was handed rather than added past it, so its own 
 ## 8a. Chests — what a board hands its players
 
 **A chest is one block holding the stacks its author listed.** A `chest` prop names a cell, the side its
-front looks at (`facing`: `north`, `south`, `west` or `east`) and up to 27 `items`, each a 1.8 item id
+front looks at (`facing`, in the words a building's door side takes: `negZ`, `posZ`, `negX` or `posX`) and up to 27 `items`, each a 1.8 item id
 (`minecraft:bow`, or `bow`), a `count` of 1 to 64, a `damage` value and its `enchantments` by PGM's names —
 `power`, `infinity`, `sharpness`, `efficiency` and their kin — or by the game's numbers. A stack stating a
 `slot` takes it, and the rest fill the free slots in order, so the order the list is written in is the order a

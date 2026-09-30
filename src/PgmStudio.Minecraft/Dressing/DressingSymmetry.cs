@@ -86,4 +86,8 @@ public sealed record DressingSymmetry(string? Mode = null, double CenterX = 0, d
         var (px, pz) = TurnOffset(dx, dz, k);
         return ((int)Math.Round(px), (int)Math.Round(pz));
     }
+
+    /// <summary>The <paramref name="k"/>-th image's turn of a direction, as <c>BlockGeometry.Turned</c> takes
+    /// it — or null on the authored image, which turns nothing.</summary>
+    public Func<int, int, (int X, int Z)>? Turn(int k) => k == 0 ? null : (dx, dz) => TurnCell(dx, dz, k);
 }

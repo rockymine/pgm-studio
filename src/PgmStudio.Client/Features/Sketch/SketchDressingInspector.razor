@@ -190,9 +190,10 @@
       {
         <Field Label="Front"><LabelHint>the side the latch looks at; each mirrored copy turns with its half</LabelHint>
           <ChildContent><div class="chip-row">
-            @foreach (var side in ChestFacings)
+            @foreach (var side in Sides)
             {
-              <Chip Active="Text(PropFields.Facing, ChestFacings[0]) == side" OnClick="() => Set(PropFields.Facing, JsonValue.Create(side))">@side</Chip>
+              <Chip Active="Text(PropFields.Facing, Sides[0].Key) == side.Key" @key="side.Key"
+                    OnClick="() => Set(PropFields.Facing, JsonValue.Create(side.Key))">@side.Label</Chip>
             }
           </div></ChildContent>
         </Field>
@@ -296,7 +297,7 @@
           <Chip Active="@(Text(PropFields.Front, string.Empty).Length == 0)" OnClick="() => Set(PropFields.Front, null)">
             A long side
           </Chip>
-          @foreach (var edge in HouseFronts)
+          @foreach (var edge in Sides)
           {
             <Chip Active="@(Text(PropFields.Front, string.Empty) == edge.Key)" @key="edge.Key"
                   OnClick="() => Set(PropFields.Front, JsonValue.Create(edge.Key))">@edge.Label</Chip>

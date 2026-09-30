@@ -208,9 +208,10 @@ public partial class SketchDressingInspector
         if (RecipeKind is { } recipeKind) Nav.NavigateTo($"/library/{recipeKind.Slug}");
     }
 
-    /// <summary>The four walls a door may be cut through, in the wire words <c>RoomEdge</c> serializes as.
-    /// Named here rather than in the markup because a Razor markup lambda cannot hold a string literal.</summary>
-    private static readonly (string Key, string Label)[] HouseFronts =
+    /// <summary>The four sides a building's door or a chest's front may face, in the wire words <c>RoomEdge</c>
+    /// serializes as. Named here rather than in the markup because a Razor markup lambda cannot hold a string
+    /// literal.</summary>
+    private static readonly (string Key, string Label)[] Sides =
     [
         ("negZ", "−z"), ("posZ", "+z"), ("negX", "−x"), ("posX", "+x"),
     ];
@@ -287,8 +288,6 @@ public partial class SketchDressingInspector
     private Task Delete() => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("deleteProp").AsTask();
 
     // ── a chest's stacks ─────────────────────────────────────────────────────────
-    private static readonly string[] ChestFacings = ["north", "south", "west", "east"];
-
     private JsonArray ChestItems() => prop?[PropFields.Items] as JsonArray ?? [];
 
     /// <summary>Write the stacks back whole: the list is small, and one patch of it is the edit the canvas takes.</summary>

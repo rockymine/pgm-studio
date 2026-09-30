@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Houses;
@@ -394,11 +395,11 @@ public sealed class DressingJsonTests
     public async Task A_chest_reads_its_items_facing_and_course()
     {
         var chest = DressingJson.Deserialize("""
-            {"props":[{"kind":"chest","id":"c","x":4,"z":-2,"y":18,"facing":"east",
+            {"props":[{"kind":"chest","id":"c","x":4,"z":-2,"y":18,"facing":"posX",
               "items":[{"item":"bow","slot":0,"enchantments":[{"name":"power","level":1}]},{"item":"arrow","count":32}]}]}
             """).Props.OfType<ChestProp>().Single();
 
-        await Assert.That(chest.Facing).IsEqualTo(ChestFacing.East);
+        await Assert.That(chest.Facing).IsEqualTo(RoomEdge.PosX);
         await Assert.That(chest.Y).IsEqualTo(18);
         await Assert.That(chest.Items.Count).IsEqualTo(2);
         await Assert.That(chest.Items[0].Enchantments.Single().Name).IsEqualTo("power");

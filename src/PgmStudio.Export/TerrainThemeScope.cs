@@ -72,12 +72,7 @@ public static class TerrainThemeScope
 
         // One turn per image, about the origin: a block's direction is an offset and has no position to fan.
         var symmetry = new DressingSymmetry(SketchLayout.MirrorModeOf(layout));
-        var turns = new Func<int, int, (int X, int Z)>?[symmetry.Order];
-        for (var image = 1; image < turns.Length; image++)
-        {
-            var orbitImage = image;
-            turns[image] = (dx, dz) => symmetry.TurnCell(dx, dz, orbitImage);
-        }
+        var turns = Enumerable.Range(0, symmetry.Order).Select(symmetry.Turn).ToArray();
 
         return (layer, x, z) => cellToShape.TryGetValue((layer, x, z), out var owner)
             && shapeTheme.TryGetValue((layer, owner.Shape), out var theme)

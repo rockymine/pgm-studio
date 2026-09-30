@@ -143,14 +143,8 @@ public static class BlockGeometry
 
     /// <summary>The way a fronted block's data says it looks — the reading of <see cref="Fronting"/> — or
     /// null for a front facing up or down.</summary>
-    public static RoomEdge? Front(int data) => (data & 7) switch
-    {
-        2 => RoomEdge.NegZ,
-        3 => RoomEdge.PosZ,
-        4 => RoomEdge.NegX,
-        5 => RoomEdge.PosX,
-        _ => null,
-    };
+    public static RoomEdge? Front(int data) =>
+        RoomEdges.All.Cast<RoomEdge?>().FirstOrDefault(edge => Fronting(edge!.Value) == (data & 7));
 
     /// <summary>The sides of its own cell a vine's mask says it clings to, each the side the block holding it
     /// up stands on. A vine hanging from the block above clings to none of them.</summary>
