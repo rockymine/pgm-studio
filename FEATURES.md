@@ -266,6 +266,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   a vertex moved, a coast bent, a shape redrawn. Every read of a finished sketch's ground used to answer for the
   board Finish saw: on Gypsum Reach the editability, the pre-flight and the export still read the field's
   rectangle out to x −16 after `editShapes` pulled the coast in to −24. `docs/tools/sketch.md`. (`TS122`)
+- **The driver finishes the board it edited (`RP86`).** `pgm-studio-mapgen`'s `drive.py` posts
+  `POST …/sketch/finish` after its last `editShapes` or `bendShapes`, so the Finish judgement it prints is of
+  the outline the run left rather than the compiled one. `pgm-studio-mapgen/tools/README.md`. (`RP86`)
 - **The findings list judges the board as drawn (`TN24`).** `GET …/findings` asks what Finish judges through
   the one method Finish refuses on, `SketchFinish.Judge` — the board's own gate, a board carrying no finish,
   and the plan's straits re-read off the ground (`CT12`) — and `EZ2` off the scan brought up to the layout, so

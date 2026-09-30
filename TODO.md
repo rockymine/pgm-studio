@@ -13,17 +13,8 @@ blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smalle
 it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room building's 20×20 measure the same
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
-## The ground: one copy, and every read standing on it
-
-A board's ground exists three times — the plan's footprint, the layout's raster stored as the scan, and the
-built world — and the reads each trust a different copy. The scan is a derived copy stored beside the layout,
-checks run once against whichever copy existed at that moment, and two walks judge one board on two grounds.
-The entries below are that one cause, in the order a wrong answer costs most.
-
-- [ ] **RP86 — `drive.py` finishes the board it edited.** In `pgm-studio-mapgen`, `tools/drive.py` stores
-  through `from-documents` (which runs Finish) and then replays `editShapes` and bends, so the counts and the
-  Finish complaints it prints describe the board before its own edits. Post `POST …/sketch/finish` after the
-  last edit and print what it answers. `pgm-studio-mapgen/tools/README.md`.
-
-`docs/backlog-strategy.md` names **the layer word** as the programme after this one: `B264`, `WE28` and
-`TS64`, in `BACKLOG.md`.
+## Nothing is on the board
+The ground drained: every connectivity read walks the built world, every scan read goes through one refresh,
+and the findings list judges the board as drawn (`FEATURES.md`). `docs/backlog-strategy.md` names **the layer
+word** as the programme to pull next: `B264`, `WE28` and `TS64`, in `BACKLOG.md`. `B264` and `TS64` want a
+surface first, and `WE28` is the one that is settled and backend only.
