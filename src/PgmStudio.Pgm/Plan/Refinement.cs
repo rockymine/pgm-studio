@@ -13,11 +13,16 @@ namespace PgmStudio.Pgm.Plan;
 /// Everything a board states that its plan cannot: the paint on the compiled shapes, the storeys and shapes
 /// drawn over the compiled ground, the outlines reshaped a point at a time and bent into coasts, the relief, the
 /// theme registry, the biome, the room styles, the dressing, and the parts of the intent a plan has no words for.
+/// A material it states more than once is named once, in <see cref="Materials"/>, and used by name.
 /// It is applied onto the layout and intent a plan compiles to, or onto a drawn pair, by <see cref="Apply"/>;
 /// each statement is the one a Sketch route makes, so a board stated here and one edited by hand end the same.
 /// </summary>
 public sealed record Refinement
 {
+    /// <summary>The materials the refinement states once, by name. A <c>{"use": name}</c> wherever a material is
+    /// stated stands for a copy of it, with the fields stated beside it laid over.</summary>
+    [JsonPropertyName("materials")] public Dictionary<string, JsonElement>? Materials { get; init; }
+
     /// <summary>The theme each compiled ground shape paints with, by the height it stands at.</summary>
     [JsonPropertyName("themeByHeight")] public Dictionary<string, string>? ThemeByHeight { get; init; }
 
@@ -95,7 +100,7 @@ public sealed record Refinement
     /// paint and fields on the compiled shapes, the storeys, the shapes drawn onto them, the relief, the theme
     /// registry, the biome, the room styles and the dressing, then the outlines reshaped point by point and bent.
     /// Each statement is copied through as it was written, so a field the typed reader has no room for still
-    /// reaches the layout.
+    /// reaches the layout. Before any of it, every <c>use</c> is replaced by the material it names.
     ///
     /// <para>A statement naming a shape or a layer the board does not have, or an edit the board refuses, is a
     /// complaint and the rest is applied: the board is what was stated less that one statement, and the finding
@@ -109,6 +114,8 @@ public sealed record Refinement
             return new(layoutJson, intentJson, new Findings(findings));
         var layout = JsonNode.Parse(layoutJson) as JsonObject ?? [];
         var intent = JsonNode.Parse(intentJson) as JsonObject ?? [];
+        Name(refinement, findings);
+        if (findings.Any(finding => finding.Refuses)) return new(layoutJson, intentJson, new Findings(findings));
 
         var layers = layout["layers"] as JsonArray ?? (JsonArray)(layout["layers"] = new JsonArray());
         var ground = layers.OfType<JsonObject>().FirstOrDefault();
@@ -126,6 +133,68 @@ public sealed record Refinement
 
         Play(refinement, intent);
         return new(edited, intent.ToJsonString(), new Findings(findings));
+    }
+
+    // The materials named once: every `use` in a statement that paints or builds is replaced by a copy of the
+    // material the registry states under that name, with the fields stated beside it laid over.
+    private static readonly string[] Using =
+        ["themes", "roomStyles", "dressing", "biome", "addShapes", "addLayers", "shapePropsById", "shapePropsByHeight"];
+
+    private static void Name(JsonObject refinement, List<Finding> findings)
+    {
+        var registry = refinement["materials"] as JsonObject ?? [];
+        foreach (var member in Using)
+            if (refinement[member] is { } node && Used(node, member, registry, findings) is var named && named != node)
+                refinement[member] = named;
+    }
+
+    private static JsonNode Used(JsonNode node, string path, JsonObject registry, List<Finding> findings)
+    {
+        if (node is JsonObject stated && stated["use"] is JsonValue name && name.TryGetValue<string>(out var used))
+        {
+            if (registry[used] is not { } material)
+            {
+                findings.Add(new Finding(SourceRules.UsesNoMaterial,
+                    $"{path} uses the material '{used}', which `materials` does not state"
+                    + (registry.Count > 0 ? $" — it states {string.Join(", ", registry.Select(pair => $"'{pair.Key}'"))}" : ""),
+                    Field: $"refinement.{path}.use"));
+                return node;
+            }
+            var beside = new JsonObject();
+            foreach (var (field, value) in stated)
+                if (field != "use") beside[field] = value?.DeepClone();
+            return LaidOver(material, beside)!;
+        }
+        switch (node)
+        {
+            case JsonObject members:
+                foreach (var key in members.Select(pair => pair.Key).ToList())
+                    if (members[key] is { } child && Used(child, $"{path}.{key}", registry, findings) is var named
+                        && named != child)
+                        members[key] = named;
+                break;
+            case JsonArray items:
+                for (var at = 0; at < items.Count; at++)
+                    if (items[at] is { } child && Used(child, $"{path}[{at}]", registry, findings) is var named
+                        && named != child)
+                        items[at] = named;
+                break;
+        }
+        return node;
+    }
+
+    /// <summary>The fields stated beside a name laid over the copy it stands for: an object merges member by member
+    /// and anything else replaces what the copy held. An object that is itself a name — it states <c>use</c> or
+    /// <c>library</c> — replaces too, since it stands for a whole thing of its own.</summary>
+    public static JsonNode? LaidOver(JsonNode? copy, JsonNode? stated)
+    {
+        if (copy is JsonObject into && stated is JsonObject over && !over.ContainsKey("use") && !over.ContainsKey("library"))
+        {
+            var merged = into.DeepClone().AsObject();
+            foreach (var (key, value) in over) merged[key] = LaidOver(merged[key], value);
+            return merged;
+        }
+        return stated?.DeepClone();
     }
 
     // The paint and fields on the shapes already drawn: by height on the compiled ground, by id anywhere. A room
@@ -430,4 +499,17 @@ public static class SourceRules
     /// <c>x</c>/<c>z</c>, and <c>remove</c> drops it.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Request)]
     public const string EditStatesNoIndex = "SR4";
+
+    /// <summary>A refinement uses a material by a name its <c>materials</c> registry does not state, so there is
+    /// nothing to copy where the name stands.</summary>
+    /// <remarks>State the material under that name in <c>materials</c>, or use one of the names the finding
+    /// lists.</remarks>
+    [Rule(RuleCategory.Unknown, RuleConcern.Request)]
+    public const string UsesNoMaterial = "SR5";
+
+    /// <summary>A refinement names a library row — a material, a theme, a room style, a prop style or a biome — by
+    /// a name no row of that kind carries, or one several rows carry, so there is no single row to copy.</summary>
+    /// <remarks>Name the row by a name the finding lists, or by its id where several rows share the name.</remarks>
+    [Rule(RuleCategory.Unknown, RuleConcern.Request)]
+    public const string NamesNoLibraryRow = "SR6";
 }

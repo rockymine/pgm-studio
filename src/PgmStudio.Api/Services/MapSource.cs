@@ -49,7 +49,8 @@ public static class MapSource
     public static async Task<MapSourceApplied> ApplyAsync(
         HttpContext http, string slug, string body, bool dry, string? discarding,
         MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
-        WorldFeatureWriter features, PgmDb db, PlayerLookup players, MapChangeLog log, CancellationToken ct)
+        WorldFeatureWriter features, PgmDb db, PlayerLookup players, MapChangeLog log, LibraryNames names,
+        CancellationToken ct)
     {
         if (Slugs.OfFolder(slug) != slug)
             return Refuse(400, "not a slug", new Finding(RequestRules.Unreadable,
@@ -138,12 +139,18 @@ public static class MapSource
             layoutJson = drawnLayout!;
             intentJson = drawnIntent!;
         }
+        // A library name is resolved into the copy the board holds, and kept recorded with the row it came from.
+        var kept = refinement;
         if (refinement is not null)
         {
-            var refined = Refinement.Apply(refinement, layoutJson, intentJson);
+            var named = await names.ResolveAsync(refinement, ct);
+            if (named.Findings.Refuses)
+                return new(new Refusal(422, "refinement not applicable", [.. named.Findings.Refusals]));
+            kept = named.Kept;
+            var refined = Refinement.Apply(named.Applied, layoutJson, intentJson);
             if (refined.Findings.Refuses) return new(new Refusal(422, "refinement not applicable", [.. refined.Findings.Refusals]));
             Complaints.Add(http, refined.Findings.Complaints);
-            (layoutJson, intentJson) = (refined.LayoutJson, refined.IntentJson);
+            (layoutJson, intentJson) = (LibraryNames.Recorded(refined.LayoutJson, named), refined.IntentJson);
         }
 
         var name = request.Name is { Length: > 0 } called ? called : NameOf(intentJson);
@@ -163,7 +170,7 @@ public static class MapSource
         Complaints.Add(http, prepared.Judged.Complaints);
 
         var storedIntent = JsonSerializer.Serialize(IntentWrite.Stated(intentJson), MapArtifactStore.Json);
-        var edits = await EditsAsync(log, slug, plan, refinement, layoutJson, storedIntent, ct);
+        var edits = await EditsAsync(log, slug, plan, kept, layoutJson, storedIntent, ct);
         var configure = $"/maps/{slug}/configure";
         if (dry)
             return new(null, new MapSourceDto(slug, null, existing is not null, edits, prepared.Cells.Count,
@@ -183,7 +190,7 @@ public static class MapSource
         {
             if (keptViews is not null) await artifacts.SaveAsync(mapId, ArtifactKind.MapViewsJson, keptViews, ct);
             await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, planBytes, ct);
-            await artifacts.SaveAsync(mapId, ArtifactKind.RefinementJson, Encoding.UTF8.GetBytes(refinement ?? "{}"), ct);
+            await artifacts.SaveAsync(mapId, ArtifactKind.RefinementJson, Encoding.UTF8.GetBytes(kept ?? "{}"), ct);
             var layoutRevision = await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson,
                 Encoding.UTF8.GetBytes(layoutJson), ct);
             var finished = await SketchFinish.WriteAsync(mapId, prepared, layoutRevision, repo, features, ct);

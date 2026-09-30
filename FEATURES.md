@@ -7821,6 +7821,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   History). The source's schema names its documents by their types. `pgm-studio-mapgen`'s `drive.py` takes
   `--after` and `--discard`, and the `pgm-board` skill reads the changes since the last run beside the open
   notes. `docs/tools/flow.md`, `docs/refusals.md`, `docs/tools/sketch.md`, `docs/architecture.md`.
+- **A refinement names a material once, and a library row by what it is called (TL32).** A material stated
+  under `materials` is used as `{"use": name}` wherever a material is stated, and `{"library": "dunes"}` — or an
+  id — stands wherever a material, theme, room style, prop style or biome is stated, what it names decided by
+  where it stands (`LibraryNames`). Each is a copy with the fields stated beside it laid over, an object member
+  by member (`Refinement.LaidOver`), so a library edit never rebuilds a stored board. The refinement the map
+  keeps records each library name's `row` and a `hash` of what was copied, a copied theme or biome lands in
+  `themeSources` and `biomeSource`, and `GET /map/{slug}/state` names as `behind` the names whose row has moved
+  on; the next apply takes the row as it is then, and its diff shows it. A name that names nothing refuses the
+  source (`SR5`, `SR6`) with the nearest names there are. `docs/tools/library.md`, `docs/tools/flow.md`,
+  `docs/refusals.md`.
 - **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
   and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
   five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a

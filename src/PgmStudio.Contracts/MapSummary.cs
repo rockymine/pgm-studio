@@ -70,8 +70,21 @@ public sealed record MapMove(string Does, string Route, bool Next);
 /// it, so a plan-stage map is still offered the rebuild that reads its plan.</param>
 /// <param name="Artifacts">Which documents the map holds, which is what says what a move can read.</param>
 /// <param name="Moves">What may be done from here, each with the route that does it.</param>
+/// <param name="Behind">The library names the map's refinement holds whose row has moved on since its source was
+/// applied. The board keeps the copy it was built with; the next apply takes the row as it is now, and its diff
+/// shows what that changes.</param>
 public sealed record MapState(
-    [property: WordSet(typeof(MapStage))] string Stage, MapArtifacts Artifacts, IReadOnlyList<MapMove> Moves);
+    [property: WordSet(typeof(MapStage))] string Stage, MapArtifacts Artifacts, IReadOnlyList<MapMove> Moves,
+    IReadOnlyList<LibraryBehindDto> Behind);
+
+/// <summary>A library name a map's refinement holds whose row has moved on since the map's source was applied.</summary>
+/// <param name="Path">Where the name stands in the refinement, as <c>themes.heath</c>.</param>
+/// <param name="Kind">What it names: <c>material</c>, <c>theme</c>, <c>room style</c>, <c>tree</c>, <c>boulder</c>,
+/// <c>house</c> or <c>biome</c>.</param>
+/// <param name="Row">The row it was copied from.</param>
+/// <param name="Name">What the row is called now; absent where the row is gone.</param>
+/// <param name="Gone">Whether the row has been deleted, so the next apply names nothing there.</param>
+public sealed record LibraryBehindDto(string Path, string Kind, long Row, string? Name, bool Gone);
 
 /// <summary>Whether the map came from a sketch — which is what drops the Monuments step.</summary>
 /// <param name="Sketch">Whether the map was originated from a drawing rather than imported or planned.</param>

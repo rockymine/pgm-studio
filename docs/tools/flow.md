@@ -74,7 +74,7 @@ this folder takes a map; these are what a caller with no map reaches for first.
 | `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
 | `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
 | `DELETE /map/{slug}` | nothing — **204**, and the map is gone with everything stored under it: its teams, regions, authors, objectives, scans and every document it held, since each of those rows cascades from the map's. A world folder under a maps root is what a map was scanned from rather than something it holds, and stays; an imported one is offered as an import candidate again. The call for a driver cleaning up after a variant, or a spec re-driven under a corrected slug | 404 `RQ4` no map at that slug |
-| `PUT /map/{slug}/source[?dry=true&discard=]` | `{slug, change, replaced, edits, cells, islands, configureUrl}`, and on a dry run the `layout` and `intent` it would store — a whole map stored from its source, a plan compiled or a drawn layout and intent, with the refinement applied onto it, as one change. **The authoring call for a headless caller**, not only the import one, and the whole of it: the compile, the refinement, the finish and the intent's projection run inside it. A map already at that slug is replaced, and only once the source has passed everything it is refused for; `?dry=true` decides all of it, answers the edits and stores nothing. A map made from a refinement refuses a source over a change it has not seen, and `?discard=` names the ones it drops. See *A map's source is the way in, and the way back in* below. Every document answers `RQ3` under the member it was stated as | 400 `not a slug` `RQ1` · 400 `no such change` `RQ1` naming `after` or `discard` · 400 `unreadable discard` · 400 `no base` `RQ1` naming `plan`, `layout` or `intent` · 400 `unreadable document` `RQ1` naming the first field each binder cannot read, under its member (`intent.modes[0]`) · 400 `no name given` · 400 `note too long` · 400 `invalid style or theme` · 400 a person nobody could be called · 403 `RQ8` a map at that slug the caller may not edit · 422 `plan not compilable` · 422 `refinement not applicable` `SR3`/`SR4` · 409 `changes not seen` `SR1`, one per edit a change the source has not seen made, handed over · 422 the drawing carries no ground `SK7` — a refused source stores nothing |
+| `PUT /map/{slug}/source[?dry=true&discard=]` | `{slug, change, replaced, edits, cells, islands, configureUrl}`, and on a dry run the `layout` and `intent` it would store — a whole map stored from its source, a plan compiled or a drawn layout and intent, with the refinement applied onto it, as one change. **The authoring call for a headless caller**, not only the import one, and the whole of it: the compile, the refinement, the finish and the intent's projection run inside it. A map already at that slug is replaced, and only once the source has passed everything it is refused for; `?dry=true` decides all of it, answers the edits and stores nothing. A map made from a refinement refuses a source over a change it has not seen, and `?discard=` names the ones it drops. See *A map's source is the way in, and the way back in* below. Every document answers `RQ3` under the member it was stated as | 400 `not a slug` `RQ1` · 400 `no such change` `RQ1` naming `after` or `discard` · 400 `unreadable discard` · 400 `no base` `RQ1` naming `plan`, `layout` or `intent` · 400 `unreadable document` `RQ1` naming the first field each binder cannot read, under its member (`intent.modes[0]`) · 400 `no name given` · 400 `note too long` · 400 `invalid style or theme` · 400 a person nobody could be called · 403 `RQ8` a map at that slug the caller may not edit · 422 `plan not compilable` · 422 `refinement not applicable` `SR3`/`SR4`/`SR5`/`SR6` · 409 `changes not seen` `SR1`, one per edit a change the source has not seen made, handed over · 422 the drawing carries no ground `SK7` — a refused source stores nothing |
 | `GET /map/{slug}/refinement` | the refinement the map's source last stated, `{}` where it stated none; its `ETag` is the change that wrote it | 404 `RQ4` no map at that slug, or no source applied to it |
 
 ## The hand-offs
@@ -160,6 +160,7 @@ comes before it.
 
 | Member | States | The route that states the same |
 |---|---|---|
+| `materials` | `{name: material}` — a material stated once, which `{"use": name}` stands for wherever a material is stated | — |
 | `themeByHeight` | `{height: theme}` — the theme each compiled ground shape paints with, by the height it stands at. A room piece is not terrain and is reached only by its id | — |
 | `themeById` | `{shapeId: theme}`, winning over the height rule | `PATCH …/sketch/shapes/{shapeId}` |
 | `shapePropsByHeight` · `shapePropsById` | fields merged onto a shape by the height it stands at or by its id; a field stated as null is removed | `PATCH …/sketch/shapes/{shapeId}` |
@@ -172,6 +173,13 @@ comes before it.
 | `biome` · `roomStyles` · `dressing` | the layout's own members, each replacing what the base held | `PUT …/sketch/biome`, `PUT …/sketch/room-styles/{part}`, the props routes |
 | `created` · `authors` | the intent's `meta.created` and `meta.authors`; a person is a bare name or `{uuid, name, role, contribution}` | `PATCH /map/{slug}/metadata` |
 | `controlPoints` · `scoreLimit` · `spawners` · `shops` | the intent's own members, each replacing what the base held | `PUT /map/{slug}/intent` |
+
+**A thing stated more than once is named, and a name stands for a copy.** A material the refinement uses in
+several places is stated once under `materials` and used as `{"use": "strata"}`. A row of the studio's library
+is named as `{"library": "dunes"}` wherever a material, a theme, a room style, a prop style or a biome is stated,
+and resolved when the source is applied (`docs/tools/library.md`). Either copy has the fields stated beside the
+name laid over it, and a name that names nothing refuses the source 422: `SR5` for a material the registry does
+not state, `SR6` for a library name that names no single row.
 
 **A compiled shape is named by its component and its height, and a statement anchors to that name.** The id is
 the component's ordinally first piece and the surface it stands at — `dale-9` — with the patches after the
@@ -387,7 +395,8 @@ endpoint refuses on `map.stage`. What the stage is *for* is saying which of the 
 the author was about to make.
 
 **`GET /api/map/{slug}/state` answers all of it**: the stage, the artifacts, and the moves they allow, each with
-its route. A move is offered because the documents it reads are stored rather than because the stage is right
+its route — and as `behind`, the library names the map's refinement holds whose row has moved on since its
+source was applied. A move is offered because the documents it reads are stored rather than because the stage is right
 — rebuilding a drawing from a plan needs a plan, whatever stage the map is at — so a driver reads its options
 instead of learning them from this document. Its pair is `GET /api/map/{slug}/findings`, which answers what is
 wrong with the map right now from every gate the stored documents can reach, and names the gates it did not

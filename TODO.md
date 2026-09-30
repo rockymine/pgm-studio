@@ -16,22 +16,9 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 ## The programme: a board's source, every change to it, and the words it is stated in
 **The author put this programme first.** The studio keeps the source a board is stated in and every change to
 it, hands the author's hand edits to the agent's next round, and hands out the vocabulary the source is
-written in. The two groups below do not depend on each other and may run side by side; `pgm-studio-mapgen`
-moves onto both as the next group in `BACKLOG.md`, and the layer word (`B264`, `WE28`, `TS64`) waits behind
-it.
-
-### A map is its source and every change to it
-
-- [ ] **TL32 — A refinement names a material, theme or style instead of copying it.** Two kinds of name. A
-  local one: a `materials` registry states a material once, and a theme's bucket says `{"use": "strata"}`. A
-  library one: `{"library": "dunes"}` wherever a material, theme, room style, prop style or biome is accepted,
-  with the fields that differ stated beside it, resolved at apply into the copy the stored layout holds and
-  recorded with the library row and a hash of what was copied — the record `themeSources` keeps for themes,
-  for every kind. A library edit never rebuilds a stored board; `GET …/state` names the entries whose row has
-  moved on, and the next apply takes the new one and its diff shows it. `docs/tools/library.md`,
-  `docs/tools/flow.md`.
-
-  *Evidence: Gypsum Reach's finish carries 18 copies of one 4,041-byte strata material, 80 KB of its 122.*
+written in. The source and its changes have shipped; what remains is the vocabulary the source is written in.
+`pgm-studio-mapgen` moves onto both as the next group in `BACKLOG.md`, and the layer word (`B264`, `WE28`,
+`TS64`) waits behind it.
 
 ### The schema is the vocabulary, and the kit is made from it
 

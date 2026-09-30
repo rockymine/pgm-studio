@@ -59,7 +59,7 @@ public sealed record MapSourceRequest(
 /// </summary>
 public sealed class MapSourceEndpoint(
     MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
-    WorldFeatureWriter features, PgmDb db, PlayerLookup players, MapChangeLog log)
+    WorldFeatureWriter features, PgmDb db, PlayerLookup players, MapChangeLog log, LibraryNames names)
     : EndpointWithoutRequest<MapSourceDto>
 {
     public override void Configure()
@@ -78,7 +78,7 @@ public sealed class MapSourceEndpoint(
             HttpContext, Route<string>("slug")!, await RawBody.ReadAsync(HttpContext, ct),
             string.Equals(Query<string?>("dry", isRequired: false), "true", StringComparison.OrdinalIgnoreCase),
             Query<string?>("discard", isRequired: false),
-            repo, reader, writer, artifacts, features, db, players, log, ct);
+            repo, reader, writer, artifacts, features, db, players, log, names, ct);
         if (applied.Refusal is { } refusal)
         {
             await Refusals.WriteAsync(HttpContext, refusal, ct);

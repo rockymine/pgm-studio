@@ -27,8 +27,8 @@ pulled up whole when it lands.
 
 - [ ] **RP96 — `pgm-studio-mapgen` states its boards in the kit, and a drive shows what it would change
   before it changes it.** `drive.py` runs the board's `build-spec.py` first, dry-runs the source and prints
-  the edits before it applies, and reads one report (`WS80`); its `@name` loader goes once a refinement names
-  library rows (`TL32`). **One picture a board is committed** (author): the board seen from its side through
+  the edits before it applies, and reads one report (`WS80`); its `@name` loader goes, a style named as a library
+  row instead (`{"library": …}`). **One picture a board is committed** (author): the board seen from its side through
   `render/eye`, beside the documents, and `maps/<slug>/` keeps the export's `map.png` (`WE155`); the debug
   renders stay in the studio, drawn again from any change on request. The boards that still compile (plan
   version 2) import the fetched kit; `specs/opus55_kit.py`, `specs/sonnet55_kit.py` and the copied `common.py`
@@ -50,7 +50,7 @@ pulled up whole when it lands.
 - [ ] **TL33 — The house styles `pgm-studio-mapgen` keeps become the library's.** 81 house styles sit in
   `pgm-studio-mapgen/tools/styles` against 13 room styles in the deployed library, and `drive.py`'s `@name`
   and the kit's `house_style()` read them from disk. The author picks the ones worth keeping,
-  `tools/seed-studio.py` loads them into the library, boards name them (`TL32`), and the folder goes.
+  `tools/seed-studio.py` loads them into the library, boards name them as `{"library": …}`, and the folder goes.
   `docs/tools/library.md`.
 
 - [ ] **WS72 — `GET /map/{slug}/coverage` and its `?format=png` each walk the whole board.** Both run

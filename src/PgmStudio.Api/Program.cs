@@ -161,6 +161,7 @@ builder.Services.AddScoped<PgmStudio.Api.Services.RoomStyleLibrary>();
 builder.Services.AddScoped<PgmStudio.Api.Services.HousePartLibrary>();
 builder.Services.AddScoped<PgmStudio.Data.Theme.PropStyleStore>();
 builder.Services.AddScoped<PgmStudio.Api.Services.PropStyleLibrary>();
+builder.Services.AddScoped<PgmStudio.Api.Services.LibraryNames>();
 builder.Services.AddScoped<MapReader>();
 builder.Services.AddScoped<MapWriter>();
 builder.Services.AddScoped<WorldFeatureWriter>();

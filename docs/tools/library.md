@@ -41,6 +41,13 @@ in that sketch's registry; the room shells bound in the Theme phase are snapshot
 style rather than a library id. So a library edit can never rebuild a map that already shipped, and there is no
 mechanism by which it could — which is the guarantee, not an omission.
 
+**A map's source may name a row rather than copy it, and what lands is still a copy.** A refinement states
+`{"library": "dunes"}` wherever it states a material, a theme, a room style, a prop style or a biome, and the
+studio copies the row in when the source is applied, so a library edit still never rebuilds a stored board. The
+refinement the map keeps records the row each name resolved to and a hash of what was copied, and
+`GET /map/{slug}/state` names the ones whose row has moved on since; the next apply takes the row as it is then.
+*Driving it without the UI* has the shape.
+
 ## The four levels
 
 ### A style is one material
@@ -821,6 +828,24 @@ snapshot, or a placed building carries as its `style`.
 Both `/json` endpoints answer a **string in a field** rather than the document — `{themeJson: "…"}` and
 `{styleJson: "…"}` — so what a sketch stores is the parse of that string, not the response.
 
+**A map's source names a row by what it is called.** `{"library": "dunes"}` — or `{"library": 12}` by id, where
+several rows share a name — stands wherever a refinement states a thing the library holds, and what it names is
+decided by where it stands. An entry of `themes` is a theme, of `roomStyles` a room style, of `dressing.styles`
+the prop style its `kind` says, the `biome` a biome, and anything else a material.
+
+**The fields stated beside a name are laid over the copy**, an object member by member and anything else
+whole, so a theme can be the library's with one bucket changed. A name stated inside those fields is resolved
+in its turn and replaces what it stands in:
+
+```json
+{"themes": {"heath": {"library": "dunes", "rimEdges": "boundary", "wall": {"library": "sandstone"}}}}
+```
+
+**A name that names no single row refuses the source**, `422` with `SR6` naming the nearest names the library
+holds, or the ids of the rows sharing the name. A theme or a biome copied this way is recorded in the layout's
+`themeSources` and `biomeSource` as one copied in the Sketch tool is, and the kept refinement carries each name's
+`row` and `hash` (`docs/tools/flow.md`, *A map's source*).
+
 **The built-in presets are put in at startup, not by a migration.** `LibrarySeed` runs as the API comes up and
 writes six of the nine libraries — the flat biome patterns among them, one per biome, so the
 select that picks one is never empty and a board that is simply desert needs nothing authored. It writes: the materials the house presets are made of, the storeys, roofs and porches
@@ -837,8 +862,9 @@ different — the only honest way to say whether a preset survived being stored.
 
 ## Limits
 
-The library knows nothing about maps, and that cuts both ways. There is no way to ask which maps use a row,
-because no map references one; and there is no way to push an edit into a map that already snapshotted it. The
+The library knows nothing about maps, and that cuts both ways. There is no way to ask which maps use a row: a
+map whose source names one says which it resolved to and whether it has moved on, but nothing asks the question
+the other way round. And there is no way to push an edit into a map that already snapshotted it. The
 snapshot is the guarantee that a library edit cannot rebuild a shipped map, so the missing "re-apply to these
 maps" is the price of it rather than a gap. A style filled into another style is the same bargain one level
 down: what was filled in is a copy, so editing the source afterwards does not reach it.

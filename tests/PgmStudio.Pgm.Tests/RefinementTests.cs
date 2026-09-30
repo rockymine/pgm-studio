@@ -182,6 +182,38 @@ public sealed class RefinementTests
     }
 
     [Test]
+    public async Task A_material_named_once_is_copied_wherever_it_is_used_with_what_is_stated_beside_it()
+    {
+        var refined = Apply("""
+            {"materials":{"strata":{"kind":"layered","bands":[{"id":24,"thickness":2}]}},
+             "themes":{"heath":{"surface":{"material":{"use":"strata"},"depth":1},"wall":{"use":"strata","seed":9}}}}
+            """);
+
+        var layout = JsonNode.Parse(refined.LayoutJson)!;
+        var heath = layout["themes"]!["heath"]!;
+        await Assert.That(heath["surface"]!["material"]!["kind"]!.GetValue<string>()).IsEqualTo("layered");
+        await Assert.That(heath["wall"]!["kind"]!.GetValue<string>()).IsEqualTo("layered");
+        await Assert.That(heath["wall"]!["seed"]!.GetValue<int>()).IsEqualTo(9)
+            .Because("a field stated beside a name is laid over the copy");
+        await Assert.That(heath["surface"]!["material"]!.AsObject().ContainsKey("seed")).IsFalse()
+            .Because("each use is its own copy");
+        await Assert.That(layout.AsObject().ContainsKey("materials")).IsFalse();
+        await Assert.That(refined.Findings).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_material_used_by_a_name_the_registry_does_not_state_refuses_the_source()
+    {
+        var refined = Apply("""{"materials":{"strata":{"kind":"solid","id":1}},"themes":{"heath":{"wall":{"use":"sand"}}}}""");
+
+        var finding = refined.Findings.Single();
+        await Assert.That(finding.Rule).IsEqualTo(SourceRules.UsesNoMaterial);
+        await Assert.That(finding.Refuses).IsTrue();
+        await Assert.That(finding.Message).Contains("'strata'");
+        await Assert.That(refined.LayoutJson).IsEqualTo(Layout).Because("a refused source changes nothing");
+    }
+
+    [Test]
     public async Task An_empty_refinement_leaves_both_documents_as_they_were()
     {
         var refined = Apply("{}");
