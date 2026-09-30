@@ -11,6 +11,11 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public sealed class TraversabilityTests
 {
+    /// <summary>The verdict over a scanned board's own walk ground.</summary>
+    private static Traversability.Result Walked(Dict data, SegmentIndex? segments,
+        (int, int, int, int)? bbox = null, IReadOnlyList<WoolSources.Source>? woolSources = null)
+        => Traversability.Check(data, WorldWalk.Ground(data, segments, bbox: bbox), woolSources: woolSources);
+
     /// <summary>A board of flat ground, read the way a scan is: every cell a one-block slab at the world
     /// floor, so it is both somewhere to stand and ground that reaches y=0.</summary>
     private static SegmentIndex Flat(IEnumerable<(int, int)> cells)
@@ -55,7 +60,7 @@ public sealed class TraversabilityTests
         for (var x = 0; x < 4; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
         for (var x = 100; x < 104; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
 
-        var res = Traversability.Check(data, Flat(surface), bbox: (-2, -2, 110, 10));
+        var res = Walked(data, Flat(surface), bbox: (-2, -2, 110, 10));
 
         await Assert.That(res.Points.Count).IsEqualTo(1);
         var p = res.Points[0];
@@ -83,7 +88,7 @@ public sealed class TraversabilityTests
         var surface = new HashSet<(int, int)>();
         for (var x = 0; x <= 100; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
 
-        var res = Traversability.Check(data, Flat(surface));   // no bbox — the export/gate path
+        var res = Walked(data, Flat(surface));   // no bbox — the export/gate path
 
         await Assert.That(res.Connected).IsTrue();
         await Assert.That(res.Isolated.Count).IsEqualTo(0);
@@ -106,7 +111,7 @@ public sealed class TraversabilityTests
         var surface = new HashSet<(int, int)>();
         for (var x = 10; x < 20; x++) for (var z = 20; z < 30; z++) surface.Add((x, z));
 
-        var res = Traversability.Check(data, Flat(surface), bbox: (0, 10, 30, 40));
+        var res = Walked(data, Flat(surface), bbox: (0, 10, 30, 40));
 
         await Assert.That(res.Points.Count).IsEqualTo(1);
         await Assert.That(res.Points[0].Point.X).IsEqualTo(15);
@@ -138,7 +143,7 @@ public sealed class TraversabilityTests
             ["wools"] = new List<object?>(),
         };
 
-        var res = Traversability.Check(data, null, bbox: (-10, -10, 10, 10));
+        var res = Walked(data, null, bbox: (-10, -10, 10, 10));
 
         await Assert.That(res.Connected).IsFalse();
         await Assert.That(res.Isolated.Count).IsEqualTo(2);
@@ -175,10 +180,10 @@ public sealed class TraversabilityTests
         for (var x = 0; x < 10; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
         for (var x = 21; x < 30; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
 
-        var built = Traversability.Check(Data("always"), Flat(surface), bbox: (-5, -5, 35, 10));
+        var built = Walked(Data("always"), Flat(surface), bbox: (-5, -5, 35, 10));
         await Assert.That(built.Connected).IsTrue().Because("a granted build zone is bridged across");
 
-        var denied = Traversability.Check(Data("deny(void)"), Flat(surface), bbox: (-5, -5, 35, 10));
+        var denied = Walked(Data("deny(void)"), Flat(surface), bbox: (-5, -5, 35, 10));
         await Assert.That(denied.Connected).IsFalse();
         await Assert.That(denied.Isolated.Select(i => i.Kind)).Contains("wool");
     }
@@ -202,7 +207,7 @@ public sealed class TraversabilityTests
         for (var x = 0; x < 10; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
         for (var x = 21; x < 30; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
 
-        var res = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 35, 10));
+        var res = Walked(data, Flat(surface), bbox: (-5, -5, 35, 10));
         await Assert.That(res.Connected).IsFalse();
         await Assert.That(res.Isolated.Select(i => i.Kind)).Contains("wool");
     }
@@ -235,10 +240,10 @@ public sealed class TraversabilityTests
         var surface = new HashSet<(int, int)>();
         for (var x = 0; x < 34; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
 
-        var open = Traversability.Check(Data(withProtection: false), Flat(surface), bbox: (-5, -5, 40, 15));
+        var open = Walked(Data(withProtection: false), Flat(surface), bbox: (-5, -5, 40, 15));
         await Assert.That(open.Connected).IsTrue();
 
-        var barred = Traversability.Check(Data(withProtection: true), Flat(surface), bbox: (-5, -5, 40, 15));
+        var barred = Walked(Data(withProtection: true), Flat(surface), bbox: (-5, -5, 40, 15));
         await Assert.That(barred.Connected).IsFalse();
         var wool = barred.Isolated.Single();
         await Assert.That(wool.Kind).IsEqualTo("wool");
@@ -286,7 +291,7 @@ public sealed class TraversabilityTests
         var surface = new HashSet<(int, int)>();
         for (var x = 0; x < 34; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
 
-        var res = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 40, 15));
+        var res = Walked(data, Flat(surface), bbox: (-5, -5, 40, 15));
 
         await Assert.That(res.Connected).IsTrue();
         await Assert.That(res.Isolated).IsEmpty();
@@ -333,7 +338,7 @@ public sealed class TraversabilityTests
         var surface = new HashSet<(int, int)>();
         for (var x = 0; x < 37; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
 
-        var res = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 42, 15));
+        var res = Walked(data, Flat(surface), bbox: (-5, -5, 42, 15));
 
         await Assert.That(res.Connected).IsFalse();
         var wool = res.Isolated.Single();
@@ -365,7 +370,7 @@ public sealed class TraversabilityTests
         var surface = new HashSet<(int, int)>();
         for (var x = 0; x < 4; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
 
-        var res = Traversability.Check(data, Flat(surface), bbox: (-10, -10, 20, 20));
+        var res = Walked(data, Flat(surface), bbox: (-10, -10, 20, 20));
 
         await Assert.That(res.Connected).IsFalse();
         await Assert.That(res.Isolated.Select(i => i.Kind)).Contains("destroyable");
@@ -398,15 +403,15 @@ public sealed class TraversabilityTests
             new("chest", "red", 3, 1, 2, 4),
         };
 
-        var unmoved = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 35, 10));
+        var unmoved = Walked(data, Flat(surface), bbox: (-5, -5, 35, 10));
         await Assert.That(unmoved.Connected).IsFalse().Because("the stated location is off the world");
 
-        var moved = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 35, 10), woolSources: sources);
+        var moved = Walked(data, Flat(surface), bbox: (-5, -5, 35, 10), woolSources: sources);
         await Assert.That(moved.Connected).IsTrue();
         var wool = moved.Points.Single(point => point.Point.Kind == "wool").Point;
         await Assert.That((wool.X, wool.Z)).IsEqualTo((25, 2)).Because("the chest of the colour, not the loose block");
 
-        var blocksOnly = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 35, 10), woolSources: [sources[0]]);
+        var blocksOnly = Walked(data, Flat(surface), bbox: (-5, -5, 35, 10), woolSources: [sources[0]]);
         await Assert.That(blocksOnly.Connected).IsFalse().Because("loose wool blocks are decoration as often as a source");
     }
 
@@ -446,7 +451,7 @@ public sealed class TraversabilityTests
         for (var x = 20; x < 24; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
         for (var x = 24; x < 33; x++) for (var z = -6; z < 10; z++) surface.Add((x, z));
 
-        var res = Traversability.Check(data, Flat(surface), bbox: (-5, -10, 40, 15));
+        var res = Walked(data, Flat(surface), bbox: (-5, -10, 40, 15));
 
         await Assert.That(res.Connected).IsTrue();
         await Assert.That(res.Isolated).IsEmpty();
@@ -481,7 +486,7 @@ public sealed class TraversabilityTests
         var surface = new HashSet<(int, int)>();
         for (var x = 0; x < 30; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
 
-        var res = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 40, 15));
+        var res = Walked(data, Flat(surface), bbox: (-5, -5, 40, 15));
 
         await Assert.That(res.Connected).IsTrue();
     }
@@ -521,7 +526,7 @@ public sealed class TraversabilityTests
         var surface = new HashSet<(int, int)>();
         for (var x = 0; x < 30; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
 
-        var res = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 35, 10));
+        var res = Walked(data, Flat(surface), bbox: (-5, -5, 35, 10));
 
         await Assert.That(res.Connected).IsTrue();
         await Assert.That(res.Isolated).IsEmpty();

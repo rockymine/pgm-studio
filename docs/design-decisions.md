@@ -92,8 +92,9 @@ gate's point→component resolver (`LabelAt`) already searches a radius-3 neighb
 kind gates `Connected`/`Isolated`: an isolated destroyable refuses the export with the same `EX1` an
 isolated wool does. It is the one reader every playability derivation takes its places from, so the
 verdict, the coverage read and the kit budget cannot disagree about which journeys a match requires —
-and they take the **ground** from one reader too, `WorldWalk.Ground`, so they cannot disagree about
-where those journeys can go either.
+and they are handed the **ground** as one `WalkGround` — the built world's (`BuiltWalk`) on a board the
+studio builds, the scan's (`WorldWalk.Ground`) on a map that ships its own world — so they cannot disagree
+about where those journeys can go either.
 
 - *Where a goal comes from:* the document where it carries one, and the authored intent where it does not.
   A destroyable's region is the box the stamper built its blocks from, so a goal whose box is not cast yet

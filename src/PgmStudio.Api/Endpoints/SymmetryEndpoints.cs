@@ -19,7 +19,7 @@ using PgmStudio.Contracts;
 /// symmetry_json artifact, or computes it on demand from the islands_json artifact (excluding the
 /// Configure-excluded islands) and caches it with status "unconfirmed".
 /// </summary>
-public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, FeatureData feature) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -34,13 +34,14 @@ public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, MapArtifac
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
+        // The islands first: bringing the scan up to the drawing is what drops a detection taken off the old
+        // ones, so the cached row is read after it.
+        var islandsJson = await feature.IslandsAsync(map.Id, ct);
         var existing = await SymmetryStore.LoadAsync(db, map.Id, ct);
         if (existing is not null) { await Send.OkAsync(SymmetryStore.ToJson(existing), ct); return; }
-
-        var islandsJson = await artifacts.LoadAsync(map.Id, ArtifactKind.IslandsJson, ct);
         if (islandsJson is null) { await Refusals.NotFoundAsync(HttpContext, "island decomposition", ct); return; }
 
-        var exclude = await ScanConfig.ExcludedIslandsAsync(artifacts, map.Id, ct);
+        var exclude = await feature.ExcludedIslandsAsync(map.Id, ct);
         var islands = SymmetrySupport.ParseIslands(islandsJson, exclude);
         var result = SymmetryDetector.Detect(islands);
         var row = SymmetryStore.FromDetection(map.Id, result, "unconfirmed");

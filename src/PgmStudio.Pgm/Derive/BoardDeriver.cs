@@ -11,6 +11,25 @@ namespace PgmStudio.Pgm.Derive;
 /// through <see cref="Cells"/>.</summary>
 public static class BoardDeriver
 {
+    /// <summary>The ground the plan's fanned pieces cover, in world blocks: the board as the plan states it,
+    /// before a sketch edit moves a coast. Null for a plan the deriver cannot read, which the plan's own
+    /// structural findings already name.</summary>
+    public static HashSet<(int X, int Z)>? GroundBlocks(PlanModel plan)
+    {
+        BoardStructure board;
+        try { board = Derive(plan); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException
+                                       or NullReferenceException or IndexOutOfRangeException or KeyNotFoundException)
+        { return null; }
+
+        var blocks = new HashSet<(int X, int Z)>();
+        foreach (var (cx, cz) in board.Filled.Keys)
+            for (var dx = 0; dx < board.Cell; dx++)
+                for (var dz = 0; dz < board.Cell; dz++)
+                    blocks.Add((cx * board.Cell + dx, cz * board.Cell + dz));
+        return blocks;
+    }
+
     public static BoardStructure Derive(PlanModel plan)
     {
         int order = Symmetry.Order(plan.Globals.Symmetry);

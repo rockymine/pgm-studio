@@ -252,6 +252,43 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   box, outside the zones a map protects (recognised by the `enter` rule that protects them, not by name).
   Preflight's own buildability check now asks the y=0 read directly rather than inferring void from a zone.
   (CV21)
+- **A coast pulled back from a build zone is named (`TC10`, `EZ2`).** `BuildZoneGap` walks the four axes from
+  every column with a block at y=0, up to ten out, and raises the void nobody may build across on the way to a
+  buildable column — only where the plan put ground, so a gap the composed board leaves on purpose stays quiet.
+  A complaint on `GET …/editability` and its own pre-flight check, *Build zone reach*, each gap with its box and
+  width, and the fix it names is a build zone over the gap, never undoing the edit. Evidence: Gypsum Reach's
+  frontline coast edits left x −24…−17, z −19…46 and its image 294 and 295 columns of it, up to 8 wide. Of 32
+  composed boards over the four bands and both symmetries none complains, where the same read without the plan
+  raises 12; on a twin frontline, pulling one leg back four blocks names that leg and its image and nothing else.
+  `docs/tools/configure.md`. (`TC10`)
+- **The board's ground follows the drawing after Finish (`TS122`).** The scan Finish writes records the layout
+  revision it came from, and `FeatureData` rasterizes it again before any read where the layout has moved on —
+  a vertex moved, a coast bent, a shape redrawn. Every read of a finished sketch's ground used to answer for the
+  board Finish saw: on Gypsum Reach the editability, the pre-flight and the export still read the field's
+  rectangle out to x −16 after `editShapes` pulled the coast in to −24. `docs/tools/sketch.md`. (`TS122`)
+- **The driver finishes the board it edited (`RP86`).** `pgm-studio-mapgen`'s `drive.py` posts
+  `POST …/sketch/finish` after its last `editShapes` or `bendShapes`, so the Finish judgement it prints is of
+  the outline the run left rather than the compiled one. `pgm-studio-mapgen/tools/README.md`. (`RP86`)
+- **The findings list judges the board as drawn (`TN24`).** `GET …/findings` asks what Finish judges through
+  the one method Finish refuses on, `SketchFinish.Judge` — the board's own gate, a board carrying no finish,
+  and the plan's straits re-read off the ground (`CT12`) — and `EZ2` off the scan brought up to the layout, so
+  an edit after Finish is heard without finishing again; `EZ1`, judged over the built world, is named under
+  `unasked`. The edit pass the editability read, the pre-flight and the findings list take is one,
+  `FeatureData.ZonesAsync`, floor marks included. `docs/tools/plan.md`. (`TN24`)
+- **Every read of the scan reads the same one (`TS123`).** `FeatureData` is the one reader of a finished
+  sketch's scan — segment rows, surface layer, islands, configuration, bounds — and brings it up to the stored
+  layout once a request before answering, so `segments`, `column-floor`, `block-seat`, `top-surface`,
+  `islands`, `symmetry`, `regions/tree` and Configure answer for the board as drawn. A scan written again
+  carries the author's configuration and drops an unconfirmed symmetry. `FeatureDataTests` fails on any Api
+  file that loads the scan around it; before, seven reads did. `docs/tools/sketch.md`. (`TS123`)
+- **Every connectivity read walks the world the export builds (`TC11`).** Traversability, kit reach, coverage,
+  dead ground, the pre-flight and `EX1` are handed one `WalkGround`: on a board the studio builds from its
+  layout, `BuiltWalk` over that world — houses and trunks solid, lava a wall except where the document lets a
+  block be placed over ground at y=0 — bridged where `Editability` grants building, the same ground `/walk`
+  measures; a map that ships its own world walks its scan. On Gypsum Reach (−44, −10) holds lava at y12–13
+  and (−85, −10) the house's floors at y20 and y26, where the terrain raster stood dry open ground; all 32
+  composed boards and both authored ones still connect and export. The four reads are queued like a render.
+  `docs/tools/configure.md`. (`TC11`)
 - **An author is an account or a pseudonym, and the editor takes both — with nothing fetched to draw one
   (C45, TC2).** PGM reads a person as a `uuid` it resolves to a player or as the `<author>` element's own
   text, and either alone is a whole author. `PgmStudio.Vocabulary/AuthorNames.cs` states the two questions
@@ -7711,6 +7748,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   The guard sits in `WriteSupport.RunEditAsync`, so all 34 edit routes inherit it; the one caller that passes
   `guarded: false` is the intent write's projection, whose `If-Match` names the intent and whose map revision
   is a different number.
+- **A revision reads through the proxy in front of the studio (RP87).** Caddy encodes a compressed
+  response into its tag — `"44"` reaches a browser as `"44-gzip"` — and a browser states it back verbatim, so
+  every guarded write from a tab on pgmstudio.de was refused as stale on its first save: the sketch tool said
+  *saved from somewhere else*, kept drawing locally and blocked Finish. `Revisions.Expected` reads an
+  `If-Match` up to the proxy's suffix, weak prefix and quotes aside.
 - **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
   and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
   five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a

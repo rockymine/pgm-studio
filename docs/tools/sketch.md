@@ -22,6 +22,17 @@ The tool saves continuously — every change schedules a debounced write 800 ms 
 **Finish**, which flushes the layout, rasterizes it server-side into world geometry, and moves the map to
 `stage=configure`. A draft that was never drawn on is discarded on the way out.
 
+**The geometry follows the drawing after Finish, too.** The scan Finish writes records the layout revision it
+was rasterized from, so a layout written later (a vertex moved, a coast bent, a shape redrawn) is rasterized
+again the first time anything reads the scan (`SketchFinish.RefreshAsync`). Every read of it goes through one
+accessor, `FeatureData` — the segment rows behind `segments`, `column-floor` and `block-seat`, the surface
+layer behind `top-surface`, the islands behind `islands` and `symmetry`, the configuration and the bounds
+behind `regions/tree` and Configure — and an Api test fails on a route that loads the scan around it. So
+every route answers for the board as it is drawn now, never for the one Finish saw. A scan written again
+keeps what the author set on the configuration (the islands excluded), and drops a symmetry detected off the
+old islands unless the author confirmed it. The connectivity reads walk the built world instead
+(`docs/tools/configure.md`), and `scan-summary` counts wool, chests and resources a sketch scan never writes.
+
 **A tab writes only what was drawn in it, and only over the board it read.** It holds the `ETag` the layout
 was read at and states it as `If-Match` on every save, so where the stored board has moved on since — an agent
 driving the API, a second tab — the save is refused `RQ5` at 409 rather than writing the older board back over

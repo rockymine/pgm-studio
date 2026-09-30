@@ -16,7 +16,7 @@ using Dict = Dictionary<string, object?>;
 using PgmStudio.Minecraft.Palette;
 
 /// <summary>GET /api/map/{slug}/regions/tree — category-grouped nested region tree (canvas render input).</summary>
-public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts, FeatureData feature) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -35,7 +35,7 @@ public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, Ma
         var regions = doc.GetValueOrDefault("regions") as Dict ?? new();
         var cats = RegionCategorizer.Categorize(doc);
         var facets = RegionCategorizer.DeriveFacets(doc);
-        var bbox = await MapBounds.ResolveAsync(artifacts, map.Id, ct);
+        var bbox = await feature.MapBboxAsync(map.Id, ct);
 
         // editor drafts (E10), pruned to regions that still exist (entity-replace keeps keys stable).
         var allDrafts = await RegionDrafts.LoadAsync(artifacts, map.Id, ct);
@@ -50,7 +50,7 @@ public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, Ma
 }
 
 /// <summary>GET /api/map/{slug}/islands — the detected island polygons (from the islands_json artifact).</summary>
-public sealed class IslandsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class IslandsEndpoint(MapRepository repo, FeatureData feature) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -63,7 +63,7 @@ public sealed class IslandsEndpoint(MapRepository repo, MapArtifactStore artifac
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        var data = await artifacts.LoadAsync(map.Id, ArtifactKind.IslandsJson, ct);
+        var data = await feature.IslandsAsync(map.Id, ct);
         if (data is null) { await Refusals.NotFoundAsync(HttpContext, "island decomposition", ct); return; }
 
         using var jd = JsonDocument.Parse(data);

@@ -25,7 +25,7 @@ public sealed class WorldWalkTests
         await Assert.That(closed.Ground.Any(place => place.X is >= 3 and <= 5)).IsFalse();
         await Assert.That(Walk.Between(closed.Stand((0, 0))!.Value, closed.Stand((8, 0))!.Value, closed)).IsNull();
 
-        var zoned = WorldWalk.OfBuilt(ground, crown, [(3, 0, 5, 0)]);
+        var zoned = WorldWalk.OfBuilt(ground, crown, [(3, 0), (4, 0), (5, 0)]);
         var path = Walk.Between(zoned.Stand((0, 0))!.Value, zoned.Stand((8, 0))!.Value, zoned);
         await Assert.That(path).IsNotNull();
         await Assert.That(path!.Cost.Blocks).IsEqualTo(3);

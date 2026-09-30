@@ -12,7 +12,7 @@ using Dict = Dictionary<string, object?>;
 /// the placeable blocks their spawn kit grants?
 ///
 /// <para>It asks <see cref="Walk"/> under <see cref="WalkAim.Reach"/> — the aim that minimises blocks placed
-/// rather than distance — over the board's own <see cref="WorldWalk.Ground"/>. That answer is the minimum
+/// rather than distance — over the ground every connectivity read takes. That answer is the minimum
 /// blocks needed to cross, and comparing it against the kit's placeable-block count is the per-life
 /// crossing-feasibility signal. What it adds over the count is the rest of what the walk knows: how far round
 /// the cheapest crossing goes, and what it falls down on the way.</para>
@@ -61,11 +61,10 @@ public static class KitReach
     /// <param name="Teams">One reading per team.</param>
     public sealed record Result(bool HaveLayers, string Severity, string Message, List<TeamReach> Teams);
 
-    /// <summary><b>declared</b> is goals the document cannot carry — see <see cref="NavPoints.Of"/>.</summary>
-    public static Result Check(Dict data, SegmentIndex? segments, int margin = 16,
-        IReadOnlyList<NavPoint>? declared = null)
+    /// <summary>What each team's kit reaches over <paramref name="shared"/>, the ground every connectivity read
+    /// takes. <b>declared</b> is goals the document cannot carry — see <see cref="NavPoints.Of"/>.</summary>
+    public static Result Check(Dict data, WalkGround shared, IReadOnlyList<NavPoint>? declared = null)
     {
-        var shared = WorldWalk.Ground(data, segments, margin);
         var bounds = ((double)shared.Bounds.X, (double)shared.Bounds.Z,
                       (double)shared.Bounds.MaxX, (double)shared.Bounds.MaxZ);
         var haveLayers = shared.Ground.Count > 0;

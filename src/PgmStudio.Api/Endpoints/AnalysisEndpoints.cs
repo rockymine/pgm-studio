@@ -32,7 +32,8 @@ public sealed class RegionsEndpoint(MapRepository repo, MapReader reader) : Endp
 }
 
 /// <summary>GET /api/map/{slug}/editability — which columns a player may edit and what makes each one
-/// editable, plus what the pass has to say about the result (<c>EZ1</c>).</summary>
+/// editable, plus what the pass has to say about the result (<c>EZ1</c>, <c>EZ2</c>).</summary>
+[Queued]
 public sealed class EditabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<EditabilityDto>
 {
     public override void Configure() { Get("/map/{slug}/editability"); Description(b => b.Refuses(404)); }
@@ -41,19 +42,15 @@ public sealed class EditabilityEndpoint(MapRepository repo, MapReader reader, Fe
     {
         if (await repo.WithDocOfRouteAsync(reader, HttpContext, ct) is not ({ } map, { } doc)) return;
 
-        var segments = await feature.SegmentsAsync(map.Id, ct);
-        // Clip against the canonical map box (the surface-layer extent saved at scan), not a per-pass
-        // region-AABB-plus-margin; falls back to that margin box when there's no scan.
-        var box = (await feature.MapBboxAsync(map.Id, ct))?.bounds;
-        var grid = box is { } b ? ((int)b.Item1, (int)b.Item2, (int)b.Item3, (int)b.Item4) : ((int, int, int, int)?)null;
-        var zones = Editability.Compute(doc, segments?.Y0Columns(), grid, floorMarks: segments?.FloorMarks);
+        var (zones, segments) = await feature.ZonesAsync(map.Id, doc, ct);
 
         // The dead-ground read needs somewhere to stand, so it is asked only of a scanned map — the walk over
         // an unscanned one has no ground in it and would report the whole board as fine.
-        var findings = segments is null
+        IReadOnlyList<Finding> findings = segments is null
             ? []
-            : DeadGround.Check(zones, WorldWalk.Ground(doc, segments,
-                bbox: (zones.MinX, zones.MinZ, zones.MaxX, zones.MaxZ)), doc);
+            : [.. DeadGround.Check(zones,
+                  await feature.WalkGroundAsync(map.Id, doc, (zones.MinX, zones.MinZ, zones.MaxX, zones.MaxZ), ct), doc),
+               .. BuildZoneGap.Check(zones, await feature.PlannedGroundAsync(map.Id, ct))];
 
         var rows = Enumerable.Range(0, zones.Height)
             .Select(iz => string.Concat(Enumerable.Range(0, zones.Width).Select(ix => (char)('0' + zones.Zone[iz * zones.Width + ix])))).ToList();
@@ -64,6 +61,7 @@ public sealed class EditabilityEndpoint(MapRepository repo, MapReader reader, Fe
 }
 
 /// <summary>GET /api/map/{slug}/traversability — spawn↔wool connectivity.</summary>
+[Queued]
 public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts) : EndpointWithoutRequest<TraversabilityDto>
 {
     public override void Configure() { Get("/map/{slug}/traversability"); Description(b => b.Refuses(404)); }
@@ -72,8 +70,8 @@ public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader,
     {
         if (await repo.WithGoalsOfRouteAsync(reader, artifacts, HttpContext, ct) is not ({ } map, { } doc, { } goals)) return;
 
-        var segs = await feature.SegmentsAsync(map.Id, ct);
-        var res = Traversability.Check(doc, segs, declared: goals, woolSources: await feature.WoolSourcesAsync(map.Id, doc, ct));
+        var res = Traversability.Check(doc, await feature.WalkGroundAsync(map.Id, doc, ct: ct), goals,
+            await feature.WoolSourcesAsync(map.Id, doc, ct));
         await Send.OkAsync(new TraversabilityDto(
             res.Connected, res.ComponentCount, res.Severity, res.Message, res.HaveLayers,
             res.Points.Select(p => new NavPointDto(p.Point.Kind, p.Point.Name, p.Point.X, p.Point.Z, p.Component)).ToList(),
@@ -97,12 +95,11 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
     {
         if (await repo.WithGoalsOfRouteAsync(reader, artifacts, HttpContext, ct) is not ({ } map, { } doc, { } goals)) return;
 
-        var segs = await feature.SegmentsAsync(map.Id, ct);
         var layoutBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         var decor = layoutBytes is null
             ? []
             : DressingScope.DecorCells(System.Text.Encoding.UTF8.GetString(layoutBytes));
-        var res = GroundCoverage.Read(doc, segs, decor, declared: goals);
+        var res = GroundCoverage.Read(doc, await feature.WalkGroundAsync(map.Id, doc, ct: ct), decor, goals);
 
         // One picture, so the view name has nothing to select and is not read — this is the one PNG route
         // with no view to get wrong.
@@ -130,6 +127,7 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
 
 /// <summary>GET /api/map/{slug}/kit-reach — can a fresh spawn bridge to each wool with only the
 /// placeable blocks its spawn kit grants? (budget-aware traversability).</summary>
+[Queued]
 public sealed class KitReachEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts) : EndpointWithoutRequest<KitReach.Result>
 {
     public override void Configure() { Get("/map/{slug}/kit-reach"); Description(b => b.Refuses(404)); }
@@ -138,8 +136,7 @@ public sealed class KitReachEndpoint(MapRepository repo, MapReader reader, Featu
     {
         if (await repo.WithGoalsOfRouteAsync(reader, artifacts, HttpContext, ct) is not ({ } map, { } doc, { } goals)) return;
 
-        var segs = await feature.SegmentsAsync(map.Id, ct);
-        var res = KitReach.Check(doc, segs, declared: goals);
+        var res = KitReach.Check(doc, await feature.WalkGroundAsync(map.Id, doc, ct: ct), goals);
         await Send.OkAsync(res, ct);
     }
 }

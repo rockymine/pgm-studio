@@ -5,6 +5,7 @@ using PgmStudio.Data.Schema;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
+using PgmStudio.Analysis.Playability;
 
 namespace PgmStudio.Api.Services;
 
@@ -32,12 +33,12 @@ namespace PgmStudio.Api.Services;
 public static class MapFindings
 {
     public static async Task<MapFindingsDto> OfAsync(
-        MapArtifactStore artifacts, MapRow map, CancellationToken ct)
+        MapArtifactStore artifacts, FeatureData feature, MapReader reader, MapRow map, CancellationToken ct)
     {
         var findings = new List<Finding>();
 
-        if (await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct) is { Length: > 0 } planBytes
-            && PlanModel.Parse(Encoding.UTF8.GetString(planBytes)) is { } plan)
+        var planBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
+        if (planBytes is { Length: > 0 } && PlanModel.Parse(Encoding.UTF8.GetString(planBytes)) is { } plan)
         {
             // Both halves, because they answer different questions and a driver wants both: whether what the
             // plan says is coherent, and whether it yet says the things a map cannot exist without.
@@ -49,24 +50,37 @@ public static class MapFindings
         {
             var layoutJson = Encoding.UTF8.GetString(layoutBytes);
             findings.AddRange(SketchMaterialGate.Check(layoutJson));
-            findings.AddRange(SketchLayoutCheck.Check(layoutJson));
+            findings.AddRange(SketchFinish.Judge(layoutJson, planBytes));
+        }
+
+        // A coast pulled back from a build zone, asked off the scan — which is brought up to the layout first,
+        // so an edit after Finish is judged as drawn.
+        if (await artifacts.HasAsync(map.Id, ArtifactKind.SurfaceParquet, ct))
+        {
+            var (zones, segments) = await feature.ZonesAsync(map.Id, await reader.ReadDocAsync(map, ct), ct);
+            if (segments is not null)
+                findings.AddRange(BuildZoneGap.Check(zones, await feature.PlannedGroundAsync(map.Id, ct)));
         }
 
         return new MapFindingsDto(map.Stage, findings, Unasked);
     }
 
-    /// <summary>The gates a read cannot reach, each with what it needs and where it is asked. All of them
-    /// judge the world the export builds, so all of them are answered by asking for it.</summary>
+    /// <summary>The gates a read cannot reach, each with what it needs and where it is asked. Each judges the
+    /// world the studio builds, so each is answered by a route that builds it.</summary>
     private static readonly UnaskedGate[] Unasked =
     [
         new("traversability",
             "EX1 and EX2 judge whether a player can walk between everything a match needs, which is a walk "
-            + "over the rasterized world rather than over any stored document",
+            + "over the built world rather than over any stored document",
             "GET /api/map/{slug}/export"),
         new("objective placement",
             "OB17 and OB20 judge each objective against the ground under it, which does not exist until the "
             + "layout is rasterized",
             "GET /api/map/{slug}/export"),
+        new("dead ground",
+            "EZ1 names standing ground nobody may edit, and what stands is the built world's — its houses and "
+            + "trees are ground a player reaches",
+            "GET /api/map/{slug}/editability"),
         new("dressing",
             "what the dressing pass could not seat is decided while it seats things, and is answered as "
             + "declines on the build that ran",

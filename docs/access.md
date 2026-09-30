@@ -224,7 +224,7 @@ not edit it is refused 403 before anything is written. A replaced map keeps its 
 
 **A request that builds a world waits its turn.** A world export, `map.xml`, every render and every read
 measured off the built world — `reach`, `incline`, `slopes`, `column`, `walk`, `transect`, `stroke`,
-`themes/census`, `views`, `coverage` — the posts that build one (`sketch/columns`, `sketch/dressing`,
+`themes/census`, `views`, `coverage`, `traversability`, `kit-reach`, `editability`, `preflight` — the posts that build one (`sketch/columns`, `sketch/dressing`,
 `sketch/seats`, `plan/columns`) are marked `[Queued]`. Each costs seconds of CPU and a share of memory on a
 machine every caller shares: a cold export takes 3–12 s on a two-core server. `BuildQueue` holds such a request until the studio has
 a turn free and the caller has one of their own, and gives both back when the response is written. Every other

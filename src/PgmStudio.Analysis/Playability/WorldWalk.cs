@@ -17,7 +17,8 @@ using Dict = Dictionary<string, object?>;
 /// <para>Two ways in, because a built world reaches the studio two ways and neither can pretend to be the
 /// other. <see cref="Ground"/> reads a <b>scanned</b> map: segment rows and a map document, which is what an
 /// imported world is. <see cref="OfBuilt"/> reads a world the studio just <b>built</b> from its own layout,
-/// where the columns are in hand and no scan exists.</para>
+/// where the columns are in hand and no scan exists. Both bridge by the one pass over the map document,
+/// <see cref="Editability"/>, so the two differ in what stands and never in where a block may be laid.</para>
 ///
 /// <para><b>Ground is per team where the map bars a team from any of it.</b> <see cref="For"/> subtracts the
 /// cells an <c>enter</c> rule denies a team (<see cref="EntryDenials"/>) from what it may stand on and what it
@@ -147,13 +148,14 @@ public static class WorldWalk
     /// <param name="props">Every span a prop stamped — a tree, a boulder. Solid, so it roofs and blocks the
     /// ground it stands in, and never a place to stand: a prop's volume is out of the walk, and a crown hanging
     /// over the void leaves that column void.</param>
-    /// <param name="buildAreas">The intent's build zones, as <c>(minX, minZ, maxX, maxZ)</c> inclusive — void
-    /// inside one is a route the moment a player may place a block in it.</param>
+    /// <param name="granted">Every column the map document grants building across
+    /// (<see cref="Editability.Result.BridgeableCells"/>) — one with nowhere to stand is a route the moment a
+    /// player may place a block in it.</param>
     /// <param name="water">Cells a player swims, or null on a board with none.</param>
     public static WalkGround OfBuilt(
         IEnumerable<(int X, int Z, int YFloor, int YTop)> columns,
         IEnumerable<(int X, int Z, int YFloor, int YTop)> props,
-        IEnumerable<(int MinX, int MinZ, int MaxX, int MaxZ)> buildAreas,
+        IEnumerable<(int X, int Z)> granted,
         IReadOnlySet<(int X, int Z)>? water = null)
     {
         var solid = WalkGround.OfSpans(columns, props);
@@ -166,11 +168,7 @@ public static class WorldWalk
             if (!floor.TryGetValue(place.Cell, out var lowest) || place.Y < lowest) floor[place.Cell] = place.Y;
         }
 
-        var open = new HashSet<(int X, int Z)>();
-        foreach (var (minX, minZ, maxX, maxZ) in buildAreas)
-            for (var x = minX; x <= maxX; x++)
-                for (var z = minZ; z <= maxZ; z++)
-                    if (!floor.ContainsKey((x, z))) open.Add((x, z));
+        var open = new HashSet<(int X, int Z)>(granted.Where(cell => !floor.ContainsKey(cell)));
 
         Level(open, floor);
         var bridgeable = new HashSet<WalkPlace>(

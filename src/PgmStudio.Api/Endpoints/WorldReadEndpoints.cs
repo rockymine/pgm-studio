@@ -87,7 +87,7 @@ internal static class WorldReads
     public static (IReadOnlyList<AnvilRegion.Chunk> Chunks, HashSet<(int X, int Z)>? Bridgeable) Reach(BuiltRead read)
     {
         List<AnvilRegion.Chunk> chunks = [.. AnvilRegion.FromWorld(read.Built.World)];
-        return (chunks, read.Doc is { } doc ? BridgeableColumns.Of(chunks, doc) : null);
+        return (chunks, read.Doc is { } doc ? BridgeableColumns.Of(read.Built.World, doc) : null);
     }
 
     /// <summary>The symmetry the world was built to.
@@ -761,26 +761,9 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
 /// <summary>How a walk read finds its ground and its two ends, shared by the numbers and the picture.</summary>
 internal static class WalkReads
 {
-    /// <summary>The built board as ground a walk runs over: the world's own solid runs for what can be
-    /// stood on and how high it is, the intent's build zones for what a block can be laid across, and the
-    /// dressing's own water for what is swum. Nothing here is scanned — the world was built for this request.
-    ///
-    /// <para>The runs come off the <b>world</b> rather than off <c>Built.Columns</c>, which is the
-    /// rasterizer's read of the terrain a build stood on — one span per cell, with no house, tree or
-    /// structure in it. A walk over that set crosses a building as though it were not there.</para>
-    ///
-    /// <para>A tree's and a boulder's blocks are kept apart from the rest (<c>WorldColumns.ForWalk</c>): solid,
-    /// so a trunk is not walked through, and never a place to stand, so a crown over the void is void to the
-    /// walk as it is to <c>column</c>, <c>transect</c> and the census.</para></summary>
-    public static WalkGround Ground(BuiltRead read, string layoutJson)
-    {
-        var areas = (read.Built.ResolvedIntent.Build?.Areas ?? [])
-            .Select(a => ((int)Math.Floor(a.MinX), (int)Math.Floor(a.MinZ),
-                          (int)Math.Ceiling(a.MaxX), (int)Math.Ceiling(a.MaxZ)));
-        var (ground, props) = PgmStudio.Minecraft.Anvil.WorldColumns.ForWalk(
-            read.Built.World, read.Built.Provenance, read.Built.Columns ?? []);
-        return WorldWalk.OfBuilt(ground, props, areas, Water(layoutJson));
-    }
+    /// <summary>The built board as ground a walk runs over (<see cref="BuiltWalk"/>), bridged where the
+    /// projected document grants building.</summary>
+    public static WalkGround Ground(BuiltRead read, string layoutJson) => BuiltWalk.Ground(read.Built, read.Doc, layoutJson);
 
     /// <summary>The team a walk is measured for, checked against the ones the map spawns so a misspelling
     /// answers as itself rather than silently as everybody. Null where none was asked for.</summary>
@@ -790,23 +773,6 @@ internal static class WalkReads
                 team => string.Equals(team, asked, StringComparison.OrdinalIgnoreCase)) is { } known
             ? known
             : null;
-
-    /// <summary>Where the board's water is, carved by the same bed the decorator lays it with. A dressing
-    /// that states none answers null, which is what a plan and an undressed board both are. A bed of lava is not
-    /// a swim, and the walk reads it off the world instead (<c>WorldColumns.ForWalk</c>).</summary>
-    private static HashSet<(int X, int Z)>? Water(string layoutJson)
-    {
-        var dressing = SketchLayout.Parse(layoutJson)?.Dressing;
-        if (dressing is not { } element) return null;
-
-        var cells = new HashSet<(int X, int Z)>();
-        foreach (var prop in DressingJson.Deserialize(element.ToString()).Props.OfType<FluidProp>()
-                     .Where(prop => prop.Fluid == Fluid.Water))
-            foreach (var cell in FluidBed.Cells(prop.Points, prop.Radius, prop.Depth, prop.Form, prop.Edge,
-                                                unchecked((uint)prop.Seed)))
-                cells.Add((cell.X, cell.Z));
-        return cells.Count == 0 ? null : cells;
-    }
 
     /// <summary>A stated <c>x,z</c> or <c>x,z,y</c>, snapped onto ground a walk can reach. A marker's own
     /// coordinates are a block in a room rather than a cell of terrain, so they land inside a wall as often

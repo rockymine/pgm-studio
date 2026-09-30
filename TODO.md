@@ -14,10 +14,7 @@ it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room bui
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
 ## Nothing is on the board
-
-The walk drained, and so did what a building may stand on — `DR-PASS` is the author's ruling, the passage is
-owed round a group of buildings, and `sketch/seats` answers it forwards (`FEATURES.md`).
-
-`docs/backlog-strategy.md` names **the layer word** as the programme to pull next: `B264`, `WE28` and `TS64`,
-in `BACKLOG.md`, `B263` having shipped. `B264` and `TS64` want a surface first, and `WE28` is the one that is
-settled and backend only.
+The ground drained: every connectivity read walks the built world, every scan read goes through one refresh,
+and the findings list judges the board as drawn (`FEATURES.md`). `docs/backlog-strategy.md` names **the layer
+word** as the programme to pull next: `B264`, `WE28` and `TS64`, in `BACKLOG.md`. `B264` and `TS64` want a
+surface first, and `WE28` is the one that is settled and backend only.

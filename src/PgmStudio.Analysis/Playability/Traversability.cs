@@ -53,22 +53,25 @@ public static class Traversability
     public sealed record Result(bool Connected, int ComponentCount, string Severity, string Message,
         bool HaveLayers, List<Landing> Points, List<IsolatedPoint> Isolated);
 
-    /// <summary><b>declared</b> is goals the document cannot carry — see <see cref="NavPoints.Of"/>. Absent, the
-    /// verdict is over what the document states, which on a map whose goals are not placed yet is its spawns and
-    /// nothing else. <b>woolSources</b> is where the scanned world holds each colour of wool; a wool whose stated
-    /// location lies outside the world is judged where its source is instead (<see cref="WoolSeat"/>).</summary>
-    public static Result Check(Dict data, SegmentIndex? segments,
-        (int, int, int, int)? bbox = null, int margin = 16, IReadOnlyList<NavPoint>? declared = null,
+    /// <summary>The verdict over <paramref name="ground"/> — <see cref="WorldWalk.Ground"/> on a scanned map,
+    /// the built world's on a board the studio builds. <b>declared</b> is goals the document cannot carry — see
+    /// <see cref="NavPoints.Of"/>. Absent, the verdict is over what the document states, which on a map whose
+    /// goals are not placed yet is its spawns and nothing else. <b>woolSources</b> is where the scanned world
+    /// holds each colour of wool; a wool whose stated location lies outside the ground is judged where its
+    /// source is instead (<see cref="WoolSeat"/>).</summary>
+    public static Result Check(Dict data, WalkGround ground, IReadOnlyList<NavPoint>? declared = null,
         IReadOnlyList<WoolSources.Source>? woolSources = null)
     {
-        var ground = WorldWalk.Ground(data, segments, margin, bbox);
         var box = ground.Bounds;
         var haveLayers = ground.Ground.Count > 0;
 
         var components = Walk.Components(ground);
         var owned = NavPoints.Of(data, (box.X, box.Z, box.MaxX, box.MaxZ), declared);
-        if (segments is not null && woolSources is { Count: > 0 })
-            owned = [.. owned.Select(point => WoolSeat(point, segments, woolSources))];
+        if (haveLayers && woolSources is { Count: > 0 })
+        {
+            var extent = Cells.BoundingBox(ground.Ground.Select(place => place.Cell).ToHashSet());
+            owned = [.. owned.Select(point => WoolSeat(point, extent, woolSources))];
+        }
         var placed = owned.Select(point => new Landing(point, ComponentOf(point, ground, components))).ToList();
 
         // Every goal gates the export refusal — destroyables, cores and control points included (the author's
@@ -132,11 +135,10 @@ public static class Traversability
     /// where it does so is where the wool is: its PGM spawner, or failing one a spawner block or a chest of the
     /// colour. Loose wool blocks are no evidence — they spread over a map as decoration — so a wool with none of
     /// those stays where it is stated.</summary>
-    private static NavPoint WoolSeat(NavPoint point, SegmentIndex segments, IReadOnlyList<WoolSources.Source> sources)
+    private static NavPoint WoolSeat(NavPoint point, CellRect extent, IReadOnlyList<WoolSources.Source> sources)
     {
         if (point.Kind != "wool") return point;
-        var (minX, minZ, maxX, maxZ) = segments.Extent();
-        if (point.X >= minX && point.X <= maxX && point.Z >= minZ && point.Z <= maxZ) return point;
+        if (point.X >= extent.X && point.X < extent.MaxX && point.Z >= extent.Z && point.Z < extent.MaxZ) return point;
 
         var colour = BlockColors.Normalize(point.Name);
         var ofColour = sources.Where(source => source.Color == colour).ToList();

@@ -104,7 +104,7 @@ public static class CorpusGoldens
                 build = DescribeEditability(Editability.Compute(doc, index.Y0Columns(), floorMarks: index.FloorMarks));
                 var woolSources = await FeatureData.WoolSourceRows(dir!);
                 woolSources.AddRange(WoolSources.PgmSpawnerSources(doc));
-                trav = DescribeTraversability(Traversability.Check(doc, index, woolSources: woolSources));
+                trav = DescribeTraversability(Traversability.Check(doc, WorldWalk.Ground(doc, index), woolSources: woolSources));
             }
             if (dir is not null && Directory.Exists(dir)) wool = await DescribeWool(doc, dir);
 
