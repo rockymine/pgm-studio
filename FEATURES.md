@@ -252,6 +252,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   box, outside the zones a map protects (recognised by the `enter` rule that protects them, not by name).
   Preflight's own buildability check now asks the y=0 read directly rather than inferring void from a zone.
   (CV21)
+- **A coast pulled back from a build zone is named (`TC10`, `EZ2`).** `BuildZoneGap` walks the four axes from
+  every column with a block at y=0, up to ten out, and raises the void nobody may build across on the way to a
+  buildable column — only where the plan put ground, so a gap the composed board leaves on purpose stays quiet.
+  A complaint on `GET …/editability` and its own pre-flight check, *Build zone reach*, each gap with its box and
+  width, and the fix it names is a build zone over the gap, never undoing the edit. Evidence: Gypsum Reach's
+  frontline coast edits left x −24…−17, z −19…46 and its image 294 and 295 columns of it, up to 8 wide. Of 32
+  composed boards over the four bands and both symmetries none complains, where the same read without the plan
+  raises 12; on a twin frontline, pulling one leg back four blocks names that leg and its image and nothing else.
+  `docs/tools/configure.md`. (`TC10`)
+- **The board's ground follows the drawing after Finish (`TS122`).** The scan Finish writes records the layout
+  revision it came from, and `FeatureData` rasterizes it again before any read where the layout has moved on —
+  a vertex moved, a coast bent, a shape redrawn. Every read of a finished sketch's ground used to answer for the
+  board Finish saw: on Gypsum Reach the editability, the pre-flight and the export still read the field's
+  rectangle out to x −16 after `editShapes` pulled the coast in to −24. `docs/tools/sketch.md`. (`TS122`)
 - **An author is an account or a pseudonym, and the editor takes both — with nothing fetched to draw one
   (C45, TC2).** PGM reads a person as a `uuid` it resolves to a player or as the `<author>` element's own
   text, and either alone is a whole author. `PgmStudio.Vocabulary/AuthorNames.cs` states the two questions

@@ -10,8 +10,10 @@ namespace PgmStudio.Api.Services;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>Loads a map's relational feature rows into the analysis layer's input shapes.</summary>
-public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts)
+/// <summary>Loads a map's relational feature rows into the analysis layer's input shapes. A finished sketch's
+/// scan is brought up to the stored layout first (<see cref="SketchFinish.RefreshAsync"/>), so a read answers
+/// for the board as it is drawn now.</summary>
+public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts, PgmStudio.Data.Features.WorldFeatureWriter writer)
 {
     /// <summary>True when the map was world-scanned (has a cached raw layer artifact).</summary>
     public Task<bool> HasScanAsync(long mapId, CancellationToken ct = default)
@@ -19,11 +21,15 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts)
 
     /// <summary>The canonical map bounding box (surface-layer extent saved at scan, islands-AABB fallback) —
     /// the finite clip box for unbounded <c>half</c>/<c>negative</c> regions. Null when neither is available.</summary>
-    public Task<((double, double, double, double) bounds, Dict dict)?> MapBboxAsync(long mapId, CancellationToken ct = default)
-        => MapBounds.ResolveAsync(artifacts, mapId, ct);
+    public async Task<((double, double, double, double) bounds, Dict dict)?> MapBboxAsync(long mapId, CancellationToken ct = default)
+    {
+        await SketchFinish.RefreshAsync(mapId, artifacts, writer, ct);
+        return await MapBounds.ResolveAsync(artifacts, mapId, ct);
+    }
 
     public async Task<SegmentIndex?> SegmentsAsync(long mapId, CancellationToken ct = default)
     {
+        await SketchFinish.RefreshAsync(mapId, artifacts, writer, ct);
         var rows = await db.Segments.Where(s => s.MapId == mapId).ToListAsync(ct);
         if (rows.Count == 0) return null;
         var marks = await db.FloorMarks.Where(m => m.MapId == mapId).Select(m => new { m.WorldX, m.WorldZ }).ToListAsync(ct);
@@ -31,6 +37,16 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts)
         return new SegmentIndex(rows.Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)),
                                 marks.Select(m => (m.WorldX, m.WorldZ)),
                                 doors.Select(d => (d.WorldX, d.WorldZ, d.WorldYStart, d.WorldYEnd)));
+    }
+
+    /// <summary>The ground the map's stored plan covers, in world blocks, or null for a map built without one
+    /// (<see cref="PgmStudio.Pgm.Derive.BoardDeriver.GroundBlocks"/>).</summary>
+    public async Task<HashSet<(int X, int Z)>?> PlannedGroundAsync(long mapId, CancellationToken ct = default)
+    {
+        if (await artifacts.LoadAsync(mapId, ArtifactKind.PlanJson, ct) is not { } data) return null;
+        return PgmStudio.Pgm.Plan.PlanModel.Stated(System.Text.Encoding.UTF8.GetString(data)) is { } plan
+            ? PgmStudio.Pgm.Derive.BoardDeriver.GroundBlocks(plan)
+            : null;
     }
 
     public async Task<List<WoolSources.Source>> WoolSourcesAsync(long mapId, Dict doc, CancellationToken ct = default)

@@ -22,6 +22,12 @@ The tool saves continuously — every change schedules a debounced write 800 ms 
 **Finish**, which flushes the layout, rasterizes it server-side into world geometry, and moves the map to
 `stage=configure`. A draft that was never drawn on is discarded on the way out.
 
+**The geometry follows the drawing after Finish, too.** The scan Finish writes records the layout revision it
+was rasterized from, and every read of the board's ground — editability, traversability, the pre-flight, the
+export — goes through it, so a layout written later (a vertex moved, a coast bent, a shape redrawn) is
+rasterized again the first time one of those reads asks (`SketchFinish.RefreshAsync`). The reads answer for
+the board as it is drawn now, never for the one Finish saw.
+
 **A tab writes only what was drawn in it, and only over the board it read.** It holds the `ETag` the layout
 was read at and states it as `If-Match` on every save, so where the stored board has moved on since — an agent
 driving the API, a second tab — the save is refused `RQ5` at 409 rather than writing the older board back over

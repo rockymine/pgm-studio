@@ -21,6 +21,9 @@ namespace PgmStudio.Data.Features;
 /// </summary>
 public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
 {
+    /// <summary>The map_config key a finished sketch's scan records the layout revision under.</summary>
+    public const string SketchScanRevision = "layout_revision";
+
     public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int Segments, int Islands, int MonumentCandidates, int CoreCandidates, int DestroyableCandidates);
 
     /// <summary>One surface-scan row (layer.parquet schema).</summary>
@@ -121,8 +124,12 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
     /// islands → islands.json, one single-block segment per column → segment, plus the default
     /// map_config. The sketched map then has the same geometry shape an imported world does, so it flows
     /// into the Configure wizard. Replaces any prior features for the map.
+    ///
+    /// <para>The config records <paramref name="layoutRevision"/>, the stored layout's revision the cells were
+    /// rasterized from, so a reader can tell a scan the layout has since moved past.</para>
     /// </summary>
-    public async Task WriteSketchAsync(long mapId, IReadOnlyCollection<ColumnSegment> cells, IReadOnlyList<IslandDetector.Island> islands, CancellationToken ct = default)
+    public async Task WriteSketchAsync(long mapId, IReadOnlyCollection<ColumnSegment> cells,
+        IReadOnlyList<IslandDetector.Island> islands, long layoutRevision, CancellationToken ct = default)
     {
         // Surface layer = one row per (x,z) at its highest top (stacked layers can repeat a column); the
         // per-segment spans (possibly several per column, e.g. ground + a sky bridge) live in segment.
@@ -144,6 +151,7 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
             ["scan_read"] = "surface",
             ["scan_read_confirmed"] = true,
             ["bounding_box"] = SurfaceBbox(cells.Select(c => (c.X, c.Z))),
+            [SketchScanRevision] = layoutRevision,
         };
 
         // One write, for the reason the scan above is one: the three artifacts and the segment rows are the

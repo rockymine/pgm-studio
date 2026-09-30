@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Nodes;
 using PgmStudio.Analysis.Footprint;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
@@ -35,6 +36,9 @@ public static class SketchFinish
         long mapId, MapRepository repo, MapArtifactStore artifacts, WorldFeatureWriter writer,
         CancellationToken ct)
     {
+        // The revision is read before the bytes, so a write landing between the two leaves the scan behind
+        // rather than ahead: the next read refreshes it.
+        var revision = await artifacts.RevisionAsync(mapId, ArtifactKind.SketchLayoutJson, ct) ?? 0;
         var data = await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct);
         if (data is null)
             return Refuse(422, "nothing to finish", new Finding(SketchRules.NothingStored,
@@ -68,9 +72,30 @@ public static class SketchFinish
             return Refuse(422, "nothing is drawn", new Finding(SketchRules.NothingDrawn,
                 "the stored layout rasterizes to no ground at all — draw a shape that encloses some"));
 
-        await writer.WriteSketchAsync(mapId, cells, islands, ct);
+        await writer.WriteSketchAsync(mapId, cells, islands, revision, ct);
         await repo.SetStageAsync(mapId, MapStage.Configure, ct);   // the draft has geometry → ready to configure
         return new(null, cells.Count, islands.Count, checkedBoard);
+    }
+
+    /// <summary>Rasterize a finished sketch again where the stored layout has moved past the scan: a vertex
+    /// moved, a coast bent, a shape redrawn after Finish. Every read of the board's ground — editability,
+    /// traversability, the pre-flight, the export — goes through the scan, so a stale one answers for a board
+    /// that is no longer drawn. A map never finished, and an imported world's scan, are left alone.</summary>
+    public static async Task RefreshAsync(long mapId, MapArtifactStore artifacts, WorldFeatureWriter writer,
+        CancellationToken ct)
+    {
+        if (await artifacts.RevisionAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is not { } revision) return;
+        if (await artifacts.LoadAsync(mapId, ArtifactKind.MapConfigJson, ct) is not { } configBytes) return;
+        if (JsonNode.Parse(configBytes) is not JsonObject config
+            || config["scan_read"]?.GetValue<string>() != "surface") return;
+        if (config[WorldFeatureWriter.SketchScanRevision] is JsonValue scanned
+            && scanned.TryGetValue<long>(out var at) && at == revision) return;
+
+        if (await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is not { } data) return;
+        var cells = SketchRasterizer.RasterizeColumns(Encoding.UTF8.GetString(data));
+        var islands = IslandDetector.Detect(cells.Select(cell => (cell.X, cell.Z)), minIslandSize: 1);
+        if (islands.Count == 0) return;
+        await writer.WriteSketchAsync(mapId, cells, islands, revision, ct);
     }
 
     private static SketchFinished Refuse(int status, string error, params Finding[] findings) =>

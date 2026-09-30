@@ -53,12 +53,16 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
         var mirror = Preflight.Mirror(doc, intent);
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
-        var build = await BuildabilityCheckAsync(map.Id, doc, intent, segs?.Y0Columns(), ct);
+        var bb = (await feature.MapBboxAsync(map.Id, ct))?.bounds;
+        var zones = Editability.Compute(doc, segs?.Y0Columns(),
+            bb is { } v ? ((int)v.Item1, (int)v.Item2, (int)v.Item3, (int)v.Item4) : null);
+        var build = BuildabilityCheck(zones, intent);
+        var reach = BuildZoneReachCheck(zones, await feature.PlannedGroundAsync(map.Id, ct));
 
         var trav = Traversability.Check(doc, segs, declared: DeclaredGoals.Of(doc, intent));
         var travCheck = TraversabilityCheck(trav);
 
-        foreach (var c in new[] { roundTrip, mirror, build, travCheck })
+        foreach (var c in new[] { roundTrip, mirror, build, reach, travCheck })
             log.Add($"{c.Label.ToLowerInvariant()}: {c.Detail}");
 
         var exportReady = roundTrip.Status == "pass" && trav.Connected;
@@ -73,7 +77,7 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
 
         await Send.OkAsync(new PreflightDto(
             true, exportReady,
-            new[] { roundTrip, mirror, build, travCheck }.Select(c => new PreflightCheckDto(c.Key, c.Label, c.Status, c.Detail)).ToList(),
+            new[] { roundTrip, mirror, build, reach, travCheck }.Select(c => new PreflightCheckDto(c.Key, c.Label, c.Status, c.Detail)).ToList(),
             log, travDto), ct);
     }
 
@@ -81,11 +85,8 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
     // Asks the Y=0 read directly — the same question PGM's own <void/> filter asks — rather than reading it
     // off an edit zone, which answers why a column is editable and not whether anything is under it. Skips
     // when there's no Y=0 layer: void can't be told from solid without it (xml-only / un-scanned map).
-    private async Task<Preflight.Check> BuildabilityCheckAsync(long mapId, Dict doc, MapIntent intent, HashSet<(int, int)>? y0, CancellationToken ct)
+    private static Preflight.Check BuildabilityCheck(Editability.Result res, MapIntent intent)
     {
-        var bb = (await feature.MapBboxAsync(mapId, ct))?.bounds;
-        var res = Editability.Compute(doc, y0,
-            bb is { } v ? ((int)v.Item1, (int)v.Item2, (int)v.Item3, (int)v.Item4) : null);
         if (!res.HasY0)
             return new("buildability", "Buildability", "skip", "no Y=0 layer — can't verify ground under placements");
 
@@ -107,6 +108,22 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
 
         static string Team(string id) => string.IsNullOrWhiteSpace(id) ? "team" : id;
         static string WoolName(WoolIntent w) => string.IsNullOrWhiteSpace(w.Color) ? w.Owner : w.Color;
+    }
+
+    // Every coast the plan put against a build zone must still reach it: void between the two that nobody may
+    // build across is a crossing in sight and out of reach (EZ2). A complaint, so the check fails without
+    // closing the export gate.
+    private static Preflight.Check BuildZoneReachCheck(Editability.Result zones, HashSet<(int X, int Z)>? planned)
+    {
+        if (!zones.HasY0)
+            return new("buildzone", "Build zone reach", "skip", "no Y=0 layer — can't tell void from ground");
+        if (planned is null)
+            return new("buildzone", "Build zone reach", "skip", "no plan — nothing says where the ground met a build zone");
+        var gaps = BuildZoneGap.Check(zones, planned);
+        if (gaps.Count == 0)
+            return new("buildzone", "Build zone reach", "pass", "every coast within reach of a build zone meets it");
+        return new("buildzone", "Build zone reach", "fail",
+            $"EZ2 — {string.Join(" · ", gaps.Select(gap => gap.Message))}");
     }
 
     private static Preflight.Check TraversabilityCheck(Traversability.Result trav)

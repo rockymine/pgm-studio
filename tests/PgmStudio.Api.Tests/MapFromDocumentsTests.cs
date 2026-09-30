@@ -278,6 +278,27 @@ public sealed class MapFromDocumentsTests
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("modes[0]");
     }
 
+    /// <summary><b>The scan follows the drawing.</b> Every read of a board's ground loads the scan the finish
+    /// wrote, and a layout written after it — a shape redrawn, a coast pulled in — used to leave that scan
+    /// describing the board before the edit, so the reads answered for ground that was no longer drawn. The
+    /// read now brings the scan up to the stored layout first.</summary>
+    [Test]
+    public async Task A_layout_written_after_the_finish_is_what_the_reads_answer_for()
+    {
+        using var client = await FreshAsync();
+        var loaded = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
+
+        var smaller = Layout.Replace("\"min_x\":-20,\"max_x\":20", "\"min_x\":-10,\"max_x\":10");
+        var put = await client.PutAsync("/api/map/weirgate/sketch", new StringContent(smaller, Encoding.UTF8, "application/json"));
+        await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
+
+        var read = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/editability");
+        var box = read.GetProperty("bbox");
+        await Assert.That((box.GetProperty("min_x").GetInt32(), box.GetProperty("max_x").GetInt32()))
+            .IsEqualTo((-10, 9)).Because("the scan was rasterized again from the shape as it is drawn now");
+    }
+
     private static async Task<HttpClient> FreshAsync()
     {
         await ApiTestFactory.ResetSchemaAsync();

@@ -32,7 +32,7 @@ public sealed class RegionsEndpoint(MapRepository repo, MapReader reader) : Endp
 }
 
 /// <summary>GET /api/map/{slug}/editability — which columns a player may edit and what makes each one
-/// editable, plus what the pass has to say about the result (<c>EZ1</c>).</summary>
+/// editable, plus what the pass has to say about the result (<c>EZ1</c>, <c>EZ2</c>).</summary>
 public sealed class EditabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<EditabilityDto>
 {
     public override void Configure() { Get("/map/{slug}/editability"); Description(b => b.Refuses(404)); }
@@ -50,10 +50,11 @@ public sealed class EditabilityEndpoint(MapRepository repo, MapReader reader, Fe
 
         // The dead-ground read needs somewhere to stand, so it is asked only of a scanned map — the walk over
         // an unscanned one has no ground in it and would report the whole board as fine.
-        var findings = segments is null
+        IReadOnlyList<Finding> findings = segments is null
             ? []
-            : DeadGround.Check(zones, WorldWalk.Ground(doc, segments,
-                bbox: (zones.MinX, zones.MinZ, zones.MaxX, zones.MaxZ)), doc);
+            : [.. DeadGround.Check(zones, WorldWalk.Ground(doc, segments,
+                  bbox: (zones.MinX, zones.MinZ, zones.MaxX, zones.MaxZ)), doc),
+               .. BuildZoneGap.Check(zones, await feature.PlannedGroundAsync(map.Id, ct))];
 
         var rows = Enumerable.Range(0, zones.Height)
             .Select(iz => string.Concat(Enumerable.Range(0, zones.Width).Select(ix => (char)('0' + zones.Zone[iz * zones.Width + ix])))).ToList();
