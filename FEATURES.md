@@ -266,6 +266,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   a vertex moved, a coast bent, a shape redrawn. Every read of a finished sketch's ground used to answer for the
   board Finish saw: on Gypsum Reach the editability, the pre-flight and the export still read the field's
   rectangle out to x −16 after `editShapes` pulled the coast in to −24. `docs/tools/sketch.md`. (`TS122`)
+- **The findings list judges the board as drawn (`TN24`).** `GET …/findings` asks what Finish judges through
+  the one method Finish refuses on, `SketchFinish.Judge` — the board's own gate, a board carrying no finish,
+  and the plan's straits re-read off the ground (`CT12`) — and `EZ2` off the scan brought up to the layout, so
+  an edit after Finish is heard without finishing again; `EZ1`, judged over the built world, is named under
+  `unasked`. The edit pass the editability read, the pre-flight and the findings list take is one,
+  `FeatureData.ZonesAsync`, floor marks included. `docs/tools/plan.md`. (`TN24`)
 - **Every read of the scan reads the same one (`TS123`).** `FeatureData` is the one reader of a finished
   sketch's scan — segment rows, surface layer, islands, configuration, bounds — and brings it up to the stored
   layout once a request before answering, so `segments`, `column-floor`, `block-seat`, `top-surface`,

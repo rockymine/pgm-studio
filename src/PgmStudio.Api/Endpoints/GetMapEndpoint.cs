@@ -70,7 +70,7 @@ public sealed class DraftDiscardEndpoint(MapRepository repo, PgmDb db, MapArtifa
 /// <summary>GET /api/map/{slug}/findings — everything wrong with this map right now, as far as its stored
 /// documents can say, plus the gates a read cannot reach and where to ask them. The operation is
 /// <see cref="MapFindings"/>; this is the door to it.</summary>
-public sealed class MapFindingsEndpoint(MapRepository repo, MapArtifactStore artifacts)
+public sealed class MapFindingsEndpoint(MapRepository repo, MapArtifactStore artifacts, FeatureData feature, MapReader reader)
     : EndpointWithoutRequest<MapFindingsDto>
 {
     public override void Configure()
@@ -82,7 +82,7 @@ public sealed class MapFindingsEndpoint(MapRepository repo, MapArtifactStore art
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        await Send.OkAsync(await MapFindings.OfAsync(artifacts, map, ct), ct);
+        await Send.OkAsync(await MapFindings.OfAsync(artifacts, feature, reader, map, ct), ct);
     }
 }
 

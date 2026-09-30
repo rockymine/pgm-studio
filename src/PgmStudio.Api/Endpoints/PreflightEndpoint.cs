@@ -53,10 +53,7 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
         var roundTrip = Preflight.RoundTrip(doc);
         var mirror = Preflight.Mirror(doc, intent);
 
-        var segs = await feature.SegmentsAsync(map.Id, ct);
-        var bb = (await feature.MapBboxAsync(map.Id, ct))?.bounds;
-        var zones = Editability.Compute(doc, segs?.Y0Columns(),
-            bb is { } v ? ((int)v.Item1, (int)v.Item2, (int)v.Item3, (int)v.Item4) : null);
+        var (zones, _) = await feature.ZonesAsync(map.Id, doc, ct);
         var build = BuildabilityCheck(zones, intent);
         var reach = BuildZoneReachCheck(zones, await feature.PlannedGroundAsync(map.Id, ct));
 

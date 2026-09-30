@@ -110,6 +110,19 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts, PgmStudio.
         => (await ScanConfigAsync(mapId, ct))["exclude_islands"]?.AsArray()
             .Select(n => n!.GetValue<int>()).ToHashSet() ?? [];
 
+    /// <summary>The map's edit pass over its scan (<see cref="Editability"/>): the grid is the scan's bounds,
+    /// or the regions and a margin where there is no scan, and the void test and the floor marks are the
+    /// scan's y=0 course. The scan comes back beside it, null where the map has none.</summary>
+    public async Task<(Editability.Result Zones, SegmentIndex? Segments)> ZonesAsync(long mapId, Dict doc,
+        CancellationToken ct = default)
+    {
+        var segments = await SegmentsAsync(mapId, ct);
+        var grid = (await MapBboxAsync(mapId, ct))?.bounds is var (minX, minZ, maxX, maxZ)
+            ? ((int)minX, (int)minZ, (int)maxX, (int)maxZ)
+            : ((int, int, int, int)?)null;
+        return (Editability.Compute(doc, segments?.Y0Columns(), grid, floorMarks: segments?.FloorMarks), segments);
+    }
+
     /// <summary>The ground every connectivity read of a map walks, one per map. A board the studio builds from
     /// its stored layout walks that world (<see cref="PgmStudio.Export.BuiltWalk"/>) — its houses, trees and
     /// lava where they stand — so a verdict here is the one the export reaches. A map that ships its own world

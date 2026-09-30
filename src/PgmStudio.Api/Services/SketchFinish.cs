@@ -44,27 +44,9 @@ public static class SketchFinish
             return Refuse(422, "nothing to finish", new Finding(SketchRules.NothingStored,
                 "this map has no stored sketch layout, so there is no drawing to rasterize"));
 
-        // The document's own gate, run where the drawing is declared done: what the board names and does not
-        // have contributes no ground, so an island the author expected can be missing from the artifacts this
-        // writes.
         var layoutJson = Encoding.UTF8.GetString(data);
-        var stated = SketchLayout.Stated(layoutJson);
-        var checkedBoard = SketchLayoutCheck.Check(stated);
+        var checkedBoard = Judge(layoutJson, await artifacts.LoadAsync(mapId, ArtifactKind.PlanJson, ct));
         if (checkedBoard.Refuses) return Refuse(422, "the board cannot be built as drawn", [.. checkedBoard.Refusals]);
-
-        // A board carrying no finish at all is the one thing the earlier gates cannot see: each of them needs
-        // something stated to disagree with, and a board that states none of it slips between them.
-        if (SketchLayoutCheck.Unfinished(stated) is { } bare)
-            checkedBoard = new Findings([.. checkedBoard, bare]);
-
-        // The strait, re-read off the ground rather than off the rectangles it was checked against. Only a
-        // board drawn from a plan has one: the pairs come from the plan's own roles and build regions, which
-        // a rasterized footprint does not carry.
-        if (await artifacts.LoadAsync(mapId, ArtifactKind.PlanJson, ct) is { } planned)
-        {
-            var moved = StraitReadback.Check(PlanModel.Stated(Encoding.UTF8.GetString(planned)), layoutJson);
-            if (moved.Count > 0) checkedBoard = new Findings([.. checkedBoard, .. moved]);
-        }
 
         var cells = SketchRasterizer.RasterizeColumns(layoutJson);
         var islands = IslandDetector.Detect(cells.Select(cell => (cell.X, cell.Z)), minIslandSize: 1);
@@ -75,6 +57,28 @@ public static class SketchFinish
         await writer.WriteSketchAsync(mapId, cells, islands, revision, ct);
         await repo.SetStageAsync(mapId, MapStage.Configure, ct);   // the draft has geometry → ready to configure
         return new(null, cells.Count, islands.Count, checkedBoard);
+    }
+
+    /// <summary>What a drawing is judged by when it is declared done. Finish refuses on it; the findings list
+    /// asks it of the layout as stored, so a board edited after Finish is judged as it is drawn now.
+    ///
+    /// <para>The document's own gate first: what the board names and does not have contributes no ground, so an
+    /// island the author expected can be missing. Then a board carrying no finish at all, which the gate cannot
+    /// see because each of its checks needs something stated to disagree with. Then the plan's straits, re-read
+    /// off the ground rather than off the rectangles they were checked against — only a board drawn from a plan
+    /// has any, since the pairs come from the plan's roles and build regions.</para></summary>
+    public static Findings Judge(string layoutJson, byte[]? planBytes)
+    {
+        var stated = SketchLayout.Stated(layoutJson);
+        var judged = SketchLayoutCheck.Check(stated);
+        if (judged.Refuses) return judged;
+        if (SketchLayoutCheck.Unfinished(stated) is { } bare) judged = new Findings([.. judged, bare]);
+        if (planBytes is { Length: > 0 })
+        {
+            var moved = StraitReadback.Check(PlanModel.Stated(Encoding.UTF8.GetString(planBytes)), layoutJson);
+            if (moved.Count > 0) judged = new Findings([.. judged, .. moved]);
+        }
+        return judged;
     }
 
     /// <summary>Rasterize a finished sketch again where the stored layout has moved past the scan: a vertex

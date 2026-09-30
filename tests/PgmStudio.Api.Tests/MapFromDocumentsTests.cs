@@ -336,6 +336,48 @@ public sealed class MapFromDocumentsTests
             .IsEquivalentTo([0]);
     }
 
+    /// <summary><b>The findings list judges the board as drawn.</b> Two halves, laid <c>rot_180</c>, meet a
+    /// frontline build zone at x −5..5 across ground the plan states. Pulled back to x −10 after Finish, each
+    /// coast leaves void between it and the zone, and the findings read names that (<c>EZ2</c>) without another
+    /// Finish.</summary>
+    [Test]
+    public async Task The_findings_list_names_a_coast_pulled_back_after_the_finish()
+    {
+        const string halves = """
+            {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+             "layers":[{"base_y":0,"layout":{
+               "shapes":[{"id":"s1","type":"rectangle","operation":"add",
+                          "min_x":-40,"max_x":-5,"min_z":-20,"max_z":20,"floor":0,"base_height":12}],
+               "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}]}
+            """;
+        using var client = await FreshAsync();
+        var body = new
+        {
+            plan = JsonDocument.Parse("""{"cell":4,"pieces":[{"id":"field","role":"piece","rect":[-10,-5,20,10]}]}""").RootElement,
+            layout = JsonDocument.Parse(halves).RootElement,
+            intent = JsonDocument.Parse("""
+                {"meta":{"name":"Weirgate","authors":[],"contributors":[]},
+                 "build":{"areas":[{"minX":-5,"minZ":-20,"maxX":5,"maxZ":20}],"holes":[]}}
+                """).RootElement,
+            name = "Weirgate",
+        };
+        var loaded = await client.PostAsJsonAsync("/api/map/from-documents", body);
+        await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
+        await Assert.That(await RulesAsync(client)).DoesNotContain("EZ2");
+
+        var pulled = halves.Replace("\"max_x\":-5", "\"max_x\":-9");
+        var put = await client.PutAsync("/api/map/weirgate/sketch", new StringContent(pulled, Encoding.UTF8, "application/json"));
+        await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
+
+        await Assert.That(await RulesAsync(client)).Contains("EZ2");
+
+        static async Task<List<string>> RulesAsync(HttpClient client) =>
+        [
+            .. (await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/findings"))
+                .GetProperty("findings").EnumerateArray().Select(finding => finding.GetProperty("rule").GetString()!),
+        ];
+    }
+
     private static async Task<HttpClient> FreshAsync()
     {
         await ApiTestFactory.ResetSchemaAsync();
