@@ -380,6 +380,11 @@ document and each artifact are counted apart — a caller holding the sketch lay
 about the map's. The compare is one statement with the revision in its `where`, so the database decides which
 of two writers wins rather than a read-then-write that both can pass.
 
+**A revision survives the proxy in front of it.** Caddy encodes a response it compresses into its tag, so
+the `"44"` the studio answers reaches a browser as `"44-gzip"` or `"44-zstd"` — and a browser always asks
+for compression and states the tag back verbatim. The suffix after the revision is the proxy's, and an
+`If-Match` is read up to it.
+
 **The most expensive operation in the studio is a `GET`.** `GET /map/{slug}/export` composes the map,
 synthesises the entire voxel world, writes it to a temp directory and zips it flat in memory before answering.
 There is no job id and nothing to ask afterwards, so a caller whose connection drops cannot learn whether the

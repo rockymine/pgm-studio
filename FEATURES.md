@@ -7725,6 +7725,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   The guard sits in `WriteSupport.RunEditAsync`, so all 34 edit routes inherit it; the one caller that passes
   `guarded: false` is the intent write's projection, whose `If-Match` names the intent and whose map revision
   is a different number.
+- **A revision reads through the proxy in front of the studio (RP87).** Caddy encodes a compressed
+  response into its tag — `"44"` reaches a browser as `"44-gzip"` — and a browser states it back verbatim, so
+  every guarded write from a tab on pgmstudio.de was refused as stale on its first save: the sketch tool said
+  *saved from somewhere else*, kept drawing locally and blocked Finish. `Revisions.Expected` reads an
+  `If-Match` up to the proxy's suffix, weak prefix and quotes aside.
 - **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
   and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
   five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a

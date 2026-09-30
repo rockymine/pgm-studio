@@ -76,6 +76,26 @@ public sealed class LostUpdateTests
         await Assert.That(await StoredAsync(client, slug)).IsEqualTo("second");
     }
 
+    /// <summary>A compressing proxy rewrites the tag it passes on — Caddy answers <c>"7"</c> as <c>"7-gzip"</c>
+    /// — and a browser states back what it was handed. That is still the revision the document is at, so the
+    /// write lands, and a stale one under the same suffix is still refused.</summary>
+    [Test]
+    public async Task A_tag_a_compressing_proxy_rewrote_still_names_its_revision()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await OriginateAsync(client);
+
+        var held = Etag(await client.GetAsync($"/api/map/{slug}/sketch"))!;
+        var encoded = held.TrimEnd('"') + "-gzip\"";
+        var first = await client.SendAsync(Guarded(slug, First, encoded));
+        await Assert.That(first.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var stale = await client.SendAsync(Guarded(slug, Second, "W/" + encoded.Replace("-gzip", "-zstd")));
+        await Assert.That(stale.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+        await Assert.That(await StoredAsync(client, slug)).IsEqualTo("first");
+    }
+
     /// <summary>A write that states no precondition writes, exactly as it did before there was a revision to
     /// state. Protection is opted into by having read first, which is the only way it can mean anything —
     /// requiring it would make every caller read before every write.</summary>

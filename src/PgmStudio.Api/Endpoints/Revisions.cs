@@ -28,12 +28,18 @@ internal static class Revisions
 {
     /// <summary>The revision an <c>If-Match</c> names, or null where the request states no precondition.
     /// A header that is not a revision at all names none either — it cannot match, and the write it guards is
-    /// refused by the same <c>RQ5</c> a stale one is rather than passing as unguarded.</summary>
+    /// refused by the same <c>RQ5</c> a stale one is rather than passing as unguarded.
+    ///
+    /// <para>A tag a compressing proxy rewrote still names its revision: Caddy answers <c>"44"</c> as
+    /// <c>"44-gzip"</c> or <c>"44-zstd"</c> when it encodes the body, and a browser hands that back verbatim,
+    /// so the suffix after the revision is the proxy's and is read past.</para></summary>
     public static long? Expected(HttpContext http)
     {
-        var stated = http.Request.Headers.IfMatch.ToString();
+        var stated = http.Request.Headers.IfMatch.ToString().Trim();
         if (stated.Length == 0) return null;
-        return long.TryParse(stated.Trim('"', 'W', '/', ' '), out var revision) ? revision : Unmatchable;
+        var tag = (stated.StartsWith("W/", StringComparison.Ordinal) ? stated[2..] : stated).Trim('"');
+        if (tag.IndexOf('-') is > 0 and var coding) tag = tag[..coding];
+        return long.TryParse(tag, out var revision) ? revision : Unmatchable;
     }
 
     /// <summary>Whether the request guards its write at all.</summary>
