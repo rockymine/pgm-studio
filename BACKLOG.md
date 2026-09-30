@@ -28,13 +28,25 @@ and `RP95`, and is pulled up whole when they land.
 - [ ] **RP96 — `pgm-studio-mapgen` states its boards in the refinement and the kit.** `drive.py` runs the
   board's `build-spec.py` first, dry-runs the source and prints the diff, applies with its origin (`git
   rev-parse HEAD`, the folder, whether the tree is dirty) and reads one report (`WS80`); its merge, its vertex
-  loop and its `@name` loader go. The boards that still compile (plan version 2) rename `finish.json` to
-  `refinement.json` and import the fetched kit; `specs/opus55_kit.py`, `specs/sonnet55_kit.py` and the copied
-  `common.py` and `opus5c.py` retire. `AUTHORING-BRIEF.md`, `tools/README.md` and both skills follow, and the
-  skill's first moment reads the changes since the last apply beside the open notes.
+  loop and its `@name` loader go. **One picture a board is committed** (author): the board seen from its side
+  through `render/eye`, beside the documents, and `maps/<slug>/` keeps the export's `map.png` (`WE155`); the
+  debug renders stay in the studio, drawn again from any change on request. The boards that still compile
+  (plan version 2) rename `finish.json` to `refinement.json` and import the fetched kit;
+  `specs/opus55_kit.py`, `specs/sonnet55_kit.py` and the copied `common.py` and `opus5c.py` retire.
+  `AUTHORING-BRIEF.md`, `tools/README.md` and both skills follow, and the skill's first moment reads the
+  changes since the last apply beside the open notes.
 
   *Evidence: one drive re-sent the previous pass's documents because its script had not been run
   (`pgm-studio-mapgen/reports/opus55-notes-run.md`, the fourth pass).*
+
+- [ ] **WE155 — The export writes the `map.png` a PGM server shows.** A server shows a map by the picture in
+  its folder's `map.png`, and the author's standard for it is **290 × 246** pixels, an overview of the playing
+  area, in the default resource pack without shaders. No world the studio exports carries one, and none of
+  the 227 folders under `pgm-studio-mapgen/maps/` does. Draw it with `render/eye`'s renderer, which already
+  draws in the 1.8.9 client's own block sprites, from a raised camera on the board's long side framed on its
+  built extent — or from a kept view the author marks as the map's picture — and add it to the zip beside
+  `map.xml`, `level.dat` and `region/`. A studio without the textures, where `render/eye` answers `RQ10`,
+  exports without it and says so under `warnings`. `docs/world-export/sketch-world-export.md` § Delivery.
 
 - [ ] **TL33 — The house styles `pgm-studio-mapgen` keeps become the library's.** 81 house styles sit in
   `pgm-studio-mapgen/tools/styles` against 13 room styles in the deployed library, and `drive.py`'s `@name`
