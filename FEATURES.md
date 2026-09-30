@@ -9891,6 +9891,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `--migrate-only`, switches and restarts, and points back at the release before when `/api/health` does not
   answer; a failed commit is not retried. `invite.sh` adds a player and prints their invitation from the
   server. Everything the server was set up from is in `tools/deploy/`. `docs/deployment.md`.
+- **Only an owner makes or unmakes an admin (`RP85`).** An owner is a uuid `Access:Admins` names, signed in
+  from a browser, or an open studio's local admin — granted by the server alone. One rule, `WhitelistKeeping`,
+  decides every change to the whitelist: an admin adds, re-roles, removes and issues tokens for members and
+  invites one nobody signs in as yet; making, changing, removing, inviting or issuing a token for an admin, and
+  re-inviting someone who already signs in (which would hand their account to whoever follows the link), are
+  an owner's; an owner is changed only by the server. Refused `RQ8` at 403 before anything is written.
+  `/api/me` and `/api/users` carry `owner`, and `/admin/users` greys what the caller may not do, with the
+  reason on hover. `docs/access.md`.
 - **Builds wait their turn (`RP79`).** Every route that builds or renders a world — the export, `map.xml`,
   the renders and the reads measured off the built world, the Sketch and Plan posts that build one — and the
   compose feed and `coverage` are `[Queued]`: `BuildQueue` runs three at once on the studio and one per

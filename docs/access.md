@@ -20,9 +20,10 @@ configuration never mentions access is closed, not open. A request is signed in 
 signed out. SameSite=Lax is also what keeps another site from writing through a visitor's session: a browser
 sends the cookie on a cross-site link, and never on a cross-site `POST`, `PUT` or `DELETE`. Signing in with Discord is what writes it (below).
 
-`Access:Admins` lists Minecraft uuids that are admins whatever the whitelist says. It is how the first admin
-exists before there is a whitelist to be on, and it keeps the whitelist's keeper from removing themselves out
-of it. On a server it is an environment variable, `Access__Admins__0=<uuid>`.
+`Access:Admins` lists Minecraft uuids that are admins whatever the whitelist says, and it names the studio's
+**owners**. It is how the first admin exists before there is a whitelist to be on, and it is the one grant the
+studio cannot make or undo itself: only the server's configuration changes it. On a server it is an
+environment variable, `Access__Admins__0=<uuid>`.
 
 ## A caller is an account and a role
 
@@ -31,9 +32,39 @@ role is read from the whitelist on every request (`Callers.OfAsync`), so taking 
 changing what they may do, holds on their very next request rather than when their session ends.
 
 What comes out is a `Caller`, which is one of four things: signed out; signed in as an account the whitelist
-does not hold; a **member**; or an **admin** (`StudioRoles`). The uuid is the same one an author is credited
+does not hold; a **member**; or an **admin** (`StudioRoles`). An admin may also be an **owner**
+(`Caller.IsOwner`): a uuid `Access:Admins` names, signed in from a browser, or an open studio's local admin.
+Owner is not a role on the whitelist, since nothing the studio stores can grant it. The uuid is the same one an author is credited
 under in `map.xml`, which is what lets "may this person change this map" be answered from the map's own
 credits.
+
+## Who keeps the whitelist
+
+**An admin keeps the members; only an owner makes or unmakes an admin.** Every change to someone's place on
+the whitelist goes through one rule, `WhitelistKeeping`, and a change it turns away is refused `RQ8` at 403
+before anything is written.
+
+| Change | An admin | An owner |
+|---|---|---|
+| add a member, or change a member's role to member | yes | yes |
+| make someone an admin | no | yes |
+| change, remove, invite, or issue a token for an admin | no | yes |
+| open an invitation for someone a Discord account already signs in as | no | yes |
+| anything to an owner | no | only to themselves |
+
+**Redirecting an account is an owner's, because an invitation binds whoever follows it.** Following one binds
+the Discord account that signs in through it to that person and unbinds any account bound before, so an
+invitation opened for someone who already signs in hands their account to whoever follows the link. An admin
+opens one for a member nobody signs in as yet; an owner opens one for anyone but another owner, and for
+themselves, which is how an owner who lost their Discord account binds a new one.
+
+**An owner is changed only by the server.** No route demotes, removes, invites or issues a token for a uuid
+`Access:Admins` names, except that owner in their own browser. The owner's own recovery is on the server too:
+`tools/deploy/invite.sh` runs a studio in open mode on the machine, whose local admin is an owner, and prints a
+fresh invitation (`docs/deployment.md`).
+
+**A token is never an owner.** It is capped at a member's rights (below), so an owner's token keeps no
+whitelist at all.
 
 ## Signing in: Discord says who, an invitation says which account
 
@@ -102,7 +133,7 @@ token, so no token ever exceeds its person. A leaked notes token still cannot ke
 invitation or change a map its person does not own.
 
 **A token is issued once and kept only as a hash.** Its person issues one from *Tokens* in the account menu or
-`POST /api/users/me/tokens`, and an admin issues one for anyone on the whitelist with
+`POST /api/users/me/tokens`, and an admin issues one for a member (an owner for anyone but another owner) with
 `POST /api/users/{uuid}/tokens`. The answer is the only one that carries the token; `studio_token` keeps its
 SHA-256 beside the person it acts as, a label saying what it is for, when it was issued and when it last
 signed a request in, to the minute. The secret is made the way an invitation's code is (`StudioSecret`), with
@@ -131,7 +162,9 @@ The studio's bar says who the browser is on every page: the head, name and role 
 sign out; *Sign in with Discord* for a visitor; `local` in an open studio. For an admin it also carries *Users*,
 the whitelist at `/admin/users`. That page
 adds a player by name or uuid in a role, changes a role, takes someone off, and opens an invitation whose link
-it shows once with a copy button — the same four routes as below.
+it shows once with a copy button — the same four routes as below. It tags an owner, and greys each control
+the rule above closes to the caller, with the reason on hover: an admin who is no owner sees no *admin* to give
+and no control on an admin's or an owner's row, and no invitation for someone who already signs in.
 
 Someone on the whitelist also finds *Tokens* in the account menu, at `/tokens`: it issues a token and shows it
 once with a copy button, and lists theirs with what each is for and when it was last used, to revoke. An admin
@@ -244,16 +277,16 @@ Every write publishes the first two in the schema at `/api/openapi/v1.json`, and
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /api/me` | `{mode, signedIn, uuid, name, role, notes}` — who the request is, what role it carries, and whether it may read and answer map notes | — |
+| `GET /api/me` | `{mode, signedIn, uuid, name, role, notes, owner}` — who the request is, what role it carries, whether it may read and answer map notes, and whether it is an owner | — |
 | `GET /api/map/{slug}/access` | `{mayEdit}` — whether this request's writes to the map would be accepted; the client opens it read-only where not | 404 |
-| `GET /api/users` | the whitelist, by name: `[{uuid, name, role, addedAt, signsIn, inviteExpiresAt}]` — `signsIn` once a Discord account is bound, `inviteExpiresAt` while an invitation is open | 403 |
-| `POST /api/users` `{player, role}` | puts the account `player` names — a name or a uuid, resolved through Mojang — on the whitelist in `role`, or changes the role of one already on it; answers the stored row | 400, 404 |
-| `DELETE /api/users/{uuid}` | takes the person off; they keep every credit and write nothing more | 404 |
-| `POST /api/users/{uuid}/invite` | opens an invitation for someone on the whitelist, replacing any open one: `{link, expiresAt}`. The link is shown this once | 404 |
+| `GET /api/users` | the whitelist, by name: `[{uuid, name, role, addedAt, signsIn, inviteExpiresAt, owner}]` — `signsIn` once a Discord account is bound, `inviteExpiresAt` while an invitation is open, `owner` where `Access:Admins` names them | 403 |
+| `POST /api/users` `{player, role}` | puts the account `player` names — a name or a uuid, resolved through Mojang — on the whitelist in `role`, or changes the role of one already on it; answers the stored row | 400, 403 `RQ8` (an admin made or changed by a non-owner, or an owner changed), 404 |
+| `DELETE /api/users/{uuid}` | takes the person off; they keep every credit and write nothing more | 403 `RQ8` (an admin, by a non-owner; an owner) · 404 |
+| `POST /api/users/{uuid}/invite` | opens an invitation for someone on the whitelist, replacing any open one: `{link, expiresAt}`. The link is shown this once | 403 `RQ8` (an admin, someone who already signs in, by a non-owner; an owner) · 404 |
 | `GET /api/users/me/tokens` | the caller's tokens, newest first: `[{id, label, issuedAt, lastUsedAt, notes}]`; empty for a visitor or an open studio's admin | — |
 | `POST /api/users/me/tokens` `{label, notes?}` | issues a token acting as the caller: `{id, label, token, actsAs, notes}`. The token is shown this once; a blank label is `token`; `notes` asks for the notes permission, which only an admin's token carries | 403 `RQ8` (notes on a member's token) · 404 (no account) |
 | `DELETE /api/users/me/tokens/{id}` | revokes one of the caller's tokens | 404 |
-| `POST /api/users/{uuid}/tokens` `{label, notes?}` | issues a token acting as someone on the whitelist; admin only. `notes` is refused where that person is not an admin | 403 `RQ8` · 404 |
+| `POST /api/users/{uuid}/tokens` `{label, notes?}` | issues a token acting as someone on the whitelist; admin only, and acting as an admin an owner's alone. `notes` is refused where that person is not an admin | 403 `RQ8` · 404 |
 | `GET /api/auth/discord?returnUrl=` | 302 to Discord, to sign in with an account already bound | 503 |
 | `GET /api/auth/invite/{code}` | 302 to Discord, binding the account that signs in to the invitation's person | 404, 503 |
 | `GET /api/auth/discord/complete` | where the sign-in lands: writes the session and 302s to `returnUrl` | 401, 403 |

@@ -90,9 +90,11 @@ public sealed class MyTokenRevokeEndpoint(Callers callers, StudioTokenStore toke
 }
 
 /// <summary>POST /api/users/{uuid}/tokens — issue a token that signs in as someone on the whitelist, for an
-/// agent acting as them. Admin only, which a token never is. 404 for a uuid the whitelist does not
-/// hold; 403 for the notes permission on a token whose person is not an admin.</summary>
-public sealed class UserTokenIssueEndpoint(StudioTokenStore tokens, StudioUserStore users, AccessOptions access)
+/// agent acting as them. Admin only, which a token never is, and within <see cref="WhitelistKeeping"/>: an
+/// admin issues one acting as a member, and an owner as anyone but another owner. 404 for a uuid the whitelist
+/// does not hold; 403 for the notes permission on a token whose person is not an admin.</summary>
+public sealed class UserTokenIssueEndpoint(StudioTokenStore tokens, StudioUserStore users, AccessOptions access,
+                                           Callers callers)
     : Endpoint<StudioTokenRequest, StudioTokenIssuedDto>
 {
     public override void Configure()
@@ -108,6 +110,12 @@ public sealed class UserTokenIssueEndpoint(StudioTokenStore tokens, StudioUserSt
         if (await users.GetAsync(uuid, ct) is not { } person)
         {
             await Refusals.NotFoundAsync(HttpContext, "whitelisted person", ct, uuid);
+            return;
+        }
+        var caller = await callers.OfAsync(HttpContext, ct);
+        if (WhitelistKeeping.RefusalFor(caller, access, uuid, person, WhitelistKeeping.Change.IssueToken) is { } refused)
+        {
+            await WhitelistKeeping.RefuseAsync(HttpContext, refused, ct);
             return;
         }
         if (request.Notes && person.Role != StudioRoles.Admin && !access.Admins.Contains(uuid))
