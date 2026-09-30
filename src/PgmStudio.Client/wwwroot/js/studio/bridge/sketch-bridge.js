@@ -394,7 +394,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   // ── the Board layer: the built board from straight above, for placing a view ──
-  // Drawn from the same columns the 3-D preview meshes, so it is the full build — trees, houses, water — and
+  // Drawn from the same columns the 3-D preview meshes, so it is the full build — trees, houses, fluids — and
   // it is asked for once per layout: placing a view edits nothing, so the board it shows cannot go stale
   // while it is up.
   let boardView = false, boardStamp = null, boardSeq = 0;

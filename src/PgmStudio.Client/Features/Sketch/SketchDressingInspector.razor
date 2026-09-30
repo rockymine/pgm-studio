@@ -119,7 +119,7 @@
           <ChildContent><input type="range" class="field-range" min="1" max="8" step="1"
                  value="@((int)Num(PropFields.Depth, 2))"
                  @oninput="e => Set(PropFields.Depth, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
-        <Field Label="Beach (blocks)"><LabelHint>the bank the water meets the land through</LabelHint>
+        <Field Label="Beach (blocks)"><LabelHint>the bank the fluid meets the land through</LabelHint>
           <LabelEnd><strong>@($"{Num(PropFields.Shore, 2):0}")</strong></LabelEnd>
           <ChildContent><input type="range" class="field-range" min="0" max="8" step="1"
                  value="@((int)Num(PropFields.Shore, 2))"

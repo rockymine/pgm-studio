@@ -8,7 +8,7 @@ it, boulders and trees seated on top. It is the second half of the theming work:
 slice ("no new geometry, only materials"); this is the **prop-stamps** slice, and it is the opposite by
 construction — it exists to add geometry.
 
-**All five tools ship: paths, ground cover, boulders and trees (G161), and water channels (G169, §7).** Water
+**All five tools ship: paths, ground cover, boulders and trees (G161), and fluid channels (G169, §7).** A fluid
 is the one that changes the ground rather than standing on it — its carved bed is an elevation change the rest
 of the stage never makes — so only its richer reads and the closed pond form remain open under `G169`.
 
@@ -94,7 +94,7 @@ it with a theme like any other ground, so `KeepOut.Built` does not fire and its 
 layout carries the answer instead — a shape marked `keepClear` (`docs/tools/sketch.md`) puts its own columns
 in the mask as `KeepOut.Structure`, exactly and with no margin, so a road still runs to a gate while the wall
 either side of it keeps its top course. Without it a stroke repaints whatever it crosses and a channel, whose
-water line is the *lowest* surface its band crosses, cuts every other column in the band down to that line —
+line is the *lowest* surface its band crosses, cuts every other column in the band down to that line —
 which on a wall standing seventeen courses over a river is a hole through the wall, not a bank.
 
 **The claim book is per layer for the same reason.** `GroundClaims` is keyed on the layer as well as the
@@ -378,7 +378,7 @@ still a wall beside the route — keeps **two** (the author's numbers). The rule
 `PlacedProp.RouteStandoff` names each kind's distance, `GroundClaims.NearerThan` measures it (Chebyshev,
 strictly-nearer-than, so a trunk exactly three off stands), and the seat check refuses a breach with the
 offending cell and the rule id in the drop report, so `GET /api/rules?rule=DR-ROAD` answers what the census
-cited. Everything else — cover, water, buildings — states zero and may run right up to the pavement.
+cited. Everything else — cover, fluids, buildings — states zero and may run right up to the pavement.
 
 The single solid band is the boring case; the imperfect paths are the point, and all five of them are the same
 distance field with one extra gate (`Geom.StrokeFill`):
@@ -670,9 +670,9 @@ reach, and falls back to the mass without one.
 ## 7. Fluid — channels and pools of water or lava (`DR-WA`)
 
 A channel begins exactly where the §4 stroke does — a dragged centerline and a radius, the same swept-disc
-band (`Geom.FluidBed` reuses `Centerline.Of` and `Polyline`'s distance field). What makes water its own
-tool is that it **cannot drape on the surface** the way gravel can: laid on a slope it reads as blue paint.
-Water has to sit in a **carved bed** and fill to a **level plane**, so water is the one prop that takes the
+band (`Geom.FluidBed` reuses `Centerline.Of` and `Polyline`'s distance field). What makes a fluid its own
+tool is that it **cannot drape on the surface** the way gravel can: water laid on a slope reads as blue paint.
+A fluid has to sit in a **carved bed** and fill to a **level plane**, so it is the one prop that takes the
 ground *out* rather than standing on it.
 
 **The bed is filled with water or with lava, and `fluid` says which.** Everything else about the prop is the
@@ -683,7 +683,7 @@ not entered at all, so the walk reads a run of lava as a prop's volume rather th
 sets fire to what burns beside it, so a timber deck, a tree or a grass bank against a lava bed is the author's
 to keep clear. Unstated, `fluid` is `water`.
 
-**A body of water is drawn one of two ways, and `shape` says which its points mean.** A `channel` strokes them
+**A body of water or lava is drawn one of two ways, and `shape` says which its points mean.** A `channel` strokes them
 as a centerline and takes its width from `radius` — a canal, a river, a moat. A `pool` closes them into a ring
 and fills it, corners and all: a harbour, a lake, a flooded basin, the shape a stroked line cannot make
 however wide it is drawn. The bowl is the same law either way and only the distance it is measured along
@@ -695,12 +695,12 @@ wall. `edge` wobbles either boundary by a value field, so a lake is not a ruled 
 The carve is a shallow U — deepest on the centerline, rising to a single block at the band's edge — so the
 fill sits in a bowl rather than a walled trench. `FluidBed` yields a depth per cell from that parabolic law;
 the dressing pass (`Decorator.PlaceFluid`) turns each depth into a cut against the surface the cell actually
-crosses. The fill is one **water line** for the whole run, and where that line comes from decides what the
+crosses. The fill is one **line** for the whole run, and where that line comes from decides what the
 carve may touch.
 
-**Derived** — the default — the line is the lowest surface the channel crosses, which is what keeps the water
+**Derived** — the default — the line is the lowest surface the channel crosses, which is what keeps the fluid
 from floating: every column's surface is at or above it, so the pass fills from just above the bed floor up to
-the line with stationary water and cuts any bank *above* the line back to air, leaving the channel open. The
+the line with the stationary fluid and cuts any bank *above* the line back to air, leaving the channel open. The
 carve then **only ever touches existing terrain**: it never rises past a column's old surface and skips any
 column the surface map does not carry, so a channel dug across a hollow keeps the hollow and one dug over a
 stamp leaves the stamp — the same exclusion a stroke respects.
@@ -708,52 +708,52 @@ stamp leaves the stamp — the same exclusion a stroke respects.
 **Stated** — `level`, a world Y — the line is that Y and the fill reaches it whatever the column beneath is
 doing. **A basin is a low floor and not a hole**, because the pass skips any column the surface map does not
 carry: a subtract takes the whole column out and leaves nothing to fill, so a harbour is drawn as an override
-add laying a floor at the depth the water is meant to reach down to, inside the shore's own footprint. That is
-the only way a basin holds water: ground dug out in the sketch has no surface up at the line
+add laying a floor at the depth the fluid is meant to reach down to, inside the shore's own footprint. That is
+the only way a basin holds a fluid: ground dug out in the sketch has no surface up at the line
 for a derived line to find, so the lowest surface the channel crosses *is* the basin floor and filling to it
-puts no water in the hole. A lake, a harbour, the water a ship floats on can only be stated. What the author
-owns then is the **rim**: water rises to the line inside the prop's own footprint and nowhere else — the pass
-never floods outward looking for a wall — so a line above the surrounding ground stands as a wall of water
+puts nothing in the hole. A lake, a harbour, the water a ship floats on can only be stated. What the author
+owns then is the **rim**: the fluid rises to the line inside the prop's own footprint and nowhere else — the pass
+never floods outward looking for a wall — so a line above the surrounding ground stands as a wall of it
 rather than spilling, which is visible the moment it is exported. The bed floor is laid only where terrain
 already stood, so a stated line over a basin already deeper than `level − depth` leaves the basin's own floor
 alone instead of hanging a shelf in it.
 
-**Water fills round what stands in it and never cuts under it.** The two halves of the pass are different
+**A fluid fills round what stands in it and never cuts under it.** The two halves of the pass are different
 acts on a column something else keeps clear: carving takes that thing's own ground out from beneath it, which
-is what a keep-out is for, while filling puts water in the air beside a hull or a pier — and a harbour dry
+is what a keep-out is for, while filling puts the fluid in the air beside a hull or a pier — and a harbour dry
 under the ship floating in it is not a harbour. So a kept column is filled and never cut, its bed floor is
 not laid and it claims nothing; and above any column's own surface the pass writes only into air, so the
-water goes round a hull, a mast or a stamp rather than through it.
+fluid goes round a hull, a mast or a stamp rather than through it.
 
 **A kept column the fill leaves dry is ground, and `DR-HELD` says so.** Filling reaches only up to the line,
 and a derived line is the lowest surface the channel crosses, so a channel across a door's approach on level
-ground puts no water on the approach at all: the bed there is the ground as it stood. Such a column is not
-the channel's in the placement record, so the claims raster, the heightmap text and the water count all read
+ground puts no fluid on the approach at all: the bed there is the ground as it stood. Such a column is not
+the channel's in the placement record, so the claims raster, the heightmap text and the fluid count all read
 it as the ground it is, and `DR-HELD` — a complaint — counts the dry columns and names the first and what
-keeps it clear. Moving the channel off the kept ground, or stating a `level` above it, is what puts water there.
+keeps it clear. Moving the channel off the kept ground, or stating a `level` above it, is what puts the fluid there.
 
-Like every prop, a channel is **fanned across the symmetry orbit**, so both teams get the same water from the
+Like every prop, a channel is **fanned across the symmetry orbit**, so both teams get the same fluid from the
 same side; a stated line is the same Y at every image, a level plane being level in all of them.
 
-The water meets the land through a **beach**. The shore is its own pass — the band *outside* the water, out to
-a width that wanders with a noise field and drops to nothing in places, so the water meets the grass directly
+The fluid meets the land through a **beach**. The shore is its own pass — the band *outside* the fluid, out to
+a width that wanders with a noise field and drops to nothing in places, so the fluid meets the grass directly
 in some stretches and spreads into a flat in others (`FluidBed.ShoreCells`). Both the beach and the bed floor
 are laid with the channel's **bank**, and the bank is not a block but a full **`TerrainMaterial`** — a solid, or
 by default a cellular voronoi of gravel, coarse dirt and sand, the same pattern the painter tiles
-and edited by the same `MaterialEditor`. So the floor the shallows show through and the shore the water meets
+and edited by the same `MaterialEditor`. So the floor the shallows show through and the shore the fluid meets
 read as one ground, drawn from one palette.
 
-Channels take a **form**, and it drives both the water and the land. The three laws live in `FluidBed`, which
+Channels take a **form**, and it drives both the fluid and the land. The three laws live in `FluidBed`, which
 cuts the bed and the beach together so they cannot disagree. A clean-banked **canal** holds a uniform width. A
 **natural** edge wobbles its width off the nominal by a value field (± the *bank roughness* knob, in blocks). A
 **stream beads**: its width runs a rectified sine along the *arc* — pinching to half the radius and swelling
 back to it on a fixed beat, never wider than the nominal — so it narrows and widens down its length into a
-string of riffles rather than tapering once, and it runs shallower throughout. The **shore** rides just outside the water edge — a beach cell's inner
-edge *is* the water's, so the bank hugs the water whatever shape it takes. Its width is read along the channel's
+string of riffles rather than tapering once, and it runs shallower throughout. The **shore** rides just outside the fluid's edge — a beach cell's inner
+edge *is* the fluid's, so the bank hugs the fluid whatever shape it takes. Its width is read along the channel's
 **arc**, not the plan grid, so at a point down the run both banks take the same width and the beach stays
-symmetric about the water, widening into a flat here and closing to nothing there *along* the channel rather than
+symmetric about the fluid, widening into a flat here and closing to nothing there *along* the channel rather than
 drifting onto one bank the way a plain spatial field does on a bend (the prototype's `shoreWidth` sampled the
-grid; carrying it to the arc is the one deliberate departure, and it is what makes the beach fit the water). A
+grid; carrying it to the arc is the one deliberate departure, and it is what makes the beach fit the fluid). A
 **beach edge** toggle switches that wander off for a clean, even band of the full width the whole way. The carve leans toward the **G32-C** elevation
 pass rather than depending on it: the bed is negative terrain laid straight into the realized world, so a
 channel works on the flat layouts the sketch tool builds today and will read as a cut valley once that pass
@@ -765,22 +765,22 @@ body crosses, so every bed column standing above it is emptied down to it — an
 two deep by its own word and came out as a five-course vertical wall: grass at y16 on every side, water at y11,
 no shore at all. The finding measures the tallest bank the carve cut against the depth that was stated, and
 names the cell and the two courses, because a wall is read by standing at the bottom of it. The answers are to
-draw the body inside ground that is already level, or to state a `level` and let the water fill the hollow
+draw the body inside ground that is already level, or to state a `level` and let the fluid fill the hollow
 there is instead of making one.
 
-**Water standing against a hole is `DR-DRY`.** The bed a pool carves is the pool's own statement about the
+**A fluid standing against a hole is `DR-DRY`.** The bed a pool carves is the pool's own statement about the
 lake; the hollow it sits in is very often somebody else's — a relief mark, a shape's floor — and where that
 hollow reaches further than the bed does, the extra is excavated and never filled: a trench as deep as the
-water is, running alongside it. `opus5-scarrow-delph`'s tarn is the case. Its relief mark `pan` digs
+fluid is, running alongside it. `opus5-scarrow-delph`'s tarn is the case. Its relief mark `pan` digs
 z −8…7 down to y4 and the fluid prop fills z −7…6, so both end rows stand four courses of open air against the
-water for the lake's whole length, and nothing said so. The test is the water line's own course at each of a
+water for the lake's whole length, and nothing said so. The test is the line's own course at each of a
 wet cell's four neighbours: air there is a fault, **unless the neighbour has no terrain column at all**. That
 exception is the whole of the rule's judgement and it is the author's — a pool reaching the board's own edge
-meets the void, and a wall of water at the world's rim is what a coast is.
+meets the void, and a wall of water or lava at the world's rim is what a coast is.
 
 **The pass does not widen the bed to meet the hollow, and that is the ruling** (author). A radius is what the
-author said the water is, and reading the terrain back to overrule it would have the tool decide how much of a
-board is under water — the same overreach as routing a road the author drew. So the band stays the document's
+author said the fluid is, and reading the terrain back to overrule it would have the tool decide how much of a
+board is under a fluid — the same overreach as routing a road the author drew. So the band stays the document's
 and the two complaints are the whole answer: `DR-DRY` names the open columns with a first coordinate and says
 what to do about them — widen the pool onto the ground that was dug for it, or stop digging it there — and
 `DR-BANK` names the other direction. Neither needs a person to act on: the open count falls as the radius
@@ -792,7 +792,7 @@ water," and the closed form: **depth shading** warped off-centre so one bank run
 pale gravel, coarse dirt) showing through the shallows; **edge life** reusing the §3 flora overlay masked to
 the bank (reeds, lily pads) — on a water fill only, since a lava bed grows neither; and **ponds** — the closed
 version, an organic basin (the §5 boulder blob read concave), scattered onto low ground and joined to channels
-into one watershed on a single water level.
+into one watershed on a single line.
 
 ## 8. Buildings — a rectangle and a shell (`DR-HO`)
 
@@ -840,7 +840,7 @@ entirely (§3.1); the decline is reported like every other, so nothing is droppe
 Its cells do join the pass's running claim, which is a different mechanism entirely — the rule that keeps grass
 from growing through the walls, exactly as a route's cells claim the road. In the ordering that puts buildings
 after strokes and before the props that scatter around them — and a route's own claim is the one a building
-does not check, because a road is meant to run to a porch (§4): a house collides with water or with another
+does not check, because a road is meant to run to a porch (§4): a house collides with a fluid or with another
 house, never with pavement.
 
 **What it claims is what it stamps, grown one block outward.** Every other placement already reserves ground
@@ -1093,7 +1093,7 @@ ones.
 still reads as a building rather than fusing with the ground it stands on: two different passes claimed the two
 sets of cells, whatever either is made of.
 
-**Every other prop claims too, on the `Prop` layer.** A tree, a boulder, a road, a water course and a bed of
+**Every other prop claims too, on the `Prop` layer.** A tree, a boulder, a road, a fluid's bed and a bed of
 flora each report the columns they covered, under a claim of their own. The record used to stop at the
 buildings, on the argument that the rest separate from built ground by material already. They do — what
 material cannot say is that a *pass* put them there, or which prop they belonged to, and those are the two
@@ -1197,7 +1197,7 @@ and lands in the same realize seam.
 | Strokes | `CatmullRom`; `Ribbon`; `Polyline`'s distance field; the lasso's own press-trace-release | `StrokeFill`'s six gates; `StrokeOutline` + its `geometry/stroke.js` twin for the drawn outline | `DR-PA` |
 | Boulders | `SurfaceTop`; the squared-distance masks the objective stampers fill by | `Blob`; `BoulderShapes` | `DR-SC` |
 | Trees | the boulder's seating | `TreeTemplate`; `CanopyProfiles`; the species rows | `DR-TR` |
-| Water | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `FluidBed` + `Decorator.PlaceFluid` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
+| Fluid | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `FluidBed` + `Decorator.PlaceFluid` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
 | Buildings | `HouseStamper` + `HouseStyle` whole; the room-style library; `DressingSymmetry`'s outline fan | `HouseProp` + `Decorator.PlaceHouse`; the rectangle drag; `TurnEdge` for the door | `DR-HO` |
 | The ways past a building | `Walk` + `WalkGround.OfSpans` — the one traversal every distance is measured with, and `Walk.Detour`'s ten blocks | `WayThrough` — the waypoint-pair routes read off the bare terrain, held as each building is admitted to them | `DR-WAY` |
 | A road a building stands on | the stroke's own placed cells, per orbit image | `RouteCrossing` — the runs the paving falls into with the footprint out of it, before against after | `DR-CROSS` |
@@ -1206,7 +1206,7 @@ and lands in the same realize seam.
 
 Two neighbours bound the stage. G32-C (structures & elevation, the "second generator") is the sibling pass
 that gives a flat layout its heights; a boulder or tree seats on whatever surface that pass leaves, so the
-two compose but do not depend on each other — and water, whose carved bed **is** an elevation change, cuts
+two compose but do not depend on each other — and a fluid, whose carved bed **is** an elevation change, cuts
 its bed straight into the realized world, so it works on today's flat layouts and simply reads as a cut valley
 once G32-C gives a layout its heights. G142 (the roughen pass) shares this stage's architecture —
 last in realize, over the authored unit, symmetry re-fanned — and its edge-displacement operator is the

@@ -25,7 +25,7 @@ namespace PgmStudio.Minecraft.Stamping;
 /// </summary>
 /// <param name="Owner">What did the claiming: the kind, the authored unit, and which image of it this is.</param>
 /// <param name="Pass">Which pass this was: a building and every stamped shell are
-/// <see cref="ProvenancePass.Structure"/>, while a tree, a boulder, a path, a water course and a bed of
+/// <see cref="ProvenancePass.Structure"/>, while a tree, a boulder, a path, a fluid's bed and a bed of
 /// flora are <see cref="ProvenancePass.Prop"/> — placed rather than built, and they must not read as
 /// buildings.</param>
 /// <param name="Cells">Every column the thing covers, as the placement actually wrote it.</param>

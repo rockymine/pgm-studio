@@ -291,12 +291,12 @@ public sealed class StrokeStyleCardsEndpoint : EndpointWithoutRequest<List<PropO
 }
 
 /// <summary>GET /api/terrain/fluid-forms — the three channel forms, each an actual dug channel seen from above.</summary>
-public sealed class WaterFormCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
+public sealed class FluidFormCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {
     public override void Configure() { Get("/terrain/fluid-forms"); }
 
     public override Task HandleAsync(CancellationToken ct)
-        => Send.OkAsync([.. DressingPreview.WaterFormCards(
+        => Send.OkAsync([.. DressingPreview.FluidFormCards(
             new FluidProp { Radius = 3, Depth = 2, Seed = 5 }, ThemePresets.Meadow)], ct);
 }
 

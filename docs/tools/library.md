@@ -390,7 +390,7 @@ one asks no question and changes no board.
 
 ### A tree and a boulder are recipes a click puts down
 
-A **placement is a position; what stands there is a recipe.** A path and a water channel are *traced* on the
+A **placement is a position; what stands there is a recipe.** A path and a fluid channel are *traced* on the
 canvas, so pre-authoring one is authoring a shape without its place and their knobs stay in the Dressing
 phase. A tree and a boulder are a *click* — there is no geometry to draw — so what is placed is a point plus a
 name, and the name is a row here (author).

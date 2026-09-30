@@ -11,7 +11,7 @@ namespace PgmStudio.Minecraft.Render;
 ///
 /// <para>A cell's character is the height band it falls in, counted up from the board's lowest ground in
 /// <c>0-9a-z</c> — thirty-six bands, wide enough that any board's relief still resolves to a legible sweep of
-/// them. A house or a hall overprints its ground as <c>H</c>, water as <c>~</c>, and the map's own spawns and
+/// them. A house or a hall overprints its ground as <c>H</c>, a fluid as <c>~</c>, and the map's own spawns and
 /// goals overprint both as <c>@</c> and <c>!</c>, because a reader asking where a relief solved wrong is also
 /// asking whether it did so under something that matters.</para>
 /// </summary>

@@ -67,7 +67,7 @@ export function paintDressing(painter, props,
         });
       }
     }
-    // The line an author dragged, over the band it implies — a path and a water channel are edited as their
+    // The line an author dragged, over the band it implies — a path and a fluid channel are edited as their
     // route, so the route has to stay visible inside its own band.
     if ((prop.kind === "stroke" || prop.kind === "fluid") && (prop.points?.length ?? 0) >= 2) {
       const curve = strokePath(prop);

@@ -48,7 +48,7 @@ public abstract record PlacedProp
 
     /// <summary>The clear ground this kind of prop keeps between its resting cells and the nearest cell a
     /// <b>route</b> claims, in blocks — a rule of the kind rather than a knob, which is why it is a property
-    /// of the type and not a stored field. Zero for most props: a road is a finish, and cover, water and
+    /// of the type and not a stored field. Zero for most props: a road is a finish, and cover, a fluid and
     /// buildings may run right up to one. A tree and a boulder state their own (the author's ruling), because
     /// a trunk against the kerb reads as the road growing through the forest rather than the road passing it.
     /// A stroke that is paint rather than a route claims nothing, so nothing stands off it.</summary>
@@ -106,7 +106,7 @@ public abstract record PlacedProp
 /// </summary>
 public sealed record StrokeProp : PlacedProp
 {
-    /// <summary>a stroke is paved over the ground water left, and everything after it seats on the paving or clear of it (<see cref="PlacementOrder"/>).</summary>
+    /// <summary>a stroke is paved over the ground a fluid left, and everything after it seats on the paving or clear of it (<see cref="PlacementOrder"/>).</summary>
     public override int PlacementOrder => 1;
 
     /// <summary>The drawn centerline, as <c>[x, z]</c> pairs. Two points or more.</summary>
@@ -153,8 +153,8 @@ public sealed record StrokeProp : PlacedProp
 /// <summary>A channel or pool of water or lava: the line the author drew, and how wide and deep a bed is cut
 /// under it. Unlike a <see cref="StrokeProp"/>, which repaints the surface and adds no cell, a fluid is the one
 /// prop that changes the ground — it takes material <em>out</em> to a carved bed and fills that bed to a level
-/// line, because water laid flat on a surface reads as blue paint rather than water. It only ever cuts existing terrain: the
-/// carve stops at the surface it crosses and never fills what was already air.</summary>
+/// line, because water laid flat on a surface reads as blue paint rather than water. It only ever cuts
+/// existing terrain: the carve stops at the surface it crosses and never fills what was already air.</summary>
 public sealed record FluidProp : PlacedProp
 {
     /// <summary>A fluid is carved first: it is the one prop that changes the ground, and everything after it seats on what it leaves (<see cref="PlacementOrder"/>).</summary>
@@ -180,24 +180,24 @@ public sealed record FluidProp : PlacedProp
     /// Two points or more for a channel, three or more for a pool.</summary>
     public IReadOnlyList<double[]> Points { get; init; } = [];
 
-    /// <summary>Half the channel's water width, in blocks. On a <see cref="FluidShape.Pool"/> it is the
+    /// <summary>Half the channel's fluid width, in blocks. On a <see cref="FluidShape.Pool"/> it is the
     /// <b>shelf</b> instead: how far in from the shore the bed reaches its full depth, so a harbour shelves
     /// off its quays rather than dropping to a trench at the wall.</summary>
     public double Radius { get; init; } = 3;
 
-    /// <summary>How deep the bed is cut below the water line on the centerline, in blocks. The bed rises to a
+    /// <summary>How deep the bed is cut below the line on the centerline, in blocks. The bed rises to a
     /// single block at the shore, so the fill sits in a bowl rather than a walled trench.</summary>
     public double Depth { get; init; } = 2;
 
-    /// <summary>The world Y the water stands at, where the author states one. Absent, the line is the lowest
+    /// <summary>The world Y the fluid stands at, where the author states one. Absent, the line is the lowest
     /// surface the channel crosses and the fill never rises past a column's own surface — a channel cut into
     /// ground that was already there.
     ///
     /// <para>Stated, the line is that Y and the fill reaches it whatever the column beneath is doing, which is
     /// what fills a basin: ground dug out in the sketch has no surface up at the line for a derived one to find,
     /// so a lake, a harbour or the water a ship floats on can only be stated. What the author owns then is the
-    /// rim — water rises to the line inside the prop's own footprint and nowhere else, so a line above the
-    /// surrounding ground stands as a wall of water rather than spilling.</para></summary>
+    /// rim — the fluid rises to the line inside the prop's own footprint and nowhere else, so a line above the
+    /// surrounding ground stands as a wall of it rather than spilling.</para></summary>
     public double? Level { get; init; }
 
     public ChannelForm Form { get; init; } = ChannelForm.Canal;
@@ -206,19 +206,19 @@ public sealed record FluidProp : PlacedProp
     /// width off the nominal, in blocks — the roughness of the bank. A canal ignores it.</summary>
     public double Edge { get; init; } = 0.8;
 
-    /// <summary>How wide a beach the water meets the land through, in blocks — the widest the shore band reaches
-    /// before a noise field wanders it, dropping it to nothing in places so the water meets the land directly in
-    /// some stretches and spreads into a flat in others. 0 gives no beach: the water meets the grass at its edge.</summary>
+    /// <summary>How wide a beach the fluid meets the land through, in blocks — the widest the shore band reaches
+    /// before a noise field wanders it, dropping it to nothing in places so the fluid meets the land directly in
+    /// some stretches and spreads into a flat in others. 0 gives no beach: the fluid meets the grass at its edge.</summary>
     public double Shore { get; init; } = 2;
 
     /// <summary>Whether the beach width opens and closes along the run (a smooth field wandered to nothing in
-    /// places), or holds one even width the whole way. Either way it hugs the water; this is only how ragged its
+    /// places), or holds one even width the whole way. Either way it hugs the fluid; this is only how ragged its
     /// outer edge is.</summary>
     public bool ShoreWander { get; init; } = true;
 
     /// <summary>The bank the bed floor and the shore beach are laid with — a full terrain material, not one
     /// block, so it can be a solid, a voronoi patchwork or any pattern the painter offers. The shallows show it
-    /// through the water, and the beach is the same material meeting the land.</summary>
+    /// through the fluid, and the beach is the same material meeting the land.</summary>
     public TerrainMaterial Bank { get; init; } = DefaultBank;
 
     /// <summary>What fills the bed: water, or lava. The carve, the line, the bowl and the beach are the same

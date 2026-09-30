@@ -244,7 +244,7 @@ public sealed class DressingAlgorithmTests
     }
 
     [Test]
-    public async Task The_beach_lies_just_outside_the_water_never_on_it()
+    public async Task The_beach_lies_just_outside_the_fluid_never_on_it()
     {
         // The shore rides just past the water edge — none of its cells are ones the bed carves — so where a
         // channel's width pinches or swells the beach rides in and out with it (one shore law, the water drives).
@@ -257,7 +257,7 @@ public sealed class DressingAlgorithmTests
     }
 
     [Test]
-    public async Task The_beach_wraps_the_water_symmetrically_rather_than_drifting_onto_one_bank()
+    public async Task The_beach_wraps_the_fluid_symmetrically_rather_than_drifting_onto_one_bank()
     {
         // The fix for a beach that read as a shifted gravel path: the width is parameterised along the arc, so at
         // each x down a straight run both banks carry the same beach — the outer beach edge is as far above the

@@ -1265,7 +1265,7 @@ public sealed class DecoratorTests
     }
 
     [Test]
-    public async Task A_channel_left_dry_by_a_keep_out_is_not_claimed_as_water_and_is_named()
+    public async Task A_channel_left_dry_by_a_keep_out_is_not_claimed_as_fluid_and_is_named()
     {
         var (world, top) = Plateau();
         KeepOut? approach(int x, int z) => x is >= 18 and <= 21 ? KeepOut.Approach : null;

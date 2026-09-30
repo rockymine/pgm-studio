@@ -10,7 +10,7 @@ namespace PgmStudio.Minecraft.Render;
 ///
 /// <para><b>Decoration is read as a layer, not as the surface.</b> A fern is not what the ground is made of,
 /// but which ground an author puts a fern on is a decision worth recovering, so a column reports its ground
-/// material and, separately, whatever is growing on it. The same column shape answers the riverbed: water is
+/// material and, separately, whatever is growing on it. The same column shape answers the riverbed: a fluid is
 /// stepped through to the first solid block, and the depth standing over it is kept, so a bed reads as its own
 /// material rather than as a sheet of blue.</para>
 ///
@@ -121,7 +121,7 @@ public static class SurfaceReport
         var unnamed = result.Unnamed.Count == 0 ? null
             : $"{result.Unnamed.Count} block{(result.Unnamed.Count == 1 ? "" : "s")} no family claims";
         Console.WriteLine($"{(verbose ? "\n  " : "")}wrote {outPng} ({scale} px/block); " +
-            $"ground tones by terrain-paint family, structure charcoal, water blue, partial blocks amber, unnamed materials magenta" +
+            $"ground tones by terrain-paint family, structure charcoal, fluid blue, partial blocks amber, unnamed materials magenta" +
             (unnamed is null ? "" : $" ({unnamed})"));
         return 0;
     }
@@ -142,7 +142,7 @@ public static class SurfaceReport
         [
             new("GROUND: COLOUR = TERRAIN-PAINT FAMILY (VARIES)", 0x9DA0A0),
             new("STRUCTURE", 0x2A2D33),
-            new("UNDER WATER", 0x1B3A5C),
+            new("UNDER FLUID", 0x1B3A5C),
             new("PARTIAL BLOCK (STAIR/SLAB/PANE)", 0xC08030),
             new(unnamedNote is null ? "UNNAMED MATERIAL" : $"UNNAMED MATERIAL ({unnamedNote})", 0xC020C0),
             new("VOID", 0x0E0E12),
@@ -355,7 +355,7 @@ public static class SurfaceReport
         var flooded = columns.Values.Where(cell => cell.Depth > 0).ToList();
         if (flooded.Count == 0) return;
         var depths = flooded.Select(cell => cell.Depth).OrderBy(depth => depth).ToList();
-        Console.WriteLine($"\n=== what lies under the water ({flooded.Count} columns, depth " +
+        Console.WriteLine($"\n=== what lies under a fluid ({flooded.Count} columns, depth " +
             $"{depths[0]}..{depths[^1]}, {depths[depths.Count / 2]} typical) ===");
         foreach (var group in flooded.GroupBy(cell => Material(cell.Bed, cell.BedData))
                      .OrderByDescending(group => group.Count()).Take(8))

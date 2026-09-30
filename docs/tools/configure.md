@@ -468,7 +468,7 @@ worse than a refusal naming what broke. `GET /api/map/{slug}/xml` and `GET /api/
 **422** `{error, rule: "DR-DOC", message, subject, field}` — `subject` names the prop (by id, or by its position
 when it never got far enough to have one), `field` names the property inside it, and `message` reads as one
 sentence naming both, e.g. *"prop 'field-road' (#1): field 'kind' names kind 'boulderr', which is not one of
-path, water, tree, boulder, flora, house."* A prop's own enum fields (`style`, `form`) are read
+stroke, fluid, tree, boulder, flora, house, chest."* A prop's own enum fields (`style`, `form`) are read
 case-insensitively, so this never fires on a case difference — only on a `kind` the reader does not know, a
 `kind` missing outright, or a field of the wrong JSON shape (`docs/tools/sketch.md`'s Dressing section).
 

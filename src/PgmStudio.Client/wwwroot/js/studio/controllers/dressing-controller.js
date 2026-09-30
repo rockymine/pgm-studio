@@ -422,7 +422,7 @@ export class DressingController {
 
     // A route is an open line and an area is a closed one, and they simplify differently: the ring simplifier
     // splits at the two farthest points and walks both ways round, which is right for an outline and would
-    // reorder a route. So the open-line props (a path, a water channel) keep their direction through the plain
+    // reorder a route. So the open-line props (a path, a fluid channel) keep their direction through the plain
     // open simplifier.
     const openLine = kind === "stroke" || kind === "fluid";
     const simplified = openLine

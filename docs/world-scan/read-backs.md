@@ -38,7 +38,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 |---|---|---|
 | `render/topdown` | `--topdown --subject …` | the board from above, one question per image. `subject` = `ground` · `structure` · `made` · `foliage` · `objectives` · `combined`; `material` colours by the real palette rather than by category, a flooded column in water's own colour darkened by its depth rather than in its bed's; `ymax` looks under a roof or a canopy; `layer` draws one storey of a stacked board |
 | `render/section` | `--section` | a vertical cut with a Y scale. `axis` = `x`\|`z`, `from`/`to` its extent, `at` the other coordinate, `ymin`/`ymax` the courses drawn, `depth` how far behind the plane to project; `?format=text` answers the same cut as characters, `every` blocks a char |
-| `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading; `layer` draws one storey. `?format=text` answers the same reading as a height-banded grid, `every` blocks a character, with the spawns, goals, houses and water overprinted |
+| `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading; `layer` draws one storey. `?format=text` answers the same reading as a height-banded grid, `every` blocks a character, with the spawns, goals, houses and fluids overprinted |
 | `render/surface` | `--surface` | the paint, as the tone families `TerrainPalette.Families` names; `layer` draws one storey |
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
 | `slopes` | — | the worst step to a neighbour per sampled cell, as JSON digit rows or, on `?format=text`, `.`/`:`/`#` — the tiers a walk is priced in. `faces` names the barrier runs worth checking, largest first |
@@ -127,8 +127,9 @@ columns void to the walk, exactly as `column`, `transect` and the census read th
 leaves the field under it walkable up to the crown's underside. Which blocks are a prop's is read off the
 build's own record rather than off their material: in a column a `tree` or `boulder` claimed last
 (`WorldProvenance.PropVolumeAt`), every block outside the spans the rasterizer laid is the prop's
-(`WorldColumns.ForWalk`). A path, a water course and a bed of flora are laid on or into the ground rather than
-standing on it, so their blocks read as ground.
+(`WorldColumns.ForWalk`). A path, a fluid's bed and a bed of flora are laid on or into the ground rather than
+standing on it, so their blocks read as ground — save lava, which nobody stands in and which reads as a
+prop's volume.
 
 **A step between two places has to fit under the lower one's clearance** — how many blocks are open over it
 before the next solid one. A player builds up through open air and falls down through it, so a gallery roofed
@@ -383,7 +384,7 @@ column answers what is at one coordinate, and a shape is a claim about the *step
 neither a column nor a picture states. A basin whose wall is a sheer eight-block face reads, column by column,
 as a set of true numbers that say nothing about the wall; the same two cells as neighbouring stations on a
 transect answer `BARRIER +8 at (-52, 0)`, which is unmissable where the numbers alone were not. Every station
-carries the ground, the storey a walker stands on, the water and the highest block in its column, and the step
+carries the ground, the storey a walker stands on, the line of any fluid and the highest block in its column, and the step
 from the one before it, classed the way `PgmStudio.Geom.Walk.StepWord` classes every step in the studio —
 walked, scrambled, a barrier, or a drop.
 
@@ -426,7 +427,7 @@ class as a hue.
 
 `heightmap` answers whether a relief solved into the shape it was drawn as, and shows a flat pad butted
 against a hill as the ruled edge it is. Its text twin answers the same question as characters rather than
-tone: a neighbour's height is a subtraction rather than an estimate, and the houses, halls, water, spawns
+tone: a neighbour's height is a subtraction rather than an estimate, and the houses, halls, fluids, spawns
 and goals overprinted on it say what the relief carries rather than leaving a reader to guess from shape
 alone. `surface` answers whether a board's paint is the palette it was authored from — a whole tone family
 taken where two members were meant reads as the noise it is. `mirror` answers whether a board somebody

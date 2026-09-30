@@ -120,7 +120,7 @@ the tasks that delivered them.
 - **A section and a transect as text and as numbers** (`WS19`). `render/section?format=text` answers the
   same cut as characters — `#` ground below the surface course, `L` a storey, every claim by its pass — with
   a y axis, a ruler and the ground's height band under each column. `transect?points=x,z;x,z…` walks any
-  polyline and answers each station's ground, the storey stood on, the water, the top, what stands there and
+  polyline and answers each station's ground, the storey stood on, the fluid line, the top, what stands there and
   the step from the station before, classed walked, scrambled, barrier or drop, with the totals and every
   non-walk step as an event; `beside=N` lists what stands within N cells. JSON beside the text, so a tool
   sums and a reader reads. Every height is the first free course above a block, so two subtract to blocks.
@@ -134,7 +134,7 @@ the tasks that delivered them.
   actually cut off from the board is a different question and a different rule's; a component carrying a
   marker is left out of this reading for that reason.
 - **A heightmap and a slope grid as text** (`WS20`). `render/heightmap?format=text&every=N` answers the
-  height band per cell with the spawns, goals, houses and water overprinted; `slopes` answers the worst
+  height band per cell with the spawns, goals, houses and fluids overprinted; `slopes` answers the worst
   step to a neighbour per cell — `.` walked, `:` scrambled, `#` a barrier — and names the barrier runs as
   faces, largest first, which is where an overdone relief is.
 - **The walk with its profile and its neighbours** (`WS21`). `walk` answers, beside its cells, the storey it

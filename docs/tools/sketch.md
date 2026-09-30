@@ -129,7 +129,7 @@ override-adds overwrite whatever column they land on, then override-subtracts re
 **`keepClear` says the shape is not ground to dress.** A shape drawn to *be* something — a town wall, a crop
 bed, a well's rim, a flight of stairs — is terrain by construction: nothing about its material, its layer or
 its provenance separates it from the ground beside it, so a road repaints its top course and a channel cuts it
-down to the water line. Marking it puts its columns in the dressing pass's keep-out (`KeepOut.Structure`), and
+down to its line. Marking it puts its columns in the dressing pass's keep-out (`KeepOut.Structure`), and
 a prop that lands there is declined as `DR-KEEP` naming the cell. The mark is **exact — no margin** — because
 the wall a road runs through a gate of has to keep its own columns and not a verge either side of them; it is
 the marked shape's own footprint rather than what survives the layer's set algebra, and it travels through the
@@ -1068,8 +1068,8 @@ stated: a claiming stroke holds the cells it covers, so a tree keeps three block
 planted over. It is not a claim that players walk here — a protected verge and a road are the same
 declaration. Marking every stroke a claiming one is how a board ends up with nowhere left to plant.
 
-**Water** is the one prop that changes the ground rather than the surface: it cuts a bed and fills it to a
-level water line, because water laid flat on a surface reads as blue paint. Its `shape` says what its points
+**Fluid** is the one prop that changes the ground rather than the surface: it cuts a bed and fills it to a
+level line with water or lava, because water laid flat on a surface reads as blue paint. Its `shape` says what its points
 mean — a `channel` strokes them as a centerline and takes its width from `radius`, a `pool` closes them into a
 ring and fills it, which is the only way to make a harbour or a lake with square corners; on a pool `radius`
 is the shelf the bed takes to reach full depth. It fills round whatever stands in it and never cuts under it,
@@ -1079,12 +1079,12 @@ stops at the surface it crosses and never fills what was already air. **`level` 
 and then the fill reaches it whatever the column beneath is doing, which is what fills a basin dug out in the
 shapes: a lake, a harbour, the water a ship floats on has no surface up at the line for a derived one to find.
 **The basin is a low floor and not a hole** — the pass skips any column the surface map does not carry, so a
-subtract leaves nothing to fill and a harbour is an override add laying a floor at the depth the water reaches
+subtract leaves nothing to fill and a harbour is an override add laying a floor at the depth the fluid reaches
 down to. The footprint bounds it either way — the pass never floods outward, so the rim is the author's. Its `form` is `canal`
 (a clean uniform width, deepest on the centreline), `natural` (the width wandered by noise) or `stream` (the
 width pinching and swelling on a beat down the arc, running shallower throughout, so it reads as riffles
 rather than one even channel). Around that: `radius` and `depth`, `edge` for how far a natural or stream bank
-wobbles, `shore` for how wide a beach the water meets the land through with `shoreWander` for whether that
+wobbles, `shore` for how wide a beach the fluid meets the land through with `shoreWander` for whether that
 beach opens and closes along the run, and `bank` — again a full terrain material, defaulting to a Voronoi of
 gravel edges, coarse dirt inside them and sand in the middle, which shows through the shallows and continues
 as the beach.
@@ -1412,7 +1412,7 @@ new view of its own, since a suggestion is not stored and cannot be changed.
 
 **Placing a view draws the board as it is built, and nothing over it.** The canvas shows the **Board layer** —
 the full build from straight above, one pixel a column in the colour of the block on top of it, so the trees, the
-houses and the water are in it — shaded the way the game's own map item shades, each column against its
+houses and the fluids are in it — shaded the way the game's own map item shades, each column against its
 northern neighbour, with a light height term over that. It is drawn from the same columns the 3-D preview
 meshes (`sketch/columns`), asked for once when the placing starts. The shapes, the blocks, the mirror, the chunk
 grid, the work bounds, the axis, the group outlines and the objective labels are all left off whatever their
