@@ -3,22 +3,22 @@ using System.Text.Json.Serialization;
 
 namespace PgmStudio.Vocabulary;
 
-/// <summary>The three documents a studio-authored map is stated in: the plan it was drawn from, the layout that
-/// is built, and the intent it is played for. Spelled by the studio that keeps them, the edits that name one,
-/// and every reader of a map's changes.</summary>
+/// <summary>The four documents a studio-authored map is stated in: the plan it was drawn from, the refinement
+/// stating what the plan cannot, the layout that is built, and the intent it is played for. Spelled by the
+/// studio that keeps them, the edits that name one, and every reader of a map's changes.</summary>
 public static class MapDocuments
 {
-    public const string Plan = "plan", Layout = "layout", Intent = "intent";
+    public const string Plan = "plan", Refinement = "refinement", Layout = "layout", Intent = "intent";
 
-    /// <summary>The three, in the order a map is stated in them.</summary>
-    public static readonly string[] All = [Plan, Layout, Intent];
+    /// <summary>The four, in the order a map is stated in them.</summary>
+    public static readonly string[] All = [Plan, Refinement, Layout, Intent];
 }
 
 /// <summary>
-/// One mechanical change to one of the three documents at one path: a change a gate states as a finding's fix,
+/// One mechanical change to one of the four documents at one path: a change a gate states as a finding's fix,
 /// or one that landed between two of a map's changes.
 ///
-/// <para><b>Document</b> names which of the three the path is into (<see cref="MapDocuments"/>). <b>Path</b> is
+/// <para><b>Document</b> names which of the four the path is into (<see cref="MapDocuments"/>). <b>Path</b> is
 /// the field the change lands on, spelled the way an unread field is (<c>relief.team.marks</c>,
 /// <c>dressing.props[erratic-broken]</c>): members joined by dots, an array element by its <c>id</c> in brackets
 /// where the element carries one and by its index otherwise. <b>Op</b> is one of four: <c>add</c> appends
@@ -28,7 +28,7 @@ public static class MapDocuments
 /// landed and absent from one a gate proposes. <b>Says</b> is the change in the author's terms, one
 /// sentence.</para>
 /// </summary>
-/// <param name="Document">Which document: <c>plan</c>, <c>layout</c> or <c>intent</c>.</param>
+/// <param name="Document">Which document: <c>plan</c>, <c>refinement</c>, <c>layout</c> or <c>intent</c>.</param>
 /// <param name="Path">Where in it the change lands.</param>
 /// <param name="Op"><c>add</c>, <c>set</c>, <c>move</c> or <c>remove</c>.</param>
 /// <param name="Value">What is added, set or moved to, as the document would carry it.</param>

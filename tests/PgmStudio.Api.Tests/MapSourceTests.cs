@@ -488,7 +488,7 @@ public sealed class MapSourceTests
             .GetProperty("changes").EnumerateArray().Single();
         await Assert.That(change.GetProperty("note").GetString()).IsEqualTo("the first pass");
         await Assert.That(change.GetProperty("documents").EnumerateArray().Select(document => document.GetString()!))
-            .IsEquivalentTo(["plan", "layout", "intent"]);
+            .IsEquivalentTo(["plan", "refinement", "layout", "intent"]);
     }
 
     /// <summary><b>A dry run is decided and not stored.</b> It answers what the source would change in the documents
@@ -503,7 +503,7 @@ public sealed class MapSourceTests
             .Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(first.GetProperty("change").ValueKind).IsEqualTo(JsonValueKind.Null);
         await Assert.That(Edits(first).Select(edit => edit.Document).Distinct())
-            .IsEquivalentTo(["plan", "layout", "intent"]);
+            .IsEquivalentTo(["plan", "refinement", "layout", "intent"]);
         await Assert.That(first.GetProperty("layout").GetProperty("layers")[0].GetProperty("layout")
             .GetProperty("shapes")[0].GetProperty("id").GetString()).IsEqualTo("s1");
         await Assert.That(first.GetProperty("intent").GetProperty("meta").GetProperty("authors")[0]
@@ -592,6 +592,128 @@ public sealed class MapSourceTests
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest).Because(text);
         await Assert.That(JsonDocument.Parse(text).RootElement.GetProperty("findings")[0].GetProperty("message").GetString())
             .Contains("'weir-gate'");
+    }
+
+    /// <summary><b>A source is not applied over a hand edit it has not seen.</b> A map made from a refinement,
+    /// edited in the Sketch tool after its source was applied, refuses the next apply — the dry run as well — and
+    /// hands the edit over as the refinement would state it, naming the change; the hand edit stays.</summary>
+    [Test]
+    public async Task A_source_over_a_hand_edit_it_has_not_seen_is_refused_and_hands_the_edit_over()
+    {
+        using var client = await HandEditedAsync();
+
+        foreach (var route in (string[])[$"{Source}?dry=true", Source])
+        {
+            var refused = await client.PutAsJsonAsync(route, Body(authors: new object[] { "Opus 5" }));
+            var text = await refused.Content.ReadAsStringAsync();
+            await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.Conflict).Because(text);
+
+            var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings").EnumerateArray().Single();
+            await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("SR1");
+            await Assert.That(finding.GetProperty("subjects")[0].GetString()).IsEqualTo("2");
+            var edit = finding.GetProperty("edit");
+            await Assert.That((edit.GetProperty("document").GetString(), edit.GetProperty("path").GetString()))
+                .IsEqualTo(("refinement", "shapePropsById.s1.max_x"));
+            await Assert.That(edit.GetProperty("value").GetDouble()).IsEqualTo(10d);
+        }
+        await Assert.That(await StoredMaxXAsync(client)).IsEqualTo(10d).Because("the hand edit is still the board");
+    }
+
+    /// <summary>A source that states it was built after the hand edit, or names the edit to drop, is applied — and
+    /// the change it lands as records what it dropped.</summary>
+    [Test]
+    public async Task A_source_that_has_seen_the_change_or_drops_it_is_applied()
+    {
+        using var client = await HandEditedAsync();
+        var seen = await client.PutAsJsonAsync(Source, new
+        {
+            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
+            layout = JsonDocument.Parse(Layout).RootElement,
+            intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate","authors":[],"contributors":[]}}""").RootElement,
+            refinement = new { authors = new object[] { "Opus 5" } },
+            after = 2,
+        });
+        await Assert.That(seen.IsSuccessStatusCode).IsTrue().Because(await seen.Content.ReadAsStringAsync());
+
+        await client.PutAsync("/api/map/weirgate/sketch", Json(Layout.Replace("\"max_x\":20", "\"max_x\":12")));
+        var dropped = await client.PutAsJsonAsync($"{Source}?discard=4", Body(authors: new object[] { "Opus 5" }));
+        await Assert.That(dropped.IsSuccessStatusCode).IsTrue().Because(await dropped.Content.ReadAsStringAsync());
+        await Assert.That(await StoredMaxXAsync(client)).IsEqualTo(20d);
+
+        var changes = (await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/changes")).GetProperty("changes");
+        await Assert.That(changes[changes.GetArrayLength() - 1].GetProperty("discarded").EnumerateArray()
+            .Select(number => number.GetInt64())).IsEquivalentTo([4L]);
+        await Assert.That(changes[0].GetProperty("discarded").GetArrayLength()).IsEqualTo(0);
+    }
+
+    /// <summary>A map whose source stated no refinement is its drawing, and a source replaces a hand edit of it
+    /// without asking.</summary>
+    [Test]
+    public async Task A_map_made_without_a_refinement_is_never_refused()
+    {
+        using var client = await FreshAsync();
+        await client.PutAsJsonAsync(Source, Body());
+        await client.PutAsync("/api/map/weirgate/sketch", Json(Layout.Replace("\"max_x\":20", "\"max_x\":10")));
+
+        var again = await client.PutAsJsonAsync(Source, Body());
+
+        await Assert.That(again.IsSuccessStatusCode).IsTrue().Because(await again.Content.ReadAsStringAsync());
+    }
+
+    /// <summary>A change is named by a number the map has, and a dropped one by a number the source has not
+    /// seen.</summary>
+    [Test]
+    public async Task An_after_or_a_discard_naming_no_change_it_could_be_is_refused()
+    {
+        using var client = await HandEditedAsync();
+
+        var future = await client.PutAsJsonAsync(Source, new
+        {
+            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
+            layout = JsonDocument.Parse(Layout).RootElement,
+            intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"}}""").RootElement,
+            after = 9,
+        });
+        var stray = await client.PutAsJsonAsync($"{Source}?discard=1", Body(authors: new object[] { "Opus 5" }));
+        var unreadable = await client.PutAsJsonAsync($"{Source}?discard=two", Body(authors: new object[] { "Opus 5" }));
+
+        foreach (var (refused, field) in new[] { (future, "after"), (stray, "discard"), (unreadable, "discard") })
+        {
+            var text = await refused.Content.ReadAsStringAsync();
+            await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest).Because(text);
+            await Assert.That(JsonDocument.Parse(text).RootElement.GetProperty("findings")[0].GetProperty("field")
+                .GetString()).IsEqualTo(field);
+        }
+    }
+
+    /// <summary>The refinement a source stated is one of the map's documents: read back as it was stated, kept on
+    /// the change, and absent from a map no source has been applied to.</summary>
+    [Test]
+    public async Task The_refinement_a_source_states_is_kept_as_the_maps_document()
+    {
+        using var client = await FreshAsync();
+        await client.PostAsJsonAsync("/api/sketch", new { name = "Drawn" });
+        var none = await client.GetAsync("/api/map/drawn/refinement");
+        await Assert.That(none.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+
+        await client.PutAsJsonAsync(Source, Body(authors: new object[] { "Opus 5" }));
+        var kept = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/refinement");
+        await Assert.That(kept.GetProperty("authors")[0].GetString()).IsEqualTo("Opus 5");
+        var atChange = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/changes/1");
+        await Assert.That(atChange.GetProperty("refinement").GetProperty("authors")[0].GetString()).IsEqualTo("Opus 5");
+    }
+
+    /// <summary>Weirgate stored from a source with a refinement, then its plate narrowed to x −10..10 in the Sketch
+    /// tool: changes 1 and 2.</summary>
+    private static async Task<HttpClient> HandEditedAsync()
+    {
+        var client = await FreshAsync();
+        var stored = await client.PutAsJsonAsync(Source, Body(authors: new object[] { "Opus 5" }));
+        await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
+        var edited = await client.PutAsync("/api/map/weirgate/sketch",
+            Json(Layout.Replace("\"min_x\":-20,\"max_x\":20", "\"min_x\":-20,\"max_x\":10")));
+        await Assert.That(edited.IsSuccessStatusCode).IsTrue().Because(await edited.Content.ReadAsStringAsync());
+        return client;
     }
 
     private static async Task<HttpClient> FreshAsync()

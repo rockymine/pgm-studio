@@ -380,6 +380,11 @@ public sealed record AddedLayer(
 /// <summary>One point edit to an outline: exactly one of <see cref="After"/> (insert a point on that edge, at its
 /// midpoint where no <c>x</c>/<c>z</c> is stated), <see cref="Index"/> (move that point to <c>x</c>/<c>z</c>) or
 /// <see cref="Remove"/> (drop that point). Every other point stays exactly where it was drawn.</summary>
+/// <param name="After">Insert a point on the edge after this one.</param>
+/// <param name="Index">Move this point to <c>x</c>/<c>z</c>.</param>
+/// <param name="Remove">Drop this point.</param>
+/// <param name="X">Where the point goes on the x axis, in blocks.</param>
+/// <param name="Z">Where the point goes on the z axis, in blocks.</param>
 public sealed record VertexEdit(
     [property: JsonPropertyName("after")] int? After = null,
     [property: JsonPropertyName("index")] int? Index = null,
@@ -393,6 +398,18 @@ public sealed record Refined(string LayoutJson, string IntentJson, Findings Find
 /// <summary>The rules a map's source fires as it is applied.</summary>
 public static class SourceRules
 {
+    /// <summary>A source is applied over a change it has not seen: a map made from a refinement was changed —
+    /// by hand in a tool, by another writer's source — after the change the source states it was built against.
+    /// Applying it would replace that change without a word, so the source is refused 409 and the change is
+    /// handed over: one finding per edit it made, naming the change in <c>subjects</c> and stating the edit as
+    /// the source would state it — into the refinement where the refinement has words for it, as the plan's,
+    /// the layout's or the intent's own edit where it does not.</summary>
+    /// <remarks>Take the edits into the source and state the change as <c>after</c>, or name the changes to drop
+    /// in <c>?discard=</c>, which the change the source lands as records. A map with no refinement is never
+    /// refused this way.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request)]
+    public const string UnseenChange = "SR1";
+
     /// <summary><b>A complaint.</b> A refinement statement names a shape or a layer the board does not have — a
     /// theme or fields by a shape id, a point edit or a bend, a shape drawn onto a layer — so it reaches nothing
     /// and the board stores without it. A compiled shape answers to its component's first piece and the surface

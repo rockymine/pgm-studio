@@ -44,7 +44,7 @@ public sealed class MapChangeEndpointsTests
         var changes = (await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/changes")).GetProperty("changes");
         await Assert.That(changes.GetArrayLength()).IsEqualTo(2);
         var load = changes[0];
-        await Assert.That(Words(load.GetProperty("documents"))).IsEquivalentTo(["plan", "layout", "intent"]);
+        await Assert.That(Words(load.GetProperty("documents"))).IsEquivalentTo(["plan", "refinement", "layout", "intent"]);
         await Assert.That(load.GetProperty("note").GetString()).IsEqualTo("pass 1");
         await Assert.That(load.GetProperty("origin").GetProperty("commit").GetString()).IsEqualTo("5daa56f");
         await Assert.That(Words(changes[1].GetProperty("documents"))).IsEquivalentTo(["layout"]);

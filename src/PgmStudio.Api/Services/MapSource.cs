@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -39,11 +40,14 @@ public sealed record MapSourceApplied(Refusal? Refusal, MapSourceDto? Answer = n
 /// </summary>
 public static class MapSource
 {
-    /// <summary>The members a source states, as its body spells them.</summary>
-    private static readonly string[] Members = ["plan", "layout", "intent", "refinement", "name", "origin", "note"];
+    /// <summary>The documents a source states, as its body spells them, each read by its own reader.</summary>
+    private static readonly string[] Documents = ["plan", "layout", "intent", "refinement"];
+
+    /// <summary>The members that say something about the source itself, which bind to its record.</summary>
+    private static readonly string[] About = ["after", "name", "origin", "note"];
 
     public static async Task<MapSourceApplied> ApplyAsync(
-        HttpContext http, string slug, string body, bool dry,
+        HttpContext http, string slug, string body, bool dry, string? discarding,
         MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
         WorldFeatureWriter features, PgmDb db, PlayerLookup players, MapChangeLog log, CancellationToken ct)
     {
@@ -58,18 +62,29 @@ public static class MapSource
         {
             stated = JsonNode.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body) as JsonObject
                      ?? throw new JsonException("the body is not a JSON object");
-            request = stated.Deserialize<MapSourceRequest>(MapArtifactStore.Json) ?? new MapSourceRequest();
+            var about = new JsonObject();
+            foreach (var key in About)
+                if (stated[key] is { } value) about[key] = value.DeepClone();
+            request = about.Deserialize<MapSourceRequest>(MapArtifactStore.Json) ?? new MapSourceRequest();
         }
         catch (JsonException fault)
         {
             return Refuse(400, "unreadable source", new Finding(RequestRules.Unreadable, fault.Message));
         }
-        Complaints.Unread(http, [.. stated.Select(member => member.Key).Where(key => !Members.Contains(key))]);
+        Complaints.Unread(http, [.. stated.Select(member => member.Key)
+            .Where(key => !Documents.Contains(key) && !About.Contains(key))]);
 
-        var plan = Raw(request.Plan);
-        var drawnLayout = Raw(request.Layout);
-        var drawnIntent = Raw(request.Intent);
-        var refinement = Raw(request.Refinement);
+        var discard = new List<long>();
+        foreach (var word in (discarding ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            if (long.TryParse(word, NumberStyles.None, CultureInfo.InvariantCulture, out var number)) discard.Add(number);
+            else
+                return Refuse(400, "unreadable discard", new Finding(RequestRules.Unreadable,
+                    $"discard names changes by number, as `8,9`, and '{word}' is not one", Field: "discard"));
+
+        var plan = Raw(stated["plan"]);
+        var drawnLayout = Raw(stated["layout"]);
+        var drawnIntent = Raw(stated["intent"]);
+        var refinement = Raw(stated["refinement"]);
         if ((drawnLayout is null) != (drawnIntent is null))
             return Refuse(400, "no base", new Finding(RequestRules.Unreadable,
                 $"the source states a drawn {(drawnLayout is null ? "intent" : "layout")} without its "
@@ -101,6 +116,11 @@ public static class MapSource
             .. Unread("layout", drawnLayout, SketchLayout.Stated),
             .. Unread("intent", drawnIntent, IntentWrite.Stated),
             .. Unread("refinement", refinement, Refinement.Stated)]);
+
+        // A map made from a refinement is not replaced over a change its source has not seen.
+        var existing = await repo.GetBySlugAsync(slug, ct);
+        var (unseen, discarded) = await UnseenAsync(existing, slug, request.After, discard, artifacts, log, db, ct);
+        if (unseen is not null) return new(unseen);
 
         // The base: the drawn pair as it was stated, with the plan beside it kept as the one it was drawn from;
         // or the plan compiled.
@@ -142,9 +162,8 @@ public static class MapSource
         if (prepared.Refusal is { } unbuildable) return new(unbuildable);
         Complaints.Add(http, prepared.Judged.Complaints);
 
-        var existing = await repo.GetBySlugAsync(slug, ct);
         var storedIntent = JsonSerializer.Serialize(IntentWrite.Stated(intentJson), MapArtifactStore.Json);
-        var edits = await EditsAsync(log, slug, plan, layoutJson, storedIntent, ct);
+        var edits = await EditsAsync(log, slug, plan, refinement, layoutJson, storedIntent, ct);
         var configure = $"/maps/{slug}/configure";
         if (dry)
             return new(null, new MapSourceDto(slug, null, existing is not null, edits, prepared.Cells.Count,
@@ -157,12 +176,14 @@ public static class MapSource
         {
             OriginJson = request.Origin is { } origin ? JsonSerializer.Serialize(origin, MapArtifactStore.Json) : null,
             Note = request.Note,
+            Discarded = discarded,
         };
 
         try
         {
             if (keptViews is not null) await artifacts.SaveAsync(mapId, ArtifactKind.MapViewsJson, keptViews, ct);
             await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, planBytes, ct);
+            await artifacts.SaveAsync(mapId, ArtifactKind.RefinementJson, Encoding.UTF8.GetBytes(refinement ?? "{}"), ct);
             var layoutRevision = await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson,
                 Encoding.UTF8.GetBytes(layoutJson), ct);
             var finished = await SketchFinish.WriteAsync(mapId, prepared, layoutRevision, repo, features, ct);
@@ -201,13 +222,15 @@ public static class MapSource
     /// <summary>What the source changes in the documents the slug holds at its latest change — every document
     /// stated for the first time where it holds none. The intent is compared in the form it is stored in.</summary>
     private static async Task<IReadOnlyList<DocumentEdit>> EditsAsync(
-        MapChangeLog log, string slug, string? plan, string layoutJson, string storedIntent, CancellationToken ct)
+        MapChangeLog log, string slug, string? plan, string? refinement, string layoutJson, string storedIntent,
+        CancellationToken ct)
     {
         var latest = await log.LatestAsync(slug, ct);
         var held = latest > 0 ? await log.DocumentsAtAsync(slug, latest, ct) : new Dictionary<string, byte[]>();
         var posted = new Dictionary<string, string>
         {
-            [MapDocuments.Plan] = plan ?? "{}", [MapDocuments.Layout] = layoutJson, [MapDocuments.Intent] = storedIntent,
+            [MapDocuments.Plan] = plan ?? "{}", [MapDocuments.Refinement] = refinement ?? "{}",
+            [MapDocuments.Layout] = layoutJson, [MapDocuments.Intent] = storedIntent,
         };
         return
         [
@@ -252,8 +275,89 @@ public static class MapSource
         return document.RootElement.Clone();
     }
 
-    private static string? Raw(JsonElement? document) =>
-        document is { ValueKind: not (JsonValueKind.Undefined or JsonValueKind.Null) } stated ? stated.GetRawText() : null;
+    /// <summary>
+    /// What a source applied over changes it has not seen comes to: the refusal handing them over, or the changes
+    /// it drops. Only a map made from a refinement — one whose stored refinement states anything — is asked. The
+    /// changes it has not seen are those after <paramref name="after"/>, or after the change its source was last
+    /// applied as, less the ones <paramref name="discard"/> names, and each is handed over as the edits that would
+    /// make the source state it (<see cref="Handover"/>); a change that edited nothing hands over nothing and
+    /// refuses nothing.
+    /// </summary>
+    private static async Task<(Refusal? Refusal, IReadOnlyList<long> Discarded)> UnseenAsync(
+        MapRow? existing, string slug, long? after, IReadOnlyList<long> discard, MapArtifactStore artifacts,
+        MapChangeLog log, PgmDb db, CancellationToken ct)
+    {
+        var changes = await log.ListAsync(slug, ct);
+        var latest = changes.Count > 0 ? changes[^1].Number : 0;
+        if (after is { } built && (built < 0 || built > latest))
+            return (Refusal.At(400, "no such change", new Finding(RequestRules.Unreadable,
+                $"after names change {built}, and '{slug}' has {(latest == 0 ? "none" : $"changes 1 to {latest}")}",
+                Field: "after")), []);
+
+        var held = existing is null ? null : await artifacts.LoadAsync(existing.Id, ArtifactKind.RefinementJson, ct);
+        var applied = changes.LastOrDefault(change => change.Kinds.Contains(ArtifactKind.RefinementJson))?.Number ?? 0;
+        var since = States(held) ? changes.Where(change => change.Number > (after ?? applied)).ToList() : [];
+        var strays = discard.Where(number => since.All(change => change.Number != number)).ToList();
+        if (strays.Count > 0)
+            return (Refusal.At(400, "no such change", new Finding(RequestRules.Unreadable,
+                $"discard names {Numbers(strays)}, not among the changes the source has not seen — "
+                + (since.Count == 0 ? "there are none" : Numbers(since.Select(change => change.Number))),
+                Field: "discard")), []);
+
+        var findings = new List<Finding>();
+        var unseen = since.Where(change => !discard.Contains(change.Number)).ToList();
+        var notes = unseen.Count == 0 ? [] : await new MapNoteStore(db).OfMapAsync(slug, ct);
+        foreach (var change in unseen)
+        {
+            var before = await log.DocumentsAtAsync(slug, change.Number - 1, ct);
+            var at = await log.DocumentsAtAsync(slug, change.Number, ct);
+            var edits = MapDocuments.All.SelectMany(document => DocumentDiff.Between(document,
+                MapChangeRead.Text(before, MapChangeRead.KindOf(document)),
+                MapChangeRead.Text(at, MapChangeRead.KindOf(document)))).ToList();
+            var handed = Handover.Of(edits, held is null ? null : Encoding.UTF8.GetString(held),
+                (MapChangeRead.Text(before, ArtifactKind.SketchLayoutJson), MapChangeRead.Text(before, ArtifactKind.MapIntentJson)),
+                (MapChangeRead.Text(at, ArtifactKind.SketchLayoutJson), MapChangeRead.Text(at, ArtifactKind.MapIntentJson)),
+                applied: change.Kinds.Contains(ArtifactKind.RefinementJson));
+            var said = Said(change, notes);
+            findings.AddRange(handed.Select(edit => new Finding(SourceRules.UnseenChange,
+                $"change {change.Number} — {said}: {edit.Says}", Field: "after",
+                Subjects: [change.Number.ToString(CultureInfo.InvariantCulture)], Edit: edit)));
+        }
+        return findings.Count > 0 ? (new Refusal(409, "changes not seen", findings), []) : (null, [.. discard]);
+    }
+
+    /// <summary>Who made a change and when, what they noted on it, and the notes written at it.</summary>
+    private static string Said(MapChange change, IReadOnlyList<StoredNote> notes)
+    {
+        var said = new StringBuilder(change.WriterName ?? "unsigned");
+        if (change.TokenLabel is { } token) said.Append(" (token ").Append(token).Append(')');
+        said.Append(CultureInfo.InvariantCulture, $", {DateTime.SpecifyKind(change.At, DateTimeKind.Utc):yyyy-MM-dd HH:mm}Z");
+        if (change.Note is { Length: > 0 } noted) said.Append(", noted «").Append(Clip(noted)).Append('»');
+        foreach (var stored in notes)
+            foreach (var message in stored.Messages.Where(message => message.Change == change.Number))
+                said.Append(CultureInfo.InvariantCulture, $", note {stored.Note.Id}: «{Clip(message.Body)}»");
+        return said.ToString();
+    }
+
+    private static string Clip(string text)
+    {
+        var line = text.ReplaceLineEndings(" ").Trim();
+        return line.Length <= 120 ? line : line[..119] + "…";
+    }
+
+    private static string Numbers(IEnumerable<long> numbers) =>
+        string.Join(", ", numbers.Select(number => $"#{number}"));
+
+    /// <summary>Whether a stored refinement states anything: a source that stated none keeps <c>{}</c>.</summary>
+    private static bool States(byte[]? refinement)
+    {
+        if (refinement is null) return false;
+        try { return JsonNode.Parse(refinement) is JsonObject { Count: > 0 }; }
+        catch (JsonException) { return false; }
+    }
+
+    private static string? Raw(JsonNode? document) =>
+        document is null || document.GetValueKind() == JsonValueKind.Null ? null : document.ToJsonString();
 
     private static string? NameOf(string intentJson) =>
         (JsonNode.Parse(intentJson) as JsonObject)?["meta"]?["name"] is JsonValue name && name.TryGetValue<string>(out var text)

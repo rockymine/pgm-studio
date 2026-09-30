@@ -74,7 +74,8 @@ this folder takes a map; these are what a caller with no map reaches for first.
 | `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
 | `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
 | `DELETE /map/{slug}` | nothing — **204**, and the map is gone with everything stored under it: its teams, regions, authors, objectives, scans and every document it held, since each of those rows cascades from the map's. A world folder under a maps root is what a map was scanned from rather than something it holds, and stays; an imported one is offered as an import candidate again. The call for a driver cleaning up after a variant, or a spec re-driven under a corrected slug | 404 `RQ4` no map at that slug |
-| `PUT /map/{slug}/source[?dry=true]` | `{slug, change, replaced, edits, cells, islands, configureUrl}`, and on a dry run the `layout` and `intent` it would store — a whole map stored from its source, a plan compiled or a drawn layout and intent, with the refinement applied onto it, as one change. **The authoring call for a headless caller**, not only the import one, and the whole of it: the compile, the refinement, the finish and the intent's projection run inside it. A map already at that slug is replaced, and only once the source has passed everything it is refused for; `?dry=true` decides all of it, answers the edits and stores nothing. See *A map's source is the way in, and the way back in* below. Every document answers `RQ3` under the member it was stated as | 400 `not a slug` `RQ1` · 400 `no base` `RQ1` naming `plan`, `layout` or `intent` · 400 `unreadable document` `RQ1` naming the first field each binder cannot read, under its member (`intent.modes[0]`) · 400 `no name given` · 400 `note too long` · 400 `invalid style or theme` · 400 a person nobody could be called · 403 `RQ8` a map at that slug the caller may not edit · 422 `plan not compilable` · 422 `refinement not applicable` `SR3`/`SR4` · 422 the drawing carries no ground `SK7` — a refused source stores nothing |
+| `PUT /map/{slug}/source[?dry=true&discard=]` | `{slug, change, replaced, edits, cells, islands, configureUrl}`, and on a dry run the `layout` and `intent` it would store — a whole map stored from its source, a plan compiled or a drawn layout and intent, with the refinement applied onto it, as one change. **The authoring call for a headless caller**, not only the import one, and the whole of it: the compile, the refinement, the finish and the intent's projection run inside it. A map already at that slug is replaced, and only once the source has passed everything it is refused for; `?dry=true` decides all of it, answers the edits and stores nothing. A map made from a refinement refuses a source over a change it has not seen, and `?discard=` names the ones it drops. See *A map's source is the way in, and the way back in* below. Every document answers `RQ3` under the member it was stated as | 400 `not a slug` `RQ1` · 400 `no such change` `RQ1` naming `after` or `discard` · 400 `unreadable discard` · 400 `no base` `RQ1` naming `plan`, `layout` or `intent` · 400 `unreadable document` `RQ1` naming the first field each binder cannot read, under its member (`intent.modes[0]`) · 400 `no name given` · 400 `note too long` · 400 `invalid style or theme` · 400 a person nobody could be called · 403 `RQ8` a map at that slug the caller may not edit · 422 `plan not compilable` · 422 `refinement not applicable` `SR3`/`SR4` · 409 `changes not seen` `SR1`, one per edit a change the source has not seen made, handed over · 422 the drawing carries no ground `SK7` — a refused source stores nothing |
+| `GET /map/{slug}/refinement` | the refinement the map's source last stated, `{}` where it stated none; its `ETag` is the change that wrote it | 404 `RQ4` no map at that slug, or no source applied to it |
 
 ## The hand-offs
 
@@ -186,10 +187,40 @@ refinement (`editShapes.dale-9[2]`).
 already has, or under none, is `SR3`, and a point edit naming no single point is `SR4`. Either answers
 `422 refinement not applicable` and stores nothing, because neither can be applied without a guess.
 
+**The refinement is kept as the map's fourth document.** A source's refinement is stored beside the plan, the
+layout and the intent as it was stated, and `{}` where a source stated none, so the map holds what it was built
+from as well as what it came to. `GET /map/{slug}/refinement` reads it back, and a change that wrote it keeps
+it, compares it and restores it like the other three.
+
+**A source is not applied over a change it has not seen.** A map made from a refinement is edited by other
+hands too — a person in the Sketch tool fixing a coast or showing the agent how, another writer's source — and a
+source built before that edit would replace it without a word. So a source states `after`, the change it was
+built against, and where the map's stored refinement states anything, every change after it is one the source
+has not seen. Absent, `after` is the change the map's source was last applied as. A source over an unseen change
+that edited anything is refused `409 changes not seen`.
+
+**The refusal hands the change over.** It carries one `SR1` per edit an unseen change made, naming the change in
+`subjects` and saying in its message who made it, when, what was noted on it and what the notes written at it
+say. The finding's `edit` states the edit as the source would, into the refinement wherever the refinement has
+words for it. Where only the plan can state it — a compiled shape taken away — the edit is the plan's, the
+layout's or the intent's own, with both values.
+
+**Each kind of hand edit lands where the refinement states that kind of thing.** A theme painted on a compiled
+shape is `themeById`, and an outline redrawn is `shapePropsById` with the bend or point edits that would redraw
+it removed. A shape drawn onto the ground is an `addShapes` entry carrying its layer and group, and a prop moved
+is the same move in the refinement's `dressing`. A relief, a theme or a capture point edited is stated whole,
+because an edit inside one would lose the rest of it. A change that was itself a source hands over its plan and
+refinement, and the rest follows from them.
+
+**A change is taken in or dropped.** A source that takes the edits into its refinement states the change as
+`after`; one that replaces them names the changes in `?discard=8,9`, and the change it lands as records them as
+`discarded`. A map made without a refinement is its drawing, and a source replaces a hand edit of it without
+asking.
+
 **Everything is decided before the stored map is touched.** A document its binder cannot read, a plan the gates
 refuse, a refinement that refuses, a style or theme the gate refuses, a person nobody could be called and a
 drawing the finish would refuse are each decided from the source alone, so a refused reload leaves the board it
-would have replaced. Only then are the three documents stored as **one change** on the slug's history, numbered
+would have replaced. Only then are the four documents stored as **one change** on the slug's history, numbered
 above every change the slug has answered. A browser tab that read the old board is therefore refused `RQ5` when
 it saves, rather than writing it back over the new one (`docs/refusals.md`).
 
@@ -284,7 +315,7 @@ provenance. Nothing enforces this; the 409 above is the one place the system not
 
 ## Every change a map keeps
 
-**A write to a map's plan, layout or intent is a change the map keeps.** Whichever road it comes by — a tool
+**A write to a map's plan, refinement, layout or intent is a change the map keeps.** Whichever road it comes by — a tool
 saving, a source, a restore — it lands as one change per request: numbered per slug, counting up and never
 repeating, stamped with the person it was written as and the label of the token that wrote it, and carrying
 the `origin` and `note` a source states. The documents are kept whole, once each however many changes write the
@@ -292,7 +323,7 @@ same bytes, so a map can be read, compared and put back as it stood at any of it
 (`docs/architecture.md` has how they are stored).
 
 **Two changes compare document by document, in the shape a finding's fix is stated in.**
-`GET /map/{slug}/diff?from=&to=` answers the edits taking the three documents at `from` to those at `to`,
+`GET /map/{slug}/diff?from=&to=` answers the edits taking the four documents at `from` to those at `to`,
 each naming its document, the path it lands on, one of `add`, `set`, `move` and `remove`, the value, the value
 it replaced, and the change in words (`docs/refusals.md`). A thing in a list is named by its `id` wherever it
 sits, so a shape drawn ahead of the others is one `add` rather than every later shape changing; a list whose
@@ -317,7 +348,7 @@ is what a note about the ground is answered against.
 **A change is put back by writing its documents again, as a new change.**
 `POST /map/{slug}/changes/{number}/restore` writes back each document that differs from what the map holds,
 through the road that writes it anywhere else: the intent is stored and projected into the map document, the
-plan and the layout are stored, and a finished board's ground is read again from the layout the next time
+plan, the refinement and the layout are stored, and a finished board's ground is read again from the layout the next time
 anything asks for it. The map row, its notes and the pictures kept of it stay where they are, which is what
 separates a restore from a reload. The change is noted as the restore unless the body states a note, and it is
 a change like any other — compared, listed, and put back in its turn.
@@ -328,8 +359,8 @@ a change like any other — compared, listed, and put back in its turn.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /map/{slug}/changes[?since=]` | every change, oldest first: `number`, `at`, `writer`, `writerUuid`, `token`, `origin`, `note`, and the `documents` it wrote — `plan`, `layout`, `intent`. `since` keeps the changes after a number, which is what a round asks for; `?format=text` answers one line a change | 404 `RQ4` no map at that slug |
-| `GET /map/{slug}/changes/{number}` | `{number, plan, layout, intent}` — each document as the latest change at or before `number` wrote it, absent where none had | 404 `RQ4` no map at that slug, or no change of that number |
+| `GET /map/{slug}/changes[?since=]` | every change, oldest first: `number`, `at`, `writer`, `writerUuid`, `token`, `origin`, `note`, the `documents` it wrote — `plan`, `refinement`, `layout`, `intent` — and the changes it `discarded`. `since` keeps the changes after a number, which is what a round asks for; `?format=text` answers one line a change | 404 `RQ4` no map at that slug |
+| `GET /map/{slug}/changes/{number}` | `{number, plan, refinement, layout, intent}` — each document as the latest change at or before `number` wrote it, absent where none had | 404 `RQ4` no map at that slug, or no change of that number |
 | `GET /map/{slug}/diff[?from=&to=&world=true]` | `{from, to, edits, world}` — the edits taking the documents at `from` to those at `to`, and with `world=true` the changed columns. `?format=text` answers the edits one a line and the runs under them; `?format=png` draws the columns, `scale` 1–16 pixels a block | 404 `RQ4` no map, no kept change, or no change of that number · 422 a side holds no layout, so there is no board to build there |
 | `POST /map/{slug}/changes/{number}/restore` | `{restored, change, documents}` — the change the restore landed as and the documents it wrote; `change` is absent and `documents` empty where every document already stood as it did then | 400 a note over 1,000 characters · 404 `RQ4` no map at that slug, or no change of that number |
 
@@ -371,6 +402,7 @@ separately addressable.
 | Document | Type | Where it lives | Read · written at |
 |---|---|---|---|
 | plan | `PlanModel` | its own layer | `GET·PUT /map/{slug}/plan`, `POST /plan/compile`, the `/plans` store |
+| refinement | `Refinement` | its own layer, as the map's source stated it | `GET /map/{slug}/refinement`, `PUT /map/{slug}/source` |
 | sketch layout | `SketchLayout` | its own layer, whole | `GET·PUT /map/{slug}/sketch` |
 | layers | `SketchLayer` | under the layout's `layers` | `GET /sketch/layers`, `GET·PUT·DELETE /sketch/layers/{layerId}` |
 | groups | `SketchGroup` | under a layer's `groups` | `GET /sketch/groups`, `PUT·DELETE /sketch/layers/{layerId}/groups/{groupId}` |

@@ -9,7 +9,8 @@ namespace PgmStudio.Contracts;
 /// <param name="Changes">Its changes, or those after <c>since</c> where the request names one.</param>
 public sealed record MapChangesDto(string Slug, IReadOnlyList<MapChangeDto> Changes);
 
-/// <summary>One change to a map's documents: one request's writes to its plan, layout and intent.</summary>
+/// <summary>One change to a map's documents: one request's writes to its plan, refinement, layout and
+/// intent.</summary>
 /// <param name="Number">Which change it is. Numbers count up per map and never repeat, and a kept document's
 /// revision is the number of the change that last wrote it.</param>
 /// <param name="At">When it landed, in UTC.</param>
@@ -19,19 +20,23 @@ public sealed record MapChangesDto(string Slug, IReadOnlyList<MapChangeDto> Chan
 /// <param name="Origin">Where its documents were built from, where the writer said.</param>
 /// <param name="Note">What the writer said the change is.</param>
 /// <param name="Documents">The documents it wrote.</param>
+/// <param name="Discarded">The earlier changes it dropped: a source applied over changes it had not seen names
+/// the ones it replaces. Empty where it dropped none.</param>
 public sealed record MapChangeDto(
     long Number, DateTime At, string? Writer, string? WriterUuid, string? Token, ChangeOrigin? Origin, string? Note,
-    [property: WordSet(typeof(MapDocuments))] IReadOnlyList<string> Documents);
+    [property: WordSet(typeof(MapDocuments))] IReadOnlyList<string> Documents, IReadOnlyList<long> Discarded);
 
 /// <summary>GET /api/map/{slug}/changes/{number} — a map's documents as they stood at one change: for each, what
 /// the latest change at or before it wrote. A document no change had written by then is absent.</summary>
 /// <param name="Number">The change.</param>
 /// <param name="Plan">The plan, where one was stated by then.</param>
+/// <param name="Refinement">The refinement the map's source stated, where a source had been applied by then.</param>
 /// <param name="Layout">The sketch layout.</param>
 /// <param name="Intent">The intent.</param>
-public sealed record MapChangeDocumentsDto(long Number, JsonElement? Plan, JsonElement? Layout, JsonElement? Intent);
+public sealed record MapChangeDocumentsDto(
+    long Number, JsonElement? Plan, JsonElement? Refinement, JsonElement? Layout, JsonElement? Intent);
 
-/// <summary>GET /api/map/{slug}/diff — what changed between two of a map's changes: every edit to its three
+/// <summary>GET /api/map/{slug}/diff — what changed between two of a map's changes: every edit to its four
 /// documents, and with <c>world=true</c> the columns whose ground, surface block or structure the edits
 /// moved.</summary>
 /// <param name="From">The change compared from. Zero is before the map's first change, where nothing was

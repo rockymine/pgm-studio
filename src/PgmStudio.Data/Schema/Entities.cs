@@ -647,6 +647,9 @@ public static class ArtifactKind
     // named views. A sidecar rather than a part of the layout, so keeping a picture is not an edit to the
     // board and the world it builds.
     public const string MapViewsJson = "map_views_json";
+    // The refinement a map's source last stated (docs/tools/flow.md, A map's source): everything its plan
+    // cannot, as the source stated it, and `{}` where a source stated none.
+    public const string RefinementJson = "refinement_json";
 
     /// <summary>The documents a map is authored in, whose every write is a change the map keeps
     /// (<see cref="MapChangeRow"/>) and whose revision is the number of the change that last wrote it, each with
@@ -655,6 +658,7 @@ public static class ArtifactKind
     public static readonly IReadOnlyDictionary<string, string> Kept = new Dictionary<string, string>
     {
         [PlanJson] = Vocabulary.MapDocuments.Plan,
+        [RefinementJson] = Vocabulary.MapDocuments.Refinement,
         [SketchLayoutJson] = Vocabulary.MapDocuments.Layout,
         [MapIntentJson] = Vocabulary.MapDocuments.Intent,
     };
@@ -675,6 +679,7 @@ public sealed class MapChangeRow
     [Column("token_label")] public string? TokenLabel { get; set; }
     [Column("origin_json")] public string? OriginJson { get; set; }
     [Column("note")] public string? Note { get; set; }
+    [Column("discarded_json")] public string? DiscardedJson { get; set; }
 }
 
 /// <summary>A document a change wrote: its kind and the hash of its bytes in <see cref="DocumentBlobRow"/>.</summary>

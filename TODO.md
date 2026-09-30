@@ -22,18 +22,6 @@ it.
 
 ### A map is its source and every change to it
 
-- [ ] **RP92 — An apply over changes its source has not seen is refused, and the changes are handed over.**
-  A source states the change it was built against (`after`). Where another writer's changes have landed since,
-  `PUT …/source` answers `409` with one `SR1` per change: its writer, its time, the note pinned to it, and the
-  edit written as refinement entries — a shape's outline and theme, a prop placed or moved, a theme changed —
-  or, where only the plan can state it, the document path and both values. `?discard=` names the changes an
-  apply drops, and the drop is recorded on the change. A map with no refinement never meets the refusal.
-  `docs/tools/flow.md`, `docs/refusals.md`; the `pgm-board` skill's first moment reads the changes since the
-  last apply beside the open notes.
-
-  *Evidence: the author edits a board by hand to fix it or to show the agent how, and the next drive replaces
-  the edit without a word.*
-
 - [ ] **TL32 — A refinement names a material, theme or style instead of copying it.** Two kinds of name. A
   local one: a `materials` registry states a material once, and a theme's bucket says `{"use": "strata"}`. A
   library one: `{"library": "dunes"}` wherever a material, theme, room style, prop style or biome is accepted,

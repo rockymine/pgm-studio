@@ -7808,6 +7808,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   source and its specs' `finish.json` is `refinement.json`: 87 of 95 specs store the same layout by either
   road, and the other eight are refused or crash on both. `docs/tools/flow.md`, `docs/tools/plan.md`,
   `docs/refusals.md`, `docs/access.md`, `docs/architecture.md`.
+- **A source is not applied over a change it has not seen, and the change is handed over (RP92).** The studio
+  keeps a map's refinement as its fourth document (`refinement_json`, `GET /map/{slug}/refinement`), kept,
+  compared and restored on every change like the other three. A source states `after`, the change it was built
+  against — absent, the change its source was last applied as — and where the stored refinement states
+  anything, a source over a later change that edited something answers `409 changes not seen`: one `SR1` per
+  edit, naming the change, who made it, when and the notes written at it, and carrying the edit as the source
+  would state it (`Handover`) — a theme or an outline by the shape's id, the bend that would redraw an outline
+  removed, a drawn shape as an `addShapes` entry, a prop's move in the refinement's dressing, a relief, theme or
+  capture point whole — or as the document's own edit where only the plan can state it. `?discard=` names the
+  changes an apply drops, and the change it lands as records them (`M0054`, shown in the Sketch tool's
+  History). The source's schema names its documents by their types. `pgm-studio-mapgen`'s `drive.py` takes
+  `--after` and `--discard`, and the `pgm-board` skill reads the changes since the last run beside the open
+  notes. `docs/tools/flow.md`, `docs/refusals.md`, `docs/tools/sketch.md`, `docs/architecture.md`.
 - **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
   and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
   five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a

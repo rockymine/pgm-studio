@@ -56,7 +56,7 @@ public sealed class MapChangeLogTests
 
         var then = await DocumentsAtAsync(changes[1].Number);
         await Assert.That(MaxX(then["sketch_layout_json"])).IsEqualTo(10d);
-        await Assert.That(then.Keys).IsEquivalentTo(["plan_json", "sketch_layout_json", "map_intent_json"])
+        await Assert.That(then.Keys).IsEquivalentTo(["plan_json", "refinement_json", "sketch_layout_json", "map_intent_json"])
             .Because("the documents at a change are what the latest change at or before it wrote, per kind");
     }
 
@@ -69,7 +69,7 @@ public sealed class MapChangeLogTests
             note: "pass 5, notes 72–74"));
 
         var change = (await ChangesAsync()).Single();
-        await Assert.That(change.Kinds).IsEquivalentTo(["map_intent_json", "plan_json", "sketch_layout_json"]);
+        await Assert.That(change.Kinds).IsEquivalentTo(["map_intent_json", "plan_json", "refinement_json", "sketch_layout_json"]);
         await Assert.That(change.Note).IsEqualTo("pass 5, notes 72–74");
         var origin = JsonDocument.Parse(change.OriginJson!).RootElement;
         await Assert.That(origin.GetProperty("commit").GetString()).IsEqualTo("5daa56f");

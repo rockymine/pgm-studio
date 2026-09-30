@@ -22,8 +22,8 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## The authoring repository moves onto the studio's source and kit
 
-The next group behind the programme in `TODO.md`, on the side that authors boards. It waits on `RP92`
-and `RP95`, and is pulled up whole when they land.
+The next group behind the programme in `TODO.md`, on the side that authors boards. It waits on `RP95`, and is
+pulled up whole when it lands.
 
 - [ ] **RP96 — `pgm-studio-mapgen` states its boards in the kit, and a drive shows what it would change
   before it changes it.** `drive.py` runs the board's `build-spec.py` first, dry-runs the source and prints

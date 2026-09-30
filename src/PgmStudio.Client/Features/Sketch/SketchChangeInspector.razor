@@ -19,6 +19,10 @@
     {
       <p class="plan-readout">@SketchHistoryList.Who(Change) · @Moments.Ago(Change.At) · wrote the @string.Join(", ", Change.Documents)</p>
       @if (Change.Note is { Length: > 0 } note) { <p class="change-note">“@note”</p> }
+      @if (Change.Discarded is { Count: > 0 } dropped)
+      {
+        <p class="plan-readout">dropped @string.Join(", ", dropped.Select(number => $"#{number}")), which its source had not seen</p>
+      }
       @if (OriginLink is { } link)
       {
         <p class="plan-readout"><a href="@link" target="_blank" rel="noopener">@OriginText</a></p>

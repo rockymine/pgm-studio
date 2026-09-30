@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text.Json;
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Data.Schema;
@@ -8,20 +9,20 @@ namespace PgmStudio.Data.Map;
 
 /// <summary>Who a write to a map's documents is and what they said about it: the account, the token's label
 /// where a token wrote it, the origin a caller states — the repository, commit and folder its documents were
-/// built from, as JSON — and a note.</summary>
+/// built from, as JSON — a note, and the earlier changes the write drops.</summary>
 public sealed record ChangeStamp(
     string? WriterUuid = null, string? WriterName = null, string? TokenLabel = null,
-    string? OriginJson = null, string? Note = null)
+    string? OriginJson = null, string? Note = null, IReadOnlyList<long>? Discarded = null)
 {
     /// <summary>A write nobody signed: the importer, or a request with no account behind it.</summary>
     public static readonly ChangeStamp Unknown = new();
 }
 
-/// <summary>One change to a map's documents: its number, when it landed, who wrote it and what they said, and
-/// the kinds of document it wrote.</summary>
+/// <summary>One change to a map's documents: its number, when it landed, who wrote it and what they said, the
+/// kinds of document it wrote, and the earlier changes it dropped.</summary>
 public sealed record MapChange(
     long Number, DateTime At, string? WriterUuid, string? WriterName, string? TokenLabel, string? OriginJson,
-    string? Note, IReadOnlyList<string> Kinds);
+    string? Note, IReadOnlyList<string> Kinds, IReadOnlyList<long> Discarded);
 
 /// <summary>
 /// Every write to a map's documents, kept. A change is numbered per slug and the number never repeats — not
@@ -51,6 +52,7 @@ public sealed class MapChangeLog(PgmDb db)
             MapSlug = slug, Number = number, CreatedAt = DateTime.UtcNow,
             WriterUuid = stamp.WriterUuid, WriterName = stamp.WriterName, TokenLabel = stamp.TokenLabel,
             OriginJson = stamp.OriginJson, Note = stamp.Note,
+            DiscardedJson = stamp.Discarded is { Count: > 0 } discarded ? JsonSerializer.Serialize(discarded) : null,
         }, token: ct);
         return (id, number);
     }
@@ -88,7 +90,8 @@ public sealed class MapChangeLog(PgmDb db)
         [
             .. changes.Select(change => new MapChange(
                 change.Number, change.CreatedAt, change.WriterUuid, change.WriterName, change.TokenLabel,
-                change.OriginJson, change.Note, [.. kinds[change.Id].Order(StringComparer.Ordinal)])),
+                change.OriginJson, change.Note, [.. kinds[change.Id].Order(StringComparer.Ordinal)],
+                change.DiscardedJson is { } discarded ? JsonSerializer.Deserialize<long[]>(discarded) ?? [] : [])),
         ];
     }
 

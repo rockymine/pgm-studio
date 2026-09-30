@@ -15,8 +15,8 @@ public sealed record MapRestored(Refusal? Refusal, long? Change = null, IReadOnl
 /// A map's documents written back as they stood at one of its changes, as one new change.
 ///
 /// <para>Only a document that differs from what the map holds is written, each through the road that stores it
-/// anywhere else: the intent is stored and projected into the map document, the plan and the layout are
-/// stored, and a finished board's ground is read again from the layout the next time anything asks for it
+/// anywhere else: the intent is stored and projected into the map document, the plan, the refinement and the
+/// layout are stored, and a finished board's ground is read again from the layout the next time anything asks for it
 /// (<see cref="SketchFinish.RefreshAsync"/>). The map row, its notes and the pictures kept of it are not
 /// touched, which is what separates a restore from a reload. A document no change had written by then is left
 /// as it stands.</para>
@@ -58,7 +58,7 @@ public static class MapRestore
                 expected: null, ct);
             if (applied.Refusal is { } refused) return new(refused);
         }
-        foreach (var kind in (string[])[ArtifactKind.PlanJson, ArtifactKind.SketchLayoutJson])
+        foreach (var kind in (string[])[ArtifactKind.PlanJson, ArtifactKind.RefinementJson, ArtifactKind.SketchLayoutJson])
             if (writes.TryGetValue(kind, out var data)) await artifacts.SaveAsync(map.Id, kind, data, ct);
 
         var landed = (await log.ListAsync(map.Slug, ct))[^1].Number;

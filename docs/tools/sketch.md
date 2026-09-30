@@ -1530,8 +1530,8 @@ a filled one where it stands; and the runs of columns whose ground, surface bloc
 boxed in the colours `docs/world-scan/read-backs.md` names.
 
 **The inspector says the rest.** Who wrote the change, when, what they said, and where its documents were built,
-linked to the commit and folder where the writer stated an origin; then every edit it made to the three
-documents, one a line, the thing it is about beside the change in words; then how many columns it moved of
+linked to the commit and folder where the writer stated an origin, and the earlier changes it dropped where it
+was a source that named some; then every edit it made to the four documents, one a line, the thing it is about beside the change in words; then how many columns it moved of
 each kind. The edits come first and the columns when both boards are built, which on a large board is seconds.
 
 **Putting the board back writes the documents as they stood at the start of what is shown, as one new change.**

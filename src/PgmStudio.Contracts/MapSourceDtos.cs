@@ -4,35 +4,6 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Contracts;
 
-/// <summary>
-/// A map's source (<c>PUT /map/{slug}/source</c>): the base it is built from — a plan, which the studio compiles,
-/// or a drawn layout and intent — and the refinement stating everything the base cannot.
-///
-/// <para>Each document is handed through verbatim to the reader that takes it: the plan is a <c>PlanModel</c>, the
-/// layout a <c>SketchLayout</c>, the intent a <c>MapIntent</c>, the refinement a <c>Refinement</c>. They are the
-/// documents themselves rather than shapes restated here — naming them again would be a second copy free to
-/// disagree with the readers.</para>
-/// </summary>
-/// <param name="Plan">The board as cell rectangles. Stated alone it is the base, compiled into the layout and the
-/// intent; stated beside a drawn layout and intent it is kept as the plan they were drawn from, and not
-/// compiled.</param>
-/// <param name="Layout">The drawing, where the board is its drawing rather than its plan's compile; stated with its
-/// intent.</param>
-/// <param name="Intent">What the drawn board is played for; stated with its layout.</param>
-/// <param name="Refinement">Everything the base cannot state, applied onto it before anything is judged.</param>
-/// <param name="Name">What to call the map. Falls back to the intent's own <c>meta.name</c>.</param>
-/// <param name="Origin">Where the documents were built from, kept on the change the source lands as.</param>
-/// <param name="Note">What this source is, in a sentence — a pass, the notes it answers — kept on the change it
-/// lands as. At most 1,000 characters.</param>
-public sealed record MapSourceRequest(
-    JsonElement? Plan = null,
-    JsonElement? Layout = null,
-    JsonElement? Intent = null,
-    JsonElement? Refinement = null,
-    string? Name = null,
-    ChangeOrigin? Origin = null,
-    string? Note = null);
-
 /// <summary>Where a map's documents were built from: the repository, the commit and the folder of the script
 /// that wrote them, and whether the working tree differed from the commit.</summary>
 /// <param name="Repo">The repository, as <c>owner/name</c>.</param>

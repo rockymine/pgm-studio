@@ -65,13 +65,14 @@ public sealed class MapChangeDocumentsEndpoint(MapRepository repo, MapChangeLog 
         var documents = await log.DocumentsAtAsync(map.Slug, number, ct);
         await Send.OkAsync(new MapChangeDocumentsDto(number,
             MapChangeRead.Element(documents, ArtifactKind.PlanJson),
+            MapChangeRead.Element(documents, ArtifactKind.RefinementJson),
             MapChangeRead.Element(documents, ArtifactKind.SketchLayoutJson),
             MapChangeRead.Element(documents, ArtifactKind.MapIntentJson)), ct);
     }
 }
 
 /// <summary>GET /api/map/{slug}/diff — what changed between two of the map's changes: every edit taking the plan,
-/// the layout and the intent at <c>from</c> to those at <c>to</c>, each named by the path it lands on and
+/// the refinement, the layout and the intent at <c>from</c> to those at <c>to</c>, each named by the path it lands on and
 /// carrying the value it replaced. Unasked, it is what the latest change did.
 ///
 /// <para><c>world=true</c> builds the board at both changes and adds the columns the two disagree on, sorted
@@ -213,7 +214,8 @@ internal static class MapChangeRead
         change.OriginJson is { } origin ? JsonSerializer.Deserialize<ChangeOrigin>(origin, MapArtifactStore.Json) : null,
         change.Note,
         [.. MapDocuments.All.Where(word =>
-            change.Kinds.Any(kind => ArtifactKind.Kept.TryGetValue(kind, out var named) && named == word))]);
+            change.Kinds.Any(kind => ArtifactKind.Kept.TryGetValue(kind, out var named) && named == word))],
+        change.Discarded);
 
     public static WorldChangesDto Dto(WorldDiff world) => new(
         Columns(world, WorldDiff.Changes.Ground), Columns(world, WorldDiff.Changes.Surface),
@@ -264,6 +266,8 @@ internal static class MapChangeRead
             if (change.Origin is { } origin)
                 lines.Append("  ").Append(origin.Repo).Append('@').Append(origin.Commit)
                      .Append(origin.Dirty == true ? "+dirty" : "").Append(' ').Append(origin.Path);
+            if (change.Discarded is { Count: > 0 } discarded)
+                lines.Append("  dropped ").Append(string.Join(", ", discarded.Select(number => $"#{number}")));
             if (change.Note is { Length: > 0 } note) lines.Append("  — ").Append(note.ReplaceLineEndings(" "));
             lines.Append('\n');
         }
