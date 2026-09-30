@@ -74,7 +74,7 @@ this folder takes a map; these are what a caller with no map reaches for first.
 | `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
 | `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
 | `DELETE /map/{slug}` | nothing — **204**, and the map is gone with everything stored under it: its teams, regions, authors, objectives, scans and every document it held, since each of those rows cascades from the map's. A world folder under a maps root is what a map was scanned from rather than something it holds, and stays; an imported one is offered as an import candidate again. The call for a driver cleaning up after a variant, or a spec re-driven under a corrected slug | 404 `RQ4` no map at that slug |
-| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under — **the authoring call for a headless caller**, not only the import one, and the whole of it: the finish and the intent's projection run inside it. A map already at that slug is replaced. See *The three documents are the way in, and the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 400 `no document given` `RQ1` naming `layout` or `intent`, which are the load and are both required · 400 `unreadable document` `RQ1` naming the first field of each document its binder cannot read, under the member it was posted as (`intent.modes[0]`) — nothing is stored · 422 the layout carries no ground |
+| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under — **the authoring call for a headless caller**, not only the import one, and the whole of it: the finish and the intent's projection run inside it. A map already at that slug is replaced, and only once the documents have passed everything the load is refused for. See *The three documents are the way in, and the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 400 `no document given` `RQ1` naming `layout` or `intent`, which are the load and are both required · 400 `unreadable document` `RQ1` naming the first field of each document its binder cannot read, under the member it was posted as (`intent.modes[0]`) — nothing is stored · 422 the layout carries no ground |
 
 ## The hand-offs
 
@@ -141,6 +141,13 @@ layout and an intent together and stores a whole map from them — the plan to r
 rasterized into geometry, the intent projected into the document — and answers the slug it landed under. A
 map already stored under that slug is **replaced**: the documents name one map, so loading them twice is a
 reload.
+
+**A reload is decided before it replaces anything.** Everything the load is refused for — a document the
+binder cannot read, a style or theme the gate refuses, a person nobody could be called, a drawing the finish
+would refuse — is decided from the documents alone, before the stored map is touched, so a refused reload
+leaves the board it would have replaced. The documents it writes are numbered above every revision the
+replaced map's reached, so a browser tab that read the old board is refused `RQ5` when it saves rather than
+writing it back over the new one (`docs/refusals.md`).
 
 **The layout and the intent are required; the plan is not.** A grid board has no plan — its plots are discs
 and crosses where a plan piece is a rectangle — so a layout emitter states none and the load takes two

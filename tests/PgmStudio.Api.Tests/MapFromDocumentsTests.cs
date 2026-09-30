@@ -143,6 +143,72 @@ public sealed class MapFromDocumentsTests
         await Assert.That(doc.GetProperty("authors")[0].GetProperty("name").GetString()).IsEqualTo("Fable 5");
     }
 
+    /// <summary><b>A reload never answers a revision a read before it answered.</b> A drive makes the same writes
+    /// on every run, so a board rebuilt over its own slug and written as many times again would stand at the
+    /// revision a tab read before the rebuild, and that tab's save would pass its guard and write the old board
+    /// back over the new one.</summary>
+    [Test]
+    public async Task A_tab_holding_a_revision_from_before_a_reload_cannot_save_over_the_rebuilt_board()
+    {
+        using var client = await FreshAsync();
+        var smaller = Layout.Replace("\"min_x\":-20,\"max_x\":20", "\"min_x\":-10,\"max_x\":10");
+
+        await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        await client.PutAsync("/api/map/weirgate/sketch", Json(Layout));
+        await client.PutAsync("/api/map/weirgate/sketch", Json(Layout));
+        var held = Etag(await client.GetAsync("/api/map/weirgate/sketch"));
+        await Assert.That(held).IsNotNull();
+
+        // The next drive rebuilds the board and makes the same writes again.
+        var reloaded = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        await Assert.That(reloaded.IsSuccessStatusCode).IsTrue().Because(await reloaded.Content.ReadAsStringAsync());
+        await client.PutAsync("/api/map/weirgate/sketch", Json(smaller));
+        await client.PutAsync("/api/map/weirgate/sketch", Json(smaller));
+
+        var stale = new HttpRequestMessage(HttpMethod.Put, "/api/map/weirgate/sketch") { Content = Json(Layout) };
+        stale.Headers.TryAddWithoutValidation("If-Match", held);
+        var saved = await client.SendAsync(stale);
+
+        await Assert.That(saved.StatusCode).IsEqualTo(HttpStatusCode.Conflict)
+            .Because("the tab read the board before the reload, and the revision it holds names that board");
+        await Assert.That(await StoredMaxXAsync(client)).IsEqualTo(10d);
+    }
+
+    /// <summary><b>A reload the studio refuses leaves the board it would have replaced.</b> Everything a load is
+    /// refused for is decided from the documents alone — a drawing with no ground, a person nobody could be
+    /// called — so it is decided before the stored map is touched.</summary>
+    [Test]
+    public async Task A_refused_reload_leaves_the_stored_board_as_it_was()
+    {
+        using var client = await FreshAsync();
+        var first = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        await Assert.That(first.IsSuccessStatusCode).IsTrue().Because(await first.Content.ReadAsStringAsync());
+
+        var nothingDrawn = await client.PostAsJsonAsync("/api/map/from-documents", new
+        {
+            plan = JsonDocument.Parse("{}").RootElement,
+            layout = JsonDocument.Parse("""{"layers":[{"base_y":0,"layout":{"shapes":[],"groups":[]}}]}""").RootElement,
+            intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"}}""").RootElement,
+            name = "Weirgate",
+        });
+        await Assert.That((int)nothingDrawn.StatusCode).IsEqualTo(422);
+
+        var unnamable = await client.PostAsJsonAsync("/api/map/from-documents", new
+        {
+            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
+            layout = JsonDocument.Parse(Layout).RootElement,
+            intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate","authors":[{"name":" not<a>name "}]}}""").RootElement,
+            name = "Weirgate",
+        });
+        await Assert.That((int)unnamable.StatusCode).IsEqualTo(400);
+
+        await Assert.That(await StoredMaxXAsync(client)).IsEqualTo(20d)
+            .Because("neither refused reload may take the board it would have replaced");
+        var state = await client.GetFromJsonAsync<MapState>("/api/map/weirgate/state");
+        await Assert.That(state!.Artifacts.World).IsTrue();
+        await Assert.That(state.Artifacts.Intent).IsTrue();
+    }
+
     /// <summary>A name is not guessed. The intent's own <c>meta.name</c> answers for it where the body says
     /// nothing, and a body that says neither is refused rather than given a stand-in.</summary>
     [Test]
@@ -383,4 +449,14 @@ public sealed class MapFromDocumentsTests
         await ApiTestFactory.ResetSchemaAsync();
         return ApiTestFactory.Shared.CreateClient();
     }
+
+    private static StringContent Json(string body) => new(body, Encoding.UTF8, "application/json");
+
+    private static string? Etag(HttpResponseMessage response) =>
+        response.Headers.TryGetValues("ETag", out var values) ? values.FirstOrDefault() : null;
+
+    /// <summary>The east edge of the one shape the stored layout draws, which tells the two boards apart.</summary>
+    private static async Task<double> StoredMaxXAsync(HttpClient client) =>
+        (await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/sketch"))
+            .GetProperty("layers")[0].GetProperty("layout").GetProperty("shapes")[0].GetProperty("max_x").GetDouble();
 }

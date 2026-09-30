@@ -28,6 +28,10 @@ public sealed class MapRow
     /// <summary>The Minecraft uuid of the person who originated this map, or null where it was originated with
     /// nobody signed in. The owner may always edit the map, whoever its credited authors are.</summary>
     [Column("owner_uuid")] public string? OwnerUuid { get; set; }
+    /// <summary>The revision this map's artifacts are written above: the highest any artifact of a map it
+    /// replaced ever reached, and 0 for a map that replaced none. A reload writes every document afresh, and
+    /// numbering them from the floor rather than from 1 keeps an <c>ETag</c> from ever naming two boards.</summary>
+    [Column("artifact_revision_floor"), NotNull] public long ArtifactRevisionFloor { get; set; }
 }
 
 /// <summary>One person on the studio's whitelist: the Minecraft account they are credited under and the role

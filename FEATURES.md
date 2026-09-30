@@ -7753,6 +7753,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   every guarded write from a tab on pgmstudio.de was refused as stale on its first save: the sketch tool said
   *saved from somewhere else*, kept drawing locally and blocked Finish. `Revisions.Expected` reads an
   `If-Match` up to the proxy's suffix, weak prefix and quotes aside.
+- **A reload never answers a revision the board before it answered, and a refused one replaces nothing
+  (RP88).** A load from documents replaces a map by deleting its row, and its artifacts started again at
+  revision 1 — so a drive that made the same writes each run ended on the same sketch revision each time, and a
+  browser tab that had read the previous board passed its `If-Match` and wrote that board back (Sootcombe's
+  third pass: reload at 1, fourteen vertex inserts to 15, the old board found at 16). The replacing row now
+  carries `artifact_revision_floor` (`M0051`), the highest revision the replaced map's artifacts reached, and
+  `MapArtifactStore.SaveAsync` numbers a new artifact above it. And everything the load is refused for — the
+  binder, the style gate, a person nobody could be called, a drawing the finish refuses
+  (`SketchFinish.Prepare`) — is decided before the stored map is touched, where a refused reload used to leave
+  no map at all. `docs/tools/flow.md`, `docs/refusals.md`.
 - **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
   and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
   five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a

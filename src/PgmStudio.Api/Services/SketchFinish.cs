@@ -4,6 +4,7 @@ using PgmStudio.Analysis.Footprint;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
@@ -18,6 +19,12 @@ namespace PgmStudio.Api.Services;
 /// <para><b>Islands</b> — How many landmasses those columns fall into.</para></summary>
 public sealed record SketchFinished(
     Refusal? Refusal, int Cells = 0, int Islands = 0, Findings? Complaints = null);
+
+/// <summary>A drawing judged and rasterized, before anything about it is written: either the refusal finishing
+/// it would answer, or the columns and landmasses a finish writes, with what the board complained about.</summary>
+public sealed record SketchPrepared(
+    Refusal? Refusal, IReadOnlyList<ColumnSegment> Cells, IReadOnlyList<IslandDetector.Island> Islands,
+    Findings Judged);
 
 /// <summary>
 /// Declaring a drawing done: rasterize the stored layout into world geometry, detect its landmasses, write
@@ -44,19 +51,39 @@ public static class SketchFinish
             return Refuse(422, "nothing to finish", new Finding(SketchRules.NothingStored,
                 "this map has no stored sketch layout, so there is no drawing to rasterize"));
 
-        var layoutJson = Encoding.UTF8.GetString(data);
-        var checkedBoard = Judge(layoutJson, await artifacts.LoadAsync(mapId, ArtifactKind.PlanJson, ct));
-        if (checkedBoard.Refuses) return Refuse(422, "the board cannot be built as drawn", [.. checkedBoard.Refusals]);
+        var prepared = Prepare(Encoding.UTF8.GetString(data), await artifacts.LoadAsync(mapId, ArtifactKind.PlanJson, ct));
+        return await WriteAsync(mapId, prepared, revision, repo, writer, ct);
+    }
+
+    /// <summary>Everything finishing a drawing can be refused for, and the geometry it would write, decided
+    /// from the documents alone. A caller about to replace a stored map asks this first, so a drawing the
+    /// finish would refuse never costs the board it was meant to replace.</summary>
+    public static SketchPrepared Prepare(string layoutJson, byte[]? planBytes)
+    {
+        var checkedBoard = Judge(layoutJson, planBytes);
+        if (checkedBoard.Refuses)
+            return Refused(Refusal.At(422, "the board cannot be built as drawn", [.. checkedBoard.Refusals]));
 
         var cells = SketchRasterizer.RasterizeColumns(layoutJson);
         var islands = IslandDetector.Detect(cells.Select(cell => (cell.X, cell.Z)), minIslandSize: 1);
         if (islands.Count == 0)
-            return Refuse(422, "nothing is drawn", new Finding(SketchRules.NothingDrawn,
-                "the stored layout rasterizes to no ground at all — draw a shape that encloses some"));
+            return Refused(Refusal.At(422, "nothing is drawn", new Finding(SketchRules.NothingDrawn,
+                "the stored layout rasterizes to no ground at all — draw a shape that encloses some")));
+        return new(null, cells, islands, checkedBoard);
 
-        await writer.WriteSketchAsync(mapId, cells, islands, revision, ct);
+        static SketchPrepared Refused(Refusal refusal) => new(refusal, [], [], Findings.None);
+    }
+
+    /// <summary>Write what <see cref="Prepare"/> rasterized as the map's geometry, recording the layout
+    /// revision it was drawn from, and move the map to Configure.</summary>
+    public static async Task<SketchFinished> WriteAsync(
+        long mapId, SketchPrepared prepared, long layoutRevision, MapRepository repo, WorldFeatureWriter writer,
+        CancellationToken ct)
+    {
+        if (prepared.Refusal is { } refusal) return new(refusal);
+        await writer.WriteSketchAsync(mapId, prepared.Cells, prepared.Islands, layoutRevision, ct);
         await repo.SetStageAsync(mapId, MapStage.Configure, ct);   // the draft has geometry → ready to configure
-        return new(null, cells.Count, islands.Count, checkedBoard);
+        return new(null, prepared.Cells.Count, prepared.Islands.Count, prepared.Judged);
     }
 
     /// <summary>What a drawing is judged by when it is declared done. Finish refuses on it; the findings list

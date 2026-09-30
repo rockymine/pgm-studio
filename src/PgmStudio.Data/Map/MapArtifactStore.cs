@@ -47,15 +47,24 @@ public sealed class MapArtifactStore(PgmDb db)
         => (await db.Artifacts.Where(a => a.MapId == mapId && a.Kind == kind)
                               .Select(a => (long?)a.Revision).FirstOrDefaultAsync(ct));
 
+    /// <summary>The highest revision any artifact of the map is at, or 0 where it holds none — what a map
+    /// replacing it numbers its own artifacts above (<see cref="MapRow.ArtifactRevisionFloor"/>).</summary>
+    public async Task<long> HighestRevisionAsync(long mapId, CancellationToken ct = default)
+        => await db.Artifacts.Where(a => a.MapId == mapId).Select(a => (long?)a.Revision).MaxAsync(ct) ?? 0;
+
     /// <summary>Replace the map's artifact of this kind with these bytes and answer the revision it is now
     /// at, in one write — a fault between the delete and the insert would otherwise leave the map holding
-    /// neither the old document nor the new.</summary>
+    /// neither the old document nor the new. A kind the map does not hold yet is written above the map's
+    /// <see cref="MapRow.ArtifactRevisionFloor"/>, so a reload never answers a revision the board it replaced
+    /// answered.</summary>
     public async Task<long> SaveAsync(long mapId, string kind, byte[] data, CancellationToken ct = default)
     {
         var revision = 1L;
         await db.InOneWriteAsync(async () =>
         {
-            revision = (await RevisionAsync(mapId, kind, ct) ?? 0) + 1;
+            revision = (await RevisionAsync(mapId, kind, ct)
+                        ?? await db.Maps.Where(m => m.Id == mapId).Select(m => m.ArtifactRevisionFloor)
+                                        .FirstOrDefaultAsync(ct)) + 1;
             await DeleteAsync(mapId, kind, ct);
             await db.InsertAsync(
                 new MapArtifactRow { MapId = mapId, Kind = kind, Data = data, Revision = revision }, token: ct);

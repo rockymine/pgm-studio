@@ -30,8 +30,9 @@ public sealed record MapLoad(
 /// order; stating them here is what makes one request enough.</para>
 ///
 /// <para>A map already stored under the slug is <b>replaced</b>: the documents name one map, and loading them
-/// twice is a reload rather than a second map. A load that fails partway takes back what it wrote, the way
-/// the world imports do, so a refusal never leaves half a map behind.</para>
+/// twice is a reload rather than a second map. Everything a load is refused for is decided from the documents
+/// before the stored map is touched, so a refused reload leaves the board it would have replaced; a load that
+/// fails partway takes back what it wrote, the way the world imports do.</para>
 ///
 /// <para><b>All three documents answer <c>RQ3</c>.</b> Each is read into a type, so each can carry a name
 /// that type has nowhere to keep, and the paths are prefixed with the member the document was posted under —
@@ -93,25 +94,29 @@ public static class MapFromDocuments
             return Refuse(403, "not permitted", new Finding(RequestRules.NotPermitted,
                 $"a map is already stored under '{slug}', and only its owner, an author it credits, or an admin "
                 + "may replace it", Field: "slug"));
+        // The rest of what the load can be refused for is decided before anything is replaced, from the
+        // documents alone: a reload refused after the replacement would cost the board it was meant to replace.
+        if (IntentWrite.Stated(request.Intent.GetRawText()) is { } statedIntent
+            && IntentWrite.Unnamable(statedIntent, "intent") is { } unnamable)
+            return new(unnamable);
+        var planBytes = Bytes(request.Plan ?? Empty);
+        var prepared = SketchFinish.Prepare(layoutJson, planBytes);
+        if (prepared.Refusal is { } unbuildable) return new(unbuildable);
+
         // The views an author kept are pictures of the board rather than part of it, so a rebuild keeps them.
         var keptViews = existing is null ? null : await artifacts.LoadAsync(existing.Id, ArtifactKind.MapViewsJson, ct);
-        var mapId = await MapOrigin.ReplacingAsync(repo, slug, name, MapStage.Plan, Callers.OriginatorOf(http), ct);
+        var mapId = await MapOrigin.ReplacingAsync(
+            repo, artifacts, slug, name, MapStage.Plan, Callers.OriginatorOf(http), ct);
 
         try
         {
             if (keptViews is not null) await artifacts.SaveAsync(mapId, ArtifactKind.MapViewsJson, keptViews, ct);
-            await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson,
-                                      Bytes(request.Plan ?? Empty), ct);
-            await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson, Bytes(request.Layout), ct);
+            await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, planBytes, ct);
+            var layoutRevision = await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson, Bytes(request.Layout), ct);
 
             // The drawing is declared done here rather than left for a second call: a map loaded without its
             // geometry is a map Configure cannot open, which is the whole of what this operation is for.
-            var finished = await SketchFinish.RunAsync(mapId, repo, artifacts, features, ct);
-            if (finished.Refusal is not null)
-            {
-                await repo.DeleteMapAsync(mapId, ct);
-                return new(finished.Refusal);
-            }
+            var finished = await SketchFinish.WriteAsync(mapId, prepared, layoutRevision, repo, features, ct);
 
             // Then the intent, which stores it and projects the document from it — and only then the authors,
             // because that projection is what would overwrite them.

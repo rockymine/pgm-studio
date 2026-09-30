@@ -16,34 +16,22 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 ## The programme: a board's source, every change to it, and the words it is stated in
 **The author put this programme first.** The studio keeps the source a board is stated in and every change to
 it, hands the author's hand edits to the agent's next round, and hands out the vocabulary the source is
-written in. `RP88` is a defect and goes first. The two groups below do not depend on each other and may run
-side by side; `pgm-studio-mapgen` moves onto both as the next group in `BACKLOG.md`, and the layer word
-(`B264`, `WE28`, `TS64`) waits behind it.
+written in. The two groups below do not depend on each other and may run side by side; `pgm-studio-mapgen`
+moves onto both as the next group in `BACKLOG.md`, and the layer word (`B264`, `WE28`, `TS64`) waits behind
+it.
 
 ### A map is its source and every change to it
-
-- [ ] **RP88 — A reload restarts every artifact's revision at 1, so a tab that read an older board can save
-  over the new one.** `MapOrigin.ReplacingAsync` deletes the map row a load from documents replaces
-  (`MapOrigin.cs:42-53`), the cascade takes its artifacts, and `MapArtifactStore.SaveAsync` writes each new
-  one at revision 1 (`MapArtifactStore.cs:53-63`). A drive makes the same writes on every run, so it ends on
-  the same sketch revision each time, and a tab that loaded after the previous drive states a revision the new
-  board also has: its save passes the `RQ5` guard and writes the old board back. A reload keeps the row and
-  replaces what hangs under it, so every artifact counts on from the revision it had, and `RP89` stands on
-  the same row. The test: a reload followed by N part writes never answers an `ETag` that a read before the
-  reload answered. `docs/tools/flow.md`, `docs/refusals.md`.
-
-  *Evidence: Sootcombe's third pass reloaded at revision 1, took fourteen vertex inserts to 15, and
-  `GET …/sketch` then answered the previous pass's layers at 16 (`pgm-studio-mapgen/reports/opus55-notes-run.md`,
-  "The stored sketch was found reverted").*
 
 - [ ] **RP89 — Every write to a map's documents is a change the studio keeps.** A save replaces the
   artifact's bytes (`MapArtifactStore.SaveAsync`) and no route reads an earlier state. Record each write — a
   browser save, a part-route edit, a load, a restore — as a change: a number per map that only counts up, the
   writer (the account, and the token's label where a token wrote it), the origin a caller states (`{repo,
   commit, path, dirty}`), a free note, and the documents it wrote, each kept once under its content hash,
-  compressed. An artifact's revision becomes the number of the change that last wrote it, so an `ETag` never
+  compressed. The changes are keyed by slug, as notes are, so a reload's changes continue the board's
+  history, and an artifact's revision becomes the number of the change that last wrote it, so an `ETag` never
   repeats. Every writer goes through one path (`DocumentWrite`, `SketchPartWrite`, `IntentWrite`, the load),
-  and `M0051` carries every stored artifact in as change 1. `docs/architecture.md`, `docs/tools/flow.md`.
+  and `M0052` carries every stored artifact in as the board's first change, numbered above
+  `map.artifact_revision_floor`. `docs/architecture.md`, `docs/tools/flow.md`.
 
   *Evidence: a board's plan, finish, layout and intent compress to 10–23 KB together — Gypsum Reach 19 KB,
   Sootcombe 10 KB — so fifty changes of a board come to about a megabyte.*

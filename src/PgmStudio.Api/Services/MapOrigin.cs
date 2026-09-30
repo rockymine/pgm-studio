@@ -38,19 +38,22 @@ public static class MapOrigin
     /// <summary>A map at exactly <paramref name="slug"/>, replacing whatever is stored there — the foreign
     /// keys cascade, so the old map's artifacts go with it. A replaced map keeps its owner and counts its
     /// revision on from the one it replaces, so a note written against the old board reads as older than the
-    /// new one.</summary>
+    /// new one, and its artifacts are numbered above every revision the old one's reached, so a tab that read
+    /// the old board cannot name the new one.</summary>
     public static async Task<long> ReplacingAsync(
-        MapRepository repo, string slug, string name, string stage, MapOriginator? originator, CancellationToken ct)
+        MapRepository repo, MapArtifactStore artifacts, string slug, string name, string stage,
+        MapOriginator? originator, CancellationToken ct)
     {
         var owner = originator?.Uuid;
-        long revision = 1;
+        long revision = 1, floor = 0;
         if (await repo.GetBySlugAsync(slug, ct) is { } existing)
         {
             owner = existing.OwnerUuid ?? owner;
             revision = existing.Revision + 1;
+            floor = Math.Max(existing.ArtifactRevisionFloor, await artifacts.HighestRevisionAsync(existing.Id, ct));
             await repo.DeleteMapAsync(existing.Id, ct);
         }
-        return await RowAsync(repo, slug, name, stage, originator, owner, planSource: null, revision);
+        return await RowAsync(repo, slug, name, stage, originator, owner, planSource: null, revision, floor);
     }
 
     /// <summary>A map at a slug the caller has already established is free — a world import, which refuses a
@@ -65,13 +68,14 @@ public static class MapOrigin
     /// not been authored yet does not have.</summary>
     private static async Task<long> RowAsync(
         MapRepository repo, string slug, string name, string stage, MapOriginator? originator, string? owner,
-        long? planSource, long revision = 1)
+        long? planSource, long revision = 1, long artifactFloor = 0)
     {
         var now = DateTime.UtcNow;
         var mapId = await repo.InsertAsync(new MapRow
         {
             Slug = slug, Name = name, Gamemode = "ctw", Stage = stage,
             PlanSourceId = planSource, CreatedAt = now, UpdatedAt = now, OwnerUuid = owner, Revision = revision,
+            ArtifactRevisionFloor = artifactFloor,
         });
         if (originator is not null)
             await repo.InsertAsync(new AuthorRow
