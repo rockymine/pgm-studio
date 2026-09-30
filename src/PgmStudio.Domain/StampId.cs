@@ -22,7 +22,7 @@ namespace PgmStudio.Domain;
 /// </summary>
 /// <param name="Kind">The family: <c>spawn</c>, <c>wool</c>, <c>destroyable</c>, <c>core</c>,
 /// <c>controlpoint</c>, <c>wall</c>, <c>redstoneline</c>, <c>ironcube</c>, <c>house</c>, <c>tree</c>,
-/// <c>boulder</c>, <c>water</c>, <c>flora</c>, <c>stroke</c>.</param>
+/// <c>boulder</c>, <c>fluid</c>, <c>flora</c>, <c>stroke</c>, <c>chest</c>.</param>
 /// <param name="Unit">Which authored thing this is an image of — the placement's own id where it has one, and
 /// its index in the authored list where it does not. Two images of one unit share it; two different units of
 /// one kind do not.</param>
