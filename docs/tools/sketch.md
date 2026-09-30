@@ -299,12 +299,21 @@ the thing, not a fault in it. What keeps the room level is the pin, and nothing 
 
 ### Groups and layers
 
-A **group** is not authored; it is computed. Every time the shapes change, the tool unions them and reports
-the connected pieces that result, so two rectangles pushed together become one group and pulling them
-apart splits it again. What an author owns is the group's `name` and its `mirrors` flag — whether the group is
-copied onto its symmetry orbit — and those survive a recompute by matching the group back to its previous
-self. A single-member group shows the shape inspector rather than the group one, so a lone rectangle needs
-no drilling.
+A **group** drawn in the tool is computed, not authored. Every time the shapes change, the tool unions them
+and reports the connected pieces that result, so two rectangles pushed together become one group and pulling
+them apart splits it again. What an author owns is the group's `name` and its `mirrors` flag — whether the
+group is copied onto its symmetry orbit — and those survive a recompute by matching the group back to its
+previous self. A single-member group shows the shape inspector rather than the group one, so a lone rectangle
+needs no drilling.
+
+**A group the board was loaded with is kept as stated until an edit touches it** (`settleGroups` in
+`boolean.js`). The build reads a group's `shapeIds` for its fan, its relief and its keep-clear, and an API
+caller may state a group the geometry would not have made — one group over pieces that do not touch, or a
+post held unfanned in a group of its own over the wall it stands on. So a loaded group keeps its id, name,
+`mirrors` and `shapeIds` while none of its shapes changes outline or is deleted and no new or reshaped shape
+overlaps one of them; a theme, a height or a name set on a shape is not an outline change. A touched group,
+and any shape no group lists, is grouped from the geometry as a drawn one is, and takes its identity from
+the loaded group it overlaps most. A group of several pieces is drawn as one outline per piece.
 
 The group matters beyond naming: **it is the unit a relief is stated against**, because a relief solved per
 shape would leave a seam wherever two shapes met and disagreed about the height they share. One group holds
@@ -1757,10 +1766,10 @@ style stamps the built-in shell.
 **And it complains where a shape belongs to no group.** A group is the unit the symmetry orbit is fanned
 by — the build reads each mirroring group's `shapeIds` and copies exactly those shapes onto their images — so
 a shape no group lists is built once, on the side it was drawn on, with no image anywhere. `SK17` names the
-shape and its layer. Nothing else says so, and every surface that could is looking elsewhere: the shape
-rasterizes where the author put it, so the board is not missing it; and the canvas draws a group's **outline**,
-which is the union of the ground the group fused rather than the shapes it lists, so a shape fused into the
-outline but absent from the list is drawn mirrored and built unmirrored. The same list carries the group's
+shape and its layer. Nothing else says so, and the surfaces that could are looking elsewhere: the shape
+rasterizes where the author put it, so the board is not missing it; and the canvas, which groups every shape
+no group lists from the geometry, draws it as a group of its own — mirrored by default — until the next
+browser save writes that group into the document. The same list carries the group's
 relief and its keep-clear fan, so an unlisted shape takes neither of those either. A layer stating no groups at
 all is outside this — the whole of that layer mirrors — and so is a role-tagged room piece, which is never
 listed by design.

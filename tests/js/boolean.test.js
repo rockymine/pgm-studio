@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 
 import {
   computeGroups, assignShapesToGroups, computeMirrorPreview, restoreGroupMeta,
-  shapeToMultiPoly, pointInGroup,
+  shapeToMultiPoly, pointInGroup, settleGroups, uniqueGroups, outlineKey,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/boolean.js";
 
 const rect = (id, min_x, min_z, max_x, max_z, extra = {}) =>
@@ -111,6 +111,90 @@ test("a shape whose intersection the clipper cannot answer is still assigned to 
   // Both, and neither dropped: the fan is read off shapeIds, so a shape in no group has no mirror image
   // and takes no part in its group's relief.
   assert.deepEqual([...listed].sort(), ["north", "sunken"]);
+});
+
+// ── settleGroups ─────────────────────────────────────────────────────────────
+// A board an API caller grouped by hand: the team group holds its island and a stone that is not joined to
+// it, and a ladder is held in a group of its own, unfanned, over the island it stands on.
+const handGrouped = () => [
+  rect("island", 0, 0, 20, 20), rect("stone", 40, 0, 44, 4), rect("ladder", 5, 5, 6, 6),
+  rect("far", 100, 0, 110, 10),
+];
+const handGroups = [
+  { id: "team", name: "Team", mirrors: true, shapeIds: ["island", "stone"] },
+  { id: "ladder", name: "Ladder", mirrors: false, shapeIds: ["ladder"] },
+  { id: "far", name: "Far", mirrors: true, shapeIds: ["far"] },
+];
+const loaded = (shapes) => new Map(shapes.map(shape => [shape.id, outlineKey(shape)]));
+
+test("settleGroups keeps every stated group as stated when nothing was edited", () => {
+  const shapes = handGrouped();
+  const parts = settleGroups(shapes, handGroups, loaded(shapes));
+  assert.deepEqual(uniqueGroups(parts), handGroups);
+  // The team group is two islands, drawn as two parts of one group.
+  assert.equal(parts.filter(part => part.id === "team").length, 2);
+});
+
+test("settleGroups keeps the untouched groups when an edit lands elsewhere", () => {
+  const shapes = handGrouped();
+  const baseline = loaded(shapes);
+  shapes[3] = rect("far", 102, 0, 112, 10);   // the far island is moved
+  const groups = uniqueGroups(settleGroups(shapes, handGroups, baseline));
+  assert.deepEqual(groups.find(group => group.id === "team"), handGroups[0]);
+  assert.deepEqual(groups.find(group => group.id === "ladder"), handGroups[1]);
+  assert.deepEqual(groups.find(group => group.id === "far"), handGroups[2]);
+});
+
+test("settleGroups ignores a change that does not move an outline", () => {
+  const shapes = handGrouped();
+  const baseline = loaded(shapes);
+  shapes[0] = { ...shapes[0], theme: "moor", base_height: 9 };
+  assert.deepEqual(uniqueGroups(settleGroups(shapes, handGroups, baseline)), handGroups);
+});
+
+test("settleGroups joins a shape drawn onto a group to that group", () => {
+  const shapes = handGrouped();
+  const baseline = loaded(shapes);
+  shapes.push(rect("far-2", 108, 0, 120, 10));
+  const far = uniqueGroups(settleGroups(shapes, handGroups, baseline)).find(group => group.id === "far");
+  assert.deepEqual(far.shapeIds.sort(), ["far", "far-2"]);
+  assert.equal(far.name, "Far");
+});
+
+test("settleGroups gives a shape drawn on open ground a group of its own, and keeps it", () => {
+  const shapes = handGrouped();
+  const baseline = loaded(shapes);
+  shapes.push(rect("new", 200, 0, 205, 5));
+  const first = settleGroups(shapes, handGroups, baseline);
+  const fresh = uniqueGroups(first).find(group => group.shapeIds.includes("new"));
+  assert.ok(!handGroups.some(group => group.id === fresh.id));
+  const again = uniqueGroups(settleGroups(shapes, handGroups, baseline, first));
+  assert.equal(again.find(group => group.shapeIds.includes("new")).id, fresh.id);
+});
+
+test("settleGroups regroups a group whose member was deleted, under its own id", () => {
+  const shapes = handGrouped().filter(shape => shape.id !== "stone");
+  const baseline = loaded(handGrouped());
+  const team = uniqueGroups(settleGroups(shapes, handGroups, baseline)).find(group => group.id === "team");
+  assert.deepEqual(team.shapeIds, ["island"]);
+});
+
+test("settleGroups answers a layer that states no groups from the geometry", () => {
+  const shapes = [rect("a", 0, 0, 5, 5), rect("b", 4, 0, 10, 5), rect("c", 30, 0, 35, 5)];
+  const groups = uniqueGroups(settleGroups(shapes, [], loaded(shapes)));
+  assert.equal(groups.length, 2);
+  assert.deepEqual(groups.map(group => group.shapeIds.sort()).sort(), [["a", "b"], ["c"]]);
+});
+
+test("settleGroups never answers two groups under one id", () => {
+  const shapes = handGrouped();
+  const baseline = loaded(shapes);
+  // The stone is pulled away from nothing and the island is split in two: the team group is touched.
+  shapes[0] = rect("island", 0, 0, 8, 20);
+  shapes.push(rect("island-2", 12, 0, 20, 20));
+  const ids = uniqueGroups(settleGroups(shapes, handGroups, baseline)).map(group => group.id);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.ok(ids.includes("team"));
 });
 
 // ── helpers ───────────────────────────────────────────────────────────────────

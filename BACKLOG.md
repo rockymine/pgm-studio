@@ -263,15 +263,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ### Shapes
 
-- [ ] **TS120 — A browser save restates the groups an API caller drew.** The editor re-derives a layer's
-  groups from its shapes' geometry (`boolean.js` `computeGroups`) and matches the stored ones back by shape
-  overlap and centroid, so a group whose shapes are not one island — or a shape the API put in a group of its
-  own — comes back under a new `isl_…` id with `mirrors: true`, and the relief keyed on the old id and the
-  opt-out of the fan are gone. Keep a stored group's id, name, `mirrors` and `shapeIds` whenever its shapes are
-  unchanged, and re-derive only the groups an edit actually touched. *Evidence: on Sootcombe the mid stone
-  moved to `isl_1790704492818_1` (2026-09-29 17:54 UTC), leaving its relief on `team` covering nothing, and
-  `archer-ladder-0` moved into a mirroring `Group 2`.* `docs/tools/sketch.md` § the two rasterizers.
-
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag

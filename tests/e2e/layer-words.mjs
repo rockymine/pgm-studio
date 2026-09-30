@@ -5,6 +5,10 @@
  * whether its floors are sat onto the ground — and the canvas has no control for any of them. The tool holds
  * them as they were read and writes them back with the layer, so an author drawing one shape in the browser
  * cannot turn a seated ruin back into a floating one.
+ *
+ * The same holds for groups the geometry would not have made: one group over two pieces that do not touch,
+ * and a post held in an unfanned group of its own over the wall it stands on. A group nobody edited is saved
+ * as it was stated.
  */
 
 import { openBrowser, newPage, Checks, readSeed, api, BASE } from "./lib/harness.mjs";
@@ -16,9 +20,18 @@ const layout = await api(`/map/${seed.sketchSlug}/sketch`);
 const ruin = {
   id: "ruin", name: "Ruin", base_y: 40, kind: "made", part_of: "ruin", seat: "ground",
   layout: {
-    shapes: [{ id: "ruin-wall", type: "rectangle", operation: "add", min_x: 0, max_x: 4, min_z: 0, max_z: 1,
-               floor: 0, base_height: 3 }],
-    groups: [{ id: "ruin-g", name: "Ruin", mirrors: true, shapeIds: ["ruin-wall"] }],
+    shapes: [
+      { id: "ruin-wall", type: "rectangle", operation: "add", min_x: 0, max_x: 4, min_z: 0, max_z: 1,
+        floor: 0, base_height: 3 },
+      { id: "ruin-tower", type: "rectangle", operation: "add", min_x: 20, max_x: 22, min_z: 0, max_z: 2,
+        floor: 0, base_height: 5 },
+      { id: "ruin-post", type: "rectangle", operation: "add", min_x: 1, max_x: 2, min_z: 0, max_z: 1,
+        floor: 0, base_height: 4 },
+    ],
+    groups: [
+      { id: "ruin-g", name: "Ruin", mirrors: true, shapeIds: ["ruin-wall", "ruin-tower"] },
+      { id: "ruin-post-g", name: "Post", mirrors: false, shapeIds: ["ruin-post"] },
+    ],
   },
 };
 const draft = await api("/sketch", { method: "POST", body: { name: "E2E layer words" } });
@@ -51,6 +64,10 @@ checks.add("the made layer is still there", !!stored);
 checks.add("its kind is still made", stored?.kind === "made", `${stored?.kind}`);
 checks.add("it is still part of the ruin", stored?.part_of === "ruin", `${stored?.part_of}`);
 checks.add("and still seated on the ground", stored?.seat === "ground", `${stored?.seat}`);
+
+checks.section("a browser save keeps the groups nobody edited as they were stated");
+const groups = JSON.stringify(stored?.layout?.groups ?? []);
+checks.add("the groups are the ones the API stated", groups === JSON.stringify(ruin.layout.groups), groups);
 
 checks.add("sketch tool is clean", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
 checks.finish();

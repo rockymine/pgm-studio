@@ -8827,6 +8827,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   floor is two cells — 8 blocks at the default scale, which `G264` is for. Composer output is unmoved: the
   determinism gate reads 72 boards, 0 moved.
 
+- **A browser save keeps the groups nobody edited (`TS120`).** The editor settles a layer's groups against
+  the ones it was loaded with (`settleGroups`, `boolean.js`): a loaded group keeps its id, name, `mirrors` and
+  `shapeIds` until one of its shapes changes outline or is deleted, or a new or reshaped shape overlaps one,
+  and only a touched group is regrouped from the geometry. A group over pieces that do not touch, and a shape
+  held unfanned in a group of its own over the island it stands on, survive a save made anywhere else on the
+  board. Evidence: on Sootcombe the mid stone came back as `isl_1790704492818_1`, leaving its relief on `team`
+  covering nothing, and `archer-ladder-0` fused into a mirroring `Group 2` — the old load path reproduces both
+  on the same shapes. `docs/tools/sketch.md` § Groups and layers. (`TS120`)
+
 - **A group that declines the fan off the symmetry centre is named (`TS108`, `SK28`).** The orbit is fanned
   per group, so `mirrors: false` builds a group's shapes once. That is the right statement for a landmark
   seated on the centre, which is already every one of its images, so the **footprint** decides rather than the

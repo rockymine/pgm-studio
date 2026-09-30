@@ -6,7 +6,7 @@
 // getState() returns the layout for the host to PATCH (persistence wiring = S2d).
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
-import { computeGroups, assignShapesToGroups, computeMirrorPreview, restoreGroupMeta } from "../geometry/boolean.js";
+import { computeMirrorPreview, settleGroups, uniqueGroups, outlineKey } from "../geometry/boolean.js";
 import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape } from "../geometry/shape.js";
 import { surfaceHeights } from "../geometry/slope.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
@@ -45,7 +45,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let setup = { ...DEFAULT_SETUP };
   // Stacked layers (S7b): each holds its own shapes/groups at a base_y. The canvas always edits the
   // ACTIVE layer's shapes; other layers keep cached shapes+groups for ghosting (2-D) and stacking (iso).
-  let layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], groups: [], savedMetas: [] }];
+  let layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], groups: [], savedMetas: [], baseline: new Map() }];
   let active = 0;
   let groups = [];            // alias of layers[active].groups — kept current by recompute()
   let mirrorVisible = true;
@@ -92,16 +92,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   const fire = (name, ...args) => fireTo(dotnetRef, name, ...args);
-  const markDirty = () => fire("OnDirty", groups.length);
+  const markDirty = () => fire("OnDirty", uniqueGroups(groups).length);
   const syncActive = () => { if (layers[active]) layers[active].shapes = canvas.getShapes(); };
 
-  // Compute a layer's groups from its shapes (used for non-active layers at load + on switch).
-  function computeLayerGroups(shapes, savedMetas) {
-    const { groups: next, addUnion, afterSub, overrideAddUnion } = computeGroups(shapes, []);
-    assignShapesToGroups(shapes, next, addUnion, overrideAddUnion, afterSub);
-    if (savedMetas?.length) restoreGroupMeta(next, savedMetas, ["id", "name", "mirrors"]);
-    return next;
-  }
+  // A layer's groups from its shapes, settled against the ones it was loaded with (used for non-active
+  // layers at load).
+  const computeLayerGroups = (layer) => settleGroups(layer.shapes, layer.savedMetas, layer.baseline, []);
 
   // The other layers' group outlines (for the 2-D ghost render).
   const ghostPolys = () => layers.flatMap((L, i) => i === active ? [] : L.groups.map(o => ({ exterior: o.exterior, holes: o.holes })));
@@ -337,16 +333,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     markDirty();
   }
 
-  // Recompute groups from the canvas's current shapes and push results to the canvas + panel.
-  // `restoreFromSaved` (load only) seeds metadata from persisted records; live edits carry metadata
-  // over via the previous groups (centroid match inside computeGroups).
+  // Settle the groups from the canvas's current shapes and push results to the canvas + panel. A group the
+  // layer was loaded with stays as stated until an edit touches it (`settleGroups`); a piece no loaded record
+  // reaches carries its identity from the previous groups, which `restoreFromSaved` (load only) leaves out.
   function recompute(restoreFromSaved = false) {
     const shapes = canvas.getShapes();
-    const prev = restoreFromSaved ? [] : groups;
-    const { groups: next, addUnion, afterSub, overrideAddUnion } = computeGroups(shapes, prev);
-    assignShapesToGroups(shapes, next, addUnion, overrideAddUnion, afterSub);
-    const sm = layers[active].savedMetas;
-    if (restoreFromSaved && sm?.length) restoreGroupMeta(next, sm, ["id", "name", "mirrors"]);
+    const next = settleGroups(shapes, layers[active].savedMetas ?? [], layers[active].baseline ?? new Map(),
+                              restoreFromSaved ? [] : groups);
     groups = next;
     layers[active].groups = next;
     layers[active].shapes = shapes;
@@ -488,8 +481,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       heightMode: s.height_mode ?? "", skirt: s.skirt ?? 0, reliefScope: s.relief_scope ?? "",
       radius: s.radius ?? 0, strokeEdge: s.stroke_edge ?? "", strokeSeed: s.stroke_seed ?? 0,
     }));
-    const isl = groups.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
-    fire("OnLayout", JSON.stringify({ groups: isl, shapes }));
+    fire("OnLayout", JSON.stringify({ groups: uniqueGroups(groups), shapes }));
   }
 
   // Push the layer list (id/name/base_y + active) to the Blazor layer panel.
@@ -531,7 +523,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   function addLayer() {
     syncActive();
     const baseY = Math.max(0, ...layers.map(L => L.baseY)) + 10;   // stack the new slab above by default
-    layers.push({ id: genId(), name: `Layer ${layers.length + 1}`, baseY, shapes: [], structural: [], groups: [], savedMetas: [] });
+    layers.push({ id: genId(), name: `Layer ${layers.length + 1}`, baseY, shapes: [], structural: [], groups: [], savedMetas: [], baseline: new Map() });
     active = layers.length - 1;
     loadActiveToCanvas();
     markDirty();
@@ -709,6 +701,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   function groupById(id) { return groups.find(i => i.id === id); }
+
+  // A group's name or mirror flag, set on every part of it and on the record it was loaded as, so the
+  // change outlives the next settle whether the group is kept as stated or recomputed.
+  function setGroupField(groupId, field, value) {
+    for (const part of groups) if (part.id === groupId) part[field] = value;
+    for (const record of layers[active].savedMetas ?? []) if (record.id === groupId) record[field] = value;
+  }
 
   // ── terrain-paint themes (docs/world-export/terrain-painting.md TP10) ────────────────────────────
   // The theme state the Theme phase reads: the registry, the map default, and the resolved per-shape override
@@ -1061,8 +1060,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     promoteShape(id)   { promoteShape(id ?? canvas.selectedId); },
     toggleOp(id)       { const s = canvas.getShape(id); if (!s) return; s.operation = s.operation === "subtract" ? "add" : "subtract"; canvas.updateShape(s); recompute(); markDirty(); },
     toggleOverride(id) { const s = canvas.getShape(id); if (!s) return; s.override = !s.override; canvas.updateShape(s); recompute(); markDirty(); },
-    toggleMirrors(groupId) { const i = groupById(groupId); if (!i) return; i.mirrors = !i.mirrors; refreshMirror(); pushLayout(); markDirty(); },
-    renameGroup(groupId, name) { const i = groupById(groupId); if (!i) return; i.name = name; pushLayout(); markDirty(); },
+    toggleMirrors(groupId) { const i = groupById(groupId); if (!i) return; setGroupField(groupId, "mirrors", !i.mirrors); refreshMirror(); pushLayout(); markDirty(); },
+    renameGroup(groupId, name) { if (!groupById(groupId)) return; setGroupField(groupId, "name", name); pushLayout(); markDirty(); },
 
     // Layer ops (S7b).
     addLayer()              { addLayer(); },
@@ -1298,14 +1297,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
           structural: all.filter(sh => sh.role),
           groups: [],
           savedMetas: groups ?? [],
+          baseline: new Map(all.filter(sh => !sh.role).map(sh => [sh.id, outlineKey(sh)])),
         };
       });
-      if (!layers.length) layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], groups: [], savedMetas: [] }];
+      if (!layers.length) layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], groups: [], savedMetas: [], baseline: new Map() }];
       // A restore keeps the layer being drawn on, for the reason it keeps the camera: which layer is active
       // is where the author is, not what the document says.
       active = keepView && wasActive < layers.length ? wasActive : 0;
       // Cache the non-active layers' groups (for ghosts/iso); the active one is computed by recompute(true).
-      for (let i = 0; i < layers.length; i++) if (i !== active) layers[i].groups = computeLayerGroups(layers[i].shapes, layers[i].savedMetas);
+      for (let i = 0; i < layers.length; i++) if (i !== active) layers[i].groups = computeLayerGroups(layers[i]);
       canvas.clearShapes();
       for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
       canvas.setStructural(layers[active].structural ?? []);
@@ -1351,14 +1351,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
             ...L.layoutStated,
             // Merge the locked plan pieces (S25) back in so they persist with the terrain they annotate.
             shapes: [...L.shapes, ...(L.structural ?? [])],
-            groups: (L.groups ?? []).map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds })),
+            groups: uniqueGroups(L.groups ?? []),
           },
         })),
       };
     },
     undo() { history.undo(); },
     redo() { history.redo(); },
-    groupCount() { return groups.length; },
+    groupCount() { return uniqueGroups(groups).length; },
     fitToBbox() { canvas.fitToBbox(); },
     resize() { canvas.resize(); },
     dispose() {
