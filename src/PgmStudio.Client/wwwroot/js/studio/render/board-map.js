@@ -4,7 +4,7 @@
  * slopes, cliffs and the lie of the ground before it reads anything else.
  *
  * It is drawn from the same `{ palette, cols, layers }` payload the 3-D preview meshes (`sketch/columns`,
- * the full build), so the trees, the houses and the water are in it, which the terrain paint alone never is.
+ * the full build), so the trees, the houses and the fluids are in it, which the terrain paint alone never is.
  *
  * Pure: no DOM. The payload in, an RGBA buffer out, which the caller turns into a bitmap.
  */

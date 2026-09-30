@@ -344,7 +344,7 @@ public static class WorldBuilder
         TerrainPainter.Paint(world, PaintSurface(terrain.SurfaceByLayer, plinths),
                              themeAt,
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
-                             terrain.FloorByLayer);
+                             terrain.FloorByLayer, madeLayers);
 
         // ── The generators' ground — the block each spawner's stack lands on, laid into the course under its
         // drop. After the finish for the reason a room's pad is stamped after its shell: the pad is the floor
@@ -379,7 +379,7 @@ public static class WorldBuilder
             // Where the ground a cell is painted from stops being a meadow and becomes a face (DR-STEEP). The
             // paint is what states it, so the pass is handed the same resolver the painter just ran.
             (layer, x, z) => Materials.CliffAngle(
-                themeAt(layer is { Length: > 0 } named ? named : SketchLayer.GroundId, x, z).Surface.Material)));
+                themeAt(layer is { Length: > 0 } named ? named : SketchLayer.GroundId, x, z).Theme.Surface.Material)));
         // A dressing-placed building is a structure the author chose, not scenery the way a tree or a boulder
         // is (docs/world-export/decoration.md) — its footprint claims Structure last, over whatever ground
         // provenance the terrain under it carried, the same "later pass wins" rule every stamp above follows.
@@ -778,11 +778,11 @@ public static class WorldBuilder
     /// takes it.</para></summary>
     private static IEnumerable<Finding> TintOverSharedGround(
         IEnumerable<(int X, int Z)> footprint, MapIntent intent,
-        Func<string, int, int, TerrainTheme> themeAt)
+        Func<string, int, int, CellPaint> themeAt)
     {
         foreach (var island in TeamTerritory.Shared(footprint, intent))
         {
-            if (!island.Cells.Any(cell => Materials.TintsByTeam(themeAt(SketchLayer.GroundId, cell.X, cell.Z))))
+            if (!island.Cells.Any(cell => Materials.TintsByTeam(themeAt(SketchLayer.GroundId, cell.X, cell.Z).Theme)))
                 continue;
             yield return new Finding(TerrainThemeRules.TintOverSharedGround,
                 $"island {island.Island} carries the spawns of {string.Join(" and ", island.Teams)} and its "

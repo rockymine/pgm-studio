@@ -346,7 +346,7 @@ public sealed record DressingRunDto(
     ClaimRasterDto Claims);
 
 /// <summary>One prop as the pass placed it.</summary>
-/// <param name="Kind">What it is: <c>stroke</c>, <c>water</c>, <c>tree</c>, <c>boulder</c>, <c>flora</c> or a
+/// <param name="Kind">What it is: <c>stroke</c>, <c>fluid</c>, <c>tree</c>, <c>boulder</c>, <c>flora</c>, <c>chest</c> or a
 /// stamped building's own kind.</param>
 /// <param name="Id">The id the author gave it.</param>
 /// <param name="Image">Which image of the symmetry orbit this is — 0 is the authored one.</param>

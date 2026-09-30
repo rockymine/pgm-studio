@@ -54,13 +54,13 @@ says so.
   (a pattern, shaded / `PerimeterArc`-aware), vines and hanging foliage dripping from ledges and overhangs
   (the tree's hanging-strand idea turned vertical), the occasional ledge shrub or exposed root, and
   **scree / rubble** — the boulder scatter shed at a cliff base. It attaches to **faces and interfaces**, not
-  the top grid, so it needs the elevation pass (G32-C) to exist first — the same dependency water has for its
+  the top grid, so it needs the elevation pass (G32-C) to exist first — the same dependency a fluid has for its
   carved bed.
 
 ## The connective tissue — composition
 
 - **WE105 — the arbitration & order contract** — the five passes are demos in isolation; the missing piece is
-  the score: the run-order and the masks each pass hands the next. Water carves first and owns its footprint;
+  the score: the run-order and the masks each pass hands the next. A fluid carves first and owns its footprint;
   paths clear flora along their band; a dense canopy **suppresses** tall grass beneath it and seeds
   shade-ferns instead; reeds are water-edge flora, not a separate system; every pass yields to objectives,
   spawns and the minimum corridor. Written as an explicit pass order plus an **exclusion / affinity mask**
@@ -99,16 +99,17 @@ says so.
 
 ## The fifth tool
 
-- **G169 — water: the richer reads and ponds (`DR-WA`)** — the **channel** shipped (the fifth tool: a
-  dragged centerline that cuts a U-bed and fills it to a level line, three forms, `Geom.WaterBed` +
-  `Decorator.PlaceWater`; see `decoration.md` §7 and `FEATURES.md`). What remains is the read that takes a
+- **G169 — fluids: the richer reads and ponds (`DR-WA`)** — the **channel** shipped (the fifth tool: a
+  dragged centerline that cuts a U-bed and fills it to a level line, three forms, `Geom.FluidBed` +
+  `Decorator.PlaceFluid`; see `decoration.md` §7 and `FEATURES.md`). What remains is the read that takes a
   channel from "a filled cut" to "water that looks like water," and the closed form. **Depth shading** warped
   off-centre so one bank runs deeper than the other; an **irregular shoreline** whose width wanders to zero in
   places; a **voronoi-patterned** bed and shore (sand, pale gravel, coarse dirt) showing through the shallows;
-  **edge life** reusing the §3 flora overlay masked to the bank (reeds, lily pads); and **ponds** — the closed
+  **edge life** reusing the §3 flora overlay masked to the bank (reeds, lily pads) — keyed to a `fluid: water` fill and never to the prop, which a
+  lava bed shares; and **ponds** — the closed
   version, the §5 blob read concave with an FBM-wandered outline, scattered onto low ground and joined to
   channels into one watershed. The bed carve reads best once the **G32-C** elevation pass gives layouts their
   heights, so a channel becomes a cut valley rather than a trench in a flat. What a channel has to do
   differently once the ground *does* have relief is measured in `relief.md` §9 (task
   S46): route on a depression-filled surface, force the bed non-increasing downstream, and replace the single
-  water line with one level per pool — the ponds above are then the same mechanism, not a second one.
+  line with one level per pool — the ponds above are then the same mechanism, not a second one.

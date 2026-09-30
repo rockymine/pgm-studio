@@ -23,14 +23,14 @@ namespace PgmStudio.Export;
 /// </summary>
 public static class ClaimRaster
 {
-    public const int Free = 0, Water = 1, Route = 2, Structure = 3, Tree = 4, Boulder = 5, Flora = 6,
+    public const int Free = 0, Fluid = 1, Route = 2, Structure = 3, Tree = 4, Boulder = 5, Flora = 6,
         SpawnKeepOut = 7, DoorApproach = 8, GoalClearance = 9, WoolRoomKeepOut = 10, StructureKeepOut = 11;
 
     /// <summary>The class every cell can be, indexed by the digit it prints as: <c>0</c>–<c>9</c> then
     /// <c>a</c>, <c>b</c>.</summary>
     public static readonly IReadOnlyList<string> Classes =
     [
-        "free", "water", "paving", "structure", "tree", "boulder", "flora",
+        "free", "fluid", "paving", "structure", "tree", "boulder", "flora",
         "spawn keep-out", "door approach", "goal clearance", "wool-room keep-out", "structure keep-out",
     ];
 
@@ -252,7 +252,7 @@ public static class ClaimRaster
     /// kind carries places before everything, since nothing the pass runs later can move it.</summary>
     private static int Places(int claimedClass) => PlacedProp.PlacementOrderOf(claimedClass switch
     {
-        Water => "water", Route => "stroke", Structure => "house",
+        Fluid => "fluid", Route => "stroke", Structure => "house",
         Tree => "tree", Boulder => "boulder", Flora => "flora", _ => "",
     }) ?? int.MinValue;
 
@@ -335,7 +335,7 @@ public static class ClaimRaster
         {
             var claimedClass = claim.Pass == ProvenancePass.Structure ? Structure : claim.Owner.Kind switch
             {
-                "water" => Water,
+                "fluid" => Fluid,
                 "stroke" => Route,
                 "tree" => Tree,
                 "boulder" => Boulder,

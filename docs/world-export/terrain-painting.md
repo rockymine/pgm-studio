@@ -145,9 +145,11 @@ top-most block, when it is an edge), the **wall** (the exposed riser below the r
   neither rim nor covered (TP25). The body beneath it is the **fill** bucket (§3).
 
 - **TP25** *A column something already rests on has no top course of its own.* The painter runs after every
-  stamp and before the dressing, and paints the lowest layer first, so a block in the course over a column's
-  top is either a higher layer's ground standing on it — a tunnel wall on the base it rises from — or a stamp
-  set down on it. That course is not open ground and takes neither rim nor surface: the wall claims it where
+  stamp and before the dressing, and paints made layers first and then the lowest layer, so a block in the
+  course over a column's top is a higher layer's ground standing on it — a tunnel wall on the base it rises
+  from — a made thing's finished block, or a stamp set down on it. Only a **whole block or a liquid** covers:
+  a ladder, a cactus, a dead bush or a line of dust stands on the ground without hiding it, so the ground
+  under one keeps its surface — which is what a cactus needs of the sand it stands in. That course is not open ground and takes neither rim nor surface: the wall claims it where
   its face is exposed and the fill where it is not, so the ground under a wall reads as rock in the cliff it
   shows instead of a stripe of turf between two rocks. A covered neighbour bounds a column the way a structure
   does (TP6) — never a drop, always a `boundary` edge — so a `boundary` rim lips a tunnel's floor along its
@@ -403,7 +405,10 @@ finished is no longer stone.
 **That invariant is what makes the pass order load-bearing, so the order is the stack's and not the
 document's.** Each pass paints its column from the bedrock course upward, so whichever layer runs first takes
 every course under it — and a storey painted before the one it stands over leaves that lower ground already
-finished, with no bands of its own. The painter therefore walks the layers from the bottom of the stack up,
+finished, with no bands of its own. **Made layers go first**: a made thing is what it is stated to be in every
+course it spans, so one laid into the ground's top course — a bed of sand under a cactus in a sandstone field —
+lands as stated, and the ground under it reads what the made thing finished to (TP25). The painter then walks
+the remaining layers from the bottom of the stack up,
 ordered by the lowest surface each carries, and layers standing at the same height keep the order the
 document draws them in, so where two genuinely meet flush the earlier one still wins. A compiled plan emits
 its ground as `layers[0]`, and that ground is not the bottom of every board: an undercroft appended after it
@@ -574,6 +579,15 @@ difference shows.
    footprints the rasterizer produces (a cell → shape → theme resolver, the `TeamTerritory` shape), so it adds
    only the lookup, no new geometry.
 
+   **The resolver answers which orbit image a cell is painted on, alongside its theme.** The rasterizer's
+   footprint walk (`SketchRasterizer.ShapeScopeOwners`) records for every cell both the shape that owns it and
+   the image of that shape's orbit that claimed it — 0 for the drawn footprint, `k` for the `k`-th axis a
+   mirroring group is fanned by — and `TerrainThemeScope.ThemeAt` hands the painter a `CellPaint`: the theme,
+   and the turn that image applies to a direction (`DressingSymmetry.TurnCell`, about the origin, since a
+   direction has no position to mirror). The image is the fan's and never the fold's, so a shape the author
+   drew on the far half of a group that does not mirror is image 0 there and is not turned a second time. A
+   cell the map default paints belongs to no shape's orbit and takes no turn.
+
 3. **Bands — the resolver (pure depth math).** Given `(Profile column, resolved Theme)`, compute the vertical
    band assignment: which y-range is bedrock, rim, wall, surface, fill. Every depth and toggle rule lives here
    and nowhere else (TP7/TP8/TP9/TP11/TP12) — bedrock claims the bottom, rim or surface the top, wall the
@@ -598,13 +612,28 @@ difference shows.
    seam; it is no longer the only thing doing it.
 
 4. **Materials — the painter (the pattern seam).** For each band, the bucket's `TerrainMaterial` resolves the
-   actual block per `BucketContext` (`x/y/z`, bucket, depth-from-top, team nibble, perimeter arc) and writes it.
+   actual block per `BucketContext` (`x/y/z`, bucket, depth-from-top, team nibble, perimeter arc, the image's
+   turn) and writes it.
    The material is the plug-in point: `SolidMaterial`, `LayeredMaterial` (surface's grass-over-dirt, a wall's
    vertical bands), `TeamTintedMaterial`, and the patterns `VoronoiMaterial` / `NoiseMaterial` (area) and
    `WallRunMaterial` (perimeter stripes) — composable (each nests any material) and deterministic (hashed from a
    seed and the cell, never RNG, the same discipline as the rest of the generator). Adding a pattern was a new
    `TerrainMaterial` and nothing else; the whole graph serializes through `TerrainThemeJson` under one `kind`
    discriminator.
+
+   **A block a material states turns with the image it is painted on.** The turn rides on
+   `BucketContext.Turn`, and a `SolidMaterial` — the leaf every picking pattern ends in — writes its data
+   through `BlockGeometry.Turned`, so a ladder, a stair, a log's axis, a wall torch, a fence gate and every
+   fronted block stated on the authored half faces the image of what it faced there: under `mirror_x` a stair
+   climbing east climbs west and a ladder looking north still looks north, and on the four images of a
+   `rot_90` board it takes each quarter in turn. A pattern sampled through the fold (TP21) picks the same leaf
+   at every image, and the leaf's turn is what makes the pick face the right way there.
+
+   **A direction a material reads off the ground is already the image's and is not turned.** `LaidLogMaterial`
+   and `LogCheckerMaterial` take a log's axis from the wall's own run (`BucketContext.PerimeterRun`, TP20),
+   which the profile measures on the image being painted, so a beam course on a quarter-turned image lies along
+   its own wall rather than across it. Only their log floor — laid along x where there is no run — is a
+   statement, and it turns with the image.
 
 **Why the split holds.** Each kind of change touches exactly one seam:
 
@@ -746,7 +775,8 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   registry** (`themes`, `themeId → theme JSON`) and the **map default** (`mapTheme`), and a shape carries the
   id of the theme it takes (`shape.theme`). At export `TerrainThemeScope` walks the rasterizer's own shape
   footprints — the primary plus every orbit copy, since a mirrored image keeps its shape id — and hands the
-  painter a per-cell `themeAt(x, z)` instead of one theme; an image carries **what its shape states** as well
+  painter a per-cell `themeAt(x, z)` instead of one theme, carrying the turn of the image the cell lies on (§5);
+  an image carries **what its shape states** as well
   as where it stands, both grains of it, because the resolver asks a shape whether it states a `theme` or a
   `material` and an image that answers neither is ground the map default finishes; because the band resolver and the materials already
   run per column against one theme-agnostic `ColumnProfile`, the per-cell lookup needs no new geometry. A
@@ -887,7 +917,7 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   The fold is taken once per column rather than once per block, since it does not depend on height.
 
   The same point is handed to the two dressing materials resolved at world cells — a path's **pave** and a
-  water prop's **bank** — so a cobbled road is cobbled the same way on both sides. A boulder needs nothing:
+  fluid prop's **bank** — so a cobbled road is cobbled the same way on both sides. A boulder needs nothing:
   it is built in its own local frame and turned into place, so its material was already asked in coordinates
   its images share.
 
@@ -921,9 +951,9 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP18** | A corner is a **turn**, not a change of direction. A wall exists only as squares, so a boundary that is not axis-aligned is drawn as steps and its direction changes at nearly every cell; the profile instead measures how far the boundary bends over a span either side (`GridBoundary.TurnAt`), which cancels the staircase and leaves curvature. Each boundary column carries that angle (`BucketContext.PerimeterTurn`) beside its arc, so a material asks one threshold and a shape drawn round reaches it nowhere. |
 | **TP19** | `WallFrameMaterial` inks the top and bottom `Thickness` courses and the corners of the shape the wall wraps, filling the panel between. `Angle` is how sharp a turn (TP18) has to be to be inked, and the same number sets how far the ink wraps round each corner, because the measured turn ramps to a vertex rather than switching on at it. A circle reaches no usable threshold, so it has no corners and the frame falls back to its two courses — a layer stack, which is the right answer for a shape with nothing to pick out. A wall too short to hold two courses is all edge. |
 | **TP20** | `LogCheckerMaterial` lays a checkerboard with **one** log and varies how it is turned rather than what it is made of: upright on one square, on its side on the next, so a single block reads as a woven board. Its own material rather than a checker over two solids, because the two squares are one block and two orientations and a log's data nibble *is* its axis. **A log on its side lies along the wall, never across it** — the axis decides which two faces are the sawn ends — so it takes the wall's own run (`BucketContext.PerimeterRun`, the third perimeter fact beside the arc and the turn); at a corner no lying log shows bark to both faces, so it stands. `LaidLogMaterial` is that pattern with one of its two squares taken away: the beam course running through the masonry everywhere. |
-| **TP21** | A pattern samples the cell **folded into the board's primary image**, not the cell itself. Every pattern is a function of position, so on a mirrored board a cell and its image sample two different places and resolve to two different blocks — a floor that does not match across the map and a middle that is not symmetric with itself. The painter fills `BucketContext.Sample` with the cell put through `OrbitScatter.Canonical`, the one member of a symmetry orbit that stands for all of them, so every image resolves alike and a cell on the axis folds to itself. The fold is of the plane only — no symmetry mode turns the vertical — so a risen pattern (TP15) samples the folded column at its own height. The cell being painted is untouched: a context with no orbit to fold into (a style swatch, a house course, a freeform board) samples its own cell. A team tint does not fold, since `TeamData` is a fact about the cell and each side keeps its colour. The same point is handed to a path's pave, a water prop's bank and the flora overlay's own fields (`decoration.md` §3); a boulder needs none, being built in its own local frame and turned into place. |
+| **TP21** | A pattern samples the cell **folded into the board's primary image**, not the cell itself. Every pattern is a function of position, so on a mirrored board a cell and its image sample two different places and resolve to two different blocks — a floor that does not match across the map and a middle that is not symmetric with itself. The painter fills `BucketContext.Sample` with the cell put through `OrbitScatter.Canonical`, the one member of a symmetry orbit that stands for all of them, so every image resolves alike and a cell on the axis folds to itself. The fold is of the plane only — no symmetry mode turns the vertical — so a risen pattern (TP15) samples the folded column at its own height. The cell being painted is untouched: a context with no orbit to fold into (a style swatch, a house course, a freeform board) samples its own cell. A team tint does not fold, since `TeamData` is a fact about the cell and each side keeps its colour. The same point is handed to a path's pave, a fluid prop's bank and the flora overlay's own fields (`decoration.md` §3); a boulder needs none, being built in its own local frame and turned into place. |
 | **TP23** | A theme may say **its edges are the ground's** (`edgesFromGround`). A theme is a whole column — bedrock, fill, wall, rim, surface — which is the right shape for a theme that *is* the ground and the wrong one for paint laid **over** it: a road marking, a worn patch, a stroke. Scoped to a shape lying on a landmass, such a theme takes that landmass's own top course and its face with it, so a stroke reaching the board's edge repaints the rim and runs its own material the whole height of the exposed wall — the map's own face restated in paint, and taller the deeper the drop. With the word set the shape keeps its `surface` and its `fill` and takes every **geometry-chosen** bucket from the map default: the rim, the wall, `rimEdges` and `wallEnabled`, resolved as `TerrainTheme.OverGround` at the moment the scope is read rather than stored composed, since the same paint on a board with another default takes that board's edges. Bedrock is the ground's for `TP22`'s reason: what paint a cell wears does not decide where the world's floor is. Unset — the default — a theme owns its whole column exactly as before. |
 | **TP22** | A shape may state a **`material`** in place of a theme: one `TerrainMaterial` painted over its whole span, with no rim, no wall and no surface depth. A theme chooses its bucket per column by whether that column is an edge, so on a shape with no interior column — a stilt, a kerb, a tread, a rail — only the rim and the wall ever paint and the theme's own surface is nowhere on it; `material` is the statement for a thing that is *made of* something rather than ground with a top and a face. It reaches the painter as `TerrainTheme.OfMaterial` — the material in `fill`, the three geometry-chosen buckets off — which leaves one band over the shape's span, so a depth-axis stack reads from the shape's own top. It is a **shape** word about paint and says nothing about walking: `kind: "made"` is the *layer* word that takes a thing out of the walks and out of the ground everything rests on, and a stair needs the paint without the exile. A theme scoped to a shape it cannot show on is `SK23`, grouped per layer and theme; stating both is `SK24`. |
 | **TP24** | Every paintable column carries how steeply its surface is inclined (`ColumnProfile.Slope`, `BucketContext.SlopeDegrees`): Horn's 3×3 gradient over the surface tops `TerrainProfile.SlopeWindow` cells either side, in whole degrees from level, 0–89. A ramp climbing one block a cell answers 45 exactly and level ground 0. A neighbour off the footprint or carrying a structure reads as level with the cell itself — the void is not a slope, and a building's roof is not the terrain's gradient (TP6's exclusion, applied to the same walk). `BandAxis.Slope` reads it, which makes a band stack an **angle mask**: a thickness on that axis is a span of degrees, not a count of blocks. It is the only thing in the model that tells a 45° hillside from a flat field — such a surface has no exposed riser, so the wall bucket never sees it and every other axis paints the two alike. The whole column takes the answer its surface gave, so a face's fill and the block on top of it resolve to the same band. **The window is two** because a gentle slope on ground quantised to whole blocks is a staircase, and a one-cell window reads the stair rather than the grade: it answers 27° on each riser and 0 on each tread, so a uniform grade paints speckled and a lone contour paints a stripe. A sustained slope reads the same angle at any window, so widening costs it nothing; a face softens (a six-block drop reads 72° at one, 56° at two, 45° at three) and that is what bounds it. `GET /map/{slug}/incline` is the reading — the tens of degrees per cell, and how much ground stands in each ten — and `?window=` tries another without rebuilding. |
-| **TP25** | A column something rests on — a higher layer's ground or a stamp in the course over its top — has no rim or surface: the wall takes its top where exposed, the fill where not. A covered neighbour bounds like a structure: never a drop, always a `boundary` edge. |
+| **TP25** | A column something rests on — a higher layer's ground, a made thing's whole block or a stamp in the course over its top; a liquid counts, a block that does not fill its cube does not — has no rim or surface: the wall takes its top where exposed, the fill where not. A covered neighbour bounds like a structure: never a drop, always a `boundary` edge. |
 | **TP26** | A height stack may **follow the ground** (`follow`, 0–100%): its datum is `from` plus that share of `TerrainProfile.Ground`, the layer's surface averaged over the footprint cells `reach` either side (16 unstated, at most 64; void is not ground). A wide reach keeps the land's broad tilt and lets a hill cut the bands, a narrow one lays them along every bump. Read at the folded cell (TP21); with no ground supplied — a swatch, a house course — the stack reads world Y. `follow` 0, the default, is the level stack. |

@@ -630,12 +630,71 @@ public sealed class TerrainPainterTests
             Fill = new SolidMaterial(Blocks.Cobblestone),
         };
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
-                             (layer, _, _) => layer == "ground" ? ground : rock, floorByLayer: terrain.FloorByLayer);
+                             (layer, _, _) => new CellPaint(layer == "ground" ? ground : rock), floorByLayer: terrain.FloorByLayer);
 
         await Assert.That(terrain.World.GetBlock(3, 4, 3).Id).IsEqualTo(Blocks.Dirt);
         await Assert.That(terrain.World.GetBlock(0, 4, 3).Id).IsEqualTo(Blocks.HardenedClay);
         await Assert.That(terrain.World.GetBlock(3, 4, 1).Id).IsEqualTo(Blocks.Grass);
         await Assert.That(terrain.World.GetBlock(3, 4, 2).Id).IsEqualTo(Blocks.QuartzBlock);
+    }
+
+    /// <summary>
+    /// <b>A made thing that does not fill its block leaves the ground's top to the ground</b> (TP25). A 7×7
+    /// ground to y4 in grass over dirt with a made layer standing on its middle cell from y5: a ladder there
+    /// hides nothing, so the course under it is grass like its neighbours', where a whole block there takes
+    /// the fill.
+    /// </summary>
+    [Test]
+    [Arguments(Blocks.Ladder, Blocks.Grass)]
+    [Arguments(Blocks.Cobblestone, Blocks.Dirt)]
+    public async Task Ground_under_a_made_block_keeps_its_top_unless_the_block_is_whole(int made, int under)
+    {
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 7; x++)
+        for (var z = 0; z < 7; z++)
+            columns.Add(new ColumnSegment(x, z, 1, 5, "ground"));
+        columns.Add(new ColumnSegment(3, 3, 5, 6, "thing"));
+        var terrain = TerrainBuilder.Build(columns);
+        var meadow = TerrainTheme.Default with
+        {
+            Surface = new TopBand(new SolidMaterial(Blocks.Grass)),
+            Fill = new SolidMaterial(Blocks.Dirt),
+        };
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
+                             (layer, _, _) => new CellPaint(layer == "ground" ? meadow : TerrainTheme.OfMaterial(new SolidMaterial(made), meadow)),
+                             floorByLayer: terrain.FloorByLayer, madeLayers: new HashSet<string> { "thing" });
+
+        await Assert.That(terrain.World.GetBlock(3, 5, 3).Id).IsEqualTo(made);
+        await Assert.That(terrain.World.GetBlock(3, 4, 3).Id).IsEqualTo(under);
+        await Assert.That(terrain.World.GetBlock(3, 4, 1).Id).IsEqualTo(Blocks.Grass);
+    }
+
+    /// <summary>
+    /// <b>A made thing is what it is stated to be in every course it spans, the ground's included.</b> A made
+    /// layer of sand one course deep laid into a sandstone ground's top course comes out sand there — which is
+    /// what a cactus needs under it — because made layers are painted before the ground.
+    /// </summary>
+    [Test]
+    public async Task A_made_block_laid_into_the_grounds_top_course_is_the_made_block()
+    {
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 7; x++)
+        for (var z = 0; z < 7; z++)
+            columns.Add(new ColumnSegment(x, z, 1, 5, "ground"));
+        columns.Add(new ColumnSegment(3, 3, 4, 5, "bed"));
+        var terrain = TerrainBuilder.Build(columns);
+        var desert = TerrainTheme.Default with
+        {
+            Surface = new TopBand(new SolidMaterial(Blocks.Sandstone)),
+            Fill = new SolidMaterial(Blocks.Sandstone),
+        };
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
+                             (layer, _, _) => new CellPaint(layer == "ground" ? desert : TerrainTheme.OfMaterial(new SolidMaterial(Blocks.Sand), desert)),
+                             floorByLayer: terrain.FloorByLayer, madeLayers: new HashSet<string> { "bed" });
+
+        await Assert.That(terrain.World.GetBlock(3, 4, 3).Id).IsEqualTo(Blocks.Sand);
+        await Assert.That(terrain.World.GetBlock(3, 3, 3).Id).IsEqualTo(Blocks.Sandstone);
+        await Assert.That(terrain.World.GetBlock(2, 4, 3).Id).IsEqualTo(Blocks.Sandstone);
     }
 
     /// <summary>
@@ -662,7 +721,7 @@ public sealed class TerrainPainterTests
             Fill = new SolidMaterial(Blocks.Stone),
         };
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
-                             (layer, _, _) => layer == "ground" ? meadow : TerrainTheme.Default, floorByLayer: terrain.FloorByLayer);
+                             (layer, _, _) => new CellPaint(layer == "ground" ? meadow : TerrainTheme.Default), floorByLayer: terrain.FloorByLayer);
 
         foreach (var y in (int[])[3, 4, 5])
             await Assert.That(terrain.World.GetBlock(3, y, 3).Id).IsEqualTo(Blocks.Stone);
@@ -707,7 +766,7 @@ public sealed class TerrainPainterTests
             Fill = new SolidMaterial(Blocks.Wool, 14),
         };
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
-                             (layer, _, _) => layer == "plinth" ? diorite : wool);
+                             (layer, _, _) => new CellPaint(layer == "plinth" ? diorite : wool));
 
         // The plinth keeps its own courses; the block rests on its top one, so that course is fill (TP25).
         await Assert.That(terrain.World.GetBlock(2, 3, 2)).IsEqualTo((Blocks.Stone, 3));
@@ -753,7 +812,7 @@ public sealed class TerrainPainterTests
             Fill = new SolidMaterial(Blocks.Wool, 14),
         };
         TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
-                             (layer, _, _) => layer == "undercroft" ? below : above);
+                             (layer, _, _) => new CellPaint(layer == "undercroft" ? below : above));
 
         // The undercroft's own courses are its own — not the deck's paint run down through them.
         await Assert.That(terrain.World.GetBlock(2, 3, 2)).IsEqualTo((Blocks.Wool, 4));

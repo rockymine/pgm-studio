@@ -146,6 +146,46 @@ public sealed class SketchMaterialGateTests
         await Assert.That(finding.GetProperty("message").GetString()).Contains("{\"block\": -1}");
     }
 
+    /// <summary>A wool room raised on stilts over a plank plate — <c>HS10</c>, a complaint, since the house
+    /// stands either way and only the ground under it is lidded.</summary>
+    private const string StiltsOnAFloor = """
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layers":[{"base_y":0,"layout":{
+           "shapes":[{"id":"s1","type":"polygon","operation":"add","floor":8,"base_height":12,
+                      "vertices":[[-20,-20],[20,-20],[20,20],[-20,20]]}],
+           "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}],
+         "roomStyles":{"wool":{
+           "foundation":{"plate":{"stack":{"bands":[{"material":{"kind":"solid","id":5,"data":1},"thickness":1}],
+                                           "ending":"handOver"},"extent":1}},
+           "storeys":[{"wall":{"stack":{"bands":[{"material":{"kind":"solid","id":0,"data":0},"thickness":4}],
+                                        "ending":"handOver"},"extent":4}}]}}}
+        """;
+
+    /// <summary>A complaint on the stored board rides a partial write's 200 and the write lands: the edit reads
+    /// back and the layout's revision moves. The partial routes answer for the whole document, so what the
+    /// gate complains about is reported on every one of them and refuses none.</summary>
+    [Test]
+    public async Task A_complaint_on_the_board_rides_a_partial_write_and_the_write_lands()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        await client.PostAsJsonAsync("/api/sketch", new { name = "Stilts" });
+
+        var put = await client.PutAsync("/api/map/stilts/sketch", Body(StiltsOnAFloor));
+        await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
+        var before = put.Headers.ETag!.Tag;
+
+        var added = await client.PostAsync("/api/map/stilts/sketch/shapes/s1/vertices",
+            Body("""{"after":0,"x":0,"z":-24}"""));
+        await Assert.That(added.IsSuccessStatusCode).IsTrue().Because(await added.Content.ReadAsStringAsync());
+        await Assert.That(added.Headers.TryGetValues("Pgm-Warnings", out var warnings)).IsTrue();
+        await Assert.That(string.Join(" ", warnings!)).Contains("HS10");
+        await Assert.That(added.Headers.ETag?.Tag).IsNotNull().And.IsNotEqualTo(before);
+
+        var shape = await client.GetFromJsonAsync<JsonElement>("/api/map/stilts/sketch/shapes/s1");
+        await Assert.That(shape.GetProperty("vertices").GetArrayLength()).IsEqualTo(5);
+    }
+
     /// <summary>A board with no styles at all passes every road — the gate reports what is there and never
     /// asks for a house.</summary>
     [Test]

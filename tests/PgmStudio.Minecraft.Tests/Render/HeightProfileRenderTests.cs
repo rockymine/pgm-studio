@@ -27,7 +27,7 @@ public sealed class HeightProfileRenderTests
         world.SetBlock(0, 8, 0, Blocks.Leaves);
 
         var result = HeightProfileRender.Render(AnvilRegion.FromWorld(world), contourInterval: 0,
-            greyscale: false, markWater: false);
+            greyscale: false, markFluid: false);
 
         // Ground is the stone the tree stands on, not the top of its canopy.
         await Assert.That(result).IsNotNull();
@@ -39,9 +39,9 @@ public sealed class HeightProfileRenderTests
     public async Task Contours_change_the_pixels_a_bare_ramp_draws()
     {
         var withoutContours = HeightProfileRender.Render(AnvilRegion.FromWorld(Steps()), contourInterval: 2,
-            greyscale: true, markWater: false, drawContours: false)!;
+            greyscale: true, markFluid: false, drawContours: false)!;
         var withContours = HeightProfileRender.Render(AnvilRegion.FromWorld(Steps()), contourInterval: 2,
-            greyscale: true, markWater: false, drawContours: true)!;
+            greyscale: true, markFluid: false, drawContours: true)!;
 
         await Assert.That(withoutContours.Pixels.SequenceEqual(withContours.Pixels)).IsFalse();
     }
@@ -55,7 +55,7 @@ public sealed class HeightProfileRenderTests
         world.SetBlock(1, 5, 0, Blocks.Stone);   // dry neighbour
 
         var result = HeightProfileRender.Render(AnvilRegion.FromWorld(world), contourInterval: 0,
-            greyscale: false, markWater: true)!;
+            greyscale: false, markFluid: true)!;
 
         await Assert.That(result.Flooded.Count).IsEqualTo(1);
         await Assert.That(result.Flooded.ContainsKey((0, 0))).IsTrue();
@@ -68,7 +68,7 @@ public sealed class HeightProfileRenderTests
         try
         {
             var exit = HeightProfileRender.Run(Steps(), outPng, scale: 2, contourInterval: 2,
-                greyscale: false, markWater: false, drawContours: true, name: "test");
+                greyscale: false, markFluid: false, drawContours: true, name: "test");
             await Assert.That(exit).IsEqualTo(0);
 
             var (width, height) = PngTestUtil.Dimensions(File.ReadAllBytes(outPng));

@@ -170,16 +170,16 @@ public static class DressingRules
     /// and over it a viewer sees a piece of the prop standing in the air.</summary>
     public const int ClipSevered = 8;
 
-    /// <summary>Water standing against a hole in its own basin. A pool fills the bed it carves, and the hollow
+    /// <summary>A fluid standing against a hole in its own basin. A pool fills the bed it carves, and the hollow
     /// it sits in is very often dug by something else — a relief mark, a shape's own floor — so where that
     /// hollow reaches further than the bed does, the extra is excavated and never filled: a trench as deep as
-    /// the water is, running alongside it, with the water standing against open air and nothing said.
+    /// the fluid is, running alongside it, with the fluid standing against open air and nothing said.
     ///
-    /// <para>Air is a fault only where there is ground to hold water back. A pool reaching the board's own
-    /// edge meets the void, and a wall of water at the world's rim is what a coast is — so a neighbour with no
-    /// terrain column at all is passed over, and only a column the board <b>drew</b> and then left open
-    /// counts. That is the author's ruling and the whole of the test.</para></summary>
-    /// <remarks>Widen the pool onto the ground that was dug for it, or stop digging it there. The finding names the first open column, so the two shapes — the hollow and the water that fills it — can be compared where they part company. A complaint: the world is built and the water is in it.</remarks>
+    /// <para>Air is a fault only where there is ground to hold a fluid back. A pool reaching the board's own
+    /// edge meets the void, and a wall of water or lava at the world's rim is what a coast is — so a neighbour
+    /// with no terrain column at all is passed over, and only a column the board <b>drew</b> and then left
+    /// open counts. That is the author's ruling and the whole of the test.</para></summary>
+    /// <remarks>Widen the pool onto the ground that was dug for it, or stop digging it there. The finding names the first open column, so the two shapes — the hollow and the fluid that fills it — can be compared where they part company. A complaint: the world is built and the fluid is in it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string DryEdge = "DR-DRY";
 
@@ -204,16 +204,24 @@ public static class DressingRules
     [Rule(RuleCategory.Forbidden, RuleConcern.Request, RuleConcern.Feature)]
     public const string UncutCopy = "DR-COPY";
 
-    /// <summary>A body of water that dug a shaft rather than filled a hollow. Its line is one plane across the
-    /// whole run — by default the lowest surface it crosses — and every bed column standing above that line is
+    /// <summary>A body of water or lava that dug a shaft rather than filled a hollow. Its line is one plane
+    /// across the whole run — by default the lowest surface it crosses — and every bed column standing above that line is
     /// emptied down to it. <c>depth</c> bounds how far <b>below</b> the line the bed goes and nothing bounds
     /// how far above it the carve reaches, so a pond drawn across a slope comes out as a straight-sided pit as
     /// deep as the ground falls, whatever depth was asked for. Measured against the author's own stated depth,
-    /// because that is the number they said: a bank taller than the water is deep is ground taken out rather
-    /// than water put in.</summary>
-    /// <remarks>Draw the body inside ground that is already level — the finding names the wall's own cell and its two courses, which is where to read the fall — or state a `level` and let the water fill the hollow that is there instead of making one. A complaint: the world is built and the water is in it.</remarks>
+    /// because that is the number they said: a bank taller than the fluid is deep is ground taken out rather
+    /// than fluid put in.</summary>
+    /// <remarks>Draw the body inside ground that is already level — the finding names the wall's own cell and its two courses, which is where to read the fall — or state a `level` and let the fluid fill the hollow that is there instead of making one. A complaint: the world is built and the fluid is in it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string SteepBank = "DR-BANK";
+
+    /// <summary>A body of water or lava left dry across ground the map keeps clear. A kept column — a spawn,
+    /// a wool room, a stated structure, a built column, a door's approach — is filled and never cut, so where the
+    /// fluid's line stands no higher than the ground there the bed stays ground and no fluid stands on it. The
+    /// finding counts the dry columns and names the first and what keeps it clear.</summary>
+    /// <remarks>Move the fluid off the kept ground, or state a `level` above it so the fill stands there without a cut. A complaint: the world is built and the rest of the fluid is in it; the dry columns are not the channel's in any read-back.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
+    public const string HeldDry = "DR-HELD";
 
     /// <summary>A boulder built out of nothing but the tones of the ground it stands on. A rock is an
     /// erratic — a mass carried here and left — so it reads as a rock by not being made of the field it sits
@@ -290,13 +298,13 @@ public enum KeepOut
 }
 
 /// <summary>What kind of thing claimed a cell of ground during the dressing pass. The kind is what lets one
-/// rule differ by claimant where the rules genuinely differ: a building collides with water and with another
+/// rule differ by claimant where the rules genuinely differ: a building collides with a fluid and with another
 /// building but never with a road (a road is meant to run to its porch), and a prop's standoff is stated
 /// against the road rather than against everything.</summary>
 public enum ClaimKind
 {
-    /// <summary>A water channel's bed and beach — carved ground nothing else may take.</summary>
-    Water,
+    /// <summary>A fluid's bed and beach — carved ground nothing else may take.</summary>
+    Fluid,
     /// <summary>The paved cells of a stroke that claims its ground. The one kind a building ignores, and the
     /// one a standoff measures to.</summary>
     Paving,

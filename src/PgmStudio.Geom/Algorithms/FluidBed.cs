@@ -9,17 +9,17 @@ public enum ChannelForm
     Canal,
     /// <summary>The band with its width wandered by a noise field, so the shoreline is organic, not ruled.</summary>
     Natural,
-    /// <summary>A watercourse that beads along its length — the width pinches and swells on a fixed beat down the
-    /// arc (never wider than the nominal, pinching to half it), and the water runs shallower throughout, so it
+    /// <summary>A course that beads along its length — the width pinches and swells on a fixed beat down the
+    /// arc (never wider than the nominal, pinching to half it), and the fluid runs shallower throughout, so it
     /// reads as a stream running out into a string of riffles rather than one even channel.</summary>
     Stream,
 }
 
-/// <summary>What a body of water is drawn as, which is what its own points mean. A <see cref="Channel"/>
+/// <summary>What a body of water or lava is drawn as, which is what its own points mean. A <see cref="Channel"/>
 /// strokes them as a centerline and takes its width from a radius; a <see cref="Pool"/> closes them into a
 /// ring and fills it. The bowl is the same law either way — deepest away from the shore, one block at it —
 /// and only the distance it is measured along differs, which is the argument for one prop rather than two.</summary>
-public enum WaterShape
+public enum FluidShape
 {
     /// <summary>A stroked line: a canal, a river, a moat.</summary>
     Channel,
@@ -27,13 +27,13 @@ public enum WaterShape
     Pool,
 }
 
-/// <summary>One cell a channel carves: where it is, and how deep the bed is cut below the water line there —
+/// <summary>One cell a channel carves: where it is, and how deep the bed is cut below the line there —
 /// deepest on the centerline, one block at the shore.</summary>
-public readonly record struct WaterCell(int X, int Z, int Depth);
+public readonly record struct BedCell(int X, int Z, int Depth);
 
 /// <summary>
-/// The bed a drawn channel cuts. Water cannot drape on a slope the way gravel can — laid on the surface it
-/// reads as blue paint — so a channel is not a finish over the ground but a shape taken <em>out</em> of it: a
+/// The bed a drawn channel cuts. A fluid cannot drape on a slope the way gravel can — water laid on the
+/// surface reads as blue paint — so a channel is not a finish over the ground but a shape taken <em>out</em> of it: a
 /// carved bed under a level fill. This is the pure side of that, the same distance field a
 /// <see cref="StrokeFill"/> is (a swept disc of a line), yielding a depth per cell rather than a paving block.
 ///
@@ -42,7 +42,7 @@ public readonly record struct WaterCell(int X, int Z, int Depth);
 /// dressing pass) turns a depth into a carve-and-fill against the surface it actually crosses; here there is
 /// no world, only the profile.</para>
 /// </summary>
-public static class WaterBed
+public static class FluidBed
 {
     // The channel constants the bed and beach are cut to, stated once here because the width and shore laws
     // below all read them (`docs/world-export/decoration.md` §5).
@@ -52,10 +52,10 @@ public static class WaterBed
     private const int ShoreScale = 6;          // blocks per wander of the shore's own width field
 
     /// <summary>The cells the channel through <paramref name="points"/> carves, each with the depth its bed is
-    /// cut to below the water line. <paramref name="radius"/> is the nominal half-width, <paramref name="depth"/>
+    /// cut to below the line. <paramref name="radius"/> is the nominal half-width, <paramref name="depth"/>
     /// the deepest cut on the centerline, and <paramref name="edge"/> the amplitude of the width wobble a natural
     /// or stream form carries (in blocks).</summary>
-    public static IEnumerable<WaterCell> Cells(
+    public static IEnumerable<BedCell> Cells(
         IReadOnlyList<double[]> points, double radius, double depth, ChannelForm form, double edge, uint seed)
     {
         var centerline = Centerline.Of(points);
@@ -75,17 +75,17 @@ public static class WaterBed
             var run = form == ChannelForm.Stream ? StreamDepth : 1.0;
 
             var cellDepth = (int)Math.Round(1 + (depth - 1) * bowl * run);
-            yield return new WaterCell(x, z, Math.Max(1, cellDepth));
+            yield return new BedCell(x, z, Math.Max(1, cellDepth));
         }
     }
 
-    /// <summary>The beach cells the channel meets the land through — the band <em>outside</em> the water. It rides
-    /// just past the water edge, so a beach cell's inner edge <em>is</em> the water's: the shore always hugs the
-    /// water, whatever shape the water takes. The bank material is laid on these cells' surface; the water never
+    /// <summary>The beach cells the channel meets the land through — the band <em>outside</em> the fluid. It rides
+    /// just past the fluid's edge, so a beach cell's inner edge <em>is</em> the fluid's: the shore always hugs
+    /// the fluid, whatever shape it takes. The bank material is laid on these cells' surface; the fluid never
     /// reaches them, so they carry no depth.
     ///
     /// <para>How wide the beach runs is parameterised along the channel's <b>arc</b>, not the plan grid: at a point
-    /// down the run both banks take the same width, so the beach is symmetric about the water and widens and narrows
+    /// down the run both banks take the same width, so the beach is symmetric about the fluid and widens and narrows
     /// <em>with</em> it — a flat here, meeting the grass directly there — rather than drifting onto one bank the way
     /// a plain spatial field does on a bend. With <paramref name="wander"/> off the beach is an even band the whole
     /// way; with it on, a smooth field along the arc opens and closes it, dropping it to nothing in places.</para></summary>
@@ -100,19 +100,19 @@ public static class WaterBed
         var reach = (int cx, int cz, PolylineHit hit) => WidthAt(form, radius, edge, cx, cz, hit, seed) + ShoreAt(shoreWidth, wander, hit, seed);
         foreach (var (x, z, hit) in Polyline.Hits(centerline, scan, reach))
         {
-            var water = WidthAt(form, radius, edge, x, z, hit, seed);
-            if (hit.Distance <= water) continue;   // inside the water — that is the bed's, not the beach's
-            if (hit.Distance <= water + ShoreAt(shoreWidth, wander, hit, seed)) yield return (x, z);
+            var halfWidth = WidthAt(form, radius, edge, x, z, hit, seed);
+            if (hit.Distance <= halfWidth) continue;   // inside the fluid — that is the bed's, not the beach's
+            if (hit.Distance <= halfWidth + ShoreAt(shoreWidth, wander, hit, seed)) yield return (x, z);
         }
     }
 
     /// <summary>The cells a pool fills inside <paramref name="ring"/>, each with the depth its bed is cut to
-    /// below the water line. The same bowl a channel cuts, measured inward from the shore instead of out from
+    /// below the line. The same bowl a channel cuts, measured inward from the shore instead of out from
     /// a centerline: one block deep at the ring and full <paramref name="depth"/> once
     /// <paramref name="shelf"/> blocks in, so a harbour shelves off its quays rather than dropping to a
     /// trench at the wall. A ring narrower than twice the shelf never reaches full depth, which is what a
     /// shallow pool is.</summary>
-    public static IEnumerable<WaterCell> PoolCells(
+    public static IEnumerable<BedCell> PoolCells(
         IReadOnlyList<double[]> ring, double shelf, double depth, double edge, uint seed)
     {
         if (ring.Count < 3 || depth <= 0) yield break;
@@ -121,12 +121,12 @@ public static class WaterBed
         foreach (var (x, z, inset) in RingCells(ring, edge, seed))
         {
             var bowl = Math.Clamp(inset / reach, 0, 1);
-            yield return new WaterCell(x, z, Math.Max(1, (int)Math.Round(1 + (depth - 1) * bowl)));
+            yield return new BedCell(x, z, Math.Max(1, (int)Math.Round(1 + (depth - 1) * bowl)));
         }
     }
 
     /// <summary>The beach a pool meets the land through — the band just <em>outside</em> its ring, the same
-    /// relation a channel's shore has to its water. Empty for a pool that states no shore.</summary>
+    /// relation a channel's shore has to its fluid. Empty for a pool that states no shore.</summary>
     public static IEnumerable<(int X, int Z)> PoolShoreCells(
         IReadOnlyList<double[]> ring, double shoreWidth, double edge, bool wander, uint seed)
     {
@@ -198,7 +198,7 @@ public static class WaterBed
     private static List<IReadOnlyList<double>> Cast(IReadOnlyList<double[]> ring)
         => [.. ring.Select(point => (IReadOnlyList<double>)point)];
 
-    // The half-width the water reaches at a cell, the prototype's `drawChannel` R. A canal holds the nominal
+    // The half-width the fluid reaches at a cell, the prototype's `drawChannel` R. A canal holds the nominal
     // radius. A natural edge wobbles it by an absolute amount (a value field, ±edge blocks). A stream beads: the
     // width runs a rectified sine along the arc — pinching to half the radius and swelling back to it on a fixed
     // beat — with the same small wobble on top, so it narrows and widens down its length rather than tapering once.
@@ -213,9 +213,9 @@ public static class WaterBed
         };
     }
 
-    // How far the beach reaches past the water at a cell. Off: the full width, an even band. On: a smooth field
+    // How far the beach reaches past the fluid at a cell. Off: the full width, an even band. On: a smooth field
     // read along the arc — the same rescaling the prototype's `shoreWidth` uses to drop a shore to nothing in
-    // places — but sampled by arc position so both banks share one width and the beach stays wrapped to the water
+    // places — but sampled by arc position so both banks share one width and the beach stays wrapped to the fluid
     // rather than a spatial field that opens on one bank and closes on the other around a bend.
     private static double ShoreAt(double shoreWidth, bool wander, PolylineHit hit, uint seed)
         => wander

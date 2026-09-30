@@ -55,9 +55,10 @@ public partial class SketchDressingList
             PropKinds.Tree => new Row(id, "trees", Species(prop), Cell(prop)),
             PropKinds.Boulder => new Row(id, "mountain", $"{Field(prop, "form", "round")} boulder", Cell(prop)),
             PropKinds.Stroke => new Row(id, "spline", $"{Field(prop, "style", "solid")} {(Bool(prop, "claimsGround") ? "claims" : "paint")}", Span(prop)),
-            PropKinds.Water => new Row(id, "waves", $"{Field(prop, "form", "canal")} channel", Span(prop)),
+            PropKinds.Fluid => new Row(id, "waves", $"{Field(prop, "form", "canal")} channel", Span(prop)),
             PropKinds.Flora => new Row(id, "flower", "ground cover", Span(prop)),
             PropKinds.House => new Row(id, "house", "building", Footprint(prop)),
+            PropKinds.Chest => new Row(id, "box", "chest", Cell(prop)),
             _ => new Row(id, "shapes", kind, ""),
         };
     }

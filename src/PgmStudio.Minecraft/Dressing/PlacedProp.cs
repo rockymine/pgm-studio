@@ -26,11 +26,12 @@ namespace PgmStudio.Minecraft.Dressing;
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(StrokeProp), PropKinds.Stroke)]
-[JsonDerivedType(typeof(WaterProp), PropKinds.Water)]
+[JsonDerivedType(typeof(FluidProp), PropKinds.Fluid)]
 [JsonDerivedType(typeof(TreeProp), PropKinds.Tree)]
 [JsonDerivedType(typeof(BoulderProp), PropKinds.Boulder)]
 [JsonDerivedType(typeof(FloraProp), PropKinds.Flora)]
 [JsonDerivedType(typeof(HouseProp), PropKinds.House)]
+[JsonDerivedType(typeof(ChestProp), PropKinds.Chest)]
 public abstract record PlacedProp
 {
     /// <summary>Stable id, so a canvas can select, move and delete one prop among many.</summary>
@@ -47,7 +48,7 @@ public abstract record PlacedProp
 
     /// <summary>The clear ground this kind of prop keeps between its resting cells and the nearest cell a
     /// <b>route</b> claims, in blocks — a rule of the kind rather than a knob, which is why it is a property
-    /// of the type and not a stored field. Zero for most props: a road is a finish, and cover, water and
+    /// of the type and not a stored field. Zero for most props: a road is a finish, and cover, a fluid and
     /// buildings may run right up to one. A tree and a boulder state their own (the author's ruling), because
     /// a trunk against the kerb reads as the road growing through the forest rather than the road passing it.
     /// A stroke that is paint rather than a route claims nothing, so nothing stands off it.</summary>
@@ -105,7 +106,7 @@ public abstract record PlacedProp
 /// </summary>
 public sealed record StrokeProp : PlacedProp
 {
-    /// <summary>a stroke is paved over the ground water left, and everything after it seats on the paving or clear of it (<see cref="PlacementOrder"/>).</summary>
+    /// <summary>a stroke is paved over the ground a fluid left, and everything after it seats on the paving or clear of it (<see cref="PlacementOrder"/>).</summary>
     public override int PlacementOrder => 1;
 
     /// <summary>The drawn centerline, as <c>[x, z]</c> pairs. Two points or more.</summary>
@@ -149,14 +150,14 @@ public sealed record StrokeProp : PlacedProp
     public TerrainMaterial Pave { get; init; } = new SolidMaterial(Palette.Blocks.Gravel);
 }
 
-/// <summary>A channel of water: the line the author drew, and how wide and deep a bed is cut under it. Unlike a
-/// <see cref="StrokeProp"/>, which repaints the surface and adds no cell, water is the one prop that changes the
-/// ground — it takes material <em>out</em> to a carved bed and fills that bed to a level water line, because
-/// water laid flat on a surface reads as blue paint rather than water. It only ever cuts existing terrain: the
-/// carve stops at the surface it crosses and never fills what was already air.</summary>
-public sealed record WaterProp : PlacedProp
+/// <summary>A channel or pool of water or lava: the line the author drew, and how wide and deep a bed is cut
+/// under it. Unlike a <see cref="StrokeProp"/>, which repaints the surface and adds no cell, a fluid is the one
+/// prop that changes the ground — it takes material <em>out</em> to a carved bed and fills that bed to a level
+/// line, because water laid flat on a surface reads as blue paint rather than water. It only ever cuts
+/// existing terrain: the carve stops at the surface it crosses and never fills what was already air.</summary>
+public sealed record FluidProp : PlacedProp
 {
-    /// <summary>water is carved first: it is the one prop that changes the ground, and everything after it seats on what it leaves (<see cref="PlacementOrder"/>).</summary>
+    /// <summary>A fluid is carved first: it is the one prop that changes the ground, and everything after it seats on what it leaves (<see cref="PlacementOrder"/>).</summary>
     public override int PlacementOrder => 0;
 
     /// <summary>The default bank: a cellular voronoi — gravel picking out the cell edges, coarse dirt just
@@ -169,34 +170,34 @@ public sealed record WaterProp : PlacedProp
         new VoronoiBand(new SolidMaterial(Palette.Blocks.Sand), 1),
     ]);
 
-    /// <summary>What the water is drawn as, which is what <see cref="Points"/> means: a
-    /// <see cref="WaterShape.Channel"/> strokes them as a centerline, a <see cref="WaterShape.Pool"/> closes
+    /// <summary>What the fluid is drawn as, which is what <see cref="Points"/> means: a
+    /// <see cref="FluidShape.Channel"/> strokes them as a centerline, a <see cref="FluidShape.Pool"/> closes
     /// them into a ring and fills it. A harbour, a lake or a flooded basin is a pool; a canal, a river or a
     /// moat is a channel.</summary>
-    public WaterShape Shape { get; init; } = WaterShape.Channel;
+    public FluidShape Shape { get; init; } = FluidShape.Channel;
 
     /// <summary>The drawn points, as <c>[x, z]</c> pairs — a centerline for a channel, an outline for a pool.
     /// Two points or more for a channel, three or more for a pool.</summary>
     public IReadOnlyList<double[]> Points { get; init; } = [];
 
-    /// <summary>Half the channel's water width, in blocks. On a <see cref="WaterShape.Pool"/> it is the
+    /// <summary>Half the channel's fluid width, in blocks. On a <see cref="FluidShape.Pool"/> it is the
     /// <b>shelf</b> instead: how far in from the shore the bed reaches its full depth, so a harbour shelves
     /// off its quays rather than dropping to a trench at the wall.</summary>
     public double Radius { get; init; } = 3;
 
-    /// <summary>How deep the bed is cut below the water line on the centerline, in blocks. The bed rises to a
+    /// <summary>How deep the bed is cut below the line on the centerline, in blocks. The bed rises to a
     /// single block at the shore, so the fill sits in a bowl rather than a walled trench.</summary>
     public double Depth { get; init; } = 2;
 
-    /// <summary>The world Y the water stands at, where the author states one. Absent, the line is the lowest
+    /// <summary>The world Y the fluid stands at, where the author states one. Absent, the line is the lowest
     /// surface the channel crosses and the fill never rises past a column's own surface — a channel cut into
     /// ground that was already there.
     ///
     /// <para>Stated, the line is that Y and the fill reaches it whatever the column beneath is doing, which is
     /// what fills a basin: ground dug out in the sketch has no surface up at the line for a derived one to find,
     /// so a lake, a harbour or the water a ship floats on can only be stated. What the author owns then is the
-    /// rim — water rises to the line inside the prop's own footprint and nowhere else, so a line above the
-    /// surrounding ground stands as a wall of water rather than spilling.</para></summary>
+    /// rim — the fluid rises to the line inside the prop's own footprint and nowhere else, so a line above the
+    /// surrounding ground stands as a wall of it rather than spilling.</para></summary>
     public double? Level { get; init; }
 
     public ChannelForm Form { get; init; } = ChannelForm.Canal;
@@ -205,20 +206,36 @@ public sealed record WaterProp : PlacedProp
     /// width off the nominal, in blocks — the roughness of the bank. A canal ignores it.</summary>
     public double Edge { get; init; } = 0.8;
 
-    /// <summary>How wide a beach the water meets the land through, in blocks — the widest the shore band reaches
-    /// before a noise field wanders it, dropping it to nothing in places so the water meets the land directly in
-    /// some stretches and spreads into a flat in others. 0 gives no beach: the water meets the grass at its edge.</summary>
+    /// <summary>How wide a beach the fluid meets the land through, in blocks — the widest the shore band reaches
+    /// before a noise field wanders it, dropping it to nothing in places so the fluid meets the land directly in
+    /// some stretches and spreads into a flat in others. 0 gives no beach: the fluid meets the grass at its edge.</summary>
     public double Shore { get; init; } = 2;
 
     /// <summary>Whether the beach width opens and closes along the run (a smooth field wandered to nothing in
-    /// places), or holds one even width the whole way. Either way it hugs the water; this is only how ragged its
+    /// places), or holds one even width the whole way. Either way it hugs the fluid; this is only how ragged its
     /// outer edge is.</summary>
     public bool ShoreWander { get; init; } = true;
 
     /// <summary>The bank the bed floor and the shore beach are laid with — a full terrain material, not one
     /// block, so it can be a solid, a voronoi patchwork or any pattern the painter offers. The shallows show it
-    /// through the water, and the beach is the same material meeting the land.</summary>
+    /// through the fluid, and the beach is the same material meeting the land.</summary>
     public TerrainMaterial Bank { get; init; } = DefaultBank;
+
+    /// <summary>What fills the bed: water, or lava. The carve, the line, the bowl and the beach are the same
+    /// either way; lava is written as stationary lava, and a walk reads it as ground nobody stands on rather
+    /// than as a swim.</summary>
+    public Fluid Fluid { get; init; } = Fluid.Water;
+
+    /// <summary>The block the bed is filled with.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int FluidBlock => Fluid == Fluid.Lava ? Palette.Blocks.StationaryLava : Palette.Blocks.StationaryWater;
+}
+
+/// <summary>What a <see cref="FluidProp"/>'s bed is filled with.</summary>
+public enum Fluid
+{
+    Water,
+    Lava,
 }
 
 /// <summary>
@@ -245,6 +262,57 @@ public sealed record TreeProp : PlacedProp
     /// over the route, which stops reading as a road through trees and starts reading as trees in the
     /// road.</summary>
     public override int RouteStandoff => 3;
+}
+
+/// <summary>One chest and what is in it. It stands on the ground at <see cref="X"/>/<see cref="Z"/>, or at
+/// <see cref="Y"/> where one is stated — a deck, a tower's floor, a made thing's ledge, none of which is ground
+/// a prop seats on — and it is fanned like every prop, each image fronting its own turn of
+/// <see cref="Facing"/> and holding the same items.</summary>
+public sealed record ChestProp : PlacedProp
+{
+    /// <summary>a chest goes down after the buildings and before the boulders and trees, so a wood grows round
+    /// it rather than over it (<see cref="PlacementOrder"/>).</summary>
+    public override int PlacementOrder => 3;
+
+    public int X { get; init; }
+    public int Z { get; init; }
+
+    /// <summary>The course the chest stands in, where the author states one. Unstated, it stands on the ground
+    /// under <see cref="X"/>/<see cref="Z"/> under every rule a placed prop keeps; stated, it stands exactly
+    /// there on whatever is under it, which is what puts one on a made thing.</summary>
+    public int? Y { get; init; }
+
+    /// <summary>The side the chest's front — the latch, the side it opens toward — looks at, in the words a
+    /// building's <see cref="HouseProp.Front"/> takes.</summary>
+    public RoomEdge Facing { get; init; } = RoomEdge.NegZ;
+
+    /// <summary>What is in it, at most <see cref="ChestItem.Slots"/> stacks. A stack stating a slot takes that
+    /// slot; the rest fill the free slots in order.</summary>
+    public IReadOnlyList<ChestItem> Items { get; init; } = [];
+}
+
+/// <summary>One stack in a chest: a 1.8 item id (<c>minecraft:bow</c>, or <c>bow</c>), how many, its damage
+/// value, and its enchantments by PGM's names (<c>power</c>, <c>infinity</c>, <c>sharpness</c>, …) or by
+/// the game's numbers.</summary>
+public sealed record ChestItem
+{
+    /// <summary>A single chest's slots.</summary>
+    public const int Slots = 27;
+
+    /// <summary>Which slot, 0 at the top left and 26 at the bottom right, or null for the next free one.</summary>
+    public int? Slot { get; init; }
+
+    public string Item { get; init; } = "";
+    public int Count { get; init; } = 1;
+    public int Damage { get; init; }
+    public IReadOnlyList<ChestEnchantment> Enchantments { get; init; } = [];
+}
+
+/// <summary>An enchantment on a chest's stack: by PGM's name or the game's number, and its level.</summary>
+public sealed record ChestEnchantment
+{
+    public string Name { get; init; } = "";
+    public int Level { get; init; } = 1;
 }
 
 public sealed record BoulderProp : PlacedProp

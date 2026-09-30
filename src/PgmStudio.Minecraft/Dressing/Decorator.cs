@@ -131,7 +131,8 @@ public sealed record DressingContext(
 /// each once in the order first met, or null where none of them names anybody. Read <see cref="TreeBuilders"/>.
 /// A tree declined everywhere credits nobody, since it is not in the map.</para></summary>
 public readonly record struct DressingPlacement(
-    int Plants = 0, int Boulders = 0, int Trees = 0, int PathCells = 0, int WaterCells = 0, int Houses = 0,
+    int Plants = 0, int Boulders = 0, int Trees = 0, int PathCells = 0, int FluidCells = 0, int Houses = 0,
+    int Chests = 0,
     IReadOnlyList<PlacementClaim>? Claimed = null, IReadOnlyList<Finding>? Declined = null,
     IReadOnlyList<string>? Builders = null)
 {
@@ -183,7 +184,7 @@ public static class Decorator
     /// that never opened the dressing phase exports byte-for-byte as it did before.</summary>
     public static DressingPlacement Decorate(VoxelWorld world, DressingContext context)
     {
-        // Order is what keeps the parts from growing through each other. Water goes first because it is the one
+        // Order is what keeps the parts from growing through each other. A fluid goes first because it is the one
         // prop that carves the ground — everything after it seats on what it leaves. Then paths, whose paved
         // cells become bare ground for the props above them (a route with a tree in the middle of it is not a
         // route); then buildings, which check every claim but the road's — paths are laid first and a road is
@@ -219,11 +220,11 @@ public static class Decorator
 
         UnheldFaces(context, declined);
 
-        foreach (var prop in context.Props.OfType<WaterProp>())
+        foreach (var prop in context.Props.OfType<FluidProp>())
         {
-            var result = PlaceWater(world, context, prop, claims.On(prop.Layer), declined);
-            Cover(result, "water", prop.Id);
-            placed = placed with { WaterCells = placed.WaterCells + result.Count };
+            var result = PlaceFluid(world, context, prop, claims.On(prop.Layer), declined);
+            Cover(result, PropKinds.Fluid, prop.Id);
+            placed = placed with { FluidCells = placed.FluidCells + result.Count };
             propIndex++;
         }
         // The ways the author drew, image by image, kept for the buildings below: a road is a way through the
@@ -261,6 +262,13 @@ public static class Decorator
             var raised = PlaceHouse(world, context, prop, claims.On(prop.Layer), declined, ways, roads, groups);
             structures.AddRange(raised);
             placed = placed with { Houses = placed.Houses + raised.Count };
+        }
+        foreach (var prop in context.Props.OfType<ChestProp>())
+        {
+            var result = PlaceChest(world, context, prop, claims.On(prop.Layer), declined);
+            Cover(result, PropKinds.Chest, prop.Id);
+            placed = placed with { Chests = placed.Chests + result.Count };
+            propIndex++;
         }
         foreach (var prop in context.Props.OfType<BoulderProp>())
         {
@@ -370,46 +378,48 @@ public static class Decorator
         return new Placed(images.Sum(cells => cells.Count), images);
     }
 
-    // ── water (DR-WA) ───────────────────────────────────────────────────────────
-    /// <summary>Cut a channel and fill it. Water is the one prop that changes the ground rather than standing on
-    /// it: laid flat it reads as blue paint, so it has to sit in a carved bed and fill to a level plane. The bed
-    /// is a bowl deepest on the centerline; the fill is one water line across the whole run.
+    // ── fluid (DR-WA) ───────────────────────────────────────────────────────────
+    /// <summary>Cut a channel and fill it with water or lava. A fluid is the one prop that changes the ground
+    /// rather than standing on it: water laid flat reads as blue paint, so it has to sit in a carved bed and fill to a level plane. The bed
+    /// is a bowl deepest on the centerline; the fill is one line across the whole run.
     ///
     /// <para><b>Where the line comes from decides what the carve may touch.</b> Derived — the lowest surface the
     /// channel crosses — the carve runs from just above the bed floor to the column's old surface and no higher,
     /// so nothing is written into what was already air and a channel dug across a hollow keeps the hollow. Every
     /// column's surface is then at or above the line, so every block written sits at or below terrain that was
-    /// there before. Stated (<see cref="WaterProp.Level"/>), the fill reaches that Y whatever the column beneath
-    /// is doing, which is the only way a basin dug out in the sketch holds water: there is no surface up at the
+    /// there before. Stated (<see cref="FluidProp.Level"/>), the fill reaches that Y whatever the column beneath
+    /// is doing, which is the only way a basin dug out in the sketch holds a fluid: there is no surface up at the
     /// line for a derived one to find. The footprint bounds it either way.</para></summary>
-    private static Placed PlaceWater(VoxelWorld world, DressingContext context, WaterProp water,
+    private static Placed PlaceFluid(VoxelWorld world, DressingContext context, FluidProp fluid,
                                      GroundClaims.Storey claims, List<Finding> declined)
     {
-        var ground = context.GroundFor(water);
-        var pool = water.Shape == WaterShape.Pool;
-        if (water.Points.Count < (pool ? 3 : 2) || water.Radius <= 0 || water.Depth <= 0) return Placed.None;
+        var ground = context.GroundFor(fluid);
+        var pool = fluid.Shape == FluidShape.Pool;
+        if (fluid.Points.Count < (pool ? 3 : 2) || fluid.Radius <= 0 || fluid.Depth <= 0) return Placed.None;
         var bed = (pool
-            ? WaterBed.PoolCells(water.Points, water.Radius, water.Depth, water.Edge, water.Seed)
-            : WaterBed.Cells(water.Points, water.Radius, water.Depth, water.Form, water.Edge, water.Seed)).ToList();
+            ? FluidBed.PoolCells(fluid.Points, fluid.Radius, fluid.Depth, fluid.Edge, fluid.Seed)
+            : FluidBed.Cells(fluid.Points, fluid.Radius, fluid.Depth, fluid.Form, fluid.Edge, fluid.Seed)).ToList();
         if (bed.Count == 0) return Placed.None;
         var shore = (pool
-            ? WaterBed.PoolShoreCells(water.Points, water.Shore, water.Edge, water.ShoreWander, water.Seed)
-            : WaterBed.ShoreCells(water.Points, water.Radius, water.Form, water.Shore, water.Edge,
-                                  water.ShoreWander, water.Seed)).ToList();
+            ? FluidBed.PoolShoreCells(fluid.Points, fluid.Shore, fluid.Edge, fluid.ShoreWander, fluid.Seed)
+            : FluidBed.ShoreCells(fluid.Points, fluid.Radius, fluid.Form, fluid.Shore, fluid.Edge,
+                                  fluid.ShoreWander, fluid.Seed)).ToList();
 
         // The bank is a full terrain material, so the bed floor and the beach are a voronoi patchwork or any
         // pattern the painter offers, resolved cell by cell exactly as the painter resolves a surface.
-        (int Id, int Data) Bank(int x, int y, int z) => water.Bank.Resolve(
+        (int Id, int Data) Bank(int x, int y, int z) => fluid.Bank.Resolve(
             new BucketContext(x, y, z, TerrainBucket.Surface, 0) { Sample = context.Symmetry.Canonical(x, z) });
 
-        // The water first, every image: carve each bed and fill it to that image's own level line. The columns
-        // it wets are remembered so the beach, which comes after, never lays sand over open water where the two
+        // The fluid first, every image: carve each bed and fill it to that image's own level line. The columns
+        // it wets are remembered so the beach, which comes after, never lays sand over the open fluid where the two
         // overlap across the symmetry fan.
         var images = new List<List<(int X, int Z)>>();
         var wet = new List<(int X, int Z, int Line)>();
         // The tallest bank the carve cut, and where. A cut is bounded below by the bed floor and above by the
-        // column's own surface, and nothing bounds how far above the water line that surface stands.
+        // column's own surface, and nothing bounds how far above the line that surface stands.
         var cutWall = (Courses: 0, At: default((int X, int Z)?), Line: 0);
+        // Bed columns a keep-out held uncut and the fill left dry, and the first of them.
+        var heldDry = (Count: 0, At: default((int X, int Z, KeepOut For)?));
         for (var image = 0; image < context.Symmetry.Order; image++)
         {
             // Added before the channel is walked and kept even where it finds nothing, so the list index is
@@ -417,58 +427,67 @@ public static class Decorator
             var covered = new List<(int X, int Z)>();
             images.Add(covered);
             var cells = new List<(int X, int Z, int SurfaceSolid, int Depth, bool FillOnly)>(bed.Count);
-            var waterLevel = int.MaxValue;
+            var lowestSurface = int.MaxValue;
             foreach (var cell in bed)
             {
                 var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, image);
                 if (!ground.TryGetValue((x, z), out var top) || top < 2) continue;
                 var surfaceSolid = top - 1;
-                // Water no more takes a stamp's own block than a path does: the painter writes only terrain, so
+                // A fluid no more takes a stamp's own block than a path does: the painter writes only terrain, so
                 // anything else on a surface belongs to something the map is played through.
                 if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
 
                 // A column something else keeps clear is filled and never cut. The two halves of the pass are
                 // different acts on a kept column: carving takes that thing's own ground out from under it,
-                // which is what the keep-out is for, while filling puts water in the air beside a hull or a
-                // pier standing in the water — and a harbour dry under the ship floating in it is not one.
+                // which is what the keep-out is for, while filling puts the fluid in the air beside a hull or
+                // a pier standing in it — and a harbour dry under the ship floating in it is not one.
                 cells.Add((x, z, surfaceSolid, cell.Depth, context.IsKeptClear(x, z)));
-                waterLevel = Math.Min(waterLevel, surfaceSolid);
+                lowestSurface = Math.Min(lowestSurface, surfaceSolid);
             }
             if (cells.Count == 0) continue;
 
-            // The line the water stands at: the author's where they stated one, else the lowest surface this
+            // The line the fluid stands at: the author's where they stated one, else the lowest surface this
             // image crosses. A stated line is the same Y at every image, a level plane being level in all of them.
-            var line = water.Level is { } stated ? (int)Math.Floor(stated) : waterLevel;
+            var line = fluid.Level is { } stated ? (int)Math.Floor(stated) : lowestSurface;
 
             foreach (var (x, z, surfaceSolid, depth, fillOnly) in cells)
             {
                 var bedFloor = Math.Max(0, line - depth);
-                // Take the material out and fill it: water up to the line, air above it (a bank cut higher than
-                // the water stands open, not roofed over). The span starts at the lower of the bed floor and the
+                // Take the material out and fill it: the fluid up to the line, air above it (a bank cut higher
+                // than the fluid stands open, not roofed over). The span starts at the lower of the bed floor and the
                 // column's own surface and reaches the higher of that surface and the line, so a channel cut into
                 // standing ground replaces only what was there while a basin already dug out fills to the line.
                 var from = fillOnly ? surfaceSolid + 1 : Math.Min(bedFloor, surfaceSolid) + 1;
+                var filled = false;
                 for (var y = from; y <= Math.Max(surfaceSolid, line); y++)
                 {
                     // Over the column's own surface the pass is filling what was air, and anything standing
-                    // there belongs to something else — a hull, a mast, a pier. The water goes round it.
+                    // there belongs to something else — a hull, a mast, a pier. The fluid goes round it.
                     if (y > surfaceSolid && world.GetBlock(x, y, z).Id != Blocks.Air) continue;
-                    world.SetBlock(x, y, z, y <= line ? Blocks.StationaryWater : Blocks.Air);
+                    world.SetBlock(x, y, z, y <= line ? fluid.FluidBlock : Blocks.Air);
+                    filled |= y <= line;
+                }
+                // A kept column the fill put no fluid in is ground, not fluid: nothing claims it, nothing
+                // reads it as the channel's, and the complaint below names it.
+                if (fillOnly && !filled)
+                {
+                    heldDry = (heldDry.Count + 1, heldDry.At ?? (x, z, context.KeptClearAt(x, z)!.Value));
+                    continue;
                 }
                 // The bank floor the shallows show through, laid only where terrain already stood — a bed floor
                 // above the ground the column actually has would be a shelf hanging in the basin.
                 if (!fillOnly && bedFloor >= 1 && bedFloor <= surfaceSolid)
                 { var (id, data) = Bank(x, bedFloor, z); world.SetBlock(x, bedFloor, z, id, data); }
-                if (!fillOnly) claims.Claim(x, z, ClaimKind.Water, water.Id);
+                if (!fillOnly) claims.Claim(x, z, ClaimKind.Fluid, fluid.Id);
                 covered.Add((x, z));
-                if (line >= 1 && world.GetBlock(x, line, z).Id == Blocks.StationaryWater) wet.Add((x, z, line));
+                if (line >= 1 && world.GetBlock(x, line, z).Id == fluid.FluidBlock) wet.Add((x, z, line));
                 if (!fillOnly && surfaceSolid - line > cutWall.Courses)
                     cutWall = (surfaceSolid - line, (x, z), line);
             }
         }
 
-        // Then the beach, every image: the bank material on the surface just past the water, wherever the water
-        // met carvable land. A shore column that a channel elsewhere already filled with water is left as water.
+        // Then the beach, every image: the bank material on the surface just past the fluid, wherever the fluid
+        // met carvable land. A shore column that a channel elsewhere already filled is left filled.
         for (var image = 0; image < context.Symmetry.Order; image++)
             foreach (var cell in shore)
             {
@@ -480,55 +499,71 @@ public static class Decorator
 
                 var (id, data) = Bank(x, surfaceSolid, z);
                 world.SetBlock(x, surfaceSolid, z, id, data);
-                claims.Claim(x, z, ClaimKind.Water, water.Id);
+                claims.Claim(x, z, ClaimKind.Fluid, fluid.Id);
                 if (image < images.Count) images[image].Add((x, z));   // the bank is the channel's, too
             }
 
-        DryEdge(world, ground, wet, water, declined);
-        SteepBank(cutWall, water, declined);
+        DryEdge(world, ground, wet, fluid, declined);
+        SteepBank(cutWall, fluid, declined);
+        HeldDry(heldDry, fluid, declined);
         return new Placed(images.Sum(cells => cells.Count), images);
+    }
+
+    /// <summary>DR-HELD — bed columns a keep-out held uncut, left without fluid. A kept column is filled and
+    /// never cut, so where the line stands no higher than the ground there the bed is the ground as it was,
+    /// and the channel carries no fluid across it.</summary>
+    private static void HeldDry(
+        (int Count, (int X, int Z, KeepOut For)? At) held, FluidProp fluid, List<Finding> declined)
+    {
+        if (held.At is not { } at) return;
+        declined.Add(new Finding(DressingRules.HeldDry,
+            $"fluid '{fluid.Id}' is dry across {held.Count} column(s) of its bed — first at ({at.X}, {at.Z}), "
+            + $"{KeptFor(at.For)}. A kept column is filled but never cut, and the line stands no higher than "
+            + "the ground there, so the bed is left as ground and no fluid stands in it. Move the channel off "
+            + "the kept ground, or state a `level` above it.",
+            Severity.Complaint, Subjects: [fluid.Id]));
     }
 
     /// <summary>DR-BANK — a pool that dug a shaft rather than filled a hollow.
     ///
-    /// <para>The water line is one plane across the whole run, and a bed column whose own surface stands above
-    /// it is emptied from just over the bed floor up to that surface. <see cref="WaterProp.Depth"/> bounds how
+    /// <para>The line is one plane across the whole run, and a bed column whose own surface stands above
+    /// it is emptied from just over the bed floor up to that surface. <see cref="FluidProp.Depth"/> bounds how
     /// far <em>below</em> the line the bed goes and nothing at all bounds how far <b>above</b> it the carve
-    /// reaches — so a body of water drawn across sloping ground comes out as a straight-sided pit as deep as
+    /// reaches — so a body of water or lava drawn across sloping ground comes out as a straight-sided pit as deep as
     /// the ground falls, whatever depth was asked for.</para>
     ///
     /// <para>Measured against the pool's own depth, because that is the number the author stated: a bank taller
-    /// than the water is deep is ground taken out rather than water put in.</para></summary>
+    /// than the fluid is deep is ground taken out rather than fluid put in.</para></summary>
     private static void SteepBank(
-        (int Courses, (int X, int Z)? At, int Line) cut, WaterProp water, List<Finding> declined)
+        (int Courses, (int X, int Z)? At, int Line) cut, FluidProp fluid, List<Finding> declined)
     {
-        var stated = Math.Max(1, (int)Math.Round(water.Depth));
+        var stated = Math.Max(1, (int)Math.Round(fluid.Depth));
         if (cut.At is not { } at || cut.Courses <= stated) return;
 
         declined.Add(new Finding(DressingRules.SteepBank,
-            $"water '{water.Id}' is {stated} deep and its carve cut {cut.Courses} course(s) of ground away "
+            $"fluid '{fluid.Id}' is {stated} deep and its carve cut {cut.Courses} course(s) of ground away "
             + $"above its own line — a straight-sided wall from y{cut.Line + 1} to y{cut.Line + cut.Courses} "
             + $"at ({at.X}, {at.Z}). The line is the lowest surface the body crosses and every column over it "
             + "is emptied down to it, so a pool drawn across a slope digs a pit as deep as the ground falls. "
             + "Draw it inside ground that is already level, or state a `level` and let it fill the hollow "
             + "there is.",
-            Severity.Complaint, Subjects: [water.Id]));
+            Severity.Complaint, Subjects: [fluid.Id]));
     }
 
-    /// <summary>DR-DRY — water standing against a hole in its own basin.
+    /// <summary>DR-DRY — a fluid standing against a hole in its own basin.
     ///
     /// <para>A pool fills the bed it carves. The hollow it sits in was very often dug by something else — a
     /// relief mark, a shape's own floor — and the two are separate statements about one lake, so where the
     /// hollow reaches further than the bed does the extra is excavated and never filled: a trench as deep as
-    /// the water is, running alongside it, with the water standing against open air.</para>
+    /// the fluid is, running alongside it, with the fluid standing against open air.</para>
     ///
-    /// <para><b>Air is only a fault where there is ground to hold water back.</b> A pool that reaches the
-    /// board's own edge meets the void, and a wall of water at the world's rim is what a coast is — so a
+    /// <para><b>Air is only a fault where there is ground to hold a fluid back.</b> A pool that reaches the
+    /// board's own edge meets the void, and a wall of water or lava at the world's rim is what a coast is — so a
     /// neighbour with no terrain column at all is passed over, and only a neighbour the board <em>drew</em>
     /// and then left open counts (the author's ruling).</para></summary>
     private static void DryEdge(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> ground,
-        List<(int X, int Z, int Line)> wet, WaterProp water, List<Finding> declined)
+        List<(int X, int Z, int Line)> wet, FluidProp fluid, List<Finding> declined)
     {
         var against = 0;
         (int X, int Y, int Z)? first = null;
@@ -547,12 +582,12 @@ public static class Decorator
 
         if (against == 0) return;
         declined.Add(new Finding(DressingRules.DryEdge,
-            $"water '{water.Id}' stands against {against} open column(s) of drawn ground — first at "
-            + $"({first!.Value.X}, {first.Value.Y}, {first.Value.Z}), where the basin is dug to the water's "
+            $"fluid '{fluid.Id}' stands against {against} open column(s) of drawn ground — first at "
+            + $"({first!.Value.X}, {first.Value.Y}, {first.Value.Z}), where the basin is dug to the fluid's "
             + "own depth and holds none. The hollow and the pool that fills it are two statements about one "
-            + "lake; where the hollow reaches further, the difference is a dry trench beside the water. Widen "
+            + "lake; where the hollow reaches further, the difference is a dry trench beside the fluid. Widen "
             + "the pool onto the ground that was dug for it, or stop digging it there.",
-            Severity.Complaint, Subjects: [water.Id]));
+            Severity.Complaint, Subjects: [fluid.Id]));
     }
 
     private static readonly (int Dx, int Dz)[] Sides = [(1, 0), (-1, 0), (0, 1), (0, -1)];
@@ -636,11 +671,23 @@ public static class Decorator
             var share = DressingPalette.SoilShare(groundId, groundData);
             if (share <= 0) continue;
 
-            if (PickPlant(area.Spec, area.Seed, x, z, share, context.Symmetry) is not { } plant) continue;
+            var soil = DressingPalette.SoilOf(groundId);
+            if (PickPlant(area.Spec, area.Seed, x, z, share, soil, groundId == Blocks.Dirt, context.Symmetry)
+                is not { } plant) continue;
             // Tall grass is the one plant that is cover rather than colour, so it is the one the goal's own
             // ground turns away — the field simply grows its short cover there instead of skipping the cell,
-            // which keeps the meadow continuous across a monument instead of ringing it with bare dirt.
-            if (plant.Tall && !context.AllowsCover(x, z)) continue;
+            // which keeps the meadow continuous across a monument instead of ringing it with bare dirt. A
+            // cactus is kept off it too, since it hurts whoever stands against it.
+            if ((plant.Tall || plant.Id == DressingPalette.CactusBlock) && !context.AllowsCover(x, z)) continue;
+            if (plant.Id == DressingPalette.CactusBlock)
+            {
+                if (!Stood(area.Spec, area.Seed, x, z, context.Symmetry)) continue;
+                var courses = CactusCourses(world, area.Seed, x, top, z, context.Symmetry);
+                if (courses == 0) continue;
+                for (var course = 0; course < courses; course++) world.SetBlock(x, top + course, z, plant.Id, 0);
+                cells.Add((x, z));
+                continue;
+            }
             world.SetBlock(x, top, z, plant.Id, plant.Data);
             if (plant.Tall && top + 1 < VoxelWorld.MaxHeight)
                 world.SetBlock(x, top + 1, z, plant.Id, DressingPalette.DoublePlantUpper);
@@ -679,12 +726,21 @@ public static class Decorator
     /// orbit's representative once, so a cell grows what its image grows. What the cell itself still decides
     /// is what it is made of: <paramref name="soilShare"/> is the paint actually under this block, which is
     /// symmetric already because it was painted through the same fold.</para></summary>
-    private static Plant? PickPlant(FloraSpec flora, uint seed, int x, int z, double soilShare, DressingSymmetry symmetry)
+    private static Plant? PickPlant(FloraSpec flora, uint seed, int x, int z, double soilShare, Soil soil,
+        bool onDirt, DressingSymmetry symmetry)
     {
         var (fx, fz) = symmetry.Canonical(x, z);
 
         var density = PatternNoise.Fbm(fx, fz, seed, flora.Scale, flora.Octaves);
         if (density < 1 - flora.Coverage * soilShare) return null;
+
+        // Dry ground grows only what 1.8 lets stand on it: a cactus on sand, a dead bush on sand or clay.
+        if (soil is Soil.Sand or Soil.Clay)
+        {
+            if (soil == Soil.Sand && Cactus(flora, seed, fx, fz)) return DressingPalette.Cactus;
+            return PatternNoise.Unit(fx, fz, seed + 71) < flora.DeadBushShare ? DressingPalette.DeadBush : null;
+        }
+        if (soil != Soil.Fertile) return null;
 
         if (flora.TallShare > 0 && PatternNoise.Unit(fx, fz, seed + 61) < flora.TallShare)
             return PatternNoise.Unit(fx, fz, seed + 62) < flora.FernShare
@@ -696,8 +752,51 @@ public static class Decorator
             var pick = PatternNoise.Unit(fx, fz, seed + 88);
             return DressingPalette.Flowers[(int)(pick * DressingPalette.Flowers.Length) % DressingPalette.Flowers.Length];
         }
+        if (onDirt && PatternNoise.Unit(fx, fz, seed + 71) < flora.DeadBushShare) return DressingPalette.DeadBush;
         return PatternNoise.Unit(fx, fz, seed + 21) < flora.FernShare
             ? DressingPalette.Fern : DressingPalette.Grass;
+    }
+
+    /// <summary>Whether the canonical cell <c>(fx, fz)</c> draws a cactus. Read in the folded frame, so a cell
+    /// and its every image draw alike.</summary>
+    private static bool Cactus(FloraSpec flora, uint seed, int fx, int fz)
+        => flora.CactusShare > 0 && PatternNoise.Unit(fx, fz, seed + 81) < flora.CactusShare;
+
+    /// <summary>Whether a cactus drawn at <c>(x, z)</c> stands. Two cacti side by side break each other in 1.8,
+    /// so of two neighbours that both draw one, the one whose draw came lower stands and the other does not.
+    /// Asked of the neighbours' canonical cells, which are the images of the canonical cell's neighbours, so
+    /// every image settles the same pair the same way whatever order the cells are visited in.</summary>
+    private static bool Stood(FloraSpec flora, uint seed, int x, int z, DressingSymmetry symmetry)
+    {
+        var (fx, fz) = symmetry.Canonical(x, z);
+        var mine = PatternNoise.Unit(fx, fz, seed + 81);
+        foreach (var (dx, dz) in Sides)
+        {
+            var (nx, nz) = symmetry.Canonical(x + dx, z + dz);
+            if (Cactus(flora, seed, nx, nz) && PatternNoise.Unit(nx, nz, seed + 81) <= mine && (nx, nz) != (fx, fz))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>How many blocks tall a cactus at <c>(x, z)</c> stands: a hashed one to
+    /// <see cref="DressingPalette.CactusTallest"/>, cut short at the first course with anything solid beside it,
+    /// since a cactus block with a solid neighbour breaks. Zero where even the first course is hemmed in.</summary>
+    private static int CactusCourses(VoxelWorld world, uint seed, int x, int top, int z, DressingSymmetry symmetry)
+    {
+        var (fx, fz) = symmetry.Canonical(x, z);
+        var wanted = 1 + (int)(PatternNoise.Unit(fx, fz, seed + 82) * DressingPalette.CactusTallest);
+        var courses = 0;
+        while (courses < Math.Min(wanted, DressingPalette.CactusTallest) && top + courses < VoxelWorld.MaxHeight)
+        {
+            var y = top + courses;
+            if (world.GetBlock(x, y, z).Id != Blocks.Air) break;
+            if (Sides.Any(side => !Open(world.GetBlock(x + side.Dx, y, z + side.Dz).Id))) break;
+            courses++;
+        }
+        return courses;
+
+        static bool Open(int blockId) => blockId == Blocks.Air || BlockRoles.IsFlora(blockId) || BlockRoles.IsLiquid(blockId);
     }
 
     // ── boulders (DR-SC) ────────────────────────────────────────────────────────
@@ -713,7 +812,7 @@ public static class Decorator
     /// refusal would silently drop a placement the author can see on the canvas.</para>
     ///
     /// <para><b>It is gated on what is already standing — except the road.</b> Its cells join the pass's
-    /// running claims as <see cref="ClaimKind.Structure"/>, and a footprint that lands on a cell water or an
+    /// running claims as <see cref="ClaimKind.Structure"/>, and a footprint that lands on a cell a fluid or an
     /// earlier building holds is refused rather than raised through whatever got there first: two authored
     /// rectangles that overlap are two buildings colliding, and a building is no more owed the ground under
     /// an earlier one than a tree is owed the ground under a building. The one claim it does not check is
@@ -1167,6 +1266,63 @@ public static class Decorator
         return depth;
     }
 
+    // ── chests ──────────────────────────────────────────────────────────────────
+    /// <summary>Set a chest at every image of its orbit, each fronting its own turn of the stated facing and
+    /// holding the stated items. On the ground it is a prop like any other, seated through <see cref="Fan"/>
+    /// under every rule a placed prop keeps; at a stated course it stands exactly there, on whatever is under
+    /// it — the way a chest is put on a made thing — and is declined whole where any image's cell is taken
+    /// or has nothing under it.</summary>
+    private static Placed PlaceChest(
+        VoxelWorld world, DressingContext context, ChestProp chest, GroundClaims.Storey claims, List<Finding> declined)
+    {
+        List<PropCell> block = [new(0, 0, 0, Blocks.Chest, BlockGeometry.Fronting(chest.Facing), Buried: false)];
+
+        if (chest.Y is not { } stated)
+        {
+            var ground = context.GroundFor(chest);
+            var fanned = Fan(world, context, ground, (chest.X, chest.Z), block, claims, chest.RouteStandoff,
+                chest.Id, PropKinds.Chest, declined);
+            if (fanned.Count == 0) return fanned;
+            for (var image = 0; image < context.Symmetry.Order; image++)
+            {
+                var (x, z) = context.Symmetry.ImageCell(chest.X, chest.Z, image);
+                if (ground.TryGetValue((x, z), out var top) && world.GetBlock(x, top, z).Id == Blocks.Chest)
+                    ChestBuilder.Place(world, x, top, z, world.GetBlock(x, top, z).Data, ChestBuilder.Contents(chest.Items));
+            }
+            return fanned;
+        }
+
+        var sites = Images(context, (chest.X, chest.Z), block).ToList();
+        foreach (var ((x, z), _) in sites)
+        {
+            if (world.GetBlock(x, stated, z).Id != Blocks.Air)
+            {
+                declined.Add(new Finding(DressingRules.GroundTaken,
+                    $"chest '{chest.Id}' is stated at ({x}, {stated}, {z}), where {world.GetBlock(x, stated, z).Id} "
+                    + "already stands. Move it to a course that is open, or clear the block there",
+                    Severity.Decline, Subjects: [chest.Id]));
+                return Placed.None;
+            }
+            if (world.GetBlock(x, stated - 1, z).Id == Blocks.Air)
+            {
+                declined.Add(new Finding(DressingRules.NoGround,
+                    $"chest '{chest.Id}' is stated at ({x}, {stated}, {z}) with nothing under it. State the course "
+                    + "just above the floor it stands on",
+                    Severity.Decline, Subjects: [chest.Id]));
+                return Placed.None;
+            }
+        }
+
+        var covered = new List<List<(int X, int Z)>>();
+        foreach (var ((x, z), turned) in sites)
+        {
+            ChestBuilder.Place(world, x, stated, z, turned[0].Data, ChestBuilder.Contents(chest.Items));
+            claims.Claim(x, z, ClaimKind.Scatter, chest.Id);
+            covered.Add([(x, z)]);
+        }
+        return new Placed(sites.Count, covered);
+    }
+
     // ── trees (DR-TR) ───────────────────────────────────────────────────────────
     private static Placed PlaceTree(
         VoxelWorld world, DressingContext context, TreeProp tree, GroundClaims.Storey claims,
@@ -1339,21 +1495,8 @@ public static class Decorator
         if (prop.Count == 0) return Placed.None;
 
         var images = new List<((int X, int Z) Anchor, List<PropCell> Turned, int BaseY)>(context.Symmetry.Order);
-        for (var k = 0; k < context.Symmetry.Order; k++)
+        foreach (var (anchor, turned) in Images(context, site, prop))
         {
-            var anchor = context.Symmetry.ImageCell(site.X, site.Z, k);
-            var image = k;
-            var turned = prop.Select(cell =>
-            {
-                var (tx, tz) = context.Symmetry.TurnCell(cell.X, cell.Z, image);
-                // A block with a direction in its data turns with the body it belongs to: a log laid along x
-                // on the original lies along z on a quarter-turned image, and a stair keeps climbing toward
-                // the same side of the tree it was cut from.
-                var data = image == 0 ? cell.Data
-                    : BlockGeometry.Turned(cell.Id, cell.Data, (dx, dz) => context.Symmetry.TurnCell(dx, dz, image));
-                return cell with { X = tx, Z = tz, Data = data };
-            }).ToList();
-
             // Decided once for the whole orbit, so the report is too: whichever image seats first refuses the
             // whole prop, and that is the one image and cell named — a second orbit image failing the same
             // way is not a second entry.
@@ -1414,6 +1557,26 @@ public static class Decorator
                 Severity.Complaint, Subjects: [id]));
 
         return new Placed(images.Count, covered);
+    }
+
+    /// <summary>A prop at every image of its orbit: where each image's anchor lands, and the prop's cells
+    /// turned by that image's own transform. A block with a direction in its data turns with the body it
+    /// belongs to: a log laid along x on the original lies along z on a quarter-turned image, a stair keeps
+    /// climbing toward the same side of the tree it was cut from, and a chest keeps fronting away from what it
+    /// was set against.</summary>
+    private static IEnumerable<((int X, int Z) Anchor, List<PropCell> Turned)> Images(
+        DressingContext context, (int X, int Z) site, List<PropCell> prop)
+    {
+        for (var image = 0; image < context.Symmetry.Order; image++)
+        {
+            var k = image;
+            yield return (context.Symmetry.ImageCell(site.X, site.Z, k), prop.Select(cell =>
+            {
+                var (tx, tz) = context.Symmetry.TurnCell(cell.X, cell.Z, k);
+                var data = context.Symmetry.Turn(k) is { } turn ? BlockGeometry.Turned(cell.Id, cell.Data, turn) : cell.Data;
+                return cell with { X = tx, Z = tz, Data = data };
+            }).ToList());
+        }
     }
 
     /// <summary>What the clip cost this prop: the blocks it could not write, plus the blocks it did write that
@@ -1589,7 +1752,7 @@ public static class Decorator
         ? "which is already claimed"
         : held.Kind switch
         {
-            ClaimKind.Water => $"claimed by the channel '{held.Owner}'",
+            ClaimKind.Fluid => $"claimed by the channel '{held.Owner}'",
             ClaimKind.Paving => $"claimed by the paving '{held.Owner}'",
             ClaimKind.Structure => $"claimed by the building '{held.Owner}'",
             _ => $"claimed by the prop '{held.Owner}'",

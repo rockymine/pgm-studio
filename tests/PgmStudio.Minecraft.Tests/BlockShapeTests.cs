@@ -10,7 +10,10 @@ namespace PgmStudio.Minecraft.Tests;
 public sealed class BlockShapeTests
 {
     private const int Stone = 1, Leaves = 18, Glass = 20, OakStairs = 53, OakFence = 85, GlassPane = 102,
-        OakGate = 107, CobblestoneWall = 139, StoneSlab = 44;
+        OakGate = 107, CobblestoneWall = 139, StoneSlab = 44, RedstoneWire = 55, Ladder = 65, Vine = 106,
+        Carpet = 171, Chest = 54;
+
+    private const double Sixteenth = 1.0 / 16;
 
     [Test]
     public async Task A_whole_block_fills_its_cell()
@@ -86,6 +89,50 @@ public sealed class BlockShapeTests
         await Assert.That(closed.Length).IsEqualTo(4);
         await Assert.That(open.Length).IsEqualTo(2);
         await Assert.That(open.All(box => box.MaxX <= 0.125 || box.MinX >= 0.875)).IsTrue();
+    }
+
+    [Test]
+    public async Task A_carpet_and_a_wire_are_a_sheet_on_the_floor_of_their_cell()
+    {
+        foreach (var id in (int[])[Carpet, RedstoneWire])
+        {
+            var boxes = BlockShape.Of(id, 0)!;
+            await Assert.That(boxes.Single()).IsEqualTo(new CellBox(0, 0, 0, 1, Sixteenth, 1));
+            await Assert.That(BlockShape.Sheet(boxes)).IsTrue();
+        }
+    }
+
+    /// <summary>A ladder's data is the way it looks, so it hangs on the side of its cell opposite that — north
+    /// 2 on the south side, east 5 on the west.</summary>
+    [Test]
+    public async Task A_ladder_hangs_on_the_side_opposite_the_way_it_looks()
+    {
+        await Assert.That(BlockShape.Of(Ladder, 2)!.Single()).IsEqualTo(new CellBox(0, 0, 1 - Sixteenth, 1, 1, 1));
+        await Assert.That(BlockShape.Of(Ladder, 3)!.Single()).IsEqualTo(new CellBox(0, 0, 0, 1, 1, Sixteenth));
+        await Assert.That(BlockShape.Of(Ladder, 4)!.Single()).IsEqualTo(new CellBox(1 - Sixteenth, 0, 0, 1, 1, 1));
+        await Assert.That(BlockShape.Of(Ladder, 5)!.Single()).IsEqualTo(new CellBox(0, 0, 0, Sixteenth, 1, 1));
+    }
+
+    [Test]
+    public async Task A_vine_is_a_sheet_on_every_side_it_clings_to_or_under_the_ceiling()
+    {
+        var southAndEast = BlockShape.Of(Vine, 1 | 8)!;
+        var hanging = BlockShape.Of(Vine, 0)!;
+
+        await Assert.That(southAndEast.Length).IsEqualTo(2);
+        await Assert.That(southAndEast).Contains(new CellBox(0, 0, 1 - Sixteenth, 1, 1, 1));
+        await Assert.That(southAndEast).Contains(new CellBox(1 - Sixteenth, 0, 0, 1, 1, 1));
+        await Assert.That(hanging.Single()).IsEqualTo(new CellBox(0, 1 - Sixteenth, 0, 1, 1, 1));
+    }
+
+    [Test]
+    public async Task A_chest_is_inset_a_sixteenth_and_fourteen_sixteenths_tall_and_is_no_sheet()
+    {
+        var chest = BlockShape.Of(Chest, 2)!;
+
+        await Assert.That(chest.Single()).IsEqualTo(new CellBox(Sixteenth, 0, Sixteenth, 1 - Sixteenth, 14.0 / 16, 1 - Sixteenth));
+        await Assert.That(BlockShape.Sheet(chest)).IsFalse();
+        await Assert.That(BlockShape.Sheet(BlockShape.Of(OakGate, 0))).IsFalse();
     }
 
     [Test]

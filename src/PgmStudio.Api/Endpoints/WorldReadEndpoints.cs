@@ -364,7 +364,7 @@ internal sealed class HeightmapReadEndpoint(MapRepository repo, MapReader reader
     protected override byte[]? Draw(BuiltRead read) => HeightProfileRender.Png(
         read.Built.World, Scale, OptionalInt("contour") ?? 4,
         Query<string?>("grey", isRequired: false) is not null,
-        markWater: true, drawContours: true, read.Name);
+        markFluid: true, drawContours: true, read.Name);
 
     protected override string? Text(BuiltRead read)
     {
@@ -792,15 +792,17 @@ internal static class WalkReads
             : null;
 
     /// <summary>Where the board's water is, carved by the same bed the decorator lays it with. A dressing
-    /// that states none answers null, which is what a plan and an undressed board both are.</summary>
+    /// that states none answers null, which is what a plan and an undressed board both are. A bed of lava is not
+    /// a swim, and the walk reads it off the world instead (<c>WorldColumns.ForWalk</c>).</summary>
     private static HashSet<(int X, int Z)>? Water(string layoutJson)
     {
         var dressing = SketchLayout.Parse(layoutJson)?.Dressing;
         if (dressing is not { } element) return null;
 
         var cells = new HashSet<(int X, int Z)>();
-        foreach (var prop in DressingJson.Deserialize(element.ToString()).Props.OfType<WaterProp>())
-            foreach (var cell in WaterBed.Cells(prop.Points, prop.Radius, prop.Depth, prop.Form, prop.Edge,
+        foreach (var prop in DressingJson.Deserialize(element.ToString()).Props.OfType<FluidProp>()
+                     .Where(prop => prop.Fluid == Fluid.Water))
+            foreach (var cell in FluidBed.Cells(prop.Points, prop.Radius, prop.Depth, prop.Form, prop.Edge,
                                                 unchecked((uint)prop.Seed)))
                 cells.Add((cell.X, cell.Z));
         return cells.Count == 0 ? null : cells;
@@ -864,7 +866,7 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
             new QueryWord("beside", "Every distinct thing recorded within this many cells (Chebyshev) of any "
                                + "cell the route passes through — a wall, a redstone line, an iron cube, a "
                                + "spawn, a wool, a destroyable, a core, a control point, a house, a tree, a "
-                               + "boulder or water. 0 to 6, absent asks for none.", Min: 0, Max: 6)));
+                               + "boulder or a fluid. 0 to 6, absent asks for none.", Min: 0, Max: 6)));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -1093,7 +1095,7 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
 
         await Send.OkAsync(new TransectDto(
             [.. walked.Stations.Select(station => new TransectStationDto(station.X, station.Z, station.Ground,
-                station.Surface, station.Water, station.Top, station.Standing, station.Step, station.Word))],
+                station.Surface, station.Fluid, station.Top, station.Standing, station.Step, station.Word))],
             walked.Rises, walked.Falls, walked.WorstStep, walked.Barriers, walked.Scrambles, walked.Drops,
             walked.Events,
             [.. walked.Beside.Select(n => new TransectNeighbourDto(n.Kind, n.Unit, n.Image, n.X, n.Z))]), ct);

@@ -17,7 +17,7 @@ namespace PgmStudio.Api.Services;
 ///
 /// <para>A recipe's card is drawn through the pass that builds it (<see cref="DressingPreview"/>), so a library
 /// is browsed by what its entries look like rather than by their numbers — which for a tree is the whole point,
-/// since six woods differ in colour and six species differ in shape.</para>
+/// since seven woods differ in colour and seven species differ in shape.</para>
 /// </summary>
 public sealed class PropStyleLibrary(PropStyleStore store)
 {

@@ -147,6 +147,24 @@ what is gathered here is the parked and dormant slices of the same surface.
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
+- [ ] **WE148 — A mark or a push that lands nowhere says why.** `RL4` fires on a mark that pinned no cell
+  and names only "off its group's ground"; two causes read alike under it. A mark stated over ground another
+  group owns — a `team` mark on the mid stone — should name that group, which the rasterizer knows. A bevel of
+  at least half the ring's short side leaves every pin under weight 1, and `ReliefSolver` drops such pins over
+  unclaimed ground, so a small area mark with a wide bevel pins nothing; that is its own sentence. And a push
+  whose ring covers no cell has no finding at all: `ReliefReadback.Check` reads pushes only where `Cells > 0`,
+  so a push keyed on the wrong group is silent where a mark is `RL4`. *Evidence: a 10 × 6 area mark on Gypsum
+  Reach (note 52's wash rim) raised `RL4` and nothing else; Sootcombe's `mid-rise`/`mid-lip` pushes are keyed
+  `team` over the mid stone and cover 0 cells.* `docs/world-export/relief.md` §6.
+
+- [ ] **WE149 — Pushes that overlap, and a mark under a push.** *Parked (author): whether two pushes summing
+  over one cell is a fault or a tool.* `Sculpt` adds every push's lift (`ReliefSolver.cs`) and applies the sum
+  over the marked field, so two pushes stack and a mark under a push moves the base it lifts from — as
+  `relief.md` §5 states, on purpose. Nothing reports it: the read gives each push's gradients, not where two
+  meet. If the author rules it a fault, the finding is the push twin of `RL3` — the pair, the overlap's cell
+  count, and at the worst cell the summed lift against each push's own. *Evidence: a second push over Gypsum
+  Reach's wash rim dug a pit to y7, and a line mark there did the same by lowering the base.*
+
 ### Water
 
 - [ ] **S46 — Water reads the relief; a river on the axis is a canal.** A dressing path draping over whatever
@@ -218,6 +236,30 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   are wanted; the amphitheatre and the colonnade are not, as drawn. The two mechanisms every round form is
   built out of — an annulus as one even-odd polygon, and an override add laying a floor inside a wall — are
   written up in `docs/tools/sketch.md`, so a library emits what an author can already draw by hand.
+
+### Dressing: what the pass can place
+
+- [ ] **WE154 — A chest PGM refills.** A `chest` prop's stacks are written into the world and never
+  refilled. PGM's `<lootables>` refills one: `<loot id>` states items the way a kit does, and `<fill loot=…
+  filter=… refill-interval=…|refill-trigger=…>` fills every container its filter admits the first time it is
+  opened and again on the interval or trigger, clearing it first unless `refill-clear="false"`
+  (`core/…/loot/LootableModule.java`); each item goes into a **random free slot**
+  (`LootableMatchModule.fill`), so a refilled chest cannot keep its stacks' order. Add `refill` to the prop —
+  an interval or a trigger — carried through the codec as a `<lootables>` section beside `<kits>` (model,
+  `MapParser`, both serializers, `XmlWriter.WriteItemSpec` for the items) with a cuboid region per image as
+  the fill's filter. Item names differ by path: the world takes 1.8 ids (`minecraft:planks`) and a 1.8 PGM
+  parses Bukkit's (`WOOD`), so the prop needs one table between them. `docs/world-export/decoration.md` §8a;
+  `docs/pgm/`.
+
+- [ ] **WE152 — A room's door width, stated by its style.** *Parked (author): what a stored `door_width` of 2
+  means.* `WX7` cuts a room's door from its wall (`RoomFrames.DoorWidth`: 4 on an even interior of six or more,
+  3 on an odd one, 2 at four across) and a style's `doorway.width` reaches only the dressing's houses. Honouring
+  it is `clamp(stated, 2, interior − 2)`, dropped by one where its parity differs from the wall's so the door
+  stays centred — carried on `RoomShells`, since `Domain` cannot see `HouseStyle`, and re-checked against the
+  iron cube the plan seats beside the door (`PieceRoom.Iron`, `WX8`). The field is `NOT NULL DEFAULT 2`
+  (`M0027`), and 11 of the deployed 13 room styles hold 2, so read as stated every room door narrows: it has to
+  become nullable with a migration, and whether a stored 2 is a statement is the author's. *Evidence: Sootcombe
+  note 10 asks for a 2-wide wool-room door.* `docs/world-export/structures.md` §7.
 
 ### Shapes
 
@@ -391,6 +433,13 @@ and what a `subtract` takes away.
   from 2 isolated markers to **0** — the direction that reads as an improvement.*
 
 ## User Experience
+
+- [ ] **TS121 — A lasso over the void carries coordinates.** `EyeScene.Project` counts a ray that hits nothing
+  as sky and adds no column, so a note drawn over void has no `columns` and its place is read off the
+  picture's pixels. Where a ray points down, meet it with a level plane — the median ground of the columns the
+  same mark did hit, else the board's — and carry those cells as their own set beside `columns`, which keeps
+  meaning ground actually seen; a ray pointing up stays sky. *Evidence: Gypsum Reach note 74, a lasso over the
+  void beside the frontline.* `docs/tools/sketch.md` § Notes; `docs/world-scan/read-backs.md`.
 
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** *Parked (author): imports
   are not a priority.* When an author tweaks the

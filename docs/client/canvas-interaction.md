@@ -272,14 +272,15 @@ already asks for, so `draw` takes the payload rather than a route, and the mesh 
 turning and resizing re-render rather than re-mesh.
 
 **A layer switch seeds group identity from the layer it is switching to.** `sketch-bridge` keeps one live
-group list for the active layer and caches the rest, and `recompute` carries a name, a `mirrors` flag and —
-load-bearingly — an **id** across from whatever that live list holds, matching by centroid within 32 blocks.
+group list for the active layer and caches the rest. `recompute` settles the groups (`settleGroups`): a group
+the layer was loaded with and no edit has touched is kept exactly as stated, and every other piece carries a
+name, a `mirrors` flag and — load-bearingly — an **id** from the loaded record it overlaps most, else from
+whatever that live list holds, matching by centroid within 32 blocks.
 Loading another layer onto the canvas without reseeding leaves the outgoing layer's groups there, and two
 layers of one board are centred on the same place, so the match always succeeds: the ground of a stacked
 board comes back carrying the workings' id. A relief is keyed by group id, so it detaches — and because
 the tool saves what the canvas holds, the wrong id is written into the document. `loadActiveToCanvas`
-therefore sets the live list to the incoming layer's own groups before recomputing, and falls back to that
-layer's persisted group records when it has none yet.
+therefore sets the live list to the incoming layer's own groups before recomputing.
 
 **The active layer reaches the dressing through the dressing document, and nowhere else.** A layer switch
 calls `pushActiveLayer`, which sets `DressingDoc.layer` before the recompute repaints; the document stamps it on
@@ -294,7 +295,8 @@ groups, matched by shapeId overlap. Matching each group to its best record indep
 group of a split board the same record — and a relief is keyed by id, so the board then has several
 groups under one name and its terrain reaches only the first of them. The pairing is resolved greedily
 instead: strongest overlap first, each record and each group claimed once, and a group no record
-reaches keeps the identity it was computed with. `SK12` reports a layout that still carries one id twice.
+reaches keeps the identity it was computed with — unless a kept group or a matched one already answers to
+that id, when `settleGroups` gives it a fresh one. `SK12` reports a layout that still carries one id twice.
 
 **A preview that cannot run says which of the two reasons it was.** `enterIso` fails for two unrelated
 causes — the browser has no WebGL, or the server would not build the board — and for a long time both crossed

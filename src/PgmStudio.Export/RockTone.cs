@@ -44,7 +44,7 @@ public static class RockTone
         var layers = SketchLayout.Stack(SketchLayout.Parse(layoutJson));
         // Only a prop naming no layer needs the cell map, and one naming none is the rare case, so the second
         // rasterize is paid for only where it is asked for.
-        var owners = new Lazy<IReadOnlyDictionary<(string Layer, int X, int Z), string>>(
+        var owners = new Lazy<IReadOnlyDictionary<(string Layer, int X, int Z), (string Shape, int Image)>>(
             () => SketchRasterizer.ShapeThemeOwners(layoutJson));
 
         var findings = new List<Finding>();
@@ -58,7 +58,7 @@ public static class RockTone
             if (rock.Count == 0) continue;
 
             var ground = Families(Materials.Resting(
-                Ground(themeAt(Standing(boulder, layers, owners), boulder.X, boulder.Z))));
+                Ground(themeAt(Standing(boulder, layers, owners), boulder.X, boulder.Z).Theme)));
             if (ground.Count == 0 || !rock.IsSubsetOf(ground)) continue;
 
             findings.Add(new Finding(DressingRules.RockInTheGroundsTone,
@@ -80,7 +80,7 @@ public static class RockTone
     /// topmost layer with ground under it, which is the surface the pass seats it on.</summary>
     private static string Standing(
         BoulderProp boulder, IReadOnlyList<SketchLayer> layers,
-        Lazy<IReadOnlyDictionary<(string Layer, int X, int Z), string>> owners)
+        Lazy<IReadOnlyDictionary<(string Layer, int X, int Z), (string Shape, int Image)>> owners)
     {
         if (boulder.Layer is { Length: > 0 } named) return named;
         for (var at = layers.Count - 1; at >= 0; at--)

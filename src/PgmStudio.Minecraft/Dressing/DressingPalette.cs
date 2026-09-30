@@ -25,6 +25,12 @@ public static class DressingPalette
     public const int RedFlower = 38;           // data selects poppy / orchid / allium / tulips / daisy
     public const int DoublePlant = 175;        // two blocks; upper half is data 8
     public const int LilyPad = 111;
+    public const int DeadBushBlock = 32;
+    public const int CactusBlock = 81;
+
+    /// <summary>The tallest cactus the overlay grows, in blocks: a cactus is one to this many courses of the
+    /// block, stacked.</summary>
+    public const int CactusTallest = 4;
 
     /// <summary>The upper half of a two-block plant: the data value that marks a block as the top of a double
     /// plant, which is what stops it dropping on the next block update.</summary>
@@ -46,32 +52,44 @@ public static class DressingPalette
     /// <summary>The flowers a flower field draws from, in the order a share noise picks between them.</summary>
     public static readonly Plant[] Flowers = [Poppy, Dandelion, BlueOrchid, OxeyeDaisy];
 
+    /// <summary>A dead bush — dry ground's cover, on sand, clay and dirt.</summary>
+    public static readonly Plant DeadBush = new(DeadBushBlock, 0, Tall: false);
+    /// <summary>A cactus: one to <see cref="CactusTallest"/> blocks stacked, on sand only, with nothing solid
+    /// beside any of them.</summary>
+    public static readonly Plant Cactus = new(CactusBlock, 0, Tall: false);
+
     // ── ground a plant will grow on ─────────────────────────────────────────────
     /// <summary>How readily a painted surface accepts flora, by the block on top of it: grass and dirt take it
-    /// fully, sand sparsely, and everything else — the quartz of a plaza, the wool of a monument, a path's
-    /// gravel — takes none. The overlay is masked by the paint beneath it, which is the whole reason the
-    /// dressing pass runs after the painter rather than before.</summary>
-    public static double SoilShare(int blockId, int blockData) => blockId switch
+    /// fully, sand and clay sparsely, and everything else — the quartz of a plaza, the wool of a monument, a
+    /// path's gravel — takes none. The overlay is masked by the paint beneath it, which is the whole reason the
+    /// dressing pass runs after the painter rather than before. What may grow there is <see cref="SoilOf"/>'s.</summary>
+    public static double SoilShare(int blockId, int blockData) => SoilOf(blockId) switch
     {
-        Blocks.Grass => 1.0,
-        Blocks.Dirt => blockData == 2 ? 0.8 : 1.0,   // podzol takes a little less than dirt or coarse dirt
-        Blocks.Sand => 0.35,
-        Blocks.Gravel => 0.3,
-        Mycelium => 0.9,
+        Soil.Fertile => blockId == Blocks.Dirt && blockData == 2 ? 0.8 : 1.0,   // podzol takes a little less
+        Soil.Sand or Soil.Clay => 0.35,
         _ => 0,
     };
 
-    private const int Mycelium = 110;
+    /// <summary>What a surface block lets grow. A 1.8 grass tuft, fern or flower stays only on grass and dirt
+    /// and drops at the first update anywhere else; a dead bush takes sand, hardened and stained clay and dirt;
+    /// a cactus takes sand alone.</summary>
+    public static Soil SoilOf(int blockId) => blockId switch
+    {
+        Blocks.Grass or Blocks.Dirt => Soil.Fertile,
+        Blocks.Sand => Soil.Sand,
+        Blocks.HardenedClay or Blocks.StainedClay => Soil.Clay,
+        _ => Soil.None,
+    };
 
     /// <summary>Whether a tree's foot may stand on this block: grass and the three dirts, and nothing else.
     /// A tree is a thing that grew where it stands, so the block under its trunk is the one that says so —
     /// gravel, clay, stone and a path's paving are ground a tree was never rooted in, whatever else grows on
     /// them.
     ///
-    /// <para>Stricter than <see cref="SoilShare"/>, which admits sand at a third and gravel at a little less
-    /// because a tuft of grass in a shingle is ordinary and a trunk out of it is not. Two questions, two
-    /// answers: what will <em>grow</em> on a surface, and what a tree may be <em>rooted</em> in. The three
-    /// dirts share one id, so the data is not read.</para>
+    /// <para>Stricter than <see cref="SoilShare"/>, which admits sand and clay at a third because a dead bush
+    /// or a cactus in them is ordinary and a trunk out of them is not. Two questions, two answers: what will
+    /// <em>grow</em> on a surface, and what a tree may be <em>rooted</em> in. The three dirts share one id, so
+    /// the data is not read.</para>
     /// </summary>
     public static bool RootsInto(int blockId) => blockId is Blocks.Grass or Blocks.Dirt;
 
@@ -99,7 +117,9 @@ public static class DressingPalette
     /// which wood a log paints as.</summary>
     public const int LogAllBark = 12;
 
-    /// <summary>The six woods a tree can be cut from — the block pair each <see cref="Species"/> row names.</summary>
+    /// <summary>The woods a tree can be cut from — the block pair each <see cref="Species"/> row names. The six
+    /// vanilla pairs, and a willow's dark-oak log under oak leaves, which is how the author's own willows are
+    /// built.</summary>
     public static readonly IReadOnlyList<TreeWood> Woods =
     [
         new("oak", Blocks.Log, 0, Blocks.Leaves, 0),
@@ -108,6 +128,7 @@ public static class DressingPalette
         new("jungle", Blocks.Log, 3, Blocks.Leaves, 3),
         new("acacia", Blocks.Log2, 0, Blocks.Leaves2, 0),
         new("dark oak", Blocks.Log2, 1, Blocks.Leaves2, 1),
+        new("willow", Blocks.Log2, 1, Blocks.Leaves, 0),
     ];
 
     /// <summary>The vanilla species: each its own wood, canopy profile and proportions. The profiles are what
@@ -123,8 +144,22 @@ public static class DressingPalette
         new("jungle", Woods[3], CanopyProfile.Blob, Height: 13, CanopyRadius: 3.2),
         new("acacia", Woods[4], CanopyProfile.Umbrella, Height: 8, CanopyRadius: 4.0, Lean: 3),
         new("dark oak", Woods[5], CanopyProfile.Blob, Height: 9, CanopyRadius: 3.4, WideTrunk: true),
+        new("willow", Woods[6], CanopyProfile.Weeping, Height: 11, CanopyRadius: 5.0),
     ];
 
     public static TreeSpecies SpeciesNamed(string name)
         => Species.FirstOrDefault(species => species.Name == name) ?? Species[0];
+}
+
+/// <summary>The kind of ground a plant stands on, as far as what grows on it goes.</summary>
+public enum Soil
+{
+    /// <summary>Nothing grows: paving, stone, gravel, a monument.</summary>
+    None,
+    /// <summary>Grass and dirt: grass, ferns, flowers and tall grass; a dead bush on dirt.</summary>
+    Fertile,
+    /// <summary>Sand: a dead bush or a cactus.</summary>
+    Sand,
+    /// <summary>Hardened and stained clay: a dead bush.</summary>
+    Clay,
 }

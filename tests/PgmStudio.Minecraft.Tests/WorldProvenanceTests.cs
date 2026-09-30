@@ -123,7 +123,7 @@ public sealed class WorldProvenanceTests
     [Arguments(ProvenancePass.Prop, "tree", true)]
     [Arguments(ProvenancePass.Prop, "boulder", true)]
     [Arguments(ProvenancePass.Prop, "flora", false)]
-    [Arguments(ProvenancePass.Prop, "water", false)]
+    [Arguments(ProvenancePass.Prop, "fluid", false)]
     [Arguments(ProvenancePass.Prop, "stroke", false)]
     [Arguments(ProvenancePass.Structure, "house", false)]
     public async Task Only_a_tree_or_a_boulder_stands_as_a_prop_volume(ProvenancePass pass, string kind, bool volume)

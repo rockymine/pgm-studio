@@ -11,7 +11,7 @@
 import { MIN_FOOTPRINT_SPAN } from "../shared/building.js";
 
 /** The things that can be placed, in the order their tools sit on the toolbar. */
-export const PROP_KINDS = ["stroke", "water", "flora", "house", "tree", "boulder"];
+export const PROP_KINDS = ["stroke", "fluid", "flora", "house", "tree", "boulder", "chest"];
 
 /** A fresh prop of each kind, before the author has touched a knob. The numbers mirror the C# record defaults,
  *  so a prop drawn on the canvas and one deserialized from an empty object are the same prop. */
@@ -23,18 +23,21 @@ export function defaultProp(kind, seed) {
       // every other style is a variation on. Route is declared, because it is what other props stand off.
       return { ...base, points: [], radius: 3, style: "solid", coverage: 0.7, route: false,
                pave: { kind: "solid", id: 13, data: 0 } };
-    case "water":
+    case "fluid":
       // A three-block-wide canal, cut two deep, meeting the land through a shore beach, over a bank of
       // cellular gravel / coarse dirt / sand. The bank is a full terrain material, not one block — the same
-      // pattern the painter tiles. Numbers + the material mirror the C# WaterProp defaults.
-      return { ...base, points: [], radius: 3, depth: 2, form: "canal", edge: 0.8, shore: 2, shoreWander: true, bank: {
+      // pattern the painter tiles. Numbers + the material mirror the C# FluidProp defaults.
+      return { ...base, points: [], fluid: "water", radius: 3, depth: 2, form: "canal", edge: 0.8, shore: 2, shoreWander: true, bank: {
         kind: "voronoi", seed: 1, cellSize: 5, rise: 0, bands: [
           { material: { kind: "solid", id: 13, data: 0 }, depth: 2 },
           { material: { kind: "solid", id: 3, data: 1 }, depth: 1 },
           { material: { kind: "solid", id: 12, data: 0 }, depth: 1 },
         ] } };
     case "flora":
-      return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0 } };
+      return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0, deadBushShare: 0, cactusShare: 0 } };
+    case "chest":
+      // A chest on the ground, fronting −z, holding nothing until the author lists its stacks.
+      return { ...base, x: 0, z: 0, facing: "negZ", items: [] };
     case "tree":
     case "boulder":
       // A click puts down a position; what stands there is a recipe the document names once. `style` is the
@@ -56,7 +59,7 @@ export function defaultProp(kind, seed) {
  *  name. Takes a kind or a prop, since callers have one or the other and neither should have to unwrap. */
 export const isMarker = (propOrKind) => {
   const kind = typeof propOrKind === "string" ? propOrKind : propOrKind?.kind;
-  return kind === "tree" || kind === "boulder";
+  return kind === "tree" || kind === "boulder" || kind === "chest";
 };
 
 /** Whether a prop rests on the storey `layer` names. A prop naming no layer rests on the top surface and a

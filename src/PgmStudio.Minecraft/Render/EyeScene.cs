@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
@@ -43,9 +44,11 @@ public sealed record EyePicture(int Width, int Height, byte[] Rgb, IReadOnlyList
 /// <para>A ray is walked cell by cell through a dense copy of the world. A cube shows the sprite of the face
 /// the ray entered through, shaded by which way that face points; a plant is two crossed quads; a texel
 /// with no alpha lets the ray through, which is what makes leaves and glass read as they do. A slab, a
-/// stair, a fence, a pane or a wall fills only the boxes <see cref="BlockShape"/> names for it, a fence, a
-/// pane or a wall reaching out to the neighbours it meets. Far ground fades into the sky, and a block no
-/// sprite is named for is drawn in its palette colour and counted as such.</para>
+/// stair, a fence, a pane, a wall or a chest fills only the boxes <see cref="BlockShape"/> names for it, a
+/// fence, a pane or a wall reaching out to the neighbours it meets, and a chest wearing its front on the side
+/// it looks toward. A torch is crossed quads like a plant; a carpet, a wire, a ladder, a vine and a lily pad
+/// are sheets, drawn but neither stood on nor in the way of a line of sight. Far ground fades into the sky,
+/// and a block no sprite is named for is drawn in its palette colour and counted as such.</para>
 /// </summary>
 public sealed class EyeScene
 {
@@ -63,8 +66,12 @@ public sealed class EyeScene
     private readonly Material[] _materials;
     private readonly int _minX, _minZ, _width, _height, _depth;
 
+    /// <summary>How one block is drawn. <paramref name="Solid"/> is whether it stands in the way — a cube or a
+    /// shape with body to it, not a plant or a sheet — and <paramref name="Ground"/> whether it is solid ground
+    /// a player stands on rather than a tree's crown.</summary>
     private sealed record Material(int Id, int Data, FaceForm Form, BlockSprite? Top, BlockSprite? Side,
-                                   bool Untextured, bool Ground, CellBox[]? Boxes, Grain Grain);
+                                   bool Untextured, bool Solid, bool Ground, CellBox[]? Boxes, Grain Grain,
+                                   BlockSprite? Front = null, RoomEdge Facing = RoomEdge.NegZ);
 
     private EyeScene(ushort[] cells, Material[] materials, int minX, int minZ, int width, int height, int depth)
     {
@@ -166,16 +173,20 @@ public sealed class EyeScene
 
     private static Material Describe(int id, int data, BlockFaces? faces, uint tint, SpriteCache sprites)
     {
-        var ground = faces is not { Form: FaceForm.Cross } && id is not (Blocks.Leaves or Blocks.Leaves2);
+        var boxes = BlockShape.Of(id, data);
+        var sheet = BlockShape.Sheet(boxes);
+        var ground = faces is not { Form: FaceForm.Cross } && !sheet && id is not (Blocks.Leaves or Blocks.Leaves2);
         if (faces is { } known && sprites.Get(known.Top, tint) is { } top)
         {
             var side = known.Form == FaceForm.Cross ? top
                 : sprites.Get(known.Side, known.SideOverlay is null ? tint : 0xFFFFFF, known.SideOverlay, tint) ?? top;
-            return new Material(id, data, known.Form, top, side, Untextured: false, ground, BlockShape.Of(id, data),
-                                known.Grain);
+            var front = known.Front is { } named ? sprites.Get(named, tint) : null;
+            return new Material(id, data, known.Form, top, side, Untextured: false,
+                                Solid: known.Form == FaceForm.Cube && !sheet, ground, boxes, known.Grain, front,
+                                known.Facing);
         }
         var colour = sprites.Solid((uint)BlockPalette.PackedRgb(id, data));
-        return new Material(id, data, FaceForm.Cube, colour, colour, Untextured: true, ground, BlockShape.Of(id, data),
+        return new Material(id, data, FaceForm.Cube, colour, colour, Untextured: true, Solid: !sheet, ground, boxes,
                             Grain.Up);
     }
 
@@ -307,7 +318,7 @@ public sealed class EyeScene
     private Material? At(int gx, int y, int gz) =>
         Inside(gx, y, gz) && _cells[(gx * _height + y) * _depth + gz] is var slot and > 0 ? _materials[slot] : null;
 
-    private bool Solid(int gx, int y, int gz) => At(gx, y, gz) is { Form: FaceForm.Cube };
+    private bool Solid(int gx, int y, int gz) => At(gx, y, gz) is { Solid: true };
 
     /// <summary>The highest block a player could stand on in a column: ground rather than a tree's crown, with
     /// two cells clear above it.</summary>
@@ -315,7 +326,7 @@ public sealed class EyeScene
     {
         if (gx < 0 || gx >= _width || gz < 0 || gz >= _depth) return null;
         for (var y = _height - 3; y >= 0; y--)
-            if (At(gx, y, gz) is { Form: FaceForm.Cube, Ground: true })
+            if (At(gx, y, gz) is { Ground: true })
                 return !Solid(gx, y + 1, gz) && !Solid(gx, y + 2, gz) ? y : null;
         return null;
     }
@@ -412,7 +423,7 @@ public sealed class EyeScene
         if (slot == 0) return null;
         (int X, int Y, int Z)? ground = null;
         for (var y = cell.Y; y >= 0; y--)
-            if (At(cell.X, y, cell.Z) is { Form: FaceForm.Cube, Ground: true })
+            if (At(cell.X, y, cell.Z) is { Ground: true })
             {
                 ground = (cell.X + _minX, y, cell.Z + _minZ);
                 break;
@@ -563,7 +574,7 @@ public sealed class EyeScene
 
         var point = (X: origin.X + ray.X * entered - cellX, Y: origin.Y + ray.Y * entered - cellY,
                      Z: origin.Z + ray.Z * entered - cellZ);
-        var (sprite, u, v, shade) = Face(material, axis, point, ray.Y);
+        var (sprite, u, v, shade) = Face(material, axis, point, ray);
         if (sprite is null) return null;
         var texel = sprite.At(u, v);
         if (texel >> 24 < 128) return null;
@@ -600,7 +611,7 @@ public sealed class EyeScene
             }
             if (missed || near > far || near >= nearest) continue;
             var point = (X: local.X + ray.X * near, Y: local.Y + ray.Y * near, Z: local.Z + ray.Z * near);
-            var (sprite, u, v, shade) = Face(material, face, point, ray.Y);
+            var (sprite, u, v, shade) = Face(material, face, point, ray);
             if (sprite is null) continue;
             var texel = sprite.At(Math.Clamp(u, 0, 0.9999), Math.Clamp(v, 0, 0.9999));
             if (texel >> 24 < 128) continue;
@@ -613,11 +624,18 @@ public sealed class EyeScene
     /// <summary>The sprite the face across <paramref name="face"/>'s axis shows, where on it a point in the cell
     /// falls, and the shade a face pointing that way takes. The end sprite goes on the two faces the grain runs
     /// out of, and on a block lying down the side sprite is turned so its grain runs along the block — the bark
-    /// of a beam runs the way the beam does.</summary>
+    /// of a beam runs the way the beam does. A block with a front wears it on the side it looks toward.</summary>
     private static (BlockSprite? Sprite, double U, double V, double Shade) Face(
-        Material material, int face, (double X, double Y, double Z) point, double rayY)
+        Material material, int face, (double X, double Y, double Z) point, (double X, double Y, double Z) ray)
     {
-        var shade = face switch { 1 => rayY < 0 ? 1.0 : 0.5, 0 => 0.6, _ => 0.8 };
+        var shade = face switch { 1 => ray.Y < 0 ? 1.0 : 0.5, 0 => 0.6, _ => 0.8 };
+        if (material.Front is { } front && face != 1)
+        {
+            // A ray travelling toward +x meets the face on a cell's west side, and one toward +z its north side.
+            var side = face == 0 ? ray.X > 0 ? RoomEdge.NegX : RoomEdge.PosX : ray.Z > 0 ? RoomEdge.NegZ : RoomEdge.PosZ;
+            if (side == material.Facing)
+                return face == 0 ? (front, point.Z, 1 - point.Y, shade) : (front, point.X, 1 - point.Y, shade);
+        }
         return (material.Grain, face) switch
         {
             (Grain.AlongX, 0) => (material.Top, point.Z, 1 - point.Y, shade),

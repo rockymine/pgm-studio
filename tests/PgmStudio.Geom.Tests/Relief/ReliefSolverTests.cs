@@ -164,6 +164,58 @@ public sealed class ReliefSolverTests
         await Assert.That(WorstMirroredDifference(loose, CentreX, CentreZ)).IsGreaterThan(0);
     }
 
+    /// <summary>A mark or a push stated on the half the fold overwrites is carried to the canonical half, not
+    /// lost to it: stated on either side of a board spanning the axis, it raises the same two places.</summary>
+    [Test]
+    public async Task A_statement_on_either_half_of_a_folded_board_raises_both_images()
+    {
+        const double CentreX = 30, CentreZ = 24;
+        var footprint = Board(60, 48);
+        var spec = new ReliefSpec
+        {
+            Base = 5, Marks = [new RimMark(5)],
+            FoldMode = "rot_180", FoldCentreX = CentreX, FoldCentreZ = CentreZ,
+        };
+        double[][] near = [[10, 10], [20, 10], [20, 18], [10, 18]];
+        double[][] far = [.. near.Select(point => new[] { 2 * CentreX - point[0], 2 * CentreZ - point[1] })];
+
+        var flat = ReliefSolver.Solve(footprint, spec);
+        foreach (var (name, marks, pushes) in new[]
+                 {
+                     ("mark near", (List<Mark>)[new RimMark(5), new PointMark(15, 14, 15, 4)], (List<PushMark>)[]),
+                     ("mark far", [new RimMark(5), new PointMark(2 * CentreX - 15, 2 * CentreZ - 14, 15, 4)], []),
+                     ("push near", [new RimMark(5)], [new PushMark(near, 6, 3)]),
+                     ("push far", [new RimMark(5)], [new PushMark(far, 6, 3)]),
+                 })
+        {
+            var solved = ReliefSolver.Solve(footprint, spec with { Marks = marks, Pushes = pushes });
+            await Assert.That(solved.At(15, 14)).IsGreaterThan(flat.At(15, 14)).Because(name);
+            await Assert.That(solved.At(44, 33)).IsEqualTo(solved.At(15, 14)).Because(name);
+        }
+    }
+
+    /// <summary>A push drawn across the axis is folded onto itself and not doubled: it lifts its middle by
+    /// what it states.</summary>
+    [Test]
+    public async Task A_push_spanning_the_axis_lifts_by_its_own_amount()
+    {
+        const double CentreX = 30, CentreZ = 24;
+        var footprint = Board(60, 48);
+        var spec = new ReliefSpec
+        {
+            Base = 5, Marks = [new RimMark(5)],
+            FoldMode = "rot_180", FoldCentreX = CentreX, FoldCentreZ = CentreZ,
+        };
+        var flat = ReliefSolver.Solve(footprint, spec);
+        var lifted = ReliefSolver.Solve(footprint, spec with
+        {
+            Pushes = [new PushMark([[22, 18], [38, 18], [38, 30], [22, 30]], 4, 3)],
+        });
+
+        await Assert.That(lifted.At(30, 24) - flat.At(30, 24)).IsEqualTo(4);
+        await Assert.That(lifted.At(30, 20) - flat.At(30, 20)).IsEqualTo(4);
+    }
+
     [Test]
     public async Task A_board_with_no_symmetry_is_not_folded()
     {

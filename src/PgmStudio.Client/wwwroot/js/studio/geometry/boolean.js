@@ -9,7 +9,7 @@
  */
 
 import polygonClipping from "../vendor/polygon-clipping.js";
-import { toRing, ringCentroid } from "./shape.js";
+import { toRing, ringCentroid, snapShape } from "./shape.js";
 import { applySymmetry } from "./symmetry.js";
 import { pointInRing, polysOverlap } from "./polygon.js";
 
@@ -125,6 +125,113 @@ export function computeGroups(shapes, previousGroups = []) {
   });
 
   return { groups, addUnion: normalUnion, afterSub, overrideAddUnion: afterOverrideAdd };
+}
+
+// ── The groups a layer is saved with ─────────────────────────────────────────
+
+/**
+ * What a shape's outline is, as a comparable key: its operation, whether it overrides, and the ring it
+ * rasterizes to. Grouping reads nothing else, so a theme, a height or a name changed on a shape leaves the
+ * key — and the shape's group — where they were.
+ */
+export function outlineKey(shape) {
+  let ring;
+  try { ring = toRing(snapShape(shape)); } catch { ring = []; }
+  return `${shape.operation ?? "add"}|${shape.override ? 1 : 0}|${JSON.stringify(ring)}`;
+}
+
+/**
+ * The groups a layer holds, settled against the ones it was loaded with.
+ *
+ * **A stated group is kept exactly as stated until an edit touches it.** The server builds a group's
+ * mirror fan, its relief and its keep-clear from the `shapeIds` it lists, and an API caller can state a
+ * group the geometry would not have made — pieces that are not one island, or one shape held apart from the
+ * island it overlaps. So a stated group keeps its id, name, `mirrors` and `shapeIds` while none of its shapes
+ * has changed outline or gone, and no new or reshaped shape overlaps one of them. Every other shape — the
+ * members of a touched group, and any shape no stated group lists — is grouped from the geometry the way a
+ * drawn board always is: connected pieces, identity carried from the stated record the piece overlaps most,
+ * else from the previous group by centroid.
+ *
+ * Answers the groups as canvas parts `{id, name, mirrors, shapeIds, exterior, holes}`: a group whose shapes
+ * are several islands is one part per island, each carrying the whole group's `shapeIds`, so the saved
+ * document is `uniqueGroups` of the answer.
+ *
+ * @param {object[]} shapes   the layer's terrain shapes as they stand
+ * @param {object[]} stated   the groups the layer was loaded with ({id, name, mirrors, shapeIds})
+ * @param {Map<string,string>} baseline shape id -> `outlineKey` as loaded
+ * @param {object[]} previous the parts the last settle answered, for a piece no stated record reaches
+ */
+export function settleGroups(shapes, stated = [], baseline = new Map(), previous = []) {
+  const byId = new Map(shapes.map(shape => [shape.id, shape]));
+  const touched = shapes.filter(shape => baseline.get(shape.id) !== outlineKey(shape));
+  const touchedIds = new Set(touched.map(shape => shape.id));
+  const touchedPolys = touched.map(shape => [toRing(shape)]).filter(poly => poly[0].length);
+
+  const keeps = (group) => {
+    const members = group.shapeIds ?? [];
+    if (!members.length || members.some(id => !byId.has(id) || touchedIds.has(id))) return false;
+    return !members.some(id => {
+      const ring = toRing(byId.get(id));
+      return ring.length && touchedPolys.some(poly => polysOverlap([ring], poly));
+    });
+  };
+  const kept = stated.filter(keeps);
+  const keptShapes = new Set(kept.flatMap(group => group.shapeIds));
+
+  // Everything a kept group does not hold is grouped from the geometry, among itself.
+  const free = shapes.filter(shape => !keptShapes.has(shape.id));
+  const keptIds = new Set(kept.map(group => group.id));
+  const { groups: pieces, addUnion, afterSub, overrideAddUnion } =
+    computeGroups(free, previous.filter(part => !keptIds.has(part.id)));
+  assignShapesToGroups(free, pieces, addUnion, overrideAddUnion, afterSub);
+  const touchedStated = stated.filter(group => !keptIds.has(group.id));
+  const matched = restoreGroupMeta(pieces, touchedStated, ["id", "name", "mirrors"]);
+
+  // A piece whose carried id another group already answers to takes a fresh one: an id is what a relief is
+  // keyed by, and two groups answering to it would hand one of them the other's ground.
+  const used = new Set([...keptIds, ...[...matched].map(piece => piece.id)]);
+  let fresh = 0;
+  pieces.forEach((piece, index) => {
+    if (matched.has(piece)) return;
+    if (!used.has(piece.id)) { used.add(piece.id); return; }
+    do { piece.id = `isl_${Date.now()}_${fresh++}`; } while (used.has(piece.id));
+    piece.name = `Group ${index + 1}`;
+    piece.mirrors = true;
+    used.add(piece.id);
+  });
+
+  // The kept groups' parts, each island of its own shapes one part.
+  const partsOf = (group) => {
+    const members = group.shapeIds.map(id => byId.get(id));
+    const outline = computeGroups(members, []).groups;
+    const base = { id: group.id, name: group.name, mirrors: group.mirrors, shapeIds: [...group.shapeIds] };
+    return outline.length
+      ? outline.map(part => ({ ...base, exterior: part.exterior, holes: part.holes }))
+      : [{ ...base, exterior: [], holes: [] }];
+  };
+
+  // In the order the layer stated them, a touched group standing where its piece took its id; new pieces
+  // after.
+  const out = [];
+  const placed = new Set();
+  for (const group of stated) {
+    if (keptIds.has(group.id)) { out.push(...partsOf(group)); continue; }
+    for (const piece of pieces) if (piece.id === group.id && !placed.has(piece)) { out.push(piece); placed.add(piece); }
+  }
+  for (const piece of pieces) if (!placed.has(piece)) out.push(piece);
+  return out;
+}
+
+/** The groups as the document states them: one record per id, from the first part carrying it. */
+export function uniqueGroups(parts) {
+  const seen = new Set();
+  const out = [];
+  for (const part of parts) {
+    if (seen.has(part.id)) continue;
+    seen.add(part.id);
+    out.push({ id: part.id, name: part.name, mirrors: part.mirrors, shapeIds: part.shapeIds });
+  }
+  return out;
 }
 
 // ── Shape → group assignment ─────────────────────────────────────────────────
@@ -274,9 +381,11 @@ function _transformRing(ring, axis, cx, cz) {
  * @param {object[]} groups   from computeGroups (shapeIds populated)
  * @param {object[]} savedMeta persisted group records ({shapeIds, …fields})
  * @param {string[]} fields    which fields to copy from the matched record onto each group
+ * @returns {Set<object>} the groups a record was matched to
  */
 export function restoreGroupMeta(groups, savedMeta, fields) {
-  if (!savedMeta.length) return;
+  const takenGroups = new Set();
+  if (!savedMeta.length) return takenGroups;
   const pairs = [];
   for (const isl of groups) {
     for (const meta of savedMeta) {
@@ -286,7 +395,7 @@ export function restoreGroupMeta(groups, savedMeta, fields) {
     }
   }
   pairs.sort((a, b) => b.overlap - a.overlap);
-  const takenGroups = new Set(), takenMeta = new Set();
+  const takenMeta = new Set();
   for (const { isl, meta } of pairs) {
     if (takenGroups.has(isl) || takenMeta.has(meta)) continue;
     takenGroups.add(isl); takenMeta.add(meta);
@@ -294,4 +403,5 @@ export function restoreGroupMeta(groups, savedMeta, fields) {
       if (meta[field] !== undefined) isl[field] = meta[field];
     }
   }
+  return takenGroups;
 }

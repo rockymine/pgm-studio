@@ -93,6 +93,31 @@ public sealed class TreeTemplateTests
         await Assert.That(once.Leaves.Count).IsNotEqualTo(other.Leaves.Count);
     }
 
+    /// <summary>A willow's crown hangs: curtains from its rim reach well below where a rounded crown of the
+    /// same reach stops, and they are strands rather than a wall, some of the rim hanging none. Four arms hold
+    /// the dome up off the trunk.</summary>
+    [Test]
+    public async Task A_weeping_crown_hangs_curtains_from_its_rim_and_leaves_gaps_in_them()
+    {
+        var weeping = TreeTemplate.Build(new TemplateShape(8, 5, CanopyProfile.Weeping), 5);
+        var blob = TreeTemplate.Build(new TemplateShape(8, 5, CanopyProfile.Blob), 5);
+
+        await Assert.That(weeping.Leaves.Min(cell => cell.Y)).IsLessThan(blob.Leaves.Min(cell => cell.Y) - 2);
+        await Assert.That(weeping.Leaves.Min(cell => cell.Y)).IsGreaterThanOrEqualTo(1);
+        await Assert.That(weeping.Wood.Count(cell => cell.X != 0 || cell.Z != 0)).IsGreaterThanOrEqualTo(4);
+        await Assert.That(weeping.Leaves.Any(cell => weeping.Wood.Contains(cell))).IsFalse();
+
+        // Below the dome only curtains stand: under the crown's outer ring, clear of the trunk, and not under
+        // every column of that ring.
+        static double Out((int X, int Z) column) => Math.Sqrt(column.X * column.X + column.Z * column.Z);
+        var ring = weeping.Leaves.Where(cell => cell.Y >= 7).Select(cell => (cell.X, cell.Z))
+            .Where(column => Out(column) > 2).ToHashSet();
+        var hanging = weeping.Leaves.Where(cell => cell.Y <= 4).Select(cell => (cell.X, cell.Z)).ToHashSet();
+        await Assert.That(hanging.Count).IsGreaterThan(0);
+        await Assert.That(hanging.All(ring.Contains)).IsTrue();
+        await Assert.That(hanging.Count).IsLessThan(ring.Count);
+    }
+
     private static TemplateTree Build(CanopyProfile profile, double radius = 3.4)
         => TreeTemplate.Build(new TemplateShape(6, radius, profile), 5);
 

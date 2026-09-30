@@ -814,6 +814,165 @@ public sealed class DecoratorTests
         await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.UnheldFace)).IsFalse();
     }
 
+    /// <summary>A template willow is written in the willow's own wood — dark-oak bark under oak leaves that
+    /// never decay — and its curtains reach down toward the ground it stands on.</summary>
+    [Test]
+    public async Task A_willow_is_dark_oak_under_oak_leaves_and_its_curtains_hang()
+    {
+        var (world, top) = Plateau();
+        var tally = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "w", X = 20, Z = 20, Seed = 5, Style = new TreeStyle { Species = "willow", Height = 11 } }]));
+
+        await Assert.That(tally.Trees).IsEqualTo(1);
+        await Assert.That(world.GetBlock(20, 8, 20)).IsEqualTo((Blocks.Log2, 1 | DressingPalette.LogAllBark));
+        var leaves = new List<(int X, int Y, int Z)>();
+        for (var x = 10; x <= 30; x++)
+        for (var z = 10; z <= 30; z++)
+        for (var y = 8; y < 24; y++)
+            if (world.GetBlock(x, y, z).Id == Blocks.Leaves) leaves.Add((x, y, z));
+        await Assert.That(leaves.Count).IsGreaterThan(100);
+        await Assert.That(leaves.All(cell => world.GetBlock(cell.X, cell.Y, cell.Z).Data == DressingPalette.LeafNoDecay))
+            .IsTrue();
+        await Assert.That(leaves.Min(cell => cell.Y)).IsLessThanOrEqualTo(11);
+    }
+
+    /// <summary>On sand the overlay grows what 1.8 lets stand on it and nothing else: dead bushes, never a
+    /// grass tuft, fern or flower, which drop off sand at the first update.</summary>
+    [Test]
+    public async Task Sand_grows_dead_bushes_and_never_grass_or_flowers()
+    {
+        var (world, top) = Plateau(surfaceBlock: Blocks.Sand);
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0, DeadBushShare: 1.0), Seed = 7 }]));
+
+        var grown = Enumerable.Range(0, 40).SelectMany(x => Enumerable.Range(0, 40).Select(z => world.GetBlock(x, 8, z).Id))
+            .Where(id => id != Blocks.Air).ToList();
+        await Assert.That(grown.Count).IsGreaterThan(20);
+        await Assert.That(grown.All(id => id == DressingPalette.DeadBushBlock)).IsTrue();
+    }
+
+    /// <summary>Cacti on sand stand one to four blocks tall, never beside another cactus or anything solid, and
+    /// a board fanned about its centre grows each one at every image.</summary>
+    [Test]
+    public async Task Cacti_stand_one_to_four_tall_apart_from_each_other_and_mirrored()
+    {
+        var (world, top) = Plateau(surfaceBlock: Blocks.Sand);
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp
+            {
+                Id = "f", Points = [[0, 0], [40, 0], [40, 20], [0, 20]],
+                Spec = new FloraSpec(Coverage: 1.0, CactusShare: 0.5), Seed = 7,
+            }], symmetry: "rot_180", centerX: 20, centerZ: 20));
+
+        int Tall(int x, int z)
+        {
+            var courses = 0;
+            while (world.GetBlock(x, 8 + courses, z).Id == DressingPalette.CactusBlock) courses++;
+            return courses;
+        }
+        var cacti = new List<(int X, int Z, int Tall)>();
+        for (var x = 0; x < 40; x++)
+        for (var z = 0; z < 40; z++)
+            if (Tall(x, z) is > 0 and var tall) cacti.Add((x, z, tall));
+
+        await Assert.That(cacti.Count).IsGreaterThan(4);
+        await Assert.That(cacti.All(cactus => cactus.Tall is >= 1 and <= DressingPalette.CactusTallest)).IsTrue();
+        await Assert.That(cacti.Select(cactus => cactus.Tall).Distinct().Count()).IsGreaterThan(1);
+        var at = cacti.ToDictionary(cactus => (cactus.X, cactus.Z), cactus => cactus.Tall);
+        await Assert.That(cacti.Any(cactus => at.ContainsKey((cactus.X + 1, cactus.Z)) || at.ContainsKey((cactus.X, cactus.Z + 1))))
+            .IsFalse();
+        await Assert.That(cacti.All(cactus => at.GetValueOrDefault((39 - cactus.X, 39 - cactus.Z)) == cactus.Tall)).IsTrue();
+    }
+
+    /// <summary>A cactus is cut short where a side stops being open: against a wall three blocks high it grows
+    /// no higher than the course the wall starts beside it.</summary>
+    [Test]
+    public async Task A_cactus_grows_no_higher_than_its_sides_stay_open()
+    {
+        var (world, top) = Plateau(surfaceBlock: Blocks.Sand);
+        for (var z = 0; z < 40; z++)
+        for (var y = 9; y < 12; y++)
+            world.SetBlock(21, y, z, Blocks.Stone);
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = [[20, 0], [21, 0], [21, 40], [20, 40]], Spec = new FloraSpec(Coverage: 1.0, CactusShare: 1.0), Seed = 3 }]));
+
+        var standing = Enumerable.Range(0, 40).Where(z => world.GetBlock(20, 8, z).Id == DressingPalette.CactusBlock).ToList();
+        await Assert.That(standing.Count).IsGreaterThan(0);
+        await Assert.That(standing.All(z => world.GetBlock(20, 9, z).Id != DressingPalette.CactusBlock)).IsTrue();
+    }
+
+    /// <summary>The chest tile entities a world carries, by where they stand.</summary>
+    private static Dictionary<(int X, int Y, int Z), fNbt.NbtCompound> Chests(VoxelWorld world)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "chests_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            AnvilRegionWriter.Write(world, dir);
+            var tiles = new Dictionary<(int X, int Y, int Z), fNbt.NbtCompound>();
+            foreach (var mca in Directory.GetFiles(dir, "*.mca"))
+                foreach (var chunk in AnvilRegion.ReadChunks(mca))
+                    if (chunk.Level.Get<fNbt.NbtList>("TileEntities") is { } list)
+                        foreach (var tile in list.OfType<fNbt.NbtCompound>())
+                            if (tile.Get<fNbt.NbtString>("id")?.Value == "Chest")
+                                tiles[(tile.Get<fNbt.NbtInt>("x")!.Value, tile.Get<fNbt.NbtInt>("y")!.Value, tile.Get<fNbt.NbtInt>("z")!.Value)] = tile;
+            return tiles;
+        }
+        finally { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); }
+    }
+
+    private static readonly ChestItem[] ABowAndArrows =
+    [
+        new() { Item = "bow", Enchantments = [new ChestEnchantment { Name = "power", Level = 1 }] },
+        new() { Item = "arrow", Count = 32 },
+    ];
+
+    /// <summary>A chest on the ground stands at every image of the board's orbit, fronting its own turn of the
+    /// stated facing, and every image holds the stated stacks.</summary>
+    [Test]
+    public async Task A_chest_stands_at_every_image_fronting_its_turn_and_holding_what_it_was_given()
+    {
+        var (world, top) = Plateau();
+        var tally = Decorator.Decorate(world, Context(top,
+            [new ChestProp { Id = "loot", X = 10, Z = 12, Facing = RoomEdge.NegZ, Items = ABowAndArrows }],
+            symmetry: "rot_180", centerX: 20, centerZ: 20));
+
+        await Assert.That(tally.Chests).IsEqualTo(2);
+        await Assert.That(world.GetBlock(10, 8, 12)).IsEqualTo((Blocks.Chest, 2));
+        await Assert.That(world.GetBlock(29, 8, 27)).IsEqualTo((Blocks.Chest, 3));
+        var chests = Chests(world);
+        await Assert.That(chests.Keys).IsEquivalentTo([(10, 8, 12), (29, 8, 27)]);
+        foreach (var chest in chests.Values)
+        {
+            var items = chest.Get<fNbt.NbtList>("Items")!.OfType<fNbt.NbtCompound>().ToList();
+            await Assert.That(items.Select(item => item.Get<fNbt.NbtString>("id")!.Value))
+                .IsEquivalentTo(["minecraft:bow", "minecraft:arrow"]);
+        }
+    }
+
+    /// <summary>A chest stated at a course stands exactly there on whatever holds it up — a deck, a made
+    /// thing's floor — and is declined whole where an image has nothing under it.</summary>
+    [Test]
+    public async Task A_chest_stated_at_a_course_stands_on_the_deck_under_it()
+    {
+        var (world, top) = Plateau();
+        foreach (var (x, z) in new[] { (10, 12), (29, 27) }) world.SetBlock(x, 17, z, Blocks.Planks);
+        var tally = Decorator.Decorate(world, Context(top,
+            [new ChestProp { Id = "deck", X = 10, Z = 12, Y = 18, Items = ABowAndArrows }],
+            symmetry: "rot_180", centerX: 20, centerZ: 20));
+
+        await Assert.That(tally.Chests).IsEqualTo(2);
+        await Assert.That(Chests(world).Keys).IsEquivalentTo([(10, 18, 12), (29, 18, 27)]);
+
+        var (bare, bareTop) = Plateau();
+        bare.SetBlock(10, 17, 12, Blocks.Planks);
+        var refused = Decorator.Decorate(bare, Context(bareTop,
+            [new ChestProp { Id = "deck", X = 10, Z = 12, Y = 18, Items = ABowAndArrows }],
+            symmetry: "rot_180", centerX: 20, centerZ: 20));
+        await Assert.That(refused.Chests).IsEqualTo(0);
+        await Assert.That(bare.GetBlock(10, 18, 12).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(refused.Declines.Single().Rule).IsEqualTo(DressingRules.NoGround);
+    }
+
     // ── water carves and fills ─────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_channel_cuts_a_bed_and_fills_it_with_water()
@@ -821,13 +980,13 @@ public sealed class DecoratorTests
         // The distinction water is built on: a path repaints the surface, water takes the surface *out*. So the
         // centerline is water down through several courses, over a bed floor — not a single repainted block.
         var (world, top) = Plateau();
-        var tally = Decorator.Decorate(world, Context(top, [new WaterProp
+        var tally = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand),
         }]));
 
-        await Assert.That(tally.WaterCells).IsGreaterThan(60);
+        await Assert.That(tally.FluidCells).IsGreaterThan(60);
         await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.StationaryWater);   // the old surface, now water
         await Assert.That(world.GetBlock(20, 6, 20).Id).IsEqualTo(Blocks.StationaryWater);   // cut deeper on the line
         await Assert.That(world.GetBlock(20, 4, 20).Id).IsEqualTo(Blocks.Sand);              // a sand bed under it
@@ -837,7 +996,7 @@ public sealed class DecoratorTests
     /// <summary><b>A hollow dug wider than the pool that fills it leaves a dry trench beside the water.</b>
     /// The bed a pool carves and the hollow it sits in are two statements about one lake — the second is
     /// usually a relief mark — and where the hollow reaches further the extra is excavated and holds nothing.
-    /// `opus5-scarrow-delph`'s tarn is that lake: its relief `pan` digs z -8..7 to y4 and the water prop fills
+    /// `opus5-scarrow-delph`'s tarn is that lake: its relief `pan` digs z -8..7 to y4 and the fluid prop fills
     /// z -7..6, so both end rows are four courses of air with the water standing against them.</summary>
     [Test]
     public async Task Water_standing_against_a_dug_column_that_holds_none_is_named()
@@ -852,7 +1011,7 @@ public sealed class DecoratorTests
             top[(x, z)] = 5;                                  // the slot's own floor, well under the pool
         }
 
-        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "tarn", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand),
@@ -872,7 +1031,7 @@ public sealed class DecoratorTests
     {
         // The plateau runs 0..39; the channel is drawn straight off its z = 0 side into the void.
         var (world, top) = Plateau();
-        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "inlet", Points = [[20, -6], [20, 14]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand),
@@ -900,7 +1059,7 @@ public sealed class DecoratorTests
             top[(x, z)] = 13;
         }
 
-        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "mere", Points = [[12, 20], [28, 20]], Radius = 4, Depth = 2, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand),
@@ -919,7 +1078,7 @@ public sealed class DecoratorTests
     public async Task A_pool_on_level_ground_is_not_named()
     {
         var (world, top) = Plateau();
-        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "mere", Points = [[12, 20], [28, 20]], Radius = 4, Depth = 2, Seed = 5, Shore = 0,
             Bank = new SolidMaterial(Blocks.Sand),
@@ -935,7 +1094,7 @@ public sealed class DecoratorTests
         // dirt by default. So the floor under the water and the beach beside it are drawn from the same palette.
         var (world, top) = Plateau();
         var bank = new HashSet<int> { Blocks.Sand, Blocks.Gravel, Blocks.Dirt };
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Shore = 4, Seed = 5,
         }]));
@@ -955,7 +1114,7 @@ public sealed class DecoratorTests
         // Shore 0 is a valid channel: a hard bank, no sand. Nothing but water and the bed is written, so the
         // grass runs right up to the water.
         var (world, top) = Plateau();
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 3, Depth = 3, Shore = 0, Seed = 5,
             Bank = new SolidMaterial(Blocks.Sand),
@@ -972,7 +1131,7 @@ public sealed class DecoratorTests
         // The rule the tool has to keep: it lowers the ground and fills the hollow, but it writes nothing into
         // what was already air. So there is no water above the old surface anywhere on the plateau.
         var (world, top) = Plateau();
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5,
         }]));
@@ -994,7 +1153,7 @@ public sealed class DecoratorTests
             top[(x, z)] = 3;
         }
 
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[20, 16], [20, 24]], Radius = 6, Depth = 2, Shore = 0, Level = 6, Seed = 5,
         }]));
@@ -1013,7 +1172,7 @@ public sealed class DecoratorTests
         // Water rises to the line inside the prop's own cells and nowhere else — the rim is the author's, and
         // the pass never floods outward looking for one.
         var (world, top) = Plateau();
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[20, 16], [20, 24]], Radius = 3, Depth = 2, Shore = 0, Level = 9, Seed = 5,
         }]));
@@ -1044,9 +1203,9 @@ public sealed class DecoratorTests
 
         KeepOut? hull(int x, int z) =>
             x is >= 19 and <= 21 && z is >= 19 and <= 21 ? KeepOut.Structure : null;
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
-            Id = "harbour", Shape = WaterShape.Pool, Points = [[14, 14], [26, 14], [26, 26], [14, 26]],
+            Id = "harbour", Shape = FluidShape.Pool, Points = [[14, 14], [26, 14], [26, 26], [14, 26]],
             Radius = 3, Depth = 2, Shore = 0, Level = 6, Seed = 5,
         }], keptClear: hull));
 
@@ -1060,15 +1219,85 @@ public sealed class DecoratorTests
         await Assert.That(world.GetBlock(20, 2, 20).Id).IsEqualTo(Blocks.Stone);
     }
 
+    /// <summary>A channel across a door's approach on level ground: the kept columns are filled and never
+    /// cut, and with the line at the ground no water stands on them. They are not the channel's in the
+    /// placement, so no read draws water there, and <c>DR-HELD</c> names them.</summary>
+    /// <summary>A body stated as lava fills its bed with stationary lava and nothing else changes: the same
+    /// carve, the same line, the same bank.</summary>
+    [Test]
+    public async Task A_channel_of_lava_is_the_same_bed_filled_with_lava()
+    {
+        FluidProp Channel(Fluid fluid) => new()
+        {
+            Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
+            Bank = new SolidMaterial(Blocks.Sand), Fluid = fluid,
+        };
+        var (water, waterTop) = Plateau();
+        var (lava, lavaTop) = Plateau();
+        Decorator.Decorate(water, Context(waterTop, [Channel(Fluid.Water)]));
+        Decorator.Decorate(lava, Context(lavaTop, [Channel(Fluid.Lava)]));
+
+        var filled = 0;
+        for (var x = 0; x < 40; x++)
+        for (var z = 0; z < 40; z++)
+        for (var y = 0; y < 12; y++)
+        {
+            var wet = water.GetBlock(x, y, z);
+            var hot = lava.GetBlock(x, y, z);
+            if (wet.Id == Blocks.StationaryWater)
+            {
+                filled++;
+                await Assert.That(hot.Id).IsEqualTo(Blocks.StationaryLava);
+            }
+            else await Assert.That(hot).IsEqualTo(wet);
+        }
+        await Assert.That(filled).IsGreaterThan(60);
+    }
+
+    /// <summary>The fluid is a word on the prop, and a prop stating none is water.</summary>
+    [Test]
+    public async Task A_fluid_prop_reads_its_fluid_and_defaults_to_water()
+    {
+        var stated = DressingJson.Deserialize("""{"props":[{"kind":"fluid","id":"a","points":[[0,0],[4,0]],"fluid":"lava"},{"kind":"fluid","id":"b","points":[[0,0],[4,0]]}]}""");
+        var props = stated.Props.OfType<FluidProp>().ToList();
+        await Assert.That(props[0].Fluid).IsEqualTo(Fluid.Lava);
+        await Assert.That(props[1].Fluid).IsEqualTo(Fluid.Water);
+    }
+
+    [Test]
+    public async Task A_channel_left_dry_by_a_keep_out_is_not_claimed_as_fluid_and_is_named()
+    {
+        var (world, top) = Plateau();
+        KeepOut? approach(int x, int z) => x is >= 18 and <= 21 ? KeepOut.Approach : null;
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
+        {
+            Id = "canal", Points = [[20, 4], [20, 35]], Radius = 5, Depth = 2, Seed = 5, Shore = 0,
+            Bank = new SolidMaterial(Blocks.Sand),
+        }], keptClear: approach));
+
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Grass);
+        await Assert.That(world.GetBlock(16, 7, 20).Id).IsEqualTo(Blocks.StationaryWater);
+        var water = report.Placements.Where(claim => claim.Owner.Kind == PropKinds.Fluid).SelectMany(claim => claim.Cells)
+            .ToHashSet();
+        await Assert.That(water.Contains((16, 20))).IsTrue();
+        await Assert.That(water.Any(cell => cell.X is >= 18 and <= 21)).IsFalse();
+
+        var held = report.Declines.SingleOrDefault(finding => finding.Rule == DressingRules.HeldDry);
+        await Assert.That(held).IsNotNull();
+        await Assert.That(held!.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(held.Message).Contains("canal");
+        await Assert.That(held.Message).Contains("approach");
+    }
+
     [Test]
     public async Task A_pool_fills_a_ring_and_shelves_in_from_its_shore()
     {
         // A pool is the footprint a harbour needs: a filled outline rather than a stroked line, its bed one
         // block deep at the ring and full depth once the shelf is crossed.
         var (world, top) = Plateau(size: 60);
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
-            Id = "lake", Shape = WaterShape.Pool, Seed = 5, Shore = 0, Edge = 0,
+            Id = "lake", Shape = FluidShape.Pool, Seed = 5, Shore = 0, Edge = 0,
             Points = [[10, 10], [50, 10], [50, 50], [10, 50]], Radius = 8, Depth = 5,
         }]));
 
@@ -1088,7 +1317,7 @@ public sealed class DecoratorTests
         // ground — not one hung across a gap. The cell is skipped rather than floored with water.
         var (world, top) = Plateau();
         top.Remove((20, 20));
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5,
         }]));
@@ -1104,7 +1333,7 @@ public sealed class DecoratorTests
         var (world, top) = Plateau();
         world.SetBlock(20, 7, 20, Blocks.Wool, 14);
 
-        Decorator.Decorate(world, Context(top, [new WaterProp
+        Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5,
         }]));
@@ -1116,12 +1345,12 @@ public sealed class DecoratorTests
     public async Task A_channel_is_mirrored_as_a_whole_route_for_every_team()
     {
         var (world, top) = Plateau(80, from: -40);
-        var tally = Decorator.Decorate(world, Context(top, [new WaterProp
+        var tally = Decorator.Decorate(world, Context(top, [new FluidProp
         {
             Id = "w", Points = [[6, 6], [20, 14], [30, 8]], Radius = 3, Depth = 3, Seed = 5,
         }], symmetry: "rot_180"));
 
-        await Assert.That(tally.WaterCells).IsGreaterThan(80);
+        await Assert.That(tally.FluidCells).IsGreaterThan(80);
         var wet = top.Keys.Where(cell => world.GetBlock(cell.X, 7, cell.Z).Id == Blocks.StationaryWater).ToHashSet();
         var unmirrored = wet.Count(cell => !wet.Contains((-cell.X - 1, -cell.Z - 1)));
         await Assert.That(unmirrored).IsEqualTo(0);
@@ -2106,7 +2335,7 @@ public sealed class DecoratorTests
                 Id = "p", Points = [[4, 48], [55, 48]], Radius = 2, Seed = 5, ClaimsGround = true,
                 Pave = new SolidMaterial(Blocks.Gravel),
             },
-            new WaterProp
+            new FluidProp
             {
                 Id = "w", Points = [[4, 54], [50, 54]], Radius = 3, Depth = 2, Seed = 5, Shore = 0,
                 Bank = new SolidMaterial(Blocks.Sand),

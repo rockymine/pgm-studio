@@ -23,8 +23,8 @@ public static class Transect
     /// of them subtract to a number of blocks. <see cref="Ground"/> is the terrain's own recorded height, null
     /// over void. <see cref="Surface"/> is the top of the highest rasterized span at the cell, whatever layer
     /// drew it — the storey a walker actually stands on, equal to <see cref="Ground"/> on a flat board.
-    /// <see cref="Water"/> is the course above the highest liquid in the world's column, or null where it holds
-    /// none. <see cref="Top"/> is the course above the highest block of any kind in the column — what stands
+    /// <see cref="Fluid"/> is the course above the highest water or lava in the world's column, or null where
+    /// it holds none. <see cref="Top"/> is the course above the highest block of any kind in the column — what stands
     /// there reaches up to it.
     /// <see cref="Standing"/> names the claim a walker stands on as <c>"&lt;kind&gt; &lt;unit&gt;"</c>, or
     /// <c>"storey"</c> where the board stacks above the terrain with no claim of its own, else null.
@@ -32,7 +32,7 @@ public static class Transect
     /// station and wherever either side is void; <see cref="Word"/> is <see cref="PgmStudio.Geom.Walk.StepWord"/>'s
     /// reading of it, <c>"walk"</c> where there is ground but no step to read, and <c>"void"</c> where there
     /// is no ground at all.</summary>
-    public readonly record struct Station(int X, int Z, int? Ground, int? Surface, int? Water, int? Top,
+    public readonly record struct Station(int X, int Z, int? Ground, int? Surface, int? Fluid, int? Top,
         string? Standing, int? Step, string Word);
 
     /// <summary>One claim found within reach of the line — the first cell it was met at.</summary>
@@ -66,7 +66,7 @@ public static class Transect
         {
             var ground = surface.TryGetValue(cell, out var groundTop) ? groundTop : (int?)null;
             var stationSurface = storeys.TryGetValue(cell, out var storeyTop) ? storeyTop : ground;
-            var (top, water) = TopAndWater(world, cell.X, cell.Z);
+            var (top, fluid) = TopAndFluid(world, cell.X, cell.Z);
             var owner = provenance.OwnerAt(cell.X, cell.Z);
             var standing = owner is { } id ? Named(id.Kind, id.Unit, id.Image)
                 : stationSurface is { } stationTop && ground is { } groundValue && stationTop > groundValue
@@ -75,7 +75,7 @@ public static class Transect
             int? step = previousSurface is { } prior && stationSurface is { } here ? here - prior : null;
             var word = ground is null ? "void" : step is { } delta ? PgmStudio.Geom.Walk.StepWord(delta) : "walk";
 
-            stations.Add(new Station(cell.X, cell.Z, ground, stationSurface, water, top, standing, step, word));
+            stations.Add(new Station(cell.X, cell.Z, ground, stationSurface, fluid, top, standing, step, word));
             previousSurface = stationSurface;
         }
 
@@ -109,11 +109,11 @@ public static class Transect
             : "";
         written.AppendLine($"TRANSECT {walked.Stations.Count} stations from ({points[0].X}, {points[0].Z}) to "
             + $"({points[^1].X}, {points[^1].Z}){via}, every {every}");
-        written.AppendLine("  station        ground  surface  water  top  standing            step");
+        written.AppendLine("  station        ground  surface  fluid  top  standing            step");
 
         foreach (var station in walked.Stations)
             written.AppendLine($"  ({station.X,5}, {station.Z,5})  {Cell(station.Ground),6}  "
-                + $"{Cell(station.Surface),7}  {Cell(station.Water),5}  {Cell(station.Top),4}  "
+                + $"{Cell(station.Surface),7}  {Cell(station.Fluid),5}  {Cell(station.Top),4}  "
                 + $"{station.Standing ?? "",-18}  {StepDisplay(station)}");
 
         var summary = $"rises {walked.Rises}, falls {walked.Falls}, worst step {walked.WorstStep}: "
@@ -166,21 +166,21 @@ public static class Transect
         return near;
     }
 
-    /// <summary>The course above the highest block of any kind in the column, and above the highest liquid in
-    /// it — one scan down from the world's own ceiling, since a bridge deck over open water needs both answers
+    /// <summary>The course above the highest block of any kind in the column, and above the highest water or
+    /// lava in it — one scan down from the world's own ceiling, since a bridge deck over open water or lava needs both answers
     /// from the same column.</summary>
-    private static (int? Top, int? Water) TopAndWater(VoxelWorld world, int x, int z)
+    private static (int? Top, int? Fluid) TopAndFluid(VoxelWorld world, int x, int z)
     {
-        int? top = null, water = null;
+        int? top = null, fluid = null;
         for (var y = VoxelWorld.MaxHeight - 1; y >= 0; y--)
         {
             var (id, _) = world.GetBlock(x, y, z);
             if (id == 0) continue;
             top ??= y + 1;
-            if (water is null && BlockRoles.IsLiquid(id)) water = y + 1;
-            if (top is not null && water is not null) break;
+            if (fluid is null && BlockRoles.IsLiquid(id)) fluid = y + 1;
+            if (top is not null && fluid is not null) break;
         }
-        return (top, water);
+        return (top, fluid);
     }
 
     /// <summary>Every point of the polyline walked block by block (<see cref="Cells.Line"/>) and thinned to

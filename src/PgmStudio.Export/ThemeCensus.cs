@@ -47,15 +47,15 @@ public static class ThemeCensus
                     shapeThemeId[(layer.Id!, shape.Id)] = themeId;
 
         var cellShape = shapeThemeId.Count == 0
-            ? new Dictionary<(string, int, int), string>()
+            ? new Dictionary<(string, int, int), (string Shape, int Image)>()
             : SketchRasterizer.ShapeThemeOwners(layoutJson);
 
         var layerOf = LayerPerCell(built);
         var themeAt = new Dictionary<(int X, int Z), string>();
         foreach (var cell in built.Surface.Keys)
             themeAt[cell] = layerOf.TryGetValue(cell, out var layer)
-                && cellShape.TryGetValue((layer, cell.X, cell.Z), out var shapeId)
-                && shapeThemeId.TryGetValue((layer, shapeId), out var themeId)
+                && cellShape.TryGetValue((layer, cell.X, cell.Z), out var owner)
+                && shapeThemeId.TryGetValue((layer, owner.Shape), out var themeId)
                 ? themeId : mapThemeId;
 
         var cellsOf = new Dictionary<string, List<(int X, int Z)>>();

@@ -390,7 +390,7 @@ one asks no question and changes no board.
 
 ### A tree and a boulder are recipes a click puts down
 
-A **placement is a position; what stands there is a recipe.** A path and a water channel are *traced* on the
+A **placement is a position; what stands there is a recipe.** A path and a fluid channel are *traced* on the
 canvas, so pre-authoring one is authoring a shape without its place and their knobs stay in the Dressing
 phase. A tree and a boulder are a *click* — there is no geometry to draw — so what is placed is a point plus a
 name, and the name is a row here (author).
@@ -408,15 +408,22 @@ back. A `boulder_style` is four statements — form, size,
 whether moss specks a tenth of its sky-lit faces, and the material it is cut from, which is a full terrain material and
 so may be any of the fourteen kinds.
 
-**A copied tree is cut out of a world, not typed in.** `dotnet run tools/seed-trees.cs <worldDir> [name]`
+**A copied tree is cut out of a world, not typed in.** `dotnet run tools/seed-trees.cs <worldDir>`
 reads a world where every tree stands clear of every other, takes each connected body of logs, leaves and
-carpentry — wooden slabs and stairs, fences, vines — that rests on something, and files it here as
-`<name>-r<row>-<n>`, rows by the z the trees stand at and numbered along x, so a re-run over the same world
-updates the same rows. A body hanging in the air is a fragment of a tree that broke and is reported rather
-than filed. A wool tree opens a row of its own whether or not `--wool` files it, so one flag does not
-renumber every row behind it. The 84 trees of `pgm-studio-mapgen/corpus/tree-showcase` are the corpus it was
+carpentry — wooden slabs and stairs, fences, vines — that rests on something, and files it here. A body
+hanging in the air is a fragment of a tree that broke and is reported rather than filed.
+
+**A copied tree is named for what it is.** The trees sort into rows by the z they stand at, placed along x,
+and what each row is — a willow, a large pine, a tiny oak — is the author's statement, in `kinds.json` beside
+the world's `region/`: `{"rows": {"17": "willow"}, "trees": {"7-4": "sequoia"}}`, the second for a tree its
+row does not describe. A tree is filed as `<kind>-<n>`, counted through the world in row order and along x,
+so two rows of one kind share one count — `oak-1` to `oak-10` over three rows. A world with a filed row the
+file names no kind for is refused, since nothing in the blocks says what a tree is: the showcase's willows are
+dark-oak log under oak leaves. A library row is matched by its **cut** — the world it came from and the foot
+it stood on — so a re-run updates the same rows and a relabelled row renames them. A wool tree opens a row of
+its own whether or not `--wool` files it, so one flag does not move every row behind it. The 84 trees of `pgm-studio-mapgen/corpus/tree-showcase` are the corpus it was
 written for, and
-cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the six vanilla species
+cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the seven template species
 and four erratics, and knows nothing about any world.
 
 **A cut can name who built the tree.** `--builder=<name>` records a Minecraft name on every cut the run files,
@@ -426,7 +433,7 @@ the showcase was built by rockymine, so a showcase row names them and a cut from
 until it is filed with the flag. The editor shows the name under the cut.
 
 ```
-dotnet run tools/seed-trees.cs ../pgm-studio-mapgen/corpus/tree-showcase showcase --builder=rockymine
+dotnet run tools/seed-trees.cs ../pgm-studio-mapgen/corpus/tree-showcase --builder=rockymine
 ```
 
 **A `copied` save without a cut is refused.** The cutter is what writes a cut and nothing else does, so a
@@ -436,10 +443,11 @@ such thing as one. There is no form word for a hand-built body: a prop that is n
 not filed here at all. A re-save carries the `cut` the recipe's `GET` answered, which is what the editor sends.
 A row filed before the cut was recorded loads, browses and places as it did and answers no `cut`, so it cannot
 be saved again as `copied` until the cutter files it again — re-running `tools/seed-trees.cs` over the same
-world updates every row it cut, by name, with the cut recorded.
+world files every tree again with the cut recorded.
 
-**The card is the whole picture, and that is the point.** Six woods differ in colour and six species differ in
-*shape* — a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia — and neither reads off a
+**The card is the whole picture, and that is the point.** Seven woods differ in colour and seven species differ in
+*shape* — a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia, a dome hung with curtains
+is a willow — and neither reads off a
 number; a copied tree has no number at all. So both kinds browse as one card each, drawn through the pass that
 builds them, and the editor's own stage draws the draft larger for the same reason: a recipe is tuned by
 watching one knob move the picture.
@@ -745,7 +753,7 @@ whitelist, and a `DELETE` needs an admin, because a library row is shared by eve
 | `POST /terrain/material-preview` | one material drawn in plan and section — body is a **bare material**, `{kind, …}`, unwrapped. One column, not an area: a pattern cannot be judged from it |
 | `POST /terrain/theme-preview` · `POST /terrain/theme-map-preview` | a whole theme as it will paint — the first over a sample plateau cut open plus one swatch per themeable bucket, the second over a compiled plan, so a theme is judged against the board it will dress rather than against a sample. Body is a **bare theme**, unwrapped |
 | `POST /terrain/prop-preview` | one placed prop standing on the finish it will stand on — body `{propJson, themeJson}`, because what the paint leaves on top is what decides whether flora grows at all |
-| `GET /terrain/stroke-styles` · `/terrain/water-forms` · `/terrain/boulder-forms` · `/terrain/species` | the dressing vocabularies — every stroke style, water form, boulder form and tree species a prop may name, each with the fields it carries. What a picker offers, and the closed sets a prop document is refused against |
+| `GET /terrain/stroke-styles` · `/terrain/fluid-forms` · `/terrain/boulder-forms` · `/terrain/species` | the dressing vocabularies — every stroke style, fluid form, boulder form and tree species a prop may name, each with the fields it carries. What a picker offers, and the closed sets a prop document is refused against |
 
 **Every preview also draws a picture, and three query words say how to ask for one.** The default is
 SVG-in-JSON, which is what the client renders inline; `?format=png` answers **one** view as `image/png` bytes

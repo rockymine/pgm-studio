@@ -389,6 +389,10 @@ public sealed record CheckerMaterial(int Size, TerrainMaterial Even, TerrainMate
 /// lying down is the whole point — a log floor. A wall or a fill with no run is a face met edge-on with no
 /// direction to follow, which is what a freestanding pillar is, and a laid log there puts a sawn end straight
 /// at the viewer. It stands instead: upright, a log shows bark on all four sides a pillar has.</para>
+///
+/// <para>A run is read off the image being painted, so it is already that image's and is never turned. A log
+/// floor's axis is stated rather than read, so it turns with the image (<see cref="BucketContext.Turn"/>): the
+/// floor on a quarter-turned image lies along z where the authored one lies along x.</para>
 /// </summary>
 internal static class LogAxis
 {
@@ -401,8 +405,12 @@ internal static class LogAxis
         GridBoundary.RunAlongX => AlongX,
         GridBoundary.RunAlongZ => AlongZ,
         GridBoundary.RunsBothWays => Upright,
-        _ => ReadFromAbove(ctx.Bucket) ? AlongX : Upright,
+        _ => ReadFromAbove(ctx.Bucket) ? LogFloor(in ctx) : Upright,
     };
+
+    /// <summary>The axis a log floor lies on: along x as authored, turned with the image it is painted on.</summary>
+    private static int LogFloor(in BucketContext ctx) =>
+        ctx.Turn is { } turn ? BlockGeometry.Turned(Blocks.Log, AlongX, turn) : AlongX;
 
     /// <summary>Whether this bucket writes what a player meets from above. The surface and the rim do; the
     /// wall, the fill and the bedrock are met edge-on.</summary>

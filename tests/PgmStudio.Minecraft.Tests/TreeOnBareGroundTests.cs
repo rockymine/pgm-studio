@@ -112,14 +112,16 @@ public sealed class TreeOnBareGroundTests
         await Assert.That(placed.Declines.Count(finding => finding.SubjectIds.Contains("rowan"))).IsEqualTo(1);
     }
 
-    /// <summary>Sand and gravel are the two the flora pass and this rule disagree about, and the
-    /// disagreement is deliberate — a tuft of grass in a shingle is ordinary and a trunk out of it is not.
+    /// <summary>Sand and clay are the two the flora pass and this rule disagree about, and the disagreement
+    /// is deliberate — a dead bush or a cactus in sand is ordinary and a trunk out of it is not. Gravel grows
+    /// nothing at all: every 1.8 plant the pass places drops off it.
     /// </summary>
     [Test]
     public async Task What_grows_on_a_surface_and_what_a_tree_roots_in_are_two_questions()
     {
         await Assert.That(DressingPalette.SoilShare(Blocks.Sand, 0)).IsGreaterThan(0);
-        await Assert.That(DressingPalette.SoilShare(Blocks.Gravel, 0)).IsGreaterThan(0);
+        await Assert.That(DressingPalette.SoilShare(Blocks.HardenedClay, 0)).IsGreaterThan(0);
+        await Assert.That(DressingPalette.SoilShare(Blocks.Gravel, 0)).IsEqualTo(0);
 
         await Assert.That(DressingPalette.RootsInto(Blocks.Sand)).IsFalse();
         await Assert.That(DressingPalette.RootsInto(Blocks.Gravel)).IsFalse();

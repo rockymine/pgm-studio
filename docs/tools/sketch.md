@@ -22,6 +22,15 @@ The tool saves continuously — every change schedules a debounced write 800 ms 
 **Finish**, which flushes the layout, rasterizes it server-side into world geometry, and moves the map to
 `stage=configure`. A draft that was never drawn on is discarded on the way out.
 
+**A tab writes only what was drawn in it, and only over the board it read.** It holds the `ETag` the layout
+was read at and states it as `If-Match` on every save, so where the stored board has moved on since — an agent
+driving the API, a second tab — the save is refused `RQ5` at 409 rather than writing the older board back over
+the newer. The topbar then says so, no further save is sent until the page is reloaded, and **Finish** stops
+rather than build a board that is not the one on screen. A flush with no edit behind it — entering In game,
+leaving the tool — sends nothing at all. What a layer states and the canvas has no control for — `kind`,
+`part_of`, `seat` — is held as it was read and written back with the layer, so a made thing an API caller
+seated stays seated through a save from the browser.
+
 **What the later phases state, `docs/world-export/` executes**, and that folder is where the depth is. This
 document is the tool: what each phase authors, what it writes, and what refuses. Beside it sit five that each
 take one of those statements through to the blocks it becomes — `relief.md` (the elevation solver behind the
@@ -120,7 +129,7 @@ override-adds overwrite whatever column they land on, then override-subtracts re
 **`keepClear` says the shape is not ground to dress.** A shape drawn to *be* something — a town wall, a crop
 bed, a well's rim, a flight of stairs — is terrain by construction: nothing about its material, its layer or
 its provenance separates it from the ground beside it, so a road repaints its top course and a channel cuts it
-down to the water line. Marking it puts its columns in the dressing pass's keep-out (`KeepOut.Structure`), and
+down to its line. Marking it puts its columns in the dressing pass's keep-out (`KeepOut.Structure`), and
 a prop that lands there is declined as `DR-KEEP` naming the cell. The mark is **exact — no margin** — because
 the wall a road runs through a gate of has to keep its own columns and not a verge either side of them; it is
 the marked shape's own footprint rather than what survives the layer's set algebra, and it travels through the
@@ -290,12 +299,21 @@ the thing, not a fault in it. What keeps the room level is the pin, and nothing 
 
 ### Groups and layers
 
-A **group** is not authored; it is computed. Every time the shapes change, the tool unions them and reports
-the connected pieces that result, so two rectangles pushed together become one group and pulling them
-apart splits it again. What an author owns is the group's `name` and its `mirrors` flag — whether the group is
-copied onto its symmetry orbit — and those survive a recompute by matching the group back to its previous
-self. A single-member group shows the shape inspector rather than the group one, so a lone rectangle needs
-no drilling.
+A **group** drawn in the tool is computed, not authored. Every time the shapes change, the tool unions them
+and reports the connected pieces that result, so two rectangles pushed together become one group and pulling
+them apart splits it again. What an author owns is the group's `name` and its `mirrors` flag — whether the
+group is copied onto its symmetry orbit — and those survive a recompute by matching the group back to its
+previous self. A single-member group shows the shape inspector rather than the group one, so a lone rectangle
+needs no drilling.
+
+**A group the board was loaded with is kept as stated until an edit touches it** (`settleGroups` in
+`boolean.js`). The build reads a group's `shapeIds` for its fan, its relief and its keep-clear, and an API
+caller may state a group the geometry would not have made — one group over pieces that do not touch, or a
+post held unfanned in a group of its own over the wall it stands on. So a loaded group keeps its id, name,
+`mirrors` and `shapeIds` while none of its shapes changes outline or is deleted and no new or reshaped shape
+overlaps one of them; a theme, a height or a name set on a shape is not an outline change. A touched group,
+and any shape no group lists, is grouped from the geometry as a drawn one is, and takes its identity from
+the loaded group it overlaps most. A group of several pieces is drawn as one outline per piece.
 
 The group matters beyond naming: **it is the unit a relief is stated against**, because a relief solved per
 shape would leave a seam wherever two shapes met and disagreed about the height they share. One group holds
@@ -445,8 +463,21 @@ not in the world, and `SK11` reads a mass under open sky that nothing reaches as
 forgot to draw. Both are right about terrain and wrong about a sculpture: a solid form sinking into a hill has
 no gap to lose, and a raised arm, a dome on columns, an antenna is not standable ground. A `made` layer is
 therefore out of `SK10`'s pair walk and out of `SK11`'s detached-mass walk, and the rules stay exactly as
-strict about the ground they were written for. Nothing else reads `kind`: a `made` layer rasterizes, paints,
-themes and mirrors identically.
+strict about the ground they were written for. The painter reads `kind` too: it
+paints `made` layers before the ground, so a made thing is its own material in every course it spans and the
+ground under a ladder or a cactus keeps its surface (`docs/world-export/terrain-painting.md` TP25). Otherwise a
+`made` layer rasterizes, themes and mirrors identically.
+
+**A made thing fanned onto its images turns its blocks with it.** A block whose data is a direction — a ladder,
+a stair, a log's axis, a torch, a fence gate, a chest — is stated once, on the authored half, and on every
+other image of a mirroring group it is written turned by that image's transform. So a ladder with its back to a
+wall has its back to the image of that wall on a `mirror_x`, `mirror_z` or `rot_180` board and on all four
+images of a `rot_90` one, and a stair climbing into a wall keeps climbing into it. A reflection swaps the
+facings across its own axis and keeps the rest; a quarter-turn swaps the axes.
+
+**The turn is read from the fan, never from the fold.** What decides it is which image of a shape's orbit
+claimed the cell, so a thing the author drew a second time on the far half of a group that does not mirror is
+image 0 there and is written exactly as drawn. `docs/world-export/terrain-painting.md` §5 carries the mechanism.
 
 **`seat` is where the house model is borrowed from.** A house prop seats on the lowest column of its own
 footprint one course down, carves the terrain standing over that floor out of every footprint column, and
@@ -1013,16 +1044,17 @@ Two of those reach further. A tree's foliage is scored against `tree-corpus.md`,
 are the measured ground truth for what a tree looks like; and the building prop stamps `structures.md`'s
 house, which is why what it can be made of runs past what this phase can state.
 
-Six things can be placed, in three placement geometries.
+Seven things can be placed, in three placement geometries.
 
 | Tool | Kind | Placed by | Starts as |
 |---|---|---|---|
 | Stroke | `stroke` | tracing a line | gravel, radius 3, `solid`, coverage 0.7, paint rather than a route |
-| Water | `water` | tracing a line | a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank; `shape: pool` fills a drawn ring instead, and `level` states a world Y where a basin has to hold water |
+| Fluid | `fluid` | tracing a line | water, a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank; `fluid: lava` fills the bed with lava, `shape: pool` fills a drawn ring instead, and `level` states a world Y where a basin has to hold it |
 | Ground cover | `flora` | tracing a ring | coverage 0.45 at scale 12, with fern and flower shares |
 | Building | `house` | dragging a rectangle | no style of its own until one is picked from the room-style library |
 | Tree | `tree` | a click | no recipe of its own until one is picked from the tree library |
 | Boulder | `boulder` | a click | no recipe of its own until one is picked from the boulder library |
+| Chest | `chest` | a click | on the ground, fronting `negZ`, holding nothing until its stacks are listed (`docs/world-export/decoration.md` §8a) |
 
 **Every one of them takes a style, and for the two that lay ground the style and the material are separate
 questions.** A **stroke** replaces the surface it crosses rather than adding to it — it is a finish, not
@@ -1045,8 +1077,8 @@ stated: a claiming stroke holds the cells it covers, so a tree keeps three block
 planted over. It is not a claim that players walk here — a protected verge and a road are the same
 declaration. Marking every stroke a claiming one is how a board ends up with nowhere left to plant.
 
-**Water** is the one prop that changes the ground rather than the surface: it cuts a bed and fills it to a
-level water line, because water laid flat on a surface reads as blue paint. Its `shape` says what its points
+**Fluid** is the one prop that changes the ground rather than the surface: it cuts a bed and fills it to a
+level line with water or lava, because water laid flat on a surface reads as blue paint. Its `shape` says what its points
 mean — a `channel` strokes them as a centerline and takes its width from `radius`, a `pool` closes them into a
 ring and fills it, which is the only way to make a harbour or a lake with square corners; on a pool `radius`
 is the shelf the bed takes to reach full depth. It fills round whatever stands in it and never cuts under it,
@@ -1056,12 +1088,12 @@ stops at the surface it crosses and never fills what was already air. **`level` 
 and then the fill reaches it whatever the column beneath is doing, which is what fills a basin dug out in the
 shapes: a lake, a harbour, the water a ship floats on has no surface up at the line for a derived one to find.
 **The basin is a low floor and not a hole** — the pass skips any column the surface map does not carry, so a
-subtract leaves nothing to fill and a harbour is an override add laying a floor at the depth the water reaches
+subtract leaves nothing to fill and a harbour is an override add laying a floor at the depth the fluid reaches
 down to. The footprint bounds it either way — the pass never floods outward, so the rim is the author's. Its `form` is `canal`
 (a clean uniform width, deepest on the centreline), `natural` (the width wandered by noise) or `stream` (the
 width pinching and swelling on a beat down the arc, running shallower throughout, so it reads as riffles
 rather than one even channel). Around that: `radius` and `depth`, `edge` for how far a natural or stream bank
-wobbles, `shore` for how wide a beach the water meets the land through with `shoreWander` for whether that
+wobbles, `shore` for how wide a beach the fluid meets the land through with `shoreWander` for whether that
 beach opens and closes along the run, and `bank` — again a full terrain material, defaulting to a Voronoi of
 gravel edges, coarse dirt inside them and sand in the middle, which shows through the shallows and continues
 as the beach.
@@ -1073,8 +1105,9 @@ here — pre-authoring a river form is authoring a shape without its place — a
 (author).
 
 **A tree is two different things rather than one thing with a switch.** A `template` tree is vanilla: its
-`species` — oak, birch, spruce, jungle, acacia or dark oak — names its wood, its canopy profile and its
-proportions together, since a notched cone is a spruce and a flat umbrella on a leaning trunk is an acacia,
+`species` — oak, birch, spruce, jungle, acacia, dark oak or willow — names its wood, its canopy profile and its
+proportions together, since a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia and a
+low dome hung with curtains is a willow,
 and neither is a knob setting of the other; `height` scales the lot. A `copied` tree is one an author built by
 hand and cut out of a world, carried as its own `body` of `[x, y, z, id, data]` offsets: it states no species
 and no height, because what it looks like is what was built. Each form reads only its own fields, so the
@@ -1094,7 +1127,7 @@ its orbit instead of sampling whatever the world pattern says where each image h
 
 The pickers show **your** prop rather than a stock one. `GET /terrain/stroke-styles?pave=…` draws the five band
 styles in the material already chosen, `/terrain/boulder-forms?rock=…` the four rock shapes in the author's
-stone, and `/terrain/water-forms` the three channels as actual dug beds — so the question answered is
+stone, and `/terrain/fluid-forms` the three channels as actual dug beds — so the question answered is
 "what would mine look like", not "what does the catalogue contain". A tree and a boulder are picked from their
 own libraries instead, each row drawn through the pass that builds it. `POST /terrain/prop-preview` renders one
 before it is placed — and a building whose wings make no building is refused there with the same `HJ*`/`HP*`
@@ -1217,10 +1250,10 @@ each:
   { "id": "d1", "kind": "stroke", "seed": 1, "points": [[-36, 0], [-20, 4], [-4, 0]],
     "radius": 3, "style": "worn", "coverage": 0.7, "claimsGround": true,
     "pave": { "kind": "solid", "id": 13, "data": 0 } },
-  { "id": "d2", "kind": "water", "seed": 2, "points": [[-30, -16], [-16, -12]],
+  { "id": "d2", "kind": "fluid", "seed": 2, "points": [[-30, -16], [-16, -12]],
     "radius": 3, "depth": 2, "form": "stream", "edge": 0.8, "shore": 2, "shoreWander": true,
     "bank": { "kind": "solid", "id": 12, "data": 0 } },
-  { "id": "d2b", "kind": "water", "seed": 6, "shape": "pool", "layer": "ground", "level": 12,
+  { "id": "d2b", "kind": "fluid", "seed": 6, "shape": "pool", "layer": "ground", "level": 12,
     "points": [[-30, 16], [-6, 16], [-6, 34], [-30, 34]], "radius": 6, "depth": 3, "shore": 2,
     "bank": { "kind": "solid", "id": 12, "data": 0 } },
   { "id": "d3", "kind": "flora", "seed": 3,
@@ -1318,7 +1351,7 @@ works rather than where it is: two noisy blocks of one colour are static on the 
 above, and only a picture in the game's own sprites shows which. The server needs the sprites to draw it; one
 without them answers the list with the reason, and the phase says so instead of showing a gallery.
 
-**Entering it saves the board first**, because every picture is of the board as stored. A board that has
+**Entering it saves the board's unsaved edits first**, because every picture is of the board as stored. A board that has
 changed builds a new world, and every picture is drawn again the first time it is asked for; a board that has
 not answers from the pictures already drawn.
 
@@ -1388,7 +1421,7 @@ new view of its own, since a suggestion is not stored and cannot be changed.
 
 **Placing a view draws the board as it is built, and nothing over it.** The canvas shows the **Board layer** —
 the full build from straight above, one pixel a column in the colour of the block on top of it, so the trees, the
-houses and the water are in it — shaded the way the game's own map item shades, each column against its
+houses and the fluids are in it — shaded the way the game's own map item shades, each column against its
 northern neighbour, with a light height term over that. It is drawn from the same columns the 3-D preview
 meshes (`sketch/columns`), asked for once when the placing starts. The shapes, the blocks, the mirror, the chunk
 grid, the work bounds, the axis, the group outlines and the objective labels are all left off whatever their
@@ -1515,7 +1548,7 @@ in the same two registers: a style or theme its own materials cannot honour **re
 everything the document says that the build cannot is a **complaint** riding back on the 200. Anything less
 would make the small route the way to get past the big route's gate.
 
-**And a typed body is what publishes the model.** `PlacedProp` on the wire puts the six prop kinds, their
+**And a typed body is what publishes the model.** `PlacedProp` on the wire puts the seven prop kinds, their
 knobs and their recipes into `/api/openapi/v1.json` — where the dressing document had no field named at all
 — and `TerrainTheme`, `SketchReliefJson`, `HouseStyle`, `BiomeField`, `SketchLayer`, `SketchGroup` and
 `SketchShape` reach it from the sketch rather than only from a preview route or, in the biome's case, from
@@ -1733,10 +1766,10 @@ style stamps the built-in shell.
 **And it complains where a shape belongs to no group.** A group is the unit the symmetry orbit is fanned
 by — the build reads each mirroring group's `shapeIds` and copies exactly those shapes onto their images — so
 a shape no group lists is built once, on the side it was drawn on, with no image anywhere. `SK17` names the
-shape and its layer. Nothing else says so, and every surface that could is looking elsewhere: the shape
-rasterizes where the author put it, so the board is not missing it; and the canvas draws a group's **outline**,
-which is the union of the ground the group fused rather than the shapes it lists, so a shape fused into the
-outline but absent from the list is drawn mirrored and built unmirrored. The same list carries the group's
+shape and its layer. Nothing else says so, and the surfaces that could are looking elsewhere: the shape
+rasterizes where the author put it, so the board is not missing it; and the canvas, which groups every shape
+no group lists from the geometry, draws it as a group of its own — mirrored by default — until the next
+browser save writes that group into the document. The same list carries the group's
 relief and its keep-clear fan, so an unlisted shape takes neither of those either. A layer stating no groups at
 all is outside this — the whole of that layer mirrors — and so is a role-tagged room piece, which is never
 listed by design.
@@ -1933,7 +1966,7 @@ in the same two registers.
 | `POST /map/{slug}/sketch/shapes/{shapeId}/vertices` | `{id, index, vertices}` — add one point after the vertex `after` names, and answer where it landed. Body `{after, x?, z?}`; stating no point puts it at the **midpoint of that edge**, which is a new corner half way along a wall with nothing else moved. The last vertex's edge closes the ring | 400 as above · 409 · 404 the id names no shape |
 | `DELETE /map/{slug}/sketch/shapes/{shapeId}/vertices/{index}` | `{id, index, vertices}` — take one point out, leaving every other where it was drawn | 400 `the edit cannot be made` `RQ1` — as above, plus an outline down to its last three, since two points draw no ground · 409 · 404 the id names no shape |
 | `DELETE /map/{slug}/sketch/shapes/{shapeId}` | `{id}` — rub one shape out, and take it out of every group that listed it | 409 · 404 the id names no shape |
-| `GET /map/{slug}/sketch/props` | `{props[], styles{}}` — every placement the map carries and the recipes they name, typed as `PlacedProp` so the six kinds, their knobs and their styles are in the published schema. The recipes ride with the placements because a placement naming a key nobody can resolve is not readable on its own | 400 `unreadable dressing` `DR-DOC` · 404 |
+| `GET /map/{slug}/sketch/props` | `{props[], styles{}}` — every placement the map carries and the recipes they name, typed as `PlacedProp` so the seven kinds, their knobs and their styles are in the published schema. The recipes ride with the placements because a placement naming a key nobody can resolve is not readable on its own | 400 `unreadable dressing` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/props` | `{id}` — place one prop, without sending the board it stands on. A body stating a free id keeps it; one stating none, or one already taken, is minted `{kind}-{n}`. The placement goes on the end, since the pass runs in placement order and an addition has not been placed before anything. Its `style` is read the way the stored document's are: a key names the recipe the map's registry holds under it, and a recipe stated inline — a house's shell as an object, a tree's or a boulder's fields spread on the placement — is lifted into the registry under a key read off it | 400 `malformed prop` `RQ1` (the message names every kind) · **400 `malformed prop` `DR-DOC` a `style` key the registry holds no recipe under** · 400 `invalid style or theme` `HS*`/`PT*` · 409 stale `If-Match` · 404 |
 | `PATCH /map/{slug}/sketch/props/{propId}` | `{id}` — replace one placement, keeping its position in the pass's order and the id it is addressed by. Editing a prop must not move it past what the pass places after it | 400 as above · 409 · **404 the id names no placement** |
 | `DELETE /map/{slug}/sketch/props/{propId}` | `{id}` — take one placement off the board. The recipe it named stays in the registry, since a key is shared by every placement wearing it | 409 · **404 the id names no placement** |
@@ -2051,7 +2084,7 @@ the terrain-paint library a theme is copied from or saved to; `/room-styles` is 
 phase binds from, with `/room-styles/{id}/json` for the stamper's own form; `/roof-styles`, `/storey-styles` and
 `/porch-styles` are the parts a room style is composed from. `/terrain/blocks` is the
 block palette, and `/terrain/material-preview`, `/terrain/theme-preview`, `/terrain/theme-map-preview` and
-`/terrain/prop-preview` render what an edit will look like; `/terrain/stroke-styles`, `/terrain/water-forms`,
+`/terrain/prop-preview` render what an edit will look like; `/terrain/stroke-styles`, `/terrain/fluid-forms`,
 `/terrain/boulder-forms` and `/terrain/species` are the dressing vocabularies.
 
 ## Driving it without the UI
@@ -2176,7 +2209,7 @@ what stands *above* the surface, so it is the read for asking what a structure o
 **The finish previews draw, in SVG — or as PNG on request.** `POST /terrain/material-preview` and
 `/terrain/theme-preview` answer a material and a theme as they will paint — the theme as a cut-open sample
 plateau plus a top-down swatch per bucket. `POST /terrain/prop-preview` and the five card sets
-(`/terrain/stroke-styles`, `/water-forms`, `/boulder-forms`, `/species`, `/woods`) answer a prop as it will be
+(`/terrain/stroke-styles`, `/fluid-forms`, `/boulder-forms`, `/species`, `/woods`) answer a prop as it will be
 built. `POST /room-styles/preview`, its `-snapshot` twin, and `/roof-styles/preview`, `/storey-styles/preview`,
 `/porch-styles/preview` answer a building in plan, section, isometric and cutaway. The default is **SVG text
 inside JSON**, which the client renders inline — and every one of them also answers

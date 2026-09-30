@@ -96,7 +96,7 @@ public static class SketchRasterizer
     {
         var cx = state?.Setup?.Center?.Cx ?? 0;
         var cz = state?.Setup?.Center?.Cz ?? 0;
-        var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
+        var axes = Symmetry.OrbitAxes(SketchLayout.MirrorModeOf(state));
 
         // Stack every layer: each is rasterized in its own Y, then shifted by base_y. (x,z) may repeat
         // across layers — a column with a gap (e.g. ground + a sky bridge) keeps both segments.
@@ -214,7 +214,7 @@ public static class SketchRasterizer
     {
         var cx = state?.Setup?.Center?.Cx ?? 0;
         var cz = state?.Setup?.Center?.Cz ?? 0;
-        var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
+        var axes = Symmetry.OrbitAxes(SketchLayout.MirrorModeOf(state));
 
         var kept = new HashSet<(int X, int Z)>();
         foreach (var layer in ResolveLayers(state))
@@ -288,20 +288,24 @@ public static class SketchRasterizer
         // to an island's own ShapeIds — so letting one own a cell would drop that cell's group rather than
         // report it, and the relief a gate reads would go silent under every room on the board.
         var owners = new Dictionary<(int X, int Z), string>();
-        foreach (var ((layer, x, z), shapeId) in ShapeScopeOwners(layoutJson, shape => shape.Role is null))
-            if (groupOfShape.TryGetValue((layer, shapeId), out var groupId)) owners[(x, z)] = groupId;
+        foreach (var ((layer, x, z), owner) in ShapeScopeOwners(layoutJson, shape => shape.Role is null))
+            if (groupOfShape.TryGetValue((layer, owner.Shape), out var groupId)) owners[(x, z)] = groupId;
         return owners;
     }
 
     /// <summary>Maps every cell a <em>painted</em> shape covers, on the layer that covers it, to that shape's
-    /// id — the scope <c>TerrainThemeScope</c> resolves a cell's paint through. A shape is painted when it
-    /// states a theme or a material: the two are one question — what covers this cell — answered at two
-    /// grains, so they resolve an overlap through one traversal and by one rule.</summary>
-    public static Dictionary<(string Layer, int X, int Z), string> ShapeThemeOwners(string layoutJson)
+    /// id and the image of it that covers the cell — the scope <c>TerrainThemeScope</c> resolves a cell's
+    /// paint through. A shape is painted when it states a theme or a material: the two are one question — what
+    /// covers this cell — answered at two grains, so they resolve an overlap through one traversal and by one
+    /// rule.</summary>
+    public static Dictionary<(string Layer, int X, int Z), (string Shape, int Image)> ShapeThemeOwners(string layoutJson)
         => ShapeScopeOwners(layoutJson, shape => shape.Theme is not null || shape.Material is not null);
 
     /// <summary>Maps every cell a scoped shape covers, keyed by the layer it covers it on, to that shape's
-    /// id — the primary footprint plus each mirroring group's orbit copies (which keep the shape id).
+    /// id and the orbit image that claimed the cell. The primary footprint is image 0; each mirroring group's
+    /// copies keep the shape id and are image <c>k</c> for the <c>k</c>-th axis of
+    /// <see cref="Symmetry.OrbitAxes"/>, counted from 1 — the same <c>k</c> <see cref="Symmetry.Point"/> takes.
+    /// The image is read off the fan, so a shape drawn on the far half of an unmirrored group is image 0 there.
     ///
     /// <para><b>Paint follows the shape that forms the surface.</b> Among the shapes covering a column, only
     /// those reaching its visible top may own the paint on it, and among <em>those</em> the smallest area
@@ -328,19 +332,19 @@ public static class SketchRasterizer
     /// rather than paint excludes the annotations. Only add shapes the predicate answers for can own a cell;
     /// subtracts are skipped entirely. Void cells that no surface stands on are harmless: a consumer only
     /// reads owners where a column is solid.</para></summary>
-    public static Dictionary<(string Layer, int X, int Z), string> ShapeScopeOwners(
+    public static Dictionary<(string Layer, int X, int Z), (string Shape, int Image)> ShapeScopeOwners(
         string layoutJson, Func<SketchShape, bool> isScope)
     {
         var state = SketchLayout.Parse(layoutJson);
         var cx = state?.Setup?.Center?.Cx ?? 0;
         var cz = state?.Setup?.Center?.Cz ?? 0;
-        var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
+        var axes = Symmetry.OrbitAxes(SketchLayout.MirrorModeOf(state));
 
         var claimed = new Dictionary<(string Layer, int X, int Z),
-                                     (int Ground, string? Owner, long Area, bool Standing, int Top)>();
+                                     (int Ground, string? Owner, int Image, long Area, bool Standing, int Top)>();
         var layerId = "";
 
-        void Claim(SketchShape shape)
+        void Claim(SketchShape shape, int image)
         {
             if (shape.Operation == "subtract") return;
             // A shape that says how its top is decided stands IN the terrain rather than being it, and what
@@ -357,7 +361,7 @@ public static class SketchRasterizer
             {
                 var key = (layerId, x, z);
                 if (!claimed.TryGetValue(key, out var held))
-                    held = (Ground: int.MinValue, Owner: null, Area: 0L, Standing: false, Top: int.MinValue);
+                    held = (Ground: int.MinValue, Owner: null, Image: 0, Area: 0L, Standing: false, Top: int.MinValue);
 
                 if (!standing && top > held.Ground)
                 {
@@ -372,6 +376,7 @@ public static class SketchRasterizer
                 if (scopes && (standing || top == held.Ground) && (held.Owner is null || area < held.Area))
                 {
                     held.Owner = shape.Id;
+                    held.Image = image;
                     held.Area = area;
                     held.Standing = standing;
                     held.Top = top;
@@ -388,23 +393,25 @@ public static class SketchRasterizer
             // its own surface.
             layerId = layer.Id!;
             var shapes = layer.Shapes;
-            foreach (var s in shapes) Claim(s);                             // primary footprint
+            foreach (var s in shapes) Claim(s, 0);                          // primary footprint
 
             var metas = layer.Groups;
             if (metas.Count == 0)
             {
-                foreach (var axis in axes) foreach (var s in shapes) Claim(MirrorShape(s, axis, cx, cz));
+                for (var image = 1; image <= axes.Length; image++)
+                    foreach (var s in shapes) Claim(MirrorShape(s, axes[image - 1], cx, cz), image);
             }
             else
             {
                 var byId = shapes.GroupBy(s => s.Id).ToDictionary(g => g.Key, g => g.First());
                 foreach (var meta in metas.Where(m => m.Mirrors))
                     foreach (var id in meta.ShapeIds.Where(byId.ContainsKey))
-                        foreach (var axis in axes) Claim(MirrorShape(byId[id], axis, cx, cz));
+                        for (var image = 1; image <= axes.Length; image++)
+                            Claim(MirrorShape(byId[id], axes[image - 1], cx, cz), image);
             }
         }
         return claimed.Where(entry => entry.Value.Owner is not null)
-                      .ToDictionary(entry => entry.Key, entry => entry.Value.Owner!);
+                      .ToDictionary(entry => entry.Key, entry => (entry.Value.Owner!, entry.Value.Image));
     }
 
     // Layers to rasterize, in draw order — read through the document's one stack reader.
@@ -909,7 +916,7 @@ public static class SketchRasterizer
     public static List<ThemeHidden> ThemesHiddenUnderAnother(SketchLayout? state)
     {
         var found = new List<ThemeHidden>();
-        var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
+        var axes = Symmetry.OrbitAxes(SketchLayout.MirrorModeOf(state));
         double centerX = state?.Setup?.Center?.Cx ?? 0, centerZ = state?.Setup?.Center?.Cz ?? 0;
 
         foreach (var layer in ResolveLayers(state))

@@ -547,6 +547,14 @@ discipline a dressing prop's material already follows when it resolves in its ow
 is folded the same way before it is snapped to blocks, which costs one pass and turns a guarantee that is close
 into one that is exact.
 
+**A statement lands on the half the fold reads.** On a group spanning the axis — a mid island, a centre hill —
+the fold copies the canonical half over its image, so a mark or a push stated on the image half would be
+overwritten by ground nothing marked. Each is therefore carried to its canonical cell before the solve: a mark
+pins its canonical image, and a push lifts it by whichever of the two lifts is larger rather than their sum, so
+a push drawn across the axis rises by what it states and not twice that. Stated on either half, the statement
+raises both. A group lying wholly on one side has no image in its own footprint and keeps every statement where
+it was made.
+
 **A board with no symmetry is not folded.** `mirror_mode: "none"` is one unit with no image — `Symmetry.Order`
 answers 1 — so the solver copies nothing across the centre, grain is sampled at every cell's own coordinate, and
 the relief read reports a symmetry error of 0. A relief on such a board is solved as drawn on every side of the

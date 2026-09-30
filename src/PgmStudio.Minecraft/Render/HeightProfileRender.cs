@@ -13,7 +13,7 @@ namespace PgmStudio.Minecraft.Render;
 /// <para><b>Ground is not the topmost block.</b> A tree is seven blocks of trunk and canopy standing on flat
 /// grass, so the surface extractor's answer would draw a forest as a plateau of spikes. Vegetation, tree
 /// trunks and the furniture standing on terrain are skipped, and so are liquids — a river read at its
-/// waterline flattens the channel that gives the valley its shape, so the bed is the height and the river
+/// line flattens the channel that gives the valley its shape, so the bed is the height and the river
 /// appears as the cut it really is.</para>
 ///
 /// <para><b>Three layers carry the reading.</b> A hypsometric ramp maps height to colour so altitude is
@@ -26,7 +26,7 @@ namespace PgmStudio.Minecraft.Render;
 /// </summary>
 public static class HeightProfileRender
 {
-    /// <summary>Not the ground: nothing, water, and everything standing on the ground rather than being it.
+    /// <summary>Not the ground: nothing, a fluid, and everything standing on the ground rather than being it.
     /// The roles are <see cref="BlockRoles"/>, so a block this render must step past is decided once for the
     /// whole suite instead of here.</summary>
     private static bool NotGround(int id) =>
@@ -47,34 +47,34 @@ public static class HeightProfileRender
 
     /// <summary>Reads a built region directory from disk — the <c>RoundTrip</c> CLI's entry point.</summary>
     public static int Run(string regionDir, string outPng, int scale, int contourInterval, bool greyscale,
-        bool markWater, bool drawContours = true)
+        bool markFluid, bool drawContours = true)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var mcas = Directory.GetFiles(regionDir, "*.mca");
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
         var chunks = mcas.SelectMany(AnvilRegion.ReadChunks).ToList();
         var name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir);
-        return Emit(chunks, outPng, scale, contourInterval, greyscale, markWater, drawContours, name) is null ? 1 : 0;
+        return Emit(chunks, outPng, scale, contourInterval, greyscale, markFluid, drawContours, name) is null ? 1 : 0;
     }
 
     /// <summary>The finished elevation picture as bytes, for a caller that wants the image rather than a
     /// file. Null where the world holds no ground column.</summary>
     public static byte[]? Png(VoxelWorld world, int scale, int contourInterval, bool greyscale,
-        bool markWater, bool drawContours, string name)
-        => Emit([.. AnvilRegion.FromWorld(world)], null, scale, contourInterval, greyscale, markWater,
+        bool markFluid, bool drawContours, string name)
+        => Emit([.. AnvilRegion.FromWorld(world)], null, scale, contourInterval, greyscale, markFluid,
             drawContours, name);
 
     public static int Run(VoxelWorld world, string outPng, int scale, int contourInterval, bool greyscale,
-        bool markWater, bool drawContours, string name)
+        bool markFluid, bool drawContours, string name)
     {
         var chunks = AnvilRegion.FromWorld(world).ToList();
-        return Emit(chunks, outPng, scale, contourInterval, greyscale, markWater, drawContours, name) is null ? 1 : 0;
+        return Emit(chunks, outPng, scale, contourInterval, greyscale, markFluid, drawContours, name) is null ? 1 : 0;
     }
 
     private static byte[]? Emit(List<AnvilRegion.Chunk> chunks, string? outPng, int scale, int contourInterval,
-        bool greyscale, bool markWater, bool drawContours, string name)
+        bool greyscale, bool markFluid, bool drawContours, string name)
     {
-        var result = Render(chunks, contourInterval, greyscale, markWater, drawContours);
+        var result = Render(chunks, contourInterval, greyscale, markFluid, drawContours);
         if (result is null) { if (outPng is not null) Console.Error.WriteLine("no ground columns"); return null; }
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
@@ -83,7 +83,7 @@ public static class HeightProfileRender
             new("LOW", greyscale ? 0x1C1C20 : Hypsometric(0)),
             new("HIGH", greyscale ? 0xF2F2F0 : Hypsometric(1)),
         ];
-        if (markWater) entries.Add(new Legend.Entry("UNDER WATER", 0x3C7FE0));
+        if (markFluid) entries.Add(new Legend.Entry("UNDER FLUID", 0x3C7FE0));
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
             out var legendHeight,
             scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS - Y {result.LowestY}..{result.HighestY}");
@@ -95,14 +95,14 @@ public static class HeightProfileRender
             $"ground y {result.LowestY}..{result.HighestY} (span {result.HighestY - result.LowestY})" +
             (drawContours ? $", contours every {result.ContourInterval} (every {result.ContourInterval * 5} emphasised)" : ", no contours"));
         if (result.Flooded.Count > 0)
-            Console.WriteLine($"  under liquid {result.Flooded.Count} columns, waterline y {result.Flooded.Values.Min()}..{result.Flooded.Values.Max()}");
+            Console.WriteLine($"  under fluid {result.Flooded.Count} columns, line y {result.Flooded.Values.Min()}..{result.Flooded.Values.Max()}");
         Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block)");
         return png;
     }
 
     /// <summary>The pure render, no file or console I/O.</summary>
     public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, int contourInterval, bool greyscale,
-        bool markWater, bool drawContours = true)
+        bool markFluid, bool drawContours = true)
     {
         var ground = new Dictionary<(int X, int Z), int>();
         var flooded = new Dictionary<(int X, int Z), int>();
@@ -141,14 +141,14 @@ public static class HeightProfileRender
                     lit = Raster.Scale(lit, height % (contourInterval * 5) == 0 ? 0.42 : 0.66);
 
                 Raster.Set(pixels, blocksWide, col, row, lit);
-                if (markWater && flooded.ContainsKey((minX + col, minZ + row)))
+                if (markFluid && flooded.ContainsKey((minX + col, minZ + row)))
                     Raster.Over(pixels, blocksWide, col, row, 0x3C7FE0, 0.30);
             }
 
         return new Result(pixels, blocksWide, blocksHigh, ground.Count, lowest, highest, contourInterval, flooded);
     }
 
-    /// <summary>Highest ground block per column, plus the waterline where a column stands under liquid.</summary>
+    /// <summary>Highest ground block per column, plus the line a fluid stands at over a column.</summary>
     private static void Scan(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), int> ground,
                              Dictionary<(int X, int Z), int> flooded)
     {
@@ -164,15 +164,15 @@ public static class HeightProfileRender
             for (var lx = 0; lx < 16; lx++)
             {
                 var col = (lz << 4) | lx;
-                var waterline = int.MinValue;
+                var fluidLine = int.MinValue;
                 for (var y = 255; y >= 0; y--)
                 {
                     var id = ids[(y << 8) | col];
-                    if (waterline == int.MinValue && BlockRoles.IsLiquid(id)) waterline = y;
+                    if (fluidLine == int.MinValue && BlockRoles.IsLiquid(id)) fluidLine = y;
                     if (NotGround(id)) continue;
                     var cell = (chunk.ChunkX * 16 + lx, chunk.ChunkZ * 16 + lz);
                     ground[cell] = y;
-                    if (waterline != int.MinValue) flooded[cell] = waterline;
+                    if (fluidLine != int.MinValue) flooded[cell] = fluidLine;
                     break;
                 }
             }

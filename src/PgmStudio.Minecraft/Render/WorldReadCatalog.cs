@@ -48,7 +48,7 @@ public static class WorldReadCatalog
             "Elevation as tone, with contour lines every `contour` blocks. The read for whether a relief "
             + "solved into the shape it was drawn as, and the one that shows a flat pad butted against a hill "
             + "as the ruled edge it is. `?format=text` answers the same reading as a height-banded grid, "
-            + "`every` blocks a character, with the spawns, goals, houses and water overprinted."),
+            + "`every` blocks a character, with the spawns, goals, houses and fluids overprinted."),
 
         new("slopes", null,
             "The worst step to a neighbour per sampled cell, classed `.` walked, `:` scrambled with a block, "
@@ -140,7 +140,7 @@ public static class WorldReadCatalog
         new("transect", null,
             "A polyline walked block by block, answered as numbers: `points` is the line as `x,z;x,z[;x,z…]`, "
             + "`every` thins the stations, `beside` lists every distinct claim within that many cells of the "
-            + "line. Each station carries the ground, the storey stood on, the water and the highest block in "
+            + "line. Each station carries the ground, the storey stood on, the fluid line and the highest block in "
             + "its column, and the step from the station before it, classed walked / scrambled / a barrier / "
             + "a drop. The read for a claim about a SHAPE — a bank, a wall, a stair, a basin — which a single "
             + "column cannot answer because a shape is a profile and never a point. `?format=text` answers "

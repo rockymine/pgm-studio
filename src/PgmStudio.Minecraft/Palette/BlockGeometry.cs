@@ -59,15 +59,17 @@ public static class BlockGeometry
     /// <summary>A block's data with its direction turned by <paramref name="turn"/>, which maps a horizontal
     /// offset to its image the way a prop's own cells are turned round the symmetry.
     ///
-    /// <para>Four kinds of data are a direction, and each is turned by taking that direction as an offset,
+    /// <para>Six kinds of data are a direction, and each is turned by taking that direction as an offset,
     /// turning the offset, and reading the value back off the result. A log's two orientation bits name the
     /// <b>axis</b> it lies along — upright, along x, along z, or bark on every face. A stair's two low bits
     /// name the <b>side it climbs toward</b>. A fronted block — a chest, a ladder, a wall sign
     /// (<see cref="BlockFamilies.Fronted"/>) — names the way it <b>looks</b>, in the low three bits
-    /// <see cref="Fronting"/> writes. A vine names a <b>mask</b> of every side it clings to, so each side
-    /// turns separately and the mask is rebuilt. A mirror sends an axis to itself and a facing to its
-    /// opposite, a quarter turn swaps the axes, and a half turn leaves an axis alone while reversing a
-    /// facing.</para>
+    /// <see cref="Fronting"/> writes. A wall torch names the way it <b>points</b>
+    /// (<see cref="BlockFamilies.Torches"/>), and a fence gate the way it <b>faces</b>
+    /// (<see cref="BlockFamilies.FenceGates"/>), each by a table of its own. A vine names a <b>mask</b> of every
+    /// side it clings to, so each side turns separately and the mask is rebuilt. A mirror across x or z sends
+    /// an axis to itself and a facing across that axis to its opposite, a quarter turn swaps the axes, and a
+    /// half turn leaves an axis alone while reversing a facing.</para>
     ///
     /// <para>Everything else keeps its data, which divides in two. A slab, a leaf and a wool block face no way
     /// in particular and are right to be left alone. A door, trapdoor, button, lever, bed, piston or rail
@@ -104,29 +106,31 @@ public static class BlockGeometry
             // a vertical front is its own image under every orbit, and a floor skull's rotation is in its
             // tile entity rather than in the nibble. The bits above the front — a dropper's triggered flag,
             // a hopper's enabled one — are not geometry and are carried through.
-            var front = data & 7;
-            if (front is < 2 or > 5) return data;
-            var (dx, dz) = front switch
-            {
-                2 => (0, -1),
-                3 => (0, 1),
-                4 => (-1, 0),
-                _ => (1, 0),
-            };
+            if (Front(data) is not { } front) return data;
+            var (dx, dz) = front.Outward();
             var (tx, tz) = turn(dx, dz);
             return (data & ~7) | Fronting(Math.Abs(tx) >= Math.Abs(tz)
                 ? tx < 0 ? RoomEdge.NegX : RoomEdge.PosX
                 : tz < 0 ? RoomEdge.NegZ : RoomEdge.PosZ);
         }
+        if (BlockFamilies.IsTorch(id))
+        {
+            // A torch standing on the block below points up, which every orbit leaves alone.
+            var point = data & 7;
+            if (point is < 1 or > 4) return data;
+            return (data & ~7) | (1 + TurnedIndex(point - 1, TorchPoints, turn));
+        }
+        if (BlockFamilies.IsFenceGate(id))
+            return (data & ~3) | TurnedIndex(data & 3, GateFacings, turn);
         if (id == Blocks.Vine)
         {
             // A vine states every side it clings to at once, so each set bit is turned on its own and the
             // mask is rebuilt from the results. A vine hanging from the block above states no side and turns
             // to itself.
             var sides = 0;
-            foreach (var (bit, dx, dz) in VineSides)
+            foreach (var side in ClingsTo(data))
             {
-                if ((data & bit) == 0) continue;
+                var (dx, dz) = side.Outward();
                 var (tx, tz) = turn(dx, dz);
                 sides |= Math.Abs(tx) >= Math.Abs(tz)
                     ? tx < 0 ? VineWest : VineEast
@@ -137,12 +141,41 @@ public static class BlockGeometry
         return data;
     }
 
+    /// <summary>The way a fronted block's data says it looks — the reading of <see cref="Fronting"/> — or
+    /// null for a front facing up or down.</summary>
+    public static RoomEdge? Front(int data) =>
+        RoomEdges.All.Cast<RoomEdge?>().FirstOrDefault(edge => Fronting(edge!.Value) == (data & 7));
+
+    /// <summary>The sides of its own cell a vine's mask says it clings to, each the side the block holding it
+    /// up stands on. A vine hanging from the block above clings to none of them.</summary>
+    public static IEnumerable<RoomEdge> ClingsTo(int vineData) =>
+        VineSides.Where(side => (vineData & side.Bit) != 0).Select(side => side.Edge);
+
+    /// <summary>The way a wall torch points for data 1 to 4, in that order.</summary>
+    private static readonly (int X, int Z)[] TorchPoints = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+
+    /// <summary>The way a fence gate faces for data 0 to 3, in that order.</summary>
+    private static readonly (int X, int Z)[] GateFacings = [(0, 1), (-1, 0), (0, -1), (1, 0)];
+
+    /// <summary>Which of <paramref name="directions"/> the one at <paramref name="index"/> lands nearest once
+    /// turned.</summary>
+    private static int TurnedIndex(int index, (int X, int Z)[] directions, Func<int, int, (int X, int Z)> turn)
+    {
+        var (tx, tz) = turn(directions[index].X, directions[index].Z);
+        var nearest = 0;
+        for (var candidate = 1; candidate < directions.Length; candidate++)
+            if (tx * directions[candidate].X + tz * directions[candidate].Z
+                > tx * directions[nearest].X + tz * directions[nearest].Z)
+                nearest = candidate;
+        return nearest;
+    }
+
     /// <summary>Which side of its own block a vine clings to, as the bit and the offset to the block holding
     /// it up.</summary>
     private const int VineSouth = 1, VineWest = 2, VineNorth = 4, VineEast = 8;
 
-    private static readonly (int Bit, int X, int Z)[] VineSides =
-        [(VineSouth, 0, 1), (VineWest, -1, 0), (VineNorth, 0, -1), (VineEast, 1, 0)];
+    private static readonly (int Bit, RoomEdge Edge)[] VineSides =
+        [(VineSouth, RoomEdge.PosZ), (VineWest, RoomEdge.NegX), (VineNorth, RoomEdge.NegZ), (VineEast, RoomEdge.PosX)];
 
     /// <summary>A slab in the upper or lower half of its cube, keeping the three low bits that say what it is
     /// made of. An upper slab is the lintel over an opening and the underside of a course; a lower one is the

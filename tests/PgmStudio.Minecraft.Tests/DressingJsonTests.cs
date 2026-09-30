@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Houses;
@@ -32,7 +33,7 @@ public sealed class DressingJsonTests
             Props =
             [
                 new StrokeProp { Id = "p", Seed = 1, Points = [[0, 0], [10, 10]], Pave = new SolidMaterial(Blocks.Gravel) },
-                new WaterProp { Id = "w", Seed = 2, Points = [[0, 0], [10, 10]] },
+                new FluidProp { Id = "w", Seed = 2, Points = [[0, 0], [10, 10]] },
                 new TreeProp { Id = "t", Seed = 3, X = 1, Z = 1 },
                 new BoulderProp { Id = "b", Seed = 4, X = 2, Z = 2 },
                 new FloraProp { Id = "f", Seed = 5, Points = [[0, 0], [10, 0], [10, 10]] },
@@ -220,8 +221,8 @@ public sealed class DressingJsonTests
         // (PascalCase) rather than the documented camelCase wire form. The converter tolerates either, so
         // this is not a fault the parser has to refuse — only the documentation had to settle on one case.
         var doc = DressingJson.Deserialize(
-            """{"props":[{"kind":"water","id":"w1","seed":1,"points":[[0,0],[1,1]],"form":"Natural"}]}""");
-        await Assert.That(((WaterProp)doc.Props[0]).Form).IsEqualTo(ChannelForm.Natural);
+            """{"props":[{"kind":"fluid","id":"w1","seed":1,"points":[[0,0],[1,1]],"form":"Natural"}]}""");
+        await Assert.That(((FluidProp)doc.Props[0]).Form).IsEqualTo(ChannelForm.Natural);
     }
 
     // ── what still has to refuse ───────────────────────────────────────────────────────────────────────
@@ -376,4 +377,32 @@ public sealed class DressingJsonTests
     [Test]
     public async Task Every_refusal_carries_the_export_gates_rule_id()
         => await Assert.That(DressingParseException.Rule).IsEqualTo("DR-DOC");
+
+    /// <summary>A chest's contents are read as stated and refused where the game could not hold them.</summary>
+    [Test]
+    [Arguments("""{"kind":"chest","id":"c","items":[{"item":"bow","slot":3},{"item":"arrow","slot":3}]}""", "items[1].slot")]
+    [Arguments("""{"kind":"chest","id":"c","items":[{"item":"bow","slot":27}]}""", "items[0].slot")]
+    [Arguments("""{"kind":"chest","id":"c","items":[{"item":"arrow","count":65}]}""", "items[0].count")]
+    [Arguments("""{"kind":"chest","id":"c","items":[{"item":""}]}""", "items[0].item")]
+    [Arguments("""{"kind":"chest","id":"c","items":[{"item":"bow","enchantments":[{"name":"vorpal"}]}]}""", "items[0].enchantments[0].name")]
+    public async Task A_chest_the_game_could_not_hold_is_refused_naming_the_field(string prop, string field)
+    {
+        var refused = Assert.Throws<DressingParseException>(() => DressingJson.Deserialize($$"""{"props":[{{prop}}]}"""));
+        await Assert.That(refused.Message).Contains(field);
+    }
+
+    [Test]
+    public async Task A_chest_reads_its_items_facing_and_course()
+    {
+        var chest = DressingJson.Deserialize("""
+            {"props":[{"kind":"chest","id":"c","x":4,"z":-2,"y":18,"facing":"posX",
+              "items":[{"item":"bow","slot":0,"enchantments":[{"name":"power","level":1}]},{"item":"arrow","count":32}]}]}
+            """).Props.OfType<ChestProp>().Single();
+
+        await Assert.That(chest.Facing).IsEqualTo(RoomEdge.PosX);
+        await Assert.That(chest.Y).IsEqualTo(18);
+        await Assert.That(chest.Items.Count).IsEqualTo(2);
+        await Assert.That(chest.Items[0].Enchantments.Single().Name).IsEqualTo("power");
+        await Assert.That(chest.Items[1].Count).IsEqualTo(32);
+    }
 }

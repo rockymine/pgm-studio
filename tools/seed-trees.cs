@@ -5,7 +5,7 @@
 #:property PublishAot=false
 // seed-trees: cut every hand-built tree out of a world and file each one in the tree library as a copied recipe.
 //
-//   dotnet run tools/seed-trees.cs <worldDir> [name] [--builder=<name>] [--wool] [--dry] [connection string]
+//   dotnet run tools/seed-trees.cs <worldDir> [--builder=<name>] [--wool] [--dry] [connection string]
 //
 // <worldDir> holds region/*.mca — a showcase world where every tree stands on its own, clear of every other,
 // so a connected-component pass over the tree blocks finds each trunk with its branches and leaves. A hand-built
@@ -22,11 +22,15 @@
 // A body counts as a tree when it rests on something: a solid block that is not tree material within two
 // courses under its foot. A piece with no tree within reach is a fragment, and is reported rather than filed.
 //
-// Rows are named <name>-r<row>-<n>: trees are sorted into rows by the z they stand at (a new row opens where the
-// gap between one foot and the next is over 20 blocks) and numbered along x inside the row, so a re-run over
-// the same world names the same trees, and a row keyed on that name is updated rather than duplicated.
-// A row opens for a wool tree as well, whether or not --wool files it, so the numbering is the world's rows
-// rather than the run's and one flag does not renumber every row behind it.
+// Trees are sorted into rows by the z they stand at (a new row opens where the gap between one foot and the next
+// is over 20 blocks) and placed along x inside the row. What each row is — its kind — is the author's, stated in
+// <worldDir>/kinds.json as {"rows": {"<row>": "<kind>"}, "trees": {"<row>-<place>": "<kind>"}}, the second for a
+// tree its row does not describe; a run refuses a world with a filed row the file names no kind for. A tree is
+// named <kind>-<n>, numbered through the world in row order and along x, so rows of one kind share one count.
+// A library row is matched by its cut — the world it came from and the foot it stood on — so a re-run updates the
+// same trees, a relabelled row renames them, and nothing is duplicated.
+// A row opens for a wool tree as well, whether or not --wool files it, so the rows are the world's rather than
+// the run's and one flag does not move every row behind it.
 // The connection string falls back to PGM_STUDIO_DB, then to the local dev database.
 using System.Text.Json;
 using PgmStudio.Data;
@@ -39,12 +43,12 @@ using PgmStudio.Minecraft.Palette;
 var positional = args.Where(arg => !arg.StartsWith("--")).ToList();
 if (positional.Count == 0)
 {
-    Console.Error.WriteLine("usage: dotnet run tools/seed-trees.cs <worldDir> [name] [--builder=<name>] [--wool] [--dry] [connection]");
+    Console.Error.WriteLine("usage: dotnet run tools/seed-trees.cs <worldDir> [--builder=<name>] [--wool] [--dry] [connection]");
     return 2;
 }
 var worldDir = positional[0];
-var name = positional.Count > 1 ? positional[1] : Path.GetFileName(Path.GetFullPath(worldDir).TrimEnd('/'));
-var connection = positional.Count > 2 ? positional[2]
+var worldName = Path.GetFileName(Path.GetFullPath(worldDir).TrimEnd('/'));
+var connection = positional.Count > 1 ? positional[1]
     : Environment.GetEnvironmentVariable("PGM_STUDIO_DB")
     ?? "Server=localhost;Database=pgm_studio;User ID=pgm;Password=pgm_dev_pw;";
 var withWool = args.Contains("--wool");
@@ -72,7 +76,7 @@ foreach (var block in world)
         if (block.Id == Blocks.Wool) wool[(block.X, block.Y, block.Z)] = (block.Id, block.Data);
     }
 }
-Console.WriteLine($"{name}: {body.Count} tree blocks in {regionDir}");
+Console.WriteLine($"{worldName}: {body.Count} tree blocks in {regionDir}");
 
 // ── one tree per connected component ────────────────────────────────────────────────────────────────
 List<List<(int X, int Y, int Z)>> Bodies(Dictionary<(int X, int Y, int Z), (int Id, int Data)> blocks)
@@ -160,25 +164,46 @@ var cut = standing.Select(tree => (tree.Foot, tree.Cells, Filed: true))
 var unfiled = cut.Count(tree => !tree.Filed);
 if (unfiled > 0) Console.WriteLine($"  {unfiled} wool tree(s) hold a row of their own; --wool files them");
 
-var row = 0; var last = int.MinValue; var index = 0;
-var named = new List<(string Name, (int X, int Y, int Z) Foot, int[][] Body)>();
+var row = 0; var last = int.MinValue;
+var placed = new List<(int Row, (int X, int Y, int Z) Foot, int[][] Body)>();
 foreach (var tree in cut)
 {
-    if (tree.Foot.Z - last > 20) { row++; index = 0; }
+    if (tree.Foot.Z - last > 20) row++;
     last = tree.Foot.Z;
     if (!tree.Filed) continue;
-    index++;
     var rowsOfTree = tree.Cells
         .OrderBy(cell => cell.Y).ThenBy(cell => cell.Z).ThenBy(cell => cell.X)
         .Select(cell => new[] { cell.X - tree.Foot.X, cell.Y - tree.Foot.Y, cell.Z - tree.Foot.Z, body[cell].Id, body[cell].Data })
         .ToArray();
-    named.Add(($"{name}-r{row}-{index}", tree.Foot, rowsOfTree));
+    placed.Add((row, tree.Foot, rowsOfTree));
 }
-// Numbered along x within a row: the sort above ran along z first, so renumber each row by x.
-named = named
-    .GroupBy(tree => tree.Name[..tree.Name.LastIndexOf('-')])
-    .SelectMany(group => group.OrderBy(tree => tree.Foot.X).Select((tree, at) => ($"{group.Key}-{at + 1}", tree.Foot, tree.Body)))
+
+// ── named by kind, the author's word for each row ───────────────────────────────────────────────────
+var kindsPath = Path.Combine(worldDir, "kinds.json");
+if (!File.Exists(kindsPath))
+{
+    Console.Error.WriteLine($"no {kindsPath}: what each row of trees is, is the author's to state");
+    return 2;
+}
+var kinds = JsonSerializer.Deserialize<Kinds>(File.ReadAllText(kindsPath)) ?? new Kinds();
+var inPlace = placed
+    .GroupBy(tree => tree.Row)
+    .SelectMany(group => group.OrderBy(tree => tree.Foot.X).Select((tree, at) => (tree.Row, Place: at + 1, tree.Foot, tree.Body)))
+    .OrderBy(tree => tree.Row).ThenBy(tree => tree.Place)
     .ToList();
+var counted = new Dictionary<string, int>(StringComparer.Ordinal);
+var named = new List<(string Name, (int X, int Y, int Z) Foot, int[][] Body)>();
+foreach (var tree in inPlace)
+{
+    var kind = kinds.KindOf(tree.Row, tree.Place);
+    if (kind is null)
+    {
+        Console.Error.WriteLine($"{kindsPath} names no kind for tree {tree.Row}-{tree.Place}");
+        return 2;
+    }
+    counted[kind] = counted.GetValueOrDefault(kind) + 1;
+    named.Add(($"{kind}-{counted[kind]}", tree.Foot, tree.Body));
+}
 
 foreach (var (treeName, foot, blocks) in named)
 {
@@ -189,7 +214,7 @@ foreach (var (treeName, foot, blocks) in named)
 }
 if (dry) return 0;
 
-// ── into the library, by name ───────────────────────────────────────────────────────────────────────
+// ── into the library, matched by the cut ───────────────────────────────────────────────────────────
 var state = SchemaMigrator.GetSchemaState(connection);
 if (state.Pending.Count > 0)
 {
@@ -198,7 +223,10 @@ if (state.Pending.Count > 0)
 }
 await using var db = new PgmDb(PgmDataOptions.ForConnectionString(connection));
 var store = new PropStyleStore(db);
-var existing = (await store.ListTreesAsync()).ToDictionary(r => r.Name, r => r, StringComparer.Ordinal);
+var existing = (await store.ListTreesAsync())
+    .Where(r => r.Form == "copied" && r.CutWorld is { Length: > 0 } && r.CutX is not null && r.CutY is not null && r.CutZ is not null)
+    .GroupBy(r => (World: Path.GetFileName(r.CutWorld!.TrimEnd('/')), X: r.CutX!.Value, Y: r.CutY!.Value, Z: r.CutZ!.Value))
+    .ToDictionary(group => group.Key, group => group.First());
 int added = 0, updated = 0;
 var cutFrom = Path.GetFullPath(worldDir).TrimEnd('/');
 var cutAt = DateTime.UtcNow;
@@ -217,7 +245,7 @@ foreach (var (treeName, foot, blocks) in named)
         CutAt = cutAt,
         CutBuilder = builder,
     };
-    if (existing.TryGetValue(treeName, out var have))
+    if (existing.TryGetValue((worldName, foot.X, foot.Y, foot.Z), out var have))
     {
         await store.UpdateTreeAsync(have.Id, stored);
         updated++;
@@ -228,7 +256,7 @@ foreach (var (treeName, foot, blocks) in named)
         added++;
     }
 }
-Console.WriteLine($"\n{added} added, {updated} updated — {named.Count} copied trees under '{name}-r*'"
+Console.WriteLine($"\n{added} added, {updated} updated — {named.Count} copied trees from '{worldName}'"
     + (builder is null ? ", built by nobody named" : $", built by {builder}"));
 return 0;
 
@@ -251,3 +279,18 @@ static bool IsTreeBlock(int id, bool withWool) =>
     || id is 85 or 106                        // fence, vine
     || BlockFamilies.IsStair(id) && id is 53 or 134 or 135 or 136 or 163 or 164
     || withWool && id == Blocks.Wool;
+
+/// <summary>What each row of a world's trees is, and the trees their row does not describe — the author's
+/// statement, read from the world's <c>kinds.json</c>.</summary>
+sealed class Kinds
+{
+    [System.Text.Json.Serialization.JsonPropertyName("rows")]
+    public Dictionary<string, string> Rows { get; set; } = [];
+
+    [System.Text.Json.Serialization.JsonPropertyName("trees")]
+    public Dictionary<string, string> Trees { get; set; } = [];
+
+    /// <summary>The kind of the tree at <paramref name="place"/> along its row, or null where nothing names one.</summary>
+    public string? KindOf(int row, int place) =>
+        Trees.GetValueOrDefault($"{row}-{place}") ?? Rows.GetValueOrDefault(row.ToString(System.Globalization.CultureInfo.InvariantCulture));
+}

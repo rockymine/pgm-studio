@@ -38,7 +38,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 |---|---|---|
 | `render/topdown` | `--topdown --subject …` | the board from above, one question per image. `subject` = `ground` · `structure` · `made` · `foliage` · `objectives` · `combined`; `material` colours by the real palette rather than by category, a flooded column in water's own colour darkened by its depth rather than in its bed's; `ymax` looks under a roof or a canopy; `layer` draws one storey of a stacked board |
 | `render/section` | `--section` | a vertical cut with a Y scale. `axis` = `x`\|`z`, `from`/`to` its extent, `at` the other coordinate, `ymin`/`ymax` the courses drawn, `depth` how far behind the plane to project; `?format=text` answers the same cut as characters, `every` blocks a char |
-| `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading; `layer` draws one storey. `?format=text` answers the same reading as a height-banded grid, `every` blocks a character, with the spawns, goals, houses and water overprinted |
+| `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading; `layer` draws one storey. `?format=text` answers the same reading as a height-banded grid, `every` blocks a character, with the spawns, goals, houses and fluids overprinted |
 | `render/surface` | `--surface` | the paint, as the tone families `TerrainPalette.Families` names; `layer` draws one storey |
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
 | `slopes` | — | the worst step to a neighbour per sampled cell, as JSON digit rows or, on `?format=text`, `.`/`:`/`#` — the tiers a walk is priced in. `faces` names the barrier runs worth checking, largest first |
@@ -127,8 +127,9 @@ columns void to the walk, exactly as `column`, `transect` and the census read th
 leaves the field under it walkable up to the crown's underside. Which blocks are a prop's is read off the
 build's own record rather than off their material: in a column a `tree` or `boulder` claimed last
 (`WorldProvenance.PropVolumeAt`), every block outside the spans the rasterizer laid is the prop's
-(`WorldColumns.ForWalk`). A path, a water course and a bed of flora are laid on or into the ground rather than
-standing on it, so their blocks read as ground.
+(`WorldColumns.ForWalk`). A path, a fluid's bed and a bed of flora are laid on or into the ground rather than
+standing on it, so their blocks read as ground — save lava, which nobody stands in and which reads as a
+prop's volume.
 
 **A step between two places has to fit under the lower one's clearance** — how many blocks are open over it
 before the next solid one. A player builds up through open air and falls down through it, so a gallery roofed
@@ -220,7 +221,7 @@ and `worstStep` leaves it out, answering the worst step the ground makes. `?besi
 every thing a player meets that the provenance record names within `N` cells of any cell the route passes
 through, with the first cell it is met at and its distance. Those are a `wall`, a wool room's `redstoneline`,
 an `ironcube`, a `spawn`, a `wool`, a `destroyable`, a `core`, a `controlpoint`, a `house`, a `tree`, a
-`boulder` and `water`, which is every kind a stamp claims but the ground cover (`flora`) and the paint
+`boulder`, a `chest` and a `fluid`, which is every kind a stamp claims but the ground cover (`flora`) and the paint
 (`stroke`). `?format=text` answers
 the same reading as characters: the route's own numbers, a station at every place it stood with the word and
 the signed step where it left a walk, the totals, and what stands beside it.
@@ -383,7 +384,7 @@ column answers what is at one coordinate, and a shape is a claim about the *step
 neither a column nor a picture states. A basin whose wall is a sheer eight-block face reads, column by column,
 as a set of true numbers that say nothing about the wall; the same two cells as neighbouring stations on a
 transect answer `BARRIER +8 at (-52, 0)`, which is unmissable where the numbers alone were not. Every station
-carries the ground, the storey a walker stands on, the water and the highest block in its column, and the step
+carries the ground, the storey a walker stands on, the line of any fluid and the highest block in its column, and the step
 from the one before it, classed the way `PgmStudio.Geom.Walk.StepWord` classes every step in the studio —
 walked, scrambled, a barrier, or a drop.
 
@@ -420,13 +421,13 @@ approach reads as a colour step exactly on the room's footprint, and a pond read
 
 Its key is two-dimensional, because the picture is: **reading across a ramp is how dear a cell is, reading
 down the three ramps is what a player is standing on to be there** — ground for nothing, void at a block a
-cell, water at twice the walk. One number line serves all three, since the value axis is the same for every
+cell, water at twice the walk; lava is not stood in, so a lava bed is no footing at all. One number line serves all three, since the value axis is the same for every
 footing. A flat list of swatches cannot say that, and a reader given one reads the hue as a class and the
 class as a hue.
 
 `heightmap` answers whether a relief solved into the shape it was drawn as, and shows a flat pad butted
 against a hill as the ruled edge it is. Its text twin answers the same question as characters rather than
-tone: a neighbour's height is a subtraction rather than an estimate, and the houses, halls, water, spawns
+tone: a neighbour's height is a subtraction rather than an estimate, and the houses, halls, fluids, spawns
 and goals overprinted on it say what the relief carries rather than leaving a reader to guess from shape
 alone. `surface` answers whether a board's paint is the palette it was authored from — a whole tone family
 taken where two members were meant reads as the noise it is. `mirror` answers whether a board somebody
@@ -506,8 +507,20 @@ and the bands they are judged against were measured in its unit.
 **`render/eye` is a picture of the materials, not a screenshot.** Slabs, stairs, fences, gates, panes and walls
 are drawn in their own shapes — a stair lattice reads as a lattice — and a log lying down shows its sawn end
 on the two faces it points out of, with its bark running along it; a stair beside another is drawn
-straight rather than turned into the corner the game would join them in; torches, signs, rails, carpets,
-doors, trapdoors and iron bars are not drawn; the only lighting is a shade per face; and there is no fog —
+straight rather than turned into the corner the game would join them in. What stands on the ground is drawn
+too. A torch, lit or redstone, is crossed quads of its sprite, and one on a wall stands upright in the middle
+of its cell rather than leaning off the wall. Redstone wire is a sheet a sixteenth thick on the floor, in the
+cross sprite whatever it connects to, tinted by its power the way the game tints it, from a dull red at 0 to
+a bright one at 15. A carpet is a sheet of its wool, a lily pad a sheet in the game's one lily green, and a
+ladder and a vine a sheet against the side that holds them up. Those sheets are seen and never stood on: the
+eye stands on the floor under a carpet, and a sheet blocks no line of sight a framing eye is judged by.
+
+A chest, a trapped chest and an ender chest are the game's box a sixteenth in from each side and fourteen
+sixteenths tall, wearing faces cut out of the jar's `entity/chest` textures — the lid's top, the lid over the
+base down each side, and the latch painted flat on the side the chest's data says it looks toward. Two chests
+side by side are two single chests rather than the game's double one. Signs, rails, doors, trapdoors,
+levers, buttons, pressure plates, repeaters, comparators, banners, beds and iron bars are not drawn; the only
+lighting is a shade per face; and there is no fog —
 the game as it is played with fog off at sixteen chunks, so everything within 256 blocks is drawn at full
 strength and nothing past it is. The 256 are counted from where a ray enters the built world, so an eye raised
 over the board — the straight-down view, an aerial shot — sees as far into it as one standing on it. A block no sprite is named for is drawn in its palette colour and counted in the text twin.

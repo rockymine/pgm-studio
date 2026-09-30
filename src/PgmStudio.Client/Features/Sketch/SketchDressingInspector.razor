@@ -101,8 +101,16 @@
           <MaterialEditor Node="pave" Blocks="blocks" Styles="styles" OnChanged="() => MaterialChanged(PropFields.Pave)" />
         }
       }
-      else if (kind == PropKinds.Water)
+      else if (kind == PropKinds.Fluid)
       {
+        <Field Label="Fluid"><LabelHint>what fills the bed</LabelHint>
+          <ChildContent><div class="chip-row">
+            <Chip Active="Text(PropFields.Fluid, PropFields.WaterFluid) == PropFields.WaterFluid"
+                  OnClick="() => Set(PropFields.Fluid, JsonValue.Create(PropFields.WaterFluid))">Water</Chip>
+            <Chip Active="Text(PropFields.Fluid, PropFields.WaterFluid) == PropFields.LavaFluid"
+                  OnClick="() => Set(PropFields.Fluid, JsonValue.Create(PropFields.LavaFluid))">Lava</Chip>
+          </div></ChildContent>
+        </Field>
         <Field Label="Width (blocks)">
           <NumberField Value="Num(PropFields.Radius, 3) * 2" ValueChanged="v => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, v / 2)))" Min="2" Step="2" />
         </Field>
@@ -111,7 +119,7 @@
           <ChildContent><input type="range" class="field-range" min="1" max="8" step="1"
                  value="@((int)Num(PropFields.Depth, 2))"
                  @oninput="e => Set(PropFields.Depth, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
-        <Field Label="Beach (blocks)"><LabelHint>the bank the water meets the land through</LabelHint>
+        <Field Label="Beach (blocks)"><LabelHint>the bank the fluid meets the land through</LabelHint>
           <LabelEnd><strong>@($"{Num(PropFields.Shore, 2):0}")</strong></LabelEnd>
           <ChildContent><input type="range" class="field-range" min="0" max="8" step="1"
                  value="@((int)Num(PropFields.Shore, 2))"
@@ -128,7 +136,7 @@
                  @oninput="e => Set(PropFields.Edge, JsonValue.Create(Whole(e) / 10.0))" /></ChildContent></Field>
         <div class="section-header section-header--ruled"><h2 class="section-title">Form</h2></div>
         <div class="prop-cards">
-          @foreach (var option in waterForms)
+          @foreach (var option in fluidForms)
           {
             <button class="prop-card @(Text(PropFields.Form, PropFields.CanalForm) == option.Key ? "prop-card--active" : null)"
                     title="@option.Label" @onclick="() => Pick(PropFields.Form, option)">
@@ -167,6 +175,57 @@
           <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
                  value="@((int)(Spec(SpecFields.TallShare, 0) * 100))"
                  @oninput="e => SetSpec(SpecFields.TallShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Dead bushes"><LabelHint>the cover sand and clay carry, and a share of it on dirt</LabelHint>
+          <LabelEnd><strong>@($"{Spec(SpecFields.DeadBushShare, 0) * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Spec(SpecFields.DeadBushShare, 0) * 100))"
+                 @oninput="e => SetSpec(SpecFields.DeadBushShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Cacti"><LabelHint>on sand only, one to four blocks tall</LabelHint>
+          <LabelEnd><strong>@($"{Spec(SpecFields.CactusShare, 0) * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Spec(SpecFields.CactusShare, 0) * 100))"
+                 @oninput="e => SetSpec(SpecFields.CactusShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+      }
+      else if (kind == PropKinds.Chest)
+      {
+        <Field Label="Front"><LabelHint>the side the latch looks at; each mirrored copy turns with its half</LabelHint>
+          <ChildContent><div class="chip-row">
+            @foreach (var side in Sides)
+            {
+              <Chip Active="Text(PropFields.Facing, Sides[0].Key) == side.Key" @key="side.Key"
+                    OnClick="() => Set(PropFields.Facing, JsonValue.Create(side.Key))">@side.Label</Chip>
+            }
+          </div></ChildContent>
+        </Field>
+        <Field Label="Stands"><LabelHint>on the ground, or at a course — a deck or a made thing's floor</LabelHint>
+          <ChildContent><div class="chip-row">
+            <Chip Active="prop?[PropFields.Y] is null" OnClick="() => Set(PropFields.Y, null)">On the ground</Chip>
+            <Chip Active="prop?[PropFields.Y] is not null" OnClick="() => Set(PropFields.Y, JsonValue.Create((int)Num(PropFields.Y, 64)))">At a course</Chip>
+          </div>
+            @if (prop?[PropFields.Y] is not null)
+            {
+              <NumberField Value="Num(PropFields.Y, 64)" ValueChanged="v => Set(PropFields.Y, JsonValue.Create((int)v))" Min="1" Step="1" />
+            }
+          </ChildContent>
+        </Field>
+        <div class="section-header section-header--ruled"><h2 class="section-title">Items</h2></div>
+        <p class="section-desc">Up to 27 stacks, in the order they fill the chest. An enchantment is PGM's name and a level — <code>power:1, infinity</code>.</p>
+        @for (var index = 0; index < ChestItems().Count; index++)
+        {
+          var at = index;
+          <div class="chest-item">
+            <input class="field-input" placeholder="minecraft:bow" value="@StackItem(at)"
+                   @onchange="e => SetChestItem(at, ChestItemFields.Item, JsonValue.Create(e.Value?.ToString() ?? string.Empty))" />
+            <NumberField Value="StackCount(at)" ValueChanged="v => SetChestItem(at, ChestItemFields.Count, JsonValue.Create(Math.Clamp((int)v, 1, 64)))" Min="1" Step="1" />
+            <input class="field-input" placeholder="power:1" value="@EnchantmentText(at)"
+                   @onchange="e => SetChestItem(at, ChestItemFields.Enchantments, Enchantments(e.Value?.ToString()))" />
+            <button class="btn btn--ghost" title="Take the stack out" @onclick="() => RemoveChestItem(at)"><i data-lucide="x"></i></button>
+          </div>
+        }
+        @if (ChestItems().Count < 27)
+        {
+          <button class="btn btn--ghost" @onclick="AddChestItem"><i data-lucide="plus"></i> Add a stack</button>
+        }
       }
       else if (kind == PropKinds.Tree || kind == PropKinds.Boulder)
       {
@@ -238,7 +297,7 @@
           <Chip Active="@(Text(PropFields.Front, string.Empty).Length == 0)" OnClick="() => Set(PropFields.Front, null)">
             A long side
           </Chip>
-          @foreach (var edge in HouseFronts)
+          @foreach (var edge in Sides)
           {
             <Chip Active="@(Text(PropFields.Front, string.Empty) == edge.Key)" @key="edge.Key"
                   OnClick="() => Set(PropFields.Front, JsonValue.Create(edge.Key))">@edge.Label</Chip>

@@ -29,8 +29,8 @@ public static class WoolChests
         foreach (var (cornerX, cornerZ) in RoomFrames.InteriorCorners(frame))
         {
             var facing = CornerFacing(frame, doorEdge, cornerX, cornerZ);
-            PlaceChest(world, cornerX, floorY + 1, cornerZ, facing, ChestA());   // resting on the bedrock floor
-            PlaceChest(world, cornerX, floorY + 2, cornerZ, facing, ChestB());
+            ChestBuilder.Place(world, cornerX, floorY + 1, cornerZ, facing, ChestA());   // resting on the bedrock floor
+            ChestBuilder.Place(world, cornerX, floorY + 2, cornerZ, facing, ChestB());
         }
     }
 
@@ -42,12 +42,6 @@ public static class WoolChests
         if (doorEdge.AlongX())
             return BlockGeometry.Fronting(cornerZ == frame.InteriorMinZ ? RoomEdge.PosZ : RoomEdge.NegZ);
         return BlockGeometry.Fronting(cornerX == frame.InteriorMinX ? RoomEdge.PosX : RoomEdge.NegX);
-    }
-
-    private static void PlaceChest(VoxelWorld world, int x, int y, int z, int facing, IEnumerable<(int, NbtCompound)> items)
-    {
-        world.SetBlock(x, y, z, Blocks.Chest, facing);
-        world.AddTileEntity(x, z, ChestBuilder.Chest(x, y, z, items));
     }
 
     private static IEnumerable<(int, NbtCompound)> ChestA() =>

@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Painting;
@@ -14,7 +15,7 @@ namespace PgmStudio.Minecraft.Render;
 /// page as the step from <c>1</c> to <c>2</c> and from <c>4</c> to <c>5</c>.</para>
 ///
 /// <para>It answers the same <see cref="TerrainProfile.SlopeAt(Func{int, int, int}, int)"/> the painter resolves against, over the same
-/// terrain surface, so a band that came out wrong and the number that chose it cannot disagree. Water,
+/// terrain surface, so a band that came out wrong and the number that chose it cannot disagree. Fluids,
 /// houses and the map's own spawns and goals overprint as they do on the heightmap, because ground under
 /// something that matters is read differently from ground that is merely steep.</para>
 /// </summary>
@@ -57,7 +58,7 @@ public static class InclineText
                 var owner = provenance.OwnerAt(x, z);
                 if (owner?.Kind == "house" || provenance.PassAt(x, z) == ProvenancePass.Structure)
                     glyph[col, row] = 'H';
-                else if (owner?.Kind == "water")
+                else if (owner?.Kind == PropKinds.Fluid)
                     glyph[col, row] = '~';
             }
 
@@ -73,7 +74,7 @@ public static class InclineText
         text.Append($"INCLINE  1 char = {every}x{every} blocks (the top-left block of each)  ")
             .Append($"x {minX}..{minX + (width - 1) * every} across, z {minZ}..{minZ + (height - 1) * every} down\n");
         text.Append($"KEY  char = tens of degrees from level, read {window} cell(s) either side: ")
-            .Append("0 = 0..9°, 4 = 40..49°, 8 = 80°+;  H house or hall  ~ water  @ spawn point  ")
+            .Append("0 = 0..9°, 4 = 40..49°, 8 = 80°+;  H house or hall  ~ water or lava  @ spawn point  ")
             .Append("! goal  space = void\n");
         TextGrid.Frame(text, minX, minZ, width, height, every, (col, row) => glyph[col, row]);
 

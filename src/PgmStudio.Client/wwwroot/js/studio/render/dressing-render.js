@@ -25,11 +25,12 @@ import polygonClipping from "../vendor/polygon-clipping.js";
 // house takes the shared building ink, since a room's shell is drawn in it too.
 const KIND_STYLE = {
   path:    { fill: "#8d8378", stroke: "#6f6459" },
-  water:   { fill: "#4a86c4", stroke: "#2f5f92" },
+  fluid:   { fill: "#4a86c4", stroke: "#2f5f92" },
   flora:   { fill: "#5aa64a", stroke: "#3f7f33" },
   house:   BUILDING_COLORS,
   tree:    { fill: "#2f7d46", stroke: "#1f5a31" },
   boulder: { fill: "#8a8f96", stroke: "#5f656d" },
+  chest: { fill: "#a0722f", stroke: "#5c3d14" },
 };
 
 const FILL_ALPHA = 0.34;
@@ -66,9 +67,9 @@ export function paintDressing(painter, props,
         });
       }
     }
-    // The line an author dragged, over the band it implies — a path and a water channel are edited as their
+    // The line an author dragged, over the band it implies — a path and a fluid channel are edited as their
     // route, so the route has to stay visible inside its own band.
-    if ((prop.kind === "stroke" || prop.kind === "water") && (prop.points?.length ?? 0) >= 2) {
+    if ((prop.kind === "stroke" || prop.kind === "fluid") && (prop.points?.length ?? 0) >= 2) {
       const curve = strokePath(prop);
       const runs = [];
       for (let i = 1; i < curve.length; i++)
@@ -95,7 +96,7 @@ export function paintDressingPreview(painter, kind, points, radius) {
     if (rect.length >= 3) painter.ring(rect, style);
     return;
   }
-  const ring = (kind === "stroke" || kind === "water") ? strokeRing({ points, radius }) : [...points, points[0]];
+  const ring = (kind === "stroke" || kind === "fluid") ? strokeRing({ points, radius }) : [...points, points[0]];
   if (ring.length >= 3) painter.ring(ring.slice(0, -1), style);
 }
 
@@ -117,7 +118,7 @@ function footprints(prop, image, mirrorPoint, styles) {
     const [ax, az] = mirror(...propAnchor(prop));
     return [disc(ax, az, propReach(prop, styles))];
   }
-  if (prop.kind === "stroke" || prop.kind === "water") {
+  if (prop.kind === "stroke" || prop.kind === "fluid") {
     const ring = strokeRing(prop);
     return [ring.length ? ring.slice(0, -1).map(([x, z]) => mirror(x, z)) : []];
   }

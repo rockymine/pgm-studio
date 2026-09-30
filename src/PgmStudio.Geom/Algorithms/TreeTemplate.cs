@@ -11,6 +11,9 @@ public enum CanopyProfile
     Cone,
     /// <summary>Three courses of a wide flat disc sitting on a leaning trunk: an acacia.</summary>
     Umbrella,
+    /// <summary>A low, wide dome held up by four short arms, with curtains of leaves hanging from its rim most
+    /// of the way to the ground: a willow.</summary>
+    Weeping,
 }
 
 /// <summary>A vanilla tree's proportions: a trunk of a known height under a canopy of a known shape, which is
@@ -37,8 +40,9 @@ public sealed record TemplateTree(
 /// <summary>
 /// Builds the vanilla tree — trunk column, canopy of a named profile.
 ///
-/// <para>A species is a radius table rather than a code path, so the six silhouettes a picker draws are the six
-/// it builds: a notched conifer and a flat acacia umbrella are rows, not knobs.</para>
+/// <para>A species is a radius table rather than a code path, so the silhouettes a picker draws are the ones
+/// it builds: a notched conifer and a flat acacia umbrella are rows, not knobs. A weeping crown is the one
+/// profile that is more: its curtains hang from the dome rather than being a course of it.</para>
 ///
 /// <para>Every irregularity is hash-keyed off the seed, never RNG, so a seed always builds the same tree —
 /// the discipline the whole dressing stage holds so a map re-exports identically.</para>
@@ -48,6 +52,10 @@ public static class TreeTemplate
     /// <summary>How ragged a canopy's outer surface is: the fraction of a block the edge is pushed in or out
     /// by. A canopy cut at exactly its radius is a geometric solid and reads as one.</summary>
     private const double EdgeBite = 0.9;
+
+    /// <summary>The share of a weeping crown's rim that hangs no curtain. Every rim column hanging one is a
+    /// block of leaves standing on the ground; a fifth left open is what reads as strands.</summary>
+    private const double CurtainGap = 0.2;
 
     /// <summary>Build the tree with its foot at the origin and its trunk running up +Y.</summary>
     public static TemplateTree Build(TemplateShape shape, uint seed)
@@ -79,7 +87,41 @@ public static class TreeTemplate
                 leaves.Add((x, y, z));
             }
         }
+        if (shape.Profile == CanopyProfile.Weeping) Weep(wood, leaves, woodAt, trunkTop, fromCourse, radii, seed);
         return new TemplateTree(wood, leaves);
+    }
+
+    /// <summary>What makes a crown weep: four arms out of the trunk's top holding the dome up, and a curtain
+    /// hanging from every rim column of its widest course but <see cref="CurtainGap"/> of them, from under the
+    /// column's lowest leaf down to a hashed course between the ground's first and four under the trunk's top.
+    /// The arms rise a course a block, the way a limb carries a crown rather than a shelf.</summary>
+    private static void Weep(List<(int X, int Y, int Z)> wood, List<(int X, int Y, int Z)> leaves,
+        HashSet<(int X, int Y, int Z)> woodAt, int trunkTop, int fromCourse, IReadOnlyList<double> radii, uint seed)
+    {
+        var widest = 0;
+        for (var course = 1; course < radii.Count; course++) if (radii[course] > radii[widest]) widest = course;
+        var reach = Math.Max(1, (int)Math.Round(radii[widest] * 0.4));
+        foreach (var (dx, dz) in (ReadOnlySpan<(int, int)>)[(1, 0), (-1, 0), (0, 1), (0, -1)])
+            for (var step = 1; step <= reach; step++)
+            {
+                var arm = (dx * step, trunkTop - 1 + (step - 1), dz * step);
+                if (woodAt.Add(arm)) wood.Add(arm);
+            }
+        leaves.RemoveAll(woodAt.Contains);
+
+        var rimY = trunkTop + fromCourse + widest;
+        var lowest = new Dictionary<(int X, int Z), int>();
+        foreach (var (x, y, z) in leaves)
+            lowest[(x, z)] = Math.Min(lowest.GetValueOrDefault((x, z), int.MaxValue), y);
+        var hung = new HashSet<(int X, int Y, int Z)>(leaves);
+        foreach (var (x, y, z) in leaves.ToList())
+        {
+            if (y != rimY || Math.Sqrt(x * x + z * z) <= radii[widest] - 2) continue;
+            if (PatternNoise.Unit(x, 0, z, seed ^ 0x57EEu) < CurtainGap) continue;
+            var low = 1 + (int)(PatternNoise.Unit(x, 1, z, seed ^ 0x57EEu) * Math.Max(1, trunkTop - 4));
+            for (var hang = lowest[(x, z)] - 1; hang >= low; hang--)
+                if (!woodAt.Contains((x, hang, z)) && hung.Add((x, hang, z))) leaves.Add((x, hang, z));
+        }
     }
 
     /// <summary>The trunk: one column, or four for a wide trunk, leaning as it rises.
@@ -125,6 +167,7 @@ public static class CanopyProfiles
     {
         CanopyProfile.Cone => (-(int)Math.Round(radius * 0.35), Cone(radius)),
         CanopyProfile.Umbrella => (0, [radius * 0.72, radius, radius * 0.72]),
+        CanopyProfile.Weeping => (-1, Dome(radius)),
         _ => (-(int)Math.Round(radius * 0.5), Ellipsoid(radius)),
     };
 
@@ -156,6 +199,24 @@ public static class CanopyProfiles
             var along = (double)i / courses * (CrownWidths.Length - 1);
             var step = Math.Min((int)along, CrownWidths.Length - 2);
             radii[i] = radius * (CrownWidths[step] + (CrownWidths[step + 1] - CrownWidths[step]) * (along - step));
+        }
+        return radii;
+    }
+
+    /// <summary>A weeping crown's dome, as fractions of its radius: wide at once and flat on top, over fewer
+    /// courses than a rounded crown of the same reach, since the curtains rather than the dome carry its
+    /// height.</summary>
+    private static readonly double[] DomeWidths = [0.85, 1.0, 0.92, 0.6];
+
+    private static IReadOnlyList<double> Dome(double radius)
+    {
+        var courses = Math.Max(3, (int)Math.Round(radius * 0.8));
+        var radii = new double[courses + 1];
+        for (var i = 0; i <= courses; i++)
+        {
+            var along = (double)i / courses * (DomeWidths.Length - 1);
+            var step = Math.Min((int)along, DomeWidths.Length - 2);
+            radii[i] = radius * (DomeWidths[step] + (DomeWidths[step + 1] - DomeWidths[step]) * (along - step));
         }
         return radii;
     }

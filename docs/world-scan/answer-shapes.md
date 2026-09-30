@@ -87,7 +87,7 @@ speaks to it, the shape that gate speaks in, and the read that shows it as a thi
 | a path that does not work | `EL1` and `SP8` on the seams between pieces | a step size per seam | the same route profile: rises, falls, the worst step and where, along the cells a player actually walks |
 | many themes mashed together | nothing; `render/surface` counts tone families in a legend baked into a PNG | a picture | a theme census — cells per theme, distinct materials, which theme borders which — which no read answers yet |
 | a spawn platform raised, and a stair that makes no geometric sense | `SP8` on the egress, `WX11` on a foundation face | a step size, one coordinate | a transect through the spawn along both axes with eight blocks of overshoot, where a platform standing five over the ground beside it is `+5` at a coordinate — the driver's `transect-spawn-*.txt` |
-| a pit with a puddle at the bottom | nothing | — | a transect through the water prop's own box: `BARRIER +8 at (-52, 0)` |
+| a pit with a puddle at the bottom | nothing | — | a transect through the fluid prop's own box: `BARRIER +8 at (-52, 0)` |
 
 Every one of these is a claim about a **shape** — a bank, a wall, a slope, a stair, a basin — and a shape is
 a profile, never a point. A single column answers what is at a coordinate; a render answers what a place
@@ -98,7 +98,7 @@ looks like; only a run of columns with the steps between them named answers whet
 The driver writes the board as text beside every picture, each file the API's own `?format=text` answer
 (`tools/render/textreads.py`): the heightmap with the houses, water, spawns and goals overprinted; the slope
 grid; the two axis sections with `#` ground, `L` a storey, `~` liquid, `H` a hall, `M` a made thing; a
-transect along x and along z through every spawn, goal, house, water prop, boulder and made thing, its box
+transect along x and along z through every spawn, goal, house, fluid prop, boulder and made thing, its box
 taken from the documents and padded eight blocks each side, with what stands within two cells of the line;
 the profile along each team's walk to each goal with what stands beside it; the theme census; and the
 dressing pass's claims. What the driver decides is the extent, and nothing else. The summaries print inline
@@ -120,7 +120,7 @@ the tasks that delivered them.
 - **A section and a transect as text and as numbers** (`WS19`). `render/section?format=text` answers the
   same cut as characters — `#` ground below the surface course, `L` a storey, every claim by its pass — with
   a y axis, a ruler and the ground's height band under each column. `transect?points=x,z;x,z…` walks any
-  polyline and answers each station's ground, the storey stood on, the water, the top, what stands there and
+  polyline and answers each station's ground, the storey stood on, the fluid line, the top, what stands there and
   the step from the station before, classed walked, scrambled, barrier or drop, with the totals and every
   non-walk step as an event; `beside=N` lists what stands within N cells. JSON beside the text, so a tool
   sums and a reader reads. Every height is the first free course above a block, so two subtract to blocks.
@@ -134,7 +134,7 @@ the tasks that delivered them.
   actually cut off from the board is a different question and a different rule's; a component carrying a
   marker is left out of this reading for that reason.
 - **A heightmap and a slope grid as text** (`WS20`). `render/heightmap?format=text&every=N` answers the
-  height band per cell with the spawns, goals, houses and water overprinted; `slopes` answers the worst
+  height band per cell with the spawns, goals, houses and fluids overprinted; `slopes` answers the worst
   step to a neighbour per cell — `.` walked, `:` scrambled, `#` a barrier — and names the barrier runs as
   faces, largest first, which is where an overdone relief is.
 - **The walk with its profile and its neighbours** (`WS21`). `walk` answers, beside its cells, the storey it

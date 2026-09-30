@@ -58,8 +58,8 @@ public sealed class TerrainLibraryClient(HttpClient http)
     private static string Card(string route, string field, string? json)
         => string.IsNullOrEmpty(json) ? route : $"{route}?{field}={Uri.EscapeDataString(json)}";
 
-    public async Task<IReadOnlyList<PropOptionDto>> WaterFormsAsync()
-        => await GetOrDefault<List<PropOptionDto>>("api/terrain/water-forms") ?? [];
+    public async Task<IReadOnlyList<PropOptionDto>> FluidFormsAsync()
+        => await GetOrDefault<List<PropOptionDto>>("api/terrain/fluid-forms") ?? [];
 
     public async Task<IReadOnlyList<PropOptionDto>> SpeciesAsync()
         => await GetOrDefault<List<PropOptionDto>>("api/terrain/species") ?? [];

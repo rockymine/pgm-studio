@@ -116,9 +116,9 @@ public static class TerrainPreview
         foreach (var (cell, top) in surface)
         {
             if (profile.TryGetColumn(cell, out var column) && !column.Structure
-                && TerrainPainter.TopBlock(cell.X, cell.Z, column,
-                       themeAt(topLayer.GetValueOrDefault(cell, ""), cell.X, cell.Z),
-                       teamAt(cell.X, cell.Z), ground: profile.Ground) is { } painted)
+                && themeAt(topLayer.GetValueOrDefault(cell, ""), cell.X, cell.Z) is var paint
+                && TerrainPainter.TopBlock(cell.X, cell.Z, column, paint.Theme,
+                       teamAt(cell.X, cell.Z), ground: profile.Ground, turn: paint.Turn) is { } painted)
             {
                 cells.Add(new SurfaceCell(cell.X, cell.Z, painted.Id, painted.Data));
                 continue;

@@ -564,8 +564,8 @@ public sealed class DestroyablePlacement : IPlanMarker
     /// which is what lets a goal stand on ground that exists only as an authored sketch shape.</summary>
     [JsonPropertyName("piece")]     public string Piece { get; set; } = "";
 
-    /// <summary>Where it stands, as an <c>[x, z]</c> offset in half-blocks: from the piece's minimum corner
-    /// where one is named, and from the symmetry centre where none is.</summary>
+    /// <summary>Where it stands, as an <c>[x, z]</c> offset in blocks on the half-block lattice: from the
+    /// piece's minimum corner where one is named, and from the symmetry centre where none is.</summary>
     [JsonPropertyName("at")]        public double[] At { get; set; } = [0, 0];
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a goal stated for a hall lands on the deck roofing it unless it says which layer it
@@ -607,8 +607,8 @@ public sealed class CorePlacement : IPlanMarker
     /// which is what lets a goal stand on ground that exists only as an authored sketch shape.</summary>
     [JsonPropertyName("piece")]    public string Piece { get; set; } = "";
 
-    /// <summary>Where it stands, as an <c>[x, z]</c> offset in half-blocks: from the piece's minimum corner
-    /// where one is named, and from the symmetry centre where none is.</summary>
+    /// <summary>Where it stands, as an <c>[x, z]</c> offset in blocks on the half-block lattice: from the
+    /// piece's minimum corner where one is named, and from the symmetry centre where none is.</summary>
     [JsonPropertyName("at")]       public double[] At { get; set; } = [0, 0];
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a goal stated for a hall lands on the deck roofing it unless it says which layer it

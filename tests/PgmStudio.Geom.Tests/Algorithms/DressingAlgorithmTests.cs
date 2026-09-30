@@ -180,7 +180,7 @@ public sealed class DressingAlgorithmTests
     {
         // The whole reason water needs its own carve rather than the path's flat repaint: the fill has to sit
         // in a U, so the deepest cut is on the line the author drew and it rises to a single block at the shore.
-        var cells = WaterBed.Cells(Straight, radius: 4, depth: 4, ChannelForm.Canal, edge: 0, seed: 5).ToList();
+        var cells = FluidBed.Cells(Straight, radius: 4, depth: 4, ChannelForm.Canal, edge: 0, seed: 5).ToList();
         await Assert.That(cells).IsNotEmpty();
 
         // Somewhere along the run, the centerline is cut to the full depth and the band's outermost cells to one.
@@ -202,7 +202,7 @@ public sealed class DressingAlgorithmTests
     public async Task A_deeper_channel_cuts_a_deeper_centerline()
     {
         int Centre(double depth)
-            => WaterBed.Cells(Straight, radius: 3, depth, ChannelForm.Canal, edge: 0, seed: 5).Where(cell => cell.Z == 20).Max(cell => cell.Depth);
+            => FluidBed.Cells(Straight, radius: 3, depth, ChannelForm.Canal, edge: 0, seed: 5).Where(cell => cell.Z == 20).Max(cell => cell.Depth);
 
         await Assert.That(Centre(6)).IsGreaterThan(Centre(2));
     }
@@ -214,7 +214,7 @@ public sealed class DressingAlgorithmTests
         // its width pinches to half the radius and swells back on a fixed beat down the run, and never exceeds
         // the nominal width. A canal holds one width the whole way. The half-width per column across the run is
         // what shows it, on the interior columns so an end-cap disc doesn't read as a pinch.
-        List<int> HalfWidths(ChannelForm form) => [.. WaterBed.Cells(Straight, radius: 5, depth: 4, form, edge: 0, seed: 5)
+        List<int> HalfWidths(ChannelForm form) => [.. FluidBed.Cells(Straight, radius: 5, depth: 4, form, edge: 0, seed: 5)
             .Where(cell => cell.X is >= 10 and <= 30).GroupBy(cell => cell.X).OrderBy(group => group.Key)
             .Select(group => group.Max(cell => Math.Abs(cell.Z - 20)))];
 
@@ -231,38 +231,38 @@ public sealed class DressingAlgorithmTests
     {
         // The other half of the prototype's stream: it runs shallow throughout, a whole length of riffle.
         int Deepest(ChannelForm form)
-            => WaterBed.Cells(Straight, radius: 5, depth: 6, form, edge: 0, seed: 5).Max(cell => cell.Depth);
+            => FluidBed.Cells(Straight, radius: 5, depth: 6, form, edge: 0, seed: 5).Max(cell => cell.Depth);
         await Assert.That(Deepest(ChannelForm.Stream)).IsLessThan(Deepest(ChannelForm.Canal));
     }
 
     [Test]
     public async Task The_same_channel_carves_the_same_bed()
     {
-        var one = WaterBed.Cells(Straight, radius: 3, depth: 3, ChannelForm.Natural, edge: 0.8, seed: 5).ToList();
-        var two = WaterBed.Cells(Straight, radius: 3, depth: 3, ChannelForm.Natural, edge: 0.8, seed: 5).ToList();
+        var one = FluidBed.Cells(Straight, radius: 3, depth: 3, ChannelForm.Natural, edge: 0.8, seed: 5).ToList();
+        var two = FluidBed.Cells(Straight, radius: 3, depth: 3, ChannelForm.Natural, edge: 0.8, seed: 5).ToList();
         await Assert.That(one).IsEquivalentTo(two);
     }
 
     [Test]
-    public async Task The_beach_lies_just_outside_the_water_never_on_it()
+    public async Task The_beach_lies_just_outside_the_fluid_never_on_it()
     {
         // The shore rides just past the water edge — none of its cells are ones the bed carves — so where a
         // channel's width pinches or swells the beach rides in and out with it (one shore law, the water drives).
-        var water = WaterBed.Cells(Straight, radius: 4, depth: 3, ChannelForm.Stream, edge: 0.8, seed: 5)
+        var water = FluidBed.Cells(Straight, radius: 4, depth: 3, ChannelForm.Stream, edge: 0.8, seed: 5)
             .Select(cell => (cell.X, cell.Z)).ToHashSet();
-        var shore = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Stream, shoreWidth: 3, edge: 0.8, wander: true, seed: 5).ToList();
+        var shore = FluidBed.ShoreCells(Straight, radius: 4, ChannelForm.Stream, shoreWidth: 3, edge: 0.8, wander: true, seed: 5).ToList();
 
         await Assert.That(shore).IsNotEmpty();
         await Assert.That(shore.Any(cell => water.Contains(cell))).IsFalse();
     }
 
     [Test]
-    public async Task The_beach_wraps_the_water_symmetrically_rather_than_drifting_onto_one_bank()
+    public async Task The_beach_wraps_the_fluid_symmetrically_rather_than_drifting_onto_one_bank()
     {
         // The fix for a beach that read as a shifted gravel path: the width is parameterised along the arc, so at
         // each x down a straight run both banks carry the same beach — the outer beach edge is as far above the
         // water as below it. A per-cell spatial field would open one bank and close the other.
-        var shore = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Canal, shoreWidth: 3, edge: 0, wander: true, seed: 5).ToList();
+        var shore = FluidBed.ShoreCells(Straight, radius: 4, ChannelForm.Canal, shoreWidth: 3, edge: 0, wander: true, seed: 5).ToList();
         var lopsided = 0;
         foreach (var column in shore.GroupBy(cell => cell.X))
         {
@@ -278,7 +278,7 @@ public sealed class DressingAlgorithmTests
     {
         // Wander off: the beach is a clean band of the full width hugging the water on both banks — every column
         // the water crosses carries the same beach above and below, with no drop-outs.
-        var even = WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Canal, shoreWidth: 3, edge: 0, wander: false, seed: 5).ToList();
+        var even = FluidBed.ShoreCells(Straight, radius: 4, ChannelForm.Canal, shoreWidth: 3, edge: 0, wander: false, seed: 5).ToList();
         foreach (var column in even.Where(cell => cell.X is >= 12 and <= 28).GroupBy(cell => cell.X))
         {
             var above = column.Count(cell => cell.Z > 20);
@@ -291,6 +291,6 @@ public sealed class DressingAlgorithmTests
     [Test]
     public async Task No_beach_width_is_no_beach()
     {
-        await Assert.That(WaterBed.ShoreCells(Straight, radius: 4, ChannelForm.Natural, shoreWidth: 0, edge: 0.8, wander: true, seed: 5)).IsEmpty();
+        await Assert.That(FluidBed.ShoreCells(Straight, radius: 4, ChannelForm.Natural, shoreWidth: 0, edge: 0.8, wander: true, seed: 5)).IsEmpty();
     }
 }

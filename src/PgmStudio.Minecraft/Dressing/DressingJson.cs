@@ -189,8 +189,46 @@ public static class DressingJson
         TreeProp tree => tree with { Style = Recipe<TreeStyle>(styles, tree.StyleKey, subject) },
         BoulderProp boulder => boulder with { Style = Recipe<BoulderStyle>(styles, boulder.StyleKey, subject) },
         HouseProp house => house with { Style = Recipe<HouseStyleRef>(styles, house.StyleKey, subject).Shell },
+        ChestProp chest => Checked(chest, subject),
         _ => prop,
     };
+
+    /// <summary>A chest's contents, refused where the game could not hold them: more stacks than a chest has
+    /// slots, a slot outside it or taken twice, an empty item, a count outside a stack, and an enchantment
+    /// neither PGM nor the game names.</summary>
+    private static ChestProp Checked(ChestProp chest, string subject)
+    {
+        if (chest.Items.Count > ChestItem.Slots)
+            throw new DressingParseException(subject, "items",
+                $"states {chest.Items.Count} stacks, and a chest holds {ChestItem.Slots}");
+        if (chest.Y is { } y && (y < 1 || y >= Anvil.VoxelWorld.MaxHeight - 1))
+            throw new DressingParseException(subject, "y", $"is {y}, outside the world's courses 1–{Anvil.VoxelWorld.MaxHeight - 2}");
+        var slots = new HashSet<int>();
+        for (var index = 0; index < chest.Items.Count; index++)
+        {
+            var item = chest.Items[index];
+            var field = $"items[{index}]";
+            if (item.Item.Trim().Length == 0)
+                throw new DressingParseException(subject, $"{field}.item", "names no item");
+            if (item.Count is < 1 or > 64)
+                throw new DressingParseException(subject, $"{field}.count", $"is {item.Count}; a stack is 1 to 64");
+            if (item.Slot is { } slot && (slot < 0 || slot >= ChestItem.Slots))
+                throw new DressingParseException(subject, $"{field}.slot", $"is {slot}; a chest's slots are 0 to {ChestItem.Slots - 1}");
+            if (item.Slot is { } stated && !slots.Add(stated))
+                throw new DressingParseException(subject, $"{field}.slot", $"is {stated}, which another stack already takes");
+            for (var at = 0; at < item.Enchantments.Count; at++)
+            {
+                var enchantment = item.Enchantments[at];
+                if (Stamping.ChestBuilder.EnchantmentId(enchantment.Name) is null)
+                    throw new DressingParseException(subject, $"{field}.enchantments[{at}].name",
+                        $"is '{enchantment.Name}', which neither PGM nor the game names — power, sharpness, efficiency, "
+                        + "protection and their kin, or the game's number");
+                if (enchantment.Level < 1)
+                    throw new DressingParseException(subject, $"{field}.enchantments[{at}].level", $"is {enchantment.Level}; a level is 1 or more");
+            }
+        }
+        return chest;
+    }
 
     private static TStyle Recipe<TStyle>(
         Dictionary<string, PropStyle> styles, string key, string subject) where TStyle : PropStyle, new()

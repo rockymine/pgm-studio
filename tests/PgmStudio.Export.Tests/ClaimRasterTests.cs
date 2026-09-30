@@ -99,7 +99,7 @@ public sealed class ClaimRasterTests
     }
 
     [Test]
-    [Arguments("water", ProvenancePass.Prop, '1')]
+    [Arguments("fluid", ProvenancePass.Prop, '1')]
     [Arguments("stroke", ProvenancePass.Prop, '2')]
     [Arguments("tree", ProvenancePass.Prop, '4')]
     [Arguments("boulder", ProvenancePass.Prop, '5')]

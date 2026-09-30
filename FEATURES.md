@@ -8176,6 +8176,50 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   showcase and carries the name onto the copied trees already stored in maps.
   `docs/world-export/sketch-world-export.md` §4a. (`WE145`)
 
+- **A copied tree is named for what it is (`TL31`)** — `tools/seed-trees.cs` files each tree as `<kind>-<n>`,
+  the kind being the author's statement for its row in the world's `kinds.json` and the count running through
+  every row of that kind, and matches a library row by its cut rather than its name, so a relabel renames. The
+  showcase's 84 trees are `willow-1`…`5`, `sequoia-1`, `oak-1`…`10` and their kin where they were
+  `tree-showcase-r<row>-<n>`, and `M0049` renames the rows already stored. `docs/tools/library.md`. (`TL31`)
+
+- **A willow is a template tree (`WE153`)** — the seventh species: dark-oak bark under oak leaves, as the
+  author's own willows are built, a low dome held up by four short arms, and curtains hanging from every rim
+  column of the dome's widest ring but a fifth of them, most of the way to the ground (`CanopyProfile.Weeping`).
+  At its natural 11 blocks it is an 8-course trunk under a dome ten across; the library seeds it as `willow`.
+  `docs/world-export/decoration.md` §6. (`WE153`)
+
+- **A body of water may be lava (`WE147`)** — the prop is kind `fluid` and states `fluid: water|lava`, water
+  unstated (`M0050` carried every stored `water` prop to the new kind); the carve,
+  the line, the bowl and the bank are the same and lava is written stationary. The walk takes a lava run as a
+  prop's volume — never stood in, and roofing the bed under it — where water stays ground swum at twice the
+  walk. The Dressing inspector offers the two. `docs/world-export/decoration.md` §7. (`WE147`)
+
+- **Dead bushes and cacti in the flora (`WE150`)** — a flora area grows dead bushes on sand, clay and dirt at
+  `deadBushShare` and cacti on sand at `cactusShare`, each cactus one to four blocks tall, cut short where a
+  side stops being open, and never beside another; grass, fern and flowers grow only on grass and dirt, the
+  ground a 1.8 bush stays on, so sand, gravel and mycelium no longer carry cover that drops at the first
+  update. The Dressing inspector offers both shares. `docs/world-export/decoration.md` §3. (`WE150`)
+
+- **The eye draws what stands on the ground (`WS79`)** — `render/eye` draws torches and redstone torches as
+  crossed sprites, redstone wire as a floor sheet tinted by its power the way the game tints it, ladders on the
+  face they hang from, carpets, vines and lily pads, and chests — plain, trapped and ender — as the inset box
+  cut from the game's own chest texture with the front where the chest faces. A sheet a sixteenth thick is
+  drawn but neither stood on nor blocks a sight line. `docs/world-scan/read-backs.md`. (`WS79`)
+
+- **A layer fanned onto its images turns its blocks with it (`WE146`)** — each cell a fanned shape paints
+  carries the orbit image that won it, and what a material states — a ladder's side, a stair's climb, a log's
+  axis, a torch, a chest, a fence gate — turns through `BlockGeometry.Turned` by that image's transform:
+  reflected under `mirror_x` and `mirror_z`, reversed under `rot_180`, a quarter turn per image under
+  `rot_90`. A direction a material reads off the ground itself, as a laid log reads its wall, is not turned
+  again. `docs/tools/sketch.md` § A made thing; `docs/world-export/terrain-painting.md` §5. (`WE146`)
+
+- **A chest holding what its author lists (`WE151`)** — a `chest` prop names a cell, a facing and up to 27
+  stacks — a 1.8 item id, a count, a damage and enchantments by PGM's names or the game's numbers — each
+  stating a slot or filling the next free one. It stands on the ground as a placed prop, or at a stated `y` on
+  whatever holds it up, and is fanned with each image fronting its own turn. Every chest in a built world —
+  the prop's, a wall's defence chests, a wool room's corners — is set by `ChestBuilder.Place`. The Dressing
+  phase places one with a click and lists its stacks in the inspector. `docs/world-export/decoration.md` §8a. (`WE151`)
+
 - **Notes on a map, and the threads under them (`TS115`)** — an admin leaves a note in the In game phase, pinned
   to the whole map or to the picture in view, with an optional tag (`look`, `terrain`, `gameplay`, `studio`,
   `ruling`); an agent answers in its thread, and only the author resolves it. A thread is `open` (waiting on an
@@ -8782,6 +8826,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `opus5-quadrangle`'s `wool-b-n`↔`spawn-room` reads 5 blocks (6 in the built world), and the composer's own
   floor is two cells — 8 blocks at the default scale, which `G264` is for. Composer output is unmoved: the
   determinism gate reads 72 boards, 0 moved.
+
+- **A browser save keeps the groups nobody edited (`TS120`).** The editor settles a layer's groups against
+  the ones it was loaded with (`settleGroups`, `boolean.js`): a loaded group keeps its id, name, `mirrors` and
+  `shapeIds` until one of its shapes changes outline or is deleted, or a new or reshaped shape overlaps one,
+  and only a touched group is regrouped from the geometry. A group over pieces that do not touch, and a shape
+  held unfanned in a group of its own over the island it stands on, survive a save made anywhere else on the
+  board. Evidence: on Sootcombe the mid stone came back as `isl_1790704492818_1`, leaving its relief on `team`
+  covering nothing, and `archer-ladder-0` fused into a mirroring `Group 2` — the old load path reproduces both
+  on the same shapes. `docs/tools/sketch.md` § Groups and layers. (`TS120`)
 
 - **A group that declines the fan off the symmetry centre is named (`TS108`, `SK28`).** The orbit is fanned
   per group, so `mirrors: false` builds a group's shapes once. That is the right statement for a landmark

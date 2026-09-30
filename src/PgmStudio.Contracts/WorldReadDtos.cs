@@ -9,7 +9,7 @@ namespace PgmStudio.Contracts;
 /// <param name="Ground">The terrain's own recorded height, null over void.</param>
 /// <param name="Surface">The top of the highest rasterized span at the cell, whatever layer drew it — the
 /// storey a walker actually stands on, equal to <see cref="Ground"/> on a flat board.</param>
-/// <param name="Water">The course above the highest liquid in the column, or null where it holds none.</param>
+/// <param name="Fluid">The course above the highest water or lava in the column, or null where it holds none.</param>
 /// <param name="Top">The course above the highest block of any kind in the column — what stands there reaches
 /// up to it.</param>
 /// <param name="Standing">The claim a walker stands on, as <c>"&lt;kind&gt; &lt;unit&gt;"</c>
@@ -20,7 +20,7 @@ namespace PgmStudio.Contracts;
 /// <param name="Word">What <see cref="Step"/> reads as: <c>walk</c>, <c>scramble</c>, <c>barrier</c> or
 /// <c>drop</c> the way <c>PgmStudio.Geom.Walk.StepWord</c> classes every step in the studio, or <c>void</c>
 /// where there is no ground.</param>
-public sealed record TransectStationDto(int X, int Z, int? Ground, int? Surface, int? Water, int? Top,
+public sealed record TransectStationDto(int X, int Z, int? Ground, int? Surface, int? Fluid, int? Top,
     string? Standing, int? Step, string Word);
 
 /// <summary>One claim found within reach of a walked line — the first cell it was met at.</summary>
@@ -112,8 +112,8 @@ public sealed record WalkStepDto(int X, int Z, int Rise, string Word);
 
 /// <summary>One thing standing within a stated distance of a route: the provenance record's own claim, the
 /// first cell it was met at, and how far that cell is from the nearest cell the route passes through.</summary>
-/// <param name="Kind">What stands there — a tree, a boulder, a house, water, a spawn, a goal, wool or an
-/// iron cube.</param>
+/// <param name="Kind">What stands there — a tree, a boulder, a house, a fluid, a spawn, a goal, wool or
+/// an iron cube.</param>
 /// <param name="Unit">Which one, the claim's own identity.</param>
 /// <param name="Image">Which image of that unit's orbit this is.</param>
 /// <param name="X">Where the first cell it was met at stands, east–west.</param>
