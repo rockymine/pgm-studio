@@ -390,7 +390,7 @@ public sealed class AccessTests
     }
 
     [Test]
-    public async Task Loading_documents_over_someone_elses_map_is_refused_and_leaves_it_alone()
+    public async Task A_source_over_someone_elses_map_is_refused_and_leaves_it_alone()
     {
         await ApiTestFactory.ResetSchemaAsync();
         await WhitelistAsync(Owner, "member");
@@ -401,12 +401,11 @@ public sealed class AccessTests
         var before = await ScalarAsync($"SELECT id FROM map WHERE slug = '{slug}'");
 
         using var stranger = InvitedFactory.As(Stranger);
-        using var refused = await stranger.PostAsJsonAsync("/api/map/from-documents", new
+        using var refused = await stranger.PutAsJsonAsync($"/api/map/{slug}/source", new
         {
             plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse("""{"layers":[]}""").RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"}}""").RootElement,
-            slug,
         });
         await AssertRefusedAsync(refused, HttpStatusCode.Forbidden, "RQ8");
         await Assert.That(await ScalarAsync($"SELECT id FROM map WHERE slug = '{slug}'")).IsEqualTo(before);

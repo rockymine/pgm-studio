@@ -32,7 +32,7 @@ public sealed class ExportWarningsTests
     private static async Task<string> DressedMapAsync(HttpClient client, string name)
     {
         var compile = await client.PostAsync("/api/plan/compile",
-            new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
+            new StringContent(Seeds.Read("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
         await Assert.That(compile.IsSuccessStatusCode).IsTrue().Because(await compile.Content.ReadAsStringAsync());
         var compiled = await compile.Content.ReadFromJsonAsync<JsonElement>();
 
@@ -123,7 +123,7 @@ public sealed class ExportWarningsTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var compile = await client.PostAsync("/api/plan/compile",
-            new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
+            new StringContent(Seeds.Read("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
         var compiled = await compile.Content.ReadFromJsonAsync<JsonElement>();
 
         var create = await client.PostAsJsonAsync("/api/sketch", new { name = "Clean Export" });
@@ -163,17 +163,5 @@ public sealed class ExportWarningsTests
             .Because($"the region files are at the top: {string.Join(", ", names)}");
         await Assert.That(names.Any(name => name.StartsWith($"{slug}/", StringComparison.Ordinal))).IsFalse()
             .Because($"nothing is nested under the slug: {string.Join(", ", names)}");
-    }
-
-    private static string ReadSeed(string file)
-    {
-        var dir = AppContext.BaseDirectory;
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir, "tools", "seeds", file);
-            if (File.Exists(candidate)) return File.ReadAllText(candidate);
-            dir = Directory.GetParent(dir)?.FullName;
-        }
-        throw new FileNotFoundException($"seed not found: {file}");
     }
 }

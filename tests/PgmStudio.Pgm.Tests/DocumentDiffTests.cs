@@ -49,6 +49,21 @@ public sealed class DocumentDiffTests
     }
 
     [Test]
+    public async Task A_member_stated_as_null_is_the_member_left_out()
+    {
+        var nulled = Edited(root => { root["biome"] = null; root["roomStyles"] = null; });
+        var dropped = Edited(root => root.Remove("dressing"));
+        var nulledOut = Edited(root => root["dressing"] = null);
+
+        await Assert.That(Diff(nulled)).IsEmpty()
+            .Because("a reader takes null and an absent member for the same value");
+        await Assert.That(DocumentDiff.Between(MapDocuments.Layout, nulled, Layout)).IsEmpty();
+        await Assert.That(Diff(nulledOut).Select(edit => (edit.Path, edit.Op)))
+            .IsEquivalentTo(Diff(dropped).Select(edit => (edit.Path, edit.Op)));
+        await Assert.That((await Only(Diff(nulledOut), "dressing")).Op).IsEqualTo(DocumentEdit.Remove);
+    }
+
+    [Test]
     public async Task A_shape_inserted_ahead_of_the_others_is_one_add_and_nothing_else()
     {
         var after = Edited(root => Shapes(root).Insert(0, JsonNode.Parse(

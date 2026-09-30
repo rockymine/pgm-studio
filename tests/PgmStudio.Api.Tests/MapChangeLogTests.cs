@@ -133,7 +133,7 @@ public sealed class MapChangeLogTests
     public async Task A_note_longer_than_a_change_keeps_is_refused_before_anything_is_stored()
     {
         using var client = await FreshAsync();
-        using var refused = await client.PostAsJsonAsync("/api/map/from-documents", Body(note: new string('x', 1001)));
+        using var refused = await client.PutAsJsonAsync("/api/map/weirgate/source", Body(note: new string('x', 1001)));
 
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
         var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
@@ -143,7 +143,7 @@ public sealed class MapChangeLogTests
 
     private static async Task LoadAsync(HttpClient client, object body)
     {
-        using var loaded = await client.PostAsJsonAsync("/api/map/from-documents", body);
+        using var loaded = await client.PutAsJsonAsync("/api/map/weirgate/source", body);
         await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
     }
 

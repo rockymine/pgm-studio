@@ -77,8 +77,8 @@ public sealed class SketchMaterialGateTests
         await Assert.That(await RefusedAsync(
             await client.PutAsync("/api/map/gate/sketch/from-plan", Body(LogVerge)))).IsEqualTo("HS3");
 
-        // 3 · the one-call load — the road a headless author stores a whole map through
-        var loaded = await client.PostAsJsonAsync("/api/map/from-documents", new
+        // 3 · the source — the road a headless author stores a whole map through
+        var loaded = await client.PutAsJsonAsync("/api/map/gate-two/source", new
         {
             plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(LogVerge).RootElement,

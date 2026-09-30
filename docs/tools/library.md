@@ -659,7 +659,7 @@ wherever else a `HouseStyle` snapshot enters the studio: a stored sketch's bound
 `roomStyles.spawn` and the shell of every building in its `dressing` (`docs/tools/sketch.md`'s Refusals) — the
 wool cage, the spawn and a placed house checked identically, since none of the three asks for a different
 rule, and there against the build ceiling as well (`WX10`, `docs/world-export/structures.md`). All three roads
-to a stored layout ask it: the plain `PUT …/sketch`, `PUT …/sketch/from-plan`, and `POST /map/from-documents`. Every style finding names one of three stable
+to a stored layout ask it: the plain `PUT …/sketch`, `PUT …/sketch/from-plan`, and `PUT …/source`. Every style finding names one of three stable
 rule ids (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` rather than parsing
 `message`:
 

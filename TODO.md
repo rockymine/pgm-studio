@@ -22,20 +22,6 @@ it.
 
 ### A map is its source and every change to it
 
-- [ ] **RP91 — The finish becomes a studio document, the refinement, and one route stores a map from its
-  source.** `pgm-studio-mapgen/tools/drive.py` applies the finish to the compiled documents in Python
-  (`patch_layout`, `patch_intent`), stores the result through `POST /map/from-documents`, posts each vertex
-  edit and bend as a request of its own and finishes again. Move that into the studio: a `Refinement` in `Pgm`
-  beside `PlanCompiler`, typed in the schema and read with `RQ3`, carrying every statement the finish does,
-  and `PUT /map/{slug}/source` taking `{name, plan | layout + intent, refinement, origin}`, which compiles,
-  applies (vertex edits and bends in the document), gates, stores one change, then finishes and projects
-  once; `?dry=true` answers the diff and stores nothing. It retires `from-documents`, and `drive.py` and
-  `tools/sculpt/board.py` switch in the change that deploys it. The word `finish` keeps one meaning, the
-  rasterize step. `docs/tools/flow.md`, `docs/tools/sketch.md`.
-
-  *Evidence: storing Gypsum Reach is 47 requests, 43 of them vertex edits, and its 122 KB finish never
-  reaches the studio.*
-
 - [ ] **RP92 — An apply over changes its source has not seen is refused, and the changes are handed over.**
   A source states the change it was built against (`after`). Where another writer's changes have landed since,
   `PUT …/source` answers `409` with one `SR1` per change: its writer, its time, the note pinned to it, and the

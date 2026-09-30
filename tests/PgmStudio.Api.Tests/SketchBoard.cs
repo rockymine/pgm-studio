@@ -28,7 +28,7 @@ internal static class SketchBoard
     /// <summary>Load the board over its own slug again, which is what a driver does on every build.</summary>
     public static async Task RebuildAsync(HttpClient client)
     {
-        var made = await client.PostAsJsonAsync("/api/map/from-documents", new
+        var made = await client.PutAsJsonAsync($"/api/map/{Slug}/source", new
         {
             plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,

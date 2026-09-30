@@ -175,7 +175,7 @@ public sealed class MapChangeEndpointsTests
     {
         await ApiTestFactory.ResetSchemaAsync();
         var client = ApiTestFactory.Shared.CreateClient();
-        using var loaded = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        using var loaded = await client.PutAsJsonAsync("/api/map/weirgate/source", Body());
         await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
         using var narrowed = await client.PutAsync("/api/map/weirgate/sketch",
             new StringContent(Narrower, Encoding.UTF8, "application/json"));

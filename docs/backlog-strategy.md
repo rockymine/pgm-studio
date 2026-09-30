@@ -170,7 +170,7 @@ table of corrections is a second place for a number to be wrong.
 | `WE70` | six callers hardcode `true`; `DressingScope:216,218` | **ten** sites, of which **five are deliberate**: a plan carries no binding, so `PlanStructurePreview:60,74` and `PieceRoom:75,98` draw the shell a plan exports and `RoomStylePreview:42` previews a style. The three that read a built map were the defect (`FEATURES.md`) | `grep -rn "shellBound: true" src --include=*.cs` |
 | `C62` | `components.css:989–1004`; the grep "hits only that CSS" | **985–1001**, and the fourth site is a signpost comment rather than markup. Shipped (`FEATURES.md`); the wider reading it opened is `C64` | `grep -rn "map-author-" src/ tests/` |
 | `TE2` | `ObjectivePhase.razor.cs:201`, `:211`; `.razor:56` | **`:204`**, **`:212`**; **`:55`** — the file went with `TE3` | — |
-| `RP59` | every authored board takes six calls, because the one-call path reads as a re-import | `drive.py:582` stores through **`POST /map/from-documents`**, one call, under a stated slug | `grep -n 'call("P' /media/sf_repos/pgm-studio-mapgen/tools/drive.py` |
+| `RP59` | every authored board takes six calls, because the one-call path reads as a re-import | `drive.py` stores through **one call**, under a stated slug — `PUT /map/{slug}/source` | `grep -n 'call("P' /media/sf_repos/pgm-studio-mapgen/tools/drive.py` |
 
 One held: `G143`'s "handful of consumers" for the four misnamed edge lists, which is five sites. `B260`'s
 count was the other way round — it named three room-style fields with no control and there were six, plus a
@@ -178,7 +178,7 @@ window's host block. `C51` has now moved on **every** reading it
 has been given — 28, 29, 31, 30 — which is what a hand-maintained count does.
 
 **`RP59` was the kind that does not survive its drift.** Its ask was sound — `flow.md` presented
-`POST /map/from-documents` under *The three documents are also the way back in*, which reads as a re-import
+the one-call store under *The three documents are also the way back in*, which reads as a re-import
 when it is also the authoring call, and `architecture.md` said nothing else; that is what shipped
 (`FEATURES.md`). But its evidence argued from a six-call path the driver had already left, so the entry read
 as work that was mostly done and was worth doing for a reason it did not give. A stale count still points at

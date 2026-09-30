@@ -74,7 +74,7 @@ this folder takes a map; these are what a caller with no map reaches for first.
 | `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
 | `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
 | `DELETE /map/{slug}` | nothing — **204**, and the map is gone with everything stored under it: its teams, regions, authors, objectives, scans and every document it held, since each of those rows cascades from the map's. A world folder under a maps root is what a map was scanned from rather than something it holds, and stays; an imported one is offered as an import candidate again. The call for a driver cleaning up after a variant, or a spec re-driven under a corrected slug | 404 `RQ4` no map at that slug |
-| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under — **the authoring call for a headless caller**, not only the import one, and the whole of it: the finish and the intent's projection run inside it. A map already at that slug is replaced, and only once the documents have passed everything the load is refused for. See *The three documents are the way in, and the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 400 `no document given` `RQ1` naming `layout` or `intent`, which are the load and are both required · 400 `unreadable document` `RQ1` naming the first field of each document its binder cannot read, under the member it was posted as (`intent.modes[0]`) — nothing is stored · 422 the layout carries no ground |
+| `PUT /map/{slug}/source[?dry=true]` | `{slug, change, replaced, edits, cells, islands, configureUrl}`, and on a dry run the `layout` and `intent` it would store — a whole map stored from its source, a plan compiled or a drawn layout and intent, with the refinement applied onto it, as one change. **The authoring call for a headless caller**, not only the import one, and the whole of it: the compile, the refinement, the finish and the intent's projection run inside it. A map already at that slug is replaced, and only once the source has passed everything it is refused for; `?dry=true` decides all of it, answers the edits and stores nothing. See *A map's source is the way in, and the way back in* below. Every document answers `RQ3` under the member it was stated as | 400 `not a slug` `RQ1` · 400 `no base` `RQ1` naming `plan`, `layout` or `intent` · 400 `unreadable document` `RQ1` naming the first field each binder cannot read, under its member (`intent.modes[0]`) · 400 `no name given` · 400 `note too long` · 400 `invalid style or theme` · 400 a person nobody could be called · 403 `RQ8` a map at that slug the caller may not edit · 422 `plan not compilable` · 422 `refinement not applicable` `SR3`/`SR4` · 422 the drawing carries no ground `SK7` — a refused source stores nothing |
 
 ## The hand-offs
 
@@ -136,55 +136,140 @@ document — teams, kits, regions, filters, apply-rules, spawns — in one idemp
 `GET /api/map/{slug}/xml` renders that document, gated on the pre-flight checks;
 `GET /api/map/{slug}/export` gives the world.
 
-**The three documents are the way in, and the way back in.** `POST /api/map/from-documents` takes a plan, a
-layout and an intent together and stores a whole map from them — the plan to re-plan from, the drawing
-rasterized into geometry, the intent projected into the document — and answers the slug it landed under. A
-map already stored under that slug is **replaced**: the documents name one map, so loading them twice is a
-reload.
+**A map's source is the way in, and the way back in.** `PUT /api/map/{slug}/source` stores a whole map from
+what it is built from — its **base** and its **refinement** — under the slug the route names: the plan to
+re-plan from, the drawing rasterized into geometry, and the intent projected into the document. A map already
+stored under that slug is **replaced**, because a source names one map and stating it twice is a reload. A map
+stored there that the caller may not edit is refused `403 RQ8`, as every write to a map is (`docs/access.md`).
 
-**A reload is decided before it replaces anything.** Everything the load is refused for — a document the
-binder cannot read, a style or theme the gate refuses, a person nobody could be called, a drawing the finish
-would refuse — is decided from the documents alone, before the stored map is touched, so a refused reload
-leaves the board it would have replaced. The documents it writes land as one change on the slug's history,
-numbered above every change the slug has answered, so a browser tab that read the old board is refused `RQ5`
-when it saves rather than writing it back over the new one (`docs/refusals.md`). A load may state its
-`origin` — `{repo, commit, path, dirty}`, where its documents were built — and a `note` of at most 1,000
-characters, and both are kept on that change.
+**The base is a plan, or a drawing and what it is played for.** A `plan` stated alone is compiled here as
+`POST /plan/compile` compiles it, and each island's team is filled in on the compiled footprint. A `layout` and
+an `intent` stated together are the base as they stand, which is how a board without a plan arrives — a grid
+board's plots are discs and crosses where a plan piece is a rectangle — and a plan stated beside them is kept as
+the one they were drawn from rather than compiled. Half a drawn pair, or neither base, is `400 no base` naming
+the member that is missing.
 
-**The layout and the intent are required; the plan is not.** A grid board has no plan — its plots are discs
-and crosses where a plan piece is a rectangle — so a layout emitter states none and the load takes two
-documents. A body omitting one of the two is `400 no document given` naming it, because both are read as raw
-JSON and an absent one would otherwise reach a reader that throws, answering the request's fault as the
-studio's.
+**The refinement is everything the base cannot state, applied before anything is judged.** A plan has no words
+for a coast, a relief, a theme or a date, so the refinement states them onto the board the plan compiles to.
+Each statement is the one a Sketch route makes, so a board stated here and one edited by hand end the same.
+They are applied in the order a hand works: the paint and fields on the shapes already drawn, the storeys, the
+shapes drawn onto them, the relief and the layout's registries, the outlines reshaped a point at a time and then
+bent, and last the intent's members. A bend resamples whatever ring it is given, which is why every point edit
+comes before it.
 
-**Each document binds onto its record before anything is stored.** A reader that cannot read one field gives
-up on the whole document, so an intent stating `"modes": ["dtm"]` — `modes` takes objects — would otherwise
-be stored as an intent with no teams, spawns or objectives, and the export gate would open on it. It is `400
+| Member | States | The route that states the same |
+|---|---|---|
+| `themeByHeight` | `{height: theme}` — the theme each compiled ground shape paints with, by the height it stands at. A room piece is not terrain and is reached only by its id | — |
+| `themeById` | `{shapeId: theme}`, winning over the height rule | `PATCH …/sketch/shapes/{shapeId}` |
+| `shapePropsByHeight` · `shapePropsById` | fields merged onto a shape by the height it stands at or by its id; a field stated as null is removed | `PATCH …/sketch/shapes/{shapeId}` |
+| `addLayers` | storeys, each `{id, name, base_y, below, kind, part_of, seat, shapes, groups}` — over the compiled ground, or under it where `below` is true | `PUT …/sketch/layers/{layerId}` |
+| `addShapes` | shapes, each carrying the `layer` and `group` it joins beside its own fields. One naming neither joins the compiled ground and its first group | `POST …/sketch/layers/{layerId}/shapes?group=` |
+| `editShapes` | `{shapeId: [edit, …]}`, in order, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`) and `remove` (drop that point) | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape |
+| `bendShapes` | `{shapeId: {wander, step, seed, tension, side}}` | `POST …/sketch/shapes/{shapeId}/bend` |
+| `relief` | `{groupId: relief}`, where `*` stands for every group of the compiled ground | `PUT …/sketch/relief/{groupId}` |
+| `themes` · `mapTheme` | the theme registry, and the map's default theme — the registry's first where none is stated | `PUT …/sketch/themes/{themeId}`, `PUT …/sketch/map-theme` |
+| `biome` · `roomStyles` · `dressing` | the layout's own members, each replacing what the base held | `PUT …/sketch/biome`, `PUT …/sketch/room-styles/{part}`, the props routes |
+| `created` · `authors` | the intent's `meta.created` and `meta.authors`; a person is a bare name or `{uuid, name, role, contribution}` | `PATCH /map/{slug}/metadata` |
+| `controlPoints` · `scoreLimit` · `spawners` · `shops` | the intent's own members, each replacing what the base held | `PUT /map/{slug}/intent` |
+
+**A compiled shape is named by its component and its height, and a statement anchors to that name.** The id is
+the component's ordinally first piece and the surface it stands at — `dale-9` — with the patches after the
+first numbered on (`dale-9-2`). A piece renamed, or moved to another height, therefore renames what a statement
+is keyed on.
+
+**A statement that reaches nothing is said, and the rest is applied.** One naming a shape or a layer the board
+does not have is `SR2`, a complaint listing the ids the board has. An edit the board refuses — a point asked of
+a rectangle, an index past the ring — is a complaint on the same terms, naming the edit by its place in the
+refinement (`editShapes.dale-9[2]`).
+
+**A statement that does not say what it means refuses the whole source.** A storey stated under an id the board
+already has, or under none, is `SR3`, and a point edit naming no single point is `SR4`. Either answers
+`422 refinement not applicable` and stores nothing, because neither can be applied without a guess.
+
+**Everything is decided before the stored map is touched.** A document its binder cannot read, a plan the gates
+refuse, a refinement that refuses, a style or theme the gate refuses, a person nobody could be called and a
+drawing the finish would refuse are each decided from the source alone, so a refused reload leaves the board it
+would have replaced. Only then are the three documents stored as **one change** on the slug's history, numbered
+above every change the slug has answered. A browser tab that read the old board is therefore refused `RQ5` when
+it saves, rather than writing it back over the new one (`docs/refusals.md`).
+
+**A source says where it was built and why.** It may state its `origin` — `{repo, commit, path, dirty}`, where
+its documents were built — and a `note` of at most 1,000 characters, and both are kept on the change it lands
+as.
+
+**The answer says what the source changed.** `edits` is what the source changes in the documents the map held,
+in the shape `GET …/diff` answers, every member stated for the first time where no map was stored. Beside it are
+the change the source landed as, whether a map stood under the slug before, and the ground columns and
+landmasses the drawing came to.
+
+**`?dry=true` decides all of it and stores nothing.** It answers `change: null` beside the same edits, which is
+how a caller sees what a pass would change on a board somebody has edited by hand before the pass replaces
+their edits. It answers the `layout` and `intent` the source would store as well, so a caller that wants the
+refined board as a body for a preview route has it without a store.
+
+**Each document binds onto its record before anything is made of it.** A reader that cannot read one field gives
+up on the whole document, so an intent stating `"modes": ["dtm"]` — `modes` takes objects — would otherwise be
+stored as an intent with no teams, spawns or objectives, and the export gate would open on it. It is `400
 unreadable document`, one `RQ1` per document naming the field its binder stopped at under the member it was
-posted as (`intent.modes[0]`), and no map is created.
+stated as (`intent.modes[0]`), and nothing is stored.
+
+**Every document answers `RQ3` for a field its reader has nowhere to keep.** The path is prefixed with the member
+the document was stated as (`refinement.themeByHeigth`), and a member the source itself does not have is named
+bare (`refinment`).
 
 **It is the authoring call and not only the import one, and that is the distinction to get right.** A caller
-holding a layout and an intent — compiled from a plan, or written by hand — stores the whole map in this one
-request under a slug it names: the finish that rasterizes the layout runs inside it, the intent's projection
-runs inside it, and the authors ride in the body. The five hand-offs above are the **other** caller's path,
-a map walked through the tools one stage at a time, each stage writing the document it has just drawn — which
-is what the browser does, and what a driver never needs. A driver that walks them instead pays six calls for
-one store, originates a fresh slug on every correction, and has to know that the intent's projection lands
-after the metadata write.
+holding a plan and what it wants of the board stores the whole map in this one request: the compile, the
+refinement, the finish that rasterizes the layout and the intent's projection all run inside it. The five
+hand-offs above are the **other** caller's path, a map walked through the tools one stage at a time, each stage
+writing the document it has just drawn — which is what the browser does, and what a driver never needs. A
+driver that walks them instead pays a call for every statement, lands each as a change of its own, and has to
+know that the intent's projection lands after the metadata write.
 
 It is also the way back in, because nothing else can take a map back. `POST /map/import-folder` refuses a folder carrying a
 `map.xml` outright, `import-url` extracts only `region/*.mca`, and no route in the studio reads a `map.xml` at
 all — so a map authored against one studio could reach another only as a world, arriving without its plan, its
-drawing or its intent, and could never be re-planned. What the documents carry is more than the world does.
+drawing or its intent, and could never be re-planned. What a source carries is more than the world does.
 
-**The authors ride in the body, and the operation applies them.** The three documents say what a map is
-made of, and a compiled intent names only whom its plan credited, so the credits are stated beside them and written as part of the
-load rather than in a second call the caller has to remember. A person is a bare pseudonym or
+**The credits are stated in the refinement, and the source writes them to both places they live.** A compiled
+intent names only whom its plan credited, so `authors` states who the map is credited to and the store writes
+them rather than a second call the caller has to remember. A person is a bare pseudonym or
 `{uuid, name, role, contribution}`, and both forms go to the same two places: the map's author rows, and the
 stored intent's `meta.authors`/`meta.contributors`, split by role. Both, because the rows are the map's own
 record and the intent is what the export reads — the observer platform's board is stamped from `meta.authors`
-— so a load writing one without the other credits the map on its rows and exports it carrying `EX6` over a
+— so a store writing one without the other credits the map on its rows and exports it carrying `EX6` over a
 blank sign.
+
+A plan, its refinement, and where both came from, as one source:
+
+```json PUT /api/map/{slug}/source
+{
+  "plan": {
+    "plan": 2, "meta": {"name": "Weirgate"},
+    "globals": {"cell": 5, "symmetry": "rot_180", "maxPlayers": 8, "surface": 9},
+    "pieces": [
+      {"id": "spawn", "role": "spawn", "rect": [1, 9, 2, 2]},
+      {"id": "dale", "role": "piece", "rect": [-3, 4, 6, 5]},
+      {"id": "tor", "role": "piece", "rect": [3, 5, 2, 3], "surface": 13},
+      {"id": "ford", "role": "piece", "rect": [-1, -4, 2, 8]},
+      {"id": "wool", "role": "wool-room", "rect": [-3, 9, 2, 2]}],
+    "placements": {"spawns": [{"piece": "spawn", "at": [5, 5], "facing": "front"}],
+                   "wools": [{"piece": "wool", "at": [5, 5]}]}
+  },
+  "refinement": {
+    "themes": {
+      "heath": {"rim": {"material": {"kind": "solid", "id": 3}, "depth": 1},
+                "surface": {"material": {"kind": "solid", "id": 2}, "depth": 1},
+                "wall": {"kind": "solid", "id": 1}, "fill": {"kind": "solid", "id": 3}}},
+    "relief": {"*": {"base": 3}},
+    "editShapes": {"dale-9": [{"after": 0}]},
+    "bendShapes": {"dale-9": {"wander": 1.5, "step": 5, "seed": 3}},
+    "created": "2026-09-30",
+    "authors": ["Opus 5"]
+  },
+  "origin": {"repo": "rockymine/pgm-studio-mapgen", "commit": "5daa56f", "path": "specs/weirgate", "dirty": false},
+  "note": "the first pass"
+}
+```
 
 **And the plain writes are not merges.** `PUT /api/map/{slug}/sketch` replaces the layout blob verbatim, which
 is what makes a deletion stick, and `PUT /api/map/{slug}/intent` replaces the stored intent wholesale for the
@@ -200,9 +285,9 @@ provenance. Nothing enforces this; the 409 above is the one place the system not
 ## Every change a map keeps
 
 **A write to a map's plan, layout or intent is a change the map keeps.** Whichever road it comes by — a tool
-saving, a load, a restore — it lands as one change per request: numbered per slug, counting up and never
+saving, a source, a restore — it lands as one change per request: numbered per slug, counting up and never
 repeating, stamped with the person it was written as and the label of the token that wrote it, and carrying
-the `origin` and `note` a load states. The documents are kept whole, once each however many changes write the
+the `origin` and `note` a source states. The documents are kept whole, once each however many changes write the
 same bytes, so a map can be read, compared and put back as it stood at any of its changes
 (`docs/architecture.md` has how they are stored).
 
@@ -238,7 +323,7 @@ separates a restore from a reload. The change is noted as the restore unless the
 a change like any other — compared, listed, and put back in its turn.
 
 ```json POST /api/map/{slug}/changes/{number}/restore
-{"note": "back to the load, before the east shore was redrawn"}
+{"note": "back to the first pass, before the east shore was redrawn"}
 ```
 
 | Endpoint | Answers | Fails with |
@@ -305,8 +390,9 @@ recompile replaces every shape it produced, and a relief is hand work a plan can
 **A shape is addressed twice over.** It is created under the layer that holds it and edited by its own id
 alone, which is why a `PATCH` needs no layer and a `POST` does.
 
-**Two documents are the whole interface for a caller with no browser.** `POST /api/map/from-documents`
-takes `{slug, name, layout, intent}` and answers the map; `GET /api/map/{slug}/export` answers the world.
+**A source and an export are the whole interface for a caller with no browser.** `PUT /api/map/{slug}/source`
+takes the base and its refinement and answers the change it landed as; `GET /api/map/{slug}/export` answers the
+world.
 
 ## What nothing owns
 

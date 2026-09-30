@@ -768,18 +768,20 @@ draws the board as characters.
 
 ## Driving it without the UI
 
-An agent authoring a plan writes the document itself and never touches the canvas. **The whole loop is two
-calls**: compile the plan, then store the three documents together.
+An agent authoring a plan writes the document itself and never touches the canvas. **The whole loop is one
+call**: the plan, and the refinement stating what a plan cannot, stored as the map's source.
 
 ```
-POST   /api/plan/compile              <the plan document>        → {layout, intent} (+ warnings)
-POST   /api/map/from-documents        {plan, layout, intent, name, slug, authors}
-                                      → {slug, replaced, cells, islands, configureUrl}
+PUT    /api/map/voidwatch/source      {plan, refinement, origin, note}
+                                      → {slug, change, replaced, edits, cells, islands, configureUrl}
 ```
 
-The store originates the map under the slug it is given, runs the finish that rasterizes the layout, stores
-the intent and projects the document from it, and writes the authors — so a caller sequences nothing, and a
-re-drive under the same slug **replaces** the map rather than leaving a second one behind it.
+The store compiles the plan, applies the refinement onto what it compiled to, originates the map under the
+slug the route names, runs the finish that rasterizes the layout, stores the intent and projects the document
+from it, and writes the authors — so a caller sequences nothing, and a re-drive under the same slug
+**replaces** the map rather than leaving a second one behind it. `?dry=true` answers what a re-drive would
+change and stores nothing. The source, the refinement's members and what each refuses are
+`docs/tools/flow.md`'s § *A map's source is the way in, and the way back in*.
 
 **The staged path is the other caller's**, and it is six calls because each stage writes the document it has
 just drawn:

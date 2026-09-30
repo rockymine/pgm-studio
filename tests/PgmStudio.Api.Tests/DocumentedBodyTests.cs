@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// Every worked request body in <c>docs/tools/</c>, posted to the route its own fence names.
+/// Every worked request body in <c>docs/tools/</c>, sent with the verb and to the route its own fence names.
 ///
 /// <para><b>The document is the fixture.</b> Nothing here holds a copy of a body: the blocks are read out of
 /// the markdown at run time, the same way <c>tools/deriver/figure-check.cs</c> pushes <c>model.md</c>'s ASCII
@@ -21,13 +21,14 @@ namespace PgmStudio.Api.Tests;
 /// a mistake made by trusting the endpoint's own refusal message over its parse. Posting them is what found
 /// it.</para>
 ///
-/// <para>The fence carries the route: <c>```json POST /api/terrain/material-preview</c>. Markdown renderers
-/// take the first token as the language and ignore the rest, so the block still highlights as JSON.</para>
+/// <para>The fence carries the verb and the route: <c>```json POST /api/terrain/material-preview</c>. Markdown
+/// renderers take the first token as the language and ignore the rest, so the block still highlights as
+/// JSON.</para>
 /// </summary>
 [NotInParallel("api-db")]
 public sealed class DocumentedBodyTests
 {
-    /// <summary>Every example, posted. A 2xx is the assertion: these are documents a reader is being told
+    /// <summary>Every example, sent. A 2xx is the assertion: these are documents a reader is being told
     /// will work, so anything else is the document lying, whichever side moved.</summary>
     [Test]
     [MethodDataSource(nameof(Examples))]
@@ -45,7 +46,11 @@ public sealed class DocumentedBodyTests
             if (route.Contains("/changes/{number}")) route = route.Replace("{number}", await ChangeAsync(client, slug));
         }
 
-        var resp = await client.PostAsync(route, new StringContent(example.Body, Encoding.UTF8, "application/json"));
+        using var request = new HttpRequestMessage(new HttpMethod(example.Verb), route)
+        {
+            Content = new StringContent(example.Body, Encoding.UTF8, "application/json"),
+        };
+        var resp = await client.SendAsync(request);
 
         await Assert.That(resp.IsSuccessStatusCode)
             .IsTrue()

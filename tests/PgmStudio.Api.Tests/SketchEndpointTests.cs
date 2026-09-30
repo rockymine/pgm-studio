@@ -374,7 +374,7 @@ public sealed class SketchEndpointTests
 
         // Compile a seed plan into the pair the pipeline consumes (the editor's Compile step).
         var compile = await client.PostAsync("/api/plan/compile",
-            new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
+            new StringContent(Seeds.Read("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
         await Assert.That(compile.IsSuccessStatusCode).IsTrue();
         var compiled = await compile.Content.ReadFromJsonAsync<JsonElement>();
         var layoutJson = compiled.GetProperty("layout").GetRawText();
@@ -398,18 +398,6 @@ public sealed class SketchEndpointTests
         var export = await client.GetAsync($"/api/map/{slug}/export");
         await Assert.That(export.IsSuccessStatusCode).IsTrue();
         await Assert.That(export.Content.Headers.ContentType?.MediaType).IsEqualTo("application/zip");
-    }
-
-    private static string ReadSeed(string file)
-    {
-        var dir = AppContext.BaseDirectory;
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir, "tools", "seeds", file);
-            if (File.Exists(candidate)) return File.ReadAllText(candidate);
-            dir = Directory.GetParent(dir)?.FullName;
-        }
-        throw new FileNotFoundException($"seed {file} not found above the test binary");
     }
 
     /// <summary>A rebuild keeps the plan's geometry, so a shape drawn in the sketch is carried by nothing —

@@ -1610,8 +1610,8 @@ rather than a reference to a library row, so the style stored here is the style 
 `field` is `dressing.props[3].style.verge` and `subjects` carries the prop's own id.
 
 **It is asked on every road a layout is stored through**, not only on this one: `PUT .../sketch/from-plan`
-runs it over the merged document, and `POST /map/from-documents` over the layout it is handed. A gate wired to
-one of the three is a gate two thirds of the maps in this repository never met.
+runs it over the merged document, and `PUT /map/{slug}/source` over the layout its refinement produced. A gate
+wired to one of the three is a gate two thirds of the maps in this repository never met.
 
 Answers **400** `{error: "invalid style or theme", message, findings[]}` (`docs/refusals.md`), one finding
 per fault, and writes nothing. A layout with no `roomStyles`, no buildings and no themes — or one whose

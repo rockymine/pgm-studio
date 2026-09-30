@@ -47,7 +47,7 @@ public sealed class ControlPointIntentTests
         var client = ApiTestFactory.Shared.CreateClient();
 
         var compile = await client.PostAsync("/api/plan/compile",
-            new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
+            new StringContent(Seeds.Read("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
         await Assert.That(compile.IsSuccessStatusCode).IsTrue().Because(await compile.Content.ReadAsStringAsync());
         var compiled = await compile.Content.ReadFromJsonAsync<JsonElement>();
 
@@ -148,17 +148,5 @@ public sealed class ControlPointIntentTests
         await Assert.That(map.ControlPoints).IsEmpty();
         await Assert.That(map.Score).IsNull();
         await Assert.That(map.Gamemodes).DoesNotContain("koth");
-    }
-
-    private static string ReadSeed(string file)
-    {
-        var dir = AppContext.BaseDirectory;
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir, "tools", "seeds", file);
-            if (File.Exists(candidate)) return File.ReadAllText(candidate);
-            dir = Directory.GetParent(dir)?.FullName;
-        }
-        throw new FileNotFoundException($"seed not found: {file}");
     }
 }

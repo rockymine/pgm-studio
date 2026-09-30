@@ -9,20 +9,16 @@ using PgmStudio.Data.Schema;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// <c>POST /map/from-documents</c> — the way back in for a map authored against another studio. It is the
-/// only route that turns the three documents back into a map, so what it has to prove is that the map it
-/// leaves behind is a whole one: the plan is there to re-plan from, the drawing has been rasterized into
-/// geometry, the intent has been projected into the document, and the authors survived that projection.
-///
-/// <para>The last of those is what makes one request enough: a compiled intent names nobody, so the credits
-/// are stated beside the three documents rather than in a second call. That the projection does not clear
-/// people it was never given is <c>IntentWriteTests</c>' — here the question is only that a body stating an
-/// author leaves a map credited to them.</para>
+/// <c>PUT /map/{slug}/source</c> — a map stored from its source. What it has to prove is that the map it leaves
+/// behind is a whole one: the plan is there to re-plan from, the drawing has been rasterized into geometry, the
+/// intent has been projected into the document, and the credits survived that projection; that a plan is
+/// compiled and its refinement applied in the same request; and that everything a source can be refused for is
+/// decided before the board it would replace is touched.
 ///
 /// <para>Runs against the <c>pgm_studio_test</c> schema, so it runs serially with the other DB suites.</para>
 /// </summary>
 [NotInParallel("api-db")]
-public sealed class MapFromDocumentsTests
+public sealed class MapSourceTests
 {
     private const string Layout = """
         {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
@@ -32,14 +28,15 @@ public sealed class MapFromDocumentsTests
            "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}]}
         """;
 
-    private static object Body(object? authors = null, string? name = "Weirgate", string? slug = null) => new
+    private const string Source = "/api/map/weirgate/source";
+
+    private static object Body(object? authors = null, string? name = "Weirgate") => new
     {
         plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
         layout = JsonDocument.Parse(Layout).RootElement,
         intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate","authors":[],"contributors":[]}}""").RootElement,
+        refinement = authors is null ? (object?)null : new { authors },
         name,
-        slug,
-        authors,
     };
 
     [Test]
@@ -47,7 +44,7 @@ public sealed class MapFromDocumentsTests
     {
         using var client = await FreshAsync();
 
-        var resp = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        var resp = await client.PutAsJsonAsync(Source, Body());
         await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
 
         var loaded = await resp.Content.ReadFromJsonAsync<JsonElement>();
@@ -76,7 +73,7 @@ public sealed class MapFromDocumentsTests
     {
         using var client = await FreshAsync();
 
-        var resp = await client.PostAsJsonAsync("/api/map/from-documents", Body(authors: new object[] { "Opus 5" }));
+        var resp = await client.PutAsJsonAsync(Source, Body(authors: new object[] { "Opus 5" }));
         await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
 
         var doc = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate");
@@ -105,7 +102,7 @@ public sealed class MapFromDocumentsTests
             new { name = "Opus 5", contribution = "layout" },
             new { name = "Fable 5", role = "contributor", contribution = "relief" },
         };
-        var resp = await client.PostAsJsonAsync("/api/map/from-documents", Body(authors: stated));
+        var resp = await client.PutAsJsonAsync(Source, Body(authors: stated));
         await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
 
         var doc = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate");
@@ -128,8 +125,8 @@ public sealed class MapFromDocumentsTests
     {
         using var client = await FreshAsync();
 
-        await client.PostAsJsonAsync("/api/map/from-documents", Body(authors: new object[] { "Opus 5" }));
-        var again = await client.PostAsJsonAsync("/api/map/from-documents", Body(authors: new object[] { "Fable 5" }));
+        await client.PutAsJsonAsync(Source, Body(authors: new object[] { "Opus 5" }));
+        var again = await client.PutAsJsonAsync(Source, Body(authors: new object[] { "Fable 5" }));
         await Assert.That(again.IsSuccessStatusCode).IsTrue().Because(await again.Content.ReadAsStringAsync());
 
         var loaded = await again.Content.ReadFromJsonAsync<JsonElement>();
@@ -153,14 +150,14 @@ public sealed class MapFromDocumentsTests
         using var client = await FreshAsync();
         var smaller = Layout.Replace("\"min_x\":-20,\"max_x\":20", "\"min_x\":-10,\"max_x\":10");
 
-        await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        await client.PutAsJsonAsync(Source, Body());
         await client.PutAsync("/api/map/weirgate/sketch", Json(Layout));
         await client.PutAsync("/api/map/weirgate/sketch", Json(Layout));
         var held = Etag(await client.GetAsync("/api/map/weirgate/sketch"));
         await Assert.That(held).IsNotNull();
 
         // The next drive rebuilds the board and makes the same writes again.
-        var reloaded = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        var reloaded = await client.PutAsJsonAsync(Source, Body());
         await Assert.That(reloaded.IsSuccessStatusCode).IsTrue().Because(await reloaded.Content.ReadAsStringAsync());
         await client.PutAsync("/api/map/weirgate/sketch", Json(smaller));
         await client.PutAsync("/api/map/weirgate/sketch", Json(smaller));
@@ -181,10 +178,10 @@ public sealed class MapFromDocumentsTests
     public async Task A_refused_reload_leaves_the_stored_board_as_it_was()
     {
         using var client = await FreshAsync();
-        var first = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        var first = await client.PutAsJsonAsync(Source, Body());
         await Assert.That(first.IsSuccessStatusCode).IsTrue().Because(await first.Content.ReadAsStringAsync());
 
-        var nothingDrawn = await client.PostAsJsonAsync("/api/map/from-documents", new
+        var nothingDrawn = await client.PutAsJsonAsync(Source, new
         {
             plan = JsonDocument.Parse("{}").RootElement,
             layout = JsonDocument.Parse("""{"layers":[{"base_y":0,"layout":{"shapes":[],"groups":[]}}]}""").RootElement,
@@ -193,7 +190,7 @@ public sealed class MapFromDocumentsTests
         });
         await Assert.That((int)nothingDrawn.StatusCode).IsEqualTo(422);
 
-        var unnamable = await client.PostAsJsonAsync("/api/map/from-documents", new
+        var unnamable = await client.PutAsJsonAsync(Source, new
         {
             plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,
@@ -216,12 +213,13 @@ public sealed class MapFromDocumentsTests
     {
         using var client = await FreshAsync();
 
-        var named = await client.PostAsJsonAsync("/api/map/from-documents", Body(name: null));
+        var named = await client.PutAsJsonAsync("/api/map/weir/source", Body(name: null));
         await Assert.That(named.IsSuccessStatusCode).IsTrue().Because(await named.Content.ReadAsStringAsync());
-        await Assert.That((await named.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString())
-            .IsEqualTo("weirgate");
+        var maps = await client.GetFromJsonAsync<JsonElement>("/api/maps");
+        await Assert.That(maps.EnumerateArray().Single(m => m.GetProperty("slug").GetString() == "weir")
+            .GetProperty("name").GetString()).IsEqualTo("Weirgate").Because("the slug is the route's and the name the intent's");
 
-        var nameless = await client.PostAsJsonAsync("/api/map/from-documents", new
+        var nameless = await client.PutAsJsonAsync(Source, new
         {
             plan = JsonDocument.Parse("{}").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,
@@ -237,7 +235,7 @@ public sealed class MapFromDocumentsTests
     {
         using var client = await FreshAsync();
 
-        var resp = await client.PostAsJsonAsync("/api/map/from-documents", new
+        var resp = await client.PutAsJsonAsync("/api/map/empty/source", new
         {
             plan = JsonDocument.Parse("{}").RootElement,
             layout = JsonDocument.Parse("""{"layers":[{"base_y":0,"layout":{"shapes":[],"groups":[]}}]}""").RootElement,
@@ -252,19 +250,22 @@ public sealed class MapFromDocumentsTests
         await Assert.That(maps.EnumerateArray().Any(m => m.GetProperty("slug").GetString() == "empty")).IsFalse();
     }
 
-    /// <summary>Three documents in one body, so a name none of them can keep is named with the member it was
+    /// <summary>Four documents in one body, so a name none of them can keep is named with the member it was
     /// posted under. A single-document write answers <c>RQ3</c> for its own body; this one has to say which of
-    /// the three said it, or the complaint cannot be acted on.</summary>
+    /// the four said it, or the complaint cannot be acted on — and a member the source itself does not have is
+    /// named bare.</summary>
     [Test]
     public async Task Every_document_answers_for_the_fields_it_could_not_keep()
     {
         using var client = await FreshAsync();
 
-        var resp = await client.PostAsJsonAsync("/api/map/from-documents", new
+        var resp = await client.PutAsJsonAsync(Source, new
         {
             plan = JsonDocument.Parse("""{"cell":9,"pieces":[],"celll":9}""").RootElement,
             layout = JsonDocument.Parse(Layout.Replace("\"setup\"", "\"setupp\":{},\"setup\"")).RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"},"teamz":[]}""").RootElement,
+            refinement = JsonDocument.Parse("""{"themeByHeigth":{"12":"heath"}}""").RootElement,
+            refinment = JsonDocument.Parse("{}").RootElement,
             name = "Weirgate",
         });
         await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
@@ -278,27 +279,31 @@ public sealed class MapFromDocumentsTests
         await Assert.That(named).Contains("plan.celll");
         await Assert.That(named).Contains("layout.setupp");
         await Assert.That(named).Contains("intent.teamz");
+        await Assert.That(named).Contains("refinement.themeByHeigth");
+        await Assert.That(named).Contains("refinment");
     }
 
-    /// <summary>The layout and the intent are the load, and both are read as raw JSON — so a body omitting
-    /// one arrives as a <c>default(JsonElement)</c> whose every reader throws. Refused as the request's own
-    /// fault, naming the document that is missing, rather than answered as the studio's (`RQ2`) which is the
-    /// opposite of true.</summary>
+    /// <summary>A source states its base: a plan, or a drawn layout together with the intent it is played for.
+    /// Half a drawn pair, or no base at all, is refused as the request's own fault, naming the member that is
+    /// missing — and nothing is stored.</summary>
     [Test]
-    [Arguments("layout", """{"slug":"nodoc","name":"nodoc","intent":{"meta":{"name":"nodoc"}}}""")]
-    [Arguments("intent", """{"slug":"nodoc","name":"nodoc","layout":{"layers":[]}}""")]
-    public async Task A_load_missing_one_of_its_two_documents_names_it(string field, string body)
+    [Arguments("layout", """{"name":"nodoc","intent":{"meta":{"name":"nodoc"}}}""")]
+    [Arguments("intent", """{"name":"nodoc","plan":{"cell":9,"pieces":[]},"layout":{"layers":[]}}""")]
+    [Arguments("plan", """{"name":"nodoc","refinement":{"created":"2026-09-30"}}""")]
+    public async Task A_source_stating_no_whole_base_names_what_it_lacks(string field, string body)
     {
         using var client = await FreshAsync();
-        var refused = await client.PostAsync("/api/map/from-documents",
+        var refused = await client.PutAsync("/api/map/nodoc/source",
             new StringContent(body, Encoding.UTF8, "application/json"));
 
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
         var answer = await refused.Content.ReadFromJsonAsync<JsonElement>();
-        await Assert.That(answer.GetProperty("error").GetString()).IsEqualTo("no document given");
+        await Assert.That(answer.GetProperty("error").GetString()).IsEqualTo("no base");
         var finding = answer.GetProperty("findings")[0];
         await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo(field);
+        var maps = await client.GetFromJsonAsync<JsonElement>("/api/maps");
+        await Assert.That(maps.EnumerateArray().Any(m => m.GetProperty("slug").GetString() == "nodoc")).IsFalse();
     }
 
     /// <summary>One field the binder cannot read is a refusal naming it, not a default intent with no teams,
@@ -309,7 +314,7 @@ public sealed class MapFromDocumentsTests
     {
         using var client = await FreshAsync();
 
-        var resp = await client.PostAsJsonAsync("/api/map/from-documents", new
+        var resp = await client.PutAsJsonAsync(Source, new
         {
             plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(Layout).RootElement,
@@ -333,7 +338,7 @@ public sealed class MapFromDocumentsTests
     public async Task An_intent_put_the_binder_cannot_read_is_refused_by_its_path()
     {
         using var client = await FreshAsync();
-        var loaded = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        var loaded = await client.PutAsJsonAsync(Source, Body());
         await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
 
         var resp = await client.PutAsync("/api/map/weirgate/intent", new StringContent(
@@ -351,7 +356,7 @@ public sealed class MapFromDocumentsTests
     public async Task A_layout_written_after_the_finish_is_what_the_reads_answer_for()
     {
         using var client = await FreshAsync();
-        var loaded = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        var loaded = await client.PutAsJsonAsync(Source, Body());
         await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
 
         var smaller = Layout.Replace("\"min_x\":-20,\"max_x\":20", "\"min_x\":-10,\"max_x\":10");
@@ -372,7 +377,7 @@ public sealed class MapFromDocumentsTests
     public async Task Every_scan_read_answers_for_the_layout_as_drawn()
     {
         using var client = await FreshAsync();
-        var loaded = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        var loaded = await client.PutAsJsonAsync(Source, Body());
         await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
         var excluded = await client.PatchAsJsonAsync("/api/configure/weirgate/exclude-island",
             new { island_id = 0, excluded = true });
@@ -427,7 +432,7 @@ public sealed class MapFromDocumentsTests
                 """).RootElement,
             name = "Weirgate",
         };
-        var loaded = await client.PostAsJsonAsync("/api/map/from-documents", body);
+        var loaded = await client.PutAsJsonAsync(Source, body);
         await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
         await Assert.That(await RulesAsync(client)).DoesNotContain("EZ2");
 
@@ -442,6 +447,151 @@ public sealed class MapFromDocumentsTests
             .. (await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/findings"))
                 .GetProperty("findings").EnumerateArray().Select(finding => finding.GetProperty("rule").GetString()!),
         ];
+    }
+
+    /// <summary><b>A plan is the base, and its refinement lands in the request that stores it.</b> The board the
+    /// plan compiles to comes back with the relief, the date and the credits a plan has no words for, and the map
+    /// keeps all of it as one change carrying the note it was stated with.</summary>
+    [Test]
+    public async Task A_plan_is_compiled_and_refined_in_the_one_change_that_stores_it()
+    {
+        using var client = await FreshAsync();
+
+        var resp = await client.PutAsJsonAsync("/api/map/twowool/source", new
+        {
+            plan = JsonDocument.Parse(Seeds.Read("base-2wool.plan.json")).RootElement,
+            refinement = JsonDocument.Parse("""
+                {"relief":{"*":{"base":3}},"created":"2026-09-30","authors":["Opus 5"]}
+                """).RootElement,
+            note = "the first pass",
+        });
+        var text = await resp.Content.ReadAsStringAsync();
+        await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(text);
+        await Assert.That(JsonDocument.Parse(text).RootElement.GetProperty("change").GetInt64()).IsEqualTo(1);
+
+        var layout = await client.GetFromJsonAsync<JsonElement>("/api/map/twowool/sketch");
+        var groups = layout.GetProperty("layers")[0].GetProperty("layout").GetProperty("groups").EnumerateArray()
+            .Select(group => group.GetProperty("id").GetString()!).ToList();
+        await Assert.That(groups).IsNotEmpty();
+        foreach (var group in groups)
+            await Assert.That(layout.GetProperty("relief").GetProperty(group).GetProperty("base").GetDouble())
+                .IsEqualTo(3d).Because($"'*' reaches every group of the compiled ground, {group} among them");
+
+        var meta = (await client.GetFromJsonAsync<JsonElement>("/api/map/twowool/intent")).GetProperty("meta");
+        await Assert.That(meta.GetProperty("created").GetString()).IsEqualTo("2026-09-30");
+        await Assert.That(meta.GetProperty("authors")[0].GetProperty("name").GetString()).IsEqualTo("Opus 5");
+        var maps = await client.GetFromJsonAsync<JsonElement>("/api/maps");
+        await Assert.That(maps.EnumerateArray().Single(m => m.GetProperty("slug").GetString() == "twowool")
+            .GetProperty("name").GetString()).IsEqualTo("Base 2-Wool").Because("a compiled intent is named by its plan");
+
+        var change = (await client.GetFromJsonAsync<JsonElement>("/api/map/twowool/changes"))
+            .GetProperty("changes").EnumerateArray().Single();
+        await Assert.That(change.GetProperty("note").GetString()).IsEqualTo("the first pass");
+        await Assert.That(change.GetProperty("documents").EnumerateArray().Select(document => document.GetString()!))
+            .IsEquivalentTo(["plan", "layout", "intent"]);
+    }
+
+    /// <summary><b>A dry run is decided and not stored.</b> It answers what the source would change in the documents
+    /// the map holds — every one of them stated for the first time where no map is stored — and the documents it
+    /// would store, and leaves the map as it was.</summary>
+    [Test]
+    public async Task A_dry_run_answers_what_the_source_would_change_and_stores_nothing()
+    {
+        using var client = await FreshAsync();
+
+        var first = await (await client.PutAsJsonAsync($"{Source}?dry=true", Body(authors: new object[] { "Opus 5" })))
+            .Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(first.GetProperty("change").ValueKind).IsEqualTo(JsonValueKind.Null);
+        await Assert.That(Edits(first).Select(edit => edit.Document).Distinct())
+            .IsEquivalentTo(["plan", "layout", "intent"]);
+        await Assert.That(first.GetProperty("layout").GetProperty("layers")[0].GetProperty("layout")
+            .GetProperty("shapes")[0].GetProperty("id").GetString()).IsEqualTo("s1");
+        await Assert.That(first.GetProperty("intent").GetProperty("meta").GetProperty("authors")[0]
+            .GetProperty("name").GetString()).IsEqualTo("Opus 5").Because("the documents answered are the refined ones");
+        var maps = await client.GetFromJsonAsync<JsonElement>("/api/maps");
+        await Assert.That(maps.EnumerateArray().Any(m => m.GetProperty("slug").GetString() == "weirgate")).IsFalse();
+
+        var stored = await client.PutAsJsonAsync(Source, Body());
+        var storedAnswer = await stored.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(storedAnswer.ToString());
+        await Assert.That(storedAnswer.TryGetProperty("layout", out _)).IsFalse()
+            .Because("a store's documents are read from the map");
+        var smaller = Layout.Replace("\"max_x\":20", "\"max_x\":10");
+        var dry = await client.PutAsJsonAsync($"{Source}?dry=true", new
+        {
+            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
+            layout = JsonDocument.Parse(smaller).RootElement,
+            intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate","authors":[],"contributors":[]}}""").RootElement,
+        });
+        var answer = await dry.Content.ReadFromJsonAsync<JsonElement>();
+
+        await Assert.That(Edits(answer).Select(edit => (edit.Document, edit.Path, edit.Op)))
+            .IsEquivalentTo([("layout", "layers[0].layout.shapes[s1].max_x", "set")])
+            .Because("the plan and the intent are the ones the map holds");
+        await Assert.That(answer.GetProperty("replaced").GetBoolean()).IsTrue();
+        await Assert.That(await StoredMaxXAsync(client)).IsEqualTo(20d);
+        var changes = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/changes");
+        await Assert.That(changes.GetProperty("changes").GetArrayLength()).IsEqualTo(1);
+
+        static List<(string Document, string Path, string Op)> Edits(JsonElement answer) =>
+        [
+            .. answer.GetProperty("edits").EnumerateArray().Select(edit => (
+                edit.GetProperty("document").GetString()!, edit.GetProperty("path").GetString()!,
+                edit.GetProperty("op").GetString()!)),
+        ];
+    }
+
+    /// <summary><b>A refinement that does not say what it means refuses the whole source.</b> A point edit naming
+    /// no index is not applied a guess at a time: the source is answered 422 by the rule, and nothing is stored —
+    /// while one naming a shape the board does not have is said, and the rest is stored.</summary>
+    [Test]
+    public async Task A_refinement_edit_naming_no_point_refuses_and_one_naming_no_shape_is_said()
+    {
+        using var client = await FreshAsync();
+
+        var refused = await client.PutAsJsonAsync(Source, new
+        {
+            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
+            layout = JsonDocument.Parse(Layout).RootElement,
+            intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"}}""").RootElement,
+            refinement = JsonDocument.Parse("""{"editShapes":{"s1":[{"x":1,"z":1}]}}""").RootElement,
+        });
+        var text = await refused.Content.ReadAsStringAsync();
+        await Assert.That((int)refused.StatusCode).IsEqualTo(422).Because(text);
+        await Assert.That(JsonDocument.Parse(text).RootElement.GetProperty("findings")[0].GetProperty("rule").GetString())
+            .IsEqualTo("SR4");
+        var maps = await client.GetFromJsonAsync<JsonElement>("/api/maps");
+        await Assert.That(maps.EnumerateArray().Any(m => m.GetProperty("slug").GetString() == "weirgate")).IsFalse();
+
+        var said = await client.PutAsJsonAsync(Source, new
+        {
+            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
+            layout = JsonDocument.Parse(Layout).RootElement,
+            intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"}}""").RootElement,
+            refinement = JsonDocument.Parse("""{"themeById":{"s9":"heath","s1":"heath"}}""").RootElement,
+        });
+        var answer = await said.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(said.IsSuccessStatusCode).IsTrue().Because(answer.ToString());
+        await Assert.That(answer.GetProperty("warnings").EnumerateArray().Select(warning => warning.GetProperty("rule").GetString()))
+            .Contains("SR2");
+        var layout = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/sketch");
+        await Assert.That(layout.GetProperty("layers")[0].GetProperty("layout").GetProperty("shapes")[0]
+            .GetProperty("theme").GetString()).IsEqualTo("heath");
+    }
+
+    /// <summary>The slug is the route's, and a route segment that is not one is refused rather than stored under
+    /// the slug it would become.</summary>
+    [Test]
+    public async Task A_route_naming_no_slug_is_refused_with_the_one_it_would_be()
+    {
+        using var client = await FreshAsync();
+
+        var refused = await client.PutAsJsonAsync("/api/map/Weir%20Gate/source", Body());
+        var text = await refused.Content.ReadAsStringAsync();
+
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest).Because(text);
+        await Assert.That(JsonDocument.Parse(text).RootElement.GetProperty("findings")[0].GetProperty("message").GetString())
+            .Contains("'weir-gate'");
     }
 
     private static async Task<HttpClient> FreshAsync()

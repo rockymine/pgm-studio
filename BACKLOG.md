@@ -22,19 +22,18 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## The authoring repository moves onto the studio's source and kit
 
-The next group behind the programme in `TODO.md`, on the side that authors boards. It waits on `RP91`, `RP92`
+The next group behind the programme in `TODO.md`, on the side that authors boards. It waits on `RP92`
 and `RP95`, and is pulled up whole when they land.
 
-- [ ] **RP96 — `pgm-studio-mapgen` states its boards in the refinement and the kit.** `drive.py` runs the
-  board's `build-spec.py` first, dry-runs the source and prints the diff, applies with its origin (`git
-  rev-parse HEAD`, the folder, whether the tree is dirty) and reads one report (`WS80`); its merge, its vertex
-  loop and its `@name` loader go. **One picture a board is committed** (author): the board seen from its side
-  through `render/eye`, beside the documents, and `maps/<slug>/` keeps the export's `map.png` (`WE155`); the
-  debug renders stay in the studio, drawn again from any change on request. The boards that still compile
-  (plan version 2) rename `finish.json` to `refinement.json` and import the fetched kit;
-  `specs/opus55_kit.py`, `specs/sonnet55_kit.py` and the copied `common.py` and `opus5c.py` retire.
-  `AUTHORING-BRIEF.md`, `tools/README.md` and both skills follow, and the skill's first moment reads the
-  changes since the last apply beside the open notes.
+- [ ] **RP96 — `pgm-studio-mapgen` states its boards in the kit, and a drive shows what it would change
+  before it changes it.** `drive.py` runs the board's `build-spec.py` first, dry-runs the source and prints
+  the edits before it applies, and reads one report (`WS80`); its `@name` loader goes once a refinement names
+  library rows (`TL32`). **One picture a board is committed** (author): the board seen from its side through
+  `render/eye`, beside the documents, and `maps/<slug>/` keeps the export's `map.png` (`WE155`); the debug
+  renders stay in the studio, drawn again from any change on request. The boards that still compile (plan
+  version 2) import the fetched kit; `specs/opus55_kit.py`, `specs/sonnet55_kit.py` and the copied `common.py`
+  and `opus5c.py` retire. `AUTHORING-BRIEF.md`, `tools/README.md` and both skills follow, and the skill's
+  first moment reads the changes since the last apply beside the open notes.
 
   *Evidence: one drive re-sent the previous pass's documents because its script had not been run
   (`pgm-studio-mapgen/reports/opus55-notes-run.md`, the fourth pass).*
@@ -593,6 +592,16 @@ server's backups and the edits a read-only page still lets start.
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **TS127 — A room style in the retired shape answers 500 at the style gate.** A `roomStyles` part
+  stated as `{floor, ceiling, wall}`, the shape before `HouseStyle`, binds with `Wall.Stack` null, and
+  `HouseStyleValidation.Materials` reads `style.Wall.At(0)` (`RoomPart.cs:27`), so `SketchMaterialGate.Check`
+  throws and every road to a stored layout answers `500 RQ2`. A snapshot that binds as a house style missing a
+  part it needs is refused at the gate naming that part, 400, rather than read as a style with none — the
+  reader that binds it is where that is decided. `docs/tools/sketch.md` § Refusals, `docs/tools/library.md`.
+
+  *Evidence: `PUT /map/haiku45-cistern/source?dry=true` with `pgm-studio-mapgen`'s refinement for it answers
+  500 at `RoomPart.At`; so does `haiku45-scarp`.*
 
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled

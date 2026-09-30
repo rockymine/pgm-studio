@@ -17,8 +17,8 @@ namespace PgmStudio.Pgm;
 /// <c>move</c> saying how far it went. Everything else is a member set, stated or removed by name.</para>
 ///
 /// <para>A document that is absent reads as an empty one, so a plan stated for the first time is a set of each
-/// of its members. Numbers compare by value, so a document re-serialized with <c>8.0</c> for <c>8</c> has not
-/// changed.</para>
+/// of its members, and a member stated as null reads as one left out. Numbers compare by value, so a document
+/// re-serialized with <c>8.0</c> for <c>8</c> has not changed.</para>
 /// </summary>
 public static class DocumentDiff
 {
@@ -72,13 +72,13 @@ public static class DocumentDiff
             var moved = Moved(path, was, now);
             foreach (var (key, value) in was)
             {
-                if (moved && key is "x" or "z") continue;
+                if (value is null || (moved && key is "x" or "z")) continue;
                 var member = Member(path, key);
-                if (now.TryGetPropertyValue(key, out var next)) Walk(member, value, next);
+                if (now[key] is { } next) Walk(member, value, next);
                 else edits.Add(Edit(member, DocumentEdit.Remove, null, value, $"{key} removed"));
             }
             foreach (var (key, value) in now)
-                if (!was.ContainsKey(key))
+                if (value is not null && was[key] is null)
                     edits.Add(Edit(Member(path, key), DocumentEdit.Set, value, null, Stated(key, value), stated: true));
         }
 
@@ -164,13 +164,18 @@ public static class DocumentDiff
         return ids.Distinct(StringComparer.Ordinal).Count() == ids.Count ? ids : null;
     }
 
+    /// <summary>The members an object states: one stated as null reads as one left out, since every reader of these
+    /// documents takes the two for the same value.</summary>
+    private static IEnumerable<KeyValuePair<string, JsonNode?>> Present(JsonObject members) =>
+        members.Where(pair => pair.Value is not null);
+
     private static bool Same(JsonNode? before, JsonNode? after)
     {
         if (Number(before) is { } left && Number(after) is { } right) return left == right;
         return (before, after) switch
         {
-            (JsonObject was, JsonObject now) => was.Count == now.Count
-                && was.All(pair => now.TryGetPropertyValue(pair.Key, out var other) && Same(pair.Value, other)),
+            (JsonObject was, JsonObject now) => Present(was).Count() == Present(now).Count()
+                && Present(was).All(pair => now[pair.Key] is { } other && Same(pair.Value, other)),
             (JsonArray was, JsonArray now) => was.Count == now.Count
                 && was.Zip(now).All(pair => Same(pair.First, pair.Second)),
             _ => JsonNode.DeepEquals(before, after),

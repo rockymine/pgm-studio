@@ -13,13 +13,12 @@ parsed.
 ## A gate belongs to whichever door it was put behind
 
 The pipeline has one entry point: `PgmStudio.Api`, **149 endpoint classes** over 45 files. Everything that
-authors a map arrives through it — the browser, the headless drivers agents write, and the catalogue map,
-which is emitted as a layout and an intent and loaded through `POST /map/from-documents` like any other.
-That route is the **authoring** call for a headless caller and not only an import: it takes the three
-documents together and stores a whole map in one request, running the finish and the intent's projection
-inside itself. The staged routes behind the tools are the browser's path, where a map is walked one stage at
-a time and each stage writes the document it has just drawn (`docs/tools/flow.md` § *The three documents are
-the way in, and the way back in*).
+authors a map arrives through it — the browser, and the headless drivers agents write. `PUT
+/map/{slug}/source` is the **authoring** call for a headless caller and not only an import: it takes a map's
+base and its refinement and stores a whole map in one request, running the compile, the refinement, the finish
+and the intent's projection inside itself. The staged routes behind the tools are the browser's path, where a
+map is walked one stage at a time and each stage writes the document it has just drawn (`docs/tools/flow.md` §
+*A map's source is the way in, and the way back in*).
 
 That is not an arrangement the code enforces; it is where the doors happen to be. A second driver linking
 `Pgm`, `Minecraft` and `Export` directly is a few lines away at any time, and the moment one exists, a gate
@@ -207,18 +206,18 @@ editor in `Pgm/Editing`. So the problem is not volume; it is that a step of the 
 except behind the door it is reached through, and a second driver cannot call it.
 
 Three operations now do live somewhere: `MapExportLoader` loads what the pure composer needs and calls it,
-`SketchFinish` rasterizes a drawing and advances the stage, and `MapFromDocuments` turns a plan, a layout and
-an intent back into a whole map. Each is HTTP-free — it answers findings and lets the layer above render the
+`SketchFinish` rasterizes a drawing and advances the stage, and `MapSource` turns a map's source — a plan or a
+drawn layout and intent, and the refinement applied onto it — into a whole map. Each is HTTP-free — it answers findings and lets the layer above render the
 envelope — and each has more than one caller or is written to take one. They sit in `Api/Services` because
 that is the lowest project reaching everything they need, and that is where they stay: a project of their own
 would buy separation and no second consumer, since the driver that would have been one speaks HTTP. The ten
 handlers of the same shape have joined them, as seven operations — several of the ten turned out to be one
 operation reached through different doors.
 
-**The order between steps is the part that has no home at all.** Storing an intent projects the map document
-from the intent's own `meta`, so authors written before it are overwritten — a rule stated in `flow.md`, in
-the driver that authors maps against this API, in that driver's README and in its generation notes, and
-enforced by nothing until `MapFromDocuments` made the sequence itself the answer.
+**The order between steps has one home, and it is the operation that runs them.** Storing an intent projects
+the map document from the intent's own `meta`, so authors written before it are overwritten. `MapSource`
+stores the intent and only then the credits, so a caller that states both in one source cannot write them in
+the wrong order.
 
 The load-the-map-or-404 prologue appears **37 times** verbatim in `Api/Endpoints`, out of 44 slug loads.
 

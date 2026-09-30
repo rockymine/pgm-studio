@@ -7793,6 +7793,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   change, the tab taking up what the restore wrote. A note's message records the change it was written at
   (`M0053` carried every stored message to the change its map stood at then), a stated one must have landed,
   and a thread counts the changes since its last message and opens History on them. `docs/tools/sketch.md`.
+- **A map is stored from its source: a plan compiled or a drawing, and the refinement laid onto it (RP91).**
+  `PUT /map/{slug}/source` takes a base — a plan, compiled as `POST /plan/compile` compiles it (`PlanCompile`),
+  or a drawn layout and intent with a plan beside them kept as provenance — and a `Refinement` (`Pgm/Plan`):
+  everything a board states that its plan cannot, from the paint, the storeys, the shapes and the outlines
+  reshaped a point at a time and bent (`ShapeBend`, the bend route's own record) to the relief, the registries,
+  the dressing and the intent's date, credits, capture points, generators and shops. `Refinement.Apply` lays
+  it on through the `SketchGeometryEdit` the Sketch routes use; a statement reaching nothing is `SR2`, and a
+  storey stated twice or a point edit naming no point (`SR3`, `SR4`) refuses 422. Everything is decided before
+  the map is touched, the documents land as one change with their `origin` and `note`, and the answer lists
+  the `DocumentEdit`s the source made to what the map held — `?dry=true` with the layout and intent it would
+  store, storing nothing. `POST /map/from-documents` is retired, and `DocumentDiff` reads a JSON-null member
+  as an absent one. `pgm-studio-mapgen`'s `drive.py`, `loop.py` and sculpt `board.py` store through the
+  source and its specs' `finish.json` is `refinement.json`: 87 of 95 specs store the same layout by either
+  road, and the other eight are refused or crash on both. `docs/tools/flow.md`, `docs/tools/plan.md`,
+  `docs/refusals.md`, `docs/access.md`, `docs/architecture.md`.
 - **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
   and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
   five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a
