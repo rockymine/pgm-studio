@@ -78,7 +78,7 @@ public static class MapExportComposer
             // EX1 — an intent-authored map must be traversable before it can export (§9), judged over the
             // world scanned into the store. A map that ships its own world has no authored ground to be held
             // to, so it is exempt.
-            if (isIntent && RefuseUntraversable(doc, segments) is { } cutOff) return cutOff;
+            if (isIntent && RefuseUntraversable(doc, WorldWalk.Ground(doc, segments)) is { } cutOff) return cutOff;
 
             // EX2 — asked of an intent-authored map that is not sketch-originated, where there is a document
             // to read and no resolved intent to compare it against. A corpus map is exempt for the reason the
@@ -152,10 +152,11 @@ public static class MapExportComposer
         IntentGenerator.Apply(doc, goals);
         decorate?.Invoke(doc);
 
-        // EX1 — the map must be walkable from its spawns to everything a match needs (§9), over the ground
-        // above and the document the projection has just written. It reads the spawns, wools and goals the
-        // slices emit, so it cannot be asked before them.
-        if (RefuseUntraversable(doc, Rasterized(columns)) is { } cutOff) return cutOff;
+        // EX1 — the map must be walkable from its spawns to everything a match needs (§9), over the world
+        // this export writes — its houses, trees and lava standing where they stand — bridged where the
+        // document the projection has just written grants building. It reads the spawns, wools and goals
+        // the slices emit, so it cannot be asked before them.
+        if (RefuseUntraversable(doc, BuiltWalk.Ground(built, doc, layoutJson)) is { } cutOff) return cutOff;
 
         // EX2/EX3 — last, because it reads the document the slices have just written and compares it against
         // the intent they were written from. Every gate above it quantifies over a collection and so passes a
@@ -440,12 +441,12 @@ public static class MapExportComposer
 
     // ── EX1 — can the map be walked? ──────────────────────────────────────────────────────────────────────
 
-    /// <summary>The traversability judgement, in the one shape both legs answer it in: the board's solid
-    /// spans, against the spawns, wools and goals the document declares. Null when everything a match needs
+    /// <summary>The traversability judgement, in the one shape both legs answer it in: the ground a walk runs
+    /// over, against the spawns, wools and goals the document declares. Null when everything a match needs
     /// can reach everything else.</summary>
-    private static ExportComposition? RefuseUntraversable(Dict doc, SegmentIndex? segments)
+    private static ExportComposition? RefuseUntraversable(Dict doc, WalkGround ground)
     {
-        var walk = Traversability.Check(doc, segments);
+        var walk = Traversability.Check(doc, ground);
         if (walk.Connected) return null;
 
         return Refuse("not traversable",
@@ -456,11 +457,6 @@ public static class MapExportComposer
                     : $"{isolated.Kind} {isolated.Name}")]),
         ]);
     }
-
-    /// <summary>The rasterizer's own spans as the walk reads a scan: a cell standing on two layers answers
-    /// twice here, so the gate sees the storeys the sketch drew rather than their shadow.</summary>
-    private static SegmentIndex Rasterized(IReadOnlyList<ColumnSegment> columns)
-        => new(columns.Select(column => (column.X, column.Z, column.YFloor, column.YTop)));
 
     // ── OB17 — objective placement, over the ground the rasterizer actually produced ──────────────────────
 

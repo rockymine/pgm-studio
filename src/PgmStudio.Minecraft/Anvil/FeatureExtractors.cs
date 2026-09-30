@@ -151,6 +151,10 @@ public static class FeatureExtractors
         id != 0 && !SegmentExclude.Contains(id)
         && !(y <= SurfaceExtractors.FloorMarkerMaxY && SurfaceExtractors.FloorMarkerIds.Contains(id));
 
+    /// <summary>Whether a block at y=0 is a floor mark: something there, so PGM's void filter reads the column
+    /// as not void, and nothing a segment holds as ground.</summary>
+    public static bool IsFloorMark(int id) => id != 0 && !IsSolid(id, 0);
+
     /// <summary>Every y=0 block no segment holds (→ floor_marks.parquet): what makes a column not void to PGM
     /// without being ground.</summary>
     public static IEnumerable<FloorMarkFeature> FloorMarks(IEnumerable<AnvilRegion.Chunk> chunks)
@@ -162,7 +166,7 @@ public static class FeatureExtractors
             for (var index = 0; index < 256; index++)
             {
                 var id = floor.Ids[index];
-                if (id == 0 || IsSolid(id, 0)) continue;
+                if (!IsFloorMark(id)) continue;
                 yield return new FloorMarkFeature(chunk.ChunkX * 16 + (index & 15), chunk.ChunkZ * 16 + (index >> 4), id);
             }
         }

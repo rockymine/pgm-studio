@@ -18,16 +18,7 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 A board's ground exists three times — the plan's footprint, the layout's raster stored as the scan, and the
 built world — and the reads each trust a different copy. The scan is a derived copy stored beside the layout,
 checks run once against whichever copy existed at that moment, and two walks judge one board on two grounds.
-The four entries below are that one cause, in the order a wrong answer costs most.
-
-- [~] **TC11 — The connectivity verdict walks the world the export builds.** `Traversability.Check`,
-  `KitReach`, `GroundCoverage`, `DeadGround` and the export gate (`MapExportComposer.RefuseUntraversable`) walk
-  `WorldWalk.Ground(doc, segments)` — the terrain raster, no house, no tree, no fluid — while `/walk` walks
-  `WorldWalk.OfBuilt` over the built world. `configure.md` says the two cannot disagree; they do. Give the walk
-  one ground for a sketch-origin map: the built world's spans (`WorldColumns.ForWalk`) with bridging from the
-  document's own edit rules (`Editability`), and hand it to every check. *Evidence: Gypsum Reach, the scan
-  stands dry ground at y13 at (−44, −10) where the world holds lava, and open ground to y21 at (−85, −10)
-  inside `house-a`.* `docs/tools/configure.md`.
+The entries below are that one cause, in the order a wrong answer costs most.
 
 - [ ] **TS123 — Every read of the scan goes through the refresh.** `FeatureData` rasterizes a stale sketch scan
   again before answering; `/segments`, `/top-surface`, `/column-floor`, `/block-seat`, `/symmetry`, `/islands`,

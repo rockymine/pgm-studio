@@ -57,7 +57,7 @@ public sealed class KitReachTests
     public async Task Bridge_cost_is_the_gap_width_and_fits_a_sufficient_kit()
     {
         var (data, ground) = Scenario(woodAmount: 10);
-        var res = KitReach.Check(data, ground);
+        var res = KitReach.Check(data, WorldWalk.Ground(data, ground));
 
         var wool = res.Teams.Single().Wools.Single();
         await Assert.That(res.Teams.Single().Budget).IsEqualTo(10);
@@ -71,7 +71,7 @@ public sealed class KitReachTests
     public async Task A_kit_short_of_the_gap_warns_but_stays_reachable()
     {
         var (data, ground) = Scenario(woodAmount: 3);
-        var res = KitReach.Check(data, ground);
+        var res = KitReach.Check(data, WorldWalk.Ground(data, ground));
 
         var wool = res.Teams.Single().Wools.Single();
         await Assert.That(res.Teams.Single().Budget).IsEqualTo(3);
@@ -87,7 +87,7 @@ public sealed class KitReachTests
         // The same five-cell gap, with the wool's pad standing four blocks over the spawn's: five blocks to
         // bridge, and three more to climb the four (a rise of Δ costs Δ−1).
         var (data, ground) = Scenario(woodAmount: 10, woolPadTop: 4);
-        var wool = KitReach.Check(data, ground).Teams.Single().Wools.Single();
+        var wool = KitReach.Check(data, WorldWalk.Ground(data, ground)).Teams.Single().Wools.Single();
 
         await Assert.That(wool.BlocksNeeded).IsEqualTo(8);
         await Assert.That(wool.Reachable).IsTrue();
@@ -113,7 +113,7 @@ public sealed class KitReachTests
             new Dict { ["region"] = "keep", ["enter"] = "only-blue" },
         };
 
-        var wool = KitReach.Check(data, ground).Teams.Single().Wools.Single();
+        var wool = KitReach.Check(data, WorldWalk.Ground(data, ground)).Teams.Single().Wools.Single();
 
         await Assert.That(wool.Reachable).IsFalse();
         await Assert.That(wool.Severity).IsEqualTo("error");
@@ -138,7 +138,7 @@ public sealed class KitReachTests
             new Dict { ["region"] = "keep", ["enter"] = "only-red" },
         };
 
-        var wool = KitReach.Check(data, ground).Teams.Single().Wools.Single();
+        var wool = KitReach.Check(data, WorldWalk.Ground(data, ground)).Teams.Single().Wools.Single();
 
         await Assert.That(wool.Reachable).IsTrue();
         await Assert.That(wool.BlocksNeeded).IsEqualTo(5);
@@ -172,7 +172,7 @@ public sealed class KitReachTests
             new Dict { ["region"] = "keep", ["enter"] = "only-blue" },
         };
 
-        var res = KitReach.Check(data, ground);
+        var res = KitReach.Check(data, WorldWalk.Ground(data, ground));
         var wool = res.Teams.Single().Wools.Single();
 
         await Assert.That(wool.Owner).IsEqualTo("red");

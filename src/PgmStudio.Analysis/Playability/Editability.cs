@@ -55,8 +55,21 @@ public static class Editability
     /// where the map granted it or where a conditional filter permits somebody.</para></summary>
     public sealed record Result(
         int MinX, int MinZ, int MaxX, int MaxZ, int Width, int Height,
-        byte[] Zone, bool[] IsVoid, bool[] Bridges, Dictionary<string, int> Counts, bool HasY0, bool[] Breaks)
+        byte[] Zone, bool[] IsVoid, bool[] Bridges, Dictionary<string, int> Counts, bool HasY0, bool[] Breaks,
+        bool[] Places)
     {
+        /// <summary>Whether a block may be placed in the column at a world cell over ground PGM does not read
+        /// as void — which is where a player lays a block into a pool of lava to cross it. Unlike
+        /// <see cref="Bridgeable"/> it needs no grant: the column's own ground is the permission. False off the
+        /// grid, over the void, and where no y=0 layer was read.</summary>
+        public bool PlaceableOverGroundAt((int X, int Z) cell)
+        {
+            int ix = cell.X - MinX, iz = cell.Z - MinZ;
+            if (!HasY0 || ix < 0 || iz < 0 || ix >= Width || iz >= Height) return false;
+            var i = iz * Width + ix;
+            return Places[i] && !IsVoid[i];
+        }
+
         /// <summary>Whether a player may break blocks in the column at a world cell — the break walk allows
         /// it, abstains, or answers conditionally, which is a filter some player passes. False off the grid.
         /// </summary>
@@ -320,8 +333,13 @@ public static class Editability
 
         var counts = EditZone.All.ToDictionary(word => word, word => zone.Count(z => z == EditZone.IndexOf(word)));
         var breaks = new bool[cells];
-        for (var i = 0; i < cells; i++) breaks[i] = breakage[i] != Say.Deny;
-        return new Result(minX, minZ, maxX, maxZ, nx, nz, zone, isVoid, bridges, counts, hasY0, breaks);
+        var places = new bool[cells];
+        for (var i = 0; i < cells; i++)
+        {
+            breaks[i] = breakage[i] != Say.Deny;
+            places[i] = place[i] != Say.Deny;
+        }
+        return new Result(minX, minZ, maxX, maxZ, nx, nz, zone, isVoid, bridges, counts, hasY0, breaks, places);
     }
 
     /// <summary>Record a rule's answer for one column, first answer winning. Only an abstention leaves the

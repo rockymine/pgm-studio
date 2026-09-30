@@ -5,6 +5,7 @@ using PgmStudio.Analysis.Playability;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Api.Services;
 
@@ -37,6 +38,24 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts, PgmStudio.
         return new SegmentIndex(rows.Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)),
                                 marks.Select(m => (m.WorldX, m.WorldZ)),
                                 doors.Select(d => (d.WorldX, d.WorldZ, d.WorldYStart, d.WorldYEnd)));
+    }
+
+    /// <summary>The ground every connectivity read of a map walks, one per map. A board the studio builds from
+    /// its stored layout walks that world (<see cref="PgmStudio.Export.BuiltWalk"/>) — its houses, trees and
+    /// lava where they stand — so a verdict here is the one the export reaches. A map that ships its own world
+    /// walks its scan (<see cref="WorldWalk.Ground"/>) sized to <paramref name="grid"/>, or to its regions and
+    /// terrain without one. <paramref name="doc"/> states where building is granted either way.</summary>
+    public async Task<WalkGround> WalkGroundAsync(long mapId, Dict doc,
+        (int MinX, int MinZ, int MaxX, int MaxZ)? grid = null, CancellationToken ct = default)
+    {
+        if (await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is { } layout)
+        {
+            var layoutJson = System.Text.Encoding.UTF8.GetString(layout);
+            var intent = await artifacts.LoadJsonOrEmptyAsync<PgmStudio.Pgm.Authoring.MapIntent>(
+                mapId, ArtifactKind.MapIntentJson, ct);
+            return PgmStudio.Export.BuiltWalk.Ground(PgmStudio.Export.BuiltWorlds.Of(layoutJson, intent), doc, layoutJson);
+        }
+        return WorldWalk.Ground(doc, await SegmentsAsync(mapId, ct), bbox: grid);
     }
 
     /// <summary>The ground the map's stored plan covers, in world blocks, or null for a map built without one

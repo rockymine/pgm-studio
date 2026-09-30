@@ -266,6 +266,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   a vertex moved, a coast bent, a shape redrawn. Every read of a finished sketch's ground used to answer for the
   board Finish saw: on Gypsum Reach the editability, the pre-flight and the export still read the field's
   rectangle out to x −16 after `editShapes` pulled the coast in to −24. `docs/tools/sketch.md`. (`TS122`)
+- **Every connectivity read walks the world the export builds (`TC11`).** Traversability, kit reach, coverage,
+  dead ground, the pre-flight and `EX1` are handed one `WalkGround`: on a board the studio builds from its
+  layout, `BuiltWalk` over that world — houses and trunks solid, lava a wall except where the document lets a
+  block be placed over ground at y=0 — bridged where `Editability` grants building, the same ground `/walk`
+  measures; a map that ships its own world walks its scan. On Gypsum Reach (−44, −10) holds lava at y12–13
+  and (−85, −10) the house's floors at y20 and y26, where the terrain raster stood dry open ground; all 32
+  composed boards and both authored ones still connect and export. The four reads are queued like a render.
+  `docs/tools/configure.md`. (`TC11`)
 - **An author is an account or a pseudonym, and the editor takes both — with nothing fetched to draw one
   (C45, TC2).** PGM reads a person as a `uuid` it resolves to a player or as the `<author>` element's own
   text, and either alone is a whole author. `PgmStudio.Vocabulary/AuthorNames.cs` states the two questions

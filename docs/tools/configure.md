@@ -487,9 +487,12 @@ case-insensitively, so this never fires on a case difference — only on a `kind
 **Which gate runs does not depend on which door the caller came through.** A sketch map's whole chain —
 `OB20`, `SK2`, `OB17`, `EX1`, `EX2`/`EX3`/`EX4` — is inside `MapExportComposer.BuildAndCompose`, so the
 headless driver, which links that method and speaks no HTTP, is judged by exactly what `GET /export` is
-judged by. The traversability judgement is asked there over the ground **this build** rasterizes rather than
+judged by. The traversability judgement is asked there over the world **this build** writes rather than
 over the segments the last `sketch/finish` stored, which is the same reason `OB17` is: a subtract cut, a
-relief solve or an edit after the finish each move where ground is without re-entering that stage.
+relief solve or an edit after the finish each move where ground is without re-entering that stage. It is the
+world and not the terrain the build stood on — a house is walked round and over, not through, a tree's trunk
+is solid, and a pool of lava is crossed a block a column where the document lets a block be placed over
+ground at y=0, and is a wall where it forbids one.
 
 **The gate cannot open on a map with no scanned world.** Without a world there are no surface or `y=0`
 columns, so buildability reports *skip* and traversability has no walkable ground to connect anything
@@ -624,7 +627,7 @@ design.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /map/{slug}/traversability` | whether every spawn reaches every objective **over the ground a walk runs on** — the same places `/walk` measures a distance across, so a verdict and a distance cannot disagree about whether there is a way. A column offers a place for each surface with two clear blocks over it, so a building is not a shortcut through itself and a deck over a gallery is one component with it only where something joins them. Answers `connected`, the component count, each navigation point with the component it landed in, and every point that is cut off — with `for` naming the team an entry denial shut out, where that is the cause. A team that must **take** a goal has to stand on it; a team that **defends** one only has to reach the border of the barred ground it stands in, since its own wool room's `enter` rule keeps it out by design. This is `EX1` asked early: the export refuses on the same walk | 404 |
+| `GET /map/{slug}/traversability` | whether every spawn reaches every objective **over the ground a walk runs on** — the same places `/walk` measures a distance across, so a verdict and a distance cannot disagree about whether there is a way. On a board the studio builds from its layout that ground is the **built world**, the one the export writes (`BuiltWalk`): its houses, trees and lava stand where they stand, and a block may be laid wherever the map document grants building (`Editability`); a map that ships its own world walks its scan. Kit reach, coverage, dead ground and the pre-flight take the same ground. A column offers a place for each surface with two clear blocks over it, so a building is not a shortcut through itself and a deck over a gallery is one component with it only where something joins them. Answers `connected`, the component count, each navigation point with the component it landed in, and every point that is cut off — with `for` naming the team an entry denial shut out, where that is the cause. A team that must **take** a goal has to stand on it; a team that **defends** one only has to reach the border of the barred ground it stands in, since its own wool room's `enter` rule keeps it out by design. This is `EX1` asked early: the export refuses on the same walk | 404 |
 | `GET /map/{slug}/editability` | which columns a player may edit and **what makes each one editable**, as digit rows over a bounding box with a zone legend and the counts. The four zones are `build_zone` (a rectangle the author drew), `ground` (nothing forbids it — on a void-enforced map exactly the columns with a block at y=0), `filtered` (a spawn's ore, a wool room's team-and-material whitelist) and `sealed`. Place and break are read as the separate scopes PGM makes them, so a canopy over the void that is breakable and not placeable-on reads as a permission rather than a refusal. `findings` carries `EZ1` — a patch of standing ground nobody can edit, with its box — and `EZ2`, void between ground and a build zone nobody may build across where the plan put ground, with its box and width | 404 |
 | `GET /map/{slug}/kit-reach` | the harder version of traversability: can a fresh spawn reach each wool with **only the placeable blocks its kit grants**? A map can be connected on paper and unreachable with the blocks players actually hold. `blocksNeeded` counts both halves of what a player builds — one a cell for void bridged, and Δ−1 for a rise of Δ — and beside it `blocks` says how far round the cheapest crossing goes and `drops` what it falls down on the way. Each team walks **its own** ground, with whatever an `enter` rule bars it from subtracted, so a wool behind an oversized protection reads unreachable here and not merely expensive. A spawn and a wool are each walked from the **storey their region states** — the floor of the spawn box, the wool's own `y` — so a spawn on a deck is priced along the deck rather than along whatever lies under it. Every wool is reported with the `owner` that defends it, and a team's **own** wool is never held against it — this budget is what a capture costs and a defender makes none, which is a narrower reading than the traversability verdict's, where a defender still has to reach its own room's border | 404 |
 | `GET /map/{slug}/wool-availability` | per declared wool, whether it can be obtained at all, and whether the source is repeatable or one-time — a wool nobody can pick up is a match nobody can finish | 404 |
@@ -673,11 +676,12 @@ hear it first, as a complaint on a build that was going to happen anyway.
 
 **Ask the playability reads before paying for a build.** `GET /export` is the most expensive call in the
 studio — it synthesises the whole voxel world before it answers — so hearing `EX1` from it is hearing, after
-the build, something `GET …/traversability` would have said for nothing. Expensive is relative rather than
-long: a 100×140 board carrying some 9,000 ground columns answers in **0.3–0.7 s**, against 0.2 s for the
-traversability walk and 0.4 s for pre-flight, and the cost tracks the board's area up to
-`SketchRules.MaxBoardColumns`. The reads are cheaper because they answer off less, not because the build
-drags:
+the build, something `GET …/traversability` would have said without writing a file. Expensive is relative
+rather than long: a 100×140 board carrying some 9,000 ground columns answers in **0.3–0.7 s**, and the cost
+tracks the board's area up to `SketchRules.MaxBoardColumns`. The connectivity reads of a board the studio
+builds walk that same world, built once and shared with the export and every render (`BuiltWorlds`), so the
+first read of a board pays for the build and the reads after it do not — and they wait their turn in the
+build queue as a render does (`docs/access.md`):
 
 ```
 GET  /api/map/voidwatch/traversability   → {connected, isolated[]}   the walk EX1 refuses on

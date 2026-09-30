@@ -24,6 +24,7 @@ using Dict = Dictionary<string, object?>;
 /// connected (else it returns 409); mirror + buildability are advisory. Scoped to intent-authored maps —
 /// a corpus map (no intent blob) has nothing to pre-flight and reports <c>IntentMap=false</c>.
 /// </summary>
+[Queued]
 public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts)
     : EndpointWithoutRequest<PreflightDto>
 {
@@ -59,7 +60,7 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
         var build = BuildabilityCheck(zones, intent);
         var reach = BuildZoneReachCheck(zones, await feature.PlannedGroundAsync(map.Id, ct));
 
-        var trav = Traversability.Check(doc, segs, declared: DeclaredGoals.Of(doc, intent));
+        var trav = Traversability.Check(doc, await feature.WalkGroundAsync(map.Id, doc, ct: ct), DeclaredGoals.Of(doc, intent));
         var travCheck = TraversabilityCheck(trav);
 
         foreach (var c in new[] { roundTrip, mirror, build, reach, travCheck })
