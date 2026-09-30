@@ -18,7 +18,8 @@ public sealed class MeEndpoint(Callers callers, AccessOptions access) : Endpoint
     public override async Task HandleAsync(CancellationToken ct)
     {
         var caller = await callers.OfAsync(HttpContext, ct);
-        await Send.OkAsync(new CallerDto(access.Mode, caller.SignedIn, caller.Uuid, caller.Name, caller.Role, caller.MayNote), ct);
+        await Send.OkAsync(new CallerDto(access.Mode, caller.SignedIn, caller.Uuid, caller.Name, caller.Role, caller.MayNote,
+                                         caller.IsOwner), ct);
     }
 }
 
@@ -40,8 +41,9 @@ public sealed class MapAccessEndpoint(Callers callers, MapRepository maps) : End
     }
 }
 
-/// <summary>GET /api/users — the whitelist, by name. Admin only.</summary>
-public sealed class UserListEndpoint(StudioUserStore users) : EndpointWithoutRequest<List<StudioUserDto>>
+/// <summary>GET /api/users — the whitelist, by name, each marked where the server names them an owner. Admin
+/// only.</summary>
+public sealed class UserListEndpoint(StudioUserStore users, AccessOptions access) : EndpointWithoutRequest<List<StudioUserDto>>
 {
     public override void Configure()
     {
@@ -50,13 +52,14 @@ public sealed class UserListEndpoint(StudioUserStore users) : EndpointWithoutReq
     }
 
     public override async Task HandleAsync(CancellationToken ct) =>
-        await Send.OkAsync([.. (await users.ListAsync(ct)).Select(UserPutEndpoint.Dto)], ct);
+        await Send.OkAsync([.. (await users.ListAsync(ct)).Select(row => UserPutEndpoint.Dto(row, access))], ct);
 }
 
 /// <summary>POST /api/users — put a Minecraft account on the whitelist in a role, or change the role of one
 /// already on it. The player is resolved to the account first, so the whitelist holds the uuid an author is
-/// credited under. Admin only.</summary>
-public sealed class UserPutEndpoint(StudioUserStore users, PlayerLookup players)
+/// credited under. Admin only, and within what <see cref="WhitelistKeeping"/> lets the caller change: only an
+/// owner makes someone an admin or changes an admin's role.</summary>
+public sealed class UserPutEndpoint(StudioUserStore users, PlayerLookup players, Callers callers, AccessOptions access)
     : Endpoint<StudioUserRequest, StudioUserDto>
 {
     public override void Configure()
@@ -82,18 +85,26 @@ public sealed class UserPutEndpoint(StudioUserStore users, PlayerLookup players)
                     Field: "player")], ct);
             return;
         }
-        await Send.OkAsync(Dto(await users.PutAsync(account.Uuid, account.Name, request.Role, ct)), ct);
+        var caller = await callers.OfAsync(HttpContext, ct);
+        if (WhitelistKeeping.RefusalFor(caller, access, account.Uuid, await users.GetAsync(account.Uuid, ct),
+                WhitelistKeeping.Change.Put, request.Role) is { } refused)
+        {
+            await WhitelistKeeping.RefuseAsync(HttpContext, refused, ct);
+            return;
+        }
+        await Send.OkAsync(Dto(await users.PutAsync(account.Uuid, account.Name, request.Role, ct), access), ct);
     }
 
-    internal static StudioUserDto Dto(StudioUserRow row) => new(
+    internal static StudioUserDto Dto(StudioUserRow row, AccessOptions access) => new(
         row.Uuid, row.Name, row.Role, row.CreatedAt, row.DiscordId is not null,
-        row.InviteExpiresAt > DateTime.UtcNow ? row.InviteExpiresAt : null);
+        row.InviteExpiresAt > DateTime.UtcNow ? row.InviteExpiresAt : null, access.Admins.Contains(row.Uuid));
 }
 
 /// <summary>DELETE /api/users/{uuid} — take a person off the whitelist; they keep the credits they have and
-/// write nothing more. An uuid named in <c>Access:Admins</c> stays an admin whatever this removes. Admin
-/// only.</summary>
-public sealed class UserRemoveEndpoint(StudioUserStore users) : EndpointWithoutRequest<AppliedDto>
+/// write nothing more. Admin only, and within <see cref="WhitelistKeeping"/>: only an owner removes an admin,
+/// and an owner is removed only by the server.</summary>
+public sealed class UserRemoveEndpoint(StudioUserStore users, Callers callers, AccessOptions access)
+    : EndpointWithoutRequest<AppliedDto>
 {
     public override void Configure()
     {
@@ -105,6 +116,13 @@ public sealed class UserRemoveEndpoint(StudioUserStore users) : EndpointWithoutR
     public override async Task HandleAsync(CancellationToken ct)
     {
         var uuid = Route<string>("uuid") ?? "";
+        var caller = await callers.OfAsync(HttpContext, ct);
+        if (await users.GetAsync(uuid, ct) is { } person
+            && WhitelistKeeping.RefusalFor(caller, access, uuid, person, WhitelistKeeping.Change.Remove) is { } refused)
+        {
+            await WhitelistKeeping.RefuseAsync(HttpContext, refused, ct);
+            return;
+        }
         if (!await users.RemoveAsync(uuid, ct))
         {
             await Refusals.NotFoundAsync(HttpContext, "whitelisted person", ct, uuid);

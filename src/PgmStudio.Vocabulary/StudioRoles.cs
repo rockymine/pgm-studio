@@ -3,7 +3,8 @@ namespace PgmStudio.Vocabulary;
 /// <summary>
 /// What a person on the studio's whitelist may do. A <c>member</c> originates maps and edits the ones they
 /// own or are credited as an author of; an <c>admin</c> edits every map, removes shared library rows and
-/// keeps the whitelist. Anyone not on it reads and writes nothing.
+/// keeps the whitelist's members. Making and unmaking an admin is an owner's, whom the server's configuration
+/// names rather than a role here. Anyone not on it reads and writes nothing.
 /// </summary>
 public static class StudioRoles
 {

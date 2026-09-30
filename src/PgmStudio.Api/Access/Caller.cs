@@ -12,15 +12,21 @@ namespace PgmStudio.Api.Access;
 /// <paramref name="ViaToken"/> is a request signed in by a token rather than a browser session, and
 /// <paramref name="Token"/> that token's label. <paramref name="MayNote"/> is whether the request may read and
 /// answer map notes: an admin in a browser, or a token carrying the notes permission whose person is an admin.
+/// <paramref name="IsOwner"/> is an admin the server itself names — a uuid in <c>Access:Admins</c> signed in
+/// from a browser, or an open studio's local admin — who alone makes and unmakes admins
+/// (<see cref="WhitelistKeeping"/>).
 /// </summary>
 public sealed record Caller(string? Uuid, string? Name, string? Role, bool ViaToken = false, bool MayNote = false,
-                            string? Token = null)
+                            string? Token = null, bool IsOwner = false)
 {
     public static readonly Caller SignedOut = new(null, null, null);
 
     public bool SignedIn => Uuid is not null || Role is not null;
     public bool Whitelisted => Role is not null;
     public bool IsAdmin => Role == StudioRoles.Admin;
+
+    /// <summary>Whether this caller is the person <paramref name="uuid"/> names.</summary>
+    public bool Is(string uuid) => string.Equals(Uuid, uuid, StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>
@@ -48,17 +54,18 @@ public sealed class Callers(AccessOptions access, StudioUserStore users)
     {
         if (principal.Identity is not { IsAuthenticated: true }) return Caller.SignedOut;
         if (principal.HasClaim(claim => claim.Type == StudioClaims.LocalAdmin))
-            return new(null, principal.FindFirstValue(StudioClaims.Name), StudioRoles.Admin, MayNote: true);
+            return new(null, principal.FindFirstValue(StudioClaims.Name), StudioRoles.Admin, MayNote: true, IsOwner: true);
         if (principal.FindFirstValue(StudioClaims.Uuid) is not { Length: > 0 } uuid) return Caller.SignedOut;
 
         var viaToken = principal.Identity.AuthenticationType == TokenAccessHandler.SchemeName;
         var name = principal.FindFirstValue(StudioClaims.Name);
-        var row = access.Admins.Contains(uuid) ? null : await users.GetAsync(uuid, ct);
-        var role = access.Admins.Contains(uuid) ? StudioRoles.Admin : row?.Role;
+        var named = access.Admins.Contains(uuid);
+        var row = named ? null : await users.GetAsync(uuid, ct);
+        var role = named ? StudioRoles.Admin : row?.Role;
         var mayNote = role == StudioRoles.Admin && (!viaToken || principal.HasClaim(claim => claim.Type == StudioClaims.Notes));
         if (viaToken && role == StudioRoles.Admin) role = StudioRoles.Member;
         return new(uuid, row?.Name ?? name, role, viaToken, mayNote,
-                   viaToken ? principal.FindFirstValue(StudioClaims.TokenLabel) : null);
+                   viaToken ? principal.FindFirstValue(StudioClaims.TokenLabel) : null, IsOwner: named && !viaToken);
     }
 
     /// <summary>Whether <paramref name="caller"/> may change <paramref name="map"/>: an admin may change any

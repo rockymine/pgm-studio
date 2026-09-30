@@ -30,6 +30,8 @@ public sealed class AccessTests
     private const string Stranger = "00000000-0000-0000-0000-000000000002";
     private const string Credited = "00000000-0000-0000-0000-000000000003";
     private const string Unlisted = "00000000-0000-0000-0000-000000000004";
+    private const string Keeper = "00000000-0000-0000-0000-000000000005";
+    private const string OtherAdmin = "00000000-0000-0000-0000-000000000006";
 
     [Test]
     public async Task A_signed_out_request_reads_and_is_refused_a_write_with_RQ7()
@@ -438,6 +440,108 @@ public sealed class AccessTests
         await Assert.That(me!.Role).IsNull().Because("taking someone off the whitelist holds at once");
     }
 
+    /// <summary>An admin the whitelist holds keeps its members and nothing above them: they add, re-role, invite
+    /// and remove a member, but make no admin, and change, remove, invite or issue a token for no admin and no
+    /// owner. The owner — <see cref="Admin"/>, named in <c>Access:Admins</c> — does all of it but to themselves
+    /// as another owner would.</summary>
+    [Test]
+    public async Task Only_an_owner_makes_or_unmakes_an_admin_and_nobody_but_the_server_changes_an_owner()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Keeper, "admin");
+        await WhitelistAsync(OtherAdmin, "admin");
+        await WhitelistAsync(Owner, "member");
+        await WhitelistAsync(Admin, "admin");
+        foreach (var uuid in (string[])[Keeper, OtherAdmin, Owner, Stranger, Admin]) await KnownPlayerAsync(uuid);
+
+        using var keeper = InvitedFactory.As(Keeper);
+        var keeperMe = await keeper.GetFromJsonAsync<CallerDto>("/api/me");
+        await Assert.That(keeperMe!.Role).IsEqualTo("admin");
+        await Assert.That(keeperMe.Owner).IsFalse();
+
+        using var addedMember = await keeper.PostAsJsonAsync("/api/users", new { player = Stranger, role = "member" });
+        await Assert.That(addedMember.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var invitedMember = await keeper.PostAsync($"/api/users/{Stranger}/invite", null);
+        await Assert.That(invitedMember.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var memberToken = await keeper.PostAsJsonAsync($"/api/users/{Owner}/tokens", new StudioTokenRequest("agent"));
+        await Assert.That(memberToken.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        using var promoted = await keeper.PostAsJsonAsync("/api/users", new { player = Owner, role = "admin" });
+        await AssertRefusedAsync(promoted, HttpStatusCode.Forbidden, "RQ8");
+        using var demoted = await keeper.PostAsJsonAsync("/api/users", new { player = OtherAdmin, role = "member" });
+        await AssertRefusedAsync(demoted, HttpStatusCode.Forbidden, "RQ8");
+        using var removedAdmin = await keeper.DeleteAsync($"/api/users/{OtherAdmin}");
+        await AssertRefusedAsync(removedAdmin, HttpStatusCode.Forbidden, "RQ8");
+        using var invitedAdmin = await keeper.PostAsync($"/api/users/{OtherAdmin}/invite", null);
+        await AssertRefusedAsync(invitedAdmin, HttpStatusCode.Forbidden, "RQ8");
+        using var adminToken = await keeper.PostAsJsonAsync($"/api/users/{OtherAdmin}/tokens", new StudioTokenRequest("x"));
+        await AssertRefusedAsync(adminToken, HttpStatusCode.Forbidden, "RQ8");
+        foreach (var (method, path) in (ValueTuple<HttpMethod, string>[])
+                 [(HttpMethod.Delete, $"/api/users/{Admin}"), (HttpMethod.Post, $"/api/users/{Admin}/invite")])
+        {
+            using var atOwner = await keeper.SendAsync(new HttpRequestMessage(method, path));
+            await AssertRefusedAsync(atOwner, HttpStatusCode.Forbidden, "RQ8");
+        }
+        using var demotedOwner = await keeper.PostAsJsonAsync("/api/users", new { player = Admin, role = "member" });
+        await AssertRefusedAsync(demotedOwner, HttpStatusCode.Forbidden, "RQ8");
+        await Assert.That(await ScalarAsync($"SELECT COUNT(*) FROM studio_user WHERE uuid = '{OtherAdmin}' AND role = 'admin'"))
+            .IsEqualTo("1").Because("a refused change writes nothing");
+
+        using var owner = InvitedFactory.As(Admin);
+        var ownerMe = await owner.GetFromJsonAsync<CallerDto>("/api/me");
+        await Assert.That(ownerMe!.Owner).IsTrue();
+        var listed = await owner.GetFromJsonAsync<List<StudioUserDto>>("/api/users");
+        await Assert.That(listed!.Where(user => user.Owner).Select(user => user.Uuid)).IsEquivalentTo(new[] { Admin });
+
+        using var ownerPromotes = await owner.PostAsJsonAsync("/api/users", new { player = Owner, role = "admin" });
+        await Assert.That(ownerPromotes.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var ownerDemotes = await owner.PostAsJsonAsync("/api/users", new { player = OtherAdmin, role = "member" });
+        await Assert.That(ownerDemotes.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var ownerInvitesAdmin = await owner.PostAsync($"/api/users/{Keeper}/invite", null);
+        await Assert.That(ownerInvitesAdmin.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var ownerRemovesAdmin = await owner.DeleteAsync($"/api/users/{Keeper}");
+        await Assert.That(ownerRemovesAdmin.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var ownerInvitesThemselves = await owner.PostAsync($"/api/users/{Admin}/invite", null);
+        await Assert.That(ownerInvitesThemselves.StatusCode).IsEqualTo(HttpStatusCode.OK)
+            .Because("an owner who lost their Discord account binds a new one");
+    }
+
+    /// <summary>Following an invitation binds the account to whoever follows it, so an admin may open one only
+    /// for a member no Discord account signs in as yet; redirecting an account in use is an owner's.</summary>
+    [Test]
+    public async Task An_admin_invites_no_one_who_already_signs_in()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Keeper, "admin");
+        await WhitelistAsync(Owner, "member");
+        await ApiTestFactory.ExecuteAsync($"UPDATE studio_user SET discord_id = '424242' WHERE uuid = '{Owner}'");
+
+        using var keeper = InvitedFactory.As(Keeper);
+        using var refused = await keeper.PostAsync($"/api/users/{Owner}/invite", null);
+        await AssertRefusedAsync(refused, HttpStatusCode.Forbidden, "RQ8");
+        await Assert.That(await ScalarAsync($"SELECT invite_hash FROM studio_user WHERE uuid = '{Owner}'")).IsNull();
+
+        using var owner = InvitedFactory.As(Admin);
+        using var reopened = await owner.PostAsync($"/api/users/{Owner}/invite", null);
+        await Assert.That(reopened.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    /// <summary>A token is capped at a member's rights, so an owner's own token is no owner and keeps no
+    /// admin's place on the whitelist.</summary>
+    [Test]
+    public async Task An_owners_token_is_no_owner()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Admin, "admin");
+        using var owner = InvitedFactory.As(Admin);
+        var issued = await (await owner.PostAsJsonAsync("/api/users/me/tokens", new StudioTokenRequest("agent")))
+            .Content.ReadFromJsonAsync<StudioTokenIssuedDto>();
+        using var agent = WithToken(issued!.Token);
+        var me = await agent.GetFromJsonAsync<CallerDto>("/api/me");
+        await Assert.That(me!.Owner).IsFalse();
+        await Assert.That(me.Role).IsEqualTo("member");
+    }
+
     /// <summary>The routes that state their own access rather than taking the rule's.</summary>
     private static readonly HashSet<string> StatesItsOwnAccess =
     [
@@ -573,6 +677,10 @@ public sealed class AccessTests
 
     /// <summary>The Minecraft name the test whitelist and the test session both give a uuid.</summary>
     private static string NameOf(string uuid) => $"p{uuid[^4..]}";
+
+    /// <summary>A Minecraft account the studio already knows, so resolving it asks nobody.</summary>
+    private static Task KnownPlayerAsync(string uuid) => ApiTestFactory.ExecuteAsync(
+        $"INSERT IGNORE INTO minecraft_player (uuid, name, fetched_at) VALUES ('{uuid}', '{NameOf(uuid)}', UTC_TIMESTAMP())");
 
     private static async Task<string?> ScalarAsync(string sql)
     {

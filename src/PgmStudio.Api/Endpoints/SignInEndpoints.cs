@@ -140,8 +140,10 @@ public sealed class SignOutEndpoint : EndpointWithoutRequest<AppliedDto>
 }
 
 /// <summary>POST /api/users/{uuid}/invite — open an invitation for someone on the whitelist, replacing any open
-/// one, and answer the link to hand them. Admin only.</summary>
-public sealed class UserInviteEndpoint(StudioUserStore users) : EndpointWithoutRequest<InviteDto>
+/// one, and answer the link to hand them. Admin only, and within <see cref="WhitelistKeeping"/>: an admin
+/// invites a member nobody signs in as yet, and an owner anyone but another owner.</summary>
+public sealed class UserInviteEndpoint(StudioUserStore users, Callers callers, AccessOptions access)
+    : EndpointWithoutRequest<InviteDto>
 {
     public override void Configure()
     {
@@ -153,6 +155,13 @@ public sealed class UserInviteEndpoint(StudioUserStore users) : EndpointWithoutR
     public override async Task HandleAsync(CancellationToken ct)
     {
         var uuid = Route<string>("uuid") ?? "";
+        var caller = await callers.OfAsync(HttpContext, ct);
+        if (await users.GetAsync(uuid, ct) is { } person
+            && WhitelistKeeping.RefusalFor(caller, access, uuid, person, WhitelistKeeping.Change.Invite) is { } refused)
+        {
+            await WhitelistKeeping.RefuseAsync(HttpContext, refused, ct);
+            return;
+        }
         var (code, hash) = StudioSecret.New();
         var expiresAt = DateTime.UtcNow + DiscordSignIn.InviteLifetime;
         if (!await users.OpenInviteAsync(uuid, hash, expiresAt, ct))

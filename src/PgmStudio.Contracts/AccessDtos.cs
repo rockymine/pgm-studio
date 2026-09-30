@@ -10,13 +10,16 @@ namespace PgmStudio.Contracts;
 /// <param name="Role">Their role on the whitelist, or null where they are not on it and may write nothing.</param>
 /// <param name="Notes">Whether the request may read and answer map notes: an admin, or a token carrying the
 /// notes permission.</param>
+/// <param name="Owner">Whether the request is an owner: an admin the server's configuration names, signed in
+/// from a browser, who alone makes and unmakes admins.</param>
 public sealed record CallerDto(
     [property: WordSet(typeof(AccessModes))] string Mode,
     bool SignedIn,
     string? Uuid,
     string? Name,
     [property: WordSet(typeof(StudioRoles))] string? Role,
-    bool Notes = false);
+    bool Notes = false,
+    bool Owner = false);
 
 /// <summary>One person on the whitelist.</summary>
 /// <param name="Uuid">The Minecraft uuid they are credited and signed in under.</param>
@@ -25,13 +28,15 @@ public sealed record CallerDto(
 /// <param name="AddedAt">When they were first put on the whitelist.</param>
 /// <param name="SignsIn">Whether a Discord account is bound to them, so they can sign in.</param>
 /// <param name="InviteExpiresAt">When their open invitation lapses, in UTC, or null where none is open.</param>
+/// <param name="Owner">Whether the server's configuration names them an owner, whom only the server changes.</param>
 public sealed record StudioUserDto(
     string Uuid,
     string Name,
     [property: WordSet(typeof(StudioRoles))] string Role,
     DateTime AddedAt,
     bool SignsIn,
-    DateTime? InviteExpiresAt);
+    DateTime? InviteExpiresAt,
+    bool Owner = false);
 
 /// <summary>Put a person on the whitelist, or change the role of one already on it.</summary>
 /// <param name="Player">Their Minecraft name or uuid; the studio resolves it to the account.</param>

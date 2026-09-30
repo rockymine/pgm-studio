@@ -31,13 +31,14 @@
           <Section Title="Add a player">
             <Description>
               A player on the whitelist may originate maps and edit the ones they own or are credited on; an admin
-              may edit every map and keep this list. Adding someone does not let them sign in yet — open an
+              may edit every map and keep this list's members. Only an owner — named in the server's configuration,
+              not here — makes or unmakes an admin. Adding someone does not let them sign in yet — open an
               invitation for them below and send them the link.
             </Description>
             <ChildContent>
               <div class="invite-link">
                 <input class="field-input" placeholder="Minecraft name or uuid" @bind="newPlayer" @bind:event="oninput" />
-                <Select Options="Roles" Value="@newRole" ValueChanged="v => newRole = v" Title="Role" />
+                <Select Options="RolesToGive" Value="@newRole" ValueChanged="v => newRole = v" Title="Role" />
                 <Button Variant="primary" Icon="user-plus" OnClick="AddAsync" Busy="adding" BusyLabel="Adding…"
                         Disabled="@string.IsNullOrWhiteSpace(newPlayer)">Add</Button>
               </div>
@@ -60,15 +61,19 @@
                         <PlayerHead Uuid="@user.Uuid" Name="@user.Name" Size="20" />
                         <span class="list-label">@user.Name</span>
                         <span class="list-label list-label--mono" title="Minecraft uuid">@user.Uuid</span>
+                        @if (user.Owner) { <span class="list-tag" title="Named in the server's configuration; only the server changes an owner">owner</span> }
                         <span class="list-tag">@SignInState(user)</span>
                       </ChildContent>
                       <Trailing>
                         <div class="user-actions">
-                        <Select Options="Roles" Value="@user.Role" ValueChanged="v => SetRoleAsync(user, v)" Title="Role" />
-                        <Button Variant="icon" Icon="link" Title="Open an invitation and show its link"
-                                OnClick="() => InviteAsync(user)" />
-                        <Button Variant="icon" Icon="trash-2" Title="Take off the whitelist"
-                                OnClick="() => RemoveAsync(user)" />
+                        <Select Options="Roles" Value="@user.Role" ValueChanged="v => SetRoleAsync(user, v)"
+                                Disabled="@(RoleLocked(user) is not null)" Title="@(RoleLocked(user) ?? "Role")" />
+                        <Button Variant="icon" Icon="link" OnClick="() => InviteAsync(user)"
+                                Disabled="@(InviteLocked(user) is not null)"
+                                Title="@(InviteLocked(user) ?? "Open an invitation and show its link")" />
+                        <Button Variant="icon" Icon="trash-2" OnClick="() => RemoveAsync(user)"
+                                Disabled="@(RemoveLocked(user) is not null)"
+                                Title="@(RemoveLocked(user) ?? "Take off the whitelist")" />
                         </div>
                       </Trailing>
                     </ListRow>

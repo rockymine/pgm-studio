@@ -41,7 +41,7 @@ migrator, and an unquoted connection string ends at its first `;`.
 | `ASPNETCORE_URLS=http://127.0.0.1:7894` | only Caddy reaches the API |
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` | ASP.NET Core applies `X-Forwarded-Proto` and `-For` itself, so Discord is asked to return to `https://` and a signed-out caller is queued on their own address rather than Caddy's |
 | `ConnectionStrings__PgmStudio` | the database; the API and the migrator resolve the same one |
-| `Access__Mode=invited`, `Access__Admins__0` | closed to anyone not invited; the first admin, by Minecraft uuid |
+| `Access__Mode=invited`, `Access__Admins__0` | closed to anyone not invited; the owners, by Minecraft uuid — the admins who alone make and unmake admins, and whom only this file changes |
 | `Discord__ClientSecret` | the sign-in; the application's redirect list names `https://pgmstudio.de/api/auth/discord/callback` |
 | `Textures__AcceptMojangEula=true`, `Textures__Cache` | the eye view's block sprites, downloaded once from Mojang; the cache is set because the default resolves to nothing for a service user whose `~/.local/share` does not exist |
 
@@ -113,8 +113,9 @@ already runs as deployed, so its first tick deploys only a `main` that has moved
 `sudo /opt/pgm-studio/bin/invite.sh <minecraft-name> [member|admin]` starts a second studio in open mode on
 `127.0.0.1:7896` for at most 60 s, puts the player on the whitelist, prints their invitation link and stops
 it. It exists because the whitelist is an admin's and a token is never more than a member's
-(`access.md`), and it is how the first admin was made: `Access__Admins__0` makes the uuid an admin, and the
-invitation is what binds their Discord account to it.
+(`access.md`), and it is how the first admin was made: `Access__Admins__0` makes the uuid an owner, and the
+invitation is what binds their Discord account to it. Its local admin is an owner, so it is also an owner's way
+back in: run for the owner's own name, it opens an invitation that binds whichever Discord account follows it.
 
 **An agent drives the studio with a token issued from *Tokens* in the account menu**, and `PGM_STUDIO_API`
 and `PGM_STUDIO_TOKEN` in its environment (`access.md`). The whitelist holds Minecraft accounts only, so an

@@ -16,7 +16,10 @@ public partial class Users
     private static readonly IReadOnlyList<SelectOption> Roles =
         [new(StudioRoles.Member, "member"), new(StudioRoles.Admin, "admin")];
 
+    private static readonly IReadOnlyList<SelectOption> MemberOnly = [new(StudioRoles.Member, "member")];
+
     private bool? admin;
+    private CallerDto? me;
     private List<StudioUserDto>? users;
     private readonly Dictionary<string, InviteDto> invites = new(StringComparer.OrdinalIgnoreCase);
     private string newPlayer = "";
@@ -28,6 +31,7 @@ public partial class Users
     protected override async Task OnInitializedAsync()
     {
         admin = await Access.IsAdminAsync();
+        me = await Access.MeAsync();
         if (admin == true) await LoadAsync();
     }
 
@@ -35,6 +39,29 @@ public partial class Users
 
     private async Task LoadAsync() =>
         users = await Http.GetFromJsonAsync<List<StudioUserDto>>("api/users") ?? [];
+
+    private bool Owner => me?.Owner == true;
+
+    /// <summary>The roles this caller may give: an owner gives either, an admin only member.</summary>
+    private IReadOnlyList<SelectOption> RolesToGive => Owner ? Roles : MemberOnly;
+
+    // Why each control is closed to this caller, or null where it is open. The server refuses the same changes
+    // (docs/access.md, "Who keeps the whitelist"); this only says so before the click.
+    private string? Untouchable(StudioUserDto user) =>
+        user.Owner && !(Owner && me?.Uuid == user.Uuid) ? "An owner is named in the server's configuration; only the server changes one"
+        : !Owner && user.Role == StudioRoles.Admin ? "Only an owner changes an admin"
+        : null;
+
+    private string? RoleLocked(StudioUserDto user) =>
+        user.Owner ? "An owner is an admin by the server's configuration"
+        : Untouchable(user) ?? (Owner ? null : "Only an owner makes someone an admin");
+
+    private string? InviteLocked(StudioUserDto user) =>
+        Untouchable(user)
+        ?? (!Owner && user.SignsIn ? $"{user.Name} already signs in; only an owner opens a new invitation for them" : null);
+
+    private string? RemoveLocked(StudioUserDto user) =>
+        user.Owner ? "An owner is named in the server's configuration; only the server changes one" : Untouchable(user);
 
     private static string SignInState(StudioUserDto user) =>
         user.SignsIn ? "signs in with Discord"
