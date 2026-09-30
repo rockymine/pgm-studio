@@ -144,15 +144,16 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
 
         var segs = cells.Select(c => new SegmentRow { MapId = mapId, WorldX = c.X, WorldZ = c.Z, WorldYStart = c.YFloor, WorldYEnd = c.YTop }).ToList();
 
-        var config = new JsonObject
-        {
-            ["exclude_islands"] = new JsonArray(),
-            ["exclude_blocks"] = new JsonArray(),
-            ["scan_read"] = "surface",
-            ["scan_read_confirmed"] = true,
-            ["bounding_box"] = SurfaceBbox(cells.Select(c => (c.X, c.Z))),
-            [SketchScanRevision] = layoutRevision,
-        };
+        // What the author set on the configuration — the islands excluded, the blocks — is theirs and is
+        // carried; the fields a scan measures are written fresh.
+        var config = await artifacts.LoadAsync(mapId, ArtifactKind.MapConfigJson, ct) is { } stored
+                     && JsonNode.Parse(stored) is JsonObject previous
+            ? previous
+            : new JsonObject { ["exclude_islands"] = new JsonArray(), ["exclude_blocks"] = new JsonArray() };
+        config["scan_read"] = "surface";
+        config["scan_read_confirmed"] = true;
+        config["bounding_box"] = SurfaceBbox(cells.Select(c => (c.X, c.Z)));
+        config[SketchScanRevision] = layoutRevision;
 
         // One write, for the reason the scan above is one: the three artifacts and the segment rows are the
         // finished board, and a map holding some of them is a map whose geometry disagrees with itself.

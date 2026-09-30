@@ -2,6 +2,7 @@ using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis.Scan;
+using PgmStudio.Api.Services;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -149,7 +150,7 @@ internal static class BlockPixels
 /// returns parallel xs/zs/colors arrays + the bounds. Mirrors the reference <c>layer_top_surface</c>;
 /// unblocks the "Blocks" canvas overlay (C6).
 /// </summary>
-public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<BlockPixelsDto>
+public sealed class TopSurfaceEndpoint(MapRepository repo, FeatureData feature) : EndpointWithoutRequest<BlockPixelsDto>
 {
     public override void Configure() { Get("/map/{slug}/top-surface"); Description(b => b.Refuses(404)); }
 
@@ -157,7 +158,7 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore arti
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
-        var layer = await artifacts.LoadAsync(map.Id, ArtifactKind.SurfaceParquet, ct);
+        var layer = await feature.SurfaceLayerAsync(map.Id, ct);
         if (layer is null) { await Refusals.NotFoundAsync(HttpContext, "surface layer", ct); return; }
 
         var cells = await SurfaceScan.ReadAsync(layer);
@@ -171,7 +172,7 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore arti
 /// solid segments onto a 2D (primary × y) grid via <see cref="SideView"/>; feeds the build-height
 /// side-view canvas (C7). Mirrors the reference <c>get_segments</c>.
 /// </summary>
-public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<SegmentsDto>
+public sealed class SegmentsEndpoint(MapRepository repo, FeatureData feature) : EndpointWithoutRequest<SegmentsDto>
 {
     public override void Configure() { Get("/map/{slug}/segments"); Description(b => b.Refuses(404)); }
 
@@ -192,13 +193,14 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         // (a point's column + neighbours, or a rectangle's footprint). Absent params = the whole map.
         int? Q(string k) => int.TryParse(HttpContext.Request.Query[k], out var v) ? v : null;
         int? xmin = Q("xmin"), xmax = Q("xmax"), zmin = Q("zmin"), zmax = Q("zmax");
-        var q = db.Segments.Where(s => s.MapId == map.Id);
-        if (xmin is int a) q = q.Where(s => s.WorldX >= a);
-        if (xmax is int b) q = q.Where(s => s.WorldX <= b);
-        if (zmin is int c) q = q.Where(s => s.WorldZ >= c);
-        if (zmax is int d) q = q.Where(s => s.WorldZ <= d);
-
-        var rows = await q.ToListAsync(ct);
+        var rows = await feature.SegmentRowsAsync(map.Id, q =>
+        {
+            if (xmin is int a) q = q.Where(s => s.WorldX >= a);
+            if (xmax is int b) q = q.Where(s => s.WorldX <= b);
+            if (zmin is int c) q = q.Where(s => s.WorldZ >= c);
+            if (zmax is int d) q = q.Where(s => s.WorldZ <= d);
+            return q;
+        }, ct);
         var result = SideView.Build(rows.Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)), axis);
         if (result is null) { await Refusals.NotFoundAsync(HttpContext, "segment data", ct); return; }
 
@@ -213,7 +215,7 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
 /// thing at <c>y</c> rests on), falling back to the segment top nearest <c>y</c>. Returns <c>{y:null}</c>
 /// when the column has no segment data. Used to seed a wool spawn's Y onto solid ground.
 /// </summary>
-public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<ColumnFloorDto>
+public sealed class ColumnFloorEndpoint(MapRepository repo, FeatureData feature) : EndpointWithoutRequest<ColumnFloorDto>
 {
     public override void Configure() { Get("/map/{slug}/column-floor"); Description(b => b.Refuses(404)); }
 
@@ -228,9 +230,8 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : Endpoint
         }
         var refY = int.TryParse(HttpContext.Request.Query["y"], out var ry) ? ry : int.MaxValue;
 
-        var tops = await db.Segments
-            .Where(s => s.MapId == map.Id && s.WorldX == x && s.WorldZ == z)
-            .Select(s => s.WorldYEnd).ToListAsync(ct);
+        var tops = (await feature.SegmentRowsAsync(map.Id, q => q.Where(s => s.WorldX == x && s.WorldZ == z), ct))
+            .Select(s => s.WorldYEnd).ToList();
         if (tops.Count == 0) { await Send.OkAsync(new ColumnFloorDto(null), ct); return; }
 
         var below = tops.Where(t => t <= refY).ToList();
@@ -248,7 +249,7 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : Endpoint
 /// a solid run is the case the two differ on — the floor below it is a real floor and the block is still
 /// occupied.</para>
 /// </summary>
-public sealed class BlockSeatEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<BlockSeatDto>
+public sealed class BlockSeatEndpoint(MapRepository repo, FeatureData feature) : EndpointWithoutRequest<BlockSeatDto>
 {
     public override void Configure() { Get("/map/{slug}/block-seat"); Description(b => b.Refuses(404)); }
 
@@ -266,11 +267,9 @@ public sealed class BlockSeatEndpoint(MapRepository repo, PgmDb db) : EndpointWi
 
         // The block's own column plus its four neighbours: a placement needs a block on any one of six
         // faces, so the read is five columns wide rather than one.
-        var columns = await db.Segments
-            .Where(s => s.MapId == map.Id
-                        && ((s.WorldX == x && (s.WorldZ == z || s.WorldZ == z - 1 || s.WorldZ == z + 1))
-                            || (s.WorldZ == z && (s.WorldX == x - 1 || s.WorldX == x + 1))))
-            .Select(s => new { s.WorldX, s.WorldZ, s.WorldYStart, s.WorldYEnd }).ToListAsync(ct);
+        var columns = await feature.SegmentRowsAsync(map.Id, q => q.Where(s =>
+            (s.WorldX == x && (s.WorldZ == z || s.WorldZ == z - 1 || s.WorldZ == z + 1))
+            || (s.WorldZ == z && (s.WorldX == x - 1 || s.WorldX == x + 1))), ct);
 
         bool Solid(int atX, int atY, int atZ) => columns.Any(
             run => run.WorldX == atX && run.WorldZ == atZ && run.WorldYStart <= atY && atY <= run.WorldYEnd);

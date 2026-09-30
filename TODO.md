@@ -20,11 +20,6 @@ built world — and the reads each trust a different copy. The scan is a derived
 checks run once against whichever copy existed at that moment, and two walks judge one board on two grounds.
 The entries below are that one cause, in the order a wrong answer costs most.
 
-- [ ] **TS123 — Every read of the scan goes through the refresh.** `FeatureData` rasterizes a stale sketch scan
-  again before answering; `/segments`, `/top-surface`, `/column-floor`, `/block-seat`, `/symmetry`, `/islands`,
-  `/scan-summary`, `/regions/tree` and Configure's layer reads load the stored rows or artifacts directly and
-  still answer for the board Finish saw. Route them through one accessor. `docs/tools/sketch.md`.
-
 - [ ] **TN24 — The findings list asks what it can, and a refresh re-runs what Finish judged.**
   `GET …/findings` promises a silent list means nothing is wrong, yet neither asks nor names under `unasked`
   the strait re-read (`CT12`, `StraitReadback`) or `EZ1`/`EZ2`, all cheap off the scan. And `StraitReadback`

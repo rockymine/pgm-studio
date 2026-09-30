@@ -266,6 +266,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   a vertex moved, a coast bent, a shape redrawn. Every read of a finished sketch's ground used to answer for the
   board Finish saw: on Gypsum Reach the editability, the pre-flight and the export still read the field's
   rectangle out to x −16 after `editShapes` pulled the coast in to −24. `docs/tools/sketch.md`. (`TS122`)
+- **Every read of the scan reads the same one (`TS123`).** `FeatureData` is the one reader of a finished
+  sketch's scan — segment rows, surface layer, islands, configuration, bounds — and brings it up to the stored
+  layout once a request before answering, so `segments`, `column-floor`, `block-seat`, `top-surface`,
+  `islands`, `symmetry`, `regions/tree` and Configure answer for the board as drawn. A scan written again
+  carries the author's configuration and drops an unconfirmed symmetry. `FeatureDataTests` fails on any Api
+  file that loads the scan around it; before, seven reads did. `docs/tools/sketch.md`. (`TS123`)
 - **Every connectivity read walks the world the export builds (`TC11`).** Traversability, kit reach, coverage,
   dead ground, the pre-flight and `EX1` are handed one `WalkGround`: on a board the studio builds from its
   layout, `BuiltWalk` over that world — houses and trunks solid, lava a wall except where the document lets a

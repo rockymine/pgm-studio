@@ -80,22 +80,24 @@ public static class SketchFinish
     /// <summary>Rasterize a finished sketch again where the stored layout has moved past the scan: a vertex
     /// moved, a coast bent, a shape redrawn after Finish. Every read of the board's ground — editability,
     /// traversability, the pre-flight, the export — goes through the scan, so a stale one answers for a board
-    /// that is no longer drawn. A map never finished, and an imported world's scan, are left alone.</summary>
-    public static async Task RefreshAsync(long mapId, MapArtifactStore artifacts, WorldFeatureWriter writer,
+    /// that is no longer drawn. A map never finished, and an imported world's scan, are left alone. True where
+    /// the scan was written again.</summary>
+    public static async Task<bool> RefreshAsync(long mapId, MapArtifactStore artifacts, WorldFeatureWriter writer,
         CancellationToken ct)
     {
-        if (await artifacts.RevisionAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is not { } revision) return;
-        if (await artifacts.LoadAsync(mapId, ArtifactKind.MapConfigJson, ct) is not { } configBytes) return;
+        if (await artifacts.RevisionAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is not { } revision) return false;
+        if (await artifacts.LoadAsync(mapId, ArtifactKind.MapConfigJson, ct) is not { } configBytes) return false;
         if (JsonNode.Parse(configBytes) is not JsonObject config
-            || config["scan_read"]?.GetValue<string>() != "surface") return;
+            || config["scan_read"]?.GetValue<string>() != "surface") return false;
         if (config[WorldFeatureWriter.SketchScanRevision] is JsonValue scanned
-            && scanned.TryGetValue<long>(out var at) && at == revision) return;
+            && scanned.TryGetValue<long>(out var at) && at == revision) return false;
 
-        if (await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is not { } data) return;
+        if (await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is not { } data) return false;
         var cells = SketchRasterizer.RasterizeColumns(Encoding.UTF8.GetString(data));
         var islands = IslandDetector.Detect(cells.Select(cell => (cell.X, cell.Z)), minIslandSize: 1);
-        if (islands.Count == 0) return;
+        if (islands.Count == 0) return false;
         await writer.WriteSketchAsync(mapId, cells, islands, revision, ct);
+        return true;
     }
 
     private static SketchFinished Refuse(int status, string error, params Finding[] findings) =>

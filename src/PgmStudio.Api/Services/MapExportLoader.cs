@@ -39,7 +39,7 @@ public static class MapExportLoader
         IReadOnlyList<(string Type, int X, int Y, int Z)> resources = [];
         if (isIntent && layoutBytes is null)
         {
-            var surface = await ConfigureLayers.CellsAsync(artifacts, mapId, "surface", ct);
+            var surface = await feature.LayerCellsAsync(mapId, "surface", ct);
             surfacePalette = surface?.Select(c => c.BlockId).ToHashSet();
             resources = (await feature.ResourceBlocksAsync(mapId, ct)).Select(b => (b.Type, b.X, b.Y, b.Z)).ToList();
         }

@@ -18,7 +18,8 @@ using PgmStudio.Contracts;
 /// scan measured. Detection runs on the fixed cleaned-base layer (no user scan-layer or block-exclusion
 /// choice, and no world re-scan): excluding an island only recomputes symmetry from the already-detected
 /// <c>islands_json</c>. A map with no stored document reads as the default below rather than as absent —
-/// every field has an answer before the first save.
+/// every field has an answer before the first save. A route reads it through
+/// <see cref="FeatureData.ScanConfigAsync"/>, which brings a finished sketch's scan up to its layout first.
 /// </summary>
 internal static class ScanConfig
 {
@@ -37,15 +38,10 @@ internal static class ScanConfig
 
     public static Task SaveAsync(MapArtifactStore artifacts, long mapId, JsonObject cfg, CancellationToken ct)
         => artifacts.SaveAsync(mapId, ArtifactKind.MapConfigJson, Encoding.UTF8.GetBytes(cfg.ToJsonString()), ct);
-
-    /// <summary>The islands the author excluded from detection — the symmetry input, empty when none.</summary>
-    public static async Task<HashSet<int>> ExcludedIslandsAsync(MapArtifactStore artifacts, long mapId, CancellationToken ct)
-        => (await LoadAsync(artifacts, mapId, ct))["exclude_islands"]?.AsArray()
-            .Select(n => n!.GetValue<int>()).ToHashSet() ?? [];
 }
 
 /// <summary>GET /api/configure/{slug}/state — the current scan configuration.</summary>
-public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
+public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, FeatureData feature)
     : EndpointWithoutRequest<ConfigureStateDto>
 {
     public override void Configure() { Get("/configure/{slug}/state"); Description(b => b.Refuses(404)); }
@@ -53,7 +49,7 @@ public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, MapArti
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        var cfg = await ScanConfig.LoadAsync(artifacts, map.Id, ct);
+        var cfg = await feature.ScanConfigAsync(map.Id, ct);
 
         // Step 3 = symmetry: configure is complete once the user confirms/rejects the detection.
         var symRow = await SymmetryStore.LoadAsync(db, map.Id, ct);
@@ -69,7 +65,7 @@ public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, MapArti
 }
 
 /// <summary>PATCH /api/configure/{slug}/exclude-island — toggle one island's exclusion.</summary>
-public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
+public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts, FeatureData feature)
     : EndpointWithoutRequest<AppliedDto>
 {
     public override void Configure()
@@ -85,7 +81,7 @@ public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db,
         var islandId = body.GetProperty("island_id").GetInt32();
         var excluded = body.GetProperty("excluded").GetBoolean();
 
-        var cfg = await ScanConfig.LoadAsync(artifacts, map.Id, ct);
+        var cfg = await feature.ScanConfigAsync(map.Id, ct);
         var list = cfg["exclude_islands"]?.AsArray() ?? new JsonArray();
         var ids = list.Select(n => n!.GetValue<int>()).Where(i => i != islandId).ToList();
         if (excluded) ids.Add(islandId);
@@ -95,26 +91,5 @@ public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db,
         // Excluded islands feed symmetry detection — drop the cached result so step 3 recomputes.
         await SymmetryStore.DeleteAsync(db, map.Id, ct);
         await Send.OkAsync(new AppliedDto(), ct);
-    }
-}
-
-/// <summary>Resolves an already-ingested surface layer for a map (no world access).</summary>
-internal static class ConfigureLayers
-{
-    /// <summary>The cells for a layer type from the ingested artifacts, or null when not cached. The
-    /// studio-chosen <c>scan_read</c> is served from the canonical <c>layer.parquet</c>; any other type
-    /// from its per-type cache if one was stored. Never scans the world — the hosted tier has no
-    /// <c>.mca</c> files, and per-map re-scan/re-detection is out of scope.</summary>
-    public static async Task<List<SurfaceCell>?> CellsAsync(
-        MapArtifactStore artifacts, long mapId, string layerType, CancellationToken ct)
-    {
-        var cfg = await ScanConfig.LoadAsync(artifacts, mapId, ct);
-        var scanRead = cfg["scan_read"]?.GetValue<string>() ?? "surface";
-
-        if (layerType == scanRead && await artifacts.LoadAsync(mapId, ArtifactKind.SurfaceParquet, ct) is { } canon)
-            return await SurfaceScan.ReadAsync(canon);
-
-        return await artifacts.LoadAsync(mapId, $"layer_{layerType}_parquet", ct) is { } cached
-            ? await SurfaceScan.ReadAsync(cached) : null;
     }
 }

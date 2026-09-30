@@ -279,9 +279,8 @@ public sealed class MapFromDocumentsTests
     }
 
     /// <summary><b>The scan follows the drawing.</b> Every read of a board's ground loads the scan the finish
-    /// wrote, and a layout written after it — a shape redrawn, a coast pulled in — used to leave that scan
-    /// describing the board before the edit, so the reads answered for ground that was no longer drawn. The
-    /// read now brings the scan up to the stored layout first.</summary>
+    /// wrote, and a layout written after it — a shape redrawn, a coast pulled in — leaves that scan describing
+    /// the board before the edit. The read brings the scan up to the stored layout first.</summary>
     [Test]
     public async Task A_layout_written_after_the_finish_is_what_the_reads_answer_for()
     {
@@ -297,6 +296,44 @@ public sealed class MapFromDocumentsTests
         var box = read.GetProperty("bbox");
         await Assert.That((box.GetProperty("min_x").GetInt32(), box.GetProperty("max_x").GetInt32()))
             .IsEqualTo((-10, 9)).Because("the scan was rasterized again from the shape as it is drawn now");
+    }
+
+    /// <summary><b>Every route that reads the scan reads the same one.</b> After a layout is shrunk past the
+    /// finish, the side view, a single column, the islands, the surface overlay and the region frame all answer
+    /// for the board as drawn — and the island the author excluded in Configure stays excluded, since a scan
+    /// written again carries what the author set.</summary>
+    [Test]
+    public async Task Every_scan_read_answers_for_the_layout_as_drawn()
+    {
+        using var client = await FreshAsync();
+        var loaded = await client.PostAsJsonAsync("/api/map/from-documents", Body());
+        await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
+        var excluded = await client.PatchAsJsonAsync("/api/configure/weirgate/exclude-island",
+            new { island_id = 0, excluded = true });
+        await Assert.That(excluded.IsSuccessStatusCode).IsTrue();
+
+        var smaller = Layout.Replace("\"min_x\":-20,\"max_x\":20", "\"min_x\":-10,\"max_x\":10");
+        var put = await client.PutAsync("/api/map/weirgate/sketch", new StringContent(smaller, Encoding.UTF8, "application/json"));
+        await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
+
+        var column = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/column-floor?x=15&z=0");
+        await Assert.That(column.GetProperty("y").ValueKind).IsEqualTo(JsonValueKind.Null)
+            .Because("x 15 was ground before the edit and is not now");
+
+        var islands = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/islands");
+        var bounds = islands[0].GetProperty("bounds");
+        await Assert.That((bounds[0].GetDouble(), bounds[2].GetDouble())).IsEqualTo((-10d, 10d));
+
+        var surface = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/top-surface");
+        await Assert.That((surface.GetProperty("min_x").GetInt32(), surface.GetProperty("max_x").GetInt32()))
+            .IsEqualTo((-10, 9));
+
+        var tree = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/regions/tree");
+        await Assert.That(tree.GetProperty("bounding_box").GetProperty("max_x").GetDouble()).IsEqualTo(9d);
+
+        var state = await client.GetFromJsonAsync<JsonElement>("/api/configure/weirgate/state");
+        await Assert.That(state.GetProperty("exclude_islands").EnumerateArray().Select(id => id.GetInt32()))
+            .IsEquivalentTo([0]);
     }
 
     private static async Task<HttpClient> FreshAsync()
