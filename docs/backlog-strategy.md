@@ -479,18 +479,18 @@ what a board is played for was derived in several places and a control point was
 was that every entry named a thing the codec already carried and the intent could not state. Both left their
 wizard step behind, which is why `TC7` and `TC9` sit with the configure surface rather than here.
 
-`TODO.md` holds **the walk**, pulled up whole. Its cause was the other half of a consolidation that had only
-gone halfway: `Geom.Walk` became the one traversal, and the *answers* taken with it did not follow. Three of
-them are now one each — adjacency is `ContactGraph.Connects`, a fork belongs to a demand set and a door, and
+**The walk** was pulled up whole and has drained. Its cause was the other half of a consolidation that had
+only gone halfway: `Geom.Walk` became the one traversal, and the *answers* taken with it did not follow. Three
+of them are now one each — adjacency is `ContactGraph.Connects`, a fork belongs to a demand set and a door, and
 dead ground is `Cells.Stretches`, which the plan tier and the built-world tier ask at their own floors
 (`FEATURES.md`). That is `CLAUDE.md`'s *"a shape is not consolidated until the callers ask it the same
-question by the same name"*, applied; what the group still holds are the readings that ground was settled
-for.
+question by the same name"*, applied, and the readings that ground was settled for drained with it.
 
 Of the causes this section named earlier, the client reading its own schema is `C51` alone and the compiler's
 lost identity is `B213`, so neither stands as a programme. What is left whole, after the walk, is **the layer
 word** (`B264`, `WE28`, `TS64` — a layer is first-class in the export and an afterthought everywhere
-else), and it is the one to pull next. The two shop entries that remain (`PG15`, `PG16`) are independent
+else), and it waits behind the programme the author put first: a board's source, every change to it, and the
+words it is stated in (`TODO.md`). The two shop entries that remain (`PG15`, `PG16`) are independent
 extensions of a landed slice rather than one cause, and are therefore roadmap rather than programme.
 
 **The rule over Phases 1 and 2.** A programme pulled up from `BACKLOG.md` is worked to its end before

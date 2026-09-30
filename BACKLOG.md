@@ -20,6 +20,48 @@ reuse. The prefix names the document the task must leave correct, catalogued in 
 about which section the entry sits in — the retired prefixes still on entries here (`B`, `S`, `N`, `C`, `CV`,
 `P`, `A`) keep theirs untouched.
 
+## The authoring repository moves onto the studio's source and kit
+
+The next group behind the programme in `TODO.md`, on the side that authors boards. It waits on `RP91`, `RP92`
+and `RP95`, and is pulled up whole when they land.
+
+- [ ] **RP96 — `pgm-studio-mapgen` states its boards in the refinement and the kit.** `drive.py` runs the
+  board's `build-spec.py` first, dry-runs the source and prints the diff, applies with its origin (`git
+  rev-parse HEAD`, the folder, whether the tree is dirty) and reads one report (`WS80`); its merge, its vertex
+  loop and its `@name` loader go. The boards that still compile (plan version 2) rename `finish.json` to
+  `refinement.json` and import the fetched kit; `specs/opus55_kit.py`, `specs/sonnet55_kit.py` and the copied
+  `common.py` and `opus5c.py` retire. `AUTHORING-BRIEF.md`, `tools/README.md` and both skills follow, and the
+  skill's first moment reads the changes since the last apply beside the open notes.
+
+  *Evidence: one drive re-sent the previous pass's documents because its script had not been run
+  (`pgm-studio-mapgen/reports/opus55-notes-run.md`, the fourth pass).*
+
+- [ ] **TL33 — The house styles `pgm-studio-mapgen` keeps become the library's.** 81 house styles sit in
+  `pgm-studio-mapgen/tools/styles` against 13 room styles in the deployed library, and `drive.py`'s `@name`
+  and the kit's `house_style()` read them from disk. The author picks the ones worth keeping,
+  `tools/seed-studio.py` loads them into the library, boards name them (`TL32`), and the folder goes.
+  `docs/tools/library.md`.
+
+- [ ] **WS72 — `GET /map/{slug}/coverage` and its `?format=png` each walk the whole board.** Both run
+  `GroundCoverage.Read` over the same stored documents, a field per waypoint and a walk per pair of them, and
+  `drive.py` asks for both on every run: 2.5 s apiece on `opus55-scarbutte` in the Debug studio, the largest
+  read a drive still waits on. The picture wants the numbers the JSON already computed, kept the way
+  `BuiltWorlds` keeps a world — keyed on what the read derives from, so an edit is a new key.
+
+- [ ] **WS80 — One read answers everything a drive reads back.** After every store `drive.py` asks for the
+  grid, the flow, the findings, pre-flight, coverage, the relief read, the columns, every `?format=text` read
+  (31 on Gypsum Reach) and the pictures, and draws the isometric, the x-ray and the void scan itself from
+  `sketch/columns`, a read of the built world done outside the studio. `GET /map/{slug}/report` builds once
+  and answers the text reads and the three headline numbers; `?pictures=true` adds the pictures; the
+  isometric, x-ray and void scan move into `Export`. The Sketch tool shows the same report.
+  `docs/world-scan/read-backs.md`.
+
+- [ ] **TS126 — A note's checkable claim, kept as a check.** *Parked (author): not yet.* Some notes state
+  what a board must keep being — a path reaches the bridge (note 58), a bedrock wall has void on both sides
+  (note 48), a wall does not float (note 54). A reply could carry the claim as a measured check over the note's
+  anchor, kept when the author resolves the note, and raised as a finding naming the note when a later pass
+  breaks it. `docs/tools/sketch.md` § In game.
+
 ## The configure wizard: a map built from what an author states it is
 
 The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds a map from declarative
@@ -477,15 +519,6 @@ and what a `subtract` takes away.
   `SketchMaterialGate` and `PlanStructurePreview` still call the structures a wool cage and a spawn cube,
   which is the same word under a different hat and wants renaming in one pass rather than in two.
 
-- [ ] **RP65 — The layout DTO still says `JsonElement` where its own routes say `DressingDoc` and
-  `BiomeField`.** `SketchLayout.Dressing` and `.Biome` are `JsonElement?` because their types live in
-  `Minecraft` and `SketchLayout` lives in `Pgm`, which are siblings over `Domain` + `Geom` — the fields' own
-  docstrings say so (`SketchLayout.cs:41-50`). The part routes publish both models and the store-time gate
-  reads both (`FEATURES.md`), so what is left is the whole-layout route: `GET`/`PUT /map/{slug}/sketch` names
-  the two fields with no shape under them, and a reader who starts from the document rather than from the
-  parts finds two holes in it. Move the dressing and material model down to a project both reach, or publish
-  the two schemas from `Minecraft` and reference them from the layout.
-
 - [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
   `/maps/{slug}/plan` from a single component through six `@if (MapBacked)` branches, and the two render as
   different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
@@ -548,12 +581,6 @@ server's backups and the edits a read-only page still lets start.
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
 ## The remainder: work no concept above has claimed
-
-- [ ] **WS72 — `GET /map/{slug}/coverage` and its `?format=png` each walk the whole board.** Both run
-  `GroundCoverage.Read` over the same stored documents, a field per waypoint and a walk per pair of them, and
-  `drive.py` asks for both on every run: 2.5 s apiece on `opus55-scarbutte` in the Debug studio, the largest
-  read a drive still waits on. The picture wants the numbers the JSON already computed, kept the way
-  `BuiltWorlds` keeps a world — keyed on what the read derives from, so an edit is a new key.
 
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled
