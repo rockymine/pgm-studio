@@ -770,8 +770,7 @@ public static class Decorator
             var share = DressingPalette.SoilShare(groundId, groundData);
             if (share <= 0) continue;
 
-            var soil = DressingPalette.SoilOf(groundId);
-            if (PickPlant(area.Spec, area.Seed, x, z, share, soil, groundId == Blocks.Dirt, context.Symmetry)
+            if (PickPlant(area.Spec, area.Seed, x, z, share, groundId, groundData, context.Symmetry)
                 is not { } plant) continue;
             // Tall grass is the one plant that is cover rather than colour, so it is the one the goal's own
             // ground turns away — the field simply grows its short cover there instead of skipping the cell,
@@ -825,13 +824,22 @@ public static class Decorator
     /// orbit's representative once, so a cell grows what its image grows. What the cell itself still decides
     /// is what it is made of: <paramref name="soilShare"/> is the paint actually under this block, which is
     /// symmetric already because it was painted through the same fold.</para></summary>
-    private static Plant? PickPlant(FloraSpec flora, uint seed, int x, int z, double soilShare, Soil soil,
-        bool onDirt, DressingSymmetry symmetry)
+    private static Plant? PickPlant(FloraSpec flora, uint seed, int x, int z, double soilShare, int groundId,
+        int groundData, DressingSymmetry symmetry)
     {
         var (fx, fz) = symmetry.Canonical(x, z);
 
         var density = PatternNoise.Fbm(fx, fz, seed, flora.Scale, flora.Octaves);
         if (density < 1 - flora.Coverage * soilShare) return null;
+
+        // A mushroom keeps by day only to podzol and mycelium, and mycelium carries nothing else.
+        var soil = DressingPalette.SoilOf(groundId);
+        if (DressingPalette.KeepsMushroom(groundId, groundData) && PatternNoise.Unit(fx, fz, seed + 51) < flora.MushroomShare)
+        {
+            var pick = PatternNoise.Unit(fx, fz, seed + 52);
+            return DressingPalette.Mushrooms[(int)(pick * DressingPalette.Mushrooms.Length) % DressingPalette.Mushrooms.Length];
+        }
+        if (soil == Soil.Mycelium) return null;
 
         // Dry ground grows only what 1.8 lets stand on it: a cactus on sand, a dead bush on sand or clay.
         if (soil is Soil.Sand or Soil.Clay)
@@ -851,7 +859,7 @@ public static class Decorator
             var pick = PatternNoise.Unit(fx, fz, seed + 88);
             return DressingPalette.Flowers[(int)(pick * DressingPalette.Flowers.Length) % DressingPalette.Flowers.Length];
         }
-        if (onDirt && PatternNoise.Unit(fx, fz, seed + 71) < flora.DeadBushShare) return DressingPalette.DeadBush;
+        if (groundId == Blocks.Dirt && PatternNoise.Unit(fx, fz, seed + 71) < flora.DeadBushShare) return DressingPalette.DeadBush;
         return PatternNoise.Unit(fx, fz, seed + 21) < flora.FernShare
             ? DressingPalette.Fern : DressingPalette.Grass;
     }

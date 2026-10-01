@@ -8320,6 +8320,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   ground a 1.8 bush stays on, so sand, gravel and mycelium no longer carry cover that drops at the first
   update. The Dressing inspector offers both shares. `docs/world-export/decoration.md` §3. (`WE150`)
 
+- **Mushrooms in the flora (`WE157`)** — a flora area grows brown and red mushrooms, brown two in three, on
+  podzol and mycelium at `mushroomShare`: the two footings a mushroom keeps by day, so none is grown where
+  1.8 would drop it. Podzol grows the rest of its cover as any dirt does, and mycelium nothing else. The
+  Dressing inspector offers the share. `docs/world-export/decoration.md` §3. (`WE157`)
+
 - **Lily pads on open water (`WE156`)** — a flora area floats a lily pad on the open still water inside it at
   `lilyShare`, cut from a field at the cover's patch size so the pads gather in rafts as flowers gather in
   fields, and read at the folded cell so a mirrored board's halves float alike; a fluid's dry bed and beach grow nothing and lava floats

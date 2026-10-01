@@ -850,6 +850,63 @@ public sealed class DecoratorTests
         await Assert.That(grown.All(id => id == DressingPalette.DeadBushBlock)).IsTrue();
     }
 
+    /// <summary>A plateau painted in three strips across x: grass to x 12, podzol to x 25, mycelium beyond.</summary>
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> SurfaceTop) Strips()
+    {
+        var (world, top) = Plateau();
+        for (var z = 0; z < 40; z++)
+        for (var x = 13; x < 40; x++)
+            world.SetBlock(x, 7, z, x < 26 ? Blocks.Dirt : Blocks.Mycelium, x < 26 ? DressingPalette.PodzolData : 0);
+        return (world, top);
+    }
+
+    private static bool IsMushroom(int blockId) =>
+        blockId is DressingPalette.BrownMushroomBlock or DressingPalette.RedMushroomBlock;
+
+    /// <summary>What stands on each strip's surface, column by column.</summary>
+    private static List<(int X, int Id)> Grown(VoxelWorld world, Dictionary<(int X, int Z), int> top) =>
+        top.Keys.Select(cell => (cell.X, world.GetBlock(cell.X, 8, cell.Z).Id)).Where(cell => cell.Id != Blocks.Air).ToList();
+
+    /// <summary><b>Podzol and mycelium grow mushrooms, and grass never does.</b> A mushroom keeps by day only to
+    /// those two, so the share is drawn there alone: podzol grows the rest of its cover as any dirt does, and
+    /// mycelium grows nothing else. Brown outnumbers red, two in three.</summary>
+    [Test]
+    public async Task Podzol_and_mycelium_grow_mushrooms_and_grass_never_does()
+    {
+        var (world, top) = Strips();
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0, MushroomShare: 0.5), Seed = 7 }]));
+
+        var grown = Grown(world, top);
+        var grass = grown.Where(cell => cell.X < 13).ToList();
+        var podzol = grown.Where(cell => cell.X is >= 13 and < 26).ToList();
+        var mycelium = grown.Where(cell => cell.X >= 26).ToList();
+        await Assert.That(grass.Count).IsGreaterThan(200);
+        await Assert.That(grass.Any(cell => IsMushroom(cell.Id))).IsFalse();
+        await Assert.That(podzol.Count(cell => IsMushroom(cell.Id))).IsGreaterThan(40);
+        await Assert.That(podzol.Count(cell => cell.Id == DressingPalette.TallGrassBlock)).IsGreaterThan(40);
+        await Assert.That(mycelium.Count).IsGreaterThan(40);
+        await Assert.That(mycelium.All(cell => IsMushroom(cell.Id))).IsTrue();
+        var red = grown.Count(cell => cell.Id == DressingPalette.RedMushroomBlock);
+        await Assert.That(red).IsGreaterThan(0);
+        await Assert.That(grown.Count(cell => cell.Id == DressingPalette.BrownMushroomBlock)).IsGreaterThan(red);
+    }
+
+    /// <summary><b>Without a mushroom share nothing grows one</b>: podzol carries grass and fern as any dirt
+    /// does, and mycelium stays bare.</summary>
+    [Test]
+    public async Task Without_a_mushroom_share_mycelium_stays_bare()
+    {
+        var (world, top) = Strips();
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 }]));
+
+        var grown = Grown(world, top);
+        await Assert.That(grown.Any(cell => IsMushroom(cell.Id))).IsFalse();
+        await Assert.That(grown.Count(cell => cell.X is >= 13 and < 26)).IsGreaterThan(200);
+        await Assert.That(grown.Any(cell => cell.X >= 26)).IsFalse();
+    }
+
     /// <summary>Cacti on sand stand one to four blocks tall, never beside another cactus or anything solid, and
     /// a board fanned about its centre grows each one at every image.</summary>
     [Test]

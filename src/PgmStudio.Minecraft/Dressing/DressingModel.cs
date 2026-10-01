@@ -23,6 +23,9 @@ namespace PgmStudio.Minecraft.Dressing;
 /// <param name="LilyShare">0–1; how much of the open still water inside the area the lily rafts cover — a field
 /// at the cover's own patch size cut at 1 − share, so about half the water at 0.5 and all of it at 1. Water
 /// only: lava floats nothing.</param>
+/// <param name="MushroomShare">0–1; how much of the cover on podzol and mycelium is mushrooms, brown two in
+/// three — the two footings a mushroom keeps by day. Podzol grows the rest as any dirt does, and mycelium
+/// nothing else.</param>
 public sealed record FloraSpec(
     double Coverage = 0.45,
     int Scale = 12,
@@ -33,7 +36,8 @@ public sealed record FloraSpec(
     double TallShare = 0.0,
     double DeadBushShare = 0.0,
     double CactusShare = 0.0,
-    double LilyShare = 0.0);
+    double LilyShare = 0.0,
+    double MushroomShare = 0.0);
 
 /// <summary>The shape family a boulder takes. Each is a list of lobes, not a code path — see
 /// <see cref="BoulderShapes"/>.</summary>

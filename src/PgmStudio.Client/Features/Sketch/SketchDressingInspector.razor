@@ -185,6 +185,11 @@
           <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
                  value="@((int)(Spec(SpecFields.CactusShare, 0) * 100))"
                  @oninput="e => SetSpec(SpecFields.CactusShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
+        <Field Label="Mushrooms"><LabelHint>on podzol and mycelium only, the ground a mushroom keeps by day</LabelHint>
+          <LabelEnd><strong>@($"{Spec(SpecFields.MushroomShare, 0) * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 value="@((int)(Spec(SpecFields.MushroomShare, 0) * 100))"
+                 @oninput="e => SetSpec(SpecFields.MushroomShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
         <Field Label="Lily pads"><LabelHint>on open still water, in rafts where the cover is thick</LabelHint>
           <LabelEnd><strong>@($"{Spec(SpecFields.LilyShare, 0) * 100:0}%")</strong></LabelEnd>
           <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"

@@ -256,6 +256,12 @@ admits is cactus and `DeadBushShare` of the rest is dead bush, and what is left 
 clay the cover is dead bush at `DeadBushShare`; on dirt `DeadBushShare` of the grass and fern is dead bush
 instead. Both shares are 0 unless stated, so a board that never asks grows neither.
 
+**Podzol and mycelium grow mushrooms, the two footings a mushroom keeps by day.** 1.8 drops a mushroom wherever
+the light reaches 13 unless the block under it is one of the two (`DressingPalette.KeepsMushroom`), and an open
+meadow is lit past that every day. So on those two, `MushroomShare` of the cover the density field admits is a
+mushroom, brown two in three and red the third; podzol grows the rest as any dirt does, and mycelium nothing
+else. The share is 0 unless stated, so a board that never asks grows none and its mycelium stays bare.
+
 **A cactus is one to four blocks tall and stands alone.** 1.8 breaks a cactus block with anything solid on any
 of its four sides, so its height — a hashed one to `DressingPalette.CactusTallest` (**4**) — is cut short at the
 first course that is hemmed in, and one hemmed in at its foot is not grown. Two cacti side by side break each
