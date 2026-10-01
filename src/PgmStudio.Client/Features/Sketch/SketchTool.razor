@@ -34,6 +34,7 @@
       <NavButton Icon="trees" Title="Dressing" Active="@DressingActive" OnClick="GoDressing" />
       <NavButton Icon="eye" Title="In game" Active="@InGameActive" OnClick="GoInGame" />
       <NavButton Icon="history" Title="History" Active="@HistoryActive" OnClick="GoHistory" />
+      <NavButton Icon="clipboard" Title="Report" Active="@ReportActive" OnClick="GoReport" />
     </NavRail>
   </Rail>
   <ChildContent>
@@ -50,6 +51,10 @@
         <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Round="viewRound" LinkedNote="Note"
                            OnBack="GoDressing" OnPlace="PlaceView" OnLetGo="LetGoView" OnPicture="PictureView"
                            Changes="ChangeNumbers" OnChangesSince="ShowChangesSince" />
+      }
+      @if (ReportActive)
+      {
+        <SketchReportPhase Slug="@Slug" Report="report" Error="@reportError" OnBack="GoHistory" OnRead="LoadReportAsync" />
       }
       @* Every phase that draws shares the one mounted canvas, so this body stays present (hidden while Info is
          up) — [hidden] is display:none, and the canvas re-measures on unhide. A phase swaps what the columns

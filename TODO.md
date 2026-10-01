@@ -40,11 +40,3 @@ statements have shipped; what remains is `pgm-studio-mapgen` moving onto all of 
   and the kit's `house_style()` read them from disk. The author picks the ones worth keeping,
   `tools/seed-studio.py` loads them into the library, boards name them as `{"library": …}`, and the folder goes.
   `docs/tools/library.md`.
-
-- [ ] **WS80 — One read answers everything a drive reads back.** After every store `drive.py` asks for the
-  grid, the flow, the findings, pre-flight, coverage, the relief read, the columns, every `?format=text` read
-  (31 on Gypsum Reach) and the pictures, and draws the isometric, the x-ray and the void scan itself from
-  `sketch/columns`, a read of the built world done outside the studio. `GET /map/{slug}/report` builds once
-  and answers the text reads and the three headline numbers; `?pictures=true` adds the pictures; the
-  isometric, x-ray and void scan move into `Export`. The Sketch tool shows the same report.
-  `docs/world-scan/read-backs.md`.

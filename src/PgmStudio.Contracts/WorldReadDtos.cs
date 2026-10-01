@@ -230,8 +230,10 @@ public sealed record MapReportPictureDto(string Name, string Route, string? Png,
 /// <param name="WorstStep">The worst step on any route walked from a spawn to a goal, or null where none
 /// was.</param>
 /// <param name="WorstRoute">The route that step is on, as the report names it.</param>
+/// <param name="Says">The three numbers as the three lines a reader takes first — the words the text report
+/// opens on and the Sketch tool shows.</param>
 public sealed record MapReportHeadlineDto(int Walked, int Scrambled, int Barrier, int Placed, int Declined,
-    int? WorstStep, string? WorstRoute);
+    int? WorstStep, string? WorstRoute, IReadOnlyList<string> Says);
 
 /// <summary>Everything a drive reads back about a stored map, off one build (<c>GET /api/map/{slug}/report</c>):
 /// the three numbers first, then every reading in the order a reader meets them, then the pictures by the

@@ -157,13 +157,14 @@ internal sealed class MapReport(
         var (worstRoute, worstStep) = routes.Where(route => route.WorstStep is not null)
             .OrderByDescending(route => route.WorstStep)
             .Select(route => ((string?)route.Read.Name, route.WorstStep)).FirstOrDefault();
-        var headline = new MapReportHeadlineDto(
-            slopes?.Walked ?? 0, slopes?.Scrambled ?? 0, slopes?.Barrier ?? 0,
-            built.Dressing.Placements.Count, built.Dressing.Declines.Count, worstStep, worstRoute);
+        var (walked, scrambled, barrier) = (slopes?.Walked ?? 0, slopes?.Scrambled ?? 0, slopes?.Barrier ?? 0);
+        var (placed, declined) = (built.Dressing.Placements.Count, built.Dressing.Declines.Count);
+        var headline = new MapReportHeadlineDto(walked, scrambled, barrier, placed, declined, worstStep, worstRoute,
+            [.. Says(walked, scrambled, barrier, placed, declined, worstStep, worstRoute)]);
 
         var named = Pictures(read, extent, cavities.Count > 0 && cavities[0].Cells >= RoomWorthAnXRay, coverage,
                              await KeptViews.LoadAsync(artifacts, map.Id, ct));
-        var drawn = pictures ? await DrawAsync(read, named, ct) : [.. named.Select(Unasked)];
+        var drawn = pictures ? await DrawAsync(read, named, ct) : await UnaskedAsync(named, ct);
 
         return new MapReportDto(map.Slug, await log.LatestAsync(map.Slug, ct), headline, reads, drawn);
     }
@@ -174,7 +175,7 @@ internal sealed class MapReport(
     {
         var text = new StringBuilder();
         text.Append(CultureInfo.InvariantCulture, $"REPORT  {report.Slug}  change {report.Change}\n\n");
-        foreach (var line in Headline(report.Headline)) text.Append("  ").Append(line).Append('\n');
+        foreach (var line in report.Headline.Says) text.Append("  ").Append(line).Append('\n');
         foreach (var reading in report.Reads)
         {
             text.Append(CultureInfo.InvariantCulture, $"\n== {reading.Name}   ({reading.Route})\n");
@@ -189,18 +190,18 @@ internal sealed class MapReport(
     }
 
     /// <summary>The three numbers as the three lines a reader takes first.</summary>
-    public static IEnumerable<string> Headline(MapReportHeadlineDto headline)
+    private static IEnumerable<string> Says(int walked, int scrambled, int barrier, int placed, int declined,
+                                            int? worstStep, string? worstRoute)
     {
-        var cells = headline.Walked + headline.Scrambled + headline.Barrier;
+        var cells = walked + scrambled + barrier;
         yield return cells == 0
             ? "ground   none to step on"
             : string.Create(CultureInfo.InvariantCulture,
-                $"ground   {headline.Walked} walked, {headline.Scrambled} scrambled, {headline.Barrier} barrier — "
-                + $"{100.0 * (headline.Scrambled + headline.Barrier) / cells:0.0}% steps further than a player walks");
-        yield return string.Create(CultureInfo.InvariantCulture,
-            $"props    {headline.Placed} placed, {headline.Declined} declined");
-        yield return headline.WorstStep is { } step
-            ? string.Create(CultureInfo.InvariantCulture, $"routes   worst step {step}, on {headline.WorstRoute}")
+                $"ground   {walked} walked, {scrambled} scrambled, {barrier} barrier — "
+                + $"{100.0 * (scrambled + barrier) / cells:0.0}% steps further than a player walks");
+        yield return string.Create(CultureInfo.InvariantCulture, $"props    {placed} placed, {declined} declined");
+        yield return worstStep is { } step
+            ? string.Create(CultureInfo.InvariantCulture, $"routes   worst step {step}, on {worstRoute}")
             : "routes   no route walked between a spawn and a goal";
     }
 
@@ -490,7 +491,15 @@ internal sealed class MapReport(
         return named;
     }
 
-    private static MapReportPictureDto Unasked(Picture picture) => new(picture.Name, picture.Route, null, null);
+    /// <summary>Every picture by its route alone — an eye view carrying why it cannot be drawn on a studio with
+    /// no block sprites, so a reader does not ask for a picture that will be refused.</summary>
+    private async Task<List<MapReportPictureDto>> UnaskedAsync(List<Picture> named, CancellationToken ct)
+    {
+        var (set, reason) = named.Any(picture => picture.Eye is not null) ? await textures.GetAsync(ct) : (null, null);
+        var undrawable = set is null ? reason ?? "no block textures" : null;
+        return [.. named.Select(picture =>
+            new MapReportPictureDto(picture.Name, picture.Route, null, picture.Eye is null ? null : undrawable))];
+    }
 
     /// <summary>Every picture drawn, each as its own route draws it — the eye views under the eye's turn, with
     /// the block sprites.</summary>

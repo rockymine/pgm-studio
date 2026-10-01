@@ -8668,6 +8668,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   keeps its read with the built world, keyed on the map document it was judged by, so the JSON and
   `?format=png` asked one after the other walk the board once, and an edit to the world or the document is a
   new key. (`Api/Services/CoverageReads`, `Api/Services/FeatureData`, `docs/world-scan/ground-coverage.md`)
+- **One read answers everything a drive reads back (`WS80`).** `GET /map/{slug}/report` builds a board once and
+  answers the three numbers it is wrong or right by — its ground's walked, scrambled and barrier cells, its
+  props placed and declined, the worst step from a spawn to a goal — then every reading a drive asks for after
+  a store, each beside the route that answers it alone and made by the same call, and the pictures by route,
+  drawn on `?pictures=true`; `?format=text` answers one document. The board in the round is the studio's own:
+  `render/isometric` from any corner, and `render/xray`, which washes out the ground and the buildings over a
+  roofed room and answers the void scan as its text. The Sketch tool's **Report** phase shows the same report.
+  (`Export/BoardIsometric`, `Api/Services/MapReport`, `Minecraft/Anvil/WorldColumns`,
+  `docs/world-scan/read-backs.md`, `docs/tools/sketch.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500
