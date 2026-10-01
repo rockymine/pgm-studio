@@ -8,7 +8,7 @@ namespace PgmStudio.Analysis.Scan;
 /// axis: <c>nz</c>/<c>pz</c> look along Z (primary = x), <c>nx</c>/<c>px</c> look along X (primary = z).
 /// The negative-side cameras (<c>nz</c>/<c>nx</c>) take the smallest coord as the near face; the
 /// positive-side cameras (<c>pz</c>/<c>px</c>) take the largest and mirror the primary axis so left/right
-/// stays geometrically correct. Legacy <c>z</c>/<c>x</c> are aliases for <c>nz</c>/<c>nx</c>.</para>
+/// stays geometrically correct.</para>
 /// </summary>
 public static class SideView
 {
@@ -19,7 +19,6 @@ public static class SideView
     /// <summary>Build the depth map for a viewing direction, or null when there are no segments.</summary>
     public static DepthMap? Build(IEnumerable<(int x, int z, int ys, int ye)> segments, string dir)
     {
-        dir = dir switch { "z" => "nz", "x" => "nx", _ => dir };   // legacy aliases
         bool zLook = dir is "nz" or "pz";    // look along Z → primary = x
         bool nearMin = dir is "nz" or "nx";  // camera on the negative side → nearest = smallest coord
         bool mirror = dir is "pz" or "px";   // viewing from the positive side flips left/right

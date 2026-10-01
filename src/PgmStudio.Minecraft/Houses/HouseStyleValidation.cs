@@ -61,12 +61,12 @@ public static class HouseStyleRules
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.World)]
     public const string DoorWithoutWall = "HS6";
 
-    /// <summary>A footing round a plate one course deep. The footing is what a foundation stands on, so over
-    /// a plate that is a single course it is a one-block rim round a building with no foundation under it —
-    /// noise at every wall, on every house, and the commonest thing wrong with how a village reads.</summary>
-    /// <remarks>Drop the footing, or give the plate the depth that earns one: two or three courses, which is the foundation a footing is the foot of. It is a complaint rather than a refusal because the building stands either way — what it costs is how the building looks.</remarks>
-    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Style, RuleConcern.World)]
-    public const string ShallowFooting = "HS7";
+    /// <summary>A footing. It is a course ringing the plate one block proud, and round a house it reads as a rim
+    /// rather than as masonry the building stands on — at every wall, on every house, whatever depth of plate it
+    /// rings. A building meets the ground on its own plate and its own first course.</summary>
+    /// <remarks>Leave `foundation.footing` unset. Where the building should look as though it stands on stone, lay the ground storey's first course or two in that stone instead.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.World)]
+    public const string Footing = "HS7";
 
     /// <summary>A porch whose canopy climbs past the wall it is attached to. A canopy is seated by its own
     /// <em>lowest</em> course clearing the doorway it fronts — which is what keeps the way out of that door
@@ -95,22 +95,88 @@ public static class HouseStyleRules
     /// underneath it — a bank, a mire, a shore — and a plate laid across the footprint puts a plank rectangle
     /// on that ground and stops it. Nothing is wrong with the building; what is wrong is that the ground it
     /// was raised to leave alone has a lid on it.</summary>
-    /// <remarks>State the plate's material as air and the terrain runs on under the building, which is what a stilt house is for. Where the floor is meant — a boarded undercroft, a jetty deck — say so by keeping it; the finding is a complaint and changes nothing on its own.</remarks>
+    /// <remarks>State the plate's material as air and the terrain runs on under the building, which is what a stilt house is for — and give the storey above it a `deck` of its own, since a storey naming none stands on the plate's top course and over air has no floor. Where the floor is meant — a boarded undercroft, a jetty deck — say so by keeping it; the finding is a complaint and changes nothing on its own.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.World, RuleConcern.Terrain)]
     public const string StiltFloor = "HS10";
+
+    /// <summary>Beam ends at corners that are not log posts. A beam end runs out past the corner post it docks
+    /// against, and the post, the ends and the laid course they are the ends of are one frame — so a seam that
+    /// lays its ends beside corners of masonry, or of the wall itself, shows the ends of a floor with no upright
+    /// under them. Asked of every storey a seam stands on; log posts without beam ends are not asked.</summary>
+    /// <remarks>Stand the storey under the seam on log corner posts of the beams' wood, or take the beams off.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Material)]
+    public const string BeamsWithoutPosts = "HS11";
+
+    /// <summary>A gable laid in the verge's own block. The verge is the roof's border, and at a gable end it runs
+    /// down both sloped edges of the triangle of wall the roof leaves standing — so where the two are one block
+    /// the border has nothing to border, and the gable and the overhang read as one flat triangle with no edge
+    /// to the roof. Asked of every roof that leaves a gable: a hip and a flat lid leave none.</summary>
+    /// <remarks>Lay `roof.gable` in another block than `roof.verge` — planks of another wood, or the wall's masonry carried up. Where no gable is named it is the top storey's last wall course, and that is the block compared.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    public const string GableAsVerge = "HS12";
+
+    /// <summary>A laid log as the building's bottom course. A laid log is the timber a seam's beam ends come out
+    /// of, which puts it at the top of a storey; laid as the ground storey's first course, on the foundation, it
+    /// is a log lying round the footprint with nothing standing on it as a frame.</summary>
+    /// <remarks>Start the ground storey's wall on masonry or planks and lay the log as the storey's top course, where a frame carries it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Material)]
+    public const string LogAtTheFoot = "HS13";
+
+    /// <summary>A shed roof: one plane climbing from the front wall to the back, on the building or on its porch
+    /// canopy. A lean-to is not a roof a building on a map wears, so neither the house, nor a wing of it, nor
+    /// the canopy over its porch is one.</summary>
+    /// <remarks>Give the roof another form — a gable, a hip, a gambrel or a saltbox — and the porch a gable canopy, which is what a porch states when it names no roof.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure)]
+    public const string ShedRoof = "HS14";
+
+    /// <summary>A wall checkered in the log its posts are cut from. The squares and the post beside them are one
+    /// block, so at every corner the checker runs into the post and the two read as one mass of log rather than
+    /// as a frame with a panel in it.</summary>
+    /// <remarks>Checker the wall in a different log from the posts — a spruce panel between dark oak posts — or stand the storey on posts of another wood.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    public const string CheckerInPostWood = "HS15";
+
+    /// <summary>A wall or a gable laid in a block that surfaces ground: grass, podzol, mycelium or farmland. Each
+    /// is the skin over soil and nothing else, so a wall of one reads as a turf bank with a door in it. Sand,
+    /// gravel and dirt are a wall's to use; the roof and its verge are held to <c>HS3</c>, which bars every
+    /// soil.</summary>
+    /// <remarks>Lay the wall in a material that is built rather than grown. Where the colour was the point, a stained clay or a wool of that tint carries it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    public const string SurfacingWall = "HS16";
+
+    /// <summary>Snow or ice in a wall, a gable or a roof: the snow layer, the snow block, ice or packed ice.
+    /// Weather lies on a building rather than being what it is built of, and against a timber frame or a dark
+    /// roof the white is the one thing anybody sees. White blocks as such are not the fault.</summary>
+    /// <remarks>Build the wall and the roof in a material, and leave the snow to the theme of the ground the building stands on. A white wall is a white stained clay, a white wool or quartz.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    public const string SnowAndIce = "HS17";
+
+    /// <summary>A storey above the ground that stands on nothing. A storey's deck falls back to the plate's top
+    /// course, so over a plate of air — a house on stilts — a storey naming no deck of its own has air for a
+    /// floor, and the room over the stilts is a ring of wall with a hole in it.</summary>
+    /// <remarks>Give the storey a `deck` — the planks its floor is laid in — or a `surface` whose field covers the room.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure)]
+    public const string FloorlessStorey = "HS18";
+
+    /// <summary>A library house style named for something other than what it is. A name is lowercase words
+    /// joined by hyphens: the materials and the form that set the building apart, then the kind of building it
+    /// is — <c>brick-roofed-stone-cottage</c>, <c>oak-stilt-house</c>. A board, a role or a place names where a
+    /// style was first used rather than what it is, so none of them is a word in either list.</summary>
+    /// <remarks>Rename the style from the two lists `GET /api/room-styles/name-words` answers: any number of describing words, then one building word last. A word that is not in them is named in the finding.</remarks>
+    [Rule(RuleCategory.Unknown, RuleConcern.Style)]
+    public const string LibraryName = "HS19";
 }
 
 /// <summary>
 /// The gate a <see cref="HouseStyle"/> is checked against before it is stored — beside the style rather than in
-/// a driver, so a bad one is refused when it is posted instead of silently built.
+/// a driver. A style that cannot be built as stated is refused when it is posted; one that builds against the
+/// author's verdicts on how a house looks (<c>HS7</c>–<c>HS19</c>) is stored with complaints naming them.
 ///
 /// <para><see cref="Check"/> is safe to run on any house, decorative or objective, whatever it is built for:
-/// every fault it names is a property of the style's own geometry, never of what the building is <em>for</em>.
-/// None of the ten shipped presets in <see cref="HousePresets"/> trips it, including
-/// <see cref="HousePresets.Alpine"/> and <see cref="HousePresets.Workshop"/>, whose stair-lattice and
-/// slab-banded windows are built correctly — a window built from either form is allowed on any house, spawns
-/// included, so long as its block is the kind the form needs (<see cref="HouseStyleRules.BlockKind"/>); neither
-/// form is a defect to be refused on its own.</para>
+/// every fault it names is a property of the style's own geometry or materials, never of what the building is
+/// <em>for</em>. No style the library is seeded with trips it. A stair-lattice or a slab-banded window is
+/// allowed on any house, spawns included, so long as its block is the kind the form needs
+/// (<see cref="HouseStyleRules.BlockKind"/>); neither form is a defect to be refused on its own.</para>
 /// </summary>
 public static class HouseStyleValidation
 {
@@ -135,10 +201,21 @@ public static class HouseStyleValidation
         CheckOres(style, findings);
         CheckDoorHasWall(style, findings);
         CheckFooting(style.Foundation, findings);
+        if (style.Porch is { } porch)
+        {
+            findings.AddRange(CheckRoofForm(porch.Roof, "porch.roof"));
+            if (porch.Canopy is { } canopy) CheckRoofMaterial("porch.canopy", canopy, findings);
+        }
         CheckPorchHeadroom(style, findings);
         CheckBeamsHaveTimber(style, findings);
         CheckFrameTimber(style, findings);
+        CheckBeamsHavePosts(style, findings);
+        CheckGableAgainstVerge(style, findings);
+        CheckLogAtTheFoot(style, findings);
         CheckStiltFloor(style, findings);
+        CheckCheckerAgainstPosts(style, findings);
+        CheckFaces(style, findings);
+        CheckFloors(style, findings);
         return findings;
     }
 
@@ -196,20 +273,46 @@ public static class HouseStyleValidation
         if (beams.Block >= 0) Refuse(HouseBlockKinds.Beams, beams.Block, findings);
     }
 
-    /// <summary>HS9 — beams over a wall carrying no timber. The ends are the ends of a floor beam, so a wall
-    /// with no laid-log course anywhere in it has nothing for them to be the ends <em>of</em>.</summary>
+    /// <summary>HS9 — beam ends coming out of a course that is not a laid log. The ends are laid at each seam,
+    /// in the top course of the storey under it, so that course is the floor timber they are the ends of; a laid
+    /// log on any other course carries nothing they belong to. A building of one storey has no seam and lays no
+    /// ends, so the word on it is inert rather than wrong.</summary>
     private static void CheckBeamsHaveTimber(HouseStyle style, List<Finding> findings)
     {
-        // Beams are laid at a storey seam, so a building of one storey never lays any and the word on it is
-        // inert rather than wrong.
-        if (!style.Beams.Any || style.Levels.Count < 2) return;
-        if (WallParts(style).Any(part => part.Stack.Bands.Any(band => band.Material is LaidLogMaterial))) return;
+        if (!style.Beams.Any) return;
+        var levels = style.Levels;
+        for (var at = 0; at < levels.Count - 1; at++)
+        {
+            var wall = levels[at].Wall ?? style.Wall;
+            var seam = levels[at].Courses(topmost: false) - 1;
+            var course = wall.At(seam).Material;
+            if (course is LaidLogMaterial) continue;
 
-        findings.Add(new Finding(HouseStyleRules.BeamsWithoutTimber,
-            $"the building lays beams of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} and no "
-            + "course of any of its walls is a laid log, so the ends run out of masonry with no timber behind "
-            + "them. Lay the storey's top course in a laidLog of the same material, or drop the beams.",
-            Field: "beams"));
+            findings.Add(new Finding(HouseStyleRules.BeamsWithoutTimber,
+                $"the beams of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} come out of storey {at}'s "
+                + $"top course, and that course is {Describe(course)} rather than a laid log, so the ends run out "
+                + "of the wall with no timber behind them. Lay that course in a laidLog of the beams' wood, or "
+                + "drop the beams.",
+                Severity.Complaint, Field: $"storeys[{at}].wall"));
+        }
+    }
+
+    /// <summary>HS11 — beam ends at a seam whose storey stands on corners that are not log.</summary>
+    private static void CheckBeamsHavePosts(HouseStyle style, List<Finding> findings)
+    {
+        if (!style.Beams.Any) return;
+        var levels = style.Levels;
+        for (var at = 0; at < levels.Count - 1; at++)
+        {
+            if (levels[at].Post is SolidMaterial post && BlockFamilies.IsLog(post.Id)) continue;
+
+            findings.Add(new Finding(HouseStyleRules.BeamsWithoutPosts,
+                $"the beams of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} come out at storey {at}'s "
+                + $"corners, and those corners are {Describe(levels[at].Post)} rather than log posts, so the ends "
+                + "have no upright to dock against. Stand the storey on log posts of the beams' wood, or drop the "
+                + "beams.",
+                Severity.Complaint, Field: $"storeys[{at}].post"));
+        }
     }
 
     /// <summary>Every wall a style states: the building's own and each storey's, since a storey with no wall
@@ -220,6 +323,14 @@ public static class HouseStyleValidation
         foreach (var storey in style.Storeys)
             if (storey.Wall is { } wall) yield return wall;
     }
+
+    /// <summary>A material as a finding names it: its block where it lays one, else its kind.</summary>
+    private static string Describe(TerrainMaterial? material) => material switch
+    {
+        null => "the wall itself",
+        _ when SingleBlock(material) is { } block => BlockMaterials.Of(block.Id, block.Data),
+        _ => $"a {material.GetType().Name.Replace("Material", "").ToLowerInvariant()} pattern",
+    };
 
     /// <summary>The timbers of one frame: the corner post, the beam ends that dock against it and the laid-log
     /// course they are the ends of. A frame in two woods is a frame nobody cut.</summary>
@@ -236,6 +347,46 @@ public static class HouseStyleValidation
                     + "from one wood.",
                     Field: where));
     }
+
+    /// <summary>HS12 — a gable face in the verge's block. The face is the style's own gable where it names one
+    /// and the top storey's last wall course carried up where it does not, which is what the stamp lays.</summary>
+    private static void CheckGableAgainstVerge(HouseStyle style, List<Finding> findings)
+    {
+        if (style.Roof.Form is RoofForm.Hip or RoofForm.Flat) return;
+        if (style.Roof.Verge.IsAir() || SingleBlock(style.Roof.Verge) is not { } verge) return;
+        var topWall = style.Levels[^1].Wall ?? style.Wall;
+        var named = style.Roof.Gable is not null;
+        if (SingleBlock(style.Roof.Gable ?? topWall.At(topWall.Extent - 1).Material) is not { } gable) return;
+        if (gable != verge) return;
+
+        findings.Add(new Finding(HouseStyleRules.GableAsVerge,
+            $"the gable is {BlockMaterials.Of(gable.Id, gable.Data)} and so is the verge, so the roof's border runs "
+            + "down the gable in the gable's own block and the end of the roof has no edge. Lay the gable in "
+            + "another block than the verge.",
+            Severity.Complaint, Field: named ? "roof.gable" : "roof.verge"));
+    }
+
+    /// <summary>HS13 — the ground storey's first course laid in log.</summary>
+    private static void CheckLogAtTheFoot(HouseStyle style, List<Finding> findings)
+    {
+        var ground = style.Levels[0].Wall ?? style.Wall;
+        if (ground.At(0).Material is not LaidLogMaterial laid) return;
+
+        findings.Add(new Finding(HouseStyleRules.LogAtTheFoot,
+            $"the ground storey's first course is a laid log of {BlockMaterials.Of(laid.Id, laid.Data)}, so the "
+            + "building stands on a log lying round its footprint. Start the wall on masonry or planks and lay the "
+            + "log as the storey's top course.",
+            Severity.Complaint, Field: style.Storeys.Count > 0 ? "storeys[0].wall" : "wall"));
+    }
+
+    /// <summary>The one block a material lays wherever it is put, or null for a pattern of several. A laid log
+    /// is its log: the axis it turns to is the stamp's, not a different block.</summary>
+    private static (int Id, int Data)? SingleBlock(TerrainMaterial material) => material switch
+    {
+        SolidMaterial solid => (solid.Id, solid.Data),
+        LaidLogMaterial laid => (laid.Id, laid.Data),
+        _ => null,
+    };
 
     /// <summary>The blocks a frame is made of besides the beams: every post the style names, and every
     /// laid-log course a wall carries. Only logs are asked — a post of stone is a pier, not a timber, and the
@@ -287,16 +438,13 @@ public static class HouseStyleValidation
     /// grows.</summary>
     private static void CheckOres(HouseStyle style, List<Finding> findings)
     {
-        foreach (var (field, material) in Materials(style))
-            foreach (var id in Blocks(material))
-                if (BlockFamilies.IsOre(id))
-                {
-                    findings.Add(new Finding(HouseStyleRules.OreMaterial,
-                        $"{field} names {BlockPalette.Name(id, 0)}, which is an ore. An ore is stone with "
-                        + "something in it and is not a building material.",
-                        Field: field));
-                    break;
-                }
+        foreach (var named in NamedMaterials(style).GroupBy(entry => entry.Field))
+            if (named.SelectMany(entry => Materials.Laid(entry.Material))
+                    .FirstOrDefault(block => BlockFamilies.IsOre(block.Id)) is { Id: > 0 } ore)
+                findings.Add(new Finding(HouseStyleRules.OreMaterial,
+                    $"{named.Key} names {BlockPalette.Name(ore.Id, 0)}, which is an ore. An ore is stone with "
+                    + "something in it and is not a building material.",
+                    Field: named.Key));
     }
 
     /// <summary>A door <b>head</b> written over a storey whose wall is air across the doorway's own courses.
@@ -328,7 +476,7 @@ public static class HouseStyleValidation
             $"the ground storey is open for all {Math.Max(1, style.Doorway.Height)} of the doorway's courses "
             + "— a house on stilts — and it stands on a plate that is not air, so the ground it was raised "
             + "over is floored across the whole footprint. State the plate as air to let the terrain run on "
-            + "under it.",
+            + "under it, and give the storey above it a deck of its own.",
             Severity.Complaint, Field: "foundation.plate"));
     }
 
@@ -343,44 +491,135 @@ public static class HouseStyleValidation
         return true;
     }
 
-    /// <summary>A footing on a plate too shallow to have a foot. A complaint: the building stands either
-    /// way, and what a one-block rim costs is how it reads.</summary>
+    /// <summary>HS7 — a footing, of any block round a plate of any depth.</summary>
     private static void CheckFooting(Foundation foundation, List<Finding> findings)
     {
-        if (foundation.Footing is null || foundation.Depth >= 2) return;
-        findings.Add(new Finding(HouseStyleRules.ShallowFooting,
-            "the foundation rings a plate one course deep with a footing, which is a one-block rim round a "
-            + "building with no foundation under it. Drop the footing, or give the plate two or three courses.",
+        if (foundation.Footing is not { } footing) return;
+        findings.Add(new Finding(HouseStyleRules.Footing,
+            $"the foundation is ringed by a footing of {Describe(footing)}, which reads as a rim round the "
+            + "building rather than as anything it stands on. Leave the footing unset; lay the ground storey's "
+            + "first course in that block instead where the stone was the point.",
             Severity.Complaint, Field: "foundation.footing"));
     }
 
-    /// <summary>Every material a style names, with the field it was named in — what a check that is about the
-    /// material rather than about the role reads.</summary>
-    private static IEnumerable<(string Field, TerrainMaterial Material)> Materials(HouseStyle style)
+    /// <summary>HS14 for one roof form, at the path it was stated at — a building's roof, a porch's canopy, or a
+    /// wing's own roof where it names one. One answer for all three, so a lean-to is named wherever it is
+    /// stated.</summary>
+    public static Findings CheckRoofForm(RoofForm form, string field) => form != RoofForm.Shed
+        ? Findings.None
+        : Findings.Of(new Finding(HouseStyleRules.ShedRoof,
+            $"{field} is a shed — one plane climbing from the front wall to the back — and a lean-to is not a "
+            + "roof a building on a map wears. Give it a gable, a hip, a gambrel or a saltbox.",
+            Severity.Complaint, Field: field));
+
+    /// <summary>HS15 — a storey's wall checkered in the log its own corner posts are cut from. Asked storey by
+    /// storey, since the post that stands beside a checker is that storey's.</summary>
+    private static void CheckCheckerAgainstPosts(HouseStyle style, List<Finding> findings)
     {
+        var levels = style.Levels;
+        for (var at = 0; at < levels.Count; at++)
+        {
+            if (levels[at].Post is not SolidMaterial post || !BlockFamilies.IsLog(post.Id)) continue;
+            var wall = levels[at].Wall ?? style.Wall;
+            if (!wall.Stack.Bands.Any(band => CheckersIn(band.Material, post))) continue;
+
+            findings.Add(new Finding(HouseStyleRules.CheckerInPostWood,
+                $"storey {at}'s wall is checkered in {BlockMaterials.Of(post.Id, post.Data)} log, the log its "
+                + "corner posts are cut from, so the squares run into the posts and the two read as one mass. "
+                + "Checker the wall in another log, or stand the storey on posts of another wood.",
+                Severity.Complaint, Field: style.Storeys.Count > 0 ? $"storeys[{at}].wall" : "wall"));
+        }
+    }
+
+    /// <summary>Whether a material checkers the wall in <paramref name="post"/>'s own log: a log checker cut from
+    /// it, or a checker one of whose squares is that log, standing or laid — looked for through the patterns a
+    /// checker can sit inside.</summary>
+    private static bool CheckersIn(TerrainMaterial material, SolidMaterial post)
+    {
+        bool IsPostLog(TerrainMaterial square) => SingleBlock(square) is { } block
+            && block.Id == post.Id && BlockVariants.Normalize(block.Id, block.Data) == BlockVariants.Normalize(post.Id, post.Data);
+
+        return material switch
+        {
+            LogCheckerMaterial logs => IsPostLog(new SolidMaterial(logs.Id, logs.Data)),
+            CheckerMaterial checker => IsPostLog(checker.Even) || IsPostLog(checker.Odd),
+            LayeredMaterial layered => (layered.Stack?.Bands ?? []).Any(band => CheckersIn(band.Material, post)),
+            WallRunMaterial run => (run.Runs ?? []).Any(stripe => CheckersIn(stripe.Material, post)),
+            WallDiagonalMaterial diagonal => (diagonal.Runs ?? []).Any(stripe => CheckersIn(stripe.Material, post)),
+            WallFrameMaterial frame => CheckersIn(frame.Edge, post) || CheckersIn(frame.Fill, post),
+            _ => false,
+        };
+    }
+
+    /// <summary>HS16 and HS17 — what the building shows outside, block by block: no wall or gable in a block that
+    /// surfaces ground, and no wall, gable or roof in snow or ice. Each face is reported once per rule, however
+    /// many of its blocks are at fault.</summary>
+    private static void CheckFaces(HouseStyle style, List<Finding> findings)
+    {
+        foreach (var face in Faces(style).GroupBy(entry => entry.Field))
+        {
+            var field = face.Key;
+            var blocks = face.SelectMany(entry => Materials.Laid(entry.Material)).ToList();
+            var roof = field is "roof" or "verge" or "porch.canopy";
+            if (!roof && blocks.FirstOrDefault(block => BlockRoles.IsSurfacing(block.Id, block.Data)) is
+                { Id: > 0 } turf)
+                findings.Add(new Finding(HouseStyleRules.SurfacingWall,
+                    $"{field} lays {BlockPalette.Name(turf.Id, turf.Data)}, which is the skin over soil rather than a "
+                    + "material, so the wall reads as a turf bank. Lay it in something built.",
+                    Severity.Complaint, Field: field));
+            if (blocks.FirstOrDefault(block => BlockFamilies.IsFrozen(block.Id)) is { Id: > 0 } frozen)
+                findings.Add(new Finding(HouseStyleRules.SnowAndIce,
+                    $"{field} lays {BlockPalette.Name(frozen.Id, frozen.Data)}. Snow and ice lie on a building rather "
+                    + "than being what it is built of — leave them to the ground's theme.",
+                    Severity.Complaint, Field: field));
+        }
+    }
+
+    /// <summary>HS18 — a storey over the ground whose floor is air across the room: its deck resolves to air and
+    /// its surface lays no field over it.</summary>
+    private static void CheckFloors(HouseStyle style, List<Finding> findings)
+    {
+        var levels = style.Levels;
+        for (var at = 1; at < levels.Count; at++)
+        {
+            if (!levels[at].Deck.IsAir() || !(levels[at].Surface?.Field).IsAir()) continue;
+            findings.Add(new Finding(HouseStyleRules.FloorlessStorey,
+                $"storey {at} stands on air: it names no deck, and the plate it falls back to is air, so the room is "
+                + "a ring of wall over a hole. Give the storey a deck.",
+                Severity.Complaint, Field: $"storeys[{at}].deck"));
+        }
+    }
+
+    /// <summary>Every surface a building shows outside, with the field it was named in: each band of the
+    /// building's wall and of every storey's own, the gable where one is named, the roof, its verge and a
+    /// porch canopy laid in its own material.</summary>
+    private static IEnumerable<(string Field, TerrainMaterial Material)> Faces(HouseStyle style)
+    {
+        foreach (var band in style.Wall.Stack.Bands) yield return ("wall", band.Material);
+        for (var at = 0; at < style.Storeys.Count; at++)
+            if (style.Storeys[at].Wall is { } wall)
+                foreach (var band in wall.Stack.Bands) yield return ($"storeys[{at}].wall", band.Material);
+        if (style.Roof.Gable is { } gable) yield return ("gable", gable);
         yield return ("roof", style.Roof.Body);
         yield return ("verge", style.Roof.Verge);
-        if (style.Roof.Gable is { } gable) yield return ("gable", gable);
-        yield return ("wall", style.Wall.At(0).Material);
-        yield return ("foundation.plate", style.Foundation.Plate.At(0).Material);
+        if (style.Porch?.Canopy is { } canopy) yield return ("porch.canopy", canopy);
+    }
+
+    /// <summary>Every material a style names, with the field it was named in — its <see cref="Faces"/> and what
+    /// it stands on and is framed in besides. What a check about the material rather than the role reads.</summary>
+    private static IEnumerable<(string Field, TerrainMaterial Material)> NamedMaterials(HouseStyle style)
+    {
+        foreach (var face in Faces(style)) yield return face;
+        foreach (var band in style.Foundation.Plate.Stack.Bands) yield return ("foundation.plate", band.Material);
         if (style.Foundation.Footing is { } footing) yield return ("foundation.footing", footing);
         if (style.Post is { } post) yield return ("post", post);
         for (var at = 0; at < style.Storeys.Count; at++)
         {
-            if (style.Storeys[at].Wall is { } wall) yield return ($"storeys[{at}].wall", wall.At(0).Material);
             if (style.Storeys[at].Post is { } storeyPost) yield return ($"storeys[{at}].post", storeyPost);
+            if (style.Storeys[at].Deck is { } deck) yield return ($"storeys[{at}].deck", deck);
         }
         if (style.Beams.Block >= 0) yield return ("beams.block", new SolidMaterial(style.Beams.Block, style.Beams.Data));
     }
-
-    /// <summary>Every block id a material can resolve to, a pattern walked to its leaves.</summary>
-    private static IEnumerable<int> Blocks(TerrainMaterial material) => material switch
-    {
-        SolidMaterial solid => [solid.Id],
-        LayeredMaterial layered => layered.Stack.Bands.SelectMany(band => Blocks(band.Material)),
-        VoronoiMaterial voronoi => voronoi.Bands.SelectMany(band => Blocks(band.Material)),
-        _ => [],
-    };
 
     /// <summary>Whether <paramref name="windows"/>'s <see cref="WindowStyle.Block"/> is the kind its
     /// <see cref="WindowStyle.Form"/> needs, standalone — what a storey style checks itself with, off the same
@@ -418,7 +657,7 @@ public static class HouseStyleValidation
     /// house is.</para></summary>
     public static Findings CheckRoof(RoofStyle roof)
     {
-        var findings = new List<Finding>();
+        var findings = new List<Finding>(CheckRoofForm(roof.Form, "roofForm"));
         if (roof.Slab >= 0) Refuse(HouseBlockKinds.RoofSlab, roof.Slab, findings);
 
         // A slab belongs in a roof only on a half-course rise (RoofSlab set). Naming one in Roof itself while
@@ -431,40 +670,8 @@ public static class HouseStyleValidation
                 "a real slab and let roof carry the whole-block half, or choose a whole block for roof.",
                 Field: "roof"));
 
-        foreach (var (field, material) in new[] { ("roof", roof.Body), ("verge", roof.Verge) })
-        {
-            // A laid log is one material, not several: it is one block that takes its axis from the surface it
-            // is on, which is the one thing a solid cannot say and the reason it is its own kind. On a roof
-            // that axis is the ridge, so the logs lie along the slope and show bark rather than sawn ends.
-            if (material is LaidLogMaterial laid)
-            {
-                if (!BlockFamilies.IsLog(laid.Id))
-                    findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                        $"{field} ({laid.Id}) is laid as a log and is not one. Only a log carries its axis in " +
-                        "its data; anything else laid comes out turned at random.", Field: field));
-                continue;
-            }
-
-            // A roof is read from below and from a distance, and both halves of it are one plane each: a
-            // pattern there is several blocks in one surface, which is the fault rather than a style.
-            if (material is not SolidMaterial solid)
-            {
-                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                    $"{field} is a {Patterned(material)} rather than one block. A roof's body and its verge " +
-                    "are each a single material — name the block itself.", Field: field));
-                continue;
-            }
-            var id = solid.Id;
-            if (BlockFamilies.IsLog(id))
-                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                    $"{field} ({id}) is a bare log, which has no axis and stands every one of them on end — a " +
-                    "sawn face out at whoever looks at the slope. Lay it instead: a laid log takes the axis " +
-                    "the ridge is going.", Field: field));
-            else if (BlockFamilies.IsSoil(id))
-                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                    $"{field} ({id}) is a ground material. A ground material — what a building stands on — is " +
-                    "never a roof or a verge material.", Field: field));
-        }
+        CheckRoofMaterial("roof", roof.Body, findings);
+        CheckRoofMaterial("verge", roof.Verge, findings);
 
         // A laid log has no slab to continue it in, so a half-course rise over one is a course of logs and a
         // course of something else alternating up the slope.
@@ -484,6 +691,43 @@ public static class HouseStyleValidation
                 "is the body's own material.",
                 Field: "roofSlab"));
         return findings;
+    }
+
+    /// <summary>HS3 for one plane of a roof — its body, its verge, or a porch canopy laid in its own material.
+    /// Each is one block: never a pattern, never a bare log, never a ground material.</summary>
+    private static void CheckRoofMaterial(string field, TerrainMaterial material, List<Finding> findings)
+    {
+        // A laid log is one material, not several: it is one block that takes its axis from the surface it
+        // is on, which is the one thing a solid cannot say and the reason it is its own kind. On a roof
+        // that axis is the ridge, so the logs lie along the slope and show bark rather than sawn ends.
+        if (material is LaidLogMaterial laid)
+        {
+            if (!BlockFamilies.IsLog(laid.Id))
+                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                    $"{field} ({laid.Id}) is laid as a log and is not one. Only a log carries its axis in " +
+                    "its data; anything else laid comes out turned at random.", Field: field));
+            return;
+        }
+
+        // A roof is read from below and from a distance, and each plane of it is one surface: a pattern
+        // there is several blocks in one surface, which is the fault rather than a style.
+        if (material is not SolidMaterial solid)
+        {
+            findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                $"{field} is a {Patterned(material)} rather than one block. A roof's body, its verge and a " +
+                "canopy are each a single material — name the block itself.", Field: field));
+            return;
+        }
+        var id = solid.Id;
+        if (BlockFamilies.IsLog(id))
+            findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                $"{field} ({id}) is a bare log, which has no axis and stands every one of them on end — a " +
+                "sawn face out at whoever looks at the slope. Lay it instead: a laid log takes the axis " +
+                "the ridge is going.", Field: field));
+        else if (BlockFamilies.IsSoil(id))
+            findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                $"{field} ({id}) is a ground material. A ground material — what a building stands on — is " +
+                "never a roof or a verge material.", Field: field));
     }
 
     /// <summary>The block id a material resolves to when it is a bare <see cref="SolidMaterial"/>, or null

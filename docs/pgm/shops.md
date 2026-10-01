@@ -314,6 +314,11 @@ rests on it; a spawner naming none lays none, for a board that already built the
 on. A marker whose two axes disagree has no square pad, so it is nudged half a block onto one parity first —
 the same nudge a room's marker takes.
 
+**A map's source states a generator once, and the board's symmetry fans it.** Each image of a refinement's
+generator stands at the image of its `at` under its id numbered on — `iron`, `iron-2` — so the regions it mints
+stay one set per generator; one already standing within half a block of an image is taken as it
+(`docs/tools/flow.md`).
+
 **Three regions are minted rather than authored**, because PGM's element names two of them by id and takes no
 coordinates, and the third is a rule rather than an attribute: a `point` at the pad's centre, a `cylinder`
 based there as the ground a player has to be standing on, and a `cuboid` around it as the ground nobody may

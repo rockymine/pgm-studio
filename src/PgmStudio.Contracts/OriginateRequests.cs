@@ -3,12 +3,13 @@ namespace PgmStudio.Contracts;
 /// <summary>
 /// How a map is brought into being. Four routes create the <c>map</c> row every later call names by slug, and
 /// these are what each takes: two originate a blank document to author into, two read a world somebody else
-/// built. A fifth door, <c>POST /map/from-documents</c>, takes whole documents rather than a few fields and
+/// built. A fifth door, <c>PUT /map/{slug}/source</c>, takes a map's whole source rather than a few fields and
 /// carries its own request beside them.
 ///
-/// <para>The slug is never stated. It is derived from the name and made unique against what is stored, so a
-/// second map called the same thing is a second slug rather than a refusal, and the answer is what to use
-/// from then on.</para>
+/// <para>The slug is never stated to these four. It is derived from the name and made unique against what is
+/// stored, so a second map called the same thing is a second slug rather than a refusal, and the answer is
+/// what to use from then on. The fifth states it in its route, because storing a source again is storing the
+/// same map.</para>
 /// </summary>
 /// <remarks>Originate a blank authored plan — a map at the plan stage with an empty plan document, which the
 /// plan editor fills. The whole body is optional, and an empty one originates <c>Untitled plan</c>.</remarks>

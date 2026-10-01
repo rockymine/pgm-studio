@@ -97,7 +97,7 @@ public sealed class MapPlanAsciiEndpoint(MapRepository repo, MapArtifactStore ar
     public override void Configure()
     {
         Get("/map/{slug}/plan/ascii");
-        Description(b => b.PlainText().Refuses(404, 422));
+        Description(b => b.PlainText().Refuses(404, 422).Reads(PlanAsciiPostEndpoint.Every));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

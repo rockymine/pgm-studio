@@ -57,6 +57,13 @@ public partial class SketchNotesColumn
     /// <summary>Send a reply; answers whether it landed.</summary>
     [Parameter] public Func<string, Task<bool>>? OnReply { get; set; }
 
+    /// <summary>The numbers of the board's changes, which is what a thread counts the changes since its last
+    /// message against.</summary>
+    [Parameter] public IReadOnlyList<long> Changes { get; set; } = [];
+
+    /// <summary>Open what changed after a thread's last message, from the change it was written at.</summary>
+    [Parameter] public EventCallback<long> OnChangesSince { get; set; }
+
     private string draft = "";
     private string? tag;
     private string reply = "";
@@ -117,8 +124,20 @@ public partial class SketchNotesColumn
 
     private static string StatusClass(string status) => $"note-status note-status--{status}";
 
-    /// <summary>How long ago, in the words the thread reads in.</summary>
-    private static string Ago(DateTime at)
+    private static string Ago(DateTime at) => Moments.Ago(at);
+
+    /// <summary>How many of the board's changes landed after the thread's last message was written.</summary>
+    private int ChangesSince(MapNoteDto note) =>
+        note.Messages.LastOrDefault() is { } last ? Changes.Count(number => number > last.Change) : 0;
+
+    /// <summary>The change the thread's last message was written at, which is where its diff starts.</summary>
+    private static long LastChange(MapNoteDto note) => note.Messages.LastOrDefault()?.Change ?? 0;
+}
+
+/// <summary>When something happened, in the words the Sketch tool's columns read in.</summary>
+internal static class Moments
+{
+    public static string Ago(DateTime at)
     {
         var since = DateTime.UtcNow - DateTime.SpecifyKind(at, DateTimeKind.Utc);
         return since.TotalMinutes < 1 ? "just now"

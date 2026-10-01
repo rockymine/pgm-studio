@@ -23,7 +23,19 @@ using PgmStudio.Analysis.Suggest;
 public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db)
     : EndpointWithoutRequest<List<MonumentSuggestionDto>>
 {
-    public override void Configure() { Get("/map/{slug}/monument-suggestions"); Description(b => b.Refuses(404)); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/monument-suggestions");
+        Description(b => b.Refuses(404).Reads(
+            new QueryWord("box", "The volume to search, as `x0,y0,z0,x1,y1,z1`.", Required: true),
+            new QueryWord("style", "The monument style the author declared, as `pedestal,label,cap`, which ranks the "
+                + $"candidates that match it first. The pedestal is one of {Named<PedestalKind>()}, the label one of "
+                + $"{Named<LabelKind>()} and the cap one of {Named<CapKind>()}, each read regardless of case; an "
+                + "absent or unreadable part is `any`.")));
+    }
+
+    private static string Named<TKind>() where TKind : struct, Enum =>
+        string.Join(", ", Enum.GetNames<TKind>().Select(name => $"`{char.ToLowerInvariant(name[0])}{name[1..]}`"));
 
     public override async Task HandleAsync(CancellationToken ct)
     {

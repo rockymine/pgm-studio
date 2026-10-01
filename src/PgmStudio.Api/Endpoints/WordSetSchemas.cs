@@ -1,5 +1,5 @@
 using System.Reflection;
-using System.Text.Json.Serialization;
+using NJsonSchema;
 using NJsonSchema.Generation;
 using PgmStudio.Vocabulary;
 
@@ -26,10 +26,12 @@ internal sealed class WordSetSchemas : ISchemaProcessor
                      .GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (Declared(property) is not { } declaring) continue;
-            if (!context.Schema.Properties.TryGetValue(OnTheWire(property), out var schema)) continue;
+            if (!context.Schema.Properties.TryGetValue(SchemaFields.OnTheWire(property), out var schema)) continue;
 
-            schema.Enumeration.Clear();
-            foreach (var word in Words.Of(declaring)) schema.Enumeration.Add(word);
+            // A list of words takes them on its items: the list itself is never one of them.
+            var takes = schema.Type.HasFlag(JsonObjectType.Array) && schema.Item is { } item ? item : schema;
+            takes.Enumeration.Clear();
+            foreach (var word in Words.Of(declaring)) takes.Enumeration.Add(word);
         }
     }
 
@@ -44,12 +46,4 @@ internal sealed class WordSetSchemas : ISchemaProcessor
         property.DeclaringType?.GetConstructors()
             .SelectMany(constructor => constructor.GetParameters())
             .FirstOrDefault(parameter => parameter.Name == property.Name);
-
-    /// <summary>The name the field crosses under, which is the key the schema holds it by: what the property
-    /// states, or the serializer's camelCase.</summary>
-    private static string OnTheWire(PropertyInfo property) =>
-        property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
-        ?? (property.Name.Length == 0
-            ? property.Name
-            : char.ToLowerInvariant(property.Name[0]) + property.Name[1..]);
 }

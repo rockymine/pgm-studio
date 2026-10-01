@@ -32,7 +32,8 @@ first gate that fired. A document that will not project costs the overlays and n
 ## The reads
 
 Every route is `GET /api/map/{slug}/…`, every picture is `image/png`, and every one takes `scale` — pixels a
-block, 1 to 16, default 4, clamped rather than refused.
+block, 1 to 16, default 4, clamped rather than refused — except the two drawn in the round, whose `scale` is
+half a cube's width, 1 to 8, default 3.
 
 | Route | Also | Answers |
 |---|---|---|
@@ -47,6 +48,8 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `editability` | — | which columns a player may edit and **what makes each one editable**, as JSON: digit rows over a bounding box, the four `EditZone` words, a colour each, the counts, and `findings`. The zones are `build_zone` · `ground` · `filtered` · `sealed`, read by following PGM's own resolution — the first region-filter application that does not abstain settles the column, and place and break are the separate scopes PGM makes them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one it was laid to |
+| `render/isometric` | — | the whole board from above at 2:1, a cube a block in the 3-D preview's colours; `corner` = `south-east` · `north-east` · `north-west` · `south-west` stands the camera |
+| `render/xray` | — | the isometric with the ground and the buildings over every roofed void washed out to one pale skin; `?format=text` answers the void scan — every roofed void, its size, its bounds and whether anything can walk into it |
 | `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort`, `team` whose walk it is |
 | `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells, places, steps, rises, falls, worstStep, beside}`. `?from=x,z&to=x,z`, `aim` and `team` as above; `?beside=N` (0–6) adds every distinct thing recorded within `N` cells of the route |
 | `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated. The header also carries the terrain's inclination at the cell, so a slope band can be checked against the angle that chose it |
@@ -55,6 +58,8 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `themes/census` | — | every ground cell counted by the theme that paints it: cells and share per theme, its distinct surface materials, which theme borders which, and the board's whole palette count |
 | `render/eye` | — | the board seen from a player's eye, drawn with Minecraft's own block sprites. `look=x,z` names a thing and the eye finds a place to see it from, `from=x,z` stands the eye there (`yaw`, `pitch`, `y`), both together face the one from the other (`y` and `pitch` still apply), and `eye=x,y,z` stands it exactly, facing `yaw` and `pitch` — 90 is straight down; `fov`, `width`, `height`; `flat=1` draws the same frame in one colour a block. `?format=text` answers where the eye ended up and what fills the frame, by share. 503 (`RQ10`) on a studio with no textures. The Sketch tool's **In game** phase is a gallery of these, and `GET /map/{slug}/views` lists the views it draws (`docs/tools/sketch.md`) |
 | `render/eye/pick` | — | what a mark on a `render/eye` picture is on the ground, as JSON: the picture's own query words, and `at=x,y` (one pixel: the block its ray hits and the ground under it), `box=x,y,x,y` or `lasso=x,y;x,y;…` (every ground column the rays through its pixels hit, each `[x, y, z]`). Ground no ray reached is not in it. `query` answers the camera exactly as `eye=…&yaw=&pitch=&fov=`, which is how a note's picture is drawn again (`docs/tools/sketch.md`, *Notes*) |
+| `report` | — | everything a drive reads back, off one build: the three numbers a board is wrong or right by, then every reading below with the route that answers it alone, then the pictures by route; `?pictures=true` draws them too, `?format=text` answers one document. *One read answers everything a drive reads back*, below |
+| `diff` | — | what changed between two of a map's changes (`from`, `to`; unasked, what the latest change did): every edit to its plan, refinement, layout and intent by the path it lands on (`docs/tools/flow.md`), and with `world=true` the columns the two builds disagree on — `ground` · `surface` · `structure` — each as a count and its largest runs with the box to find each in. `?format=png` draws those columns over both boards' ground, `?format=text` answers the edits one a line with the runs beneath |
 
 `column` answers characters rather than JSON for the reason the plan grid and the flow account do: it is read
 by a person or an agent rather than parsed, and it is the one read a caller with no image reader can act on.
@@ -301,6 +306,78 @@ naming which theme spent which block.
 with its cells, share and materials, then `borders:` and one row per bordering pair with the cells that cross
 it.
 
+## Two builds of one board, compared
+
+`diff?world=true` builds the board at two of its changes and reads every column the two worlds disagree on —
+any course, any block — skipping whole the sections both hold identically. Each changed column is counted
+once, under the first of three things that changed in it: **`ground`** where the ground's top rose, fell, came
+or went; **`surface`** where it held its height and the block on top of it is another, which is what a theme
+changed or a road repainted reads as; and **`structure`** where both held and something else in the column
+changed — a building, a prop, a room, a made thing, a course under the surface. So ground that rose under a
+house reads as `ground` however much of the house changed with it, and a tree moved along a meadow is two
+patches of `structure`, the one it left and the one it stands on, at every image of the orbit it is fanned to.
+
+Each class answers its column count and its largest twelve 4-connected runs, each with the box to find it in;
+`?format=text` lists them under the edits, a line a run. The picture frames every column either build stands
+on, so ground taken away is drawn where it was, shades both boards' ground lighter where it stands higher, and
+draws each changed column over it in its class's colour — amber, blue, magenta. Unlike every other picture
+here its key names the corner and the extent, because the question it answers is where.
+
+The two builds are two of the four boards `BuiltWorlds` keeps, so the board a caller goes on to read after a
+diff is usually already built, and a diff between two changes nobody has read pays for two.
+
+## One read answers everything a drive reads back
+
+**After every store a drive asks the same thirty-odd questions, and the report asks them in one request.**
+`GET /map/{slug}/report` builds the board once and answers, in the order a reader meets them: the findings,
+the plan's grid and flow, the relief, what the build declined, pre-flight, coverage, the heightmap, the slopes,
+reach, a section along each axis through the middle of the board, a transect each way through every spawn,
+goal, house, fluid, boulder and made thing, a walk from every spawn to every goal, the theme census, the
+dressing's claims, the seats for a tree, a boulder and a nine-by-seven house, and the void scan. On the
+deployed studio, where a build waits its turn one caller at a time, that is one turn rather than thirty.
+
+**Every reading names the route that answers it alone, and is that route's answer.** A reading is made by the
+same call its own route makes, with the words the report writes beside it — `transect?points=-37,-28;-21,-28&beside=2&format=text`
+— so it can be asked again on its own, and the two cannot say different things. A posted read is named
+`POST …` and answers the same when posted the stored layout. The five readings whose own routes answer JSON —
+the findings, the relief, the declines, pre-flight and coverage — are written as lines here, from the same
+call. A reading that cannot be made carries `missing` and the reason in place of its text: a map stored
+without a plan has no grid.
+
+**Three numbers come first, because they are what a board is wrong or right by.** How much of the ground
+steps further than a player walks — the slope grid's walked, scrambled and barrier cells; how many props the
+document names and the world does not hold — the dressing's placed and declined; and the worst step on any
+route from a spawn to a goal, with the route it is on. Each is the number its reading carries, so a reader
+who doubts one opens that reading.
+
+**The pictures are named, and drawn only when asked for.** The board in the round from two opposite corners —
+in x-ray as well where it roofs a room of two hundred blocks or more — the board from above one question at a
+time, the heightmap, the paint, traversability, the mirror, the two sections, the coverage, and every view of
+the board from a player's eye that it keeps or suggests. Each carries the `GET` route that draws it, which is
+how a picture is drawn again from the board as it stands. `?pictures=true` draws every one into the answer as
+base64 PNG, the same bytes its route draws; an eye view on a studio with no block sprites carries the reason
+instead.
+
+```text
+GET /api/map/{slug}/report                    the report, JSON
+GET /api/map/{slug}/report?format=text        the same as one document
+GET /api/map/{slug}/report?pictures=true      with every picture drawn
+```
+
+The text answer opens on the three numbers, then each reading under its name and route:
+
+```text
+REPORT  fable-mossgill  change 1
+
+  ground   7763 walked, 342 scrambled, 660 barrier — 11.4% steps further than a player walks
+  props    42 placed, 3 declined
+  routes   worst step 2, on route spawn-0 to destroyable-0
+
+== findings   (findings)
+stage configure
+EL1 complaint: 'brow'–'apron' steps 2 blocks — a player does not walk up more than one, …
+```
+
 ## One of them misleads, and it has cost a reader a conclusion
 
 A caveat met *after* a conclusion has already cost the conclusion, so each rides in its own route's summary
@@ -369,6 +446,57 @@ one of two places: a jar the operator already has, named by `Textures:Jar`, or M
 SHA-1 Mojang's launcher metadata declares for that jar and kept under `Textures:Cache` (the local application
 data folder by default), so it happens once per machine. What leaves the studio is a picture drawn with the
 sprites, never the sprites. A studio given neither answers **503** under `RQ10`, naming both settings.
+
+## The board in the round
+
+**Every other picture is a plan, and a plan cannot say whether a thing has bulk.** A ship is a ship-shaped
+patch of planks until it is seen with its masts up. `render/isometric` draws the whole board from above at 2:1,
+every block a cube painted back to front in the colour the 3-D preview gives it. A cube's top keeps that colour
+and its two flanks fall to 78% and 55% of it, because a top lit brighter would flatten a quartz sculpture into
+its silhouette.
+
+**The camera is fixed, and the board turns under it.** It sits at (+∞, +∞, +∞), and `corner` turns the board a
+quarter at a time, so the four corners are `south-east` — the default, over +x and +z — `north-east`,
+`north-west` and `south-west`. A corner with no name is refused **400**, naming the four.
+
+**An isometric draws a room under a meadow as the meadow**, because the meadow is nearer the camera and is
+painted last. `render/xray` is the same camera with one rule added: nothing standing between the camera and a
+roofed void may paint over it.
+
+**A roofed void is air with solid over it in its own column** — the plain meaning of underground, and a test
+that finds a room without being told where to look: a chamber, a tunnel, a house's rooms and the shade under a
+tree's crown are all of them one. Each column is taken one run of air at a time between its own lowest and
+highest block. A run taller than twenty-four blocks is the air under a cloud or an observer platform rather
+than a room, and is dropped without dropping a room in the same column; a void of fewer than six blocks is not
+named.
+
+**The x-ray draws three classes of block.** The *veil* is every block of ground or building on the line of
+sight out of a void — the diagonal (+1, +1, +1) toward the camera — drawn at 15% opacity, nine tenths of the way
+to grey, and only its outer skin, so a hill still reads as a hill and the room reads through it. The *lining* is every
+block with a face onto a void — the floor, the far walls, whatever stands on the floor — drawn opaque in its
+own colour. Everything else is drawn opaque and pulled 60% of the way to grey, so the room's own colours are
+the only chroma in the frame.
+
+**A made thing and a placed prop are never veiled.** A lamp hanging in a room stands on the sight line
+exactly as the ceiling does, and nothing in the blocks tells one from the other. The build does. A run a
+sketch layer laid is ground unless the layer is `kind: "made"` — the attribution `WorldColumns.Attributed`
+makes once, for this read and for the 3-D preview's payload. A run no layer laid is a placed prop's where a
+prop claimed its column last and a building's anywhere else (`WorldProvenance`). So a hillside and a house's
+roof wash out to show the chamber and the rooms under them, while a ship, a tree and a boulder stand as they
+are — the shade under a crown stays behind it, and the scan still counts it.
+
+**The x-ray's text twin is the void scan.** `render/xray?format=text` answers every roofed void, largest first:
+its cells, its x, y and z range in the world's own blocks whichever corner was asked, and whether any air
+reaching the open sky reaches it. A void none reaches is `SEALED - nothing walks in`. A chamber with a stair
+down to it is open through its own shaft, so a sealed one is a space no player can enter — which on a board
+that meant to build a room is a finding.
+
+```text
+GET /api/map/{slug}/render/isometric                       the board from the south-east
+GET /api/map/{slug}/render/isometric?corner=north-west     from the far corner
+GET /api/map/{slug}/render/xray                            the ground over every room washed out
+GET /api/map/{slug}/render/xray?format=text                the void scan
+```
 
 ## What each read is for
 
@@ -472,9 +600,9 @@ The first read after an edit pays for the build, and on a large board that is th
 read after it is answered from the same build until the documents change. Four boards are kept, so a caller
 reading a fifth has the least recently read one built again when it returns to it.
 
-**A picture says whether and a text read says where.** Every PNG here is framed on the world's own occupied
-extent and carries a scale bar naming pixels-per-block and the size in blocks — and never the corner it
-started from, so nothing in the image converts a pixel back to an `x, z`. The text reads do carry it:
+**A picture says whether and a text read says where.** Every PNG here but the diff's is framed on the
+world's own occupied extent and carries a scale bar naming pixels-per-block and the size in blocks — and never
+the corner it started from, so nothing in the image converts a pixel back to an `x, z`. The text reads do carry it:
 `TextGrid.Frame` writes an x ruler above the grid and the z of every row beside it, which is why `heightmap`,
 `incline`, `slopes` and `section` answer `?format=text` at all. A read whose answer is a coordinate to go and
 check — a column to name, a transect to walk, a patch to stand in — is asked in text and read there; the

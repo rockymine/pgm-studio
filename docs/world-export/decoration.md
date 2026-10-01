@@ -251,10 +251,21 @@ density field, `Scale`/`Octaves` shaping it, and `FernShare`/`FlowerShare`/`Flow
 the species. `DressingPalette.SoilShare` is the eligibility read — sand and clay take a third of what grass
 does, gravel and quartz none — and `DressingPalette.SoilOf` says what that ground may grow.
 
+**A plant does not ask how steep the ground is** (the author's ruling). It is one block held up by the block
+under it, so a fern, a flower or a mushroom on a 60° face stands exactly as it does on a meadow: the block
+beneath decides whether anything grows, and the gradient never does. A face grows nothing only where its theme
+paints it as something no plant takes, such as rock. The slope is a boulder's rule alone (`DR-STEEP`, §5).
+
 **Dry ground grows the two plants 1.8 lets stand on it.** On sand, `CactusShare` of the cover the density field
 admits is cactus and `DeadBushShare` of the rest is dead bush, and what is left is bare; on hardened or stained
 clay the cover is dead bush at `DeadBushShare`; on dirt `DeadBushShare` of the grass and fern is dead bush
 instead. Both shares are 0 unless stated, so a board that never asks grows neither.
+
+**Podzol and mycelium grow mushrooms, the two footings a mushroom keeps by day.** 1.8 drops a mushroom wherever
+the light reaches 13 unless the block under it is one of the two (`DressingPalette.KeepsMushroom`), and an open
+meadow is lit past that every day. So on those two, `MushroomShare` of the cover the density field admits is a
+mushroom, brown two in three and red the third; podzol grows the rest as any dirt does, and mycelium nothing
+else. The share is 0 unless stated, so a board that never asks grows none and its mycelium stays bare.
 
 **A cactus is one to four blocks tall and stands alone.** 1.8 breaks a cactus block with anything solid on any
 of its four sides, so its height — a hashed one to `DressingPalette.CactusTallest` (**4**) — is cut short at the
@@ -262,6 +273,15 @@ first course that is hemmed in, and one hemmed in at its foot is not grown. Two 
 other, so of two neighbours that both draw one, the one whose draw came lower stands; the draws are read at
 the folded cells, so every image settles the pair the same way. It hurts whoever stands against it, so a goal's
 own ground (§3.1) grows none.
+
+**Open still water grows lily pads and nothing else.** A cell inside the outline whose column tops out in a
+still water source with air over it — looked for within `WaterReach` (**16**) courses of the column's ground,
+since a channel stands below the surface it cut and a filled basin above it — carries a pad one course over the
+water where the density field admits cover and a raft field at the cover's own `Scale` clears `1 − LilyShare`.
+The pads gather in rafts the way flowers gather in fields, about half the water at a share of 0.5 and all of it
+at 1, and a mirrored board floats them alike because both fields are read at the folded cell. A fluid's claim gives way to the pad and to nothing else: its dry bed
+and beach grow nothing, and lava floats nothing. `LilyShare` is 0 unless stated, so a board that never asks
+keeps its water open.
 
 **Every field the overlay reads is read at the cell folded into the board's primary image**, exactly as a
 terrain pattern is (`terrain-painting.md` TP21) — the density field, the flower field, the species shares and
@@ -506,6 +526,15 @@ so a layer stack reads as a weathered skin over a core rather than as the terrai
 else, and the moss mask is laid over whatever the material resolved. A boulder is a solid volume standing on
 the ground, so where it stands is cover, which is why it is placed rather than scattered.
 
+**A rock is the one prop that stands in water.** A pool or a channel claims every column of its bed and beach
+(§7), and a rock stated there seats on the first course over the bed under the still water rather than on the
+ground the fluid cut away, and writes through the water as it writes through air: it stands in the race with
+the water round it, and its top shows where it is taller than the water is deep. The columns it stands on are
+its own afterwards, so a second rock stated on them is refused by the first (`DR-CLAIM`), while the fluid keeps
+its claim against everything else — a tree, a house or cover in the water is refused by the channel. A rock
+whose foot reaches the beach seats on the lower of the two, the bed, and meets the bank as any rock across a
+step meets the higher ground (§2.1).
+
 ## 6. Trees — vanilla and copied (`DR-TR`)
 
 The vanilla tree copies Minecraft's own: a trunk of a known height and a canopy of a known profile,
@@ -569,11 +598,11 @@ cut with — that is what makes it a copy rather than a recipe — so a block wh
 point at something the body actually holds. A vine states every side it clings to at once, so a side naming
 air is a curtain hanging on nothing, and a pair of *opposite* sides is that same fault seen from the front: a
 vine with two faces in one block. A vine under another naming the same side is held by it, which is how a
-curtain hangs past the leaf it started on, so only the run that reaches nothing is named. `opus5-alderfen`
-gives every one of its 374 vines a face-pair — 5 (north|south) or 10 (west|east) — so that whichever side the
-leaf is on is always among them, and its build spec gives the reason as the orbit turning no vine data of its
-own. It does: `BlockGeometry.Turned` maps each set bit through the image's transform and rebuilds the mask, so
-a single face survives a mirror or a quarter-turn without a second bit to protect it. The rule is asked once
+curtain hangs past the leaf it started on, so only the run that reaches nothing is named. A copy that gives
+every vine a face-pair — 5 (north|south) or 10 (west|east) — so that whichever side the leaf is on is always
+among them carries the fault in every vine, and the pair protects nothing from the orbit:
+`BlockGeometry.Turned` maps each set bit through the image's transform and rebuilds the mask, so a single face
+survives a mirror or a quarter-turn without a second bit to protect it. The rule is asked once
 per body, since a board draws the same tree thirty times and the fault is in the recipe.
 
 **`copied` means cut out of a world, and the library files nothing else under it.** A `template` tree is
@@ -679,14 +708,16 @@ ground *out* rather than standing on it.
 same either way — the carve, the line, the bowl, the bank and the beach — and lava is written as stationary
 lava, so it stays in the bed it was given. The two are not the same to a player: water is swum and lava is
 not entered at all, so the walk reads a run of lava as a prop's volume rather than as ground (`WorldColumns.ForWalk`)
-— neither its top nor the bed under it is a place to stand, where water stays ground at twice the walk. Lava
+— neither its top nor the bed under it is a place to stand, where water stays ground at twice the walk, and
+the water a walk swims is every column the world tops with it, whichever shape put it there. Lava
 sets fire to what burns beside it, so a timber deck, a tree or a grass bank against a lava bed is the author's
 to keep clear. Unstated, `fluid` is `water`.
 
-**A body of water or lava is drawn one of two ways, and `shape` says which its points mean.** A `channel` strokes them
+**A body of water or lava is drawn one of three ways, and `shape` says which its points mean.** A `channel` strokes them
 as a centerline and takes its width from `radius` — a canal, a river, a moat. A `pool` closes them into a ring
-and fills it, corners and all: a harbour, a lake, a flooded basin, the shape a stroked line cannot make
-however wide it is drawn. The bowl is the same law either way and only the distance it is measured along
+and fills it, corners and all: a harbour, a lake, the shape a stroked line cannot make however wide it is
+drawn. A `basin` closes them into a ring too, and cuts nothing: it is the third way because the ground does
+the drawing, and it has its own account below. The bowl is the same law either way and only the distance it is measured along
 differs, which is the argument for one prop rather than two: a channel's bowl deepens away from its
 centerline, a pool's inward from its shore, and on a pool `radius` is read as that **shelf** — how far in the
 bed takes to reach full depth, so a harbour shallows against its quays rather than dropping to a trench at the
@@ -717,6 +748,17 @@ never floods outward looking for a wall — so a line above the surrounding grou
 rather than spilling, which is visible the moment it is exported. The bed floor is laid only where terrain
 already stood, so a stated line over a basin already deeper than `level − depth` leaves the basin's own floor
 alone instead of hanging a shelf in it.
+
+**A basin fills the hollow inside its ring and cuts nothing.** It states its `level` — the reader refuses one
+that does not (`DR-DOC`), a basin having no derived line to fall back on — and every column inside the ring
+whose ground stands lower than that line takes the fluid from its own surface up to it, while every column at
+or above the line is left exactly as it stood: the rim, an island, a dry shore. So the ground draws the
+shoreline and the ring only bounds it, which is what lets a ring be drawn loose round a hollow the sketch dug
+rather than traced along the contour the water will stand at. `radius` and `depth` are not read, since there is
+no bowl to cut; the bank is laid on the floor the fluid covers, and the beach is measured out from the fluid
+itself rather than from the ring (`FluidBed.BasinShoreCells`), so both follow the hollow's own edge. Low ground
+the ring stops short of leaves the fluid standing against air, which `DR-DRY` names as a wall with the ring as
+the thing to widen.
 
 **A fluid fills round what stands in it and never cuts under it.** The two halves of the pass are different
 acts on a column something else keeps clear: carving takes that thing's own ground out from beneath it, which
@@ -789,8 +831,9 @@ grows, and `PATCH /map/{slug}/sketch/props/{propId}` is what changes it.
 **Still to come (`G169`).** The reads that take a channel from "a filled cut" to "water that looks like
 water," and the closed form: **depth shading** warped off-centre so one bank runs deeper than the other; an
 **irregular shoreline** whose width wanders to zero in places; a **voronoi-patterned** bed and shore (sand,
-pale gravel, coarse dirt) showing through the shallows; **edge life** reusing the §3 flora overlay masked to
-the bank (reeds, lily pads) — on a water fill only, since a lava bed grows neither; and **ponds** — the closed
+pale gravel, coarse dirt) showing through the shallows; **reeds** on the bank, the half of edge life the §3
+flora overlay does not grow yet (its lily pads float on open water, §3) — on a water fill only, since a lava
+bed grows none; and **ponds** — the closed
 version, an organic basin (the §5 boulder blob read concave), scattered onto low ground and joined to channels
 into one watershed on a single line.
 

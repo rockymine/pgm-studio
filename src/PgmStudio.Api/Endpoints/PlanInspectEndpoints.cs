@@ -35,8 +35,13 @@ public sealed class PlanAsciiPostEndpoint : EndpointWithoutRequest
     public override void Configure()
     {
         Post("/plan/ascii");
-        Description(b => b.Accepts<PlanModel>("application/json").PlainText());
+        Description(b => b.Accepts<PlanModel>("application/json").PlainText().Reads(Every));
     }
+
+    /// <summary>The <c>every</c> word, for the three routes that draw a plan as characters.</summary>
+    internal static readonly QueryWord Every = new("every",
+        "Draw one character for every this many cells, each the top-left cell of its block, so a board too wide "
+        + "for a terminal still fits one. Absent is 1.", Min: 1);
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -259,45 +264,24 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest<CompiledPlanDto
         // read is said here rather than discovered as ground the built map does not have.
         Complaints.Unread(HttpContext, body, plan);
 
-        SketchLayout layout;
-        MapIntent intent;
-        Findings completeness;
-        try
+        var compiled = PlanCompile.Run(plan);
+        if (compiled.Refusal is { } refused)
         {
-            // Two questions, both asked here because this is the one-way gate: is the plan coherent
-            // (the structural validator), and does it carry what a map cannot exist without (completeness).
-            completeness = PlanValidator.Completeness(plan);
-            var checked_ = PlanValidator.Check(plan).And(completeness);
-            if (checked_.Refuses)
-            {
-                await Refusals.WriteAsync(HttpContext, 422, "plan not compilable", checked_.Refusals, ct);
-                return;
-            }
-            (layout, intent) = PlanCompiler.Compile(plan);
-        }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
-        {
-            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
+            await Refusals.WriteAsync(HttpContext, refused, ct);
             return;
         }
 
-        // Pre-fill team ownership once, now, on the canonical island decomposition (G157) — a spawn's team
-        // owns its island, else a wool's owner, else neutral. The compiled intent carries it downstream, so
-        // configure opens pre-assigned and the export paints without re-deriving.
-        var ownFootprint = SketchRasterizer.RasterizeColumns(JsonSerializer.Serialize(layout, SketchLayout.Json)).Select(c => (c.X, c.Z));
-        foreach (var (islandId, team) in TeamTerritory.Assign(ownFootprint, intent)) intent.IslandTeams[islandId] = team;
-
         // Serialize each half with its own consumer's options (snake_case shape fields for the sketch blob;
         // Web camelCase for the intent) so the editor can post the raw sub-objects straight to the pipeline.
-        var layoutEl = JsonSerializer.SerializeToElement(layout, SketchLayout.Json);
-        var intentEl = JsonSerializer.SerializeToElement(intent, MapArtifactStore.Json);
+        var layoutEl = JsonSerializer.SerializeToElement(compiled.Layout, SketchLayout.Json);
+        var intentEl = JsonSerializer.SerializeToElement(compiled.Intent, MapArtifactStore.Json);
 
         // Completeness complaints that did not block (today: no objective). Carried on the success response so
         // a compile that produced a playable-but-goalless map still says so rather than passing in silence.
         // The structural gate's own complaints are the lint feed, which /plan/evaluate answers under `lint`
         // and which an author reads while writing rather than at the one-way gate — so this hands over the
         // completeness half only, and the two surfaces do not report the same list twice.
-        Complaints.Add(HttpContext, completeness.Complaints);
+        Complaints.Add(HttpContext, compiled.Complaints ?? Findings.None);
         await Send.OkAsync(new CompiledPlanDto(layoutEl, intentEl), ct);
     }
 }
@@ -533,7 +517,8 @@ public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
     public override void Configure()
     {
         Post("/plan/room");
-        Description(b => b.Accepts<PlanModel>("application/json").Refuses(404));
+        Description(b => b.Accepts<PlanModel>("application/json").Refuses(404).Reads(
+            new QueryWord("piece", "The piece whose room to seed, by its id.", Required: true)));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

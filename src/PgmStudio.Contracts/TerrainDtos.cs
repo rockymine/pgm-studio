@@ -62,6 +62,13 @@ public sealed record HouseBlockOptionDto(int Id, int Data, string Name, string M
 public sealed record HouseBlockKindsDto(
     IReadOnlyList<HouseBlockFieldDto> Fields, IReadOnlyList<HouseBlockKindDto> Kinds);
 
+/// <summary>The words a library house style's name is made of (<c>GET /api/room-styles/name-words</c>) — the
+/// two lists <c>HS19</c> reads a name against.</summary>
+/// <param name="Describing">What may come before the last word: materials, colours, roof forms and how the
+/// building is put together.</param>
+/// <param name="Buildings">What the last word may be: the kind of building it is.</param>
+public sealed record HouseNameWordsDto(IReadOnlyList<string> Describing, IReadOnlyList<string> Buildings);
+
 /// <summary>One block a terrain-paint material may resolve to, as the block picker receives it
 /// (<c>GET /api/terrain/blocks</c>). <see cref="Hex"/> is the colour the export actually places, so a swatch
 /// cannot promise a block a different colour.

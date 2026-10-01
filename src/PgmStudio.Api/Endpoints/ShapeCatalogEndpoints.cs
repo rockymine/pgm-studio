@@ -18,7 +18,15 @@ public sealed class ShapeCatalogEndpoint : EndpointWithoutRequest<CatalogPage>
     /// grid shows dozens at once.</summary>
     private const int CardScale = 7;
 
-    public override void Configure() { Get("/shapes/catalog"); }
+    public override void Configure()
+    {
+        Get("/shapes/catalog");
+        Description(b => b.Reads(
+            new QueryWord("kind", "Only the cards of these kinds, between commas. Absent shows every kind."),
+            new QueryWord("tier", "Only the cards of these tiers, between commas: `in-mix`, `reachable`, "
+                + "`emitter-only`. Absent shows every tier."),
+            new QueryWord("family", "Only the cards of these families, between commas. Absent shows every family.")));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

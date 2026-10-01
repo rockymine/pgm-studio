@@ -216,9 +216,10 @@ reads the intent and would otherwise say the map is by nobody (`EX6`). A `map-ed
 names no map passes the gate and answers its own 404, because a map that is not there is not an access
 question.
 
-**`POST /api/map/from-documents` is the one write that names its map in the body**, so the rule above cannot
-see which map it touches. It asks itself: loading over a stored slug replaces that map, and a caller who may
-not edit it is refused 403 before anything is written. A replaced map keeps its owner.
+**`PUT /api/map/{slug}/source` is the one `map-editor` write whose slug may name no map, because it makes one
+there.** The gate passes it as it passes every slug naming no map, and the source stores a new map owned by its
+caller. Over a stored slug the gate asks what it asks of every write, so a caller who may not edit that map is
+refused 403 before anything is written, and a replaced map keeps its owner.
 
 ## What the studio builds at once
 

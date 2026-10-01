@@ -1641,7 +1641,9 @@ public static class SketchRasterizer
         return (_, _) => bh;
     }
 
-    private static List<double[]> RingOf(SketchShape s) => s.Type switch
+    /// <summary>The outline a shape is drawn as: a rectangle's corners, a circle's points, a polygon's vertices
+    /// with every curved edge sampled, and a path's band.</summary>
+    internal static List<double[]> RingOf(SketchShape s) => s.Type switch
     {
         ShapeKinds.Rectangle => [[s.MinX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MaxZ ?? 0], [s.MinX ?? 0, s.MaxZ ?? 0]],
         ShapeKinds.Circle    => CircleRing(s.CenterX ?? 0, s.CenterZ ?? 0, s.Radius ?? 0),

@@ -5948,6 +5948,40 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   flat across the mire it stands in, and the shipped `townside on stilts` preset did the same. `HS10` names
   it, a complaint — the building is not wrong, the ground under it is floored — and the preset now states its
   plate as air, which is what leaves the terrain showing between the posts.
+- **The author's review of the kept styles is in the gate (WE158).** The rulings from reviewing the
+  twenty-nine styles boards are built with are complaints in the gate: verdicts on how a house looks, reported
+  on a store and never blocking it. Corner beams require log pillars and a laid log at
+  their level: `HS9` asks for the laid log at the very course a seam's beam ends come out of, rather than anywhere
+  in the walls, and `HS11` for log posts beside them; log posts with no beam ends are not asked. `HS12`: the
+  gable is never the verge's block, the unnamed gable being the wall's top course carried up. `HS13`: a laid log
+  is never the building's bottom course. Ten kept styles are revised as the review asked (`17h-croft`,
+  `17h-hall`, `17h-hall-spruce`, `hw-stonehouse`, `sb-spawn`, `showcase-hall`, `showcase-hall-hay`,
+  `sn-compass-well`, `stilts`, `talltimber-cottage-jungle`), and the village row's `cottage`, `longhouse` and
+  `workshop` meet `HS12` with a spruce roof and gable under a dark oak verge. The room over a stilt storey names
+  its own deck — a storey naming none stands on the plate's top course, so `stilts` and `townside on stilts`,
+  both on plates of air, had no floor upstairs — and the library seed stores a storey's own deck, which it
+  dropped. `docs/world-export/structures.md` §7.1, §7.2, §7.7. (`WE158`)
+- **The second review's rulings are in the gate (WE159).** Each is a complaint. `HS7` names a footing of any
+  block round a plate of any depth. `HS14` names a shed: a house's roof, a wing's own, a porch canopy, and a
+  roof or porch saved to the library alone; a porch naming no roof wears a gable, and the editors no longer
+  offer the form. `HS15` names a wall checkered in its posts' own log, `HS16`
+  a wall or gable of grass, podzol, mycelium or farmland (sand, gravel and dirt stay a wall's to use), `HS17`
+  snow or ice in a wall, gable or roof (white blocks stay), and `HS18` a storey above the ground standing on air.
+  The material rules read one walk over every block a face lays, wall-run stripes, frames and laid logs
+  included (`Materials.Laid`), which `HS5` now reads too. A porch canopy may name its own block (the `canopy`
+  part), laid rim and ridge alike, which is what the author asked of two porches under a capped roof.
+  `M0056` makes a gable the database's default porch form, as it is the code's; a stored row keeps the form it
+  states.
+  `docs/world-export/structures.md` §7.1, §7.3, §7.6, §7.8. (`WE159`)
+- **The library's house styles are named for what they are (TL36).** A room style's name is describing words
+  then a kind of building, from the two lists `HouseNames` holds and `GET /api/room-styles/name-words` answers;
+  `HS19` complains of any other on save. The library holds the author's review: the ten kept styles revised and
+  renamed, twelve new houses with the requested changes, twenty-seven houses picked from the boards, and eight of
+  the thirteen presets fixed and renamed — forty-nine kept styles and eight presets, each passing the gate and
+  composing back to its file. `M0055` renames the rows with their parts, takes out the twenty-four the reviews
+  rejected (the nineteen round-one styles and the stonemason, sandy mushroom, terrace, workshop and diorite
+  pyramid presets), and
+  rewrites the renamed names in each map's current refinement. `docs/tools/library.md`. (`TL36`)
 - **Water standing against a hole in its own basin says so (WE91).** The bed a pool carves and the hollow it
   sits in are two statements about one lake, and nothing reconciled them: on `opus5-scarrow-delph` the relief
   mark `pan` digs z −8…7 to y4 while the `tarn` prop fills z −7…6, so the lake's two end rows are four courses
@@ -7753,6 +7787,84 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   every guarded write from a tab on pgmstudio.de was refused as stale on its first save: the sketch tool said
   *saved from somewhere else*, kept drawing locally and blocked Finish. `Revisions.Expected` reads an
   `If-Match` up to the proxy's suffix, weak prefix and quotes aside.
+- **A reload never answers a revision the board before it answered, and a refused one replaces nothing
+  (RP88).** A load from documents replaces a map by deleting its row, and its artifacts started again at
+  revision 1 — so a drive that made the same writes each run ended on the same sketch revision each time, and a
+  browser tab that had read the previous board passed its `If-Match` and wrote that board back (Sootcombe's
+  third pass: reload at 1, fourteen vertex inserts to 15, the old board found at 16). The replacing row now
+  carries `artifact_revision_floor` (`M0051`), the highest revision the replaced map's artifacts reached, and
+  `MapArtifactStore.SaveAsync` numbers a new artifact above it. And everything the load is refused for — the
+  binder, the style gate, a person nobody could be called, a drawing the finish refuses
+  (`SketchFinish.Prepare`) — is decided before the stored map is touched, where a refused reload used to leave
+  no map at all. `docs/tools/flow.md`, `docs/refusals.md`.
+- **Every write to a map's documents is a change the map keeps (RP89).** A write to a plan, a sketch layout or
+  an intent is recorded by `MapChangeLog` (`M0052`): a number per slug that never repeats, the writer — the
+  account, and the token's label where a token wrote it, stamped on each writing request by
+  `Callers.StampWritesAsync` — the `origin` (`{repo, commit, path, dirty}`) and `note` a load states, and the
+  documents it wrote, kept once each under their SHA-256 and gzipped. The documents one request writes land as
+  one change, a kept document's revision is the number of the change that last wrote it, and a stale write
+  opens none. The history and the slug's last number are keyed by slug, so a reload carries the history on;
+  `MapRepository.RemoveAsync` takes the map, its notes and its history together, and the last number stays, so
+  a map made again under the slug numbers on. The migration carries every stored map's documents in as its
+  first change and drops `map.artifact_revision_floor`, whose work the slug's number does.
+  `docs/architecture.md`, `docs/tools/flow.md`, `docs/refusals.md`.
+- **Two changes of a map compare, document by document and column by column, and a change is restored
+  (RP90).** `GET /map/{slug}/changes[?since=]` lists a map's changes with their writer, token, origin, note and
+  documents; `GET …/changes/{number}` answers the documents as they stood there; `GET …/diff?from=&to=` answers
+  `DocumentDiff.Between` over each document — edits naming a list element by its `id`, an outline as one `set`
+  saying which points moved and how far, a placed thing as one `move` — and with `world=true`
+  `WorldDiff.Between` sorts the columns two builds disagree on into ground, surface block and structure, as
+  counts and runs, drawn on `?format=png` and listed on `?format=text`. `POST …/changes/{number}/restore`
+  writes back the documents that differ, through the roads that write them anywhere else, as one new change.
+  A finding's fix and an edit that landed are one record, `DocumentEdit` (was `FindingEdit`), which gained
+  `remove` and `before`; a run of cells with its box is `CellRunDto` for the slopes read and the diff alike.
+  `docs/tools/flow.md`, `docs/world-scan/read-backs.md`, `docs/refusals.md`, `docs/architecture.md`.
+- **The Sketch tool shows a board's changes, and a note knows what changed since it was written (TS124).**
+  A History phase lists every change newest first and draws the one picked over the board — shapes added,
+  taken away, reshaped (the old outline dashed) or otherwise changed, props placed, moved and removed, and the
+  runs of changed columns — read by `diffOverlay` off the layouts at both ends; the inspector names the writer,
+  the origin linked to its commit and folder, every edit and the columns moved, and puts the board back as a new
+  change, the tab taking up what the restore wrote. A note's message records the change it was written at
+  (`M0053` carried every stored message to the change its map stood at then), a stated one must have landed,
+  and a thread counts the changes since its last message and opens History on them. `docs/tools/sketch.md`.
+- **A map is stored from its source: a plan compiled or a drawing, and the refinement laid onto it (RP91).**
+  `PUT /map/{slug}/source` takes a base — a plan, compiled as `POST /plan/compile` compiles it (`PlanCompile`),
+  or a drawn layout and intent with a plan beside them kept as provenance — and a `Refinement` (`Pgm/Plan`):
+  everything a board states that its plan cannot, from the paint, the storeys, the shapes and the outlines
+  reshaped a point at a time and bent (`ShapeBend`, the bend route's own record) to the relief, the registries,
+  the dressing and the intent's date, credits, capture points, generators and shops. `Refinement.Apply` lays
+  it on through the `SketchGeometryEdit` the Sketch routes use; a statement reaching nothing is `SR2`, and a
+  storey stated twice or a point edit naming no point (`SR3`, `SR4`) refuses 422. Everything is decided before
+  the map is touched, the documents land as one change with their `origin` and `note`, and the answer lists
+  the `DocumentEdit`s the source made to what the map held — `?dry=true` with the layout and intent it would
+  store, storing nothing. `POST /map/from-documents` is retired, and `DocumentDiff` reads a JSON-null member
+  as an absent one. `pgm-studio-mapgen`'s `drive.py`, `loop.py` and sculpt `board.py` store through the
+  source and its specs' `finish.json` is `refinement.json`: 87 of 95 specs store the same layout by either
+  road, and the other eight are refused or crash on both. `docs/tools/flow.md`, `docs/tools/plan.md`,
+  `docs/refusals.md`, `docs/access.md`, `docs/architecture.md`.
+- **A source is not applied over a change it has not seen, and the change is handed over (RP92).** The studio
+  keeps a map's refinement as its fourth document (`refinement_json`, `GET /map/{slug}/refinement`), kept,
+  compared and restored on every change like the other three. A source states `after`, the change it was built
+  against — absent, the change its source was last applied as — and where the stored refinement states
+  anything, a source over a later change that edited something answers `409 changes not seen`: one `SR1` per
+  edit, naming the change, who made it, when and the notes written at it, and carrying the edit as the source
+  would state it (`Handover`) — a theme or an outline by the shape's id, the bend that would redraw an outline
+  removed, a drawn shape as an `addShapes` entry, a prop's move in the refinement's dressing, a relief, theme or
+  capture point whole — or as the document's own edit where only the plan can state it. `?discard=` names the
+  changes an apply drops, and the change it lands as records them (`M0054`, shown in the Sketch tool's
+  History). The source's schema names its documents by their types. `pgm-studio-mapgen`'s `drive.py` takes
+  `--after` and `--discard`, and the `pgm-board` skill reads the changes since the last run beside the open
+  notes. `docs/tools/flow.md`, `docs/refusals.md`, `docs/tools/sketch.md`, `docs/architecture.md`.
+- **A refinement names a material once, and a library row by what it is called (TL32).** A material stated
+  under `materials` is used as `{"use": name}` wherever a material is stated, and `{"library": "dunes"}` — or an
+  id — stands wherever a material, theme, room style, prop style or biome is stated, what it names decided by
+  where it stands (`LibraryNames`). Each is a copy with the fields stated beside it laid over, an object member
+  by member (`Refinement.LaidOver`), so a library edit never rebuilds a stored board. The refinement the map
+  keeps records each library name's `row` and a `hash` of what was copied, a copied theme or biome lands in
+  `themeSources` and `biomeSource`, and `GET /map/{slug}/state` names as `behind` the names whose row has moved
+  on; the next apply takes the row as it is then, and its diff shows it. A name that names nothing refuses the
+  source (`SR5`, `SR6`) with the nearest names there are. `docs/tools/library.md`, `docs/tools/flow.md`,
+  `docs/refusals.md`.
 - **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
   and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
   five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a
@@ -8242,6 +8354,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   ground a 1.8 bush stays on, so sand, gravel and mycelium no longer carry cover that drops at the first
   update. The Dressing inspector offers both shares. `docs/world-export/decoration.md` §3. (`WE150`)
 
+- **Mushrooms in the flora (`WE157`)** — a flora area grows brown and red mushrooms, brown two in three, on
+  podzol and mycelium at `mushroomShare`: the two footings a mushroom keeps by day, so none is grown where
+  1.8 would drop it. Podzol grows the rest of its cover as any dirt does, and mycelium nothing else. The
+  Dressing inspector offers the share. `docs/world-export/decoration.md` §3. (`WE157`)
+
+- **Lily pads on open water (`WE156`)** — a flora area floats a lily pad on the open still water inside it at
+  `lilyShare`, cut from a field at the cover's patch size so the pads gather in rafts as flowers gather in
+  fields, and read at the folded cell so a mirrored board's halves float alike; a fluid's dry bed and beach grow nothing and lava floats
+  nothing. The Dressing inspector offers the share. `docs/world-export/decoration.md` §3. (`WE156`)
+
+- **A rock stands in the water (`WE73`)** — a boulder stated in a pool or a channel seats on the first course
+  over the bed and writes through the water, and takes the columns it stands on from the fluid, so a second
+  rock there is refused by the first while the fluid keeps its claim against every other prop.
+  `docs/world-export/decoration.md` §5. (`WE73`)
+
 - **The eye draws what stands on the ground (`WS79`)** — `render/eye` draws torches and redstone torches as
   crossed sprites, redstone wire as a floor sheet tinted by its power the way the game tints it, ladders on the
   face they hang from, carpets, vines and lily pads, and chests — plain, trapped and ender — as the inset box
@@ -8503,6 +8630,149 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   The address is the id the document already carries, so nothing is minted to make a part reachable.
   (`Pgm/Sketch/SketchGeometryEdit`, `Minecraft/Dressing/DressingEdit`, `Api/Services/SketchPartWrite`,
   five `Api/Endpoints/Sketch*Endpoints.cs`, `docs/tools/sketch.md`)
+- **The whole layout names its dressing and its biome (`RP65`).** `GET`/`PUT /map/{slug}/sketch` published
+  `dressing` and `biome` as descriptions over no shape, because `SketchLayout` is declared in `Pgm` and the two
+  types are `Minecraft`'s. `CarriedShapes`, a schema processor in the composition root, publishes a field held
+  as raw JSON as a reference to the type it holds, so the layout's dressing is a `DressingDoc` and its biome a
+  `BiomeField` in the document, as they already were at their part routes. (`Api/Endpoints/CarriedShapes`,
+  `docs/architecture.md`)
+- **What a route answers is what its schema says (part of `RP93`).** Thirteen enums the document listed as
+  words crossed the wire as numbers, and every material, prop and style failed a strict validator, because
+  each polymorphic leaf repeated `additionalProperties: false` beside its base. The endpoints and the document
+  are now configured from one place (`WireJson`), no record closes itself, a list of words publishes them on
+  its items, and a computed field such as an intent's `gamemodes` is published read-only (`ComputedFields`).
+  `WireJsonTests` reads a board stating one of every closed set through every GET route its slug reaches and
+  validates each answer against its schema, with every key declared. (`Api/Endpoints/WireJson`,
+  `Api/Endpoints/ComputedFields`, `Api/Endpoints/WordSetSchemas`, `docs/architecture.md`)
+- **Every field says what it holds (part of `RP93`).** 41 fields reached the document with no type — a layout's
+  themes and room shells, a shape's material, the documents `CompiledPlanDto`, `MapSourceDto` and
+  `MapChangeDocumentsDto` carry whole, a refinement's statements, a region's extent. `CarriedShapes` now names
+  each one's type: a refinement's `themes`, `materials` and `biome` take the thing or a `StatedName` standing for
+  it, its `addShapes` a `SketchShape` with a `ShapeJoin` beside it. `StatedName` and `ShapeJoin` are also where
+  the walkers spell the keys `use`, `library`, `row`, `hash`, `layer` and `group`. Sixteen fields stay open by
+  design and `SchemaCompletenessTests` names each. (`Api/Endpoints/CarriedShapes`, `Pgm/Plan/Refinement`,
+  `docs/architecture.md`, `docs/tools/library.md`)
+- **Every query word a route reads is a parameter it publishes (part of `RP93`).** 25 operations read 59 query
+  words the document did not name — the compose feed's eleven, a suggestion's `box`, a probe's nine dimensions,
+  the rules' four filters. Each is declared beside its route with what it takes, a word can say it is required
+  or a flag or a number, and `SchemaCompletenessTests` reads the words out of the endpoint source
+  (`EndpointSource`) and holds each to its route's parameters. The side view's legacy `x`/`z` aliases are
+  retired, so `segments` publishes exactly the four directions it accepts. (`Api/Endpoints/QueryWords`,
+  `Analysis/Scan/SideView`, `docs/architecture.md`)
+- **The schema names its defaults, its operations and its token (`RP93`).** 149 fields whose default the code
+  states publish it as the wire writes it (`StatedDefaults`); every operation is named after its route —
+  `putMapSource`, `getMapBySlug` — rather than the class serving it (`OperationNames`); and the one security
+  scheme is `token`, an opaque bearer, where the generator's default named a JWT. `SchemaCompletenessTests`
+  holds the defaults as a count that only moves up, the names to their routes and to being unique, and the
+  scheme to what a studio token is. (`Api/Endpoints/StatedDefaults`, `Api/Endpoints/OperationNames`,
+  `Api/Program`, `docs/architecture.md`)
+- **Every worked body in the tool documents is posted, held to its schema, and handed out as an example
+  (`RP94`).** Every JSON fence in `docs/tools/` now names the route it is sent to or the shape it is, and
+  `DocumentedBodyTests` posts the first kind, holds both to the schema with every key declared, and refuses a
+  fence naming neither. The API carries the documents (`DocumentedBodies`) and publishes each posted body as its
+  operation's example (`DocumentedExamples`): 34 bodies over 18 write routes, the rest a count that only falls.
+  Holding them to the schema found a wool's room stated as `room` where the intent reads `protection`, a dressing
+  example in a retired model, a room style's roof stated at the top, and three converter shapes the schema did
+  not publish — a plan's `rect` as `[x, z, w, h]`, a relief mark's `h` as a number or a list, and an author as a
+  bare name. (`Api/Endpoints/DocumentedBodies`, `Api/Endpoints/DocumentedExamples`, `Api/Endpoints/CarriedShapes`,
+  `docs/tools/sketch.md`, `docs/tools/configure.md`, `docs/architecture.md`)
+- **The studio serves a Python kit written from its own schema (`RP95`).** `GET /api/kit.py`, generated from the
+  published document once a process and tagged with its hash: a constructor per shape a route takes, by the
+  studio's field names, writing only what is stated and checking each word and type first, a polymorphic shape
+  built through its leaves; `Studio`, a method per route named after it, which waits out a `429`, prints
+  `warnings` and raises `Refusal` with the findings; `find()` over every description, and `build()` through the
+  constructors. `KitEndpointTests` compiles it, counts a method for every route and rebuilds every worked body
+  in the tool documents through it. A computed field is now read-only wherever it is published, so no
+  constructor takes one. (`Api/Services/PythonKit`, `Api/Endpoints/KitEndpoint`, `Api/Endpoints/ComputedFields`,
+  `docs/architecture.md`, `docs/tools/flow.md`)
+- **A bend names the edges it draws as coast (`TS125`).** A bend states `edges`, each by the vertex it leaves,
+  and every edge not named keeps no cut point and no Bézier handle, so a shape flush against another along it
+  stays flush; `{"side": "in", "edges": […]}` is a coast along the water and nowhere else. An edge the outline
+  does not have is refused with the count it does. (`Geom/RingBend`, `Geom/RingRounding`, `Pgm/Sketch/ShapeBend`,
+  `docs/tools/sketch.md`, `docs/tools/flow.md`)
+- **A basin fills the hollow inside its ring to a level and cuts nothing (`TS125`).** A fluid stating
+  `shape: basin` and its `level` fills every column inside its ring whose ground is lower than the line and
+  leaves the rim, an island and a dry shore as they stand, its bank on the floor and its beach measured from
+  the water; a basin with no level is refused `DR-DOC`, and one whose ring stops short of low ground is named as
+  a wall `DR-DRY`. The walk reads water off the built world, so a pool's inside and a basin's flood are both
+  swum. (`Geom/Algorithms/FluidBed`, `Minecraft/Dressing/Decorator`, `Minecraft/Anvil/WorldColumns`,
+  `Export/BuiltWalk`, `docs/world-export/decoration.md`, `docs/tools/sketch.md`)
+- **A refinement states an outline by its shape (`TS125`).** `outlines: {id: {at, radius, radiusZ, points,
+  lobes, wobble, phase, turn}}` is an ellipse pulled in and out by lobes, written as the points of the shape,
+  relief area or push, or stroke, fluid or flora prop carrying the id; an outline that draws no ring is
+  refused `SR7`. (`Geom/Algorithms/LobedOutline`, `Pgm/Plan/Refinement`, `docs/tools/flow.md`)
+- **A statement about a symmetric board is made once, and the board's symmetry fans it (`TS125`).** A source's
+  capture points and generators are each stated once and fanned across the layout's symmetry, numbered on, a
+  stated image taken as itself; a point edit and a bend to a shape on the axis are made at every image, the
+  bend reading its wander at each point's canonical image, unless they state `fan: false`, and a move taking a
+  point off its axis is `SR8`. (`Geom/Symmetry`, `Pgm/Authoring/SymmetryExpander`, `Pgm/Plan/Refinement`,
+  `docs/tools/flow.md`, `docs/pgm/control-points.md`, `docs/pgm/shops.md`)
+- **The export carries the `map.png` a PGM server lists the map by (`WE155`).** Drawn at 290 × 246 through the
+  eye `render/eye` draws with, from the kept view the author marks as the map's picture — **Map picture** in the
+  In game phase, or `picture: true` on the views routes, one view at a time — else from the whole board seen
+  above its long side; a studio without the block sprites exports the world without it and says so `RQ10` in
+  `Pgm-Warnings`. (`Api/Services/MapPicture`, `Export/WorldViews`, `Api/Endpoints/MapExportEndpoint`,
+  `docs/world-export/sketch-world-export.md`, `docs/tools/sketch.md`, `docs/tools/configure.md`)
+- **A built board's coverage is walked once for its JSON and its picture (`WS72`).** `GET /map/{slug}/coverage`
+  keeps its read with the built world, keyed on the map document it was judged by, so the JSON and
+  `?format=png` asked one after the other walk the board once, and an edit to the world or the document is a
+  new key. (`Api/Services/CoverageReads`, `Api/Services/FeatureData`, `docs/world-scan/ground-coverage.md`)
+- **A drive runs the board's script, shows what it would change, and reads one report (`RP96`).**
+  `pgm-studio-mapgen/tools/drive.py` runs the board's `build-spec.py` against the studio it drives, asks the
+  source dry and prints every edit before it stores, reads the stored board back in one `GET /map/{slug}/report`,
+  keeps one picture a board — the board from its long side, beside its documents — and leaves every other
+  picture to the studio. (`pgm-studio-mapgen/tools/drive.py`, `AUTHORING-BRIEF.md`, `tools/README.md`, both
+  skills)
+- **The boards on the hand kits are stated in the studio's words (`RP96`).** The sixteen boards that imported
+  `specs/opus55_kit.py`, `specs/sonnet55_kit.py` or a copied `common.py`/`opus5c.py` state their materials,
+  themes, props, relief, coasts and house styles through `GET /api/kit.py`, and the four kits are gone. Their
+  rings are `outlines` and their coast cuts `pulls`; the 5b/5c seeded outlines, a ring a script splices into
+  another and the few that land on a rounding tie are stated as their points; every copied tree is the showcase
+  snapshot's (`TL34`). Each board's applied layout and intent are what the old script's were, checked against a
+  dry run of both. (`pgm-studio-mapgen/specs`, `pgm-studio-mapgen/tools/studio_kit.py`)
+- **One read answers everything a drive reads back (`WS80`).** `GET /map/{slug}/report` builds a board once and
+  answers the three numbers it is wrong or right by — its ground's walked, scrambled and barrier cells, its
+  props placed and declined, the worst step from a spawn to a goal — then every reading a drive asks for after
+  a store, each beside the route that answers it alone and made by the same call, and the pictures by route,
+  drawn on `?pictures=true`; `?format=text` answers one document. The board in the round is the studio's own:
+  `render/isometric` from any corner, and `render/xray`, which washes out the ground and the buildings over a
+  roofed room and answers the void scan as its text. The Sketch tool's **Report** phase shows the same report.
+  (`Export/BoardIsometric`, `Api/Services/MapReport`, `Minecraft/Anvil/WorldColumns`,
+  `docs/world-scan/read-backs.md`, `docs/tools/sketch.md`)
+- **A style written in its retired shape is refused by its path (`TS127`).** A part written as a material
+  rather than as its courses — `{floor, ceiling, wall}`, the shape before `HouseStyle` — reads as a part with no
+  stack, and every road that binds one answered `500 RQ2` at `RoomPart.At`. The reader's walk refuses it by its
+  path wherever the style is bound: `400 RQ1` from the library's reader and `preview-snapshot`, `RQ1` at
+  `roomStyles.wool.wall` on a stored sketch, and `DR-DOC` at `shell.wall` on a building's recipe.
+  (`Minecraft/Houses/HouseStyleJson`, `docs/tools/sketch.md`, `docs/world-export/structures.md`)
+- **A shape answers its edges as a point edit names them (`TS129`).** `GET /map/{slug}/sketch/shapes/{shapeId}
+  ?format=text` lists each edge of the outline by the vertex it leaves, with its corners, its length, `~` where a
+  handle curves it, and what the shape's layer covers half a block outside it, run by run along the edge —
+  another shape, `id (image)` where the board's symmetry draws one, or `void` — so a pull or a bend's `edges` is
+  written from a read rather than from a ring copied into a script. (`Pgm/Sketch/ShapeEdges`,
+  `Api/Endpoints/SketchGeometryEndpoints`, `docs/tools/sketch.md`)
+- **A coast placed for play is stated as pulls (`TS128`).** A point edit states `pulls: {edge: [[fraction,
+  blocks], …]}`: a point that fraction of the way along each named edge, moved that many blocks into the ring or
+  out of it where negative, inside asked of the ring rather than read from its centroid, every edge's points
+  landing together so none renumbers the edge another names, made at every image on an outline that is its own
+  image, and a complaint where one folds the ring. It is `coast_edits`' own argument, drawn by the studio point
+  for point. (`Geom/RingPull`, `Pgm/Sketch/SketchGeometryEdit`, `Pgm/Plan/Refinement`, `docs/tools/flow.md`,
+  `docs/refusals.md`)
+- **The house styles boards are built with are the library's (`TL33`).** Twenty-nine styles the authoring
+  repository's boards stamp are kept as the stamper's own JSON under `Minecraft/Houses/Kept` and seeded into the
+  room library under their names beside the presets, each composing back out of the store to exactly the style
+  its file states; a stack of one course keeps its thickness through the store. A house prop's own `style` names
+  a library row as a room style does, so `{"library": "showcase-hall"}` stands wherever a board stated the style
+  in full. Every board in `pgm-studio-mapgen` names its house styles that way, with what it changes laid beside
+  the name, and the repository's own style folder and `@name` loader are gone. (`Minecraft/Houses/HousePresets`,
+  `Api/Services/LibrarySeed`, `Api/Services/LibraryNames`, `docs/tools/library.md`,
+  `pgm-studio-mapgen/tools/README.md`)
+- **The showcase's trees are one snapshot a board copies from (`TL34`).** `tools/seed-trees.cs --json=<file>`
+  writes the cut it would file into the library to a file instead: every tree under its name, the foot it stands
+  on and the recipe the library answers for it, one body row to a line, the same bytes on a second cut of an
+  unchanged world. `pgm-studio-mapgen/corpus/tree-showcase/trees.json` is the showcase's, and a board names its
+  trees from it rather than from a studio's library or a cut of its own. (`tools/seed-trees.cs`,
+  `docs/tools/library.md`, `docs/world-export/tree-corpus.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

@@ -39,7 +39,7 @@
           pitch and the ridge cap only mean anything on a sloped roof and the hole only on a flat lid, so
           each is offered under the form rather than as a knob of its own.</p>
           <Field Label="Form">
-            <Select Options="@Select.Words(RoofForms.All, RoofForms.Describe)"
+            <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Describe)"
                     Value="@roof.Form" ValueChanged="SetForm" />
           </Field>
           @if (Sloped)
@@ -135,7 +135,7 @@
                     Value="@porch.Edge" ValueChanged="SetPorchEdge" />
           </Field>
           <Field Label="Canopy">
-            <Select Options="@Select.Words(RoofForms.All, RoofForms.Describe)"
+            <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Describe)"
                     Value="@porch.Roof" ValueChanged="SetPorchRoof" />
           </Field>
           <Field Label="Rail">

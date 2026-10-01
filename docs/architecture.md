@@ -12,14 +12,13 @@ parsed.
 
 ## A gate belongs to whichever door it was put behind
 
-The pipeline has one entry point: `PgmStudio.Api`, **149 endpoint classes** over 45 files. Everything that
-authors a map arrives through it — the browser, the headless drivers agents write, and the catalogue map,
-which is emitted as a layout and an intent and loaded through `POST /map/from-documents` like any other.
-That route is the **authoring** call for a headless caller and not only an import: it takes the three
-documents together and stores a whole map in one request, running the finish and the intent's projection
-inside itself. The staged routes behind the tools are the browser's path, where a map is walked one stage at
-a time and each stage writes the document it has just drawn (`docs/tools/flow.md` § *The three documents are
-the way in, and the way back in*).
+The pipeline has one entry point: `PgmStudio.Api`, **265 endpoint classes**, a route each, over 54 files. Everything that
+authors a map arrives through it — the browser, and the headless drivers agents write. `PUT
+/map/{slug}/source` is the **authoring** call for a headless caller and not only an import: it takes a map's
+base and its refinement and stores a whole map in one request, running the compile, the refinement, the finish
+and the intent's projection inside itself. The staged routes behind the tools are the browser's path, where a
+map is walked one stage at a time and each stage writes the document it has just drawn (`docs/tools/flow.md` §
+*A map's source is the way in, and the way back in*).
 
 That is not an arrangement the code enforces; it is where the doors happen to be. A second driver linking
 `Pgm`, `Minecraft` and `Export` directly is a few lines away at any time, and the moment one exists, a gate
@@ -35,17 +34,17 @@ request arrived.
 
 ## The boundary carries no schema
 
-The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 118
-paths, **149 operations**, 291 schemas, **257 of them carrying the docstring beside the type** — and
+The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 202
+paths, **265 operations**, 437 schemas, **435 of them carrying the docstring beside the type** — and
 `/api-docs` is the page over it, where a route can be expanded and sent without writing a client. Both are served from the app's own assets.
 
 What that document can say is bounded by what is declared, and the write surface states all of it. Of the
-**67 POST/PUT/PATCH routes**, **64 publish a request body** — 25 by binding a request type, 39 by naming the
-shape they take while still reading it themselves — and the three that do not read no body at all, which is
+**108 POST/PUT/PATCH routes**, **103 publish a request body** — 42 by binding a request type, 61 by naming the
+shape they take while still reading it themselves — and the five that do not read no body at all, which is
 the truth rather than a gap. `SchemaCompletenessTests` holds both halves as counts that only move down, and
 both are now zero.
 
-One of the 42 is why the count could reach zero. A material is a discriminated union with nothing above its
+One of them is why the count could reach zero. A material is a discriminated union with nothing above its
 discriminator — every field a body carries belongs to the leaf its `kind` names — so `TerrainMaterial`
 declares no property of its own, and the generator's default reads that as an empty request and refuses the
 whole document. `c.Endpoints.AllowEmptyRequestDtos` is what says otherwise: the rendered schema is complete
@@ -57,8 +56,8 @@ Three things follow from that, and they are the same fact seen from three sides.
 **The one global input gate covers a sixth of the surface, and that is the shape of the thing rather than a
 shortfall.** `RequiredFields` refuses anything a request DTO declares non-nullable and the body did not
 supply — and its first line is `if (context.Request is not { } request) return;`, so it is a no-op for every
-endpoint that has no request type. The promise it makes holds for the **25 routes that bind one**. A declared
-shape is not a bound one: the 39 that name their shape to the generator still read it themselves, so the
+endpoint that has no request type. The promise it makes holds for the **42 routes that bind one**. A declared
+shape is not a bound one: the 61 that name their shape to the generator still read it themselves, so the
 document is true about them and the gate does not run.
 
 **Binding is not a sweep, because two of the three things a body can be wrong about are not the binder's.**
@@ -87,29 +86,68 @@ caller. The other 38 sites are a different thing entirely: `NoSuchSubject`, `Con
 **Every operation now says what it answers.** An endpoint that declares no response type is published as
 **204 No Content** — the generator's default, and a claim rather than a silence, so an undeclared route does
 not leave a caller guessing but misleads it. **None of the operations** publish that 204 without
-answering it; eleven publish it truthfully, every one a delete whose answer is that the thing is gone — ten
-library rows and a whole map. `SchemaCompletenessTests` holds the count at zero and the eleven as a named list, so a route added without a
+answering it; eleven publish it truthfully, every one a delete whose answer is that the thing is gone — nine
+library rows, a stored plan and a whole map. `SchemaCompletenessTests` holds the count at zero and the eleven as a named list, so a route added without a
 response type fails there, and one on the list that grows a body cannot leave it quietly. The media types
-are declared too: the six `image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
+are declared too: the nineteen routes answering `image/png`, the nineteen answering `text/plain` and the export's `application/zip` all say so, so
 `/api-docs` renders a theme swatch beside the route that draws it.
 
-**And a field that takes one of a handful of words says which.** `PgmStudio.Vocabulary` holds ten closed
-sets — `MapStage` and the nine in `TerrainVocabulary` — because three parties have to spell a `map.stage`, a
+**And a field that takes one of a handful of words says which.** `PgmStudio.Vocabulary` holds twenty-seven
+closed sets — `MapStage` and the nine in `TerrainVocabulary` among them — because three parties have to spell a `map.stage`, a
 `style.kind`, a theme bucket, a room part or a roof form identically. They are `const string`s rather than a
 C# enum, since the party writing one furthest down is `Minecraft` and it cannot see `Contracts`, so every one
 of them crossed as a bare `string` and an agent learned the four stages by being refused one. A `[WordSet]`
 naming the declaring class now ties the field to its set, and a schema processor reads the words off that
-class into the field's `enum`: **26 fields** publish theirs — the ten sets plus the plan's own roles, zone
-kinds and box kinds — and `WordSetSchemaTests` holds each to the words its class declares and every set to
-being published by something. The words are still stated once, where they were stated already; nothing is
+class into the field's `enum`, or its items' for a list of words. `WordSetSchemaTests` holds each marked field
+to the words its class declares and every set to being published by something. The words are still stated once, where they were stated already; nothing is
 copied into the document.
+
+**And a field held as raw JSON names the type it holds.** A field is raw JSON where its type lives in a
+project the declaring one cannot reach: a layout is declared in `Pgm` and its finish — dressing, biome, themes,
+room shells, a shape's material — is `Minecraft`'s, and an answer in `Contracts` that carries a whole plan,
+layout, intent or refinement cannot name the document's type. The composition root reaches every project, so a
+schema processor there, `CarriedShapes`, publishes each such field as a reference to what it holds and keeps the
+field's own description: a refinement's `themes` are each a `TerrainTheme` or a `StatedName` standing for one,
+its `addShapes` a `SketchShape` with a `ShapeJoin` beside it, a region's extent a number or the infinity
+`map.xml` spells as a word. Sixteen fields stay open by design — the map document's `map.xml` encodings, which
+`MapDocumentDto` keeps rather than walk them twice, a diff's value and a material field's default — and
+`SchemaCompletenessTests` names each one and holds every other field to publishing a shape.
+
+**And what a route answers is what its schema says.** The document is generated with the options the
+endpoints write with (`WireJson`), so a closed set listed as words crosses as words: a stroke's `style` is
+`"solid"`, never `0`. A record publishes no `additionalProperties: false`, because the studio complains about
+a field it does not read rather than refusing it, an answer may carry `warnings` beside its record, and a
+polymorphic leaf is `allOf` its base and its own fields — under each of which a closed object refuses what the
+studio accepts. A list of words publishes them on its items, and a field a record computes rather than stores,
+such as an intent's `gamemodes`, is published read-only (`ComputedFields`), since the wire writes it like any
+other. `WireJsonTests` holds the whole surface to it: a board stating one of every closed set is read through
+every GET route its slug reaches, and each JSON answer validates against the schema its route names, with
+every key it carries declared there.
+
+**And every word a route reads off the query string is a parameter it publishes.** A word read straight off
+the request rather than bound to a record reaches no parameter list unless the route declares it beside its
+path (`Reads`, published by `QueryWords`), with what it takes — a closed set's words, a number's bounds, a flag
+— and whether the route refuses a request without it. The compose feed's `wools`, `hub` and `front`, a
+suggestion's `box` and a probe's nine dimensions are among the words declared that way. Because a route reads a
+word only on the path that reaches it, `SchemaCompletenessTests` takes the reads from the source
+(`EndpointSource`): every `Query<T>("word")`, every `Request.Query["word"]`, every helper handed a word, and what
+a class inherits from its base — and holds each to a parameter of its route.
+
+**And the rest of what a caller reads off the document is the studio's own.** A field whose default the code
+states — a positional parameter's `= value`, an initializer that is not the type's zero, a closed set's
+first member — publishes it the way the wire writes it (`StatedDefaults`): a control point's `size` is 7, a
+sketch's `mirror_mode` is `rot_180`, and 149 fields say so. An operation is named after its route rather than
+the class serving it (`OperationNames`) — `PUT /map/{slug}/source` is `putMapSource`, a trailing parameter
+adds `by` and its name — because the name is what a generated client calls the method. And the one security
+scheme is `token`, a bearer of no stated format: a studio token is a key the studio looks up, not a JWT a
+caller can read, and every operation that needs signing in names it.
 
 **And the one key that rides on any of them is declared.** `Complaints` adds `warnings` to any 2xx JSON
 object whose request raised one, and the document said nothing about it: no schema carried the key and no
 operation named a response header. Both are published now by an operation processor — every 2xx JSON object
 is `allOf` the answer the route names plus the optional `warnings`, and every 2xx names `Pgm-Warnings` —
-which puts one fact in one place rather than a field on a hundred records that no handler fills. **110
-answers carry the key and 151 name the header.** The client reads it in one place too, `ServerWarnings`
+which puts one fact in one place rather than a field on a hundred records that no handler fills. **198
+answers carry the key and 262 name the header.** The client reads it in one place too, `ServerWarnings`
 beside `ServerRefusal`, which is what let the plan tool take `/plan/compile` as `CompiledPlanDto` again
 instead of as a `JsonElement` it picked the key out of by hand.
 
@@ -120,8 +158,8 @@ fill. `PlanPiece` was the worked case: its blurb explained `rect`, `surface` and
 about `role`, the one field a caller must fill and the one whose allowed words it could not guess.
 
 **Both directions carry it now.** Every field a write route reads and every field a route answers says what
-it is — **1,027 of the 1,032** an answer can carry, up from 251, and 189 of the 190 a request takes.
-`SchemaCompletenessTests` holds both halves to it and names the one exception, a polymorphic base's
+it is — **1,703 of the 1,707** an answer can carry and 775 of the 779 a request takes.
+`SchemaCompletenessTests` holds both halves to it and names the four exceptions, each a polymorphic base's
 synthesised discriminator, which has no property to document. Two things fell out of writing it. The five
 library `*Detail` records differed from their `*SaveRequest` by exactly `id` — 53 fields declared twice — so
 they inherit instead and the schema says what they are, `allOf` the request plus the id. And `Analysis` was
@@ -133,18 +171,28 @@ The route attributes in `Api/Endpoints` are the generator's source. Beside them 
 out in the Blazor client and the endpoint tables in the eight `docs/tools/` documents, neither derived from
 the schema.
 
-The response half is finished. The client now reads **72 responses as a typed shape from `Contracts` against
-1 as `JsonElement`**, so a renamed DTO field is a compile error rather than a null at run time, and the third
+The response half is finished. The client now reads **79 responses as a typed shape from `Contracts` against
+2 as `JsonElement`**, so a renamed DTO field is a compile error rather than a null at run time, and the third
 copy that lived in per-component parsing code is gone. What is left hand-written is the path, where a typo is
-a runtime 404 that reads like a missing map — and every one of the **88 distinct routes** the client names is
-now written as a whole string, so the gate below can read it.
+a runtime 404 that reads like a missing map — and every route the client names is written as a whole string,
+so the gate below can read it.
 
-**That is why the studio has no generated client, and will not get one.** A generated client's whole value is
-the response types, and those already come from `Contracts` at 71 of 73 call sites; what it would still buy is
-the path check, at the price of a build-time package and a second copy of the whole surface committed to the
-tree — the "second accepted shape" that `CLAUDE.md` forbids for exactly the reason it would rot here.
+**That is why the Blazor client has no generated client, and will not get one.** A generated client's whole
+value is the response types, and those already come from `Contracts` at 79 of 81 call sites; what it would still
+buy is the path check, at the price of a build-time package and a second copy of the whole surface committed to
+the tree — the "second accepted shape" that `CLAUDE.md` forbids for exactly the reason it would rot here.
 `ClientRouteTests` buys the same check for nothing: every route string in the client is a route the schema
-serves, with no exception left. The tables are the same problem seen from the
+serves, with no exception left.
+
+**A Python caller has one, and it is generated where nothing can be committed: by the studio, on request.**
+`GET /api/kit.py` is written from the document the studio publishes (`PythonKit`) — a constructor per shape a
+route takes, by the studio's own field names, writing only what is stated and checking each word and type
+before anything is sent; `Studio`, a method per route named after it, which waits out a `429`, prints a
+success's `warnings` and raises a refusal with its findings; `find()` over every description; and `build()`,
+which rebuilds a document through the constructors. Its `ETag` is the document's hash, so a kit held by a
+driver says which studio it was written for. It is the drivers' replacement for the hand-written constructors
+they each carried — `solid` defined by hand in 54 scripts — and `KitEndpointTests` compiles it, counts a method
+for every route, and rebuilds every worked body in the tool documents through it. The tables are the same problem seen from the
 prose side: three heavily used
 analysis routes had drifted out of every one of them, which is not a documentation lapse but what a
 hand-maintained copy of a machine-readable fact does.
@@ -207,18 +255,18 @@ editor in `Pgm/Editing`. So the problem is not volume; it is that a step of the 
 except behind the door it is reached through, and a second driver cannot call it.
 
 Three operations now do live somewhere: `MapExportLoader` loads what the pure composer needs and calls it,
-`SketchFinish` rasterizes a drawing and advances the stage, and `MapFromDocuments` turns a plan, a layout and
-an intent back into a whole map. Each is HTTP-free — it answers findings and lets the layer above render the
+`SketchFinish` rasterizes a drawing and advances the stage, and `MapSource` turns a map's source — a plan or a
+drawn layout and intent, and the refinement applied onto it — into a whole map. Each is HTTP-free — it answers findings and lets the layer above render the
 envelope — and each has more than one caller or is written to take one. They sit in `Api/Services` because
 that is the lowest project reaching everything they need, and that is where they stay: a project of their own
 would buy separation and no second consumer, since the driver that would have been one speaks HTTP. The ten
 handlers of the same shape have joined them, as seven operations — several of the ten turned out to be one
 operation reached through different doors.
 
-**The order between steps is the part that has no home at all.** Storing an intent projects the map document
-from the intent's own `meta`, so authors written before it are overwritten — a rule stated in `flow.md`, in
-the driver that authors maps against this API, in that driver's README and in its generation notes, and
-enforced by nothing until `MapFromDocuments` made the sequence itself the answer.
+**The order between steps has one home, and it is the operation that runs them.** Storing an intent projects
+the map document from the intent's own `meta`, so authors written before it are overwritten. `MapSource`
+stores the intent and only then the credits, so a caller that states both in one source cannot write them in
+the wrong order.
 
 The load-the-map-or-404 prologue appears **37 times** verbatim in `Api/Endpoints`, out of 44 slug loads.
 
@@ -380,6 +428,18 @@ document and each artifact are counted apart — a caller holding the sketch lay
 about the map's. The compare is one statement with the revision in its `where`, so the database decides which
 of two writers wins rather than a read-then-write that both can pass.
 
+**Every write to a map's plan, refinement, sketch layout and intent is a change the map keeps.** `MapChangeLog`
+numbers the changes per slug, stamps each with its writer — the account, and the token's label where a token
+wrote it — the origin and note a source states and the earlier changes it dropped, and keeps the documents it
+wrote once each under their hash. A kept
+document's revision is the number of the change that last wrote it, and the documents one request writes land
+as one change. The slug's last number outlives the map's row and its history, so a reload carries the history
+on and no revision ever names two boards. `Callers.StampWritesAsync` stamps each writing request after it is
+signed in, and `MapArtifactStore` records the change as it writes a kept document, so no route writes one
+without the other. What is kept is read back through four routes — the list, the documents at a change, the
+difference between two, and a restore that writes a change's documents back as a new one — and
+`docs/tools/flow.md` has them.
+
 **A revision survives the proxy in front of it.** Caddy encodes a response it compresses into its tag, so
 the `"44"` the studio answers reaches a browser as `"44-gzip"` or `"44-zstd"` — and a browser always asks
 for compression and states the tag back verbatim. The suffix after the revision is the proxy's, and an
@@ -401,9 +461,11 @@ consolidation was possible at all.
 `Finding` and `Findings` are one shape with one verb, in the lowest project every gate reaches.
 `MapArtifactStore` is one row per `(map_id, kind)` and the only place that table is touched. `RuleCatalog`
 reading docstrings is documentation-as-data, and it is the pattern the rest of this document keeps asking
-for. `DocumentedBodyTests` extracts request bodies out of the markdown and posts them, so a document
-carrying an example the API stopped accepting fails a test — the strongest anti-rot mechanism here, currently
-covering 8 bodies against 93 write routes.
+for. `DocumentedBodyTests` posts every body a tool document routes in its fence and holds it to that route's
+schema, and holds every other block to the shape its fence names, so a document carrying an example the API
+stopped accepting — or one it accepts while ignoring half of it — fails a test. Each posted body is its route's
+example in the published document (`DocumentedExamples`), read from the copies the API assembly carries: 34
+bodies over 18 of the 103 write routes that take one, a count `SchemaCompletenessTests` holds as it falls.
 
 And the standing refusal of backward compatibility is what makes every finding above fixable in one commit
 rather than negotiable across a deprecation window.
@@ -415,7 +477,7 @@ answer already and stopped one step short of the form that makes it machine-read
 
 | What is missing | The established shape | What it dissolves |
 |---|---|---|
-| a generated client and generated endpoint tables | the schema at `/api/openapi/v1.json` is the source both should read | the two hand-kept copies that remain, and most of the doc-rot rule's hardest half |
+| generated endpoint tables | the schema at `/api/openapi/v1.json` is the source they should read, as the Python kit already does | the hand-kept copy that remains, and most of the doc-rot rule's hardest half |
 | a request shape that is bound, not only declared | a request record per route, bound at the edge — parse rather than validate | the 15 `Unreadable` throws that stand where a binding would have refused, and the one global input gate covering a third of the write surface |
 | a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | a step of the pipeline reachable only through its own door, and the 37-fold load-or-404 prologue |
 | a fault category beside the fault id | a closed category set carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that had to learn 77 ids to branch once — **shipped**, as `category` and `concerns` on `/api/rules` |

@@ -71,6 +71,10 @@ public static class BlockFamilies
     public static readonly IReadOnlySet<int> Ores =
         new HashSet<int> { 14, 15, 16, 21, 56, 73, 74, 129, 153 };
 
+    /// <summary>Snow and ice: the snow layer, the snow block, ice and packed ice. Weather a map lays over its
+    /// ground, never a material a building is put up in.</summary>
+    public static readonly IReadOnlySet<int> Frozen = new HashSet<int> { 78, 79, 80, 174 };
+
     /// <summary>The blocks that mount with a <b>front</b>, reading the one four-number table
     /// <see cref="BlockGeometry.Fronting"/> writes — north 2, south 3, west 4, east 5 — in the low three bits
     /// of their data. A chest, a furnace, a ladder, a wall sign, a wall skull and the three redstone
@@ -109,6 +113,9 @@ public static class BlockFamilies
 
     /// <summary>Whether the id is an ore.</summary>
     public static bool IsOre(int blockId) => Ores.Contains(blockId);
+
+    /// <summary>Whether the id is snow or ice — see <see cref="Frozen"/>.</summary>
+    public static bool IsFrozen(int blockId) => Frozen.Contains(blockId);
 
     /// <summary>Whether the id is a stair, whichever material it is cut from.</summary>
     public static bool IsStair(int blockId) => Stairs.Contains(blockId);

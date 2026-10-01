@@ -270,7 +270,7 @@ public sealed class MapExportComposerTests
     public async Task OB19_declines_a_tree_standing_inside_a_goals_clearance()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        using var client = ApiTestFactory.Shared.CreateClient();
+        using var client = TexturedFactory.Shared.CreateClient();
         var slug = await CreateFinishedSketchAsync(client, IslandLayoutWithTree);
 
         // Well clear of the tree/goal cluster at (10,10) — this map is testing OB19 alone.

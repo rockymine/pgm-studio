@@ -168,22 +168,33 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, FeatureData feature) 
 }
 
 /// <summary>
-/// GET /api/map/{slug}/segments?axis=x|z — side-view depth profile (B5). Projects the map's vertical
-/// solid segments onto a 2D (primary × y) grid via <see cref="SideView"/>; feeds the build-height
-/// side-view canvas (C7). Mirrors the reference <c>get_segments</c>.
+/// GET /api/map/{slug}/segments?axis=nz|pz|nx|px — the side-view depth profile: the map's vertical solid
+/// segments projected onto a 2D (primary × y) grid by <see cref="SideView"/>, which the build-height side view
+/// draws.
 /// </summary>
 public sealed class SegmentsEndpoint(MapRepository repo, FeatureData feature) : EndpointWithoutRequest<SegmentsDto>
 {
-    public override void Configure() { Get("/map/{slug}/segments"); Description(b => b.Refuses(404)); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/segments");
+        Description(b => b.Refuses(404).Reads(
+            new QueryWord("axis", "The side the board is looked at from: `nz` and `pz` from the negative and the "
+                + "positive side of z, `nx` and `px` of x. Absent is `nz`.", [.. SideView.Directions]),
+            new QueryWord("xmin", "Only the columns at or east of this x. Absent bounds nothing.",
+                Value: QueryValue.Integer),
+            new QueryWord("xmax", "Only the columns at or west of this x.", Value: QueryValue.Integer),
+            new QueryWord("zmin", "Only the columns at or south of this z.", Value: QueryValue.Integer),
+            new QueryWord("zmax", "Only the columns at or north of this z.", Value: QueryValue.Integer)));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var axis = HttpContext.Request.Query["axis"].ToString();
         if (string.IsNullOrEmpty(axis)) axis = "nz";
-        if (axis is not ("x" or "z" or "nz" or "pz" or "nx" or "px"))
+        if (!SideView.Directions.Contains(axis))
         {
             await Refusals.UnreadableAsync(HttpContext, "invalid axis",
-                "axis must be one of nz/pz/nx/px (or the legacy x/z)", ct, field: "axis");
+                "axis must be one of nz/pz/nx/px", ct, field: "axis");
             return;
         }
 
@@ -217,7 +228,15 @@ public sealed class SegmentsEndpoint(MapRepository repo, FeatureData feature) : 
 /// </summary>
 public sealed class ColumnFloorEndpoint(MapRepository repo, FeatureData feature) : EndpointWithoutRequest<ColumnFloorDto>
 {
-    public override void Configure() { Get("/map/{slug}/column-floor"); Description(b => b.Refuses(404)); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/column-floor");
+        Description(b => b.Refuses(404).Reads(
+            new QueryWord("x", "The column's x.", Required: true, Value: QueryValue.Integer),
+            new QueryWord("z", "The column's z.", Required: true, Value: QueryValue.Integer),
+            new QueryWord("y", "The height whose floor is asked for: the top of the highest solid run at or below "
+                + "it. Absent asks for the column's highest.", Value: QueryValue.Integer)));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -251,7 +270,14 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, FeatureData feature)
 /// </summary>
 public sealed class BlockSeatEndpoint(MapRepository repo, FeatureData feature) : EndpointWithoutRequest<BlockSeatDto>
 {
-    public override void Configure() { Get("/map/{slug}/block-seat"); Description(b => b.Refuses(404)); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/block-seat");
+        Description(b => b.Refuses(404).Reads(
+            new QueryWord("x", "The block's x.", Required: true, Value: QueryValue.Integer),
+            new QueryWord("y", "The block's y.", Required: true, Value: QueryValue.Integer),
+            new QueryWord("z", "The block's z.", Required: true, Value: QueryValue.Integer)));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

@@ -128,6 +128,16 @@
   /* Side-view build-height line (2D canvas — resolved via getComputedStyle) */
   --canvas-sideview-line: rgba(250, 110, 50, 0.9);   /* orange */
 
+  /* What a change did, drawn over the board: the shapes and props it added, took away, reshaped or moved,
+     and the columns whose ground, surface block or structure the build moved with them. */
+  --canvas-diff-added:     #22c55e;   /* green-500 */
+  --canvas-diff-removed:   #ef4444;   /* red-500 */
+  --canvas-diff-reshaped:  #f59e0b;   /* amber-500 */
+  --canvas-diff-changed:   #38bdf8;   /* sky-400 */
+  --canvas-diff-ground:    #e8a33d;
+  --canvas-diff-surface:   #3db8e8;
+  --canvas-diff-structure: #d04dd0;
+
   /* ── Type scale ─────────────────────────────────────────────────────── */
   --font-lg:   14px;   /* body default */
   --font-md:   13px;   /* inputs, list labels, form values */

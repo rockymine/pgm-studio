@@ -17,7 +17,7 @@ export async function mount(canvasEl, dotnetRef, slug, axis) {
     } catch { canvas.setData(null); }
   }
 
-  await load(axis ?? "z");
+  await load(axis ?? "nz");
   // Size the canvas bitmap to its laid-out box so pointer coords map 1:1 to the render (otherwise
   // the default 300×150 bitmap is CSS-stretched and the drag-line hit-test is off).
   canvas.resize();

@@ -786,10 +786,9 @@ public sealed class DecoratorTests
     };
 
     /// <summary><b>A vine's data is the set of sides it clings to, so a side naming air hangs on nothing.</b>
-    /// `opus5-alderfen` gives every one of its 374 vines a face-pair — 5 (north|south) or 10 (west|east) — so
-    /// that whichever side the leaf is on is always among them; the other names air, and what a player sees is
-    /// a vine with two faces in one block. The build spec says as much in its own docstring, and gives the
-    /// reason as the orbit turning no vine data, which `BlockGeometry.Turned` has always done.</summary>
+    /// A copy that gives a vine a face-pair — 5 (north|south) or 10 (west|east) — so that whichever side the
+    /// leaf is on is among them has the other naming air, and what a player sees is a vine with two faces in
+    /// one block. The pair protects nothing from the orbit: `BlockGeometry.Turned` turns vine data.</summary>
     [Test]
     public async Task A_copied_body_naming_a_vine_face_with_nothing_behind_it_is_named()
     {
@@ -849,6 +848,87 @@ public sealed class DecoratorTests
             .Where(id => id != Blocks.Air).ToList();
         await Assert.That(grown.Count).IsGreaterThan(20);
         await Assert.That(grown.All(id => id == DressingPalette.DeadBushBlock)).IsTrue();
+    }
+
+    /// <summary><b>A plant does not ask how steep the ground is</b> (the author's ruling): one block, held up by
+    /// the block under it, grows on a face exactly as on a meadow. A grass ramp rising two courses a cell, 63°,
+    /// grows its cover in every column.</summary>
+    [Test]
+    public async Task A_plant_grows_on_a_face_as_on_a_meadow()
+    {
+        var world = new VoxelWorld();
+        var top = new Dictionary<(int X, int Z), int>();
+        for (var z = 0; z < 20; z++)
+        for (var x = 0; x < 20; x++)
+        {
+            var height = 8 + 2 * x;
+            for (var y = 0; y < height - 1; y++) world.SetBlock(x, y, z, Blocks.Stone);
+            world.SetBlock(x, height - 1, z, Blocks.Grass);
+            top[(x, z)] = height;
+        }
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = AreaOver(20), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 }]));
+
+        var face = top.Keys.Where(cell => cell.X is > 1 and < 18 && cell.Z is > 1 and < 18).ToList();
+        await Assert.That(face.All(cell => SurfaceGradient.Degrees(top, cell.X, cell.Z) >= 60)).IsTrue();
+        await Assert.That(face.All(cell => world.GetBlock(cell.X, top[cell], cell.Z).Id != Blocks.Air)).IsTrue();
+    }
+
+    /// <summary>A plateau painted in three strips across x: grass to x 12, podzol to x 25, mycelium beyond.</summary>
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> SurfaceTop) Strips()
+    {
+        var (world, top) = Plateau();
+        for (var z = 0; z < 40; z++)
+        for (var x = 13; x < 40; x++)
+            world.SetBlock(x, 7, z, x < 26 ? Blocks.Dirt : Blocks.Mycelium, x < 26 ? DressingPalette.PodzolData : 0);
+        return (world, top);
+    }
+
+    private static bool IsMushroom(int blockId) =>
+        blockId is DressingPalette.BrownMushroomBlock or DressingPalette.RedMushroomBlock;
+
+    /// <summary>What stands on each strip's surface, column by column.</summary>
+    private static List<(int X, int Id)> Grown(VoxelWorld world, Dictionary<(int X, int Z), int> top) =>
+        top.Keys.Select(cell => (cell.X, world.GetBlock(cell.X, 8, cell.Z).Id)).Where(cell => cell.Id != Blocks.Air).ToList();
+
+    /// <summary><b>Podzol and mycelium grow mushrooms, and grass never does.</b> A mushroom keeps by day only to
+    /// those two, so the share is drawn there alone: podzol grows the rest of its cover as any dirt does, and
+    /// mycelium grows nothing else. Brown outnumbers red, two in three.</summary>
+    [Test]
+    public async Task Podzol_and_mycelium_grow_mushrooms_and_grass_never_does()
+    {
+        var (world, top) = Strips();
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0, MushroomShare: 0.5), Seed = 7 }]));
+
+        var grown = Grown(world, top);
+        var grass = grown.Where(cell => cell.X < 13).ToList();
+        var podzol = grown.Where(cell => cell.X is >= 13 and < 26).ToList();
+        var mycelium = grown.Where(cell => cell.X >= 26).ToList();
+        await Assert.That(grass.Count).IsGreaterThan(200);
+        await Assert.That(grass.Any(cell => IsMushroom(cell.Id))).IsFalse();
+        await Assert.That(podzol.Count(cell => IsMushroom(cell.Id))).IsGreaterThan(40);
+        await Assert.That(podzol.Count(cell => cell.Id == DressingPalette.TallGrassBlock)).IsGreaterThan(40);
+        await Assert.That(mycelium.Count).IsGreaterThan(40);
+        await Assert.That(mycelium.All(cell => IsMushroom(cell.Id))).IsTrue();
+        var red = grown.Count(cell => cell.Id == DressingPalette.RedMushroomBlock);
+        await Assert.That(red).IsGreaterThan(0);
+        await Assert.That(grown.Count(cell => cell.Id == DressingPalette.BrownMushroomBlock)).IsGreaterThan(red);
+    }
+
+    /// <summary><b>Without a mushroom share nothing grows one</b>: podzol carries grass and fern as any dirt
+    /// does, and mycelium stays bare.</summary>
+    [Test]
+    public async Task Without_a_mushroom_share_mycelium_stays_bare()
+    {
+        var (world, top) = Strips();
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 }]));
+
+        var grown = Grown(world, top);
+        await Assert.That(grown.Any(cell => IsMushroom(cell.Id))).IsFalse();
+        await Assert.That(grown.Count(cell => cell.X is >= 13 and < 26)).IsGreaterThan(200);
+        await Assert.That(grown.Any(cell => cell.X >= 26)).IsFalse();
     }
 
     /// <summary>Cacti on sand stand one to four blocks tall, never beside another cactus or anything solid, and
@@ -1125,6 +1205,115 @@ public sealed class DecoratorTests
         await Assert.That(surfaceSand).IsEqualTo(0);
     }
 
+    /// <summary>The channel the water tests below stand in: three courses of water, y 5–7, over a sand bed
+    /// at y 4, running x 4–35 along z = 20, with no beach.</summary>
+    private static FluidProp Channel(Fluid fluid = Fluid.Water) => new()
+    {
+        Id = "w", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, Shore = 0, Fluid = fluid,
+        Bank = new SolidMaterial(Blocks.Sand),
+    };
+
+    /// <summary>The columns whose top course is open still water, and the ones a lily pad floats over.</summary>
+    private static (List<(int X, int Z)> Open, List<(int X, int Z)> Pads) Water(VoxelWorld world, Dictionary<(int X, int Z), int> top) =>
+        (top.Keys.Where(cell => world.GetBlock(cell.X, 7, cell.Z).Id == Blocks.StationaryWater
+                                && world.GetBlock(cell.X, 8, cell.Z).Id is Blocks.Air or DressingPalette.LilyPad).ToList(),
+         top.Keys.Where(cell => world.GetBlock(cell.X, 8, cell.Z).Id == DressingPalette.LilyPad).ToList());
+
+    /// <summary><b>A flora area grows lily pads on the open still water inside it, and nothing else there.</b>
+    /// A pad floats one course over the water's own surface wherever the cover's density field grows anything
+    /// and the raft field clears the lily share, so at full coverage and share every open water cell carries
+    /// one; the dry ground beside the channel grows its cover as before.</summary>
+    [Test]
+    public async Task Lily_pads_float_on_the_open_water_of_a_flora_area()
+    {
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top,
+        [
+            Channel(),
+            new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0, LilyShare: 1.0), Seed = 7 },
+        ]));
+
+        var (open, pads) = Water(world, top);
+        await Assert.That(open.Count).IsGreaterThan(60);
+        await Assert.That(pads.All(open.Contains)).IsTrue();
+        await Assert.That(open.Where(cell => cell.X is > 1 and < 38).All(pads.Contains)).IsTrue();
+        var dryCover = top.Keys.Count(cell => world.GetBlock(cell.X, 7, cell.Z).Id == Blocks.Grass
+                                              && world.GetBlock(cell.X, 8, cell.Z).Id != Blocks.Air);
+        await Assert.That(dryCover).IsGreaterThan(200);
+    }
+
+    /// <summary><b>Water stays open unless the area states a lily share, and lava floats nothing.</b></summary>
+    [Test]
+    public async Task No_lily_pad_floats_without_a_lily_share_or_on_lava()
+    {
+        var (water, waterTop) = Plateau();
+        Decorator.Decorate(water, Context(waterTop,
+        [
+            Channel(),
+            new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 },
+        ]));
+        var (lava, lavaTop) = Plateau();
+        Decorator.Decorate(lava, Context(lavaTop,
+        [
+            Channel(Fluid.Lava),
+            new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0, LilyShare: 1.0), Seed = 7 },
+        ]));
+
+        await Assert.That(Water(water, waterTop).Pads).IsEmpty();
+        await Assert.That(Water(water, waterTop).Open.Count).IsGreaterThan(60);
+        var overLava = lavaTop.Keys.Count(cell => lava.GetBlock(cell.X, 7, cell.Z).Id == Blocks.StationaryLava
+                                                  && lava.GetBlock(cell.X, 8, cell.Z).Id != Blocks.Air);
+        await Assert.That(overLava).IsEqualTo(0);
+    }
+
+    /// <summary><b>Lily pads are read in the folded frame, so a mirrored board's halves float alike.</b></summary>
+    [Test]
+    public async Task A_mirrored_board_floats_its_lily_pads_alike_on_both_halves()
+    {
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top,
+        [
+            Channel(),
+            new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 0.6, LilyShare: 0.5), Seed = 7 },
+        ], symmetry: "rot_180", centerX: 20, centerZ: 20));
+
+        var (open, padList) = Water(world, top);
+        var pads = padList.ToHashSet();
+        await Assert.That(pads.Count).IsGreaterThan(10);
+        await Assert.That(pads.Count).IsLessThan(open.Count);
+        await Assert.That(pads.All(cell => pads.Contains((39 - cell.X, 39 - cell.Z)))).IsTrue();
+    }
+
+    /// <summary><b>A rock stands in the water.</b> It seats on the first course over the bed and writes through
+    /// the water above it, and the cells it stands on are its own afterwards, so a second rock on them is
+    /// refused by the first. The channel keeps its claim against everything else: a tree in the same water is
+    /// refused by it.</summary>
+    [Test]
+    public async Task A_boulder_in_a_channel_seats_on_the_bed_and_the_water_refuses_a_tree()
+    {
+        var (world, top) = Plateau();
+        var tally = Decorator.Decorate(world, Context(top,
+        [
+            Channel(),
+            new BoulderProp { Id = "b1", X = 20, Z = 20, Seed = 3, Style = new BoulderStyle { Size = 2, Mossy = false } },
+            new BoulderProp { Id = "b2", X = 20, Z = 20, Seed = 4, Style = new BoulderStyle { Size = 1, Mossy = false } },
+            new TreeProp { Id = "t", X = 12, Z = 20, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 8 } },
+        ]));
+
+        await Assert.That(tally.Boulders).IsEqualTo(1);
+        var rockTop = Enumerable.Range(5, 20).Last(y => world.GetBlock(20, y, 20).Id is not (Blocks.Air or Blocks.StationaryWater));
+        await Assert.That(rockTop).IsGreaterThan(5);
+        await Assert.That(Enumerable.Range(5, rockTop - 4).All(y => world.GetBlock(20, y, 20).Id
+            is not (Blocks.Air or Blocks.StationaryWater))).IsTrue();
+
+        var second = tally.Declines.Single(finding => finding.SubjectIds.Contains("b2"));
+        await Assert.That(second.Rule).IsEqualTo(DressingRules.GroundTaken);
+        await Assert.That(second.Message).Contains("'b1'");
+        var tree = tally.Declines.Single(finding => finding.SubjectIds.Contains("t"));
+        await Assert.That(tree.Rule).IsEqualTo(DressingRules.GroundTaken);
+        await Assert.That(tree.Message).Contains("channel 'w'");
+    }
+
     [Test]
     public async Task Water_replaces_only_existing_terrain_and_never_floats()
     {
@@ -1308,6 +1497,87 @@ public sealed class DecoratorTests
         var atShore = Enumerable.Range(0, 8).Count(y => world.GetBlock(11, y, 30).Id == Blocks.StationaryWater);
         var atMiddle = Enumerable.Range(0, 8).Count(y => world.GetBlock(30, y, 30).Id == Blocks.StationaryWater);
         await Assert.That(atMiddle).IsGreaterThan(atShore);
+    }
+
+    /// <summary>The plateau with a hollow dug into it over x and z 14..25, its floor at y3, and one column
+    /// at (20, 20) left standing in it as an island.</summary>
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> SurfaceTop) Hollow()
+    {
+        var (world, top) = Plateau();
+        for (var z = 14; z <= 25; z++)
+        for (var x = 14; x <= 25; x++)
+        {
+            if ((x, z) == (20, 20)) continue;
+            for (var y = 4; y <= 7; y++) world.SetBlock(x, y, z, Blocks.Air);
+            top[(x, z)] = 4;
+        }
+        return (world, top);
+    }
+
+    /// <summary><b>A basin fills the hollow and cuts nothing.</b> Its ring is drawn loose round the hollow,
+    /// over ground that stands above the line, and that ground — the rim and the island — is left exactly
+    /// as it stood, where a pool stating the same level cuts it down to the line.</summary>
+    [Test]
+    public async Task A_basin_fills_the_hollow_inside_its_ring_and_cuts_nothing()
+    {
+        var (world, top) = Hollow();
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
+        {
+            Id = "wash", Shape = FluidShape.Basin, Points = [[10, 10], [30, 10], [30, 30], [10, 30]],
+            Level = 6, Shore = 0, Edge = 0, Seed = 5, Bank = new SolidMaterial(Blocks.Sand),
+        }]));
+
+        foreach (var y in new[] { 4, 5, 6 })
+            await Assert.That(world.GetBlock(16, y, 16).Id).IsEqualTo(Blocks.StationaryWater);
+        await Assert.That(world.GetBlock(16, 7, 16).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(world.GetBlock(16, 3, 16).Id).IsEqualTo(Blocks.Sand).Because("the floor the shallows show");
+        foreach (var (x, z) in new[] { (12, 12), (28, 20), (20, 20) })
+        {
+            await Assert.That(world.GetBlock(x, 7, z).Id).IsEqualTo(Blocks.Grass)
+                .Because($"({x}, {z}) stands above the line inside the ring, and a basin cuts nothing");
+            await Assert.That(world.GetBlock(x, 6, z).Id).IsEqualTo(Blocks.Stone);
+        }
+        await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.DryEdge)).IsFalse();
+    }
+
+    /// <summary>A basin's beach is measured from the water it holds, so it runs along the hollow's own edge
+    /// and not along the ring drawn loose round it.</summary>
+    [Test]
+    public async Task A_basins_beach_follows_the_water_rather_than_the_ring()
+    {
+        var (world, top) = Hollow();
+        Decorator.Decorate(world, Context(top, [new FluidProp
+        {
+            Id = "wash", Shape = FluidShape.Basin, Points = [[8, 8], [32, 8], [32, 32], [8, 32]],
+            Level = 6, Shore = 2, ShoreWander = false, Edge = 0, Seed = 5, Bank = new SolidMaterial(Blocks.Sand),
+        }]));
+
+        foreach (var x in new[] { 12, 13 })
+            await Assert.That(world.GetBlock(x, 7, 17).Id).IsEqualTo(Blocks.Sand)
+                .Because($"x {x} is within two blocks of the water's edge at x 14");
+        foreach (var x in new[] { 11, 7, 6 })
+            await Assert.That(world.GetBlock(x, 7, 17).Id).IsEqualTo(Blocks.Grass)
+                .Because($"x {x} is further than two blocks from any water, whatever the ring");
+    }
+
+    /// <summary>Low ground the ring stops short of leaves the water standing against air, and the finding
+    /// says that it is a wall and what to widen.</summary>
+    [Test]
+    public async Task A_basin_whose_ring_stops_short_of_low_ground_stands_as_a_wall_and_says_so()
+    {
+        var (world, top) = Hollow();
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
+        {
+            Id = "wash", Shape = FluidShape.Basin, Points = [[14, 14], [20, 14], [20, 26], [14, 26]],
+            Level = 6, Shore = 0, Edge = 0, Seed = 5,
+        }]));
+
+        var wall = report.Declines.Single(finding => finding.Rule == DressingRules.DryEdge);
+        await Assert.That(wall.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(wall.Message).Contains("wash");
+        await Assert.That(wall.Message).Contains("ring");
+        await Assert.That(world.GetBlock(17, 6, 17).Id).IsEqualTo(Blocks.StationaryWater);
+        await Assert.That(world.GetBlock(23, 6, 17).Id).IsEqualTo(Blocks.Air);
     }
 
     [Test]

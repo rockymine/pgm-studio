@@ -42,14 +42,24 @@ public partial class SketchInGamePhase
     /// <summary>Stop keeping a view.</summary>
     [Parameter] public EventCallback<MapViewDto> OnLetGo { get; set; }
 
+    /// <summary>Draw the map's picture — the <c>map.png</c> an export carries — from a view, keeping it where it
+    /// is a suggestion.</summary>
+    [Parameter] public EventCallback<MapViewDto> OnPicture { get; set; }
+
     /// <summary>A note to open on arriving, by id — a link into its thread.</summary>
     [Parameter] public long? LinkedNote { get; set; }
+
+    /// <summary>The numbers of the board's changes, handed on to the notes column.</summary>
+    [Parameter] public IReadOnlyList<long> Changes { get; set; } = [];
+
+    /// <summary>Open what changed after a thread's last message.</summary>
+    [Parameter] public EventCallback<long> OnChangesSince { get; set; }
 
     /// <summary>A mark on the picture: the tool that drew it and its pixels.</summary>
     private sealed record Mark(string Kind, List<PixelDto> Pixels);
 
     private string? shownId;
-    private bool lettingGo;
+    private bool lettingGo, picturing;
     private ElementReference main;
     private ElementReference trap;
 
@@ -147,6 +157,13 @@ public partial class SketchInGamePhase
         try { await OnLetGo.InvokeAsync(view); }
         finally { lettingGo = false; }
         shownId = null;
+    }
+
+    private async Task MakePicture(MapViewDto view)
+    {
+        picturing = true;
+        try { await OnPicture.InvokeAsync(view); }
+        finally { picturing = false; }
     }
 
     /// <summary>How many notes on a view are still in play — not resolved.</summary>

@@ -19,13 +19,16 @@ public static class RingRounding
     /// fit <see cref="Tangents"/> at <paramref name="maxTension"/>, and if the rounded ring crosses itself
     /// (a tight curl whose handles overshoot), ease the tension down and retry; if no tension keeps it simple,
     /// return none (the shape stays a plain polygon). <paramref name="samplesPerEdge"/> must match the
-    /// consumer's curve sampling so the check reflects what is actually drawn/rasterized.</summary>
+    /// consumer's curve sampling so the check reflects what is actually drawn/rasterized. An edge in
+    /// <paramref name="straight"/>, named by the vertex it leaves, keeps no handle at either end and is drawn as
+    /// the straight segment it is.</summary>
     public static Dictionary<int, Handles> Smooth(
-        IReadOnlyList<double[]> ring, double cornerAngleDeg = 40, double maxTension = 1.0 / 3, int samplesPerEdge = 16)
+        IReadOnlyList<double[]> ring, double cornerAngleDeg = 40, double maxTension = 1.0 / 3, int samplesPerEdge = 16,
+        IReadOnlySet<int>? straight = null)
     {
         for (var tension = maxTension; tension >= 0.06; tension *= 0.6)
         {
-            var h = Tangents(ring, cornerAngleDeg, tension);
+            var h = Tangents(ring, cornerAngleDeg, tension, straight);
             if (h.Count == 0) return h;                                 // nothing rounds → done
             if (!SelfIntersects(ring, h, samplesPerEdge)) return h;     // simple at this tension → keep it
         }
@@ -37,8 +40,10 @@ public static class RingRounding
     /// octagon turns 45°). The handle direction is the Catmull–Rom tangent (the neighbour chord), but each
     /// handle's <i>length</i> scales with its own adjacent edge — <paramref name="tension"/> as a fraction of
     /// it (1/3 ≈ a uniform Catmull–Rom on an even curve) — so a handle can't reach past its neighbour and
-    /// overshoot into a self-intersection on a tight curl.</summary>
-    public static Dictionary<int, Handles> Tangents(IReadOnlyList<double[]> ring, double cornerAngleDeg = 40, double tension = 1.0 / 3)
+    /// overshoot into a self-intersection on a tight curl. A handle leading or trailing an edge in
+    /// <paramref name="straight"/> sits on its own vertex, so that edge samples as its chord.</summary>
+    public static Dictionary<int, Handles> Tangents(
+        IReadOnlyList<double[]> ring, double cornerAngleDeg = 40, double tension = 1.0 / 3, IReadOnlySet<int>? straight = null)
     {
         var n = ring.Count;
         var map = new Dictionary<int, Handles>();
@@ -55,8 +60,11 @@ public static class RingRounding
             var dl = Math.Sqrt(dx * dx + dz * dz);
             if (dl < 1e-9) continue;
             double ux = dx / dl, uz = dz / dl;                          // Catmull–Rom tangent direction
-            var outLen = Dist(cur, next) * tension;                     // bounded by the local edge → no overshoot
-            var inLen = Dist(cur, prev) * tension;
+            var leavesStraight = straight?.Contains(i) == true;
+            var entersStraight = straight?.Contains((i - 1 + n) % n) == true;
+            if (leavesStraight && entersStraight) continue;
+            var outLen = leavesStraight ? 0 : Dist(cur, next) * tension;  // bounded by the local edge → no overshoot
+            var inLen = entersStraight ? 0 : Dist(cur, prev) * tension;
             map[i] = new Handles(
                 In: [cur[0] - ux * inLen, cur[1] - uz * inLen],
                 Out: [cur[0] + ux * outLen, cur[1] + uz * outLen]);

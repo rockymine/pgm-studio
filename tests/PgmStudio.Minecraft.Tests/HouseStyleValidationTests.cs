@@ -26,6 +26,22 @@ public sealed class HouseStyleValidationTests
     private static HouseStyle Headed(HouseStyle style, Func<DoorHeadStyle, DoorHeadStyle> change)
         => style with { Doorway = style.Doorway with { Head = change(style.Doorway.Head) } };
 
+    // The kept pyramid house: a hip in stone brick climbing on stone brick half slabs at pitch 1, and a doorway
+    // with no head.
+    private static HouseStyle Pyramid =>
+        HousePresets.Kept.Single(kept => kept.Name == "diorite-blue-clay-pyramid-house").Style;
+
+    // A house whose windows are slab-banded in spruce slabs and seated in its spruce boarding — the form built
+    // right, on the preset whose upper wall is that boarding.
+    private static HouseStyle Banded => HousePresets.Longhouse.Style with
+    {
+        Windows = new WindowStyle
+        {
+            Form = WindowForm.SlabBanded, Block = Blocks.WoodenSlab, Data = 1,
+            Width = 3, Sill = 4, Spacing = 3, HostBlock = Blocks.Planks, HostData = 1,
+        },
+    };
+
     // ── the shipped presets are clean ──────────────────────────────────────────────────────────────────
 
     [Test]
@@ -35,9 +51,18 @@ public sealed class HouseStyleValidationTests
 
     public static IEnumerable<HousePresets.House> Presets() => HousePresets.All;
 
-    /// <summary>Alpine and Workshop are the two presets built on <see cref="WindowForm.StairLattice"/> and
-    /// <see cref="WindowForm.SlabBanded"/> respectively, and both pass clean — pinned on its own so the pattern
-    /// is not lost inside the loop over every preset. Neither form is a defect: the author has ruled both
+    /// <summary>Every kept style the library is seeded with is clean too: a board names one by its library
+    /// name, and a style the gate refuses could never be stored on the board that names it.</summary>
+    [Test]
+    [MethodDataSource(nameof(KeptNames))]
+    public async Task Every_kept_style_passes_the_gate(string name)
+        => await Assert.That(HouseStyleValidation.Check(HousePresets.Kept.Single(kept => kept.Name == name).Style))
+            .IsEmpty();
+
+    public static IEnumerable<string> KeptNames() => HousePresets.Kept.Select(kept => kept.Name);
+
+    /// <summary>A house built on <see cref="WindowForm.StairLattice"/> and one on <see cref="WindowForm.SlabBanded"/>
+    /// both pass clean — pinned on its own so the pattern is not lost inside the loop over every preset. Neither form is a defect: the author has ruled both
     /// allowed, on any house, and the corpus complaint was always the block handed to the form (a fence where a
     /// stair goes, a pane where a slab goes — <see cref="HouseStyleRules.BlockKind"/>), never the pattern
     /// itself.</summary>
@@ -45,7 +70,7 @@ public sealed class HouseStyleValidationTests
     public async Task A_stair_lattice_and_a_slab_band_pass_clean_with_the_right_block()
     {
         await Assert.That(HouseStyleValidation.Check(HousePresets.Alpine.Style)).IsEmpty();
-        await Assert.That(HouseStyleValidation.Check(HousePresets.Workshop.Style)).IsEmpty();
+        await Assert.That(HouseStyleValidation.Check(Banded)).IsEmpty();
     }
 
     /// <summary>The author's ruling, pinned on the one house type it was ever in question for: a spawn shell
@@ -101,7 +126,7 @@ public sealed class HouseStyleValidationTests
     public async Task A_slab_banded_window_named_a_glass_pane_is_refused()
     {
         // sable-marsh's spawn windows: slabBanded given Glass Pane (102).
-        var style = HousePresets.Workshop.Style with { Windows = HousePresets.Workshop.Style.Windows with { Block = Blocks.GlassPane } };
+        var style = Banded with { Windows = Banded.Windows with { Block = Blocks.GlassPane } };
         var findings = HouseStyleValidation.Check(style);
         await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.BlockKind && f.Field == "windows.block"))
             .IsTrue();
@@ -112,7 +137,7 @@ public sealed class HouseStyleValidationTests
     {
         // 43 is the double stone slab: a full cube regardless of data, so it is the same fault as any other
         // whole-block id in a slab-banded window.
-        var style = HousePresets.Workshop.Style with { Windows = HousePresets.Workshop.Style.Windows with { Block = 43 } };
+        var style = Banded with { Windows = Banded.Windows with { Block = 43 } };
         await Assert.That(HouseStyleValidation.Check(style)).IsNotEmpty();
     }
 
@@ -121,7 +146,8 @@ public sealed class HouseStyleValidationTests
     {
         // Open and Pane windows take whatever block is named — there is no geometric role to be the wrong
         // kind of, unlike a stair lattice or a slab band.
-        var open = HousePresets.Diorite.Style with { Windows = HousePresets.Diorite.Style.Windows with { Block = Blocks.OakFence } };
+        var desert = HousePresets.Desert.Style;
+        var open = desert with { Windows = desert.Windows with { Form = WindowForm.Open, Block = Blocks.OakFence } };
         var pane = HousePresets.Townside.Style.Storeys[0].Windows! with { Form = WindowForm.Pane, Block = Blocks.OakFence };
         await Assert.That(HouseStyleValidation.Check(open)).IsEmpty();
         await Assert.That(HouseStyleValidation.CheckWindow("windows", pane)).IsEmpty();
@@ -175,8 +201,8 @@ public sealed class HouseStyleValidationTests
     [Test]
     public async Task A_door_with_no_head_clears_its_own_door_height()
     {
-        await Assert.That(HousePresets.Diorite.Style.Doorway.Clearance).IsEqualTo(3m);
-        await Assert.That(HouseStyleValidation.Check(HousePresets.Diorite.Style)).IsEmpty();
+        await Assert.That(Pyramid.Doorway.Clearance).IsEqualTo(3m);
+        await Assert.That(HouseStyleValidation.Check(Pyramid)).IsEmpty();
     }
 
     [Test]
@@ -192,10 +218,9 @@ public sealed class HouseStyleValidationTests
     // ── HS3 — a roof's own materials ──────────────────────────────────────────────────────────────────
 
     [Test]
-    public async Task Diorites_own_construction_is_the_clean_reference()
-        // Roof = whole block, RoofSlab = a real slab, at pitch 1: the shape HousePresets.Diorite documents as
-        // "the roof a slab is actually for".
-        => await Assert.That(HouseStyleValidation.Check(HousePresets.Diorite.Style)).IsEmpty();
+    public async Task The_pyramid_houses_own_construction_is_the_clean_reference()
+        // Roof = whole block, RoofSlab = a real slab of it, at pitch 1: the roof a slab is actually for.
+        => await Assert.That(HouseStyleValidation.Check(Pyramid)).IsEmpty();
 
     [Test]
     public async Task A_slab_named_as_the_whole_block_roof_with_no_roof_slab_set_is_refused()
@@ -266,8 +291,8 @@ public sealed class HouseStyleValidationTests
     public async Task RoofSlab_itself_has_to_be_a_single_slab_when_set()
     {
         // Two faults in one field, and both are true: a cobblestone block is not a slab at all (HS1), and it
-        // is not the brick the body is laid in either (HS3).
-        var style = Slabbed(HousePresets.Diorite.Style, Blocks.Cobblestone);
+        // is not the stone brick the body is laid in either (HS3).
+        var style = Slabbed(Pyramid, Blocks.Cobblestone);
         var findings = HouseStyleValidation.Check(style);
         await Assert.That(findings.All(f => f.Field == "roofSlab")).IsTrue();
         await Assert.That(findings.Select(f => f.Rule))
@@ -293,7 +318,7 @@ public sealed class HouseStyleValidationTests
     [Test]
     public async Task A_roof_slab_of_another_material_than_the_body_is_refused()
     {
-        var kilnRow = Roofed(HousePresets.Diorite.Style, new SolidMaterial(45)) with { };
+        var kilnRow = Roofed(Pyramid, new SolidMaterial(45)) with { };
         kilnRow = kilnRow with { Roof = kilnRow.Roof with { Slab = Blocks.StoneSlab, SlabData = 1 } };
         var findings = HouseStyleValidation.Check(kilnRow);
         await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofMaterial && f.Field == "roofSlab"))
@@ -305,7 +330,7 @@ public sealed class HouseStyleValidationTests
     [Test]
     public async Task A_roof_and_its_slab_in_one_material_pass()
     {
-        var brick = Roofed(HousePresets.Diorite.Style, new SolidMaterial(45)) with { };
+        var brick = Roofed(Pyramid, new SolidMaterial(45)) with { };
         brick = brick with { Roof = brick.Roof with { Slab = Blocks.StoneSlab, SlabData = 4 } };
         await Assert.That(HouseStyleValidation.Check(brick).Any(f => f.Field == "roofSlab")).IsFalse();
     }
@@ -350,9 +375,9 @@ public sealed class HouseStyleValidationTests
     [Test]
     public async Task A_window_seated_in_another_material_is_refused()
     {
-        var style = HousePresets.Workshop.Style with
+        var style = Banded with
         {
-            Windows = HousePresets.Workshop.Style.Windows with { HostBlock = 24, HostData = 0 },
+            Windows = Banded.Windows with { HostBlock = 24, HostData = 0 },
         };
         var findings = HouseStyleValidation.Check(style);
         await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.PartMaterial
@@ -387,21 +412,15 @@ public sealed class HouseStyleValidationTests
 
     // ── the footing has a legible off switch ───────────────────────────────────────────────────────────
 
-    /// <summary><b>No footing is a state, not a block that happens to be air.</b> It was a bare
-    /// <c>SolidMaterial(Air)</c> standing in for one, so "does this building have a footing" was a comparison
-    /// against a sentinel rather than a question the style could answer.</summary>
+    /// <summary><b>No footing is a state, not a block that happens to be air</b>, and it is the state every
+    /// shipped style is in: "does this building have a footing" is a question the style answers with null.</summary>
     [Test]
-    public async Task A_building_seated_into_terrain_has_no_footing_at_all()
+    public async Task No_shipped_style_has_a_footing()
     {
-        foreach (var house in new[] { HousePresets.Alpine, HousePresets.Desert, HousePresets.Diorite, HousePresets.Townside, HousePresets.Stilts })
+        foreach (var house in HousePresets.All)
             await Assert.That((house.Name, house.Style.Foundation.Footing)).IsEqualTo((house.Name, (TerrainMaterial?)null));
-    }
-
-    [Test]
-    public async Task The_village_row_keeps_its_plinth()
-    {
-        foreach (var house in HousePresets.Village)
-            await Assert.That(house.Style.Foundation.Footing).IsNotNull();
+        foreach (var (name, style) in HousePresets.Kept)
+            await Assert.That((name, style.Foundation.Footing)).IsEqualTo((name, (TerrainMaterial?)null));
     }
 
     // ── BlockFamilies ──────────────────────────────────────────────────────────────────────────────────────
@@ -451,18 +470,18 @@ public sealed class HouseStyleValidationTests
     {
         Wall = RoomPart.Of(new SolidMaterial(Blocks.Cobblestone), wallCourses),
         Storeys = [new Storey { Clear = wallCourses }],
-        Roof = new RoofStyle { Form = RoofForm.Shed, Pitch = 1, Overhang = 1 },
-        Porch = new PorchStyle { Depth = porchDepth, Roof = RoofForm.Shed },
+        Roof = new RoofStyle { Form = RoofForm.Gable, Pitch = 1, Overhang = 1 },
+        Porch = new PorchStyle { Depth = porchDepth, Roof = RoofForm.Gable },
         Doorway = new Doorway { Width = 2, Height = doorHeight },
     };
 
-    /// <summary>The corpus fault: `opus5-mootgate`'s market stall — a three-course wall, a three-course door
-    /// and a two-deep porch. The canopy is seated clear of the door and its ridge follows the form up, so it
-    /// tops out above the eave of the house it is attached to and reads as a second building.</summary>
+    /// <summary>A three-course wall, a three-course door and a three-deep porch. The canopy is seated clear of
+    /// the door and its ridge follows the form up, so it tops out above the eave of the house it is attached to
+    /// and reads as a second building.</summary>
     [Test]
     public async Task A_canopy_that_climbs_past_its_own_wall_is_HS8()
     {
-        var findings = HouseStyleValidation.Check(Porched(wallCourses: 3, porchDepth: 2, doorHeight: 3));
+        var findings = HouseStyleValidation.Check(Porched(wallCourses: 3, porchDepth: 3, doorHeight: 3));
 
         var porch = findings.Single(finding => finding.Rule == HouseStyleRules.PorchHeadroom);
         await Assert.That(porch.Severity).IsEqualTo(Severity.Complaint);   // the porch is built either way
@@ -473,9 +492,9 @@ public sealed class HouseStyleValidationTests
     /// <summary>And a wall with the courses for it says nothing. The three numbers that buy them are all the
     /// author's, so each is proved to buy what the rule claims.</summary>
     [Test]
-    [Arguments(7, 2, 3)]     // the wall raised to what the canopy wants
-    [Arguments(6, 1, 3)]     // a shallower porch: one course of rise instead of two, so one course less wall
-    [Arguments(5, 2, 1)]     // a lower door: two courses off the door is two courses off the wall
+    [Arguments(7, 3, 3)]     // the wall raised to what the canopy wants
+    [Arguments(6, 2, 3)]     // a shallower porch: one course of rise instead of two, so one course less wall
+    [Arguments(5, 3, 1)]     // a lower door: two courses off the door is two courses off the wall
     public async Task A_wall_with_the_courses_its_porch_needs_says_nothing(int wall, int depth, int door)
     {
         var findings = HouseStyleValidation.Check(Porched(wall, depth, door));
@@ -494,11 +513,12 @@ public sealed class HouseStyleValidationTests
 
     private static readonly TerrainMaterial Masonry = new SolidMaterial(98, 0);
 
+    // Two storeys of three clear: the lower lays four courses, the fourth being the seam the beam ends come out of.
     private static HouseStyle Framed(TerrainMaterial wall, int postWood, int beamWood, int? laidWood = null) => new()
     {
         Wall = new RoomPart(new BandStack(laidWood is { } laid
-            ? [new Band(wall, 2), new Band(new LaidLogMaterial(Blocks.Log, laid), 1)]
-            : [new Band(wall, 3)]), 3),
+            ? [new Band(wall, 3), new Band(new LaidLogMaterial(Blocks.Log, laid), 1)]
+            : [new Band(wall, 4)]), 4),
         Storeys = [new Storey { Clear = 3 }, new Storey { Clear = 3 }],
         Post = new SolidMaterial(Blocks.Log, postWood),
         Beams = new BeamStyle { Block = Blocks.Log, Data = beamWood, Reach = 1 },
@@ -513,8 +533,23 @@ public sealed class HouseStyleValidationTests
         var findings = HouseStyleValidation.Check(Framed(Masonry, postWood: 1, beamWood: 1));
 
         var beams = findings.Single(finding => finding.Rule == HouseStyleRules.BeamsWithoutTimber);
-        await Assert.That(beams.Field).IsEqualTo("beams");
+        await Assert.That(beams.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(beams.Field).IsEqualTo("storeys[0].wall");
         await Assert.That(beams.Message).Contains("laid log");
+    }
+
+    /// <summary>The author's ruling: the laid log is at the level of the corner beams. A course of it anywhere else
+    /// in the wall is not the timber the ends come out of.</summary>
+    [Test]
+    public async Task A_laid_log_on_another_course_than_the_beams_is_HS9()
+    {
+        var lower = Framed(Masonry, postWood: 1, beamWood: 1) with
+        {
+            Wall = new RoomPart(new BandStack(
+                [new Band(Masonry, 1), new Band(new LaidLogMaterial(Blocks.Log, 1), 1), new Band(Masonry, 2)]), 4),
+        };
+        var findings = HouseStyleValidation.Check(lower);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutTimber)).IsTrue();
     }
 
     /// <summary>A wall carrying one says nothing — `opus5-scarrow-delph`'s stilt houses are that building, and
@@ -597,6 +632,23 @@ public sealed class HouseStyleValidationTests
         await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.StiltFloor)).IsFalse();
     }
 
+    /// <summary>A plate of air is the stilt house's ground, and a storey that names no deck of its own stands on
+    /// the plate's top course — so every shipped style raised on air gives each storey above it a deck, or the room
+    /// over the stilts has no floor.</summary>
+    [Test]
+    public async Task Every_shipped_style_on_a_plate_of_air_floors_the_storeys_above_it()
+    {
+        var shipped = HousePresets.All.Select(house => (house.Name, house.Style)).Concat(HousePresets.Kept);
+        var floorless = shipped
+            .Where(entry => entry.Style.Foundation.Deck.IsAir())
+            .SelectMany(entry => entry.Style.Levels.Skip(1)
+                .Select((level, at) => (entry.Name, Storey: at + 1, level.Deck)))
+            .Where(entry => entry.Deck.IsAir())
+            .Select(entry => $"{entry.Name} storey {entry.Storey}")
+            .ToList();
+        await Assert.That(floorless).IsEmpty();
+    }
+
     /// <summary>A building with walls on the ground is not on stilts, so its floor is a floor.</summary>
     [Test]
     public async Task A_walled_ground_storey_on_a_plate_is_not_HS10()
@@ -608,5 +660,393 @@ public sealed class HouseStyleValidationTests
         };
         var findings = HouseStyleValidation.Check(walled);
         await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.StiltFloor)).IsFalse();
+    }
+
+    // ── beam ends and the posts beside them (HS11) ────────────────────────────────────────────────
+
+    private static readonly TerrainMaterial SpruceLog = new SolidMaterial(Blocks.Log, 1);
+    private static readonly TerrainMaterial LaidSpruce = new LaidLogMaterial(Blocks.Log, 1);
+
+    /// <summary>The author's ruling: corner beams require log pillars and a laid log. Beam ends over a laid seam
+    /// whose corners are stone brick have no upright to dock against.</summary>
+    [Test]
+    public async Task Beam_ends_beside_corners_that_are_not_log_are_HS11()
+    {
+        var stone = Framed(Masonry, postWood: 1, beamWood: 1, laidWood: 1) with { Post = Masonry };
+
+        var posts = HouseStyleValidation.Check(stone).Single(finding => finding.Rule == HouseStyleRules.BeamsWithoutPosts);
+        await Assert.That(posts.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(posts.Field).IsEqualTo("storeys[0].post");
+        await Assert.That(posts.Message).Contains("stone brick");
+    }
+
+    /// <summary>Corners that are wall like the rest of it are no posts at all, and are asked the same.</summary>
+    [Test]
+    public async Task Beam_ends_on_a_building_with_no_posts_are_HS11()
+    {
+        var bare = Framed(Masonry, postWood: 1, beamWood: 1, laidWood: 1) with { Post = null };
+        var findings = HouseStyleValidation.Check(bare);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutPosts)).IsTrue();
+    }
+
+    /// <summary>The author's croft: log pillars in a stone wall with no beams and no laid log anywhere is fine.
+    /// </summary>
+    [Test]
+    public async Task Log_posts_without_beam_ends_are_not_asked()
+    {
+        var croft = Framed(Masonry, postWood: 1, beamWood: 1) with { Beams = new BeamStyle() };
+        var findings = HouseStyleValidation.Check(croft);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutPosts
+                                               || finding.Rule == HouseStyleRules.BeamsWithoutTimber)).IsFalse();
+    }
+
+    /// <summary>The whole frame says nothing: log posts, beam ends of the same wood, and a laid log at their seam.
+    /// </summary>
+    [Test]
+    public async Task Beam_ends_with_log_posts_and_a_laid_seam_say_nothing()
+    {
+        var findings = HouseStyleValidation.Check(Framed(Masonry, postWood: 1, beamWood: 1, laidWood: 1));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutPosts)).IsFalse();
+    }
+
+    // ── a gable in the verge's own block (HS12) ────────────────────────────────────────────────────
+
+    private static readonly TerrainMaterial DarkOakPlanks = new SolidMaterial(Blocks.Planks, 5);
+    private static readonly TerrainMaterial SprucePlanks = new SolidMaterial(Blocks.Planks, 1);
+
+    private static HouseStyle Gabled(RoofForm form, TerrainMaterial verge, TerrainMaterial? gable) => new()
+    {
+        Wall = RoomPart.Of(Masonry, 5),
+        Post = null,
+        Roof = new RoofStyle { Form = form, Body = SprucePlanks, Verge = verge, Gable = gable },
+    };
+
+    /// <summary>A gable laid in dark oak under a dark oak overhang, so the face and the roof's edge are one
+    /// block.</summary>
+    [Test]
+    public async Task A_gable_in_the_verges_own_block_is_HS12()
+    {
+        var findings = HouseStyleValidation.Check(Gabled(RoofForm.Gable, DarkOakPlanks, DarkOakPlanks));
+
+        var gable = findings.Single(finding => finding.Rule == HouseStyleRules.GableAsVerge);
+        await Assert.That(gable.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(gable.Field).IsEqualTo("roof.gable");
+        await Assert.That(gable.Message).Contains("dark oak");
+    }
+
+    /// <summary>The fix the author gave: spruce planks under the dark oak overhang.</summary>
+    [Test]
+    public async Task A_spruce_gable_under_a_dark_oak_verge_says_nothing()
+    {
+        var findings = HouseStyleValidation.Check(Gabled(RoofForm.Gable, DarkOakPlanks, SprucePlanks));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.GableAsVerge)).IsFalse();
+    }
+
+    /// <summary>With no gable named the face is the wall's top course carried up, and that is the block the
+    /// verge is compared with.</summary>
+    [Test]
+    public async Task An_unnamed_gable_is_the_walls_top_course()
+    {
+        var style = Gabled(RoofForm.Saltbox, DarkOakPlanks, gable: null) with { Wall = RoomPart.Of(DarkOakPlanks, 5) };
+
+        var gable = HouseStyleValidation.Check(style).Single(finding => finding.Rule == HouseStyleRules.GableAsVerge);
+        await Assert.That(gable.Field).IsEqualTo("roof.verge");
+    }
+
+    /// <summary>A hip and a flat lid leave no triangle of wall, so the same pair says nothing there.</summary>
+    [Test]
+    [Arguments(RoofForm.Hip)]
+    [Arguments(RoofForm.Flat)]
+    public async Task A_roof_that_leaves_no_gable_is_not_asked(RoofForm form)
+    {
+        var findings = HouseStyleValidation.Check(Gabled(form, DarkOakPlanks, DarkOakPlanks));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.GableAsVerge)).IsFalse();
+    }
+
+    // ── a laid log at the foot of the wall (HS13) ──────────────────────────────────────────────────
+
+    private static HouseStyle Footed(params Band[] bands) => new()
+    {
+        Wall = new RoomPart(new BandStack(bands), 5),
+        Post = SpruceLog,
+    };
+
+    /// <summary>A wall started on a course of laid spruce, so a log is the building's foot.</summary>
+    [Test]
+    public async Task A_laid_log_as_the_bottom_course_is_HS13()
+    {
+        var findings = HouseStyleValidation.Check(Footed(new Band(LaidSpruce, 1), new Band(SprucePlanks, 4)));
+
+        var foot = findings.Single(finding => finding.Rule == HouseStyleRules.LogAtTheFoot);
+        await Assert.That(foot.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(foot.Field).IsEqualTo("wall");
+        await Assert.That(foot.Message).Contains("spruce");
+    }
+
+    /// <summary>The same log as the storey's top course is the plate its posts carry.</summary>
+    [Test]
+    public async Task A_laid_log_at_the_top_of_the_wall_is_not_HS13()
+    {
+        var findings = HouseStyleValidation.Check(Footed(new Band(SprucePlanks, 4), new Band(LaidSpruce, 1)));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.LogAtTheFoot)).IsFalse();
+    }
+
+    /// <summary>Only the building's foot is asked: a laid course opening an upper storey sits on the storey
+    /// below rather than on the ground.</summary>
+    [Test]
+    public async Task A_laid_log_opening_an_upper_storey_is_not_HS13()
+    {
+        var style = new HouseStyle
+        {
+            Post = SpruceLog,
+            Storeys =
+            [
+                new Storey { Clear = 4, Wall = new RoomPart(new BandStack(
+                    [new Band(Masonry, 4), new Band(LaidSpruce, 1)]), 5) },
+                new Storey { Clear = 3, Wall = new RoomPart(new BandStack(
+                    [new Band(LaidSpruce, 1), new Band(SprucePlanks, 2)]), 3) },
+            ],
+        };
+        var findings = HouseStyleValidation.Check(style);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.LogAtTheFoot)).IsFalse();
+    }
+
+    // ── a footing (HS7) ──────────────────────────────────────────────────────────────────────────────
+
+    private static HouseStyle Founded(int plateDepth, TerrainMaterial? footing) => HousePresets.Alpine.Style with
+    {
+        Foundation = new Foundation { Plate = RoomPart.Of(SprucePlanks, plateDepth), Footing = footing },
+    };
+
+    /// <summary>The author's ruling, on every house: a footing reads as a rim round the building whatever depth
+    /// of plate it rings, so a deep plate does not earn one.</summary>
+    [Test]
+    [Arguments(1)]
+    [Arguments(2)]
+    [Arguments(3)]
+    public async Task A_footing_round_a_plate_of_any_depth_is_HS7(int plateDepth)
+    {
+        var footing = HouseStyleValidation.Check(Founded(plateDepth, new SolidMaterial(Blocks.Cobblestone)))
+            .Single(finding => finding.Rule == HouseStyleRules.Footing);
+        await Assert.That(footing.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(footing.Field).IsEqualTo("foundation.footing");
+    }
+
+    [Test]
+    public async Task A_plate_with_no_footing_is_not_HS7()
+    {
+        var findings = HouseStyleValidation.Check(Founded(2, footing: null));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.Footing)).IsFalse();
+    }
+
+    // ── a shed, on the house, its porch or one wing (HS14) ─────────────────────────────────────────
+
+    [Test]
+    public async Task A_shed_roof_is_HS14()
+    {
+        var style = HousePresets.Alpine.Style with
+        {
+            Roof = HousePresets.Alpine.Style.Roof with { Form = RoofForm.Shed },
+        };
+        var shed = HouseStyleValidation.Check(style).Single(finding => finding.Rule == HouseStyleRules.ShedRoof);
+        await Assert.That(shed.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(shed.Field).IsEqualTo("roofForm");
+    }
+
+    /// <summary>A porch that names no roof wears a gable, so asking for a porch and saying nothing more is
+    /// never the lean-to the rule refuses; a canopy that names a shed is refused under the porch.</summary>
+    [Test]
+    public async Task A_porch_naming_no_roof_wears_a_gable_and_a_shed_canopy_is_HS14()
+    {
+        var porched = HousePresets.Alpine.Style with { Porch = new PorchStyle { Depth = 2 } };
+        await Assert.That(porched.Porch!.Roof).IsEqualTo(RoofForm.Gable);
+        await Assert.That(HouseStyleValidation.Check(porched).Any(finding => finding.Rule == HouseStyleRules.ShedRoof))
+            .IsFalse();
+
+        var leaning = porched with { Porch = porched.Porch with { Roof = RoofForm.Shed } };
+        var shed = HouseStyleValidation.Check(leaning).Single(finding => finding.Rule == HouseStyleRules.ShedRoof);
+        await Assert.That(shed.Field).IsEqualTo("porch.roof");
+    }
+
+    [Test]
+    [Arguments(RoofForm.Gable)]
+    [Arguments(RoofForm.Flat)]
+    [Arguments(RoofForm.Hip)]
+    [Arguments(RoofForm.Gambrel)]
+    [Arguments(RoofForm.Saltbox)]
+    public async Task Every_form_but_the_shed_is_a_roof_a_style_may_wear(RoofForm form)
+        => await Assert.That(HouseStyleValidation.CheckRoofForm(form, "roofForm")).IsEmpty();
+
+    // ── a checker in the posts' own log (HS15) ─────────────────────────────────────────────────────
+
+    /// <summary>A wall checkered in spruce log beside spruce log posts, so the corner and the panel read as one
+    /// mass.</summary>
+    [Test]
+    public async Task A_wall_checkered_in_its_posts_own_log_is_HS15()
+    {
+        var style = new HouseStyle
+        {
+            Post = SpruceLog,
+            Wall = RoomPart.Of(new CheckerMaterial(1, SpruceLog, SprucePlanks), 5),
+        };
+        var checker = HouseStyleValidation.Check(style)
+            .Single(finding => finding.Rule == HouseStyleRules.CheckerInPostWood);
+        await Assert.That(checker.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(checker.Field).IsEqualTo("wall");
+        await Assert.That(checker.Message).Contains("spruce");
+    }
+
+    /// <summary>A log checker is one log in two orientations, so it is the posts' own wood or another one; a
+    /// different log is what the author asks the panel to be.</summary>
+    [Test]
+    [Arguments(3, true)]     // jungle squares beside jungle posts
+    [Arguments(1, false)]    // spruce squares beside jungle posts
+    public async Task A_log_checker_is_HS15_only_in_the_posts_own_wood(int squareWood, bool refused)
+    {
+        var style = new HouseStyle
+        {
+            Post = new SolidMaterial(Blocks.Log, 3),
+            Storeys = [new Storey { Clear = 4, Wall = new RoomPart(new BandStack(
+                [new Band(Masonry, 2), new Band(new LogCheckerMaterial(1, Blocks.Log, squareWood), 3)]), 5) }],
+        };
+        var findings = HouseStyleValidation.Check(style);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.CheckerInPostWood)).IsEqualTo(refused);
+    }
+
+    /// <summary>A course laid in the posts' own log is the frame, not a checker, and is what HS9 asks for.</summary>
+    [Test]
+    public async Task A_laid_course_of_the_posts_wood_is_not_HS15()
+    {
+        var findings = HouseStyleValidation.Check(Footed(new Band(SprucePlanks, 4), new Band(LaidSpruce, 1)));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.CheckerInPostWood)).IsFalse();
+    }
+
+    // ── a wall in a block that surfaces ground (HS16) ──────────────────────────────────────────────
+
+    [Test]
+    [Arguments(2, 0)]       // grass
+    [Arguments(3, 2)]       // podzol
+    [Arguments(110, 0)]     // mycelium
+    [Arguments(60, 0)]      // farmland
+    public async Task A_wall_laid_in_a_block_that_surfaces_ground_is_HS16(int id, int data)
+    {
+        var findings = HouseStyleValidation.Check(Footed(new Band(Masonry, 2), new Band(new SolidMaterial(id, data), 3)));
+        var turf = findings.Single(finding => finding.Rule == HouseStyleRules.SurfacingWall);
+        await Assert.That(turf.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(turf.Field).IsEqualTo("wall");
+    }
+
+    /// <summary>The author's narrowing: sand, gravel and dirt can each work in a wall, so only the four skins
+    /// are refused.</summary>
+    [Test]
+    [Arguments(12, 0)]      // sand
+    [Arguments(13, 0)]      // gravel
+    [Arguments(3, 0)]       // dirt
+    [Arguments(3, 1)]       // coarse dirt
+    public async Task Sand_gravel_and_dirt_are_a_walls_to_use(int id, int data)
+    {
+        var findings = HouseStyleValidation.Check(Footed(new Band(Masonry, 2), new Band(new SolidMaterial(id, data), 3)));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.SurfacingWall)).IsFalse();
+    }
+
+    /// <summary>The walk reaches every block a wall lays, a drawn pattern's stripes included, and the gable.</summary>
+    [Test]
+    public async Task A_stripe_of_mycelium_or_a_grass_gable_is_HS16()
+    {
+        var striped = Footed(new Band(Masonry, 2), new Band(new WallRunMaterial(
+            [new WallStripe(SprucePlanks, 2), new WallStripe(new SolidMaterial(Blocks.Mycelium), 1)]), 3));
+        await Assert.That(HouseStyleValidation.Check(striped).Single(finding => finding.Rule == HouseStyleRules.SurfacingWall).Field)
+            .IsEqualTo("wall");
+
+        var gabled = Footed(new Band(Masonry, 5)) with
+        {
+            Roof = new RoofStyle { Gable = new SolidMaterial(Blocks.Grass) },
+        };
+        await Assert.That(HouseStyleValidation.Check(gabled).Single(finding => finding.Rule == HouseStyleRules.SurfacingWall).Field)
+            .IsEqualTo("gable");
+    }
+
+    // ── snow and ice (HS17) ────────────────────────────────────────────────────────────────────────
+
+    [Test]
+    [Arguments(78)]         // snow layer
+    [Arguments(79)]         // ice
+    [Arguments(80)]         // snow block
+    [Arguments(174)]        // packed ice
+    public async Task Snow_or_ice_in_a_wall_is_HS17(int id)
+    {
+        var findings = HouseStyleValidation.Check(Footed(new Band(Masonry, 2), new Band(new SolidMaterial(id), 3)));
+        var frozen = findings.Single(finding => finding.Rule == HouseStyleRules.SnowAndIce);
+        await Assert.That(frozen.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(frozen.Field).IsEqualTo("wall");
+    }
+
+    /// <summary>A roof laid in snow, where the white is all anybody sees.</summary>
+    [Test]
+    public async Task A_snow_roof_is_HS17()
+    {
+        var style = Footed(new Band(Masonry, 5)) with { Roof = new RoofStyle { Body = new SolidMaterial(80) } };
+        await Assert.That(HouseStyleValidation.Check(style).Single(finding => finding.Rule == HouseStyleRules.SnowAndIce).Field)
+            .IsEqualTo("roof");
+    }
+
+    /// <summary>And white is not the fault: the author's narrowing keeps white clay, white wool and quartz.</summary>
+    [Test]
+    [Arguments(159, 0)]
+    [Arguments(35, 0)]
+    [Arguments(155, 0)]
+    public async Task A_white_wall_is_not_HS17(int id, int data)
+    {
+        var findings = HouseStyleValidation.Check(Footed(new Band(Masonry, 2), new Band(new SolidMaterial(id, data), 3)));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.SnowAndIce)).IsFalse();
+    }
+
+    // ── a storey standing on air (HS18) ────────────────────────────────────────────────────────────
+
+    /// <summary>The case found in review: a stilt house's plate is air, the storey over the stilts names no
+    /// deck and falls back to it, and the room has no floor.</summary>
+    [Test]
+    public async Task A_storey_over_a_plate_of_air_with_no_deck_is_HS18()
+    {
+        var floorless = HouseStyleValidation.Check(OnStilts(new SolidMaterial(Blocks.Air)))
+            .Single(finding => finding.Rule == HouseStyleRules.FloorlessStorey);
+        await Assert.That(floorless.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(floorless.Field).IsEqualTo("storeys[1].deck");
+    }
+
+    /// <summary>A deck of its own floors the storey, and so does a surface whose field covers the room.</summary>
+    [Test]
+    public async Task A_deck_or_a_floor_field_floors_the_storey_over_the_stilts()
+    {
+        var stilts = OnStilts(new SolidMaterial(Blocks.Air));
+        var decked = stilts with { Storeys = [stilts.Storeys[0], stilts.Storeys[1] with { Deck = SprucePlanks }] };
+        var fielded = stilts with
+        {
+            Storeys = [stilts.Storeys[0], stilts.Storeys[1] with { Surface = new FloorSurface { Field = SprucePlanks } }],
+        };
+        foreach (var style in new[] { decked, fielded })
+            await Assert.That(HouseStyleValidation.Check(style).Any(finding => finding.Rule == HouseStyleRules.FloorlessStorey))
+                .IsFalse();
+    }
+
+    // ── a porch canopy in its own material ─────────────────────────────────────────────────────────
+
+    /// <summary>A canopy laid in its own material is a roof plane like the body and the verge: one block, never
+    /// a pattern or a ground material (HS3), and never snow or ice (HS17).</summary>
+    [Test]
+    public async Task A_canopy_is_held_to_what_a_roof_is_held_to()
+    {
+        HouseStyle Canopied(TerrainMaterial canopy) => HousePresets.Alpine.Style with
+        {
+            Porch = new PorchStyle { Depth = 2, Canopy = canopy },
+        };
+        await Assert.That(HouseStyleValidation.Check(Canopied(new SolidMaterial(98))).Any(finding => finding.Field == "porch.canopy"))
+            .IsFalse();
+
+        var patterned = HouseStyleValidation.Check(Canopied(new CheckerMaterial(1, Masonry, SprucePlanks)));
+        await Assert.That(patterned.Single(finding => finding.Field == "porch.canopy").Rule).IsEqualTo(HouseStyleRules.RoofMaterial);
+
+        var snowed = HouseStyleValidation.Check(Canopied(new SolidMaterial(80)));
+        await Assert.That(snowed.Single(finding => finding.Field == "porch.canopy").Rule).IsEqualTo(HouseStyleRules.SnowAndIce);
     }
 }

@@ -73,8 +73,10 @@ this folder takes a map; these are what a caller with no map reaches for first.
 |---|---|---|
 | `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
 | `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
+| `GET /kit.py` | a Python kit written from the studio's own schema: a constructor per shape a route takes, by the studio's field names, writing only what is stated and checking each word and type before anything is sent; `Studio`, a method per route under a name taken from it, which waits out a `429`, prints `warnings` and raises `Refusal`; `find()` over every description; `build()` through the constructors. Its `ETag` is the schema's hash | 304 `If-None-Match` names the kit's hash, which is current |
 | `DELETE /map/{slug}` | nothing — **204**, and the map is gone with everything stored under it: its teams, regions, authors, objectives, scans and every document it held, since each of those rows cascades from the map's. A world folder under a maps root is what a map was scanned from rather than something it holds, and stays; an imported one is offered as an import candidate again. The call for a driver cleaning up after a variant, or a spec re-driven under a corrected slug | 404 `RQ4` no map at that slug |
-| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under — **the authoring call for a headless caller**, not only the import one, and the whole of it: the finish and the intent's projection run inside it. A map already at that slug is replaced. See *The three documents are the way in, and the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 400 `no document given` `RQ1` naming `layout` or `intent`, which are the load and are both required · 400 `unreadable document` `RQ1` naming the first field of each document its binder cannot read, under the member it was posted as (`intent.modes[0]`) — nothing is stored · 422 the layout carries no ground |
+| `PUT /map/{slug}/source[?dry=true&discard=]` | `{slug, change, replaced, edits, cells, islands, configureUrl}`, and on a dry run the `layout` and `intent` it would store — a whole map stored from its source, a plan compiled or a drawn layout and intent, with the refinement applied onto it, as one change. **The authoring call for a headless caller**, not only the import one, and the whole of it: the compile, the refinement, the finish and the intent's projection run inside it. A map already at that slug is replaced, and only once the source has passed everything it is refused for; `?dry=true` decides all of it, answers the edits and stores nothing. A map made from a refinement refuses a source over a change it has not seen, and `?discard=` names the ones it drops. See *A map's source is the way in, and the way back in* below. Every document answers `RQ3` under the member it was stated as | 400 `not a slug` `RQ1` · 400 `no such change` `RQ1` naming `after` or `discard` · 400 `unreadable discard` · 400 `no base` `RQ1` naming `plan`, `layout` or `intent` · 400 `unreadable document` `RQ1` naming the first field each binder cannot read, under its member (`intent.modes[0]`) · 400 `no name given` · 400 `note too long` · 400 `invalid style or theme` · 400 a person nobody could be called · 403 `RQ8` a map at that slug the caller may not edit · 422 `plan not compilable` · 422 `refinement not applicable` `SR3`/`SR4`/`SR5`/`SR6` · 409 `changes not seen` `SR1`, one per edit a change the source has not seen made, handed over · 422 the drawing carries no ground `SK7` — a refused source stores nothing |
+| `GET /map/{slug}/refinement` | the refinement the map's source last stated, `{}` where it stated none; its `ETag` is the change that wrote it | 404 `RQ4` no map at that slug, or no source applied to it |
 
 ## The hand-offs
 
@@ -136,46 +138,223 @@ document — teams, kits, regions, filters, apply-rules, spawns — in one idemp
 `GET /api/map/{slug}/xml` renders that document, gated on the pre-flight checks;
 `GET /api/map/{slug}/export` gives the world.
 
-**The three documents are the way in, and the way back in.** `POST /api/map/from-documents` takes a plan, a
-layout and an intent together and stores a whole map from them — the plan to re-plan from, the drawing
-rasterized into geometry, the intent projected into the document — and answers the slug it landed under. A
-map already stored under that slug is **replaced**: the documents name one map, so loading them twice is a
-reload.
+**A map's source is the way in, and the way back in.** `PUT /api/map/{slug}/source` stores a whole map from
+what it is built from — its **base** and its **refinement** — under the slug the route names: the plan to
+re-plan from, the drawing rasterized into geometry, and the intent projected into the document. A map already
+stored under that slug is **replaced**, because a source names one map and stating it twice is a reload. A map
+stored there that the caller may not edit is refused `403 RQ8`, as every write to a map is (`docs/access.md`).
 
-**The layout and the intent are required; the plan is not.** A grid board has no plan — its plots are discs
-and crosses where a plan piece is a rectangle — so a layout emitter states none and the load takes two
-documents. A body omitting one of the two is `400 no document given` naming it, because both are read as raw
-JSON and an absent one would otherwise reach a reader that throws, answering the request's fault as the
-studio's.
+**The base is a plan, or a drawing and what it is played for.** A `plan` stated alone is compiled here as
+`POST /plan/compile` compiles it, and each island's team is filled in on the compiled footprint. A `layout` and
+an `intent` stated together are the base as they stand, which is how a board without a plan arrives — a grid
+board's plots are discs and crosses where a plan piece is a rectangle — and a plan stated beside them is kept as
+the one they were drawn from rather than compiled. Half a drawn pair, or neither base, is `400 no base` naming
+the member that is missing.
 
-**Each document binds onto its record before anything is stored.** A reader that cannot read one field gives
-up on the whole document, so an intent stating `"modes": ["dtm"]` — `modes` takes objects — would otherwise
-be stored as an intent with no teams, spawns or objectives, and the export gate would open on it. It is `400
+**The refinement is everything the base cannot state, applied before anything is judged.** A plan has no words
+for a coast, a relief, a theme or a date, so the refinement states them onto the board the plan compiles to.
+Each statement is the one a Sketch route makes, so a board stated here and one edited by hand end the same.
+They are applied in the order a hand works: the paint and fields on the shapes already drawn, the storeys, the
+shapes drawn onto them, the relief and the layout's registries, the outlines stated by their shape, the outlines
+reshaped a point at a time and then bent, and last the intent's members. A bend resamples whatever ring it is
+given, which is why every point edit comes before it.
+
+| Member | States | The route that states the same |
+|---|---|---|
+| `materials` | `{name: material}` — a material stated once, which `{"use": name}` stands for wherever a material is stated | — |
+| `themeByHeight` | `{height: theme}` — the theme each compiled ground shape paints with, by the height it stands at. A room piece is not terrain and is reached only by its id | — |
+| `themeById` | `{shapeId: theme}`, winning over the height rule | `PATCH …/sketch/shapes/{shapeId}` |
+| `shapePropsByHeight` · `shapePropsById` | fields merged onto a shape by the height it stands at or by its id; a field stated as null is removed | `PATCH …/sketch/shapes/{shapeId}` |
+| `addLayers` | storeys, each `{id, name, base_y, below, kind, part_of, seat, shapes, groups}` — over the compiled ground, or under it where `below` is true | `PUT …/sketch/layers/{layerId}` |
+| `addShapes` | shapes, each carrying the `layer` and `group` it joins beside its own fields. One naming neither joins the compiled ground and its first group | `POST …/sketch/layers/{layerId}/shapes?group=` |
+| `editShapes` | `{shapeId: [edit, …]}`, in order, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`), `remove` (drop that point) and `pulls` (`{edge: [[fraction, blocks], …]}` — points a fraction of the way along each named edge, moved that many blocks into the ring, or out of it where negative); on a shape the board's symmetry carries onto itself the edit is made at every image unless it states `fan: false` | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape, once per image; a pull has none |
+| `bendShapes` | `{shapeId: {wander, step, seed, tension, side, edges, fan}}` — `edges` names the edges drawn as coast, each by the vertex it leaves, and every other edge stays as drawn; on a shape the board's symmetry carries onto itself the coast is its own image too unless `fan` is false | `POST …/sketch/shapes/{shapeId}/bend` |
+| `outlines` | `{id: {at, radius, radiusZ, points, lobes, wobble, phase, turn}}` — an ellipse pulled in and out by lobes, written as the points of whatever carries that id: a shape's vertices (a rectangle or a circle becoming a polygon), the ring of a relief `area` mark or a push, the points of a stroke, a fluid or a flora prop | the points stated on the thing itself |
+| `relief` | `{groupId: relief}`, where `*` stands for every group of the compiled ground | `PUT …/sketch/relief/{groupId}` |
+| `themes` · `mapTheme` | the theme registry, and the map's default theme — the registry's first where none is stated | `PUT …/sketch/themes/{themeId}`, `PUT …/sketch/map-theme` |
+| `biome` · `roomStyles` · `dressing` | the layout's own members, each replacing what the base held | `PUT …/sketch/biome`, `PUT …/sketch/room-styles/{part}`, the props routes |
+| `created` · `authors` | the intent's `meta.created` and `meta.authors`; a person is a bare name or `{name, contribution}` | `PATCH /map/{slug}/metadata` |
+| `controlPoints` · `scoreLimit` · `spawners` · `shops` | the intent's own members, each replacing what the base held; a capture point and a generator are each stated once and fanned across the board's symmetry | `PUT /map/{slug}/intent` |
+
+**A thing stated more than once is named, and a name stands for a copy.** A material the refinement uses in
+several places is stated once under `materials` and used as `{"use": "strata"}`. A row of the studio's library
+is named as `{"library": "dunes"}` wherever a material, a theme, a room style, a prop style or a biome is stated,
+and resolved when the source is applied (`docs/tools/library.md`). Either copy has the fields stated beside the
+name laid over it, and a name that names nothing refuses the source 422: `SR5` for a material the registry does
+not state, `SR6` for a library name that names no single row.
+
+**A compiled shape is named by its component and its height, and a statement anchors to that name.** The id is
+the component's ordinally first piece and the surface it stands at — `dale-9` — with the patches after the
+first numbered on (`dale-9-2`). A piece renamed, or moved to another height, therefore renames what a statement
+is keyed on.
+
+**A statement that reaches nothing is said, and the rest is applied.** One naming a shape or a layer the board
+does not have is `SR2`, a complaint listing the ids the board has. An edit the board refuses — a point asked of
+a rectangle, an index past the ring — is a complaint on the same terms, naming the edit by its place in the
+refinement (`editShapes.dale-9[2]`).
+
+**A coast placed for play is stated as pulls.** A pull is a point stated where it stands:
+`{"pulls": {"3": [[0.19, -7], [0.42, 4]]}}` puts a point 19% of the way along edge 3 and moves it seven blocks out
+of the ring, and another 42% along moved four blocks in. Each edge is named by the vertex it leaves, on the outline
+as the edit finds it, and all of an edit's points land together, so no pull renumbers the edge another one names.
+Inside is the side where a point half a block off the edge falls in the ring, which is right whichever way the ring
+is wound and wherever its centroid lies. Each point is rounded to a tenth of a block, the ring's own vertices stay
+where they are, and an edge named by no pull keeps the line the plan drew. A pull at a fraction outside 0 to 1, at
+an edge the outline lacks, or one that folds the outline is a complaint naming the edit. A bend draws its coast from
+a seed; a pull states where a bulge stands and how far it reaches, which is what a frontline pushed toward an island
+is. The edges to name are read from `GET /map/{slug}/sketch/shapes/{shapeId}?format=text`, which lists each one with
+what lies across it.
+
+**An outline is stated by its shape, and written as points.** `{at, radius}` is a circle of 28 points; `radiusZ`
+makes it an ellipse, `turn` turns it by degrees, and `lobes` bulges — three unless stated — each reaching
+`wobble` of the radius past the ellipse and drawing in as far between them, the first at `phase` radians. The
+id names everything carrying it, so a relief stated for every group outlines the same mark in each. What lands
+is the points, rounded to a tenth of a block, so the stored layout carries the ring a hand would have drawn and
+every later statement — a point edit, a bend — works on it. An id that reaches only things with no ring of their
+own (a room's rectangle, a point mark, a tree) is a complaint, as is one reaching nothing.
+
+**A statement about a symmetric board is made once, and the board's symmetry fans it.** The symmetry is the
+layout's own — `setup.mirror_mode` and its `center`. A capture point and a generator are each stated once and
+every image added, at the image of the point it stands on: an image of a capture point takes its name numbered
+on (`Bench`, `Bench 2`), and an image of a generator its id (`iron`, `iron-2`), since the regions a generator
+mints are named for it. One already standing within half a block of where an image would go is that image, so a
+point at the centre of symmetry stays one and a hand-placed pair stays a pair. A point edit and a bend to a shape
+the symmetry carries onto itself — a shape on the axis, which no group's fan copies — are made at every image:
+an insert or a move lands at the image of its point on the image of its edge, a remove takes the image point
+too, a pull lands the same fraction along the image of its edge — counted from the other end where the image runs
+the other way — and a bend reads its wander at each point's canonical image and draws a named edge's images with
+it, so the outline stays its own image. `fan: false` on an edit or a bend makes it alone. A move that takes a point
+the symmetry holds in place off its line has no image that keeps the outline its own, so the point moves as
+stated and `SR8` says the outline is lopsided now. A relief mark needs none of this: the solve folds a group's
+surface across the axis (`docs/world-export/relief.md` §8).
+
+**A statement that does not say what it means refuses the whole source.** A storey stated under an id the board
+already has, or under none, is `SR3`, a point edit naming no single point is `SR4`, and an outline that draws no
+ring — no centre, a radius of nought, fewer than three points, or a `wobble` of 1 or more, where a trough
+reaches the centre — is `SR7`. Each answers `422 refinement not applicable` and stores nothing, because none
+can be applied without a guess.
+
+**The refinement is kept as the map's fourth document.** A source's refinement is stored beside the plan, the
+layout and the intent as it was stated, and `{}` where a source stated none, so the map holds what it was built
+from as well as what it came to. `GET /map/{slug}/refinement` reads it back, and a change that wrote it keeps
+it, compares it and restores it like the other three.
+
+**A source is not applied over a change it has not seen.** A map made from a refinement is edited by other
+hands too — a person in the Sketch tool fixing a coast or showing the agent how, another writer's source — and a
+source built before that edit would replace it without a word. So a source states `after`, the change it was
+built against, and where the map's stored refinement states anything, every change after it is one the source
+has not seen. Absent, `after` is the change the map's source was last applied as. A source over an unseen change
+that edited anything is refused `409 changes not seen`.
+
+**The refusal hands the change over.** It carries one `SR1` per edit an unseen change made, naming the change in
+`subjects` and saying in its message who made it, when, what was noted on it and what the notes written at it
+say. The finding's `edit` states the edit as the source would, into the refinement wherever the refinement has
+words for it. Where only the plan can state it — a compiled shape taken away — the edit is the plan's, the
+layout's or the intent's own, with both values.
+
+**Each kind of hand edit lands where the refinement states that kind of thing.** A theme painted on a compiled
+shape is `themeById`, and an outline redrawn is `shapePropsById` with the bend or point edits that would redraw
+it removed. A shape drawn onto the ground is an `addShapes` entry carrying its layer and group, and a prop moved
+is the same move in the refinement's `dressing`. A relief, a theme or a capture point edited is stated whole,
+because an edit inside one would lose the rest of it. A change that was itself a source hands over its plan and
+refinement, and the rest follows from them.
+
+**A change is taken in or dropped.** A source that takes the edits into its refinement states the change as
+`after`; one that replaces them names the changes in `?discard=8,9`, and the change it lands as records them as
+`discarded`. A map made without a refinement is its drawing, and a source replaces a hand edit of it without
+asking.
+
+**Everything is decided before the stored map is touched.** A document its binder cannot read, a plan the gates
+refuse, a refinement that refuses, a style or theme the gate refuses, a person nobody could be called and a
+drawing the finish would refuse are each decided from the source alone, so a refused reload leaves the board it
+would have replaced. Only then are the four documents stored as **one change** on the slug's history, numbered
+above every change the slug has answered. A browser tab that read the old board is therefore refused `RQ5` when
+it saves, rather than writing it back over the new one (`docs/refusals.md`).
+
+**A source says where it was built and why.** It may state its `origin` — `{repo, commit, path, dirty}`, where
+its documents were built — and a `note` of at most 1,000 characters, and both are kept on the change it lands
+as.
+
+**The answer says what the source changed.** `edits` is what the source changes in the documents the map held,
+in the shape `GET …/diff` answers, every member stated for the first time where no map was stored. Beside it are
+the change the source landed as, whether a map stood under the slug before, and the ground columns and
+landmasses the drawing came to.
+
+**`?dry=true` decides all of it and stores nothing.** It answers `change: null` beside the same edits, which is
+how a caller sees what a pass would change on a board somebody has edited by hand before the pass replaces
+their edits. It answers the `layout` and `intent` the source would store as well, so a caller that wants the
+refined board as a body for a preview route has it without a store.
+
+**Each document binds onto its record before anything is made of it.** A reader that cannot read one field gives
+up on the whole document, so an intent stating `"modes": ["dtm"]` — `modes` takes objects — would otherwise be
+stored as an intent with no teams, spawns or objectives, and the export gate would open on it. It is `400
 unreadable document`, one `RQ1` per document naming the field its binder stopped at under the member it was
-posted as (`intent.modes[0]`), and no map is created.
+stated as (`intent.modes[0]`), and nothing is stored.
+
+**Every document answers `RQ3` for a field its reader has nowhere to keep.** The path is prefixed with the member
+the document was stated as (`refinement.themeByHeigth`), and a member the source itself does not have is named
+bare (`refinment`).
 
 **It is the authoring call and not only the import one, and that is the distinction to get right.** A caller
-holding a layout and an intent — compiled from a plan, or written by hand — stores the whole map in this one
-request under a slug it names: the finish that rasterizes the layout runs inside it, the intent's projection
-runs inside it, and the authors ride in the body. The five hand-offs above are the **other** caller's path,
-a map walked through the tools one stage at a time, each stage writing the document it has just drawn — which
-is what the browser does, and what a driver never needs. A driver that walks them instead pays six calls for
-one store, originates a fresh slug on every correction, and has to know that the intent's projection lands
-after the metadata write.
+holding a plan and what it wants of the board stores the whole map in this one request: the compile, the
+refinement, the finish that rasterizes the layout and the intent's projection all run inside it. The five
+hand-offs above are the **other** caller's path, a map walked through the tools one stage at a time, each stage
+writing the document it has just drawn — which is what the browser does, and what a driver never needs. A
+driver that walks them instead pays a call for every statement, lands each as a change of its own, and has to
+know that the intent's projection lands after the metadata write.
 
 It is also the way back in, because nothing else can take a map back. `POST /map/import-folder` refuses a folder carrying a
 `map.xml` outright, `import-url` extracts only `region/*.mca`, and no route in the studio reads a `map.xml` at
 all — so a map authored against one studio could reach another only as a world, arriving without its plan, its
-drawing or its intent, and could never be re-planned. What the documents carry is more than the world does.
+drawing or its intent, and could never be re-planned. What a source carries is more than the world does.
 
-**The authors ride in the body, and the operation applies them.** The three documents say what a map is
-made of, and a compiled intent names only whom its plan credited, so the credits are stated beside them and written as part of the
-load rather than in a second call the caller has to remember. A person is a bare pseudonym or
+**The credits are stated in the refinement, and the source writes them to both places they live.** A compiled
+intent names only whom its plan credited, so `authors` states who the map is credited to and the store writes
+them rather than a second call the caller has to remember. A person is a bare pseudonym or
 `{uuid, name, role, contribution}`, and both forms go to the same two places: the map's author rows, and the
 stored intent's `meta.authors`/`meta.contributors`, split by role. Both, because the rows are the map's own
 record and the intent is what the export reads — the observer platform's board is stamped from `meta.authors`
-— so a load writing one without the other credits the map on its rows and exports it carrying `EX6` over a
+— so a store writing one without the other credits the map on its rows and exports it carrying `EX6` over a
 blank sign.
+
+A plan, its refinement, and where both came from, as one source:
+
+```json PUT /api/map/{slug}/source
+{
+  "plan": {
+    "plan": 2, "meta": {"name": "Weirgate"},
+    "globals": {"cell": 5, "symmetry": "rot_180", "maxPlayers": 8, "surface": 9},
+    "pieces": [
+      {"id": "spawn", "role": "spawn", "rect": [1, 9, 2, 2]},
+      {"id": "dale", "role": "piece", "rect": [-3, 4, 6, 5]},
+      {"id": "tor", "role": "piece", "rect": [3, 5, 2, 3], "surface": 13},
+      {"id": "ford", "role": "piece", "rect": [-1, -4, 2, 8]},
+      {"id": "wool", "role": "wool-room", "rect": [-3, 9, 2, 2]}],
+    "placements": {"spawns": [{"piece": "spawn", "at": [5, 5], "facing": "front"}],
+                   "wools": [{"piece": "wool", "at": [5, 5]}]}
+  },
+  "refinement": {
+    "themes": {
+      "heath": {"rim": {"material": {"kind": "solid", "id": 3}, "depth": 1},
+                "surface": {"material": {"kind": "solid", "id": 2}, "depth": 1},
+                "wall": {"kind": "solid", "id": 1}, "fill": {"kind": "solid", "id": 3}}},
+    "relief": {"*": {"base": 3}},
+    "editShapes": {"dale-9": [{"pulls": {"0": [[0.5, 2]]}}]},
+    "bendShapes": {"dale-9": {"wander": 1.5, "step": 5, "seed": 3, "side": "in", "edges": [2, 4]}},
+    "outlines": {"dale-13": {"at": [20, 32], "radius": 5, "radiusZ": 7, "lobes": 3, "wobble": 0.12, "turn": 10}},
+    "created": "2026-09-30",
+    "authors": ["Opus 5"]
+  },
+  "origin": {"repo": "rockymine/pgm-studio-mapgen", "commit": "5daa56f", "path": "specs/weirgate", "dirty": false},
+  "note": "the first pass"
+}
+```
+
+The pull puts a vertex two blocks into the dale from the middle of edge 0, where the ford leaves it. The bend is
+a coast on the ford's two long sides, which are edges 2 and 4 of `dale-9` as the pull leaves it, the pull having
+put that vertex at 1, so they wander inward while the face `dale-13` stands against and the walls of the two rooms
+keep the line the plan drew. The tor, `dale-13`, is drawn as a three-lobed ellipse
+instead of the plan's rectangle.
 
 **And the plain writes are not merges.** `PUT /api/map/{slug}/sketch` replaces the layout blob verbatim, which
 is what makes a deletion stick, and `PUT /api/map/{slug}/intent` replaces the stored intent wholesale for the
@@ -187,6 +366,57 @@ While the staged loop runs, the plan is upstream: edit it, recompile, and whatev
 is re-derived. That stops the moment an author does hand work a plan cannot express — a curve, a relief, a
 theme, a placed tree. From then on the sketch and the intent are the working artifacts and the plan is
 provenance. Nothing enforces this; the 409 above is the one place the system notices and asks.
+
+## Every change a map keeps
+
+**A write to a map's plan, refinement, layout or intent is a change the map keeps.** Whichever road it comes by — a tool
+saving, a source, a restore — it lands as one change per request: numbered per slug, counting up and never
+repeating, stamped with the person it was written as and the label of the token that wrote it, and carrying
+the `origin` and `note` a source states. The documents are kept whole, once each however many changes write the
+same bytes, so a map can be read, compared and put back as it stood at any of its changes
+(`docs/architecture.md` has how they are stored).
+
+**Two changes compare document by document, in the shape a finding's fix is stated in.**
+`GET /map/{slug}/diff?from=&to=` answers the edits taking the four documents at `from` to those at `to`,
+each naming its document, the path it lands on, one of `add`, `set`, `move` and `remove`, the value, the value
+it replaced, and the change in words (`docs/refusals.md`). A thing in a list is named by its `id` wherever it
+sits, so a shape drawn ahead of the others is one `add` rather than every later shape changing; a list whose
+ids changed order is one `set` of the whole list, because a shape's place is its draw order; an outline is one
+`set` saying how many of its points moved, how far, and how many were inserted or removed; and a prop whose
+`x` and `z` changed is one `move` saying how far it went. Unasked, the diff is what the latest change did, and
+`from=0` compares against nothing stated at all.
+
+```text
+diff fable-hollin-tarn #1 → #2: 3 edits
+layout set    layers[ground].layout.shapes[dale-18].vertices  1 of 6 vertices moved (up to 3.6 blocks)
+layout move   dressing.props[fir-1]  moved 5 blocks, from (-40, -65) to (-36, -68)
+layout set    relief.team.base  base 12 → 14
+```
+
+**And column by column.** `world=true` builds the board at both changes and adds the columns the two builds
+disagree on, sorted into ground, surface block and structure, each as a count and its largest runs with the
+box to find each in; `?format=png` draws them over both boards' ground. What each class means is
+`docs/world-scan/read-backs.md`'s. The edits say what was written, the columns what it built, and the second
+is what a note about the ground is answered against.
+
+**A change is put back by writing its documents again, as a new change.**
+`POST /map/{slug}/changes/{number}/restore` writes back each document that differs from what the map holds,
+through the road that writes it anywhere else: the intent is stored and projected into the map document, the
+plan, the refinement and the layout are stored, and a finished board's ground is read again from the layout the next time
+anything asks for it. The map row, its notes and the pictures kept of it stay where they are, which is what
+separates a restore from a reload. The change is noted as the restore unless the body states a note, and it is
+a change like any other — compared, listed, and put back in its turn.
+
+```json POST /api/map/{slug}/changes/{number}/restore
+{"note": "back to the first pass, before the east shore was redrawn"}
+```
+
+| Endpoint | Answers | Fails with |
+|---|---|---|
+| `GET /map/{slug}/changes[?since=]` | every change, oldest first: `number`, `at`, `writer`, `writerUuid`, `token`, `origin`, `note`, the `documents` it wrote — `plan`, `refinement`, `layout`, `intent` — and the changes it `discarded`. `since` keeps the changes after a number, which is what a round asks for; `?format=text` answers one line a change | 404 `RQ4` no map at that slug |
+| `GET /map/{slug}/changes/{number}` | `{number, plan, refinement, layout, intent}` — each document as the latest change at or before `number` wrote it, absent where none had | 404 `RQ4` no map at that slug, or no change of that number |
+| `GET /map/{slug}/diff[?from=&to=&world=true]` | `{from, to, edits, world}` — the edits taking the documents at `from` to those at `to`, and with `world=true` the changed columns. `?format=text` answers the edits one a line and the runs under them; `?format=png` draws the columns, `scale` 1–16 pixels a block | 404 `RQ4` no map, no kept change, or no change of that number · 422 a side holds no layout, so there is no board to build there |
+| `POST /map/{slug}/changes/{number}/restore` | `{restored, change, documents}` — the change the restore landed as and the documents it wrote; `change` is absent and `documents` empty where every document already stood as it did then | 400 a note over 1,000 characters · 404 `RQ4` no map at that slug, or no change of that number |
 
 ## Stages and layers
 
@@ -211,7 +441,8 @@ endpoint refuses on `map.stage`. What the stage is *for* is saying which of the 
 the author was about to make.
 
 **`GET /api/map/{slug}/state` answers all of it**: the stage, the artifacts, and the moves they allow, each with
-its route. A move is offered because the documents it reads are stored rather than because the stage is right
+its route — and as `behind`, the library names the map's refinement holds whose row has moved on since its
+source was applied. A move is offered because the documents it reads are stored rather than because the stage is right
 — rebuilding a drawing from a plan needs a plan, whatever stage the map is at — so a driver reads its options
 instead of learning them from this document. Its pair is `GET /api/map/{slug}/findings`, which answers what is
 wrong with the map right now from every gate the stored documents can reach, and names the gates it did not
@@ -226,6 +457,7 @@ separately addressable.
 | Document | Type | Where it lives | Read · written at |
 |---|---|---|---|
 | plan | `PlanModel` | its own layer | `GET·PUT /map/{slug}/plan`, `POST /plan/compile`, the `/plans` store |
+| refinement | `Refinement` | its own layer, as the map's source stated it | `GET /map/{slug}/refinement`, `PUT /map/{slug}/source` |
 | sketch layout | `SketchLayout` | its own layer, whole | `GET·PUT /map/{slug}/sketch` |
 | layers | `SketchLayer` | under the layout's `layers` | `GET /sketch/layers`, `GET·PUT·DELETE /sketch/layers/{layerId}` |
 | groups | `SketchGroup` | under a layer's `groups` | `GET /sketch/groups`, `PUT·DELETE /sketch/layers/{layerId}/groups/{groupId}` |
@@ -245,8 +477,9 @@ recompile replaces every shape it produced, and a relief is hand work a plan can
 **A shape is addressed twice over.** It is created under the layer that holds it and edited by its own id
 alone, which is why a `PATCH` needs no layer and a `POST` does.
 
-**Two documents are the whole interface for a caller with no browser.** `POST /api/map/from-documents`
-takes `{slug, name, layout, intent}` and answers the map; `GET /api/map/{slug}/export` answers the world.
+**A source and an export are the whole interface for a caller with no browser.** `PUT /api/map/{slug}/source`
+takes the base and its refinement and answers the change it landed as; `GET /api/map/{slug}/export` answers the
+world.
 
 ## What nothing owns
 

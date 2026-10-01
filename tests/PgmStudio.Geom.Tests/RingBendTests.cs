@@ -87,6 +87,62 @@ public sealed class RingBendTests
                 .Because($"({drawn[0]}, {drawn[1]}) is outside the ring it was cut from");
     }
 
+    /// <summary>A bend named to its edges draws those as coast and leaves every other edge exactly as it was
+    /// drawn: between two vertices of an edge not named there is no point at all, so a seam or a frontline
+    /// keeps the line the plan cut.</summary>
+    [Test]
+    public async Task A_bend_named_to_edges_leaves_every_other_edge_as_drawn()
+    {
+        var ring = Square();
+        var coast = RingBend.Draw(ring, wander: 3, step: 6, seed: 4, side: BendSide.In, edges: new HashSet<int> { 1 })!.Value;
+
+        var at = coast.Ring.Select((point, index) => (point, index))
+            .Where(entry => ring.Any(vertex => vertex[0] == entry.point[0] && vertex[1] == entry.point[1]))
+            .Select(entry => entry.index).ToList();
+        await Assert.That(at.Count).IsEqualTo(ring.Length);
+        for (var edge = 0; edge < ring.Length; edge++)
+        {
+            var inserted = (edge + 1 < at.Count ? at[edge + 1] : coast.Ring.Count) - at[edge] - 1;
+            if (edge == 1) await Assert.That(inserted).IsGreaterThan(0).Because("edge 1 is named");
+            else await Assert.That(inserted).IsEqualTo(0).Because($"edge {edge} is not named");
+        }
+    }
+
+    /// <summary>An edge not named keeps no handle either, so it stays the straight line it was even where one
+    /// of its ends is a gentle vertex that a named edge rounds into.</summary>
+    [Test]
+    public async Task An_edge_not_named_is_not_bent_by_a_handle_at_a_gentle_end()
+    {
+        double[][] ring = [[0, 0], [30, 0], [60, 2], [60, 40], [0, 40]];
+        var coast = RingBend.Draw(ring, wander: 2, step: 6, seed: 4, side: BendSide.In, edges: new HashSet<int> { 0 })!.Value;
+
+        var start = coast.Ring.ToList().FindIndex(point => point[0] == 30 && point[1] == 0);
+        var end = start + 1;
+        await Assert.That(coast.Ring[end]).IsEquivalentTo(ring[2]).Because("edge 1 is not named, so nothing is cut into it");
+        await Assert.That(coast.Controls.ContainsKey(start)).IsTrue().Because("edge 0 is named and rounds into (30, 0)");
+        await Assert.That(coast.Controls[start].Out).IsEquivalentTo(coast.Ring[start])
+            .Because("the handle leading edge 1 would bend an edge nobody named");
+        if (coast.Controls.TryGetValue(end, out var atEnd))
+            await Assert.That(atEnd.In).IsEquivalentTo(coast.Ring[end]);
+    }
+
+    /// <summary>A ring that is its own image, bent with its wander read at each point's canonical image, is a
+    /// coast that is its own image too; read at the points themselves, the same bend is lopsided.</summary>
+    [Test]
+    [Arguments("rot_180")]
+    [Arguments("mirror_x")]
+    public async Task A_ring_that_is_its_own_image_bends_into_a_coast_that_is_too(string mode)
+    {
+        double[][] ring = [[-30, -12], [30, -12], [30, 12], [-30, 12]];
+        (double X, double Z) Canonical(double x, double z) => Symmetry.Canonical(x, z, mode, 0, 0);
+
+        var fanned = RingBend.Draw(ring, wander: 3, step: 4, seed: 9, side: BendSide.Both, sampleAt: Canonical)!.Value;
+        var plain = RingBend.Draw(ring, wander: 3, step: 4, seed: 9, side: BendSide.Both)!.Value;
+
+        await Assert.That(Symmetry.SelfImage(fanned.Ring, mode, 0, 0)).IsNotNull();
+        await Assert.That(Symmetry.SelfImage(plain.Ring, mode, 0, 0)).IsNull();
+    }
+
     /// <summary>An outward bend leaves no point inside it, which is the same statement the other way up.</summary>
     [Test]
     public async Task An_outward_bend_leaves_no_point_inside_the_ring()

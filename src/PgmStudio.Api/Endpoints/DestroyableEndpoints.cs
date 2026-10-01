@@ -31,7 +31,9 @@ public sealed class DestroyableSuggestionsEndpoint(MapRepository repo, PgmDb db)
 {
     public override void Configure()
     {
-        Get("/map/{slug}/destroyable-suggestions"); Description(b => b.Refuses(404));
+        Get("/map/{slug}/destroyable-suggestions");
+        Description(b => b.Refuses(404).Reads(new QueryWord("box", "Only the masses meeting this volume, as "
+            + "`x0,y0,z0,x1,y1,z1`. Absent answers them all, and one that will not read is refused.")));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

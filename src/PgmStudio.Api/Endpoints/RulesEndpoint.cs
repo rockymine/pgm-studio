@@ -34,7 +34,20 @@ namespace PgmStudio.Api.Endpoints;
 /// </summary>
 public sealed class RulesEndpoint : EndpointWithoutRequest<List<RuleDto>>
 {
-    public override void Configure() { Get("/rules"); }
+    public override void Configure()
+    {
+        Get("/rules");
+        Description(b => b.Reads(
+            new QueryWord("family", "Only the rules of one family, by its letters — `WL`, `SR`. Absent is every "
+                + "family."),
+            new QueryWord("rule", "One rule, by its id — `WL2`."),
+            new QueryWord("category", "Only the rules a caller answers the same way.",
+                [.. Enum.GetNames<RuleCategory>().Select(Camel)]),
+            new QueryWord("concerns", "Only the rules about this. Repeated, it narrows: the rules about every one "
+                + "named.", [.. Enum.GetNames<RuleConcern>().Select(Camel)])));
+    }
+
+    private static string Camel(string name) => char.ToLowerInvariant(name[0]) + name[1..];
 
     /// <summary>The assemblies holding rule ids, named rather than discovered. An assembly nothing has touched
     /// yet is not loaded, so sweeping <c>AppDomain</c> would drop a family depending on what the process

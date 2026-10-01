@@ -21,7 +21,7 @@ public sealed class PlanInspectEndpointTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/inspect",
-            new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
+            new StringContent(Seeds.Read("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
@@ -76,17 +76,5 @@ public sealed class PlanInspectEndpointTests
 
         var resp = await client.PostAsync("/api/plan/inspect", new StringContent("not a plan", Encoding.UTF8, "application/json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-    }
-
-    private static string ReadSeed(string file)
-    {
-        var dir = AppContext.BaseDirectory;
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir, "tools", "seeds", file);
-            if (File.Exists(candidate)) return File.ReadAllText(candidate);
-            dir = Directory.GetParent(dir)?.FullName;
-        }
-        throw new FileNotFoundException($"seed {file} not found above the test binary");
     }
 }

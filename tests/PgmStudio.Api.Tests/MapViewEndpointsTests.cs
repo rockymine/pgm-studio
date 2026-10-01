@@ -125,4 +125,31 @@ public sealed class MapViewEndpointsTests
         var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("fromX");
     }
+
+    /// <summary>The map's picture is drawn from one view: the overview until a view is marked, the marked one
+    /// after, and only the last one marked — marking a view unmarks every other, and unmarking it gives the
+    /// picture back to the overview.</summary>
+    [Test]
+    public async Task One_view_is_the_maps_picture_and_marking_one_unmarks_the_rest()
+    {
+        using var client = await SketchBoard.FreshAsync();
+        string? Picture(List<JsonElement> views) =>
+            views.SingleOrDefault(view => view.GetProperty("picture").GetBoolean()) is { ValueKind: JsonValueKind.Object } marked
+                ? marked.GetProperty("id").GetString() : null;
+
+        await Assert.That(Picture(await ListAsync(client))).IsEqualTo("overview");
+
+        var porch = await client.PostAsJsonAsync(Views, new { name = "Porch", lookX = 3, lookZ = 4, picture = true });
+        await Assert.That((await porch.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("picture").GetBoolean()).IsTrue();
+        await client.PostAsJsonAsync(Views, new { name = "Gate", lookX = -3, lookZ = -4, picture = true });
+        await Assert.That(Picture(await ListAsync(client))).IsEqualTo("view-2");
+
+        await client.PutAsJsonAsync($"{Views}/view-2", new { lookX = -3, lookZ = -4, picture = false });
+        await Assert.That(Picture(await ListAsync(client))).IsEqualTo("overview");
+
+        await client.PutAsJsonAsync($"{Views}/view-1", new { lookX = 5, lookZ = 4, picture = true });
+        await client.PutAsJsonAsync($"{Views}/view-1", new { lookX = 6, lookZ = 4 });
+        await Assert.That(Picture(await ListAsync(client))).IsEqualTo("view-1")
+            .Because("a change that states no `picture` keeps whether the view is the picture");
+    }
 }

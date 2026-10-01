@@ -32,7 +32,7 @@ public sealed class ExportWarningsTests
     private static async Task<string> DressedMapAsync(HttpClient client, string name)
     {
         var compile = await client.PostAsync("/api/plan/compile",
-            new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
+            new StringContent(Seeds.Read("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
         await Assert.That(compile.IsSuccessStatusCode).IsTrue().Because(await compile.Content.ReadAsStringAsync());
         var compiled = await compile.Content.ReadFromJsonAsync<JsonElement>();
 
@@ -86,7 +86,7 @@ public sealed class ExportWarningsTests
     public async Task The_export_answers_what_the_build_declined()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        using var client = ApiTestFactory.Shared.CreateClient();
+        using var client = TexturedFactory.Shared.CreateClient();
         var slug = await DressedMapAsync(client, "Dropped Export");
 
         var export = await client.GetAsync($"/api/map/{slug}/export");
@@ -120,10 +120,10 @@ public sealed class ExportWarningsTests
     public async Task A_build_that_dropped_nothing_answers_no_header()
     {
         await ApiTestFactory.ResetSchemaAsync();
-        using var client = ApiTestFactory.Shared.CreateClient();
+        using var client = TexturedFactory.Shared.CreateClient();
 
         var compile = await client.PostAsync("/api/plan/compile",
-            new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
+            new StringContent(Seeds.Read("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
         var compiled = await compile.Content.ReadFromJsonAsync<JsonElement>();
 
         var create = await client.PostAsJsonAsync("/api/sketch", new { name = "Clean Export" });
@@ -165,15 +165,39 @@ public sealed class ExportWarningsTests
             .Because($"nothing is nested under the slug: {string.Join(", ", names)}");
     }
 
-    private static string ReadSeed(string file)
+    /// <summary>The picture a server lists the map by travels at the archive's top beside the document, at the
+    /// author's 290 × 246.</summary>
+    [Test]
+    public async Task The_export_carries_the_picture_a_server_lists_the_map_by()
     {
-        var dir = AppContext.BaseDirectory;
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir, "tools", "seeds", file);
-            if (File.Exists(candidate)) return File.ReadAllText(candidate);
-            dir = Directory.GetParent(dir)?.FullName;
-        }
-        throw new FileNotFoundException($"seed not found: {file}");
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = TexturedFactory.Shared.CreateClient();
+        var slug = await DressedMapAsync(client, "Pictured Export");
+
+        var export = await client.GetAsync($"/api/map/{slug}/export");
+        await Assert.That(export.IsSuccessStatusCode).IsTrue().Because(await export.Content.ReadAsStringAsync());
+
+        using var archive = new ZipArchive(new MemoryStream(await export.Content.ReadAsByteArrayAsync()));
+        await using var picture = new MemoryStream();
+        await using (var entry = archive.GetEntry("map.png")!.Open()) await entry.CopyToAsync(picture);
+        var png = PgmStudio.Geom.Render.PngReader.Decode(picture.ToArray());
+        await Assert.That((png.Width, png.Height)).IsEqualTo((290, 246));
+    }
+
+    /// <summary>A studio without Minecraft's block sprites cannot draw the picture, and the world is not
+    /// refused for it: the zip goes without <c>map.png</c> and the header says why.</summary>
+    [Test]
+    public async Task An_export_without_the_block_sprites_goes_without_its_picture_and_says_so()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await DressedMapAsync(client, "Unpictured Export");
+
+        var export = await client.GetAsync($"/api/map/{slug}/export");
+        await Assert.That(export.IsSuccessStatusCode).IsTrue().Because(await export.Content.ReadAsStringAsync());
+
+        using var archive = new ZipArchive(new MemoryStream(await export.Content.ReadAsByteArrayAsync()));
+        await Assert.That(archive.GetEntry("map.png")).IsNull();
+        await Assert.That(Warnings(export)).IsEqualTo("2 DR-SITE RQ10");
     }
 }

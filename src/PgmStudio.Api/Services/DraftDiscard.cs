@@ -49,8 +49,7 @@ public static class DraftDiscard
 
         if (untouched)
         {
-            await repo.DeleteMapAsync(map.Id, ct);   // FK cascade removes the artifacts
-            await new MapNoteStore(db).DeleteMapAsync(map.Slug, ct);
+            await repo.RemoveAsync(map, ct);
         }
         return untouched;
     }

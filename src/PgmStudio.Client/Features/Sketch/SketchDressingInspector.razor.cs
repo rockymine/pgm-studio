@@ -493,6 +493,8 @@ public static class SpecFields
     public const string TallShare = "tallShare";
     public const string DeadBushShare = "deadBushShare";
     public const string CactusShare = "cactusShare";
+    public const string LilyShare = "lilyShare";
+    public const string MushroomShare = "mushroomShare";
 }
 
 /// <summary>The dressing toolbar's tools, named once. The canvas routes on these strings, so the button, the

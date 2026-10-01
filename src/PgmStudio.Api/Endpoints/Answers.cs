@@ -37,6 +37,13 @@ internal static class Answers
     public static RouteHandlerBuilder AlsoPng(this RouteHandlerBuilder builder, params string[] views) =>
         builder.WithMetadata(new PngPreview(views));
 
+    /// <summary>The route draws its reading as a picture on <c>?format=png</c>, beside the JSON document it
+    /// answers by default, at the scale the route reads itself — where <see cref="AlsoPng"/>'s picture is a
+    /// magnification of a preview's SVG. <see cref="PngQuery"/> publishes the word and the media type
+    /// together.</summary>
+    public static RouteHandlerBuilder AlsoPicture(this RouteHandlerBuilder builder) =>
+        builder.WithMetadata(new PictureTwin());
+
     /// <summary>The route answers its reading as characters on <c>?format=text</c>, beside its default — a
     /// picture or a JSON document. <see cref="TextQuery"/> publishes the word and the media type together,
     /// so the flag that makes a route answer text is the flag that documents how to ask for it.</summary>

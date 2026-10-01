@@ -282,6 +282,21 @@ public sealed class SketchGeometryEndpointsTests
     /// <summary>The rule a bend is safe under, over the wire — the outline's own vertices are all still
     /// there — and the side a caller gets without asking, which is the bloat that reads as land.</summary>
     [Test]
+    public async Task A_shape_answers_its_edges_as_text()
+    {
+        using var client = await SketchBoard.FreshAsync();
+        var id = (await client.GetFromJsonAsync<JsonElement>($"{Sketch}/layers/layer0/shapes"))[0].GetProperty("id").GetString();
+
+        var resp = await client.GetAsync($"{Sketch}/shapes/{id}?format=text");
+
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(resp.Content.Headers.ContentType!.MediaType).IsEqualTo("text/plain");
+        await Assert.That(await resp.Content.ReadAsStringAsync()).StartsWith($"EDGES  {id}  layer layer0");
+        await Assert.That((await client.GetAsync($"{Sketch}/shapes/nowhere?format=text")).StatusCode)
+            .IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    [Test]
     public async Task A_bend_keeps_every_vertex_and_bloats_the_outline_by_default()
     {
         using var client = await RingAsync();
@@ -340,6 +355,23 @@ public sealed class SketchGeometryEndpointsTests
         var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
         await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("wander");
+    }
+
+    /// <summary>An edge is named by the vertex it leaves, and naming one the outline does not have is refused
+    /// with the count it does, the field it was stated under, and the outline left as it was.</summary>
+    [Test]
+    public async Task A_bend_naming_an_edge_the_outline_does_not_have_is_refused()
+    {
+        using var client = await RingAsync();
+        var refused = await client.PostAsync($"{Sketch}/shapes/coast/bend",
+            Body("""{"wander":3,"step":10,"seed":5,"side":"in","edges":[1,4]}"""));
+
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("edges");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("4 edges");
+        await Assert.That((await ShapeAsync(client, "coast")).GetProperty("vertices").GetArrayLength()).IsEqualTo(4);
     }
 
     /// <summary>A rectangle states its bounds rather than an outline, so there is nothing to resample.</summary>

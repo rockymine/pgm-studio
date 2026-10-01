@@ -38,7 +38,8 @@ public static class MapOrigin
     /// <summary>A map at exactly <paramref name="slug"/>, replacing whatever is stored there — the foreign
     /// keys cascade, so the old map's artifacts go with it. A replaced map keeps its owner and counts its
     /// revision on from the one it replaces, so a note written against the old board reads as older than the
-    /// new one.</summary>
+    /// new one; its documents' revisions count on through the slug's change log (<c>MapChangeLog</c>), which
+    /// the replacement leaves where it is.</summary>
     public static async Task<long> ReplacingAsync(
         MapRepository repo, string slug, string name, string stage, MapOriginator? originator, CancellationToken ct)
     {

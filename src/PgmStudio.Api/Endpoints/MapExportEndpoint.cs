@@ -7,6 +7,7 @@ using PgmStudio.Api.Http;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Domain;
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Vocabulary;
@@ -17,16 +18,18 @@ using PgmStudio.Minecraft.Anvil;
 
 /// <summary>
 /// GET /api/map/{slug}/export — the Configure export action. For a <b>sketch-originated</b> map (one with a
-/// stored sketch layout) it returns a ZIP holding <c>map.xml</c>, <c>level.dat</c> and <c>region/*.mca</c> at
-/// its top — a world directory's own contents, which is what a server is handed — a real, playable world
-/// synthesised from the sketch columns +
-/// intent (docs/world-export/sketch-world-export.md). For any other map it returns the plain <c>map.xml</c>
-/// (those already ship a world). Shares the gate + compose pipeline with <see cref="MapXmlEndpoint"/> via
-/// <see cref="MapExportLoader"/>, diverging only to bundle the region files for a sketch map.
+/// stored sketch layout) it returns a ZIP holding <c>map.xml</c>, <c>map.png</c>, <c>level.dat</c> and
+/// <c>region/*.mca</c> at its top — a world directory's own contents, which is what a server is handed — a real,
+/// playable world synthesised from the sketch columns + intent (docs/world-export/sketch-world-export.md), and
+/// the picture the server lists it by (<see cref="MapPicture"/>), left out with an <c>RQ10</c> complaint on a
+/// server without the block sprites. For any other map it returns the plain <c>map.xml</c> (those already ship
+/// a world). Shares the gate + compose pipeline with <see cref="MapXmlEndpoint"/> via
+/// <see cref="MapExportLoader"/>, diverging only to bundle the world for a sketch map.
 /// </summary>
 [Queued]
 public sealed class MapExportEndpoint(
-    MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts, PlayerLookup players)
+    MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts, PlayerLookup players,
+    BlockTextureStore textures)
     : EndpointWithoutRequest
 {
     public override void Configure()
@@ -62,21 +65,27 @@ public sealed class MapExportEndpoint(
         // response has started, and this is the route where props actually drop.
         Complaints.Add(HttpContext, result.World.Declines);
 
+        // The picture a server shows the map by, or the reason the zip goes without it.
+        var (picture, missing) = await MapPicture.DrawAsync(
+            result.World, await KeptViews.LoadAsync(artifacts, map.Id, ct), textures, ct);
+        if (missing is not null)
+            Complaints.Add(HttpContext, [new Finding(RequestRules.TexturesUnavailable, missing, Severity.Complaint)]);
+
         // Sketch-originated: bundle the synthesised world with the XML. An IO or region-encoding failure
         // here escapes to Program.cs's unhandled-fault middleware, which answers the same envelope every
         // other refusal does (RQ2) rather than a raw exception.
-        var zip = BuildWorldZip(slug, result.Xml!, result.World);
+        var zip = BuildWorldZip(slug, result.Xml!, result.World, picture);
 
         HttpContext.Response.ContentType = "application/zip";
         HttpContext.Response.Headers.ContentDisposition = ContentDispositionHeader.Attachment($"{slug}.zip");
         await HttpContext.Response.Body.WriteAsync(zip, ct);
     }
 
-    /// <summary>Write the world to a temp folder, then zip <c>map.xml</c> + <c>level.dat</c> +
+    /// <summary>Write the world to a temp folder, then zip <c>map.xml</c> + <c>map.png</c> + <c>level.dat</c> +
     /// <c>region/*.mca</c> in memory. The archive is flat: what a server is handed is a world directory, so
     /// its contents sit at the archive's top and the download is unpacked into a folder of the caller's
     /// choosing rather than into one named for the slug.</summary>
-    private static byte[] BuildWorldZip(string slug, string xml, BuiltWorld built)
+    private static byte[] BuildWorldZip(string slug, string xml, BuiltWorld built, byte[]? picture)
     {
         var tmp = Path.Combine(Path.GetTempPath(), "world_" + Guid.NewGuid().ToString("N"));
         try
@@ -95,6 +104,8 @@ public sealed class MapExportEndpoint(
             {
                 var xmlEntry = archive.CreateEntry("map.xml");
                 using (var s = xmlEntry.Open()) s.Write(Encoding.UTF8.GetBytes(xml));
+                if (picture is not null)
+                    using (var s = archive.CreateEntry("map.png").Open()) s.Write(picture);
 
                 AddFile(archive, Path.Combine(tmp, "level.dat"), "level.dat");
                 foreach (var mca in Directory.GetFiles(regionDir, "*.mca"))

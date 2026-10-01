@@ -52,7 +52,8 @@ public sealed class AccessHandler(Callers callers, MapRepository maps) : Authori
         {
             AccessPolicies.Member => true,
             AccessPolicies.Admin => caller.IsAdmin,
-            // A slug no map is stored under is the route's own 404 to answer, not an access question.
+            // A slug no map is stored under is the route's own to answer — a 404, or the map a source makes
+            // there — not an access question.
             AccessPolicies.MapEditor =>
                 await maps.GetBySlugAsync(http.Request.RouteValues["slug"] as string ?? "", http.RequestAborted)
                     is not { } map

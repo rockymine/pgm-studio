@@ -82,8 +82,8 @@ public sealed class MapNoteRow
     [Column("updated_at"), NotNull] public DateTime UpdatedAt { get; set; }
 }
 
-/// <summary>One message in a note's thread (M0048): who wrote it, with which token where it was one, against
-/// which revision of the map, and the picture it carries by hash.</summary>
+/// <summary>One message in a note's thread (M0048): who wrote it, with which token where it was one, at which
+/// of the map's changes (M0053), and the picture it carries by hash.</summary>
 [Table("map_note_message")]
 public sealed class MapNoteMessageRow
 {
@@ -93,7 +93,7 @@ public sealed class MapNoteMessageRow
     [Column("author_name"), NotNull] public string AuthorName { get; set; } = "";
     [Column("token_label")] public string? TokenLabel { get; set; }
     [Column("body"), NotNull] public string Body { get; set; } = "";
-    [Column("revision"), NotNull] public long Revision { get; set; }
+    [Column("change_number"), NotNull] public long Change { get; set; }
     [Column("picture")] public string? Picture { get; set; }
     [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
 }
@@ -647,6 +647,66 @@ public static class ArtifactKind
     // named views. A sidecar rather than a part of the layout, so keeping a picture is not an edit to the
     // board and the world it builds.
     public const string MapViewsJson = "map_views_json";
+    // The refinement a map's source last stated (docs/tools/flow.md, A map's source): everything its plan
+    // cannot, as the source stated it, and `{}` where a source stated none.
+    public const string RefinementJson = "refinement_json";
+
+    /// <summary>The documents a map is authored in, whose every write is a change the map keeps
+    /// (<see cref="MapChangeRow"/>) and whose revision is the number of the change that last wrote it, each with
+    /// the word it is named by on the wire (<see cref="Vocabulary.MapDocuments"/>). The rest are derived from
+    /// them or are pictures of the board, and count their own revisions.</summary>
+    public static readonly IReadOnlyDictionary<string, string> Kept = new Dictionary<string, string>
+    {
+        [PlanJson] = Vocabulary.MapDocuments.Plan,
+        [RefinementJson] = Vocabulary.MapDocuments.Refinement,
+        [SketchLayoutJson] = Vocabulary.MapDocuments.Layout,
+        [MapIntentJson] = Vocabulary.MapDocuments.Intent,
+    };
+}
+
+/// <summary>One write to a map's documents (M0052): its number, which counts up per slug and never repeats,
+/// who wrote it, where its documents came from where the writer said, and a note. Keyed by slug, as a note is,
+/// so a board rebuilt over its own slug carries on its history.</summary>
+[Table("map_change")]
+public sealed class MapChangeRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_slug"), NotNull] public string MapSlug { get; set; } = "";
+    [Column("number"), NotNull] public long Number { get; set; }
+    [Column("created_at"), NotNull] public DateTime CreatedAt { get; set; }
+    [Column("writer_uuid")] public string? WriterUuid { get; set; }
+    [Column("writer_name")] public string? WriterName { get; set; }
+    [Column("token_label")] public string? TokenLabel { get; set; }
+    [Column("origin_json")] public string? OriginJson { get; set; }
+    [Column("note")] public string? Note { get; set; }
+    [Column("discarded_json")] public string? DiscardedJson { get; set; }
+}
+
+/// <summary>A document a change wrote: its kind and the hash of its bytes in <see cref="DocumentBlobRow"/>.</summary>
+[Table("map_change_document")]
+public sealed class MapChangeDocumentRow
+{
+    [PrimaryKey(0), Column("change_id")] public long ChangeId { get; set; }
+    [PrimaryKey(1), Column("kind"), NotNull] public string Kind { get; set; } = "";
+    [Column("blob_hash"), NotNull] public string BlobHash { get; set; } = "";
+}
+
+/// <summary>A document's bytes, kept once under the SHA-256 of what was written and stored gzipped.</summary>
+[Table("document_blob")]
+public sealed class DocumentBlobRow
+{
+    [PrimaryKey, Column("hash")] public string Hash { get; set; } = "";
+    [Column("data"), NotNull] public byte[] Data { get; set; } = [];
+    [Column("length"), NotNull] public long Length { get; set; }
+}
+
+/// <summary>The last change number a slug has used. It outlives the map's row and its history, so a map
+/// rebuilt or recreated under a slug numbers on from every change the slug ever answered.</summary>
+[Table("map_change_sequence")]
+public sealed class MapChangeSequenceRow
+{
+    [PrimaryKey, Column("map_slug")] public string MapSlug { get; set; } = "";
+    [Column("last_number"), NotNull] public long LastNumber { get; set; }
 }
 
 /// <summary>A persisted layout plan (see M0008_Plan). A standalone corpus row — no map FK. <see cref="Origin"/>
@@ -776,7 +836,7 @@ public sealed class RoomStyleRow
     [Column("porch_depth")] public int PorchDepth { get; set; }
     [Column("porch_inset")] public int PorchInset { get; set; }
     [Column("porch_edge"), NotNull] public string PorchEdge { get; set; } = "front";
-    [Column("porch_roof"), NotNull] public string PorchRoof { get; set; } = "shed";
+    [Column("porch_roof"), NotNull] public string PorchRoof { get; set; } = "gable";
     [Column("porch_rail_block")] public int PorchRailBlock { get; set; } = 85;
 
     // The part styles this house is composed from (M0018). Each is optional and each, when bound, takes over
@@ -860,7 +920,7 @@ public sealed class PorchStyleRow
     [Column("depth")] public int Depth { get; set; } = 2;
     [Column("inset")] public int Inset { get; set; }
     [Column("edge"), NotNull] public string Edge { get; set; } = "front";
-    [Column("roof_form"), NotNull] public string RoofForm { get; set; } = "shed";
+    [Column("roof_form"), NotNull] public string RoofForm { get; set; } = "gable";
     [Column("rail_block")] public int RailBlock { get; set; } = 85;
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }

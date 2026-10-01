@@ -18,6 +18,7 @@ public static class Blocks
     public const int Cobweb = 30;
     public const int Sand = 12;
     public const int Gravel = 13;
+    public const int Mycelium = 110;
     public const int Sandstone = 24;
     public const int Clay = 82;
     public const int HardenedClay = 172;

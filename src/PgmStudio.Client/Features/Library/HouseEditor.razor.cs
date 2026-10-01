@@ -192,7 +192,7 @@ public partial class HouseEditor
     /// <summary>The porch a style gets the moment one is switched on: two blocks of the front wall's strip,
     /// running its full width, under a lean-to with a fence along its open edges.</summary>
     private static readonly RoomPorchDto DefaultPorch =
-        new(Depth: 2, Inset: 0, Edge: PorchEdges.Front, Roof: RoofForms.Shed, RailBlock: 85);
+        new(Depth: 2, Inset: 0, Edge: PorchEdges.Front, Roof: RoofForms.Gable, RailBlock: 85);
 
     private void StartNew()
     {

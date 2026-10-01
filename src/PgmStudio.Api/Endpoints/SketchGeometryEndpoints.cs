@@ -260,7 +260,9 @@ public sealed class SketchShapeCreateEndpoint(MapRepository repo, MapArtifactSto
     {
         Post("/map/{slug}/sketch/layers/{layerId}/shapes");
         Description(b => b.Accepts<SketchShape>("application/json")
-                          .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
+                          .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409)
+                          .Reads(new QueryWord("group", "The group the shape joins, which is opened where the layer "
+                              + "has none by that id. A layer that groups its shapes refuses a shape naming none.")));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -276,15 +278,16 @@ public sealed class SketchShapeCreateEndpoint(MapRepository repo, MapArtifactSto
     }
 }
 
-/// <summary>GET /api/map/{slug}/sketch/shapes/{shapeId} — one shape, wherever on the stack it is drawn. 404
-/// where the id names none.</summary>
+/// <summary>GET /api/map/{slug}/sketch/shapes/{shapeId} — one shape, wherever on the stack it is drawn, and on
+/// <c>?format=text</c> its outline's edges as a point edit names them (<see cref="ShapeEdges"/>). 404 where the id
+/// names none.</summary>
 public sealed class SketchShapeOfIdEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<SketchShape>
 {
     public override void Configure()
     {
         Get("/map/{slug}/sketch/shapes/{shapeId}");
-        Description(b => b.Produces<SketchShape>(200, "application/json").Refuses(404));
+        Description(b => b.Produces<SketchShape>(200, "application/json").Refuses(404).AlsoText());
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -295,6 +298,7 @@ public sealed class SketchShapeOfIdEndpoint(MapRepository repo, MapArtifactStore
         var shape = SketchLayout.Stack(layout).SelectMany(layer => layer.Shapes)
                                               .FirstOrDefault(drawn => drawn.Id == id);
         if (shape is null) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
+        if (TextAnswer.Wanted(HttpContext)) { await TextAnswer.WriteAsync(HttpContext, ShapeEdges.Text(layout, id)!, ct); return; }
         await Send.OkAsync(shape, ct);
     }
 }
@@ -483,19 +487,6 @@ public sealed class SketchVertexDeleteEndpoint(MapRepository repo, MapArtifactSt
     }
 }
 
-/// <summary>What a bend is asked for: how far a point may be pulled off its edge, which way, how often to cut
-/// along an edge, and which coast.</summary>
-/// <param name="Wander">How far, in blocks, an inserted point may be pulled off its edge. The whole of what
-/// makes an outline organic, and the one number a bend is refused over.</param>
-/// <param name="Step">How often to cut along an edge, in blocks. An edge with room for fewer than two cuts
-/// is left straight, so a neck and a short face come out as the plan drew them.</param>
-/// <param name="Seed">Which coast. The same seed draws the same one, so a spec re-driven is re-driven.</param>
-/// <param name="Tension">How long the Bézier handles are, as a fraction of their own edge. Absent is 0.22.</param>
-/// <param name="Side">Which way the cut points move — <c>out</c> of the ring, <c>in</c> to it, or
-/// <c>both</c>, wandering across the line the plan drew. Absent is <c>out</c>, the slight bloat that reads as
-/// land; <c>in</c> is what a board whose shapes abut on a measured strait asks for.</param>
-public sealed record BendRequest(double Wander, double Step, uint Seed, double? Tension, BendSide? Side);
-
 /// <summary>POST /api/map/{slug}/sketch/shapes/{shapeId}/bend — redraw one outline as a coast.
 ///
 /// <para>The compiler emits a staircase of the plan's rectangles, which is the board's shape and not its
@@ -518,7 +509,7 @@ public sealed class SketchShapeBendEndpoint(MapRepository repo, MapArtifactStore
     public override void Configure()
     {
         Post("/map/{slug}/sketch/shapes/{shapeId}/bend");
-        Description(b => b.Accepts<BendRequest>("application/json")
+        Description(b => b.Accepts<ShapeBend>("application/json")
                           .Produces<BentDto>(200, "application/json").Refuses(400, 404, 409));
     }
 
@@ -530,15 +521,8 @@ public sealed class SketchShapeBendEndpoint(MapRepository repo, MapArtifactStore
         var outcome = await SketchGeometryWrite.RunAsync(repo, artifacts, HttpContext, ct,
             (layoutJson, stated) =>
             {
-                var asked = stated.Deserialize<BendRequest>(SketchLayout.Json);
-                if (asked is not { Wander: > 0, Step: > 0 })
-                    return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
-                        "a bend states `wander` and `step`, both greater than nought: how far a point may be "
-                        + "pulled off its edge, and how often to cut along an edge.", Field: "wander"));
-
-                var edit = SketchGeometryEdit.BendShape(
-                    layoutJson, id, asked.Wander, asked.Step, asked.Seed, asked.Tension ?? DefaultTension,
-                    asked.Side ?? BendSide.Out, out held);
+                var asked = stated.Deserialize<ShapeBend>(SketchLayout.Json) ?? new ShapeBend(0, 0, 0);
+                var edit = asked.ApplyTo(layoutJson, id, out held);
                 if (edit.Layout is { } drawn)
                     vertices = SketchLayout.Stated(drawn)?.Layers?.SelectMany(layer => layer.Shapes)
                         .FirstOrDefault(shape => shape.Id == id)?.Vertices?.Length ?? 0;
@@ -555,7 +539,4 @@ public sealed class SketchShapeBendEndpoint(MapRepository repo, MapArtifactStore
         await Send.OkAsync(new BentDto(outcome.Id, vertices, held), ct);
     }
 
-    /// <summary>The handle length a coast reads well at, as a fraction of its own edge — measured over the
-    /// seven boards in the corpus that bend one.</summary>
-    private const double DefaultTension = 0.22;
 }

@@ -20,6 +20,14 @@ reuse. The prefix names the document the task must leave correct, catalogued in 
 about which section the entry sits in — the retired prefixes still on entries here (`B`, `S`, `N`, `C`, `CV`,
 `P`, `A`) keep theirs untouched.
 
+## Parked from the programme
+
+- [ ] **TS126 — A note's checkable claim, kept as a check.** *Parked (author): not yet.* Some notes state
+  what a board must keep being — a path reaches the bridge (note 58), a bedrock wall has void on both sides
+  (note 48), a wall does not float (note 54). A reply could carry the claim as a measured check over the note's
+  anchor, kept when the author resolves the note, and raised as a finding naming the note when a later pass
+  breaks it. `docs/tools/sketch.md` § In game.
+
 ## The configure wizard: a map built from what an author states it is
 
 The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds a map from declarative
@@ -182,14 +190,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   here runs the other way — a drawn channel handed to the solver as a line mark below base level makes the
   terrain form a valley around it (`world-export/relief.md` §9).
 
-- [ ] **WE73 — Nothing stands in the water.** A `pool` or `channel` claims every column of its bed
-  (`ClaimKind.Water`) and a quay wall drawn as a `keepClear` path keeps its band, so a boulder stated in the
-  race is refused before it is seated — `DR-CLAIM` by the channel at `(−110, 55)`, `DR-KEEP` by the wall at
-  `(−70, 52)` on `maps/fable-millrace-revamp` — and a rock's cells above the bed would meet water rather
-  than air in `Decorator.Fan` if it were. The author brushed about twenty rocks into Millrace's bed and the
-  studio plants none. Let a boulder seat on a bed the water claims and write through the water, keeping the
-  claim for everything else; `docs/world-export/decoration.md` §5 and §7.
-
 ### Placing something on a storey that is not the top one
 
 All six placement kinds carry an optional `Layer`, a prop carries one, and `BuiltTerrain.SurfaceFor(layer)`
@@ -238,6 +238,16 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   written up in `docs/tools/sketch.md`, so a library emits what an author can already draw by hand.
 
 ### Dressing: what the pass can place
+
+- [ ] **TL35 — A copied tree states no species.** A tree save requires `species` (`RQ1`) and the library
+  answers one for every row, so every copied recipe states `"species": "oak"` — `acacia-1`, `birch-3` and
+  `sequoia-1` alike, and so every entry of `pgm-studio-mapgen/corpus/tree-showcase/trees.json`. A copied tree
+  reads only its body, so the word is inert, but it says of an acacia what the showcase's `kinds.json` exists to
+  stop anyone reading off a block. `TreeStyleSaveRequest.Species` is required of a template only,
+  `PropStyleLibrary.TreeOf` gives a copied row none and `DressingJson` writes none for one; the snapshot is cut
+  again after. `docs/tools/library.md`.
+
+  *Evidence: all 84 entries of the snapshot read `"species":"oak"`.*
 
 - [ ] **WE154 — A chest PGM refills.** A `chest` prop's stacks are written into the world and never
   refilled. PGM's `<lootables>` refills one: `<loot id>` states items the way a kit does, and `<fill loot=…
@@ -432,6 +442,65 @@ and what a `subtract` takes away.
   wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
   from 2 isolated markers to **0** — the direction that reads as an improvement.*
 
+## A note and the changes that answer it
+
+The In game phase's threads and the History phase's changes describe one piece of work from its two ends — what
+the author asked, and what the board did about it — and nothing yet joins them.
+
+- [ ] **TS131 — A change names the notes it answered, and History opens them.** A reply records the change it
+  was written at (`NoteMessageDto.Change`, `Contracts/MapNoteDtos.cs:76`), so the threads a change answered are
+  the ones holding a message written at it, and nothing reads that back: History's inspector shows a change's own
+  note only (`SketchChangeInspector.razor:21`) and has no way into In game. List under the picked change every
+  thread with a message written at it, each opening that thread in In game, which `SketchTool` already does by
+  id (`?note=`). `docs/tools/sketch.md` § History. *Evidence: answer a note with a drive and open History on the
+  change it landed as — the thread is nowhere on the screen.*
+
+- [ ] **TS132 — A thread counts its changes from the note, not from its last message.** `ChangesSince`
+  (`SketchNotesColumn.razor.cs:130`) counts the changes after the thread's *last* message and `LastChange` starts
+  the diff there, so once an agent replies at the change that answered the note the count reads 0 and the link
+  to those changes is gone — the span the author most wants. Count from the note's own first message, and offer
+  "since the last message" as a second link only where a later change exists. `docs/tools/sketch.md` § In game.
+
+- [ ] **TS133 — Coming back to History redraws the change it shows.** Leaving History clears the canvas diff
+  (`setDiff(null)`, `SketchTool.razor.cs:586`), and `GoHistory` (`:235`) picks a change only when `spanTo` is
+  null — so on return the inspector names the kept change while the canvas stays blank until one is clicked again.
+  Redraw the kept span on entry (`ShowSpan(spanFrom, spanTo)`). `docs/tools/sketch.md` § History.
+
+- [ ] **TS134 — A link to one note opens it once.** `?note=` is read from the query (`SketchTool.razor.cs:48`)
+  and stays in the URL, and In game's `openedFromLink` (`SketchInGamePhase.razor.cs:102`) lives on a component
+  torn down with the phase, so every return to In game reopens that thread over whatever the author was reading.
+  Drop `note` from the URL once its thread is open, replacing the entry rather than pushing one.
+  `docs/tools/sketch.md` § In game.
+
+- [ ] **TS135 — Letting go of a view says when the studio refused.** `LetGoView` (`SketchTool.razor.cs:486`)
+  reports only an unreachable studio and never reads the DELETE's status, so a refusal leaves the view on screen
+  with no word. Show the refusal's `message` in the views error the phase already renders.
+  `docs/tools/sketch.md` § In game.
+
+- [ ] **TS136 — In game's change count follows the board while it is open.** The changes are read on entering
+  the phase (`SketchTool.razor.cs:181`) and not again, so a drive that lands while In game is open leaves every
+  thread's "changes since" stale until the author leaves and comes back. Read them again when the board's
+  revision moves while the phase is up. `docs/tools/sketch.md` § In game.
+
+- [ ] **TS137 — A thread can be marked won't-do and retagged in the browser.** The thread offers Resolve and
+  Reopen only (`SketchInGamePhase.razor:137`), and a tag is chosen when a note is written and never after
+  (`SketchNotesColumn.razor:128`). `PATCH /map/{slug}/notes/{id}` already takes `wont-do` and a tag
+  (`NoteChangeRequest`, `Contracts/MapNoteDtos.cs:125`) and the client already calls it for the two statuses it
+  offers (`SketchInGamePhase.razor.cs:348`); add won't-do and a tag picker to the thread. `docs/tools/sketch.md`
+  § In game.
+
+- [ ] **TS138 — A reply can ask the studio for its "after" picture.** Answering a note means fetching
+  `render/eye` with the note's own camera, posting the PNG to `POST /notes/pictures` and naming the hash as the
+  reply's `picture`: three calls every agent writes by hand (the `pgm-board` skill, §2). Let a reply state that
+  its picture is the note's camera, and have the studio draw it at the change the reply is written at.
+  `docs/tools/sketch.md` § Answering the notes an author left.
+
+- [ ] **TS139 — A browser test for In game and its notes.** `tests/e2e` covers History (`sketch-history.mjs`)
+  and Report (`sketch-report.mjs`) and nothing of In game: no spec writes a note, replies, resolves one, opens a
+  thread from `?note=`, or follows "changes since" into History. Add one spec covering those five to
+  `./tools/e2e.sh all`; it is the test that would have caught `TS133` and `TS134`. `docs/tools/sketch.md` § In
+  game.
+
 ## User Experience
 
 - [ ] **TS121 — A lasso over the void carries coordinates.** `EyeScene.Project` counts a ray that hits nothing
@@ -453,6 +522,15 @@ and what a `subtract` takes away.
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
 
 ## Refactoring and cleanup
+
+- [ ] **TL37 — The library is seeded from one place.** What a fresh studio holds is stated in four kinds of
+  place: C# preset classes (`StylePresets`, `ThemePresets`, `HousePresets.All`), literals inside the seeder itself
+  (the boulder recipes, `LibrarySeed.cs:69`; a tree per `DressingPalette.Species`), 49 embedded JSON files
+  (`Minecraft/Houses/Kept`), and a tool run by hand at deploy that copies trees out of a world in the authoring
+  repository (`tools/seed-trees.cs` over `corpus/tree-showcase`). Inspect each and move every seeded row —
+  materials, themes, houses and their parts, tree and boulder recipes, the copied trees, the biome patterns — into
+  one fixture folder of data read by one seeder, with one test that the seeded library equals the folder. A
+  preset that is code because it is computed stays code and is named as such. `docs/tools/library.md` § the seed.
 
 - [ ] **C64 — What is left of the CSS that styles markup nobody renders.** The dashboard run is gone
   (`FEATURES.md`); **54 of 598** selectors across the studio stylesheets are still matched by no `.razor`,
@@ -476,15 +554,6 @@ and what a `subtract` takes away.
   it reads. The prose goes with it: nine docstrings across `WorldBuilder`, `MapExportComposer`, `SketchRules`,
   `SketchMaterialGate` and `PlanStructurePreview` still call the structures a wool cage and a spawn cube,
   which is the same word under a different hat and wants renaming in one pass rather than in two.
-
-- [ ] **RP65 — The layout DTO still says `JsonElement` where its own routes say `DressingDoc` and
-  `BiomeField`.** `SketchLayout.Dressing` and `.Biome` are `JsonElement?` because their types live in
-  `Minecraft` and `SketchLayout` lives in `Pgm`, which are siblings over `Domain` + `Geom` — the fields' own
-  docstrings say so (`SketchLayout.cs:41-50`). The part routes publish both models and the store-time gate
-  reads both (`FEATURES.md`), so what is left is the whole-layout route: `GET`/`PUT /map/{slug}/sketch` names
-  the two fields with no shape under them, and a reader who starts from the document rather than from the
-  parts finds two holes in it. Move the dressing and material model down to a project both reach, or publish
-  the two schemas from `Minecraft` and reference them from the layout.
 
 - [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
   `/maps/{slug}/plan` from a single component through six `@if (MapBacked)` branches, and the two render as
@@ -548,12 +617,6 @@ server's backups and the edits a read-only page still lets start.
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
 ## The remainder: work no concept above has claimed
-
-- [ ] **WS72 — `GET /map/{slug}/coverage` and its `?format=png` each walk the whole board.** Both run
-  `GroundCoverage.Read` over the same stored documents, a field per waypoint and a walk per pair of them, and
-  `drive.py` asks for both on every run: 2.5 s apiece on `opus55-scarbutte` in the Debug studio, the largest
-  read a drive still waits on. The picture wants the numbers the JSON already computed, kept the way
-  `BuiltWorlds` keeps a world — keyed on what the read derives from, so an edit is a new key.
 
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled

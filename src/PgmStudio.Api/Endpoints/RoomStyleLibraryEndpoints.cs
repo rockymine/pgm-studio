@@ -145,6 +145,16 @@ public sealed class HouseBlockKindsEndpoint : EndpointWithoutRequest<HouseBlockK
                     block.Id, block.Data, block.Name, block.Material, block.Hex))]))]), ct);
 }
 
+/// <summary>GET /api/room-styles/name-words — the two lists a library style's name is made from, which are the
+/// lists <c>HS19</c> reads a name against (<see cref="HouseNames"/>).</summary>
+public sealed class HouseNameWordsEndpoint : EndpointWithoutRequest<HouseNameWordsDto>
+{
+    public override void Configure() { Get("/room-styles/name-words"); }
+
+    public override Task HandleAsync(CancellationToken ct)
+        => Send.OkAsync(new HouseNameWordsDto([.. HouseNames.Describing], [.. HouseNames.Buildings]), ct);
+}
+
 /// <summary>GET /api/room-styles/{id} — one room style with its per-part courses.</summary>
 public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithoutRequest<RoomStyleDetail>
 {
@@ -164,7 +174,8 @@ public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithout
 /// composed shell fails <see cref="HouseStyleValidation.Check"/> — a block named for a geometric role that is
 /// not that kind of block, a doorway that does not clear the least height a door may, or a roof whose own
 /// materials are wrong for its pitch or its family. Nothing is corrected silently; the request is refused and
-/// the findings say what was wrong.</summary>
+/// the findings say what was wrong. The verdicts on how a house looks, its name's included (<c>HS19</c>), are
+/// complaints and ride on the 200.</summary>
 public sealed class RoomStyleCreateEndpoint(RoomStyleStore store, RoomStyleLibrary library)
     : Endpoint<RoomStyleSaveRequest, RoomStyleDetail>
 {
@@ -172,7 +183,8 @@ public sealed class RoomStyleCreateEndpoint(RoomStyleStore store, RoomStyleLibra
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
-        var findings = HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct));
+        var findings = HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct))
+            .And(HouseNames.Check(req.Name));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = await store.CreateAsync(
             RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req),
@@ -190,7 +202,8 @@ public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store, RoomStyleLibra
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
-        var findings = HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct));
+        var findings = HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct))
+            .And(HouseNames.Check(req.Name));
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         var updated = await store.UpdateAsync(

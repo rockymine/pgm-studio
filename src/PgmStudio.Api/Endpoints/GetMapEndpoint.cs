@@ -1,3 +1,4 @@
+using System.Text;
 using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
@@ -32,10 +33,10 @@ public sealed class GetMapEndpoint(MapRepository repo, MapReader reader, MapWrit
 }
 
 /// <summary>DELETE /api/map/{slug} — remove the map and everything stored under it: every row keyed on the
-/// map cascades from its <c>map</c> row, and the notes on it, which name it by slug, go with it. A world folder
-/// under a maps root is the source a map was scanned from rather than something the map holds, so it is left
-/// where it is.</summary>
-public sealed class DeleteMapEndpoint(MapRepository repo, MapNoteStore notes) : EndpointWithoutRequest
+/// map cascades from its <c>map</c> row, and the notes on it and the changes to its documents, which name it by
+/// slug, go with it. A world folder under a maps root is the source a map was scanned from rather than something
+/// the map holds, so it is left where it is.</summary>
+public sealed class DeleteMapEndpoint(MapRepository repo) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -46,8 +47,7 @@ public sealed class DeleteMapEndpoint(MapRepository repo, MapNoteStore notes) : 
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        await repo.DeleteMapAsync(map.Id, ct);
-        await notes.DeleteMapAsync(map.Slug, ct);
+        await repo.RemoveAsync(map, ct);
         await Send.NoContentAsync(ct);
     }
 }
@@ -90,7 +90,8 @@ public sealed class MapFindingsEndpoint(MapRepository repo, MapArtifactStore art
 /// what may be done to it from here. A tool asks about the map it has open so it can tell an origination
 /// from a rebuild before offering the action rather than after performing it; the moves are the same
 /// question answered outright.</summary>
-public sealed class MapStateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapState>
+public sealed class MapStateEndpoint(MapRepository repo, MapArtifactStore artifacts, LibraryNames names)
+    : EndpointWithoutRequest<MapState>
 {
     public override void Configure() { Get("/map/{slug}/state"); Description(b => b.Refuses(404)); }
 
@@ -104,6 +105,8 @@ public sealed class MapStateEndpoint(MapRepository repo, MapArtifactStore artifa
             kinds.Contains(ArtifactKind.SketchLayoutJson),
             kinds.Contains(ArtifactKind.SurfaceParquet),
             kinds.Contains(ArtifactKind.MapIntentJson));
-        await Send.OkAsync(new MapState(map.Stage, held, MapMoves.From(map.Stage, held)), ct);
+        var refinement = await artifacts.LoadAsync(map.Id, ArtifactKind.RefinementJson, ct);
+        await Send.OkAsync(new MapState(map.Stage, held, MapMoves.From(map.Stage, held),
+            await names.BehindAsync(refinement is null ? null : Encoding.UTF8.GetString(refinement), ct)), ct);
     }
 }

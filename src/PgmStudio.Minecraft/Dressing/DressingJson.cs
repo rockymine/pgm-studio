@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Geom.Algorithms;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -156,17 +157,17 @@ public static class DressingJson
         var styles = new Dictionary<string, PropStyle>(StringComparer.Ordinal);
         foreach (var (key, value) in entries)
         {
-            // A house recipe's shell is a style snapshot, and a part it states as null where the record cannot
-            // hold one is refused here the way the style's own reader refuses it — read past, it is a null the
-            // gate and the stamper dereference.
+            // A house recipe's shell is a style snapshot, and a part the record cannot hold — a null where it has
+            // none, or a part with no courses — is refused here the way the style's own reader refuses it: read
+            // past, it is a null the gate and the stamper dereference.
             if (value is JsonObject recipe && recipe["kind"] is JsonValue kind
                 && kind.TryGetValue<string>(out var word) && word == "house")
             {
                 if (recipe.TryGetPropertyValue("shell", out var shell) && shell is null)
                     throw new DressingParseException($"recipe '{key}'", "shell",
                         "is stated as null — a building's recipe always has a shell; drop the field for the default one");
-                if (HouseStyleJson.StatedNull(shell, "shell") is { } stated)
-                    throw new DressingParseException($"recipe '{key}'", stated.Field, stated.Detail);
+                if (HouseStyleJson.Unreadable(shell, "shell") is { } unreadable)
+                    throw new DressingParseException($"recipe '{key}'", unreadable.Field, unreadable.Detail);
             }
             try
             {
@@ -190,6 +191,8 @@ public static class DressingJson
         BoulderProp boulder => boulder with { Style = Recipe<BoulderStyle>(styles, boulder.StyleKey, subject) },
         HouseProp house => house with { Style = Recipe<HouseStyleRef>(styles, house.StyleKey, subject).Shell },
         ChestProp chest => Checked(chest, subject),
+        FluidProp { Shape: FluidShape.Basin, Level: null } => throw new DressingParseException(subject, "level",
+            "is not stated, and a basin is its fluid filled to a level: state the world Y the fluid stands at"),
         _ => prop,
     };
 

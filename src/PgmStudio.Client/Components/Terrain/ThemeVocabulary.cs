@@ -398,13 +398,14 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     ];
 
     /// <summary>What a house has that a plain shell does not: framed corners, a footing, and trim along the
-    /// roof's edge. Each takes one material.</summary>
+    /// roof's edge. Each takes one material. A footing is complained of on every style saved (<c>HS7</c>), so
+    /// the editor offers its slot only to a style that still carries one, for unbinding.</summary>
     public static readonly IReadOnlyList<RoomPartInfo> Trim =
     [
         new(RoomParts.Post, "Corner posts",
             "The four columns the walls run between. Unbound, the corners are wall like the rest of the building — which is what a plain shell is."),
-        new(RoomParts.Sill, "Sill",
-            "The course the walls stand on, laid one block proud of them on every side, so the building meets the ground on a footing instead of stopping dead at it."),
+        new(RoomParts.Sill, "Footing",
+            "A course ringing the walls one block proud of them. A house should not have one (HS7): it reads as a rim round the building rather than as anything it stands on — unbind it."),
         new(RoomParts.Verge, "Verge",
             "The roof's own border — its eave course and its two verges, and the ridge cap where the roof wears one. Unbound, it is the roof's material."),
         new(RoomParts.Gable, "Gable face",
@@ -413,8 +414,13 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
             "The plate this storey stands on, infilled across its interior at a course the walls already span. Unbound, it is the house floor's own top material. The ground storey's deck is the building's floor, and the topmost storey has nothing over it — the roof is what closes that one. Its border, field and inlay are this storey's own, because the plate is its floor rather than the ceiling of the one below."),
     ];
 
+    /// <summary>The porch's own roof material, offered with the porch rather than with the trim because only a
+    /// building with a porch has a canopy.</summary>
+    public static readonly RoomPartInfo Canopy = new(RoomParts.Canopy, "Canopy laid in",
+        "The roof over the deck, rim and all, in one block. Unbound, it is the house roof's own material under its verge.");
+
     public static RoomPartInfo Of(string part)
-        => All.Concat(FloorZones).Concat(Trim).First(info => info.Id == part);
+        => All.Concat(FloorZones).Concat(Trim).Append(Canopy).First(info => info.Id == part);
 }
 
 /// <summary>

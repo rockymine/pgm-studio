@@ -24,6 +24,20 @@ public sealed class BuiltWalkTests
           {"kind":"fluid","id":"moat","fluid":"lava","points":[[0,-30],[0,30]],"radius":3,"depth":2}]}}
         """;
 
+    /// <summary>The same plate with water on it: a pool over x and z −10..10, and a hollow dug to a floor at y4
+    /// over x 26..40 and z −6..6 with a basin's ring drawn loose round it, over x 20..46, filled to y6.</summary>
+    private const string Waters =
+        """
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
+          {"id":"a","type":"rectangle","operation":"add","min_x":-60,"min_z":-20,"max_x":60,"max_z":20,"base_height":8},
+          {"id":"dig","type":"rectangle","operation":"subtract","min_x":26,"min_z":-6,"max_x":40,"max_z":6},
+          {"id":"floor","type":"rectangle","operation":"add","override":true,"min_x":26,"min_z":-6,"max_x":40,"max_z":6,"base_height":4}],
+         "groups":[{"id":"g","name":"Plate","mirrors":false,"shapeIds":["a","dig","floor"]}]} }],
+         "dressing":{"styles":{},"props":[
+          {"kind":"fluid","id":"mere","shape":"pool","points":[[-10,-10],[10,-10],[10,10],[-10,10]],"radius":3,"depth":2,"shore":0},
+          {"kind":"fluid","id":"wash","shape":"basin","level":6,"points":[[20,-10],[46,-10],[46,10],[20,10]],"shore":0}]}}
+        """;
+
     private static MapIntent Intent() => new()
     {
         Teams = [new TeamDef { Id = "red", Color = "red" }, new TeamDef { Id = "blue", Color = "blue" }],
@@ -65,7 +79,7 @@ public sealed class BuiltWalkTests
         await Assert.That(Traversability.Check(doc, WorldWalk.Ground(doc, terrain)).Connected).IsTrue()
             .Because("the terrain alone runs dry under the channel");
 
-        var walked = Traversability.Check(doc, BuiltWalk.Ground(built, doc, LavaAcross));
+        var walked = Traversability.Check(doc, BuiltWalk.Ground(built, doc));
         await Assert.That(walked.HaveLayers).IsTrue();
         await Assert.That(walked.Connected).IsFalse();
 
@@ -83,10 +97,25 @@ public sealed class BuiltWalkTests
         var doc = Doc();
         IntentGenerator.Apply(doc, built.ResolvedIntent);
 
-        var ground = BuiltWalk.Ground(built, doc, LavaAcross);
+        var ground = BuiltWalk.Ground(built, doc);
         await Assert.That(Traversability.Check(doc, ground).Connected).IsTrue();
         await Assert.That(ground.Ground.Any(place => place.X == 0 && place.Z == 0)).IsFalse()
             .Because("nobody stands in lava");
         await Assert.That(ground.Bridgeable.Any(place => place.X == 0 && place.Z == 0)).IsTrue();
+    }
+
+    /// <summary>What a player swims is the water the world holds: a pool across the whole of its inside, and a
+    /// basin wherever its ground stood lower than its line and nowhere else inside its ring.</summary>
+    [Test]
+    public async Task The_water_a_walk_swims_is_the_water_the_world_holds()
+    {
+        var built = BuiltWorlds.Of(Waters, Intent());
+        var water = BuiltWalk.Ground(built, Doc()).Water!;
+
+        await Assert.That(water.Contains((0, 0))).IsTrue().Because("the middle of the pool is water");
+        await Assert.That(water.Contains((33, 0))).IsTrue().Because("the hollow is under the basin's line");
+        await Assert.That(water.Contains((22, 0))).IsFalse()
+            .Because("the plate inside the basin's ring stands above its line, and a basin cuts nothing");
+        await Assert.That(water.Contains((-20, 0))).IsFalse().Because("the plate between them is dry");
     }
 }

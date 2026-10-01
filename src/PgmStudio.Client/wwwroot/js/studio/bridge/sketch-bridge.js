@@ -13,6 +13,7 @@ import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
 import { isPush, pushAmounts, pushAmountPatch } from "../relief/relief-doc.js";
 import { fireTo } from "./fire.js";
 import * as Keys from "../shared/keys.js";
+import { diffOverlay } from "../render/diff-render.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -1152,6 +1153,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setObjectives(Array.isArray(list) ? list : []);
     },
     setThemeBrush(id) { setThemeBrush(id); },
+    /** Draw what a change did over the board: `{before, after, world}` — the two layouts and the diff's world
+     *  half, which may be absent — or null to take it away. */
+    setDiff(json) {
+      let data = null;
+      try { data = json ? JSON.parse(json) : null; } catch { data = null; }
+      canvas.setDiff(data ? diffOverlay(data.before, data.after, data.world) : null);
+    },
     setMapTheme(id) { mapTheme = (id && themes[id]) ? id : ""; afterThemeChange(); },
     // Assign (or clear, with an empty themeId) a theme to one shape — a per-shape override.
     assignShape(shapeId, themeId) { setShapeTheme(shapeId, themeId); afterThemeChange(); },

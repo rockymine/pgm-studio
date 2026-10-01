@@ -95,11 +95,7 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
     {
         if (await repo.WithGoalsOfRouteAsync(reader, artifacts, HttpContext, ct) is not ({ } map, { } doc, { } goals)) return;
 
-        var layoutBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
-        var decor = layoutBytes is null
-            ? []
-            : DressingScope.DecorCells(System.Text.Encoding.UTF8.GetString(layoutBytes));
-        var res = GroundCoverage.Read(doc, await feature.WalkGroundAsync(map.Id, doc, ct: ct), decor, goals);
+        var res = await CoverageReads.OfAsync(map.Id, doc, goals, feature, ct);
 
         // One picture, so the view name has nothing to select and is not read — this is the one PNG route
         // with no view to get wrong.

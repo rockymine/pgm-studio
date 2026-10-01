@@ -11,6 +11,12 @@
     <ProjectReference Include="..\PgmStudio.Client\PgmStudio.Client.csproj" />
   </ItemGroup>
 
+  <!-- The tool documents' worked bodies are the examples the API publishes (DocumentedBodies), carried in the
+       assembly so a running studio hands out the ones its own build was tested against. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\docs\tools\*.md" LogicalName="docs/tools/%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="FastEndpoints" Version="8.1.0" />
     <PackageReference Include="FastEndpoints.Swagger" Version="8.1.0" />

@@ -1,0 +1,91 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* Report — everything a drive reads back about the board as stored (GET …/report): the three numbers it is wrong
+   or right by, every reading under the route that answers it alone, and its pictures, one drawn at a time. *@
+
+<div class="phase-body">
+  <FlowBar Class="flow-bar--flush" PhaseIcon="clipboard" PhaseTitle="Report"
+           BackEnabled="true" NextLabel="Read again" NextEnabled="@(Report is not null || Error is not null)"
+           OnBack="OnBack" OnNext="OnRead" />
+  <Workspace>
+    @if (Error is not null)
+    {
+      <div class="report"><p class="report__note report__note--warn">@Error</p></div>
+    }
+    else if (Report is not { } report)
+    {
+      <div class="report"><p class="report__note">Reading the board — every read of it, off one build…</p></div>
+    }
+    else
+    {
+      <div class="report">
+        <div class="report__head">
+          <span class="report__change">change @report.Change</span>
+          <pre class="report__numbers">@string.Join("\n", report.Headline.Says)</pre>
+        </div>
+
+        @if (report.Pictures.Count > 0)
+        {
+          <section class="report__pictures">
+            <div class="report__picture-list" role="listbox" aria-label="Pictures">
+              @foreach (var picture in report.Pictures)
+              {
+                <button type="button" role="option" aria-selected="@(picture == Shown)"
+                        class="report__picture-name @(picture == Shown ? "report__picture-name--on" : null)"
+                        disabled="@(picture.Missing is not null)" title="@(picture.Missing ?? picture.Route)"
+                        @onclick="() => Show(picture)">@picture.Name</button>
+              }
+            </div>
+            @if (Shown is { } shown)
+            {
+              <figure class="report__picture">
+                @if (failed)
+                {
+                  <figcaption class="report__note report__note--warn">
+                    This picture could not be drawn — its route says why.
+                  </figcaption>
+                }
+                else
+                {
+                  <img src="@Source(shown)" alt="@shown.Name" @onload="() => loaded = true" @onerror="() => failed = true"
+                       class="@(loaded ? "is-loaded" : null)" />
+                  @if (!loaded)
+                  {
+                    <span class="report__drawing">Drawing…</span>
+                  }
+                }
+                <figcaption class="report__route">
+                  <a href="@Source(shown)" target="_blank" rel="noopener">@shown.Route</a>
+                </figcaption>
+              </figure>
+            }
+          </section>
+        }
+
+        <section class="report__reads">
+          @foreach (var reading in report.Reads)
+          {
+            <details class="report__read">
+              <summary>
+                <span class="report__read-name">@reading.Name</span>
+                <span class="report__route">@reading.Route</span>
+                @if (reading.Missing is not null)
+                {
+                  <Badge Kind="neutral">none</Badge>
+                }
+              </summary>
+              @if (reading.Text is { } said)
+              {
+                <pre class="report__text">@said</pre>
+              }
+              else
+              {
+                <p class="report__note">@reading.Missing</p>
+              }
+            </details>
+          }
+        </section>
+      </div>
+    }
+  </Workspace>
+</div>

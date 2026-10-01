@@ -30,6 +30,24 @@ public sealed class WorldColumnsTests
         await Assert.That(runs[0]).IsEqualTo(new ColumnRun(63, 0, 1, 0));
     }
 
+    /// <summary>A run belongs to the segment it starts in, and a segment's top is open: a sculpture seated on
+    /// the ground starts at the ground's top and is not the ground's, and a run starting outside every segment
+    /// belongs to no layer.</summary>
+    [Test]
+    public async Task A_run_is_the_layer_s_it_starts_in_and_a_segment_s_top_is_not_its_own()
+    {
+        var world = new VoxelWorld();
+        for (var y = 0; y <= 4; y++) world.SetBlock(0, y, 0, 1);      // the ground, [0, 5)
+        for (var y = 5; y <= 7; y++) world.SetBlock(0, y, 0, 41);     // seated on it, at the ground's top
+        for (var y = 20; y <= 22; y++) world.SetBlock(0, y, 0, 5);    // a deck, [20, 23)
+        ColumnSegment[] segments = [new(0, 0, 0, 5, "ground"), new(0, 0, 20, 23, "deck")];
+
+        var runs = WorldColumns.Attributed(world, segments).Single().Runs;
+
+        await Assert.That(runs.Select(entry => (entry.Run.YBottom, entry.Layer)))
+            .IsEquivalentTo(new (int, string?)[] { (20, "deck"), (5, null), (0, "ground") });
+    }
+
     [Test]
     public async Task A_material_change_breaks_the_run_where_it_changes()
     {
@@ -263,11 +281,12 @@ public sealed class WorldColumnsTests
         }
         ColumnSegment[] terrain = [new(0, 0, 1, 6, "ground"), new(1, 0, 1, 6, "ground")];
 
-        var (ground, props) = WorldColumns.ForWalk(world, new WorldProvenance(), terrain);
+        var (ground, props, water) = WorldColumns.ForWalk(world, new WorldProvenance(), terrain);
 
         await Assert.That(ground.Any(run => run.X == 0 && run.YTop == 7)).IsTrue();
         await Assert.That(ground.Any(run => run.X == 1 && run.YTop == 7)).IsFalse();
         await Assert.That(props.Any(run => run.X == 1 && run.YFloor == 6 && run.YTop == 7)).IsTrue();
+        await Assert.That(water).IsEquivalentTo(new[] { (0, 0) }).Because("water is swum, and lava is not water");
     }
 
     [Test]
@@ -293,7 +312,7 @@ public sealed class WorldColumnsTests
         ColumnSegment[] terrain =
             [new(0, 0, 1, 11, "ground"), new(2, 0, 1, 11, "ground"), new(3, 0, 1, 11, "ground")];
 
-        var (ground, props) = WorldColumns.ForWalk(world, provenance, terrain);
+        var (ground, props, _) = WorldColumns.ForWalk(world, provenance, terrain);
 
         // Every solid block is in exactly one of the two, and the tree's are the props.
         await Assert.That(props.OrderBy(span => span.X).ThenBy(span => span.YFloor))

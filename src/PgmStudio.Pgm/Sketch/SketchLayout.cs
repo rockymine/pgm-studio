@@ -47,16 +47,17 @@ public sealed class SketchLayout
 
     /// <summary>What the author put on the map — paths, trees, boulders, areas of cover — each carrying its
     /// own position and its own knobs. A prop is stored as the placement itself rather than as a named recipe,
-    /// which is what separates it from a theme. Absent dresses nothing.</summary>
+    /// which is what separates it from a theme. Absent dresses nothing.
+    /// <para>A <c>Minecraft.Dressing.DressingDoc</c>, carried as raw JSON because this project does not reach
+    /// that type; the published schema names it.</para></summary>
     [JsonPropertyName("dressing")] public JsonElement? Dressing { get; set; }
 
     /// <summary>Which biome each chunk of the exported world carries — the byte a client reads to tint grass,
     /// leaves and water. Map-wide and answered per chunk, because a biome's tint is blended across a radius
     /// and a region drawn to a finer edge never reaches its own colour there. Absent is plains everywhere,
     /// which is what every board already exported as.
-    /// <para>Carried as raw JSON for the reason <see cref="Dressing"/> is: the field's own type is
-    /// <c>Minecraft.Painting.BiomeField</c> and this project does not reach that one. The export reads it
-    /// through <c>BiomeScope</c>, which does.</para></summary>
+    /// <para>A <c>Minecraft.Painting.BiomeField</c>, carried as raw JSON for the reason <see cref="Dressing"/>
+    /// is; the published schema names it, and the export reads it through <c>BiomeScope</c>.</para></summary>
     [JsonPropertyName("biome")] public JsonElement? Biome { get; set; }
 
     /// <summary>Which library row <see cref="Biome"/> was copied from, or absent for a board whose field came

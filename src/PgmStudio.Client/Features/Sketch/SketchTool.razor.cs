@@ -178,6 +178,174 @@ public partial class SketchTool
         viewRound++;
         await SetPhase("ingame");
         await LoadViewsAsync();
+        await LoadChangesAsync();
+    }
+
+    // ── Report (docs/world-scan/read-backs.md): everything a drive reads back about the board as stored ──
+    // A page of readings rather than a canvas, over the board as stored — so entering it saves first.
+    private bool ReportActive => active == "report";
+    private MapReportDto? report;
+    private string? reportError;
+
+    private async Task GoReport()
+    {
+        tool = "select";
+        saveCts?.Cancel();
+        await SaveAsync(CancellationToken.None);
+        await SetPhase("report");
+        await LoadReportAsync();
+    }
+
+    private async Task LoadReportAsync()
+    {
+        report = null;
+        reportError = null;
+        StateHasChanged();
+        try
+        {
+            var answer = await Http.GetAsync($"api/map/{Slug}/report");
+            if (answer.IsSuccessStatusCode) report = await answer.Content.ReadFromJsonAsync<MapReportDto>();
+            else reportError = (await answer.Content.ReadFromJsonAsync<RefusalDto>())?.Message is { Length: > 0 } why
+                ? why : "The report could not be read.";
+        }
+        catch { reportError = "The report could not be read — the studio could not be reached."; }
+        StateHasChanged();
+    }
+
+    // ── History: the board's changes, what each did drawn on the canvas, and putting it back ──
+    private bool HistoryActive => active == "history";
+    private MapChangesDto? changes;
+    private string? changesError;
+    /// <summary>The span drawn on the canvas: from one change to another, the one before it for a single
+    /// change.</summary>
+    private long? spanTo;
+    private long spanFrom;
+    private MapDiffDto? spanDiff;
+    private WorldChangesDto? spanWorld;
+    private string? spanWorldError;
+    /// <summary>Bumped on every pick, so an answer to an earlier one arriving late is dropped.</summary>
+    private int spanRound;
+    private bool restoring;
+    private string? restoreError;
+
+    private IReadOnlyList<long> ChangeNumbers => changes?.Changes.Select(change => change.Number).ToList() ?? [];
+    private long LatestChange => changes?.Changes.LastOrDefault()?.Number ?? 0;
+    private MapChangeDto? SpanChange => changes?.Changes.FirstOrDefault(change => change.Number == spanTo);
+
+    private async Task GoHistory()
+    {
+        tool = "select";
+        saveCts?.Cancel();
+        await SaveAsync(CancellationToken.None);
+        await SetPhase("history");
+        await LoadChangesAsync();
+        if (spanTo is null && LatestChange > 0) await PickChange(LatestChange);
+    }
+
+    private async Task LoadChangesAsync()
+    {
+        changesError = null;
+        try { changes = await Http.GetFromJsonAsync<MapChangesDto>($"api/map/{Slug}/changes"); }
+        catch { changesError = "The board's changes could not be read — the studio could not be reached."; }
+        StateHasChanged();
+    }
+
+    /// <summary>Draw what one change did: from the change before it to it.</summary>
+    private Task PickChange(long number) =>
+        ShowSpan(changes?.Changes.LastOrDefault(change => change.Number < number)?.Number ?? 0, number);
+
+    /// <summary>Open History on what changed after a thread's last message.</summary>
+    private async Task ShowChangesSince(long from)
+    {
+        await GoHistory();
+        await ShowSpan(from, LatestChange);
+    }
+
+    /// <summary>Draw a span: the documents first, which are quick, and the columns when both builds are done.</summary>
+    private async Task ShowSpan(long from, long to)
+    {
+        var round = ++spanRound;
+        (spanFrom, spanTo) = (from, to);
+        spanDiff = null;
+        spanWorld = null;
+        spanWorldError = null;
+        restoreError = null;
+        StateHasChanged();
+
+        MapDiffDto? diff = null;
+        JsonElement? before = null, after = null;
+        try
+        {
+            diff = await Http.GetFromJsonAsync<MapDiffDto>($"api/map/{Slug}/diff?from={from}&to={to}");
+            before = from == 0 ? null : (await Http.GetFromJsonAsync<MapChangeDocumentsDto>($"api/map/{Slug}/changes/{from}"))?.Layout;
+            after = (await Http.GetFromJsonAsync<MapChangeDocumentsDto>($"api/map/{Slug}/changes/{to}"))?.Layout;
+        }
+        catch { spanWorldError = "The change could not be read — the studio could not be reached."; }
+        if (round != spanRound) return;
+        spanDiff = diff;
+        await DrawSpan(before, after, null);
+        StateHasChanged();
+
+        if (before is null || after is null)
+        {
+            spanWorldError ??= "There is no board before the first change to build.";
+            StateHasChanged();
+            return;
+        }
+        try
+        {
+            var built = await Http.GetFromJsonAsync<MapDiffDto>($"api/map/{Slug}/diff?from={from}&to={to}&world=true");
+            if (round != spanRound) return;
+            spanWorld = built?.World;
+            await DrawSpan(before, after, spanWorld);
+        }
+        catch
+        {
+            if (round != spanRound) return;
+            spanWorldError = "The boards could not be built at both changes.";
+        }
+        StateHasChanged();
+    }
+
+    private async Task DrawSpan(JsonElement? before, JsonElement? after, WorldChangesDto? world)
+    {
+        if (handle is null) return;
+        await handle.InvokeVoidAsync("setDiff", JsonSerializer.Serialize(new { before, after, world }, Wire));
+    }
+
+    /// <summary>Put the board back as it stood at a change: the studio writes it as a new change, and the canvas
+    /// takes up the board it wrote.</summary>
+    private async Task RestoreAsync(long number)
+    {
+        saveCts?.Cancel();
+        await SaveAsync(CancellationToken.None);
+        if (superseded)
+        {
+            restoreError = "This tab's board is behind the stored one — reload the page before putting anything back.";
+            return;
+        }
+        restoring = true;
+        restoreError = null;
+        StateHasChanged();
+        try
+        {
+            using var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/changes/{number}/restore", new MapRestoreRequest());
+            if (!answer.IsSuccessStatusCode)
+            {
+                var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
+                restoreError = "Not put back — " + (refusal?.Message is { Length: > 0 } why ? why : $"the studio answered {(int)answer.StatusCode}.");
+                return;
+            }
+            await ReloadLayoutAsync();
+            await LoadChangesAsync();
+            if (LatestChange > 0) await PickChange(LatestChange);
+        }
+        catch { restoreError = "Not put back — the studio could not be reached."; }
+        finally
+        {
+            restoring = false;
+            StateHasChanged();
+        }
     }
 
     private async Task LoadViewsAsync()
@@ -322,6 +490,28 @@ public partial class SketchTool
         await LoadViewsAsync();
     }
 
+    /// <summary>Draw the map's picture from a view: a kept one is marked in place, and a suggestion is kept as
+    /// a view of its own, marked.</summary>
+    private async Task PictureView(MapViewDto view)
+    {
+        var request = new MapViewKeepRequest(view.Name, view.LookX, view.LookZ, view.FromX, view.FromZ, view.Y,
+                                             view.Pitch, view.Yaw, Picture: true);
+        try
+        {
+            var answer = view.Kept
+                ? await Http.PutAsJsonAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(view.Id)}", request)
+                : await Http.PostAsJsonAsync($"api/map/{Slug}/views", request);
+            if (!answer.IsSuccessStatusCode)
+            {
+                viewsError = (await answer.Content.ReadFromJsonAsync<RefusalDto>())?.Message is { Length: > 0 } why
+                    ? why : "The map's picture was not changed.";
+                return;
+            }
+        }
+        catch { viewsError = "The map's picture was not changed — the studio could not be reached."; return; }
+        await LoadViewsAsync();
+    }
+
     // ── Relief phase (docs/world-export/relief.md §15) ──
     // One step, like Dressing and for the same reason: every part of a relief is a thing stated somewhere, so
     // the phase is the canvas with its own tools and an inspector for whatever is under the cursor. It sits
@@ -391,7 +581,9 @@ public partial class SketchTool
         // selects a group is also the gesture that reshapes it. Dressing places props rather than shapes,
         // so it is not select-only in that sense: its own tools are armed and the shape tools are simply not
         // offered.
-        await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief" or "dressing" or "ingame");
+        await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief" or "dressing" or "ingame" or "history" or "report");
+        // What a change did is drawn only while History is up.
+        if (phase != "history") await handle.InvokeVoidAsync("setDiff", (string?)null);
         // Both finishing phases show the paint: Theme is authoring it, and Dressing is placing things on it,
         // which is a judgement about the finish as much as about the planting.
         await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing" or "ingame");
@@ -446,6 +638,9 @@ public partial class SketchTool
         // leaving gives them back as the author had them. The shaded board carries the height, so no chip is
         // offered over it.
         ["ingame"]   = new([], []),
+        // A change is drawn as outlines over the board, and the shapes it did not touch are what those are read
+        // against, so the shapes come on with it.
+        ["history"]  = new([ChipShapes, ChipMirror, ChipChunks, ChipBlocks], [ChipShapes]),
     };
 
     private static PhaseOverlay OverlaysOf(string phase) => Overlays.GetValueOrDefault(phase, Overlays["draw"]);
@@ -526,6 +721,8 @@ public partial class SketchTool
             case "sketch.phase.theme": await GoTheme(); break;
             case "sketch.phase.dressing": await GoDressing(); break;
             case "sketch.phase.ingame": await GoInGame(); break;
+            case "sketch.phase.history": await GoHistory(); break;
+            case "sketch.phase.report": await GoReport(); break;
             case "sketch.tool.select": await SetTool("select"); break;
             case "sketch.tool.move": await SetTool("move"); break;
             case "sketch.tool.rectangle": await SetTool("rectangle"); break;
@@ -559,6 +756,8 @@ public partial class SketchTool
         new { id = "sketch.phase.theme",     keys = "4", label = "Go to Theme",    group = "Phases" },
         new { id = "sketch.phase.dressing",  keys = "5", label = "Go to Dressing", group = "Phases" },
         new { id = "sketch.phase.ingame",    keys = "6", label = "Go to In game",  group = "Phases" },
+        new { id = "sketch.phase.history",   keys = "7", label = "Go to History",  group = "Phases" },
+        new { id = "sketch.phase.report",    keys = "8", label = "Go to Report",   group = "Phases" },
         new { id = "sketch.tool.select",     keys = "v", label = "Select",  group = "Tools" },
         new { id = "sketch.tool.move",       keys = "h", label = "Pan",     group = "Tools" },
         new { id = "sketch.tool.rectangle",  keys = "r", label = "Rectangle", group = "Tools" },
@@ -586,12 +785,27 @@ public partial class SketchTool
         selfRef = DotNetObjectReference.Create(this);
         handle = await JS.InvokeAsync<IJSObjectReference>(
             "studio.mountSketch", svgRef, wrapRef, readout!.Cursor, readout.Zoom, readout.Size, selfRef, Slug);
-        // Restore the saved layout (empty {} for a fresh sketch); the bridge handles an empty state.
+        await ReloadLayoutAsync();
+        await LoadObjectives();
+        await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
+            System.Text.Json.JsonSerializer.Serialize(Shortcuts));
+        if (Phase == "ingame" || Note is not null) await GoInGame();
+        else if (Phase == "history") await GoHistory();
+        else if (Phase == "report") await GoReport();
+    }
+
+    /// <summary>Take up the stored layout (an empty <c>{}</c> for a fresh sketch, which the bridge draws as
+    /// nothing) and the revision it answered, as this tab's board. Every edit made here so far is in it, or the
+    /// tab would not be asking.</summary>
+    private async Task ReloadLayoutAsync()
+    {
+        if (handle is null) return;
         try
         {
             using var read = await Http.GetAsync($"api/map/{Slug}/sketch");
             read.EnsureSuccessStatusCode();
             heldRevision = read.Headers.ETag?.Tag;
+            savedEdits = edits;
             var state = await read.Content.ReadFromJsonAsync<JsonElement>();
             await handle.InvokeVoidAsync("load", state);
             // Sync the Setup controls with the loaded setup (the canvas already uses it).
@@ -608,10 +822,6 @@ public partial class SketchTool
             }
         }
         catch { /* no saved layout / map not found — start blank */ }
-        await LoadObjectives();
-        await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
-            System.Text.Json.JsonSerializer.Serialize(Shortcuts));
-        if (Phase == "ingame" || Note is not null) await GoInGame();
     }
 
     /// <summary>The name this tool's chords are registered and dropped under.</summary>

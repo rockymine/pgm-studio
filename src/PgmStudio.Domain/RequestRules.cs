@@ -93,7 +93,8 @@ public static class RequestRules
 
     /// <summary>The read draws with Minecraft's own block textures, and this studio has none. It answers
     /// <b>503</b>: nothing about the request is wrong, and no such picture can be drawn here until the
-    /// deployment says where the textures come from.</summary>
+    /// deployment says where the textures come from. An export is not refused for it: the world goes without
+    /// its <c>map.png</c>, and this rides beside it as a complaint.</summary>
     /// <remarks>The textures are Mojang's and the studio never ships them. Set <c>Textures:Jar</c> to a 1.8.9
     /// client jar the operator has, or set <c>Textures:AcceptMojangEula</c> to <c>true</c> — which accepts
     /// Mojang's EULA — and the studio downloads that jar from Mojang once, checked against the hash Mojang's

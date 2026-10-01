@@ -81,10 +81,12 @@ public static class IntentWrite
     /// <see cref="AuthorNames.MaxLength"/> characters, opening or closing on a space, or carrying something
     /// outside letters, digits, spaces and <c>.,-_'</c>. It is <c>RQ1</c> because it is the posted document
     /// that cannot be acted on, and it names the field so the caller does not have to search for which
-    /// person it meant. Refusing is the point: a row dropped in silence is what makes an author believe
-    /// somebody was credited.</summary>
-    private static Refusal? Unnamable(MapIntent intent)
+    /// person it meant, under <paramref name="member"/> where the intent is posted beside other documents.
+    /// Refusing is the point: a row dropped in silence is what makes an author believe somebody was
+    /// credited.</summary>
+    public static Refusal? Unnamable(MapIntent intent, string member = "")
     {
+        var prefix = member.Length == 0 ? "" : member + ".";
         if (intent.Meta is not { } meta) return null;
         List<Finding> refused = [];
         foreach (var (people, role) in new[] { (meta.Authors, "authors"), (meta.Contributors, "contributors") })
@@ -94,7 +96,7 @@ public static class IntentWrite
                 var stated = people[at].Name.Trim();
                 if (AuthorNames.Refuse(stated) is { } why)
                     refused.Add(new Finding(RequestRules.Unreadable, $"'{stated}' cannot be stored as a person: {why}",
-                        Field: $"meta.{role}[{at}].name"));
+                        Field: $"{prefix}meta.{role}[{at}].name"));
             }
         }
         return refused.Count == 0 ? null : new Refusal(400, "not a name", refused);

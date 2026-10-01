@@ -43,7 +43,7 @@ public static class HouseStyleJson
         if (string.IsNullOrWhiteSpace(json)) throw new JsonException("no house style JSON was posted");
         var node = JsonNode.Parse(json) ?? throw new JsonException("empty house style JSON");
         Upgrade(node);
-        RefuseStatedNulls(node, typeof(HouseStyle), "");
+        RefuseUnreadable(node, typeof(HouseStyle), "");
         return Read(node);
     }
 
@@ -56,14 +56,14 @@ public static class HouseStyleJson
         if (string.IsNullOrWhiteSpace(json)) throw new JsonException("no house style JSON was posted");
         var node = JsonNode.Parse(json) ?? throw new JsonException("empty house style JSON");
         Upgrade(node);
-        RefuseStatedNulls(node, typeof(HouseStyle), "");
+        RefuseUnreadable(node, typeof(HouseStyle), "");
         var style = Read(node);
         unread = PgmStudio.Domain.DocumentShape.Unread(node, style);
         return style;
     }
 
     /// <summary>
-    /// Refuse a part written as <c>null</c> where the record cannot hold one.
+    /// Refuse a part written as <c>null</c> where the record cannot hold one, or written without its courses.
     ///
     /// <para>A style's parts split two ways with nothing in the document marking which: <c>porch</c> and
     /// <c>front</c> are nullable and a null is how they say "not this part", while <c>roof</c>,
@@ -75,26 +75,31 @@ public static class HouseStyleJson
     /// <c>"gableWindows": null</c> means <i>none</i>, and would silently be given the default pair. So it is
     /// refused, by the field's own path, pointing at the form that says it safely. Nullable parts are
     /// untouched — serialization emits their nulls, and refusing those would break every round trip.</para>
+    ///
+    /// <para>A <see cref="RoomPart"/> is its courses, <c>{"stack": {...}, "extent": n}</c>. One written as a
+    /// material — the shape a style had when its floor, ceiling and wall were each one block — would read as a
+    /// part with no stack and fail at the first course anything asks of it, so it is refused by its path too.</para>
     /// </summary>
-    private static void RefuseStatedNulls(JsonNode node, Type type, string path)
+    private static void RefuseUnreadable(JsonNode node, Type type, string path)
     {
-        if (StatedNull(node, type, path) is { } fault)
+        if (Unreadable(node, type, path) is { } fault)
             throw new PgmStudio.Domain.DocumentFault(fault.Field, $"field '{fault.Field}' {fault.Detail}");
     }
 
-    /// <summary>The first part of a style snapshot stated as <c>null</c> where the record cannot hold one: its
-    /// path under <paramref name="path"/> and the sentence saying how that part says "none" instead, or null
-    /// when there is none. Public because a style is snapshotted in two places — on its own, and as a house
-    /// recipe in a dressing document — and both readers refuse the same nulls.</summary>
-    public static (string Field, string Detail)? StatedNull(JsonNode? node, string path = "") =>
-        node is null ? null : StatedNull(node, typeof(HouseStyle), path);
+    /// <summary>The first part of a style snapshot the record cannot hold — stated as <c>null</c> where it has
+    /// no null, or a part written without its courses: its path under <paramref name="path"/> and the sentence
+    /// saying how to write it instead, or null when there is none. Public because a style is snapshotted in two
+    /// places — on its own, and as a house recipe in a dressing document — and both readers refuse the same
+    /// parts.</summary>
+    public static (string Field, string Detail)? Unreadable(JsonNode? node, string path = "") =>
+        node is null ? null : Unreadable(node, typeof(HouseStyle), path);
 
-    private static (string Field, string Detail)? StatedNull(JsonNode node, Type type, string path)
+    private static (string Field, string Detail)? Unreadable(JsonNode node, Type type, string path)
     {
         if (node is JsonArray items && ElementType(type) is { } element)
         {
             for (var at = 0; at < items.Count; at++)
-                if (items[at] is { } item && StatedNull(item, element, $"{path}[{at}]") is { } inItem)
+                if (items[at] is { } item && Unreadable(item, element, $"{path}[{at}]") is { } inItem)
                     return inItem;
             return null;
         }
@@ -111,10 +116,18 @@ public static class HouseStyleJson
                 return (where, "is stated as null, and this part of a style is always present — drop it from "
                     + $"the document, or say it is not wanted in the part's own words ({NoneOf(property.PropertyType)})");
             }
-            if (StatedNull(value, property.PropertyType, where) is { } nested) return nested;
+            if (property.PropertyType == typeof(RoomPart) && !HasCourses(value))
+                return (where, "is a part, which states its courses as {\"stack\": {\"bands\": [...]}, "
+                    + "\"extent\": n} rather than as a single material");
+            if (Unreadable(value, property.PropertyType, where) is { } nested) return nested;
         }
         return null;
     }
+
+    /// <summary>Whether a part names its stack at all; a stack stated as null is the walk's other case.</summary>
+    private static bool HasCourses(JsonNode part) =>
+        part is JsonObject members
+        && members.Any(member => string.Equals(member.Key, "stack", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>How a part that is always present says it is not wanted.</summary>
     private static string NoneOf(Type part) =>

@@ -32,7 +32,7 @@ public sealed class WordSetSchemaTests
         typeof(WoolColors), typeof(TreeForms), typeof(TreeSpeciesNames),
         typeof(BoulderForms), typeof(BlockKinds), typeof(BiomeKinds), typeof(StructuralRoles),
         typeof(NegativeSpaceKinds), typeof(SizeBands), typeof(AccessModes), typeof(StudioRoles),
-        typeof(NoteStatuses), typeof(NoteTags), typeof(NoteAnchors),
+        typeof(NoteStatuses), typeof(NoteTags), typeof(NoteAnchors), typeof(MapDocuments),
     ];
 
     /// <summary>The fields marked today. Nothing in the compiler can say a field <em>ought</em> to be
@@ -44,7 +44,7 @@ public sealed class WordSetSchemaTests
     /// fields carries the mark once, on the base, and publishes it through <c>allOf</c> — so consolidating
     /// two records into one lowers this while the wire gains nothing and loses nothing. Lower it only for
     /// that reason, and never because a mark went missing.</para></summary>
-    private const int Published = 22;
+    private const int Published = 24;
 
     /// <summary>Every marked field publishes exactly the words its class declares, in that order — so a word
     /// added to a set reaches the document with no second edit, and one removed cannot linger there.</summary>
@@ -64,7 +64,9 @@ public sealed class WordSetSchemaTests
                 if (!schema.TryGetProperty("properties", out var properties)) continue;
                 if (!properties.TryGetProperty(Wire(property), out var field)) continue;
 
-                var published = field.TryGetProperty("enum", out var words)
+                // A list of words publishes them on its items, which is where each word stands.
+                var holder = field.TryGetProperty("items", out var items) ? items : field;
+                var published = holder.TryGetProperty("enum", out var words)
                     ? words.EnumerateArray().Select(word => word.GetString()!).ToList()
                     : [];
                 await Assert.That(published).IsEquivalentTo(Words.Of(declaring))

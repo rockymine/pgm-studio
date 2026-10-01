@@ -48,7 +48,12 @@ internal static class BiomeLibraryMapping
 /// patch of ground it tints.</summary>
 public sealed class BiomePatternListEndpoint(ThemeStore store) : EndpointWithoutRequest<List<BiomePatternSummary>>
 {
-    public override void Configure() { Get("/biome-patterns"); }
+    public override void Configure()
+    {
+        Get("/biome-patterns");
+        Description(b => b.Reads(new QueryWord("kind", "Only the patterns of one kind. Absent lists them all.",
+            [.. Words.Of(typeof(BiomeKinds))])));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

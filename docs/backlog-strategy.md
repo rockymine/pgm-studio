@@ -170,7 +170,7 @@ table of corrections is a second place for a number to be wrong.
 | `WE70` | six callers hardcode `true`; `DressingScope:216,218` | **ten** sites, of which **five are deliberate**: a plan carries no binding, so `PlanStructurePreview:60,74` and `PieceRoom:75,98` draw the shell a plan exports and `RoomStylePreview:42` previews a style. The three that read a built map were the defect (`FEATURES.md`) | `grep -rn "shellBound: true" src --include=*.cs` |
 | `C62` | `components.css:989–1004`; the grep "hits only that CSS" | **985–1001**, and the fourth site is a signpost comment rather than markup. Shipped (`FEATURES.md`); the wider reading it opened is `C64` | `grep -rn "map-author-" src/ tests/` |
 | `TE2` | `ObjectivePhase.razor.cs:201`, `:211`; `.razor:56` | **`:204`**, **`:212`**; **`:55`** — the file went with `TE3` | — |
-| `RP59` | every authored board takes six calls, because the one-call path reads as a re-import | `drive.py:582` stores through **`POST /map/from-documents`**, one call, under a stated slug | `grep -n 'call("P' /media/sf_repos/pgm-studio-mapgen/tools/drive.py` |
+| `RP59` | every authored board takes six calls, because the one-call path reads as a re-import | `drive.py` stores through **one call**, under a stated slug — `PUT /map/{slug}/source` | `grep -n 'call("P' /media/sf_repos/pgm-studio-mapgen/tools/drive.py` |
 
 One held: `G143`'s "handful of consumers" for the four misnamed edge lists, which is five sites. `B260`'s
 count was the other way round — it named three room-style fields with no control and there were six, plus a
@@ -178,7 +178,7 @@ window's host block. `C51` has now moved on **every** reading it
 has been given — 28, 29, 31, 30 — which is what a hand-maintained count does.
 
 **`RP59` was the kind that does not survive its drift.** Its ask was sound — `flow.md` presented
-`POST /map/from-documents` under *The three documents are also the way back in*, which reads as a re-import
+the one-call store under *The three documents are also the way back in*, which reads as a re-import
 when it is also the authoring call, and `architecture.md` said nothing else; that is what shipped
 (`FEATURES.md`). But its evidence argued from a six-call path the driver had already left, so the entry read
 as work that was mostly done and was worth doing for a reason it did not give. A stale count still points at
@@ -244,7 +244,7 @@ rather than being a ground (`WE41`). `WE45` was the same cause from the other en
 measured the wrong thing, which is drained by measuring it right rather than by filing a fifth complaint.
 
 **Working it split the cause in two, and the split is what the group is now ordered by.** A complaint closes
-when its **domain** closes: a house has a fixed parts list, which is why `HS1`–`HS10` is a rule set that could
+when its **domain** closes: a house has a fixed parts list, which is why `HS1`–`HS19` is a rule set that could
 be finished, and terrain has none, so a catalogue over every pair of blocks against every pattern scale never
 closes. `WE48` and `WE45` were the closable kind — a number on a bounded field and a geometric measurement —
 and both landed (`FEATURES.md`), as did `WE47`'s local half: a compiled component's plateaus measured against
@@ -479,18 +479,18 @@ what a board is played for was derived in several places and a control point was
 was that every entry named a thing the codec already carried and the intent could not state. Both left their
 wizard step behind, which is why `TC7` and `TC9` sit with the configure surface rather than here.
 
-`TODO.md` holds **the walk**, pulled up whole. Its cause was the other half of a consolidation that had only
-gone halfway: `Geom.Walk` became the one traversal, and the *answers* taken with it did not follow. Three of
-them are now one each — adjacency is `ContactGraph.Connects`, a fork belongs to a demand set and a door, and
+**The walk** was pulled up whole and has drained. Its cause was the other half of a consolidation that had
+only gone halfway: `Geom.Walk` became the one traversal, and the *answers* taken with it did not follow. Three
+of them are now one each — adjacency is `ContactGraph.Connects`, a fork belongs to a demand set and a door, and
 dead ground is `Cells.Stretches`, which the plan tier and the built-world tier ask at their own floors
 (`FEATURES.md`). That is `CLAUDE.md`'s *"a shape is not consolidated until the callers ask it the same
-question by the same name"*, applied; what the group still holds are the readings that ground was settled
-for.
+question by the same name"*, applied, and the readings that ground was settled for drained with it.
 
 Of the causes this section named earlier, the client reading its own schema is `C51` alone and the compiler's
 lost identity is `B213`, so neither stands as a programme. What is left whole, after the walk, is **the layer
 word** (`B264`, `WE28`, `TS64` — a layer is first-class in the export and an afterthought everywhere
-else), and it is the one to pull next. The two shop entries that remain (`PG15`, `PG16`) are independent
+else), and it waits behind the programme the author put first: a board's source, every change to it, and the
+words it is stated in (`TODO.md`). The two shop entries that remain (`PG15`, `PG16`) are independent
 extensions of a landed slice rather than one cause, and are therefore roadmap rather than programme.
 
 **The rule over Phases 1 and 2.** A programme pulled up from `BACKLOG.md` is worked to its end before

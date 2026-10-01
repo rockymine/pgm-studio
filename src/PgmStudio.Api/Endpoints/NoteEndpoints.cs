@@ -29,19 +29,19 @@ internal static class NoteWire
         JsonSerializer.Deserialize<NoteAnchorDto>(stored.Note.AnchorJson, MapArtifactStore.Json) ?? new NoteAnchorDto(NoteAnchors.Map),
         stored.Note.Tag, stored.Note.Status, stored.Note.CreatedAt, stored.Note.UpdatedAt,
         [.. stored.Messages.Select(message => new NoteMessageDto(
-            message.Id, message.AuthorName, message.AuthorUuid, message.TokenLabel, message.Body, message.Revision,
+            message.Id, message.AuthorName, message.AuthorUuid, message.TokenLabel, message.Body, message.Change,
             message.Picture, message.CreatedAt))]);
 
     public static string AnchorJson(NoteAnchorDto anchor) => JsonSerializer.Serialize(anchor, MapArtifactStore.Json);
 
     /// <summary>A message as <paramref name="caller"/> writes it.</summary>
-    public static MapNoteMessageRow Message(Caller caller, string body, long revision, string? picture, DateTime at) => new()
+    public static MapNoteMessageRow Message(Caller caller, string body, long change, string? picture, DateTime at) => new()
     {
         AuthorUuid = caller.Uuid,
         AuthorName = caller.Name is { Length: > 0 } name ? name : "local",
         TokenLabel = caller.Token,
         Body = body.Trim(),
-        Revision = revision,
+        Change = change,
         Picture = picture,
         CreatedAt = at,
     };
@@ -50,6 +50,13 @@ internal static class NoteWire
     public static (string Field, string Message)? BodyFault(string? body) =>
         string.IsNullOrWhiteSpace(body) ? ("body", "a note says something — `body` is empty")
         : body.Length > LongestBody ? ("body", $"`body` is {body.Length} characters, and a note holds {LongestBody}")
+        : null;
+
+    /// <summary>What is wrong with the change a message states it was written at, or null: one past the map's
+    /// latest has not landed.</summary>
+    public static (string Field, string Message)? ChangeFault(long? change, long latest) =>
+        change is < 0 ? ("change", $"`change` is {change}, and changes are numbered from 1")
+        : change > latest ? ("change", $"change {change} has not landed — the latest change to this map is {latest}")
         : null;
 
     /// <summary>What is wrong with a picture a message names, or null.</summary>
@@ -113,7 +120,10 @@ public sealed class NotesAcrossMapsEndpoint(MapNoteStore notes, PgmDb db) : Endp
     {
         Get("/notes");
         Policies(AccessPolicies.Notes);
-        Description(b => b.Produces<List<MapNoteDto>>(200, "application/json"));
+        Description(b => b.Produces<List<MapNoteDto>>(200, "application/json").Reads(
+            new QueryWord("status", "One status, or several between commas: "
+                + $"{string.Join(", ", NoteStatuses.All.Select(entry => $"`{entry.Id}`"))}. Absent is every note, and "
+                + "a word that is not a status is refused.")));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -150,9 +160,10 @@ public sealed class MapNotesEndpoint(MapRepository repo, MapNoteStore notes) : E
 }
 
 /// <summary>POST /api/map/{slug}/notes — a new note: its body, what it is pinned to, an optional tag, the
-/// picture it was written on and the revision it was written against. A note an author writes waits for an
-/// agent; one an agent writes is a question and waits for the author.</summary>
-public sealed class MapNoteCreateEndpoint(MapRepository repo, MapNoteStore notes, NotePictures pictures, Callers callers)
+/// picture it was written on and the change it was written at. A note an author writes waits for an agent; one
+/// an agent writes is a question and waits for the author.</summary>
+public sealed class MapNoteCreateEndpoint(
+    MapRepository repo, MapNoteStore notes, NotePictures pictures, Callers callers, MapChangeLog log)
     : Endpoint<MapNoteRequest, MapNoteDto>
 {
     public override void Configure()
@@ -165,7 +176,9 @@ public sealed class MapNoteCreateEndpoint(MapRepository repo, MapNoteStore notes
     public override async Task HandleAsync(MapNoteRequest request, CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var latest = await log.LatestAsync(map.Slug, ct);
         if ((NoteWire.BodyFault(request.Body) ?? NoteWire.AnchorFault(request.Anchor) ?? NoteWire.PictureFault(request.Picture, pictures)
+             ?? NoteWire.ChangeFault(request.Change, latest)
              ?? (NoteTags.IsValid(request.Tag) ? null : ("tag", $"`tag` is one of {string.Join(", ", NoteTags.All)}, or absent")))
             is { } fault)
         {
@@ -186,7 +199,7 @@ public sealed class MapNoteCreateEndpoint(MapRepository repo, MapNoteStore notes
             Status = caller.ViaToken ? NoteStatuses.NeedsInfo : NoteStatuses.Open,
             CreatedAt = now,
             UpdatedAt = now,
-        }, NoteWire.Message(caller, request.Body, request.Revision ?? map.Revision, request.Picture, now), ct);
+        }, NoteWire.Message(caller, request.Body, request.Change ?? latest, request.Picture, now), ct);
         await Send.OkAsync(NoteWire.Dto(stored, map.Name), ct);
     }
 }
@@ -194,7 +207,8 @@ public sealed class MapNoteCreateEndpoint(MapRepository repo, MapNoteStore notes
 /// <summary>POST /api/map/{slug}/notes/{id}/replies — a reply in a thread, optionally carrying a picture. The
 /// reply leaves the thread where its <c>status</c> says: an agent answers, asks or declines, and the author's
 /// reply hands it back to an agent. A thread is resolved only through <c>PATCH</c>.</summary>
-public sealed class NoteReplyEndpoint(MapRepository repo, MapNoteStore notes, NotePictures pictures, Callers callers)
+public sealed class NoteReplyEndpoint(
+    MapRepository repo, MapNoteStore notes, NotePictures pictures, Callers callers, MapChangeLog log)
     : Endpoint<NoteReplyRequest, MapNoteDto>
 {
     private static readonly string[] Leaves = [NoteStatuses.Open, .. NoteStatuses.AgentReplies];
@@ -214,7 +228,9 @@ public sealed class NoteReplyEndpoint(MapRepository repo, MapNoteStore notes, No
             await Refusals.NotFoundAsync(HttpContext, "note", ct, Route<string>("id"));
             return;
         }
+        var latest = await log.LatestAsync(map.Slug, ct);
         if ((NoteWire.BodyFault(request.Body) ?? NoteWire.PictureFault(request.Picture, pictures)
+             ?? NoteWire.ChangeFault(request.Change, latest)
              ?? (request.Status is null || Leaves.Contains(request.Status) ? null
                  : ("status", $"a reply leaves its thread {string.Join(", ", Leaves)} — resolving one is the author's PATCH")))
             is { } fault)
@@ -225,7 +241,7 @@ public sealed class NoteReplyEndpoint(MapRepository repo, MapNoteStore notes, No
 
         var caller = await callers.OfAsync(HttpContext, ct);
         var status = request.Status ?? (caller.ViaToken ? NoteStatuses.Answered : NoteStatuses.Open);
-        var reply = NoteWire.Message(caller, request.Body, request.Revision ?? map.Revision, request.Picture, DateTime.UtcNow);
+        var reply = NoteWire.Message(caller, request.Body, request.Change ?? latest, request.Picture, DateTime.UtcNow);
         reply.NoteId = stored.Note.Id;
         await notes.AddAsync(reply, status, ct);
         await Send.OkAsync(NoteWire.Dto((await notes.GetAsync(map.Slug, stored.Note.Id, ct))!, map.Name), ct);

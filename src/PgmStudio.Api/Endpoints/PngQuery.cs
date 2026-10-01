@@ -10,6 +10,10 @@ namespace PgmStudio.Api.Endpoints;
 /// draws unasked. Empty for a route with one picture and nothing to choose between.</summary>
 internal sealed record PngPreview(string[] Views);
 
+/// <summary>A route that draws its reading as a picture beside the JSON it answers by default, at the scale the
+/// route itself reads.</summary>
+internal sealed record PictureTwin;
+
 /// <summary>
 /// Publishes how to ask a preview route for its picture.
 ///
@@ -29,8 +33,10 @@ internal sealed class PngQuery : IOperationProcessor
     public bool Process(OperationProcessorContext context)
     {
         if (context is not AspNetCoreOperationProcessorContext aspNet) return true;
-        if (aspNet.ApiDescription.ActionDescriptor.EndpointMetadata
-                .OfType<PngPreview>().FirstOrDefault() is not { } preview) return true;
+        var metadata = aspNet.ApiDescription.ActionDescriptor.EndpointMetadata;
+        var preview = metadata.OfType<PngPreview>().FirstOrDefault();
+        var twin = metadata.OfType<PictureTwin>().Any();
+        if (preview is null && !twin) return true;
 
         var operation = context.OperationDescription.Operation;
 
@@ -43,7 +49,12 @@ internal sealed class PngQuery : IOperationProcessor
                 Schema = new JsonSchema { Type = JsonObjectType.String, Format = "binary" },
             };
 
-        foreach (var word in Words(preview))
+        var words = preview is not null ? Words(preview) :
+        [
+            new QueryWord(PngAnswer.Format,
+                "Ask for the reading as a picture instead of the JSON answer. Absent answers the JSON.", ["png"]),
+        ];
+        foreach (var word in words)
             operation.Parameters.Add(QueryWords.Declared(word));
         return true;
     }

@@ -27,6 +27,11 @@ public static class DressingPalette
     public const int LilyPad = 111;
     public const int DeadBushBlock = 32;
     public const int CactusBlock = 81;
+    public const int BrownMushroomBlock = 39;
+    public const int RedMushroomBlock = 40;
+
+    /// <summary>The dirt variant that is podzol.</summary>
+    public const int PodzolData = 2;
 
     /// <summary>The tallest cactus the overlay grows, in blocks: a cactus is one to this many courses of the
     /// block, stacked.</summary>
@@ -58,6 +63,12 @@ public static class DressingPalette
     /// beside any of them.</summary>
     public static readonly Plant Cactus = new(CactusBlock, 0, Tall: false);
 
+    public static readonly Plant BrownMushroom = new(BrownMushroomBlock, 0, Tall: false);
+    public static readonly Plant RedMushroom = new(RedMushroomBlock, 0, Tall: false);
+
+    /// <summary>The mushrooms a cover draws from, brown two in three.</summary>
+    public static readonly Plant[] Mushrooms = [BrownMushroom, BrownMushroom, RedMushroom];
+
     // ── ground a plant will grow on ─────────────────────────────────────────────
     /// <summary>How readily a painted surface accepts flora, by the block on top of it: grass and dirt take it
     /// fully, sand and clay sparsely, and everything else — the quartz of a plaza, the wool of a monument, a
@@ -65,17 +76,19 @@ public static class DressingPalette
     /// dressing pass runs after the painter rather than before. What may grow there is <see cref="SoilOf"/>'s.</summary>
     public static double SoilShare(int blockId, int blockData) => SoilOf(blockId) switch
     {
-        Soil.Fertile => blockId == Blocks.Dirt && blockData == 2 ? 0.8 : 1.0,   // podzol takes a little less
+        Soil.Fertile => blockId == Blocks.Dirt && blockData == PodzolData ? 0.8 : 1.0,   // podzol takes a little less
+        Soil.Mycelium => 1.0,
         Soil.Sand or Soil.Clay => 0.35,
         _ => 0,
     };
 
     /// <summary>What a surface block lets grow. A 1.8 grass tuft, fern or flower stays only on grass and dirt
     /// and drops at the first update anywhere else; a dead bush takes sand, hardened and stained clay and dirt;
-    /// a cactus takes sand alone.</summary>
+    /// a cactus takes sand alone; mycelium takes a mushroom and nothing else.</summary>
     public static Soil SoilOf(int blockId) => blockId switch
     {
         Blocks.Grass or Blocks.Dirt => Soil.Fertile,
+        Blocks.Mycelium => Soil.Mycelium,
         Blocks.Sand => Soil.Sand,
         Blocks.HardenedClay or Blocks.StainedClay => Soil.Clay,
         _ => Soil.None,
@@ -92,6 +105,12 @@ public static class DressingPalette
     /// the data is not read.</para>
     /// </summary>
     public static bool RootsInto(int blockId) => blockId is Blocks.Grass or Blocks.Dirt;
+
+    /// <summary>Whether a mushroom stays on this block by day: podzol and mycelium. 1.8 drops a mushroom
+    /// wherever the light reaches 13 unless the block under it is one of the two, and an open meadow is lit
+    /// past that every day.</summary>
+    public static bool KeepsMushroom(int blockId, int blockData) =>
+        blockId == Blocks.Mycelium || (blockId == Blocks.Dirt && blockData == PodzolData);
 
     /// <summary>Whether a block on top of a column was <em>stamped</em> there — a room floor, an approach wall,
     /// a monument, an objective — rather than left by the painter. The painter only ever writes terrain
@@ -156,8 +175,11 @@ public enum Soil
 {
     /// <summary>Nothing grows: paving, stone, gravel, a monument.</summary>
     None,
-    /// <summary>Grass and dirt: grass, ferns, flowers and tall grass; a dead bush on dirt.</summary>
+    /// <summary>Grass and dirt: grass, ferns, flowers and tall grass; a dead bush on dirt; a mushroom on
+    /// podzol.</summary>
     Fertile,
+    /// <summary>Mycelium: a mushroom, and nothing else.</summary>
+    Mycelium,
     /// <summary>Sand: a dead bush or a cactus.</summary>
     Sand,
     /// <summary>Hardened and stained clay: a dead bush.</summary>

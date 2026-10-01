@@ -77,8 +77,8 @@ public sealed class SketchMaterialGateTests
         await Assert.That(await RefusedAsync(
             await client.PutAsync("/api/map/gate/sketch/from-plan", Body(LogVerge)))).IsEqualTo("HS3");
 
-        // 3 · the one-call load — the road a headless author stores a whole map through
-        var loaded = await client.PostAsJsonAsync("/api/map/from-documents", new
+        // 3 · the source — the road a headless author stores a whole map through
+        var loaded = await client.PutAsJsonAsync("/api/map/gate-two/source", new
         {
             plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse(LogVerge).RootElement,
@@ -144,6 +144,40 @@ public sealed class SketchMaterialGateTests
         await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo(rule);
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo(field);
         await Assert.That(finding.GetProperty("message").GetString()).Contains("{\"block\": -1}");
+    }
+
+    /// <summary>A style in the shape it had when its floor, ceiling and wall were each one block, where the style
+    /// is bound: a part holding a material instead of its courses is refused by its path, on a building's recipe
+    /// (<c>DR-DOC</c>) and on a bound room style (<c>RQ1</c>), where it was answered with a 500.</summary>
+    [Test]
+    [Arguments("""
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layers":[{"base_y":0,"layout":{"shapes":[{"id":"s1","type":"rectangle","operation":"add",
+           "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}]}}],
+         "dressing":{"props":[{"kind":"house","id":"byre","wings":[{"corners":[[0,0],[6,6]]}],"style":"bothy"}],
+                     "styles":{"bothy":{"kind":"house","shell":{"wall":{"kind":"solid","id":4}}}}}}
+        """, "DR-DOC", "shell.wall")]
+    [Arguments("""
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layers":[{"base_y":0,"layout":{"shapes":[{"id":"s1","type":"rectangle","operation":"add",
+           "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}]}}],
+         "roomStyles":{"wool":{"floor":{"kind":"solid","id":5},"ceiling":{"kind":"solid","id":5},
+                               "wall":{"kind":"solid","id":4}}}}
+        """, "RQ1", "roomStyles.wool.wall")]
+    public async Task A_part_written_as_a_material_is_refused_where_the_style_is_bound(
+        string layout, string rule, string field)
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        await client.PostAsJsonAsync("/api/sketch", new { name = "Retired" });
+
+        var resp = await client.PutAsync("/api/map/retired/sketch", Body(layout));
+        var text = await resp.Content.ReadAsStringAsync();
+        await Assert.That((int)resp.StatusCode).IsEqualTo(400).Because(text);
+        var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo(rule);
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo(field);
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("\"stack\"");
     }
 
     /// <summary>A wool room raised on stilts over a plank plate — <c>HS10</c>, a complaint, since the house

@@ -4,16 +4,24 @@ Sketch-originated maps have no real voxel world (their "world" is a synthetic `l
 playable PGM map, the studio synthesises a real Anvil world from the sketch column geometry
 (`SketchRasterizer.RasterizeColumns`) + the authored `MapIntent`, and bundles it with `map.xml`.
 
-**Delivery.** At the Configure export point (today `GET /api/map/{slug}/xml`, `MapXmlEndpoint`), a
+**Delivery.** At the Configure export point (`GET /api/map/{slug}/export`, `MapExportEndpoint`), a
 **sketch-origin** map returns a **ZIP** whose entries sit at its top — a world directory's own contents,
 which is what a server is handed, so the archive unpacks into whatever folder the caller chose:
 
 ```
 map.xml
+map.png
 level.dat
 region/
   r.<x>.<z>.mca
 ```
+
+**`map.png` is the picture a PGM server lists the map by**, 290 × 246 pixels, an overview of the playing area
+in the game's own block sprites (`MapPicture`). It is drawn by the eye `render/eye` draws with, from the kept
+view the author marked as the map's picture or, where none is marked, from the whole board seen above the
+middle of its long side, raised and framed on the built extent (`WorldViews.PictureOf`). A studio without the
+sprites — where `render/eye` answers `RQ10` — exports the world without it, and the `RQ10` finding rides in
+`Pgm-Warnings` as a complaint.
 
 **Normal Configure-imported maps export XML only** (they already ship a real world). Sketch origin is detected
 by the presence of the `sketch_layout_json` artifact (durable signal — `MapStage.Sketch` advances to

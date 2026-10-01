@@ -12,11 +12,14 @@ no objective until Configure gives it one. Opened on a map that came from a plan
 layout — the plan's abutting same-height pieces already fused into single polygons — and refines it.
 
 The route is `/maps/{slug}/sketch`. Six phases sit on the rail in the order the work is done: **Info**,
-**Draw**, **Relief**, **Theme**, **Dressing** and **In game**. Info states what the board is and is its own
-body; In game is the board as a player sees it, with the author's notes on it, and is its own body too until a
-view is being placed. The other four share the one live canvas, which stays mounted while Info or the gallery is up so the
-drawing state and the zoom survive the trip. None of the four has steps: each swaps what the columns hold and
-which overlays the layer bar offers, and the canvas is reused as it stands.
+**Draw**, **Relief**, **Theme**, **Dressing** and **In game** — and two after them that are not steps in making
+the board: **History**, its changes, and **Report**, everything a drive reads back about it. Info states what the
+board is and is its own body; In game is the board as a player sees it, with the author's notes on it, and is
+its own body too until a view is being placed; Report is a page of readings and is its own body as well. The
+other five share the one live canvas, which stays mounted while Info, the gallery or the report is up so the
+drawing state and the zoom survive the trip. None of the five has steps: each swaps what the columns hold and
+which overlays the layer bar offers, and the canvas is reused as it stands. `?phase=history` opens the tool on
+History and `?phase=report` on Report.
 
 The tool saves continuously — every change schedules a debounced write 800 ms later — and leaves by
 **Finish**, which flushes the layout, rasterizes it server-side into world geometry, and moves the map to
@@ -62,14 +65,14 @@ The identity of the map — its display name and authors — lives on the map ro
 `PATCH /api/map/{slug}/metadata`, not in the layout.
 
 **The views an author keeps in the In game phase are a second artifact beside it**, `map_views_json`: a list of
-`{id, name, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?}`, where a view is only where the eye stands and what it
-looks at, or which way it turns. It sits beside the layout rather than in it, so keeping a picture is not an edit to the board and does
+`{id, name, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?, picture}`, where a view is only where the eye stands and
+what it looks at, or which way it turns, and `picture` marks the one the map's picture is drawn from. It sits beside the layout rather than in it, so keeping a picture is not an edit to the board and does
 not change the world the board builds — and a board loaded again over its own slug keeps its views.
 
 **The notes an admin leaves in the In game phase are rows, not an artifact.** `map_note` holds one per note —
 its map by slug, what it is pinned to, its tag and its status — and `map_note_message` its thread, each message
-with who wrote it, the token it was written with where it was one, the map's revision it was written against,
-and the picture it carries by hash. A note names its map by slug rather than by row because a driver replaces
+with who wrote it, the token it was written with where it was one, the change to the map's documents it was
+written at, and the picture it carries by hash. A note names its map by slug rather than by row because a driver replaces
 the map row on every build, and a thread outlives every rebuild of the board it is about; deleting the map is
 what lets its notes go. The pictures themselves are files, named by the SHA-256 of their bytes under
 `Notes:Pictures` (*Notes*, under In game).
@@ -98,7 +101,7 @@ emits, and it is carried by its own rule with a refusal attached (below).
 The geometry half, with one shape of each flavour — a plain rectangle, a polygon carrying per-vertex heights
 and a Bézier edge, a carve, and an erected shape standing out of the relief:
 
-```json
+```json PUT /api/map/{slug}/sketch
 {
   "setup": { "mirror_mode": "rot_180", "center": { "cx": 0, "cz": 0 },
              "bbox": { "min_x": -60, "max_x": 60, "min_z": -40, "max_z": 40 } },
@@ -624,7 +627,7 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 
 | Chord | Does | Group |
 |---|---|---|
-| `1`–`6` | Go to Info · Draw · Relief · Theme · Dressing · In game | Phases |
+| `1`–`8` | Go to Info · Draw · Relief · Theme · Dressing · In game · History · Report | Phases |
 | `V` | Select | Tools |
 | `H` | Pan | Tools |
 | `R` | Rectangle | Tools |
@@ -857,7 +860,7 @@ select-only too and is deliberately outside this — its inspector is about the 
 The document is keyed by group id and carries the group's own settings beside the two lists. This one states
 all six, and solves to a surface running 7 to 16:
 
-```json
+```json SketchLayout
 { "relief": {
   "i1": {
     "base": 9, "reach": 14, "step": 1, "landform": "rolling",
@@ -994,8 +997,8 @@ library row's **document**, the way the biome select does: a board read back aft
 straight to the endpoint, resolve the same way one bound in the phase does. A snapshot no row matches reads
 as `(a shell the library does not hold)` rather than as the built-in one.
 
-```json
-{ "roomStyles": { "wool": { "form": "gable", "pitch": 1 }, "spawn": null } }
+```json SketchLayout
+{ "roomStyles": { "wool": { "roof": { "form": "gable", "pitch": 1 } }, "spawn": null } }
 ```
 
 That map stamps its wool cages with the bound style and gives its spawns no building at all. Leaving `spawn`
@@ -1060,7 +1063,7 @@ Seven things can be placed, in three placement geometries.
 | Tool | Kind | Placed by | Starts as |
 |---|---|---|---|
 | Stroke | `stroke` | tracing a line | gravel, radius 3, `solid`, coverage 0.7, paint rather than a route |
-| Fluid | `fluid` | tracing a line | water, a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank; `fluid: lava` fills the bed with lava, `shape: pool` fills a drawn ring instead, and `level` states a world Y where a basin has to hold it |
+| Fluid | `fluid` | tracing a line | water, a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank; `fluid: lava` fills the bed with lava, `shape: pool` fills a drawn ring instead, `shape: basin` fills only the ground in a ring lower than its `level` and cuts nothing, and `level` states the world Y the fluid stands at |
 | Ground cover | `flora` | tracing a ring | coverage 0.45 at scale 12, with fern and flower shares |
 | Building | `house` | dragging a rectangle | no style of its own until one is picked from the room-style library |
 | Tree | `tree` | a click | no recipe of its own until one is picked from the tree library |
@@ -1092,7 +1095,11 @@ declaration. Marking every stroke a claiming one is how a board ends up with now
 level line with water or lava, because water laid flat on a surface reads as blue paint. Its `shape` says what its points
 mean — a `channel` strokes them as a centerline and takes its width from `radius`, a `pool` closes them into a
 ring and fills it, which is the only way to make a harbour or a lake with square corners; on a pool `radius`
-is the shelf the bed takes to reach full depth. It fills round whatever stands in it and never cuts under it,
+is the shelf the bed takes to reach full depth. A `basin` closes them into a ring and cuts nothing: every column
+inside it whose ground stands lower than its `level` fills to that level and every other is left as it stood,
+so the ground draws the shore and a ring drawn loose round a dug hollow floods exactly the hollow. A basin
+states its `level`, and one that does not is refused `DR-DOC`; its beach follows the water rather than the
+ring. It fills round whatever stands in it and never cuts under it,
 so a ship moored in a harbour floats rather than sitting in a dry hole. Absent a `level` the line is
 derived — the lowest surface the channel crosses — and the prop only ever carves existing terrain: the cut
 stops at the surface it crosses and never fills what was already air. **`level` states the world Y instead**,
@@ -1228,13 +1235,13 @@ anything else to say, and why a stored document whose wings are bare corner pair
 |---|---|
 | `storeysHigh` | how many of the style's storeys stand on this wing; nought takes them all. Deliberately not `storeys`, which on a **style** is the list of storey styles a building is made of |
 | `form` · `pitch` · `roofSlab` | the roof this wing wears where it does not wear the building's — the same three the style names, resolved as one decision rather than three |
-| `ridge` | `AlongX` or `AlongZ`, where the wing's own proportions should not decide |
+| `ridge` | `alongX` or `alongZ`, where the wing's own proportions should not decide |
 | `projects` | whether the wing carries its roof across the hall instead of marching into it |
 
-```json
+```json POST /api/map/{slug}/sketch/props
 { "kind": "house", "id": "h1", "seed": 1, "wings": [
   { "corners": [[0, 6], [9, 10]] },
-  { "corners": [[0, 0], [4, 5]], "spec": { "ridge": "AlongZ", "projects": true } } ] }
+  { "corners": [[0, 0], [4, 5]], "spec": { "ridge": "alongZ", "projects": true } } ] }
 ```
 
 Three things follow from the junction being one building rather than two roofs in one place (`G179`–`G181`).
@@ -1253,10 +1260,10 @@ one `BuildingPlan` before anything is placed. A second wing is drawn as a buildi
 first with `mod+g`, so what the canvas drags is always a rectangle and what it stamps is the plan they make
 together.
 
-The document is a flat list of what was placed, in placement order, each entry carrying its own knobs. One of
-each:
+The document is the list of what was placed, in placement order, each entry carrying its own knobs, and beside
+it the recipes a tree, a boulder or a building names by key. One of each:
 
-```json
+```json SketchLayout
 { "dressing": { "props": [
   { "id": "d1", "kind": "stroke", "seed": 1, "points": [[-36, 0], [-20, 4], [-4, 0]],
     "radius": 3, "style": "worn", "coverage": 0.7, "claimsGround": true,
@@ -1267,23 +1274,28 @@ each:
   { "id": "d2b", "kind": "fluid", "seed": 6, "shape": "pool", "layer": "ground", "level": 12,
     "points": [[-30, 16], [-6, 16], [-6, 34], [-30, 34]], "radius": 6, "depth": 3, "shore": 2,
     "bank": { "kind": "solid", "id": 12, "data": 0 } },
+  { "id": "d2c", "kind": "fluid", "seed": 7, "shape": "basin", "level": 9,
+    "points": [[4, 16], [30, 16], [30, 34], [4, 34]], "shore": 2 },
   { "id": "d3", "kind": "flora", "seed": 3,
     "points": [[-38, 8], [-26, 8], [-26, 18], [-38, 18]],
     "spec": { "coverage": 0.45, "scale": 12, "octaves": 3,
               "fernShare": 0.25, "flowerShare": 0.18, "flowerScale": 18, "tallShare": 0 } },
-  { "id": "d4", "kind": "house", "seed": 4, "points": [[-22, -16], [-14, -8]],
-    "front": "negZ", "style": {} },
-  { "id": "d5", "kind": "tree", "seed": 5, "x": -32, "z": 2, "layer": "ground",
-    "form": "template", "species": "birch", "height": 12 },
-  { "id": "d6", "kind": "boulder", "seed": 6, "x": -8, "z": 14,
-    "form": "cairn", "size": 3, "mossy": true,
-    "rock": { "kind": "solid", "id": 1, "data": 0 } }
-] } }
+  { "id": "d4", "kind": "house", "seed": 4, "wings": [ { "corners": [[-22, -16], [-14, -8]] } ],
+    "front": "negZ", "style": "croft" },
+  { "id": "d5", "kind": "tree", "seed": 5, "x": -32, "z": 2, "layer": "ground", "style": "birch-12" },
+  { "id": "d6", "kind": "boulder", "seed": 6, "x": -8, "z": 14, "style": "cairn-3" }
+  ],
+  "styles": {
+    "croft": { "kind": "house", "shell": { "roof": { "form": "gable", "pitch": 1 } } },
+    "birch-12": { "kind": "tree", "form": "template", "species": "birch", "height": 12 },
+    "cairn-3": { "kind": "boulder", "form": "cairn", "size": 3, "mossy": true,
+                 "rock": { "kind": "solid", "id": 1, "data": 0 } }
+  } } }
 ```
 
 The three geometries are visible in the shape of the entries: a marker carries `x`/`z`, a traced prop carries
-`points` — a line for a stroke or a channel, a closed ring for ground cover — and a building carries the two
-opposite corners of its rectangle. `pave` and `bank` are full terrain materials, so any of the fourteen kinds
+`points` — a line for a stroke or a channel, a closed ring for ground cover — and a building carries its
+wings, each the two opposite corners of a rectangle. `pave` and `bank` are full terrain materials, so any of the fourteen kinds
 in `library.md` may stand there.
 
 **What a prop is *made of* is named once, beside the placements.** A tree, a boulder and a building each carry
@@ -1373,6 +1385,12 @@ built. It is the first picture in the gallery and the first camera on the canvas
 built board every time the views are listed, so it follows the board as the board grows. It can be changed like
 any kept view, and the change is kept in its place; it is never let go, and deleting a changed one puts the
 framed one back.
+
+**One view is the map's picture: the `map.png` a server lists the map by.** An export draws it at 290 × 246
+through the same eye, from the view marked as the picture or, where none is, from the whole board seen above
+its long side (`docs/world-export/sketch-world-export.md`, *Delivery*). **Map picture** on the shown view marks
+it — a kept one in place, a suggestion by keeping it — and the view the picture is drawn from wears a *map
+picture* badge instead.
 
 **Then the gallery shows what the studio suggests, and then what the author kept.** The suggestions are read
 off the built board (`WorldViews`): the whole board from above the middle of its long side; every team's spawn seen
@@ -1483,7 +1501,7 @@ sky — before it can be sent.
 Waiting on you, With agent, Resolved — then the notes on the whole map, then any on a picture the gallery no
 longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **‹ All notes**
 goes back. A thread is its messages top to bottom, each with who wrote it, the token an agent wrote it with, and
-the revision it was written against; its pictures; **Resolve** or **Reopen**; and the reply box. A new note shows
+the change it was written at; its pictures; **Resolve** or **Reopen**; and the reply box. A new note shows
 what it is pinned to over its text box and an optional tag. The gallery counts each view's notes that are not
 resolved, and choosing another view switches the overview with it. `?note={id}` on the route opens the phase on
 that note's thread, which is the link a ruling written into `docs/gameplay/approaches.md` carries back to where it
@@ -1505,10 +1523,54 @@ declines in a reply — so a fix that looks right in a number but wrong in the g
 asked. An agent may open a note too, as a question in the place it is about, and it waits for the author the
 same way.
 
+**A thread says how many changes have landed since its last message.** A message records the latest change to
+the board's documents when it was written, or the one its writer stated, so the count is every change numbered
+above the thread's last message — an agent's pass, the author's own edit, a restore. The count is a link: it
+opens History on the span from that change to the latest, which is the answer to what happened since this was
+said.
+
 **A tag is optional.** A note can be only its text; the agent works out what it is about and says so in its reply,
 so a wrong reading is caught on the thread. `look`, `terrain` and `gameplay` go to the map; `studio` means the
 studio got something wrong or cannot do it, and becomes a backlog task instead; `ruling` is a gameplay decision
 that holds on every map, and a resolved one is written into the gameplay law with a link to its thread.
+
+### History
+
+**History is the board's changes, what each one did, and the way back to any of them.** The column lists every
+change to the board's documents newest first — its number, what its writer said it is or which documents it
+wrote, and when; hovering a row says who wrote it and with which token. The phase opens on the latest change,
+and picking one draws what it did over the board with the canvas as a selection surface and Shapes on: a shape
+added in green, taken away in red, reshaped in amber with its old outline dashed beside the new one, and changed
+in any other field — a theme, a floor — in blue; a prop placed, removed or moved, a hollow dot where it stood and
+a filled one where it stands; and the runs of columns whose ground, surface block or structure the build moved,
+boxed in the colours `docs/world-scan/read-backs.md` names.
+
+**The inspector says the rest.** Who wrote the change, when, what they said, and where its documents were built,
+linked to the commit and folder where the writer stated an origin, and the earlier changes it dropped where it
+was a source that named some; then every edit it made to the four documents, one a line, the thing it is about beside the change in words; then how many columns it moved of
+each kind. The edits come first and the columns when both boards are built, which on a large board is seconds.
+
+**Putting the board back writes the documents as they stood at the start of what is shown, as one new change.**
+For a single change that is the change before it, so the button takes the change back — and every change after
+it, which the inspector counts before it is pressed. The tab saves what was drawn in it first, then takes up the
+board the restore wrote, so the canvas and the store agree afterwards; a tab whose board is behind the stored one
+is refused until it is reloaded. The four routes underneath are `docs/tools/flow.md`'s, *Every change a map
+keeps*.
+
+### Report
+
+**Report is everything a drive reads back about the board as stored, off one build** —
+`GET /map/{slug}/report`, which `docs/world-scan/read-backs.md` describes. Entering it saves what was drawn in
+the tab first, so the report is of the board on the canvas. It opens on the three numbers a board is wrong or
+right by, in the report's own words; **Read again** asks for it afresh.
+
+**The pictures are drawn one at a time.** Every picture the report names is a chip, and the one picked is drawn
+under them — the isometric first — through the route the report names, so a board's renders wait their turn one
+after another as the build queue answers them. A picture that cannot be drawn on this studio, an eye view with
+no block sprites, is a dashed chip that says why.
+
+**Every reading folds under its name and the route that answers it alone**, so a reading can be opened here and
+asked for again outside the tool by the same words.
 
 ## Refusals and complaints
 
@@ -1569,9 +1631,10 @@ a part it has to learn from prose instead.
 
 **The house half** reads `roomStyles.wool`, `roomStyles.spawn` and the shell of every building in
 `dressing.props` off the document that is about to be written, and runs each through the same house-style gate
-(`docs/tools/library.md`'s Refusals, rule ids `HS1`–`HS3`) — a block named for a geometric role that is not
-that kind of block, a doorway that does not clear 2.5 blocks once its head is written in, or a roof whose own
-materials are wrong for its pitch or its family. The cage and the spawn are checked identically: a stair
+(`docs/tools/library.md`'s Refusals) — a block named for a geometric role that is not that kind of block, a
+doorway that does not clear 2.5 blocks once its head is written in, or a roof whose own materials are wrong for
+its pitch or its family, `HS1`–`HS6` in all. The author's verdicts on how a house looks, `HS7`–`HS19`, ride
+back on the answer as complaints and refuse nothing. The cage and the spawn are checked identically: a stair
 lattice or a slab band window is allowed on either, as it is on any house, so long as its block is the kind the
 form needs. A placed building is checked identically for the same reason: its shell is a snapshot on the prop
 rather than a reference to a library row, so the style stored here is the style the export stamps, and
@@ -1579,13 +1642,17 @@ rather than a reference to a library row, so the style stored here is the style 
 `field` is `dressing.props[3].style.verge` and `subjects` carries the prop's own id.
 
 **It is asked on every road a layout is stored through**, not only on this one: `PUT .../sketch/from-plan`
-runs it over the merged document, and `POST /map/from-documents` over the layout it is handed. A gate wired to
-one of the three is a gate two thirds of the maps in this repository never met.
+runs it over the merged document, and `PUT /map/{slug}/source` over the layout its refinement produced. A gate
+wired to one of the three is a gate two thirds of the maps in this repository never met.
 
 Answers **400** `{error: "invalid style or theme", message, findings[]}` (`docs/refusals.md`), one finding
 per fault, and writes nothing. A layout with no `roomStyles`, no buildings and no themes — or one whose
 snapshot does not parse as a house style or a theme at all — is not this gate's business and saves as it
-always did: only a well-formed style or theme that is wrong is refused.
+always did: only a well-formed style or theme that is wrong is refused. A snapshot holding a part the record
+cannot — stated as `null` where it has none, or written as a material rather than as its courses, the shape a
+style had when its floor, ceiling and wall were each one block — is refused by its path, `RQ1` on a bound
+room style (`roomStyles.wool.wall`) and `DR-DOC` on a building's recipe (`shell.wall`), since the export would
+otherwise stamp the built-in shell in its place.
 
 **And a bound shell taller than the build ceiling is refused there too** (`WX10`,
 `docs/world-export/structures.md`). A room's shell is authored geometry subject to no cap of its own, while
@@ -1970,9 +2037,9 @@ in the same two registers.
 | `GET /map/{slug}/sketch/groups` | every group the board carries, across all its layers — `{layer, id, name, mirrors, shapeIds, hasRelief}` each. The list a caller reads before naming a group to draw into or keying a relief over | 404 |
 | `PUT /map/{slug}/sketch/layers/{layerId}/groups/{groupId}` | `{id}` — state one group whole: what it is called, whether it is fanned onto the symmetry orbit, and which shapes share its ground. Creates it where the layer carries none under that id | 400 `malformed body` `RQ1` · 409 · 404 the id names no layer |
 | `DELETE /map/{slug}/sketch/layers/{layerId}/groups/{groupId}` | `{id}` — ungroup. The shapes stay on the layer and are drawn where they were drawn; what goes with the group is the orbit fan and the relief keyed under its id | 409 · 404 the id names no group |
-| `GET /map/{slug}/sketch/shapes/{shapeId}` | one `SketchShape`, wherever on the stack it is drawn — a shape id is unique across the whole document, so it is the address wherever it lives | 404 the id names no shape |
+| `GET /map/{slug}/sketch/shapes/{shapeId}[?format=text]` | one `SketchShape`, wherever on the stack it is drawn — a shape id is unique across the whole document, so it is the address wherever it lives. `?format=text` answers its outline as the edges a point edit names instead: each edge by the vertex it leaves, its two corners, its length, `~` where a handle curves it, and what the shape's layer covers half a block outside it, run by run along the edge — another shape, `id (image)` where the board's symmetry draws a fanned shape's image, or `void`. It is the read a pull or a bend's `edges` is written from, so a coast is found by reading rather than by copying the ring and counting; a rectangle or a circle answers that it has no outline to edit | 404 the id names no shape |
 | `PATCH /map/{slug}/sketch/shapes/{shapeId}` | `{id}` — change one shape without restating the board. A stated field replaces what the shape carried and **a stated `null` takes the field off**, so the one call both writes a height and clears a relief scope. `id` is the address and is kept whatever the body says | 400 `the edit cannot be made` `RQ1` on `role`, `intentRef` or `height_authored` · 400 `malformed body` `RQ1` · 409 · 404 the id names no shape |
-| `POST /map/{slug}/sketch/shapes/{shapeId}/bend` | `{id, vertices, held}` — redraw one outline as a **coast**: resampled along its long edges every `step` blocks, each inserted point pulled off its edge by up to `wander`, and Bézier handles fitted over the result. Body `{wander, step, seed, tension?, side?}`. **The outline's own vertices never move**, so a corner stays where the plan put it and the neck a spur hangs off keeps its width. `side` is `out` (the default — the slight bloat that reads as land), `in` (keeps the plan's footprint, for a board whose shapes abut on a measured strait) or `both` (wanders across the line the plan drew). The side is decided by asking the ring rather than by reading a winding, so it is right for either winding and for a concave stretch. `held` counts the points that had no room on the side asked for and stayed where they were cut, which rides back as `SK21` | 400 `the edit cannot be made` `RQ1` — a `role` shape (a room's rectangle is not a coast), no `vertices` to resample, a wander that folds the outline across its own far side, or a `wander`/`step` of nought · 409 · 404 the id names no shape |
+| `POST /map/{slug}/sketch/shapes/{shapeId}/bend` | `{id, vertices, held}` — redraw one outline as a **coast**: resampled along its long edges every `step` blocks, each inserted point pulled off its edge by up to `wander`, and Bézier handles fitted over the result. Body `{wander, step, seed, tension?, side?, edges?, fan?}`. **The outline's own vertices never move**, so a corner stays where the plan put it and the neck a spur hangs off keeps its width. `side` is `out` (the default — the slight bloat that reads as land), `in` (keeps the plan's footprint, for a board whose shapes abut on a measured strait) or `both` (wanders across the line the plan drew). The side is decided by asking the ring rather than by reading a winding, so it is right for either winding and for a concave stretch. `edges` names the edges to draw, each by the vertex it leaves; every edge not named keeps no cut and no handle. An outline the board's symmetry carries onto itself is drawn as a coast that is its own image too — its wander read at each point's canonical image, a named edge's images drawn with it — unless `fan` is false. `held` counts the points that had no room on the side asked for and stayed where they were cut, which rides back as `SK21` | 400 `the edit cannot be made` `RQ1` — a `role` shape (a room's rectangle is not a coast), no `vertices` to resample, an `edges` entry the outline does not have, a wander that folds the outline across its own far side, or a `wander`/`step` of nought · 409 · 404 the id names no shape |
 | `PATCH /map/{slug}/sketch/shapes/{shapeId}/vertices/{index}` | `{id, index, vertices}` — move one point of one outline. Body `{x, z}`. **Every other vertex stays exactly where it was drawn**, which is the whole of the call: a board's shapes abut, and an edit that drags a ring's other points opens ground between two that were flush | 400 `the edit cannot be made` `RQ1` — a `role` shape, no `vertices` to address, an index the outline does not carry (the message states the range), or a move that folds the ring · 409 · 404 the id names no shape |
 | `POST /map/{slug}/sketch/shapes/{shapeId}/vertices` | `{id, index, vertices}` — add one point after the vertex `after` names, and answer where it landed. Body `{after, x?, z?}`; stating no point puts it at the **midpoint of that edge**, which is a new corner half way along a wall with nothing else moved. The last vertex's edge closes the ring | 400 as above · 409 · 404 the id names no shape |
 | `DELETE /map/{slug}/sketch/shapes/{shapeId}/vertices/{index}` | `{id, index, vertices}` — take one point out, leaving every other where it was drawn | 400 `the edit cannot be made` `RQ1` — as above, plus an outline down to its last three, since two points draw no ground · 409 · 404 the id names no shape |
@@ -1997,14 +2064,21 @@ in the same two registers.
 | `PUT /map/{slug}/sketch/biome` | `{id}` — which biome each column of the exported world carries. Map-wide and answered per chunk, because a biome's tint is blended across a radius and a region drawn to a finer edge never reaches its own colour there. A field the field's kind has no place for — `biome` where a `solid` field states `id` — is named on `warnings` as `RQ3` rather than read as plains in silence | 400 `malformed biome` `RQ1` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/biome` | `{id}` — take the field off the board, which is plains everywhere | 409 · 404 |
 
+**The report** — what the Report phase shows (`docs/world-scan/read-backs.md`, *One read answers everything a
+drive reads back*).
+
+| Endpoint | Answers | Fails with |
+|---|---|---|
+| `GET /map/{slug}/report[?pictures=true]` | `{slug, change, headline, reads[], pictures[]}` — `headline` is `{walked, scrambled, barrier, placed, declined, worstStep, worstRoute, says[]}`, the three numbers and the three lines they are said in; each reading `{name, route, text, missing}`, the route answering the same reading alone; each picture `{name, route, png, missing}`, `png` drawn only on `?pictures=true`. `?format=text` answers the whole as one document | 404 no stored layout |
+
 **The pictures from a player's eye** — what the In game phase lists and draws. Each view answers the
 `render/eye` query words that draw it, so a caller adds only a size.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, yaw, query, eye}`. `own` marks the straight-down view (`above`), kept by every board; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null | 404 |
-| `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?}`; a blank name is `View {n}`. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down. `yaw` states the camera whole — it turns from `fromX`, `fromZ` at `y`, and `look` is then only where the canvas draws its target; it is wrapped into the game's −180 to 180 | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, a pitch past straight up or down, or a `yaw` without its stand and `y` · 404 |
-| `PUT /map/{slug}/views/{viewId}` | the view changed in place, keeping its id. Body as for keeping one; a blank name keeps the view's own. The board's own `above` is changed the same way, and the change is then kept in place of the framed one | 400 `not a view` `RQ1` · 404 no kept view has that id — a suggestion is not stored, so it cannot be changed |
+| `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, yaw, query, eye, picture}`. `own` marks the straight-down view (`above`), kept by every board; `picture` the one the map's picture is drawn from — the kept view marked as it, else the `overview` suggestion; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null | 404 |
+| `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?, picture?}`; a blank name is `View {n}`, and `picture: true` draws the map's picture from this view and from no other. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down. `yaw` states the camera whole — it turns from `fromX`, `fromZ` at `y`, and `look` is then only where the canvas draws its target; it is wrapped into the game's −180 to 180 | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, a pitch past straight up or down, or a `yaw` without its stand and `y` · 404 |
+| `PUT /map/{slug}/views/{viewId}` | the view changed in place, keeping its id. Body as for keeping one; a blank name keeps the view's own, `picture` absent keeps whether it is the map's picture and `false` stops it being. The board's own `above` is changed the same way, and the change is then kept in place of the framed one | 400 `not a view` `RQ1` · 404 no kept view has that id — a suggestion is not stored, so it cannot be changed |
 | `DELETE /map/{slug}/views/{viewId}` | the view let go. A suggestion is not kept, so it cannot be deleted; deleting a changed `above` puts the framed one back | 404 no kept view has that id · 409 `RQ5` the framed `above`, which is never let go |
 
 ```json POST /api/map/{slug}/views
@@ -2018,9 +2092,9 @@ permission (`docs/access.md`). A member, and every other token, is refused `RQ8`
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `GET /notes?status=` | every note on every map, newest change first, each a `MapNoteDto` with its map's slug and name. `status` takes one status or several between commas — `open` is what an agent starts on | 400 `no such status` `RQ1` |
-| `GET /map/{slug}/notes` | the map's notes, newest change first: `[{id, map, mapName, anchor, tag, status, createdAt, updatedAt, messages[]}]`, each message `{id, author, authorUuid, token, body, revision, picture, at}` — `token` is the label of the token an agent wrote it with, null for a browser | 404 |
-| `POST /map/{slug}/notes` | the note written. Body `{body, anchor, tag?, picture?, revision?}`; a note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a tag of no known word, a picture no upload answered · 404 |
-| `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, revision?}`; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH` · 404 no such map, or no note by that id on it |
+| `GET /map/{slug}/notes` | the map's notes, newest change first: `[{id, map, mapName, anchor, tag, status, createdAt, updatedAt, messages[]}]`, each message `{id, author, authorUuid, token, body, change, picture, at}` — `token` is the label of the token an agent wrote it with, null for a browser | 404 |
+| `POST /map/{slug}/notes` | the note written. Body `{body, anchor, tag?, picture?, change?}`; `change` is the map's change it was written at, and absent takes the latest. A note an author writes is `open`, one written with a token is a question and `needs-info` | 400 `not a note` `RQ1` naming the field — an empty body, an anchor of no known kind, a picture anchor without its camera or size, a mark of the wrong number of pixels or outside the picture, a tag of no known word, a picture no upload answered, a `change` that has not landed · 404 |
+| `POST /map/{slug}/notes/{id}/replies` | the thread with the reply on it. Body `{body, status?, picture?, change?}`; `status` is where the reply leaves the thread — `answered`, `needs-info`, `wont-do` or `open` — and absent is `answered` for a token and `open` for a browser | 400 `not a reply` `RQ1` — `resolved` is the author's `PATCH`, or a `change` that has not landed · 404 no such map, or no note by that id on it |
 | `PATCH /map/{slug}/notes/{id}` | the note changed. Body `{status?, tag?}`: `resolved`, `wont-do` or `open` to reopen; a tag, or `""` to clear it | 400 `not a change` `RQ1` · 403 `RQ8` to a token — an agent answers in a reply, and only the author closes a thread · 404 |
 | `POST /notes/pictures` | `{hash, bytes}` — the picture kept under the SHA-256 of its bytes. The body is the picture itself, a WebP or a PNG sent as `image/webp`, `image/png` or `application/octet-stream`, up to 8 MB; the same bytes answer the same hash | 400 `not a picture` `RQ1` |
 | `GET /notes/pictures/{hash}` | the picture, `image/webp` or `image/png`, with a year's private cache — it never changes under its hash | 404 |
@@ -2129,8 +2203,9 @@ POST  /api/map/{slug}/notes/{id}/replies   {"body": …, "status": "answered", "
 ```
 
 A note's `anchor.camera` is drawn again exactly by `render/eye?eye={x},{y},{z}&yaw={yaw}&pitch={pitch}&fov={fov}&width={width}&height={height}`;
-an area's `anchor.columns` are the ground it names, each `[x, y, z]`. The reply says what changed, the revision
-it landed at — the map's revision counts on across every rebuild — and the number that moved; where the remark
+an area's `anchor.columns` are the ground it names, each `[x, y, z]`. The reply says what changed, the change
+it landed as — change numbers count on across every rebuild, and the reply records the latest by itself — and
+the number that moved; where the remark
 could mean two places or two things, the reply is the question, with `"status": "needs-info"`, and nothing is
 built on a guess. A declined note is `"status": "wont-do"` with the reason in the body.
 
@@ -2185,6 +2260,20 @@ where the plan put it and the neck a spur hangs off keeps its width. `side` says
 `out` — the default — bloats the outline slightly, which is what makes a compiled rectangle read as land;
 `in` keeps the plan's footprint, which is what a board whose shapes abut on a measured strait asks for; `both`
 wanders across the line the plan drew, with the reach falling to nothing where the side turns over.
+
+**A coast is a bend named to the edges that are shore.** `edges` lists them by the vertex each leaves —
+edge 0 runs from vertex 0 to vertex 1 — counted on the outline as the point edits leave it. An edge not named
+keeps no cut point and no Bézier handle, so it stays the straight line it was even where a named neighbour
+rounds into its end, and a shape flush against another along it stays flush. `{"side": "in", "edges": [2]}`
+is the statement a board makes for ground that meets water along one face and its neighbours along the rest:
+the bank wanders, inward and tested against the ring's own inside, and every seam keeps the line the plan cut.
+An `edges` entry the outline does not have is refused with the count it does.
+
+**A shape on the axis bends into a coast that is still its own image.** An outline the board's symmetry
+carries onto itself — a mid island no group's fan copies — would otherwise come out lopsided, since the wander
+is a field over the board and reads differently at a point and at its image. So the wander is read at each cut
+point's canonical image instead, a named edge's images are drawn with it, and both teams meet the same coast;
+`fan: false` draws the outline from its own coordinates.
 
 **Which of the two to reach for is not a preference.** A bend moves every cut point on the ring at once by a
 formula, so it is right where the whole edge should read rougher and wrong where one place should be
@@ -2241,9 +2330,14 @@ and an agent that can only open a raster could not.
 `GET /map/{slug}/column-floor`. Data again, not pictures.
 
 **The pictures of a stored sketch are the world reads.** `GET /map/{slug}/render/…` builds the world the
-stored layout and intent describe and draws it — from above, in section, walked, or from a player's eye in the
-game's own sprites — each with a `?format=text` twin; `docs/world-scan/read-backs.md` is the catalogue, and
-`GET /map/{slug}/views` lists the eye's views the In game phase shows.
+stored layout and intent describe and draws it — from above, in the round, in section, walked, or from a
+player's eye in the game's own sprites — each with a `?format=text` twin; `docs/world-scan/read-backs.md` is the
+catalogue, and `GET /map/{slug}/views` lists the eye's views the In game phase shows.
+
+**`GET /map/{slug}/report` is every one of those reads at once**, off one build: the three numbers first, then
+each reading beside the route that answers it alone, then the pictures by route — drawn too on
+`?pictures=true`, and the whole as one document on `?format=text`. It is the read to take after a store, and
+what the Report phase shows.
 
 Two things are worth knowing before hand-writing a document. **Editor defaults and wire defaults are not the
 same numbers.** A mark placed in the editor is seeded from the client's own starting values; a hand-written

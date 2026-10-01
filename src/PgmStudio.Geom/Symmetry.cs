@@ -93,6 +93,55 @@ public static class Symmetry
         _ => Normal(mode) is { } n ? ReflectPoint(x, z, n.Nx, n.Nz, cx, cz) : (x, z),
     };
 
+    /// <summary>The member of a point's orbit that stands for all of it: of the point and its images, the one
+    /// with the least z and, of those, the least x, to a millionth of a block. Every image of a point answers
+    /// the same one, so a value read there reads alike at every image.</summary>
+    public static (double X, double Z) Canonical(double x, double z, string? mode, double cx, double cz)
+    {
+        (double X, double Z) best = (Math.Round(x, 6), Math.Round(z, 6));
+        for (var k = 1; k < Order(mode); k++)
+        {
+            var (imageX, imageZ) = Point(x, z, mode, cx, cz, k);
+            (double X, double Z) image = (Math.Round(imageX, 6), Math.Round(imageZ, 6));
+            if (image.Z < best.Z || (image.Z == best.Z && image.X < best.X)) best = image;
+        }
+        return best;
+    }
+
+    /// <summary>For a ring every image of <paramref name="mode"/> carries onto itself, the vertex each vertex
+    /// lands on under image <c>k</c>, at index <c>k − 1</c>; null where some image carries the ring onto points
+    /// it does not have — a shape on one side of the board, whose images are other shapes.</summary>
+    public static int[][]? SelfImage(IReadOnlyList<double[]> ring, string? mode, double cx, double cz)
+    {
+        var order = Order(mode);
+        if (order == 1 || ring.Count < 3) return null;
+        var images = new int[order - 1][];
+        for (var k = 1; k < order; k++)
+        {
+            var lands = new int[ring.Count];
+            for (var vertex = 0; vertex < ring.Count; vertex++)
+            {
+                var (x, z) = Point(ring[vertex][0], ring[vertex][1], mode, cx, cz, k);
+                lands[vertex] = -1;
+                for (var other = 0; other < ring.Count && lands[vertex] < 0; other++)
+                    if (Math.Abs(ring[other][0] - x) < 0.01 && Math.Abs(ring[other][1] - z) < 0.01) lands[vertex] = other;
+                if (lands[vertex] < 0) return null;
+            }
+            images[k - 1] = lands;
+        }
+        return images;
+    }
+
+    /// <summary>The edge an edge lands on under an image a ring carries onto itself, each named by the vertex
+    /// it leaves: a turn keeps the ring's direction and the edge leaves the image of its own first vertex, a
+    /// reflection reverses it and the edge leaves the image of its second.</summary>
+    public static int ImageEdge(int[] lands, int edge)
+    {
+        var count = lands.Length;
+        var (from, to) = (lands[edge], lands[(edge + 1) % count]);
+        return to == (from + 1) % count ? from : to;
+    }
+
     /// <summary>
     /// The <c>k</c>-th orbit image of a <b>cell</b> — the transform every site that fans a footprint owes,
     /// and the one <see cref="Point"/> cannot give it.

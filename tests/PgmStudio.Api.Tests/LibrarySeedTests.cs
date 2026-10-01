@@ -45,9 +45,9 @@ public sealed class LibrarySeedTests
                 .Because($"{house} lost {string.Join(", ", lost)} through the store");
     }
 
-    /// <summary>The hand-authored houses compose back to exactly the buildings they went in as. Stated apart
-    /// from the pin above because this is the claim that must never soften: a generated preset can be
-    /// regenerated, and these three cannot.</summary>
+    /// <summary>The hand-authored house composes back to exactly the building it went in as. Stated apart from
+    /// the pin above because this is the claim that must never soften: a generated preset can be regenerated,
+    /// and an author's cannot.</summary>
     [Test]
     public async Task Every_authored_house_composes_back_to_its_preset()
     {
@@ -82,6 +82,33 @@ public sealed class LibrarySeedTests
         var built = houses!.Select(house => house.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var house in HousePresets.Authored)
             await Assert.That(built.Contains(house.Name)).IsTrue().Because($"{house.Name} is not in the seeded library");
+    }
+
+    /// <summary>
+    /// <b>A kept style composes back to the very style its file states</b> — the whole style, serialized, not a
+    /// list of fields. A board names a kept style by its library name where it once loaded the file, so the house
+    /// it stamps is the one the file described only if the store hands back every knob the file set.
+    /// </summary>
+    [Test]
+    public async Task Every_kept_style_composes_back_to_its_file()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        await Seed(scope).SeedAsync();
+
+        var rooms = scope.ServiceProvider.GetRequiredService<RoomStyleStore>();
+        var library = new RoomStyleLibrary(rooms, scope.ServiceProvider.GetRequiredService<HousePartStore>(),
+                                           scope.ServiceProvider.GetRequiredService<ThemeStore>());
+        var stored = (await rooms.ListAsync()).ToDictionary(room => room.Name, room => room.Id, StringComparer.OrdinalIgnoreCase);
+        await Assert.That(HousePresets.Kept.Count).IsEqualTo(49);
+        foreach (var (name, style) in HousePresets.Kept)
+        {
+            await Assert.That(stored.ContainsKey(name)).IsTrue().Because($"{name} is not in the seeded library");
+            var back = await library.ComposeAsync(stored[name]);
+            await Assert.That(HouseStyleJson.Serialize(back!)).IsEqualTo(HouseStyleJson.Serialize(style))
+                .Because($"{name} came back from the store as another building");
+        }
     }
 
     /// <summary>Seeding twice adds nothing the second time. A library is something an author edits, so a seeder

@@ -128,6 +128,230 @@ public sealed class SchemaCompletenessTests
         await Assert.That(silent.Order(StringComparer.Ordinal)).IsEmpty();
     }
 
+    /// <summary>The count of fields still publishing no shape at all, and it is zero: a field held as raw JSON
+    /// names the type it holds (<c>CarriedShapes</c>), and the few whose encoding is open by design are named in
+    /// <see cref="Open"/>. A field added as raw JSON with no type named pushes it up and fails here.</summary>
+    private const int StillShapeless = 0;
+
+    /// <summary><b>A field says what it holds.</b> A field published with no type is one a generated client types
+    /// <c>object</c> and <c>/api-docs</c> offers nothing under, so a caller learns what it holds by being refused
+    /// — and a map of them, or a list, is the same hole one level down.</summary>
+    [Test]
+    public async Task Every_field_says_what_it_holds()
+    {
+        var schemas = (await DocumentAsync()).GetProperty("components").GetProperty("schemas");
+
+        var shapeless = schemas.EnumerateObject()
+            .SelectMany(schema => Fields(schema.Value).Select(field => (Name: $"{schema.Name}.{field.Name}", field.Value)))
+            .Where(field => Shapeless(field.Value) && !Open.Contains(field.Name))
+            .Select(field => field.Name)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        await Assert.That(shapeless.Count).IsLessThanOrEqualTo(StillShapeless)
+            .Because($"{shapeless.Count} field(s) publish no shape:{Environment.NewLine}  "
+                     + string.Join($"{Environment.NewLine}  ", shapeless));
+    }
+
+    /// <summary>And the open list stays honest from the other side: a field on it that gains a shape belongs to
+    /// the count instead, and one that stops existing would otherwise leave a name nothing checks.</summary>
+    [Test]
+    public async Task The_fields_open_by_design_publish_no_shape()
+    {
+        var schemas = (await DocumentAsync()).GetProperty("components").GetProperty("schemas");
+        var fields = schemas.EnumerateObject()
+            .SelectMany(schema => Fields(schema.Value).Select(field => (Name: $"{schema.Name}.{field.Name}", field.Value)))
+            .ToDictionary(field => field.Name, field => field.Value, StringComparer.Ordinal);
+
+        foreach (var name in Open)
+        {
+            await Assert.That(fields.ContainsKey(name)).IsTrue().Because($"{name} is not in the document");
+            await Assert.That(Shapeless(fields[name])).IsTrue().Because($"{name} publishes a shape and is named open");
+        }
+    }
+
+    /// <summary>The fields whose encoding is open by design. The map document's are the <c>map.xml</c> codec's
+    /// own encodings, which <c>MapDocumentDto</c> keeps open rather than walk them a second time; the other three
+    /// hold any value a field can.</summary>
+    private static readonly string[] Open =
+    [
+        "MapDocumentDto.kits", "MapDocumentDto.spawners", "MapDocumentDto.renewables",
+        "MapDocumentDto.block_drop_rules", "MapDocumentDto.filters", "MapDocumentDto.regions",
+        "MapDocumentDto.apply_rules", "MapDocumentDto.destroyables", "MapDocumentDto.cores", "MapDocumentDto.modes",
+        "MapSpawnDto.region", "MapWoolDto.location", "MapMonumentDto.location",
+        "DocumentEdit.before", "DocumentEdit.value", "MaterialFieldDto.default",
+    ];
+
+    /// <summary>A schema's own fields, and those of the part of its <c>allOf</c> that is not its base.</summary>
+    private static IEnumerable<JsonProperty> Fields(JsonElement schema)
+    {
+        if (schema.TryGetProperty("properties", out var own))
+            foreach (var field in own.EnumerateObject()) yield return field;
+        if (schema.TryGetProperty("allOf", out var parts))
+            foreach (var part in parts.EnumerateArray())
+                if (part.TryGetProperty("properties", out var inherited))
+                    foreach (var field in inherited.EnumerateObject()) yield return field;
+    }
+
+    /// <summary>Whether a field's schema says nothing about what it holds — or is a map or a list of such.</summary>
+    private static bool Shapeless(JsonElement field)
+    {
+        string[] shaping = ["type", "$ref", "oneOf", "anyOf", "allOf", "enum", "properties"];
+        if (!shaping.Any(key => field.TryGetProperty(key, out _))) return true;
+        if (field.TryGetProperty("additionalProperties", out var values) && values.ValueKind == JsonValueKind.Object
+            && Shapeless(values)) return true;
+        return field.TryGetProperty("items", out var items) && Shapeless(items);
+    }
+
+    /// <summary>The count of query words a route reads and does not publish, and it only moves down.</summary>
+    private const int StillUnpublishedWords = 0;
+
+    /// <summary>
+    /// <b>Every word a route reads off the query string is a parameter the schema publishes.</b> A word read
+    /// straight off the request rather than bound to a record reaches no parameter list unless the route
+    /// declares it, so a caller reading the schema is told nothing of the knob — the compose feed's
+    /// <c>wools</c>, <c>hub</c> and <c>front</c>, a suggestion's <c>box</c>, a probe's nine dimensions.
+    ///
+    /// <para>The reads are taken from the source (<see cref="EndpointSource"/>), because a route reads a word
+    /// only on the path that reaches it and no request reaches them all.</para>
+    /// </summary>
+    [Test]
+    public async Task Every_query_word_a_route_reads_is_published()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        using var document = JsonDocument.Parse(await client.GetStringAsync("/api/openapi/v1.json"));
+        var published = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var path in document.RootElement.GetProperty("paths").EnumerateObject())
+            foreach (var verb in path.Value.EnumerateObject())
+            {
+                if (verb.Name is "parameters" or "summary" or "description" or "servers") continue;
+                published[$"{verb.Name.ToUpperInvariant()} {path.Name}"] =
+                    verb.Value.TryGetProperty("parameters", out var parameters)
+                        ? parameters.EnumerateArray()
+                            .Where(parameter => parameter.GetProperty("in").GetString() == "query")
+                            .Select(parameter => parameter.GetProperty("name").GetString()!).ToHashSet()
+                        : [];
+            }
+
+        var endpoints = EndpointSource.All();
+        var routes = endpoints.SelectMany(endpoint => endpoint.Routes).ToList();
+        await Assert.That(routes.Count(published.ContainsKey)).IsGreaterThan(200)
+            .Because("the source names the routes the document serves");
+
+        var unpublished = endpoints
+            .SelectMany(endpoint => endpoint.Routes.Where(published.ContainsKey).SelectMany(route =>
+                endpoint.Words.Where(word => !published[route].Contains(word)).Select(word => $"{route} ?{word}")))
+            .Distinct().Order(StringComparer.Ordinal).ToList();
+        await Assert.That(unpublished.Count).IsLessThanOrEqualTo(StillUnpublishedWords)
+            .Because($"{unpublished.Count} query word(s) are read and not published:{Environment.NewLine}  "
+                     + string.Join($"{Environment.NewLine}  ", unpublished));
+    }
+
+    /// <summary><b>An operation is named after its route</b>, which is what a generated client calls the method:
+    /// the verb, the path's words, and <c>by</c> a trailing parameter. Unique, because two operations sharing a
+    /// name are one method in a client.</summary>
+    [Test]
+    [Arguments("PUT", "/api/map/{slug}/source", "putMapSource")]
+    [Arguments("GET", "/api/map/{slug}", "getMapBySlug")]
+    [Arguments("GET", "/api/map/{slug}/sketch/props", "getMapSketchProps")]
+    [Arguments("DELETE", "/api/styles/{id}", "deleteStylesById")]
+    public async Task An_operation_is_named_after_its_route(string verb, string path, string name)
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        using var document = JsonDocument.Parse(await client.GetStringAsync("/api/openapi/v1.json"));
+        var names = document.RootElement.GetProperty("paths").EnumerateObject()
+            .SelectMany(route => route.Value.EnumerateObject()
+                .Where(operation => operation.Value.ValueKind == JsonValueKind.Object
+                                    && operation.Value.TryGetProperty("operationId", out _))
+                .Select(operation => (Route: $"{operation.Name.ToUpperInvariant()} {route.Name}",
+                    Name: operation.Value.GetProperty("operationId").GetString()!)))
+            .ToList();
+
+        await Assert.That(names.Single(entry => entry.Route == $"{verb} {path}").Name).IsEqualTo(name);
+        await Assert.That(names.Select(entry => entry.Name).Distinct().Count()).IsEqualTo(names.Count)
+            .Because("two operations sharing a name are one method in a generated client");
+    }
+
+    /// <summary><b>A write is signed in with the studio token, and the document says what that token is.</b>
+    /// It is opaque — the studio looks it up — so the scheme is a bearer of no stated format, and every operation
+    /// that needs signing in names it.</summary>
+    [Test]
+    public async Task A_write_is_signed_with_an_opaque_studio_token()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        using var document = JsonDocument.Parse(await client.GetStringAsync("/api/openapi/v1.json"));
+        var schemes = document.RootElement.GetProperty("components").GetProperty("securitySchemes");
+
+        var scheme = schemes.EnumerateObject().Single();
+        await Assert.That(scheme.Name).IsEqualTo("token");
+        await Assert.That(scheme.Value.GetProperty("scheme").GetString()).IsEqualTo("bearer");
+        await Assert.That(scheme.Value.TryGetProperty("bearerFormat", out _)).IsFalse()
+            .Because("a studio token is opaque, not a JWT");
+
+        var signed = document.RootElement.GetProperty("paths").EnumerateObject()
+            .SelectMany(route => route.Value.EnumerateObject())
+            .Where(operation => operation.Value.ValueKind == JsonValueKind.Object
+                                && operation.Value.TryGetProperty("security", out var security)
+                                && security.ValueKind == JsonValueKind.Array)
+            .SelectMany(operation => operation.Value.GetProperty("security").EnumerateArray())
+            .SelectMany(requirement => requirement.EnumerateObject().Select(named => named.Name))
+            .ToList();
+        await Assert.That(signed.Count).IsGreaterThan(100);
+        await Assert.That(signed.Distinct()).IsEquivalentTo(["token"]);
+    }
+
+    /// <summary>The count of fields publishing a default the code states, and it only moves up: a default
+    /// the code drops leaves the document with it.</summary>
+    private const int PublishedDefaults = 149;
+
+    /// <summary><b>A field the code gives a default publishes it</b>, written the way the wire writes it — what
+    /// a body that leaves the field out is read as.</summary>
+    [Test]
+    [Arguments("ControlPointIntent", "size", "7")]
+    [Arguments("SketchSetup", "mirror_mode", "\"rot_180\"")]
+    [Arguments("Finding", "severity", "\"refusal\"")]
+    [Arguments("PlanReference", "opacity", "0.5")]
+    public async Task A_stated_default_is_published(string record, string field, string published)
+    {
+        var schemas = (await DocumentAsync()).GetProperty("components").GetProperty("schemas");
+        var fields = Fields(schemas.GetProperty(record)).ToDictionary(entry => entry.Name, entry => entry.Value);
+
+        await Assert.That(fields[field].GetProperty("default").GetRawText()).IsEqualTo(published);
+        var count = schemas.EnumerateObject()
+            .SelectMany(schema => Fields(schema.Value))
+            .Count(entry => entry.Value.TryGetProperty("default", out _));
+        await Assert.That(count).IsGreaterThanOrEqualTo(PublishedDefaults);
+    }
+
+    /// <summary>The count of write routes whose schema carries no example body, and it only moves down: a
+    /// tool document's worked body, routed in its fence, becomes its route's example once a test has posted it
+    /// (<c>DocumentedExamples</c>).</summary>
+    private const int StillWithoutExample = 85;
+
+    /// <summary><b>Every write route's schema carries a body known to be accepted.</b> An example is what a
+    /// reader copies first, so the one the document hands out is one <c>DocumentedBodyTests</c> has posted and
+    /// held to the route's schema rather than one written to look right.</summary>
+    [Test]
+    public async Task Every_write_route_carries_a_body_known_to_be_accepted()
+    {
+        var document = await DocumentAsync();
+        var without = new List<string>();
+        foreach (var path in document.GetProperty("paths").EnumerateObject())
+            foreach (var verb in path.Value.EnumerateObject())
+            {
+                if (verb.Name is not ("post" or "put" or "patch")) continue;
+                if (!verb.Value.TryGetProperty("requestBody", out var body)) continue;
+                var exampled = body.GetProperty("content").EnumerateObject()
+                    .Any(media => media.Value.TryGetProperty("examples", out var examples)
+                                  && examples.EnumerateObject().Any());
+                if (!exampled) without.Add($"{verb.Name.ToUpperInvariant()} {path.Name}");
+            }
+
+        await Assert.That(without.Count).IsLessThanOrEqualTo(StillWithoutExample)
+            .Because($"{without.Count} write route(s) carry no example body:{Environment.NewLine}  "
+                     + string.Join($"{Environment.NewLine}  ", without.Order(StringComparer.Ordinal)));
+    }
+
     /// <summary>The fields with no docstring to read, because they have no declaration: a polymorphic base
     /// publishes a discriminator the generator synthesises, and no property carries it. Named rather than
     /// counted, so a genuinely undocumented field cannot hide behind them.</summary>
@@ -290,6 +514,9 @@ public sealed class SchemaCompletenessTests
         ("GET /api/map/{slug}/stroke", "text/plain"),
 
         ("GET /api/plans/{id}/ascii", "text/plain"),
+
+        // The kit a Python caller drives the studio with, written from this document.
+        ("GET /api/kit.py", "text/x-python"),
         ("GET /api/map/{slug}/plan/ascii", "text/plain"),
         ("GET /api/map/{slug}/plan/flow", "text/plain"),
         ("POST /api/map/{slug}/sketch/dressing", "text/plain"),
@@ -441,8 +668,8 @@ public sealed class SchemaCompletenessTests
                     .Because($"{name} declares a view parameter over {views.Count} name(s)");
             }
 
-        await Assert.That(checked_).IsEqualTo(6)
-            .Because($"{checked_} route(s) answer a picture beside their JSON, and six do");
+        await Assert.That(checked_).IsEqualTo(7)
+            .Because($"{checked_} route(s) answer a picture beside their JSON, and seven do");
     }
 
     private static async Task<List<Operation>> OperationsAsync()

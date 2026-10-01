@@ -19,7 +19,26 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult
     /// <summary>The probe render scale — larger than a catalog card, since one shape has the panel to itself.</summary>
     private const int ProbeScale = 12;
 
-    public override void Configure() { Get("/shapes/probe"); }
+    public override void Configure()
+    {
+        Get("/shapes/probe");
+        Description(b => b.Reads(
+            new QueryWord("family", "The shape family to emit. Absent is `i`.",
+                [.. Enum.GetValues<ShapeFamily>().Where(family => family != ShapeFamily.Isolated)
+                    .Select(family => family.ToString().ToLowerInvariant())]),
+            new QueryWord("w", "The box's width, in cells. Absent is 8, and out of range clamps.", Min: 1, Max: 64),
+            new QueryWord("h", "The box's height, in cells. Absent is 8, and out of range clamps.", Min: 1, Max: 64),
+            new QueryWord("cw", "The corridor's width, in cells. Absent is 2, and out of range clamps.", Min: 1, Max: 8),
+            new QueryWord("mouth", "The edge the box is entered through. Absent, or one that will not read, is `Top`.",
+                Enum.GetNames<BoxEdge>()),
+            new QueryWord("flip", "Mirror the shape across its axis.", Value: QueryValue.Flag),
+            new QueryWord("woolAtEnd", "Put the wool at an end of the shape rather than in its middle — the U, H, clamp "
+                + "and donut variant.", Value: QueryValue.Flag),
+            new QueryWord("sideTuck", "Tuck the room beside the corridor rather than in line with it — I, Z and "
+                + "scythe only.", Value: QueryValue.Flag),
+            new QueryWord("attachW", "The width of the hub's entry, in cells — donut and scythe only. Absent is 0, "
+                + "and out of range clamps.", Min: 0, Max: 8)));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

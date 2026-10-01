@@ -1,12 +1,13 @@
 # Tree corpus — what a hand-built tree measures like
 
-The tree-showcase world holds 86 author-built trees, one per 19×19 platform, in 17 bands along z, one of which
+The tree-showcase world holds 95 author-built trees, one per 19×19 platform, in 20 bands along z, one of which
 is a single tree of wool. It is the measured ground truth for what a tree on a board should read like, and the
 thresholds it supports are what any generated foliage is judged against. Every reading below is taken over the
-fifteen bands `r1`–`r15` — 74 leafed trees and the wool one, 20,906 leaves — so the jungle band `r16` and the
-willow band `r17` are outside all of them. The world is committed at `pgm-studio-mapgen/corpus/tree-showcase`,
+fifteen bands `r1`–`r15` — 74 leafed trees and the wool one, 20,906 leaves — so the jungle, willow, baobab,
+olive and large-oak bands `r16`–`r20` are outside all of them. The world is committed at `pgm-studio-mapgen/corpus/tree-showcase`,
 and it is read by one operational tool: `tools/seed-trees.cs` cuts every tree standing in it into the library
-as a **copied** recipe with its cut recorded — this world's directory, the foot there, the time and its builder,
+— and, with `--json`, into the snapshot `corpus/tree-showcase/trees.json` beside the world, which every board
+copies its trees from — as a **copied** recipe with its cut recorded — this world's directory, the foot there, the time and its builder,
 rockymine (`decoration.md` §6), which is how a board plants the author's own trees rather than a generated one,
 and how a board planting them credits their builder. Each is filed under the kind the author states for its band
 in the world's `kinds.json` — `willow-1` to `willow-5` are band `r17`, `sequoia-1` the one tree of `r7` that is
@@ -16,7 +17,7 @@ world against today's code (`CLAUDE.md`, *Investigation stays local*).
 The world is worth describing before the numbers, because its layout is what makes them clean. Every tree body
 fits entirely inside its own platform, so a connected-component pass finds each trunk with its branches and
 leaves and no crown is ever claimed by two trunks. **Planks are tree** above the world's lowest course, which is
-the course the platforms lie on: 33 trees build with them, 359 blocks between them, and 30 stand on a plank laid
+the course the platforms lie on: 38 trees build with them, 367 blocks between them, and 30 stand on a plank laid
 under the trunk, which is their foot. A crown built through planks falls apart without them — `r12-3` holds 39
 spruce planks, and read without them the top 107 blocks of its crown hang clear of its wood. What a crown still
 carries clear of its own wood is nine tips of a block or two, each one block off its tree, which no 26-connected
@@ -27,10 +28,10 @@ along z, and each band holds one family. Every frame holds one tree and none sta
 
 Two properties of the corpus break the tools that already read worlds. Every log in it is **all-bark** — 3670
 of 3670, branches included — so the flora tool's trunk marker carries no information here, and its rooted
-vertical run of three same-species logs reaches 76 of the 84 trees the seeder files: one hovers a course above
-its platform and seven have trunks that lean or spiral so no column ever stacks three. The two the seeder
-passes over are the tree of wool, which has no logs at all, and a birch whose foot rests on the world floor
-with nothing under it. The other property is that **carpentry is structural**: one family builds its branches
+vertical run of three same-species logs reaches 85 of the 94 trees the seeder files. The other nine stand on their
+platforms like every tree here, eight of them on the planks laid under the trunk, and each trunk steps, leans
+or spreads within a course or two, so no column stacks three logs from the ground. The one the seeder passes
+over is the tree of wool, which has no logs at all. The other property is that **carpentry is structural**: one family builds its branches
 out of dark oak slabs, so any reading that counts only logs as wood reports that family's foliage as
 unsupported — a leaf-contact measurement has to count carpentry as wood, or it is measuring the wrong thing.
 

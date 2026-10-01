@@ -34,7 +34,7 @@ export function defaultProp(kind, seed) {
           { material: { kind: "solid", id: 12, data: 0 }, depth: 1 },
         ] } };
     case "flora":
-      return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0, deadBushShare: 0, cactusShare: 0 } };
+      return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0, deadBushShare: 0, cactusShare: 0, lilyShare: 0, mushroomShare: 0 } };
     case "chest":
       // A chest on the ground, fronting −z, holding nothing until the author lists its stacks.
       return { ...base, x: 0, z: 0, facing: "negZ", items: [] };

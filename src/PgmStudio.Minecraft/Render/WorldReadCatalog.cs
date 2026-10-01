@@ -106,6 +106,24 @@ public static class WorldReadCatalog
             "The board against its own symmetry: the columns that agree with their image, and the ones that "
             + "do not. The read for whether a board somebody believes is symmetric actually is."),
 
+        new("render/isometric", null,
+            "The whole board from above at 2:1, every block a cube in the colour the 3-D preview gives it, the "
+            + "faces falling away from the top. `corner` stands the camera at any of the four. The read for "
+            + "whether a thing has the bulk it should — a ship with its masts up, a hill that rises — which every "
+            + "plan-shaped read answers as a patch.",
+            "Whatever is roofed is out of sight: a room under a meadow draws as the meadow. `render/xray` is the "
+            + "read that opens it."),
+
+        new("render/xray", null,
+            "The isometric with the ground and the buildings that hide a roofed room washed out to one pale "
+            + "skin, the room's lining drawn in its own colours and everything else calmed toward grey. A roofed "
+            + "void is air with solid over it in its own column, six blocks or more, no run of it taller than "
+            + "twenty-four — a chamber, a tunnel, a house's rooms, the shade under a crown. `?format=text` answers "
+            + "the void scan the picture is drawn from: every roofed void, largest first, its size, its bounds "
+            + "and whether any air reaching the sky reaches it — a SEALED void is a space nothing can walk into.",
+            "A made thing and a placed prop are never washed out, so the shade under a tree stays behind its "
+            + "crown and a lamp hanging in a room stays lit — the scan still counts the void either way."),
+
         new("column", "--column",
             "One or more columns bedrock-to-sky, every block named, as text. THE WORKHORSE: every picture "
             + "beside it is a projection, and this is what is actually at a coordinate — which is why it is "
@@ -174,6 +192,31 @@ public static class WorldReadCatalog
             "Stairs, slabs and fences are drawn as the whole cube they stand in, there is no lighting beyond "
             + "a shade per face, and ground past sixty blocks fades into the sky — it is a picture of the "
             + "materials, not a screenshot."),
+
+        new("report", null,
+            "Everything a drive reads back about a stored map, off one build: the three numbers a board is wrong "
+            + "or right by — how much of its ground steps further than a player walks, how many of its props "
+            + "were declined, and the worst step on any route from a spawn to a goal — then every reading in the "
+            + "order a reader meets them, each beside the route that answers it alone: the findings, the plan's "
+            + "grid and flow, the relief, what the build declined, pre-flight, coverage, the heightmap, the "
+            + "slopes, reach, two sections, a transect each way through every spawn, goal, house, fluid, boulder "
+            + "and made thing, a walk from every spawn to every goal, the theme census, the dressing's claims, "
+            + "the seats and the void scan. The pictures are named by the routes that draw them; "
+            + "`?pictures=true` draws them too. `?format=text` answers the whole report as one document.",
+            "It reads the map's latest change and the stored documents, not a layout being drawn: a posted read "
+            + "it names (`POST sketch/dressing`) answers the same only when posted the stored layout."),
+
+        new("diff", null,
+            "What changed between two of a map's changes (`from`, `to`; unasked, what the latest change did): "
+            + "every edit to its plan, layout and intent, named by the path it lands on and carrying the value "
+            + "it replaced. `world=true` builds the board at both and adds the columns they disagree on — "
+            + "`ground` where the ground rose, fell, came or went, `surface` where it held its height and its "
+            + "top block is another, `structure` where both held and something else in the column changed — "
+            + "each as a count and its largest runs with the box to find each in. `?format=png` draws those "
+            + "columns over both boards' ground; `?format=text` answers the edits one a line with the runs "
+            + "beneath.",
+            "A column is counted once, under the first of the three that changed in it, so ground that rose "
+            + "under a house reads as `ground` however much of the house changed with it."),
     ];
 
     /// <summary>What one read answers, and where it misleads — the sentence a route publishes as its own

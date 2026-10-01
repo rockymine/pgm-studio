@@ -390,7 +390,7 @@ public sealed class AccessTests
     }
 
     [Test]
-    public async Task Loading_documents_over_someone_elses_map_is_refused_and_leaves_it_alone()
+    public async Task A_source_over_someone_elses_map_is_refused_and_leaves_it_alone()
     {
         await ApiTestFactory.ResetSchemaAsync();
         await WhitelistAsync(Owner, "member");
@@ -401,15 +401,33 @@ public sealed class AccessTests
         var before = await ScalarAsync($"SELECT id FROM map WHERE slug = '{slug}'");
 
         using var stranger = InvitedFactory.As(Stranger);
-        using var refused = await stranger.PostAsJsonAsync("/api/map/from-documents", new
+        using var refused = await stranger.PutAsJsonAsync($"/api/map/{slug}/source", new
         {
             plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
             layout = JsonDocument.Parse("""{"layers":[]}""").RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"}}""").RootElement,
-            slug,
         });
         await AssertRefusedAsync(refused, HttpStatusCode.Forbidden, "RQ8");
         await Assert.That(await ScalarAsync($"SELECT id FROM map WHERE slug = '{slug}'")).IsEqualTo(before);
+    }
+
+    /// <summary>A change to a map's documents says who made it: the person a token acts as, and the token's label,
+    /// so an agent's writes and its person's own are told apart in the map's history.</summary>
+    [Test]
+    public async Task A_tokens_write_is_kept_as_a_change_stamped_with_its_person_and_label()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await WhitelistAsync(Owner, "member");
+        using var owner = InvitedFactory.As(Owner);
+        var issued = await (await owner.PostAsJsonAsync("/api/users/me/tokens", new StudioTokenRequest("drive.py")))
+            .Content.ReadFromJsonAsync<StudioTokenIssuedDto>();
+
+        using var agent = WithToken(issued!.Token);
+        var slug = await OriginateAsync(agent, "Weirgate");
+
+        await Assert.That(await ScalarAsync($"SELECT writer_uuid FROM map_change WHERE map_slug = '{slug}'")).IsEqualTo(Owner);
+        await Assert.That(await ScalarAsync($"SELECT token_label FROM map_change WHERE map_slug = '{slug}'"))
+            .IsEqualTo("drive.py");
     }
 
     [Test]

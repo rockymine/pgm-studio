@@ -61,19 +61,32 @@ public static class RingBend
     /// <param name="tension">The Catmull-Rom handle length as a fraction of its own edge.</param>
     /// <param name="cornerAngleDeg">The turn at or above which a vertex stays a hard corner.</param>
     /// <param name="side">Which way the inserted points move.</param>
+    /// <param name="edges">The edges to draw as coast, each by the vertex it leaves, or null for every edge
+    /// long enough to cut. An edge not named stays exactly as it was drawn: no point is cut into it and no
+    /// handle bends it, so a shape flush against its neighbour along that edge stays flush.</param>
+    /// <param name="sampleAt">Where the wander is read for a cut point, or null for the point itself. A
+    /// point standing for all of its images — <see cref="Symmetry.Canonical"/> — draws a ring that is its own
+    /// image as a coast that is too.</param>
     public static Coast? Draw(IReadOnlyList<double[]> ring, double wander, double step, uint seed,
                               double tension = 0.22, double cornerAngleDeg = 40,
-                              BendSide side = BendSide.Out)
+                              BendSide side = BendSide.Out, IReadOnlySet<int>? edges = null,
+                              Func<double, double, (double X, double Z)>? sampleAt = null)
     {
         if (ring.Count < 3 || step <= 0) return null;
 
         var drawn = new List<double[]>();
+        var untouched = new HashSet<int>();
         int inserted = 0, held = 0;
         for (var i = 0; i < ring.Count; i++)
         {
             var (ax, az) = (ring[i][0], ring[i][1]);
             var (bx, bz) = (ring[(i + 1) % ring.Count][0], ring[(i + 1) % ring.Count][1]);
             drawn.Add([ax, az]);
+            if (edges is not null && !edges.Contains(i))
+            {
+                untouched.Add(drawn.Count - 1);
+                continue;
+            }
 
             var length = Math.Sqrt((bx - ax) * (bx - ax) + (bz - az) * (bz - az));
             var cuts = (int)(length / step);
@@ -84,7 +97,8 @@ public static class RingBend
             {
                 var t = (double)cut / cuts;
                 double px = ax + (bx - ax) * t, pz = az + (bz - az) * t;
-                var signal = Signal(px, pz, seed);
+                var (sampleX, sampleZ) = sampleAt?.Invoke(px, pz) ?? (px, pz);
+                var signal = Signal(sampleX, sampleZ, seed);
                 var reach = wander * (side is BendSide.Both ? Math.Abs(signal) : 0.5 + 0.5 * signal);
                 inserted++;
 
@@ -103,7 +117,7 @@ public static class RingBend
         }
 
         return Polygon.SelfIntersects(drawn) ? null
-            : new Coast(drawn, RingRounding.Smooth(drawn, cornerAngleDeg, tension), inserted, held);
+            : new Coast(drawn, RingRounding.Smooth(drawn, cornerAngleDeg, tension, straight: untouched), inserted, held);
     }
 
     /// <summary>The wander at this point, in <c>[-1, 1]</c>. Two sines whose periods share no common multiple,

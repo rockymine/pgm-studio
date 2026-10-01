@@ -22,7 +22,7 @@ public sealed class PlanFeasibilityEndpointTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/feasibility",
-            new StringContent(ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"), Encoding.UTF8, "application/json"));
+            new StringContent(Seeds.Read("shifted-u-frontline-attach-hole-hub.plan.json"), Encoding.UTF8, "application/json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
@@ -67,7 +67,7 @@ public sealed class PlanFeasibilityEndpointTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/feasibility",
-            new StringContent(ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"), Encoding.UTF8, "application/json"));
+            new StringContent(Seeds.Read("shifted-u-frontline-attach-hole-hub.plan.json"), Encoding.UTF8, "application/json"));
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
         await Assert.That(body.GetProperty("producible").GetBoolean()).IsFalse();
@@ -88,7 +88,7 @@ public sealed class PlanFeasibilityEndpointTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/feasibility",
-            new StringContent(ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"), Encoding.UTF8, "application/json"));
+            new StringContent(Seeds.Read("shifted-u-frontline-attach-hole-hub.plan.json"), Encoding.UTF8, "application/json"));
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
         var wool = body.GetProperty("boxes").EnumerateArray().First(b => b.GetProperty("boxId").GetString() == "wool-a");
@@ -107,7 +107,7 @@ public sealed class PlanFeasibilityEndpointTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/feasibility",
-            new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
+            new StringContent(Seeds.Read("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
@@ -143,17 +143,5 @@ public sealed class PlanFeasibilityEndpointTests
         var resp = await client.PostAsync("/api/plan/feasibility",
             new StringContent("not a plan", Encoding.UTF8, "application/json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-    }
-
-    private static string ReadSeed(string file)
-    {
-        var dir = AppContext.BaseDirectory;
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir, "tools", "seeds", file);
-            if (File.Exists(candidate)) return File.ReadAllText(candidate);
-            dir = Directory.GetParent(dir)?.FullName;
-        }
-        throw new FileNotFoundException($"seed {file} not found above the test binary");
     }
 }

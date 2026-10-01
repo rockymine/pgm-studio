@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Access;
+using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Vocabulary;
 
@@ -84,4 +85,21 @@ public sealed class Callers(AccessOptions access, StudioUserStore users)
         http.User.FindFirstValue(StudioClaims.Uuid) is { Length: > 0 } uuid
             ? new MapOriginator(uuid, http.User.FindFirstValue(StudioClaims.Name))
             : null;
+
+    /// <summary>Stamp a writing request's changes to a map's documents with who is making them, read off the
+    /// principal it signed in as: the account, and the token's label where a token signed it in.</summary>
+    public static Task StampWritesAsync(HttpContext http, RequestDelegate next)
+    {
+        if (!HttpMethods.IsGet(http.Request.Method) && !HttpMethods.IsHead(http.Request.Method))
+            http.RequestServices.GetRequiredService<MapArtifactStore>().Stamp = StampOf(http.User);
+        return next(http);
+    }
+
+    private static ChangeStamp StampOf(ClaimsPrincipal principal) =>
+        principal.Identity is not { IsAuthenticated: true } identity
+            ? ChangeStamp.Unknown
+            : new(principal.FindFirstValue(StudioClaims.Uuid) is { Length: > 0 } uuid ? uuid : null,
+                  principal.FindFirstValue(StudioClaims.Name),
+                  identity.AuthenticationType == TokenAccessHandler.SchemeName
+                      ? principal.FindFirstValue(StudioClaims.TokenLabel) : null);
 }

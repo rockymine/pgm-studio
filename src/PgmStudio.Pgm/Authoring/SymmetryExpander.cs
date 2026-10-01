@@ -266,6 +266,31 @@ public static class SymmetryExpander
     /// the sidebar name one hill twice. An unnamed point stays unnamed on every image: PGM numbers those
     /// itself, better than anything invented here.</para>
     /// </summary>
+    /// <summary>Capture points stated once each, fanned across <paramref name="sym"/>: every image added, named
+    /// for its point and numbered on, and one already standing where an image would go taken as that image.</summary>
+    public static List<ControlPointIntent>? FillControlPoints(List<ControlPointIntent>? authored, SymmetryIntent sym) =>
+        IsKnown(sym.Mode) ? FillControlPoints(authored, sym, Order(sym.Mode)) : authored;
+
+    /// <summary>Generators stated once each, fanned across <paramref name="sym"/> as capture points are: every
+    /// image added under its generator's id numbered on — the regions minted from it stay one per generator —
+    /// and one already standing where an image would go taken as that image.</summary>
+    public static List<SpawnerIntent>? FillSpawners(List<SpawnerIntent>? authored, SymmetryIntent sym)
+    {
+        if (authored is null || !IsKnown(sym.Mode)) return authored;
+        var order = Order(sym.Mode);
+        var result = new List<SpawnerIntent>(authored);
+        var placed = authored.Select(spawner => (spawner.At.X, spawner.At.Z)).ToList();
+        foreach (var src in authored)
+            for (var k = 1; k < order; k++)
+            {
+                var at = TransformPt(src.At, sym, k);
+                if (placed.Any(seen => SamePoint(seen, (at.X, at.Z)))) continue;
+                placed.Add((at.X, at.Z));
+                result.Add(src with { Id = $"{src.Id}-{k + 1}", At = at });
+            }
+        return result;
+    }
+
     private static List<ControlPointIntent>? FillControlPoints(
         List<ControlPointIntent>? authored, SymmetryIntent sym, int order)
     {

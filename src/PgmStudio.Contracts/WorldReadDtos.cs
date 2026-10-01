@@ -166,9 +166,11 @@ public sealed record WalkReadDto(bool Reachable, int Distance, int Blocks, int D
 /// changed, and it is never let go.</param>
 /// <param name="Yaw">Which way the eye turns, in the game's degrees, where the view states it whole; null for a
 /// view that faces what it looks at.</param>
+/// <param name="Picture">Whether the map's picture — the <c>map.png</c> an export carries — is drawn from this
+/// view: the kept view marked as it, else the board's overview.</param>
 public sealed record MapViewDto(string Id, string Name, bool Kept, int LookX, int LookZ,
     int? FromX, int? FromZ, double? Y, double? Pitch, string Query, EyeCameraDto? Eye = null, bool Own = false,
-    double? Yaw = null);
+    double? Yaw = null, bool Picture = false);
 
 /// <summary>Every view a map has: the studio's suggestions first, then the ones kept.</summary>
 /// <param name="Views">The views, suggestions first.</param>
@@ -192,5 +194,54 @@ public sealed record MapViewsDto(IReadOnlyList<MapViewDto> Views, string? Undraw
 /// Stated with <paramref name="FromX"/>, <paramref name="FromZ"/> and <paramref name="Y"/>, it states the camera
 /// whole and <paramref name="LookX"/>, <paramref name="LookZ"/> is only where its middle lands; null faces what
 /// it looks at.</param>
+/// <param name="Picture">True draws the map's picture from this view, and from no other; false stops drawing it
+/// from this one, which leaves the overview. Null leaves a changed view as it was and a new one not.</param>
 public sealed record MapViewKeepRequest(string? Name, int LookX, int LookZ,
-    int? FromX = null, int? FromZ = null, double? Y = null, double? Pitch = null, double? Yaw = null);
+    int? FromX = null, int? FromZ = null, double? Y = null, double? Pitch = null, double? Yaw = null,
+    bool? Picture = null);
+
+/// <summary>One reading in a map's report (<c>GET /api/map/{slug}/report</c>): what it is, the route that
+/// answers the same reading on its own, and the reading itself — or why there is none.</summary>
+/// <param name="Name">What the reading is, as the report names it — <c>slopes</c>,
+/// <c>transect spawn-0 along x</c>.</param>
+/// <param name="Route">The route, relative to the map, that answers the same reading alone, with the words that
+/// pick it. A posted read is prefixed <c>POST</c> and takes the stored layout as its body.</param>
+/// <param name="Text">The reading as text, or null where there is none.</param>
+/// <param name="Missing">Why there is no reading — a map with no plan has no grid — or null where there is
+/// one.</param>
+public sealed record MapReportReadDto(string Name, string Route, string? Text, string? Missing);
+
+/// <summary>One picture a map's report names: what it shows, the route that draws it, and — where the report
+/// was asked for its pictures — the picture itself.</summary>
+/// <param name="Name">What the picture shows — <c>isometric</c>, <c>heightmap</c>, a view's own id.</param>
+/// <param name="Route">The <c>GET</c> route, relative to the map, that draws it.</param>
+/// <param name="Png">The picture, base64 PNG, drawn only on <c>?pictures=true</c>.</param>
+/// <param name="Missing">Why it could not be drawn, or null.</param>
+public sealed record MapReportPictureDto(string Name, string Route, string? Png, string? Missing);
+
+/// <summary>The three numbers a board is wrong or right by: how much of its ground steps further than a player
+/// walks, whether every prop its document names is in the world, and the worst step between a spawn and a
+/// goal.</summary>
+/// <param name="Walked">Cells of ground whose worst step to a neighbour is a walk.</param>
+/// <param name="Scrambled">Cells whose worst step wants a placed block.</param>
+/// <param name="Barrier">Cells whose worst step is a face.</param>
+/// <param name="Placed">Props the dressing pass placed.</param>
+/// <param name="Declined">Props it declined: each one named by the document and not in the world.</param>
+/// <param name="WorstStep">The worst step on any route walked from a spawn to a goal, or null where none
+/// was.</param>
+/// <param name="WorstRoute">The route that step is on, as the report names it.</param>
+/// <param name="Says">The three numbers as the three lines a reader takes first — the words the text report
+/// opens on and the Sketch tool shows.</param>
+public sealed record MapReportHeadlineDto(int Walked, int Scrambled, int Barrier, int Placed, int Declined,
+    int? WorstStep, string? WorstRoute, IReadOnlyList<string> Says);
+
+/// <summary>Everything a drive reads back about a stored map, off one build (<c>GET /api/map/{slug}/report</c>):
+/// the three numbers first, then every reading in the order a reader meets them, then the pictures by the
+/// routes that draw them.</summary>
+/// <param name="Slug">The map.</param>
+/// <param name="Change">The change of the map the report reads — its latest.</param>
+/// <param name="Headline">The three numbers.</param>
+/// <param name="Reads">Every reading, each with the route that answers it alone.</param>
+/// <param name="Pictures">Every picture, by the route that draws it.</param>
+public sealed record MapReportDto(string Slug, long Change, MapReportHeadlineDto Headline,
+    IReadOnlyList<MapReportReadDto> Reads, IReadOnlyList<MapReportPictureDto> Pictures);

@@ -13,8 +13,20 @@ blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smalle
 it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room building's 20×20 measure the same
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
-## Nothing is on the board
-The ground drained: every connectivity read walks the built world, every scan read goes through one refresh,
-and the findings list judges the board as drawn (`FEATURES.md`). `docs/backlog-strategy.md` names **the layer
-word** as the programme to pull next: `B264`, `WE28` and `TS64`, in `BACKLOG.md`. `B264` and `TS64` want a
-surface first, and `WE28` is the one that is settled and backend only.
+## The programme: a board's source, every change to it, and the words it is stated in
+**The author put this programme first.** The studio keeps the source a board is stated in and every change to
+it, hands the author's hand edits to the agent's next round, and hands out the vocabulary the source is
+written in. The source, its changes, the kit it is written in, coasts, pulls, basins, outlines and the fan
+as statements, and `pgm-studio-mapgen` stated in all of them have shipped; what remains is the point edits
+reaching every outline a board states. The layer word (`B264`, `WE28`, `TS64`) waits behind it.
+
+### A point edit and a bend reach every outline
+
+- [ ] **TS130 — Point edits and bends reach every outline.** `editShapes` and `bendShapes` address a shape's
+  `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already writes a relief `area` mark's and a
+  push's `ring` and a stroke's, fluid's or flora's `points` (`Refinement.Outlined`). Both reach those three,
+  each refused where an edit folds the ring, so a mark or a prop takes a pull or a bend instead of stated
+  points. `docs/tools/flow.md`.
+
+  *Evidence: 51 of the 79 seeded outlines on the 5b and 5c boards are relief rings or prop points, and so is
+  Gypsum Reach's wash, a push whose ring splices six authored points into a lobed ellipse.*

@@ -192,7 +192,7 @@ public static class SketchGeometryEdit
     /// stayed where they were cut, which is <c>SK21</c>.</para></summary>
     public static GeometryEdit BendShape(
         string? layoutJson, string shapeId, double wander, double step, uint seed, double tension,
-        BendSide side, out int held)
+        BendSide side, out int held, IReadOnlyList<int>? edges = null, bool fan = true)
     {
         held = 0;
         var root = Root(layoutJson);
@@ -213,7 +213,22 @@ public static class SketchGeometryEdit
                 Field: "vertices", Subjects: [shapeId]));
 
         var ring = stated.Select(point => new[] { Number(point?[0]), Number(point?[1]) }).ToList();
-        if (RingBend.Draw(ring, wander, step, seed, tension, side: side) is not { } coast)
+        if (edges?.Where(edge => edge < 0 || edge >= ring.Count).Select(edge => (int?)edge).FirstOrDefault()
+            is { } outside)
+            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                $"'{shapeId}' has {ring.Count} edges, numbered 0 to {ring.Count - 1} by the vertex each leaves, "
+                + $"and a bend names edge {outside}",
+                Field: "edges", Subjects: [shapeId]));
+        var named = edges?.ToHashSet();
+        Func<double, double, (double X, double Z)>? sampleAt = null;
+        var (mode, centreX, centreZ) = SymmetryOf(root);
+        if (fan && Symmetry.SelfImage(ring, mode, centreX, centreZ) is { } images)
+        {
+            sampleAt = (x, z) => Symmetry.Canonical(x, z, mode, centreX, centreZ);
+            foreach (var lands in images)
+                foreach (var edge in edges ?? []) named!.Add(Symmetry.ImageEdge(lands, edge));
+        }
+        if (RingBend.Draw(ring, wander, step, seed, tension, side: side, edges: named, sampleAt: sampleAt) is not { } coast)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
                 $"a wander of {wander} over a step of {step} folds '{shapeId}' across its own far side, which "
                 + "would build ground with a hole nobody drew. Lower the wander, or raise the step so the "
@@ -229,6 +244,78 @@ public static class SketchGeometryEdit
                 ["in"] = new JsonArray(JsonValue.Create(handle.Value.In[0]), JsonValue.Create(handle.Value.In[1])),
                 ["out"] = new JsonArray(JsonValue.Create(handle.Value.Out[0]), JsonValue.Create(handle.Value.Out[1])),
             })));
+        return new(root.ToJsonString(), shapeId);
+    }
+
+    /// <summary>The shape at <paramref name="shapeId"/> with points pulled across its edges
+    /// (<see cref="RingPull"/>): each edge named by its index on the outline as it stands, each point a fraction
+    /// of the way along its edge — above 0 and below 1 — moved its number of blocks into the ring, or out of it
+    /// where the number is negative. An outline the board's symmetry carries onto itself takes every pull at each
+    /// image of its edge too, a fraction along a reflected edge counted from its other end, unless
+    /// <paramref name="fan"/> is false. Refused, as a point edit is, on a shape with no outline of its own, at an
+    /// edge the outline does not have, and where the pulled outline would fold across itself.</summary>
+    public static GeometryEdit PullShape(
+        string? layoutJson, string shapeId, IReadOnlyDictionary<int, IReadOnlyList<RingPull.Pull>> pulls, bool fan = true)
+    {
+        var root = Root(layoutJson);
+        if (Outline(Layers(root), shapeId, out var shape, out var vertices) is { } refused) return refused;
+        foreach (var (edge, along) in pulls)
+        {
+            if (Range(shapeId, edge, vertices.Count) is { } outOfRange) return outOfRange;
+            foreach (var pull in along)
+                if (pull.At is not (> 0 and < 1) || !double.IsFinite(pull.In))
+                    return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                        $"a pull stands a fraction of the way along its edge, above 0 and below 1, and moves a "
+                        + $"number of blocks across it; edge {edge} of '{shapeId}' is pulled at "
+                        + $"{pull.At.ToString(CultureInfo.InvariantCulture)} by {pull.In.ToString(CultureInfo.InvariantCulture)}. "
+                        + "A point at a corner is the corner: move it with `index` instead",
+                        Field: "pulls", Subjects: [shapeId]));
+        }
+
+        var ring = Ring(vertices);
+        var placed = pulls.ToDictionary(edge => edge.Key, edge => edge.Value.ToList());
+        var (mode, centreX, centreZ) = SymmetryOf(root);
+        if (fan && Symmetry.SelfImage(ring, mode, centreX, centreZ) is { } images)
+            foreach (var lands in images)
+                foreach (var (edge, along) in pulls)
+                {
+                    var image = Symmetry.ImageEdge(lands, edge);
+                    var reversed = lands[(edge + 1) % ring.Count] != (lands[edge] + 1) % ring.Count;
+                    if (!placed.TryGetValue(image, out var there)) placed[image] = there = [];
+                    foreach (var pull in along)
+                    {
+                        var landed = reversed ? pull with { At = 1 - pull.At } : pull;
+                        if (!there.Any(other => Math.Abs(other.At - landed.At) < 1e-9 && Math.Abs(other.In - landed.In) < 1e-9))
+                            there.Add(landed);
+                    }
+                }
+
+        if (RingPull.Draw(ring, placed.ToDictionary(edge => edge.Key, edge => (IReadOnlyList<RingPull.Pull>)edge.Value))
+            is not { } drawn)
+            return Folded(shapeId, "pulling points across the edges of");
+
+        // Each vertex keeps its handles at its new index, less those of a vertex whose edge took a point.
+        var moved = new Dictionary<int, int>();
+        var landedAt = 0;
+        for (var vertex = 0; vertex < ring.Count; vertex++)
+        {
+            moved[vertex] = landedAt;
+            landedAt += 1 + (placed.TryGetValue(vertex, out var inserted) ? inserted.Count : 0);
+        }
+        var stale = placed.Where(edge => edge.Value.Count > 0)
+            .SelectMany(edge => (int[])[edge.Key, (edge.Key + 1) % ring.Count]).ToHashSet();
+        vertices.Clear();
+        foreach (var point in drawn) vertices.Add(Point(point[0], point[1]));
+        if (shape["controls"] is JsonObject controls)
+        {
+            var kept = new JsonObject();
+            foreach (var (key, value) in controls.ToList())
+                if (int.TryParse(key, NumberStyles.Integer, CultureInfo.InvariantCulture, out var vertex)
+                    && moved.TryGetValue(vertex, out var to) && !stale.Contains(vertex))
+                    kept[to.ToString(CultureInfo.InvariantCulture)] = value?.DeepClone();
+            if (kept.Count == 0) shape.Remove("controls");
+            else shape["controls"] = kept;
+        }
         return new(root.ToJsonString(), shapeId);
     }
 
@@ -399,6 +486,22 @@ public static class SketchGeometryEdit
 
     private static JsonObject Root(string? layoutJson) =>
         string.IsNullOrWhiteSpace(layoutJson) ? [] : JsonNode.Parse(layoutJson) as JsonObject ?? [];
+
+    /// <summary>The symmetry a layout fans its mirroring groups by: its setup's mode and centre, and the
+    /// setup's own default mode where it states none.</summary>
+    internal static (string Mode, double CentreX, double CentreZ) SymmetryOf(JsonObject root)
+    {
+        var setup = root["setup"] as JsonObject;
+        var mode = Text(setup?["mirror_mode"]) ?? new SketchSetup().MirrorMode;
+        return (mode, Number(setup?["center"]?["cx"]), Number(setup?["center"]?["cz"]));
+    }
+
+    /// <summary>The outline of the shape at <paramref name="shapeId"/> as it stands, or null where the layout
+    /// carries no such polygon.</summary>
+    internal static List<double[]>? RingOf(string? layoutJson, string shapeId) =>
+        ShapeAt(Layers(Root(layoutJson)), shapeId)?["vertices"] is JsonArray stated && stated.Count >= 3
+            ? [.. stated.Select(point => new[] { Number(point?[0]), Number(point?[1]) })]
+            : null;
 
     private static JsonArray Layers(JsonObject root)
     {

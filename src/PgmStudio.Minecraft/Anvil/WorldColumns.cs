@@ -53,6 +53,41 @@ public static class WorldColumns
         }
     }
 
+    /// <summary>Every column holding a solid block, each run with the layer that drew it: the layer of the
+    /// segment whose <c>[YFloor, YTop)</c> holds the run's lowest block, or null for a run beginning outside
+    /// every segment — a structure or a prop standing on the terrain rather than being it.
+    ///
+    /// <para>A run is attributed by where it <b>starts</b>: the painter writes several runs inside one segment —
+    /// a stone core and the bands over it — and every one of them begins inside the segment that made the
+    /// ground. A segment is half-open in Y, so a run starting exactly at one's top starts above it: a
+    /// sculpture's lowest course sits at the top of the ground it was seated on, and an inclusive bound hands
+    /// every made thing's feet to the terrain under them.</para></summary>
+    public static IEnumerable<(int X, int Z, IReadOnlyList<(ColumnRun Run, string? Layer)> Runs)> Attributed(
+        VoxelWorld world, IReadOnlyList<ColumnSegment>? segments, BlockBox? within = null)
+    {
+        var spans = new Dictionary<(int X, int Z), List<ColumnSegment>>();
+        foreach (var segment in segments ?? [])
+        {
+            if (!spans.TryGetValue(segment.Cell, out var here)) spans[segment.Cell] = here = [];
+            here.Add(segment);
+        }
+
+        foreach (var (x, z, runs) in Of(world, within))
+        {
+            var here = spans.GetValueOrDefault((x, z));
+            var attributed = new (ColumnRun Run, string? Layer)[runs.Count];
+            for (var index = 0; index < runs.Count; index++)
+            {
+                var run = runs[index];
+                string? layer = null;
+                foreach (var span in here ?? [])
+                    if (span.YFloor <= run.YBottom && run.YBottom < span.YTop) { layer = span.Layer; break; }
+                attributed[index] = (run, layer);
+            }
+            yield return (x, z, attributed);
+        }
+    }
+
     /// <summary>The top course of every column holding a solid block — the one number a claim recorded per
     /// column is a claim about, and what a read narrowed to a storey is compared against
     /// (<c>WorldProvenance.WhereTopShows</c>). A projection of <see cref="Of"/>, so a caller that
@@ -92,16 +127,20 @@ public static class WorldColumns
     /// column a prop claimed, a block inside a span the rasterizer laid (<paramref name="terrain"/>) is the
     /// ground it stands in and every other block is the prop's, so a crown hanging past a board's rim is the
     /// prop's all the way down. Lava is taken the way a prop is: nobody stands in it and nothing under it is a
-    /// place to stand, where water is ground a player swims.</summary>
-    public static (List<(int X, int Z, int YFloor, int YTop)> Ground, List<(int X, int Z, int YFloor, int YTop)> Props)
+    /// place to stand, where water is ground a player swims — and the third set, <c>Water</c>, is every column
+    /// a run of water tops, whatever put it there.</summary>
+    public static (List<(int X, int Z, int YFloor, int YTop)> Ground, List<(int X, int Z, int YFloor, int YTop)> Props,
+        HashSet<(int X, int Z)> Water)
         ForWalk(VoxelWorld world, WorldProvenance provenance, IReadOnlyList<ColumnSegment> terrain)
     {
         var laid = terrain.GroupBy(segment => segment.Cell)
             .ToDictionary(group => group.Key, group => group.Select(segment => (segment.YFloor, segment.YTop)).ToList());
         var ground = new List<(int X, int Z, int YFloor, int YTop)>();
         var props = new List<(int X, int Z, int YFloor, int YTop)>();
+        var water = new HashSet<(int X, int Z)>();
         foreach (var (x, z, runs) in Of(world))
         {
+            if (runs[0].BlockId is Blocks.Water or Blocks.StationaryWater) water.Add((x, z));
             if (!provenance.PropVolumeAt(x, z))
             {
                 foreach (var run in runs) (IsLava(run.BlockId) ? props : ground).Add((x, z, run.YBottom, run.YTop));
@@ -123,7 +162,7 @@ public static class WorldColumns
                 }
             }
         }
-        return (ground, props);
+        return (ground, props, water);
 
         static bool IsLava(int blockId) => blockId is Blocks.Lava or Blocks.StationaryLava;
 

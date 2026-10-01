@@ -523,15 +523,17 @@ public static class HouseStamper
 
         // One column of a roof: its tread and whatever riser it needs under it, bordered on the roof's own
         // outermost ring and capped along the ridge when the style asks for a capped one.
-        void Lay(RoofField field, int x, int z, BuildingPlan ring, int slabBlock, int? owner = null)
+        void Lay(RoofField field, int x, int z, BuildingPlan ring, int slabBlock, int? owner = null,
+                 TerrainMaterial? laidIn = null)
         {
             var crown = field.Crown(x, z);
             // A verge and an eave are the outer edge of a roof, and a building of several wings has one
             // outline however many rectangles drew it — so the rim is asked of the building and at the height
-            // the block is laid (<see cref="OnRoofRim"/>), never of the wing's own rectangle.
-            var material = OnRoofRim(field, owner, x, z) || (style.Roof.RidgeCap && field.OnRidge(x, z))
+            // the block is laid (<see cref="OnRoofRim"/>), never of the wing's own rectangle. A porch canopy
+            // that names its own material is laid in it rim and all.
+            var material = laidIn ?? (OnRoofRim(field, owner, x, z) || (style.Roof.RidgeCap && field.OnRidge(x, z))
                 ? style.Roof.Verge
-                : style.Roof.Body;
+                : style.Roof.Body);
 
             // <b>No roof block below the wall top of a wing whose roof this is not.</b> Under someone else's
             // wall is inside their building, and that is not where a roof goes — it is what makes a one-storey
@@ -796,7 +798,7 @@ public static class HouseStamper
             var outer = front;
             var seated = new RoofField(
                 porchStyle.Roof, porch.MinX, porch.MinZ, porch.MaxX, porch.MaxZ, overhang, 0, pitch, outer,
-                style.Roof.InHalves);
+                porchStyle.ClimbsInHalves(style.Roof));
 
             // The canopy is seated by its own *lowest* course rather than by its ridge: that course has to
             // clear the doorway the porch fronts, and where it lands the ridge follows by however far the form
@@ -812,7 +814,7 @@ public static class HouseStamper
             for (var x = canopy.MinX; x <= canopy.MaxX; x++)
                 for (var z = canopy.MinZ; z <= canopy.MaxZ; z++)
                     if (!body.Holds(x, z))                    // the house roofs its own footprint
-                        Lay(canopy, x, z, porch, style.Roof.Slab);
+                        Lay(canopy, x, z, porch, style.Roof.Slab, laidIn: porchStyle.Canopy);
 
             // A post stands on the deck, so it takes the ground storey's wall where the style names no post —
             // the storey it is actually beside, not the one at the top of the building.
