@@ -437,7 +437,7 @@ so two rows of one kind share one count — `oak-1` to `oak-10` over three rows.
 file names no kind for is refused, since nothing in the blocks says what a tree is: the showcase's willows are
 dark-oak log under oak leaves. A library row is matched by its **cut** — the world it came from and the foot
 it stood on — so a re-run updates the same rows and a relabelled row renames them. A wool tree opens a row of
-its own whether or not `--wool` files it, so one flag does not move every row behind it. The 84 trees of `pgm-studio-mapgen/corpus/tree-showcase` are the corpus it was
+its own whether or not `--wool` files it, so one flag does not move every row behind it. The 94 trees of `pgm-studio-mapgen/corpus/tree-showcase` are the corpus it was
 written for, and
 cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the seven template species
 and four erratics, and knows nothing about any world.
