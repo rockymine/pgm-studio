@@ -5957,8 +5957,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `showcase-hall`, `showcase-hall-hay`, `sn-compass-well`, `stilts`, `talltimber-cottage-jungle`); eight
   presets meet the rules with a laid course of their posts' wood at each storey's top and, on the village row,
   a spruce roof and gable under a dark oak verge; and an unstated wall is four courses of spruce under a laid
-  oak course, so a house placed with no style is a frame the gate accepts.
-  `docs/world-export/structures.md` §7.1, §7.7. (`WE158`)
+  oak course, so a house placed with no style is a frame the gate accepts. The room over a stilt storey names
+  its own deck — a storey naming none stands on the plate's top course, so `stilts` and `townside on stilts`,
+  both on plates of air, had no floor upstairs — and the library seed stores a storey's own deck, which it
+  dropped. `docs/world-export/structures.md` §7.1, §7.2, §7.7. (`WE158`)
 - **Water standing against a hole in its own basin says so (WE91).** The bed a pool carves and the hollow it
   sits in are two statements about one lake, and nothing reconciled them: on `opus5-scarrow-delph` the relief
   mark `pan` digs z −8…7 to y4 while the `tarn` prop fills z −7…6, so the lake's two end rows are four courses

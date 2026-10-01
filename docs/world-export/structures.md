@@ -685,7 +685,9 @@ through.
 **And a floor of air is a building with no floor**, which is what a house on stilts is for. A plate is a
 `RoomPart` like a wall, so air in its stack is a gap rather than a block: the course is skipped, nothing is
 written, and the terrain the building stands over runs on underneath it between the posts. That is the whole
-of the machinery — the same word in the same place as the wall of air that opens the storey above it. A stilt
+of the machinery — the same word in the same place as the wall of air that opens the storey above it. The storey
+over the stilts names its own `deck`: a storey that names none stands on the plate's top course, which here is
+air, so without one the room over the stilts has no floor. A stilt
 storey standing on a plate of anything else is `HS10`, a complaint: nothing about the building is wrong, but
 the ground it was raised to leave alone has a lid across the whole footprint. `opus5-scarrow-delph`'s smithy
 at (-24, 93) is that house, a course of oak planks laid flat on the mire it stands in.

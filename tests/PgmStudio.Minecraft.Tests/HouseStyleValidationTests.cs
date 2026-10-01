@@ -597,6 +597,23 @@ public sealed class HouseStyleValidationTests
         await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.StiltFloor)).IsFalse();
     }
 
+    /// <summary>A plate of air is the stilt house's ground, and a storey that names no deck of its own stands on
+    /// the plate's top course — so every shipped style raised on air gives each storey above it a deck, or the room
+    /// over the stilts has no floor.</summary>
+    [Test]
+    public async Task Every_shipped_style_on_a_plate_of_air_floors_the_storeys_above_it()
+    {
+        var shipped = HousePresets.All.Select(house => (house.Name, house.Style)).Concat(HousePresets.Kept);
+        var floorless = shipped
+            .Where(entry => entry.Style.Foundation.Deck.IsAir())
+            .SelectMany(entry => entry.Style.Levels.Skip(1)
+                .Select((level, at) => (entry.Name, Storey: at + 1, level.Deck)))
+            .Where(entry => entry.Deck.IsAir())
+            .Select(entry => $"{entry.Name} storey {entry.Storey}")
+            .ToList();
+        await Assert.That(floorless).IsEmpty();
+    }
+
     /// <summary>A building with walls on the ground is not on stilts, so its floor is a floor.</summary>
     [Test]
     public async Task A_walled_ground_storey_on_a_plate_is_not_HS10()

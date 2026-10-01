@@ -95,7 +95,7 @@ public static class HouseStyleRules
     /// underneath it — a bank, a mire, a shore — and a plate laid across the footprint puts a plank rectangle
     /// on that ground and stops it. Nothing is wrong with the building; what is wrong is that the ground it
     /// was raised to leave alone has a lid on it.</summary>
-    /// <remarks>State the plate's material as air and the terrain runs on under the building, which is what a stilt house is for. Where the floor is meant — a boarded undercroft, a jetty deck — say so by keeping it; the finding is a complaint and changes nothing on its own.</remarks>
+    /// <remarks>State the plate's material as air and the terrain runs on under the building, which is what a stilt house is for — and give the storey above it a `deck` of its own, since a storey naming none stands on the plate's top course and over air has no floor. Where the floor is meant — a boarded undercroft, a jetty deck — say so by keeping it; the finding is a complaint and changes nothing on its own.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.World, RuleConcern.Terrain)]
     public const string StiltFloor = "HS10";
 
@@ -416,7 +416,7 @@ public static class HouseStyleValidation
             $"the ground storey is open for all {Math.Max(1, style.Doorway.Height)} of the doorway's courses "
             + "— a house on stilts — and it stands on a plate that is not air, so the ground it was raised "
             + "over is floored across the whole footprint. State the plate as air to let the terrain run on "
-            + "under it.",
+            + "under it, and give the storey above it a deck of its own.",
             Severity.Complaint, Field: "foundation.plate"));
     }
 

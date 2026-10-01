@@ -197,7 +197,11 @@
     "inlayInset": 2,
     "isPlain": true
    },
-   "deck": null,
+   "deck": {
+    "kind": "solid",
+    "id": 5,
+    "data": 0
+   },
    "headroom": 4
   }
  ],

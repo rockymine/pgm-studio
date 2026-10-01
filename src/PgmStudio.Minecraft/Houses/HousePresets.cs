@@ -547,7 +547,9 @@ public static class HousePresets
                 ]), Extent: 6),
                 Windows = new WindowStyle(),          // there is no wall left to cut one through
             },
-            Townside.Style.Storeys[1],
+            // The room over the stilts keeps the townside's floor: a storey naming no deck stands on the plate's
+            // top course, and the plate here is air.
+            Townside.Style.Storeys[1] with { Deck = Townside.Style.Foundation.Deck },
         ],
     }, Width: 7, Depth: 9);
 

@@ -316,6 +316,9 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
                     yield return ($"storey {level + 1} {part}", material);
             if (storey.Post is { } storeyPost) yield return ($"storey {level + 1} {RoomParts.Post}", storeyPost);
             if (storey.Surface?.Field is { } storeyField) yield return ($"storey {level + 1} {RoomParts.Field}", storeyField);
+            // The deck as declared: unbound, the store gives a storey the floor's own top material, which is
+            // exactly what a storey naming no deck stands on.
+            if (style.Storeys[level].Deck is { } storeyDeck) yield return ($"storey {level + 1} {RoomParts.Deck}", storeyDeck);
         }
     }
 
@@ -338,8 +341,8 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     ///
     /// <para>Without these a house's stack is a <em>count</em> and one clear, so a building whose storeys differ
     /// from each other comes back as the same storey repeated — the right number of rooms and the wrong rooms.
-    /// A storey style is where a storey's own wall, posts, windows and floor zoning live, which is the whole
-    /// reason the level exists.</para></summary>
+    /// A storey style is where a storey's own wall, posts, windows, floor zoning and deck live, which is the
+    /// whole reason the level exists.</para></summary>
     private async Task<Dictionary<string, long>> SeedStoreysAsync(StyleIds bound, CancellationToken ct)
     {
         var existing = (await parts.ListStoreysAsync(ct))
@@ -390,6 +393,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             }
         Bind(RoomParts.Post, storey.Post);
         Bind(RoomParts.Field, storey.Surface?.Field);
+        Bind(RoomParts.Deck, style.Storeys[level].Deck);
 
         var windows = storey.Windows ?? new WindowStyle();
         return new StoreyStyleSaveRequest(
@@ -589,6 +593,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
                 if (!Equals(mine[at].Post, theirs[at].Post)) lost.Add($"storey {at + 1} post");
                 if (!Equals(mine[at].Windows, theirs[at].Windows)) lost.Add($"storey {at + 1} windows");
                 if (!Equals(mine[at].Surface, theirs[at].Surface)) lost.Add($"storey {at + 1} floor");
+                if (!Equals(mine[at].Deck, theirs[at].Deck)) lost.Add($"storey {at + 1} deck");
             }
         return lost;
     }
