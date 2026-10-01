@@ -263,6 +263,15 @@ other, so of two neighbours that both draw one, the one whose draw came lower st
 the folded cells, so every image settles the pair the same way. It hurts whoever stands against it, so a goal's
 own ground (§3.1) grows none.
 
+**Open still water grows lily pads and nothing else.** A cell inside the outline whose column tops out in a
+still water source with air over it — looked for within `WaterReach` (**16**) courses of the column's ground,
+since a channel stands below the surface it cut and a filled basin above it — carries a pad one course over the
+water where the density field admits cover and a raft field at the cover's own `Scale` clears `1 − LilyShare`.
+The pads gather in rafts the way flowers gather in fields, about half the water at a share of 0.5 and all of it
+at 1, and a mirrored board floats them alike because both fields are read at the folded cell. A fluid's claim gives way to the pad and to nothing else: its dry bed
+and beach grow nothing, and lava floats nothing. `LilyShare` is 0 unless stated, so a board that never asks
+keeps its water open.
+
 **Every field the overlay reads is read at the cell folded into the board's primary image**, exactly as a
 terrain pattern is (`terrain-painting.md` TP21) — the density field, the flower field, the species shares and
 the tall share alike. A noise field is a function of position, so without the fold a cell and its image sample
@@ -506,6 +515,15 @@ so a layer stack reads as a weathered skin over a core rather than as the terrai
 else, and the moss mask is laid over whatever the material resolved. A boulder is a solid volume standing on
 the ground, so where it stands is cover, which is why it is placed rather than scattered.
 
+**A rock is the one prop that stands in water.** A pool or a channel claims every column of its bed and beach
+(§7), and a rock stated there seats on the first course over the bed under the still water rather than on the
+ground the fluid cut away, and writes through the water as it writes through air: it stands in the race with
+the water round it, and its top shows where it is taller than the water is deep. The columns it stands on are
+its own afterwards, so a second rock stated on them is refused by the first (`DR-CLAIM`), while the fluid keeps
+its claim against everything else — a tree, a house or cover in the water is refused by the channel. A rock
+whose foot reaches the beach seats on the lower of the two, the bed, and meets the bank as any rock across a
+step meets the higher ground (§2.1).
+
 ## 6. Trees — vanilla and copied (`DR-TR`)
 
 The vanilla tree copies Minecraft's own: a trunk of a known height and a canopy of a known profile,
@@ -569,11 +587,11 @@ cut with — that is what makes it a copy rather than a recipe — so a block wh
 point at something the body actually holds. A vine states every side it clings to at once, so a side naming
 air is a curtain hanging on nothing, and a pair of *opposite* sides is that same fault seen from the front: a
 vine with two faces in one block. A vine under another naming the same side is held by it, which is how a
-curtain hangs past the leaf it started on, so only the run that reaches nothing is named. `opus5-alderfen`
-gives every one of its 374 vines a face-pair — 5 (north|south) or 10 (west|east) — so that whichever side the
-leaf is on is always among them, and its build spec gives the reason as the orbit turning no vine data of its
-own. It does: `BlockGeometry.Turned` maps each set bit through the image's transform and rebuilds the mask, so
-a single face survives a mirror or a quarter-turn without a second bit to protect it. The rule is asked once
+curtain hangs past the leaf it started on, so only the run that reaches nothing is named. A copy that gives
+every vine a face-pair — 5 (north|south) or 10 (west|east) — so that whichever side the leaf is on is always
+among them carries the fault in every vine, and the pair protects nothing from the orbit:
+`BlockGeometry.Turned` maps each set bit through the image's transform and rebuilds the mask, so a single face
+survives a mirror or a quarter-turn without a second bit to protect it. The rule is asked once
 per body, since a board draws the same tree thirty times and the fault is in the recipe.
 
 **`copied` means cut out of a world, and the library files nothing else under it.** A `template` tree is
@@ -802,8 +820,9 @@ grows, and `PATCH /map/{slug}/sketch/props/{propId}` is what changes it.
 **Still to come (`G169`).** The reads that take a channel from "a filled cut" to "water that looks like
 water," and the closed form: **depth shading** warped off-centre so one bank runs deeper than the other; an
 **irregular shoreline** whose width wanders to zero in places; a **voronoi-patterned** bed and shore (sand,
-pale gravel, coarse dirt) showing through the shallows; **edge life** reusing the §3 flora overlay masked to
-the bank (reeds, lily pads) — on a water fill only, since a lava bed grows neither; and **ponds** — the closed
+pale gravel, coarse dirt) showing through the shallows; **reeds** on the bank, the half of edge life the §3
+flora overlay does not grow yet (its lily pads float on open water, §3) — on a water fill only, since a lava
+bed grows none; and **ponds** — the closed
 version, an organic basin (the §5 boulder blob read concave), scattered onto low ground and joined to channels
 into one watershed on a single line.
 

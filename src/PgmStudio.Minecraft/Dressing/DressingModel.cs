@@ -20,6 +20,9 @@ namespace PgmStudio.Minecraft.Dressing;
 /// clay carry that is not cactus, and this share of the grass and fern on dirt.</param>
 /// <param name="CactusShare">0–1; how much of the cover on sand is cactus, each one to
 /// <see cref="DressingPalette.CactusTallest"/> blocks tall.</param>
+/// <param name="LilyShare">0–1; how much of the open still water inside the area the lily rafts cover — a field
+/// at the cover's own patch size cut at 1 − share, so about half the water at 0.5 and all of it at 1. Water
+/// only: lava floats nothing.</param>
 public sealed record FloraSpec(
     double Coverage = 0.45,
     int Scale = 12,
@@ -29,7 +32,8 @@ public sealed record FloraSpec(
     int FlowerScale = 18,
     double TallShare = 0.0,
     double DeadBushShare = 0.0,
-    double CactusShare = 0.0);
+    double CactusShare = 0.0,
+    double LilyShare = 0.0);
 
 /// <summary>The shape family a boulder takes. Each is a list of lobes, not a code path — see
 /// <see cref="BoulderShapes"/>.</summary>

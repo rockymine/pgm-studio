@@ -190,14 +190,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   here runs the other way — a drawn channel handed to the solver as a line mark below base level makes the
   terrain form a valley around it (`world-export/relief.md` §9).
 
-- [ ] **WE73 — Nothing stands in the water.** A `pool` or `channel` claims every column of its bed
-  (`ClaimKind.Water`) and a quay wall drawn as a `keepClear` path keeps its band, so a boulder stated in the
-  race is refused before it is seated — `DR-CLAIM` by the channel at `(−110, 55)`, `DR-KEEP` by the wall at
-  `(−70, 52)` on `maps/fable-millrace-revamp` — and a rock's cells above the bed would meet water rather
-  than air in `Decorator.Fan` if it were. The author brushed about twenty rocks into Millrace's bed and the
-  studio plants none. Let a boulder seat on a bed the water claims and write through the water, keeping the
-  claim for everything else; `docs/world-export/decoration.md` §5 and §7.
-
 ### Placing something on a storey that is not the top one
 
 All six placement kinds carry an optional `Layer`, a prop carries one, and `BuiltTerrain.SurfaceFor(layer)`

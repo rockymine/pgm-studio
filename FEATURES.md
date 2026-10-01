@@ -8320,6 +8320,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   ground a 1.8 bush stays on, so sand, gravel and mycelium no longer carry cover that drops at the first
   update. The Dressing inspector offers both shares. `docs/world-export/decoration.md` §3. (`WE150`)
 
+- **Lily pads on open water (`WE156`)** — a flora area floats a lily pad on the open still water inside it at
+  `lilyShare`, cut from a field at the cover's patch size so the pads gather in rafts as flowers gather in
+  fields, and read at the folded cell so a mirrored board's halves float alike; a fluid's dry bed and beach grow nothing and lava floats
+  nothing. The Dressing inspector offers the share. `docs/world-export/decoration.md` §3. (`WE156`)
+
+- **A rock stands in the water (`WE73`)** — a boulder stated in a pool or a channel seats on the first course
+  over the bed and writes through the water, and takes the columns it stands on from the fluid, so a second
+  rock there is refused by the first while the fluid keeps its claim against every other prop.
+  `docs/world-export/decoration.md` §5. (`WE73`)
+
 - **The eye draws what stands on the ground (`WS79`)** — `render/eye` draws torches and redstone torches as
   crossed sprites, redstone wire as a floor sheet tinted by its power the way the game tints it, ladders on the
   face they hang from, carpets, vines and lily pads, and chests — plain, trapped and ender — as the inset box

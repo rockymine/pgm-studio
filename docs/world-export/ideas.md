@@ -105,8 +105,9 @@ says so.
   channel from "a filled cut" to "water that looks like water," and the closed form. **Depth shading** warped
   off-centre so one bank runs deeper than the other; an **irregular shoreline** whose width wanders to zero in
   places; a **voronoi-patterned** bed and shore (sand, pale gravel, coarse dirt) showing through the shallows;
-  **edge life** reusing the §3 flora overlay masked to the bank (reeds, lily pads) — keyed to a `fluid: water` fill and never to the prop, which a
-  lava bed shares; and **ponds** — the closed
+  **reeds** on the bank, the half of edge life the §3 flora overlay does not grow yet (its lily pads float on
+  open water, `decoration.md` §3) — keyed to a `fluid: water` fill and never to the prop, which a lava bed
+  shares; and **ponds** — the closed
   version, the §5 blob read concave with an FBM-wandered outline, scattered onto low ground and joined to
   channels into one watershed. The bed carve reads best once the **G32-C** elevation pass gives layouts their
   heights, so a channel becomes a cut valley rather than a trench in a flat. What a channel has to do

@@ -738,7 +738,8 @@ public static class Decorator
     // ── flora (DR-FL) ───────────────────────────────────────────────────────────
     /// <summary>Grow cover inside a drawn area. One block per cell, in the air above the surface, and only
     /// where the paint beneath accepts it — a plant occupies its own cell and nothing around it, so it needs no
-    /// local frame and no turning.</summary>
+    /// local frame and no turning. Open still water inside the area grows lily pads and nothing else, a fluid's
+    /// own water included: a fluid holds its cells against everything but what floats on it.</summary>
     private static Placed PlaceFlora(VoxelWorld world, DressingContext context, FloraProp area, GroundClaims.Storey claims)
     {
         var ground = context.GroundFor(area);
@@ -751,8 +752,18 @@ public static class Decorator
         var cells = new List<(int X, int Z)>();
         foreach (var (x, z) in Inside(ring, context.Symmetry, k))
         {
-            if (claims.Holds(x, z) || context.IsKeptClear(x, z)) continue;
+            if (context.IsKeptClear(x, z)) continue;
+            var held = claims.At(x, z);
+            if (held is { Kind: not ClaimKind.Fluid }) continue;
             if (!ground.TryGetValue((x, z), out var top)) continue;
+            if (StillWaterAt(world, x, top, z) is { } water)
+            {
+                if (!Lily(area.Spec, area.Seed, x, z, context.Symmetry)) continue;
+                world.SetBlock(x, water + 1, z, DressingPalette.LilyPad, 0);
+                cells.Add((x, z));
+                continue;
+            }
+            if (held is not null) continue;                              // a fluid's dry bed and bank grow nothing
             if (world.GetBlock(x, top, z).Id != Blocks.Air) continue;   // something is already there
 
             var (groundId, groundData) = world.GetBlock(x, top - 1, z);
@@ -843,6 +854,48 @@ public static class Decorator
         if (onDirt && PatternNoise.Unit(fx, fz, seed + 71) < flora.DeadBushShare) return DressingPalette.DeadBush;
         return PatternNoise.Unit(fx, fz, seed + 21) < flora.FernShare
             ? DressingPalette.Fern : DressingPalette.Grass;
+    }
+
+    /// <summary>Whether a lily pad floats on the still water at <c>(x, z)</c>: where the cover's density field
+    /// grows anything and a raft field at the cover's patch size clears <c>1 − LilyShare</c>, so the pads gather
+    /// in rafts the way flowers gather in fields. Read in the folded frame, so a cell and its every image float
+    /// alike.</summary>
+    private static bool Lily(FloraSpec flora, uint seed, int x, int z, DressingSymmetry symmetry)
+    {
+        if (flora.LilyShare <= 0) return false;
+        var (fx, fz) = symmetry.Canonical(x, z);
+        return PatternNoise.Fbm(fx, fz, seed, flora.Scale, flora.Octaves) >= 1 - flora.Coverage
+            && PatternNoise.Fbm(fx, fz, seed + 55, flora.Scale, 2) >= 1 - flora.LilyShare;
+    }
+
+    /// <summary>How many courses either side of a column's ground its water surface is looked for: a fluid
+    /// stands at the line it fills to, which may be under the old surface where it was cut or over it where it
+    /// filled a hollow.</summary>
+    private const int WaterReach = 16;
+
+    /// <summary>The course of open still water in this column: its highest block within
+    /// <see cref="WaterReach"/> courses of the ground, when that block is a water source with air over it. Lava
+    /// grows nothing and floats nothing, and water under anything else is not open.</summary>
+    private static int? StillWaterAt(VoxelWorld world, int x, int top, int z)
+    {
+        for (var y = Math.Min(top + WaterReach, VoxelWorld.MaxHeight - 2); y >= Math.Max(1, top - WaterReach); y--)
+        {
+            var (id, data) = world.GetBlock(x, y, z);
+            if (id == Blocks.Air) continue;
+            return IsWater(id) && data == 0 ? y : null;
+        }
+        return null;
+    }
+
+    private static bool IsWater(int blockId) => blockId is Blocks.Water or Blocks.StationaryWater;
+
+    /// <summary>The course a prop standing in water rests on: the first course over the bed under the column's
+    /// still water, or the column's own ground where it holds none.</summary>
+    private static int BedUnder(VoxelWorld world, int x, int top, int z)
+    {
+        if (StillWaterAt(world, x, top, z) is not { } y) return top;
+        while (y > 1 && IsWater(world.GetBlock(x, y - 1, z).Id)) y--;
+        return y;
     }
 
     /// <summary>Whether the canonical cell <c>(fx, fz)</c> draws a cactus. Read in the folded frame, so a cell
@@ -1314,8 +1367,10 @@ public static class Decorator
                 Severity.Complaint, Field: "dressing.props", Subjects: [named]));
         }
 
+        // A rock is the one prop that stands in water: it seats on the bed and writes through what floods it,
+        // while the fluid keeps its cells against everything else.
         var lobes = BoulderShapes.Of(boulder.Style.Form, boulder.Style.Reach, boulder.Seed);
-        return Fan(world, context, context.GroundFor(boulder), (boulder.X, boulder.Z), BoulderCells(lobes, boulder), claims, boulder.RouteStandoff, boulder.Id, "boulder", declined);
+        return Fan(world, context, context.GroundFor(boulder), (boulder.X, boulder.Z), BoulderCells(lobes, boulder), claims, boulder.RouteStandoff, boulder.Id, "boulder", declined, wades: true);
     }
 
     /// <summary>A boulder as offsets from its own anchor, before it knows where on the map it goes. The rock's
@@ -1576,9 +1631,12 @@ public static class Decorator
     /// before any of them is written, so the prop stands at all of them or none. A rock whose mirror lands a
     /// block nearer a protected column, or on ground the relief left slightly steeper, does not get to stand on
     /// one side of a mirrored board and vanish from the other — the difference a player would actually notice
-    /// is not "the edges are a little thinner", it is "the two halves disagree".</summary>
+    /// is not "the edges are a little thinner", it is "the two halves disagree". A prop that
+    /// <paramref name="wades"/> writes through water as it does through air, and takes the cells it stands on
+    /// from the fluid that held them.</summary>
     private static Placed Fan(VoxelWorld world, DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, (int X, int Z) site,
-        List<PropCell> prop, GroundClaims.Storey claims, int routeStandoff, string id, string kind, List<Finding> declined)
+        List<PropCell> prop, GroundClaims.Storey claims, int routeStandoff, string id, string kind, List<Finding> declined,
+        bool wades = false)
     {
         if (prop.Count == 0) return Placed.None;
 
@@ -1588,7 +1646,7 @@ public static class Decorator
             // Decided once for the whole orbit, so the report is too: whichever image seats first refuses the
             // whole prop, and that is the one image and cell named — a second orbit image failing the same
             // way is not a second entry.
-            if (!Seats(context, ground, anchor, turned, claims, routeStandoff, id, kind, out var baseY, out var decline))
+            if (!Seats(world, context, ground, anchor, turned, claims, routeStandoff, id, kind, wades, out var baseY, out var decline))
             {
                 declined.Add(decline!);
                 return Placed.None;
@@ -1609,13 +1667,15 @@ public static class Decorator
                 var (wx, wy, wz) = (anchor.X + cell.X, baseY + cell.Y, anchor.Z + cell.Z);
                 if (wy is < 1 or >= VoxelWorld.MaxHeight) continue;
                 wanted.Add((wx, wy, wz));
-                if (!cell.Buried && world.GetBlock(wx, wy, wz).Id != Blocks.Air)
+                var there = world.GetBlock(wx, wy, wz).Id;
+                if (!cell.Buried && there != Blocks.Air && !(wades && IsWater(there)))
                 {
                     stoppedAt ??= (wx, wy, wz);
                     continue;
                 }
                 world.SetBlock(wx, wy, wz, cell.Id, cell.Data);
-                claims.Claim(wx, wz, ClaimKind.Scatter, id);
+                if (wades) claims.ClaimThroughFluid(wx, wz, ClaimKind.Scatter, id);
+                else claims.Claim(wx, wz, ClaimKind.Scatter, id);
                 cells.Add((wx, wz));        // a column, once, however many of the prop's blocks stand in it
                 landed.Add((wx, wy, wz));
             }
@@ -1724,7 +1784,8 @@ public static class Decorator
     /// <see cref="PlacedProp.RouteStandoff"/> also refuses when a resting cell stands nearer than that many
     /// blocks to the nearest paved cell, so a trunk keeps off the kerb and not merely off the pavement.
     /// A resting cell over something the map is played through refuses it the same way: a trunk on a spawn or
-    /// a monument is the fault a wall clipping through the room is.</para>
+    /// a monument is the fault a wall clipping through the room is. A prop that <paramref name="wades"/> may
+    /// rest on a cell a fluid holds, and seats on the bed under its still water.</para>
     ///
     /// <para>What is above may overhang nothing at all — neither ground, nor an earlier prop, nor protection.
     /// Demanding a clear column under a whole volume would ban every tree from a shoreline or an island edge,
@@ -1734,8 +1795,8 @@ public static class Decorator
     /// monument at y+15 is not a trunk grown through it — a hand-built map's trees overhang its structures
     /// too — so the crown is free to reach wherever it would over open ground.</para></summary>
     private static bool Seats(
-        DressingContext context, IReadOnlyDictionary<(int X, int Z), int> tops, (int X, int Z) anchor, List<PropCell> prop, GroundClaims.Storey claims,
-        int routeStandoff, string id, string kind, out int baseY, out Finding? decline)
+        VoxelWorld world, DressingContext context, IReadOnlyDictionary<(int X, int Z), int> tops, (int X, int Z) anchor, List<PropCell> prop,
+        GroundClaims.Storey claims, int routeStandoff, string id, string kind, bool wades, out int baseY, out Finding? decline)
     {
         baseY = int.MaxValue;
         decline = null;
@@ -1759,10 +1820,10 @@ public static class Decorator
                     $"rests on ({ground.X}, {ground.Z}), {KeptFor(keptFor)}");
                 return false;
             }
-            if (claims.Holds(ground.X, ground.Z))
+            if (claims.At(ground.X, ground.Z) is { } held && !(wades && held.Kind == ClaimKind.Fluid))
             {
                 decline = Declined(DressingRules.GroundTaken, id, kind,
-                    $"rests on ({ground.X}, {ground.Z}), {Claimant(claims.At(ground.X, ground.Z))}");
+                    $"rests on ({ground.X}, {ground.Z}), {Claimant(held)}");
                 return false;
             }
             if (routeStandoff > 0 && claims.NearerThan(ground.X, ground.Z, ClaimKind.Paving, routeStandoff) is { } road)
@@ -1777,7 +1838,7 @@ public static class Decorator
                 decline = Declined(DressingRules.NoGround, id, kind, $"has no ground at ({ground.X}, {ground.Z})");
                 return false;
             }
-            baseY = Math.Min(baseY, top);
+            baseY = Math.Min(baseY, wades ? BedUnder(world, ground.X, top, ground.Z) : top);
         }
         if (baseY != int.MaxValue) return true;
         decline = Declined(DressingRules.NoGround, id, kind, "rests on nothing: it has no cells at its own base");

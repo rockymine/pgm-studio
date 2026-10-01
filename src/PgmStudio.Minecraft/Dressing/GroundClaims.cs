@@ -344,6 +344,14 @@ public sealed class GroundClaims
         public void Claim(int x, int z, ClaimKind kind, string owner) =>
             Book.cells.TryAdd((Layer, x, z), (kind, owner));
 
+        /// <summary>Record a claim on a cell nothing holds or a fluid holds — a rock standing in the water,
+        /// whose cells are its own once it is there. A cell anything else holds keeps its first claimant, as
+        /// <see cref="Claim"/> does.</summary>
+        public void ClaimThroughFluid(int x, int z, ClaimKind kind, string owner)
+        {
+            if (At(x, z) is null or { Kind: ClaimKind.Fluid }) Book.cells[(Layer, x, z)] = (kind, owner);
+        }
+
         /// <summary>What holds the cell, or null where nothing does — the half a decline needs to be
         /// actionable.</summary>
         public (ClaimKind Kind, string Owner)? At(int x, int z) =>
