@@ -244,7 +244,7 @@ rather than being a ground (`WE41`). `WE45` was the same cause from the other en
 measured the wrong thing, which is drained by measuring it right rather than by filing a fifth complaint.
 
 **Working it split the cause in two, and the split is what the group is now ordered by.** A complaint closes
-when its **domain** closes: a house has a fixed parts list, which is why `HS1`–`HS10` is a rule set that could
+when its **domain** closes: a house has a fixed parts list, which is why `HS1`–`HS13` is a rule set that could
 be finished, and terrain has none, so a catalogue over every pair of blocks against every pattern scale never
 closes. `WE48` and `WE45` were the closable kind — a number on a bounded field and a geometric measurement —
 and both landed (`FEATURES.md`), as did `WE47`'s local half: a compiled component's plateaus measured against

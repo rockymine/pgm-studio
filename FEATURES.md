@@ -5948,6 +5948,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   flat across the mire it stands in, and the shipped `townside on stilts` preset did the same. `HS10` names
   it, a complaint — the building is not wrong, the ground under it is floored — and the preset now states its
   plate as air, which is what leaves the terrain showing between the posts.
+- **The author's review of the kept styles is in the gate (WE158).** Three rulings from reviewing the
+  twenty-nine styles boards are built with are refusals now. `HS11`: a storey standing on log corner posts lays
+  a laid-log course among its own courses, the timber the posts carry — asked storey by storey, so a course
+  upstairs frames nothing below it. `HS12`: the gable is never the verge's block, the unnamed gable being the
+  wall's top course carried up. `HS13`: a laid log is never the building's bottom course. Ten kept styles are
+  revised as the review asked (`17h-croft`, `17h-hall`, `17h-hall-spruce`, `hw-stonehouse`, `sb-spawn`,
+  `showcase-hall`, `showcase-hall-hay`, `sn-compass-well`, `stilts`, `talltimber-cottage-jungle`); eight
+  presets meet the rules with a laid course of their posts' wood at each storey's top and, on the village row,
+  a spruce roof and gable under a dark oak verge; and an unstated wall is four courses of spruce under a laid
+  oak course, so a house placed with no style is a frame the gate accepts.
+  `docs/world-export/structures.md` §7.1, §7.7. (`WE158`)
 - **Water standing against a hole in its own basin says so (WE91).** The bed a pool carves and the hollow it
   sits in are two statements about one lake, and nothing reconciled them: on `opus5-scarrow-delph` the relief
   mark `pan` digs z −8…7 to y4 while the `tarn` prop fills z −7…6, so the lake's two end rows are four courses

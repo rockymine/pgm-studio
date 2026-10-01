@@ -76,7 +76,7 @@
      "material": {
       "kind": "solid",
       "id": 1,
-      "data": 6
+      "data": 5
      },
      "thickness": 1
     }
@@ -87,8 +87,8 @@
  },
  "post": {
   "kind": "solid",
-  "id": 98,
-  "data": 0
+  "id": 1,
+  "data": 6
  },
  "windows": {
   "form": "none",
@@ -119,7 +119,7 @@
        "material": {
         "kind": "solid",
         "id": 1,
-        "data": 6
+        "data": 5
        },
        "thickness": 1
       }
@@ -130,8 +130,8 @@
    },
    "post": {
     "kind": "solid",
-    "id": 98,
-    "data": 0
+    "id": 1,
+    "data": 6
    },
    "windows": {
     "form": "pane",
@@ -172,7 +172,7 @@
        "material": {
         "kind": "solid",
         "id": 1,
-        "data": 6
+        "data": 5
        },
        "thickness": 1
       }
@@ -183,8 +183,8 @@
    },
    "post": {
     "kind": "solid",
-    "id": 98,
-    "data": 0
+    "id": 1,
+    "data": 6
    },
    "windows": {
     "form": "stairLattice",

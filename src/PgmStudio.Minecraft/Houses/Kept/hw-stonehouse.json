@@ -6,7 +6,7 @@
      {
       "material": {
        "kind": "solid",
-       "id": 4,
+       "id": 98,
        "data": 0
       },
       "thickness": 1
@@ -29,20 +29,20 @@
  "roof": {
   "form": "gable",
   "pitch": 1,
-  "slab": -1,
-  "slabData": 0,
+  "slab": 126,
+  "slabData": 3,
   "overhang": 1,
   "ridgeCap": true,
   "hole": false,
   "body": {
    "kind": "solid",
-   "id": 45,
-   "data": 0
+   "id": 5,
+   "data": 3
   },
   "verge": {
    "kind": "solid",
-   "id": 98,
-   "data": 0
+   "id": 5,
+   "data": 3
   },
   "gable": {
    "kind": "solid",
@@ -74,45 +74,89 @@
     },
     {
      "material": {
-      "kind": "cell",
-      "seed": 59,
-      "cellSize": 3,
-      "jitter": 40,
-      "warp": 1,
-      "palette": [
-       {
-        "kind": "solid",
-        "id": 172,
-        "data": 0
-       },
-       {
-        "kind": "solid",
-        "id": 172,
-        "data": 0
-       },
-       {
-        "kind": "solid",
-        "id": 172,
-        "data": 0
-       },
-       {
-        "kind": "solid",
-        "id": 4,
-        "data": 0
-       }
-      ]
+      "kind": "solid",
+      "id": 1,
+      "data": 5
      },
-     "thickness": 3
+     "thickness": 1
     },
     {
      "material": {
-      "kind": "teamTint",
-      "blockId": 159,
-      "neutral": {
-       "kind": "solid",
-       "id": 172,
-       "data": 0
-      }
+      "kind": "solid",
+      "id": 98,
+      "data": 0
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 1,
+      "data": 5
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 98,
+      "data": 0
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 1,
+      "data": 5
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 98,
+      "data": 0
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 1,
+      "data": 5
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 98,
+      "data": 0
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 1,
+      "data": 5
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 98,
+      "data": 0
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 1,
+      "data": 5
      },
      "thickness": 1
     }
@@ -123,8 +167,8 @@
  },
  "post": {
   "kind": "solid",
-  "id": 98,
-  "data": 0
+  "id": 1,
+  "data": 6
  },
  "windows": {
   "form": "pane",
@@ -153,45 +197,89 @@
       },
       {
        "material": {
-        "kind": "cell",
-        "seed": 59,
-        "cellSize": 3,
-        "jitter": 40,
-        "warp": 1,
-        "palette": [
-         {
-          "kind": "solid",
-          "id": 172,
-          "data": 0
-         },
-         {
-          "kind": "solid",
-          "id": 172,
-          "data": 0
-         },
-         {
-          "kind": "solid",
-          "id": 172,
-          "data": 0
-         },
-         {
-          "kind": "solid",
-          "id": 4,
-          "data": 0
-         }
-        ]
+        "kind": "solid",
+        "id": 1,
+        "data": 5
        },
-       "thickness": 3
+       "thickness": 1
       },
       {
        "material": {
-        "kind": "teamTint",
-        "blockId": 159,
-        "neutral": {
-         "kind": "solid",
-         "id": 172,
-         "data": 0
-        }
+        "kind": "solid",
+        "id": 98,
+        "data": 0
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 98,
+        "data": 0
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 98,
+        "data": 0
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 98,
+        "data": 0
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 98,
+        "data": 0
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
        },
        "thickness": 1
       }
@@ -202,8 +290,8 @@
    },
    "post": {
     "kind": "solid",
-    "id": 98,
-    "data": 0
+    "id": 1,
+    "data": 6
    },
    "windows": {
     "form": "pane",
@@ -221,8 +309,7 @@
     "border": null,
     "borderWidth": 1,
     "inlay": null,
-    "inlayInset": 2,
-    "isPlain": true
+    "inlayInset": 2
    },
    "deck": null,
    "headroom": 5
@@ -242,45 +329,89 @@
       },
       {
        "material": {
-        "kind": "cell",
-        "seed": 59,
-        "cellSize": 3,
-        "jitter": 40,
-        "warp": 1,
-        "palette": [
-         {
-          "kind": "solid",
-          "id": 172,
-          "data": 0
-         },
-         {
-          "kind": "solid",
-          "id": 172,
-          "data": 0
-         },
-         {
-          "kind": "solid",
-          "id": 172,
-          "data": 0
-         },
-         {
-          "kind": "solid",
-          "id": 4,
-          "data": 0
-         }
-        ]
+        "kind": "solid",
+        "id": 1,
+        "data": 5
        },
-       "thickness": 3
+       "thickness": 1
       },
       {
        "material": {
-        "kind": "teamTint",
-        "blockId": 159,
-        "neutral": {
-         "kind": "solid",
-         "id": 172,
-         "data": 0
-        }
+        "kind": "solid",
+        "id": 98,
+        "data": 0
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 98,
+        "data": 0
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 98,
+        "data": 0
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 98,
+        "data": 0
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 98,
+        "data": 0
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
        },
        "thickness": 1
       }
@@ -291,8 +422,8 @@
    },
    "post": {
     "kind": "solid",
-    "id": 98,
-    "data": 0
+    "id": 1,
+    "data": 6
    },
    "windows": {
     "form": "pane",
@@ -310,8 +441,7 @@
     "border": null,
     "borderWidth": 1,
     "inlay": null,
-    "inlayInset": 2,
-    "isPlain": true
+    "inlayInset": 2
    },
    "deck": null,
    "headroom": 4

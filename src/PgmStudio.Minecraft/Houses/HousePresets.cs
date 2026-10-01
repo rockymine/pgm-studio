@@ -42,7 +42,6 @@ public static class HousePresets
     private const int SmoothSandstone = 2;                      // the nibble of block 24
     private const int StoneBrickStairs = 109, SandstoneStairs = 128;
     private const int SpruceFence = 189, SpruceSlab = 1;        // 1 is the spruce nibble of block 126
-    private const int DarkOakSlab = 5;                          // 5 is the dark-oak nibble of block 126
     private const int StoneBrickSlab = 5;                       // 5 is the stone-brick nibble of block 44
 
     /// <summary>
@@ -161,13 +160,16 @@ public static class HousePresets
         Storeys = [Ground(
             new SolidMaterial(Blocks.StainedClay, BlackClay),
             new SolidMaterial(Blocks.Planks, DarkOakPlank),
-            new SolidMaterial(Blocks.Log2, DarkOakLog), NetherBrickStairs)],
+            new SolidMaterial(Blocks.Log2, DarkOakLog), NetherBrickStairs,
+            plate: new LaidLogMaterial(Blocks.Log2, DarkOakLog))],
         Doorway = Arched(NetherBrickStairs, StoneSlab, NetherBrickSlab),
     }, 11, 9);
 
     /// <summary>The one storey all three are: two courses of <paramref name="base"/> under a run of
-    /// <paramref name="body"/>, a post of its own, and a stair lattice seated where the two meet.</summary>
-    private static Storey Ground(TerrainMaterial @base, TerrainMaterial body, TerrainMaterial post, int window)
+    /// <paramref name="body"/>, a post of its own, and a stair lattice seated where the two meet. A post of
+    /// timber carries a <paramref name="plate"/>, the laid log the storey's top course is (HS11).</summary>
+    private static Storey Ground(TerrainMaterial @base, TerrainMaterial body, TerrainMaterial post, int window,
+        TerrainMaterial? plate = null)
         => new()
         {
             Clear = 5,
@@ -176,7 +178,9 @@ public static class HousePresets
             // top course. Stated rather than left null because a storey with no surface at all is a storey
             // that has said nothing about its floor, which is a different thing from one that has said plain.
             Surface = new FloorSurface { BorderWidth = 1, InlayInset = 2 },
-            Wall = new RoomPart(new BandStack([new Band(@base, 2), new Band(body, 4)]), Extent: 5),
+            Wall = new RoomPart(new BandStack(plate is null
+                ? [new Band(@base, 2), new Band(body, 4)]
+                : [new Band(@base, 2), new Band(body, 2), new Band(plate, 1)]), Extent: 5),
             Windows = new WindowStyle
             {
                 Form = WindowForm.StairLattice, Block = window, Width = 2, Height = 2, Sill = 2, Spacing = 3,
@@ -279,13 +283,16 @@ public static class HousePresets
                 Stops: [new SolidMaterial(Blocks.Cobblestone), new SolidMaterial(Blocks.Stone, Andesite)],
                 Rise: 2), 2),
 
-            // Five of the banded run. The cycle wraps the whole perimeter rather than restarting per wall, so
+            // Four of the banded run. The cycle wraps the whole perimeter rather than restarting per wall, so
             // a corner carries a band round it the way the real building does.
             new Band(new WallRunMaterial(
             [
                 new WallStripe(new LogCheckerMaterial(1, Blocks.Log2), 2),
                 new WallStripe(Spruces, 2),
-            ]), 5),
+            ]), 4),
+
+            // And the top course is the laid spruce the corner posts carry.
+            new Band(new LaidLogMaterial(Blocks.Log, Spruce)),
         ]), Extent: 7),
 
         // A stair lattice seated on the plinth: sill 3 is the first course above the two the plinth takes, so
@@ -490,7 +497,9 @@ public static class HousePresets
             new Storey
             {
                 Clear = 4,
-                Wall = RoomPart.Of(Spruces, 4),
+                // Boarded, under a laid oak course at the eave: the timber the upper posts carry.
+                Wall = new RoomPart(new BandStack(
+                    [new Band(Spruces, 3), new Band(new LaidLogMaterial(Blocks.Log, Oak))]), Extent: 4),
                 Post = new SolidMaterial(Blocks.Log, Oak),
                 Windows = new WindowStyle
                 {
@@ -552,10 +561,11 @@ public static class HousePresets
     /// The cottage: one room of checkered masonry under a steep gable, with a timbered face at each end.
     ///
     /// <para>It is the smallest of the five and the one that states the row's palette plainly — a rubble plinth
-    /// two courses high, <see cref="Masonry"/> above it, and spruce for everything the roof touches. The gable
-    /// is spruce rather than more stone because that is the one move nearly every hand-built house makes: the
-    /// wall is what holds the building up and the gable is what closes it, and saying so in a second material
-    /// is what stops a small building reading as a box with a lid.</para>
+    /// two courses high, <see cref="Masonry"/> above it under a laid course of the posts' spruce, and a spruce
+    /// roof and gable bordered in dark oak. The gable is spruce rather than more stone because that is the one
+    /// move nearly every hand-built house makes: the wall is what holds the building up and the gable is what
+    /// closes it, and saying so in a second material is what stops a small building reading as a box with a
+    /// lid.</para>
     ///
     /// <para>Its windows are <see cref="WindowForm.Arched"/> — two upside-down stairs rounding the top corners
     /// of a 2×2 hole. On a nine-wide face the seater lays one per side clear of both posts.</para>
@@ -568,8 +578,8 @@ public static class HousePresets
             Pitch = 1,
             Overhang = 1,
             RidgeCap = true,
-            Body = DarkOak,
-            Verge = Spruces,
+            Body = Spruces,
+            Verge = DarkOak,
             Gable = Spruces,
             GableWindows = new WindowStyle { Form = WindowForm.Open, Width = 1, Height = 1, Sill = 2 },
         },
@@ -578,7 +588,8 @@ public static class HousePresets
         Wall = new RoomPart(new BandStack(
         [
             new Band(Rubble, 2),
-            new Band(Masonry, 3),
+            new Band(Masonry, 2),
+            new Band(new LaidLogMaterial(Blocks.Log, Spruce)),
         ]), Extent: 5),
 
         Windows = new WindowStyle
@@ -634,7 +645,7 @@ public static class HousePresets
             RidgeCap = true,
             Body = Spruces,
             Verge = DarkOak,
-            Gable = DarkOak,
+            Gable = Spruces,
         },
         Front = RoomEdge.NegX,                               // the gable end: the long walls keep their rows
 
@@ -643,7 +654,8 @@ public static class HousePresets
         [
             new Band(Rubble, 1),
             new Band(Masonry, 2),
-            new Band(Spruces, 3),
+            new Band(Spruces, 2),
+            new Band(new LaidLogMaterial(Blocks.Log, Spruce)),
         ]), Extent: 6),
 
         // Cut into the spruce only, so the row sits in the boarding above the stonework rather than across the
@@ -759,10 +771,9 @@ public static class HousePresets
     /// left over and a square leaves none.</para>
     ///
     /// <para>The storeys narrow as they rise, in weight rather than in plan: stone at the bottom, boarding above
-    /// it, and smooth sandstone at the top where the wall carries least. It shows its floors from outside by
-    /// changing material at each seam and not by beam ends: a beam end is the end of a floor timber and none of
-    /// these walls is carrying one, so eight log ends running out of masonry would be a detail about a way of
-    /// building this house is not built (<c>HS9</c>).</para>
+    /// it, and smooth sandstone at the top where the wall carries least. Each storey ends in a laid course of
+    /// spruce, the timber its corner posts carry (<c>HS11</c>), so the floors show from outside as a change of
+    /// material over a log line at every seam.</para>
     /// </summary>
     public static House Counting => new("counting house", new HouseStyle
     {
@@ -783,7 +794,9 @@ public static class HousePresets
             new Storey
             {
                 Clear = 4,
-                Wall = new RoomPart(new BandStack([new Band(Rubble, 1), new Band(Masonry, 3)]), Extent: 4),
+                Wall = new RoomPart(new BandStack(
+                    [new Band(Rubble, 1), new Band(Masonry, 3), new Band(new LaidLogMaterial(Blocks.Log, Spruce))]),
+                    Extent: 5),
                 Windows = new WindowStyle
                 {
                     Form = WindowForm.Arched, Block = StoneBrickStairs,
@@ -794,7 +807,8 @@ public static class HousePresets
             {
                 Deck = new SolidMaterial(Blocks.Planks, SprucePlanks),
                 Clear = 3,
-                Wall = RoomPart.Of(Spruces, 3),
+                Wall = new RoomPart(new BandStack(
+                    [new Band(Spruces, 3), new Band(new LaidLogMaterial(Blocks.Log, Spruce))]), Extent: 4),
                 Windows = new WindowStyle
                 {
                     Form = WindowForm.Pane, Block = StainedPane, Data = White,
@@ -805,7 +819,11 @@ public static class HousePresets
             {
                 Deck = new SolidMaterial(Blocks.Planks, SprucePlanks),
                 Clear = 3,
-                Wall = RoomPart.Of(new SolidMaterial(Blocks.Sandstone, SmoothSandstone), 3),
+                Wall = new RoomPart(new BandStack(
+                [
+                    new Band(new SolidMaterial(Blocks.Sandstone, SmoothSandstone), 2),
+                    new Band(new LaidLogMaterial(Blocks.Log, Spruce)),
+                ]), Extent: 3),
                 Windows = new WindowStyle
                 {
                     Form = WindowForm.Arched, Block = SandstoneStairs,
@@ -855,9 +873,9 @@ public static class HousePresets
             // building it comes out all roof — eleven courses over a six-course wall. Half courses are the lever:
             // the slope travels one half per block instead of two, so the same lean-to costs half the height.
             Slab = Blocks.WoodenSlab,
-            SlabData = DarkOakSlab,                             // the slab continues the body, so it is its material
-            Body = DarkOak,
-            Verge = Spruces,
+            SlabData = SpruceSlab,                              // the slab continues the body, so it is its material
+            Body = Spruces,
+            Verge = DarkOak,
             Gable = Spruces,
         },
 
@@ -866,7 +884,8 @@ public static class HousePresets
         [
             new Band(Rubble, 1),
             new Band(Masonry, 2),
-            new Band(Spruces, 3),
+            new Band(Spruces, 2),
+            new Band(new LaidLogMaterial(Blocks.Log, Spruce)),
         ]), Extent: 6),
 
         Windows = new WindowStyle

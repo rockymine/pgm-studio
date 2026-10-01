@@ -47,7 +47,7 @@
   "gable": {
    "kind": "solid",
    "id": 5,
-   "data": 5
+   "data": 1
   },
   "gableWindows": {
    "form": "open",
@@ -70,7 +70,23 @@
       "id": 98,
       "data": 0
      },
-     "thickness": 5
+     "thickness": 2
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 1,
+      "data": 5
+     },
+     "thickness": 2
+    },
+    {
+     "material": {
+      "kind": "laidLog",
+      "id": 162,
+      "data": 1
+     },
+     "thickness": 1
     }
    ],
    "ending": "repeat"
@@ -105,13 +121,21 @@
         "id": 98,
         "data": 0
        },
-       "thickness": 4
+       "thickness": 2
       },
       {
        "material": {
         "kind": "solid",
         "id": 1,
         "data": 5
+       },
+       "thickness": 2
+      },
+      {
+       "material": {
+        "kind": "laidLog",
+        "id": 162,
+        "data": 1
        },
        "thickness": 1
       }
@@ -156,7 +180,7 @@
        "material": {
         "kind": "solid",
         "id": 5,
-        "data": 5
+        "data": 1
        },
        "thickness": 3
       },

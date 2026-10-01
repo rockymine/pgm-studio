@@ -424,8 +424,11 @@ public sealed record HouseStyle
     /// <summary>Everything above the eave: the roof's form, its pitch, its reach and its materials.</summary>
     public RoofStyle Roof { get; init; } = new();
 
-    /// <summary>The infill between the posts, upward from the floor. Its extent is the wall's height.</summary>
-    public RoomPart Wall { get; init; } = RoomPart.Of(new SolidMaterial(Planks, Spruce), 5);
+    /// <summary>The infill between the posts, upward from the floor. Its extent is the wall's height. Unstated
+    /// it is four courses of spruce boarding under a laid oak course, the plate the default oak posts carry.
+    /// </summary>
+    public RoomPart Wall { get; init; } = new(new BandStack(
+        [new Band(new SolidMaterial(Planks, Spruce), 4), new Band(new LaidLogMaterial(Blocks.Log, Oak))]), 5);
 
     /// <summary>The four corner columns, or null for a building whose corners are wall like the rest of it.
     /// A house reads as framed because its corners differ from the panel between them, which is what every

@@ -114,8 +114,8 @@
    },
    "post": null,
    "windows": {
-    "form": "open",
-    "block": 102,
+    "form": "stairLattice",
+    "block": 135,
     "hostBlock": -1,
     "hostData": 0,
     "data": 0,
@@ -155,7 +155,7 @@
    },
    "post": null,
    "windows": {
-    "form": "open",
+    "form": "pane",
     "block": 102,
     "hostBlock": -1,
     "hostData": 0,

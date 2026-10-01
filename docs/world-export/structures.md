@@ -438,6 +438,12 @@ hand-built house on the corpus does. The **verge** is a different piece again: i
 ring, so on a flush roof it is the raking edge directly over the gable, and under an eave it moves out to the
 overhang and the rake at the wall line is plain roof.
 
+**So the gable and the verge are never one block.** The verge is what borders the roof at a gable end, running
+down both raking edges of the face, and laid in the face's own block it borders nothing: the end of the building
+reads as one flat triangle with no edge to the roof. `HS12` refuses the pair, comparing the named face where
+there is one and the wall's top course carried up where there is not; a hip and a flat lid leave no gable and
+are not asked. The fix the author gave is the common one — spruce planks under a dark oak overhang.
+
 The roof's remaining knobs are its **hole** — a flat lid only; a sloped roof has a volume of its own and a hole
 in a slope is a leak rather than a light — and its **ridge cap**, the line the slopes meet on laid in the verge
 rather than in the roof's own material. The hole is measured and centred on the **shell**, never on the roof
@@ -1003,6 +1009,16 @@ corner post, the ends docking against it, the course they are the ends of — ar
 which is `HS4`'s rule, the same one a door head's stair and its slab fill answer to. `opus5-scarrow-delph`'s
 stilt houses are the pair done half right: an oak laid-log course under oak beam ends, standing on spruce
 posts.
+
+**Nor the posts without the course.** A corner post of log is the upright of the same frame, and what it
+carries is the laid course running between the posts, so a storey standing on log posts lays a laid log among
+its own courses — `HS11`. It is asked storey by storey over the courses each storey actually lays: a course
+upstairs frames nothing below it, and a band past a storey's height is never laid. A post of stone is a pier,
+carries no plate and is not asked. The course sits where a frame carries it, at the top of a storey; as the
+building's first course, on the foundation, it is a log lying round the footprint with nothing standing on it as
+a frame, and `HS13` refuses it there. An upper storey may open on one, since it stands on the storey below. The
+house a style leaves unstated is the frame done this way — oak posts, four courses of spruce boarding and a laid
+oak course at the top.
 
 The ends are **the one thing a house writes outside its own footprint**. Everything else a style lays falls
 inside the walls plus the roof's overhang, which is what makes a shell safe to stamp onto finished terrain — so

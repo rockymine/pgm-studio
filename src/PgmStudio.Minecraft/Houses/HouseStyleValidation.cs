@@ -98,6 +98,30 @@ public static class HouseStyleRules
     /// <remarks>State the plate's material as air and the terrain runs on under the building, which is what a stilt house is for. Where the floor is meant — a boarded undercroft, a jetty deck — say so by keeping it; the finding is a complaint and changes nothing on its own.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.World, RuleConcern.Terrain)]
     public const string StiltFloor = "HS10";
+
+    /// <summary>A storey framed in timber with no timber course in its wall. A corner post of log is the upright
+    /// of a frame, and what it carries is the laid log running along the wall between the posts — so a storey
+    /// with log posts and no laid-log course among the courses it lays has uprights holding nothing, which reads
+    /// as timber stood against masonry rather than as a frame. Each storey answers for its own posts: a log
+    /// course upstairs frames nothing below it.</summary>
+    /// <remarks>Lay the storey's top course in a `laidLog` of the posts' own wood, or make the posts stone — a pier of stone carries no plate and is not asked.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Material)]
+    public const string PostsWithoutTimber = "HS11";
+
+    /// <summary>A gable laid in the verge's own block. The verge is the roof's border, and at a gable end it runs
+    /// down both sloped edges of the triangle of wall the roof leaves standing — so where the two are one block
+    /// the border has nothing to border, and the gable and the overhang read as one flat triangle with no edge
+    /// to the roof. Asked of every roof that leaves a gable: a hip and a flat lid leave none.</summary>
+    /// <remarks>Lay `roof.gable` in another block than `roof.verge` — planks of another wood, or the wall's masonry carried up. Where no gable is named it is the top storey's last wall course, and that is the block compared.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    public const string GableAsVerge = "HS12";
+
+    /// <summary>A laid log as the building's bottom course. A laid log is the timber a storey's posts carry and
+    /// its beams come out of, which puts it at the top of a storey; laid as the ground storey's first course,
+    /// on the foundation, it is a log lying round the footprint with nothing standing on it as a frame.</summary>
+    /// <remarks>Start the ground storey's wall on masonry or planks and lay the log as the storey's top course, where its posts carry it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Material)]
+    public const string LogAtTheFoot = "HS13";
 }
 
 /// <summary>
@@ -138,6 +162,9 @@ public static class HouseStyleValidation
         CheckPorchHeadroom(style, findings);
         CheckBeamsHaveTimber(style, findings);
         CheckFrameTimber(style, findings);
+        CheckPostsCarryTimber(style, findings);
+        CheckGableAgainstVerge(style, findings);
+        CheckLogAtTheFoot(style, findings);
         CheckStiltFloor(style, findings);
         return findings;
     }
@@ -236,6 +263,67 @@ public static class HouseStyleValidation
                     + "from one wood.",
                     Field: where));
     }
+
+    /// <summary>HS11 — a storey whose corner posts are logs and whose wall lays no log. Asked of every storey
+    /// the building has, each with the wall and posts it falls back to, over the courses the stamp lays for it:
+    /// a band past the storey's height is never laid and frames nothing.</summary>
+    private static void CheckPostsCarryTimber(HouseStyle style, List<Finding> findings)
+    {
+        var levels = style.Levels;
+        for (var at = 0; at < levels.Count; at++)
+        {
+            if (levels[at].Post is not SolidMaterial post || !BlockFamilies.IsLog(post.Id)) continue;
+            var wall = levels[at].Wall ?? style.Wall;
+            var courses = levels[at].Courses(at == levels.Count - 1);
+            if (Enumerable.Range(0, courses).Any(course => wall.At(course).Material is LaidLogMaterial)) continue;
+
+            findings.Add(new Finding(HouseStyleRules.PostsWithoutTimber,
+                $"storey {at} stands on corner posts of {BlockMaterials.Of(post.Id, post.Data)} and none of the "
+                + $"{courses} courses its wall lays is a laid log, so the posts carry nothing. Lay the storey's top "
+                + "course in a laidLog of the same wood, or make the posts stone.",
+                Field: style.Storeys.Count > 0 ? $"storeys[{at}].wall" : "wall"));
+        }
+    }
+
+    /// <summary>HS12 — a gable face in the verge's block. The face is the style's own gable where it names one
+    /// and the top storey's last wall course carried up where it does not, which is what the stamp lays.</summary>
+    private static void CheckGableAgainstVerge(HouseStyle style, List<Finding> findings)
+    {
+        if (style.Roof.Form is RoofForm.Hip or RoofForm.Flat) return;
+        if (style.Roof.Verge.IsAir() || SingleBlock(style.Roof.Verge) is not { } verge) return;
+        var topWall = style.Levels[^1].Wall ?? style.Wall;
+        var named = style.Roof.Gable is not null;
+        if (SingleBlock(style.Roof.Gable ?? topWall.At(topWall.Extent - 1).Material) is not { } gable) return;
+        if (gable != verge) return;
+
+        findings.Add(new Finding(HouseStyleRules.GableAsVerge,
+            $"the gable is {BlockMaterials.Of(gable.Id, gable.Data)} and so is the verge, so the roof's border runs "
+            + "down the gable in the gable's own block and the end of the roof has no edge. Lay the gable in "
+            + "another block than the verge.",
+            Field: named ? "roof.gable" : "roof.verge"));
+    }
+
+    /// <summary>HS13 — the ground storey's first course laid in log.</summary>
+    private static void CheckLogAtTheFoot(HouseStyle style, List<Finding> findings)
+    {
+        var ground = style.Levels[0].Wall ?? style.Wall;
+        if (ground.At(0).Material is not LaidLogMaterial laid) return;
+
+        findings.Add(new Finding(HouseStyleRules.LogAtTheFoot,
+            $"the ground storey's first course is a laid log of {BlockMaterials.Of(laid.Id, laid.Data)}, so the "
+            + "building stands on a log lying round its footprint. Start the wall on masonry or planks and lay the "
+            + "log as the storey's top course.",
+            Field: style.Storeys.Count > 0 ? "storeys[0].wall" : "wall"));
+    }
+
+    /// <summary>The one block a material lays wherever it is put, or null for a pattern of several. A laid log
+    /// is its log: the axis it turns to is the stamp's, not a different block.</summary>
+    private static (int Id, int Data)? SingleBlock(TerrainMaterial material) => material switch
+    {
+        SolidMaterial solid => (solid.Id, solid.Data),
+        LaidLogMaterial laid => (laid.Id, laid.Data),
+        _ => null,
+    };
 
     /// <summary>The blocks a frame is made of besides the beams: every post the style names, and every
     /// laid-log course a wall carries. Only logs are asked — a post of stone is a pier, not a timber, and the
