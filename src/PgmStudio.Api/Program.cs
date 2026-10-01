@@ -85,6 +85,25 @@ builder.Services.SwaggerDocument(o =>
     // And a field a record computes, which the wire writes like any other, is published read-only.
     // PgmStudio.Api.Endpoints.ComputedFields says how.
     o.DocumentSettings += doc => doc.DocumentProcessors.Add(new ComputedFields());
+    // And a field's default, where the code states one, is published as the wire writes it.
+    // PgmStudio.Api.Endpoints.StatedDefaults says how.
+    o.DocumentSettings += doc => doc.SchemaSettings.SchemaProcessors.Add(new StatedDefaults());
+    // An operation is named after its route rather than the class serving it, since the name is what a
+    // generated client calls the method. PgmStudio.Api.Endpoints.OperationNames says how.
+    o.DocumentSettings += doc => doc.OperationProcessors.Add(new OperationNames());
+    // A write is signed in with a studio token, which is opaque: the studio looks it up rather than reading a
+    // claim out of it, so the scheme is a bearer of no stated format and not the JWT the default would name.
+    o.EnableJWTBearerAuth = false;
+    o.DocumentSettings += doc => doc.AddAuth("token", new NSwag.OpenApiSecurityScheme
+    {
+        Type = NSwag.OpenApiSecuritySchemeType.Http,
+        Scheme = "bearer",
+        Description = "A studio token: issued from Tokens in the studio's account menu and sent as "
+                      + "`Authorization: Bearer <token>`. It is opaque — a key the studio looks up, not a claim a "
+                      + "caller can read — and acts as the person it was issued for, with at most a member's rights. "
+                      + "A browser signed in with Discord carries the same rights in its session cookie. Every read "
+                      + "is open; a write needs one or the other (docs/access.md).",
+    });
     // One key rides on every success that has one, written by middleware rather than by any record — so the
     // document says so once, here. PgmStudio.Api.Endpoints.ComplaintChannel says how.
     o.DocumentSettings += doc => doc.OperationProcessors.Add(new ComplaintChannel());

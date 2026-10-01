@@ -8610,6 +8610,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`EndpointSource`) and holds each to its route's parameters. The side view's legacy `x`/`z` aliases are
   retired, so `segments` publishes exactly the four directions it accepts. (`Api/Endpoints/QueryWords`,
   `Analysis/Scan/SideView`, `docs/architecture.md`)
+- **The schema names its defaults, its operations and its token (`RP93`).** 149 fields whose default the code
+  states publish it as the wire writes it (`StatedDefaults`); every operation is named after its route —
+  `putMapSource`, `getMapBySlug` — rather than the class serving it (`OperationNames`); and the one security
+  scheme is `token`, an opaque bearer, where the generator's default named a JWT. `SchemaCompletenessTests`
+  holds the defaults as a count that only moves up, the names to their routes and to being unique, and the
+  scheme to what a studio token is. (`Api/Endpoints/StatedDefaults`, `Api/Endpoints/OperationNames`,
+  `Api/Program`, `docs/architecture.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

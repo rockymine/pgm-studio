@@ -247,6 +247,82 @@ public sealed class SchemaCompletenessTests
                      + string.Join($"{Environment.NewLine}  ", unpublished));
     }
 
+    /// <summary><b>An operation is named after its route</b>, which is what a generated client calls the method:
+    /// the verb, the path's words, and <c>by</c> a trailing parameter. Unique, because two operations sharing a
+    /// name are one method in a client.</summary>
+    [Test]
+    [Arguments("PUT", "/api/map/{slug}/source", "putMapSource")]
+    [Arguments("GET", "/api/map/{slug}", "getMapBySlug")]
+    [Arguments("GET", "/api/map/{slug}/sketch/props", "getMapSketchProps")]
+    [Arguments("DELETE", "/api/styles/{id}", "deleteStylesById")]
+    public async Task An_operation_is_named_after_its_route(string verb, string path, string name)
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        using var document = JsonDocument.Parse(await client.GetStringAsync("/api/openapi/v1.json"));
+        var names = document.RootElement.GetProperty("paths").EnumerateObject()
+            .SelectMany(route => route.Value.EnumerateObject()
+                .Where(operation => operation.Value.ValueKind == JsonValueKind.Object
+                                    && operation.Value.TryGetProperty("operationId", out _))
+                .Select(operation => (Route: $"{operation.Name.ToUpperInvariant()} {route.Name}",
+                    Name: operation.Value.GetProperty("operationId").GetString()!)))
+            .ToList();
+
+        await Assert.That(names.Single(entry => entry.Route == $"{verb} {path}").Name).IsEqualTo(name);
+        await Assert.That(names.Select(entry => entry.Name).Distinct().Count()).IsEqualTo(names.Count)
+            .Because("two operations sharing a name are one method in a generated client");
+    }
+
+    /// <summary><b>A write is signed in with the studio token, and the document says what that token is.</b>
+    /// It is opaque — the studio looks it up — so the scheme is a bearer of no stated format, and every operation
+    /// that needs signing in names it.</summary>
+    [Test]
+    public async Task A_write_is_signed_with_an_opaque_studio_token()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        using var document = JsonDocument.Parse(await client.GetStringAsync("/api/openapi/v1.json"));
+        var schemes = document.RootElement.GetProperty("components").GetProperty("securitySchemes");
+
+        var scheme = schemes.EnumerateObject().Single();
+        await Assert.That(scheme.Name).IsEqualTo("token");
+        await Assert.That(scheme.Value.GetProperty("scheme").GetString()).IsEqualTo("bearer");
+        await Assert.That(scheme.Value.TryGetProperty("bearerFormat", out _)).IsFalse()
+            .Because("a studio token is opaque, not a JWT");
+
+        var signed = document.RootElement.GetProperty("paths").EnumerateObject()
+            .SelectMany(route => route.Value.EnumerateObject())
+            .Where(operation => operation.Value.ValueKind == JsonValueKind.Object
+                                && operation.Value.TryGetProperty("security", out var security)
+                                && security.ValueKind == JsonValueKind.Array)
+            .SelectMany(operation => operation.Value.GetProperty("security").EnumerateArray())
+            .SelectMany(requirement => requirement.EnumerateObject().Select(named => named.Name))
+            .ToList();
+        await Assert.That(signed.Count).IsGreaterThan(100);
+        await Assert.That(signed.Distinct()).IsEquivalentTo(["token"]);
+    }
+
+    /// <summary>The count of fields publishing a default the code states, and it only moves up: a default
+    /// the code drops leaves the document with it.</summary>
+    private const int PublishedDefaults = 149;
+
+    /// <summary><b>A field the code gives a default publishes it</b>, written the way the wire writes it — what
+    /// a body that leaves the field out is read as.</summary>
+    [Test]
+    [Arguments("ControlPointIntent", "size", "7")]
+    [Arguments("SketchSetup", "mirror_mode", "\"rot_180\"")]
+    [Arguments("Finding", "severity", "\"refusal\"")]
+    [Arguments("PlanReference", "opacity", "0.5")]
+    public async Task A_stated_default_is_published(string record, string field, string published)
+    {
+        var schemas = (await DocumentAsync()).GetProperty("components").GetProperty("schemas");
+        var fields = Fields(schemas.GetProperty(record)).ToDictionary(entry => entry.Name, entry => entry.Value);
+
+        await Assert.That(fields[field].GetProperty("default").GetRawText()).IsEqualTo(published);
+        var count = schemas.EnumerateObject()
+            .SelectMany(schema => Fields(schema.Value))
+            .Count(entry => entry.Value.TryGetProperty("default", out _));
+        await Assert.That(count).IsGreaterThanOrEqualTo(PublishedDefaults);
+    }
+
     /// <summary>The fields with no docstring to read, because they have no declaration: a polymorphic base
     /// publishes a discriminator the generator synthesises, and no property carries it. Named rather than
     /// counted, so a genuinely undocumented field cannot hide behind them.</summary>

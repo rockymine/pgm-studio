@@ -12,7 +12,7 @@ parsed.
 
 ## A gate belongs to whichever door it was put behind
 
-The pipeline has one entry point: `PgmStudio.Api`, **149 endpoint classes** over 45 files. Everything that
+The pipeline has one entry point: `PgmStudio.Api`, **265 endpoint classes**, a route each, over 54 files. Everything that
 authors a map arrives through it — the browser, and the headless drivers agents write. `PUT
 /map/{slug}/source` is the **authoring** call for a headless caller and not only an import: it takes a map's
 base and its refinement and stores a whole map in one request, running the compile, the refinement, the finish
@@ -34,17 +34,17 @@ request arrived.
 
 ## The boundary carries no schema
 
-The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 118
-paths, **149 operations**, 291 schemas, **257 of them carrying the docstring beside the type** — and
+The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 202
+paths, **265 operations**, 437 schemas, **435 of them carrying the docstring beside the type** — and
 `/api-docs` is the page over it, where a route can be expanded and sent without writing a client. Both are served from the app's own assets.
 
 What that document can say is bounded by what is declared, and the write surface states all of it. Of the
-**67 POST/PUT/PATCH routes**, **64 publish a request body** — 25 by binding a request type, 39 by naming the
-shape they take while still reading it themselves — and the three that do not read no body at all, which is
+**108 POST/PUT/PATCH routes**, **103 publish a request body** — 42 by binding a request type, 61 by naming the
+shape they take while still reading it themselves — and the five that do not read no body at all, which is
 the truth rather than a gap. `SchemaCompletenessTests` holds both halves as counts that only move down, and
 both are now zero.
 
-One of the 42 is why the count could reach zero. A material is a discriminated union with nothing above its
+One of them is why the count could reach zero. A material is a discriminated union with nothing above its
 discriminator — every field a body carries belongs to the leaf its `kind` names — so `TerrainMaterial`
 declares no property of its own, and the generator's default reads that as an empty request and refuses the
 whole document. `c.Endpoints.AllowEmptyRequestDtos` is what says otherwise: the rendered schema is complete
@@ -56,8 +56,8 @@ Three things follow from that, and they are the same fact seen from three sides.
 **The one global input gate covers a sixth of the surface, and that is the shape of the thing rather than a
 shortfall.** `RequiredFields` refuses anything a request DTO declares non-nullable and the body did not
 supply — and its first line is `if (context.Request is not { } request) return;`, so it is a no-op for every
-endpoint that has no request type. The promise it makes holds for the **25 routes that bind one**. A declared
-shape is not a bound one: the 39 that name their shape to the generator still read it themselves, so the
+endpoint that has no request type. The promise it makes holds for the **42 routes that bind one**. A declared
+shape is not a bound one: the 61 that name their shape to the generator still read it themselves, so the
 document is true about them and the gate does not run.
 
 **Binding is not a sweep, because two of the three things a body can be wrong about are not the binder's.**
@@ -86,21 +86,20 @@ caller. The other 38 sites are a different thing entirely: `NoSuchSubject`, `Con
 **Every operation now says what it answers.** An endpoint that declares no response type is published as
 **204 No Content** — the generator's default, and a claim rather than a silence, so an undeclared route does
 not leave a caller guessing but misleads it. **None of the operations** publish that 204 without
-answering it; eleven publish it truthfully, every one a delete whose answer is that the thing is gone — ten
-library rows and a whole map. `SchemaCompletenessTests` holds the count at zero and the eleven as a named list, so a route added without a
+answering it; eleven publish it truthfully, every one a delete whose answer is that the thing is gone — nine
+library rows, a stored plan and a whole map. `SchemaCompletenessTests` holds the count at zero and the eleven as a named list, so a route added without a
 response type fails there, and one on the list that grows a body cannot leave it quietly. The media types
-are declared too: the six `image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
+are declared too: the nineteen routes answering `image/png`, the nineteen answering `text/plain` and the export's `application/zip` all say so, so
 `/api-docs` renders a theme swatch beside the route that draws it.
 
-**And a field that takes one of a handful of words says which.** `PgmStudio.Vocabulary` holds ten closed
-sets — `MapStage` and the nine in `TerrainVocabulary` — because three parties have to spell a `map.stage`, a
+**And a field that takes one of a handful of words says which.** `PgmStudio.Vocabulary` holds twenty-seven
+closed sets — `MapStage` and the nine in `TerrainVocabulary` among them — because three parties have to spell a `map.stage`, a
 `style.kind`, a theme bucket, a room part or a roof form identically. They are `const string`s rather than a
 C# enum, since the party writing one furthest down is `Minecraft` and it cannot see `Contracts`, so every one
 of them crossed as a bare `string` and an agent learned the four stages by being refused one. A `[WordSet]`
 naming the declaring class now ties the field to its set, and a schema processor reads the words off that
-class into the field's `enum`: **26 fields** publish theirs — the ten sets plus the plan's own roles, zone
-kinds and box kinds — and `WordSetSchemaTests` holds each to the words its class declares and every set to
-being published by something. The words are still stated once, where they were stated already; nothing is
+class into the field's `enum`, or its items' for a list of words. `WordSetSchemaTests` holds each marked field
+to the words its class declares and every set to being published by something. The words are still stated once, where they were stated already; nothing is
 copied into the document.
 
 **And a field held as raw JSON names the type it holds.** A field is raw JSON where its type lives in a
@@ -134,12 +133,21 @@ word only on the path that reaches it, `SchemaCompletenessTests` takes the reads
 (`EndpointSource`): every `Query<T>("word")`, every `Request.Query["word"]`, every helper handed a word, and what
 a class inherits from its base — and holds each to a parameter of its route.
 
+**And the rest of what a caller reads off the document is the studio's own.** A field whose default the code
+states — a positional parameter's `= value`, an initializer that is not the type's zero, a closed set's
+first member — publishes it the way the wire writes it (`StatedDefaults`): a control point's `size` is 7, a
+sketch's `mirror_mode` is `rot_180`, and 149 fields say so. An operation is named after its route rather than
+the class serving it (`OperationNames`) — `PUT /map/{slug}/source` is `putMapSource`, a trailing parameter
+adds `by` and its name — because the name is what a generated client calls the method. And the one security
+scheme is `token`, a bearer of no stated format: a studio token is a key the studio looks up, not a JWT a
+caller can read, and every operation that needs signing in names it.
+
 **And the one key that rides on any of them is declared.** `Complaints` adds `warnings` to any 2xx JSON
 object whose request raised one, and the document said nothing about it: no schema carried the key and no
 operation named a response header. Both are published now by an operation processor — every 2xx JSON object
 is `allOf` the answer the route names plus the optional `warnings`, and every 2xx names `Pgm-Warnings` —
-which puts one fact in one place rather than a field on a hundred records that no handler fills. **110
-answers carry the key and 151 name the header.** The client reads it in one place too, `ServerWarnings`
+which puts one fact in one place rather than a field on a hundred records that no handler fills. **198
+answers carry the key and 262 name the header.** The client reads it in one place too, `ServerWarnings`
 beside `ServerRefusal`, which is what let the plan tool take `/plan/compile` as `CompiledPlanDto` again
 instead of as a `JsonElement` it picked the key out of by hand.
 
@@ -150,8 +158,8 @@ fill. `PlanPiece` was the worked case: its blurb explained `rect`, `surface` and
 about `role`, the one field a caller must fill and the one whose allowed words it could not guess.
 
 **Both directions carry it now.** Every field a write route reads and every field a route answers says what
-it is — **1,027 of the 1,032** an answer can carry, up from 251, and 189 of the 190 a request takes.
-`SchemaCompletenessTests` holds both halves to it and names the one exception, a polymorphic base's
+it is — **1,703 of the 1,707** an answer can carry and 775 of the 779 a request takes.
+`SchemaCompletenessTests` holds both halves to it and names the four exceptions, each a polymorphic base's
 synthesised discriminator, which has no property to document. Two things fell out of writing it. The five
 library `*Detail` records differed from their `*SaveRequest` by exactly `id` — 53 fields declared twice — so
 they inherit instead and the schema says what they are, `allOf` the request plus the id. And `Analysis` was
@@ -163,14 +171,14 @@ The route attributes in `Api/Endpoints` are the generator's source. Beside them 
 out in the Blazor client and the endpoint tables in the eight `docs/tools/` documents, neither derived from
 the schema.
 
-The response half is finished. The client now reads **72 responses as a typed shape from `Contracts` against
-1 as `JsonElement`**, so a renamed DTO field is a compile error rather than a null at run time, and the third
+The response half is finished. The client now reads **79 responses as a typed shape from `Contracts` against
+2 as `JsonElement`**, so a renamed DTO field is a compile error rather than a null at run time, and the third
 copy that lived in per-component parsing code is gone. What is left hand-written is the path, where a typo is
-a runtime 404 that reads like a missing map — and every one of the **88 distinct routes** the client names is
-now written as a whole string, so the gate below can read it.
+a runtime 404 that reads like a missing map — and every route the client names is written as a whole string,
+so the gate below can read it.
 
 **That is why the studio has no generated client, and will not get one.** A generated client's whole value is
-the response types, and those already come from `Contracts` at 71 of 73 call sites; what it would still buy is
+the response types, and those already come from `Contracts` at 79 of 81 call sites; what it would still buy is
 the path check, at the price of a build-time package and a second copy of the whole surface committed to the
 tree — the "second accepted shape" that `CLAUDE.md` forbids for exactly the reason it would rot here.
 `ClientRouteTests` buys the same check for nothing: every route string in the client is a route the schema
