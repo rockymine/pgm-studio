@@ -278,15 +278,16 @@ public sealed class SketchShapeCreateEndpoint(MapRepository repo, MapArtifactSto
     }
 }
 
-/// <summary>GET /api/map/{slug}/sketch/shapes/{shapeId} — one shape, wherever on the stack it is drawn. 404
-/// where the id names none.</summary>
+/// <summary>GET /api/map/{slug}/sketch/shapes/{shapeId} — one shape, wherever on the stack it is drawn, and on
+/// <c>?format=text</c> its outline's edges as a point edit names them (<see cref="ShapeEdges"/>). 404 where the id
+/// names none.</summary>
 public sealed class SketchShapeOfIdEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<SketchShape>
 {
     public override void Configure()
     {
         Get("/map/{slug}/sketch/shapes/{shapeId}");
-        Description(b => b.Produces<SketchShape>(200, "application/json").Refuses(404));
+        Description(b => b.Produces<SketchShape>(200, "application/json").Refuses(404).AlsoText());
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -297,6 +298,7 @@ public sealed class SketchShapeOfIdEndpoint(MapRepository repo, MapArtifactStore
         var shape = SketchLayout.Stack(layout).SelectMany(layer => layer.Shapes)
                                               .FirstOrDefault(drawn => drawn.Id == id);
         if (shape is null) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
+        if (TextAnswer.Wanted(HttpContext)) { await TextAnswer.WriteAsync(HttpContext, ShapeEdges.Text(layout, id)!, ct); return; }
         await Send.OkAsync(shape, ct);
     }
 }

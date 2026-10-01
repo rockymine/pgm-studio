@@ -8683,6 +8683,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   roofed room and answers the void scan as its text. The Sketch tool's **Report** phase shows the same report.
   (`Export/BoardIsometric`, `Api/Services/MapReport`, `Minecraft/Anvil/WorldColumns`,
   `docs/world-scan/read-backs.md`, `docs/tools/sketch.md`)
+- **A shape answers its edges as a point edit names them (`TS129`).** `GET /map/{slug}/sketch/shapes/{shapeId}
+  ?format=text` lists each edge of the outline by the vertex it leaves, with its corners, its length, `~` where a
+  handle curves it, and what the shape's layer covers half a block outside it, run by run along the edge —
+  another shape, `id (image)` where the board's symmetry draws one, or `void` — so a pull or a bend's `edges` is
+  written from a read rather than from a ring copied into a script. (`Pgm/Sketch/ShapeEdges`,
+  `Api/Endpoints/SketchGeometryEndpoints`, `docs/tools/sketch.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

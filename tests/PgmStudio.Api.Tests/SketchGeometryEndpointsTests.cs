@@ -282,6 +282,21 @@ public sealed class SketchGeometryEndpointsTests
     /// <summary>The rule a bend is safe under, over the wire — the outline's own vertices are all still
     /// there — and the side a caller gets without asking, which is the bloat that reads as land.</summary>
     [Test]
+    public async Task A_shape_answers_its_edges_as_text()
+    {
+        using var client = await SketchBoard.FreshAsync();
+        var id = (await client.GetFromJsonAsync<JsonElement>($"{Sketch}/layers/layer0/shapes"))[0].GetProperty("id").GetString();
+
+        var resp = await client.GetAsync($"{Sketch}/shapes/{id}?format=text");
+
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(resp.Content.Headers.ContentType!.MediaType).IsEqualTo("text/plain");
+        await Assert.That(await resp.Content.ReadAsStringAsync()).StartsWith($"EDGES  {id}  layer layer0");
+        await Assert.That((await client.GetAsync($"{Sketch}/shapes/nowhere?format=text")).StatusCode)
+            .IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    [Test]
     public async Task A_bend_keeps_every_vertex_and_bloats_the_outline_by_default()
     {
         using var client = await RingAsync();
