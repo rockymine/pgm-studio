@@ -46,7 +46,6 @@ public sealed partial class M0055_HouseStyleNames : Migration
         // the presets
         ["alpine mining"] = "acacia-log-checkered-house",
         ["desert brick"] = "brick-roofed-sandstone-house",
-        ["diorite pyramid"] = "brick-roofed-diorite-and-blue-clay-house",
         ["townside"] = "oak-and-spruce-timbered-house",
         ["townside on stilts"] = "jungle-trimmed-stilt-house",
         ["cottage"] = "spruce-roofed-stone-cottage",
@@ -60,7 +59,7 @@ public sealed partial class M0055_HouseStyleNames : Migration
         "desert-house", "hb-cage", "hb-spawn", "hoar-longhall", "hoar-steading", "hoar-store", "hoar-watch",
         "hw-assay", "hw-minehouse", "lk-spawn", "ow-cage", "rk-spawn", "sb-blockhouse", "sb-blockhouse-lo",
         "showcase-cage", "talltimber-cottage", "talltimber-hall", "talltimber-hall-jungle", "talltimber-store",
-        "stonemason", "sandy mushroom", "terrace", "workshop",
+        "stonemason", "sandy mushroom", "terrace", "workshop", "diorite pyramid",
     ];
 
     /// <summary>The tables a house's parts are filed in, each with what binds a row of it.</summary>

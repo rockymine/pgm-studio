@@ -274,8 +274,8 @@ public sealed class PorchStyleGetEndpoint(HousePartStore store) : EndpointWithou
     }
 }
 
-/// <summary>POST /api/porch-styles. 400 `{error, findings}` on a shed canopy (<c>HS14</c>): a porch saved on its
-/// own is held to what a porch on a house is held to.</summary>
+/// <summary>POST /api/porch-styles. A shed canopy is complained of (<c>HS14</c>): a porch saved on its own is
+/// held to what a porch on a house is held to.</summary>
 public sealed class PorchStyleCreateEndpoint(HousePartStore store) : Endpoint<PorchStyleSaveRequest, PorchStyleDetail>
 {
     public override void Configure() { Post("/porch-styles"); }
@@ -289,7 +289,7 @@ public sealed class PorchStyleCreateEndpoint(HousePartStore store) : Endpoint<Po
     }
 }
 
-/// <summary>PUT /api/porch-styles/{id}. Refuses the same way <see cref="PorchStyleCreateEndpoint"/> does.</summary>
+/// <summary>PUT /api/porch-styles/{id}. Checks the canopy the way <see cref="PorchStyleCreateEndpoint"/> does.</summary>
 public sealed class PorchStyleUpdateEndpoint(HousePartStore store) : Endpoint<PorchStyleSaveRequest, PorchStyleDetail>
 {
     public override void Configure() { Put("/porch-styles/{id}"); Description(b => b.Refuses(404)); }

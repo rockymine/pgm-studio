@@ -47,6 +47,19 @@ public sealed class HouseStyleJsonNullPartTests
         }
     }
 
+    /// <summary>A part is its courses, <c>{"stack": {...}, "extent": n}</c>, and a material written where a part
+    /// goes — the shape a style had when its floor, ceiling and wall were each one block — is refused by the
+    /// part's own path rather than read as a part holding nothing.</summary>
+    [Test]
+    [Arguments("{\"wall\":{\"kind\":\"solid\",\"id\":4}}", "wall")]
+    [Arguments("{\"foundation\":{\"plate\":{\"kind\":\"solid\",\"id\":5}}}", "foundation.plate")]
+    [Arguments("{\"storeys\":[{\"clear\":4,\"wall\":{\"extent\":4}}]}", "storeys[0].wall")]
+    public async Task A_part_with_no_courses_is_refused_by_its_path(string json, string field)
+    {
+        var fault = Assert.Throws<DocumentFault>(() => HouseStyleJson.Deserialize(json));
+        await Assert.That(fault!.Field).IsEqualTo(field);
+    }
+
     /// <summary>The refusal names where it is, not just what it is. A part nested inside another reports the
     /// path an author can find in their own document — <c>roof.gableWindows</c>, not a bare
     /// <c>gableWindows</c> that appears nowhere at the top level.</summary>

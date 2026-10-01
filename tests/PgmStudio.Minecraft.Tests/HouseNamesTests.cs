@@ -1,4 +1,5 @@
 using PgmStudio.Minecraft.Houses;
+using PgmStudio.Vocabulary;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
@@ -36,7 +37,7 @@ public sealed class HouseNamesTests
     {
         var finding = HouseNames.Check(name).Single();
         await Assert.That(finding.Rule).IsEqualTo(HouseStyleRules.LibraryName);
-        await Assert.That(finding.Refuses).IsTrue();
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(finding.Field).IsEqualTo("name");
     }
 
@@ -54,7 +55,7 @@ public sealed class HouseNamesTests
     public async Task Every_seeded_style_is_named_by_the_rule()
     {
         var names = HousePresets.All.Select(house => house.Name).Concat(HousePresets.Kept.Select(kept => kept.Name));
-        var misnamed = names.Where(name => HouseNames.Check(name).Refuses).ToList();
+        var misnamed = names.Where(name => HouseNames.Check(name) != Findings.None).ToList();
         await Assert.That(misnamed).IsEmpty();
     }
 

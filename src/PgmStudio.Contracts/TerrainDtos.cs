@@ -63,7 +63,7 @@ public sealed record HouseBlockKindsDto(
     IReadOnlyList<HouseBlockFieldDto> Fields, IReadOnlyList<HouseBlockKindDto> Kinds);
 
 /// <summary>The words a library house style's name is made of (<c>GET /api/room-styles/name-words</c>) — the
-/// two lists <c>HS19</c> refuses a name from.</summary>
+/// two lists <c>HS19</c> reads a name against.</summary>
 /// <param name="Describing">What may come before the last word: materials, colours, roof forms and how the
 /// building is put together.</param>
 /// <param name="Buildings">What the last word may be: the kind of building it is.</param>

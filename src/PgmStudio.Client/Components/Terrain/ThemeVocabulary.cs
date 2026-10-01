@@ -398,14 +398,14 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     ];
 
     /// <summary>What a house has that a plain shell does not: framed corners, a footing, and trim along the
-    /// roof's edge. Each takes one material. The footing is refused on every style saved (<c>HS7</c>), so the
-    /// editor offers its slot only to a style that still carries one, for unbinding.</summary>
+    /// roof's edge. Each takes one material. A footing is complained of on every style saved (<c>HS7</c>), so
+    /// the editor offers its slot only to a style that still carries one, for unbinding.</summary>
     public static readonly IReadOnlyList<RoomPartInfo> Trim =
     [
         new(RoomParts.Post, "Corner posts",
             "The four columns the walls run between. Unbound, the corners are wall like the rest of the building — which is what a plain shell is."),
         new(RoomParts.Sill, "Footing",
-            "A course ringing the walls one block proud of them. No style is saved with one (HS7): it reads as a rim round the building rather than as anything it stands on — unbind it."),
+            "A course ringing the walls one block proud of them. A house should not have one (HS7): it reads as a rim round the building rather than as anything it stands on — unbind it."),
         new(RoomParts.Verge, "Verge",
             "The roof's own border — its eave course and its two verges, and the ridge cap where the roof wears one. Unbound, it is the roof's material."),
         new(RoomParts.Gable, "Gable face",

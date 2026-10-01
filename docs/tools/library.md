@@ -71,7 +71,7 @@ reading as an offer rather than staying on the name it was given. Editing the so
 reach what was filled from it.
 
 **The library ships with an author's own set beside the generated presets.** Fifteen ground patterns, two
-themes and three houses were made by hand and are seeded as presets like any other, so a fresh studio opens on
+themes and a house were made by hand and are seeded as presets like any other, so a fresh studio opens on
 them and an agent can bind them by name. They differ from the rest in what they are: every other preset exists
 because some pass needs it, and these exist because someone chose them — a choice nothing can re-derive, which
 is why they live in `StylePresets`, `ThemePresets` and `HousePresets` rather than in one database. The patterns
@@ -377,7 +377,7 @@ three bindings of two presets.
 A **porch** is the strip of footprint the walls give up and what stands on it: depth, inset, edge, roof and a
 rail block. It carries no courses at all — its deck is the house's floor, and its canopy is the house roof's
 material unless the house binds its `canopy` part — so what is left to it is its shape. Its roof is a gable
-unless it names another, and a shed is refused on a porch saved here as on one bound to a house (`HS14`).
+unless it names another, and a shed is complained of on a porch saved here as on one bound to a house (`HS14`).
 
 Every part's picture stands it on a plain sample building, so what differs between two cards is the part and
 never the house around it.
@@ -526,8 +526,8 @@ style that only changes its roof worth storing.
 
 **No house carries a footing** (author). A style's `foundation` is what it stands on: a `plate` claiming downward
 from the course players walk on, that plate's `surface` zoning, and a `footing` ringing it one block proud. The
-footing is refused on every style saved (`HS7`), so the walls meet the ground flush; it is a state rather than
-a block that happens to be air, and absent is the only one a style is saved in. The `sill` part is what binds
+footing is complained of on every style saved (`HS7`), so a house's walls meet the ground flush; it is a state
+rather than a block that happens to be air, and absent is the one the author asks for. The `sill` part is what binds
 one, and the editor offers its slot only to a row that still carries it, so the binding can be taken off.
 
 **Windows and rails are picked as a block, not as a style**, and the reason is worth keeping: their metadata is
@@ -697,7 +697,9 @@ wool cage, the spawn and a placed house checked identically, since none of the t
 rule, and there against the build ceiling as well (`WX10`, `docs/world-export/structures.md`). All three roads
 to a stored layout ask it: the plain `PUT …/sketch`, `PUT …/sketch/from-plan`, and `PUT …/source`. Every style
 finding names a stable rule id (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` rather than
-parsing `message`:
+parsing `message`. `HS1`–`HS6` refuse. `HS7`–`HS19` are complaints — the author's verdicts on how a house looks,
+and on how a porch and a stilt house stand — and ride on the success as `warnings` and the `Pgm-Warnings`
+header:
 
 - **`HS1` — a block named for a role that is not that kind of block.** `beams.block` must be a **log** — a
   beam is the end of a floor timber and docks against the posts, which is what a log is for and the only thing
@@ -740,10 +742,10 @@ parsing `message`:
   the stilt houses pass and the same houses with a head do not.
 
 - **`HS7` — a footing.** Round a house it reads as a rim rather than as anything the building stands on,
-  whatever depth of plate it rings (author), so a style is saved with none; unbind the `sill` part.
-- **`HS8`–`HS18` — how the building is put together.** A porch canopy past its own wall (`HS8`, a complaint),
-  beam ends with no laid log behind them or no log posts beside them (`HS9`, `HS11`), a stilt storey on a floor
-  (`HS10`, a complaint), a gable in the verge's block (`HS12`), a laid log at the foot (`HS13`), a shed roof on
+  whatever depth of plate it rings (author); unbind the `sill` part.
+- **`HS8`–`HS18` — how the building is put together.** A porch canopy past its own wall (`HS8`), beam ends
+  with no laid log behind them or no log posts beside them (`HS9`, `HS11`), a stilt storey on a floor (`HS10`),
+  a gable in the verge's block (`HS12`), a laid log at the foot (`HS13`), a shed roof on
   the house, a wing or a porch (`HS14`), a wall checkered in its posts' own log (`HS15`), a wall or gable of
   grass, podzol, mycelium or farmland (`HS16`), snow or ice in a wall, gable or roof (`HS17`), and a storey above
   the ground standing on air (`HS18`). Each is written out where the piece it is about is,
@@ -780,10 +782,10 @@ whitelist, and a `DELETE` needs an admin, because a library row is shared by eve
 | `GET /themes/{id}/json` | the painter-ready theme JSON — the form a map snapshots — as `{themeJson: "…"}`, the document itself being the **string** in that field |
 | `POST /themes/import` | lift a whole theme JSON in: one style per bucket plus a theme. Body `{name?, themeJson}` — the **mirror of the `GET` above**, the theme being the *stringified* document in `themeJson` rather than an object, and `name` optional (an unnamed import becomes "Imported theme"). 400, never 500, on bad JSON |
 | `DELETE /themes/{id}` | forget a theme; its bindings cascade, its styles stay |
-| `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building. `POST`/`PUT …/roof-styles`, `…/storey-styles` and `…/porch-styles` answer 400 `{error, message, findings[]}` (`docs/refusals.md`) when the house-style gate refuses the roof (its form, its materials, its `roofSlab`, and the slab against its pitch), the window, or a porch's shed canopy (`HS14`) — Refusals, above |
+| `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building. `POST`/`PUT …/roof-styles` and `…/storey-styles` answer 400 `{error, message, findings[]}` (`docs/refusals.md`) when the house-style gate refuses the roof (its materials, its `roofSlab`, and the slab against its pitch) or the window; a shed, on a roof or a porch canopy, rides on the 200 as a complaint (`HS14`) — Refusals, above |
 | `GET /room-styles` · `GET /room-styles/{id}` | the room library — each row `{id, name, preview, style}`, `style` being the composed shell as the stamper's own JSON, so a caller holding a snapshot can say which row it is by matching the document — and one room style's parts and courses |
-| `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles — body `{name, roofForm, …parts, courses[]}`. 400 `{error, message, findings[]}` when the composed shell fails the house-style gate or the name is not one `HS19` reads |
-| `GET /room-styles/name-words` | the two lists a room style's name is made from — `{describing[], buildings[]}`: any number of describing words, then one building word last. The lists `HS19` refuses a name from |
+| `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles — body `{name, roofForm, …parts, courses[]}`. 400 `{error, message, findings[]}` when the composed shell fails one of the gate's refusals (`HS1`–`HS6`); its complaints, the name's (`HS19`) included, ride on the 200 as `warnings` |
+| `GET /room-styles/name-words` | the two lists a room style's name is made from — `{describing[], buildings[]}`: any number of describing words, then one building word last. The lists `HS19` reads a name against |
 | `GET /room-styles/doors` | the doors a room may be stamped with |
 | `GET /room-styles/block-kinds` | which kind of block each style field takes, and the ids of each kind — `{fields[], kinds[]}`. A field row is `{field, kind, when, means, alsoAt[]}` and a kind row is `{kind, blocks[]}` with each block `{id, data, name, material, hex}`. It is the table `HS1` refuses from, so a block it offers is one the gate accepts and a field's `means` is the sentence the refusal names it with |
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
@@ -899,12 +901,11 @@ logged rather than fatal — an empty library is a usable studio and refusing to
 
 **Renaming or retiring a seeded style is a migration's**, since the seed only adds and updates. `M0055` gave
 the house styles the names the author's review gave them, each with the parts filed under its name, and took out
-the twenty-three the review rejected together with the parts nothing else binds; the refinement each map last
+the twenty-four the reviews rejected together with the parts nothing else binds; the refinement each map last
 stated names a renamed style by its new name, and its change history keeps the name it was written with.
-`M0056` carried every stored house to the two rules a stored row could not otherwise pass: a shed — a room
-style's roof or porch, a porch style, a roof style — is a gable, no room style binds a footing, and each map's
-current sketch and refinement say the same of the houses in them. A porch row naming no canopy defaults to a
-gable.
+`M0056` makes a gable the database's default porch form, as it is the code's. Nothing stored is rewritten for the
+review's rules, which complain rather than refuse: a row keeps what it states, and a map keeps the houses it
+was built with, so an old board keeps the houses of its day (author).
 
 `dotnet run tools/seed-library.cs` runs the same seeder against a database of the caller's choosing, and
 finishes by composing each seeded room style back out of the library and reporting any field that came back

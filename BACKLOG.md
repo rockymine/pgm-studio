@@ -442,6 +442,65 @@ and what a `subtract` takes away.
   wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
   from 2 isolated markers to **0** — the direction that reads as an improvement.*
 
+## A note and the changes that answer it
+
+The In game phase's threads and the History phase's changes describe one piece of work from its two ends — what
+the author asked, and what the board did about it — and nothing yet joins them.
+
+- [ ] **TS131 — A change names the notes it answered, and History opens them.** A reply records the change it
+  was written at (`NoteMessageDto.Change`, `Contracts/MapNoteDtos.cs:76`), so the threads a change answered are
+  the ones holding a message written at it, and nothing reads that back: History's inspector shows a change's own
+  note only (`SketchChangeInspector.razor:21`) and has no way into In game. List under the picked change every
+  thread with a message written at it, each opening that thread in In game, which `SketchTool` already does by
+  id (`?note=`). `docs/tools/sketch.md` § History. *Evidence: answer a note with a drive and open History on the
+  change it landed as — the thread is nowhere on the screen.*
+
+- [ ] **TS132 — A thread counts its changes from the note, not from its last message.** `ChangesSince`
+  (`SketchNotesColumn.razor.cs:130`) counts the changes after the thread's *last* message and `LastChange` starts
+  the diff there, so once an agent replies at the change that answered the note the count reads 0 and the link
+  to those changes is gone — the span the author most wants. Count from the note's own first message, and offer
+  "since the last message" as a second link only where a later change exists. `docs/tools/sketch.md` § In game.
+
+- [ ] **TS133 — Coming back to History redraws the change it shows.** Leaving History clears the canvas diff
+  (`setDiff(null)`, `SketchTool.razor.cs:586`), and `GoHistory` (`:235`) picks a change only when `spanTo` is
+  null — so on return the inspector names the kept change while the canvas stays blank until one is clicked again.
+  Redraw the kept span on entry (`ShowSpan(spanFrom, spanTo)`). `docs/tools/sketch.md` § History.
+
+- [ ] **TS134 — A link to one note opens it once.** `?note=` is read from the query (`SketchTool.razor.cs:48`)
+  and stays in the URL, and In game's `openedFromLink` (`SketchInGamePhase.razor.cs:102`) lives on a component
+  torn down with the phase, so every return to In game reopens that thread over whatever the author was reading.
+  Drop `note` from the URL once its thread is open, replacing the entry rather than pushing one.
+  `docs/tools/sketch.md` § In game.
+
+- [ ] **TS135 — Letting go of a view says when the studio refused.** `LetGoView` (`SketchTool.razor.cs:486`)
+  reports only an unreachable studio and never reads the DELETE's status, so a refusal leaves the view on screen
+  with no word. Show the refusal's `message` in the views error the phase already renders.
+  `docs/tools/sketch.md` § In game.
+
+- [ ] **TS136 — In game's change count follows the board while it is open.** The changes are read on entering
+  the phase (`SketchTool.razor.cs:181`) and not again, so a drive that lands while In game is open leaves every
+  thread's "changes since" stale until the author leaves and comes back. Read them again when the board's
+  revision moves while the phase is up. `docs/tools/sketch.md` § In game.
+
+- [ ] **TS137 — A thread can be marked won't-do and retagged in the browser.** The thread offers Resolve and
+  Reopen only (`SketchInGamePhase.razor:137`), and a tag is chosen when a note is written and never after
+  (`SketchNotesColumn.razor:128`). `PATCH /map/{slug}/notes/{id}` already takes `wont-do` and a tag
+  (`NoteChangeRequest`, `Contracts/MapNoteDtos.cs:125`) and the client already calls it for the two statuses it
+  offers (`SketchInGamePhase.razor.cs:348`); add won't-do and a tag picker to the thread. `docs/tools/sketch.md`
+  § In game.
+
+- [ ] **TS138 — A reply can ask the studio for its "after" picture.** Answering a note means fetching
+  `render/eye` with the note's own camera, posting the PNG to `POST /notes/pictures` and naming the hash as the
+  reply's `picture`: three calls every agent writes by hand (the `pgm-board` skill, §2). Let a reply state that
+  its picture is the note's camera, and have the studio draw it at the change the reply is written at.
+  `docs/tools/sketch.md` § Answering the notes an author left.
+
+- [ ] **TS139 — A browser test for In game and its notes.** `tests/e2e` covers History (`sketch-history.mjs`)
+  and Report (`sketch-report.mjs`) and nothing of In game: no spec writes a note, replies, resolves one, opens a
+  thread from `?note=`, or follows "changes since" into History. Add one spec covering those five to
+  `./tools/e2e.sh all`; it is the test that would have caught `TS133` and `TS134`. `docs/tools/sketch.md` § In
+  game.
+
 ## User Experience
 
 - [ ] **TS121 — A lasso over the void carries coordinates.** `EyeScene.Project` counts a ray that hits nothing
@@ -463,6 +522,15 @@ and what a `subtract` takes away.
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
 
 ## Refactoring and cleanup
+
+- [ ] **TL37 — The library is seeded from one place.** What a fresh studio holds is stated in four kinds of
+  place: C# preset classes (`StylePresets`, `ThemePresets`, `HousePresets.All`), literals inside the seeder itself
+  (the boulder recipes, `LibrarySeed.cs:69`; a tree per `DressingPalette.Species`), 49 embedded JSON files
+  (`Minecraft/Houses/Kept`), and a tool run by hand at deploy that copies trees out of a world in the authoring
+  repository (`tools/seed-trees.cs` over `corpus/tree-showcase`). Inspect each and move every seeded row —
+  materials, themes, houses and their parts, tree and boulder recipes, the copied trees, the biome patterns — into
+  one fixture folder of data read by one seeder, with one test that the seeded library equals the folder. A
+  preset that is code because it is computed stays code and is named as such. `docs/tools/library.md` § the seed.
 
 - [ ] **C64 — What is left of the CSS that styles markup nobody renders.** The dashboard run is gone
   (`FEATURES.md`); **54 of 598** selectors across the studio stylesheets are still matched by no `.razor`,
@@ -549,16 +617,6 @@ server's backups and the edits a read-only page still lets start.
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
 ## The remainder: work no concept above has claimed
-
-- [ ] **TS127 — A room style in the retired shape answers 500 at the style gate.** A `roomStyles` part
-  stated as `{floor, ceiling, wall}`, the shape before `HouseStyle`, binds with `Wall.Stack` null, and
-  `HouseStyleValidation.Materials` reads `style.Wall.At(0)` (`RoomPart.cs:27`), so `SketchMaterialGate.Check`
-  throws and every road to a stored layout answers `500 RQ2`. A snapshot that binds as a house style missing a
-  part it needs is refused at the gate naming that part, 400, rather than read as a style with none — the
-  reader that binds it is where that is decided. `docs/tools/sketch.md` § Refusals, `docs/tools/library.md`.
-
-  *Evidence: `PUT /map/haiku45-cistern/source?dry=true` with `pgm-studio-mapgen`'s refinement for it answers
-  500 at `RoomPart.At`; so does `haiku45-scarp`.*
 
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled

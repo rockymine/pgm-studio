@@ -27,7 +27,7 @@ public enum RoofForm
     Gambrel,
 
     /// <summary>One plane, low at the front wall and climbing to the back — a lean-to. Read and built, and
-    /// refused on every style that is saved (<c>HS14</c>).</summary>
+    /// complained of wherever a style states it (<c>HS14</c>).</summary>
     Shed,
 
     /// <summary>A gable whose two slopes climb at different rates, so they meet off centre: short and steep
@@ -108,7 +108,7 @@ public sealed record PorchStyle
     public RoomEdge? Edge { get; init; }
 
     /// <summary>The canopy over the deck: a gable, which fronts the building with its own little end. Its ridge
-    /// is seated under the house's eave whatever form it is, and a shed is refused here as on the house
+    /// is seated under the house's eave whatever form it is, and a shed is complained of here as on the house
     /// (<c>HS14</c>).</summary>
     public RoofForm Roof { get; init; } = RoofForm.Gable;
 
@@ -234,10 +234,10 @@ public sealed record Storey
 /// ground storey's feet are on — which is why a ground storey names no <see cref="Storey.Deck"/>: this is its
 /// deck. A house always has one, because a building with no floor is a building standing in a hole.</para>
 ///
-/// <para><b>The footing is a course ringing the plate a block proud on every side, and no style is saved with
-/// one</b> (<c>HS7</c>): round a house it reads as a rim rather than as anything the building stands on. Null is
-/// no footing and is the default — a real state rather than a bare air material standing in for one. The field
-/// is read and built so that a stored style which carries one still parses and is refused by name.</para>
+/// <para><b>The footing is a course ringing the plate a block proud on every side, and a style stating one is
+/// complained of</b> (<c>HS7</c>): round a house it reads as a rim rather than as anything the building stands
+/// on. Null is no footing and is the default — a real state rather than a bare air material standing in for
+/// one.</para>
 /// </summary>
 public sealed record Foundation
 {
@@ -248,8 +248,8 @@ public sealed record Foundation
     /// default, which is the plate showing through unchanged.</summary>
     public FloorSurface Surface { get; init; } = FloorSurface.Plain;
 
-    /// <summary>The course ringing the plate one block proud, or null — the default, and the only value a style
-    /// is saved with (<c>HS7</c>).</summary>
+    /// <summary>The course ringing the plate one block proud, or null — the default, and the value a house
+    /// should state (<c>HS7</c>).</summary>
     public TerrainMaterial? Footing { get; init; }
 
     /// <summary>How far the plate claims downward — the whole of what "how deep is the foundation" means.</summary>

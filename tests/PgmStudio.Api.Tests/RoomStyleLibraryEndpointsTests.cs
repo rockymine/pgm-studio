@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
@@ -329,18 +330,19 @@ public sealed class RoomStyleLibraryEndpointsTests
         await Assert.That(why!.Findings.SelectMany(finding => finding.SubjectIds)).Contains("squat-stone-house");
     }
 
-    /// <summary>A room style named for where it was used rather than what it is is refused on save, and the two
-    /// lists a name is made from are served, so the refusal can be answered without guessing.</summary>
+    /// <summary>A room style named for where it was used rather than what it is is saved with a complaint, and the
+    /// two lists a name is made from are served, so the complaint can be answered without guessing.</summary>
     [Test]
-    public async Task A_room_style_named_for_a_board_is_refused_and_the_words_are_served()
+    public async Task A_room_style_named_for_a_board_is_a_complaint_and_the_words_are_served()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var refused = await client.PostAsJsonAsync("/api/room-styles", Draft("showcase-hall"));
-        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-        var why = await refused.Content.ReadFromJsonAsync<RefusalDto>();
-        await Assert.That(why!.Findings.Single().Rule).IsEqualTo("HS19");
+        var saved = await client.PostAsJsonAsync("/api/room-styles", Draft("showcase-hall"));
+        await Assert.That(saved.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var warnings = JsonDocument.Parse(await saved.Content.ReadAsStringAsync()).RootElement.GetProperty("warnings");
+        await Assert.That(warnings.EnumerateArray().Select(finding => finding.GetProperty("rule").GetString()!))
+            .IsEquivalentTo(["HS19"]);
 
         var words = await client.GetFromJsonAsync<HouseNameWordsDto>("/api/room-styles/name-words");
         await Assert.That(words!.Buildings).Contains("hall");

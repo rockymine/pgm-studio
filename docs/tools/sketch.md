@@ -1631,9 +1631,10 @@ a part it has to learn from prose instead.
 
 **The house half** reads `roomStyles.wool`, `roomStyles.spawn` and the shell of every building in
 `dressing.props` off the document that is about to be written, and runs each through the same house-style gate
-(`docs/tools/library.md`'s Refusals, rule ids `HS1`–`HS3`) — a block named for a geometric role that is not
-that kind of block, a doorway that does not clear 2.5 blocks once its head is written in, or a roof whose own
-materials are wrong for its pitch or its family. The cage and the spawn are checked identically: a stair
+(`docs/tools/library.md`'s Refusals) — a block named for a geometric role that is not that kind of block, a
+doorway that does not clear 2.5 blocks once its head is written in, or a roof whose own materials are wrong for
+its pitch or its family, `HS1`–`HS6` in all. The author's verdicts on how a house looks, `HS7`–`HS19`, ride
+back on the answer as complaints and refuse nothing. The cage and the spawn are checked identically: a stair
 lattice or a slab band window is allowed on either, as it is on any house, so long as its block is the kind the
 form needs. A placed building is checked identically for the same reason: its shell is a snapshot on the prop
 rather than a reference to a library row, so the style stored here is the style the export stamps, and
@@ -1647,7 +1648,11 @@ wired to one of the three is a gate two thirds of the maps in this repository ne
 Answers **400** `{error: "invalid style or theme", message, findings[]}` (`docs/refusals.md`), one finding
 per fault, and writes nothing. A layout with no `roomStyles`, no buildings and no themes — or one whose
 snapshot does not parse as a house style or a theme at all — is not this gate's business and saves as it
-always did: only a well-formed style or theme that is wrong is refused.
+always did: only a well-formed style or theme that is wrong is refused. A snapshot holding a part the record
+cannot — stated as `null` where it has none, or written as a material rather than as its courses, the shape a
+style had when its floor, ceiling and wall were each one block — is refused by its path, `RQ1` on a bound
+room style (`roomStyles.wool.wall`) and `DR-DOC` on a building's recipe (`shell.wall`), since the export would
+otherwise stamp the built-in shell in its place.
 
 **And a bound shell taller than the build ceiling is refused there too** (`WX10`,
 `docs/world-export/structures.md`). A room's shell is authored geometry subject to no cap of its own, while

@@ -236,19 +236,19 @@ And the building rules, which the dressing document and the room library are bot
 | `HS4` | a part built of two blocks is built of two materials |
 | `HS5` | an ore is used as a building material |
 | `HS6` | a door is cut through a wall that is not there |
-| `HS7` | a footing rings the plate, of any block and any depth |
+| `HS7` | a footing rings the plate, of any block and any depth — a complaint |
 | `HS8` | a porch's canopy climbs past the wall it is attached to — a complaint |
-| `HS9` | beam ends come out of a course that is not a laid log |
+| `HS9` | beam ends come out of a course that is not a laid log — a complaint |
 | `HS10` | a house on stilts standing on a floor — a complaint |
-| `HS11` | beam ends come out beside corners that are not log posts |
-| `HS12` | the gable is laid in the verge's own block |
-| `HS13` | a laid log is the building's bottom course |
-| `HS14` | a shed roof — on the house, a wing or a porch canopy |
-| `HS15` | a wall checkered in the log its own posts are cut from |
-| `HS16` | a wall or a gable laid in grass, podzol, mycelium or farmland |
-| `HS17` | snow or ice in a wall, a gable or a roof |
-| `HS18` | a storey above the ground stands on air |
-| `HS19` | a library house style's name is not describing words then a kind of building |
+| `HS11` | beam ends come out beside corners that are not log posts — a complaint |
+| `HS12` | the gable is laid in the verge's own block — a complaint |
+| `HS13` | a laid log is the building's bottom course — a complaint |
+| `HS14` | a shed roof — on the house, a wing or a porch canopy — a complaint |
+| `HS15` | a wall checkered in the log its own posts are cut from — a complaint |
+| `HS16` | a wall or a gable laid in grass, podzol, mycelium or farmland — a complaint |
+| `HS17` | snow or ice in a wall, a gable or a roof — a complaint |
+| `HS18` | a storey above the ground stands on air — a complaint |
+| `HS19` | a library house style's name is not describing words then a kind of building — a complaint |
 
 ## How a gate is called
 
@@ -372,7 +372,8 @@ be the second `const` aliasing one that exists — the failure *Adding one* name
 
 **`RQ1` — the document could not be read.** Absent, empty, malformed, or naming a kind that does not exist. It
 is 400, and it carries the field where the reader knew one: a part stated as `null` where the record cannot
-hold one reports `roof.gableWindows`, not a sentence an author has to search their document for. Two readers
+hold one reports `roof.gableWindows`, and a part written as a material rather than as its courses reports
+`wall`, not a sentence an author has to search their document for. Two readers
 raise it that way — `HouseStyleJson` through `DocumentFault`, which subclasses `JsonException` so the thirteen
 call sites already catching that keep working, and `TerrainThemeJson`, which carries a polymorphic `kind`
 failure across because System.Text.Json reports that one as a `NotSupportedException` and the difference is in

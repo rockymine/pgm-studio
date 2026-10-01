@@ -240,11 +240,11 @@
  "doorway": {
   "door": "air",
   "head": {
-   "form": "none",
-   "block": 53,
+   "form": "arched",
+   "block": 67,
    "fill": "upperSlab",
-   "fillBlock": 126,
-   "fillData": 0
+   "fillBlock": 44,
+   "fillData": 3
   },
   "width": 2,
   "height": 3

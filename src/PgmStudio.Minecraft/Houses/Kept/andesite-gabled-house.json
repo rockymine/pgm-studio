@@ -215,10 +215,10 @@
   "door": "air",
   "head": {
    "form": "arched",
-   "block": 134,
+   "block": 67,
    "fill": "upperSlab",
-   "fillBlock": 126,
-   "fillData": 1
+   "fillBlock": 44,
+   "fillData": 3
   },
   "width": 2,
   "height": 3

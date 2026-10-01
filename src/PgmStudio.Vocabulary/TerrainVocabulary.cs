@@ -319,7 +319,7 @@ public static class RoofForms
     public static readonly string[] All = [Flat, Gable, Hip, Shed, Gambrel, Saltbox];
 
     /// <summary>The forms a style may be saved with, in the order the editor offers them — every one but the
-    /// shed, which <c>HS14</c> refuses on a house, a wing and a porch alike.</summary>
+    /// shed, which <c>HS14</c> complains of on a house, a wing and a porch alike.</summary>
     public static readonly string[] Offered = [.. All.Where(form => form != Shed)];
 
     /// <summary>What each looks like, in the words the picker offers it in.</summary>

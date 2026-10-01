@@ -214,7 +214,7 @@
  "beams": {
   "block": 17,
   "data": 1,
-  "reach": 2
+  "reach": 1
  },
  "doorway": {
   "door": "air",
@@ -222,10 +222,10 @@
   "height": 4,
   "head": {
    "form": "arched",
-   "block": 134,
+   "block": 164,
    "fill": "upperSlab",
    "fillBlock": 126,
-   "fillData": 1
+   "fillData": 5
   }
  }
 }

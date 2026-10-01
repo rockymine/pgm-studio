@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
@@ -244,20 +245,21 @@ public sealed class HousePartLibraryEndpointsTests
         await Assert.That(detail.Roof).IsEqualTo(RoofForms.Hip);
     }
 
-    /// <summary>A porch saved on its own is held to what a porch on a house is held to: a shed canopy is refused
-    /// by the rule a shed is refused by everywhere, and nothing is stored.</summary>
+    /// <summary>A porch saved on its own is held to what a porch on a house is held to: a shed canopy is the
+    /// complaint a shed is everywhere, so the porch is stored and the answer names the rule.</summary>
     [Test]
-    public async Task A_shed_porch_is_refused_where_it_is_saved()
+    public async Task A_shed_porch_is_stored_with_a_complaint()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var refused = await client.PostAsJsonAsync("/api/porch-styles",
+        var saved = await client.PostAsJsonAsync("/api/porch-styles",
             new PorchStyleSaveRequest("lean-to", 2, 0, PorchEdges.Front, RoofForms.Shed, 85));
-        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-        var why = await refused.Content.ReadFromJsonAsync<RefusalDto>();
-        await Assert.That(why!.Findings.Single().Rule).IsEqualTo(HouseStyleRules.ShedRoof);
-        await Assert.That(await client.GetFromJsonAsync<List<PorchStyleSummary>>("/api/porch-styles")).IsEmpty();
+        await Assert.That(saved.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var warnings = JsonDocument.Parse(await saved.Content.ReadAsStringAsync()).RootElement.GetProperty("warnings");
+        await Assert.That(warnings.EnumerateArray().Select(finding => finding.GetProperty("rule").GetString()!))
+            .IsEquivalentTo([HouseStyleRules.ShedRoof]);
+        await Assert.That(await client.GetFromJsonAsync<List<PorchStyleSummary>>("/api/porch-styles")).Count().IsEqualTo(1);
     }
 
     // ── what a house does with them ────────────────────────────────────────────────────────────────

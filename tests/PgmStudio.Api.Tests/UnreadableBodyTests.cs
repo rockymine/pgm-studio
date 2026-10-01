@@ -81,6 +81,23 @@ public sealed class UnreadableBodyTests
         await Assert.That(body!.Findings.Select(f => f.Field)).Contains("roof.gableWindows");
     }
 
+    /// <summary>A style posted in the shape it had when its floor, ceiling and wall were each one block is refused
+    /// by the first part that holds a material instead of its courses, where it was answered with a 500.</summary>
+    [Test]
+    public async Task A_part_written_as_a_material_is_refused_by_its_path()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var resp = await client.PostAsync("/api/room-styles/preview-snapshot", Json(
+            "{\"floor\":{\"kind\":\"solid\",\"id\":5},\"ceiling\":{\"kind\":\"solid\",\"id\":5},"
+            + "\"wall\":{\"kind\":\"solid\",\"id\":4}}"));
+        var body = await resp.Content.ReadFromJsonAsync<Refusal>();
+
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That(body!.Findings.Select(f => f.Field)).Contains("wall");
+    }
+
     /// <summary>A misspelled discriminator used to be the one fault that crashed while a misspelled *field*
     /// was accepted in silence — the wrong way round, and the pairing that cost an author two source reads.
     /// The kind is polymorphic, so System.Text.Json reports it as a <c>NotSupportedException</c> rather than a

@@ -26,9 +26,7 @@ public static class HousePresets
     private const int BrownMushroomBlock = 99, AllCap = 14;     // 14 is the cap texture on every face
     private const int SpruceStairs = 134, BirchStairs = 135;
     private const int Brick = 45, BirchSlab = 2;                // 2 is the birch nibble of block 126
-    private const int PlainDiorite = 3, PolishedDiorite = 4;    // the nibbles of block 1
-    private const int LightBlue = 3;                            // the nibble of block 159
-    private const int StoneSlab = 44, BrickSlab = 4;            // 4 is the brick nibble of block 44
+    private const int StoneSlab = 44;
     private const int Oak = 0, Jungle = 3, White = 0;           // the nibbles of block 17 and of block 160
     private const int StoneBrick = 98, StainedPane = 160;
 
@@ -37,9 +35,9 @@ public static class HousePresets
     private static readonly TerrainMaterial SpruceLog = new SolidMaterial(Blocks.Log, Spruce);
 
     // ── the stone-and-spruce houses' own vocabulary ───────────────────────────────────────────────────
-    private const int PolishedAndesite = 6;                     // the nibble of block 1
     private const int StoneBrickBlock = 98;
-    private const int ChiseledSandstone = 1, SmoothSandstone = 2;   // the nibbles of block 24
+    private const int SmoothSandstone = 2;                      // the nibble of block 24
+    private const int DoubleSlab = 43, DoubleSandstone = 1;     // 1 is the sandstone nibble of block 43
     private const int StoneBrickStairs = 109;
     private const int StoneBrickSlab = 5;                       // 5 is the stone-brick nibble of block 44
 
@@ -131,7 +129,7 @@ public static class HousePresets
     }, 11, 9);
 
     public static IReadOnlyList<House> All =>
-        [Alpine, Desert, Diorite, Townside, Stilts, Cottage, Longhouse, Counting, Darkwood];
+        [Alpine, Desert, Townside, Stilts, Cottage, Longhouse, Counting, Darkwood];
 
     /// <summary>
     /// The house styles boards are built with, each kept as the stamper's own JSON in a file of its name under
@@ -280,67 +278,7 @@ public static class HousePresets
     }, Width: 7, Depth: 9);
 
     /// <summary>
-    /// The stone one: two storeys of five, diorite under light blue clay, beneath a brick pyramid that climbs
-    /// half a block at a time.
-    ///
-    /// <para>The roof is the new thing. A hip over a footprint is a pyramid, and at a whole course of rise per
-    /// block it comes up steep and wants stairs; laid in slabs at that pitch it would leave an open half between
-    /// every pair and be seen straight through. On <b>half</b> courses it is the roof a slab is actually for —
-    /// brick cubes on the even steps and brick slabs on the odd ones, climbing at forty-five degrees to the
-    /// eye rather than to the block grid.</para>
-    ///
-    /// <para>Its windows are the other new thing, and the simplest: a hole two by two with nothing in it,
-    /// taking the third and fourth courses of <em>each</em> storey — which the storey stack gives for free,
-    /// since a storey seats its windows in its own frame.</para>
-    /// </summary>
-    public static House Diorite => new("brick-roofed-diorite-and-blue-clay-house", new HouseStyle
-    {
-        Roof = new RoofStyle
-        {
-            Form = RoofForm.Hip,
-            Pitch = 1,                                              // one half-course per block: the slab slope
-            Overhang = 1,
-            Slab = StoneSlab,
-            SlabData = BrickSlab,
-            Body = new SolidMaterial(Brick),
-            Verge = new SolidMaterial(Brick),
-        },
-
-        Post = null,
-        Storeys =
-        [
-            new Storey
-            {
-                Clear = 5,
-                Wall = new RoomPart(new BandStack(
-                [
-                    new Band(new SolidMaterial(Blocks.Stone, PolishedDiorite)),
-                    new Band(new SolidMaterial(Blocks.Stone, PlainDiorite), 4),
-                ]), Extent: 5),
-            },
-            new Storey
-            {
-                Clear = 5,
-                Wall = RoomPart.Of(new SolidMaterial(Blocks.StainedClay, LightBlue), 5),
-            },
-        ],
-
-        // Two by two, cut and left. Both storeys take the same, since neither names one of its own.
-        Windows = new WindowStyle
-        {
-            Form = WindowForm.Open, Width = 2, Height = 2, Sill = 3, Spacing = 3,
-        },
-
-        Foundation = new Foundation
-        {
-            Plate = RoomPart.Of(new SolidMaterial(Blocks.Stone, PlainDiorite)),
-            Footing = null,
-        },
-        Doorway = new Doorway { Door = DoorMaterial.Air, Width = 2, Height = 3 },
-    }, Width: 7, Depth: 7);
-
-    /// <summary>
-    /// The townside house: oak framing over a stone footing, spruce above, and the beam ends left long.
+    /// The townside house: oak framing over a stone plinth, spruce above, and the beam ends left long.
     ///
     /// <para>Two storeys that differ in more than their height — the ground floor is oak-framed over a course of
     /// the same cobble and andesite the alpine house stands on, with white clay in its windows; the one above is
@@ -587,8 +525,8 @@ public static class HousePresets
     ///
     /// <para>The ground floor is the stone-and-spruce houses' own: a rubble course, <see cref="Masonry"/>, and a
     /// laid spruce course on top between spruce log corners, which is the frame the floor above stands on. The
-    /// two storeys over it are sandstone, a plain course under smooth ones, between chiseled sandstone pillars,
-    /// and their windows are birch: a stair lattice on the first, arched on the second.</para>
+    /// two storeys over it are sandstone, a plain course under double sandstone slabs, between smooth sandstone
+    /// pillars, and their windows are birch: a stair lattice on the first, arched on the second.</para>
     /// </summary>
     public static House Counting => new("stone-and-sandstone-townhouse", new HouseStyle
     {
@@ -623,7 +561,7 @@ public static class HousePresets
             {
                 Deck = new SolidMaterial(Blocks.Planks, SprucePlanks),
                 Clear = 3,
-                Post = new SolidMaterial(Blocks.Sandstone, ChiseledSandstone),
+                Post = new SolidMaterial(Blocks.Sandstone, SmoothSandstone),
                 Wall = Sandstone(courses: 4),
                 Windows = new WindowStyle
                 {
@@ -635,7 +573,7 @@ public static class HousePresets
             {
                 Deck = new SolidMaterial(Blocks.Planks, SprucePlanks),
                 Clear = 3,
-                Post = new SolidMaterial(Blocks.Sandstone, ChiseledSandstone),
+                Post = new SolidMaterial(Blocks.Sandstone, SmoothSandstone),
                 Wall = Sandstone(courses: 3),
                 Windows = new WindowStyle
                 {
@@ -659,10 +597,11 @@ public static class HousePresets
         },
     }, Width: 9, Depth: 9);
 
-    /// <summary>A sandstone storey's wall: one course of plain sandstone under smooth sandstone to the top.</summary>
+    /// <summary>A sandstone storey's wall: one course of plain sandstone under double sandstone slabs to the
+    /// top.</summary>
     private static RoomPart Sandstone(int courses) => new(new BandStack(
     [
         new Band(new SolidMaterial(Blocks.Sandstone), 1),
-        new Band(new SolidMaterial(Blocks.Sandstone, SmoothSandstone), courses - 1),
+        new Band(new SolidMaterial(DoubleSlab, DoubleSandstone), courses - 1),
     ]), Extent: courses);
 }

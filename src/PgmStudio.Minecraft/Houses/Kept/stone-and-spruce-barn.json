@@ -133,15 +133,7 @@
         ],
         "rise": 2
        },
-       "thickness": 2
-      },
-      {
-       "material": {
-        "kind": "solid",
-        "id": 170,
-        "data": 0
-       },
-       "thickness": 1
+       "thickness": 3
       },
       {
        "material": {

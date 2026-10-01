@@ -26,6 +26,11 @@ public sealed class HouseStyleValidationTests
     private static HouseStyle Headed(HouseStyle style, Func<DoorHeadStyle, DoorHeadStyle> change)
         => style with { Doorway = style.Doorway with { Head = change(style.Doorway.Head) } };
 
+    // The kept pyramid house: a hip in stone brick climbing on stone brick half slabs at pitch 1, and a doorway
+    // with no head.
+    private static HouseStyle Pyramid =>
+        HousePresets.Kept.Single(kept => kept.Name == "diorite-blue-clay-pyramid-house").Style;
+
     // A house whose windows are slab-banded in spruce slabs and seated in its spruce boarding — the form built
     // right, on the preset whose upper wall is that boarding.
     private static HouseStyle Banded => HousePresets.Longhouse.Style with
@@ -141,7 +146,8 @@ public sealed class HouseStyleValidationTests
     {
         // Open and Pane windows take whatever block is named — there is no geometric role to be the wrong
         // kind of, unlike a stair lattice or a slab band.
-        var open = HousePresets.Diorite.Style with { Windows = HousePresets.Diorite.Style.Windows with { Block = Blocks.OakFence } };
+        var desert = HousePresets.Desert.Style;
+        var open = desert with { Windows = desert.Windows with { Form = WindowForm.Open, Block = Blocks.OakFence } };
         var pane = HousePresets.Townside.Style.Storeys[0].Windows! with { Form = WindowForm.Pane, Block = Blocks.OakFence };
         await Assert.That(HouseStyleValidation.Check(open)).IsEmpty();
         await Assert.That(HouseStyleValidation.CheckWindow("windows", pane)).IsEmpty();
@@ -195,8 +201,8 @@ public sealed class HouseStyleValidationTests
     [Test]
     public async Task A_door_with_no_head_clears_its_own_door_height()
     {
-        await Assert.That(HousePresets.Diorite.Style.Doorway.Clearance).IsEqualTo(3m);
-        await Assert.That(HouseStyleValidation.Check(HousePresets.Diorite.Style)).IsEmpty();
+        await Assert.That(Pyramid.Doorway.Clearance).IsEqualTo(3m);
+        await Assert.That(HouseStyleValidation.Check(Pyramid)).IsEmpty();
     }
 
     [Test]
@@ -212,10 +218,9 @@ public sealed class HouseStyleValidationTests
     // ── HS3 — a roof's own materials ──────────────────────────────────────────────────────────────────
 
     [Test]
-    public async Task Diorites_own_construction_is_the_clean_reference()
-        // Roof = whole block, RoofSlab = a real slab, at pitch 1: the shape HousePresets.Diorite documents as
-        // "the roof a slab is actually for".
-        => await Assert.That(HouseStyleValidation.Check(HousePresets.Diorite.Style)).IsEmpty();
+    public async Task The_pyramid_houses_own_construction_is_the_clean_reference()
+        // Roof = whole block, RoofSlab = a real slab of it, at pitch 1: the roof a slab is actually for.
+        => await Assert.That(HouseStyleValidation.Check(Pyramid)).IsEmpty();
 
     [Test]
     public async Task A_slab_named_as_the_whole_block_roof_with_no_roof_slab_set_is_refused()
@@ -286,8 +291,8 @@ public sealed class HouseStyleValidationTests
     public async Task RoofSlab_itself_has_to_be_a_single_slab_when_set()
     {
         // Two faults in one field, and both are true: a cobblestone block is not a slab at all (HS1), and it
-        // is not the brick the body is laid in either (HS3).
-        var style = Slabbed(HousePresets.Diorite.Style, Blocks.Cobblestone);
+        // is not the stone brick the body is laid in either (HS3).
+        var style = Slabbed(Pyramid, Blocks.Cobblestone);
         var findings = HouseStyleValidation.Check(style);
         await Assert.That(findings.All(f => f.Field == "roofSlab")).IsTrue();
         await Assert.That(findings.Select(f => f.Rule))
@@ -313,7 +318,7 @@ public sealed class HouseStyleValidationTests
     [Test]
     public async Task A_roof_slab_of_another_material_than_the_body_is_refused()
     {
-        var kilnRow = Roofed(HousePresets.Diorite.Style, new SolidMaterial(45)) with { };
+        var kilnRow = Roofed(Pyramid, new SolidMaterial(45)) with { };
         kilnRow = kilnRow with { Roof = kilnRow.Roof with { Slab = Blocks.StoneSlab, SlabData = 1 } };
         var findings = HouseStyleValidation.Check(kilnRow);
         await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofMaterial && f.Field == "roofSlab"))
@@ -325,7 +330,7 @@ public sealed class HouseStyleValidationTests
     [Test]
     public async Task A_roof_and_its_slab_in_one_material_pass()
     {
-        var brick = Roofed(HousePresets.Diorite.Style, new SolidMaterial(45)) with { };
+        var brick = Roofed(Pyramid, new SolidMaterial(45)) with { };
         brick = brick with { Roof = brick.Roof with { Slab = Blocks.StoneSlab, SlabData = 4 } };
         await Assert.That(HouseStyleValidation.Check(brick).Any(f => f.Field == "roofSlab")).IsFalse();
     }
@@ -528,6 +533,7 @@ public sealed class HouseStyleValidationTests
         var findings = HouseStyleValidation.Check(Framed(Masonry, postWood: 1, beamWood: 1));
 
         var beams = findings.Single(finding => finding.Rule == HouseStyleRules.BeamsWithoutTimber);
+        await Assert.That(beams.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(beams.Field).IsEqualTo("storeys[0].wall");
         await Assert.That(beams.Message).Contains("laid log");
     }
@@ -669,7 +675,7 @@ public sealed class HouseStyleValidationTests
         var stone = Framed(Masonry, postWood: 1, beamWood: 1, laidWood: 1) with { Post = Masonry };
 
         var posts = HouseStyleValidation.Check(stone).Single(finding => finding.Rule == HouseStyleRules.BeamsWithoutPosts);
-        await Assert.That(posts.Severity).IsEqualTo(Severity.Refusal);
+        await Assert.That(posts.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(posts.Field).IsEqualTo("storeys[0].post");
         await Assert.That(posts.Message).Contains("stone brick");
     }
@@ -723,6 +729,7 @@ public sealed class HouseStyleValidationTests
         var findings = HouseStyleValidation.Check(Gabled(RoofForm.Gable, DarkOakPlanks, DarkOakPlanks));
 
         var gable = findings.Single(finding => finding.Rule == HouseStyleRules.GableAsVerge);
+        await Assert.That(gable.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(gable.Field).IsEqualTo("roof.gable");
         await Assert.That(gable.Message).Contains("dark oak");
     }
@@ -771,6 +778,7 @@ public sealed class HouseStyleValidationTests
         var findings = HouseStyleValidation.Check(Footed(new Band(LaidSpruce, 1), new Band(SprucePlanks, 4)));
 
         var foot = findings.Single(finding => finding.Rule == HouseStyleRules.LogAtTheFoot);
+        await Assert.That(foot.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(foot.Field).IsEqualTo("wall");
         await Assert.That(foot.Message).Contains("spruce");
     }
@@ -820,7 +828,7 @@ public sealed class HouseStyleValidationTests
     {
         var footing = HouseStyleValidation.Check(Founded(plateDepth, new SolidMaterial(Blocks.Cobblestone)))
             .Single(finding => finding.Rule == HouseStyleRules.Footing);
-        await Assert.That(footing.Refuses).IsTrue();
+        await Assert.That(footing.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(footing.Field).IsEqualTo("foundation.footing");
     }
 
@@ -841,6 +849,7 @@ public sealed class HouseStyleValidationTests
             Roof = HousePresets.Alpine.Style.Roof with { Form = RoofForm.Shed },
         };
         var shed = HouseStyleValidation.Check(style).Single(finding => finding.Rule == HouseStyleRules.ShedRoof);
+        await Assert.That(shed.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(shed.Field).IsEqualTo("roofForm");
     }
 
@@ -882,6 +891,7 @@ public sealed class HouseStyleValidationTests
         };
         var checker = HouseStyleValidation.Check(style)
             .Single(finding => finding.Rule == HouseStyleRules.CheckerInPostWood);
+        await Assert.That(checker.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(checker.Field).IsEqualTo("wall");
         await Assert.That(checker.Message).Contains("spruce");
     }
@@ -922,6 +932,7 @@ public sealed class HouseStyleValidationTests
     {
         var findings = HouseStyleValidation.Check(Footed(new Band(Masonry, 2), new Band(new SolidMaterial(id, data), 3)));
         var turf = findings.Single(finding => finding.Rule == HouseStyleRules.SurfacingWall);
+        await Assert.That(turf.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(turf.Field).IsEqualTo("wall");
     }
 
@@ -965,7 +976,9 @@ public sealed class HouseStyleValidationTests
     public async Task Snow_or_ice_in_a_wall_is_HS17(int id)
     {
         var findings = HouseStyleValidation.Check(Footed(new Band(Masonry, 2), new Band(new SolidMaterial(id), 3)));
-        await Assert.That(findings.Single(finding => finding.Rule == HouseStyleRules.SnowAndIce).Field).IsEqualTo("wall");
+        var frozen = findings.Single(finding => finding.Rule == HouseStyleRules.SnowAndIce);
+        await Assert.That(frozen.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(frozen.Field).IsEqualTo("wall");
     }
 
     /// <summary>A roof laid in snow, where the white is all anybody sees.</summary>
@@ -997,7 +1010,7 @@ public sealed class HouseStyleValidationTests
     {
         var floorless = HouseStyleValidation.Check(OnStilts(new SolidMaterial(Blocks.Air)))
             .Single(finding => finding.Rule == HouseStyleRules.FloorlessStorey);
-        await Assert.That(floorless.Refuses).IsTrue();
+        await Assert.That(floorless.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(floorless.Field).IsEqualTo("storeys[1].deck");
     }
 

@@ -5949,7 +5949,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   it, a complaint — the building is not wrong, the ground under it is floored — and the preset now states its
   plate as air, which is what leaves the terrain showing between the posts.
 - **The author's review of the kept styles is in the gate (WE158).** The rulings from reviewing the
-  twenty-nine styles boards are built with are refusals now. Corner beams require log pillars and a laid log at
+  twenty-nine styles boards are built with are complaints in the gate: verdicts on how a house looks, reported
+  on a store and never blocking it. Corner beams require log pillars and a laid log at
   their level: `HS9` asks for the laid log at the very course a seam's beam ends come out of, rather than anywhere
   in the walls, and `HS11` for log posts beside them; log posts with no beam ends are not asked. `HS12`: the
   gable is never the verge's block, the unnamed gable being the wall's top course carried up. `HS13`: a laid log
@@ -5960,25 +5961,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   its own deck — a storey naming none stands on the plate's top course, so `stilts` and `townside on stilts`,
   both on plates of air, had no floor upstairs — and the library seed stores a storey's own deck, which it
   dropped. `docs/world-export/structures.md` §7.1, §7.2, §7.7. (`WE158`)
-- **The second review's rulings are in the gate (WE159).** `HS7` refuses a footing of any block round a plate
-  of any depth, where it complained only over a plate one course deep. `HS14` refuses a shed: a house's roof, a
-  wing's own, a porch canopy, and a roof or porch saved to the library alone; a porch naming no roof wears a
-  gable, and the editors no longer offer the form. `HS15` refuses a wall checkered in its posts' own log, `HS16`
+- **The second review's rulings are in the gate (WE159).** Each is a complaint. `HS7` names a footing of any
+  block round a plate of any depth. `HS14` names a shed: a house's roof, a wing's own, a porch canopy, and a
+  roof or porch saved to the library alone; a porch naming no roof wears a gable, and the editors no longer
+  offer the form. `HS15` names a wall checkered in its posts' own log, `HS16`
   a wall or gable of grass, podzol, mycelium or farmland (sand, gravel and dirt stay a wall's to use), `HS17`
   snow or ice in a wall, gable or roof (white blocks stay), and `HS18` a storey above the ground standing on air.
   The material rules read one walk over every block a face lays, wall-run stripes, frames and laid logs
   included (`Materials.Laid`), which `HS5` now reads too. A porch canopy may name its own block (the `canopy`
   part), laid rim and ridge alike, which is what the author asked of two porches under a capped roof.
-  `M0056` carries every house stored before the rules to them: a shed in a library row, or in a house on a map's
-  current sketch or refinement, is a gable, and no stored house keeps a footing.
+  `M0056` makes a gable the database's default porch form, as it is the code's; a stored row keeps the form it
+  states.
   `docs/world-export/structures.md` §7.1, §7.3, §7.6, §7.8. (`WE159`)
 - **The library's house styles are named for what they are (TL36).** A room style's name is describing words
   then a kind of building, from the two lists `HouseNames` holds and `GET /api/room-styles/name-words` answers;
-  `HS19` refuses any other on save. The library holds the author's review: the ten kept styles revised and
-  renamed, twelve new houses with the requested changes, twenty-seven houses picked from the boards, and nine of
-  the thirteen presets fixed and renamed — forty-nine kept styles and nine presets, each passing the gate and
-  composing back to its file. `M0055` renames the rows with their parts, takes out the twenty-three the review
-  rejected (the nineteen round-one styles and the stonemason, sandy mushroom, terrace and workshop presets), and
+  `HS19` complains of any other on save. The library holds the author's review: the ten kept styles revised and
+  renamed, twelve new houses with the requested changes, twenty-seven houses picked from the boards, and eight of
+  the thirteen presets fixed and renamed — forty-nine kept styles and eight presets, each passing the gate and
+  composing back to its file. `M0055` renames the rows with their parts, takes out the twenty-four the reviews
+  rejected (the nineteen round-one styles and the stonemason, sandy mushroom, terrace, workshop and diorite
+  pyramid presets), and
   rewrites the renamed names in each map's current refinement. `docs/tools/library.md`. (`TL36`)
 - **Water standing against a hole in its own basin says so (WE91).** The bed a pool carves and the hollow it
   sits in are two statements about one lake, and nothing reconciled them: on `opus5-scarrow-delph` the relief
@@ -8737,6 +8739,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   roofed room and answers the void scan as its text. The Sketch tool's **Report** phase shows the same report.
   (`Export/BoardIsometric`, `Api/Services/MapReport`, `Minecraft/Anvil/WorldColumns`,
   `docs/world-scan/read-backs.md`, `docs/tools/sketch.md`)
+- **A style written in its retired shape is refused by its path (`TS127`).** A part written as a material
+  rather than as its courses — `{floor, ceiling, wall}`, the shape before `HouseStyle` — reads as a part with no
+  stack, and every road that binds one answered `500 RQ2` at `RoomPart.At`. The reader's walk refuses it by its
+  path wherever the style is bound: `400 RQ1` from the library's reader and `preview-snapshot`, `RQ1` at
+  `roomStyles.wool.wall` on a stored sketch, and `DR-DOC` at `shell.wall` on a building's recipe.
+  (`Minecraft/Houses/HouseStyleJson`, `docs/tools/sketch.md`, `docs/world-export/structures.md`)
 - **A shape answers its edges as a point edit names them (`TS129`).** `GET /map/{slug}/sketch/shapes/{shapeId}
   ?format=text` lists each edge of the outline by the vertex it leaves, with its corners, its length, `~` where a
   handle curves it, and what the shape's layer covers half a block outside it, run by run along the edge —

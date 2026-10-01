@@ -338,6 +338,11 @@ down lists too, so `storeys[1].wall.stack` is named by its index. Read past, the
 is a null the style gate and the stamper dereference, and on a bound room style a snapshot the export's reader
 would drop for the built-in shell.
 
+**A part is its courses.** `wall`, a foundation's `plate` and a storey's own `wall` are each
+`{"stack": {"bands": [...]}, "extent": n}`, and one written as a material — the shape a style had when its
+floor, ceiling and wall were each one block — is refused by its path on the same three roads, rather than read
+as a part with no courses that fails the first time a course is asked of it.
+
 A stack is read from its part's own base outward: a floor **downward** from the course players stand on, a
 wall and a roof **upward**. The direction is the load-bearing part of the model. A floor that grew upward
 would lift the pad and move the exported point; walls indexed from the floor are what keep a band at eye level
@@ -409,12 +414,11 @@ after all.
 The height that survives is the one the author asked for when they set the pitch. What the long side decides is
 how far the roof runs, and nothing about how high it stands.
 
-**No style is saved with a shed.** A lean-to is not a roof a building on a map wears (author), so `HS14` refuses
+**A house wears no shed.** A lean-to is not a roof a building on a map wears (author), so `HS14` complains of
 the form wherever it can be stated: a house's `roof.form`, the canopy over its porch, a wing's own `form` on a
-placed building, and a roof or a porch saved to the library on its own. The field is still read and built, so a
-document posted with one stamps it until the step that gates it refuses; every shed stored before the rule — a
-library row, a map's current sketch or refinement — was carried to a gable (`M0056`). The editors no longer
-offer it (`RoofForms.Offered`).
+placed building, and a roof or a porch saved to the library on its own. It is a verdict on how a house looks,
+so the field is still read and built and a store goes ahead with the complaint on it; the editors no longer
+offer the form (`RoofForms.Offered`).
 
 **Distances are measured from the wall line and are allowed to go negative**, which is what makes the eave
 part of the slope: the course over the wall rests on the wall, and every course outward from there keeps
@@ -447,7 +451,7 @@ overhang and the rake at the wall line is plain roof.
 
 **So the gable and the verge are never one block.** The verge is what borders the roof at a gable end, running
 down both raking edges of the face, and laid in the face's own block it borders nothing: the end of the building
-reads as one flat triangle with no edge to the roof. `HS12` refuses the pair, comparing the named face where
+reads as one flat triangle with no edge to the roof. `HS12` complains of the pair, comparing the named face where
 there is one and the wall's top course carried up where there is not; a hip and a flat lid leave no gable and
 are not asked. The fix the author gave is the common one — spruce planks under a dark oak overhang.
 
@@ -947,11 +951,10 @@ default**: the walls meet the ground flush, which is what a building seated into
 (author). Absent is a state and not a block that happens to be air, so "does this building have a footing" is
 a question the style answers with null.
 
-**No style is saved with a footing.** Round a house it reads as a rim rather than as masonry the building stands
-on, whatever depth of plate it rings, and the author's ruling counts for every house. `HS7` refuses one; where
+**A house carries no footing.** Round a house it reads as a rim rather than as masonry the building stands on,
+whatever depth of plate it rings, and the author's ruling counts for every house. `HS7` complains of one; where
 the stone was the point, the ground storey's first course is laid in it instead. The field is still read and
-built, so a document carrying one parses and stamps until the step that gates it refuses it by name; every
-footing stored before the rule was taken off (`M0056`).
+built, and a style stating one stamps it with the complaint on it.
 
 Every storey stands on a **deck**: one course infilled across the interior, the perimeter being wall already.
 It is an infill rather than a lid — the walls already span that course, which is what a floor is when a
@@ -961,7 +964,7 @@ The ground storey's deck is the building's floor, and the topmost storey has not
 is what closes that one.
 
 **A storey above the ground never stands on air.** Over a plate of air — a house on stilts — a storey naming
-no deck falls back to that air, and the room over the stilts is a ring of wall round a hole. `HS18` refuses a
+no deck falls back to that air, and the room over the stilts is a ring of wall round a hole. `HS18` complains of a
 storey whose deck resolves to air and whose surface lays no field across the room; the fix is the deck.
 
 **One plate, one owner**, and that is the whole of why the deck is named for the storey above rather than the
@@ -1039,7 +1042,7 @@ under a seam that lays ends stands on log posts — `HS11`, asked of every store
 ends are not asked for anything: a frame may show its uprights without showing its floors, and a stone wall
 between log posts with no laid course is a building the author keeps. The laid course itself sits where the ends
 come out, at the top of a storey; as the building's first course, on the foundation, it is a log lying round the
-footprint with nothing standing on it as a frame, and `HS13` refuses it there. An upper storey may open on one,
+footprint with nothing standing on it as a frame, and `HS13` complains of it there. An upper storey may open on one,
 since it stands on the storey below.
 
 The ends are **the one thing a house writes outside its own footprint**. Everything else a style lays falls
@@ -1053,7 +1056,8 @@ Four rules are about the blocks rather than the pieces, and they read one walk: 
 the drawing patterns' fixtures included (`Materials.Laid`) — a wall run's stripes, a diagonal's, a frame's edge
 and fill, a laid or checkered log — over every band of every wall the style states, the gable, the roof, the
 verge and a porch canopy laid in its own block. A stripe of ore in a wall run is ore in the wall whatever drew
-it there, so a walk that stopped at the patterns that pick from a set would miss it.
+it there, so a walk that stopped at the patterns that pick from a set would miss it. `HS5` refuses; `HS15`–`HS17`
+are the author's verdicts on how a house looks and complain.
 
 - **`HS5` — no ore**, anywhere a style names a block: stone with something in it is ground a map is dug out of.
 - **`HS16` — no wall or gable in a block that surfaces ground**: grass, podzol, mycelium and farmland, each the

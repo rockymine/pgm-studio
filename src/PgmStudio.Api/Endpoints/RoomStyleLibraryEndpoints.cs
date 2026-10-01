@@ -146,7 +146,7 @@ public sealed class HouseBlockKindsEndpoint : EndpointWithoutRequest<HouseBlockK
 }
 
 /// <summary>GET /api/room-styles/name-words — the two lists a library style's name is made from, which are the
-/// lists <c>HS19</c> refuses a name from (<see cref="HouseNames"/>).</summary>
+/// lists <c>HS19</c> reads a name against (<see cref="HouseNames"/>).</summary>
 public sealed class HouseNameWordsEndpoint : EndpointWithoutRequest<HouseNameWordsDto>
 {
     public override void Configure() { Get("/room-styles/name-words"); }
@@ -173,9 +173,9 @@ public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithout
 /// <summary>POST /api/room-styles — compose a room style from existing styles. 400 `{error, findings}` when the
 /// composed shell fails <see cref="HouseStyleValidation.Check"/> — a block named for a geometric role that is
 /// not that kind of block, a doorway that does not clear the least height a door may, or a roof whose own
-/// materials are wrong for its pitch or its family — or the name is not one <see cref="HouseNames"/> reads
-/// (<c>HS19</c>). Nothing is corrected silently; the request is refused and the findings say what was
-/// wrong.</summary>
+/// materials are wrong for its pitch or its family. Nothing is corrected silently; the request is refused and
+/// the findings say what was wrong. The verdicts on how a house looks, its name's included (<c>HS19</c>), are
+/// complaints and ride on the 200.</summary>
 public sealed class RoomStyleCreateEndpoint(RoomStyleStore store, RoomStyleLibrary library)
     : Endpoint<RoomStyleSaveRequest, RoomStyleDetail>
 {

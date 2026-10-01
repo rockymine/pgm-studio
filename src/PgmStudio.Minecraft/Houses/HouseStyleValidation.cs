@@ -65,7 +65,7 @@ public static class HouseStyleRules
     /// rather than as masonry the building stands on — at every wall, on every house, whatever depth of plate it
     /// rings. A building meets the ground on its own plate and its own first course.</summary>
     /// <remarks>Leave `foundation.footing` unset. Where the building should look as though it stands on stone, lay the ground storey's first course or two in that stone instead.</remarks>
-    [Rule(RuleCategory.Forbidden, RuleConcern.Style, RuleConcern.World)]
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.World)]
     public const string Footing = "HS7";
 
     /// <summary>A porch whose canopy climbs past the wall it is attached to. A canopy is seated by its own
@@ -126,7 +126,7 @@ public static class HouseStyleRules
     /// canopy. A lean-to is not a roof a building on a map wears, so neither the house, nor a wing of it, nor
     /// the canopy over its porch is one.</summary>
     /// <remarks>Give the roof another form — a gable, a hip, a gambrel or a saltbox — and the porch a gable canopy, which is what a porch states when it names no roof.</remarks>
-    [Rule(RuleCategory.Forbidden, RuleConcern.Style, RuleConcern.Structure)]
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure)]
     public const string ShedRoof = "HS14";
 
     /// <summary>A wall checkered in the log its posts are cut from. The squares and the post beside them are one
@@ -141,14 +141,14 @@ public static class HouseStyleRules
     /// gravel and dirt are a wall's to use; the roof and its verge are held to <c>HS3</c>, which bars every
     /// soil.</summary>
     /// <remarks>Lay the wall in a material that is built rather than grown. Where the colour was the point, a stained clay or a wool of that tint carries it.</remarks>
-    [Rule(RuleCategory.Forbidden, RuleConcern.Style, RuleConcern.Material)]
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
     public const string SurfacingWall = "HS16";
 
     /// <summary>Snow or ice in a wall, a gable or a roof: the snow layer, the snow block, ice or packed ice.
     /// Weather lies on a building rather than being what it is built of, and against a timber frame or a dark
     /// roof the white is the one thing anybody sees. White blocks as such are not the fault.</summary>
     /// <remarks>Build the wall and the roof in a material, and leave the snow to the theme of the ground the building stands on. A white wall is a white stained clay, a white wool or quartz.</remarks>
-    [Rule(RuleCategory.Forbidden, RuleConcern.Style, RuleConcern.Material)]
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
     public const string SnowAndIce = "HS17";
 
     /// <summary>A storey above the ground that stands on nothing. A storey's deck falls back to the plate's top
@@ -163,13 +163,14 @@ public static class HouseStyleRules
     /// is — <c>brick-roofed-stone-cottage</c>, <c>oak-stilt-house</c>. A board, a role or a place names where a
     /// style was first used rather than what it is, so none of them is a word in either list.</summary>
     /// <remarks>Rename the style from the two lists `GET /api/room-styles/name-words` answers: any number of describing words, then one building word last. A word that is not in them is named in the finding.</remarks>
-    [Rule(RuleCategory.Forbidden, RuleConcern.Style)]
+    [Rule(RuleCategory.Unknown, RuleConcern.Style)]
     public const string LibraryName = "HS19";
 }
 
 /// <summary>
 /// The gate a <see cref="HouseStyle"/> is checked against before it is stored — beside the style rather than in
-/// a driver, so a bad one is refused when it is posted instead of silently built.
+/// a driver. A style that cannot be built as stated is refused when it is posted; one that builds against the
+/// author's verdicts on how a house looks (<c>HS7</c>–<c>HS19</c>) is stored with complaints naming them.
 ///
 /// <para><see cref="Check"/> is safe to run on any house, decorative or objective, whatever it is built for:
 /// every fault it names is a property of the style's own geometry or materials, never of what the building is
@@ -292,7 +293,7 @@ public static class HouseStyleValidation
                 + $"top course, and that course is {Describe(course)} rather than a laid log, so the ends run out "
                 + "of the wall with no timber behind them. Lay that course in a laidLog of the beams' wood, or "
                 + "drop the beams.",
-                Field: $"storeys[{at}].wall"));
+                Severity.Complaint, Field: $"storeys[{at}].wall"));
         }
     }
 
@@ -310,7 +311,7 @@ public static class HouseStyleValidation
                 + $"corners, and those corners are {Describe(levels[at].Post)} rather than log posts, so the ends "
                 + "have no upright to dock against. Stand the storey on log posts of the beams' wood, or drop the "
                 + "beams.",
-                Field: $"storeys[{at}].post"));
+                Severity.Complaint, Field: $"storeys[{at}].post"));
         }
     }
 
@@ -362,7 +363,7 @@ public static class HouseStyleValidation
             $"the gable is {BlockMaterials.Of(gable.Id, gable.Data)} and so is the verge, so the roof's border runs "
             + "down the gable in the gable's own block and the end of the roof has no edge. Lay the gable in "
             + "another block than the verge.",
-            Field: named ? "roof.gable" : "roof.verge"));
+            Severity.Complaint, Field: named ? "roof.gable" : "roof.verge"));
     }
 
     /// <summary>HS13 — the ground storey's first course laid in log.</summary>
@@ -375,7 +376,7 @@ public static class HouseStyleValidation
             $"the ground storey's first course is a laid log of {BlockMaterials.Of(laid.Id, laid.Data)}, so the "
             + "building stands on a log lying round its footprint. Start the wall on masonry or planks and lay the "
             + "log as the storey's top course.",
-            Field: style.Storeys.Count > 0 ? "storeys[0].wall" : "wall"));
+            Severity.Complaint, Field: style.Storeys.Count > 0 ? "storeys[0].wall" : "wall"));
     }
 
     /// <summary>The one block a material lays wherever it is put, or null for a pattern of several. A laid log
@@ -498,18 +499,18 @@ public static class HouseStyleValidation
             $"the foundation is ringed by a footing of {Describe(footing)}, which reads as a rim round the "
             + "building rather than as anything it stands on. Leave the footing unset; lay the ground storey's "
             + "first course in that block instead where the stone was the point.",
-            Field: "foundation.footing"));
+            Severity.Complaint, Field: "foundation.footing"));
     }
 
     /// <summary>HS14 for one roof form, at the path it was stated at — a building's roof, a porch's canopy, or a
-    /// wing's own roof where it names one. One answer for all three, so a lean-to refused on the house cannot
-    /// come back over its porch or one wing of it.</summary>
+    /// wing's own roof where it names one. One answer for all three, so a lean-to is named wherever it is
+    /// stated.</summary>
     public static Findings CheckRoofForm(RoofForm form, string field) => form != RoofForm.Shed
         ? Findings.None
         : Findings.Of(new Finding(HouseStyleRules.ShedRoof,
             $"{field} is a shed — one plane climbing from the front wall to the back — and a lean-to is not a "
             + "roof a building on a map wears. Give it a gable, a hip, a gambrel or a saltbox.",
-            Field: field));
+            Severity.Complaint, Field: field));
 
     /// <summary>HS15 — a storey's wall checkered in the log its own corner posts are cut from. Asked storey by
     /// storey, since the post that stands beside a checker is that storey's.</summary>
@@ -526,7 +527,7 @@ public static class HouseStyleValidation
                 $"storey {at}'s wall is checkered in {BlockMaterials.Of(post.Id, post.Data)} log, the log its "
                 + "corner posts are cut from, so the squares run into the posts and the two read as one mass. "
                 + "Checker the wall in another log, or stand the storey on posts of another wood.",
-                Field: style.Storeys.Count > 0 ? $"storeys[{at}].wall" : "wall"));
+                Severity.Complaint, Field: style.Storeys.Count > 0 ? $"storeys[{at}].wall" : "wall"));
         }
     }
 
@@ -565,12 +566,12 @@ public static class HouseStyleValidation
                 findings.Add(new Finding(HouseStyleRules.SurfacingWall,
                     $"{field} lays {BlockPalette.Name(turf.Id, turf.Data)}, which is the skin over soil rather than a "
                     + "material, so the wall reads as a turf bank. Lay it in something built.",
-                    Field: field));
+                    Severity.Complaint, Field: field));
             if (blocks.FirstOrDefault(block => BlockFamilies.IsFrozen(block.Id)) is { Id: > 0 } frozen)
                 findings.Add(new Finding(HouseStyleRules.SnowAndIce,
                     $"{field} lays {BlockPalette.Name(frozen.Id, frozen.Data)}. Snow and ice lie on a building rather "
                     + "than being what it is built of — leave them to the ground's theme.",
-                    Field: field));
+                    Severity.Complaint, Field: field));
         }
     }
 
@@ -585,7 +586,7 @@ public static class HouseStyleValidation
             findings.Add(new Finding(HouseStyleRules.FloorlessStorey,
                 $"storey {at} stands on air: it names no deck, and the plate it falls back to is air, so the room is "
                 + "a ring of wall over a hole. Give the storey a deck.",
-                Field: $"storeys[{at}].deck"));
+                Severity.Complaint, Field: $"storeys[{at}].deck"));
         }
     }
 
