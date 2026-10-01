@@ -53,6 +53,41 @@ public static class WorldColumns
         }
     }
 
+    /// <summary>Every column holding a solid block, each run with the layer that drew it: the layer of the
+    /// segment whose <c>[YFloor, YTop)</c> holds the run's lowest block, or null for a run beginning outside
+    /// every segment — a structure or a prop standing on the terrain rather than being it.
+    ///
+    /// <para>A run is attributed by where it <b>starts</b>: the painter writes several runs inside one segment —
+    /// a stone core and the bands over it — and every one of them begins inside the segment that made the
+    /// ground. A segment is half-open in Y, so a run starting exactly at one's top starts above it: a
+    /// sculpture's lowest course sits at the top of the ground it was seated on, and an inclusive bound hands
+    /// every made thing's feet to the terrain under them.</para></summary>
+    public static IEnumerable<(int X, int Z, IReadOnlyList<(ColumnRun Run, string? Layer)> Runs)> Attributed(
+        VoxelWorld world, IReadOnlyList<ColumnSegment>? segments, BlockBox? within = null)
+    {
+        var spans = new Dictionary<(int X, int Z), List<ColumnSegment>>();
+        foreach (var segment in segments ?? [])
+        {
+            if (!spans.TryGetValue(segment.Cell, out var here)) spans[segment.Cell] = here = [];
+            here.Add(segment);
+        }
+
+        foreach (var (x, z, runs) in Of(world, within))
+        {
+            var here = spans.GetValueOrDefault((x, z));
+            var attributed = new (ColumnRun Run, string? Layer)[runs.Count];
+            for (var index = 0; index < runs.Count; index++)
+            {
+                var run = runs[index];
+                string? layer = null;
+                foreach (var span in here ?? [])
+                    if (span.YFloor <= run.YBottom && run.YBottom < span.YTop) { layer = span.Layer; break; }
+                attributed[index] = (run, layer);
+            }
+            yield return (x, z, attributed);
+        }
+    }
+
     /// <summary>The top course of every column holding a solid block — the one number a claim recorded per
     /// column is a claim about, and what a read narrowed to a storey is compared against
     /// (<c>WorldProvenance.WhereTopShows</c>). A projection of <see cref="Of"/>, so a caller that

@@ -32,7 +32,8 @@ first gate that fired. A document that will not project costs the overlays and n
 ## The reads
 
 Every route is `GET /api/map/{slug}/…`, every picture is `image/png`, and every one takes `scale` — pixels a
-block, 1 to 16, default 4, clamped rather than refused.
+block, 1 to 16, default 4, clamped rather than refused — except the two drawn in the round, whose `scale` is
+half a cube's width, 1 to 8, default 3.
 
 | Route | Also | Answers |
 |---|---|---|
@@ -47,6 +48,8 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `editability` | — | which columns a player may edit and **what makes each one editable**, as JSON: digit rows over a bounding box, the four `EditZone` words, a colour each, the counts, and `findings`. The zones are `build_zone` · `ground` · `filtered` · `sealed`, read by following PGM's own resolution — the first region-filter application that does not abstain settles the column, and place and break are the separate scopes PGM makes them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one it was laid to |
+| `render/isometric` | — | the whole board from above at 2:1, a cube a block in the 3-D preview's colours; `corner` = `south-east` · `north-east` · `north-west` · `south-west` stands the camera |
+| `render/xray` | — | the isometric with the ground and the buildings over every roofed void washed out to one pale skin; `?format=text` answers the void scan — every roofed void, its size, its bounds and whether anything can walk into it |
 | `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort`, `team` whose walk it is |
 | `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells, places, steps, rises, falls, worstStep, beside}`. `?from=x,z&to=x,z`, `aim` and `team` as above; `?beside=N` (0–6) adds every distinct thing recorded within `N` cells of the route |
 | `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated. The header also carries the terrain's inclination at the cell, so a slope band can be checked against the angle that chose it |
@@ -390,6 +393,57 @@ one of two places: a jar the operator already has, named by `Textures:Jar`, or M
 SHA-1 Mojang's launcher metadata declares for that jar and kept under `Textures:Cache` (the local application
 data folder by default), so it happens once per machine. What leaves the studio is a picture drawn with the
 sprites, never the sprites. A studio given neither answers **503** under `RQ10`, naming both settings.
+
+## The board in the round
+
+**Every other picture is a plan, and a plan cannot say whether a thing has bulk.** A ship is a ship-shaped
+patch of planks until it is seen with its masts up. `render/isometric` draws the whole board from above at 2:1,
+every block a cube painted back to front in the colour the 3-D preview gives it. A cube's top keeps that colour
+and its two flanks fall to 78% and 55% of it, because a top lit brighter would flatten a quartz sculpture into
+its silhouette.
+
+**The camera is fixed, and the board turns under it.** It sits at (+∞, +∞, +∞), and `corner` turns the board a
+quarter at a time, so the four corners are `south-east` — the default, over +x and +z — `north-east`,
+`north-west` and `south-west`. A corner with no name is refused **400**, naming the four.
+
+**An isometric draws a room under a meadow as the meadow**, because the meadow is nearer the camera and is
+painted last. `render/xray` is the same camera with one rule added: nothing standing between the camera and a
+roofed void may paint over it.
+
+**A roofed void is air with solid over it in its own column** — the plain meaning of underground, and a test
+that finds a room without being told where to look: a chamber, a tunnel, a house's rooms and the shade under a
+tree's crown are all of them one. Each column is taken one run of air at a time between its own lowest and
+highest block. A run taller than twenty-four blocks is the air under a cloud or an observer platform rather
+than a room, and is dropped without dropping a room in the same column; a void of fewer than six blocks is not
+named.
+
+**The x-ray draws three classes of block.** The *veil* is every block of ground or building on the line of
+sight out of a void — the diagonal (+1, +1, +1) toward the camera — drawn at 15% opacity, nine tenths of the way
+to grey, and only its outer skin, so a hill still reads as a hill and the room reads through it. The *lining* is every
+block with a face onto a void — the floor, the far walls, whatever stands on the floor — drawn opaque in its
+own colour. Everything else is drawn opaque and pulled 60% of the way to grey, so the room's own colours are
+the only chroma in the frame.
+
+**A made thing and a placed prop are never veiled.** A lamp hanging in a room stands on the sight line
+exactly as the ceiling does, and nothing in the blocks tells one from the other. The build does. A run a
+sketch layer laid is ground unless the layer is `kind: "made"` — the attribution `WorldColumns.Attributed`
+makes once, for this read and for the 3-D preview's payload. A run no layer laid is a placed prop's where a
+prop claimed its column last and a building's anywhere else (`WorldProvenance`). So a hillside and a house's
+roof wash out to show the chamber and the rooms under them, while a ship, a tree and a boulder stand as they
+are — the shade under a crown stays behind it, and the scan still counts it.
+
+**The x-ray's text twin is the void scan.** `render/xray?format=text` answers every roofed void, largest first:
+its cells, its x, y and z range in the world's own blocks whichever corner was asked, and whether any air
+reaching the open sky reaches it. A void none reaches is `SEALED - nothing walks in`. A chamber with a stair
+down to it is open through its own shaft, so a sealed one is a space no player can enter — which on a board
+that meant to build a room is a finding.
+
+```text
+GET /api/map/{slug}/render/isometric                       the board from the south-east
+GET /api/map/{slug}/render/isometric?corner=north-west     from the far corner
+GET /api/map/{slug}/render/xray                            the ground over every room washed out
+GET /api/map/{slug}/render/xray?format=text                the void scan
+```
 
 ## What each read is for
 

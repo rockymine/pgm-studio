@@ -106,6 +106,24 @@ public static class WorldReadCatalog
             "The board against its own symmetry: the columns that agree with their image, and the ones that "
             + "do not. The read for whether a board somebody believes is symmetric actually is."),
 
+        new("render/isometric", null,
+            "The whole board from above at 2:1, every block a cube in the colour the 3-D preview gives it, the "
+            + "faces falling away from the top. `corner` stands the camera at any of the four. The read for "
+            + "whether a thing has the bulk it should — a ship with its masts up, a hill that rises — which every "
+            + "plan-shaped read answers as a patch.",
+            "Whatever is roofed is out of sight: a room under a meadow draws as the meadow. `render/xray` is the "
+            + "read that opens it."),
+
+        new("render/xray", null,
+            "The isometric with the ground and the buildings that hide a roofed room washed out to one pale "
+            + "skin, the room's lining drawn in its own colours and everything else calmed toward grey. A roofed "
+            + "void is air with solid over it in its own column, six blocks or more, no run of it taller than "
+            + "twenty-four — a chamber, a tunnel, a house's rooms, the shade under a crown. `?format=text` answers "
+            + "the void scan the picture is drawn from: every roofed void, largest first, its size, its bounds "
+            + "and whether any air reaching the sky reaches it — a SEALED void is a space nothing can walk into.",
+            "A made thing and a placed prop are never washed out, so the shade under a tree stays behind its "
+            + "crown and a lamp hanging in a room stays lit — the scan still counts the void either way."),
+
         new("column", "--column",
             "One or more columns bedrock-to-sky, every block named, as text. THE WORKHORSE: every picture "
             + "beside it is a projection, and this is what is actually at a coordinate — which is why it is "

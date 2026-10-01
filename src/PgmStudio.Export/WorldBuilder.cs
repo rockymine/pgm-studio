@@ -39,14 +39,17 @@ namespace PgmStudio.Export;
 /// <para><b>Shells</b> — What the board bound each kind of room to, resolved once here. Every gate that measures
 /// from a room reads it rather than assuming a building stands: a room on open ground takes a different
 /// rectangle, so a guess names a room the export did not stamp. Stated rather than defaulted, because the
-/// value a struct defaults to is <b>open ground on both kinds</b> — the answer a caller least means.</para></summary>
+/// value a struct defaults to is <b>open ground on both kinds</b> — the answer a caller least means.</para>
+/// <para><b>MadeLayers</b> — Which of <see cref="Columns"/>' layers are made things (<c>kind: "made"</c>) rather
+/// than ground: a run one of them drew is a ship or a balloon, and every other run a layer drew is terrain.</para></summary>
 public sealed record BuiltWorld(
     VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance,
     RoomShells Shells,
     IReadOnlyList<Finding>? Declined = null,
     IReadOnlyList<ColumnSegment>? Columns = null,
     DressingPlacement Dressing = default,
-    IReadOnlyDictionary<(int X, int Z), int>? Ground = null)
+    IReadOnlyDictionary<(int X, int Z), int>? Ground = null,
+    IReadOnlySet<string>? MadeLayers = null)
 {
     /// <summary>The <b>terrain's</b> surface, cell by cell — the tops of everything on the board that is not
     /// a made thing. What a pass reading "where does the ground reach here" takes: deriving it from
@@ -513,7 +516,7 @@ public static class WorldBuilder
             ? [.. built, .. dressed.Declines, .. colourless]
             : null;
         return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, shells, complaints, columns,
-                              dressed, groundTop);
+                              dressed, groundTop, madeLayers);
     }
 
 

@@ -68,6 +68,9 @@ public sealed class WorldReadEndpointTests
             "render/structures",
             "render/mirror",
             "render/section?axis=x&from=-30&to=30&at=0",
+            "render/isometric",
+            "render/isometric?corner=north-west&scale=2",
+            "render/xray",
         ])
         {
             var resp = await client.GetAsync($"/api/map/{slug}/{read}");
@@ -196,6 +199,26 @@ public sealed class WorldReadEndpointTests
         var slopesTextBody = await slopesText.Content.ReadAsStringAsync();
         await Assert.That(slopesTextBody).Contains("SLOPES");
         await Assert.That(slopesTextBody).Contains("cells:");
+    }
+
+    /// <summary>The x-ray's text twin is the void scan it is drawn from — an island with no roof over any of it
+    /// holds no room — and a corner the camera cannot stand at is refused by name, with the four it can.</summary>
+    [Test]
+    public async Task The_x_ray_answers_its_void_scan_and_a_corner_it_has_no_name_for_is_refused()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await FinishedAsync(client);
+
+        var scan = await client.GetAsync($"/api/map/{slug}/render/xray?format=text");
+        await Assert.That(scan.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(scan.Content.Headers.ContentType!.MediaType).IsEqualTo("text/plain");
+        var text = await scan.Content.ReadAsStringAsync();
+        await Assert.That(text).Contains("roofed voids  0");
+        await Assert.That(text).Contains("nothing roofed");
+
+        var nowhere = await client.GetAsync($"/api/map/{slug}/render/isometric?corner=overhead");
+        await Assert.That(nowhere.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That(await nowhere.Content.ReadAsStringAsync()).Contains("south-west");
     }
 
     [Test]

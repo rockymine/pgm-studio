@@ -17,11 +17,9 @@ public static class WorldColumnPayload
 {
     /// <summary>The runs of every column holding anything, each attributed to the layer that drew it.</summary>
     /// <param name="world">The built world.</param>
-    /// <param name="segments">The rasterizer's own spans, which carry the layer that produced each. A run is
-    /// attributed by where it <b>starts</b>: the painter writes several runs inside one span — a stone core
-    /// and the bands over it — and every one of them begins inside the span that made the ground. A run
-    /// beginning outside every span is a structure standing on the terrain rather than being it, and answers
-    /// no layer. Absent, nothing is attributed and every run answers <c>-1</c>.</param>
+    /// <param name="segments">The rasterizer's own spans, which carry the layer that produced each; a run takes
+    /// the layer <see cref="WorldColumns.Attributed"/> attributes it to, and one standing on the terrain rather
+    /// than being it answers <c>-1</c>. Absent, nothing is attributed and every run answers <c>-1</c>.</param>
     /// <param name="within">The box to read, or the whole world.</param>
     public static WorldColumnsDto Of(VoxelWorld world, IReadOnlyList<ColumnSegment>? segments = null,
         BlockBox? within = null)
@@ -36,24 +34,14 @@ public static class WorldColumnPayload
 
         var layers = new List<string>();
         var layerOf = new Dictionary<string, int>(StringComparer.Ordinal);
-        var spans = new Dictionary<(int X, int Z), List<(int Floor, int Top, int Layer)>>();
         foreach (var segment in segments ?? [])
-        {
-            if (!layerOf.TryGetValue(segment.Layer, out var slot))
-            {
-                layerOf[segment.Layer] = slot = layers.Count;
-                layers.Add(segment.Layer);
-            }
-            if (!spans.TryGetValue(segment.Cell, out var here)) spans[segment.Cell] = here = [];
-            here.Add((segment.YFloor, segment.YTop, slot));
-        }
+            if (layerOf.TryAdd(segment.Layer, layers.Count)) layers.Add(segment.Layer);
 
-        foreach (var (x, z, runs) in WorldColumns.Of(world, within))
+        foreach (var (x, z, runs) in WorldColumns.Attributed(world, segments, within))
         {
             cols.Add(x); cols.Add(z); cols.Add(runs.Count);
-            spans.TryGetValue((x, z), out var here);
             var biome = world.GetBiome(x, z);
-            foreach (var run in runs)
+            foreach (var (run, drawnOn) in runs)
             {
                 int slot;
                 if (BlockTints.IsTinted(run.BlockId, run.BlockData))
@@ -70,13 +58,8 @@ public static class WorldColumnPayload
                     index[(run.BlockId, run.BlockData)] = slot = palette.Count;
                     palette.Add(BlockPalette.Hex(run.BlockId, run.BlockData));
                 }
-                // A segment is half-open in Y, so a run starting exactly at one's top starts above it: a
-                // sculpture's lowest course sits at the top of the ground it was seated on, and reading the
-                // bound as inclusive hands every made thing's feet to the terrain under them.
-                var layer = -1;
-                foreach (var span in here ?? [])
-                    if (span.Floor <= run.YBottom && run.YBottom < span.Top) { layer = span.Layer; break; }
-                cols.Add(run.YTop); cols.Add(run.YBottom); cols.Add(slot); cols.Add(layer);
+                cols.Add(run.YTop); cols.Add(run.YBottom); cols.Add(slot);
+                cols.Add(drawnOn is null ? -1 : layerOf[drawnOn]);
             }
 
             if (x < minX) minX = x; if (x > maxX) maxX = x;

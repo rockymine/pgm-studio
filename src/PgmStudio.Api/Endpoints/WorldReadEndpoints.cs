@@ -20,7 +20,7 @@ using PgmStudio.Minecraft.Painting;
 
 namespace PgmStudio.Api.Endpoints;
 
-/// <summary> Reading a built world back — the eight pictures and one text read, over HTTP as well as behind
+/// <summary> Reading a built world back — its pictures and its text reads, over HTTP as well as behind
 /// <c>PgmStudio.RoundTrip</c>'s flags. <para><b>Everything an agent does runs through the API and the API
 /// describes itself, except the one thing it does after building: look at what it built.</b> A renderer reachable
 /// only from a .NET binary is a capability no schema names, so a brief had to carry a table of flags and an agent
@@ -663,6 +663,79 @@ internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, M
         Query<string?>("mode", isRequired: false) ?? read.LaidTo?.Mode,
         read.LaidTo?.CenterX ?? 0,
         read.LaidTo?.CenterZ ?? 0);
+}
+
+/// <summary>The camera the two reads drawn in the round share: the corner of the board it stands at, and how
+/// big a cube is drawn. Declared once, so the two cannot describe the same words two ways.</summary>
+internal abstract class InTheRoundEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : WorldRenderEndpoint(repo, reader, artifacts)
+{
+    protected static QueryWord Corner => new("corner",
+        "Which corner of the board the camera stands at, above it and looking across to the far one. Absent "
+        + "stands it at the south-east, over +x and +z.", [.. BoardIsometric.Corners]);
+
+    protected static QueryWord Cube => new("scale",
+        "Half a cube's width in pixels, 1 to 8 — each block is drawn twice that wide. Absent draws at 3, and out "
+        + "of range clamps.", Min: 1, Max: 8);
+
+    protected override string Empty => "this world holds no block, so there is nothing to draw in the round";
+
+    /// <summary>The quarter turns that stand the camera at the asked corner. A corner the board has no name for
+    /// is refused by name rather than drawn from a guess.</summary>
+    protected int Quarter
+    {
+        get
+        {
+            if (Query<string?>("corner", isRequired: false) is not { } asked) return 0;
+            for (var quarter = 0; quarter < BoardIsometric.Corners.Count; quarter++)
+                if (string.Equals(BoardIsometric.Corners[quarter], asked, StringComparison.OrdinalIgnoreCase))
+                    return quarter;
+            throw new ArgumentException(
+                $"there is no corner '{asked}' — the camera stands at {string.Join(", ", BoardIsometric.Corners)}");
+        }
+    }
+
+    protected int CubeScale => Query<int?>("scale", isRequired: false) is { } asked ? Math.Clamp(asked, 1, 8) : 3;
+}
+
+/// <summary>GET /api/map/{slug}/render/isometric — the whole board from above at 2:1, every block a cube in the
+/// colour the 3-D preview gives it, from one of its four corners. The read for whether a thing has the bulk it
+/// should, which every plan-shaped read answers as a patch.</summary>
+internal sealed class IsometricReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : InTheRoundEndpoint(repo, reader, artifacts)
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/render/isometric");
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("render/isometric"));
+        Description(b => b.Png().Refuses(400, 404, 422).Reads(Corner, Cube));
+    }
+
+    protected override byte[]? Draw(BuiltRead read) =>
+        BoardIsometric.Isometric(read.Built, Quarter, CubeScale, read.Name);
+}
+
+/// <summary>GET /api/map/{slug}/render/xray — the isometric with the ground that hides a roofed room washed out,
+/// so the room is in the picture. <c>?format=text</c> answers the void scan the picture is drawn from: every
+/// roofed void, its size, its bounds, and whether anything can walk into it.</summary>
+internal sealed class XRayReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : InTheRoundEndpoint(repo, reader, artifacts)
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/render/xray");
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("render/xray"));
+        Description(b => b.Png().AlsoText().Refuses(400, 404, 422).Reads(Corner, Cube));
+    }
+
+    protected override byte[]? Draw(BuiltRead read) =>
+        BoardIsometric.XRay(read.Built, Quarter, CubeScale, read.Name)?.Png;
+
+    protected override string? Text(BuiltRead read)
+    {
+        var (cavities, blocks) = BoardIsometric.Scan(read.Built);
+        return blocks == 0 ? null : BoardIsometric.VoidText(cavities, blocks);
+    }
 }
 
 /// <summary>
