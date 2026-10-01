@@ -64,8 +64,8 @@ The identity of the map — its display name and authors — lives on the map ro
 `PATCH /api/map/{slug}/metadata`, not in the layout.
 
 **The views an author keeps in the In game phase are a second artifact beside it**, `map_views_json`: a list of
-`{id, name, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?}`, where a view is only where the eye stands and what it
-looks at, or which way it turns. It sits beside the layout rather than in it, so keeping a picture is not an edit to the board and does
+`{id, name, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?, picture}`, where a view is only where the eye stands and
+what it looks at, or which way it turns, and `picture` marks the one the map's picture is drawn from. It sits beside the layout rather than in it, so keeping a picture is not an edit to the board and does
 not change the world the board builds — and a board loaded again over its own slug keeps its views.
 
 **The notes an admin leaves in the In game phase are rows, not an artifact.** `map_note` holds one per note —
@@ -1385,6 +1385,12 @@ built board every time the views are listed, so it follows the board as the boar
 any kept view, and the change is kept in its place; it is never let go, and deleting a changed one puts the
 framed one back.
 
+**One view is the map's picture: the `map.png` a server lists the map by.** An export draws it at 290 × 246
+through the same eye, from the view marked as the picture or, where none is, from the whole board seen above
+its long side (`docs/world-export/sketch-world-export.md`, *Delivery*). **Map picture** on the shown view marks
+it — a kept one in place, a suggestion by keeping it — and the view the picture is drawn from wears a *map
+picture* badge instead.
+
 **Then the gallery shows what the studio suggests, and then what the author kept.** The suggestions are read
 off the built board (`WorldViews`): the whole board from above the middle of its long side; every team's spawn seen
 from its front, and the view from it — the spawn as the map's `<spawn>` states it, the eye at its point a
@@ -2042,9 +2048,9 @@ in the same two registers.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, yaw, query, eye}`. `own` marks the straight-down view (`above`), kept by every board; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null | 404 |
-| `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?}`; a blank name is `View {n}`. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down. `yaw` states the camera whole — it turns from `fromX`, `fromZ` at `y`, and `look` is then only where the canvas draws its target; it is wrapped into the game's −180 to 180 | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, a pitch past straight up or down, or a `yaw` without its stand and `y` · 404 |
-| `PUT /map/{slug}/views/{viewId}` | the view changed in place, keeping its id. Body as for keeping one; a blank name keeps the view's own. The board's own `above` is changed the same way, and the change is then kept in place of the framed one | 400 `not a view` `RQ1` · 404 no kept view has that id — a suggestion is not stored, so it cannot be changed |
+| `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, yaw, query, eye, picture}`. `own` marks the straight-down view (`above`), kept by every board; `picture` the one the map's picture is drawn from — the kept view marked as it, else the `overview` suggestion; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null | 404 |
+| `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?, picture?}`; a blank name is `View {n}`, and `picture: true` draws the map's picture from this view and from no other. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down. `yaw` states the camera whole — it turns from `fromX`, `fromZ` at `y`, and `look` is then only where the canvas draws its target; it is wrapped into the game's −180 to 180 | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, a pitch past straight up or down, or a `yaw` without its stand and `y` · 404 |
+| `PUT /map/{slug}/views/{viewId}` | the view changed in place, keeping its id. Body as for keeping one; a blank name keeps the view's own, `picture` absent keeps whether it is the map's picture and `false` stops it being. The board's own `above` is changed the same way, and the change is then kept in place of the framed one | 400 `not a view` `RQ1` · 404 no kept view has that id — a suggestion is not stored, so it cannot be changed |
 | `DELETE /map/{slug}/views/{viewId}` | the view let go. A suggestion is not kept, so it cannot be deleted; deleting a changed `above` puts the framed one back | 404 no kept view has that id · 409 `RQ5` the framed `above`, which is never let go |
 
 ```json POST /api/map/{slug}/views

@@ -166,9 +166,11 @@ public sealed record WalkReadDto(bool Reachable, int Distance, int Blocks, int D
 /// changed, and it is never let go.</param>
 /// <param name="Yaw">Which way the eye turns, in the game's degrees, where the view states it whole; null for a
 /// view that faces what it looks at.</param>
+/// <param name="Picture">Whether the map's picture — the <c>map.png</c> an export carries — is drawn from this
+/// view: the kept view marked as it, else the board's overview.</param>
 public sealed record MapViewDto(string Id, string Name, bool Kept, int LookX, int LookZ,
     int? FromX, int? FromZ, double? Y, double? Pitch, string Query, EyeCameraDto? Eye = null, bool Own = false,
-    double? Yaw = null);
+    double? Yaw = null, bool Picture = false);
 
 /// <summary>Every view a map has: the studio's suggestions first, then the ones kept.</summary>
 /// <param name="Views">The views, suggestions first.</param>
@@ -192,5 +194,8 @@ public sealed record MapViewsDto(IReadOnlyList<MapViewDto> Views, string? Undraw
 /// Stated with <paramref name="FromX"/>, <paramref name="FromZ"/> and <paramref name="Y"/>, it states the camera
 /// whole and <paramref name="LookX"/>, <paramref name="LookZ"/> is only where its middle lands; null faces what
 /// it looks at.</param>
+/// <param name="Picture">True draws the map's picture from this view, and from no other; false stops drawing it
+/// from this one, which leaves the overview. Null leaves a changed view as it was and a new one not.</param>
 public sealed record MapViewKeepRequest(string? Name, int LookX, int LookZ,
-    int? FromX = null, int? FromZ = null, double? Y = null, double? Pitch = null, double? Yaw = null);
+    int? FromX = null, int? FromZ = null, double? Y = null, double? Pitch = null, double? Yaw = null,
+    bool? Picture = null);

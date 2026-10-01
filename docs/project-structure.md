@@ -102,12 +102,12 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 26 | 4,916 | `Playability/` 15 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 149 | 21,130 | `Endpoints/` 77 · `Services/` 56 · `Access/` 12 · `Http/` 3 · 1 at root |
-| `Client` | 212 | 27,205 | `Features/` 124 (nested) · `Components/` 67 (nested) · `Pages/` 11 · `Models/` 4 · `Layout/` 3 · 3 at root |
-| `Contracts` | 36 | 4,055 | flat |
+| `Api` | 150 | 21,192 | `Endpoints/` 77 · `Services/` 57 · `Access/` 12 · `Http/` 3 · 1 at root |
+| `Client` | 212 | 27,247 | `Features/` 124 (nested) · `Components/` 67 (nested) · `Pages/` 11 · `Models/` 4 · `Layout/` 3 · 3 at root |
+| `Contracts` | 36 | 4,060 | flat |
 | `Data` | 23 | 3,928 | `Map/` 7 · `Features/` 5 · `Theme/` 4 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
-| `Domain` | 30 | 3,519 | flat |
-| `Export` | 21 | 4,631 | flat |
+| `Domain` | 30 | 3,520 | flat |
+| `Export` | 21 | 4,637 | flat |
 | `Geom` | 52 | 6,909 | `Algorithms/` 20 · `Render/` 7 · `Relief/` 5 · 20 at root |
 | `Import` | 4 | 496 | flat |
 | `Migrations` | 55 | 3,332 | `Migrations/` 54 · 1 at root |

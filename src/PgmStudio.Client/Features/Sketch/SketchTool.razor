@@ -48,7 +48,7 @@
       @if (InGameActive && !placingView)
       {
         <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Round="viewRound" LinkedNote="Note"
-                           OnBack="GoDressing" OnPlace="PlaceView" OnLetGo="LetGoView"
+                           OnBack="GoDressing" OnPlace="PlaceView" OnLetGo="LetGoView" OnPicture="PictureView"
                            Changes="ChangeNumbers" OnChangesSince="ShowChangesSince" />
       }
       @* Every phase that draws shares the one mounted canvas, so this body stays present (hidden while Info is

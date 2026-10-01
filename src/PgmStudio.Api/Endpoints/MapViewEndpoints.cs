@@ -35,10 +35,17 @@ internal static class KeptViews
             ? artifacts.DeleteAsync(mapId, ArtifactKind.MapViewsJson, ct)
             : artifacts.SaveJsonAsync(mapId, ArtifactKind.MapViewsJson, views, ct);
 
-    public static MapViewDto Dto(WorldView view, bool kept, EyeCamera? eye = null) =>
+    public static MapViewDto Dto(WorldView view, bool kept, EyeCamera? eye = null, bool picture = false) =>
         new(view.Id, view.Name, kept, view.LookX, view.LookZ, view.FromX, view.FromZ, view.Y, view.Pitch, view.Query,
             eye is { } camera ? new EyeCameraDto(camera.X, camera.Y, camera.Z, camera.Yaw, camera.Pitch, camera.Fov) : null,
-            view.Id == WorldViews.StraightDownId, view.Yaw);
+            view.Id == WorldViews.StraightDownId, view.Yaw, picture);
+
+    /// <summary>The kept views with none of them marked as the map's picture, for the one a request marks.</summary>
+    public static void Unmark(List<WorldView> kept)
+    {
+        for (var index = 0; index < kept.Count; index++)
+            if (kept[index].Picture) kept[index] = kept[index] with { Picture = false };
+    }
 
     /// <summary>Every view the board keeps: its own straight-down view first — the author's adjustment of it
     /// where one is stored, else the one framed from the built board — then the others kept, in the order
@@ -101,11 +108,12 @@ public sealed class MapViewListEndpoint(
         var suggested = read is null ? [] : WorldViews.Suggested(read.Built);
         var (set, reason) = await textures.GetAsync(ct);
         var eyes = read is null || set is null ? [] : await ResolveAsync(read.Built, set, [.. kept, .. suggested], ct);
+        var picture = (read is null ? kept.FirstOrDefault(view => view.Picture) : WorldViews.PictureOf(read.Built, kept))?.Id;
 
         await Send.OkAsync(new MapViewsDto(
-            [.. kept.Take(1).Select(view => KeptViews.Dto(view, kept: true, eyes.GetValueOrDefault(view.Id))),
-             .. suggested.Select(view => KeptViews.Dto(view, kept: false, eyes.GetValueOrDefault(view.Id))),
-             .. kept.Skip(1).Select(view => KeptViews.Dto(view, kept: true, eyes.GetValueOrDefault(view.Id)))],
+            [.. kept.Take(1).Select(view => KeptViews.Dto(view, kept: true, eyes.GetValueOrDefault(view.Id), view.Id == picture)),
+             .. suggested.Select(view => KeptViews.Dto(view, kept: false, eyes.GetValueOrDefault(view.Id), view.Id == picture)),
+             .. kept.Skip(1).Select(view => KeptViews.Dto(view, kept: true, eyes.GetValueOrDefault(view.Id), view.Id == picture))],
             set is null ? reason ?? "no block textures" : null), ct);
     }
 
@@ -156,10 +164,12 @@ public sealed class MapViewKeepEndpoint(MapRepository repo, MapArtifactStore art
                          .DefaultIfEmpty(0).Max() + 1;
         var name = KeptViews.Named(req) ?? string.Create(CultureInfo.InvariantCulture, $"View {number}");
         var view = new WorldView(string.Create(CultureInfo.InvariantCulture, $"view-{number}"), name,
-                                 req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch, req.Yaw is { } yaw ? Heading.Wrap(yaw) : null);
+                                 req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch, req.Yaw is { } yaw ? Heading.Wrap(yaw) : null,
+                                 req.Picture == true);
+        if (view.Picture) KeptViews.Unmark(kept);
         kept.Add(view);
         await KeptViews.SaveAsync(artifacts, map.Id, kept, ct);
-        await Send.OkAsync(KeptViews.Dto(view, kept: true), ct);
+        await Send.OkAsync(KeptViews.Dto(view, kept: true, picture: view.Picture), ct);
     }
 }
 
@@ -194,11 +204,13 @@ public sealed class MapViewChangeEndpoint(MapRepository repo, MapArtifactStore a
             return;
         }
         var name = KeptViews.Named(req) ?? (was >= 0 ? kept[was].Name : "Straight down");
-        var view = new WorldView(id, name, req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch, req.Yaw is { } yaw ? Heading.Wrap(yaw) : null);
+        var view = new WorldView(id, name, req.LookX, req.LookZ, req.FromX, req.FromZ, req.Y, req.Pitch, req.Yaw is { } yaw ? Heading.Wrap(yaw) : null,
+                                 req.Picture ?? (was >= 0 && kept[was].Picture));
+        if (view.Picture) KeptViews.Unmark(kept);
         if (was >= 0) kept[was] = view;
         else kept.Insert(0, view);
         await KeptViews.SaveAsync(artifacts, map.Id, kept, ct);
-        await Send.OkAsync(KeptViews.Dto(view, kept: true), ct);
+        await Send.OkAsync(KeptViews.Dto(view, kept: true, picture: view.Picture), ct);
     }
 }
 

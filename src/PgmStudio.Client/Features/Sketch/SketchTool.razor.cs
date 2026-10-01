@@ -459,6 +459,28 @@ public partial class SketchTool
         await LoadViewsAsync();
     }
 
+    /// <summary>Draw the map's picture from a view: a kept one is marked in place, and a suggestion is kept as
+    /// a view of its own, marked.</summary>
+    private async Task PictureView(MapViewDto view)
+    {
+        var request = new MapViewKeepRequest(view.Name, view.LookX, view.LookZ, view.FromX, view.FromZ, view.Y,
+                                             view.Pitch, view.Yaw, Picture: true);
+        try
+        {
+            var answer = view.Kept
+                ? await Http.PutAsJsonAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(view.Id)}", request)
+                : await Http.PostAsJsonAsync($"api/map/{Slug}/views", request);
+            if (!answer.IsSuccessStatusCode)
+            {
+                viewsError = (await answer.Content.ReadFromJsonAsync<RefusalDto>())?.Message is { Length: > 0 } why
+                    ? why : "The map's picture was not changed.";
+                return;
+            }
+        }
+        catch { viewsError = "The map's picture was not changed — the studio could not be reached."; return; }
+        await LoadViewsAsync();
+    }
+
     // ── Relief phase (docs/world-export/relief.md §15) ──
     // One step, like Dressing and for the same reason: every part of a relief is a thing stated somewhere, so
     // the phase is the canvas with its own tools and an inspector for whatever is under the cursor. It sits

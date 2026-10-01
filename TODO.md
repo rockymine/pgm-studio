@@ -35,15 +35,6 @@ statements have shipped; what remains is `pgm-studio-mapgen` moving onto all of 
   *Evidence: one drive re-sent the previous pass's documents because its script had not been run
   (`pgm-studio-mapgen/reports/opus55-notes-run.md`, the fourth pass).*
 
-- [ ] **WE155 — The export writes the `map.png` a PGM server shows.** A server shows a map by the picture in
-  its folder's `map.png`, and the author's standard for it is **290 × 246** pixels, an overview of the playing
-  area, in the default resource pack without shaders. No world the studio exports carries one, and none of
-  the 227 folders under `pgm-studio-mapgen/maps/` does. Draw it with `render/eye`'s renderer, which already
-  draws in the 1.8.9 client's own block sprites, from a raised camera on the board's long side framed on its
-  built extent — or from a kept view the author marks as the map's picture — and add it to the zip beside
-  `map.xml`, `level.dat` and `region/`. A studio without the textures, where `render/eye` answers `RQ10`,
-  exports without it and says so under `warnings`. `docs/world-export/sketch-world-export.md` § Delivery.
-
 - [ ] **TL33 — The house styles `pgm-studio-mapgen` keeps become the library's.** 81 house styles sit in
   `pgm-studio-mapgen/tools/styles` against 13 room styles in the deployed library, and `drive.py`'s `@name`
   and the kit's `house_style()` read them from disk. The author picks the ones worth keeping,

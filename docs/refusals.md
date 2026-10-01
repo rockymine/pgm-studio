@@ -482,7 +482,9 @@ route's own table repeats them; `docs/access.md` says which route needs what.
 **`RQ9` and `RQ10` — nothing is wrong with the request, and the deployment lacks what the route needs.** A
 sign-in on a studio with no Discord application is `RQ9` (`docs/access.md`), and a read drawn with Minecraft's
 own block textures on a studio that has none is `RQ10` (`docs/world-scan/read-backs.md`). Both are **503**,
-because no change to the request helps, and each finding names the settings that would.
+because no change to the request helps, and each finding names the settings that would. An export is the one
+route `RQ10` does not refuse: its world goes without the `map.png` the textures would have drawn, and the
+finding rides beside it in `Pgm-Warnings` as a complaint.
 
 **`RQ11` — the studio is building as much as it builds at once.** A route that builds a world waits its turn
 in the build queue, and one that finds the queue full or waits past its limit is **429** with a `Retry-After`,

@@ -8658,6 +8658,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   bend reading its wander at each point's canonical image, unless they state `fan: false`, and a move taking a
   point off its axis is `SR8`. (`Geom/Symmetry`, `Pgm/Authoring/SymmetryExpander`, `Pgm/Plan/Refinement`,
   `docs/tools/flow.md`, `docs/pgm/control-points.md`, `docs/pgm/shops.md`)
+- **The export carries the `map.png` a PGM server lists the map by (`WE155`).** Drawn at 290 × 246 through the
+  eye `render/eye` draws with, from the kept view the author marks as the map's picture — **Map picture** in the
+  In game phase, or `picture: true` on the views routes, one view at a time — else from the whole board seen
+  above its long side; a studio without the block sprites exports the world without it and says so `RQ10` in
+  `Pgm-Warnings`. (`Api/Services/MapPicture`, `Export/WorldViews`, `Api/Endpoints/MapExportEndpoint`,
+  `docs/world-export/sketch-world-export.md`, `docs/tools/sketch.md`, `docs/tools/configure.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

@@ -42,6 +42,15 @@
             <span class="ingame__where">@Where(shown)</span>
             <Button Icon="external-link" Href="@FullSize(shown)" target="_blank" rel="noopener"
                     Title="The picture at 1920 × 1080, in a tab of its own">Full size</Button>
+            @if (shown.Picture)
+            {
+              <Badge Kind="neutral">map picture</Badge>
+            }
+            else
+            {
+              <Button Icon="image" Busy="picturing" BusyLabel="Marking…" OnClick="() => MakePicture(shown)"
+                      Title="Draw the map's picture — the map.png an export carries — from this view">Map picture</Button>
+            }
             @if (shown.Kept && !shown.Own)
             {
               <Button Variant="danger" Icon="trash-2" Busy="lettingGo" BusyLabel="Letting go…"

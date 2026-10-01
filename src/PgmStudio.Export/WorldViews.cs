@@ -13,10 +13,11 @@ namespace PgmStudio.Export;
 /// find its own place when the picture is drawn, which is <c>render/eye</c>'s <c>look</c>. A view that states
 /// its <see cref="Yaw"/> is a camera stated whole — where it stands, how high, which way it turns and how far it
 /// tips — and its look point is only where that camera's middle lands, kept to draw and list it by.
+/// <see cref="Picture"/> marks the kept view the map's picture is drawn from.
 /// </summary>
 public sealed record WorldView(string Id, string Name, int LookX, int LookZ,
                                int? FromX = null, int? FromZ = null, double? Y = null, double? Pitch = null,
-                               double? Yaw = null)
+                               double? Yaw = null, bool Picture = false)
 {
     /// <summary>The <c>render/eye</c> query words that draw this view.</summary>
     [JsonIgnore]
@@ -204,6 +205,11 @@ public static class WorldViews
 
     /// <summary>The board from above the middle of its long side, far enough back and high enough up that
     /// the whole of it is in the frame. Null for a board with no ground.</summary>
+    /// <summary>The view a board's picture — the <c>map.png</c> a server shows it by — is drawn from: the kept
+    /// view marked as it, else the whole board seen from above its long side.</summary>
+    public static WorldView? PictureOf(BuiltWorld built, IEnumerable<WorldView> kept) =>
+        kept.FirstOrDefault(view => view.Picture) ?? Overview(built.Surface);
+
     private static WorldView? Overview(IReadOnlyDictionary<(int X, int Z), int> surface)
     {
         if (surface.Count == 0) return null;
