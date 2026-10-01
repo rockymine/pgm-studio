@@ -8664,6 +8664,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   above its long side; a studio without the block sprites exports the world without it and says so `RQ10` in
   `Pgm-Warnings`. (`Api/Services/MapPicture`, `Export/WorldViews`, `Api/Endpoints/MapExportEndpoint`,
   `docs/world-export/sketch-world-export.md`, `docs/tools/sketch.md`, `docs/tools/configure.md`)
+- **A built board's coverage is walked once for its JSON and its picture (`WS72`).** `GET /map/{slug}/coverage`
+  keeps its read with the built world, keyed on the map document it was judged by, so the JSON and
+  `?format=png` asked one after the other walk the board once, and an edit to the world or the document is a
+  new key. (`Api/Services/CoverageReads`, `Api/Services/FeatureData`, `docs/world-scan/ground-coverage.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

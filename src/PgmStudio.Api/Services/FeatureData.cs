@@ -129,16 +129,21 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts, PgmStudio.
     /// walks its scan (<see cref="WorldWalk.Ground"/>) sized to <paramref name="grid"/>, or to its regions and
     /// terrain without one. <paramref name="doc"/> states where building is granted either way.</summary>
     public async Task<WalkGround> WalkGroundAsync(long mapId, Dict doc,
-        (int MinX, int MinZ, int MaxX, int MaxZ)? grid = null, CancellationToken ct = default)
+        (int MinX, int MinZ, int MaxX, int MaxZ)? grid = null, CancellationToken ct = default) =>
+        await BuiltAsync(mapId, ct) is ({ } built, _)
+            ? PgmStudio.Export.BuiltWalk.Ground(built, doc)
+            : WorldWalk.Ground(doc, await SegmentsAsync(mapId, ct), bbox: grid);
+
+    /// <summary>The world a board the studio builds is, from its stored layout and intent, with the layout it
+    /// was built from; null for a map that ships its own world. The same instance for as long as the documents
+    /// are unchanged and the world is kept (<see cref="PgmStudio.Export.BuiltWorlds"/>).</summary>
+    public async Task<(PgmStudio.Export.BuiltWorld World, string LayoutJson)?> BuiltAsync(long mapId, CancellationToken ct)
     {
-        if (await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is { } layout)
-        {
-            var layoutJson = System.Text.Encoding.UTF8.GetString(layout);
-            var intent = await artifacts.LoadJsonOrEmptyAsync<PgmStudio.Pgm.Authoring.MapIntent>(
-                mapId, ArtifactKind.MapIntentJson, ct);
-            return PgmStudio.Export.BuiltWalk.Ground(PgmStudio.Export.BuiltWorlds.Of(layoutJson, intent), doc);
-        }
-        return WorldWalk.Ground(doc, await SegmentsAsync(mapId, ct), bbox: grid);
+        if (await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is not { } layout) return null;
+        var layoutJson = System.Text.Encoding.UTF8.GetString(layout);
+        var intent = await artifacts.LoadJsonOrEmptyAsync<PgmStudio.Pgm.Authoring.MapIntent>(
+            mapId, ArtifactKind.MapIntentJson, ct);
+        return (PgmStudio.Export.BuiltWorlds.Of(layoutJson, intent), layoutJson);
     }
 
     /// <summary>The ground the map's stored plan covers, in world blocks, or null for a map built without one

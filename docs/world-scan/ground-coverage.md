@@ -82,6 +82,11 @@ The classes come off `Analysis/Playability/GroundCoverage.Read`, the corridors o
 `Traversability.Ground`'s navigable set, and the picture off the measure's own grid through
 `Export/CoverageRender` — one derivation for the numbers, the JSON and the image.
 
+**And one walk for both answers.** On a board the studio builds, the read is kept with the built world and
+keyed on the map document it was judged by (`Api/Services/CoverageReads`), so asking for the JSON and then the
+picture walks the board once. Everything the read derives from is the world — its layout and intent — and that
+document, so an edit to either is a new world or a new key and nothing stale is answered.
+
 **A field per waypoint, not per pair.** A corridor is `d(from,cell) + d(cell,to) <= d(from,to) + slack`
 over two distance fields, and a field costs a solve plus a measured route to every place it reaches — so
 the read asks `Walk.Field` once for each waypoint and takes the pairs as set operations over what it

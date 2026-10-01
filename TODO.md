@@ -41,12 +41,6 @@ statements have shipped; what remains is `pgm-studio-mapgen` moving onto all of 
   `tools/seed-studio.py` loads them into the library, boards name them as `{"library": …}`, and the folder goes.
   `docs/tools/library.md`.
 
-- [ ] **WS72 — `GET /map/{slug}/coverage` and its `?format=png` each walk the whole board.** Both run
-  `GroundCoverage.Read` over the same stored documents, a field per waypoint and a walk per pair of them, and
-  `drive.py` asks for both on every run: 2.5 s apiece on `opus55-scarbutte` in the Debug studio, the largest
-  read a drive still waits on. The picture wants the numbers the JSON already computed, kept the way
-  `BuiltWorlds` keeps a world — keyed on what the read derives from, so an edit is a new key.
-
 - [ ] **WS80 — One read answers everything a drive reads back.** After every store `drive.py` asks for the
   grid, the flow, the findings, pre-flight, coverage, the relief read, the columns, every `?format=text` read
   (31 on Gypsum Reach) and the pictures, and draws the isometric, the x-ray and the void scan itself from
