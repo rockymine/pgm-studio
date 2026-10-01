@@ -8674,6 +8674,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   keeps one picture a board — the board from its long side, beside its documents — and leaves every other
   picture to the studio. (`pgm-studio-mapgen/tools/drive.py`, `AUTHORING-BRIEF.md`, `tools/README.md`, both
   skills)
+- **The boards on the hand kits are stated in the studio's words (`RP96`).** The sixteen boards that imported
+  `specs/opus55_kit.py`, `specs/sonnet55_kit.py` or a copied `common.py`/`opus5c.py` state their materials,
+  themes, props, relief, coasts and house styles through `GET /api/kit.py`, and the four kits are gone. Their
+  rings are `outlines` and their coast cuts `pulls`; the 5b/5c seeded outlines, a ring a script splices into
+  another and the few that land on a rounding tie are stated as their points; every copied tree is the showcase
+  snapshot's (`TL34`). Each board's applied layout and intent are what the old script's were, checked against a
+  dry run of both. (`pgm-studio-mapgen/specs`, `pgm-studio-mapgen/tools/studio_kit.py`)
 - **One read answers everything a drive reads back (`WS80`).** `GET /map/{slug}/report` builds a board once and
   answers the three numbers it is wrong or right by — its ground's walked, scrambled and barrier cells, its
   props placed and declined, the worst step from a spawn to a goal — then every reading a drive asks for after
@@ -8701,8 +8708,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   room library under their names beside the presets, each composing back out of the store to exactly the style
   its file states; a stack of one course keeps its thickness through the store. A house prop's own `style` names
   a library row as a room style does, so `{"library": "showcase-hall"}` stands wherever a board stated the style
-  in full. (`Minecraft/Houses/HousePresets`, `Api/Services/LibrarySeed`, `Api/Services/LibraryNames`,
-  `docs/tools/library.md`)
+  in full. Every board in `pgm-studio-mapgen` names its house styles that way, with what it changes laid beside
+  the name, and the repository's own style folder and `@name` loader are gone. (`Minecraft/Houses/HousePresets`,
+  `Api/Services/LibrarySeed`, `Api/Services/LibraryNames`, `docs/tools/library.md`,
+  `pgm-studio-mapgen/tools/README.md`)
 - **The showcase's trees are one snapshot a board copies from (`TL34`).** `tools/seed-trees.cs --json=<file>`
   writes the cut it would file into the library to a file instead: every tree under its name, the foot it stands
   on and the recipe the library answers for it, one body row to a line, the same bytes on a second cut of an

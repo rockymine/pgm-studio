@@ -16,26 +16,11 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 ## The programme: a board's source, every change to it, and the words it is stated in
 **The author put this programme first.** The studio keeps the source a board is stated in and every change to
 it, hands the author's hand edits to the agent's next round, and hands out the vocabulary the source is
-written in. The source, its changes, the kit it is written in, and coasts, pulls, basins, outlines and the
-fan as statements have shipped; what remains is `pgm-studio-mapgen` moving onto all of it. The layer word (`B264`, `WE28`,
-`TS64`) waits behind it.
+written in. The source, its changes, the kit it is written in, coasts, pulls, basins, outlines and the fan
+as statements, and `pgm-studio-mapgen` stated in all of them have shipped; what remains is the point edits
+reaching every outline a board states. The layer word (`B264`, `WE28`, `TS64`) waits behind it.
 
-### The authoring repository moves onto the studio's source and kit
-
-- [~] **RP96 — The boards on the hand kits move onto the studio's words.** Sixteen `build-spec.py` import
-  `specs/opus55_kit.py`, `specs/sonnet55_kit.py` or a copied `common.py`/`opus5c.py`, and those retire. Their
-  materials, themes and props move onto `GET /api/kit.py`'s constructors unchanged, their rings onto `outlines`
-  (`LobedOutline` is `ring()`'s own formula), and `coast_edits` onto `pulls` (`TS128`, the same arithmetic).
-  The 5b/5c seeded outlines, Gypsum Reach's wash and Quarrymoot's rim are stated as their points, and Gypsum
-  Reach's isle pulls are stated once and fanned. Every board's applied layout and intent stay what they were.
-  The `@name` loader goes with `TL33`. `pgm-studio-mapgen/AUTHORING-BRIEF.md`.
-
-- [~] **TL33 — The house styles `pgm-studio-mapgen` keeps become the library's.** The 29 styles live boards
-  stamp are seeded into the room library under their own names. What remains is the authoring repository: every
-  board naming one as `{"library": …}` where it loads `tools/styles/<name>.json` today — `drive.py`'s `@name`,
-  the kits' `house_style()` and `shipped()`, eight boards' own `style()` and four scripts reading a file by path
-  — with `beams` and `footing` changes stated beside the name, after which the `@name` loader and the folder go.
-  `pgm-studio-mapgen/tools/README.md`.
+### A point edit and a bend reach every outline
 
 - [ ] **TS130 — Point edits and bends reach every outline.** `editShapes` and `bendShapes` address a shape's
   `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already writes a relief `area` mark's and a
