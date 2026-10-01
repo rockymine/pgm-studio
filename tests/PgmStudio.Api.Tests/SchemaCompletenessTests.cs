@@ -203,6 +203,50 @@ public sealed class SchemaCompletenessTests
         return field.TryGetProperty("items", out var items) && Shapeless(items);
     }
 
+    /// <summary>The count of query words a route reads and does not publish, and it only moves down.</summary>
+    private const int StillUnpublishedWords = 0;
+
+    /// <summary>
+    /// <b>Every word a route reads off the query string is a parameter the schema publishes.</b> A word read
+    /// straight off the request rather than bound to a record reaches no parameter list unless the route
+    /// declares it, so a caller reading the schema is told nothing of the knob — the compose feed's
+    /// <c>wools</c>, <c>hub</c> and <c>front</c>, a suggestion's <c>box</c>, a probe's nine dimensions.
+    ///
+    /// <para>The reads are taken from the source (<see cref="EndpointSource"/>), because a route reads a word
+    /// only on the path that reaches it and no request reaches them all.</para>
+    /// </summary>
+    [Test]
+    public async Task Every_query_word_a_route_reads_is_published()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        using var document = JsonDocument.Parse(await client.GetStringAsync("/api/openapi/v1.json"));
+        var published = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var path in document.RootElement.GetProperty("paths").EnumerateObject())
+            foreach (var verb in path.Value.EnumerateObject())
+            {
+                if (verb.Name is "parameters" or "summary" or "description" or "servers") continue;
+                published[$"{verb.Name.ToUpperInvariant()} {path.Name}"] =
+                    verb.Value.TryGetProperty("parameters", out var parameters)
+                        ? parameters.EnumerateArray()
+                            .Where(parameter => parameter.GetProperty("in").GetString() == "query")
+                            .Select(parameter => parameter.GetProperty("name").GetString()!).ToHashSet()
+                        : [];
+            }
+
+        var endpoints = EndpointSource.All();
+        var routes = endpoints.SelectMany(endpoint => endpoint.Routes).ToList();
+        await Assert.That(routes.Count(published.ContainsKey)).IsGreaterThan(200)
+            .Because("the source names the routes the document serves");
+
+        var unpublished = endpoints
+            .SelectMany(endpoint => endpoint.Routes.Where(published.ContainsKey).SelectMany(route =>
+                endpoint.Words.Where(word => !published[route].Contains(word)).Select(word => $"{route} ?{word}")))
+            .Distinct().Order(StringComparer.Ordinal).ToList();
+        await Assert.That(unpublished.Count).IsLessThanOrEqualTo(StillUnpublishedWords)
+            .Because($"{unpublished.Count} query word(s) are read and not published:{Environment.NewLine}  "
+                     + string.Join($"{Environment.NewLine}  ", unpublished));
+    }
+
     /// <summary>The fields with no docstring to read, because they have no declaration: a polymorphic base
     /// publishes a discriminator the generator synthesises, and no property carries it. Named rather than
     /// counted, so a genuinely undocumented field cannot hide behind them.</summary>

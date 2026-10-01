@@ -40,7 +40,12 @@ internal static class ThemeLibraryMapping
 /// (the "show every voronoi" browse).</summary>
 public sealed class StyleListEndpoint(ThemeStore store) : EndpointWithoutRequest<List<StyleDto>>
 {
-    public override void Configure() { Get("/styles"); }
+    public override void Configure()
+    {
+        Get("/styles");
+        Description(b => b.Reads(new QueryWord("kind", "Only the styles of one kind, a material's `kind`. Absent "
+            + "lists them all.", [.. Words.Of(typeof(MaterialKind))])));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

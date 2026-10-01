@@ -21,7 +21,13 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public sealed class PlayerLookupEndpoint(PlayerLookup players) : EndpointWithoutRequest<PlayerDto>
 {
-    public override void Configure() { Get("/minecraft/player"); Description(b => b.Refuses(404)); }
+    public override void Configure()
+    {
+        Get("/minecraft/player");
+        Description(b => b.Refuses(404).Reads(
+            new QueryWord("uuid", "The account to look up, by its uuid. It wins over `name` where both are given."),
+            new QueryWord("name", "The account to look up, by its username. One of the two is required.")));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

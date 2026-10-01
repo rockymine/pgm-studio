@@ -260,7 +260,9 @@ public sealed class SketchShapeCreateEndpoint(MapRepository repo, MapArtifactSto
     {
         Post("/map/{slug}/sketch/layers/{layerId}/shapes");
         Description(b => b.Accepts<SketchShape>("application/json")
-                          .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409));
+                          .Produces<PartWrittenDto>(200, "application/json").Refuses(400, 404, 409)
+                          .Reads(new QueryWord("group", "The group the shape joins, which is opened where the layer "
+                              + "has none by that id. A layer that groups its shapes refuses a shape naming none.")));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

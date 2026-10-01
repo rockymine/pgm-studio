@@ -25,7 +25,12 @@ using PgmStudio.Geom;
 public sealed class CoreSuggestionsEndpoint(MapRepository repo, PgmDb db)
     : EndpointWithoutRequest<CoreSuggestionsDto>
 {
-    public override void Configure() { Get("/map/{slug}/core-suggestions"); Description(b => b.Refuses(404)); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/core-suggestions");
+        Description(b => b.Refuses(404).Reads(new QueryWord("box", "Only the casings meeting this volume, as "
+            + "`x0,y0,z0,x1,y1,z1`. Absent answers them all, and one that will not read is refused.")));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

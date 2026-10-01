@@ -192,7 +192,9 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
     public override void Configure()
     {
         Put("/map/{slug}/sketch/from-plan");
-        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 409));
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 409).Reads(
+            new QueryWord("force", "Recompile even where the stored relief is authored on a group the new board has "
+                + "none of, discarding that terrain. Absent refuses 409, naming each group.", Value: QueryValue.Flag)));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -692,7 +694,11 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
     public override void Configure()
     {
         Post("/map/{slug}/sketch/relief");
-        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404));
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404).Reads(
+            new QueryWord("interval", "The height between contours, in blocks. Absent, or not above 0, is 1.",
+                Value: QueryValue.Number),
+            new QueryWord("heights", "Answer each group's height field beside its contours. Absent answers the "
+                + "contours alone.", Value: QueryValue.Flag)));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

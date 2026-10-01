@@ -125,6 +125,15 @@ other. `WireJsonTests` holds the whole surface to it: a board stating one of eve
 every GET route its slug reaches, and each JSON answer validates against the schema its route names, with
 every key it carries declared there.
 
+**And every word a route reads off the query string is a parameter it publishes.** A word read straight off
+the request rather than bound to a record reaches no parameter list unless the route declares it beside its
+path (`Reads`, published by `QueryWords`), with what it takes — a closed set's words, a number's bounds, a flag
+— and whether the route refuses a request without it. The compose feed's `wools`, `hub` and `front`, a
+suggestion's `box` and a probe's nine dimensions are among the words declared that way. Because a route reads a
+word only on the path that reaches it, `SchemaCompletenessTests` takes the reads from the source
+(`EndpointSource`): every `Query<T>("word")`, every `Request.Query["word"]`, every helper handed a word, and what
+a class inherits from its base — and holds each to a parameter of its route.
+
 **And the one key that rides on any of them is declared.** `Complaints` adds `warnings` to any 2xx JSON
 object whose request raised one, and the document said nothing about it: no schema carried the key and no
 operation named a response header. Both are published now by an operation processor — every 2xx JSON object

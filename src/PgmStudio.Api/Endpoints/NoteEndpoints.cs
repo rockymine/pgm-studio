@@ -120,7 +120,10 @@ public sealed class NotesAcrossMapsEndpoint(MapNoteStore notes, PgmDb db) : Endp
     {
         Get("/notes");
         Policies(AccessPolicies.Notes);
-        Description(b => b.Produces<List<MapNoteDto>>(200, "application/json"));
+        Description(b => b.Produces<List<MapNoteDto>>(200, "application/json").Reads(
+            new QueryWord("status", "One status, or several between commas: "
+                + $"{string.Join(", ", NoteStatuses.All.Select(entry => $"`{entry.Id}`"))}. Absent is every note, and "
+                + "a word that is not a status is refused.")));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

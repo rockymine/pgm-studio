@@ -35,8 +35,13 @@ public sealed class PlanAsciiPostEndpoint : EndpointWithoutRequest
     public override void Configure()
     {
         Post("/plan/ascii");
-        Description(b => b.Accepts<PlanModel>("application/json").PlainText());
+        Description(b => b.Accepts<PlanModel>("application/json").PlainText().Reads(Every));
     }
+
+    /// <summary>The <c>every</c> word, for the three routes that draw a plan as characters.</summary>
+    internal static readonly QueryWord Every = new("every",
+        "Draw one character for every this many cells, each the top-left cell of its block, so a board too wide "
+        + "for a terminal still fits one. Absent is 1.", Min: 1);
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -512,7 +517,8 @@ public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
     public override void Configure()
     {
         Post("/plan/room");
-        Description(b => b.Accepts<PlanModel>("application/json").Refuses(404));
+        Description(b => b.Accepts<PlanModel>("application/json").Refuses(404).Reads(
+            new QueryWord("piece", "The piece whose room to seed, by its id.", Required: true)));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

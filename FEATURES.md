@@ -8603,6 +8603,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the walkers spell the keys `use`, `library`, `row`, `hash`, `layer` and `group`. Sixteen fields stay open by
   design and `SchemaCompletenessTests` names each. (`Api/Endpoints/CarriedShapes`, `Pgm/Plan/Refinement`,
   `docs/architecture.md`, `docs/tools/library.md`)
+- **Every query word a route reads is a parameter it publishes (part of `RP93`).** 25 operations read 59 query
+  words the document did not name — the compose feed's eleven, a suggestion's `box`, a probe's nine dimensions,
+  the rules' four filters. Each is declared beside its route with what it takes, a word can say it is required
+  or a flag or a number, and `SchemaCompletenessTests` reads the words out of the endpoint source
+  (`EndpointSource`) and holds each to its route's parameters. The side view's legacy `x`/`z` aliases are
+  retired, so `segments` publishes exactly the four directions it accepts. (`Api/Endpoints/QueryWords`,
+  `Analysis/Scan/SideView`, `docs/architecture.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

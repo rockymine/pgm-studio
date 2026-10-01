@@ -14,8 +14,14 @@ namespace PgmStudio.Api.Endpoints;
 /// enum, so a caller reads the words rather than learning them by being refused one.</param>
 /// <param name="Min">The smallest accepted value, for a number.</param>
 /// <param name="Max">The largest. A word carrying either is published as an integer.</param>
+/// <param name="Required">Whether the route refuses a request that leaves the word off.</param>
+/// <param name="Value">What the word takes where that is not text or bounded: a flag, or any number.</param>
 internal sealed record QueryWord(
-    string Name, string Description, string[]? Choices = null, int? Min = null, int? Max = null);
+    string Name, string Description, string[]? Choices = null, int? Min = null, int? Max = null,
+    bool Required = false, QueryValue Value = QueryValue.Text);
+
+/// <summary>What a query word's value is read as.</summary>
+internal enum QueryValue { Text, Integer, Number, Flag }
 
 /// <summary>The query words a route reads, carried as route metadata for <see cref="QueryWords"/> to
 /// publish.</summary>
@@ -51,16 +57,26 @@ internal sealed class QueryWords : IOperationProcessor
 
     internal static OpenApiParameter Declared(QueryWord word)
     {
-        var schema = word.Min is not null || word.Max is not null
-            ? new JsonSchema { Type = JsonObjectType.Integer, Minimum = word.Min, Maximum = word.Max }
-            : new JsonSchema { Type = JsonObjectType.String };
+        var schema = new JsonSchema
+        {
+            Type = word.Value switch
+            {
+                QueryValue.Flag => JsonObjectType.Boolean,
+                QueryValue.Number => JsonObjectType.Number,
+                _ when word.Value == QueryValue.Integer || word.Min is not null || word.Max is not null
+                    => JsonObjectType.Integer,
+                _ => JsonObjectType.String,
+            },
+            Minimum = word.Min,
+            Maximum = word.Max,
+        };
         foreach (var choice in word.Choices ?? []) schema.Enumeration.Add(choice);
 
         return new OpenApiParameter
         {
             Name = word.Name,
             Kind = OpenApiParameterKind.Query,
-            IsRequired = false,
+            IsRequired = word.Required,
             Schema = schema,
             Description = word.Description,
         };

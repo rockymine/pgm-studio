@@ -24,7 +24,33 @@ public sealed class ComposeBrowseEndpoint(ComposedBoardStore library) : Endpoint
 {
     private const int MaxPage = 48;
 
-    public override void Configure() { Get("/compose"); }
+    public override void Configure()
+    {
+        Get("/compose");
+        Description(b => b.Reads(
+            new QueryWord("players", "The player count the cards are labelled for, which picks the size band the "
+                + "boards come from. Absent is 12, and out of range clamps.",
+                Min: 6, Max: SizeBands.Players(SizeBands.Centi).High),
+            new QueryWord("teams", $"The team count. The library holds {ComposedBoardLibrary.Teams}-team boards, "
+                + "and any other count is refused.", Min: ComposedBoardLibrary.Teams, Max: ComposedBoardLibrary.Teams),
+            new QueryWord("symmetry", "The symmetry the boards are laid to. Absent is `rot_180`.",
+                [.. ComposedBoardLibrary.Symmetries]),
+            new QueryWord("from", "Where the page starts, as the `next` the page before it answered. Absent is 0.",
+                Min: 0),
+            new QueryWord("count", $"How many cards the page holds. Absent is 12, and out of range clamps.",
+                Min: 1, Max: MaxPage),
+            new QueryWord("maxScore", "Only the boards scoring at most this. Absent caps nothing.",
+                Value: QueryValue.Number),
+            new QueryWord("woolMin", "Only the boards carrying at least this many wools. Absent bounds nothing.",
+                Value: QueryValue.Integer),
+            new QueryWord("woolMax", "Only the boards carrying at most this many wools. Absent bounds nothing.",
+                Value: QueryValue.Integer),
+            new QueryWord("wools", "Wool forms between commas, every one of which a board must carry. Absent "
+                + "requires none."),
+            new QueryWord("hub", "Hub forms between commas, any one of which a board may have. Absent takes any."),
+            new QueryWord("front", "Front forms between commas, any one of which a board may have. Absent takes "
+                + "any.")));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -142,7 +168,7 @@ public sealed class PlanAsciiEndpoint(PlanStore store) : EndpointWithoutRequest
     public override void Configure()
     {
         Get("/plans/{id}/ascii");
-        Description(b => b.PlainText().Refuses(404, 422));
+        Description(b => b.PlainText().Refuses(404, 422).Reads(PlanAsciiPostEndpoint.Every));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

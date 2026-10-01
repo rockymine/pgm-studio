@@ -278,7 +278,12 @@ internal static class PropOptionEndpoints
 /// <summary>GET /api/terrain/stroke-styles — the five ways a stroke paves the ground it crosses, each drawn.</summary>
 public sealed class StrokeStyleCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {
-    public override void Configure() { Get("/terrain/stroke-styles"); }
+    public override void Configure()
+    {
+        Get("/terrain/stroke-styles");
+        Description(b => b.Reads(new QueryWord("pave", "The material the stroke paves with, as material JSON, so each "
+            + "card is drawn in the author's own. Absent, or one that will not read, draws gravel.")));
+    }
 
     public override Task HandleAsync(CancellationToken ct)
     {
@@ -303,7 +308,12 @@ public sealed class FluidFormCardsEndpoint : EndpointWithoutRequest<List<PropOpt
 /// <summary>GET /api/terrain/boulder-forms — the four rock shapes, each an actual rock.</summary>
 public sealed class BoulderFormCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {
-    public override void Configure() { Get("/terrain/boulder-forms"); }
+    public override void Configure()
+    {
+        Get("/terrain/boulder-forms");
+        Description(b => b.Reads(new QueryWord("rock", "The material the boulder is made of, as material JSON, so "
+            + "each card is drawn in the author's own. Absent, or one that will not read, draws stone.")));
+    }
 
     public override Task HandleAsync(CancellationToken ct)
     {

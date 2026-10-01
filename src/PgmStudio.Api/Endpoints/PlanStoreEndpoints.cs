@@ -43,7 +43,12 @@ internal static class PlanStoreMapping
 /// touched first. Summaries only (no plan JSON); the detail endpoint carries the document.</summary>
 public sealed class PlanListEndpoint(PlanStore store) : EndpointWithoutRequest<List<PlanSummary>>
 {
-    public override void Configure() { Get("/plans"); }
+    public override void Configure()
+    {
+        Get("/plans");
+        Description(b => b.Reads(new QueryWord("origin", "Only the plans of one origin. Absent lists them all.",
+            [PlanOrigin.Generated, PlanOrigin.Authored, PlanOrigin.Imported])));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

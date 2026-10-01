@@ -22,11 +22,10 @@ written in. The source and its changes have shipped; what remains is the vocabul
 
 ### The schema is the vocabulary, and the kit is made from it
 
-- [~] **RP93 — The schema says everything the wire does.** 24 operations read 48 query words they do not
-  publish, the compose feed's `wools`, `hub` and `front` among them; no field publishes its default; operation
-  ids are class names (`PgmStudioApiEndpoints…`); and the security scheme says JWT where a token is opaque. Each
-  becomes a count in `SchemaCompletenessTests` that only moves down. `docs/architecture.md`, whose schema
-  figures are stale.
+- [~] **RP93 — The schema says everything the wire does.** No field publishes its default; operation ids are
+  class names (`PgmStudioApiEndpoints…`); and the security scheme says JWT where a token is opaque. Each becomes
+  a count in `SchemaCompletenessTests` that only moves down. `docs/architecture.md`, whose schema figures are
+  stale.
 
 - [ ] **RP94 — Every write route's schema carries a body known to be accepted.** `DocumentedBodyTests` posts
   the 11 fenced JSON bodies in `docs/tools/*.md` that name a route and asserts a 2xx; 26 more name none and are

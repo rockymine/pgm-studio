@@ -26,6 +26,9 @@ public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifa
     public override void Configure()
     {
         Get("/maps");
+        Description(b => b.Reads(new QueryWord("stage", "The collection to list: `plan` and `sketch` list every map "
+            + "holding that layer, `configure` and `edit` the maps standing at that stage. Absent lists them all.",
+            [.. Words.Of(typeof(MapStage))])));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

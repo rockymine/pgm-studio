@@ -23,7 +23,7 @@ public sealed class SideViewTests
     [Test]
     public async Task Projects_along_z_matching_reference()
     {
-        var m = SideView.Build(Segs, "z")!;
+        var m = SideView.Build(Segs, "nz")!;
         await Assert.That(m.PrimaryMin).IsEqualTo(0);
         await Assert.That(m.PrimaryCount).IsEqualTo(3);
         await Assert.That(m.YMin).IsEqualTo(0);
@@ -34,11 +34,11 @@ public sealed class SideViewTests
     [Test]
     public async Task Projects_along_x_matching_reference()
     {
-        var m = SideView.Build(Segs, "x")!;
+        var m = SideView.Build(Segs, "nx")!;
         await Assert.That(Flat(m.Depth)).IsEqualTo("0,0,0,-1,-1,-1,-1,0,0,0,-1,-1,-1,-1,-1,-1,-1,255");
     }
 
     [Test]
     public async Task Empty_segments_return_null()
-        => await Assert.That(SideView.Build(Array.Empty<(int, int, int, int)>(), "z")).IsNull();
+        => await Assert.That(SideView.Build(Array.Empty<(int, int, int, int)>(), "nz")).IsNull();
 }
