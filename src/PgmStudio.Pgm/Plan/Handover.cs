@@ -20,7 +20,7 @@ public static class Handover
     private static readonly string[] Wholes = ["mapTheme", "biome"];
 
     /// <summary>The fields of a shape that draw its outline.</summary>
-    private static readonly string[] Outline = ["vertices", "controls"];
+    private static readonly string[] OutlineFields = ["vertices", "controls"];
 
     /// <summary>
     /// <paramref name="edits"/>, one change's edits to the map's documents, as edits to its source.
@@ -152,7 +152,7 @@ public static class Handover
             };
             // An outline drawn by hand is the outline: the point edits and the bend the refinement makes to that
             // shape would be made again on top of it.
-            if (Outline.Contains(name))
+            if (OutlineFields.Contains(name))
                 foreach (var reshaping in (string[])["editShapes", "bendShapes"])
                     if (reshapings[reshaping] is JsonObject by && by.ContainsKey(shape))
                         handed.Add(new DocumentEdit(MapDocuments.Refinement, $"{reshaping}.{shape}", DocumentEdit.Remove,

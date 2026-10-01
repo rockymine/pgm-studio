@@ -8636,6 +8636,28 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   in the tool documents through it. A computed field is now read-only wherever it is published, so no
   constructor takes one. (`Api/Services/PythonKit`, `Api/Endpoints/KitEndpoint`, `Api/Endpoints/ComputedFields`,
   `docs/architecture.md`, `docs/tools/flow.md`)
+- **A bend names the edges it draws as coast (`TS125`).** A bend states `edges`, each by the vertex it leaves,
+  and every edge not named keeps no cut point and no Bézier handle, so a shape flush against another along it
+  stays flush; `{"side": "in", "edges": […]}` is a coast along the water and nowhere else. An edge the outline
+  does not have is refused with the count it does. (`Geom/RingBend`, `Geom/RingRounding`, `Pgm/Sketch/ShapeBend`,
+  `docs/tools/sketch.md`, `docs/tools/flow.md`)
+- **A basin fills the hollow inside its ring to a level and cuts nothing (`TS125`).** A fluid stating
+  `shape: basin` and its `level` fills every column inside its ring whose ground is lower than the line and
+  leaves the rim, an island and a dry shore as they stand, its bank on the floor and its beach measured from
+  the water; a basin with no level is refused `DR-DOC`, and one whose ring stops short of low ground is named as
+  a wall `DR-DRY`. The walk reads water off the built world, so a pool's inside and a basin's flood are both
+  swum. (`Geom/Algorithms/FluidBed`, `Minecraft/Dressing/Decorator`, `Minecraft/Anvil/WorldColumns`,
+  `Export/BuiltWalk`, `docs/world-export/decoration.md`, `docs/tools/sketch.md`)
+- **A refinement states an outline by its shape (`TS125`).** `outlines: {id: {at, radius, radiusZ, points,
+  lobes, wobble, phase, turn}}` is an ellipse pulled in and out by lobes, written as the points of the shape,
+  relief area or push, or stroke, fluid or flora prop carrying the id; an outline that draws no ring is
+  refused `SR7`. (`Geom/Algorithms/LobedOutline`, `Pgm/Plan/Refinement`, `docs/tools/flow.md`)
+- **A statement about a symmetric board is made once, and the board's symmetry fans it (`TS125`).** A source's
+  capture points and generators are each stated once and fanned across the layout's symmetry, numbered on, a
+  stated image taken as itself; a point edit and a bend to a shape on the axis are made at every image, the
+  bend reading its wander at each point's canonical image, unless they state `fan: false`, and a move taking a
+  point off its axis is `SR8`. (`Geom/Symmetry`, `Pgm/Authoring/SymmetryExpander`, `Pgm/Plan/Refinement`,
+  `docs/tools/flow.md`, `docs/pgm/control-points.md`, `docs/pgm/shops.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

@@ -64,9 +64,13 @@ public static class RingBend
     /// <param name="edges">The edges to draw as coast, each by the vertex it leaves, or null for every edge
     /// long enough to cut. An edge not named stays exactly as it was drawn: no point is cut into it and no
     /// handle bends it, so a shape flush against its neighbour along that edge stays flush.</param>
+    /// <param name="sampleAt">Where the wander is read for a cut point, or null for the point itself. A
+    /// point standing for all of its images — <see cref="Symmetry.Canonical"/> — draws a ring that is its own
+    /// image as a coast that is too.</param>
     public static Coast? Draw(IReadOnlyList<double[]> ring, double wander, double step, uint seed,
                               double tension = 0.22, double cornerAngleDeg = 40,
-                              BendSide side = BendSide.Out, IReadOnlySet<int>? edges = null)
+                              BendSide side = BendSide.Out, IReadOnlySet<int>? edges = null,
+                              Func<double, double, (double X, double Z)>? sampleAt = null)
     {
         if (ring.Count < 3 || step <= 0) return null;
 
@@ -93,7 +97,8 @@ public static class RingBend
             {
                 var t = (double)cut / cuts;
                 double px = ax + (bx - ax) * t, pz = az + (bz - az) * t;
-                var signal = Signal(px, pz, seed);
+                var (sampleX, sampleZ) = sampleAt?.Invoke(px, pz) ?? (px, pz);
+                var signal = Signal(sampleX, sampleZ, seed);
                 var reach = wander * (side is BendSide.Both ? Math.Abs(signal) : 0.5 + 0.5 * signal);
                 inserted++;
 

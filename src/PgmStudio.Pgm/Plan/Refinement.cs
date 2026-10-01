@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
@@ -79,13 +80,15 @@ public sealed record Refinement
     /// <summary>Who the map credits: a bare name, or <c>{name, contribution}</c>.</summary>
     [JsonPropertyName("authors")] public List<JsonElement>? Authors { get; init; }
 
-    /// <summary>The capture points, every one stated, already fanned.</summary>
+    /// <summary>The capture points, each stated once and fanned across the board's symmetry: an image is named
+    /// for its point and numbered on, and a point already standing where an image would go is that image.</summary>
     [JsonPropertyName("controlPoints")] public List<ControlPointIntent>? ControlPoints { get; init; }
 
     /// <summary>The score the match ends at.</summary>
     [JsonPropertyName("scoreLimit")] public int? ScoreLimit { get; init; }
 
-    /// <summary>The generators the board mints from.</summary>
+    /// <summary>The generators the board mints from, each stated once and fanned across the board's symmetry
+    /// under its id numbered on, as the capture points are.</summary>
     [JsonPropertyName("spawners")] public List<SpawnerIntent>? Spawners { get; init; }
 
     /// <summary>The shops, whose keepers stand at every team's spawn.</summary>
@@ -138,7 +141,9 @@ public sealed record Refinement
         var edited = Edit(refinement, finished.ToJsonString(), findings);
         if (findings.Any(finding => finding.Refuses)) return new(layoutJson, intentJson, new Findings(findings));
 
-        Play(refinement, intent);
+        var (mode, centreX, centreZ) = SketchGeometryEdit.SymmetryOf(layout);
+        Play(refinement, intent,
+             Symmetry.Order(mode) > 1 ? new SymmetryIntent { Mode = mode, CenterX = centreX, CenterZ = centreZ } : null);
         return new(edited, intent.ToJsonString(), new Findings(findings));
     }
 
@@ -398,6 +403,7 @@ public sealed record Refinement
     // so every point edit comes first.
     private static string Edit(JsonObject refinement, string layoutJson, List<Finding> findings)
     {
+        var board = SketchGeometryEdit.SymmetryOf(JsonNode.Parse(layoutJson) as JsonObject ?? []);
         if (refinement["editShapes"] is JsonObject edits)
             foreach (var (shapeId, ops) in edits)
                 foreach (var (op, index) in (ops as JsonArray ?? []).OfType<JsonObject>().Select((op, index) => (op, index)))
@@ -414,6 +420,14 @@ public sealed record Refinement
                     }
                     var at = op[named[0]]!.GetValue<int>();
                     double? x = op["x"]?.GetValue<double>(), z = op["z"]?.GetValue<double>();
+                    var fans = op["fan"] is not JsonValue fan || !fan.TryGetValue<bool>(out var stated) || stated;
+                    if (fans && SketchGeometryEdit.RingOf(layoutJson, shapeId) is { } ring
+                        && Symmetry.SelfImage(ring, board.Mode, board.CentreX, board.CentreZ) is { } images
+                        && (named[0] != "index" || x is not null && z is not null))
+                    {
+                        layoutJson = AtEveryImage(named[0], at, x, z, ring, images, board, layoutJson, field, shapeId, findings);
+                        continue;
+                    }
                     var edit = named[0] switch
                     {
                         "remove" => SketchGeometryEdit.RemoveVertex(layoutJson, shapeId, at),
@@ -441,9 +455,81 @@ public sealed record Refinement
         return layoutJson;
     }
 
+    // One point edit to an outline the board's symmetry carries onto itself, made at every image of the point
+    // it names. The images are worked out on the ring before any of them lands, then made from the highest
+    // index down — and along one edge from the far end in — so no edit moves the index another one names. A
+    // point the symmetry holds in place moves alone, and the finding says the outline is no longer its image.
+    private static string AtEveryImage(
+        string kind, int at, double? x, double? z, List<double[]> ring, int[][] images,
+        (string Mode, double CentreX, double CentreZ) board, string layoutJson, string field, string shapeId,
+        List<Finding> findings)
+    {
+        if (at < 0 || at >= ring.Count)
+            return Applied(kind switch
+            {
+                "remove" => SketchGeometryEdit.RemoveVertex(layoutJson, shapeId, at),
+                "index" => SketchGeometryEdit.MoveVertex(layoutJson, shapeId, at, x!.Value, z!.Value),
+                _ => SketchGeometryEdit.InsertVertex(layoutJson, shapeId, at, x, z, out _),
+            }, layoutJson, field, shapeId, findings);
+
+        (double X, double Z) Image((double X, double Z) point, int k) =>
+            Symmetry.Point(point.X, point.Z, board.Mode, board.CentreX, board.CentreZ, k);
+        bool Same((double X, double Z) one, (double X, double Z) other) =>
+            Math.Abs(one.X - other.X) < 0.01 && Math.Abs(one.Z - other.Z) < 0.01;
+
+        switch (kind)
+        {
+            case "remove":
+                foreach (var vertex in images.Select(lands => lands[at]).Append(at).Distinct().OrderDescending())
+                    layoutJson = Applied(SketchGeometryEdit.RemoveVertex(layoutJson, shapeId, vertex),
+                                         layoutJson, field, shapeId, findings);
+                return layoutJson;
+
+            case "index":
+                var moved = (X: x!.Value, Z: z!.Value);
+                var moves = new List<(int Vertex, (double X, double Z) To)> { (at, moved) };
+                for (var k = 1; k <= images.Length; k++)
+                {
+                    var (vertex, to) = (images[k - 1][at], Image(moved, k));
+                    if (vertex == at && !Same(to, moved))
+                    {
+                        findings.Add(new Finding(SourceRules.EditOffItsAxis,
+                            $"{field} moves point {at} of '{shapeId}', which the board's symmetry holds where it stands, "
+                            + "off the line it is its own image on — the point moves and the outline is no longer its "
+                            + "own image", Severity.Complaint, Field: field, Subjects: [shapeId]));
+                        continue;
+                    }
+                    if (!moves.Any(move => move.Vertex == vertex)) moves.Add((vertex, to));
+                }
+                foreach (var (vertex, to) in moves)
+                    layoutJson = Applied(SketchGeometryEdit.MoveVertex(layoutJson, shapeId, vertex, to.X, to.Z),
+                                         layoutJson, field, shapeId, findings);
+                return layoutJson;
+
+            default:
+                var (from, next) = (ring[at], ring[(at + 1) % ring.Count]);
+                var point = (X: x ?? (from[0] + next[0]) / 2, Z: z ?? (from[1] + next[1]) / 2);
+                var inserts = new List<(int Edge, (double X, double Z) Point)> { (at, point) };
+                for (var k = 1; k <= images.Length; k++)
+                {
+                    var (edge, landed) = (Symmetry.ImageEdge(images[k - 1], at), Image(point, k));
+                    if (!inserts.Any(insert => insert.Edge == edge && Same(insert.Point, landed)))
+                        inserts.Add((edge, landed));
+                }
+                foreach (var (edge, to) in inserts
+                             .OrderByDescending(insert => insert.Edge)
+                             .ThenByDescending(insert => Math.Abs(insert.Point.X - ring[insert.Edge][0])
+                                                         + Math.Abs(insert.Point.Z - ring[insert.Edge][1])))
+                    layoutJson = Applied(SketchGeometryEdit.InsertVertex(layoutJson, shapeId, edge, to.X, to.Z, out _),
+                                         layoutJson, field, shapeId, findings);
+                return layoutJson;
+        }
+    }
+
     // What the intent carries that a plan cannot state: the map's date, its credits, its capture points and the
-    // score they end at, its generators and its shops.
-    private static void Play(JsonObject refinement, JsonObject intent)
+    // score they end at, its generators and its shops. The capture points and the generators are stated once
+    // each and fanned across the board's symmetry, the way the intent's own orbit fill fans them.
+    private static void Play(JsonObject refinement, JsonObject intent, SymmetryIntent? board)
     {
         if (refinement["created"] is { } created)
             (intent["meta"] as JsonObject ?? (JsonObject)(intent["meta"] = new JsonObject()))["created"] = created.DeepClone();
@@ -452,6 +538,13 @@ public sealed record Refinement
                 [.. authors.Select(person => person is JsonValue name ? new JsonObject { ["name"] = name.DeepClone() } : person?.DeepClone())]);
         foreach (var key in (string[])["controlPoints", "scoreLimit", "spawners", "shops"])
             if (refinement.ContainsKey(key)) intent[key] = refinement[key]?.DeepClone();
+        if (board is null) return;
+        if (refinement["controlPoints"] is JsonArray points)
+            intent["controlPoints"] = JsonSerializer.SerializeToNode(
+                SymmetryExpander.FillControlPoints(points.Deserialize<List<ControlPointIntent>>(Json), board), Json);
+        if (refinement["spawners"] is JsonArray spawners)
+            intent["spawners"] = JsonSerializer.SerializeToNode(
+                SymmetryExpander.FillSpawners(spawners.Deserialize<List<SpawnerIntent>>(Json), board), Json);
     }
 
     private static string Applied(GeometryEdit edit, string layoutJson, string field, string shapeId, List<Finding> findings)
@@ -569,12 +662,16 @@ public sealed record ShapeJoin(
 /// <param name="Remove">Drop this point.</param>
 /// <param name="X">Where the point goes on the x axis, in blocks.</param>
 /// <param name="Z">Where the point goes on the z axis, in blocks.</param>
+/// <param name="Fan">False makes this edit alone. Absent, an edit to an outline the board's symmetry carries
+/// onto itself — a shape on the axis — is made at every image of the point it names, so the outline stays its
+/// own image.</param>
 public sealed record VertexEdit(
     [property: JsonPropertyName("after")] int? After = null,
     [property: JsonPropertyName("index")] int? Index = null,
     [property: JsonPropertyName("remove")] int? Remove = null,
     [property: JsonPropertyName("x")] double? X = null,
-    [property: JsonPropertyName("z")] double? Z = null);
+    [property: JsonPropertyName("z")] double? Z = null,
+    [property: JsonPropertyName("fan")] bool? Fan = null);
 
 /// <summary>An outline stated by its shape rather than its points: an ellipse about <see cref="At"/>, pulled in
 /// and out by <see cref="Lobes"/> bulges reaching <see cref="Wobble"/> past it, and turned by <see cref="Turn"/>
@@ -675,4 +772,13 @@ public static class SourceRules
     /// the wobble under 1.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Request, RuleConcern.Terrain)]
     public const string OutlineDrawsNoRing = "SR7";
+
+    /// <summary><b>A complaint.</b> A point edit to an outline the board's symmetry carries onto itself — a shape
+    /// on the axis, whose edits are made at every image — moves a point that is its own image off the line it
+    /// stands on. No image of the move can keep the outline its own, so the point moves as stated and the
+    /// outline is lopsided from then on.</summary>
+    /// <remarks>Move the point along the line it stands on, or state <c>fan: false</c> on the edit where the
+    /// outline is meant to be lopsided.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.Terrain)]
+    public const string EditOffItsAxis = "SR8";
 }

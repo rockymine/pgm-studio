@@ -222,6 +222,91 @@ public sealed class RefinementTests
         await Assert.That(refined.Findings.Refuses).IsTrue();
     }
 
+    /// <summary>A board whose one island stands on the axis: a rectangle about the centre, and a diamond whose
+    /// two points on the x axis are their own images under <c>mirror_z</c>.</summary>
+    private static string Axis(string mode) => $$$"""
+        {"setup":{"mirror_mode":"{{{mode}}}","center":{"cx":0,"cz":0}},
+         "layers":[{"id":"ground","name":"Ground","base_y":0,"layout":{
+           "shapes":[
+             {"id":"isle","type":"polygon","operation":"add","base_height":18,
+              "vertices":[[-10,-6],[10,-6],[10,6],[-10,6]]},
+             {"id":"tor","type":"polygon","operation":"add","base_height":22,
+              "vertices":[[-8,0],[0,-5],[8,0],[0,5]]}],
+           "groups":[{"id":"mid","name":"Mid","shapeIds":["isle","tor"]}]}}]}
+        """;
+
+    private static List<string> Ring(Refined refined, string id) =>
+        [.. Shape(refined, id)["vertices"]!.AsArray().Select(point => point!.ToJsonString())];
+
+    [Test]
+    public async Task A_point_edit_to_a_shape_on_the_axis_is_made_at_every_image()
+    {
+        var turned = Refinement.Apply("""{"editShapes":{"isle":[{"after":0,"x":0,"z":-9}]}}""", Axis("rot_180"), Intent);
+        var mirrored = Refinement.Apply("""{"editShapes":{"isle":[{"after":0,"x":-4,"z":-8}]}}""", Axis("mirror_x"), Intent);
+
+        await Assert.That(turned.Findings.Count).IsEqualTo(0);
+        await Assert.That(Ring(turned, "isle"))
+            .IsEquivalentTo(["[-10,-6]", "[0,-9]", "[10,-6]", "[10,6]", "[0,9]", "[-10,6]"]);
+        await Assert.That(Ring(mirrored, "isle"))
+            .IsEquivalentTo(["[-10,-6]", "[-4,-8]", "[4,-8]", "[10,-6]", "[10,6]", "[-10,6]"])
+            .Because("the edge crosses the mirror, so its image is the same edge and both points land on it in order");
+    }
+
+    [Test]
+    public async Task A_point_edit_stating_fan_false_is_made_alone()
+    {
+        var refined = Refinement.Apply(
+            """{"editShapes":{"isle":[{"after":0,"x":0,"z":-9,"fan":false}]}}""", Axis("rot_180"), Intent);
+
+        await Assert.That(Ring(refined, "isle")).IsEquivalentTo(["[-10,-6]", "[0,-9]", "[10,-6]", "[10,6]", "[-10,6]"]);
+    }
+
+    [Test]
+    public async Task Moving_a_point_the_symmetry_holds_off_its_line_is_a_complaint_and_the_point_moves()
+    {
+        var refined = Refinement.Apply("""{"editShapes":{"tor":[{"index":0,"x":-9,"z":2}]}}""", Axis("mirror_z"), Intent);
+
+        var finding = refined.Findings.Single();
+        await Assert.That(finding.Rule).IsEqualTo(SourceRules.EditOffItsAxis);
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(Ring(refined, "tor")[0]).IsEqualTo("[-9,2]");
+    }
+
+    [Test]
+    public async Task A_bend_on_a_shape_on_the_axis_draws_a_coast_that_is_its_own_image()
+    {
+        var refined = Refinement.Apply(
+            """{"bendShapes":{"isle":{"wander":2,"step":3,"seed":7,"side":"both"}}}""", Axis("rot_180"), Intent);
+
+        var ring = Shape(refined, "isle")["vertices"]!.AsArray()
+            .Select(point => new[] { point![0]!.GetValue<double>(), point[1]!.GetValue<double>() }).ToList();
+        await Assert.That(ring.Count).IsGreaterThan(4);
+        await Assert.That(PgmStudio.Geom.Symmetry.SelfImage(ring, "rot_180", 0, 0)).IsNotNull();
+    }
+
+    [Test]
+    public async Task Capture_points_and_generators_stated_once_are_fanned_across_the_board()
+    {
+        var refined = Apply("""
+            {"controlPoints":[{"name":"Bench","anchor":{"x":-42,"y":0,"z":0}},
+                              {"name":"Crusher","anchor":{"x":0,"y":0,"z":0}}],
+             "spawners":[{"id":"iron","at":{"x":10.5,"y":9,"z":20.5},"drops":[{"material":"iron ingot"}]},
+                         {"id":"gold","at":{"x":4,"y":9,"z":4},"drops":[{"material":"gold ingot"}]},
+                         {"id":"gold-b","at":{"x":-4,"y":9,"z":-4},"drops":[{"material":"gold ingot"}]}]}
+            """);
+
+        var intent = JsonNode.Parse(refined.IntentJson)!;
+        var points = intent["controlPoints"]!.AsArray()
+            .Select(point => $"{point!["name"]} ({point["anchor"]!["x"]}, {point["anchor"]!["z"]})").ToList();
+        await Assert.That(points).IsEquivalentTo(["Bench (-42, 0)", "Crusher (0, 0)", "Bench 2 (42, 0)"])
+            .Because("the centre is its own image");
+        var spawners = intent["spawners"]!.AsArray()
+            .Select(spawner => $"{spawner!["id"]} ({spawner["at"]!["x"]}, {spawner["at"]!["z"]})").ToList();
+        await Assert.That(spawners).IsEquivalentTo(
+                ["iron (10.5, 20.5)", "gold (4, 4)", "gold-b (-4, -4)", "iron-2 (-10.5, -20.5)"])
+            .Because("a generator already standing where an image would go is that image");
+    }
+
     [Test]
     public async Task An_edit_naming_no_single_index_refuses_the_source()
     {

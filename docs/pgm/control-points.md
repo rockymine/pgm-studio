@@ -379,6 +379,11 @@ two neighbouring spawns at the author's share of the way out. The orbit fans tha
 or the ring, so a plan-compiled intent carries the whole set. The counts a board's symmetry lays out are 1,
 one per team, or one per team plus a centre; any other is `PL16`.
 
+**A map's source states one point of each orbit, and the board's symmetry fans it.** A refinement's
+`controlPoints` are each placed once; every image is added at the image of its anchor, named for its point
+and numbered on, and a point already standing within half a block of an image is taken as it — so the centre
+stays one point and a pair stated by hand stays a pair (`docs/tools/flow.md`).
+
 **It reads one, stores it and writes it back.** `MapParser.ParseControlPoints` reads both spellings into
 `Domain.ControlPoint`, carrying the element rather than resolving it; `ParseScore` reads `<score>` into
 `ScoreConfig`, or `null` where the map declares none. `XmlWriter` re-emits each point under the element it

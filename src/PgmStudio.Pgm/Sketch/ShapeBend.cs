@@ -18,8 +18,12 @@ namespace PgmStudio.Pgm.Sketch;
 /// <param name="Edges">The edges to draw as coast, each by the vertex it leaves, counted on the outline as
 /// every point edit leaves it. Absent bends every edge long enough to cut; named, every other edge stays
 /// exactly as it was drawn — a seam, a frontline — which is the coast a board states with <c>side: in</c>.</param>
+/// <param name="Fan">False draws the coast as the outline's own coordinates give it. Absent, an outline the
+/// board's symmetry carries onto itself — a shape on the axis — is drawn as a coast that is its own image too,
+/// and an edge named is drawn at each of its images.</param>
 public sealed record ShapeBend(
-    double Wander, double Step, uint Seed, double? Tension = null, BendSide? Side = null, IReadOnlyList<int>? Edges = null)
+    double Wander, double Step, uint Seed, double? Tension = null, BendSide? Side = null, IReadOnlyList<int>? Edges = null,
+    bool? Fan = null)
 {
     /// <summary>The handle length a coast reads well at, as a fraction of its own edge — measured over the
     /// seven boards in the corpus that bend one.</summary>
@@ -36,6 +40,7 @@ public sealed record ShapeBend(
                 "a bend states `wander` and `step`, both greater than nought: how far a point may be pulled off "
                 + "its edge, and how often to cut along an edge.", Field: "wander", Subjects: [shapeId]));
         return SketchGeometryEdit.BendShape(
-            layoutJson, shapeId, Wander, Step, Seed, Tension ?? DefaultTension, Side ?? BendSide.Out, out held, Edges);
+            layoutJson, shapeId, Wander, Step, Seed, Tension ?? DefaultTension, Side ?? BendSide.Out, out held, Edges,
+            Fan ?? true);
     }
 }

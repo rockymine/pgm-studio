@@ -126,6 +126,23 @@ public sealed class RingBendTests
             await Assert.That(atEnd.In).IsEquivalentTo(coast.Ring[end]);
     }
 
+    /// <summary>A ring that is its own image, bent with its wander read at each point's canonical image, is a
+    /// coast that is its own image too; read at the points themselves, the same bend is lopsided.</summary>
+    [Test]
+    [Arguments("rot_180")]
+    [Arguments("mirror_x")]
+    public async Task A_ring_that_is_its_own_image_bends_into_a_coast_that_is_too(string mode)
+    {
+        double[][] ring = [[-30, -12], [30, -12], [30, 12], [-30, 12]];
+        (double X, double Z) Canonical(double x, double z) => Symmetry.Canonical(x, z, mode, 0, 0);
+
+        var fanned = RingBend.Draw(ring, wander: 3, step: 4, seed: 9, side: BendSide.Both, sampleAt: Canonical)!.Value;
+        var plain = RingBend.Draw(ring, wander: 3, step: 4, seed: 9, side: BendSide.Both)!.Value;
+
+        await Assert.That(Symmetry.SelfImage(fanned.Ring, mode, 0, 0)).IsNotNull();
+        await Assert.That(Symmetry.SelfImage(plain.Ring, mode, 0, 0)).IsNull();
+    }
+
     /// <summary>An outward bend leaves no point inside it, which is the same statement the other way up.</summary>
     [Test]
     public async Task An_outward_bend_leaves_no_point_inside_the_ring()

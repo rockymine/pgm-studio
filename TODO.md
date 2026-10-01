@@ -16,22 +16,9 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 ## The programme: a board's source, every change to it, and the words it is stated in
 **The author put this programme first.** The studio keeps the source a board is stated in and every change to
 it, hands the author's hand edits to the agent's next round, and hands out the vocabulary the source is
-written in. The source, its changes and the kit it is written in have shipped; what remains is the statements
-the kits still compute themselves (`TS125`), and `pgm-studio-mapgen` moving onto all of it. The layer word
-(`B264`, `WE28`, `TS64`) waits behind it.
-
-### The schema is the vocabulary, and the kit is made from it
-
-- [ ] **TS125 — What mapgen's kits compute becomes something a refinement states.** Four computations live
-  in the kits and scripts: `coast_edits` (points inserted along named edges and pulled inward), `ring` (a lobed
-  outline), a fluid's floor copied by hand from `column` reads, and mirroring (`image(p)`, in two conventions,
-  `(−x, −z)` and `(−x−1, −z−1)`). State them instead: a `coast` on a compiled shape — its edges, depth and
-  seed, inward only and tested against the ring's own inside; lobes on a circle or ellipse; a fluid that fills
-  to a level inside its ring; and a fan on hills, spawners and edits to a shape on the axis, which follow the
-  board's symmetry unless they say otherwise. `docs/tools/sketch.md`, `docs/pgm/control-points.md`.
-
-  *Evidence: `coast_edits` pulled toward the ring's centroid and put Sootcombe's coast two blocks past the end
-  of its east wall (note 48); Gypsum Reach's wash floor is 72 points copied from reads.*
+written in. The source, its changes, the kit it is written in, and coasts, basins, outlines and the fan as
+statements have shipped; what remains is `pgm-studio-mapgen` moving onto all of it. The layer word (`B264`, `WE28`,
+`TS64`) waits behind it.
 
 ### The authoring repository moves onto the studio's source and kit
 

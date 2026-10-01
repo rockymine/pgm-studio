@@ -192,7 +192,7 @@ public static class SketchGeometryEdit
     /// stayed where they were cut, which is <c>SK21</c>.</para></summary>
     public static GeometryEdit BendShape(
         string? layoutJson, string shapeId, double wander, double step, uint seed, double tension,
-        BendSide side, out int held, IReadOnlyList<int>? edges = null)
+        BendSide side, out int held, IReadOnlyList<int>? edges = null, bool fan = true)
     {
         held = 0;
         var root = Root(layoutJson);
@@ -219,8 +219,16 @@ public static class SketchGeometryEdit
                 $"'{shapeId}' has {ring.Count} edges, numbered 0 to {ring.Count - 1} by the vertex each leaves, "
                 + $"and a bend names edge {outside}",
                 Field: "edges", Subjects: [shapeId]));
-        if (RingBend.Draw(ring, wander, step, seed, tension, side: side,
-                edges: edges is null ? null : edges.ToHashSet()) is not { } coast)
+        var named = edges?.ToHashSet();
+        Func<double, double, (double X, double Z)>? sampleAt = null;
+        var (mode, centreX, centreZ) = SymmetryOf(root);
+        if (fan && Symmetry.SelfImage(ring, mode, centreX, centreZ) is { } images)
+        {
+            sampleAt = (x, z) => Symmetry.Canonical(x, z, mode, centreX, centreZ);
+            foreach (var lands in images)
+                foreach (var edge in edges ?? []) named!.Add(Symmetry.ImageEdge(lands, edge));
+        }
+        if (RingBend.Draw(ring, wander, step, seed, tension, side: side, edges: named, sampleAt: sampleAt) is not { } coast)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
                 $"a wander of {wander} over a step of {step} folds '{shapeId}' across its own far side, which "
                 + "would build ground with a hole nobody drew. Lower the wander, or raise the step so the "
@@ -406,6 +414,22 @@ public static class SketchGeometryEdit
 
     private static JsonObject Root(string? layoutJson) =>
         string.IsNullOrWhiteSpace(layoutJson) ? [] : JsonNode.Parse(layoutJson) as JsonObject ?? [];
+
+    /// <summary>The symmetry a layout fans its mirroring groups by: its setup's mode and centre, and the
+    /// setup's own default mode where it states none.</summary>
+    internal static (string Mode, double CentreX, double CentreZ) SymmetryOf(JsonObject root)
+    {
+        var setup = root["setup"] as JsonObject;
+        var mode = Text(setup?["mirror_mode"]) ?? new SketchSetup().MirrorMode;
+        return (mode, Number(setup?["center"]?["cx"]), Number(setup?["center"]?["cz"]));
+    }
+
+    /// <summary>The outline of the shape at <paramref name="shapeId"/> as it stands, or null where the layout
+    /// carries no such polygon.</summary>
+    internal static List<double[]>? RingOf(string? layoutJson, string shapeId) =>
+        ShapeAt(Layers(Root(layoutJson)), shapeId)?["vertices"] is JsonArray stated && stated.Count >= 3
+            ? [.. stated.Select(point => new[] { Number(point?[0]), Number(point?[1]) })]
+            : null;
 
     private static JsonArray Layers(JsonObject root)
     {

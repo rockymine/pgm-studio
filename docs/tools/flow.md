@@ -167,14 +167,14 @@ given, which is why every point edit comes before it.
 | `shapePropsByHeight` · `shapePropsById` | fields merged onto a shape by the height it stands at or by its id; a field stated as null is removed | `PATCH …/sketch/shapes/{shapeId}` |
 | `addLayers` | storeys, each `{id, name, base_y, below, kind, part_of, seat, shapes, groups}` — over the compiled ground, or under it where `below` is true | `PUT …/sketch/layers/{layerId}` |
 | `addShapes` | shapes, each carrying the `layer` and `group` it joins beside its own fields. One naming neither joins the compiled ground and its first group | `POST …/sketch/layers/{layerId}/shapes?group=` |
-| `editShapes` | `{shapeId: [edit, …]}`, in order, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`) and `remove` (drop that point) | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape |
-| `bendShapes` | `{shapeId: {wander, step, seed, tension, side, edges}}` — `edges` names the edges drawn as coast, each by the vertex it leaves, and every other edge stays as drawn | `POST …/sketch/shapes/{shapeId}/bend` |
+| `editShapes` | `{shapeId: [edit, …]}`, in order, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`) and `remove` (drop that point); on a shape the board's symmetry carries onto itself the edit is made at every image unless it states `fan: false` | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape, once per image |
+| `bendShapes` | `{shapeId: {wander, step, seed, tension, side, edges, fan}}` — `edges` names the edges drawn as coast, each by the vertex it leaves, and every other edge stays as drawn; on a shape the board's symmetry carries onto itself the coast is its own image too unless `fan` is false | `POST …/sketch/shapes/{shapeId}/bend` |
 | `outlines` | `{id: {at, radius, radiusZ, points, lobes, wobble, phase, turn}}` — an ellipse pulled in and out by lobes, written as the points of whatever carries that id: a shape's vertices (a rectangle or a circle becoming a polygon), the ring of a relief `area` mark or a push, the points of a stroke, a fluid or a flora prop | the points stated on the thing itself |
 | `relief` | `{groupId: relief}`, where `*` stands for every group of the compiled ground | `PUT …/sketch/relief/{groupId}` |
 | `themes` · `mapTheme` | the theme registry, and the map's default theme — the registry's first where none is stated | `PUT …/sketch/themes/{themeId}`, `PUT …/sketch/map-theme` |
 | `biome` · `roomStyles` · `dressing` | the layout's own members, each replacing what the base held | `PUT …/sketch/biome`, `PUT …/sketch/room-styles/{part}`, the props routes |
 | `created` · `authors` | the intent's `meta.created` and `meta.authors`; a person is a bare name or `{name, contribution}` | `PATCH /map/{slug}/metadata` |
-| `controlPoints` · `scoreLimit` · `spawners` · `shops` | the intent's own members, each replacing what the base held | `PUT /map/{slug}/intent` |
+| `controlPoints` · `scoreLimit` · `spawners` · `shops` | the intent's own members, each replacing what the base held; a capture point and a generator are each stated once and fanned across the board's symmetry | `PUT /map/{slug}/intent` |
 
 **A thing stated more than once is named, and a name stands for a copy.** A material the refinement uses in
 several places is stated once under `materials` and used as `{"use": "strata"}`. A row of the studio's library
@@ -200,6 +200,20 @@ id names everything carrying it, so a relief stated for every group outlines the
 is the points, rounded to a tenth of a block, so the stored layout carries the ring a hand would have drawn and
 every later statement — a point edit, a bend — works on it. An id that reaches only things with no ring of their
 own (a room's rectangle, a point mark, a tree) is a complaint, as is one reaching nothing.
+
+**A statement about a symmetric board is made once, and the board's symmetry fans it.** The symmetry is the
+layout's own — `setup.mirror_mode` and its `center`. A capture point and a generator are each stated once and
+every image added, at the image of the point it stands on: an image of a capture point takes its name numbered
+on (`Bench`, `Bench 2`), and an image of a generator its id (`iron`, `iron-2`), since the regions a generator
+mints are named for it. One already standing within half a block of where an image would go is that image, so a
+point at the centre of symmetry stays one and a hand-placed pair stays a pair. A point edit and a bend to a shape
+the symmetry carries onto itself — a shape on the axis, which no group's fan copies — are made at every image:
+an insert or a move lands at the image of its point on the image of its edge, a remove takes the image point
+too, and a bend reads its wander at each point's canonical image and draws a named edge's images with it, so
+the outline stays its own image. `fan: false` on an edit or a bend makes it alone. A move that takes a point
+the symmetry holds in place off its line has no image that keeps the outline its own, so the point moves as
+stated and `SR8` says the outline is lopsided now. A relief mark needs none of this: the solve folds a group's
+surface across the axis (`docs/world-export/relief.md` §8).
 
 **A statement that does not say what it means refuses the whole source.** A storey stated under an id the board
 already has, or under none, is `SR3`, a point edit naming no single point is `SR4`, and an outline that draws no
