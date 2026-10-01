@@ -39,8 +39,11 @@ public partial class SketchReportPhase
         failed = false;
     }
 
+    /// <summary>The map's own path, which a picture's route — the report's, relative to the map — hangs off.</summary>
+    private string MapPath => $"api/map/{Slug}/";
+
     /// <summary>The picture's route, carrying the change it was named for, so a board that has changed since is
     /// drawn again rather than shown as the browser kept it.</summary>
     private string Source(MapReportPictureDto picture) =>
-        $"api/map/{Slug}/{picture.Route}{(picture.Route.Contains('?') ? '&' : '?')}change={Report?.Change}";
+        MapPath + picture.Route + (picture.Route.Contains('?') ? "&" : "?") + $"change={Report?.Change}";
 }
