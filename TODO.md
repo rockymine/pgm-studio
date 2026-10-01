@@ -30,14 +30,12 @@ fan as statements have shipped; what remains is `pgm-studio-mapgen` moving onto 
   Reach's isle pulls are stated once and fanned. Every board's applied layout and intent stay what they were.
   The `@name` loader goes with `TL33`. `pgm-studio-mapgen/AUTHORING-BRIEF.md`.
 
-- [ ] **TL33 — The house styles `pgm-studio-mapgen` keeps become the library's.** 81 house styles sit in
-  `pgm-studio-mapgen/tools/styles` against 13 room styles in the deployed library, and `drive.py`'s `@name`
-  and the kit's `house_style()` read them from disk. The author picks the ones worth keeping,
-  `tools/seed-studio.py` loads them into the library, boards name them as `{"library": …}`, and the folder goes.
-  `docs/tools/library.md`.
-
-  *Evidence: 19 of the 81 are named by a live spec — `showcase-cage` and `showcase-hall` by 14 each — and 62
-  by none.*
+- [~] **TL33 — The house styles `pgm-studio-mapgen` keeps become the library's.** The 29 styles live boards
+  stamp are seeded into the room library under their own names. What remains is the authoring repository: every
+  board naming one as `{"library": …}` where it loads `tools/styles/<name>.json` today — `drive.py`'s `@name`,
+  the kits' `house_style()` and `shipped()`, eight boards' own `style()` and four scripts reading a file by path
+  — with `beams` and `footing` changes stated beside the name, after which the `@name` loader and the folder go.
+  `pgm-studio-mapgen/tools/README.md`.
 
 - [ ] **TS130 — Point edits and bends reach every outline.** `editShapes` and `bendShapes` address a shape's
   `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already writes a relief `area` mark's and a

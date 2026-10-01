@@ -1,0 +1,137 @@
+{
+ "foundation": {
+  "plate": {
+   "stack": {
+    "bands": [
+     {
+      "material": {
+       "kind": "solid",
+       "id": 24,
+       "data": 0
+      },
+      "thickness": 1
+     }
+    ],
+    "ending": "repeat"
+   },
+   "extent": 1
+  },
+  "surface": {
+   "field": null,
+   "border": null,
+   "borderWidth": 1,
+   "inlay": null,
+   "inlayInset": 2,
+   "isPlain": true
+  },
+  "footing": null
+ },
+ "roof": {
+  "form": "flat",
+  "pitch": 1,
+  "slab": -1,
+  "slabData": 0,
+  "overhang": 1,
+  "ridgeCap": false,
+  "hole": false,
+  "body": {
+   "kind": "solid",
+   "id": 43,
+   "data": 9
+  },
+  "verge": {
+   "kind": "solid",
+   "id": 24,
+   "data": 2
+  },
+  "gable": {
+   "kind": "solid",
+   "id": 24,
+   "data": 2
+  },
+  "gableWindows": {
+   "form": "none",
+   "block": 102,
+   "hostBlock": -1,
+   "hostData": 0,
+   "data": 0,
+   "sill": 2,
+   "width": 2,
+   "height": 2,
+   "spacing": 3
+  }
+ },
+ "wall": {
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "solid",
+      "id": 24,
+      "data": 0
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 24,
+      "data": 2
+     },
+     "thickness": 4
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 159,
+      "data": 1
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 24,
+      "data": 2
+     },
+     "thickness": 1
+    }
+   ],
+   "ending": "repeat"
+  },
+  "extent": 7
+ },
+ "post": null,
+ "windows": {
+  "form": "slabBanded",
+  "block": 44,
+  "hostBlock": -1,
+  "hostData": 0,
+  "data": 1,
+  "sill": 3,
+  "width": 2,
+  "height": 3,
+  "spacing": 4
+ },
+ "storeys": [],
+ "porch": null,
+ "front": null,
+ "beams": {
+  "block": -1,
+  "data": 0,
+  "reach": 1,
+  "any": false
+ },
+ "doorway": {
+  "door": "air",
+  "head": {
+   "form": "arched",
+   "block": 128,
+   "fill": "upperSlab",
+   "fillBlock": 44,
+   "fillData": 1
+  },
+  "width": 1,
+  "height": 3
+ }
+}

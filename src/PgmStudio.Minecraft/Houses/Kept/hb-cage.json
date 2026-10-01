@@ -1,0 +1,317 @@
+{
+ "foundation": {
+  "plate": {
+   "stack": {
+    "bands": [
+     {
+      "material": {
+       "kind": "solid",
+       "id": 98,
+       "data": 0
+      },
+      "thickness": 1
+     }
+    ],
+    "ending": "repeat"
+   },
+   "extent": 1
+  },
+  "surface": {
+   "field": null,
+   "border": null,
+   "borderWidth": 1,
+   "inlay": null,
+   "inlayInset": 2,
+   "isPlain": true
+  },
+  "footing": null
+ },
+ "roof": {
+  "form": "hip",
+  "pitch": 1,
+  "slab": 44,
+  "slabData": 5,
+  "overhang": 1,
+  "ridgeCap": false,
+  "hole": false,
+  "body": {
+   "kind": "solid",
+   "id": 98,
+   "data": 0
+  },
+  "verge": {
+   "kind": "solid",
+   "id": 1,
+   "data": 4
+  },
+  "gable": {
+   "kind": "solid",
+   "id": 1,
+   "data": 4
+  },
+  "gableWindows": {
+   "form": "none",
+   "block": 102,
+   "hostBlock": -1,
+   "hostData": 0,
+   "data": 0,
+   "sill": 2,
+   "width": 2,
+   "height": 2,
+   "spacing": 3
+  }
+ },
+ "wall": {
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "solid",
+      "id": 99,
+      "data": 15
+     },
+     "thickness": 2
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 17,
+      "data": 1
+     },
+     "thickness": 1
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 99,
+      "data": 15
+     },
+     "thickness": 4
+    }
+   ],
+   "ending": "repeat"
+  },
+  "extent": 5
+ },
+ "post": {
+  "kind": "solid",
+  "id": 17,
+  "data": 1
+ },
+ "windows": {
+  "form": "none",
+  "block": 102,
+  "hostBlock": -1,
+  "hostData": 0,
+  "data": 0,
+  "sill": 2,
+  "width": 2,
+  "height": 2,
+  "spacing": 3
+ },
+ "storeys": [
+  {
+   "clear": 4,
+   "wall": {
+    "stack": {
+     "bands": [
+      {
+       "material": {
+        "kind": "solid",
+        "id": 99,
+        "data": 15
+       },
+       "thickness": 2
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 17,
+        "data": 1
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 99,
+        "data": 15
+       },
+       "thickness": 4
+      }
+     ],
+     "ending": "repeat"
+    },
+    "extent": 4
+   },
+   "post": {
+    "kind": "solid",
+    "id": 17,
+    "data": 1
+   },
+   "windows": {
+    "form": "none",
+    "block": 109,
+    "hostBlock": -1,
+    "hostData": 0,
+    "data": 0,
+    "sill": 2,
+    "width": 2,
+    "height": 2,
+    "spacing": 3
+   },
+   "surface": {
+    "field": null,
+    "border": null,
+    "borderWidth": 1,
+    "inlay": null,
+    "inlayInset": 2,
+    "isPlain": true
+   },
+   "deck": null,
+   "headroom": 4
+  },
+  {
+   "clear": 3,
+   "wall": {
+    "stack": {
+     "bands": [
+      {
+       "material": {
+        "kind": "solid",
+        "id": 99,
+        "data": 15
+       },
+       "thickness": 2
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 17,
+        "data": 1
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 99,
+        "data": 15
+       },
+       "thickness": 4
+      }
+     ],
+     "ending": "repeat"
+    },
+    "extent": 3
+   },
+   "post": {
+    "kind": "solid",
+    "id": 17,
+    "data": 1
+   },
+   "windows": {
+    "form": "pane",
+    "block": 160,
+    "hostBlock": -1,
+    "hostData": 0,
+    "data": 0,
+    "sill": 1,
+    "width": 2,
+    "height": 2,
+    "spacing": 3
+   },
+   "surface": {
+    "field": null,
+    "border": null,
+    "borderWidth": 1,
+    "inlay": null,
+    "inlayInset": 2,
+    "isPlain": true
+   },
+   "deck": null,
+   "headroom": 3
+  },
+  {
+   "clear": 3,
+   "wall": {
+    "stack": {
+     "bands": [
+      {
+       "material": {
+        "kind": "solid",
+        "id": 99,
+        "data": 15
+       },
+       "thickness": 2
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 17,
+        "data": 1
+       },
+       "thickness": 1
+      },
+      {
+       "material": {
+        "kind": "solid",
+        "id": 99,
+        "data": 15
+       },
+       "thickness": 4
+      }
+     ],
+     "ending": "repeat"
+    },
+    "extent": 3
+   },
+   "post": {
+    "kind": "solid",
+    "id": 17,
+    "data": 1
+   },
+   "windows": {
+    "form": "none",
+    "block": 128,
+    "hostBlock": -1,
+    "hostData": 0,
+    "data": 0,
+    "sill": 1,
+    "width": 2,
+    "height": 2,
+    "spacing": 3
+   },
+   "surface": {
+    "field": null,
+    "border": null,
+    "borderWidth": 1,
+    "inlay": null,
+    "inlayInset": 2,
+    "isPlain": true
+   },
+   "deck": null,
+   "headroom": 3
+  }
+ ],
+ "porch": null,
+ "front": null,
+ "beams": {
+  "block": 17,
+  "data": 1,
+  "reach": 1,
+  "any": true
+ },
+ "doorway": {
+  "door": "air",
+  "head": {
+   "form": "arched",
+   "block": 109,
+   "fill": "upperSlab",
+   "fillBlock": 44,
+   "fillData": 5
+  },
+  "width": 2,
+  "height": 3
+ }
+}

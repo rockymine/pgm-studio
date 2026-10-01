@@ -79,6 +79,15 @@ are the first entries here belonging to no building, so they keep the names thei
 a `house · part` one. Being presets, they are rewritten in place by the seed on every start: they are the
 canonical set, and an edit to one in the studio does not survive a restart.
 
+**The house styles boards are built with are seeded beside them.** Twenty-nine styles the authoring repository's
+boards stamp — `showcase-hall`, `showcase-cage`, `sb-spawn`, `17h-hall` and twenty-five more, four of them
+repainted variants such as `talltimber-hall-jungle` — are kept as the stamper's own JSON, a file of each name under
+`Minecraft/Houses/Kept`, and seeded into the room library under those names (`HousePresets.Kept`). A board names
+one as `{"library": "showcase-hall"}` wherever it states a room style or a house prop's style, and gets the
+building the file describes: each composes back out of the store to exactly the style the file states, which
+`LibrarySeedTests` asserts style by style. They stand on no row of the showcase, since a style carries no
+footprint.
+
 A style's card picture travels with the row rather than costing a request per card, because a library is
 browsed by what its entries look like. The editor previews two views of one material: a **plan**, one course
 seen from above, which is where a voronoi and the three noise fields vary, and a **section**, one row of
@@ -830,8 +839,9 @@ Both `/json` endpoints answer a **string in a field** rather than the document �
 
 **A map's source names a row by what it is called.** `{"library": "dunes"}` — or `{"library": 12}` by id, where
 several rows share a name — stands wherever a refinement states a thing the library holds, and what it names is
-decided by where it stands. An entry of `themes` is a theme, of `roomStyles` a room style, of `dressing.styles`
-the prop style its `kind` says, the `biome` a biome, and anything else a material. The schema publishes a name
+decided by where it stands. An entry of `themes` is a theme, of `roomStyles` a room style, a house prop's own
+`style` a room style too, of `dressing.styles` the prop style its `kind` says, the `biome` a biome, and anything
+else a material. The schema publishes a name
 as `StatedName`, offered beside the type it stands for at a refinement's `themes`, `materials` and `biome`.
 
 **The fields stated beside a name are laid over the copy**, an object member by member and anything else
@@ -849,7 +859,7 @@ holds, or the ids of the rows sharing the name. A theme or a biome copied this w
 
 **The built-in presets are put in at startup, not by a migration.** `LibrarySeed` runs as the API comes up and
 writes six of the nine libraries — the flat biome patterns among them, one per biome, so the
-select that picks one is never empty and a board that is simply desert needs nothing authored. It writes: the materials the house presets are made of, the storeys, roofs and porches
+select that picks one is never empty and a board that is simply desert needs nothing authored. It writes: the materials the house presets and the kept styles are made of, the storeys, roofs and porches
 they are built from, the houses that bind those, and six terrain finishes — `meadow`, `dunes`, `ashfall`,
 `firnline`, `claybed`, `oldstone` — decomposed out of `ThemePresets` into one style per bucket plus a theme
 binding them. It is idempotent and keyed by name: a row already there is updated in place and keeps the id

@@ -203,6 +203,30 @@ public static class HousePresets
         Stonemason, SandyMushroom, Darkwood,
     ];
 
+    /// <summary>
+    /// The house styles boards are built with, each kept as the stamper's own JSON in a file of its name under
+    /// <c>Houses/Kept</c> and seeded into the room-style library beside the presets, so a board names one as
+    /// <c>{"library": "showcase-hall"}</c> and every studio holds it from its first start. They stand on no row
+    /// of the showcase: a style carries no footprint, and these were drawn for the boards that stamp them.
+    /// </summary>
+    public static IReadOnlyList<(string Name, HouseStyle Style)> Kept => kept.Value;
+
+    private const string KeptResource = "kept-house/";
+
+    private static readonly Lazy<IReadOnlyList<(string Name, HouseStyle Style)>> kept = new(() =>
+    {
+        var assembly = typeof(HousePresets).Assembly;
+        return [.. assembly.GetManifestResourceNames()
+            .Where(resource => resource.StartsWith(KeptResource, StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .Select(resource =>
+            {
+                using var stream = assembly.GetManifestResourceStream(resource)!;
+                using var reader = new StreamReader(stream);
+                return (resource[KeptResource.Length..^".json".Length], HouseStyleJson.Deserialize(reader.ReadToEnd()));
+            })];
+    });
+
     /// <summary>The three an author stated in words rather than in code — a mason's house, a mushroom cottage
     /// and a dark timber one. They are the first buildings here that came from a person, and they are kept as
     /// presets for that reason: nothing can re-derive a choice.

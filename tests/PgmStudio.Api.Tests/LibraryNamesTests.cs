@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace PgmStudio.Api.Tests;
 
@@ -124,6 +125,40 @@ public sealed class LibraryNamesTests
             .Select(edit => (edit.GetProperty("document").GetString(), edit.GetProperty("path").GetString())).ToList();
         await Assert.That(edits).Contains(("refinement", "themes.heath.hash"));
         await Assert.That((await StateAsync(client)).GetProperty("behind").GetArrayLength()).IsEqualTo(0);
+    }
+
+    /// <summary>A house prop states its style in place, and a name there is a room style: the prop holds the shell
+    /// the row composes to, with what is stated beside the name laid over it, as a spawn's room style holds it.
+    /// Before the rule, the name was read as a material and the source refused <c>SR6</c>.</summary>
+    [Test]
+    public async Task A_house_props_own_style_named_from_the_library_is_the_shell_the_row_composes_to()
+    {
+        using var client = await FreshAsync();
+        using (var scope = ApiTestFactory.Shared.Services.CreateScope())
+            await new Services.LibrarySeed(
+                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.ThemeStore>(),
+                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.RoomStyleStore>(),
+                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.HousePartStore>(),
+                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.PropStyleStore>()).SeedAsync();
+
+        var stored = await client.PutAsJsonAsync(Source, Body(JsonDocument.Parse("""
+            {"roomStyles": {"spawn": {"library": "showcase-hall"}},
+             "dressing": {"props": [{"id": "store", "kind": "house", "seed": 1, "wings": [{"corners": [[2, 2], [9, 8]]}],
+                                     "style": {"library": "showcase-hall", "foundation": {"footing": {"kind": "solid", "id": 4}}}}]}}
+            """).RootElement));
+        await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
+
+        var layout = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/sketch");
+        var spawn = layout.GetProperty("roomStyles").GetProperty("spawn");
+        var prop = layout.GetProperty("dressing").GetProperty("props")[0].GetProperty("style");
+        await Assert.That(prop.TryGetProperty("library", out _)).IsFalse().Because("the prop holds the copy, not the name");
+        await Assert.That(prop.GetProperty("roof").GetRawText()).IsEqualTo(spawn.GetProperty("roof").GetRawText());
+        await Assert.That(prop.GetProperty("foundation").GetProperty("footing").GetProperty("id").GetInt32()).IsEqualTo(4)
+            .Because("what is stated beside the name is laid over the copy");
+        var kept = (await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/refinement"))
+            .GetProperty("dressing").GetProperty("props")[0].GetProperty("style");
+        await Assert.That(kept.GetProperty("library").GetString()).IsEqualTo("showcase-hall");
+        await Assert.That(kept.GetProperty("row").GetInt64()).IsGreaterThan(0);
     }
 
     /// <summary>A material, <c>weir-sand</c>, and a theme, <c>weir-dunes</c>, surfacing with it. The studio seeds a

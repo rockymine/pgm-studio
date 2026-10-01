@@ -118,10 +118,10 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
 
         int added = 0, updated = 0;
-        foreach (var house in HousePresets.All)
+        foreach (var (house, style) in Houses)
         {
-            var roofName = $"{house.Name} · roof";
-            var roofRequest = RoofRequestFor(house, roofName, bound.ByName);
+            var roofName = $"{house} · roof";
+            var roofRequest = RoofRequestFor(house, style, roofName, bound.ByName);
             var roofRow = HousePartLibrary.RowOf(roofRequest);
             var roofCourses = HousePartLibrary.RoofCourseRowsOf(roofRequest);
             if (roofs.TryGetValue(roofName, out var roofId))
@@ -135,8 +135,8 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
                 added++;
             }
 
-            if (house.Style.Porch is not { } porch) continue;
-            var porchName = $"{house.Name} · porch";
+            if (style.Porch is not { } porch) continue;
+            var porchName = $"{house} · porch";
             var porchRow = HousePartLibrary.RowOf(new PorchStyleSaveRequest(
                 porchName, porch.Depth, porch.Inset, PorchEdges.Canonical(NameOf(porch.Edge)),
                 RoofForms.Canonical(NameOf(porch.Roof)), porch.RailBlock));
@@ -156,12 +156,12 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
 
     /// <summary>One roof as the request the library stores, binding the materials seeded under its own names.</summary>
     private static RoofStyleSaveRequest RoofRequestFor(
-        HousePresets.House house, string name, IReadOnlyDictionary<string, long> ids)
+        string house, HouseStyle style, string name, IReadOnlyDictionary<string, long> ids)
     {
-        var roof = house.Style.Roof;
+        var roof = style.Roof;
         var courses = new List<RoomCourseDto>();
         foreach (var part in new[] { RoomParts.Roof, RoomParts.Verge, RoomParts.Gable })
-            if (ids.TryGetValue($"{house.Name} · {part}", out var id))
+            if (ids.TryGetValue($"{house} · {part}", out var id))
                 courses.Add(new RoomCourseDto(part, 0, id, 1));
 
         return new RoofStyleSaveRequest(
@@ -275,10 +275,10 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     private static IEnumerable<(string Name, TerrainMaterial Material)> PresetMaterials()
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var house in HousePresets.All)
-            foreach (var (part, material) in HouseMaterials(house.Style))
+        foreach (var (house, style) in Houses)
+            foreach (var (part, material) in HouseMaterials(style))
             {
-                var name = $"{house.Name} · {part}";
+                var name = $"{house} · {part}";
                 if (seen.Add(name)) yield return (name, material);
             }
 
@@ -347,11 +347,11 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
 
         var ids = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-        foreach (var house in HousePresets.All)
-            for (var level = 0; level < house.Style.Storeys.Count; level++)
+        foreach (var (house, style) in Houses)
+            for (var level = 0; level < style.Storeys.Count; level++)
             {
                 var name = StoreyName(house, level);
-                var request = StoreyRequestFor(house, level, name, bound.ByName);
+                var request = StoreyRequestFor(house, style, level, name, bound.ByName);
                 var row = HousePartLibrary.RowOf(request);
                 var courses = HousePartLibrary.StoreyCourseRowsOf(request);
 
@@ -362,21 +362,20 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         return ids;
     }
 
-    private static string StoreyName(HousePresets.House house, int level)
-        => $"{house.Name} · storey {level + 1}";
+    private static string StoreyName(string house, int level) => $"{house} · storey {level + 1}";
 
     /// <summary>One storey as the request the library stores. Its materials were seeded under the same
     /// per-storey names, so binding them is a lookup rather than a second decomposition.</summary>
     private static StoreyStyleSaveRequest StoreyRequestFor(
-        HousePresets.House house, int level, string name, IReadOnlyDictionary<string, long> ids)
+        string house, HouseStyle style, int level, string name, IReadOnlyDictionary<string, long> ids)
     {
-        var storey = house.Style.Levels[level];
+        var storey = style.Levels[level];
         var courses = new List<RoomCourseDto>();
 
         void Bind(string part, TerrainMaterial? material, int ordinal = 0, int height = 1)
         {
             if (material is null) return;
-            if (ids.TryGetValue($"{house.Name} · storey {level + 1} {part}", out var id))
+            if (ids.TryGetValue($"{house} · storey {level + 1} {part}", out var id))
                 courses.Add(new RoomCourseDto(PartOf(part), ordinal, id, height));
         }
 
@@ -403,6 +402,11 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     }
 
     // ── the houses ────────────────────────────────────────────────────────────────────────────────────
+    /// <summary>Every house the library is seeded with, by name: the presets, then the styles boards are built
+    /// with (<see cref="HousePresets.Kept"/>).</summary>
+    private static IEnumerable<(string Name, HouseStyle Style)> Houses =>
+        HousePresets.All.Select(house => (house.Name, house.Style)).Concat(HousePresets.Kept);
+
     private async Task<(int Added, int Updated)> SeedHousesAsync(StyleIds bound, CancellationToken ct)
     {
         var storeyIds = await SeedStoreysAsync(bound, ct);
@@ -411,16 +415,15 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
         int added = 0, updated = 0;
-        foreach (var house in HousePresets.All)
+        foreach (var (house, style) in Houses)
         {
-            var request = RequestFor(house, bound.ByName) with
+            var request = RequestFor(house, style, bound.ByName) with
             {
-                StoreyStack = [.. Enumerable.Range(0, house.Style.Storeys.Count)
+                StoreyStack = [.. Enumerable.Range(0, style.Storeys.Count)
                     .Where(level => storeyIds.ContainsKey(StoreyName(house, level)))
-                    .Select(level => new RoomStoreyDto(
-                        storeyIds[StoreyName(house, level)], house.Style.Storeys[level].Clear))],
+                    .Select(level => new RoomStoreyDto(storeyIds[StoreyName(house, level)], style.Storeys[level].Clear))],
             };
-            if (existing.TryGetValue(house.Name, out var row))
+            if (existing.TryGetValue(house, out var row))
             {
                 await rooms.UpdateAsync(
                     row.Id, RoomStyleLibrary.RowOf(request), RoomStyleLibrary.CourseRowsOf(request),
@@ -438,15 +441,14 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
 
     /// <summary>One preset as the save request the library stores — the same value the composer would have been
     /// handed by an editor, so a seeded row is a row an author could have made.</summary>
-    private static RoomStyleSaveRequest RequestFor(HousePresets.House house, IReadOnlyDictionary<string, long> ids)
+    private static RoomStyleSaveRequest RequestFor(string house, HouseStyle style, IReadOnlyDictionary<string, long> ids)
     {
-        var style = house.Style;
         var courses = new List<RoomCourseDto>();
 
         void Bind(string part, TerrainMaterial? material, int ordinal = 0, int height = 1)
         {
             if (material is null) return;
-            var key = $"{house.Name} · {part}";
+            var key = $"{house} · {part}";
             if (ids.TryGetValue(key, out var id)) courses.Add(new RoomCourseDto(PartOf(part), ordinal, id, height));
         }
 
@@ -463,14 +465,18 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
 
         void BindStack(string part, RoomPart stack)
         {
-            if (stack.Stack.Bands.Count <= 1) { Bind(part, stack.At(0).Material); return; }
+            if (stack.Stack.Bands.Count <= 1)
+            {
+                Bind(part, stack.At(0).Material, height: stack.Stack.Bands.Count == 1 ? stack.Stack.Bands[0].Thickness : 1);
+                return;
+            }
             for (var at = 0; at < stack.Stack.Bands.Count; at++)
                 Bind($"{part} {at + 1}", stack.Stack.Bands[at].Material, at, stack.Stack.Bands[at].Thickness);
         }
 
         var windows = style.Windows;
         return new RoomStyleSaveRequest(
-            Name: house.Name,
+            Name: house,
             FloorDepth: style.Foundation.Depth,
             WallHeight: Math.Max(1, style.Wall.Extent),
             RoofForm: RoofForms.Canonical(NameOf(style.Roof.Form)),
@@ -522,11 +528,11 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
 
         var report = new List<(string, List<string>)>();
-        foreach (var house in HousePresets.All)
+        foreach (var (house, style) in Houses)
         {
-            if (!stored.TryGetValue(house.Name, out var id)) { report.Add((house.Name, ["not stored"])); continue; }
-            if (await library.ComposeAsync(id, ct) is not { } back) { report.Add((house.Name, ["unreadable"])); continue; }
-            report.Add((house.Name, Differences(house.Style, back)));
+            if (!stored.TryGetValue(house, out var id)) { report.Add((house, ["not stored"])); continue; }
+            if (await library.ComposeAsync(id, ct) is not { } back) { report.Add((house, ["unreadable"])); continue; }
+            report.Add((house, Differences(style, back)));
         }
         return report;
     }

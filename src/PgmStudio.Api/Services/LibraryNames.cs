@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Theme;
 using PgmStudio.Minecraft.Dressing;
@@ -22,14 +23,15 @@ public sealed record LibraryResolved(
 /// A refinement's library names: <c>{"library": "dunes"}</c> wherever a material, a theme, a room style, a prop
 /// style or a biome is stated, naming a row of the studio's library by its name or its id, with the fields that
 /// differ stated beside it. What the name stands for is decided by where it stands — an entry of <c>themes</c> is a
-/// theme, of <c>roomStyles</c> a room style, of <c>dressing.styles</c> the prop style its <c>kind</c> says, the
-/// <c>biome</c> a biome, and anything else a material.
+/// theme, of <c>roomStyles</c> a room style, a house prop's own <c>style</c> a room style too, of
+/// <c>dressing.styles</c> the prop style its <c>kind</c> says, the <c>biome</c> a biome, and anything else a
+/// material.
 ///
 /// <para>A name is resolved at apply into the copy the stored layout holds, so a library edit never rebuilds a
 /// stored board. The refinement the map keeps records each name with the row it resolved to and a hash of what
 /// was copied, which is what lets <see cref="BehindAsync"/> say which rows have moved on since.</para>
 /// </summary>
-public sealed class LibraryNames(
+public sealed partial class LibraryNames(
     ThemeStore styles, ThemeLibrary themes, RoomStyleStore rooms, RoomStyleLibrary roomLibrary, PropStyleStore props)
 {
     public const string Material = "material", Theme = "theme", RoomStyle = "room style", Tree = "tree",
@@ -174,6 +176,7 @@ public sealed class LibraryNames(
         var depth = path.Count(c => c == '.');
         if (path.StartsWith("themes.", StringComparison.Ordinal) && depth == 1) return Theme;
         if (path.StartsWith("roomStyles.", StringComparison.Ordinal) && depth == 1) return RoomStyle;
+        if (HouseOwnStyle().IsMatch(path)) return RoomStyle;
         if (path == "biome") return Biome;
         if (path.StartsWith("dressing.styles.", StringComparison.Ordinal) && depth == 2)
             return stated["kind"]?.GetValue<string>() switch
@@ -252,6 +255,10 @@ public sealed class LibraryNames(
             .OrderByDescending(name => name.Zip(stated)
                 .TakeWhile(pair => char.ToLowerInvariant(pair.First) == char.ToLowerInvariant(pair.Second)).Count())
             .ThenBy(name => name, StringComparer.Ordinal);
+
+    // A house prop states its style in place, as the shell a room style composes to.
+    [GeneratedRegex(@"^dressing\.props\[\d+\]\.style$")]
+    private static partial Regex HouseOwnStyle();
 
     private static string Hashed(string json) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(json)))[..16];

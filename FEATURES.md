@@ -8696,6 +8696,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   image, and a complaint where one folds the ring. It is `coast_edits`' own argument, drawn by the studio point
   for point. (`Geom/RingPull`, `Pgm/Sketch/SketchGeometryEdit`, `Pgm/Plan/Refinement`, `docs/tools/flow.md`,
   `docs/refusals.md`)
+- **The house styles boards are built with are the library's (`TL33`).** Twenty-nine styles the authoring
+  repository's boards stamp are kept as the stamper's own JSON under `Minecraft/Houses/Kept` and seeded into the
+  room library under their names beside the presets, each composing back out of the store to exactly the style
+  its file states; a stack of one course keeps its thickness through the store. A house prop's own `style` names
+  a library row as a room style does, so `{"library": "showcase-hall"}` stands wherever a board stated the style
+  in full. (`Minecraft/Houses/HousePresets`, `Api/Services/LibrarySeed`, `Api/Services/LibraryNames`,
+  `docs/tools/library.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

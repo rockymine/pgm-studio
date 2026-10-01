@@ -1,0 +1,130 @@
+{
+ "foundation": {
+  "plate": {
+   "stack": {
+    "bands": [
+     {
+      "material": {
+       "kind": "solid",
+       "id": 5,
+       "data": 1
+      },
+      "thickness": 1
+     }
+    ],
+    "ending": "repeat"
+   },
+   "extent": 2
+  },
+  "surface": {
+   "field": null,
+   "border": null,
+   "borderWidth": 1,
+   "inlay": null,
+   "inlayInset": 2,
+   "isPlain": true
+  },
+  "footing": null
+ },
+ "roof": {
+  "form": "hip",
+  "pitch": 1,
+  "slab": -1,
+  "slabData": 0,
+  "overhang": 1,
+  "ridgeCap": true,
+  "hole": false,
+  "body": {
+   "kind": "solid",
+   "id": 5,
+   "data": 5
+  },
+  "verge": {
+   "kind": "solid",
+   "id": 5,
+   "data": 1
+  },
+  "gable": null,
+  "gableWindows": {
+   "form": "open",
+   "block": 102,
+   "hostBlock": -1,
+   "hostData": 0,
+   "data": 0,
+   "sill": 2,
+   "width": 1,
+   "height": 1,
+   "spacing": 3
+  }
+ },
+ "wall": {
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "laidLog",
+      "id": 17,
+      "data": 1
+     },
+     "thickness": 2
+    },
+    {
+     "material": {
+      "kind": "checker",
+      "size": 1,
+      "even": {
+       "kind": "solid",
+       "id": 17,
+       "data": 2
+      },
+      "odd": {
+       "kind": "solid",
+       "id": 17,
+       "data": 3
+      }
+     },
+     "thickness": 3
+    }
+   ],
+   "ending": "repeat"
+  },
+  "extent": 5
+ },
+ "post": {
+  "kind": "solid",
+  "id": 17,
+  "data": 1
+ },
+ "windows": {
+  "form": "arched",
+  "block": 109,
+  "hostBlock": -1,
+  "hostData": 0,
+  "data": 0,
+  "sill": 3,
+  "width": 2,
+  "height": 2,
+  "spacing": 3
+ },
+ "storeys": [],
+ "porch": null,
+ "front": null,
+ "beams": {
+  "block": 17,
+  "data": 1,
+  "reach": 1,
+  "any": false
+ },
+ "doorway": {
+  "door": "air",
+  "head": {
+   "form": "arched",
+   "block": 109,
+   "fill": "upperSlab",
+   "fillBlock": 44,
+   "fillData": 5
+  },
+  "width": 2,
+  "height": 3
+ }
+}

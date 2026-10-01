@@ -84,6 +84,33 @@ public sealed class LibrarySeedTests
             await Assert.That(built.Contains(house.Name)).IsTrue().Because($"{house.Name} is not in the seeded library");
     }
 
+    /// <summary>
+    /// <b>A kept style composes back to the very style its file states</b> — the whole style, serialized, not a
+    /// list of fields. A board names a kept style by its library name where it once loaded the file, so the house
+    /// it stamps is the one the file described only if the store hands back every knob the file set.
+    /// </summary>
+    [Test]
+    public async Task Every_kept_style_composes_back_to_its_file()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        await Seed(scope).SeedAsync();
+
+        var rooms = scope.ServiceProvider.GetRequiredService<RoomStyleStore>();
+        var library = new RoomStyleLibrary(rooms, scope.ServiceProvider.GetRequiredService<HousePartStore>(),
+                                           scope.ServiceProvider.GetRequiredService<ThemeStore>());
+        var stored = (await rooms.ListAsync()).ToDictionary(room => room.Name, room => room.Id, StringComparer.OrdinalIgnoreCase);
+        await Assert.That(HousePresets.Kept.Count).IsEqualTo(29);
+        foreach (var (name, style) in HousePresets.Kept)
+        {
+            await Assert.That(stored.ContainsKey(name)).IsTrue().Because($"{name} is not in the seeded library");
+            var back = await library.ComposeAsync(stored[name]);
+            await Assert.That(HouseStyleJson.Serialize(back!)).IsEqualTo(HouseStyleJson.Serialize(style))
+                .Because($"{name} came back from the store as another building");
+        }
+    }
+
     /// <summary>Seeding twice adds nothing the second time. A library is something an author edits, so a seeder
     /// that created a second copy of every row on every start would bury their work in duplicates.</summary>
     [Test]
