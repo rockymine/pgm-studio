@@ -68,17 +68,23 @@ builder.Services.SwaggerDocument(o =>
     // would tag half the page `{Slug}`.
     o.AutoTagPathSegmentIndex = 1;
     o.ShortSchemaNames = true;
-    // The generator reads a string enum off its converter attribute but takes the naming policy from the
-    // options, so without this the document lists Severity as `Refusal`/`Complaint` while the wire writes
-    // `refusal`/`complaint` — a schema a generated client would fail against.
-    o.SerializerSettings = json =>
-        json.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+    // The document is generated with the options the endpoints write with (WireJson), so it cannot list a
+    // closed set's words while the wire writes their numbers.
+    o.SerializerSettings = WireJson.Configure;
+    // A record publishes no `additionalProperties: false`. The studio reads a field it has nowhere to keep as
+    // a complaint rather than a refusal, an answer may carry `warnings` beside its record, and a polymorphic
+    // leaf is `allOf` its base and its own fields — under each of which a closed object refuses what the
+    // studio accepts.
+    o.DocumentSettings += doc => doc.SchemaSettings.AlwaysAllowAdditionalObjectProperties = true;
     // A field that takes one of a closed set of words publishes them, rather than crossing as a bare string
     // an agent has to learn by being refused one. PgmStudio.Api.Endpoints.WordSetSchemas says how.
     o.DocumentSettings += doc => doc.SchemaSettings.SchemaProcessors.Add(new WordSetSchemas());
     // A field held as raw JSON, because its type lives where the declaring project cannot reach, publishes
     // that type. PgmStudio.Api.Endpoints.CarriedShapes says how.
     o.DocumentSettings += doc => doc.SchemaSettings.SchemaProcessors.Add(new CarriedShapes());
+    // And a field a record computes, which the wire writes like any other, is published read-only.
+    // PgmStudio.Api.Endpoints.ComputedFields says how.
+    o.DocumentSettings += doc => doc.DocumentProcessors.Add(new ComputedFields());
     // One key rides on every success that has one, written by middleware rather than by any record — so the
     // document says so once, here. PgmStudio.Api.Endpoints.ComplaintChannel says how.
     o.DocumentSettings += doc => doc.OperationProcessors.Add(new ComplaintChannel());
@@ -342,6 +348,7 @@ app.Use(PgmStudio.Api.Services.BuildQueue.QueueAsync);
 app.UseFastEndpoints(c =>
 {
     c.Endpoints.RoutePrefix = "api";
+    WireJson.Configure(c.Serializer.Options);
     // A discriminated union declares nothing above its discriminator: every field a material body carries
     // belongs to the leaf its `kind` names, so TerrainMaterial has no property of its own and the generator
     // reads that as an empty request. The schema it renders is complete either way — the `kind` mapping over

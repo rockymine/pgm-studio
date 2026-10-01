@@ -110,6 +110,17 @@ published the whole model. The composition root reaches both projects, so a sche
 `CarriedShapes`, publishes such a field as a reference to its type and keeps the field's own description;
 `CarriedShapesTests` holds the layout's dressing to `DressingDoc` and its biome to `BiomeField`.
 
+**And what a route answers is what its schema says.** The document is generated with the options the
+endpoints write with (`WireJson`), so a closed set listed as words crosses as words: a stroke's `style` is
+`"solid"`, never `0`. A record publishes no `additionalProperties: false`, because the studio complains about
+a field it does not read rather than refusing it, an answer may carry `warnings` beside its record, and a
+polymorphic leaf is `allOf` its base and its own fields — under each of which a closed object refuses what the
+studio accepts. A list of words publishes them on its items, and a field a record computes rather than stores,
+such as an intent's `gamemodes`, is published read-only (`ComputedFields`), since the wire writes it like any
+other. `WireJsonTests` holds the whole surface to it: a board stating one of every closed set is read through
+every GET route its slug reaches, and each JSON answer validates against the schema its route names, with
+every key it carries declared there.
+
 **And the one key that rides on any of them is declared.** `Complaints` adds `warnings` to any 2xx JSON
 object whose request raised one, and the document said nothing about it: no schema carried the key and no
 operation named a response header. Both are published now by an operation processor — every 2xx JSON object

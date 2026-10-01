@@ -8587,6 +8587,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   as raw JSON as a reference to the type it holds, so the layout's dressing is a `DressingDoc` and its biome a
   `BiomeField` in the document, as they already were at their part routes. (`Api/Endpoints/CarriedShapes`,
   `docs/architecture.md`)
+- **What a route answers is what its schema says (part of `RP93`).** Thirteen enums the document listed as
+  words crossed the wire as numbers, and every material, prop and style failed a strict validator, because
+  each polymorphic leaf repeated `additionalProperties: false` beside its base. The endpoints and the document
+  are now configured from one place (`WireJson`), no record closes itself, a list of words publishes them on
+  its items, and a computed field such as an intent's `gamemodes` is published read-only (`ComputedFields`).
+  `WireJsonTests` reads a board stating one of every closed set through every GET route its slug reaches and
+  validates each answer against its schema, with every key declared. (`Api/Endpoints/WireJson`,
+  `Api/Endpoints/ComputedFields`, `Api/Endpoints/WordSetSchemas`, `docs/architecture.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

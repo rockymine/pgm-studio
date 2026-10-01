@@ -1,4 +1,5 @@
 using System.Reflection;
+using NJsonSchema;
 using NJsonSchema.Generation;
 using PgmStudio.Vocabulary;
 
@@ -27,8 +28,10 @@ internal sealed class WordSetSchemas : ISchemaProcessor
             if (Declared(property) is not { } declaring) continue;
             if (!context.Schema.Properties.TryGetValue(SchemaFields.OnTheWire(property), out var schema)) continue;
 
-            schema.Enumeration.Clear();
-            foreach (var word in Words.Of(declaring)) schema.Enumeration.Add(word);
+            // A list of words takes them on its items: the list itself is never one of them.
+            var takes = schema.Type.HasFlag(JsonObjectType.Array) && schema.Item is { } item ? item : schema;
+            takes.Enumeration.Clear();
+            foreach (var word in Words.Of(declaring)) takes.Enumeration.Add(word);
         }
     }
 

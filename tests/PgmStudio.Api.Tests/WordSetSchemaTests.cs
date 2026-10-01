@@ -64,7 +64,9 @@ public sealed class WordSetSchemaTests
                 if (!schema.TryGetProperty("properties", out var properties)) continue;
                 if (!properties.TryGetProperty(Wire(property), out var field)) continue;
 
-                var published = field.TryGetProperty("enum", out var words)
+                // A list of words publishes them on its items, which is where each word stands.
+                var holder = field.TryGetProperty("items", out var items) ? items : field;
+                var published = holder.TryGetProperty("enum", out var words)
                     ? words.EnumerateArray().Select(word => word.GetString()!).ToList()
                     : [];
                 await Assert.That(published).IsEquivalentTo(Words.Of(declaring))
