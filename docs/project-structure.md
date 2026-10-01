@@ -258,7 +258,7 @@ tools/<folder>/<script>.cs`. **There are seven, and the count is the point** (`C
 stays local*): three gates over the composer in `compose/` (`reproduction-gate`, `fingerprints`,
 `unit-fingerprint`), two in `deriver/` (`figure-check` gates `model.md`'s figures, `envelope-stats` writes
 `seed-envelopes.md`), and two operational tools at the root (`seed-library` seeds the database, `seed-trees`
-seeds its tree corpus). `tools/build-scripts.sh` builds exactly these and its count is the check. A script
+seeds its tree corpus and writes the showcase snapshot `pgm-studio-mapgen` keeps, `corpus/tree-showcase/trees.json`). `tools/build-scripts.sh` builds exactly these and its count is the check. A script
 that is not re-run does not live here; the reading it took belongs in `docs/` or in the code, and the script
 belongs in a scratchpad.
 

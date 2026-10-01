@@ -452,6 +452,18 @@ until it is filed with the flag. The editor shows the name under the cut.
 dotnet run tools/seed-trees.cs ../pgm-studio-mapgen/corpus/tree-showcase --builder=rockymine
 ```
 
+**The same cut can be written to a file instead of the library.** `--json=<file>` writes every tree the run
+would file — its name, the foot it stands on in the world, and the recipe this library answers for it at
+`GET /api/tree-styles/{id}/json` — one body row to a line, and touches no database. A second cut of an
+unchanged world writes the same bytes. The showcase's is `pgm-studio-mapgen/corpus/tree-showcase/trees.json`,
+and a board copies its trees from that file rather than from any studio's library, so its trees do not move
+when a library is re-seeded or a row renamed.
+
+```
+dotnet run tools/seed-trees.cs ../pgm-studio-mapgen/corpus/tree-showcase --builder=rockymine \
+    --json=../pgm-studio-mapgen/corpus/tree-showcase/trees.json
+```
+
 **A `copied` save without a cut is refused.** The cutter is what writes a cut and nothing else does, so a
 row claiming the form states one or is turned away with `DR-COPY` at **400** — a block list typed into a
 request, a dead-bush cluster, a log pile or a crate is not a tree cut from a world, and the library files no

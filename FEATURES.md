@@ -8703,6 +8703,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a library row as a room style does, so `{"library": "showcase-hall"}` stands wherever a board stated the style
   in full. (`Minecraft/Houses/HousePresets`, `Api/Services/LibrarySeed`, `Api/Services/LibraryNames`,
   `docs/tools/library.md`)
+- **The showcase's trees are one snapshot a board copies from (`TL34`).** `tools/seed-trees.cs --json=<file>`
+  writes the cut it would file into the library to a file instead: every tree under its name, the foot it stands
+  on and the recipe the library answers for it, one body row to a line, the same bytes on a second cut of an
+  unchanged world. `pgm-studio-mapgen/corpus/tree-showcase/trees.json` is the showcase's, and a board names its
+  trees from it rather than from a studio's library or a cut of its own. (`tools/seed-trees.cs`,
+  `docs/tools/library.md`, `docs/world-export/tree-corpus.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500
