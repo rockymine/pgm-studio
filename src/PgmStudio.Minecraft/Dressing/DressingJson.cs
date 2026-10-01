@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Geom.Algorithms;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -190,6 +191,8 @@ public static class DressingJson
         BoulderProp boulder => boulder with { Style = Recipe<BoulderStyle>(styles, boulder.StyleKey, subject) },
         HouseProp house => house with { Style = Recipe<HouseStyleRef>(styles, house.StyleKey, subject).Shell },
         ChestProp chest => Checked(chest, subject),
+        FluidProp { Shape: FluidShape.Basin, Level: null } => throw new DressingParseException(subject, "level",
+            "is not stated, and a basin is its fluid filled to a level: state the world Y the fluid stands at"),
         _ => prop,
     };
 

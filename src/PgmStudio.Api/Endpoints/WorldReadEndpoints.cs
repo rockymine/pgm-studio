@@ -763,7 +763,7 @@ internal static class WalkReads
 {
     /// <summary>The built board as ground a walk runs over (<see cref="BuiltWalk"/>), bridged where the
     /// projected document grants building.</summary>
-    public static WalkGround Ground(BuiltRead read, string layoutJson) => BuiltWalk.Ground(read.Built, read.Doc, layoutJson);
+    public static WalkGround Ground(BuiltRead read) => BuiltWalk.Ground(read.Built, read.Doc);
 
     /// <summary>The team a walk is measured for, checked against the ones the map spawns so a misspelling
     /// answers as itself rather than silently as everybody. Null where none was asked for.</summary>
@@ -838,9 +838,7 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        var layout = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
-        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
-        if (read is null || layout is null)
+        if (await WorldReads.LoadAsync(map, reader, artifacts, ct) is not { } read)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to walk",
                 [new Vocabulary.Finding(RequestRules.NoSuchSubject,
@@ -848,7 +846,7 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
             return;
         }
 
-        var shared = WalkReads.Ground(read, System.Text.Encoding.UTF8.GetString(layout));
+        var shared = WalkReads.Ground(read);
         var team = WalkReads.Team(Query<string?>("team", isRequired: false), read);
         var ground = WorldWalk.For(shared, read.Doc, team);
         var aim = WalkReads.Aim(Query<string?>("aim", isRequired: false));
@@ -931,9 +929,7 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        var layout = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
-        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
-        if (read is null || layout is null)
+        if (await WorldReads.LoadAsync(map, reader, artifacts, ct) is not { } read)
         {
             await Refusals.WriteAsync(HttpContext, 404, "no world to walk",
                 [new Vocabulary.Finding(RequestRules.NoSuchSubject,
@@ -941,7 +937,7 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
             return;
         }
 
-        var shared = WalkReads.Ground(read, System.Text.Encoding.UTF8.GetString(layout));
+        var shared = WalkReads.Ground(read);
         var team = WalkReads.Team(Query<string?>("team", isRequired: false), read);
         var ground = WorldWalk.For(shared, read.Doc, team);
         var aim = WalkReads.Aim(Query<string?>("aim", isRequired: false));

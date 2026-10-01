@@ -263,11 +263,12 @@ public sealed class WorldColumnsTests
         }
         ColumnSegment[] terrain = [new(0, 0, 1, 6, "ground"), new(1, 0, 1, 6, "ground")];
 
-        var (ground, props) = WorldColumns.ForWalk(world, new WorldProvenance(), terrain);
+        var (ground, props, water) = WorldColumns.ForWalk(world, new WorldProvenance(), terrain);
 
         await Assert.That(ground.Any(run => run.X == 0 && run.YTop == 7)).IsTrue();
         await Assert.That(ground.Any(run => run.X == 1 && run.YTop == 7)).IsFalse();
         await Assert.That(props.Any(run => run.X == 1 && run.YFloor == 6 && run.YTop == 7)).IsTrue();
+        await Assert.That(water).IsEquivalentTo(new[] { (0, 0) }).Because("water is swum, and lava is not water");
     }
 
     [Test]
@@ -293,7 +294,7 @@ public sealed class WorldColumnsTests
         ColumnSegment[] terrain =
             [new(0, 0, 1, 11, "ground"), new(2, 0, 1, 11, "ground"), new(3, 0, 1, 11, "ground")];
 
-        var (ground, props) = WorldColumns.ForWalk(world, provenance, terrain);
+        var (ground, props, _) = WorldColumns.ForWalk(world, provenance, terrain);
 
         // Every solid block is in exactly one of the two, and the tree's are the props.
         await Assert.That(props.OrderBy(span => span.X).ThenBy(span => span.YFloor))

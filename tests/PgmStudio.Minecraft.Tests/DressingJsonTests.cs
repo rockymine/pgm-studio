@@ -287,6 +287,18 @@ public sealed class DressingJsonTests
         await Assert.That(ex.Message).DoesNotContain("System.Text.Json");
     }
 
+    /// <summary>A basin is its fluid filled to a level and has no line of its own to fall back on, so one
+    /// stating none is refused by the field it left out.</summary>
+    [Test]
+    public async Task A_basin_stating_no_level_is_refused_by_that_field()
+    {
+        var ex = Assert.Throws<DressingParseException>(() => DressingJson.Deserialize(
+            """{"props":[{"kind":"fluid","id":"wash","shape":"basin","points":[[0,0],[10,0],[10,10]]}]}"""));
+
+        await Assert.That(ex!.Subject).Contains("wash");
+        await Assert.That(ex.Field).IsEqualTo("level");
+    }
+
     [Test]
     public async Task A_malformed_field_names_the_prop_and_the_field_rather_than_the_raw_codec_text()
     {

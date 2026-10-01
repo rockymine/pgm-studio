@@ -679,14 +679,16 @@ ground *out* rather than standing on it.
 same either way — the carve, the line, the bowl, the bank and the beach — and lava is written as stationary
 lava, so it stays in the bed it was given. The two are not the same to a player: water is swum and lava is
 not entered at all, so the walk reads a run of lava as a prop's volume rather than as ground (`WorldColumns.ForWalk`)
-— neither its top nor the bed under it is a place to stand, where water stays ground at twice the walk. Lava
+— neither its top nor the bed under it is a place to stand, where water stays ground at twice the walk, and
+the water a walk swims is every column the world tops with it, whichever shape put it there. Lava
 sets fire to what burns beside it, so a timber deck, a tree or a grass bank against a lava bed is the author's
 to keep clear. Unstated, `fluid` is `water`.
 
-**A body of water or lava is drawn one of two ways, and `shape` says which its points mean.** A `channel` strokes them
+**A body of water or lava is drawn one of three ways, and `shape` says which its points mean.** A `channel` strokes them
 as a centerline and takes its width from `radius` — a canal, a river, a moat. A `pool` closes them into a ring
-and fills it, corners and all: a harbour, a lake, a flooded basin, the shape a stroked line cannot make
-however wide it is drawn. The bowl is the same law either way and only the distance it is measured along
+and fills it, corners and all: a harbour, a lake, the shape a stroked line cannot make however wide it is
+drawn. A `basin` closes them into a ring too, and cuts nothing: it is the third way because the ground does
+the drawing, and it has its own account below. The bowl is the same law either way and only the distance it is measured along
 differs, which is the argument for one prop rather than two: a channel's bowl deepens away from its
 centerline, a pool's inward from its shore, and on a pool `radius` is read as that **shelf** — how far in the
 bed takes to reach full depth, so a harbour shallows against its quays rather than dropping to a trench at the
@@ -717,6 +719,17 @@ never floods outward looking for a wall — so a line above the surrounding grou
 rather than spilling, which is visible the moment it is exported. The bed floor is laid only where terrain
 already stood, so a stated line over a basin already deeper than `level − depth` leaves the basin's own floor
 alone instead of hanging a shelf in it.
+
+**A basin fills the hollow inside its ring and cuts nothing.** It states its `level` — the reader refuses one
+that does not (`DR-DOC`), a basin having no derived line to fall back on — and every column inside the ring
+whose ground stands lower than that line takes the fluid from its own surface up to it, while every column at
+or above the line is left exactly as it stood: the rim, an island, a dry shore. So the ground draws the
+shoreline and the ring only bounds it, which is what lets a ring be drawn loose round a hollow the sketch dug
+rather than traced along the contour the water will stand at. `radius` and `depth` are not read, since there is
+no bowl to cut; the bank is laid on the floor the fluid covers, and the beach is measured out from the fluid
+itself rather than from the ring (`FluidBed.BasinShoreCells`), so both follow the hollow's own edge. Low ground
+the ring stops short of leaves the fluid standing against air, which `DR-DRY` names as a wall with the ring as
+the thing to widen.
 
 **A fluid fills round what stands in it and never cuts under it.** The two halves of the pass are different
 acts on a column something else keeps clear: carving takes that thing's own ground out from beneath it, which

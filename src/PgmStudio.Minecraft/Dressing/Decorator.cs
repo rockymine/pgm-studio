@@ -393,6 +393,7 @@ public static class Decorator
     private static Placed PlaceFluid(VoxelWorld world, DressingContext context, FluidProp fluid,
                                      GroundClaims.Storey claims, List<Finding> declined)
     {
+        if (fluid.Shape == FluidShape.Basin) return PlaceBasin(world, context, fluid, claims, declined);
         var ground = context.GroundFor(fluid);
         var pool = fluid.Shape == FluidShape.Pool;
         if (fluid.Points.Count < (pool ? 3 : 2) || fluid.Radius <= 0 || fluid.Depth <= 0) return Placed.None;
@@ -509,6 +510,87 @@ public static class Decorator
         return new Placed(images.Sum(cells => cells.Count), images);
     }
 
+    /// <summary>Fill the hollow inside a basin's ring to its stated level and cut nothing. A column whose
+    /// ground stands lower than the line takes the fluid from its surface up to the line, writing only into
+    /// air so it goes round whatever stands there; a column at or above the line is the rim, an island or a
+    /// shore, and is left as it stands. The ground is therefore the bed and draws the shore, and the ring only
+    /// bounds how far the fluid reaches.
+    ///
+    /// <para>The bank is laid on the floor the fluid covers and on a beach measured out from the fluid itself
+    /// (<see cref="FluidBed.BasinShoreCells"/>), so both follow the hollow's own contour. Low ground the ring
+    /// stops short of leaves the fluid standing against air, which <c>DR-DRY</c> names.</para></summary>
+    private static Placed PlaceBasin(VoxelWorld world, DressingContext context, FluidProp fluid,
+                                     GroundClaims.Storey claims, List<Finding> declined)
+    {
+        if (fluid.Points.Count < 3 || fluid.Level is not { } level) return Placed.None;
+        var ground = context.GroundFor(fluid);
+        var line = (int)Math.Floor(level);
+        var ring = FluidBed.BasinCells(fluid.Points, fluid.Edge, fluid.Seed).ToList();
+
+        (int Id, int Data) Bank(int x, int y, int z) => fluid.Bank.Resolve(
+            new BucketContext(x, y, z, TerrainBucket.Surface, 0) { Sample = context.Symmetry.Canonical(x, z) });
+
+        // Every image is filled before any beach is laid, so a beach never covers fluid another image put there.
+        var images = new List<List<(int X, int Z)>>();
+        var flooded = new List<HashSet<(int X, int Z)>>();
+        var wet = new List<(int X, int Z, int Line)>();
+        for (var image = 0; image < context.Symmetry.Order; image++)
+        {
+            var covered = new List<(int X, int Z)>();
+            var drawn = new HashSet<(int X, int Z)>();
+            images.Add(covered);
+            flooded.Add(drawn);
+            foreach (var (cellX, cellZ) in ring)
+            {
+                var (x, z) = context.Symmetry.ImageCell(cellX, cellZ, image);
+                if (!ground.TryGetValue((x, z), out var top) || top < 2) continue;
+                var surfaceSolid = top - 1;
+                if (surfaceSolid >= line) continue;
+                if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
+
+                var filled = false;
+                for (var y = surfaceSolid + 1; y <= line; y++)
+                {
+                    if (world.GetBlock(x, y, z).Id != Blocks.Air) continue;
+                    world.SetBlock(x, y, z, fluid.FluidBlock);
+                    filled = true;
+                }
+                if (!filled) continue;
+                // A kept column is filled round what keeps it and nothing else: no floor laid, no claim.
+                if (!context.IsKeptClear(x, z))
+                {
+                    var (id, data) = Bank(x, surfaceSolid, z);
+                    world.SetBlock(x, surfaceSolid, z, id, data);
+                    claims.Claim(x, z, ClaimKind.Fluid, fluid.Id);
+                }
+                covered.Add((x, z));
+                drawn.Add((cellX, cellZ));
+                if (world.GetBlock(x, line, z).Id == fluid.FluidBlock) wet.Add((x, z, line));
+            }
+        }
+
+        // The beach is measured in the author's own cells and carried to each image, so the two teams' shores
+        // wander alike wherever their ground floods alike.
+        for (var image = 0; image < context.Symmetry.Order; image++)
+            foreach (var (cellX, cellZ) in FluidBed.BasinShoreCells(flooded[image], fluid.Shore, fluid.ShoreWander, fluid.Seed))
+            {
+                var (x, z) = context.Symmetry.ImageCell(cellX, cellZ, image);
+                if (claims.Holds(x, z) || context.IsKeptClear(x, z)) continue;
+                if (!ground.TryGetValue((x, z), out var top) || top < 1) continue;
+                var surfaceSolid = top - 1;
+                if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
+                if (world.GetBlock(x, surfaceSolid + 1, z).Id == fluid.FluidBlock) continue;
+
+                var (id, data) = Bank(x, surfaceSolid, z);
+                world.SetBlock(x, surfaceSolid, z, id, data);
+                claims.Claim(x, z, ClaimKind.Fluid, fluid.Id);
+                images[image].Add((x, z));
+            }
+
+        DryEdge(world, ground, wet, fluid, declined);
+        return new Placed(images.Sum(cells => cells.Count), images);
+    }
+
     /// <summary>DR-HELD — bed columns a keep-out held uncut, left without fluid. A kept column is filled and
     /// never cut, so where the line stands no higher than the ground there the bed is the ground as it was,
     /// and the channel carries no fluid across it.</summary>
@@ -581,12 +663,18 @@ public static class Decorator
             }
 
         if (against == 0) return;
+        var at = $"({first!.Value.X}, {first.Value.Y}, {first.Value.Z})";
         declined.Add(new Finding(DressingRules.DryEdge,
-            $"fluid '{fluid.Id}' stands against {against} open column(s) of drawn ground — first at "
-            + $"({first!.Value.X}, {first.Value.Y}, {first.Value.Z}), where the basin is dug to the fluid's "
-            + "own depth and holds none. The hollow and the pool that fills it are two statements about one "
-            + "lake; where the hollow reaches further, the difference is a dry trench beside the fluid. Widen "
-            + "the pool onto the ground that was dug for it, or stop digging it there.",
+            fluid.Shape == FluidShape.Basin
+                ? $"fluid '{fluid.Id}' stands as a wall against {against} open column(s) of drawn ground — first "
+                  + $"at {at}, where the ground is lower than the line and the ring stops short of it, so nothing "
+                  + "holds the fluid back. Widen the ring over that ground, or lower the level to a rim the ring "
+                  + "encloses."
+                : $"fluid '{fluid.Id}' stands against {against} open column(s) of drawn ground — first at {at}, "
+                  + "where the basin is dug to the fluid's own depth and holds none. The hollow and the pool that "
+                  + "fills it are two statements about one lake; where the hollow reaches further, the difference "
+                  + "is a dry trench beside the fluid. Widen the pool onto the ground that was dug for it, or stop "
+                  + "digging it there.",
             Severity.Complaint, Subjects: [fluid.Id]));
     }
 

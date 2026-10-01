@@ -1062,7 +1062,7 @@ Seven things can be placed, in three placement geometries.
 | Tool | Kind | Placed by | Starts as |
 |---|---|---|---|
 | Stroke | `stroke` | tracing a line | gravel, radius 3, `solid`, coverage 0.7, paint rather than a route |
-| Fluid | `fluid` | tracing a line | water, a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank; `fluid: lava` fills the bed with lava, `shape: pool` fills a drawn ring instead, and `level` states a world Y where a basin has to hold it |
+| Fluid | `fluid` | tracing a line | water, a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank; `fluid: lava` fills the bed with lava, `shape: pool` fills a drawn ring instead, `shape: basin` fills only the ground in a ring lower than its `level` and cuts nothing, and `level` states the world Y the fluid stands at |
 | Ground cover | `flora` | tracing a ring | coverage 0.45 at scale 12, with fern and flower shares |
 | Building | `house` | dragging a rectangle | no style of its own until one is picked from the room-style library |
 | Tree | `tree` | a click | no recipe of its own until one is picked from the tree library |
@@ -1094,7 +1094,11 @@ declaration. Marking every stroke a claiming one is how a board ends up with now
 level line with water or lava, because water laid flat on a surface reads as blue paint. Its `shape` says what its points
 mean — a `channel` strokes them as a centerline and takes its width from `radius`, a `pool` closes them into a
 ring and fills it, which is the only way to make a harbour or a lake with square corners; on a pool `radius`
-is the shelf the bed takes to reach full depth. It fills round whatever stands in it and never cuts under it,
+is the shelf the bed takes to reach full depth. A `basin` closes them into a ring and cuts nothing: every column
+inside it whose ground stands lower than its `level` fills to that level and every other is left as it stood,
+so the ground draws the shore and a ring drawn loose round a dug hollow floods exactly the hollow. A basin
+states its `level`, and one that does not is refused `DR-DOC`; its beach follows the water rather than the
+ring. It fills round whatever stands in it and never cuts under it,
 so a ship moored in a harbour floats rather than sitting in a dry hole. Absent a `level` the line is
 derived — the lowest surface the channel crosses — and the prop only ever carves existing terrain: the cut
 stops at the surface it crosses and never fills what was already air. **`level` states the world Y instead**,
@@ -1269,6 +1273,8 @@ it the recipes a tree, a boulder or a building names by key. One of each:
   { "id": "d2b", "kind": "fluid", "seed": 6, "shape": "pool", "layer": "ground", "level": 12,
     "points": [[-30, 16], [-6, 16], [-6, 34], [-30, 34]], "radius": 6, "depth": 3, "shore": 2,
     "bank": { "kind": "solid", "id": 12, "data": 0 } },
+  { "id": "d2c", "kind": "fluid", "seed": 7, "shape": "basin", "level": 9,
+    "points": [[4, 16], [30, 16], [30, 34], [4, 34]], "shore": 2 },
   { "id": "d3", "kind": "flora", "seed": 3,
     "points": [[-38, 8], [-26, 8], [-26, 18], [-38, 18]],
     "spec": { "coverage": 0.45, "scale": 12, "octaves": 3,

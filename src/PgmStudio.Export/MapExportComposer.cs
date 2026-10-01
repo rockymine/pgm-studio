@@ -156,7 +156,7 @@ public static class MapExportComposer
         // this export writes — its houses, trees and lava standing where they stand — bridged where the
         // document the projection has just written grants building. It reads the spawns, wools and goals
         // the slices emit, so it cannot be asked before them.
-        if (RefuseUntraversable(doc, BuiltWalk.Ground(built, doc, layoutJson)) is { } cutOff) return cutOff;
+        if (RefuseUntraversable(doc, BuiltWalk.Ground(built, doc)) is { } cutOff) return cutOff;
 
         // EX2/EX3 — last, because it reads the document the slices have just written and compares it against
         // the intent they were written from. Every gate above it quantifies over a collection and so passes a

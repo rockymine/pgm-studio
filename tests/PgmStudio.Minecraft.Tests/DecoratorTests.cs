@@ -1310,6 +1310,87 @@ public sealed class DecoratorTests
         await Assert.That(atMiddle).IsGreaterThan(atShore);
     }
 
+    /// <summary>The plateau with a hollow dug into it over x and z 14..25, its floor at y3, and one column
+    /// at (20, 20) left standing in it as an island.</summary>
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> SurfaceTop) Hollow()
+    {
+        var (world, top) = Plateau();
+        for (var z = 14; z <= 25; z++)
+        for (var x = 14; x <= 25; x++)
+        {
+            if ((x, z) == (20, 20)) continue;
+            for (var y = 4; y <= 7; y++) world.SetBlock(x, y, z, Blocks.Air);
+            top[(x, z)] = 4;
+        }
+        return (world, top);
+    }
+
+    /// <summary><b>A basin fills the hollow and cuts nothing.</b> Its ring is drawn loose round the hollow,
+    /// over ground that stands above the line, and that ground — the rim and the island — is left exactly
+    /// as it stood, where a pool stating the same level cuts it down to the line.</summary>
+    [Test]
+    public async Task A_basin_fills_the_hollow_inside_its_ring_and_cuts_nothing()
+    {
+        var (world, top) = Hollow();
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
+        {
+            Id = "wash", Shape = FluidShape.Basin, Points = [[10, 10], [30, 10], [30, 30], [10, 30]],
+            Level = 6, Shore = 0, Edge = 0, Seed = 5, Bank = new SolidMaterial(Blocks.Sand),
+        }]));
+
+        foreach (var y in new[] { 4, 5, 6 })
+            await Assert.That(world.GetBlock(16, y, 16).Id).IsEqualTo(Blocks.StationaryWater);
+        await Assert.That(world.GetBlock(16, 7, 16).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(world.GetBlock(16, 3, 16).Id).IsEqualTo(Blocks.Sand).Because("the floor the shallows show");
+        foreach (var (x, z) in new[] { (12, 12), (28, 20), (20, 20) })
+        {
+            await Assert.That(world.GetBlock(x, 7, z).Id).IsEqualTo(Blocks.Grass)
+                .Because($"({x}, {z}) stands above the line inside the ring, and a basin cuts nothing");
+            await Assert.That(world.GetBlock(x, 6, z).Id).IsEqualTo(Blocks.Stone);
+        }
+        await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.DryEdge)).IsFalse();
+    }
+
+    /// <summary>A basin's beach is measured from the water it holds, so it runs along the hollow's own edge
+    /// and not along the ring drawn loose round it.</summary>
+    [Test]
+    public async Task A_basins_beach_follows_the_water_rather_than_the_ring()
+    {
+        var (world, top) = Hollow();
+        Decorator.Decorate(world, Context(top, [new FluidProp
+        {
+            Id = "wash", Shape = FluidShape.Basin, Points = [[8, 8], [32, 8], [32, 32], [8, 32]],
+            Level = 6, Shore = 2, ShoreWander = false, Edge = 0, Seed = 5, Bank = new SolidMaterial(Blocks.Sand),
+        }]));
+
+        foreach (var x in new[] { 12, 13 })
+            await Assert.That(world.GetBlock(x, 7, 17).Id).IsEqualTo(Blocks.Sand)
+                .Because($"x {x} is within two blocks of the water's edge at x 14");
+        foreach (var x in new[] { 11, 7, 6 })
+            await Assert.That(world.GetBlock(x, 7, 17).Id).IsEqualTo(Blocks.Grass)
+                .Because($"x {x} is further than two blocks from any water, whatever the ring");
+    }
+
+    /// <summary>Low ground the ring stops short of leaves the water standing against air, and the finding
+    /// says that it is a wall and what to widen.</summary>
+    [Test]
+    public async Task A_basin_whose_ring_stops_short_of_low_ground_stands_as_a_wall_and_says_so()
+    {
+        var (world, top) = Hollow();
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
+        {
+            Id = "wash", Shape = FluidShape.Basin, Points = [[14, 14], [20, 14], [20, 26], [14, 26]],
+            Level = 6, Shore = 0, Edge = 0, Seed = 5,
+        }]));
+
+        var wall = report.Declines.Single(finding => finding.Rule == DressingRules.DryEdge);
+        await Assert.That(wall.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(wall.Message).Contains("wash");
+        await Assert.That(wall.Message).Contains("ring");
+        await Assert.That(world.GetBlock(17, 6, 17).Id).IsEqualTo(Blocks.StationaryWater);
+        await Assert.That(world.GetBlock(23, 6, 17).Id).IsEqualTo(Blocks.Air);
+    }
+
     [Test]
     public async Task A_channel_over_a_void_leaves_the_void_alone()
     {

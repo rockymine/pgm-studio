@@ -18,13 +18,18 @@ public enum ChannelForm
 /// <summary>What a body of water or lava is drawn as, which is what its own points mean. A <see cref="Channel"/>
 /// strokes them as a centerline and takes its width from a radius; a <see cref="Pool"/> closes them into a
 /// ring and fills it. The bowl is the same law either way — deepest away from the shore, one block at it —
-/// and only the distance it is measured along differs, which is the argument for one prop rather than two.</summary>
+/// and only the distance it is measured along differs, which is the argument for one prop rather than two. A
+/// <see cref="Basin"/> cuts no bowl at all: the ground it floods is the bed.</summary>
 public enum FluidShape
 {
     /// <summary>A stroked line: a canal, a river, a moat.</summary>
     Channel,
-    /// <summary>A filled ring: a harbour, a lake, a flooded basin. A rectangle is four points.</summary>
+    /// <summary>A filled ring: a harbour, a lake. A rectangle is four points.</summary>
     Pool,
+    /// <summary>A ring the fluid rises in to a stated level and cuts nothing in: every cell inside it whose
+    /// ground stands lower than the line fills, and every other is left as it stands, so the ground draws the
+    /// shore and the ring only bounds it. A hollow the sketch already dug, flooded.</summary>
+    Basin,
 }
 
 /// <summary>One cell a channel carves: where it is, and how deep the bed is cut below the line there —
@@ -122,6 +127,41 @@ public static class FluidBed
         {
             var bowl = Math.Clamp(inset / reach, 0, 1);
             yield return new BedCell(x, z, Math.Max(1, (int)Math.Round(1 + (depth - 1) * bowl)));
+        }
+    }
+
+    /// <summary>Every cell inside a basin's <paramref name="ring"/>, with the natural edge a pool's ring carries.
+    /// Which of them hold fluid is the ground's answer rather than the ring's — only a cell whose surface
+    /// stands lower than the line fills — so these are the most a basin can wet, not what it does.</summary>
+    public static IEnumerable<(int X, int Z)> BasinCells(IReadOnlyList<double[]> ring, double edge, uint seed) =>
+        ring.Count < 3 ? [] : RingCells(ring, edge, seed).Select(cell => (cell.X, cell.Z));
+
+    /// <summary>The beach a basin meets the land through: every cell within the shore's width of the fluid it
+    /// holds and not itself wet. Measured from <paramref name="wet"/>, which the ground decided, rather than
+    /// from the ring, because a basin's shore is the hollow's own contour and the ring only bounds it. The
+    /// width wanders over the same field a pool's beach does, dropping to nothing in places.</summary>
+    public static IEnumerable<(int X, int Z)> BasinShoreCells(
+        IReadOnlySet<(int X, int Z)> wet, double shoreWidth, bool wander, uint seed)
+    {
+        if (wet.Count == 0 || shoreWidth <= 0) yield break;
+        var reach = (int)Math.Ceiling(shoreWidth + 0.5);
+        var near = new SortedSet<(int X, int Z)>();
+        foreach (var (x, z) in wet)
+            for (var dx = -reach; dx <= reach; dx++)
+            for (var dz = -reach; dz <= reach; dz++)
+                if (!wet.Contains((x + dx, z + dz))) near.Add((x + dx, z + dz));
+
+        foreach (var (x, z) in near)
+        {
+            var width = wander
+                ? Math.Max(0, shoreWidth * (1.9 * PatternNoise.Value(x, z, seed + 91, ShoreScale) - 0.25))
+                : shoreWidth;
+            // From the cell's centre to the near face of the closest wet cell, so a neighbour is half a block off.
+            var closest = double.MaxValue;
+            for (var dx = -reach; dx <= reach; dx++)
+            for (var dz = -reach; dz <= reach; dz++)
+                if (wet.Contains((x + dx, z + dz))) closest = Math.Min(closest, Math.Sqrt(dx * dx + dz * dz));
+            if (closest - 0.5 <= width) yield return (x, z);
         }
     }
 

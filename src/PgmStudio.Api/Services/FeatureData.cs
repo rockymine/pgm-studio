@@ -136,7 +136,7 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts, PgmStudio.
             var layoutJson = System.Text.Encoding.UTF8.GetString(layout);
             var intent = await artifacts.LoadJsonOrEmptyAsync<PgmStudio.Pgm.Authoring.MapIntent>(
                 mapId, ArtifactKind.MapIntentJson, ct);
-            return PgmStudio.Export.BuiltWalk.Ground(PgmStudio.Export.BuiltWorlds.Of(layoutJson, intent), doc, layoutJson);
+            return PgmStudio.Export.BuiltWalk.Ground(PgmStudio.Export.BuiltWorlds.Of(layoutJson, intent), doc);
         }
         return WorldWalk.Ground(doc, await SegmentsAsync(mapId, ct), bbox: grid);
     }

@@ -172,8 +172,9 @@ public sealed record FluidProp : PlacedProp
 
     /// <summary>What the fluid is drawn as, which is what <see cref="Points"/> means: a
     /// <see cref="FluidShape.Channel"/> strokes them as a centerline, a <see cref="FluidShape.Pool"/> closes
-    /// them into a ring and fills it. A harbour, a lake or a flooded basin is a pool; a canal, a river or a
-    /// moat is a channel.</summary>
+    /// them into a ring and fills it, and a <see cref="FluidShape.Basin"/> closes them into a ring and fills
+    /// only the ground in it that stands lower than its <see cref="Level"/>. A harbour or a lake is a pool; a
+    /// canal, a river or a moat is a channel; a hollow the sketch already dug, flooded, is a basin.</summary>
     public FluidShape Shape { get; init; } = FluidShape.Channel;
 
     /// <summary>The drawn points, as <c>[x, z]</c> pairs — a centerline for a channel, an outline for a pool.
@@ -193,11 +194,12 @@ public sealed record FluidProp : PlacedProp
     /// surface the channel crosses and the fill never rises past a column's own surface — a channel cut into
     /// ground that was already there.
     ///
-    /// <para>Stated, the line is that Y and the fill reaches it whatever the column beneath is doing, which is
-    /// what fills a basin: ground dug out in the sketch has no surface up at the line for a derived one to find,
-    /// so a lake, a harbour or the water a ship floats on can only be stated. What the author owns then is the
-    /// rim — the fluid rises to the line inside the prop's own footprint and nowhere else, so a line above the
-    /// surrounding ground stands as a wall of it rather than spilling.</para></summary>
+    /// <para>Stated, the line is that Y. A channel or a pool then fills to it whatever the column beneath is
+    /// doing: ground dug out in the sketch has no surface up at the line for a derived one to find, so the
+    /// water a ship floats on can only be stated. What the author owns then is the rim — the fluid rises to the
+    /// line inside the prop's own footprint and nowhere else, so a line above the surrounding ground stands as a
+    /// wall of it rather than spilling. A <see cref="FluidShape.Basin"/> fills only the columns lower than the
+    /// line and cuts nothing, so its rim is the ground; a basin states its level, having no other.</para></summary>
     public double? Level { get; init; }
 
     public ChannelForm Form { get; init; } = ChannelForm.Canal;
