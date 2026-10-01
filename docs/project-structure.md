@@ -102,7 +102,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 26 | 4,917 | `Playability/` 15 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 143 | 19,902 | `Endpoints/` 72 · `Services/` 55 · `Access/` 12 · `Http/` 3 · 1 at root |
+| `Api` | 143 | 19,964 | `Endpoints/` 72 · `Services/` 55 · `Access/` 12 · `Http/` 3 · 1 at root |
 | `Client` | 212 | 27,205 | `Features/` 124 (nested) · `Components/` 67 (nested) · `Pages/` 11 · `Models/` 4 · `Layout/` 3 · 3 at root |
 | `Contracts` | 36 | 4,055 | flat |
 | `Data` | 23 | 3,928 | `Map/` 7 · `Features/` 5 · `Theme/` 4 · `Access/` 2 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
@@ -112,7 +112,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Import` | 4 | 496 | flat |
 | `Migrations` | 55 | 3,332 | `Migrations/` 54 · 1 at root |
 | `Minecraft` | 108 | 23,451 | `Render/` 19 · `Palette/` 17 · `Stamping/` 17 · `Anvil/` 13 · `Painting/` 13 · `Dressing/` 12 · `Houses/` 11 · `Views/` 4 · `Suggest/` 1 · 1 at root |
-| `Pgm` | 164 | 31,938 | `Compose/` 43 (nested) · `Authoring/` 28 · `Evaluate/` 22 (nested) · `Editing/` 11 · `Plan/` 11 · `Shapes/` 10 · `Sketch/` 10 · `Derive/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
+| `Pgm` | 164 | 31,972 | `Compose/` 43 (nested) · `Authoring/` 28 · `Evaluate/` 22 (nested) · `Editing/` 11 · `Plan/` 11 · `Shapes/` 10 · `Sketch/` 10 · `Derive/` 9 · `Render/` 5 · `Detect/` 1 · 14 at root |
 | `Vocabulary` | 24 | 1,636 | flat |
 <!-- /census -->
 

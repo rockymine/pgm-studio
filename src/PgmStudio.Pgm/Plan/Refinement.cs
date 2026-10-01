@@ -71,7 +71,7 @@ public sealed record Refinement
     /// <summary>The map's own date, as the intent's <c>meta.created</c>.</summary>
     [JsonPropertyName("created")] public string? Created { get; init; }
 
-    /// <summary>Who the map credits: a bare name, or <c>{uuid, name, role, contribution}</c>.</summary>
+    /// <summary>Who the map credits: a bare name, or <c>{name, contribution}</c>.</summary>
     [JsonPropertyName("authors")] public List<JsonElement>? Authors { get; init; }
 
     /// <summary>The capture points, every one stated, already fanned.</summary>
@@ -150,7 +150,7 @@ public sealed record Refinement
 
     private static JsonNode Used(JsonNode node, string path, JsonObject registry, List<Finding> findings)
     {
-        if (node is JsonObject stated && stated["use"] is JsonValue name && name.TryGetValue<string>(out var used))
+        if (node is JsonObject stated && stated[StatedName.UseKey] is JsonValue name && name.TryGetValue<string>(out var used))
         {
             if (registry[used] is not { } material)
             {
@@ -162,7 +162,7 @@ public sealed record Refinement
             }
             var beside = new JsonObject();
             foreach (var (field, value) in stated)
-                if (field != "use") beside[field] = value?.DeepClone();
+                if (field != StatedName.UseKey) beside[field] = value?.DeepClone();
             return LaidOver(material, beside)!;
         }
         switch (node)
@@ -188,7 +188,8 @@ public sealed record Refinement
     /// <c>library</c> — replaces too, since it stands for a whole thing of its own.</summary>
     public static JsonNode? LaidOver(JsonNode? copy, JsonNode? stated)
     {
-        if (copy is JsonObject into && stated is JsonObject over && !over.ContainsKey("use") && !over.ContainsKey("library"))
+        if (copy is JsonObject into && stated is JsonObject over
+            && !over.ContainsKey(StatedName.UseKey) && !over.ContainsKey(StatedName.LibraryKey))
         {
             var merged = into.DeepClone().AsObject();
             foreach (var (key, value) in over) merged[key] = LaidOver(merged[key], value);
@@ -273,10 +274,10 @@ public sealed record Refinement
         foreach (var (entry, index) in added.OfType<JsonObject>().Select((entry, index) => (entry, index)))
         {
             var shape = entry.DeepClone().AsObject();
-            var layerId = shape["layer"]?.GetValue<string>() ?? groundId ?? SketchLayer.GroundId;
-            var groupId = shape["group"]?.GetValue<string>();
-            shape.Remove("layer");
-            shape.Remove("group");
+            var layerId = shape[ShapeJoin.LayerKey]?.GetValue<string>() ?? groundId ?? SketchLayer.GroundId;
+            var groupId = shape[ShapeJoin.GroupKey]?.GetValue<string>();
+            shape.Remove(ShapeJoin.LayerKey);
+            shape.Remove(ShapeJoin.GroupKey);
             groupId ??= FirstGroup(layoutJson, layerId);
 
             var edit = SketchGeometryEdit.AddShape(layoutJson, layerId, shape, groupId);
@@ -445,6 +446,39 @@ public sealed record AddedLayer(
     [property: JsonPropertyName("seat")] string? Seat = null,
     [property: JsonPropertyName("shapes")] List<SketchShape>? Shapes = null,
     [property: JsonPropertyName("groups")] List<SketchGroup>? Groups = null);
+
+/// <summary>A name standing where a refinement states a material, a theme, a room style, a prop style or a
+/// biome, instead of the thing itself: <c>{"use": name}</c> for a material the refinement's own
+/// <c>materials</c> states, <c>{"library": name or id}</c> for a row of the studio's library. The fields stated
+/// beside it are laid over the copy, member by member. Besides the registry entries the schema names it at, it
+/// may stand for a material wherever one is stated, for a recipe in <c>dressing.styles</c> and for a room
+/// style in <c>roomStyles</c>.</summary>
+/// <param name="Use">A material the refinement's own <c>materials</c> states, by its name there.</param>
+/// <param name="Library">A row of the studio's library, by its name or its id. A name two rows share is
+/// refused, and the id names one.</param>
+/// <param name="Row">The row the name resolved to when the source was applied, written by the studio into the
+/// refinement the map keeps and read to say whether the row has moved on since.</param>
+/// <param name="Hash">A hash of what that apply copied, written beside <paramref name="Row"/>.</param>
+public sealed record StatedName(
+    [property: JsonPropertyName(StatedName.UseKey)] string? Use = null,
+    [property: JsonPropertyName(StatedName.LibraryKey)] JsonElement? Library = null,
+    [property: JsonPropertyName(StatedName.RowKey)] long? Row = null,
+    [property: JsonPropertyName(StatedName.HashKey)] string? Hash = null)
+{
+    public const string UseKey = "use", LibraryKey = "library", RowKey = "row", HashKey = "hash";
+}
+
+/// <summary>Where a shape drawn by <see cref="Refinement.AddShapes"/> joins the board, stated beside the shape's
+/// own fields.</summary>
+/// <param name="Layer">The layer it is drawn onto. Absent is the compiled ground.</param>
+/// <param name="Group">The group it joins, which is a new group where the layer has none by that id. Absent is
+/// the layer's first.</param>
+public sealed record ShapeJoin(
+    [property: JsonPropertyName(ShapeJoin.LayerKey)] string? Layer = null,
+    [property: JsonPropertyName(ShapeJoin.GroupKey)] string? Group = null)
+{
+    public const string LayerKey = "layer", GroupKey = "group";
+}
 
 /// <summary>One point edit to an outline: exactly one of <see cref="After"/> (insert a point on that edge, at its
 /// midpoint where no <c>x</c>/<c>z</c> is stated), <see cref="Index"/> (move that point to <c>x</c>/<c>z</c>) or

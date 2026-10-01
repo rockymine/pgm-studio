@@ -831,7 +831,8 @@ Both `/json` endpoints answer a **string in a field** rather than the document �
 **A map's source names a row by what it is called.** `{"library": "dunes"}` — or `{"library": 12}` by id, where
 several rows share a name — stands wherever a refinement states a thing the library holds, and what it names is
 decided by where it stands. An entry of `themes` is a theme, of `roomStyles` a room style, of `dressing.styles`
-the prop style its `kind` says, the `biome` a biome, and anything else a material.
+the prop style its `kind` says, the `biome` a biome, and anything else a material. The schema publishes a name
+as `StatedName`, offered beside the type it stands for at a refinement's `themes`, `materials` and `biome`.
 
 **The fields stated beside a name are laid over the copy**, an object member by member and anything else
 whole, so a theme can be the library's with one bucket changed. A name stated inside those fields is resolved

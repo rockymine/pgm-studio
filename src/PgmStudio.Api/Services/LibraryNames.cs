@@ -39,8 +39,6 @@ public sealed class LibraryNames(
     private static readonly string[] Members =
         ["materials", "themes", "roomStyles", "dressing", "biome", "addShapes", "addLayers", "shapePropsById", "shapePropsByHeight"];
 
-    /// <summary>The members a kept name carries beside what was stated.</summary>
-    private const string Row = "row", Hash = "hash";
 
     public async Task<LibraryResolved> ResolveAsync(string refinementJson, CancellationToken ct)
     {
@@ -87,10 +85,10 @@ public sealed class LibraryNames(
             if (kept[member] is { } node)
                 foreach (var (path, named) in Named(node, member))
                 {
-                    if (named[Row] is not JsonValue row || !row.TryGetValue<long>(out var id)) continue;
+                    if (named[StatedName.RowKey] is not JsonValue row || !row.TryGetValue<long>(out var id)) continue;
                     var kind = KindAt(path, named);
                     var now = await CopyAsync(kind, id, ct);
-                    var hash = named[Hash]?.GetValue<string>();
+                    var hash = named[StatedName.HashKey]?.GetValue<string>();
                     if (now is null || Hashed(now.Value.Json) != hash)
                         behind.Add(new LibraryBehindDto(path, kind, id, now?.Name, Gone: now is null));
                 }
@@ -109,20 +107,21 @@ public sealed class LibraryNames(
     private async Task WalkAsync(
         JsonNode node, string path, JsonNode kept, Action<JsonNode> replace, Resolution resolution, CancellationToken ct)
     {
-        if (node is JsonObject stated && stated["library"] is JsonValue name)
+        if (node is JsonObject stated && stated[StatedName.LibraryKey] is JsonValue name)
         {
             var kind = KindAt(path, stated);
             var found = await FindAsync(kind, name, path, resolution, ct);
             if (found is not { } copy) return;
             var beside = new JsonObject();
             foreach (var (key, value) in stated)
-                if (key is not ("library" or Row or Hash)) beside[key] = value?.DeepClone();
+                if (key is not (StatedName.LibraryKey or StatedName.RowKey or StatedName.HashKey))
+                    beside[key] = value?.DeepClone();
             var merged = Refinement.LaidOver(JsonNode.Parse(copy.Json), beside)!;
             replace(merged);
             if (kept is JsonObject record)
             {
-                record[Row] = copy.Id;
-                record[Hash] = Hashed(copy.Json);
+                record[StatedName.RowKey] = copy.Id;
+                record[StatedName.HashKey] = Hashed(copy.Json);
             }
             if (path.StartsWith("themes.", StringComparison.Ordinal) && path.Count(c => c == '.') == 1)
                 resolution.ThemeRows[path["themes.".Length..]] = copy.Id;
@@ -153,7 +152,7 @@ public sealed class LibraryNames(
 
     private static IEnumerable<(string Path, JsonObject Named)> Named(JsonNode node, string path)
     {
-        if (node is JsonObject named && named["library"] is not null) yield return (path, named);
+        if (node is JsonObject named && named[StatedName.LibraryKey] is not null) yield return (path, named);
         switch (node)
         {
             case JsonObject members:

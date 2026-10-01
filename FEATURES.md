@@ -8595,6 +8595,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `WireJsonTests` reads a board stating one of every closed set through every GET route its slug reaches and
   validates each answer against its schema, with every key declared. (`Api/Endpoints/WireJson`,
   `Api/Endpoints/ComputedFields`, `Api/Endpoints/WordSetSchemas`, `docs/architecture.md`)
+- **Every field says what it holds (part of `RP93`).** 41 fields reached the document with no type — a layout's
+  themes and room shells, a shape's material, the documents `CompiledPlanDto`, `MapSourceDto` and
+  `MapChangeDocumentsDto` carry whole, a refinement's statements, a region's extent. `CarriedShapes` now names
+  each one's type: a refinement's `themes`, `materials` and `biome` take the thing or a `StatedName` standing for
+  it, its `addShapes` a `SketchShape` with a `ShapeJoin` beside it. `StatedName` and `ShapeJoin` are also where
+  the walkers spell the keys `use`, `library`, `row`, `hash`, `layer` and `group`. Sixteen fields stay open by
+  design and `SchemaCompletenessTests` names each. (`Api/Endpoints/CarriedShapes`, `Pgm/Plan/Refinement`,
+  `docs/architecture.md`, `docs/tools/library.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

@@ -128,6 +128,81 @@ public sealed class SchemaCompletenessTests
         await Assert.That(silent.Order(StringComparer.Ordinal)).IsEmpty();
     }
 
+    /// <summary>The count of fields still publishing no shape at all, and it is zero: a field held as raw JSON
+    /// names the type it holds (<c>CarriedShapes</c>), and the few whose encoding is open by design are named in
+    /// <see cref="Open"/>. A field added as raw JSON with no type named pushes it up and fails here.</summary>
+    private const int StillShapeless = 0;
+
+    /// <summary><b>A field says what it holds.</b> A field published with no type is one a generated client types
+    /// <c>object</c> and <c>/api-docs</c> offers nothing under, so a caller learns what it holds by being refused
+    /// — and a map of them, or a list, is the same hole one level down.</summary>
+    [Test]
+    public async Task Every_field_says_what_it_holds()
+    {
+        var schemas = (await DocumentAsync()).GetProperty("components").GetProperty("schemas");
+
+        var shapeless = schemas.EnumerateObject()
+            .SelectMany(schema => Fields(schema.Value).Select(field => (Name: $"{schema.Name}.{field.Name}", field.Value)))
+            .Where(field => Shapeless(field.Value) && !Open.Contains(field.Name))
+            .Select(field => field.Name)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        await Assert.That(shapeless.Count).IsLessThanOrEqualTo(StillShapeless)
+            .Because($"{shapeless.Count} field(s) publish no shape:{Environment.NewLine}  "
+                     + string.Join($"{Environment.NewLine}  ", shapeless));
+    }
+
+    /// <summary>And the open list stays honest from the other side: a field on it that gains a shape belongs to
+    /// the count instead, and one that stops existing would otherwise leave a name nothing checks.</summary>
+    [Test]
+    public async Task The_fields_open_by_design_publish_no_shape()
+    {
+        var schemas = (await DocumentAsync()).GetProperty("components").GetProperty("schemas");
+        var fields = schemas.EnumerateObject()
+            .SelectMany(schema => Fields(schema.Value).Select(field => (Name: $"{schema.Name}.{field.Name}", field.Value)))
+            .ToDictionary(field => field.Name, field => field.Value, StringComparer.Ordinal);
+
+        foreach (var name in Open)
+        {
+            await Assert.That(fields.ContainsKey(name)).IsTrue().Because($"{name} is not in the document");
+            await Assert.That(Shapeless(fields[name])).IsTrue().Because($"{name} publishes a shape and is named open");
+        }
+    }
+
+    /// <summary>The fields whose encoding is open by design. The map document's are the <c>map.xml</c> codec's
+    /// own encodings, which <c>MapDocumentDto</c> keeps open rather than walk them a second time; the other three
+    /// hold any value a field can.</summary>
+    private static readonly string[] Open =
+    [
+        "MapDocumentDto.kits", "MapDocumentDto.spawners", "MapDocumentDto.renewables",
+        "MapDocumentDto.block_drop_rules", "MapDocumentDto.filters", "MapDocumentDto.regions",
+        "MapDocumentDto.apply_rules", "MapDocumentDto.destroyables", "MapDocumentDto.cores", "MapDocumentDto.modes",
+        "MapSpawnDto.region", "MapWoolDto.location", "MapMonumentDto.location",
+        "DocumentEdit.before", "DocumentEdit.value", "MaterialFieldDto.default",
+    ];
+
+    /// <summary>A schema's own fields, and those of the part of its <c>allOf</c> that is not its base.</summary>
+    private static IEnumerable<JsonProperty> Fields(JsonElement schema)
+    {
+        if (schema.TryGetProperty("properties", out var own))
+            foreach (var field in own.EnumerateObject()) yield return field;
+        if (schema.TryGetProperty("allOf", out var parts))
+            foreach (var part in parts.EnumerateArray())
+                if (part.TryGetProperty("properties", out var inherited))
+                    foreach (var field in inherited.EnumerateObject()) yield return field;
+    }
+
+    /// <summary>Whether a field's schema says nothing about what it holds — or is a map or a list of such.</summary>
+    private static bool Shapeless(JsonElement field)
+    {
+        string[] shaping = ["type", "$ref", "oneOf", "anyOf", "allOf", "enum", "properties"];
+        if (!shaping.Any(key => field.TryGetProperty(key, out _))) return true;
+        if (field.TryGetProperty("additionalProperties", out var values) && values.ValueKind == JsonValueKind.Object
+            && Shapeless(values)) return true;
+        return field.TryGetProperty("items", out var items) && Shapeless(items);
+    }
+
     /// <summary>The fields with no docstring to read, because they have no declaration: a polymorphic base
     /// publishes a discriminator the generator synthesises, and no property carries it. Named rather than
     /// counted, so a genuinely undocumented field cannot hide behind them.</summary>

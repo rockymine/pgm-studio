@@ -103,12 +103,16 @@ kinds and box kinds — and `WordSetSchemaTests` holds each to the words its cla
 being published by something. The words are still stated once, where they were stated already; nothing is
 copied into the document.
 
-**And a field held as raw JSON names the type it holds.** A layout is declared in `Pgm`, and its dressing
-and biome are `Minecraft`'s types, which `Pgm` cannot reach — so both are raw JSON in the record, and the
-whole-layout route published each as a sentence over no shape while `sketch/props` and `sketch/biome`
-published the whole model. The composition root reaches both projects, so a schema processor there,
-`CarriedShapes`, publishes such a field as a reference to its type and keeps the field's own description;
-`CarriedShapesTests` holds the layout's dressing to `DressingDoc` and its biome to `BiomeField`.
+**And a field held as raw JSON names the type it holds.** A field is raw JSON where its type lives in a
+project the declaring one cannot reach: a layout is declared in `Pgm` and its finish — dressing, biome, themes,
+room shells, a shape's material — is `Minecraft`'s, and an answer in `Contracts` that carries a whole plan,
+layout, intent or refinement cannot name the document's type. The composition root reaches every project, so a
+schema processor there, `CarriedShapes`, publishes each such field as a reference to what it holds and keeps the
+field's own description: a refinement's `themes` are each a `TerrainTheme` or a `StatedName` standing for one,
+its `addShapes` a `SketchShape` with a `ShapeJoin` beside it, a region's extent a number or the infinity
+`map.xml` spells as a word. Sixteen fields stay open by design — the map document's `map.xml` encodings, which
+`MapDocumentDto` keeps rather than walk them twice, a diff's value and a material field's default — and
+`SchemaCompletenessTests` names each one and holds every other field to publishing a shape.
 
 **And what a route answers is what its schema says.** The document is generated with the options the
 endpoints write with (`WireJson`), so a closed set listed as words crosses as words: a stroke's `style` is
