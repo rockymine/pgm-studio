@@ -116,7 +116,7 @@ public sealed class RoomStyleLibraryEndpointsTests
         // half-course slab in the material the roof body is laid in (HS3).
         const int StoneBricks = 98, StoneBrickStairs = 109, StoneBrickSlabData = 5;
         var brick = await StyleAsync(client, "stone bricks", StoneBricks);
-        var draft = Draft("full house", new RoomCourseDto(RoomParts.Roof, 0, brick, 1)) with
+        var draft = Draft("stone-brick-roofed-house", new RoomCourseDto(RoomParts.Roof, 0, brick, 1)) with
         {
             RoofForm = RoofForms.Gable,
             Windows = new RoomWindowDto(WindowForms.StairLattice, Blocks.CobblestoneStairs, 0, 2, 2, 2, 3,
@@ -166,7 +166,7 @@ public sealed class RoomStyleLibraryEndpointsTests
 
         const int StoneBricks = 98, StoneBrickStairs = 109, StoneBrickSlabData = 5;
         var brick = await StyleAsync(client, "stone bricks", StoneBricks);
-        var draft = Draft("round trip", new RoomCourseDto(RoomParts.Roof, 0, brick, 1)) with
+        var draft = Draft("stone-brick-roofed-cottage", new RoomCourseDto(RoomParts.Roof, 0, brick, 1)) with
         {
             RoofForm = RoofForms.Gable,
             Windows = new RoomWindowDto(WindowForms.StairLattice, Blocks.CobblestoneStairs, 0, 2, 2, 2, 3,
@@ -207,7 +207,7 @@ public sealed class RoomStyleLibraryEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var saved = await (await client.PostAsJsonAsync("/api/room-styles", Draft("plain house")))
+        var saved = await (await client.PostAsJsonAsync("/api/room-styles", Draft("stone-house")))
             .Content.ReadFromJsonAsync<RoomStyleDetail>();
         var read = await client.GetFromJsonAsync<RoomStyleDetail>($"/api/room-styles/{saved!.Id}");
 
@@ -226,7 +226,7 @@ public sealed class RoomStyleLibraryEndpointsTests
         var stone = await StyleAsync(client, "stone", Blocks.Stone);
         var clay = await StyleAsync(client, "clay", Blocks.StainedClay);
 
-        var created = await (await client.PostAsJsonAsync("/api/room-styles", Draft("bunker",
+        var created = await (await client.PostAsJsonAsync("/api/room-styles", Draft("squat-stone-house",
                 new RoomCourseDto(RoomParts.Wall, 0, stone, 3),
                 new RoomCourseDto(RoomParts.Wall, 1, clay, 1),
                 new RoomCourseDto(RoomParts.Wall, 2, stone, 1),
@@ -321,12 +321,31 @@ public sealed class RoomStyleLibraryEndpointsTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var stone = await StyleAsync(client, "stone", Blocks.Stone);
-        await client.PostAsJsonAsync("/api/room-styles", Draft("bunker", new RoomCourseDto(RoomParts.Wall, 0, stone, 1)));
+        await client.PostAsJsonAsync("/api/room-styles", Draft("squat-stone-house", new RoomCourseDto(RoomParts.Wall, 0, stone, 1)));
 
         var refused = await client.DeleteAsync($"/api/styles/{stone}");
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
         var why = await refused.Content.ReadFromJsonAsync<RefusalDto>();
-        await Assert.That(why!.Findings.SelectMany(finding => finding.SubjectIds)).Contains("bunker");
+        await Assert.That(why!.Findings.SelectMany(finding => finding.SubjectIds)).Contains("squat-stone-house");
+    }
+
+    /// <summary>A room style named for where it was used rather than what it is is refused on save, and the two
+    /// lists a name is made from are served, so the refusal can be answered without guessing.</summary>
+    [Test]
+    public async Task A_room_style_named_for_a_board_is_refused_and_the_words_are_served()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var refused = await client.PostAsJsonAsync("/api/room-styles", Draft("showcase-hall"));
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var why = await refused.Content.ReadFromJsonAsync<RefusalDto>();
+        await Assert.That(why!.Findings.Single().Rule).IsEqualTo("HS19");
+
+        var words = await client.GetFromJsonAsync<HouseNameWordsDto>("/api/room-styles/name-words");
+        await Assert.That(words!.Buildings).Contains("hall");
+        await Assert.That(words.Describing).Contains("roofed");
+        await Assert.That(words.Describing).DoesNotContain("showcase");
     }
 
     [Test]
@@ -336,7 +355,7 @@ public sealed class RoomStyleLibraryEndpointsTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         await Assert.That((await client.GetAsync("/api/room-styles/404")).StatusCode).IsEqualTo(HttpStatusCode.NotFound);
-        await Assert.That((await client.PutAsJsonAsync("/api/room-styles/404", Draft("ghost"))).StatusCode)
+        await Assert.That((await client.PutAsJsonAsync("/api/room-styles/404", Draft("stone-hut"))).StatusCode)
             .IsEqualTo(HttpStatusCode.NotFound);
     }
 

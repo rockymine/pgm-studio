@@ -142,9 +142,9 @@ public sealed class LibraryNamesTests
                 scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.PropStyleStore>()).SeedAsync();
 
         var stored = await client.PutAsJsonAsync(Source, Body(JsonDocument.Parse("""
-            {"roomStyles": {"spawn": {"library": "showcase-hall"}},
+            {"roomStyles": {"spawn": {"library": "brick-roofed-stone-and-dark-oak-house"}},
              "dressing": {"props": [{"id": "store", "kind": "house", "seed": 1, "wings": [{"corners": [[2, 2], [9, 8]]}],
-                                     "style": {"library": "showcase-hall", "foundation": {"footing": {"kind": "solid", "id": 4}}}}]}}
+                                     "style": {"library": "brick-roofed-stone-and-dark-oak-house", "doorway": {"height": 4}}}]}}
             """).RootElement));
         await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
 
@@ -153,11 +153,11 @@ public sealed class LibraryNamesTests
         var prop = layout.GetProperty("dressing").GetProperty("props")[0].GetProperty("style");
         await Assert.That(prop.TryGetProperty("library", out _)).IsFalse().Because("the prop holds the copy, not the name");
         await Assert.That(prop.GetProperty("roof").GetRawText()).IsEqualTo(spawn.GetProperty("roof").GetRawText());
-        await Assert.That(prop.GetProperty("foundation").GetProperty("footing").GetProperty("id").GetInt32()).IsEqualTo(4)
+        await Assert.That(prop.GetProperty("doorway").GetProperty("height").GetInt32()).IsEqualTo(4)
             .Because("what is stated beside the name is laid over the copy");
         var kept = (await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/refinement"))
             .GetProperty("dressing").GetProperty("props")[0].GetProperty("style");
-        await Assert.That(kept.GetProperty("library").GetString()).IsEqualTo("showcase-hall");
+        await Assert.That(kept.GetProperty("library").GetString()).IsEqualTo("brick-roofed-stone-and-dark-oak-house");
         await Assert.That(kept.GetProperty("row").GetInt64()).IsGreaterThan(0);
     }
 

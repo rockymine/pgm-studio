@@ -33,14 +33,14 @@ const page = await newPage(browser);
 const solid = { kind: "solid", id: 1, data: 0 };
 const voronoi = {
   kind: "voronoi", cellSize: 9, rise: 0, seed: 3,
-  bands: [{ depth: 1, material: solid }, { depth: 2, material: { kind: "solid", id: 2, data: 0 } }],
+  bands: [{ depth: 1, material: solid }, { depth: 2, material: { kind: "solid", id: 4, data: 0 } }],
 };
 const style = await api("/styles", { method: "POST", body: {
   name: "E2E control row", kind: "layered",
   params: JSON.stringify({ kind: "layered", layers: [{ thickness: 1, material: voronoi }] }),
 } });
 const room = await api("/room-styles", { method: "POST", body: {
-  name: "E2E control room", floorDepth: 1, wallHeight: 5, roofThickness: 1,
+  name: "flat-roofed-stone-hall", floorDepth: 1, wallHeight: 5, roofThickness: 1,
   roofForm: "flat", roofHole: false, door: "oak_door", doorHeight: 3,
   windows: { form: "none", block: 0, data: 0, sill: 0, width: 0, height: 0, spacing: 0 },
   storeyStack: [],
@@ -146,7 +146,7 @@ const stylesEditorGlyphs = "style editor";
 clearFaults(page);
 await page.goto(`${BASE}/library/houses`, { waitUntil: "networkidle", timeout: 30000 });
 await page.waitForSelector(".lib-card", { timeout: 20000 });
-await page.locator(".lib-card", { hasText: "E2E control room" }).locator(".lib-card-fig").click();
+await page.locator(".lib-card", { hasText: "flat-roofed-stone-hall" }).locator(".lib-card-fig").click();
 await page.waitForSelector(".lib-outline-row", { timeout: 20000 });
 await page.locator(".lib-outline-row", { hasText: "Walls" }).click();
 await page.waitForSelector(".lib-bind", { timeout: 20000 });

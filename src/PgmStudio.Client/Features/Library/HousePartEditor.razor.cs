@@ -115,7 +115,7 @@ public partial class HousePartEditor
                 storey = new StoreyStyleSaveRequest("", 3, 1, 2, NoWindows, []);
                 break;
             default:
-                porch = new PorchStyleSaveRequest("", 2, 0, PorchEdges.Front, RoofForms.Shed, OakFence);
+                porch = new PorchStyleSaveRequest("", 2, 0, PorchEdges.Front, RoofForms.Gable, OakFence);
                 break;
         }
     }

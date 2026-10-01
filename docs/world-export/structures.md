@@ -409,6 +409,13 @@ after all.
 The height that survives is the one the author asked for when they set the pitch. What the long side decides is
 how far the roof runs, and nothing about how high it stands.
 
+**No style is saved with a shed.** A lean-to is not a roof a building on a map wears (author), so `HS14` refuses
+the form wherever it can be stated: a house's `roof.form`, the canopy over its porch, a wing's own `form` on a
+placed building, and a roof or a porch saved to the library on its own. The field is still read and built, so a
+document posted with one stamps it until the step that gates it refuses; every shed stored before the rule — a
+library row, a map's current sketch or refinement — was carried to a gable (`M0056`). The editors no longer
+offer it (`RoofForms.Offered`).
+
 **Distances are measured from the wall line and are allowed to go negative**, which is what makes the eave
 part of the slope: the course over the wall rests on the wall, and every course outward from there keeps
 falling at the same rate. Holding the overhang level with the wall line instead — the obvious way to stop the
@@ -712,6 +719,17 @@ Two details make it a porch rather than a hole in a wall. The doorway is **carri
 so a frame's entry contract survives the wall moving; and the rail **breaks exactly where that doorway crosses
 it**, because a rail running unbroken across the front would be a porch with no way onto the step.
 
+**The canopy is a gable unless the porch says otherwise, and never a shed** (`HS14`). A porch that names no
+roof wears a gable, which fronts the building with its own little end.
+
+**It is laid in the house roof's material unless it names its own.** Unbound, the canopy is the roof's body, and
+where the house roof wears a ridge cap the canopy's ridge takes the verge too. The `canopy` part names one block
+for the whole of it, rim and ridge included — a stone brick porch roof on a house trimmed in polished andesite,
+which is what the author asked of two houses whose dark oak ridge stood out against the canopy under it. A
+canopy laid in its own block climbs in whole courses, since the house roof's half-course slab is cut from the
+house roof's material; it is held to what a roof plane is (`HS3`: one block, never a pattern, a bare log or a
+ground material) and to `HS17`.
+
 The canopy is seated by its own **lowest course** rather than by where its plane starts or by the eave above
 it: that course has to clear the doorway the porch fronts, and where it lands the ridge follows by however far
 the form happens to fall. One statement for all six, and a statement about the thing that matters — a canopy
@@ -924,17 +942,16 @@ spans is no floor it stands on.
 **plate** claims downward from the course players walk on, so a thicker one digs into the ground the house
 sits on rather than lifting its inside off it, and its top course is the ground storey's deck — which is why a
 ground storey names none of its own. The plate's **surface** divides that top course across the room, a border
-and a field and an inlay. The **footing** rings the plate one block proud on every side, and it is the
-optional one — and **absent is the default**: the walls meet the ground flush, which is what a building seated
-into finished terrain wants (author). Absent is a state and not a block that happens to be air — the air
-material that used to stand in for it made "does this building have a footing" a comparison against a
-sentinel rather than a question the style could answer.
+and a field and an inlay. The **footing** rings the plate one block proud on every side, and **absent is the
+default**: the walls meet the ground flush, which is what a building seated into finished terrain wants
+(author). Absent is a state and not a block that happens to be air, so "does this building have a footing" is
+a question the style answers with null.
 
-**A footing belongs to a plate of two or three courses**, which is the foundation it is the foot of; over a
-plate of one it is a one-block rim round a building with no foundation under it, and it reads as noise at
-every wall of every house (author). `HS7` complains where the two disagree — a complaint, since the building
-stands either way and what the rim costs is how it looks. The five village presets carry a plinth and now
-carry the depth that earns one.
+**No style is saved with a footing.** Round a house it reads as a rim rather than as masonry the building stands
+on, whatever depth of plate it rings, and the author's ruling counts for every house. `HS7` refuses one; where
+the stone was the point, the ground storey's first course is laid in it instead. The field is still read and
+built, so a document carrying one parses and stamps until the step that gates it refuses it by name; every
+footing stored before the rule was taken off (`M0056`).
 
 Every storey stands on a **deck**: one course infilled across the interior, the perimeter being wall already.
 It is an infill rather than a lid — the walls already span that course, which is what a floor is when a
@@ -942,6 +959,10 @@ building is put up rather than drawn — and it belongs to the storey standing o
 its shop in flagstone and the flat over it in boards; unbound, a deck is the house floor's own top material.
 The ground storey's deck is the building's floor, and the topmost storey has nothing over it, since the roof
 is what closes that one.
+
+**A storey above the ground never stands on air.** Over a plate of air — a house on stilts — a storey naming
+no deck falls back to that air, and the room over the stilts is a ring of wall round a hole. `HS18` refuses a
+storey whose deck resolves to air and whose surface lays no field across the room; the fix is the deck.
 
 **One plate, one owner**, and that is the whole of why the deck is named for the storey above rather than the
 one below. The course between two storeys is the ceiling of the lower seen from below and the floor of the
@@ -1025,6 +1046,25 @@ The ends are **the one thing a house writes outside its own footprint**. Everyth
 inside the walls plus the roof's overhang, which is what makes a shell safe to stamp onto finished terrain — so
 these are asked for rather than assumed, and a style naming none leaves the ring around the building exactly as
 it found it. None is `"beams": {"block": -1}`, which is also the default; `"beams": null` is refused (§7).
+
+### 7.8 What a building is not built of
+
+Four rules are about the blocks rather than the pieces, and they read one walk: every block a face can lay,
+the drawing patterns' fixtures included (`Materials.Laid`) — a wall run's stripes, a diagonal's, a frame's edge
+and fill, a laid or checkered log — over every band of every wall the style states, the gable, the roof, the
+verge and a porch canopy laid in its own block. A stripe of ore in a wall run is ore in the wall whatever drew
+it there, so a walk that stopped at the patterns that pick from a set would miss it.
+
+- **`HS5` — no ore**, anywhere a style names a block: stone with something in it is ground a map is dug out of.
+- **`HS16` — no wall or gable in a block that surfaces ground**: grass, podzol, mycelium and farmland, each the
+  skin over soil (`BlockRoles.IsSurfacing`). Sand, gravel and dirt are a wall's to use (author). The roof and
+  its verge answer to `HS3`, which bars every soil.
+- **`HS17` — no snow or ice in a wall, a gable or a roof**: the snow layer, the snow block, ice and packed ice
+  (`BlockFamilies.Frozen`). White is not the fault (author): white clay, white wool and quartz are walls.
+- **`HS15` — no wall checkered in its posts' own log.** A checker or a log checker whose squares are the wood of
+  the storey's corner posts runs into the posts at every corner, and frame and panel read as one mass; a panel
+  that wants a checker wants a different log (author). A laid course of the posts' wood is the frame, not a
+  checker, and is not asked.
 
 What a style never touches: the **platform** under a room (`StampFoundation`) and the **entrance redstone
 line** (ST1) belong to the plan-derived structures, not to a shell. The platform is level, at the highest
@@ -1110,7 +1150,7 @@ dock against them are the two places a log belongs; a log in a roof, a verge or 
 and the slab between them, a window and the host it is seated in (`HS4`). And no part of a house is built of
 an **ore** (`HS5`) — an ore is ground a map is dug out of.
 
-What the house keeps is what belongs to no part: its foundation — the footing and the plate's depth — and its
+What the house keeps is what belongs to no part: its foundation — the plate's depth — and its
 door. Everything else it names is a **fallback**. A bound part takes over from the columns on the house that
 describe the same part, and only those, which is what made the level free to add: a house that binds nothing is
 exactly the building its own columns always described, so no stored row had to move.

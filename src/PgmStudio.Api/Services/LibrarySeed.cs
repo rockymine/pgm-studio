@@ -302,6 +302,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         if (style.Foundation.Surface.Field is { } field) yield return (RoomParts.Field, field);
         if (style.Foundation.Surface.Border is { } border) yield return (RoomParts.Border, border);
         if (style.Foundation.Surface.Inlay is { } inlay) yield return (RoomParts.Inlay, inlay);
+        if (style.Porch?.Canopy is { } canopy) yield return (RoomParts.Canopy, canopy);
 
         // A storey's own wall and posts are materials of the building too — the library stores them on a
         // storey style, but they are the same rows and are named per storey so two storeys keep theirs apart.
@@ -466,6 +467,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         Bind(RoomParts.Field, style.Foundation.Surface.Field);
         Bind(RoomParts.Border, style.Foundation.Surface.Border);
         Bind(RoomParts.Inlay, style.Foundation.Surface.Inlay);
+        Bind(RoomParts.Canopy, style.Porch?.Canopy);
 
         void BindStack(string part, RoomPart stack)
         {

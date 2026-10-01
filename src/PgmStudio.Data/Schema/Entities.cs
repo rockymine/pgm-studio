@@ -836,7 +836,7 @@ public sealed class RoomStyleRow
     [Column("porch_depth")] public int PorchDepth { get; set; }
     [Column("porch_inset")] public int PorchInset { get; set; }
     [Column("porch_edge"), NotNull] public string PorchEdge { get; set; } = "front";
-    [Column("porch_roof"), NotNull] public string PorchRoof { get; set; } = "shed";
+    [Column("porch_roof"), NotNull] public string PorchRoof { get; set; } = "gable";
     [Column("porch_rail_block")] public int PorchRailBlock { get; set; } = 85;
 
     // The part styles this house is composed from (M0018). Each is optional and each, when bound, takes over
@@ -920,7 +920,7 @@ public sealed class PorchStyleRow
     [Column("depth")] public int Depth { get; set; } = 2;
     [Column("inset")] public int Inset { get; set; }
     [Column("edge"), NotNull] public string Edge { get; set; } = "front";
-    [Column("roof_form"), NotNull] public string RoofForm { get; set; } = "shed";
+    [Column("roof_form"), NotNull] public string RoofForm { get; set; } = "gable";
     [Column("rail_block")] public int RailBlock { get; set; } = 85;
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }

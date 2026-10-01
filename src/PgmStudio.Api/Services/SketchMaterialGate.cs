@@ -117,7 +117,8 @@ public static class SketchMaterialGate
         return findings;
     }
 
-    /// <summary>Every placed building's own shell, each finding under the prop that carries it.
+    /// <summary>Every placed building's own shell, and the roof each wing states for itself, each finding under
+    /// the prop that carries it.
     ///
     /// <para>A dressing document that will not parse is answered here rather than left to the export.
     /// The gate cannot judge a style it cannot read, but "this will not parse" is itself the finding, and it
@@ -144,9 +145,16 @@ public static class SketchMaterialGate
         foreach (var prop in props)
         {
             if (prop is HouseProp house)
+            {
+                var subject = house.Id.Length > 0 ? house.Id : $"props[{at}]";
                 findings.AddRange(HouseStyleValidation.Check(house.Style)
                     .Under($"dressing.props[{at}].style")
-                    .Select(finding => finding with { Subjects = [house.Id.Length > 0 ? house.Id : $"props[{at}]"] }));
+                    .Select(finding => finding with { Subjects = [subject] }));
+                for (var wing = 0; wing < house.Wings.Count; wing++)
+                    if (house.Wings[wing].Spec.Form is { } form)
+                        findings.AddRange(HouseStyleValidation.CheckRoofForm(form, $"dressing.props[{at}].wings[{wing}].spec.form")
+                            .Select(finding => finding with { Subjects = [subject] }));
+            }
             at++;
         }
         return findings;

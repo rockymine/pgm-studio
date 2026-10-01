@@ -26,8 +26,8 @@ public enum RoofForm
     /// ridge, so the building carries a usable volume under a roof that still sheds.</summary>
     Gambrel,
 
-    /// <summary>One plane, low at the front wall and climbing to the back — a lean-to, and what a porch wears
-    /// by default.</summary>
+    /// <summary>One plane, low at the front wall and climbing to the back — a lean-to. Read and built, and
+    /// refused on every style that is saved (<c>HS14</c>).</summary>
     Shed,
 
     /// <summary>A gable whose two slopes climb at different rates, so they meet off centre: short and steep
@@ -107,9 +107,19 @@ public sealed record PorchStyle
     /// for and what every house on the corpus does.</summary>
     public RoomEdge? Edge { get; init; }
 
-    /// <summary>The canopy over the deck. Its ridge is seated under the house's eave whatever form it is, so a
-    /// shed leans off the wall and a gable fronts the building with its own little end.</summary>
-    public RoofForm Roof { get; init; } = RoofForm.Shed;
+    /// <summary>The canopy over the deck: a gable, which fronts the building with its own little end. Its ridge
+    /// is seated under the house's eave whatever form it is, and a shed is refused here as on the house
+    /// (<c>HS14</c>).</summary>
+    public RoofForm Roof { get; init; } = RoofForm.Gable;
+
+    /// <summary>What the canopy is laid in, rim included, or null for the house roof's own body under its verge.
+    /// A canopy that names its own climbs in whole courses: the house roof's half-course slab is cut from the
+    /// house roof's material, not this one.</summary>
+    public TerrainMaterial? Canopy { get; init; }
+
+    /// <summary>Whether the canopy climbs in half courses under <paramref name="roof"/> — the house roof's own
+    /// steps, which only a canopy laid in that roof's material can take.</summary>
+    public bool ClimbsInHalves(RoofStyle roof) => Canopy is null && roof.InHalves;
 
     /// <summary>The fence along the deck's open edges, or 0 for a deck left open to step off anywhere. The gap
     /// in front of the door is cut whatever this is.</summary>
@@ -224,13 +234,10 @@ public sealed record Storey
 /// ground storey's feet are on — which is why a ground storey names no <see cref="Storey.Deck"/>: this is its
 /// deck. A house always has one, because a building with no floor is a building standing in a hole.</para>
 ///
-/// <para><b>The footing is the foundation proper, and it is optional.</b> One course ringing the plate a block
-/// proud on every side, so the building meets the ground on something instead of stopping dead at it. Null is
-/// no footing and is the default — a real state rather than a bare air material standing in for one, which is
-/// what a building seated into terrain wants (author). It belongs to a plate of <b>two or three</b> courses,
-/// where there is a foundation for it to be the foot of; on a plate of one it is a rim round nothing.
-/// <see cref="Depth"/> and what the plate is laid in are the two things that vary about it, and both are the
-/// plate's.</para>
+/// <para><b>The footing is a course ringing the plate a block proud on every side, and no style is saved with
+/// one</b> (<c>HS7</c>): round a house it reads as a rim rather than as anything the building stands on. Null is
+/// no footing and is the default — a real state rather than a bare air material standing in for one. The field
+/// is read and built so that a stored style which carries one still parses and is refused by name.</para>
 /// </summary>
 public sealed record Foundation
 {
@@ -241,10 +248,8 @@ public sealed record Foundation
     /// default, which is the plate showing through unchanged.</summary>
     public FloorSurface Surface { get; init; } = FloorSurface.Plain;
 
-    /// <summary>The course ringing the plate one block proud, or null — the default — for a building that
-    /// meets the ground without one. A footing is what a <b>deep</b> plate stands on: over a plate of one
-    /// course it is a one-block rim round a building that has no foundation to speak of, which reads as noise
-    /// rather than as masonry (author).</summary>
+    /// <summary>The course ringing the plate one block proud, or null — the default, and the only value a style
+    /// is saved with (<c>HS7</c>).</summary>
     public TerrainMaterial? Footing { get; init; }
 
     /// <summary>How far the plate claims downward — the whole of what "how deep is the foundation" means.</summary>
@@ -685,7 +690,7 @@ public static class HouseHeights
         // The deck lies at z 0..depth-1 with the body beyond it; the field adds the overhang on both sides,
         // and the outward one is the only one written.
         var field = new RoofField(porch.Roof, 0, 0, LongEnough, depth - 1, overhang, 0,
-                                  Math.Max(1, style.Roof.Pitch), RoomEdge.NegZ, style.Roof.InHalves);
+                                  Math.Max(1, style.Roof.Pitch), RoomEdge.NegZ, porch.ClimbsInHalves(style.Roof));
         var written = Enumerable.Range(-overhang, depth + overhang).Select(z => field.Crown(0, z)).ToList();
         return written.Max() - written.Min();
     }

@@ -124,9 +124,14 @@ public static class RoomParts
     /// field and inlay. A stack here would be a second answer to a question the zones have settled.</para></summary>
     public const string Deck = "deck";
 
+    /// <summary>The roof over a porch's deck, rim and all, in one material. Unbound, the canopy is the house
+    /// roof's own body under its verge; bound, it is a roof of its own — a stone brick canopy on a house whose
+    /// verge is trimmed in andesite.</summary>
+    public const string Canopy = "canopy";
+
     /// <summary>The parts bottom-up, the order a shell is stamped in.</summary>
     public static readonly string[] All =
-        [Floor, Field, Border, Inlay, Wall, Deck, Gable, Roof, Post, Sill, Verge];
+        [Floor, Field, Border, Inlay, Wall, Deck, Gable, Roof, Post, Sill, Verge, Canopy];
 
     /// <summary>The part a name means, or an empty string for one that names none — what a preview asked to
     /// cut to an unknown part falls back to, which is the whole building.</summary>
@@ -309,9 +314,13 @@ public static class RoofForms
     public const string Shed = "shed";
     public const string Saltbox = "saltbox";
 
-    /// <summary>The forms in the order the editor offers them: the lid every shell has always had, then the
-    /// slopes, simplest first.</summary>
+    /// <summary>Every form a style is read with: the lid every shell has always had, then the slopes, simplest
+    /// first.</summary>
     public static readonly string[] All = [Flat, Gable, Hip, Shed, Gambrel, Saltbox];
+
+    /// <summary>The forms a style may be saved with, in the order the editor offers them — every one but the
+    /// shed, which <c>HS14</c> refuses on a house, a wing and a porch alike.</summary>
+    public static readonly string[] Offered = [.. All.Where(form => form != Shed)];
 
     /// <summary>What each looks like, in the words the picker offers it in.</summary>
     public static string Describe(string? form) => Canonical(form) switch

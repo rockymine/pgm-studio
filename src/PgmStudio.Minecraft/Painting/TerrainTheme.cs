@@ -173,18 +173,32 @@ public static class Materials
     /// <para>The patterns that <b>pick</b> from a set answer that set; the ones that <b>draw</b> geometry — a
     /// wall run's stripes, a diagonal's, a frame's edge, a laid or checkered log — answer nothing, because
     /// what they place is a fixture rather than a ground a question about tone is asked of.</para></summary>
-    public static IEnumerable<(int Id, int Data)> BlocksOf(TerrainMaterial? material) => material switch
+    public static IEnumerable<(int Id, int Data)> BlocksOf(TerrainMaterial? material) => Walk(material, fixtures: false);
+
+    /// <summary>Every block this material can lay in a wall: <see cref="BlocksOf"/>'s answer, and the fixtures
+    /// the drawing patterns place as well — a wall run's stripes, a diagonal's, a frame's edge and fill, a laid
+    /// or checkered log. What a question about what a building is made of walks, since a stripe of ore is ore in
+    /// the wall whatever drew it there.</summary>
+    public static IEnumerable<(int Id, int Data)> Laid(TerrainMaterial? material) => Walk(material, fixtures: true);
+
+    private static IEnumerable<(int Id, int Data)> Walk(TerrainMaterial? material, bool fixtures) => material switch
     {
         SolidMaterial solid => [(solid.Id, solid.Data)],
-        LayeredMaterial layered => (layered.Stack?.Bands ?? []).SelectMany(band => BlocksOf(band.Material))
-                                                              .Concat(BlocksOf(layered.Beyond)),
-        TeamTintedMaterial tinted => BlocksOf(tinted.Neutral),
-        VoronoiMaterial voronoi => (voronoi.Bands ?? []).SelectMany(band => BlocksOf(band.Material)),
-        CellMaterial cell => (cell.Palette ?? []).SelectMany(BlocksOf),
-        NoiseMaterial noise => (noise.Stops ?? []).SelectMany(BlocksOf),
-        TurbulenceMaterial turbulence => (turbulence.Stops ?? []).SelectMany(BlocksOf),
-        ElectricMaterial electric => (electric.Stops ?? []).SelectMany(BlocksOf),
-        CheckerMaterial checker => BlocksOf(checker.Even).Concat(BlocksOf(checker.Odd)),
+        LayeredMaterial layered => (layered.Stack?.Bands ?? []).SelectMany(band => Walk(band.Material, fixtures))
+                                                              .Concat(Walk(layered.Beyond, fixtures)),
+        TeamTintedMaterial tinted => Walk(tinted.Neutral, fixtures),
+        VoronoiMaterial voronoi => (voronoi.Bands ?? []).SelectMany(band => Walk(band.Material, fixtures)),
+        CellMaterial cell => (cell.Palette ?? []).SelectMany(stop => Walk(stop, fixtures)),
+        NoiseMaterial noise => (noise.Stops ?? []).SelectMany(stop => Walk(stop, fixtures)),
+        TurbulenceMaterial turbulence => (turbulence.Stops ?? []).SelectMany(stop => Walk(stop, fixtures)),
+        ElectricMaterial electric => (electric.Stops ?? []).SelectMany(stop => Walk(stop, fixtures)),
+        CheckerMaterial checker => Walk(checker.Even, fixtures).Concat(Walk(checker.Odd, fixtures)),
+        _ when !fixtures => [],
+        WallRunMaterial run => (run.Runs ?? []).SelectMany(stripe => Walk(stripe.Material, fixtures)),
+        WallDiagonalMaterial diagonal => (diagonal.Runs ?? []).SelectMany(stripe => Walk(stripe.Material, fixtures)),
+        WallFrameMaterial frame => Walk(frame.Edge, fixtures).Concat(Walk(frame.Fill, fixtures)),
+        LaidLogMaterial laid => [(laid.Id, laid.Data)],
+        LogCheckerMaterial logs => [(logs.Id, logs.Data)],
         _ => [],
     };
 

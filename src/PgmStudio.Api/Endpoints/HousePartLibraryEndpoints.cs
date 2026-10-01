@@ -274,23 +274,33 @@ public sealed class PorchStyleGetEndpoint(HousePartStore store) : EndpointWithou
     }
 }
 
+/// <summary>POST /api/porch-styles. 400 `{error, findings}` on a shed canopy (<c>HS14</c>): a porch saved on its
+/// own is held to what a porch on a house is held to.</summary>
 public sealed class PorchStyleCreateEndpoint(HousePartStore store) : Endpoint<PorchStyleSaveRequest, PorchStyleDetail>
 {
     public override void Configure() { Post("/porch-styles"); }
 
     public override async Task HandleAsync(PorchStyleSaveRequest req, CancellationToken ct)
-        => await Send.OkAsync(
-            HousePartMapping.ToDetail(await store.CreatePorchAsync(HousePartLibrary.RowOf(req), ct), req), ct);
+    {
+        var row = HousePartLibrary.RowOf(req);
+        var findings = HouseStyleValidation.CheckRoofForm(HousePartLibrary.PorchOf(row).Roof, "roof");
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
+        await Send.OkAsync(HousePartMapping.ToDetail(await store.CreatePorchAsync(row, ct), req), ct);
+    }
 }
 
+/// <summary>PUT /api/porch-styles/{id}. Refuses the same way <see cref="PorchStyleCreateEndpoint"/> does.</summary>
 public sealed class PorchStyleUpdateEndpoint(HousePartStore store) : Endpoint<PorchStyleSaveRequest, PorchStyleDetail>
 {
     public override void Configure() { Put("/porch-styles/{id}"); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(PorchStyleSaveRequest req, CancellationToken ct)
     {
+        var row = HousePartLibrary.RowOf(req);
+        var findings = HouseStyleValidation.CheckRoofForm(HousePartLibrary.PorchOf(row).Roof, "roof");
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
-        if (!await store.UpdatePorchAsync(id, HousePartLibrary.RowOf(req), ct))
+        if (!await store.UpdatePorchAsync(id, row, ct))
         { await Refusals.NotFoundAsync(HttpContext, "porch style", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }

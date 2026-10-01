@@ -236,13 +236,19 @@ And the building rules, which the dressing document and the room library are bot
 | `HS4` | a part built of two blocks is built of two materials |
 | `HS5` | an ore is used as a building material |
 | `HS6` | a door is cut through a wall that is not there |
-| `HS7` | a footing rings a plate one course deep — a complaint |
+| `HS7` | a footing rings the plate, of any block and any depth |
 | `HS8` | a porch's canopy climbs past the wall it is attached to — a complaint |
 | `HS9` | beam ends come out of a course that is not a laid log |
 | `HS10` | a house on stilts standing on a floor — a complaint |
 | `HS11` | beam ends come out beside corners that are not log posts |
 | `HS12` | the gable is laid in the verge's own block |
 | `HS13` | a laid log is the building's bottom course |
+| `HS14` | a shed roof — on the house, a wing or a porch canopy |
+| `HS15` | a wall checkered in the log its own posts are cut from |
+| `HS16` | a wall or a gable laid in grass, podzol, mycelium or farmland |
+| `HS17` | snow or ice in a wall, a gable or a roof |
+| `HS18` | a storey above the ground stands on air |
+| `HS19` | a library house style's name is not describing words then a kind of building |
 
 ## How a gate is called
 

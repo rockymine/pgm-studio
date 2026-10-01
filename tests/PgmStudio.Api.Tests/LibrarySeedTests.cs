@@ -45,9 +45,9 @@ public sealed class LibrarySeedTests
                 .Because($"{house} lost {string.Join(", ", lost)} through the store");
     }
 
-    /// <summary>The hand-authored houses compose back to exactly the buildings they went in as. Stated apart
-    /// from the pin above because this is the claim that must never soften: a generated preset can be
-    /// regenerated, and these three cannot.</summary>
+    /// <summary>The hand-authored house composes back to exactly the building it went in as. Stated apart from
+    /// the pin above because this is the claim that must never soften: a generated preset can be regenerated,
+    /// and an author's cannot.</summary>
     [Test]
     public async Task Every_authored_house_composes_back_to_its_preset()
     {
@@ -101,7 +101,7 @@ public sealed class LibrarySeedTests
         var library = new RoomStyleLibrary(rooms, scope.ServiceProvider.GetRequiredService<HousePartStore>(),
                                            scope.ServiceProvider.GetRequiredService<ThemeStore>());
         var stored = (await rooms.ListAsync()).ToDictionary(room => room.Name, room => room.Id, StringComparer.OrdinalIgnoreCase);
-        await Assert.That(HousePresets.Kept.Count).IsEqualTo(29);
+        await Assert.That(HousePresets.Kept.Count).IsEqualTo(49);
         foreach (var (name, style) in HousePresets.Kept)
         {
             await Assert.That(stored.ContainsKey(name)).IsTrue().Because($"{name} is not in the seeded library");

@@ -235,13 +235,29 @@ public sealed class HousePartLibraryEndpointsTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var created = await (await client.PostAsJsonAsync("/api/porch-styles",
-                new PorchStyleSaveRequest("veranda", 3, 2, PorchEdges.Front, RoofForms.Shed, 85)))
+                new PorchStyleSaveRequest("veranda", 3, 2, PorchEdges.Front, RoofForms.Hip, 85)))
             .Content.ReadFromJsonAsync<PorchStyleDetail>();
 
         var detail = await client.GetFromJsonAsync<PorchStyleDetail>($"/api/porch-styles/{created!.Id}");
         await Assert.That(detail!.Depth).IsEqualTo(3);
         await Assert.That(detail.Inset).IsEqualTo(2);
-        await Assert.That(detail.Roof).IsEqualTo(RoofForms.Shed);
+        await Assert.That(detail.Roof).IsEqualTo(RoofForms.Hip);
+    }
+
+    /// <summary>A porch saved on its own is held to what a porch on a house is held to: a shed canopy is refused
+    /// by the rule a shed is refused by everywhere, and nothing is stored.</summary>
+    [Test]
+    public async Task A_shed_porch_is_refused_where_it_is_saved()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var refused = await client.PostAsJsonAsync("/api/porch-styles",
+            new PorchStyleSaveRequest("lean-to", 2, 0, PorchEdges.Front, RoofForms.Shed, 85));
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var why = await refused.Content.ReadFromJsonAsync<RefusalDto>();
+        await Assert.That(why!.Findings.Single().Rule).IsEqualTo(HouseStyleRules.ShedRoof);
+        await Assert.That(await client.GetFromJsonAsync<List<PorchStyleSummary>>("/api/porch-styles")).IsEmpty();
     }
 
     // ── what a house does with them ────────────────────────────────────────────────────────────────
@@ -325,7 +341,7 @@ public sealed class HousePartLibraryEndpointsTests
         var flat = await (await client.PostAsJsonAsync("/api/storey-styles", Storey("flat", 3)))
             .Content.ReadFromJsonAsync<StoreyStyleDetail>();
 
-        var created = await (await client.PostAsJsonAsync("/api/room-styles", House("terrace", stack:
+        var created = await (await client.PostAsJsonAsync("/api/room-styles", House("flat-roofed-townhouse", stack:
                 [new RoomStoreyDto(shop!.Id, 0), new RoomStoreyDto(flat!.Id, 0), new RoomStoreyDto(flat.Id, 0)])))
             .Content.ReadFromJsonAsync<RoomStyleDetail>();
 
@@ -347,7 +363,7 @@ public sealed class HousePartLibraryEndpointsTests
         var storey = await (await client.PostAsJsonAsync("/api/storey-styles", Storey("room")))
             .Content.ReadFromJsonAsync<StoreyStyleDetail>();
         await client.PostAsJsonAsync("/api/room-styles",
-            House("cottage", roofStyleId: roof!.Id, stack: [new RoomStoreyDto(storey!.Id, 0)]));
+            House("hipped-cottage", roofStyleId: roof!.Id, stack: [new RoomStoreyDto(storey!.Id, 0)]));
 
         await Assert.That((await client.DeleteAsync($"/api/roof-styles/{roof.Id}")).StatusCode)
             .IsEqualTo(HttpStatusCode.Conflict);

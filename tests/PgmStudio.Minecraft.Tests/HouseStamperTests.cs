@@ -547,6 +547,37 @@ public sealed class HouseStamperTests
         await Assert.That(narrow.GetBlock(1, FloorY + 2, 0).Id).IsNotEqualTo(Blocks.Air);  // front wall still there
     }
 
+    /// <summary>A canopy that names its own material is laid in it throughout, which is what a porch roof of one
+    /// block on a house trimmed in another needs; one that names none wears the house roof's body, with the
+    /// verge along its ridge where the house roof is capped. Read over the deck's outer half and its eave,
+    /// above the posts, which no other part of the building reaches.</summary>
+    [Test]
+    public async Task A_porch_canopy_is_laid_in_its_own_material_where_it_names_one()
+    {
+        static HashSet<(int Id, int Data)> Canopy(TerrainMaterial? canopy)
+        {
+            var world = House(13, 11, new HouseStyle
+            {
+                Roof = new RoofStyle
+                {
+                    Body = new SolidMaterial(Blocks.Planks, 1), Verge = new SolidMaterial(Blocks.Planks, 5), RidgeCap = true,
+                },
+                Porch = new PorchStyle { Depth = 2, Canopy = canopy },
+                Doorway = new Doorway { Door = DoorMaterial.Air },
+            });
+            var laid = new HashSet<(int Id, int Data)>();
+            for (var x = 0; x < 13; x++)
+                for (var z = -1; z <= 0; z++)
+                    for (var y = FloorY + 1; y < FloorY + 16; y++)
+                        if (world.GetBlock(x, y, z) is { Id: not (Blocks.Air or Blocks.Log or Blocks.OakFence) } block)
+                            laid.Add((block.Id, block.Data));
+            return laid;
+        }
+
+        await Assert.That(Canopy(new SolidMaterial(98)).ToList()).IsEquivalentTo([(98, 0)]);
+        await Assert.That(Canopy(canopy: null).ToList()).IsEquivalentTo([(Blocks.Planks, 1), (Blocks.Planks, 5)]);
+    }
+
     [Test]
     public async Task A_porch_sits_at_porch_height_however_tall_the_building_behind_it_is()
     {

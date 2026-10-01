@@ -46,7 +46,7 @@ checks.add("per-shape override persisted",
 // happened to match. No courses: a part with none keeps the built-in finish, which is what makes a style
 // that only changes its geometry a legal one.
 const style = await api("/room-styles", { method: "POST", body: {
-  name: "e2e-tall", floorDepth: 1, wallHeight: 11, roofThickness: 1,
+  name: "tall-flat-roofed-tower", floorDepth: 1, wallHeight: 11, roofThickness: 1,
   roofForm: "flat", roofHole: true, door: "stained-glass-pane", doorHeight: 3,
   windows: { form: "none", block: 0, data: 0, sill: 0, width: 0, height: 0, spacing: 0 },
   storeyStack: [], courses: [] } });

@@ -215,7 +215,7 @@
       @if (part.Id == RoomParts.Roof)
       {
         <Field Label="Shape">
-          <Select Options="@Select.Words(RoofForms.All, RoofForms.Describe)"
+          <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Describe)"
                   Value="@draft.RoofForm" ValueChanged="SetForm" />
         </Field>
         @if (Sloped)
@@ -278,10 +278,10 @@
     }
     else if (selected == TrimPart)
     {
-      <p class="section-desc">A corner post, a footing and a roof edge are each one material read straight through, so binding
+      <p class="section-desc">A corner post and a roof edge are each one material read straight through, so binding
       one is a single choice. Leaving them unbound is what a plain shell is: corners that are wall like the
-      rest of it, no footing, and a roof edge in the roof's own material.</p>
-      @foreach (var trim in RoomPartInfo.Trim)
+      rest of it, and a roof edge in the roof's own material.</p>
+      @foreach (var trim in RoomPartInfo.Trim.Where(part => part.Id != RoomParts.Sill || Single(part.Id) > 0))
       {
         <Field Label="@trim.Title" @key="trim.Id">
           <StyleSelect Styles="styles" Value="@Single(trim.Id)" Title="@trim.Blurb" Unbound="Unbound"
@@ -316,8 +316,12 @@
                   Value="@deck.Edge" ValueChanged="SetPorchEdge" />
         </Field>
         <Field Label="Canopy">
-          <Select Options="@Select.Words(RoofForms.All, RoofForms.Describe)"
+          <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Describe)"
                   Value="@deck.Roof" ValueChanged="SetPorchRoof" />
+        </Field>
+        <Field Label="@RoomPartInfo.Canopy.Title">
+          <StyleSelect Styles="styles" Value="@Single(RoomParts.Canopy)" Title="@RoomPartInfo.Canopy.Blurb"
+                       Unbound="The house roof" ValueChanged="id => BindSingle(RoomParts.Canopy, id)" />
         </Field>
         <Field Label="Rail">
           <Chip Active="@(deck.RailBlock > 0)" OnClick="ToggleRail">

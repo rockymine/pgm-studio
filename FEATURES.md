@@ -5960,6 +5960,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   its own deck — a storey naming none stands on the plate's top course, so `stilts` and `townside on stilts`,
   both on plates of air, had no floor upstairs — and the library seed stores a storey's own deck, which it
   dropped. `docs/world-export/structures.md` §7.1, §7.2, §7.7. (`WE158`)
+- **The second review's rulings are in the gate (WE159).** `HS7` refuses a footing of any block round a plate
+  of any depth, where it complained only over a plate one course deep. `HS14` refuses a shed: a house's roof, a
+  wing's own, a porch canopy, and a roof or porch saved to the library alone; a porch naming no roof wears a
+  gable, and the editors no longer offer the form. `HS15` refuses a wall checkered in its posts' own log, `HS16`
+  a wall or gable of grass, podzol, mycelium or farmland (sand, gravel and dirt stay a wall's to use), `HS17`
+  snow or ice in a wall, gable or roof (white blocks stay), and `HS18` a storey above the ground standing on air.
+  The material rules read one walk over every block a face lays, wall-run stripes, frames and laid logs
+  included (`Materials.Laid`), which `HS5` now reads too. A porch canopy may name its own block (the `canopy`
+  part), laid rim and ridge alike, which is what the author asked of two porches under a capped roof.
+  `M0056` carries every house stored before the rules to them: a shed in a library row, or in a house on a map's
+  current sketch or refinement, is a gable, and no stored house keeps a footing.
+  `docs/world-export/structures.md` §7.1, §7.3, §7.6, §7.8. (`WE159`)
+- **The library's house styles are named for what they are (TL36).** A room style's name is describing words
+  then a kind of building, from the two lists `HouseNames` holds and `GET /api/room-styles/name-words` answers;
+  `HS19` refuses any other on save. The library holds the author's review: the ten kept styles revised and
+  renamed, twelve new houses with the requested changes, twenty-seven houses picked from the boards, and nine of
+  the thirteen presets fixed and renamed — forty-nine kept styles and nine presets, each passing the gate and
+  composing back to its file. `M0055` renames the rows with their parts, takes out the twenty-three the review
+  rejected (the nineteen round-one styles and the stonemason, sandy mushroom, terrace and workshop presets), and
+  rewrites the renamed names in each map's current refinement. `docs/tools/library.md`. (`TL36`)
 - **Water standing against a hole in its own basin says so (WE91).** The bed a pool carves and the hollow it
   sits in are two statements about one lake, and nothing reconciled them: on `opus5-scarrow-delph` the relief
   mark `pan` digs z −8…7 to y4 while the `tarn` prop fills z −7…6, so the lake's two end rows are four courses
