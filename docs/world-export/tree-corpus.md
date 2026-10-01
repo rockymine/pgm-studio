@@ -28,9 +28,10 @@ along z, and each band holds one family. Every frame holds one tree and none sta
 
 Two properties of the corpus break the tools that already read worlds. Every log in it is **all-bark** — 3670
 of 3670, branches included — so the flora tool's trunk marker carries no information here, and its rooted
-vertical run of three same-species logs reaches 85 of the 94 trees the seeder files: one hovers a course above
-its platform and eight have trunks that lean or spiral so no column ever stacks three. The one the seeder
-passes over is the tree of wool, which has no logs at all. The other property is that **carpentry is structural**: one family builds its branches
+vertical run of three same-species logs reaches 85 of the 94 trees the seeder files. The other nine stand on their
+platforms like every tree here, eight of them on the planks laid under the trunk, and each trunk steps, leans
+or spreads within a course or two, so no column stacks three logs from the ground. The one the seeder passes
+over is the tree of wool, which has no logs at all. The other property is that **carpentry is structural**: one family builds its branches
 out of dark oak slabs, so any reading that counts only logs as wood reports that family's foliage as
 unsupported — a leaf-contact measurement has to count carpentry as wood, or it is measuring the wrong thing.
 
