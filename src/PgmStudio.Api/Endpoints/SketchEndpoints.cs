@@ -335,10 +335,6 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 422));
     }
 
-    /// <summary>The relief group a cell's ground is solved under, for the finding that states a bench.</summary>
-    private static Func<(int X, int Z), string?> GroupLookup(Dictionary<(int X, int Z), string> owners) =>
-        cell => owners.TryGetValue(cell, out var group) ? group : null;
-
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
@@ -354,18 +350,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         try
         {
             var built = BuiltWorlds.Of(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
-            preview = SketchPreviews.Of(built, () => new SketchPreview(
-                SketchLayoutCheck.Check(layout),
-                WorldColumnPayload.Of(built.World, built.Columns),
-                // OB17, asked here because this build already paid for everything it needs — the same ground
-                // the export reads and the same resolved goals. A refusal at the export door is the last place
-                // to learn a goal stands over the void; carried here it reaches an author while they are still
-                // drawing, as a complaint, since nothing about this request is being refused.
-                MapExportComposer.CheckGoalPlacement(built.Columns!, built.ResolvedIntent, built.Shells),
-                // WX11, for the same reason and off the same build: a building whose neighbours have no ground
-                // to meet it on shows the world a sheer face of its own foundation, and nothing else reports it.
-                MapExportComposer.CheckStructureSites(built.Surface, built.Provenance,
-                    GroupLookup(SketchRasterizer.GroupOwners(layoutJson)))));
+            preview = SketchPreviews.Of(built, layout, layoutJson);
             Complaints.Add(HttpContext, preview.Layout.AsComplaints());
             Complaints.Add(HttpContext, built.Declines);
             Complaints.Add(HttpContext, preview.Goals.AsComplaints());
@@ -481,12 +466,16 @@ internal static class DressedBoard
                                           or OverflowException or KeyNotFoundException)
         { await Refusals.UnreadableAsync(http, "could not build layout", fault.Message, ct); return null; }
 
-        // The same two functions the pass itself asks a candidate site, read off the resolved intent — the
-        // goals' boxes as the build actually stamped them, not the unbuilt ones the request carried in.
-        return (built, layoutJson, ClaimRaster.Read(built.Dressing.Placements, built.Surface,
-            DressingScope.KeptClearAt(built.World, built.Surface, built.ResolvedIntent, built.Shells, layoutJson),
-            DressingScope.GoalClearanceAt(built.ResolvedIntent)));
+        return (built, layoutJson, Claims(built, layoutJson));
     }
+
+    /// <summary>What the dressing pass says about every cell of <paramref name="built"/>: each placement's claim
+    /// and what the pass keeps clear, by the same two functions the pass itself asks a candidate site, read off
+    /// the resolved intent — the goals' boxes as the build actually stamped them.</summary>
+    public static ClaimRaster.Grid Claims(BuiltWorld built, string layoutJson) =>
+        ClaimRaster.Read(built.Dressing.Placements, built.Surface,
+            DressingScope.KeptClearAt(built.World, built.Surface, built.ResolvedIntent, built.Shells, layoutJson),
+            DressingScope.GoalClearanceAt(built.ResolvedIntent));
 }
 
 /// <summary>POST /api/map/{slug}/sketch/seats — where a prop of a stated kind and footprint <b>may</b> stand,
@@ -785,66 +774,15 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 
         Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());
 
-        Dictionary<string, HeightField> fields;
-        SketchLayout? state;
-        // What the marks did to one another, filled in as each group is solved. A seam is a fact about the
-        // statements rather than about the surface, so nothing downstream of the field can recover it.
-        var marks = new Dictionary<string, ReliefReading>(StringComparer.Ordinal);
-        try
-        {
-            state = SketchLayout.Parse(layoutJson);
-            fields = SketchRasterizer.ReliefFields(layoutJson,
-                (group, footprint) => warm.WarmStart(map.Id, group, footprint),
-                (group, solved) => warm.Remember(map.Id, group, solved),
-                (group, reading) => marks[group] = reading);
-        }
+        (ReliefReadDto Read, IReadOnlyList<Finding> Complaints) relief;
+        try { relief = ReliefReads.Of(layoutJson, map.Id, warm); }
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
                                           or OverflowException or KeyNotFoundException)
         { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault.Message, ct); return; }
 
-        var mode = state?.Setup?.MirrorMode;
-        var cx = state?.Setup?.Center?.Cx ?? 0;
-        var cz = state?.Setup?.Center?.Cz ?? 0;
-
-        // What each group states about itself, to read the measurement back against (RL1).
-        var declared = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (var (group, relief) in state?.Relief ?? [])
-            declared[group] = relief?.Landform;
-
-        var complaints = new List<Finding>();
-        var groups = fields.Select(entry =>
-        {
-            var read = ReliefReadback.Read(entry.Value, mode, cx, cz);
-            complaints.AddRange(ReliefReadback.Check(read, declared.GetValueOrDefault(entry.Key), entry.Key));
-            var reading = marks.GetValueOrDefault(entry.Key);
-            if (reading is not null) complaints.AddRange(ReliefReadback.Check(reading, entry.Key));
-            return new ReliefGroupReadDto(
-                entry.Key, read.Cells, read.Low, read.High, read.Relief, read.Steps,
-                [.. read.Tiers.Select(t => new ReliefTierDto(
-                    t.Name, t.MaxStep, t.Share, t.Places, t.LargestPlace, t.Ledges,
-                    [.. t.Parts.Select(part => new ReliefPartDto(
-                        part.Cells, part.Share, part.CentroidX, part.CentroidZ,
-                        part.MinX, part.MinZ, part.MaxX, part.MaxZ, part.Place))]))],
-                // the whole list is long and the tail is all banks, so only the head is sent
-                [.. read.Faces.Take(12).Select(f => new ReliefFaceDto(f.Facing, f.Width, f.Drop, f.Cliff))],
-                read.Faces.Count, read.Cliffs,
-                new ReliefFordsDto(read.AcrossX.Rows, read.AcrossX.OnFoot, read.AcrossX.WithBlock, read.AcrossX.Descended),
-                new ReliefFordsDto(read.AcrossZ.Rows, read.AcrossZ.OnFoot, read.AcrossZ.WithBlock, read.AcrossZ.Descended),
-                // A group with no barrier divides by nothing, and infinity is not a JSON number.
-                read.SymmetryError, read.Landform,
-                double.IsInfinity(read.Smoothing) ? null : read.Smoothing,
-                read.Level, read.LargestField,
-                [.. (reading?.Seams ?? []).Take(12)
-                        .Select(seam => new ReliefSeamDto(seam.A, seam.B, seam.Step, seam.X, seam.Z, seam.Cells))],
-                reading?.Silent ?? [],
-                [.. (reading?.Pushes ?? []).Select(push =>
-                        new ReliefPushGradeDto(push.Id, Math.Round(push.Skirt, 2),
-                                               Math.Round(push.Crown, 2), push.Cells))]);
-        }).ToList();
-
-        Complaints.Add(HttpContext, complaints);
-        await Send.OkAsync(new ReliefReadDto(groups), ct);
+        Complaints.Add(HttpContext, relief.Complaints);
+        await Send.OkAsync(relief.Read, ct);
     }
 }
 

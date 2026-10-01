@@ -197,6 +197,7 @@ builder.Services.AddScoped<MapReader>();
 builder.Services.AddScoped<MapWriter>();
 builder.Services.AddScoped<WorldFeatureWriter>();
 builder.Services.AddScoped<PgmStudio.Api.Services.FeatureData>();
+builder.Services.AddScoped<PgmStudio.Api.Services.MapReport>();
 
 // Who may write (docs/access.md). An open studio signs every request in as the local admin; an invited one
 // reads a session cookie or a bearer token, and a request with neither may read and nothing else. The mode is

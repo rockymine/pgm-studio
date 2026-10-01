@@ -58,6 +58,7 @@ half a cube's width, 1 to 8, default 3.
 | `themes/census` | — | every ground cell counted by the theme that paints it: cells and share per theme, its distinct surface materials, which theme borders which, and the board's whole palette count |
 | `render/eye` | — | the board seen from a player's eye, drawn with Minecraft's own block sprites. `look=x,z` names a thing and the eye finds a place to see it from, `from=x,z` stands the eye there (`yaw`, `pitch`, `y`), both together face the one from the other (`y` and `pitch` still apply), and `eye=x,y,z` stands it exactly, facing `yaw` and `pitch` — 90 is straight down; `fov`, `width`, `height`; `flat=1` draws the same frame in one colour a block. `?format=text` answers where the eye ended up and what fills the frame, by share. 503 (`RQ10`) on a studio with no textures. The Sketch tool's **In game** phase is a gallery of these, and `GET /map/{slug}/views` lists the views it draws (`docs/tools/sketch.md`) |
 | `render/eye/pick` | — | what a mark on a `render/eye` picture is on the ground, as JSON: the picture's own query words, and `at=x,y` (one pixel: the block its ray hits and the ground under it), `box=x,y,x,y` or `lasso=x,y;x,y;…` (every ground column the rays through its pixels hit, each `[x, y, z]`). Ground no ray reached is not in it. `query` answers the camera exactly as `eye=…&yaw=&pitch=&fov=`, which is how a note's picture is drawn again (`docs/tools/sketch.md`, *Notes*) |
+| `report` | — | everything a drive reads back, off one build: the three numbers a board is wrong or right by, then every reading below with the route that answers it alone, then the pictures by route; `?pictures=true` draws them too, `?format=text` answers one document. *One read answers everything a drive reads back*, below |
 | `diff` | — | what changed between two of a map's changes (`from`, `to`; unasked, what the latest change did): every edit to its plan, refinement, layout and intent by the path it lands on (`docs/tools/flow.md`), and with `world=true` the columns the two builds disagree on — `ground` · `surface` · `structure` — each as a count and its largest runs with the box to find each in. `?format=png` draws those columns over both boards' ground, `?format=text` answers the edits one a line with the runs beneath |
 
 `column` answers characters rather than JSON for the reason the plan grid and the flow account do: it is read
@@ -324,6 +325,58 @@ here its key names the corner and the extent, because the question it answers is
 
 The two builds are two of the four boards `BuiltWorlds` keeps, so the board a caller goes on to read after a
 diff is usually already built, and a diff between two changes nobody has read pays for two.
+
+## One read answers everything a drive reads back
+
+**After every store a drive asks the same thirty-odd questions, and the report asks them in one request.**
+`GET /map/{slug}/report` builds the board once and answers, in the order a reader meets them: the findings,
+the plan's grid and flow, the relief, what the build declined, pre-flight, coverage, the heightmap, the slopes,
+reach, a section along each axis through the middle of the board, a transect each way through every spawn,
+goal, house, fluid, boulder and made thing, a walk from every spawn to every goal, the theme census, the
+dressing's claims, the seats for a tree, a boulder and a nine-by-seven house, and the void scan. On the
+deployed studio, where a build waits its turn one caller at a time, that is one turn rather than thirty.
+
+**Every reading names the route that answers it alone, and is that route's answer.** A reading is made by the
+same call its own route makes, with the words the report writes beside it — `transect?points=-37,-28;-21,-28&beside=2&format=text`
+— so it can be asked again on its own, and the two cannot say different things. A posted read is named
+`POST …` and answers the same when posted the stored layout. The five readings whose own routes answer JSON —
+the findings, the relief, the declines, pre-flight and coverage — are written as lines here, from the same
+call. A reading that cannot be made carries `missing` and the reason in place of its text: a map stored
+without a plan has no grid.
+
+**Three numbers come first, because they are what a board is wrong or right by.** How much of the ground
+steps further than a player walks — the slope grid's walked, scrambled and barrier cells; how many props the
+document names and the world does not hold — the dressing's placed and declined; and the worst step on any
+route from a spawn to a goal, with the route it is on. Each is the number its reading carries, so a reader
+who doubts one opens that reading.
+
+**The pictures are named, and drawn only when asked for.** The board in the round from two opposite corners —
+in x-ray as well where it roofs a room of two hundred blocks or more — the board from above one question at a
+time, the heightmap, the paint, traversability, the mirror, the two sections, the coverage, and every view of
+the board from a player's eye that it keeps or suggests. Each carries the `GET` route that draws it, which is
+how a picture is drawn again from the board as it stands. `?pictures=true` draws every one into the answer as
+base64 PNG, the same bytes its route draws; an eye view on a studio with no block sprites carries the reason
+instead.
+
+```text
+GET /api/map/{slug}/report                    the report, JSON
+GET /api/map/{slug}/report?format=text        the same as one document
+GET /api/map/{slug}/report?pictures=true      with every picture drawn
+```
+
+The text answer opens on the three numbers, then each reading under its name and route:
+
+```text
+REPORT  fable-mossgill  change 1
+
+  ground   7763 walked, 342 scrambled, 660 barrier — 11.4% steps further than a player walks
+  props    42 placed, 3 declined
+  routes   worst step 2, on route spawn-0 to destroyable-0
+
+== findings   (findings)
+stage configure
+EL1 complaint: 'brow'–'apron' steps 2 blocks — a player does not walk up more than one, …
+```
 
 ## One of them misleads, and it has cost a reader a conclusion
 

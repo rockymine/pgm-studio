@@ -3,6 +3,7 @@ using System.Text.Json;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Export;
 using PgmStudio.Geom;
+using PgmStudio.Minecraft.Dressing;
 
 namespace PgmStudio.Api.Services;
 
@@ -30,4 +31,13 @@ public static class CoverageReads
     public static GroundCoverage.Result Of(BuiltWorld world, Dict doc, Func<GroundCoverage.Result> read) =>
         Worlds.GetValue(world, _ => new Remembered<GroundCoverage.Result>(DocumentsPerWorld))
               .Of(JsonSerializer.SerializeToUtf8Bytes(doc), read);
+
+    /// <summary>The coverage of a stored map judged by <paramref name="doc"/> against <paramref name="goals"/>:
+    /// walked over its built world where it has one, and over its scanned ground where it has none.</summary>
+    public static async Task<GroundCoverage.Result> OfAsync(
+        long mapId, Dict doc, List<NavPoint> goals, FeatureData feature, CancellationToken ct) =>
+        await feature.BuiltAsync(mapId, ct) is ({ } built, var layoutJson)
+            ? Of(built, doc, () =>
+                GroundCoverage.Read(doc, BuiltWalk.Ground(built, doc), DressingScope.DecorCells(layoutJson), goals))
+            : GroundCoverage.Read(doc, await feature.WalkGroundAsync(mapId, doc, ct: ct), [], goals);
 }

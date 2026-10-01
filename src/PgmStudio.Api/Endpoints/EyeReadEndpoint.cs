@@ -3,6 +3,7 @@ using System.Text;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
 using PgmStudio.Domain;
+using PgmStudio.Export;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Render;
 
@@ -76,13 +77,19 @@ internal sealed class EyeReadEndpoint(MapRepository repo, MapReader reader, MapA
     {
         var aim = EyeAim.Read(word => Query<string?>(word, isRequired: false));
         _empty = aim.Empty;
-        return EyeRenders.Of(read.Built, _textures!, aim.Flat, aim.Key, scene =>
+        return Shot(read.Built, _textures!, aim);
+    }
+
+    /// <summary>The picture <paramref name="aim"/> asks of <paramref name="built"/> and its text twin, kept with
+    /// the world — the one draw this read and the report both take, so a view drawn by either is the other's.
+    /// Null where the aim finds no place to stand. The caller holds a turn (<see cref="EyeRenders.TurnAsync"/>).</summary>
+    internal static EyeShot? Shot(BuiltWorld built, BlockTextureSet textures, EyeAim aim) =>
+        EyeRenders.Of(built, textures, aim.Flat, aim.Key, scene =>
         {
             if (aim.Resolve(scene) is not ({ } camera, var how)) return null;
             var picture = scene.Draw(camera, aim.Width, aim.Height);
             return new EyeShot(picture.Png(), Describe(picture, camera, how));
         });
-    }
 
     /// <summary>Which way a pitch looks, since the number alone leaves it to the reader: the game counts
     /// degrees below the horizon, so a positive pitch looks down.</summary>

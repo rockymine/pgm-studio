@@ -193,6 +193,19 @@ public static class WorldReadCatalog
             + "a shade per face, and ground past sixty blocks fades into the sky — it is a picture of the "
             + "materials, not a screenshot."),
 
+        new("report", null,
+            "Everything a drive reads back about a stored map, off one build: the three numbers a board is wrong "
+            + "or right by — how much of its ground steps further than a player walks, how many of its props "
+            + "were declined, and the worst step on any route from a spawn to a goal — then every reading in the "
+            + "order a reader meets them, each beside the route that answers it alone: the findings, the plan's "
+            + "grid and flow, the relief, what the build declined, pre-flight, coverage, the heightmap, the "
+            + "slopes, reach, two sections, a transect each way through every spawn, goal, house, fluid, boulder "
+            + "and made thing, a walk from every spawn to every goal, the theme census, the dressing's claims, "
+            + "the seats and the void scan. The pictures are named by the routes that draw them; "
+            + "`?pictures=true` draws them too. `?format=text` answers the whole report as one document.",
+            "It reads the map's latest change and the stored documents, not a layout being drawn: a posted read "
+            + "it names (`POST sketch/dressing`) answers the same only when posted the stored layout."),
+
         new("diff", null,
             "What changed between two of a map's changes (`from`, `to`; unasked, what the latest change did): "
             + "every edit to its plan, layout and intent, named by the path it lands on and carrying the value "
