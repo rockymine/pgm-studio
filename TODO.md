@@ -22,21 +22,20 @@ statements have shipped; what remains is `pgm-studio-mapgen` moving onto all of 
 
 ### The authoring repository moves onto the studio's source and kit
 
-- [ ] **RP96 — `pgm-studio-mapgen` states its boards in the kit, and a drive shows what it would change
-  before it changes it.** `drive.py` runs the board's `build-spec.py` first, dry-runs the source and prints
-  the edits before it applies, and reads one report (`WS80`); its `@name` loader goes, a style named as a library
-  row instead (`{"library": …}`). **One picture a board is committed** (author): the board seen from its side through
-  `render/eye`, beside the documents, and `maps/<slug>/` keeps the export's `map.png` (`WE155`); the debug
-  renders stay in the studio, drawn again from any change on request. The boards that still compile (plan
-  version 2) import the fetched kit; `specs/opus55_kit.py`, `specs/sonnet55_kit.py` and the copied `common.py`
-  and `opus5c.py` retire. `AUTHORING-BRIEF.md`, `tools/README.md` and both skills follow, and the skill's
-  first moment reads the changes since the last apply beside the open notes.
-
-  *Evidence: one drive re-sent the previous pass's documents because its script had not been run
-  (`pgm-studio-mapgen/reports/opus55-notes-run.md`, the fourth pass).*
+- [~] **RP96 — The boards on the hand kits move onto the studio's words.** Sixteen `build-spec.py` import
+  `specs/opus55_kit.py`, `specs/sonnet55_kit.py` or a copied `common.py`/`opus5c.py`, and those retire. Their
+  materials and themes move onto `GET /api/kit.py`'s constructors unchanged, and their rings onto `outlines`
+  (`LobedOutline` is `ring()`'s own formula). `coast_edits` and the 5b/5c `lobe`, `lobed_rect`, `blob` and
+  `wander_rect` have no exact studio twin: stated as coast bends and outlines they reshape shipped coasts, so
+  **the author rules** whether those boards are re-drawn or keep their outlines as stated points. Gypsum Reach's
+  isle pairs and Quarrymoot's block-convention pairs are stated once and fanned. The `@name` loader goes with
+  `TL33`. `pgm-studio-mapgen/AUTHORING-BRIEF.md`.
 
 - [ ] **TL33 — The house styles `pgm-studio-mapgen` keeps become the library's.** 81 house styles sit in
   `pgm-studio-mapgen/tools/styles` against 13 room styles in the deployed library, and `drive.py`'s `@name`
   and the kit's `house_style()` read them from disk. The author picks the ones worth keeping,
   `tools/seed-studio.py` loads them into the library, boards name them as `{"library": …}`, and the folder goes.
   `docs/tools/library.md`.
+
+  *Evidence: 19 of the 81 are named by a live spec — `showcase-cage` and `showcase-hall` by 14 each — and 62
+  by none.*

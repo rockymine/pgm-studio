@@ -8668,6 +8668,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   keeps its read with the built world, keyed on the map document it was judged by, so the JSON and
   `?format=png` asked one after the other walk the board once, and an edit to the world or the document is a
   new key. (`Api/Services/CoverageReads`, `Api/Services/FeatureData`, `docs/world-scan/ground-coverage.md`)
+- **A drive runs the board's script, shows what it would change, and reads one report (`RP96`).**
+  `pgm-studio-mapgen/tools/drive.py` runs the board's `build-spec.py` against the studio it drives, asks the
+  source dry and prints every edit before it stores, reads the stored board back in one `GET /map/{slug}/report`,
+  keeps one picture a board — the board from its long side, beside its documents — and leaves every other
+  picture to the studio. (`pgm-studio-mapgen/tools/drive.py`, `AUTHORING-BRIEF.md`, `tools/README.md`, both
+  skills)
 - **One read answers everything a drive reads back (`WS80`).** `GET /map/{slug}/report` builds a board once and
   answers the three numbers it is wrong or right by — its ground's walked, scrambled and barrier cells, its
   props placed and declined, the worst step from a spawn to a goal — then every reading a drive asks for after
