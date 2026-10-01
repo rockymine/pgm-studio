@@ -41,7 +41,7 @@ public static class HousePresets
     private const int CobblestoneWall = 139, StoneBrickBlock = 98;
     private const int SmoothSandstone = 2;                      // the nibble of block 24
     private const int StoneBrickStairs = 109, SandstoneStairs = 128;
-    private const int SpruceFence = 189, SpruceSlab = 1;        // 1 is the spruce nibble of block 126
+    private const int SpruceFence = 188, SpruceSlab = 1;        // 1 is the spruce nibble of block 126
     private const int StoneBrickSlab = 5;                       // 5 is the stone-brick nibble of block 44
 
     /// <summary>
