@@ -177,6 +177,52 @@ public sealed class RefinementTests
     }
 
     [Test]
+    public async Task An_outline_is_written_as_the_points_of_every_shape_mark_push_and_prop_carrying_its_id()
+    {
+        var refined = Apply("""
+            {"relief":{"moor":{"marks":[{"id":"knoll","kind":"area","h":14}],"pushes":[{"id":"lift","amount":3}]}},
+             "dressing":{"props":[{"kind":"fluid","id":"mere","shape":"pool","seed":1}]},
+             "outlines":{"crag-20":{"at":[50,10],"radius":8,"radiusZ":6,"points":20,"wobble":0.1},
+                         "knoll":{"at":[20,20],"radius":5,"points":16},
+                         "lift":{"at":[20,20],"radius":9,"points":18,"lobes":4,"wobble":0.15},
+                         "mere":{"at":[10,30],"radius":4,"radiusZ":3,"points":12}}}
+            """);
+
+        await Assert.That(refined.Findings.Count).IsEqualTo(0);
+        var crag = Shape(refined, "crag-20");
+        await Assert.That(crag["type"]!.GetValue<string>()).IsEqualTo("polygon");
+        await Assert.That(crag["vertices"]!.AsArray().Count).IsEqualTo(20);
+        var layout = JsonNode.Parse(refined.LayoutJson)!;
+        await Assert.That(layout["relief"]!["moor"]!["marks"]![0]!["ring"]!.AsArray().Count).IsEqualTo(16);
+        await Assert.That(layout["relief"]!["moor"]!["pushes"]![0]!["ring"]!.AsArray().Count).IsEqualTo(18);
+        await Assert.That(layout["dressing"]!["props"]![0]!["points"]!.AsArray().Count).IsEqualTo(12);
+    }
+
+    [Test]
+    public async Task An_outline_reaching_no_outline_of_its_own_or_nothing_at_all_is_a_complaint()
+    {
+        var refined = Apply("""
+            {"outlines":{"spawn-red":{"at":[5,5],"radius":3},"nowhere":{"at":[0,0],"radius":3}}}
+            """);
+
+        await Assert.That(refined.Findings.Count).IsEqualTo(2);
+        await Assert.That(refined.Findings.Refuses).IsFalse();
+        await Assert.That(refined.Findings.Single(finding => finding.Field == "outlines.spawn-red").Message).Contains("spawn");
+        await Assert.That(refined.Findings.Single(finding => finding.Field == "outlines.nowhere").Rule)
+            .IsEqualTo(SourceRules.NamesNothing);
+        await Assert.That(Shape(refined, "spawn-red")["type"]!.GetValue<string>()).IsEqualTo("rectangle");
+    }
+
+    [Test]
+    public async Task An_outline_whose_troughs_reach_its_centre_refuses_the_source()
+    {
+        var refined = Apply("""{"outlines":{"crag-20":{"at":[50,10],"radius":8,"wobble":1}}}""");
+
+        await Assert.That(refined.Findings.Single().Rule).IsEqualTo(SourceRules.OutlineDrawsNoRing);
+        await Assert.That(refined.Findings.Refuses).IsTrue();
+    }
+
+    [Test]
     public async Task An_edit_naming_no_single_index_refuses_the_source()
     {
         var refined = Apply("""{"editShapes":{"moor-12":[{"x":1,"z":1}]}}""");

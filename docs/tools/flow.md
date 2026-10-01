@@ -155,9 +155,9 @@ the member that is missing.
 for a coast, a relief, a theme or a date, so the refinement states them onto the board the plan compiles to.
 Each statement is the one a Sketch route makes, so a board stated here and one edited by hand end the same.
 They are applied in the order a hand works: the paint and fields on the shapes already drawn, the storeys, the
-shapes drawn onto them, the relief and the layout's registries, the outlines reshaped a point at a time and then
-bent, and last the intent's members. A bend resamples whatever ring it is given, which is why every point edit
-comes before it.
+shapes drawn onto them, the relief and the layout's registries, the outlines stated by their shape, the outlines
+reshaped a point at a time and then bent, and last the intent's members. A bend resamples whatever ring it is
+given, which is why every point edit comes before it.
 
 | Member | States | The route that states the same |
 |---|---|---|
@@ -169,6 +169,7 @@ comes before it.
 | `addShapes` | shapes, each carrying the `layer` and `group` it joins beside its own fields. One naming neither joins the compiled ground and its first group | `POST …/sketch/layers/{layerId}/shapes?group=` |
 | `editShapes` | `{shapeId: [edit, …]}`, in order, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`) and `remove` (drop that point) | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape |
 | `bendShapes` | `{shapeId: {wander, step, seed, tension, side, edges}}` — `edges` names the edges drawn as coast, each by the vertex it leaves, and every other edge stays as drawn | `POST …/sketch/shapes/{shapeId}/bend` |
+| `outlines` | `{id: {at, radius, radiusZ, points, lobes, wobble, phase, turn}}` — an ellipse pulled in and out by lobes, written as the points of whatever carries that id: a shape's vertices (a rectangle or a circle becoming a polygon), the ring of a relief `area` mark or a push, the points of a stroke, a fluid or a flora prop | the points stated on the thing itself |
 | `relief` | `{groupId: relief}`, where `*` stands for every group of the compiled ground | `PUT …/sketch/relief/{groupId}` |
 | `themes` · `mapTheme` | the theme registry, and the map's default theme — the registry's first where none is stated | `PUT …/sketch/themes/{themeId}`, `PUT …/sketch/map-theme` |
 | `biome` · `roomStyles` · `dressing` | the layout's own members, each replacing what the base held | `PUT …/sketch/biome`, `PUT …/sketch/room-styles/{part}`, the props routes |
@@ -192,9 +193,19 @@ does not have is `SR2`, a complaint listing the ids the board has. An edit the b
 a rectangle, an index past the ring — is a complaint on the same terms, naming the edit by its place in the
 refinement (`editShapes.dale-9[2]`).
 
+**An outline is stated by its shape, and written as points.** `{at, radius}` is a circle of 28 points; `radiusZ`
+makes it an ellipse, `turn` turns it by degrees, and `lobes` bulges — three unless stated — each reaching
+`wobble` of the radius past the ellipse and drawing in as far between them, the first at `phase` radians. The
+id names everything carrying it, so a relief stated for every group outlines the same mark in each. What lands
+is the points, rounded to a tenth of a block, so the stored layout carries the ring a hand would have drawn and
+every later statement — a point edit, a bend — works on it. An id that reaches only things with no ring of their
+own (a room's rectangle, a point mark, a tree) is a complaint, as is one reaching nothing.
+
 **A statement that does not say what it means refuses the whole source.** A storey stated under an id the board
-already has, or under none, is `SR3`, and a point edit naming no single point is `SR4`. Either answers
-`422 refinement not applicable` and stores nothing, because neither can be applied without a guess.
+already has, or under none, is `SR3`, a point edit naming no single point is `SR4`, and an outline that draws no
+ring — no centre, a radius of nought, fewer than three points, or a `wobble` of 1 or more, where a trough
+reaches the centre — is `SR7`. Each answers `422 refinement not applicable` and stores nothing, because none
+can be applied without a guess.
 
 **The refinement is kept as the map's fourth document.** A source's refinement is stored beside the plan, the
 layout and the intent as it was stated, and `{}` where a source stated none, so the map holds what it was built
@@ -303,6 +314,7 @@ A plan, its refinement, and where both came from, as one source:
     "relief": {"*": {"base": 3}},
     "editShapes": {"dale-9": [{"after": 0}]},
     "bendShapes": {"dale-9": {"wander": 1.5, "step": 5, "seed": 3, "side": "in", "edges": [2, 4]}},
+    "outlines": {"dale-13": {"at": [20, 32], "radius": 5, "radiusZ": 7, "lobes": 3, "wobble": 0.12, "turn": 10}},
     "created": "2026-09-30",
     "authors": ["Opus 5"]
   },
@@ -313,7 +325,8 @@ A plan, its refinement, and where both came from, as one source:
 
 The bend is a coast on the ford's two long sides. They are edges 2 and 4 of `dale-9` as the point edit leaves
 it, the edit having put a vertex at 1, so they wander inward while the face `dale-13` stands against and the
-walls of the two rooms keep the line the plan drew.
+walls of the two rooms keep the line the plan drew. The tor, `dale-13`, is drawn as a three-lobed ellipse
+instead of the plan's rectangle.
 
 **And the plain writes are not merges.** `PUT /api/map/{slug}/sketch` replaces the layout blob verbatim, which
 is what makes a deletion stick, and `PUT /api/map/{slug}/intent` replaces the stored intent wholesale for the

@@ -50,6 +50,11 @@ public sealed record Refinement
     /// <summary>Outlines drawn as coasts, by shape id, after every point edit.</summary>
     [JsonPropertyName("bendShapes")] public Dictionary<string, ShapeBend>? BendShapes { get; init; }
 
+    /// <summary>Outlines stated by their shape, by the id of what they outline: a shape's vertices, a relief
+    /// area's or push's ring, a stroke's, fluid's or flora's points. Written once everything is drawn and before
+    /// the point edits, so an outlined shape can still be edited and bent.</summary>
+    [JsonPropertyName("outlines")] public Dictionary<string, Outline>? Outlines { get; init; }
+
     /// <summary>The relief, by group id; <c>*</c> stands for every group of the compiled ground.</summary>
     [JsonPropertyName("relief")] public Dictionary<string, SketchReliefJson>? Relief { get; init; }
 
@@ -128,6 +133,8 @@ public sealed record Refinement
         var drawn = Draw(refinement, layout.ToJsonString(), groundId, findings);
         var finished = JsonNode.Parse(drawn)!.AsObject();
         Finish(refinement, finished, groundId);
+        Outlined(refinement, finished, findings);
+        if (findings.Any(finding => finding.Refuses)) return new(layoutJson, intentJson, new Findings(findings));
         var edited = Edit(refinement, finished.ToJsonString(), findings);
         if (findings.Any(finding => finding.Refuses)) return new(layoutJson, intentJson, new Findings(findings));
 
@@ -313,6 +320,80 @@ public sealed record Refinement
             if (refinement.ContainsKey(key)) layout[key] = refinement[key]?.DeepClone();
     }
 
+    // The outlines stated by their shape, each written as the points of everything carrying its id. A relief
+    // stated for every group is copied into each, so one id can be a mark in several and the outline is all of
+    // them; an outline that draws no ring refuses the source, and one reaching nothing that reads a ring is said.
+    private static void Outlined(JsonObject refinement, JsonObject layout, List<Finding> findings)
+    {
+        if (refinement["outlines"] is not JsonObject outlines) return;
+        var shapes = (layout["layers"] as JsonArray ?? []).OfType<JsonObject>()
+            .SelectMany(layer => layer["layout"]?["shapes"] as JsonArray ?? []).OfType<JsonObject>().ToList();
+        var relief = (layout["relief"] as JsonObject ?? []).Select(group => group.Value).OfType<JsonObject>().ToList();
+        var marks = relief.SelectMany(group => group["marks"] as JsonArray ?? []).OfType<JsonObject>().ToList();
+        var pushes = relief.SelectMany(group => group["pushes"] as JsonArray ?? []).OfType<JsonObject>().ToList();
+        var props = (layout["dressing"]?["props"] as JsonArray ?? []).OfType<JsonObject>().ToList();
+
+        foreach (var (id, stated) in outlines)
+        {
+            var field = $"outlines.{id}";
+            Outline? outline;
+            try { outline = stated?.Deserialize<Outline>(Json); }
+            catch (JsonException) { outline = null; }
+            string? why = "states no outline";
+            if ((outline is null ? null : outline.Drawn(out why)) is not { } ring)
+            {
+                findings.Add(new Finding(SourceRules.OutlineDrawsNoRing, $"{field} {why}", Field: field, Subjects: [id]));
+                return;
+            }
+
+            var reached = 0;
+            var unread = new List<string>();
+            foreach (var shape in shapes.Where(shape => Text(shape["id"]) == id))
+            {
+                if (Text(shape["role"]) is { Length: > 0 } role) { unread.Add($"the plan's own {role} rectangle"); continue; }
+                shape["type"] = ShapeKinds.Polygon;
+                foreach (var bound in (string[])["min_x", "min_z", "max_x", "max_z", "center_x", "center_z", "radius", "controls"])
+                    shape.Remove(bound);
+                shape["vertices"] = Points(ring);
+                reached++;
+            }
+            foreach (var mark in marks.Where(mark => Text(mark["id"]) == id))
+            {
+                if (Text(mark["kind"]) is var kind && kind != MarkKinds.Area) { unread.Add($"a {kind ?? MarkKinds.Point} mark"); continue; }
+                mark["ring"] = Points(ring);
+                reached++;
+            }
+            foreach (var push in pushes.Where(push => Text(push["id"]) == id))
+            {
+                push["ring"] = Points(ring);
+                reached++;
+            }
+            foreach (var prop in props.Where(prop => Text(prop["id"]) == id))
+            {
+                if (Text(prop["kind"]) is var kind && kind is not (PropKinds.Stroke or PropKinds.Fluid or PropKinds.Flora))
+                { unread.Add($"a {kind} prop"); continue; }
+                prop["points"] = Points(ring);
+                reached++;
+            }
+
+            if (unread.Count > 0)
+                findings.Add(new Finding(SourceRules.NamesNothing,
+                    $"{field} reaches {string.Join(" and ", unread)}, which states no outline of its own — an outline "
+                    + "is the vertices of a shape, the ring of an area mark or a push, or the points of a stroke, a "
+                    + "fluid or a flora prop",
+                    Severity.Complaint, Field: field, Subjects: [id]));
+            else if (reached == 0)
+                findings.Add(NamesNothing("outlines", id,
+                    shapes.Concat(marks).Concat(pushes).Concat(props).Select(thing => Text(thing["id"])).OfType<string>().Distinct()));
+        }
+
+        static JsonArray Points(double[][] ring) => new([.. ring.Select(point =>
+            (JsonNode)new JsonArray(JsonValue.Create(point[0]), JsonValue.Create(point[1])))]);
+    }
+
+    private static string? Text(JsonNode? node) =>
+        node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+
     // The outlines reshaped a point at a time, in order, and then bent: a bend resamples whatever ring it is given,
     // so every point edit comes first.
     private static string Edit(JsonObject refinement, string layoutJson, List<Finding> findings)
@@ -495,6 +576,45 @@ public sealed record VertexEdit(
     [property: JsonPropertyName("x")] double? X = null,
     [property: JsonPropertyName("z")] double? Z = null);
 
+/// <summary>An outline stated by its shape rather than its points: an ellipse about <see cref="At"/>, pulled in
+/// and out by <see cref="Lobes"/> bulges reaching <see cref="Wobble"/> past it, and turned by <see cref="Turn"/>
+/// (<see cref="Geom.Algorithms.LobedOutline"/>).</summary>
+/// <param name="At">The centre, as an <c>[x, z]</c> pair.</param>
+/// <param name="Radius">The radius along x before the turn, in blocks.</param>
+/// <param name="RadiusZ">The radius along z before the turn. Absent is <paramref name="Radius"/>, a circle.</param>
+/// <param name="Points">How many points it is drawn with.</param>
+/// <param name="Lobes">How many bulges it carries.</param>
+/// <param name="Wobble">How far a bulge reaches past the ellipse, as a fraction of the radius it swells, and as
+/// far in between them: 0 is the plain ellipse, and under 1 so no trough reaches the centre.</param>
+/// <param name="Phase">Where round the outline the first bulge stands, in radians.</param>
+/// <param name="Turn">How far the whole outline is turned about its centre, in degrees.</param>
+public sealed record Outline(
+    [property: JsonPropertyName("at")] double[] At,
+    [property: JsonPropertyName("radius")] double Radius,
+    [property: JsonPropertyName("radiusZ")] double? RadiusZ = null,
+    [property: JsonPropertyName("points")] int Points = 28,
+    [property: JsonPropertyName("lobes")] int Lobes = 3,
+    [property: JsonPropertyName("wobble")] double Wobble = 0,
+    [property: JsonPropertyName("phase")] double Phase = 0,
+    [property: JsonPropertyName("turn")] double Turn = 0)
+{
+    /// <summary>The points this outline is drawn as, or null with <paramref name="why"/> saying what stops it
+    /// drawing a ring: no centre, a radius of nought, fewer than three points, or a wobble outside
+    /// <c>[0, 1)</c>. Inside those every point stands off the centre at its own angle, so the ring never crosses
+    /// itself.</summary>
+    public double[][]? Drawn(out string? why)
+    {
+        why = At is not { Length: 2 } ? "states no `at`, the centre as an [x, z] pair"
+            : Radius <= 0 || RadiusZ is <= 0 ? "states a radius of nought or less"
+            : Points < 3 ? $"is drawn with {Points} points, and a ring takes three"
+            : Wobble is < 0 or >= 1 ? $"states a wobble of {Wobble}; a bulge is a fraction of the radius from 0 up to 1"
+            : null;
+        return why is null
+            ? Geom.Algorithms.LobedOutline.Of(At[0], At[1], Radius, RadiusZ ?? Radius, Points, Lobes, Wobble, Phase, Turn)
+            : null;
+    }
+}
+
 /// <summary>A refinement applied: the layout and intent it produced, and what it had to say about them.</summary>
 public sealed record Refined(string LayoutJson, string IntentJson, Findings Findings);
 
@@ -546,4 +666,13 @@ public static class SourceRules
     /// <remarks>Name the row by a name the finding lists, or by its id where several rows share the name.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Request)]
     public const string NamesNoLibraryRow = "SR6";
+
+    /// <summary>An outline a refinement states by its shape draws no ring: it states no centre, a radius of
+    /// nought, fewer than three points, or a wobble outside <c>[0, 1)</c> — at 1 a trough reaches the centre and
+    /// past it the outline folds through it. The thing it outlines would be built from no ring, so the source is
+    /// refused.</summary>
+    /// <remarks>State the centre as <c>at: [x, z]</c>, a radius over nought and three points or more, and keep
+    /// the wobble under 1.</remarks>
+    [Rule(RuleCategory.Malformed, RuleConcern.Request, RuleConcern.Terrain)]
+    public const string OutlineDrawsNoRing = "SR7";
 }
