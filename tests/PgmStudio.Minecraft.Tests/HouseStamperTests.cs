@@ -61,11 +61,9 @@ public sealed class HouseStamperTests
         const int AlongX = 4, AlongZ = 8;
         var style = new HouseStyle
         {
-            // The corner post is an upright oak log by default and the wall's top course a laid one, and the
-            // roof is what is under test, so both go — otherwise they answer this question too, in the axes a
-            // post and a wall course are supposed to lie on.
+            // The corner post is an upright oak log by default and the shell is what is under test, so it goes
+            // — otherwise the posts answer this question too, in the axis a post is supposed to stand on.
             Post = new SolidMaterial(Blocks.Stone),
-            Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks, Spruce), 5),
             Roof = new RoofStyle
             {
                 Form = RoofForm.Gable, Pitch = 1, Overhang = 1,

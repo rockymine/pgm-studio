@@ -157,9 +157,7 @@ public sealed class SketchMaterialGateTests
          "roomStyles":{"wool":{
            "foundation":{"plate":{"stack":{"bands":[{"material":{"kind":"solid","id":5,"data":1},"thickness":1}],
                                            "ending":"handOver"},"extent":1}},
-           "storeys":[{"clear":4,
-                       "wall":{"stack":{"bands":[{"material":{"kind":"solid","id":0,"data":0},"thickness":3},
-                                                 {"material":{"kind":"laidLog","id":17,"data":0},"thickness":1}],
+           "storeys":[{"wall":{"stack":{"bands":[{"material":{"kind":"solid","id":0,"data":0},"thickness":4}],
                                         "ending":"handOver"},"extent":4}}]}}}
         """;
 

@@ -494,11 +494,12 @@ public sealed class HouseStyleValidationTests
 
     private static readonly TerrainMaterial Masonry = new SolidMaterial(98, 0);
 
+    // Two storeys of three clear: the lower lays four courses, the fourth being the seam the beam ends come out of.
     private static HouseStyle Framed(TerrainMaterial wall, int postWood, int beamWood, int? laidWood = null) => new()
     {
         Wall = new RoomPart(new BandStack(laidWood is { } laid
-            ? [new Band(wall, 2), new Band(new LaidLogMaterial(Blocks.Log, laid), 1)]
-            : [new Band(wall, 3)]), 3),
+            ? [new Band(wall, 3), new Band(new LaidLogMaterial(Blocks.Log, laid), 1)]
+            : [new Band(wall, 4)]), 4),
         Storeys = [new Storey { Clear = 3 }, new Storey { Clear = 3 }],
         Post = new SolidMaterial(Blocks.Log, postWood),
         Beams = new BeamStyle { Block = Blocks.Log, Data = beamWood, Reach = 1 },
@@ -513,8 +514,22 @@ public sealed class HouseStyleValidationTests
         var findings = HouseStyleValidation.Check(Framed(Masonry, postWood: 1, beamWood: 1));
 
         var beams = findings.Single(finding => finding.Rule == HouseStyleRules.BeamsWithoutTimber);
-        await Assert.That(beams.Field).IsEqualTo("beams");
+        await Assert.That(beams.Field).IsEqualTo("storeys[0].wall");
         await Assert.That(beams.Message).Contains("laid log");
+    }
+
+    /// <summary>The author's ruling: the laid log is at the level of the corner beams. A course of it anywhere else
+    /// in the wall is not the timber the ends come out of.</summary>
+    [Test]
+    public async Task A_laid_log_on_another_course_than_the_beams_is_HS9()
+    {
+        var lower = Framed(Masonry, postWood: 1, beamWood: 1) with
+        {
+            Wall = new RoomPart(new BandStack(
+                [new Band(Masonry, 1), new Band(new LaidLogMaterial(Blocks.Log, 1), 1), new Band(Masonry, 2)]), 4),
+        };
+        var findings = HouseStyleValidation.Check(lower);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutTimber)).IsTrue();
     }
 
     /// <summary>A wall carrying one says nothing — `opus5-scarrow-delph`'s stilt houses are that building, and
@@ -627,81 +642,51 @@ public sealed class HouseStyleValidationTests
         await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.StiltFloor)).IsFalse();
     }
 
-    // ── a storey's posts and the timber they carry (HS11) ──────────────────────────────────────────
+    // ── beam ends and the posts beside them (HS11) ────────────────────────────────────────────────
 
     private static readonly TerrainMaterial SpruceLog = new SolidMaterial(Blocks.Log, 1);
     private static readonly TerrainMaterial LaidSpruce = new LaidLogMaterial(Blocks.Log, 1);
 
-    private static HouseStyle Posted(TerrainMaterial post, TerrainMaterial? top = null) => new()
-    {
-        Wall = new RoomPart(new BandStack(top is { } plate
-            ? [new Band(Masonry, 4), new Band(plate, 1)]
-            : [new Band(Masonry, 5)]), 5),
-        Post = post,
-    };
-
-    /// <summary>The author's case: `17h-hall`'s ground storey stood spruce corner posts in a wall of stone
-    /// brick and andesite with no timber course, so the posts were logs leaned against masonry.</summary>
+    /// <summary>The author's ruling: corner beams require log pillars and a laid log. Beam ends over a laid seam
+    /// whose corners are stone brick have no upright to dock against.</summary>
     [Test]
-    public async Task Log_posts_in_a_wall_with_no_laid_log_are_HS11()
+    public async Task Beam_ends_beside_corners_that_are_not_log_are_HS11()
     {
-        var findings = HouseStyleValidation.Check(Posted(SpruceLog));
+        var stone = Framed(Masonry, postWood: 1, beamWood: 1, laidWood: 1) with { Post = Masonry };
 
-        var posts = findings.Single(finding => finding.Rule == HouseStyleRules.PostsWithoutTimber);
+        var posts = HouseStyleValidation.Check(stone).Single(finding => finding.Rule == HouseStyleRules.BeamsWithoutPosts);
         await Assert.That(posts.Severity).IsEqualTo(Severity.Refusal);
-        await Assert.That(posts.Field).IsEqualTo("wall");
-        await Assert.That(posts.Message).Contains("spruce");
+        await Assert.That(posts.Field).IsEqualTo("storeys[0].post");
+        await Assert.That(posts.Message).Contains("stone brick");
     }
 
-    /// <summary>The fix the author gave: the storey's top course laid in the posts' own log.</summary>
+    /// <summary>Corners that are wall like the rest of it are no posts at all, and are asked the same.</summary>
     [Test]
-    public async Task Log_posts_over_a_laid_log_course_say_nothing()
+    public async Task Beam_ends_on_a_building_with_no_posts_are_HS11()
     {
-        var findings = HouseStyleValidation.Check(Posted(SpruceLog, LaidSpruce));
-        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.PostsWithoutTimber)).IsFalse();
+        var bare = Framed(Masonry, postWood: 1, beamWood: 1, laidWood: 1) with { Post = null };
+        var findings = HouseStyleValidation.Check(bare);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutPosts)).IsTrue();
     }
 
-    /// <summary>A pier of stone carries no plate — `sb-spawn`'s polished andesite pillars over andesite.</summary>
+    /// <summary>The author's croft: log pillars in a stone wall with no beams and no laid log anywhere is fine.
+    /// </summary>
     [Test]
-    public async Task Stone_posts_are_not_asked()
+    public async Task Log_posts_without_beam_ends_are_not_asked()
     {
-        var findings = HouseStyleValidation.Check(Posted(new SolidMaterial(Blocks.Stone, 6)));
-        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.PostsWithoutTimber)).IsFalse();
+        var croft = Framed(Masonry, postWood: 1, beamWood: 1) with { Beams = new BeamStyle() };
+        var findings = HouseStyleValidation.Check(croft);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutPosts
+                                               || finding.Rule == HouseStyleRules.BeamsWithoutTimber)).IsFalse();
     }
 
-    /// <summary>Each storey answers for its own posts: the laid course over the upper storey frames nothing
-    /// under the floor below it.</summary>
+    /// <summary>The whole frame says nothing: log posts, beam ends of the same wood, and a laid log at their seam.
+    /// </summary>
     [Test]
-    public async Task A_laid_log_upstairs_does_not_carry_the_posts_below_it()
+    public async Task Beam_ends_with_log_posts_and_a_laid_seam_say_nothing()
     {
-        var style = new HouseStyle
-        {
-            Post = SpruceLog,
-            Storeys =
-            [
-                new Storey { Clear = 4, Wall = RoomPart.Of(Masonry, 5) },
-                new Storey { Clear = 3, Wall = new RoomPart(new BandStack(
-                    [new Band(new SolidMaterial(Blocks.Planks, 1), 2), new Band(LaidSpruce, 1)]), 3) },
-            ],
-        };
-
-        var fields = HouseStyleValidation.Check(style)
-            .Where(finding => finding.Rule == HouseStyleRules.PostsWithoutTimber)
-            .Select(finding => finding.Field);
-        await Assert.That(string.Join(", ", fields)).IsEqualTo("storeys[0].wall");
-    }
-
-    /// <summary>A band past the courses a storey lays is never laid: a one-storey wall four courses high whose
-    /// stack names its log fifth has no log in it.</summary>
-    [Test]
-    public async Task A_laid_log_past_the_courses_a_storey_lays_carries_nothing()
-    {
-        var style = Posted(SpruceLog, LaidSpruce) with
-        {
-            Wall = new RoomPart(new BandStack([new Band(Masonry, 4), new Band(LaidSpruce, 1)]), 4),
-        };
-        var findings = HouseStyleValidation.Check(style);
-        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.PostsWithoutTimber)).IsTrue();
+        var findings = HouseStyleValidation.Check(Framed(Masonry, postWood: 1, beamWood: 1, laidWood: 1));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutPosts)).IsFalse();
     }
 
     // ── a gable in the verge's own block (HS12) ────────────────────────────────────────────────────

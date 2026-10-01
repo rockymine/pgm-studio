@@ -1003,24 +1003,23 @@ once. Keeping the course and the ends apart is what lets a beam run in one mater
 and lets a building have either without the other.
 
 **But not the ends without the course.** A beam end is the end of *that timber*, so a building laying ends
-over a wall with no laid log anywhere in it is showing the ends of a floor beam it has not got: eight logs
+from a course that is not a laid log is showing the ends of a floor beam it has not got: eight logs
 running out of masonry, which is not a detail but a claim about how the building is put together that the
-building does not honour. `HS9` names it, asked only where the building has a storey seam — a building of one
-storey lays no beams, so the word on it is inert rather than wrong. And the three timbers of a frame — the
+building does not honour. `HS9` names it at every seam: the ends are laid in the top course of the storey under
+the seam, so that course is the laid log, and a laid log on any other course is not the timber they come out of.
+A building of one storey lays no beams, so the word on it is inert rather than wrong. And the three timbers of a frame — the
 corner post, the ends docking against it, the course they are the ends of — are one frame and so **one wood**,
 which is `HS4`'s rule, the same one a door head's stair and its slab fill answer to. `opus5-scarrow-delph`'s
 stilt houses are the pair done half right: an oak laid-log course under oak beam ends, standing on spruce
 posts.
 
-**Nor the posts without the course.** A corner post of log is the upright of the same frame, and what it
-carries is the laid course running between the posts, so a storey standing on log posts lays a laid log among
-its own courses — `HS11`. It is asked storey by storey over the courses each storey actually lays: a course
-upstairs frames nothing below it, and a band past a storey's height is never laid. A post of stone is a pier,
-carries no plate and is not asked. The course sits where a frame carries it, at the top of a storey; as the
-building's first course, on the foundation, it is a log lying round the footprint with nothing standing on it as
-a frame, and `HS13` refuses it there. An upper storey may open on one, since it stands on the storey below. The
-house a style leaves unstated is the frame done this way — oak posts, four courses of spruce boarding and a laid
-oak course at the top.
+**Nor the ends without the posts.** A beam end runs out past the corner post it docks against, so the storey
+under a seam that lays ends stands on log posts — `HS11`, asked of every storey a seam stands on. Log posts with no
+ends are not asked for anything: a frame may show its uprights without showing its floors, and a stone wall
+between log posts with no laid course is a building the author keeps. The laid course itself sits where the ends
+come out, at the top of a storey; as the building's first course, on the foundation, it is a log lying round the
+footprint with nothing standing on it as a frame, and `HS13` refuses it there. An upper storey may open on one,
+since it stands on the storey below.
 
 The ends are **the one thing a house writes outside its own footprint**. Everything else a style lays falls
 inside the walls plus the roof's overhang, which is what makes a shell safe to stamp onto finished terrain — so

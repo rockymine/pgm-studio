@@ -238,9 +238,9 @@ And the building rules, which the dressing document and the room library are bot
 | `HS6` | a door is cut through a wall that is not there |
 | `HS7` | a footing rings a plate one course deep — a complaint |
 | `HS8` | a porch's canopy climbs past the wall it is attached to — a complaint |
-| `HS9` | beams over a wall with no laid-log course to be the ends of |
+| `HS9` | beam ends come out of a course that is not a laid log |
 | `HS10` | a house on stilts standing on a floor — a complaint |
-| `HS11` | a storey stands on log corner posts and none of the courses it lays is a laid log |
+| `HS11` | beam ends come out beside corners that are not log posts |
 | `HS12` | the gable is laid in the verge's own block |
 | `HS13` | a laid log is the building's bottom course |
 

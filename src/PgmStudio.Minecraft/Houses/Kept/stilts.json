@@ -158,14 +158,6 @@
         "id": 5,
         "data": 1
        },
-       "thickness": 3
-      },
-      {
-       "material": {
-        "kind": "laidLog",
-        "id": 17,
-        "data": 0
-       },
        "thickness": 1
       }
      ],

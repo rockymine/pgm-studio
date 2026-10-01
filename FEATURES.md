@@ -5948,16 +5948,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   flat across the mire it stands in, and the shipped `townside on stilts` preset did the same. `HS10` names
   it, a complaint — the building is not wrong, the ground under it is floored — and the preset now states its
   plate as air, which is what leaves the terrain showing between the posts.
-- **The author's review of the kept styles is in the gate (WE158).** Three rulings from reviewing the
-  twenty-nine styles boards are built with are refusals now. `HS11`: a storey standing on log corner posts lays
-  a laid-log course among its own courses, the timber the posts carry — asked storey by storey, so a course
-  upstairs frames nothing below it. `HS12`: the gable is never the verge's block, the unnamed gable being the
-  wall's top course carried up. `HS13`: a laid log is never the building's bottom course. Ten kept styles are
-  revised as the review asked (`17h-croft`, `17h-hall`, `17h-hall-spruce`, `hw-stonehouse`, `sb-spawn`,
-  `showcase-hall`, `showcase-hall-hay`, `sn-compass-well`, `stilts`, `talltimber-cottage-jungle`); eight
-  presets meet the rules with a laid course of their posts' wood at each storey's top and, on the village row,
-  a spruce roof and gable under a dark oak verge; and an unstated wall is four courses of spruce under a laid
-  oak course, so a house placed with no style is a frame the gate accepts. The room over a stilt storey names
+- **The author's review of the kept styles is in the gate (WE158).** The rulings from reviewing the
+  twenty-nine styles boards are built with are refusals now. Corner beams require log pillars and a laid log at
+  their level: `HS9` asks for the laid log at the very course a seam's beam ends come out of, rather than anywhere
+  in the walls, and `HS11` for log posts beside them; log posts with no beam ends are not asked. `HS12`: the
+  gable is never the verge's block, the unnamed gable being the wall's top course carried up. `HS13`: a laid log
+  is never the building's bottom course. Ten kept styles are revised as the review asked (`17h-croft`,
+  `17h-hall`, `17h-hall-spruce`, `hw-stonehouse`, `sb-spawn`, `showcase-hall`, `showcase-hall-hay`,
+  `sn-compass-well`, `stilts`, `talltimber-cottage-jungle`), and the village row's `cottage`, `longhouse` and
+  `workshop` meet `HS12` with a spruce roof and gable under a dark oak verge. The room over a stilt storey names
   its own deck — a storey naming none stands on the plate's top course, so `stilts` and `townside on stilts`,
   both on plates of air, had no floor upstairs — and the library seed stores a storey's own deck, which it
   dropped. `docs/world-export/structures.md` §7.1, §7.2, §7.7. (`WE158`)

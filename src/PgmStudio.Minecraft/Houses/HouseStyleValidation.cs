@@ -99,14 +99,13 @@ public static class HouseStyleRules
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.World, RuleConcern.Terrain)]
     public const string StiltFloor = "HS10";
 
-    /// <summary>A storey framed in timber with no timber course in its wall. A corner post of log is the upright
-    /// of a frame, and what it carries is the laid log running along the wall between the posts — so a storey
-    /// with log posts and no laid-log course among the courses it lays has uprights holding nothing, which reads
-    /// as timber stood against masonry rather than as a frame. Each storey answers for its own posts: a log
-    /// course upstairs frames nothing below it.</summary>
-    /// <remarks>Lay the storey's top course in a `laidLog` of the posts' own wood, or make the posts stone — a pier of stone carries no plate and is not asked.</remarks>
+    /// <summary>Beam ends at corners that are not log posts. A beam end runs out past the corner post it docks
+    /// against, and the post, the ends and the laid course they are the ends of are one frame — so a seam that
+    /// lays its ends beside corners of masonry, or of the wall itself, shows the ends of a floor with no upright
+    /// under them. Asked of every storey a seam stands on; log posts without beam ends are not asked.</summary>
+    /// <remarks>Stand the storey under the seam on log corner posts of the beams' wood, or take the beams off.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Material)]
-    public const string PostsWithoutTimber = "HS11";
+    public const string BeamsWithoutPosts = "HS11";
 
     /// <summary>A gable laid in the verge's own block. The verge is the roof's border, and at a gable end it runs
     /// down both sloped edges of the triangle of wall the roof leaves standing — so where the two are one block
@@ -116,10 +115,10 @@ public static class HouseStyleRules
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
     public const string GableAsVerge = "HS12";
 
-    /// <summary>A laid log as the building's bottom course. A laid log is the timber a storey's posts carry and
-    /// its beams come out of, which puts it at the top of a storey; laid as the ground storey's first course,
-    /// on the foundation, it is a log lying round the footprint with nothing standing on it as a frame.</summary>
-    /// <remarks>Start the ground storey's wall on masonry or planks and lay the log as the storey's top course, where its posts carry it.</remarks>
+    /// <summary>A laid log as the building's bottom course. A laid log is the timber a seam's beam ends come out
+    /// of, which puts it at the top of a storey; laid as the ground storey's first course, on the foundation, it
+    /// is a log lying round the footprint with nothing standing on it as a frame.</summary>
+    /// <remarks>Start the ground storey's wall on masonry or planks and lay the log as the storey's top course, where a frame carries it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Material)]
     public const string LogAtTheFoot = "HS13";
 }
@@ -162,7 +161,7 @@ public static class HouseStyleValidation
         CheckPorchHeadroom(style, findings);
         CheckBeamsHaveTimber(style, findings);
         CheckFrameTimber(style, findings);
-        CheckPostsCarryTimber(style, findings);
+        CheckBeamsHavePosts(style, findings);
         CheckGableAgainstVerge(style, findings);
         CheckLogAtTheFoot(style, findings);
         CheckStiltFloor(style, findings);
@@ -223,20 +222,46 @@ public static class HouseStyleValidation
         if (beams.Block >= 0) Refuse(HouseBlockKinds.Beams, beams.Block, findings);
     }
 
-    /// <summary>HS9 — beams over a wall carrying no timber. The ends are the ends of a floor beam, so a wall
-    /// with no laid-log course anywhere in it has nothing for them to be the ends <em>of</em>.</summary>
+    /// <summary>HS9 — beam ends coming out of a course that is not a laid log. The ends are laid at each seam,
+    /// in the top course of the storey under it, so that course is the floor timber they are the ends of; a laid
+    /// log on any other course carries nothing they belong to. A building of one storey has no seam and lays no
+    /// ends, so the word on it is inert rather than wrong.</summary>
     private static void CheckBeamsHaveTimber(HouseStyle style, List<Finding> findings)
     {
-        // Beams are laid at a storey seam, so a building of one storey never lays any and the word on it is
-        // inert rather than wrong.
-        if (!style.Beams.Any || style.Levels.Count < 2) return;
-        if (WallParts(style).Any(part => part.Stack.Bands.Any(band => band.Material is LaidLogMaterial))) return;
+        if (!style.Beams.Any) return;
+        var levels = style.Levels;
+        for (var at = 0; at < levels.Count - 1; at++)
+        {
+            var wall = levels[at].Wall ?? style.Wall;
+            var seam = levels[at].Courses(topmost: false) - 1;
+            var course = wall.At(seam).Material;
+            if (course is LaidLogMaterial) continue;
 
-        findings.Add(new Finding(HouseStyleRules.BeamsWithoutTimber,
-            $"the building lays beams of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} and no "
-            + "course of any of its walls is a laid log, so the ends run out of masonry with no timber behind "
-            + "them. Lay the storey's top course in a laidLog of the same material, or drop the beams.",
-            Field: "beams"));
+            findings.Add(new Finding(HouseStyleRules.BeamsWithoutTimber,
+                $"the beams of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} come out of storey {at}'s "
+                + $"top course, and that course is {Describe(course)} rather than a laid log, so the ends run out "
+                + "of the wall with no timber behind them. Lay that course in a laidLog of the beams' wood, or "
+                + "drop the beams.",
+                Field: $"storeys[{at}].wall"));
+        }
+    }
+
+    /// <summary>HS11 — beam ends at a seam whose storey stands on corners that are not log.</summary>
+    private static void CheckBeamsHavePosts(HouseStyle style, List<Finding> findings)
+    {
+        if (!style.Beams.Any) return;
+        var levels = style.Levels;
+        for (var at = 0; at < levels.Count - 1; at++)
+        {
+            if (levels[at].Post is SolidMaterial post && BlockFamilies.IsLog(post.Id)) continue;
+
+            findings.Add(new Finding(HouseStyleRules.BeamsWithoutPosts,
+                $"the beams of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} come out at storey {at}'s "
+                + $"corners, and those corners are {Describe(levels[at].Post)} rather than log posts, so the ends "
+                + "have no upright to dock against. Stand the storey on log posts of the beams' wood, or drop the "
+                + "beams.",
+                Field: $"storeys[{at}].post"));
+        }
     }
 
     /// <summary>Every wall a style states: the building's own and each storey's, since a storey with no wall
@@ -247,6 +272,14 @@ public static class HouseStyleValidation
         foreach (var storey in style.Storeys)
             if (storey.Wall is { } wall) yield return wall;
     }
+
+    /// <summary>A material as a finding names it: its block where it lays one, else its kind.</summary>
+    private static string Describe(TerrainMaterial? material) => material switch
+    {
+        null => "the wall itself",
+        _ when SingleBlock(material) is { } block => BlockMaterials.Of(block.Id, block.Data),
+        _ => $"a {material.GetType().Name.Replace("Material", "").ToLowerInvariant()} pattern",
+    };
 
     /// <summary>The timbers of one frame: the corner post, the beam ends that dock against it and the laid-log
     /// course they are the ends of. A frame in two woods is a frame nobody cut.</summary>
@@ -262,27 +295,6 @@ public static class HouseStyleValidation
                     + "docking against it and the course they are the ends of are one frame, so they are cut "
                     + "from one wood.",
                     Field: where));
-    }
-
-    /// <summary>HS11 — a storey whose corner posts are logs and whose wall lays no log. Asked of every storey
-    /// the building has, each with the wall and posts it falls back to, over the courses the stamp lays for it:
-    /// a band past the storey's height is never laid and frames nothing.</summary>
-    private static void CheckPostsCarryTimber(HouseStyle style, List<Finding> findings)
-    {
-        var levels = style.Levels;
-        for (var at = 0; at < levels.Count; at++)
-        {
-            if (levels[at].Post is not SolidMaterial post || !BlockFamilies.IsLog(post.Id)) continue;
-            var wall = levels[at].Wall ?? style.Wall;
-            var courses = levels[at].Courses(at == levels.Count - 1);
-            if (Enumerable.Range(0, courses).Any(course => wall.At(course).Material is LaidLogMaterial)) continue;
-
-            findings.Add(new Finding(HouseStyleRules.PostsWithoutTimber,
-                $"storey {at} stands on corner posts of {BlockMaterials.Of(post.Id, post.Data)} and none of the "
-                + $"{courses} courses its wall lays is a laid log, so the posts carry nothing. Lay the storey's top "
-                + "course in a laidLog of the same wood, or make the posts stone.",
-                Field: style.Storeys.Count > 0 ? $"storeys[{at}].wall" : "wall"));
-        }
     }
 
     /// <summary>HS12 — a gable face in the verge's block. The face is the style's own gable where it names one
