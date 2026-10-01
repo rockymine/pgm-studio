@@ -850,6 +850,30 @@ public sealed class DecoratorTests
         await Assert.That(grown.All(id => id == DressingPalette.DeadBushBlock)).IsTrue();
     }
 
+    /// <summary><b>A plant does not ask how steep the ground is</b> (the author's ruling): one block, held up by
+    /// the block under it, grows on a face exactly as on a meadow. A grass ramp rising two courses a cell, 63°,
+    /// grows its cover in every column.</summary>
+    [Test]
+    public async Task A_plant_grows_on_a_face_as_on_a_meadow()
+    {
+        var world = new VoxelWorld();
+        var top = new Dictionary<(int X, int Z), int>();
+        for (var z = 0; z < 20; z++)
+        for (var x = 0; x < 20; x++)
+        {
+            var height = 8 + 2 * x;
+            for (var y = 0; y < height - 1; y++) world.SetBlock(x, y, z, Blocks.Stone);
+            world.SetBlock(x, height - 1, z, Blocks.Grass);
+            top[(x, z)] = height;
+        }
+        Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f", Points = AreaOver(20), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 }]));
+
+        var face = top.Keys.Where(cell => cell.X is > 1 and < 18 && cell.Z is > 1 and < 18).ToList();
+        await Assert.That(face.All(cell => SurfaceGradient.Degrees(top, cell.X, cell.Z) >= 60)).IsTrue();
+        await Assert.That(face.All(cell => world.GetBlock(cell.X, top[cell], cell.Z).Id != Blocks.Air)).IsTrue();
+    }
+
     /// <summary>A plateau painted in three strips across x: grass to x 12, podzol to x 25, mycelium beyond.</summary>
     private static (VoxelWorld World, Dictionary<(int X, int Z), int> SurfaceTop) Strips()
     {

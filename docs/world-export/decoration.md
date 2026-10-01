@@ -251,6 +251,11 @@ density field, `Scale`/`Octaves` shaping it, and `FernShare`/`FlowerShare`/`Flow
 the species. `DressingPalette.SoilShare` is the eligibility read — sand and clay take a third of what grass
 does, gravel and quartz none — and `DressingPalette.SoilOf` says what that ground may grow.
 
+**A plant does not ask how steep the ground is** (the author's ruling). It is one block held up by the block
+under it, so a fern, a flower or a mushroom on a 60° face stands exactly as it does on a meadow: the block
+beneath decides whether anything grows, and the gradient never does. A face grows nothing only where its theme
+paints it as something no plant takes, such as rock. The slope is a boulder's rule alone (`DR-STEEP`, §5).
+
 **Dry ground grows the two plants 1.8 lets stand on it.** On sand, `CactusShare` of the cover the density field
 admits is cactus and `DeadBushShare` of the rest is dead bush, and what is left is bare; on hardened or stained
 clay the cover is dead bush at `DeadBushShare`; on dirt `DeadBushShare` of the grass and fern is dead bush
