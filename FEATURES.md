@@ -8689,6 +8689,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   another shape, `id (image)` where the board's symmetry draws one, or `void` — so a pull or a bend's `edges` is
   written from a read rather than from a ring copied into a script. (`Pgm/Sketch/ShapeEdges`,
   `Api/Endpoints/SketchGeometryEndpoints`, `docs/tools/sketch.md`)
+- **A coast placed for play is stated as pulls (`TS128`).** A point edit states `pulls: {edge: [[fraction,
+  blocks], …]}`: a point that fraction of the way along each named edge, moved that many blocks into the ring or
+  out of it where negative, inside asked of the ring rather than read from its centroid, every edge's points
+  landing together so none renumbers the edge another names, made at every image on an outline that is its own
+  image, and a complaint where one folds the ring. It is `coast_edits`' own argument, drawn by the studio point
+  for point. (`Geom/RingPull`, `Pgm/Sketch/SketchGeometryEdit`, `Pgm/Plan/Refinement`, `docs/tools/flow.md`,
+  `docs/refusals.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

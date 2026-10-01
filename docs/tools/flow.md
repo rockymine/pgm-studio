@@ -167,7 +167,7 @@ given, which is why every point edit comes before it.
 | `shapePropsByHeight` · `shapePropsById` | fields merged onto a shape by the height it stands at or by its id; a field stated as null is removed | `PATCH …/sketch/shapes/{shapeId}` |
 | `addLayers` | storeys, each `{id, name, base_y, below, kind, part_of, seat, shapes, groups}` — over the compiled ground, or under it where `below` is true | `PUT …/sketch/layers/{layerId}` |
 | `addShapes` | shapes, each carrying the `layer` and `group` it joins beside its own fields. One naming neither joins the compiled ground and its first group | `POST …/sketch/layers/{layerId}/shapes?group=` |
-| `editShapes` | `{shapeId: [edit, …]}`, in order, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`) and `remove` (drop that point); on a shape the board's symmetry carries onto itself the edit is made at every image unless it states `fan: false` | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape, once per image |
+| `editShapes` | `{shapeId: [edit, …]}`, in order, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`), `remove` (drop that point) and `pulls` (`{edge: [[fraction, blocks], …]}` — points a fraction of the way along each named edge, moved that many blocks into the ring, or out of it where negative); on a shape the board's symmetry carries onto itself the edit is made at every image unless it states `fan: false` | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape, once per image; a pull has none |
 | `bendShapes` | `{shapeId: {wander, step, seed, tension, side, edges, fan}}` — `edges` names the edges drawn as coast, each by the vertex it leaves, and every other edge stays as drawn; on a shape the board's symmetry carries onto itself the coast is its own image too unless `fan` is false | `POST …/sketch/shapes/{shapeId}/bend` |
 | `outlines` | `{id: {at, radius, radiusZ, points, lobes, wobble, phase, turn}}` — an ellipse pulled in and out by lobes, written as the points of whatever carries that id: a shape's vertices (a rectangle or a circle becoming a polygon), the ring of a relief `area` mark or a push, the points of a stroke, a fluid or a flora prop | the points stated on the thing itself |
 | `relief` | `{groupId: relief}`, where `*` stands for every group of the compiled ground | `PUT …/sketch/relief/{groupId}` |
@@ -193,6 +193,18 @@ does not have is `SR2`, a complaint listing the ids the board has. An edit the b
 a rectangle, an index past the ring — is a complaint on the same terms, naming the edit by its place in the
 refinement (`editShapes.dale-9[2]`).
 
+**A coast placed for play is stated as pulls.** A pull is a point stated where it stands:
+`{"pulls": {"3": [[0.19, -7], [0.42, 4]]}}` puts a point 19% of the way along edge 3 and moves it seven blocks out
+of the ring, and another 42% along moved four blocks in. Each edge is named by the vertex it leaves, on the outline
+as the edit finds it, and all of an edit's points land together, so no pull renumbers the edge another one names.
+Inside is the side where a point half a block off the edge falls in the ring, which is right whichever way the ring
+is wound and wherever its centroid lies. Each point is rounded to a tenth of a block, the ring's own vertices stay
+where they are, and an edge named by no pull keeps the line the plan drew. A pull at a fraction outside 0 to 1, at
+an edge the outline lacks, or one that folds the outline is a complaint naming the edit. A bend draws its coast from
+a seed; a pull states where a bulge stands and how far it reaches, which is what a frontline pushed toward an island
+is. The edges to name are read from `GET /map/{slug}/sketch/shapes/{shapeId}?format=text`, which lists each one with
+what lies across it.
+
 **An outline is stated by its shape, and written as points.** `{at, radius}` is a circle of 28 points; `radiusZ`
 makes it an ellipse, `turn` turns it by degrees, and `lobes` bulges — three unless stated — each reaching
 `wobble` of the radius past the ellipse and drawing in as far between them, the first at `phase` radians. The
@@ -209,8 +221,9 @@ mints are named for it. One already standing within half a block of where an ima
 point at the centre of symmetry stays one and a hand-placed pair stays a pair. A point edit and a bend to a shape
 the symmetry carries onto itself — a shape on the axis, which no group's fan copies — are made at every image:
 an insert or a move lands at the image of its point on the image of its edge, a remove takes the image point
-too, and a bend reads its wander at each point's canonical image and draws a named edge's images with it, so
-the outline stays its own image. `fan: false` on an edit or a bend makes it alone. A move that takes a point
+too, a pull lands the same fraction along the image of its edge — counted from the other end where the image runs
+the other way — and a bend reads its wander at each point's canonical image and draws a named edge's images with
+it, so the outline stays its own image. `fan: false` on an edit or a bend makes it alone. A move that takes a point
 the symmetry holds in place off its line has no image that keeps the outline its own, so the point moves as
 stated and `SR8` says the outline is lopsided now. A relief mark needs none of this: the solve folds a group's
 surface across the axis (`docs/world-export/relief.md` §8).
@@ -326,7 +339,7 @@ A plan, its refinement, and where both came from, as one source:
                 "surface": {"material": {"kind": "solid", "id": 2}, "depth": 1},
                 "wall": {"kind": "solid", "id": 1}, "fill": {"kind": "solid", "id": 3}}},
     "relief": {"*": {"base": 3}},
-    "editShapes": {"dale-9": [{"after": 0}]},
+    "editShapes": {"dale-9": [{"pulls": {"0": [[0.5, 2]]}}]},
     "bendShapes": {"dale-9": {"wander": 1.5, "step": 5, "seed": 3, "side": "in", "edges": [2, 4]}},
     "outlines": {"dale-13": {"at": [20, 32], "radius": 5, "radiusZ": 7, "lobes": 3, "wobble": 0.12, "turn": 10}},
     "created": "2026-09-30",
@@ -337,9 +350,10 @@ A plan, its refinement, and where both came from, as one source:
 }
 ```
 
-The bend is a coast on the ford's two long sides. They are edges 2 and 4 of `dale-9` as the point edit leaves
-it, the edit having put a vertex at 1, so they wander inward while the face `dale-13` stands against and the
-walls of the two rooms keep the line the plan drew. The tor, `dale-13`, is drawn as a three-lobed ellipse
+The pull puts a vertex two blocks into the dale from the middle of edge 0, where the ford leaves it. The bend is
+a coast on the ford's two long sides, which are edges 2 and 4 of `dale-9` as the pull leaves it, the pull having
+put that vertex at 1, so they wander inward while the face `dale-13` stands against and the walls of the two rooms
+keep the line the plan drew. The tor, `dale-13`, is drawn as a three-lobed ellipse
 instead of the plan's rectangle.
 
 **And the plain writes are not merges.** `PUT /api/map/{slug}/sketch` replaces the layout blob verbatim, which

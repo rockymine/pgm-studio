@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Vocabulary;
+using TUnit.Assertions.Enums;
 
 namespace PgmStudio.Pgm.Tests;
 
@@ -273,6 +274,70 @@ public sealed class RefinementTests
     }
 
     [Test]
+    public async Task A_pull_inserts_points_a_fraction_along_an_edge_moved_across_it()
+    {
+        var refined = Apply("""{"editShapes":{"moor-12":[{"pulls":{"1":[[0.75,-3],[0.25,2]]}}]}}""");
+
+        await Assert.That(refined.Findings.Count).IsEqualTo(0);
+        await Assert.That(Ring(refined, "moor-12"))
+            .IsEquivalentTo(["[0,0]", "[40,0]", "[38,10]", "[43,30]", "[40,40]", "[0,40]"], CollectionOrdering.Matching)
+            .Because("edge 1 runs from (40, 0) to (40, 40): a quarter along is pulled 2 in and three quarters along "
+                     + "is pushed 3 out, and the two land in order along the edge");
+    }
+
+    [Test]
+    public async Task Pulls_on_several_edges_name_each_edge_on_the_ring_as_the_op_finds_it()
+    {
+        var refined = Apply("""{"editShapes":{"moor-12":[{"pulls":{"0":[[0.5,1]],"2":[[0.5,1]]}}]}}""");
+
+        await Assert.That(Ring(refined, "moor-12"))
+            .IsEquivalentTo(["[0,0]", "[20,1]", "[40,0]", "[40,40]", "[20,39]", "[0,40]"], CollectionOrdering.Matching)
+            .Because("edge 2 is the edge the op found at 2, not the one the first pull's point renumbered");
+    }
+
+    [Test]
+    public async Task A_pull_on_a_shape_on_the_axis_is_made_at_every_image()
+    {
+        var turned = Refinement.Apply("""{"editShapes":{"isle":[{"pulls":{"0":[[0.25,2]]}}]}}""", Axis("rot_180"), Intent);
+        var mirrored = Refinement.Apply("""{"editShapes":{"isle":[{"pulls":{"0":[[0.25,2]]}}]}}""", Axis("mirror_x"), Intent);
+        var alone = Refinement.Apply("""{"editShapes":{"isle":[{"pulls":{"0":[[0.25,2]]},"fan":false}]}}""", Axis("rot_180"), Intent);
+
+        await Assert.That(turned.Findings.Count).IsEqualTo(0);
+        await Assert.That(Ring(turned, "isle"))
+            .IsEquivalentTo(["[-10,-6]", "[-5,-4]", "[10,-6]", "[10,6]", "[5,4]", "[-10,6]"], CollectionOrdering.Matching);
+        await Assert.That(Ring(mirrored, "isle"))
+            .IsEquivalentTo(["[-10,-6]", "[-5,-4]", "[5,-4]", "[10,-6]", "[10,6]", "[-10,6]"], CollectionOrdering.Matching)
+            .Because("the edge crosses the mirror, so its image is the same edge run the other way: a quarter along "
+                     + "becomes three quarters along");
+        await Assert.That(Ring(alone, "isle")).IsEquivalentTo(["[-10,-6]", "[-5,-4]", "[10,-6]", "[10,6]", "[-10,6]"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task A_pull_onto_an_edge_the_ring_lacks_or_off_the_end_of_its_edge_is_a_complaint()
+    {
+        var missing = Apply("""{"editShapes":{"moor-12":[{"pulls":{"7":[[0.5,1]]}}]}}""");
+        var past = Apply("""{"editShapes":{"moor-12":[{"pulls":{"0":[[1.5,1]]}}]}}""");
+
+        foreach (var (refined, said) in new[] { (missing, "7"), (past, "1.5") })
+        {
+            var finding = refined.Findings.Single();
+            await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
+            await Assert.That(finding.Field).IsEqualTo("editShapes.moor-12[0]");
+            await Assert.That(finding.Message).Contains(said);
+            await Assert.That(Ring(refined, "moor-12")).IsEquivalentTo(["[0,0]", "[40,0]", "[40,40]", "[0,40]"], CollectionOrdering.Matching);
+        }
+    }
+
+    [Test]
+    public async Task A_pull_that_folds_the_ring_is_a_complaint_and_the_ring_stays_as_it_was()
+    {
+        var refined = Apply("""{"editShapes":{"moor-12":[{"pulls":{"0":[[0.5,55]]}}]}}""");
+
+        await Assert.That(refined.Findings.Single().Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(Ring(refined, "moor-12")).IsEquivalentTo(["[0,0]", "[40,0]", "[40,40]", "[0,40]"], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task A_bend_on_a_shape_on_the_axis_draws_a_coast_that_is_its_own_image()
     {
         var refined = Refinement.Apply(
@@ -308,9 +373,11 @@ public sealed class RefinementTests
     }
 
     [Test]
-    public async Task An_edit_naming_no_single_index_refuses_the_source()
+    [Arguments("""{"x":1,"z":1}""")]
+    [Arguments("""{"after":0,"pulls":{"0":[[0.5,1]]}}""")]
+    public async Task An_edit_naming_no_single_index_refuses_the_source(string edit)
     {
-        var refined = Apply("""{"editShapes":{"moor-12":[{"x":1,"z":1}]}}""");
+        var refined = Apply($$$"""{"editShapes":{"moor-12":[{{{edit}}}]}}""");
 
         await Assert.That(refined.Findings.Single().Rule).IsEqualTo(SourceRules.EditStatesNoIndex);
         await Assert.That(refined.Findings.Refuses).IsTrue();

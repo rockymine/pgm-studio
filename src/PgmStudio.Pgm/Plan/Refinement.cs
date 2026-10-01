@@ -409,18 +409,30 @@ public sealed record Refinement
                 foreach (var (op, index) in (ops as JsonArray ?? []).OfType<JsonObject>().Select((op, index) => (op, index)))
                 {
                     var field = $"editShapes.{shapeId}[{index}]";
-                    var named = ((string[])["after", "index", "remove"]).Where(op.ContainsKey).ToList();
+                    var named = ((string[])["after", "index", "remove", "pulls"]).Where(op.ContainsKey).ToList();
                     if (named.Count != 1)
                     {
                         findings.Add(new Finding(SourceRules.EditStatesNoIndex,
                             $"{field} names {(named.Count == 0 ? "no index" : string.Join(" and ", named))}; an edit "
-                            + "states exactly one of `after` (insert), `index` (move) or `remove` (drop)",
+                            + "states exactly one of `after` (insert), `index` (move), `remove` (drop) or `pulls` "
+                            + "(points pulled across named edges)",
                             Field: field, Subjects: [shapeId]));
                         return layoutJson;
                     }
+                    var fans = op["fan"] is not JsonValue fan || !fan.TryGetValue<bool>(out var stated) || stated;
+                    if (named[0] == "pulls")
+                    {
+                        layoutJson = Applied(Pulled(op["pulls"], shapeId) is { } pulls
+                                ? SketchGeometryEdit.PullShape(layoutJson, shapeId, pulls, fans)
+                                : GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                                    $"{field} states `pulls` as something other than edges, each named by the vertex "
+                                    + "it leaves and holding [fraction, blocks] pairs: {\"3\": [[0.25, 2]]}",
+                                    Field: field, Subjects: [shapeId])),
+                            layoutJson, field, shapeId, findings);
+                        continue;
+                    }
                     var at = op[named[0]]!.GetValue<int>();
                     double? x = op["x"]?.GetValue<double>(), z = op["z"]?.GetValue<double>();
-                    var fans = op["fan"] is not JsonValue fan || !fan.TryGetValue<bool>(out var stated) || stated;
                     if (fans && SketchGeometryEdit.RingOf(layoutJson, shapeId) is { } ring
                         && Symmetry.SelfImage(ring, board.Mode, board.CentreX, board.CentreZ) is { } images
                         && (named[0] != "index" || x is not null && z is not null))
@@ -453,6 +465,29 @@ public sealed record Refinement
                         + "the edge they were cut from", Severity.Complaint, Subjects: [shapeId]));
             }
         return layoutJson;
+    }
+
+    // The pulls an edit states, edge by edge, or null where they are not edges holding [fraction, blocks] pairs.
+    private static Dictionary<int, IReadOnlyList<RingPull.Pull>>? Pulled(JsonNode? stated, string shapeId)
+    {
+        if (stated is not JsonObject edges) return null;
+        var pulls = new Dictionary<int, IReadOnlyList<RingPull.Pull>>();
+        foreach (var (key, along) in edges)
+        {
+            if (!int.TryParse(key, NumberStyles.Integer, CultureInfo.InvariantCulture, out var edge) || along is not JsonArray pairs)
+                return null;
+            var points = new List<RingPull.Pull>();
+            foreach (var pair in pairs)
+            {
+                if (pair is not JsonArray { Count: 2 } numbers
+                    || numbers[0] is not JsonValue at || !at.TryGetValue<double>(out var fraction)
+                    || numbers[1] is not JsonValue by || !by.TryGetValue<double>(out var blocks))
+                    return null;
+                points.Add(new RingPull.Pull(fraction, blocks));
+            }
+            pulls[edge] = points;
+        }
+        return pulls;
     }
 
     // One point edit to an outline the board's symmetry carries onto itself, made at every image of the point
@@ -655,11 +690,16 @@ public sealed record ShapeJoin(
 }
 
 /// <summary>One point edit to an outline: exactly one of <see cref="After"/> (insert a point on that edge, at its
-/// midpoint where no <c>x</c>/<c>z</c> is stated), <see cref="Index"/> (move that point to <c>x</c>/<c>z</c>) or
-/// <see cref="Remove"/> (drop that point). Every other point stays exactly where it was drawn.</summary>
+/// midpoint where no <c>x</c>/<c>z</c> is stated), <see cref="Index"/> (move that point to <c>x</c>/<c>z</c>),
+/// <see cref="Remove"/> (drop that point) or <see cref="Pulls"/> (insert points along named edges, each pulled
+/// across its edge). Every other point stays exactly where it was drawn.</summary>
 /// <param name="After">Insert a point on the edge after this one.</param>
 /// <param name="Index">Move this point to <c>x</c>/<c>z</c>.</param>
 /// <param name="Remove">Drop this point.</param>
+/// <param name="Pulls">Points stated where they stand, by edge: each edge named by the vertex it leaves on the
+/// outline as this edit finds it, holding <c>[fraction, blocks]</c> pairs — a point that fraction of the way along
+/// the edge, above 0 and below 1, moved that many blocks across it, into the ring where positive and out of it
+/// where negative (<see cref="RingPull"/>). Every edge's points land together, so no pull renumbers another.</param>
 /// <param name="X">Where the point goes on the x axis, in blocks.</param>
 /// <param name="Z">Where the point goes on the z axis, in blocks.</param>
 /// <param name="Fan">False makes this edit alone. Absent, an edit to an outline the board's symmetry carries
@@ -669,6 +709,7 @@ public sealed record VertexEdit(
     [property: JsonPropertyName("after")] int? After = null,
     [property: JsonPropertyName("index")] int? Index = null,
     [property: JsonPropertyName("remove")] int? Remove = null,
+    [property: JsonPropertyName("pulls")] IReadOnlyDictionary<int, IReadOnlyList<double[]>>? Pulls = null,
     [property: JsonPropertyName("x")] double? X = null,
     [property: JsonPropertyName("z")] double? Z = null,
     [property: JsonPropertyName("fan")] bool? Fan = null);
@@ -744,10 +785,11 @@ public static class SourceRules
     [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.Terrain)]
     public const string LayerStatedTwice = "SR3";
 
-    /// <summary>A point edit states none, or more than one, of <c>after</c>, <c>index</c> and <c>remove</c>, so it
-    /// does not say which point it is about.</summary>
+    /// <summary>A point edit states none, or more than one, of <c>after</c>, <c>index</c>, <c>remove</c> and
+    /// <c>pulls</c>, so it does not say which point it is about.</summary>
     /// <remarks>State exactly one: <c>after</c> inserts a point on that edge, <c>index</c> moves that point to
-    /// <c>x</c>/<c>z</c>, and <c>remove</c> drops it.</remarks>
+    /// <c>x</c>/<c>z</c>, <c>remove</c> drops it, and <c>pulls</c> inserts points along the edges it names, each
+    /// pulled across its edge.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Request)]
     public const string EditStatesNoIndex = "SR4";
 
