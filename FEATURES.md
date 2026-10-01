@@ -8617,6 +8617,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   holds the defaults as a count that only moves up, the names to their routes and to being unique, and the
   scheme to what a studio token is. (`Api/Endpoints/StatedDefaults`, `Api/Endpoints/OperationNames`,
   `Api/Program`, `docs/architecture.md`)
+- **Every worked body in the tool documents is posted, held to its schema, and handed out as an example
+  (`RP94`).** Every JSON fence in `docs/tools/` now names the route it is sent to or the shape it is, and
+  `DocumentedBodyTests` posts the first kind, holds both to the schema with every key declared, and refuses a
+  fence naming neither. The API carries the documents (`DocumentedBodies`) and publishes each posted body as its
+  operation's example (`DocumentedExamples`): 34 bodies over 18 write routes, the rest a count that only falls.
+  Holding them to the schema found a wool's room stated as `room` where the intent reads `protection`, a dressing
+  example in a retired model, a room style's roof stated at the top, and three converter shapes the schema did
+  not publish — a plan's `rect` as `[x, z, w, h]`, a relief mark's `h` as a number or a list, and an author as a
+  bare name. (`Api/Endpoints/DocumentedBodies`, `Api/Endpoints/DocumentedExamples`, `Api/Endpoints/CarriedShapes`,
+  `docs/tools/sketch.md`, `docs/tools/configure.md`, `docs/architecture.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

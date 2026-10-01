@@ -22,14 +22,6 @@ written in. The source and its changes have shipped; what remains is the vocabul
 
 ### The schema is the vocabulary, and the kit is made from it
 
-- [ ] **RP94 — Every write route's schema carries a body known to be accepted.** `DocumentedBodyTests` posts
-  the 11 fenced JSON bodies in `docs/tools/*.md` that name a route and asserts a 2xx; 26 more name none and are
-  never posted, all fourteen material examples in `library.md` among them. Route every fence, share the test's
-  extractor with a schema processor, and attach each block to its operation's `requestBody` examples from
-  docs embedded in the `Api` assembly, so `/api-docs` and the kit show a body the test has proved. A write
-  route with no example becomes a count in `SchemaCompletenessTests`. `docs/architecture.md`, which counts 8
-  bodies against 93 write routes where there are 11 against 107.
-
 - [ ] **RP95 — The studio serves a Python kit generated from its own schema.** `GET /api/kit.py`, generated
   from the live document on request with the document's hash as its `ETag`, and committed nowhere: one
   constructor per document type with the studio's field names, allowed words and descriptions, writing only

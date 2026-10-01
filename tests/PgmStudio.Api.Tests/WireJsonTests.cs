@@ -1,7 +1,5 @@
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using NJsonSchema;
-using NJsonSchema.Validation;
 using NSwag;
 
 namespace PgmStudio.Api.Tests;
@@ -82,80 +80,13 @@ public sealed class WireJsonTests
             answered++;
 
             var body = await response.Content.ReadAsStringAsync();
-            untrue.AddRange(Flattened(media.Schema.Validate(body, SchemaType.OpenApi3))
-                .Select(error => $"{path} {error.Kind} {error.Path}"));
-            untrue.AddRange(Undeclared(JsonNode.Parse(body), media.Schema, "#")
-                .Select(key => $"{path} undeclared {key}"));
+            untrue.AddRange(SchemaTruth.Untrue(body, media.Schema)
+                .Select(said => $"{path} {said}"));
         }
 
         await Assert.That(answered).IsGreaterThan(60).Because("a board that answers nothing proves nothing");
         await Assert.That(untrue.Count).IsLessThanOrEqualTo(StillUntrue)
             .Because($"{untrue.Count} thing(s) answered are not what the schema says:{Environment.NewLine}  "
                      + string.Join($"{Environment.NewLine}  ", untrue.Take(80)));
-    }
-
-    /// <summary>The validator nests the failures under each part of a composition; the leaves are what was
-    /// wrong.</summary>
-    private static IEnumerable<ValidationError> Flattened(IEnumerable<ValidationError> errors) =>
-        errors.SelectMany(error => error is ChildSchemaValidationError child
-            ? Flattened(child.Errors.Values.SelectMany(inner => inner))
-            : [error]);
-
-    /// <summary>Every key under <paramref name="value"/> that its schema does not declare. A schema that
-    /// declares nothing at all is open by design and every key is its own; a map's values are each held to
-    /// the map's value schema.</summary>
-    private static IEnumerable<string> Undeclared(JsonNode? value, JsonSchema schema, string at)
-    {
-        var actual = schema.ActualSchema;
-        switch (value)
-        {
-            case JsonObject members:
-                var declared = new Dictionary<string, JsonSchema>(StringComparer.Ordinal);
-                Declare(actual, members, declared, []);
-                var values = Values(actual, []);
-                if (declared.Count == 0 && values is null) yield break;
-                foreach (var (key, child) in members)
-                {
-                    var under = declared.GetValueOrDefault(key) ?? values;
-                    if (under is null) { yield return $"{at}.{key}"; continue; }
-                    foreach (var found in Undeclared(child, under, $"{at}.{key}")) yield return found;
-                }
-                break;
-            case JsonArray items when Items(actual, []) is { } itemSchema:
-                for (var index = 0; index < items.Count; index++)
-                    foreach (var found in Undeclared(items[index], itemSchema, $"{at}[{index}]")) yield return found;
-                break;
-        }
-    }
-
-    /// <summary>The fields a schema declares for this value: its own, its compositions', and — where it is a
-    /// polymorphic base — the fields of the leaf the value's discriminator names.</summary>
-    private static void Declare(
-        JsonSchema schema, JsonObject value, Dictionary<string, JsonSchema> into, HashSet<JsonSchema> seen)
-    {
-        var actual = schema.ActualSchema;
-        if (!seen.Add(actual)) return;
-        foreach (var (name, field) in actual.Properties) into.TryAdd(name, field);
-        foreach (var part in actual.AllOf.Concat(actual.OneOf).Concat(actual.AnyOf)) Declare(part, value, into, seen);
-        if (actual.DiscriminatorObject is { PropertyName: { } discriminatorName } discriminator
-            && value[discriminatorName] is JsonValue kind && kind.TryGetValue<string>(out var word)
-            && discriminator.Mapping.TryGetValue(word, out var leaf))
-            Declare(leaf, value, into, seen);
-    }
-
-    private static JsonSchema? Values(JsonSchema schema, HashSet<JsonSchema> seen)
-    {
-        var actual = schema.ActualSchema;
-        if (!seen.Add(actual)) return null;
-        return actual.AdditionalPropertiesSchema
-               ?? actual.AllOf.Concat(actual.OneOf).Select(part => Values(part, seen)).FirstOrDefault(found => found is not null);
-    }
-
-    private static JsonSchema? Items(JsonSchema schema, HashSet<JsonSchema> seen)
-    {
-        var actual = schema.ActualSchema;
-        if (!seen.Add(actual)) return null;
-        return actual.Item
-               ?? actual.AllOf.Concat(actual.OneOf).Select(part => Items(part, seen)).FirstOrDefault(found => found is not null);
     }
 }

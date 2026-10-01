@@ -81,7 +81,7 @@ not a fact about the map.
 Here is a complete hand-authored intent — enough to generate a two-team CTW map, and the shape an agent
 writes:
 
-```json
+```json PUT /api/map/{slug}/intent
 {
   "meta": {
     "name": "Voidwatch",
@@ -110,11 +110,11 @@ writes:
   },
   "wools": [
     { "owner": "red", "color": "red",
-      "room": [ { "minX": -25, "minZ": -45, "maxX": -10, "maxZ": -30 } ],
+      "protection": [ { "minX": -25, "minZ": -45, "maxX": -10, "maxZ": -30 } ],
       "spawn": { "x": -17.5, "y": 10, "z": -37.5 },
       "monuments": [ { "team": "blue", "location": { "x": 12.5, "y": 11, "z": -37.5 } } ] },
     { "owner": "blue", "color": "blue",
-      "room": [ { "minX": 10, "minZ": 30, "maxX": 25, "maxZ": 45 } ],
+      "protection": [ { "minX": 10, "minZ": 30, "maxX": 25, "maxZ": 45 } ],
       "spawn": { "x": 17.5, "y": 10, "z": 37.5 },
       "monuments": [ { "team": "red", "location": { "x": -12.5, "y": 11, "z": 37.5 } } ] }
   ]

@@ -91,6 +91,9 @@ builder.Services.SwaggerDocument(o =>
     // An operation is named after its route rather than the class serving it, since the name is what a
     // generated client calls the method. PgmStudio.Api.Endpoints.OperationNames says how.
     o.DocumentSettings += doc => doc.OperationProcessors.Add(new OperationNames());
+    // And a body a tool document sends to a route, which a test has posted, is that operation's example.
+    // PgmStudio.Api.Endpoints.DocumentedExamples says how.
+    o.DocumentSettings += doc => doc.OperationProcessors.Add(new DocumentedExamples());
     // A write is signed in with a studio token, which is opaque: the studio looks it up rather than reading a
     // claim out of it, so the scheme is a bearer of no stated format and not the JWT the default would name.
     o.EnableJWTBearerAuth = false;

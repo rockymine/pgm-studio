@@ -75,7 +75,7 @@ its descriptor's claim to reproduce it, so re-composing that same request today 
 
 The descriptor is the card's identity and the whole of what a pin needs:
 
-```json
+```json ComposeRequestDto
 { "players": 12, "teams": 2, "symmetry": "rot_180", "cell": 4, "seed": 0,
   "composerVersion": "walled-4", "schema": 1 }
 ```
@@ -124,7 +124,7 @@ hub, at the end of the back edge nearer the donut, because a donut draws a unit 
 What comes out is a plan document, and it is the same format the Plan tool edits. This is seed 2 at twelve
 players under `rot_180`, exactly as `POST /api/compose/pin` stored it:
 
-```json
+```json POST /api/plan/inspect
 {
   "plan": 2,
   "meta": { "name": "Composed p12 t2 #2" },

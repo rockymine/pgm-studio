@@ -85,7 +85,7 @@ seen from above, which is where a voronoi and the three noise fields vary, and a
 columns cut open downward, which is the axis a layer stack varies along and the elevation a wall material is
 seen as. A stored style's `params` is exactly one of the nodes below, and a saved row is that node plus a name:
 
-```json
+```json POST /api/styles
 { "name": "quartz rim", "kind": "solid", "params": "{\"kind\":\"solid\",\"id\":155,\"data\":0}" }
 ```
 
@@ -103,7 +103,7 @@ and the one to read rather than guessing a field name off a kind's.
 
 **`solid` — one block everywhere.** The leaf every other kind bottoms out in.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "solid", "id": 1, "data": 0 }
 ```
 
@@ -121,13 +121,13 @@ column — unless it states `follow` (0–100%), which carries the bands with th
 side, so strata rise and fall with the land (TP26); `slope` is **degrees of inclination**, which makes the stack an angle mask — one band for the flat,
 another for the shoulder, another for the face of the same hill.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "layered", "stack": { "ending": "repeat", "bands": [
   { "material": { "kind": "solid", "id": 2 }, "thickness": 1 },
   { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] } }
 ```
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "layered", "axis": "slope", "stack": { "ending": "repeat", "bands": [
   { "material": { "kind": "solid", "id": 2 }, "thickness": 20 },
   { "material": { "kind": "solid", "id": 3, "data": 1 }, "thickness": 15 },
@@ -138,7 +138,7 @@ another for the shoulder, another for the face of the same hill.
 clay, wool or stained glass takes the team's colour. A cell with no team — a neutral mid — falls back to
 `neutral`. It works on any bucket, not just the wall, and nests inside a stack or a pattern.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "teamTint", "blockId": 159, "neutral": { "kind": "solid", "id": 159, "data": 8 } }
 ```
 
@@ -154,7 +154,7 @@ jittered grid of period `cellSize`, one seed point per grid cell, and every bloc
 Each band states how many blocks inward from the cell boundary it runs; the last band's depth is ignored and
 it takes whatever is left of the cell. Reads as a diagram — a grid of lines with cells off it.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "voronoi", "seed": 1, "cellSize": 10, "rise": 0, "bands": [
   { "material": { "kind": "solid", "id": 155 }, "depth": 1 },
   { "material": { "kind": "solid", "id": 3 },   "depth": 2 },
@@ -166,7 +166,7 @@ this draws a **fabric**: flat patches, any two of which may meet. `jitter` (0–
 from the middle of its grid cell — 0 gives the grid squares, 100 gives shards — and `warp` is how many blocks
 the boundary wanders, which is what turns a straight-edged diagram into organic patches.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "cell", "seed": 1, "cellSize": 10, "jitter": 50, "warp": 4, "rise": 0,
   "palette": [ { "kind": "solid", "id": 1 }, { "kind": "solid", "id": 24 },
                { "kind": "solid", "id": 3, "data": 1 } ] }
@@ -179,7 +179,7 @@ creases instead of fading — billowed, marbled bands laid out like smoke. `elec
 fold, so the crossings become thin branching filaments with everything else falling away — veins through a
 body rather than bands across one.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "noise", "seed": 1, "scale": 16, "octaves": 3, "rise": 0,
   "stops": [ { "kind": "solid", "id": 1 }, { "kind": "solid", "id": 2 },
              { "kind": "solid", "id": 3 }, { "kind": "solid", "id": 24 } ] }
@@ -198,7 +198,7 @@ repeat in order around the loop, each as many arc cells wide as it says, so any 
 widths cycle continuously around every corner. A cell off the outer perimeter — an internal riser — reads as
 arc 0 and takes the first run.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "wallRun", "runs": [
   { "material": { "kind": "solid", "id": 155 },           "width": 3 },
   { "material": { "kind": "solid", "id": 159, "data": 8 }, "width": 2 } ] }
@@ -209,7 +209,7 @@ course up: 1 is 45° on a square-blocked face, larger lays it flatter, negative 
 vertical run again. The height is read from the cell's own Y rather than from the foot of the wall, so two
 walls of different heights standing side by side meet with their diagonals in line.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "wallDiagonal", "slope": 1, "runs": [
   { "material": { "kind": "solid", "id": 155 },           "width": 2 },
   { "material": { "kind": "solid", "id": 159, "data": 8 }, "width": 2 } ] }
@@ -221,7 +221,7 @@ than switching on at it, the same number sets how far the ink wraps round each c
 broad return, a high one only the vertex. `thickness` is the courses taken at the top and bottom, and a wall
 too short to hold two of them is all edge.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "wallFrame", "angle": 45, "thickness": 1,
   "edge": { "kind": "solid", "id": 159, "data": 15 },
   "fill": { "kind": "solid", "id": 155 } }
@@ -230,7 +230,7 @@ too short to hold two of them is all edge.
 **`checker` — two materials on a board of `size`-block squares**, laid in the face the cell belongs to, so a
 wall gets squares rather than the vertical stripes a plane pattern would give it.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "checker", "size": 1,
   "even": { "kind": "solid", "id": 155 },
   "odd":  { "kind": "solid", "id": 159, "data": 15 } }
@@ -241,7 +241,7 @@ wall gets squares rather than the vertical stripes a plane pattern would give it
 with no wall run to follow — a freestanding pillar — both squares stand, because a laid log there would show a
 cut end on every side a player walks round.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "logChecker", "size": 1, "id": 162, "data": 0 }
 ```
 
@@ -250,7 +250,7 @@ its six faces are the sawn ends, and a log laid across a wall puts one straight 
 the axis the wall is going. At a corner, where the wall has faces on both axes, the log stands upright — which
 is what a corner post is, and so does a log on a face with no run at all.
 
-```json
+```json POST /api/terrain/material-preview
 { "kind": "laidLog", "id": 17, "data": 0 }
 ```
 
@@ -298,7 +298,7 @@ terrain are painted as wall or left to the fill.
 That is the whole of a theme, and this is one written out — the form `GET /themes/{id}/json` returns, the form
 a sketch stores in its `themes` registry, and the form the export consumes:
 
-```json
+```json POST /api/terrain/theme-preview
 {
   "bedrock": { "relative": false, "value": 1 },
   "rimEdges": "drop",
@@ -379,7 +379,7 @@ which is the shape a biome map actually has, and states a `seed`, a `cellSize` i
 band, so regions wander into one another rather than meeting on a cell wall; it states a `seed`, a `scale` in
 blocks and `octaves`.
 
-```json
+```json POST /api/biome-patterns/preview
 { "kind": "cell", "seed": 91, "cellSize": 45, "jitter": 85, "palette": [1, 4, 5] }
 ```
 
@@ -540,7 +540,7 @@ loses its square top.
 This is what `GET /api/room-styles/3/json` answers with, unwrapped from its `styleJson` string — the form the
 stamper takes, a sketch's Theme phase stores, and a placed building carries:
 
-```json
+```json POST /api/room-styles/preview-snapshot
 {
   "foundation": {
     "plate": { "extent": 1, "stack": { "ending": "repeat", "bands": [
@@ -838,7 +838,7 @@ as `StatedName`, offered beside the type it stands for at a refinement's `themes
 whole, so a theme can be the library's with one bucket changed. A name stated inside those fields is resolved
 in its turn and replaces what it stands in:
 
-```json
+```json Refinement
 {"themes": {"heath": {"library": "dunes", "rimEdges": "boundary", "wall": {"library": "sandstone"}}}}
 ```
 

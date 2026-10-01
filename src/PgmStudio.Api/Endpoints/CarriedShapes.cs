@@ -4,6 +4,7 @@ using Namotion.Reflection;
 using NJsonSchema;
 using NJsonSchema.Generation;
 using PgmStudio.Contracts;
+using PgmStudio.Geom;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Painting;
@@ -33,7 +34,7 @@ internal sealed record Carried(
     CarriedJoin Join = CarriedJoin.AnyOf, bool Null = false);
 
 /// <summary>
-/// Publishes a field held as raw JSON as what it holds.
+/// Publishes a field as what its JSON holds where its declared type says something else.
 ///
 /// <para>A field is raw JSON where its type lives in a project the declaring one cannot reach: a layout is
 /// declared in <c>Pgm</c> and its finish is <c>Minecraft</c>'s, and an answer in <c>Contracts</c> that carries
@@ -41,6 +42,10 @@ internal sealed record Carried(
 /// The composition root reaches every project, so the reference is made here, and the field keeps its own
 /// description. A field whose encoding is open by design — the <c>map.xml</c> codec's, a diff's value — is
 /// not here, and <c>SchemaCompletenessTests</c> names each one.</para>
+///
+/// <para>A converter is the other way a declared type stops saying what crosses: a relief mark's height is a
+/// number or a list, a plan's rectangle is four numbers in a row, and an author is a bare name or a record.
+/// Those are published here too, as the converter reads them.</para>
 /// </summary>
 internal sealed class CarriedShapes : ISchemaProcessor
 {
@@ -76,6 +81,14 @@ internal sealed class CarriedShapes : ISchemaProcessor
         new(typeof(Refinement), nameof(Refinement.Authors), CarriedForm.Items, [typeof(string), typeof(AuthorIntent)]),
         new(typeof(StatedName), nameof(StatedName.Library), CarriedForm.Whole, [typeof(string), typeof(long)]),
 
+        // What a converter reads in more than one shape: a spot height or a ridgeline's, and a person by name or
+        // by record.
+        new(typeof(ReliefMarkJson), nameof(ReliefMarkJson.Heights), CarriedForm.Whole, [typeof(double), typeof(double[])]),
+        new(typeof(PlanMeta), nameof(PlanMeta.Authors), CarriedForm.Items, [typeof(string), typeof(AuthorIntent)]),
+        new(typeof(PlanMeta), nameof(PlanMeta.Contributors), CarriedForm.Items, [typeof(string), typeof(AuthorIntent)]),
+        new(typeof(MetaIntent), nameof(MetaIntent.Authors), CarriedForm.Items, [typeof(string), typeof(AuthorIntent)]),
+        new(typeof(MetaIntent), nameof(MetaIntent.Contributors), CarriedForm.Items, [typeof(string), typeof(AuthorIntent)]),
+
         // A region's numbers: each a number, or the infinity map.xml spells as a word.
         new(typeof(RegionExtentDto), nameof(RegionExtentDto.MinX), CarriedForm.Whole, [typeof(double), typeof(string)]),
         new(typeof(RegionExtentDto), nameof(RegionExtentDto.MinZ), CarriedForm.Whole, [typeof(double), typeof(string)]),
@@ -84,11 +97,37 @@ internal sealed class CarriedShapes : ISchemaProcessor
         new(typeof(RegionNodeDto), nameof(RegionNodeDto.Coords), CarriedForm.Values, [typeof(double), typeof(string)]),
     ];
 
+    /// <summary>The types a converter writes as something other than their members, and what it writes.</summary>
+    private static readonly Dictionary<Type, Func<JsonSchema>> Written = new()
+    {
+        [typeof(CellRect)] = () => new JsonSchema
+        {
+            Type = JsonObjectType.Array,
+            Item = new JsonSchema { Type = JsonObjectType.Integer },
+            MinItems = 4,
+            MaxItems = 4,
+            Description = "A rectangle of cells as `[x, z, w, h]`: its min-corner cell, then how many cells it spans "
+                          + "along x and along z.",
+        },
+    };
+
     public void Process(SchemaProcessorContext context)
     {
         // The processors also see every schema that only points at a type already generated; the fields are
         // on the one it points at.
         if (context.Schema.HasReference) return;
+        if (Written.TryGetValue(context.ContextualType.Type, out var written))
+        {
+            var shape = written();
+            context.Schema.Properties.Clear();
+            context.Schema.RequiredProperties.Clear();
+            context.Schema.Type = shape.Type;
+            context.Schema.Item = shape.Item;
+            context.Schema.MinItems = shape.MinItems;
+            context.Schema.MaxItems = shape.MaxItems;
+            context.Schema.Description = shape.Description;
+            return;
+        }
         foreach (var carried in All)
         {
             if (carried.Declaring != context.ContextualType.Type) continue;
@@ -111,6 +150,8 @@ internal sealed class CarriedShapes : ISchemaProcessor
                     field.Item = held;
                     break;
                 default:
+                    field.Type = JsonObjectType.None;
+                    field.Item = null;
                     field.OneOf.Clear();
                     field.OneOf.Add(held);
                     if (carried.Null) field.IsNullableRaw = true;

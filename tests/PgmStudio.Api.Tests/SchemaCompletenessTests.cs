@@ -323,6 +323,35 @@ public sealed class SchemaCompletenessTests
         await Assert.That(count).IsGreaterThanOrEqualTo(PublishedDefaults);
     }
 
+    /// <summary>The count of write routes whose schema carries no example body, and it only moves down: a
+    /// tool document's worked body, routed in its fence, becomes its route's example once a test has posted it
+    /// (<c>DocumentedExamples</c>).</summary>
+    private const int StillWithoutExample = 85;
+
+    /// <summary><b>Every write route's schema carries a body known to be accepted.</b> An example is what a
+    /// reader copies first, so the one the document hands out is one <c>DocumentedBodyTests</c> has posted and
+    /// held to the route's schema rather than one written to look right.</summary>
+    [Test]
+    public async Task Every_write_route_carries_a_body_known_to_be_accepted()
+    {
+        var document = await DocumentAsync();
+        var without = new List<string>();
+        foreach (var path in document.GetProperty("paths").EnumerateObject())
+            foreach (var verb in path.Value.EnumerateObject())
+            {
+                if (verb.Name is not ("post" or "put" or "patch")) continue;
+                if (!verb.Value.TryGetProperty("requestBody", out var body)) continue;
+                var exampled = body.GetProperty("content").EnumerateObject()
+                    .Any(media => media.Value.TryGetProperty("examples", out var examples)
+                                  && examples.EnumerateObject().Any());
+                if (!exampled) without.Add($"{verb.Name.ToUpperInvariant()} {path.Name}");
+            }
+
+        await Assert.That(without.Count).IsLessThanOrEqualTo(StillWithoutExample)
+            .Because($"{without.Count} write route(s) carry no example body:{Environment.NewLine}  "
+                     + string.Join($"{Environment.NewLine}  ", without.Order(StringComparer.Ordinal)));
+    }
+
     /// <summary>The fields with no docstring to read, because they have no declaration: a polymorphic base
     /// publishes a discriminator the generator synthesises, and no property carries it. Named rather than
     /// counted, so a genuinely undocumented field cannot hide behind them.</summary>

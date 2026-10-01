@@ -100,7 +100,7 @@ emits, and it is carried by its own rule with a refusal attached (below).
 The geometry half, with one shape of each flavour — a plain rectangle, a polygon carrying per-vertex heights
 and a Bézier edge, a carve, and an erected shape standing out of the relief:
 
-```json
+```json PUT /api/map/{slug}/sketch
 {
   "setup": { "mirror_mode": "rot_180", "center": { "cx": 0, "cz": 0 },
              "bbox": { "min_x": -60, "max_x": 60, "min_z": -40, "max_z": 40 } },
@@ -859,7 +859,7 @@ select-only too and is deliberately outside this — its inspector is about the 
 The document is keyed by group id and carries the group's own settings beside the two lists. This one states
 all six, and solves to a surface running 7 to 16:
 
-```json
+```json SketchLayout
 { "relief": {
   "i1": {
     "base": 9, "reach": 14, "step": 1, "landform": "rolling",
@@ -996,8 +996,8 @@ library row's **document**, the way the biome select does: a board read back aft
 straight to the endpoint, resolve the same way one bound in the phase does. A snapshot no row matches reads
 as `(a shell the library does not hold)` rather than as the built-in one.
 
-```json
-{ "roomStyles": { "wool": { "form": "gable", "pitch": 1 }, "spawn": null } }
+```json SketchLayout
+{ "roomStyles": { "wool": { "roof": { "form": "gable", "pitch": 1 } }, "spawn": null } }
 ```
 
 That map stamps its wool cages with the bound style and gives its spawns no building at all. Leaving `spawn`
@@ -1230,13 +1230,13 @@ anything else to say, and why a stored document whose wings are bare corner pair
 |---|---|
 | `storeysHigh` | how many of the style's storeys stand on this wing; nought takes them all. Deliberately not `storeys`, which on a **style** is the list of storey styles a building is made of |
 | `form` · `pitch` · `roofSlab` | the roof this wing wears where it does not wear the building's — the same three the style names, resolved as one decision rather than three |
-| `ridge` | `AlongX` or `AlongZ`, where the wing's own proportions should not decide |
+| `ridge` | `alongX` or `alongZ`, where the wing's own proportions should not decide |
 | `projects` | whether the wing carries its roof across the hall instead of marching into it |
 
-```json
+```json POST /api/map/{slug}/sketch/props
 { "kind": "house", "id": "h1", "seed": 1, "wings": [
   { "corners": [[0, 6], [9, 10]] },
-  { "corners": [[0, 0], [4, 5]], "spec": { "ridge": "AlongZ", "projects": true } } ] }
+  { "corners": [[0, 0], [4, 5]], "spec": { "ridge": "alongZ", "projects": true } } ] }
 ```
 
 Three things follow from the junction being one building rather than two roofs in one place (`G179`–`G181`).
@@ -1255,16 +1255,16 @@ one `BuildingPlan` before anything is placed. A second wing is drawn as a buildi
 first with `mod+g`, so what the canvas drags is always a rectangle and what it stamps is the plan they make
 together.
 
-The document is a flat list of what was placed, in placement order, each entry carrying its own knobs. One of
-each:
+The document is the list of what was placed, in placement order, each entry carrying its own knobs, and beside
+it the recipes a tree, a boulder or a building names by key. One of each:
 
-```json
+```json SketchLayout
 { "dressing": { "props": [
   { "id": "d1", "kind": "stroke", "seed": 1, "points": [[-36, 0], [-20, 4], [-4, 0]],
     "radius": 3, "style": "worn", "coverage": 0.7, "claimsGround": true,
     "pave": { "kind": "solid", "id": 13, "data": 0 } },
   { "id": "d2", "kind": "fluid", "seed": 2, "points": [[-30, -16], [-16, -12]],
-    "radius": 3, "depth": 2, "form": "stream", "edge": 0.8, "shore": 2, "shoreWander": true,
+    "radius": 3, "depth": 2, "form": "natural", "edge": 0.8, "shore": 2, "shoreWander": true,
     "bank": { "kind": "solid", "id": 12, "data": 0 } },
   { "id": "d2b", "kind": "fluid", "seed": 6, "shape": "pool", "layer": "ground", "level": 12,
     "points": [[-30, 16], [-6, 16], [-6, 34], [-30, 34]], "radius": 6, "depth": 3, "shore": 2,
@@ -1273,19 +1273,22 @@ each:
     "points": [[-38, 8], [-26, 8], [-26, 18], [-38, 18]],
     "spec": { "coverage": 0.45, "scale": 12, "octaves": 3,
               "fernShare": 0.25, "flowerShare": 0.18, "flowerScale": 18, "tallShare": 0 } },
-  { "id": "d4", "kind": "house", "seed": 4, "points": [[-22, -16], [-14, -8]],
-    "front": "negZ", "style": {} },
-  { "id": "d5", "kind": "tree", "seed": 5, "x": -32, "z": 2, "layer": "ground",
-    "form": "template", "species": "birch", "height": 12 },
-  { "id": "d6", "kind": "boulder", "seed": 6, "x": -8, "z": 14,
-    "form": "cairn", "size": 3, "mossy": true,
-    "rock": { "kind": "solid", "id": 1, "data": 0 } }
-] } }
+  { "id": "d4", "kind": "house", "seed": 4, "wings": [ { "corners": [[-22, -16], [-14, -8]] } ],
+    "front": "negZ", "style": "croft" },
+  { "id": "d5", "kind": "tree", "seed": 5, "x": -32, "z": 2, "layer": "ground", "style": "birch-12" },
+  { "id": "d6", "kind": "boulder", "seed": 6, "x": -8, "z": 14, "style": "cairn-3" }
+  ],
+  "styles": {
+    "croft": { "kind": "house", "shell": { "roof": { "form": "gable", "pitch": 1 } } },
+    "birch-12": { "kind": "tree", "form": "template", "species": "birch", "height": 12 },
+    "cairn-3": { "kind": "boulder", "form": "cairn", "size": 3, "mossy": true,
+                 "rock": { "kind": "solid", "id": 1, "data": 0 } }
+  } } }
 ```
 
 The three geometries are visible in the shape of the entries: a marker carries `x`/`z`, a traced prop carries
-`points` — a line for a stroke or a channel, a closed ring for ground cover — and a building carries the two
-opposite corners of its rectangle. `pave` and `bank` are full terrain materials, so any of the fourteen kinds
+`points` — a line for a stroke or a channel, a closed ring for ground cover — and a building carries its
+wings, each the two opposite corners of a rectangle. `pave` and `bank` are full terrain materials, so any of the fourteen kinds
 in `library.md` may stand there.
 
 **What a prop is *made of* is named once, beside the placements.** A tree, a boulder and a building each carry

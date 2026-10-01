@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using Microsoft.AspNetCore.Mvc.Testing;
+using PgmStudio.Api.Endpoints;
 
 namespace PgmStudio.Api.Tests;
 
@@ -9,8 +10,9 @@ namespace PgmStudio.Api.Tests;
 /// Every worked request body in <c>docs/tools/</c>, sent with the verb and to the route its own fence names.
 ///
 /// <para><b>The document is the fixture.</b> Nothing here holds a copy of a body: the blocks are read out of
-/// the markdown at run time, the same way <c>tools/deriver/figure-check.cs</c> pushes <c>model.md</c>'s ASCII
-/// figures through the classifier that names them. A doc carrying an example the API stopped accepting fails
+/// the markdown the API carries (<c>DocumentedBodies</c>) — the same copies it hands out as each operation's
+/// examples — the way <c>tools/deriver/figure-check.cs</c> pushes <c>model.md</c>'s ASCII figures through the
+/// classifier that names them. A doc carrying an example the API stopped accepting fails
 /// this test, and an example added to a document is covered the moment it is written — neither of which is
 /// true of a body copied into a test file, which drifts from the prose beside it and says nothing when it
 /// does.</para>
@@ -21,7 +23,8 @@ namespace PgmStudio.Api.Tests;
 /// a mistake made by trusting the endpoint's own refusal message over its parse. Posting them is what found
 /// it.</para>
 ///
-/// <para>The fence carries the verb and the route: <c>```json POST /api/terrain/material-preview</c>. Markdown
+/// <para>The fence carries the verb and the route — <c>```json POST /api/terrain/material-preview</c> — or, for
+/// a block that is part of a larger body or an answer, the shape it is: <c>```json SketchLayout</c>. Markdown
 /// renderers take the first token as the language and ignore the rest, so the block still highlights as
 /// JSON.</para>
 /// </summary>
@@ -32,12 +35,12 @@ public sealed class DocumentedBodyTests
     /// will work, so anything else is the document lying, whichever side moved.</summary>
     [Test]
     [MethodDataSource(nameof(Examples))]
-    public async Task A_documented_body_is_accepted(DocumentedBody example)
+    public async Task A_documented_body_is_accepted(DocumentedBodies.Block example)
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var route = example.Route;
+        var route = example.Route!;
         if (route.Contains("{slug}"))
         {
             var slug = await OriginateMapAsync(client);
@@ -46,9 +49,9 @@ public sealed class DocumentedBodyTests
             if (route.Contains("/changes/{number}")) route = route.Replace("{number}", await ChangeAsync(client, slug));
         }
 
-        using var request = new HttpRequestMessage(new HttpMethod(example.Verb), route)
+        using var request = new HttpRequestMessage(new HttpMethod(example.Verb!), route)
         {
-            Content = new StringContent(example.Body, Encoding.UTF8, "application/json"),
+            Content = new StringContent(example.Json, Encoding.UTF8, "application/json"),
         };
         var resp = await client.SendAsync(request);
 
@@ -70,7 +73,7 @@ public sealed class DocumentedBodyTests
         var plan = Examples().First(e => e.Route == "/api/plan/compile");
 
         var resp = await client.PostAsync(
-            "/api/plan/compile", new StringContent(plan.Body, Encoding.UTF8, "application/json"));
+            "/api/plan/compile", new StringContent(plan.Json, Encoding.UTF8, "application/json"));
         var body = await resp.Content.ReadFromJsonAsync<CompileBody>();
 
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -116,43 +119,67 @@ public sealed class DocumentedBodyTests
 
     private sealed record Change(long Number);
 
-    public static IEnumerable<DocumentedBody> Examples()
+    /// <summary>Every block a document sends to a route.</summary>
+    public static IEnumerable<DocumentedBodies.Block> Examples() =>
+        DocumentedBodies.All.Where(block => block.Route is not null);
+
+    /// <summary><b>Every block says what it is.</b> A block that names neither a route nor a shape is held to
+    /// nothing, and is exactly the example that goes quietly wrong.</summary>
+    [Test]
+    public async Task Every_documented_block_names_a_route_or_a_shape()
     {
-        foreach (var path in Directory.EnumerateFiles(DocsRoot(), "*.md").OrderBy(p => p))
+        await Assert.That(DocumentedBodies.All.Count).IsGreaterThanOrEqualTo(40);
+        await Assert.That(DocumentedBodies.All.Where(block => block.Verb is null && block.Shape is null)
+            .Select(block => block.Where)).IsEmpty();
+    }
+
+    /// <summary>A block that names a shape is that shape: every value validates against it and every key is one
+    /// it declares. These are the documents that are parts of larger bodies, and answers.</summary>
+    [Test]
+    public async Task A_documented_block_is_the_shape_its_fence_names()
+    {
+        var document = await DocumentAsync();
+        var untrue = new List<string>();
+        foreach (var block in DocumentedBodies.All.Where(block => block.Shape is not null))
         {
-            var lines = File.ReadAllLines(path);
-            for (var i = 0; i < lines.Length; i++)
+            if (!document.Components.Schemas.TryGetValue(block.Shape!, out var schema))
             {
-                var fence = System.Text.RegularExpressions.Regex.Match(
-                    lines[i], @"^```json\s+(GET|POST|PUT|PATCH)\s+(\S+)\s*$");
-                if (!fence.Success) continue;
-
-                var body = new StringBuilder();
-                for (var j = i + 1; j < lines.Length && !lines[j].StartsWith("```"); j++) body.AppendLine(lines[j]);
-                yield return new DocumentedBody(
-                    fence.Groups[1].Value, fence.Groups[2].Value, body.ToString(),
-                    $"{Path.GetFileName(path)}:{i + 1}");
+                untrue.Add($"{block} names a shape the schema does not publish");
+                continue;
             }
+            untrue.AddRange(SchemaTruth.Untrue(block.Json, schema).Select(said => $"{block} {said}"));
         }
+        await Assert.That(untrue.Count).IsEqualTo(0)
+            .Because(string.Join(Environment.NewLine, untrue));
     }
 
-    /// <summary>The docs sit beside the solution, and a test runs from its own output directory — so the root
-    /// is found by walking up to the repository rather than by counting <c>..</c> segments, which breaks the
-    /// first time the output path changes depth.</summary>
-    private static string DocsRoot()
+    /// <summary>And a body sent to a route is what that route's schema says it takes — accepted is not enough,
+    /// because a route that complains about a field it does not read still answers 2xx.</summary>
+    [Test]
+    public async Task A_documented_body_is_what_its_route_takes()
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "docs", "tools")))
-            dir = dir.Parent;
-        return Path.Combine(dir?.FullName ?? throw new DirectoryNotFoundException(
-            "no docs/tools above the test output — the repository layout moved"), "docs", "tools");
+        var document = await DocumentAsync();
+        var untrue = new List<string>();
+        foreach (var block in Examples())
+        {
+            var operation = document.Paths.TryGetValue(block.Path!, out var route)
+                            && route.TryGetValue(block.Verb!.ToLowerInvariant(), out var found) ? found : null;
+            if (operation?.RequestBody?.Content.FirstOrDefault(entry => entry.Key.Contains("json")).Value?.Schema
+                is not { } schema)
+            {
+                untrue.Add($"{block} is sent to a route that publishes no JSON body");
+                continue;
+            }
+            untrue.AddRange(SchemaTruth.Untrue(block.Json, schema).Select(said => $"{block} {said}"));
+        }
+        await Assert.That(untrue.Count).IsEqualTo(0)
+            .Because(string.Join(Environment.NewLine, untrue));
     }
 
-    public sealed record DocumentedBody(string Verb, string Route, string Body, string Where)
+    private static async Task<NSwag.OpenApiDocument> DocumentAsync()
     {
-        /// <summary>What TUnit prints for the case, so a failure names the document and line rather than an
-        /// index into a list nobody can map back.</summary>
-        public override string ToString() => $"{Where} {Verb} {Route}";
+        using var client = ApiTestFactory.Shared.CreateClient();
+        return await NSwag.OpenApiDocument.FromJsonAsync(await client.GetStringAsync("/api/openapi/v1.json"));
     }
 
     private sealed record Originated(string Slug);

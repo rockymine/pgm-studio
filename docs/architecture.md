@@ -451,9 +451,11 @@ consolidation was possible at all.
 `Finding` and `Findings` are one shape with one verb, in the lowest project every gate reaches.
 `MapArtifactStore` is one row per `(map_id, kind)` and the only place that table is touched. `RuleCatalog`
 reading docstrings is documentation-as-data, and it is the pattern the rest of this document keeps asking
-for. `DocumentedBodyTests` extracts request bodies out of the markdown and posts them, so a document
-carrying an example the API stopped accepting fails a test — the strongest anti-rot mechanism here, currently
-covering 8 bodies against 93 write routes.
+for. `DocumentedBodyTests` posts every body a tool document routes in its fence and holds it to that route's
+schema, and holds every other block to the shape its fence names, so a document carrying an example the API
+stopped accepting — or one it accepts while ignoring half of it — fails a test. Each posted body is its route's
+example in the published document (`DocumentedExamples`), read from the copies the API assembly carries: 34
+bodies over 18 of the 103 write routes that take one, a count `SchemaCompletenessTests` holds as it falls.
 
 And the standing refusal of backward compatibility is what makes every finding above fixable in one commit
 rather than negotiable across a deprecation window.

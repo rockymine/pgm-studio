@@ -583,7 +583,7 @@ anything.
 A refusal comes back as a list of findings, each naming the rule where it has one and the ids it indicts —
 moving the example's destroyable onto the wool-room piece answers:
 
-```json
+```json RefusalDto
 { "error": "plan not compilable",
   "message": "destroyable 'destroyable-1' on 'wool-room' is 3×3 and reaches into the wool room on 'wool-room' — the room's own rules would cover the goal",
   "findings": [
