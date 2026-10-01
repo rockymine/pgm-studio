@@ -9,7 +9,8 @@ namespace PgmStudio.Api.Endpoints;
 
 /// <summary>
 /// Publishes a field a record computes rather than stores — a get-only property, which the wire writes like
-/// any other — as a read-only member of the record's schema.
+/// any other — as a read-only member of the record's schema, and marks one the generator already lists the
+/// same way.
 ///
 /// <para>The operation generator drops every member without a setter from a record any route takes as a
 /// body, and the record's schema is the one every answer names too, so a computed answer such as an intent's
@@ -28,9 +29,15 @@ internal sealed class ComputedFields : IDocumentProcessor
             if (Holder(schema) is not { } holder) continue;
             foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             {
-                if (!Computed(property, type)) continue;
+                if (!Computed(property)) continue;
                 var wire = SchemaFields.OnTheWire(property);
-                if (holder.Properties.ContainsKey(wire)) continue;
+                if (holder.Properties.TryGetValue(wire, out var published))
+                {
+                    published.IsReadOnly = true;
+                    continue;
+                }
+                // An override is published on the base that declares it.
+                if (property.GetMethod!.GetBaseDefinition().DeclaringType != type) continue;
 
                 var field = context.SchemaGenerator.GenerateWithReferenceAndNullability<JsonSchemaProperty>(
                     property.PropertyType.ToContextualType(), isNullable: false, context.SchemaResolver);
@@ -52,13 +59,11 @@ internal sealed class ComputedFields : IDocumentProcessor
             .Where(group => group.Count() == 1)
             .ToDictionary(group => group.Key, group => group.Single(), StringComparer.Ordinal);
 
-    /// <summary>A public get-only property the serializer writes, stated on this type rather than overriding
-    /// one its base already publishes.</summary>
-    private static bool Computed(PropertyInfo property, Type type) =>
-        property.GetMethod is { IsPublic: true, IsStatic: false } getter
+    /// <summary>A public get-only property the serializer writes.</summary>
+    private static bool Computed(PropertyInfo property) =>
+        property.GetMethod is { IsPublic: true, IsStatic: false }
         && property.SetMethod is null
         && property.GetIndexParameters().Length == 0
-        && getter.GetBaseDefinition().DeclaringType == type
         && property.GetCustomAttribute<JsonIgnoreAttribute>() is not { Condition: JsonIgnoreCondition.Always };
 
     /// <summary>Where the type's own fields are published: the schema itself for a record, the part of its

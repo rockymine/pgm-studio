@@ -514,6 +514,9 @@ public sealed class SchemaCompletenessTests
         ("GET /api/map/{slug}/stroke", "text/plain"),
 
         ("GET /api/plans/{id}/ascii", "text/plain"),
+
+        // The kit a Python caller drives the studio with, written from this document.
+        ("GET /api/kit.py", "text/x-python"),
         ("GET /api/map/{slug}/plan/ascii", "text/plain"),
         ("GET /api/map/{slug}/plan/flow", "text/plain"),
         ("POST /api/map/{slug}/sketch/dressing", "text/plain"),

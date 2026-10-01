@@ -177,12 +177,22 @@ copy that lived in per-component parsing code is gone. What is left hand-written
 a runtime 404 that reads like a missing map — and every route the client names is written as a whole string,
 so the gate below can read it.
 
-**That is why the studio has no generated client, and will not get one.** A generated client's whole value is
-the response types, and those already come from `Contracts` at 79 of 81 call sites; what it would still buy is
-the path check, at the price of a build-time package and a second copy of the whole surface committed to the
-tree — the "second accepted shape" that `CLAUDE.md` forbids for exactly the reason it would rot here.
+**That is why the Blazor client has no generated client, and will not get one.** A generated client's whole
+value is the response types, and those already come from `Contracts` at 79 of 81 call sites; what it would still
+buy is the path check, at the price of a build-time package and a second copy of the whole surface committed to
+the tree — the "second accepted shape" that `CLAUDE.md` forbids for exactly the reason it would rot here.
 `ClientRouteTests` buys the same check for nothing: every route string in the client is a route the schema
-serves, with no exception left. The tables are the same problem seen from the
+serves, with no exception left.
+
+**A Python caller has one, and it is generated where nothing can be committed: by the studio, on request.**
+`GET /api/kit.py` is written from the document the studio publishes (`PythonKit`) — a constructor per shape a
+route takes, by the studio's own field names, writing only what is stated and checking each word and type
+before anything is sent; `Studio`, a method per route named after it, which waits out a `429`, prints a
+success's `warnings` and raises a refusal with its findings; `find()` over every description; and `build()`,
+which rebuilds a document through the constructors. Its `ETag` is the document's hash, so a kit held by a
+driver says which studio it was written for. It is the drivers' replacement for the hand-written constructors
+they each carried — `solid` defined by hand in 54 scripts — and `KitEndpointTests` compiles it, counts a method
+for every route, and rebuilds every worked body in the tool documents through it. The tables are the same problem seen from the
 prose side: three heavily used
 analysis routes had drifted out of every one of them, which is not a documentation lapse but what a
 hand-maintained copy of a machine-readable fact does.
@@ -467,7 +477,7 @@ answer already and stopped one step short of the form that makes it machine-read
 
 | What is missing | The established shape | What it dissolves |
 |---|---|---|
-| a generated client and generated endpoint tables | the schema at `/api/openapi/v1.json` is the source both should read | the two hand-kept copies that remain, and most of the doc-rot rule's hardest half |
+| generated endpoint tables | the schema at `/api/openapi/v1.json` is the source they should read, as the Python kit already does | the hand-kept copy that remains, and most of the doc-rot rule's hardest half |
 | a request shape that is bound, not only declared | a request record per route, bound at the edge — parse rather than validate | the 15 `Unreadable` throws that stand where a binding would have refused, and the one global input gate covering a third of the write surface |
 | a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | a step of the pipeline reachable only through its own door, and the 37-fold load-or-404 prologue |
 | a fault category beside the fault id | a closed category set carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that had to learn 77 ids to branch once — **shipped**, as `category` and `concerns` on `/api/rules` |

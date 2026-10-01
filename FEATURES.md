@@ -8627,6 +8627,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   not publish — a plan's `rect` as `[x, z, w, h]`, a relief mark's `h` as a number or a list, and an author as a
   bare name. (`Api/Endpoints/DocumentedBodies`, `Api/Endpoints/DocumentedExamples`, `Api/Endpoints/CarriedShapes`,
   `docs/tools/sketch.md`, `docs/tools/configure.md`, `docs/architecture.md`)
+- **The studio serves a Python kit written from its own schema (`RP95`).** `GET /api/kit.py`, generated from the
+  published document once a process and tagged with its hash: a constructor per shape a route takes, by the
+  studio's field names, writing only what is stated and checking each word and type first, a polymorphic shape
+  built through its leaves; `Studio`, a method per route named after it, which waits out a `429`, prints
+  `warnings` and raises `Refusal` with the findings; `find()` over every description, and `build()` through the
+  constructors. `KitEndpointTests` compiles it, counts a method for every route and rebuilds every worked body
+  in the tool documents through it. A computed field is now read-only wherever it is published, so no
+  constructor takes one. (`Api/Services/PythonKit`, `Api/Endpoints/KitEndpoint`, `Api/Endpoints/ComputedFields`,
+  `docs/architecture.md`, `docs/tools/flow.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500
