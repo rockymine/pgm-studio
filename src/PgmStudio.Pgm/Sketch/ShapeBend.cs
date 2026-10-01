@@ -15,7 +15,11 @@ namespace PgmStudio.Pgm.Sketch;
 /// <param name="Side">Which way the cut points move — <c>out</c> of the ring, <c>in</c> to it, or
 /// <c>both</c>, wandering across the line the plan drew. Absent is <c>out</c>, the slight bloat that reads as
 /// land; <c>in</c> is what a board whose shapes abut on a measured strait asks for.</param>
-public sealed record ShapeBend(double Wander, double Step, uint Seed, double? Tension = null, BendSide? Side = null)
+/// <param name="Edges">The edges to draw as coast, each by the vertex it leaves, counted on the outline as
+/// every point edit leaves it. Absent bends every edge long enough to cut; named, every other edge stays
+/// exactly as it was drawn — a seam, a frontline — which is the coast a board states with <c>side: in</c>.</param>
+public sealed record ShapeBend(
+    double Wander, double Step, uint Seed, double? Tension = null, BendSide? Side = null, IReadOnlyList<int>? Edges = null)
 {
     /// <summary>The handle length a coast reads well at, as a fraction of its own edge — measured over the
     /// seven boards in the corpus that bend one.</summary>
@@ -32,6 +36,6 @@ public sealed record ShapeBend(double Wander, double Step, uint Seed, double? Te
                 "a bend states `wander` and `step`, both greater than nought: how far a point may be pulled off "
                 + "its edge, and how often to cut along an edge.", Field: "wander", Subjects: [shapeId]));
         return SketchGeometryEdit.BendShape(
-            layoutJson, shapeId, Wander, Step, Seed, Tension ?? DefaultTension, Side ?? BendSide.Out, out held);
+            layoutJson, shapeId, Wander, Step, Seed, Tension ?? DefaultTension, Side ?? BendSide.Out, out held, Edges);
     }
 }

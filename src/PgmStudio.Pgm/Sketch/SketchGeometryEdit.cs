@@ -192,7 +192,7 @@ public static class SketchGeometryEdit
     /// stayed where they were cut, which is <c>SK21</c>.</para></summary>
     public static GeometryEdit BendShape(
         string? layoutJson, string shapeId, double wander, double step, uint seed, double tension,
-        BendSide side, out int held)
+        BendSide side, out int held, IReadOnlyList<int>? edges = null)
     {
         held = 0;
         var root = Root(layoutJson);
@@ -213,7 +213,14 @@ public static class SketchGeometryEdit
                 Field: "vertices", Subjects: [shapeId]));
 
         var ring = stated.Select(point => new[] { Number(point?[0]), Number(point?[1]) }).ToList();
-        if (RingBend.Draw(ring, wander, step, seed, tension, side: side) is not { } coast)
+        if (edges?.Where(edge => edge < 0 || edge >= ring.Count).Select(edge => (int?)edge).FirstOrDefault()
+            is { } outside)
+            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                $"'{shapeId}' has {ring.Count} edges, numbered 0 to {ring.Count - 1} by the vertex each leaves, "
+                + $"and a bend names edge {outside}",
+                Field: "edges", Subjects: [shapeId]));
+        if (RingBend.Draw(ring, wander, step, seed, tension, side: side,
+                edges: edges is null ? null : edges.ToHashSet()) is not { } coast)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
                 $"a wander of {wander} over a step of {step} folds '{shapeId}' across its own far side, which "
                 + "would build ground with a hole nobody drew. Lower the wander, or raise the step so the "

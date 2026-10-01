@@ -342,6 +342,23 @@ public sealed class SketchGeometryEndpointsTests
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("wander");
     }
 
+    /// <summary>An edge is named by the vertex it leaves, and naming one the outline does not have is refused
+    /// with the count it does, the field it was stated under, and the outline left as it was.</summary>
+    [Test]
+    public async Task A_bend_naming_an_edge_the_outline_does_not_have_is_refused()
+    {
+        using var client = await RingAsync();
+        var refused = await client.PostAsync($"{Sketch}/shapes/coast/bend",
+            Body("""{"wander":3,"step":10,"seed":5,"side":"in","edges":[1,4]}"""));
+
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("edges");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("4 edges");
+        await Assert.That((await ShapeAsync(client, "coast")).GetProperty("vertices").GetArrayLength()).IsEqualTo(4);
+    }
+
     /// <summary>A rectangle states its bounds rather than an outline, so there is nothing to resample.</summary>
     [Test]
     public async Task A_shape_with_no_outline_is_refused()

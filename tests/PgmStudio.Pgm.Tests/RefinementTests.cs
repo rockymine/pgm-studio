@@ -144,6 +144,39 @@ public sealed class RefinementTests
     }
 
     [Test]
+    public async Task A_bend_named_to_one_edge_cuts_into_that_edge_and_no_other()
+    {
+        var refined = Apply("""
+            {"bendShapes":{"crag-20":{"wander":1.5,"step":5,"seed":3,"side":"in","edges":[1]}}}
+            """);
+
+        var crag = Shape(refined, "crag-20")["vertices"]!.AsArray()
+            .Select(point => (X: point![0]!.GetValue<double>(), Z: point[1]!.GetValue<double>())).ToList();
+        await Assert.That(refined.Findings.Count).IsEqualTo(0);
+        await Assert.That(crag.Count).IsGreaterThan(4);
+        await Assert.That(crag[..2]).IsEquivalentTo([(40.0, 0.0), (60.0, 0.0)]);
+        await Assert.That(crag[^2..]).IsEquivalentTo([(60.0, 20.0), (40.0, 20.0)]);
+        foreach (var (x, z) in crag[2..^2])
+            await Assert.That(x <= 60 && z is > 0 and < 20).IsTrue()
+                .Because($"({x}, {z}) is cut into edge 1, from (60, 0) to (60, 20), and pulled inward");
+    }
+
+    [Test]
+    public async Task A_bend_naming_an_edge_the_outline_does_not_have_is_a_complaint_and_the_rest_lands()
+    {
+        var refined = Apply("""
+            {"themeById":{"moor-12":"heath"},"bendShapes":{"crag-20":{"wander":1.5,"step":5,"seed":3,"edges":[4]}}}
+            """);
+
+        var finding = refined.Findings.Single();
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(finding.Field).IsEqualTo("bendShapes.crag-20");
+        await Assert.That(finding.Message).Contains("edge 4");
+        await Assert.That(Shape(refined, "crag-20")["vertices"]!.AsArray().Count).IsEqualTo(4);
+        await Assert.That(Shape(refined, "moor-12")["theme"]!.GetValue<string>()).IsEqualTo("heath");
+    }
+
+    [Test]
     public async Task An_edit_naming_no_single_index_refuses_the_source()
     {
         var refined = Apply("""{"editShapes":{"moor-12":[{"x":1,"z":1}]}}""");

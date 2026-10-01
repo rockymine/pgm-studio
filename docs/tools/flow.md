@@ -168,7 +168,7 @@ comes before it.
 | `addLayers` | storeys, each `{id, name, base_y, below, kind, part_of, seat, shapes, groups}` — over the compiled ground, or under it where `below` is true | `PUT …/sketch/layers/{layerId}` |
 | `addShapes` | shapes, each carrying the `layer` and `group` it joins beside its own fields. One naming neither joins the compiled ground and its first group | `POST …/sketch/layers/{layerId}/shapes?group=` |
 | `editShapes` | `{shapeId: [edit, …]}`, in order, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`) and `remove` (drop that point) | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape |
-| `bendShapes` | `{shapeId: {wander, step, seed, tension, side}}` | `POST …/sketch/shapes/{shapeId}/bend` |
+| `bendShapes` | `{shapeId: {wander, step, seed, tension, side, edges}}` — `edges` names the edges drawn as coast, each by the vertex it leaves, and every other edge stays as drawn | `POST …/sketch/shapes/{shapeId}/bend` |
 | `relief` | `{groupId: relief}`, where `*` stands for every group of the compiled ground | `PUT …/sketch/relief/{groupId}` |
 | `themes` · `mapTheme` | the theme registry, and the map's default theme — the registry's first where none is stated | `PUT …/sketch/themes/{themeId}`, `PUT …/sketch/map-theme` |
 | `biome` · `roomStyles` · `dressing` | the layout's own members, each replacing what the base held | `PUT …/sketch/biome`, `PUT …/sketch/room-styles/{part}`, the props routes |
@@ -302,7 +302,7 @@ A plan, its refinement, and where both came from, as one source:
                 "wall": {"kind": "solid", "id": 1}, "fill": {"kind": "solid", "id": 3}}},
     "relief": {"*": {"base": 3}},
     "editShapes": {"dale-9": [{"after": 0}]},
-    "bendShapes": {"dale-9": {"wander": 1.5, "step": 5, "seed": 3}},
+    "bendShapes": {"dale-9": {"wander": 1.5, "step": 5, "seed": 3, "side": "in", "edges": [2, 4]}},
     "created": "2026-09-30",
     "authors": ["Opus 5"]
   },
@@ -310,6 +310,10 @@ A plan, its refinement, and where both came from, as one source:
   "note": "the first pass"
 }
 ```
+
+The bend is a coast on the ford's two long sides. They are edges 2 and 4 of `dale-9` as the point edit leaves
+it, the edit having put a vertex at 1, so they wander inward while the face `dale-13` stands against and the
+walls of the two rooms keep the line the plan drew.
 
 **And the plain writes are not merges.** `PUT /api/map/{slug}/sketch` replaces the layout blob verbatim, which
 is what makes a deletion stick, and `PUT /api/map/{slug}/intent` replaces the stored intent wholesale for the
