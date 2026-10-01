@@ -8581,6 +8581,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   The address is the id the document already carries, so nothing is minted to make a part reachable.
   (`Pgm/Sketch/SketchGeometryEdit`, `Minecraft/Dressing/DressingEdit`, `Api/Services/SketchPartWrite`,
   five `Api/Endpoints/Sketch*Endpoints.cs`, `docs/tools/sketch.md`)
+- **The whole layout names its dressing and its biome (`RP65`).** `GET`/`PUT /map/{slug}/sketch` published
+  `dressing` and `biome` as descriptions over no shape, because `SketchLayout` is declared in `Pgm` and the two
+  types are `Minecraft`'s. `CarriedShapes`, a schema processor in the composition root, publishes a field held
+  as raw JSON as a reference to the type it holds, so the layout's dressing is a `DressingDoc` and its biome a
+  `BiomeField` in the document, as they already were at their part routes. (`Api/Endpoints/CarriedShapes`,
+  `docs/architecture.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

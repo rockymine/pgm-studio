@@ -76,6 +76,9 @@ builder.Services.SwaggerDocument(o =>
     // A field that takes one of a closed set of words publishes them, rather than crossing as a bare string
     // an agent has to learn by being refused one. PgmStudio.Api.Endpoints.WordSetSchemas says how.
     o.DocumentSettings += doc => doc.SchemaSettings.SchemaProcessors.Add(new WordSetSchemas());
+    // A field held as raw JSON, because its type lives where the declaring project cannot reach, publishes
+    // that type. PgmStudio.Api.Endpoints.CarriedShapes says how.
+    o.DocumentSettings += doc => doc.SchemaSettings.SchemaProcessors.Add(new CarriedShapes());
     // One key rides on every success that has one, written by middleware rather than by any record — so the
     // document says so once, here. PgmStudio.Api.Endpoints.ComplaintChannel says how.
     o.DocumentSettings += doc => doc.OperationProcessors.Add(new ComplaintChannel());

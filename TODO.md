@@ -22,22 +22,13 @@ written in. The source and its changes have shipped; what remains is the vocabul
 
 ### The schema is the vocabulary, and the kit is made from it
 
-- [ ] **RP65 — The layout DTO still says `JsonElement` where its own routes say `DressingDoc` and
-  `BiomeField`.** `SketchLayout.Dressing` and `.Biome` are `JsonElement?` because their types live in
-  `Minecraft` and `SketchLayout` lives in `Pgm`, which are siblings over `Domain` + `Geom` — the fields' own
-  docstrings say so (`SketchLayout.cs:47-66`). The part routes publish both models and the store-time gate
-  reads both (`FEATURES.md`), so what is left is the whole-layout route: `GET`/`PUT /map/{slug}/sketch` names
-  the two fields with no shape under them, and a reader who starts from the document rather than from the
-  parts finds two holes in it. Move the dressing and material model down to a project both reach, or publish
-  the two schemas from `Minecraft` and reference them from the layout.
-
 - [ ] **RP93 — The schema says what the wire does.** A client generated from `/api/openapi/v1.json` fails
   against the studio in seven places. Thirteen enums the schema lists as words cross as integers — only the
   generator carries `JsonStringEnumConverter` (`Program.cs:74-75`), so `GET …/sketch/props` answers
   `"style": 0` where `StrokeStyle` promises `solid`. Thirty-two fields publish no type, `SketchLayout.themes`,
-  `SketchRoomStyles` and the load's own documents among them (`RP65` is the dressing and biome). Every
-  polymorphic leaf repeats `additionalProperties: false` beside its base, which a strict validator reads as
-  refusing every real material. 235 of 260 operations publish none of the query words they read, no field
+  `SketchRoomStyles` and the load's own documents among them. Every polymorphic leaf repeats
+  `additionalProperties: false` beside its base, which a strict validator reads as refusing every real
+  material. 235 of 260 operations publish none of the query words they read, no field
   publishes its default, operation ids are class names (`PgmStudioApiEndpoints…`), and the security scheme
   says JWT where a token is opaque. Each becomes a count in `SchemaCompletenessTests` that only moves down.
   `docs/architecture.md`, whose schema figures are stale.

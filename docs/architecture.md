@@ -103,6 +103,13 @@ kinds and box kinds — and `WordSetSchemaTests` holds each to the words its cla
 being published by something. The words are still stated once, where they were stated already; nothing is
 copied into the document.
 
+**And a field held as raw JSON names the type it holds.** A layout is declared in `Pgm`, and its dressing
+and biome are `Minecraft`'s types, which `Pgm` cannot reach — so both are raw JSON in the record, and the
+whole-layout route published each as a sentence over no shape while `sketch/props` and `sketch/biome`
+published the whole model. The composition root reaches both projects, so a schema processor there,
+`CarriedShapes`, publishes such a field as a reference to its type and keeps the field's own description;
+`CarriedShapesTests` holds the layout's dressing to `DressingDoc` and its biome to `BiomeField`.
+
 **And the one key that rides on any of them is declared.** `Complaints` adds `warnings` to any 2xx JSON
 object whose request raised one, and the document said nothing about it: no schema carried the key and no
 operation named a response header. Both are published now by an operation processor — every 2xx JSON object
