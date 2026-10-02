@@ -650,7 +650,8 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `Alt`+click | Pick the parent group and leave any scope | Canvas |
 | `Enter` | Go one level deeper, or close the polygon/polyline in progress | Canvas |
 | `Escape` | Put the brush down, else cancel the draw, else step back up a level, else clear the selection | Canvas |
-| `Delete` / `Backspace` | Delete the selected shape | Canvas |
+| `Delete` / `Backspace` | Delete the selected point, where one is picked on the points rung | Canvas |
+| `Delete` / `Backspace` | Delete the selected shape, where no point is picked | Canvas |
 | Arrow keys | Nudge the selection one block (`Shift` for sixteen) | Canvas |
 | `Shift`+`P` | Promote the shape to its own group | Sketch |
 | `Ctrl`/`⌘`+`D` | Duplicate the selected shape | Canvas |
@@ -705,6 +706,15 @@ edges leaving and arriving — which is how an outline stops being rectilinear. 
 That separation is what lets every box sit ON its bounds rather than offset outside it: an edge midpoint
 carries no anchor, so the insert ghost has the spot to itself, and a corner carries no vertex handle, because
 the rung that draws vertex handles draws no corners.
+
+**A point is taken out with the key that takes a shape out.** Clicking a vertex handle picks it, and while a
+point is picked `Delete` or `Backspace` removes that point and joins its two neighbours, where with none picked
+the same keys delete the shape. A picked point belongs to the points rung: stepping up a rung, or picking
+another shape, lets it go. The removal is refused, with a sentence in the layer bar for a few seconds, where it
+would leave a ring under three points or a path under two, or would fold a ring across itself — the refusals
+`DELETE …/vertices/{index}` gives for an outline, with the same test for the fold. A removal renumbers the Bézier
+`controls` and `anchor_heights` above the removed index, drops the removed point's handles and those of the two
+points that now share an edge, and is one undo step.
 
 **A grip's shape says which rung it belongs to, and its colour says what it is.** A square scales a whole
 outline; a **disc is one point of it**, the size of the midpoint-insert ghost, because what that ghost offers

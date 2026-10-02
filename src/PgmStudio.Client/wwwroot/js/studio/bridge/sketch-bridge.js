@@ -94,6 +94,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   const fire = (name, ...args) => fireTo(dotnetRef, name, ...args);
   const markDirty = () => fire("OnDirty", uniqueGroups(groups).length);
+
+  // Why the last point-level edit was not made, shown beside the layer bar for a few seconds and then taken
+  // down; null clears it at once.
+  const EDIT_NOTE_MS = 6000;
+  let editNoteTimer = null;
+  function noteEdit(message) {
+    clearTimeout(editNoteTimer);
+    fire("OnEditNote", message);
+    if (message) editNoteTimer = setTimeout(() => fire("OnEditNote", null), EDIT_NOTE_MS);
+  }
   const syncActive = () => { if (layers[active]) layers[active].shapes = canvas.getShapes(); };
 
   // A layer's groups from its shapes, settled against the ones it was loaded with (used for non-active
@@ -153,6 +163,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onMarkSelected:  () => fire("OnRelief", reliefState()),
     onReliefPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
     onShapeDeleted:  edit((id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); }),
+    // Taking a point out is one step, opened here because the key press that asks for it is not a pointer
+    // press and so has no step open yet; a refused removal changes nothing and costs none. Either way the
+    // author is told, because a key that does nothing reads as a dead key.
+    onVertexDelete:  (remove) => {
+      const result = history.step(remove);
+      if (result) noteEdit(result.refused ?? null);
+    },
     onShapePromote:  edit((id) => promoteShape(id)),
     onSplit:         edit((a, b) => splitAt(a, b)),
     // A view is not an edit to the board — it is kept beside it — so it is relayed rather than stepped.
