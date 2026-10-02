@@ -460,8 +460,8 @@ public sealed class HouseStamperTests
     }
 
     /// <summary><b>A ridge one block wide is a slab, and two blocks wide is two stairs meeting.</b> A whole block
-    /// on a single ridge stands too sharp; the slab finishes it, and at the gable a stair hung upside down and
-    /// turned out along the ridge sits under it, which from the end reads as a whole block under the slab. On a
+    /// on a single ridge stands too sharp; the slab finishes it, and at the gable a stair hung upside down sits
+    /// under it facing out of the end — its step toward the viewer, its raised half back under the roof. On a
     /// ridge two blocks wide each half climbs toward the other.</summary>
     [Test]
     public async Task A_stair_roofs_ridge_is_a_slab_on_one_block_and_two_stairs_on_two()
@@ -473,10 +473,10 @@ public sealed class HouseStamperTests
         var west = Top(single, -1, 4);
         await Assert.That(BlockFamilies.IsSlab(west.Id)).IsTrue();
         await Assert.That(single.GetBlock(-1, west.Y - 1, 4))
-            .IsEqualTo((DarkOakStairs, Blocks.StairWest | Blocks.StairUpsideDown));
+            .IsEqualTo((DarkOakStairs, Blocks.StairEast | Blocks.StairUpsideDown));
         var east = Top(single, 13, 4);
         await Assert.That(single.GetBlock(13, east.Y - 1, 4))
-            .IsEqualTo((DarkOakStairs, Blocks.StairEast | Blocks.StairUpsideDown));
+            .IsEqualTo((DarkOakStairs, Blocks.StairWest | Blocks.StairUpsideDown));
 
         var paired = House(13, 10, StairRoof());
         await Assert.That(Top(paired, 6, 4)).IsEqualTo((Top(paired, 6, 4).Y, Blocks.OakStairs, Blocks.StairSouth));

@@ -618,9 +618,9 @@ public static class HouseStamper
         /// outside the building. On the slope a stair climbing toward the higher neighbour, with the same stair
         /// upside down and turned the other way beneath. On a ridge two blocks wide a stair climbing toward the
         /// other half, so the two meet in a peak. On a ridge one block wide the column's slab, since a whole
-        /// block there stands too sharp, with the stair beneath it upside down and turned along the ridge out
-        /// toward the gable, so from the end it reads as a whole block under the slab. Null for a cube: a hip
-        /// line, a flat lid, a material with no slab.</summary>
+        /// block there stands too sharp, with the stair beneath it upside down and facing out of the gable end:
+        /// its step toward whoever looks at the end, its raised half back under the roof. Null for a cube: a
+        /// hip line, a flat lid, a material with no slab.</summary>
         (int Id, int Data, bool Slope, (int Id, int Data) Hung)? StairTop(
             RoofField field, TerrainMaterial material, bool isBody, int x, int y, int z)
         {
@@ -633,7 +633,7 @@ public static class HouseStamper
                         (stair, BlockGeometry.Stair(partner.Opposite(), upsideDown: true)));
             if (RimSlab(material, x, y, z) is not { } ridgeSlab) return null;
             return (ridgeSlab.Id, ridgeSlab.Data, false,
-                    (stair, BlockGeometry.Stair(field.AlongRidgeOutward(x, z), upsideDown: true)));
+                    (stair, BlockGeometry.Stair(field.AlongRidgeOutward(x, z).Opposite(), upsideDown: true)));
         }
 
         /// <summary>The stair a roof column is laid in: the style's own on the body, and on the rim or a canopy

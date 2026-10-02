@@ -506,8 +506,9 @@ carries its own whole-course rise and no slab is cut from one, so `roofSlab` ove
 surface stands highest — across the ridge first where two stand equally high — so the slope reads as a run of
 steps rather than a staircase of cubes. The ridge is finished by its width (author): on a ridge **two blocks
 wide** each half is a stair climbing toward the other, so the two meet in a peak; on one **a block wide** a whole
-block stands too sharp, so the ridge is the column's slab, and at the gable the stair hung under it is turned
-out along the ridge rather than down either slope, which from the end reads as a whole block under the slab. A
+block stands too sharp, so the ridge is the column's slab, and at the gable the stair hung under it is upside
+down and faces out of the gable end rather than down either slope: its step toward whoever looks at the end,
+its raised half back under the roof (author). A
 hip line and a flat lid, with nothing higher beside them, stay whole blocks. The rim takes the stair cut from the verge (`BlockMaterials.StairOf`), or the
 body's where the verge has none, which is the rule the slab already follows. A roof climbs in halves or in
 stairs and never both, so the slab wins wherever a wing names one, and `HS3` refuses a style naming both.

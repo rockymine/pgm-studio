@@ -5976,8 +5976,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 - **Stair roofs, a rake with depth, and wear (`WE161`)** — a roof names the `roofStair` it steps in: every
   column tops out in that stair climbing toward its ridge, the rim in the verge's own stair; a ridge two blocks
-  wide is two stairs meeting, one a block wide is a slab with a stair hung under it at the gable turned out
-  along the ridge, and a hip line and a flat lid are whole blocks. Under every single-course column hanging past the gable or the eave the
+  wide is two stairs meeting, one a block wide is a slab with an upside-down stair under it at the gable facing
+  out of the end, and a hip line and a flat lid are whole blocks. Under every single-course column hanging past the gable or the eave the
   stamper hangs the same stair upside down and turned the other way, or on a slab roof the upper half of the
   course below, so the rake is one block deep from the second course to the ridge. `roofWear` (0–1) lays that
   share of a stair roof's slope as whole blocks and of its rim as slabs, and leaves that share of the hung
