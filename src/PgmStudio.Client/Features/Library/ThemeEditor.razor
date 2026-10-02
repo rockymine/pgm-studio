@@ -73,8 +73,8 @@
       @if (CanImport)
       {
         <Section Title="Start from JSON" Class="lib-section--wide">
-          <p class="section-desc">Paste a theme's JSON. Importing it creates one style for each part, so the
-            theme stays editable.</p>
+          <p class="section-desc">Paste a palette's JSON. Importing it creates one pattern for each part, so
+            the palette stays editable.</p>
           <Field Error="@importError">
             <textarea class="field-input theme-json" spellcheck="false" placeholder="{ &quot;rim&quot;: … }"
                       @bind="importJson"></textarea>

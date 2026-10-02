@@ -109,14 +109,14 @@
                          disabled="@(!Bound(RoomParts.Border))"
                          title="@(Bound(RoomParts.Border)
                                   ? "How many blocks the border ring reaches in from the walls."
-                                  : "Set a style for Border to use this.")" />
+                                  : "Set a pattern for Border to use this.")" />
           </Field>
           <Field Label="@(Bound(RoomParts.Inlay) ? "Inlay inset" : "Inlay inset (no inlay set)")">
             <NumberField Slim Min="1" Max="8" Value="storey.InlayInset" ValueChanged="SetInlayInset"
                          disabled="@(!Bound(RoomParts.Inlay))"
                          title="@(Bound(RoomParts.Inlay)
                                   ? "How far from the walls the inlay starts."
-                                  : "Set a style for Inlay to use this.")" />
+                                  : "Set a pattern for Inlay to use this.")" />
           </Field>
       }
       @if (porch is not null)
@@ -177,7 +177,7 @@
       }
       @if (Courses(stacked.Id).Count == 0)
       {
-        <p class="section-desc">No style set. The default finish is used.</p>
+        <p class="section-desc">No pattern set. The default finish is used.</p>
       }
       <div class="panel-actions">
         <Button Icon="plus" Disabled="@(styles.Count == 0)" OnClick="() => AddCourse(stacked.Id)">Add a course</Button>

@@ -678,7 +678,7 @@ public partial class SketchReliefInspector
     };
 
     private (string Icon, string Title, string Blurb) Info
-        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Relief", "");
+        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Terraform", "");
 }
 
 /// <summary>A mark's own fields (see <see cref="MarkKinds"/> for why these are constants).</summary>

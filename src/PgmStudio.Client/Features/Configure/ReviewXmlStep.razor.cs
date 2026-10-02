@@ -49,7 +49,7 @@ public partial class ReviewXmlStep : IDisposable
             {
                 // A dressing document that failed to parse (DR-DOC) — named prop and field, not a codec crash.
                 var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
-                error = refusal?.Message is { Length: > 0 } m ? m : "The map's dressing is invalid.";
+                error = refusal?.Message is { Length: > 0 } m ? m : "The map's decoration is invalid.";
                 Wizard.RegisterExport(false, null);
             }
             else

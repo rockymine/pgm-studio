@@ -424,7 +424,7 @@ public partial class SketchDressingInspector
         };
 
     private (string Icon, string Title, string Blurb) Info
-        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Dressing", "");
+        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Decoration", "");
 }
 
 /// <summary>A prop's own fields (see <see cref="PropKinds"/> for why these are constants).</summary>

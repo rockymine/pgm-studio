@@ -83,7 +83,7 @@ public partial class SketchInspector
     /// plates.</summary>
     private static readonly SelectOption[] HeightModes =
     [
-        new("",      "Ground", "Part of the land. It follows the group's relief."),
+        new("",      "Ground", "Part of the land. It follows the group's terraformed ground."),
         new("level", "Level",  "A flat top at a fixed height, whatever the ground does. Its sides are cliffs."),
         new("raise", "Raise",  "Stands this far above the ground it covers, wherever it is moved."),
         new("sink",  "Sink",   "Sits this far below the ground it covers."),
@@ -107,19 +107,19 @@ public partial class SketchInspector
     /// a seam wherever two of them meet and disagree about the height they share.</summary>
     private static readonly SelectOption[] ReliefScopeOptions =
     [
-        new("",        "Inherit", "Follows the group's relief, like the rest of the land."),
-        new(Vocabulary.ReliefScopes.Follow,  "Follow",  "Stays flat at the height the relief reaches under it. Suits rooms."),
+        new("",        "Inherit", "Follows the group's terraformed ground, like the rest of the land."),
+        new(Vocabulary.ReliefScopes.Follow,  "Follow",  "Stays flat at the height the terraformed ground reaches under it. Suits rooms."),
         new(Vocabulary.ReliefScopes.Hold,    "Hold",    "Stays flat at its own height. The land around it is shaped to meet it."),
-        new(Vocabulary.ReliefScopes.Exclude, "Exclude", "Left out of the relief. The land around it is shaped as if it weren't there."),
+        new(Vocabulary.ReliefScopes.Exclude, "Exclude", "Left out of the terraforming. The land around it is shaped as if it weren't there."),
     ];
 
     /// <summary>What this shape's scope works out to, in its own numbers. Empty for the default, which states
     /// nothing about the shape that the group's own relief does not already say.</summary>
     private string ReliefScopeReadout => Shape?.ReliefScope switch
     {
-        Vocabulary.ReliefScopes.Follow => "Flat at the relief's height under it. The land around it keeps its shape.",
+        Vocabulary.ReliefScopes.Follow => "Flat at the height of the terraformed ground under it. The land around it keeps its shape.",
         Vocabulary.ReliefScopes.Hold => $"Flat at {Shape.Floor + Shape.BaseHeight}. The land around it is shaped to meet it.",
-        Vocabulary.ReliefScopes.Exclude => "Left out of the relief. The land around it ignores it.",
+        Vocabulary.ReliefScopes.Exclude => "Left out of the terraforming. The land around it ignores it.",
         _ => "",
     };
 

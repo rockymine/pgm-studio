@@ -227,26 +227,26 @@ public partial class PlanTool
     // Both are drawn from the palette; markers (wool/spawn/iron/wall) and the build zone are separate tools.
     private static readonly RolePalette[] GeneratingRoles =
     [
-        new("piece", "Piece", "#7c8899"),
-        new("spawn", "Spawn", "#8f7bd6"),
-        new("wool-room", "Wool room", "#3fae74"),
+        new("piece", "Piece", "var(--canvas-role-piece)"),
+        new("spawn", "Spawn", "var(--canvas-role-spawn)"),
+        new("wool-room", "Wool room", "var(--canvas-role-wool-room)"),
     ];
     private static readonly RolePalette[] TechnicalRoles =
     [
-        new("buffer", "Buffer", "#f2792b"),
+        new("buffer", "Buffer", "var(--canvas-role-buffer)"),
     ];
     // Every assignable role, for the inspector's role dropdown (a piece can become any of them).
     private static readonly RolePalette[] Roles = [.. GeneratingRoles, .. TechnicalRoles];
 
     // The typed box kinds an envelope may carry — the partition vocabulary, offered on the box tool and in the
-    // inspector's kind dropdown. Colours match plan-doc's BOX_COLORS so palette, canvas and inspector agree.
+    // inspector's kind dropdown.
     private static readonly RolePalette[] BoxKinds =
     [
-        new("hub", "Hub", "#4ea3d8"),
-        new("wool", "Wool", "#3fae74"),
-        new("spawn", "Spawn", "#8f7bd6"),
-        new("frontline", "Front line", "#e0714a"),
-        new("mid", "Mid", "#9aa7b4"),
+        new("hub", "Hub", "var(--canvas-box-hub)"),
+        new("wool", "Wool", "var(--canvas-box-wool)"),
+        new("spawn", "Spawn", "var(--canvas-box-spawn)"),
+        new("frontline", "Front line", "var(--canvas-box-frontline)"),
+        new("mid", "Mid", "var(--canvas-box-mid)"),
     ];
 
     // The kind armed for the box tool (the last one drawn), mirrored into the bridge.
@@ -263,8 +263,6 @@ public partial class PlanTool
 
     private IReadOnlyList<SelectOption> TraceMapOptions
         => [.. traceMaps.Select(map => new SelectOption(map.Slug, map.Name))];
-
-    private string BoxKindColor => BoxKinds.FirstOrDefault(k => k.Id == boxKind)?.Color ?? "#9aa7b4";
 
     private string OffsetLabel => sel?.At is { Length: 2 } a ? $"{a[0]}, {a[1]}" : "";
 

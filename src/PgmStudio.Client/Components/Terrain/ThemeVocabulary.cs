@@ -390,7 +390,7 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     public static readonly IReadOnlyList<RoomPartInfo> FloorZones =
     [
         new(RoomParts.Field, "Field",
-            "The open floor between the border and the inlay. With no style set, the floor's top course shows."),
+            "The open floor between the border and the inlay. With no pattern set, the floor's top course shows."),
         new(RoomParts.Border, "Border",
             "A ring along the walls, as wide as the border width below."),
         new(RoomParts.Inlay, "Inlay",
@@ -403,21 +403,21 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     public static readonly IReadOnlyList<RoomPartInfo> Trim =
     [
         new(RoomParts.Post, "Corner posts",
-            "The four corner columns. With no style set, the corners match the walls."),
+            "The four corner columns. With no pattern set, the corners match the walls."),
         new(RoomParts.Sill, "Footing",
             "A course one block out from the walls. Houses should not have one, because it looks like a rim. Clear it."),
         new(RoomParts.Verge, "Verge",
-            "The roof's edge: its eaves, its sloped ends, and the ridge cap if it has one. With no style set, it uses the roof's material."),
+            "The roof's edge: its eaves, its sloped ends, and the ridge cap if it has one. With no pattern set, it uses the roof's material."),
         new(RoomParts.Gable, "Gable face",
-            "The triangle of wall at each end of a sloped roof. With no style set, the wall's top course continues up."),
+            "The triangle of wall at each end of a sloped roof. With no pattern set, the wall's top course continues up."),
         new(RoomParts.Deck, "Deck",
-            "The floor this storey stands on. With no style set, it uses the house floor's top material. Its border, field, and inlay belong to this storey."),
+            "The floor this storey stands on. With no pattern set, it uses the house floor's top material. Its border, field, and inlay belong to this storey."),
     ];
 
     /// <summary>The porch's own roof material, offered with the porch rather than with the trim because only a
     /// building with a porch has a canopy.</summary>
     public static readonly RoomPartInfo Canopy = new(RoomParts.Canopy, "Canopy laid in",
-        "The porch roof over the deck, in one block. With no style set, it uses the house roof's material.");
+        "The porch roof over the deck, in one block. With no pattern set, it uses the house roof's material.");
 
     public static RoomPartInfo Of(string part)
         => All.Concat(FloorZones).Concat(Trim).Append(Canopy).First(info => info.Id == part);

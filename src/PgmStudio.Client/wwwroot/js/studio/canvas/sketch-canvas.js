@@ -1307,10 +1307,10 @@ export class SketchCanvas extends CanvasBase {
         group: "Canvas", when: () => live() && !this.#reliefOn && !this.#dressingOn && !!this.#selectedId,
         run: () => this.#callbacks.onShapeDeleted?.(this.#selectedId) },
       { id: "relief.delete", keys: ["delete", "backspace"], label: "Delete the selected mark",
-        group: "Relief", when: () => live() && this.#reliefOn && !!this.#reliefTools?.selectedId,
+        group: "Terraform", when: () => live() && this.#reliefOn && !!this.#reliefTools?.selectedId,
         run: () => this.#reliefTools?.deleteSelected() },
       { id: "dressing.delete", keys: ["delete", "backspace"], label: "Delete the selected prop",
-        group: "Dressing", when: () => live() && this.#dressingOn && !!this.#dressing?.selectedId,
+        group: "Decoration", when: () => live() && this.#dressingOn && !!this.#dressing?.selectedId,
         run: () => this.#dressing?.deleteSelected() },
       { id: "sketch.promote", keys: "shift+p", label: "Move the shape into its own group",
         group: "Sketch", when: () => live() && !!this.#selectedId,
@@ -1319,7 +1319,7 @@ export class SketchCanvas extends CanvasBase {
       // listed twice under one word in the help sheet is two operations nobody can tell apart.
       { id: "dressing.join", keys: "mod+g",
         label: "Join or separate buildings",
-        group: "Dressing", when: () => live() && this.#dressingOn && !!this.#dressing?.selectedId,
+        group: "Decoration", when: () => live() && this.#dressingOn && !!this.#dressing?.selectedId,
         run: () => this.joinDressing() },
     ]);
 

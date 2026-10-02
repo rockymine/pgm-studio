@@ -29,9 +29,9 @@
     <NavRail>
       <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
       <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
-      <NavButton Icon="mountain" Title="Relief" Active="@ReliefActive" OnClick="GoRelief" />
-      <NavButton Icon="palette" Title="Theme" Active="@ThemeActive" OnClick="GoTheme" />
-      <NavButton Icon="trees" Title="Dressing" Active="@DressingActive" OnClick="GoDressing" />
+      <NavButton Icon="mountain" Title="Terraform" Active="@ReliefActive" OnClick="GoRelief" />
+      <NavButton Icon="palette" Title="Palette" Active="@ThemeActive" OnClick="GoTheme" />
+      <NavButton Icon="trees" Title="Decoration" Active="@DressingActive" OnClick="GoDressing" />
       <NavButton Icon="eye" Title="In game" Active="@InGameActive" OnClick="GoInGame" />
       <NavButton Icon="history" Title="History" Active="@HistoryActive" OnClick="GoHistory" />
       <NavButton Icon="clipboard" Title="Report" Active="@ReportActive" OnClick="GoReport" />
@@ -62,17 +62,17 @@
       <div class="phase-body" hidden="@(!(DrawActive || ThemeActive || DressingActive || ReliefActive || PlacingViewActive || HistoryActive))">
       @if (ThemeActive)
       {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
+        <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Palette"
                  BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoRelief" OnNext="GoDressing" />
       }
       else if (DressingActive)
       {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Dressing"
+        <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Decoration"
                  BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoTheme" OnNext="GoInGame" />
       }
       else if (ReliefActive)
       {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="mountain" PhaseTitle="Relief"
+        <FlowBar Class="flow-bar--flush" PhaseIcon="mountain" PhaseTitle="Terraform"
                  BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoDraw" OnNext="GoTheme" />
       }
       else if (HistoryActive)
@@ -197,7 +197,7 @@
               @if (ChipOffered(ChipRelief))
               {
                 <LayerChip Icon="mountain" Active="reliefOn" Title="Show height contours"
-                           OnClick="ToggleRelief">Relief</LayerChip>
+                           OnClick="ToggleRelief">Contours</LayerChip>
               }
               <CanvasRoundButton Icon="scan" Title="Zoom to fit (F)" OnClick="OnFit" />
             }

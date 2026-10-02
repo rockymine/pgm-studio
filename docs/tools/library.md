@@ -6,14 +6,14 @@ The library is where a material is authored once and reused. It is the only tool
 nothing about maps: no slug, no stage, no map row anywhere in it. What it holds is recipes, and the tools that
 build worlds reach into it to pick one.
 
-Nine kinds, in three families. Six **compose upward**: **Styles** — a style is one material; **Themes** — a
-terrain finish made of styles; **Roofs**, **Storeys** and **Porches** — the parts a building binds, each made
-of styles; **Houses** — a whole building made of parts and styles. Two are **recipes a click puts down**:
-**Trees** and **Boulders**, which compose nothing and are what a placement names. One places nothing at all:
-**Biomes**, the byte each column carries, which tints the ground without adding a block. A style is browsed by
-what it looks like, everything above it by what it composes to, a recipe by what it builds, and a biome by the
-ground it colours. A house's row is a `room_style` and composes to a `HouseStyle`; the surface calls it what
-the thing is.
+Nine kinds, in three families. Six **compose upward**: **Styles** (*Patterns* on screen) — a style is one
+material; **Themes** (*Palettes* on screen) — a terrain finish made of styles; **Roofs**, **Storeys** and
+**Porches** — the parts a building binds, each made of styles; **Houses** — a whole building made of parts and
+styles. Two are **recipes a click puts down**: **Trees** and **Boulders**, which compose nothing and are what a
+placement names. One places nothing at all: **Biomes**, the byte each column carries, which tints the ground
+without adding a block. A style is browsed by what it looks like, everything above it by what it composes to, a
+recipe by what it builds, and a biome by the ground it colours. A house's row is a `room_style` and composes to a
+`HouseStyle`; the surface calls it what the thing is.
 
 Three routes, and the rail carries the nine kinds. `/library` is the chooser — one card per kind, grouped as
 *Terrain* (styles, themes, biomes), *Buildings* (houses, roofs, storeys, porches) and *Nature* (trees,
@@ -60,7 +60,7 @@ params cannot disagree.
 
 **A style may be filled with another style, because a style is a material and materials nest.** Every slot the
 material editor draws — a layer of a stack, a band of a voronoi, a patch of a cell field, a tint's neutral
-fallback, a frame's panel — offers *Fill from a style…* beside the control naming its kind, and the two answer
+fallback, a frame's panel — offers *Fill from a pattern…* beside the control naming its kind, and the two answer
 the same question: a kind gives an empty recipe of that shape, a style gives one already written. It is how a
 palette of small styles becomes a large one, which is the reason the level exists.
 

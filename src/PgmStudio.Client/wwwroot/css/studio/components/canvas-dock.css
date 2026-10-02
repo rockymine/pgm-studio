@@ -62,7 +62,8 @@
    drawing. Build = the dashed, translucent accent zone; water lane = the same rect in its deeper blue; buffer = its single-diagonal reserved-gap hatch;
    a box is unfilled with a dashed border in its kind's colour. The hatch is inline SVG rather than a
    repeating gradient: a gradient's stripe phase is anchored to a box corner, so its lines cannot be centred
-   in the swatch. Its colour is the fixed role hex (buffer orange), matching the RolePalette. */
+   in the swatch. An SVG data URI cannot read a custom property, so its colour is --canvas-role-buffer's hex
+   written out. */
 .canvas-dock-swatch--build {
   background: color-mix(in oklch, var(--accent) 22%, transparent);
   border: 1px dashed var(--accent);

@@ -65,7 +65,7 @@
           @* Whether the shape's ground joins its group's relief. Only asked of a shape that IS ground: one
              standing out of the field already answers it, and a raise reads the ground under its own
              footprint to know where to stand. *@
-          <Field Label="Relief">
+          <Field Label="Terraform">
             <Select Options="ReliefScopeOptions" Value="@Shape.ReliefScope" ValueChanged="ReliefScopeChanged" />
           </Field>
           @if (ReliefScopeReadout.Length > 0)

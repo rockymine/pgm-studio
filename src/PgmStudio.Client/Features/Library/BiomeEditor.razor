@@ -17,8 +17,8 @@
     }
   </Preview>
   <Fields>
-    <p class="section-desc">Biomes tint grass, leaves, and water without placing any blocks. A map without
-      a biome pattern is plains everywhere.</p>
+    <p class="section-desc">Biomes tint grass, leaves, and water without placing any blocks. A map with no
+      biome set is plains everywhere.</p>
 
     <Field Label="How it varies">
       <Select Options="@Select.Words(BiomeKinds.All, word => word, BiomeKinds.Describe)" Value="@Kinds"
@@ -67,7 +67,7 @@
       }
 
       <div class="section-header section-header--ruled">
-        <h2 class="section-title">@(Kinds == BiomeKinds.Cell ? "Palette" : "Bands")</h2>
+        <h2 class="section-title">@(Kinds == BiomeKinds.Cell ? "Biomes" : "Bands")</h2>
       </div>
       @for (var at = 0; at < Picked.Count; at++)
       {

@@ -669,8 +669,8 @@
             @* The layout write refused (409): relief drawn on islands the rebuilt board no longer has. The
                way through is the author's to choose, so it is offered here rather than left as a failure. *@
             <div class="plan-rebuild-warn">
-              <p class="section-desc"><strong>The new layout has no island for the relief on
-                @string.Join(", ", orphaned).</strong> Rebuilding deletes that relief. Relief on the other
+              <p class="section-desc"><strong>The new layout has no island for the terraforming on
+                @string.Join(", ", orphaned).</strong> Rebuilding deletes it. Terraforming on the other
                 islands is kept.</p>
               <div class="ctrl-row">
                 <Button Fill OnClick="KeepRelief">Cancel</Button>
@@ -688,7 +688,7 @@
                 <li><span class="plan-rebuild-mark plan-rebuild-mark--drop"><i data-lucide="refresh-cw"></i></span>
                   <span><strong>Replaces</strong> the terrain and islands, removes sketch shapes the plan doesn't have, and rewrites the teams, spawns, wools, and build areas.</span></li>
                 <li><span class="plan-rebuild-mark plan-rebuild-mark--keep"><i data-lucide="check"></i></span>
-                  <span><strong>Keeps</strong> relief on islands that remain, room heights you changed, terrain themes, room shells, dressing, and authors.</span></li>
+                  <span><strong>Keeps</strong> terraforming on islands that remain, room heights you changed, palettes, room shells, decoration, and authors.</span></li>
               </ul>
               <p class="section-desc">Changes made in Configure to teams, spawns, or wools are overwritten.</p>
               @* Fill, not Full: two full-width buttons wrap onto two rows, which pushed the one that

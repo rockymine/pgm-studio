@@ -1135,7 +1135,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     // Replace a theme's material JSON (the raw TerrainTheme). Returns an error string on invalid JSON, else null.
     setThemeJson(id, text) {
-      if (!themes[id]) return "That theme no longer exists.";
+      if (!themes[id]) return "That palette no longer exists.";
       let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "This isn't valid JSON."; }
       themes[id] = parsed; afterThemeChange(); return null;
     },

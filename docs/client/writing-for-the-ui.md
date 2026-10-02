@@ -39,6 +39,7 @@ the common ones; when in doubt, describe what the thing *does* for the map.
 | knob | setting |
 | descriptor | layout code, JSON |
 | bucket (of a theme) | part (rim, wall, surface, fill) |
+| style, theme, relief, dressing | pattern, palette, terraform, decoration |
 | mouth-up | with its opening at the top |
 | `BoxFiller`, `PlanModel`, any type or class name | nothing; describe the behaviour |
 | HTTP status codes in the main message | the problem in words; the code may follow in brackets |
@@ -64,7 +65,7 @@ seventh is added. Show the count as data (a badge) or leave it out.
 
 **Status messages are short and past tense.** *Saved.* *Couldn't save. Try again.* A status line does not
 explain consequences unless the reader must act on them: *"Saved. Every theme binding it now paints this."*
-becomes *"Saved. Themes using this style are updated."*
+becomes *"Saved. Palettes using this pattern are updated."*
 
 **Errors say what happened and what to do.** *"Couldn't load the catalog. Reload the page to try again."*
 Not *"compile failed (HTTP 500). {body}"*. Technical detail (status code, server text) may follow the
@@ -92,7 +93,7 @@ These come from a reviewer reading the studio for the first time.
 |---|---|
 | Every map that holds a plan — including ones already built and configured. Open one to keep planning. | Maps that have a plan, including finished ones. |
 | Every shape the pipeline can put in a box, emitted once and drawn mouth-up. | Every shape the generator can place, drawn with its opening at the top. |
-| Saved. Every theme binding it now paints this. | Saved. Themes using this style are updated. |
+| Saved. Every theme binding it now paints this. | Saved. Palettes using this pattern are updated. |
 | Emitted through BoxFiller, so the profile check and the docking gate run exactly as they do in composition. A refusal is an answer, not an error — it is the emitter's own words. | Generated with the same checks the generator uses. If the shape can't be built at this size, the reason is shown here. |
 | Six libraries, in the order they compose | Libraries |
 | A placement names this recipe. Retuning it retunes every boulder wearing it. | Changes apply to every boulder that uses this recipe. |
@@ -101,31 +102,77 @@ These come from a reviewer reading the studio for the first time.
 ## Terms a new user has to learn
 
 Some words are the vocabulary of mapmaking itself and cannot be avoided: a hub, a front line, a wool
-room. These are not jargon to be removed but terms to be defined, once, in the same words everywhere. Where
-one appears on screen for the first time in a tool, it carries a tooltip with its definition below.
+room. These are not jargon to be removed but terms to be defined, once, in the same words everywhere. Each
+term has two levels. Its **tooltip** is one line, shown where the word first appears in a tool. Its **guide
+entry** is the longer account a help page gives, and only some terms need one.
 
-| Term | Means |
+| Term | Tooltip |
 |---|---|
-| **Plan** | A map blocked out on a coarse grid: which areas exist, what each is for, and where the objectives sit. |
-| **Sketch** | The map's ground at block scale: island outlines, heights, terrain paint, and props. |
-| **Configure** | Setting up the game on a built world: teams, spawns, protected areas, and objectives. |
-| **Library** | Reusable materials and buildings — styles, themes, houses, trees — shared by every map. |
-| **Cell** | One square of the plan grid. Its size in blocks is set per plan. |
-| **Symmetry** | How one team's half is copied to make the other's: rotated or mirrored. |
+| **Plan** | A grey map on a coarse grid: where the objectives sit, where the land goes, and how high it stands. |
+| **Sketch** | The plan's grey map with as much detail as you want: ground shape, paint, trees, and buildings. |
+| **Configure** | Set up the game on a world: teams, spawns, protected areas, and objectives. |
+| **Library** | Your saved patterns, brushes, and building parts, shared by every map. |
+| **Cell** | One square of the plan grid. Its size in blocks is set per plan; the default is 4. |
+| **Symmetry** | How the part you design is copied for the other teams: rotated or mirrored. |
 | **Hub** | The central area of a team's side, which the spawn, the wool approaches, and the front line connect to. |
 | **Front line** | The edge of a team's land that faces the enemy across the gap. Players build bridges from here. |
-| **Mid** | The open gap between the teams' front lines, where players build to cross. |
+| **Mid** | The open gap between the teams' front lines, sometimes with islands in it. Players build across it. |
 | **Approach** | The path of land leading from a team's side to a wool room. |
-| **Wool room** | The room a wool is kept in. The other team has to reach it to take the wool. |
-| **Monument** | Where a team places a captured wool to score it. |
-| **Build region** | An area where players may place blocks during a match. |
-| **Protection** | An area players may not build in, usually around a spawn. |
-| **Box** | A rectangle in a plan that marks one part of the layout (a hub, an approach, a spawn, a front line). |
-| **Generator** | The tool that creates whole layouts from a few settings (players, symmetry, size). |
-| **Style** | One material recipe: a single block, a stack of layers, a team colour, or a pattern. |
-| **Theme** | A full terrain finish: one style each for the rim, wall, surface, and fill. |
-| **Relief** | The shape of the ground: hills, slopes, and cliffs. |
-| **Dressing** | Things placed on the ground: trees, boulders, paths, water, and buildings. |
+| **Wool room** | The room a wool is kept in, defended by the team that owns it. |
+| **Monument** | Where a team places a wool it has taken, to capture it. |
+| **Build region** | An area over the void where players may place blocks. |
+| **Protection** | An area players may not enter or change, usually around a spawn. |
+| **Box** | A rectangle the generator uses to mark one part of a layout, such as a hub or an approach. Plans made by hand don't need them. |
+| **Generator** | Creates complete layouts from a few settings (players, symmetry, size). |
+| **Pattern** | A block pattern: one block, layers of blocks, a team colour, or a mix. Even a single block is a pattern. |
+| **Palette** | A set of patterns that gives the ground its look: one each for the rim, wall, surface, and fill. |
+| **Terraform** | Shaping the flat ground: hills, slopes, and cliffs. |
+| **Decoration** | What you add to the ground: trees, boulders, paths, water, and buildings. |
+
+Four of these replace the studio's earlier words, which mapmakers do not use: *pattern* for style, *palette*
+for theme, *terraform* for relief, and *decoration* for dressing. The old words remain in the code and the
+`docs/`; the client shows only the new ones, and text the server writes takes the same pass in `RP101`.
+
+### Guide entries
+
+**Plan.** The plan is the most abstract layout of a map, and the studio writes the map's XML from it. Once the
+plan is done, the map is already playable, only flat. A smaller cell size gives a finer plan. A map built
+around terrain can stay flat here and get its shape in the sketch; a map built around geometry sets its base
+heights in the plan and is only painted in the sketch.
+
+**Sketch.** A sketch is built from the bottom up, in layers: the ground, then its shape, then its paint, then
+what stands on it, which differs a little from building in game. The map can be previewed from a player's eye
+at any point. Block-level edits are possible but fiddly by hand, so most of the work is shaping larger areas.
+Some details are best finished in game; the sketch is for iterating fast.
+
+**Configure.** A map made in the studio is configured automatically and is ready to play once its sketch is
+done. Configure is for a map built elsewhere, such as on a mapmaking server: import the world, answer a few
+questions, and the studio detects and writes the rest.
+
+**Library.** The library holds what is reused: block patterns and the palettes that give a map its look,
+schematics such as hand-cut trees, brushes that generate boulders and trees from a few settings, and parts
+that build houses. The same entry always gives the same result, and a map built this way records which
+patterns it uses, so anyone can see how it was made.
+
+**Cell.** Planning on cells is laying out a map on squared paper, except that every square has a meaning.
+Cells keep sizes easy to judge and parts aligned; they carry the big shapes, and the sketch carries exact
+positions. A plan is blocking only: one cell size everywhere makes every gap the same width, and the map can
+look gridded, which a finer grid or the sketch breaks up. A grid that is too fine turns into editing blocks.
+The default of 4 suits the common Capture the Wool lane widths of 8, 12, 16, and 20 blocks. Destroy the
+Monument maps usually need less detail in a plan, since they are more about terrain than routes.
+
+**Symmetry.** Only one part of the map is designed, a half or a quarter, and the studio copies and rotates the
+rest. Game settings work the same way: one team is set up and the others follow. An imported world has its
+symmetry detected.
+
+**Wool room.** The other team has to reach the room and take the wool. Taking it is a *touch*; placing it on
+their monument is a *capture*.
+
+**Generator.** The generator knows how a map's parts relate: hubs, approaches, wool rooms, and the gap
+between the teams. It arranges them into layouts that follow those rules.
+
+**Palette.** A palette sets a map's look, such as a desert or a snowy cliff. Builders already call a set of
+blocks used together a block palette.
 
 A term that is the studio's own invention (an *approach family*, a *body form*, a *profile check*) is either
 replaced by a plain description or kept off the screen. If a reader needs it, it needs a definition here

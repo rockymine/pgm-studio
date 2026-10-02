@@ -37,13 +37,13 @@ public static class LibraryKinds
     public const string BiomesSlug = "biomes";
 
     public static readonly LibraryKind Styles = new(
-        StylesSlug, "styles", "Styles", "style", "paintbrush",
-        "Materials: a single block, a stack of layers, a team colour, or a pattern.",
+        StylesSlug, "styles", "Patterns", "pattern", "paintbrush",
+        "A block pattern: one block, layers of blocks, a team colour, or a mix. Even a single block is a pattern.",
         DraftPreview: false);
 
     public static readonly LibraryKind Themes = new(
-        ThemesSlug, "themes", "Themes", "theme", "layers",
-        "Full terrain finishes: one style each for the rim, wall, surface, and fill.",
+        ThemesSlug, "themes", "Palettes", "palette", "layers",
+        "A set of patterns that gives the ground its look: one each for the rim, wall, surface, and fill.",
         Composed: true);
 
     public static readonly LibraryKind Roofs = new(

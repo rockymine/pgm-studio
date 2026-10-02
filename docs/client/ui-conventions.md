@@ -210,8 +210,8 @@ one visibly available — which is pressable, keyboard-reachable, and shows what
 chosen. The pattern it replaces (`control-input--hidden` under a `plan-readout` span) was in three panels and
 is in none.
 
-**What survives as prose is a keymap, an empty state, or a fact with nowhere else to live.** *Move: arrow keys
-· Shift+arrow = 16 blocks* is a keymap. *No relief yet* is an empty state. *Turns with the building at
+**What survives as prose is a keymap, an empty state, or a fact with nowhere else to live.** *Move: arrow keys ·
+Shift+arrow = 16 blocks* is a keymap. *Nothing is terraformed yet* is an empty state. *Turns with the building at
 every mirror image* is behaviour a reader cannot see and no number states. Everything else is a note, a
 `LabelHint`, or a readout.
 

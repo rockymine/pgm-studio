@@ -166,7 +166,7 @@ public partial class SketchThemeInspector
             var painted = ShapeThemes.Count;
             return painted == ShapeCount
                 ? $"All {ShapeCount} shapes are painted."
-                : $"{painted} of {ShapeCount} shapes are painted. The other {ShapeCount - painted} use the default theme.";
+                : $"{painted} of {ShapeCount} shapes are painted. The other {ShapeCount - painted} use the default palette.";
         }
     }
 
@@ -176,7 +176,7 @@ public partial class SketchThemeInspector
     {
         if (Handle is null) return;
         var themeJson = await Library.DocumentAsync(LibraryKinds.Themes, picked.Id);
-        if (themeJson is null) { note = "Couldn't read that theme."; return; }
+        if (themeJson is null) { note = "Couldn't read that palette."; return; }
 
         // The copy this row already made is what a second copy refreshes, whatever either side has since been
         // renamed to. Only a row nothing on the board came from defines a theme, and that theme records where
@@ -252,7 +252,7 @@ public partial class SketchThemeInspector
             return;
         var id = await Library.ImportThemeAsync(InHand, node.GetRawText());
         note = id is null
-            ? "Couldn't save this theme to the library."
+            ? "Couldn't save this palette to the library."
             : $"Saved “{InHand}” to the library.";
         if (id is { } row)
         {

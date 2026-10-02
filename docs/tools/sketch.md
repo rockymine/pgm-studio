@@ -12,8 +12,10 @@ no objective until Configure gives it one. Opened on a map that came from a plan
 layout — the plan's abutting same-height pieces already fused into single polygons — and refines it.
 
 The route is `/maps/{slug}/sketch`. Six phases sit on the rail in the order the work is done: **Info**,
-**Draw**, **Relief**, **Theme**, **Dressing** and **In game** — and two after them that are not steps in making
-the board: **History**, its changes, and **Report**, everything a drive reads back about it. Info states what the
+**Draw**, **Terraform**, **Palette**, **Decoration** and **In game** — and two after them that are not steps in
+making the board: **History**, its changes, and **Report**, everything a drive reads back about it. This
+document calls three of them by the code's words: Terraform is the Relief phase, Palette the Theme phase, and
+Decoration the Dressing phase. Info states what the
 board is and is its own body; In game is the board as a player sees it, with the author's notes on it, and is
 its own body too until a view is being placed; Report is a page of readings and is its own body as well. The
 other five share the one live canvas, which stays mounted while Info, the gallery or the report is up so the
@@ -718,7 +720,7 @@ aimed plane from three — rounding to blocks, so a slope reads as the neat stra
 
 Six overlays sit above the canvas: **Shapes** (the draw primitives over the fused groups), **Mirror** (the
 symmetry copies), **Chunks** (the 16-block grid), **Blocks** (the rasterized footprint — the exact cells an
-export would fill), **Relief** (the height contours of whatever relief the groups carry) and **Snap**. A
+export would fill), **Contours** (the height contours of whatever relief the groups carry) and **Snap**. A
 read-only isometric preview draws **the world the export builds**: entering it posts the live layout to
 `sketch/columns`, which runs the real build and answers every column's solid runs, and the browser meshes
 those into triangles. So the picture carries the terrain's own materials, the relief the groups were solved

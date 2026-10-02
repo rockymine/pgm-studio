@@ -68,7 +68,7 @@ try {
   await page.waitForTimeout(1500);
 
   // Enter the Theme phase (the palette nav button). One step, so there is nothing to advance through.
-  await page.click('button[title="Theme"]', { timeout: 8000 });
+  await page.click('button[title="Palette"]', { timeout: 8000 });
   await page.waitForTimeout(1200);
   await shot("theme-phase.png");
 
@@ -85,7 +85,7 @@ try {
   // With nothing selected the inspector describes the board rather than a selection.
   checks.add("the inspector shows the board's defaults with nothing selected",
     await page.locator("text=Map defaults").count() > 0
-    && await page.locator("text=Default theme").count() > 0);
+    && await page.locator("text=Default palette").count() > 0);
 
   // The Blocks overlay is the phase's own, on without being asked for: the paint is what the phase acts on.
   checks.add("Blocks is on when the phase opens",
@@ -93,7 +93,7 @@ try {
       .evaluate(el => el.classList.contains("canvas-chip--on")));
   // And the contour chip is not offered, because the painted ground already carries the height.
   checks.add("the contour chip is not offered here",
-    await page.locator('button.canvas-chip:has-text("Relief")').count() === 0);
+    await page.locator('button.canvas-chip:has-text("Contours")').count() === 0);
 
   // Take the unassigned theme in hand and paint a shape with a click on the board.
   await page.click('.canvas-theme-swatch:has-text("scar")');
@@ -208,7 +208,7 @@ try {
   await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForSelector("canvas", { timeout: 20000 });
   await page.waitForTimeout(1500);
-  await page.click('button[title="Theme"]', { timeout: 8000 });
+  await page.click('button[title="Palette"]', { timeout: 8000 });
   await page.waitForTimeout(1500);
   const reloaded = page.locator(String.raw`.field:has-text("Wool rooms") .lib-bind select`).first();
   checks.add("the bound shell reads back as its own row after a reload",

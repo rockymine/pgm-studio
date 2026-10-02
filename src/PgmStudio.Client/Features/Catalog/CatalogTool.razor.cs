@@ -42,9 +42,9 @@ public partial class CatalogTool
     /// width rather than adding forms of their own, so they are not a separate row yet.</summary>
     private static readonly (string Token, string Label, string Hint)[] Kinds =
     [
-        ("wool", "Wool approach", "A path that leads to a wool room and ends there."),
-        ("hub", "Hub", "The central area of a team's side. Its edge widths decide which shapes can attach to it."),
-        ("frontline", "Front line", "The area that faces the other team. One of its edges is the front."),
+        ("wool", "Wool approach", "The path of land leading from a team's side to a wool room."),
+        ("hub", "Hub", "The central area of a team's side, which the spawn, the wool approaches, and the front line connect to. Its edge widths decide which shapes can attach to it."),
+        ("frontline", "Front line", "The edge of a team's land that faces the enemy across the gap. Players build bridges from here."),
     ];
 
     /// <summary>The reach tiers, in narrowing order. The hints are the page's whole honesty contract, so they

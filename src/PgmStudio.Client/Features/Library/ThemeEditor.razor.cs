@@ -89,7 +89,7 @@ public partial class ThemeEditor
     private string Footnote => draft is null
         ? ""
         : $"{draft.Buckets.Count(binding => binding.Enabled && binding.StyleId != Unbound)} of "
-          + $"{ThemeBucketInfo.All.Count} parts have a style";
+          + $"{ThemeBucketInfo.All.Count} parts have a pattern";
 
     protected override async Task OnInitializedAsync()
         => styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
@@ -109,7 +109,7 @@ public partial class ThemeEditor
         {
             if (await Library.GetAsync<ThemeDetail>(LibraryKinds.Themes, id) is not { } detail)
             {
-                note = "Couldn't load this theme. Reload the page to try again.";
+                note = "Couldn't load this palette. Reload the page to try again.";
                 draft = null;
                 return;
             }
@@ -149,7 +149,7 @@ public partial class ThemeEditor
     {
         importError = null;
         var id = await Library.ImportThemeAsync(draftName.Trim(), importJson);
-        if (id is null) { importError = "Couldn't import this JSON. Check that it is a valid theme."; return; }
+        if (id is null) { importError = "Couldn't import this JSON. Check that it is a valid palette."; return; }
         await OnSaved.InvokeAsync("saved");
         Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{id}");
     }
@@ -232,7 +232,7 @@ public partial class ThemeEditor
         var saved = editingId is { } id
             ? await Library.UpdateAsync<ThemeDetail>(LibraryKinds.Themes, id, request)
             : await Library.CreateAsync<ThemeDetail>(LibraryKinds.Themes, request);
-        if (saved is null) { note = "Couldn't save this theme. Try again."; return; }
+        if (saved is null) { note = "Couldn't save this palette. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{saved.Id}");
@@ -244,7 +244,7 @@ public partial class ThemeEditor
         if (draft is null) return;
         var copy = await Library.CreateAsync<ThemeDetail>(LibraryKinds.Themes,
             Saveable(draft) with { Name = $"{draftName.Trim()} copy" });
-        if (copy is null) { note = "Couldn't save a copy of this theme. Try again."; return; }
+        if (copy is null) { note = "Couldn't save a copy of this palette. Try again."; return; }
         Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{copy.Id}");
     }
 

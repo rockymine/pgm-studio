@@ -547,7 +547,7 @@ public partial class SketchTool
 
     // The same toggle shows the bare voxelization while drawing and the paint on top of it once theming.
     private string BlocksChipTitle => ScopeApplyActive
-        ? "Show the blocks the export places, painted by theme"
+        ? "Show the blocks the export places, painted by palette"
         : "Show the exact blocks the shapes cover";
 
     // The shapes the current selection themes: a group's members, else the single selected shape, else none.
@@ -752,9 +752,9 @@ public partial class SketchTool
     [
         new { id = "sketch.phase.info",      keys = "1", label = "Go to Info",     group = "Phases" },
         new { id = "sketch.phase.draw",      keys = "2", label = "Go to Draw",     group = "Phases" },
-        new { id = "sketch.phase.relief",    keys = "3", label = "Go to Relief",   group = "Phases" },
-        new { id = "sketch.phase.theme",     keys = "4", label = "Go to Theme",    group = "Phases" },
-        new { id = "sketch.phase.dressing",  keys = "5", label = "Go to Dressing", group = "Phases" },
+        new { id = "sketch.phase.relief",    keys = "3", label = "Go to Terraform", group = "Phases" },
+        new { id = "sketch.phase.theme",     keys = "4", label = "Go to Palette",  group = "Phases" },
+        new { id = "sketch.phase.dressing",  keys = "5", label = "Go to Decoration", group = "Phases" },
         new { id = "sketch.phase.ingame",    keys = "6", label = "Go to In game",  group = "Phases" },
         new { id = "sketch.phase.history",   keys = "7", label = "Go to History",  group = "Phases" },
         new { id = "sketch.phase.report",    keys = "8", label = "Go to Report",   group = "Phases" },
@@ -773,8 +773,8 @@ public partial class SketchTool
         new { id = "sketch.chip.blocks",     keys = "alt+4", label = "Show the blocks",    group = "Overlays" },
         new { id = "sketch.chip.relief",     keys = "alt+5", label = "Show contours",  group = "Overlays" },
         new { id = "sketch.chip.snap",       keys = "alt+6", label = "Snap while dragging", group = "Tools" },
-        new { id = "sketch.theme.next",      keys = "]", label = "Next theme",     group = "Theme" },
-        new { id = "sketch.theme.prev",      keys = "[", label = "Previous theme", group = "Theme" },
+        new { id = "sketch.theme.next",      keys = "]", label = "Next palette",     group = "Palette" },
+        new { id = "sketch.theme.prev",      keys = "[", label = "Previous palette", group = "Palette" },
         new { id = "sketch.save",            keys = "mod+s", label = "Save", group = "Everywhere", inField = true },
     ];
 

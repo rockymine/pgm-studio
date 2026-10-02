@@ -74,24 +74,29 @@ page it opens cannot disagree.
 
 ## The landing
 
-Seven cards in two groups. The first four are where authoring starts — **Plan a layout** (the Plans
-collection), **Browse generated layouts** (`/generator`), **Shape catalog** (`/catalog`) and **Style and theme
-library** (`/library`) — three of which need no map at all. The last three are the map lifecycle — **Sketch**,
+Seven cards in two groups. The first four are where authoring starts — **Plan a layout** (the Plans collection),
+**Browse generated layouts** (`/generator`), **Shape catalog** (`/catalog`) and **Pattern and palette library**
+(`/library`) — three of which need no map at all. The last three are the map lifecycle — **Sketch**,
 **Configure**, **Maps** — each deep-linking into its collection and carrying that collection's live count.
 
 ## Labels against code names
 
-The visible label is deliberately decoupled from the concept the code is built on, in one place:
+The visible label is deliberately decoupled from the concept the code is built on, in five places:
 
 | UI label | Code name | Where |
 |---|---|---|
 | **Configure** | **authoring** — `MapIntent`, the intent model, `../pgm/new-map-authoring.md` | `/maps/{slug}/configure` |
 | **Sketch** | sketch | `/maps/{slug}/sketch` |
+| **Pattern** | **style** — `StyleDto`, `LibraryKinds.Styles` | `/library/styles` |
+| **Palette** | **theme** — `TerrainTheme`, `../world-export/terrain-painting.md` | `/library/themes`, the sketch's `theme` phase |
+| **Terraform** | **relief** — `../world-export/relief.md` | the sketch's `relief` phase |
+| **Decoration** | **dressing** — `../world-export/decoration.md` | the sketch's `dressing` phase |
 
 The reason is that "authoring" names what the tool *does* to a map and "Configure" names what a person came to
 do, and the two audiences are different. Renaming the concept to match the label would have touched the intent
-model, its endpoints and every document that reasons about it; renaming the label costs nothing. Nowhere else
-in the studio does a label differ from its type name, and this one is worth the exception.
+model, its endpoints and every document that reasons about it; renaming the label costs nothing. The other
+four are the words mapmakers use (`writing-for-the-ui.md`, *Terms a new user has to learn*); the code, its
+routes and the documents keep their own.
 
 **"New" is not a discriminator.** Sketch and Configure both produce a new map, so a label built on "new" would
 separate nothing. The axes that do separate them are the artifact (geometry against configuration) and the
