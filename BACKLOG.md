@@ -248,7 +248,7 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 - [ ] **TL35 — A copied tree states no species.** A tree save requires `species` (`RQ1`) and the library
   answers one for every row, so every copied recipe states `"species": "oak"` — `acacia-1`, `birch-3` and
-  `sequoia-1` alike, and so every entry of `pgm-studio-mapgen/corpus/tree-showcase/trees.json`. A copied tree
+  `sequoia-1` alike, and so every entry of the seed folder's `trees.json`. A copied tree
   reads only its body, so the word is inert, but it says of an acacia what the showcase's `kinds.json` exists to
   stop anyone reading off a block. `TreeStyleSaveRequest.Species` is required of a template only,
   `PropStyleLibrary.TreeOf` gives a copied row none and `DressingJson` writes none for one; the snapshot is cut
@@ -589,15 +589,6 @@ is the standard the copy is held to.
 
 ## Refactoring and cleanup
 
-- [ ] **TL37 — The library is seeded from one place.** What a fresh studio holds is stated in four kinds of
-  place: C# preset classes (`StylePresets`, `ThemePresets`, `HousePresets.All`), literals inside the seeder itself
-  (the boulder recipes, `LibrarySeed.cs:69`; a tree per `DressingPalette.Species`), 49 embedded JSON files
-  (`Minecraft/Houses/Kept`), and a tool run by hand at deploy that copies trees out of a world in the authoring
-  repository (`tools/seed-trees.cs` over `corpus/tree-showcase`). Inspect each and move every seeded row —
-  materials, themes, houses and their parts, tree and boulder recipes, the copied trees, the biome patterns — into
-  one fixture folder of data read by one seeder, with one test that the seeded library equals the folder. A
-  preset that is code because it is computed stays code and is named as such. `docs/tools/library.md` § the seed.
-
 - [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
   `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,
   `PlanInspectDto:117`), and the two room families are the only ones naming a thing the rest of the studio
@@ -629,13 +620,7 @@ is the standard the copy is held to.
 
 The access rules, the Discord sign-in, tokens for callers without a browser and the read-only client are in
 place (`docs/access.md`), and the studio runs at pgmstudio.de (`docs/deployment.md`). What remains is the
-server's backups and the edits a read-only page still lets start.
-
-- [ ] **RP81 — The edits a read-only page still lets start.** Three reach past the shells that grey a page
-  (`docs/client/ui-conventions.md`): a `Sidebar`'s own inputs (the sketch layer's rename and base height), the
-  select tool's drag on the canvas, which moves a shape until the save is refused, and a `FlowBar` whose next
-  step writes (the sketch's Finish). Pass the cascaded `StudioReadOnly` into the canvas controllers as a flag
-  that refuses a drag, and let `FlowBar` disable a writing step. The server refuses all three today.
+server's backups.
 
 - [ ] **RP84 — The server's backups leave the machine, and a failed deploy says so.** Every dump in
   `/var/backups/pgm-studio` is taken before a deploy and sits on the disk the database is on, and nothing takes
@@ -646,6 +631,15 @@ server's backups and the edits a read-only page still lets start.
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **WE162 — Two seeded houses stamp their doorway on other columns in a mirror image.** The stamper's
+  orbit tests (`A_room_and_its_rot_180_image_stand_on_the_same_columns`,
+  `A_room_and_its_mirror_images_stand_on_the_same_columns`, `HouseStamperTests`) run over the eight houses they
+  were written for and pass; run over every seeded house, `dark-oak-stilt-hut` (hip roof, stilts) and
+  `jungle-saltbox-cottage` (saltbox) fail, their door columns landing apart between a room and its image. Find
+  which of the two forms moves the doorway, fix it in `HouseStamper`, and widen `RoomStyles()` to
+  `SeedFolder.Houses`. `docs/world-export/structures.md`. *Evidence: `dark-oak-stilt-hut 18x9 door -z mirror_x at
+  (-9, 65, -73)`, `jungle-saltbox-cottage 14x13 door -x at (-6, 76, -78)`.*
 
 - [ ] **RP97 — The sketch layout's words are published sets.** `GET /api/kit.py` checks a word only where
   the schema lists it, and 44 of 574 string fields do: the layout an author writes most has none, so

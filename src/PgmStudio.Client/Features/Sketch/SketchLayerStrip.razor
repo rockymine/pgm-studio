@@ -29,19 +29,24 @@
            not a board with no layers but a board whose layer cannot be reached. *@
         @if (AllowEdit && Layers.Count > 1)
         {
-          <button type="button" class="canvas-layer-del" title="@($"Delete '{layer.Name}'")"
-                  @onclick="() => OnDelete.InvokeAsync(layer.Id)">
-            <i data-lucide="x" @key="@($"del-{layer.Id}")"></i>
-          </button>
+          <WriteGate Context="closed">
+            <button type="button" class="canvas-layer-del" title="@(closed ?? $"Delete '{layer.Name}'")"
+                    disabled="@(closed is not null)" @onclick="() => OnDelete.InvokeAsync(layer.Id)">
+              <i data-lucide="x" @key="@($"del-{layer.Id}")"></i>
+            </button>
+          </WriteGate>
         }
       </span>
     }
     </div>
     @if (AllowEdit)
     {
-      <button type="button" class="canvas-layer-add" title="Add a layer above" @onclick="OnAdd">
-        <i data-lucide="plus" @key="@("plus")"></i>
-      </button>
+      <WriteGate Context="closed">
+        <button type="button" class="canvas-layer-add" title="@(closed ?? "Add a layer above")"
+                disabled="@(closed is not null)" @onclick="OnAdd">
+          <i data-lucide="plus" @key="@("plus")"></i>
+        </button>
+      </WriteGate>
     }
   </div>
 }

@@ -97,3 +97,157 @@ test("no ghost is offered on a rung that cannot take a point", () => {
   c.onPointerMove(10, 0, "select");
   assert.equal(g.children.filter(el => el.style.cursor === "copy").length, 0);
 });
+
+// ── taking one point out ─────────────────────────────────────────────────────────────────────────────────
+// The invariant: the outline loses exactly the picked point, its two neighbours become adjacent, everything
+// indexed by point is renumbered with it, and a removal that would leave no outline or a folded one changes
+// nothing at all.
+
+const U_RING = [[0, 0], [10, 0], [10, 10], [6, 10], [6, 2], [4, 2], [4, 10], [0, 10]];
+
+/** A controller on the points rung over `shape`, with every callback recorded. */
+function editing(shape) {
+  const g = layer();
+  const calls = { updated: 0, picked: [] };
+  const c = new SketchEditController(g, () => viewport, () => shape, {
+    onShapeUpdated: () => { calls.updated++; },
+    onVertexSelected: (id, idx) => { calls.picked.push([id, idx]); },
+  });
+  c.setSelected(shape.id, "points");
+  c.refresh();
+  return { c, g, calls };
+}
+
+/** Click the index-th point handle: a press and a release with no drag between. */
+function pick(env, index) {
+  const handles = env.g.children.filter(el => el.tagName === "circle" && el.style.cursor === "move" && el.getAttribute("r") === "4");
+  handles[index].fire("mousedown");
+  env.c.onResizeUp();
+}
+
+test("removing a point drops exactly that point and joins its neighbours", () => {
+  const shape = { id: "s", type: "polygon", vertices: [[0, 0], [20, 0], [20, 20], [0, 20]] };
+  const env = editing(shape);
+  pick(env, 2);
+  assert.equal(env.c.selectedVertex, 2);
+
+  assert.deepEqual(env.c.removeSelectedVertex(), { done: true });
+  // (20,0) and (0,20) were either side of the removed point and are consecutive now.
+  assert.deepEqual(shape.vertices, [[0, 0], [20, 0], [0, 20]]);
+});
+
+test("the pick is cleared, the inspector is told, and the edit is reported once", () => {
+  const shape = { id: "s", type: "polygon", vertices: [[0, 0], [20, 0], [20, 20], [0, 20]] };
+  const env = editing(shape);
+  pick(env, 1);
+  env.calls.picked.length = 0;
+
+  env.c.removeSelectedVertex();
+  assert.equal(env.c.selectedVertex, -1);
+  assert.deepEqual(env.calls.picked, [["s", -1]]);
+  assert.equal(env.calls.updated, 1);
+  assert.equal(env.g.children.filter(el => el.tagName === "circle" && el.getAttribute("r") === "4").length, 3,
+    "the handles were not redrawn for the shorter outline");
+});
+
+test("controls and per-point heights are renumbered with the points", () => {
+  const tag = (name) => ({ in: [name, 0], out: [name, 1] });
+  const shape = {
+    id: "s", type: "polygon", vertices: [[0, 0], [10, -4], [20, 0], [20, 10], [10, 14], [0, 10]],
+    controls: { 0: tag(0), 1: tag(1), 3: tag(3), 4: tag(4), 5: tag(5) },
+    anchor_heights: [1, 2, 3, 4, 5, 6],
+  };
+  const env = editing(shape);
+  pick(env, 2);
+  env.c.removeSelectedVertex();
+
+  assert.deepEqual(shape.anchor_heights, [1, 2, 4, 5, 6]);
+  // Point 2 is gone with its handles; the two points that now share an edge (1 and what was 3) lose theirs,
+  // since a handle is fitted to the edges it sat between; the rest keep theirs under the new numbering.
+  assert.deepEqual(Object.keys(shape.controls).sort(), ["0", "3", "4"]);
+  assert.equal(shape.controls["3"].in[0], 4);
+  assert.equal(shape.controls["4"].in[0], 5);
+});
+
+test("an outline with no handles left carries no controls key", () => {
+  const shape = {
+    id: "s", type: "polygon", vertices: [[0, 0], [20, 0], [20, 20], [0, 20]],
+    controls: { 2: { in: [1, 1], out: [2, 2] } },
+  };
+  const env = editing(shape);
+  pick(env, 3);
+  env.c.removeSelectedVertex();
+  assert.equal(shape.controls, undefined);
+});
+
+test("a ring is never taken below three points", () => {
+  const shape = { id: "s", type: "polygon", vertices: [[0, 0], [20, 0], [0, 20]] };
+  const env = editing(shape);
+  pick(env, 1);
+  env.calls.picked.length = 0;
+
+  const result = env.c.removeSelectedVertex();
+  assert.match(result.refused, /three points/);
+  assert.deepEqual(shape.vertices, [[0, 0], [20, 0], [0, 20]]);
+  assert.equal(env.calls.updated, 0);
+  assert.equal(env.c.selectedVertex, 1, "a refused removal must leave the pick where it was");
+  assert.deepEqual(env.calls.picked, []);
+});
+
+test("a removal that folds the outline across itself is refused and changes nothing", () => {
+  const shape = { id: "s", type: "polygon", vertices: U_RING.map(v => [...v]) };
+  const env = editing(shape);
+  pick(env, 0);
+
+  const result = env.c.removeSelectedVertex();
+  assert.match(result.refused, /fold/);
+  assert.deepEqual(shape.vertices, U_RING);
+  assert.equal(env.calls.updated, 0);
+
+  // The same outline loses a point that does not fold it.
+  pick(env, 3);
+  assert.deepEqual(env.c.removeSelectedVertex(), { done: true });
+  assert.equal(shape.vertices.length, U_RING.length - 1);
+});
+
+test("a path keeps two points, may cross itself, and renumbers like a ring", () => {
+  const line = { id: "p", type: "polyline", vertices: [[0, 0], [10, 0], [10, 10]], anchor_heights: [1, 2, 3] };
+  const env = editing(line);
+  pick(env, 1);
+  assert.deepEqual(env.c.removeSelectedVertex(), { done: true });
+  assert.deepEqual(line.vertices, [[0, 0], [10, 10]]);
+  assert.deepEqual(line.anchor_heights, [1, 3]);
+
+  pick(env, 0);
+  assert.match(env.c.removeSelectedVertex().refused, /two points/);
+  assert.equal(line.vertices.length, 2);
+
+  // A path is allowed to cross itself, so the fold check that guards a ring does not apply to it.
+  const crossing = { id: "q", type: "polyline", vertices: [[0, 0], [10, 10], [10, 0], [0, 10], [5, 20]] };
+  const crossingEnv = editing(crossing);
+  pick(crossingEnv, 2);
+  assert.deepEqual(crossingEnv.c.removeSelectedVertex(), { done: true });
+});
+
+test("with no point picked there is nothing to remove, and a point picked off its rung is let go", () => {
+  const shape = { id: "s", type: "polygon", vertices: [[0, 0], [20, 0], [20, 20], [0, 20]] };
+  const env = editing(shape);
+  assert.equal(env.c.removeSelectedVertex(), null);
+
+  pick(env, 1);
+  env.calls.picked.length = 0;
+  env.c.setSelected("s", "shape");
+  assert.equal(env.c.selectedVertex, -1);
+  assert.deepEqual(env.calls.picked, [["s", -1]], "the inspector kept showing a point the rung no longer draws");
+  assert.equal(env.c.removeSelectedVertex(), null);
+  assert.equal(shape.vertices.length, 4);
+});
+
+test("inserting a point drops a pick that the shift of indices would have moved", () => {
+  const shape = { id: "s", type: "polygon", vertices: [[0, 0], [20, 0], [20, 20], [0, 20]] };
+  const env = editing(shape);
+  pick(env, 3);
+  env.c.onPointerMove(10, 0, "select");
+  env.g.children.find(el => el.style.cursor === "copy").fire("mousedown");
+  assert.equal(env.c.selectedVertex, -1);
+});

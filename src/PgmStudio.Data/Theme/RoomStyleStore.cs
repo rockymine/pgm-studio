@@ -35,15 +35,16 @@ public sealed class RoomStyleStore(PgmDb db)
         => db.RoomStyleCourses.Where(c => c.RoomStyleId == roomStyleId)
             .OrderBy(c => c.Part).ThenBy(c => c.Ordinal).ToListAsync(ct);
 
-    /// <summary>Every course of every room style, joined to the style it binds — the whole library in one read,
-    /// so listing rooms with a picture of each does not cost a query per row.</summary>
-    public async Task<List<(RoomStyleCourseRow Course, StyleRow Style)>> GetAllCourseStylesAsync(
+    /// <summary>Every course of every room style, with the pattern it binds — the whole library in one read,
+    /// so listing rooms with a picture of each does not cost a query per row. The pattern is null for a course
+    /// laid in a block, which carries its block on the row.</summary>
+    public async Task<List<(RoomStyleCourseRow Course, StyleRow? Style)>> GetAllCourseStylesAsync(
         CancellationToken ct = default)
         => (await (from c in db.RoomStyleCourses
-                   join s in db.Styles on c.StyleId equals s.Id
+                   from s in db.Styles.LeftJoin(s => s.Id == c.StyleId)
                    orderby c.Part, c.Ordinal
                    select new { c, s }).ToListAsync(ct))
-            .Select(row => (row.c, row.s)).ToList();
+            .Select(row => (row.c, (StyleRow?)row.s)).ToList();
 
     /// <summary>The names of the room styles still binding a style, newest first. A style is shared with the
     /// theme library, so a caller asks both before deleting one.</summary>
@@ -105,6 +106,7 @@ public sealed class RoomStyleStore(PgmDb db)
                 .Set(r => r.PorchDepth, room.PorchDepth)
                 .Set(r => r.PorchInset, room.PorchInset)
                 .Set(r => r.PorchEdge, room.PorchEdge)
+                .Set(r => r.Front, room.Front)
                 .Set(r => r.PorchRoof, room.PorchRoof)
                 .Set(r => r.PorchRailBlock, room.PorchRailBlock)
                 // The M0019 trim. A column added to the row and not to this list is a column the editor can save

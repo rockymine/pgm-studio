@@ -26,7 +26,7 @@
   <div class="flow-bar-actions">
     <Button Disabled="@(!BackEnabled)" OnClick="OnBack">Back</Button>
     <Button Variant="primary" Disabled="@(!NextEnabled)" Busy="@NextBusy" BusyLabel="@NextBusyLabel"
-            OnClick="OnNext">@NextLabel</Button>
+            Writes="@NextWrites" Builds="@NextBuilds" OnClick="OnNext">@NextLabel</Button>
   </div>
 </div>
 
@@ -47,6 +47,11 @@
     /// step that fetches something wants the control disabled and saying so while it does.</summary>
     [Parameter] public bool NextBusy { get; set; }
     [Parameter] public string? NextBusyLabel { get; set; }
+    /// <summary>Next writes rather than moves — a finish that stores the map — so it is closed where the
+    /// caller may not write.</summary>
+    [Parameter] public bool NextWrites { get; set; }
+    /// <summary>Next has the server build something on request, as Configure's Export does.</summary>
+    [Parameter] public bool NextBuilds { get; set; }
 
     [Parameter] public EventCallback<int> OnStep { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }

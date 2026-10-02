@@ -26,6 +26,7 @@ export async function mount(canvasEl, dotnetRef, slug, axis) {
     setBuildHeight(y) { canvas.setBuildHeight(y); },
     async loadAxis(ax) { await load(ax); },
     resize() { canvas.resize(); },
+    setReadOnly(on) { canvas.setReadOnly(on); },
     // The painted surface owns a resize observer and a theme watcher, so teardown is real work now.
     dispose() { canvas.dispose(); },
   };
@@ -77,6 +78,7 @@ export async function mountSlice(canvasEl, dotnetRef, slug) {
       canvas.setMarker(cur.markerP != null && cur.markerMy != null ? { p: cur.markerP, y: cur.markerMy } : null);
     },
     resize() { canvas.resize(); },
+    setReadOnly(on) { canvas.setReadOnly(on); },
     // The painted surface owns a resize observer and a theme watcher, so teardown is real work now.
     dispose() { canvas.dispose(); },
   };

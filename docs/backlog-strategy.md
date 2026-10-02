@@ -62,9 +62,9 @@ each, and three stand below.
 That is the fact the whole strategy turns on: **a defect nobody can fail on is a defect that comes back.**
 The board is currently the only place these are written down, and a board entry is not a gate. So the fix
 rule for the next section is one sentence — *a defect is fixed when a test fails on the old behaviour*, and
-`LibrarySeedTests` is the worked example already in the tree: it pins the exact set of knobs five house
-presets lose through the library, so a preset that starts losing something new fails there. One entry of 140
-words did that.
+`LibrarySeedTests` is the worked example already in the tree: it asserts that every seeded house composes back
+out of the library exactly as its file states it, so a house that starts losing a knob fails there — which is
+how a house's front, kept by no column, was found.
 
 ## Four ways an entry leaves, and one of them keeps no record
 
@@ -515,7 +515,7 @@ rather than trimming the entries in it, which is the faster of the two moves and
 author.
 
 **Nothing is closed without a test.** The verified defects above are invisible to a suite of 3,557 tests.
-`LibrarySeedTests` is the shape: pin what is wrong, so it fails when it changes in either direction.
+`LibrarySeedTests` is the shape: assert what must hold, so it fails the moment it stops holding.
 
 **No measurement is written by hand.** Seven of nine re-measured figures had drifted, one entry's retake
 *command* had drifted with them, and one entry's whole premise had. `census.sh` is the precedent.

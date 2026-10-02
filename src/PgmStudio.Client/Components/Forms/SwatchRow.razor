@@ -3,12 +3,14 @@
 
 @* A row of colour swatches with one of them on — the control every sixteen-colour choice is made with: a
    block's shade in the style library, a team's colour, a wool's. A colour is picked by clicking the colour,
-   which is the whole point: a dropdown of sixteen names makes the author read what they can already see. *@
+   which is the whole point: a dropdown of sixteen names makes the author read what they can already see.
+   Writes marks a row whose pick writes outside any shell that greys it (adding a team): where the shell's
+   "StudioWriteReason" says the caller may not write, every swatch is disabled with the reason on hover. *@
 
 <div class="block-picker-colors">
   @foreach (var swatch in Swatches)
   {
-    <button type="button" @key="swatch.Key" title="@swatch.Label"
+    <button type="button" @key="swatch.Key" title="@(Closed ?? swatch.Label)" disabled="@(Closed is not null)"
             class="block-swatch @(EqualityComparer<TKey>.Default.Equals(swatch.Key, Selected) ? "block-swatch--on" : null)"
             style="--swatch: @swatch.Hex" @onclick="() => OnPick.InvokeAsync(swatch.Key)"></button>
   }
@@ -25,4 +27,10 @@
     [Parameter] public TKey? Selected { get; set; }
 
     [Parameter] public EventCallback<TKey> OnPick { get; set; }
+
+    /// <summary>A pick writes: closed where the caller may not write.</summary>
+    [Parameter] public bool Writes { get; set; }
+    [CascadingParameter(Name = "StudioWriteReason")] public string? WriteReason { get; set; }
+
+    private string? Closed => Writes ? WriteReason : null;
 }

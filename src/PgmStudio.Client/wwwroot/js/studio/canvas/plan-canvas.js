@@ -235,6 +235,7 @@ export class PlanCanvas extends CanvasBase {
 
   _isoTag() { return "plan"; }
   _onIsoEnter() { this.#drag = null; this.#resize = null; }
+  _onReadOnlyChanged() { this.#drag = null; this.#resize = null; if (this.#doc) this.#refreshOverlay(); }
   _isoLayers() { return [this.#canvasEl, this._viewportG, this.#overlay]; }
 
   // ── reference (tracing) backdrop ────────────────────────────────────────────
@@ -864,7 +865,7 @@ export class PlanCanvas extends CanvasBase {
     // stretches one axis. The dashed outline is already drawn above, so the box is asked for its grips only.
     renderTransformBox(layer, { l, t, r, b: bot }, {
       outline: false, gripHalf: 4,
-      onScale: (grip, e) => this.#startResize(e, grip),
+      onScale: this._readOnly ? null : (grip, e) => this.#startResize(e, grip),
     });
   }
 
@@ -926,6 +927,7 @@ export class PlanCanvas extends CanvasBase {
 
   _onToolMousedown(e, svgPt) {
     if (this._isoOn) return;          // iso preview is read-only
+    if (this._readOnly && this.#tool !== "select") return;   // a page the caller may not write: a press picks
     const cell = this.#doc.globals.cell;
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#tool === "select") return this.#selectDown(e, svgPt, cx, cz);
@@ -1020,6 +1022,8 @@ export class PlanCanvas extends CanvasBase {
     this.#sel = hit;
     this.#refreshOverlay();
     this.#fireSelect();
+    // Read-only, the press only picks: no drag begins, and no re-click turns a spawn.
+    if (this._readOnly) { this.#drag = null; return; }
     // A box drag carries its members — resolve them now, before the envelope starts moving.
     const carried = hit?.kind === "box" ? boxMembers(this.#doc, boxById(this.#doc, hit.id) || { rect: [0, 0, 0, 0] }) : null;
     // A footprint moves a block at a time, so its grab is the fractional cell the cursor is actually at
@@ -1135,7 +1139,7 @@ export class PlanCanvas extends CanvasBase {
   // Resize the selected piece/zone by dragging a handle: move the picked cell edge(s) to the cursor cell,
   // keeping each extent ≥ 1 cell.
   #startResize(e, handle) {
-    if (e.button !== 0 || !this.#sel || this.#sel.kind === "marker") return;   // a marker is a point, not a box
+    if (e.button !== 0 || !this.#sel || this.#sel.kind === "marker" || this._readOnly) return;   // a marker is a point, not a box
     e.stopPropagation(); e.preventDefault();
     this.#resize = { handle, sel: this.#sel };
   }
@@ -1212,7 +1216,7 @@ export class PlanCanvas extends CanvasBase {
     const live = () => this._wrap?.offsetParent != null && !this._isoOn;
     Keys.register("plan-canvas", [
       { id: "plan.delete", keys: ["delete", "backspace"], label: "Delete the selection", group: "Canvas",
-        when: () => live() && !!this.#sel, run: () => this.#cb.onDelete?.(this.#sel) },
+        when: () => live() && !this._readOnly && !!this.#sel, run: () => this.#cb.onDelete?.(this.#sel) },
       { id: "plan.enter", keys: "enter", label: "Open the selected group", group: "Canvas",
         when: () => live() && this.#sel?.kind === "box",
         run: () => { this.#scopeBoxId = this.#sel.id; this.#refreshOverlay(); } },

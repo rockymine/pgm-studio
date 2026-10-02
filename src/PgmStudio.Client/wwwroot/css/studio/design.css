@@ -277,7 +277,8 @@
 .block-chip { flex: 0 0 auto; aspect-ratio: 1; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--swatch); }
 .block-picker-colors { display: flex; flex-wrap: wrap; gap: 3px; }
 .block-swatch { width: 1.25rem; height: 1.25rem; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--swatch); cursor: pointer; }
-.block-swatch:hover { outline: 1px solid var(--text-muted); }
+.block-swatch:not(:disabled):hover { outline: 1px solid var(--text-muted); }
+.block-swatch:disabled { opacity: 0.4; cursor: default; }
 .block-swatch--on { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Dressing phase — the two views of a recipe side by side: the patch from above and the same patch

@@ -786,6 +786,8 @@ public partial class SketchTool
     // Why the last drag on a plan piece was not made. The intent owns where a room is, so a move is asked
     // rather than told, and a refusal is the answer rather than a fault.
     private string? structuralNote;
+    // Why the last point removal was not made — shown in the layer bar until the bridge clears it.
+    private string? editNote;
 
     private SketchShapeRow? SelectedShape => shapes.FirstOrDefault(s => s.Id == selectedShapeId);
     private SketchGroupRow? SelectedGroup => groups.FirstOrDefault(i => i.Id == selectedGroupId);
@@ -892,6 +894,17 @@ public partial class SketchTool
         new { id = "sketch.save",            keys = "mod+s", label = "Save", group = "Everywhere", inField = true },
     ];
 
+    /// <summary>Whether the caller may not write this map, as the shell answers it (a <see cref="WriteGate"/>
+    /// in the body hands it over, since the shell's cascade never reaches the tool that renders the shell).
+    /// Closed until the answer is in: the canvas changes nothing, and nothing is saved or discarded.</summary>
+    private bool writeClosed = true;
+
+    private async Task OnWriteReason(string? reason)
+    {
+        writeClosed = reason is not null;
+        if (handle is not null) await handle.InvokeVoidAsync("setReadOnly", writeClosed);
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("studio.icons");
@@ -899,6 +912,7 @@ public partial class SketchTool
         selfRef = DotNetObjectReference.Create(this);
         handle = await JS.InvokeAsync<IJSObjectReference>(
             "studio.mountSketch", svgRef, wrapRef, readout!.Cursor, readout.Zoom, readout.Size, selfRef, Slug);
+        await handle.InvokeVoidAsync("setReadOnly", writeClosed);
         await ReloadLayoutAsync();
         await LoadObjectives();
         await JS.InvokeVoidAsync("studio.watchTabShown", KeyOwner, selfRef, nameof(TabShown));
@@ -1131,6 +1145,10 @@ public partial class SketchTool
     [JSInvokable]
     public void OnStructuralNote(string? message) { structuralNote = message; StateHasChanged(); }
 
+    /// <summary>Why a point could not be taken out of the selected outline, or null where the note is to go.</summary>
+    [JSInvokable]
+    public void OnEditNote(string? message) { editNote = message; StateHasChanged(); }
+
     /// <summary>Correct the height the selected region was compiled at. The bridge writes the number and the
     /// author's-height flag together, which is what makes the correction outlive the next recompile.</summary>
     private Task SetStructuralHeight(double height) =>
@@ -1347,7 +1365,7 @@ public partial class SketchTool
     /// is the one that knows which shape it could not take.</para></summary>
     private async Task SaveAsync(CancellationToken token)
     {
-        if (handle is null) return;
+        if (handle is null || writeClosed) return;
         try { await saving.WaitAsync(token); }
         catch (OperationCanceledException) { return; }   // superseded by a later edit; that one reports
         var was = saveError;
@@ -1449,7 +1467,7 @@ public partial class SketchTool
         // A draft left with nothing drawn is discarded so an abandoned "New sketch" click doesn't linger on
         // the dashboard. The client gates on empty geometry to skip the call for real work; the server
         // re-checks the full pristine condition (default name, no authors, no shapes) before deleting.
-        if (shapes.Count == 0 && groups.Count == 0)
+        if (shapes.Count == 0 && groups.Count == 0 && !writeClosed)
         {
             try { await Http.DeleteAsync($"api/map/{Slug}/discard-if-empty"); } catch { }
         }

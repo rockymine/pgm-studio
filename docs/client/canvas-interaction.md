@@ -138,6 +138,17 @@ decides whether something was grabbed, and `_moveStart`/`_moveTo`/`_moveBy`/`_co
 through to persistence, with `_moveTo` offering a snap-aware absolute path and `_moveBy` the incremental
 fallback.
 
+**A canvas on a page the caller may not write is read-only, and refuses at the source.** `setReadOnly(on)` sets
+`_readOnly` and calls the `_onReadOnlyChanged` hook; the base then begins no body-drag, and each surface
+refuses its own edits rather than discarding their results. The sketch canvas treats it as select-only and
+more: no draw tool or placement begins, no brush paints, no edit handle, transform grip or point grip is
+drawn, and its delete, promote and join chords stand down; the dressing and relief controllers take an
+`isEditable` accessor that keeps a prop or a mark pickable and never placed, dragged or gripped. The plan
+canvas picks without starting a move or a resize and draws no resize grips, the world canvas draws, places
+and resizes nothing and drops its arrow nudge, and the side view's height line cannot be dragged. Each bridge
+exposes `setReadOnly`; `sketch-bridge` also refuses a tool that changes the board, its nudge, undo, redo and
+duplicate, and marks nothing dirty, so nothing reaches a save.
+
 ## 4. Controllers
 
 A controller encapsulates exactly one interaction mode. It is a plain class that takes **accessor

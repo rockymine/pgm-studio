@@ -30,10 +30,13 @@
       }
     </div>
   }
-  <button type="button" class="canvas-theme-add @(AddOpen ? "canvas-theme-add--on" : null)"
-          title="Add a palette from the library" aria-pressed="@AddOpen" @onclick="OnAdd">
-    <i data-lucide="plus" @key="@("theme-plus")"></i>
-  </button>
+  <WriteGate Context="closed">
+    <button type="button" class="canvas-theme-add @(AddOpen ? "canvas-theme-add--on" : null)"
+            title="@(closed ?? "Add a palette from the library")" aria-pressed="@AddOpen"
+            disabled="@(closed is not null)" @onclick="OnAdd">
+      <i data-lucide="plus" @key="@("theme-plus")"></i>
+    </button>
+  </WriteGate>
 </div>
 
 @code {

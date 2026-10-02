@@ -25,6 +25,8 @@ public partial class PropRecipeEditor
     [Inject] public NavigationManager Nav { get; set; } = default!;
 
     private long? editingId;
+    /// <summary>Whether the seed folder states the open row, which the studio refuses to change or delete.</summary>
+    private bool seeded;
     private string draftName = "";
     private string? note;
     private string? card;
@@ -73,6 +75,7 @@ public partial class PropRecipeEditor
     private void StartNew()
     {
         editingId = null;
+        seeded = false;
         draftName = "";
         rock = ThemeFields.Solid(1);
         if (IsTree) tree = new TreeStyleSaveRequest("", TreeForms.Template, "oak", Height: 12);
@@ -89,6 +92,7 @@ public partial class PropRecipeEditor
                 return;
             }
             (editingId, draftName) = (detail.Id, detail.Name);
+            seeded = detail.Seeded;
             tree = new TreeStyleSaveRequest(
                 detail.Name, detail.Form, detail.Species, detail.Height, detail.Body, detail.Cut);
             return;
@@ -100,6 +104,7 @@ public partial class PropRecipeEditor
             return;
         }
         (editingId, draftName) = (rockDetail.Id, rockDetail.Name);
+        seeded = rockDetail.Seeded;
         rock = JsonNode.Parse(rockDetail.Rock) as JsonObject ?? ThemeFields.Solid(1);
         boulder = new BoulderStyleSaveRequest(
             rockDetail.Name, rockDetail.Form, rockDetail.Size, rockDetail.Mossy, rockDetail.Rock);

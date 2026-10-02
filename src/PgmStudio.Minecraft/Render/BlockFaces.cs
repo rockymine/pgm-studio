@@ -13,8 +13,8 @@ public enum FaceForm
     /// <summary>Two crossed quads through the cell's centre, the way a plant or a torch is drawn.</summary>
     Cross,
 
-    /// <summary>Not drawn at all — a sign, a rail, a door, a trapdoor, a lever, a button, a pressure plate, a
-    /// repeater, iron bars: a block no shape here is named for, so the ray passes through it.</summary>
+    /// <summary>Not drawn at all — a repeater, a comparator, a banner, a brewing stand, a tripwire, a fire, a
+    /// portal: a block no shape here is named for, so the ray passes through it.</summary>
     Hidden,
 }
 
@@ -63,13 +63,13 @@ public readonly record struct BlockFaces(string Top, string Side, FaceForm Form,
 
     private static readonly HashSet<int> Thin =
     [
-        0, 26, 27, 28, 36, 51, 63, 64, 66, 68, 69, 70, 71, 72, 77, 90, 92, 93, 94, 96, 101, 117, 118, 131, 132,
-        140, 143, 144, 147, 148, 149, 150, 157, 167, 176, 177, 193, 194, 195, 196, 197,
+        0, 36, 51, 90, 93, 94, 117, 131, 132, 149, 150, 176, 177,
     ];
 
     /// <summary>The sprites <paramref name="id"/>:<paramref name="data"/> shows, or null for a block no sprite
     /// is named for — which a picture draws in its palette colour instead. A block the terrain palette offers
-    /// answers the faces <see cref="BlockLook"/> measured, so a sprite name is stated once.</summary>
+    /// answers the faces <see cref="BlockLook"/> measured, so a sprite name is stated once. A door's data is what
+    /// <see cref="BlockShape.DoorData"/> resolves.</summary>
     public static BlockFaces? Of(int id, int data)
     {
         if (Thin.Contains(id)) return None;
@@ -172,11 +172,43 @@ public readonly record struct BlockFaces(string Top, string Side, FaceForm Form,
             >= 2 => Cube("quartz_block_lines_top", "quartz_block_lines"),
             _ => Cube("quartz_block_top", "quartz_block_side"),
         },
+        63 or 68 or 143 or 72 => Cube("planks_oak", "planks_oak"),
+        69 => Cube("cobblestone", "cobblestone"),
+        77 or 70 or 144 => Cube("stone", "stone"),
+        147 => Cube("gold_block", "gold_block"),
+        148 => Cube("iron_block", "iron_block"),
+        66 => Cube(data is >= 6 and <= 9 ? "rail_normal_turned" : "rail_normal", "rail_normal"),
+        27 => Rail("rail_golden", data),
+        28 => Rail("rail_detector", data),
+        157 => Rail("rail_activator", data),
+        96 => Cube("trapdoor", "trapdoor"),
+        167 => Cube("iron_trapdoor", "iron_trapdoor"),
+        64 => Door("wood", data),
+        71 => Door("iron", data),
+        193 => Door("spruce", data),
+        194 => Door("birch", data),
+        195 => Door("jungle", data),
+        196 => Door("acacia", data),
+        197 => Door("dark_oak", data),
+        101 => Cube("iron_bars", "iron_bars"),
+        140 => Cube("flower_pot", "flower_pot"),
+        118 => Cube("cauldron_top", "cauldron_side"),
+        154 => Cube("hopper_top", "hopper_outside"),
+        151 => Cube("daylight_detector_top", "daylight_detector_side"),
+        178 => Cube("daylight_detector_inverted_top", "daylight_detector_side"),
+        145 => Cube($"anvil_top_damaged_{Math.Min((data >> 2) & 3, 2)}", "anvil_base"),
+        116 => Cube("enchanting_table_top", "enchanting_table_side"),
+        120 => Cube("endframe_top", "endframe_side"),
+        92 => Cube("cake_top", "cake_side"),
+        26 => (data & 8) != 0 ? Cube("bed_head_top", "bed_head_side") : Cube("bed_feet_top", "bed_feet_side"),
         46 => Cube("tnt_top", "tnt_side"),
         47 => Cube("planks_oak", "bookshelf"),
         52 => Cube("mob_spawner", "mob_spawner"),
         58 => Cube("crafting_table_top", "crafting_table_side"),
-        61 or 62 => Cube("furnace_top", "furnace_side"),
+        61 => Fronted("furnace_front_off", data),
+        62 => Fronted("furnace_front_on", data),
+        23 => Fronted("dispenser_front_horizontal", data),
+        158 => Fronted("dropper_front_horizontal", data),
         78 or 80 => Cube("snow", "snow"),
         81 => Cube("cactus_top", "cactus_side"),
         84 => Cube("jukebox_top", "jukebox_side"),
@@ -194,8 +226,25 @@ public readonly record struct BlockFaces(string Top, string Side, FaceForm Form,
         123 => Cube("redstone_lamp_off", "redstone_lamp_off"),
         124 => Cube("redstone_lamp_on", "redstone_lamp_on"),
         169 => Cube("sea_lantern", "sea_lantern"),
+        170 => (data & 12) switch
+        {
+            4 => new BlockFaces("hay_block_top", "hay_block_side", FaceForm.Cube, Grain: Grain.AlongX),
+            8 => new BlockFaces("hay_block_top", "hay_block_side", FaceForm.Cube, Grain: Grain.AlongZ),
+            _ => Cube("hay_block_top", "hay_block_side"),
+        },
         _ => null,
     };
+
+    /// <summary>A door half by the sprite of its wood and, from bit 3 of its data, which half it is.</summary>
+    private static BlockFaces Door(string wood, int data)
+    {
+        var sprite = $"door_{wood}_{((data & 8) != 0 ? "upper" : "lower")}";
+        return Cube(sprite, sprite);
+    }
+
+    /// <summary>A powered, detector or activator rail, in its lit sprite once bit 3 of its data says it is on.</summary>
+    private static BlockFaces Rail(string sprite, int data) =>
+        Cube((data & 8) != 0 ? $"{sprite}_powered" : sprite, sprite);
 
     /// <summary>A log by its axis bits: standing up, lying along x, lying along z, or bark on all six faces —
     /// the last is a tree's, and the only one that shows no sawn end.</summary>
@@ -210,6 +259,12 @@ public readonly record struct BlockFaces(string Top, string Side, FaceForm Form,
             _ => Cube($"log_{wood}_top", $"log_{wood}"),
         };
     }
+
+    /// <summary>A furnace, dispenser or dropper: furnace stone all round and <paramref name="front"/> on the
+    /// side its data faces. One facing up or down shows no front, since its face is on the top or bottom.</summary>
+    private static BlockFaces Fronted(string front, int data) => BlockGeometry.Front(data & 7) is { } facing
+        ? new BlockFaces("furnace_top", "furnace_side", FaceForm.Cube, Front: front, Facing: facing)
+        : Cube("furnace_top", "furnace_side");
 
     /// <summary>A chest, drawn from the faces <see cref="BlockTextureSet"/> cuts out of its entity texture,
     /// its latch on the side its data says it looks toward.</summary>

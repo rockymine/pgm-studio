@@ -3,6 +3,8 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 .panel-section { display: flex; flex-direction: column; gap: var(--space-3); }
+/* A section whose controls write, greyed on a read-only page (Section.Writes): the fieldset stacks as the section does. */
+.panel-section-fieldset { display: flex; flex-direction: column; gap: var(--space-3); }
 .panel-stack { display: flex; flex-direction: column; gap: var(--space-6); }
 .section-body { display: flex; flex-direction: column; gap: var(--space-3); }
 .section-heading { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }

@@ -124,13 +124,13 @@
 }
 .canvas-layer-tab-wrap:hover .canvas-layer-del,
 .canvas-layer-tab-wrap--on .canvas-layer-del { opacity: 1; }
-.canvas-layer-del:hover { color: var(--color-error); }
+.canvas-layer-del:not(:disabled):hover { color: var(--color-error); }
 .canvas-layer-del svg { width: var(--icon-xs); height: var(--icon-xs); }
 .canvas-layer-add {
   display: grid; place-items: center; width: 26px; border: 0; border-radius: var(--radius-sm);
   background: transparent; color: var(--text-muted); cursor: pointer;
 }
-.canvas-layer-add:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-layer-add:not(:disabled):hover { background: var(--bg-vis-hover); color: var(--text-primary); }
 .canvas-layer-add svg { width: var(--icon-xs); height: var(--icon-xs); }
 /* ── the theme strip ──
    The board's themes, floating above the dock: what is in hand, and what a click will paint. A theme is the
@@ -170,9 +170,14 @@
   border: 0; border-radius: var(--radius-sm);
   background: transparent; color: var(--text-muted); cursor: pointer;
 }
-.canvas-theme-add:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-theme-add:not(:disabled):hover { background: var(--bg-vis-hover); color: var(--text-primary); }
 .canvas-theme-add--on { background: var(--bg-selected); color: var(--text-strong); }
 .canvas-theme-add svg { width: var(--icon-xs); height: var(--icon-xs); }
+/* A strip control the caller may not use is greyed and says why on hover (WriteGate). */
+.canvas-layer-add:disabled, .canvas-theme-add:disabled { opacity: 0.4; cursor: default; }
+.canvas-layer-del:disabled { cursor: default; }
+.canvas-layer-tab-wrap:hover .canvas-layer-del:disabled,
+.canvas-layer-tab-wrap--on .canvas-layer-del:disabled { opacity: 0.4; }
 
 /* The library rows the add panel offers, as a plain list rather than a select: a theme is picked by
    recognising its name, and a dropdown hides every name but one. The panel it sits in scrolls, so this does

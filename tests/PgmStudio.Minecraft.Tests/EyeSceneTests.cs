@@ -416,6 +416,22 @@ public sealed class EyeSceneTests
         await Assert.That(Centre(picture)).IsEqualTo((160, 144, 0));
     }
 
+    [Test]
+    public async Task A_sign_is_drawn_but_is_neither_ground_nor_in_the_way()
+    {
+        var world = FloorWorld();
+        world.SetBlock(24, Floor + 1, 24, 63, 0);
+        world.SetBlock(16, Floor + 1, 20, GoldBlock);
+        world.SetBlock(16, Floor + 1, 18, 68, 2);
+        var scene = EyeScene.Of(world, FittingSprites());
+
+        var picture = scene.Draw(FacingTheGold, 64, 36);
+
+        await Assert.That(scene.GroundAt(24, 24)).IsEqualTo(Floor);
+        await Assert.That(scene.EyeAt(24, 24)).IsEqualTo(Floor + 1 + 1.62);
+        await Assert.That(picture.Seen.Select(seen => seen.Id)).Contains(68);
+    }
+
     private static (double Mean, double Variance) Spread(EyePicture picture)
     {
         var values = Enumerable.Range(0, picture.Width * picture.Height).Select(pixel => (double)picture.Rgb[pixel * 3]).ToList();

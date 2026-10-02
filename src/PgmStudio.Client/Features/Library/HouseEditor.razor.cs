@@ -43,6 +43,8 @@ public partial class HouseEditor
 
     private RoomStyleSaveRequest? draft;
     private long? editingId;
+    /// <summary>Whether the seed folder states the open row, which the studio refuses to change or delete.</summary>
+    private bool seeded;
     private string draftName = "";
     private string selected = ComposedPart;
     private string? note;
@@ -86,7 +88,7 @@ public partial class HouseEditor
 
     private string PartBadge(RoomPartInfo part)
     {
-        if (!part.Stacked) return StyleOf(Single(part.Id))?.Name ?? "default";
+        if (!part.Stacked) return Single(part.Id).Name(styles, blocks) ?? "default";
         var count = Courses(part.Id).Count;
         return count == 0 ? "default" : $"{count} course{(count == 1 ? "" : "s")}";
     }
@@ -95,7 +97,7 @@ public partial class HouseEditor
     {
         get
         {
-            var bound = RoomPartInfo.Trim.Count(part => Single(part.Id) > 0);
+            var bound = RoomPartInfo.Trim.Count(part => Single(part.Id).Bound);
             return bound == 0 ? "none" : $"{bound} set";
         }
     }
@@ -197,6 +199,7 @@ public partial class HouseEditor
     private void StartNew()
     {
         editingId = null;
+        seeded = false;
         draftName = "";
         draft = EmptyDraft(draftName);
     }
@@ -210,6 +213,7 @@ public partial class HouseEditor
             return;
         }
         editingId = detail.Id;
+        seeded = detail.Seeded;
         draftName = detail.Name;
         // Every field the row states, not the ones the editor happens to draw a control for: a house loaded
         // through a shorter list and saved back writes the rest away, so a beam, a door head or a slab roof
@@ -231,18 +235,23 @@ public partial class HouseEditor
         _ => draft!.WallHeight,
     };
 
+    /// <summary>The course a stack gains: one course of stone, which is what an unpainted wall already is.</summary>
+    private static readonly SlotBlockDto NewCourse = new(1, 0, Laid: false);
+
     private Task AddCourse(string part)
     {
-        if (draft is null || styles.Count == 0) return Task.CompletedTask;
+        if (draft is null) return Task.CompletedTask;
         var stack = Courses(part);
-        return WriteCourses(part, [.. stack, new RoomCourseDto(part, stack.Count, styles[0].Id, 1)]);
+        return WriteCourses(part, [.. stack, new RoomCourseDto(part, stack.Count, 0, NewCourse, 1)]);
     }
 
     private Task RemoveCourse(string part, int ordinal)
         => WriteCourses(part, [.. Courses(part).Where(course => course.Ordinal != ordinal)]);
 
-    private Task BindCourse(string part, int ordinal, long styleId)
-        => EditCourse(part, ordinal, course => course with { StyleId = styleId });
+    private Task BindCourse(string part, int ordinal, SlotFill fill)
+        => fill.Bound
+            ? EditCourse(part, ordinal, course => course with { StyleId = fill.StyleId, Block = fill.Block })
+            : RemoveCourse(part, ordinal);
 
     private Task SetCourseHeight(string part, int ordinal, double value)
         => EditCourse(part, ordinal, course => course with { Height = Math.Max(1, (int)value) });
@@ -263,13 +272,14 @@ public partial class HouseEditor
         return Preview();
     }
 
-    /// <summary>The one style bound to a part that takes a material rather than a stack — a post, a sill, a
-    /// verge, one zone of the floor's top course. Zero unbinds it, which is the part keeping the built-in
-    /// finish rather than resolving to nothing.</summary>
-    private long Single(string part) => Courses(part).FirstOrDefault()?.StyleId ?? 0;
+    /// <summary>What fills a part that takes one material rather than a stack — a post, a sill, a verge, one
+    /// zone of the floor's top course. Nothing unbinds it, which is the part keeping the built-in finish rather
+    /// than resolving to nothing.</summary>
+    private SlotFill Single(string part)
+        => Courses(part).FirstOrDefault() is { } course ? new SlotFill(course.StyleId, course.Block) : SlotFill.None;
 
-    private Task BindSingle(string part, long styleId)
-        => WriteCourses(part, styleId <= 0 ? [] : [new RoomCourseDto(part, 0, styleId, 1)]);
+    private Task BindSingle(string part, SlotFill fill)
+        => WriteCourses(part, fill.Bound ? [new RoomCourseDto(part, 0, fill.StyleId, fill.Block, 1)] : []);
 
     // ── the knobs ──────────────────────────────────────────────────────────────────────────────────
     private Task SetExtent(string part, double value) => Knob(d => part switch

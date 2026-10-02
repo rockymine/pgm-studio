@@ -29,8 +29,11 @@ the world the first time (the finish below, `POST …/sketch/finish`, which rast
 map to `stage=configure`), and saves the export — the world ZIP with its `map.xml`. A board built from a plan
 carries the plan's game settings, so its export needs nothing from Configure. Where the export is refused, the
 bar shows its sentence and offers **Open Configure**, which is where a hand-drawn board's teams, spawns and
-objectives are stated. The phases run in order, Draw's *Done* going on to Terraform. A draft that was never
-drawn on is discarded on the way out.
+objectives are stated. Building the export costs the server a world, so **Download map** needs an account on
+the whitelist and is greyed for anyone else (`docs/access.md`). The phases run in order, Draw's *Done* going on
+to Terraform. A draft that was never drawn on is discarded on the way out. A caller who may not change the map
+sees every phase read-only: the canvas pans, selects and measures and changes nothing, the fields that write
+are greyed, and nothing is saved or discarded (`docs/client/ui-conventions.md`).
 
 **The geometry follows the drawing after the first build, too.** The scan the finish writes records the layout revision it
 was rasterized from, so a layout written later (a vertex moved, a coast bent, a shape redrawn) is rasterized
@@ -650,7 +653,8 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `Alt`+click | Pick the parent group and leave any scope | Canvas |
 | `Enter` | Go one level deeper, or close the polygon/polyline in progress | Canvas |
 | `Escape` | Put the brush down, else cancel the draw, else step back up a level, else clear the selection | Canvas |
-| `Delete` / `Backspace` | Delete the selected shape | Canvas |
+| `Delete` / `Backspace` | Delete the selected point, where one is picked on the points rung | Canvas |
+| `Delete` / `Backspace` | Delete the selected shape, where no point is picked | Canvas |
 | Arrow keys | Nudge the selection one block (`Shift` for sixteen) | Canvas |
 | `Shift`+`P` | Promote the shape to its own group | Sketch |
 | `Ctrl`/`⌘`+`D` | Duplicate the selected shape | Canvas |
@@ -705,6 +709,15 @@ edges leaving and arriving — which is how an outline stops being rectilinear. 
 That separation is what lets every box sit ON its bounds rather than offset outside it: an edge midpoint
 carries no anchor, so the insert ghost has the spot to itself, and a corner carries no vertex handle, because
 the rung that draws vertex handles draws no corners.
+
+**A point is taken out with the key that takes a shape out.** Clicking a vertex handle picks it, and while a
+point is picked `Delete` or `Backspace` removes that point and joins its two neighbours, where with none picked
+the same keys delete the shape. A picked point belongs to the points rung: stepping up a rung, or picking
+another shape, lets it go. The removal is refused, with a sentence in the layer bar for a few seconds, where it
+would leave a ring under three points or a path under two, or would fold a ring across itself — the refusals
+`DELETE …/vertices/{index}` gives for an outline, with the same test for the fold. A removal renumbers the Bézier
+`controls` and `anchor_heights` above the removed index, drops the removed point's handles and those of the two
+points that now share an edge, and is one undo step.
 
 **A grip's shape says which rung it belongs to, and its colour says what it is.** A square scales a whole
 outline; a **disc is one point of it**, the size of the midpoint-insert ghost, because what that ghost offers
@@ -975,9 +988,9 @@ it is bound to. The order is the order a column is built: the paint under everyt
 **The map default is the board's; the built-in is stone.** Every bucket of `TerrainTheme.Default` is stone —
 what unpainted ground already is — so a board that names no theme exports as a board that names no theme, and
 a bucket a theme leaves unbound resolves to stone rather than borrowing a finish it never asked for. The
-finishes worth starting from are named themes: `ThemePresets` holds six — `meadow`, `dunes`, `ashfall`,
-`firnline`, `claybed`, `oldstone` — and `LibrarySeed` puts them in the library, where they are picked like any
-other.
+finishes worth starting from are named themes: the library's seed folder holds eight — `meadow`, `dunes`,
+`ashfall`, `firnline`, `claybed`, `oldstone`, `clay grassland` and `clay mycelium` — and the seed puts them in the
+library, where they are picked like any other (`docs/tools/library.md`, *The seed*).
 
 **The map's biome sits with the default theme**, because it is the same kind of statement: what every column
 falls back to. A biome places no block — it is the byte a client reads to tint grass, leaves and water — so it

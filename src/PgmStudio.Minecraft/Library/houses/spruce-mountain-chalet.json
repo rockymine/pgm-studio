@@ -1,0 +1,262 @@
+{
+ "foundation": {
+  "plate": {
+   "stack": {
+    "bands": [
+     {
+      "material": {
+       "kind": "solid",
+       "id": 5,
+       "data": 1
+      },
+      "thickness": 1
+     }
+    ],
+    "ending": "repeat"
+   },
+   "extent": 1
+  },
+  "surface": {
+   "field": null,
+   "border": null,
+   "borderWidth": 1,
+   "inlay": null,
+   "inlayInset": 2,
+   "isPlain": true
+  },
+  "footing": null
+ },
+ "roof": {
+  "form": "gable",
+  "pitch": 1,
+  "slab": 126,
+  "slabData": 1,
+  "stair": -1,
+  "wear": 0,
+  "overhang": 2,
+  "ridgeCap": false,
+  "hole": false,
+  "body": {
+   "kind": "solid",
+   "id": 5,
+   "data": 1
+  },
+  "verge": {
+   "kind": "solid",
+   "id": 5,
+   "data": 5
+  },
+  "gable": {
+   "kind": "solid",
+   "id": 5,
+   "data": 1
+  },
+  "gableWindows": {
+   "form": "pane",
+   "block": 102,
+   "hostBlock": -1,
+   "hostData": 0,
+   "data": 0,
+   "sill": 1,
+   "width": 2,
+   "height": 1,
+   "spacing": 3
+  }
+ },
+ "wall": {
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "noise",
+      "seed": 6311,
+      "scale": 2,
+      "octaves": 1,
+      "stops": [
+       {
+        "kind": "solid",
+        "id": 4,
+        "data": 0
+       },
+       {
+        "kind": "solid",
+        "id": 1,
+        "data": 5
+       }
+      ],
+      "rise": 0
+     },
+     "thickness": 4
+    },
+    {
+     "material": {
+      "kind": "laidLog",
+      "id": 17,
+      "data": 1
+     },
+     "thickness": 1
+    }
+   ],
+   "ending": "repeat"
+  },
+  "extent": 5
+ },
+ "post": {
+  "kind": "solid",
+  "id": 17,
+  "data": 1
+ },
+ "windows": {
+  "form": "none",
+  "block": 102,
+  "hostBlock": -1,
+  "hostData": 0,
+  "data": 0,
+  "sill": 2,
+  "width": 2,
+  "height": 2,
+  "spacing": 3
+ },
+ "storeys": [
+  {
+   "clear": 4,
+   "wall": {
+    "stack": {
+     "bands": [
+      {
+       "material": {
+        "kind": "noise",
+        "seed": 6311,
+        "scale": 2,
+        "octaves": 1,
+        "stops": [
+         {
+          "kind": "solid",
+          "id": 4,
+          "data": 0
+         },
+         {
+          "kind": "solid",
+          "id": 1,
+          "data": 5
+         }
+        ],
+        "rise": 0
+       },
+       "thickness": 4
+      },
+      {
+       "material": {
+        "kind": "laidLog",
+        "id": 17,
+        "data": 1
+       },
+       "thickness": 1
+      }
+     ],
+     "ending": "repeat"
+    },
+    "extent": 4
+   },
+   "post": {
+    "kind": "solid",
+    "id": 17,
+    "data": 1
+   },
+   "windows": {
+    "form": "stairLattice",
+    "block": 134,
+    "hostBlock": -1,
+    "hostData": 0,
+    "data": 0,
+    "sill": 2,
+    "width": 2,
+    "height": 2,
+    "spacing": 3
+   },
+   "surface": {
+    "field": null,
+    "border": null,
+    "borderWidth": 1,
+    "inlay": null,
+    "inlayInset": 2,
+    "isPlain": true
+   },
+   "deck": null,
+   "headroom": 4
+  },
+  {
+   "clear": 4,
+   "wall": {
+    "stack": {
+     "bands": [
+      {
+       "material": {
+        "kind": "solid",
+        "id": 5,
+        "data": 1
+       },
+       "thickness": 3
+      },
+      {
+       "material": {
+        "kind": "laidLog",
+        "id": 17,
+        "data": 1
+       },
+       "thickness": 1
+      }
+     ],
+     "ending": "repeat"
+    },
+    "extent": 4
+   },
+   "post": {
+    "kind": "solid",
+    "id": 17,
+    "data": 1
+   },
+   "windows": {
+    "form": "pane",
+    "block": 102,
+    "hostBlock": -1,
+    "hostData": 0,
+    "data": 0,
+    "sill": 2,
+    "width": 2,
+    "height": 1,
+    "spacing": 3
+   },
+   "surface": {
+    "field": null,
+    "border": null,
+    "borderWidth": 1,
+    "inlay": null,
+    "inlayInset": 2,
+    "isPlain": true
+   },
+   "deck": null,
+   "headroom": 4
+  }
+ ],
+ "porch": null,
+ "front": null,
+ "beams": {
+  "block": 17,
+  "data": 1,
+  "reach": 2,
+  "any": true
+ },
+ "doorway": {
+  "door": "air",
+  "head": {
+   "form": "arched",
+   "block": 67,
+   "fill": "upperSlab",
+   "fillBlock": 44,
+   "fillData": 3
+  },
+  "width": 2,
+  "height": 3
+ }
+}

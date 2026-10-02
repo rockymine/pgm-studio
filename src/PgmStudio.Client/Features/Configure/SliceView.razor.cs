@@ -29,6 +29,9 @@ public partial class SliceView : IAsyncDisposable
     private string axis = "nz";         // view direction: nz/pz look along Z (primary X), nx/px along X (primary Z)
     private bool show;
     private bool editable;
+    /// <summary>Why the caller may not write this map, or null: the line is then shown and never dragged.</summary>
+    [CascadingParameter(Name = "StudioWriteReason")] public string? WriteReason { get; set; }
+    private bool? pushedReadOnly;
 
     protected override void OnParametersSet()
     {
@@ -50,6 +53,12 @@ public partial class SliceView : IAsyncDisposable
             selfRef ??= DotNetObjectReference.Create(this);
             handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountSliceView", canvasRef, selfRef, Slug);
             shownId = null; shownAxis = null; shownY = null;
+            pushedReadOnly = null;
+        }
+        if (pushedReadOnly != WriteReason is not null)
+        {
+            pushedReadOnly = WriteReason is not null;
+            await handle.InvokeVoidAsync("setReadOnly", pushedReadOnly);
         }
         if (Node is null || Window(Node) is not { } w) return;
         var y = w["markerMy"] as int?;
@@ -68,7 +77,7 @@ public partial class SliceView : IAsyncDisposable
     }
 
     [JSInvokable]
-    public Task OnSliceY(int y) => OnYChanged.InvokeAsync(y);
+    public Task OnSliceY(int y) => WriteReason is not null ? Task.CompletedTask : OnYChanged.InvokeAsync(y);
 
     private void SetAxis(string a) => axis = a;   // re-render → OnAfterRender pushes the new window
 

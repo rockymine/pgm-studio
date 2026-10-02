@@ -47,6 +47,7 @@ export class SideviewCanvas {
   #marker     = null;   // { p: worldPrimary, y: worldY } — the point/block cell dot, or null
   #seatOnFloor = false; // true ⇒ the Y line snaps to the marker column's floors (spawn lines)
   #dragging   = false;
+  #readOnly   = false;  // the caller may not write this page: the line is drawn and never dragged
   #scale      = 4;
   #offsetX    = 0;
   #offsetY    = 0;
@@ -64,6 +65,9 @@ export class SideviewCanvas {
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
+
+  /** On a page the caller may not write, the height line is shown and cannot be dragged or set. */
+  setReadOnly(on) { this.#readOnly = !!on; this.#dragging = false; }
 
   setData(data) {
     this.#data = data;
@@ -288,10 +292,11 @@ export class SideviewCanvas {
         this._applyDrag(cy);
         return;
       }
-      canvas.style.cursor = this._isNearLine(cy) ? "ns-resize" : "default";
+      canvas.style.cursor = !this.#readOnly && this._isNearLine(cy) ? "ns-resize" : "default";
     });
 
     canvas.addEventListener("mousedown", (e) => {
+      if (this.#readOnly) return;
       const cy = this._relY(e);
       if (this._isNearLine(cy)) {
         this.#dragging = true;

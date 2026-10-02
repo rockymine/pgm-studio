@@ -2,6 +2,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Vocabulary;
+using PgmStudio.Minecraft.Library;
 
 namespace PgmStudio.Minecraft.Tests;
 
@@ -25,7 +26,7 @@ public sealed class TerrainThemeComposerTests
     {
         // Meadow, not the bare-stone default: decompose's kind mapping needs a theme whose buckets actually
         // differ from each other to be worth asserting on.
-        var decomposed = TerrainThemeComposer.Decompose(ThemePresets.Meadow);
+        var decomposed = TerrainThemeComposer.Decompose(SeedFolder.Meadow);
         await Assert.That(decomposed.Buckets.Count).IsEqualTo(4);
 
         string? Kind(TerrainBucket bucket) => decomposed.Buckets.First(b => b.Bucket == bucket).Kind;
@@ -38,7 +39,7 @@ public sealed class TerrainThemeComposerTests
     [Test]
     public async Task Bucket_depth_and_toggle_survive_the_trip()
     {
-        var decomposed = TerrainThemeComposer.Decompose(ThemePresets.Meadow);
+        var decomposed = TerrainThemeComposer.Decompose(SeedFolder.Meadow);
         var surface = decomposed.Buckets.First(b => b.Bucket == TerrainBucket.Surface);
         await Assert.That(surface.Depth).IsEqualTo(3);          // grass over two dirt, three deep
         await Assert.That(surface.Enabled).IsTrue();

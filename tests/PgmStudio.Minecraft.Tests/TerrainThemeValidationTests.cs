@@ -1,6 +1,7 @@
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Vocabulary;
+using PgmStudio.Minecraft.Library;
 
 namespace PgmStudio.Minecraft.Tests;
 
@@ -235,7 +236,7 @@ public sealed class TerrainThemeValidationTests
     [Test]
     public async Task Every_shipped_preset_is_silent()
     {
-        foreach (var (name, theme) in ThemePresets.All)
+        foreach (var (name, theme) in SeedFolder.Themes)
         {
             var findings = TerrainThemeValidation.Check(theme);
             await Assert.That(findings.Select(f => $"{name}: {f.Rule} {f.Field}")).IsEmpty();

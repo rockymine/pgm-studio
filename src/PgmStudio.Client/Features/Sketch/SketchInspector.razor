@@ -16,15 +16,15 @@
         </DetailHeader>
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Actions</h2></div>
-        <Button Full OnClick="() => OnToggleOp.InvokeAsync(Shape.Id)">
+        <Button Full Writes OnClick="() => OnToggleOp.InvokeAsync(Shape.Id)">
           @(Shape.Operation == "subtract" ? "Switch to build" : "Switch to carve")
         </Button>
-        <Button Full OnClick="() => OnToggleOverride.InvokeAsync(Shape.Id)">
+        <Button Full Writes OnClick="() => OnToggleOverride.InvokeAsync(Shape.Id)">
           @(Shape.Override ? "Remove override" : "Set override")
         </Button>
         @if (Shape.Type == "rectangle")
         {
-          <Button Full OnClick="() => OnPromoteShape.InvokeAsync(Shape.Id)"
+          <Button Full Writes OnClick="() => OnPromoteShape.InvokeAsync(Shape.Id)"
                   Title="Convert to a polygon to drag corners, add vertices, or curve edges (P)">
             <i data-lucide="pentagon"></i> Convert to polygon
           </Button>
@@ -106,7 +106,7 @@
                 <NumberField Value="control.Height" ValueChanged="(v) => OnSlopeHeightChanged.InvokeAsync((control.Idx, v))" Min="1" />
               </Field>
             }
-            <Button Full OnClick="() => OnApplySlope.InvokeAsync()">
+            <Button Full Writes OnClick="() => OnApplySlope.InvokeAsync()">
               <i data-lucide="move-3d"></i> Apply slope
             </Button>
             <p class="plan-readout">
@@ -119,14 +119,14 @@
             <Field Label='@($"Vertex {SelectedVertexIdx + 1} height")'>
               <NumberField Value="SelectedVertexHeight" ValueChanged="VertexHeightChanged" Min="1" />
             </Field>
-            <p class="section-desc">Shift-click 2–3 vertices to tilt the surface.</p>
+            <p class="section-desc">Shift-click 2–3 vertices to tilt the surface. Delete removes this vertex.</p>
           }
           else
           {
             <p class="section-desc">Click a vertex to set its height, or shift-click 2–3 vertices to tilt the surface.</p>
           }
         }
-        <Button Full Variant="danger" OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
+        <Button Full Variant="danger" Writes OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
           <i data-lucide="trash-2"></i> Delete
         </Button>
         <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks@(Shape.Type == "rectangle" ? " · P = convert to polygon" : "")@(Shape.Type == "polyline" ? " · drag points to reshape the path" : "")</p>
@@ -142,7 +142,7 @@
         <Field Label="Name">
           <input class="field-input" value="@Group.Name" @onchange="RenameChanged" />
         </Field>
-        <Button Full OnClick="() => OnToggleMirrors.InvokeAsync(Group.Id)">
+        <Button Full Writes OnClick="() => OnToggleMirrors.InvokeAsync(Group.Id)">
           @(Group.Mirrors ? "Exclude from mirror" : "Include in mirror")
         </Button>
         <Field Label="Rotate (°)">

@@ -8,9 +8,9 @@ namespace PgmStudio.Api.Access;
 /// states its own access and none can forget to.
 ///
 /// <list type="bullet">
-/// <item>A read — <c>GET</c> or <c>HEAD</c> — is open to anyone.</item>
-/// <item>A <see cref="PostedReadAttribute"/> route reads with a body, so it needs someone signed in and nothing
-/// more, whichever map it names.</item>
+/// <item>A <see cref="CostlyReadAttribute"/> route builds what it answers, so it needs a person on the whitelist
+/// and nothing more, whichever verb it takes and whichever map it names.</item>
+/// <item>Any other read — <c>GET</c> or <c>HEAD</c> — is open to anyone.</item>
 /// <item>A write to a route under <c>{slug}</c> changes that map, so it needs someone who may edit it.</item>
 /// <item>A <c>DELETE</c> of anything else removes a shared library row other maps may use, so it needs an
 /// admin.</item>
@@ -27,7 +27,7 @@ public static class AccessRules
         if (endpoint.AnonymousVerbs is { Length: > 0 }) return;
         if (endpoint.PreBuiltUserPolicies is not { Count: > 0 })
         {
-            if (endpoint.Verbs.All(IsRead))
+            if (endpoint.Verbs.All(IsRead) && !IsCostly(endpoint))
             {
                 endpoint.AllowAnonymous();
                 return;
@@ -39,8 +39,11 @@ public static class AccessRules
             .Produces<RefusalDto>(403, "application/json"));
     }
 
+    private static bool IsCostly(EndpointDefinition endpoint) =>
+        endpoint.EndpointType.IsDefined(typeof(CostlyReadAttribute), inherit: false);
+
     private static string PolicyOf(EndpointDefinition endpoint) =>
-        endpoint.EndpointType.IsDefined(typeof(PostedReadAttribute), inherit: false) ? AccessPolicies.Member
+        IsCostly(endpoint) ? AccessPolicies.Member
         : endpoint.Routes.Any(route => route.Contains("{slug}")) ? AccessPolicies.MapEditor
         : endpoint.Verbs.Contains("DELETE", StringComparer.OrdinalIgnoreCase) ? AccessPolicies.Admin
         : AccessPolicies.Member;

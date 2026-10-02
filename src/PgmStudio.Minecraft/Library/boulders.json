@@ -1,0 +1,146 @@
+{
+ "erratic": {
+  "kind": "boulder",
+  "form": "round",
+  "size": 4,
+  "rock": {
+   "kind": "cell",
+   "seed": 53,
+   "cellSize": 4,
+   "jitter": 2,
+   "warp": 3,
+   "palette": [
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 0
+    },
+    {
+     "kind": "solid",
+     "id": 4,
+     "data": 0
+    },
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 5
+    },
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 0
+    }
+   ],
+   "rise": 0
+  },
+  "mossy": true
+ },
+ "shattered": {
+  "kind": "boulder",
+  "form": "angular",
+  "size": 4,
+  "rock": {
+   "kind": "cell",
+   "seed": 53,
+   "cellSize": 4,
+   "jitter": 2,
+   "warp": 3,
+   "palette": [
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 0
+    },
+    {
+     "kind": "solid",
+     "id": 4,
+     "data": 0
+    },
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 5
+    },
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 0
+    }
+   ],
+   "rise": 0
+  },
+  "mossy": true
+ },
+ "outcrop": {
+  "kind": "boulder",
+  "form": "outcrop",
+  "size": 5,
+  "rock": {
+   "kind": "cell",
+   "seed": 53,
+   "cellSize": 4,
+   "jitter": 2,
+   "warp": 3,
+   "palette": [
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 0
+    },
+    {
+     "kind": "solid",
+     "id": 4,
+     "data": 0
+    },
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 5
+    },
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 0
+    }
+   ],
+   "rise": 0
+  },
+  "mossy": true
+ },
+ "cairn": {
+  "kind": "boulder",
+  "form": "cairn",
+  "size": 3,
+  "rock": {
+   "kind": "cell",
+   "seed": 53,
+   "cellSize": 4,
+   "jitter": 2,
+   "warp": 3,
+   "palette": [
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 0
+    },
+    {
+     "kind": "solid",
+     "id": 4,
+     "data": 0
+    },
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 5
+    },
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 0
+    }
+   ],
+   "rise": 0
+  },
+  "mossy": true
+ }
+}

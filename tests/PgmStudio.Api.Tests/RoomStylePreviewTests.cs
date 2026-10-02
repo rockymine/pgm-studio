@@ -1,6 +1,7 @@
 using PgmStudio.Api.Services;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Vocabulary;
+using PgmStudio.Minecraft.Library;
 
 namespace PgmStudio.Api.Tests;
 
@@ -15,7 +16,7 @@ public sealed class RoomStylePreviewTests
     [MethodDataSource(nameof(Footprints))]
     public async Task Every_offered_footprint_draws_a_shell(string footprint)
     {
-        var views = RoomStylePreview.Views(HousePresets.All[0].Style, footprint: footprint);
+        var views = RoomStylePreview.Views(SeedFolder.Houses[0].Style, footprint: footprint);
         await Assert.That(views.Plan).IsNotEmpty();
         await Assert.That(views.Section).IsNotEmpty();
     }
@@ -25,7 +26,7 @@ public sealed class RoomStylePreviewTests
     [Test]
     public async Task A_long_shell_and_a_square_one_draw_different_buildings()
     {
-        var style = HousePresets.All[0].Style;
+        var style = SeedFolder.Houses[0].Style;
         var square = RoomStylePreview.Views(style, footprint: HouseFootprints.Square);
         var oblong = RoomStylePreview.Views(style, footprint: HouseFootprints.Long);
 
@@ -37,7 +38,7 @@ public sealed class RoomStylePreviewTests
     [Test]
     public async Task An_unknown_footprint_draws_the_default_rather_than_refusing()
     {
-        var style = HousePresets.All[0].Style;
+        var style = SeedFolder.Houses[0].Style;
         await Assert.That(RoomStylePreview.Views(style, footprint: "nonsense").Plan)
             .IsEqualTo(RoomStylePreview.Views(style, footprint: HouseFootprints.Default).Plan);
     }

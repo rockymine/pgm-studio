@@ -1,460 +1,496 @@
-using PgmStudio.Domain;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using PgmStudio.Api.Endpoints;
 using PgmStudio.Contracts;
+using PgmStudio.Domain;
 using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Library;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Vocabulary;
-using PgmStudio.Minecraft.Dressing;
 
 namespace PgmStudio.Api.Services;
 
 /// <summary>
-/// Puts the built-in presets into a library: the materials the showcase paints its plateaus with, and the
-/// <see cref="HousePresets"/> the house row is built from.
+/// Puts the seed folder (<see cref="SeedFolder"/>) into a library: its patterns, themes, houses, boulders and
+/// copied trees, the roofs, storeys and porches its houses are built of, a template tree per species and a flat
+/// biome per biome. The last two are computed from the tables they name, so they stay code.
 ///
-/// <para><b>Idempotent, keyed by name.</b> A library is something an author edits, so a seeder that dropped and
-/// rewrote its rows would throw away work every time it ran. A row whose name is already there is updated in
-/// place and keeps its id — which is what the maps and themes binding it depend on — and a name that is not
-/// there is created. Nothing is ever deleted, so a name retired from the presets simply stays in the library as
-/// a row the author now owns.</para>
+/// <para><b>A slot holds a block or a pattern.</b> A material that is one block is written into the slot that
+/// lays it; only a material mixing blocks, or tinting one by team, is a pattern, and every such material a seeded
+/// house or theme lays is one of the folder's patterns.</para>
+///
+/// <para><b>A seeded row is the folder's.</b> It carries the key of the entry it holds (<see cref="StyleRow.SeedKey"/>):
+/// a pattern's, house's, theme's or boulder's name in the folder, a part's content, a copied tree's cut, a
+/// template's species, a biome's id. Every start rewrites each keyed row to what its entry states, keeping its id,
+/// which is what everything binding it depends on; the studio refuses to edit one (<c>LB6</c>).</para>
+///
+/// <para><b>An entry no row carries takes the row already holding it.</b> A row with no key, or one whose entry has
+/// left the folder, that holds the entry is keyed to it rather than a second row added beside it: a pattern or part
+/// holding the same content, a pattern, house, theme, boulder, template or biome under the entry's name, a tree cut
+/// at the same foot. That is also how a library stored before the keys existed comes to carry them.</para>
+///
+/// <para><b>A row whose entry has left the folder is retired</b>: deleted where the studio would let an author
+/// delete it, and handed to its author — its key cleared, its content kept — where a theme, a house or a part still
+/// binds it.</para>
 ///
 /// <para>It is the inverse of <see cref="RoomStyleLibrary.Compose"/> and lives beside it for that reason: one
-/// of them turns rows into a building and the other a building into rows, and a change to what a room style
-/// carries has to land in both or the seed stops round-tripping. <see cref="VerifyAsync"/> is what makes that
-/// checkable — it composes each seeded row back and reports what the store could not hold.</para>
+/// of them turns rows into a building and the other a building into rows. <see cref="VerifyAsync"/> composes
+/// each seeded house back and reports what the store could not hold.</para>
 /// </summary>
 public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePartStore parts,
-                               PropStyleStore props)
+                               PropStyleStore props, SeedKeyStore keys)
 {
-    /// <summary>What one run did, so a caller can say so rather than guessing from silence.</summary>
+    /// <summary>What one run did, so a caller can say so rather than guessing from silence. <see cref="Retired"/>
+    /// rows were deleted and <see cref="Released"/> ones handed to the author still binding them.</summary>
     public readonly record struct Tally(
-        int StylesAdded, int StylesUpdated, int RoomsAdded, int RoomsUpdated, int ThemesAdded, int ThemesUpdated);
+        int PatternsAdded, int PatternsUpdated, int PartsAdded, int PartsUpdated, int HousesAdded, int HousesUpdated,
+        int ThemesAdded, int ThemesUpdated, int RecipesAdded, int RecipesUpdated, int Retired = 0, int Released = 0)
+    {
+        public static Tally operator +(Tally first, Tally then) => new(
+            first.PatternsAdded + then.PatternsAdded, first.PatternsUpdated + then.PatternsUpdated,
+            first.PartsAdded + then.PartsAdded, first.PartsUpdated + then.PartsUpdated,
+            first.HousesAdded + then.HousesAdded, first.HousesUpdated + then.HousesUpdated,
+            first.ThemesAdded + then.ThemesAdded, first.ThemesUpdated + then.ThemesUpdated,
+            first.RecipesAdded + then.RecipesAdded, first.RecipesUpdated + then.RecipesUpdated,
+            first.Retired + then.Retired, first.Released + then.Released);
+    }
 
-    /// <summary>Seed everything: the materials first, since a room style's courses bind them by id.</summary>
+    /// <summary>Seed everything. A run that deleted a row runs once more, so a name the deleted row held goes to
+    /// the entry that wanted it.</summary>
     public async Task<Tally> SeedAsync(CancellationToken ct = default)
     {
-        var bound = await SeedStylesAsync(ct);
-        var (added, updated) = await SeedHousesAsync(bound, ct);
-        var built = await SeedPartsAsync(bound, ct);
-        var themes = await SeedThemesAsync(ct);
-        await SeedRecipesAsync(ct);
-        await SeedBiomesAsync(ct);
+        var tally = await PassAsync(ct);
+        return tally.Retired > 0 ? tally + await PassAsync(ct) : tally;
+    }
+
+    /// <summary>One pass: the patterns first, since everything else binds them by id, and the retirements last,
+    /// what binds a part or a pattern before the part or pattern it binds — a row leaving is unbound only once
+    /// everything seeded binds what the folder now states.</summary>
+    private async Task<Tally> PassAsync(CancellationToken ct)
+    {
+        var patterns = await SeedPatternsAsync(ct);
+        var built = await SeedPartsAsync(patterns, ct);
+        var houses = await SeedHousesAsync(patterns, built.Storeys, ct);
+        var themes = await SeedThemesAsync(patterns, ct);
+        var recipes = await SeedRecipesAsync(ct);
+        var biomes = await SeedBiomesAsync(ct);
+
+        var leaving = new Retirement();
+        await leaving.RetireAsync(houses.Claims, Unbound, id => rooms.DeleteAsync(id, ct), ct);
+        await leaving.RetireAsync(themes.Claims, Unbound, id => styles.DeleteThemeAsync(id, ct), ct);
+        await leaving.RetireAsync(recipes.Trees, Unbound, id => props.DeleteTreeAsync(id, ct), ct);
+        await leaving.RetireAsync(recipes.Boulders, Unbound, id => props.DeleteBoulderAsync(id, ct), ct);
+        await leaving.RetireAsync(biomes, Unbound, id => styles.DeleteBiomeAsync(id, ct), ct);
+        await leaving.RetireAsync(built.Roofs, async id => (await parts.UsingRoofAsync(id, ct)).Count == 0,
+            id => parts.DeleteRoofAsync(id, ct), ct);
+        await leaving.RetireAsync(built.StoreyClaims, async id => (await parts.UsingStoreyAsync(id, ct)).Count == 0,
+            id => parts.DeleteStoreyAsync(id, ct), ct);
+        await leaving.RetireAsync(built.Porches, async id => (await parts.UsingPorchAsync(id, ct)).Count == 0,
+            id => parts.DeletePorchAsync(id, ct), ct);
+        await leaving.RetireAsync(patterns.Claims, async id =>
+                (await styles.ThemesUsingStyleAsync(id, ct)).Count + (await rooms.UsingStyleAsync(id, ct)).Count
+                + (await parts.UsingStyleAsync(id, ct)).Count == 0,
+            id => styles.DeleteStyleAsync(id, ct), ct);
+
         return new Tally(
-            bound.Added, bound.Updated, added + built.Added, updated + built.Updated,
-            themes.Added, themes.Updated);
+            patterns.Added, patterns.Updated, built.Added, built.Updated, houses.Added, houses.Updated,
+            themes.Added, themes.Updated, recipes.Added, recipes.Updated, leaving.Retired, leaving.Released);
     }
 
-    // ── the prop recipes ──────────────────────────────────────────────────────────────────────────────
-    /// <summary>The recipes a click puts down: the seven template species at their own natural heights, and the
-    /// four erratics. Without them a studio opens two of its eight libraries on nothing, and a picker with no
-    /// rows in it is a picker an author cannot use at all.
-    ///
-    /// <para>Idempotent by name, like every other seed here: a recipe an author has since retuned keeps their
-    /// numbers, because the row is theirs once it exists.</para></summary>
-    private async Task SeedRecipesAsync(CancellationToken ct)
+    private static Task<bool> Unbound(long id) => Task.FromResult(true);
+
+    /// <summary>One kind's rows as a pass meets them: the row each key names, and the rows it may still take for
+    /// an entry no row carries — an author's, or one whose entry has left the folder.</summary>
+    private sealed class Claims<TRow>(
+        SeedKeyStore keys, IReadOnlyList<TRow> rows, IEnumerable<string> stated,
+        Func<TRow, long> idOf, Func<TRow, string?> keyOf) where TRow : class
     {
-        var trees = (await props.ListTreesAsync(ct))
-            .Select(row => row.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var species in DressingPalette.Species)
-        {
-            if (trees.Contains(species.Name)) continue;
-            await props.CreateTreeAsync(PropStyleLibrary.RowOf(new TreeStyleSaveRequest(
-                species.Name, TreeForms.Template, species.Name, species.Height)), ct);
-        }
+        private readonly HashSet<string> stated = new(stated, StringComparer.Ordinal);
+        private readonly Dictionary<string, TRow> byKey = rows.Where(row => keyOf(row) is not null)
+            .ToDictionary(row => keyOf(row)!, StringComparer.Ordinal);
+        private readonly HashSet<long> claimed = [];
 
-        var rocks = (await props.ListBouldersAsync(ct))
-            .Select(row => row.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var (name, form, size) in new[]
-                 {
-                     ("erratic", BoulderForms.Round, 4d), ("shattered", BoulderForms.Angular, 4d),
-                     ("outcrop", BoulderForms.Outcrop, 5d), ("cairn", BoulderForms.Cairn, 3d),
-                 })
+        /// <summary>The row holding entry <paramref name="key"/>: the one carrying it, else the lowest free row the
+        /// first of <paramref name="holds"/> that accepts any accepts, keyed to it now. Null where no row holds it.</summary>
+        public async Task<TRow?> ClaimAsync(string key, IReadOnlyList<Func<TRow, bool>> holds, CancellationToken ct)
         {
-            if (rocks.Contains(name)) continue;
-            // Cut from the kind's own default rather than from a literal here: the rock that reads against
-            // ordinary ground is stated once, on the type the export stamps (DR-TONE).
-            await props.CreateBoulderAsync(PropStyleLibrary.RowOf(new BoulderStyleSaveRequest(
-                name, form, size, Mossy: true, TerrainThemeJson.Serialize(BoulderStyle.DefaultRock))), ct);
-        }
-    }
-
-    // ── the biome patterns ────────────────────────────────────────────────────────────────────────────
-    /// <summary>One flat pattern per biome, so wanting a board that is simply desert is a pick rather
-    /// than a document to write. They are the whole library out of the box: a field of several biomes is a
-    /// composition an author makes, and one biome everywhere is the plainest thing to say and the most asked
-    /// for.
-    ///
-    /// <para>Idempotent by name like every other seed here, so a preset an author has since retuned keeps
-    /// their numbers.</para></summary>
-    private async Task SeedBiomesAsync(CancellationToken ct)
-    {
-        var named = (await styles.ListBiomesAsync(ct: ct))
-            .Select(row => row.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var biome in PgmStudio.Minecraft.Palette.Biome.All)
-        {
-            if (named.Contains(biome.Name)) continue;
-            await styles.CreateBiomeAsync(new BiomePatternRow
+            if (byKey.TryGetValue(key, out var keyed))
             {
-                Name = biome.Name,
-                Kind = BiomeKinds.Solid,
-                Params = TerrainThemeJson.SerializeBiome(new SolidBiome(biome.Id)),
-            }, ct);
+                claimed.Add(idOf(keyed));
+                return keyed;
+            }
+            foreach (var test in holds)
+            {
+                if (rows.Where(row => !claimed.Contains(idOf(row)) && Free(row) && test(row)).MinBy(idOf) is not { } free)
+                    continue;
+                await keys.SetAsync<TRow>(idOf(free), key, ct);
+                claimed.Add(idOf(free));
+                return free;
+            }
+            return null;
+        }
+
+        private bool Free(TRow row) => keyOf(row) is not { } key || !stated.Contains(key);
+
+        /// <summary>The keyed rows whose entry has left the folder, and that this pass took for no other.</summary>
+        public IEnumerable<long> Leaving => rows
+            .Where(row => keyOf(row) is { } key && !stated.Contains(key) && !claimed.Contains(idOf(row)))
+            .Select(idOf);
+
+        public Task Release(long id, CancellationToken ct) => keys.SetAsync<TRow>(id, null, ct);
+    }
+
+    /// <summary>The rows a pass retires, counted.</summary>
+    private sealed class Retirement
+    {
+        public int Retired, Released;
+
+        public async Task RetireAsync<TRow>(
+            Claims<TRow> claims, Func<long, Task<bool>> unbound, Func<long, Task<int>> delete, CancellationToken ct)
+            where TRow : class
+        {
+            foreach (var id in claims.Leaving.ToList())
+                if (await unbound(id))
+                {
+                    await delete(id);
+                    Retired++;
+                }
+                else
+                {
+                    await claims.Release(id, ct);
+                    Released++;
+                }
         }
     }
 
-    // ── the roofs and the porches ─────────────────────────────────────────────────────────────────────
-    /// <summary>Each preset's roof and porch as rows of their own, keyed by name. Without them a studio opens
-    /// two of its six libraries on nothing, though every preset in the house library is wearing one.</summary>
-    private async Task<(int Added, int Updated)> SeedPartsAsync(StyleIds bound, CancellationToken ct)
+    // ── the patterns ──────────────────────────────────────────────────────────────────────────────────
+    /// <summary>The library's id for each seeded pattern, by the content it holds.</summary>
+    private sealed class Patterns(Claims<StyleRow> claims)
     {
-        var roofs = (await parts.ListRoofsAsync(ct))
-            .GroupBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
-        var porches = (await parts.ListPorchesAsync(ct))
-            .GroupBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
+        public Claims<StyleRow> Claims { get; } = claims;
+        public Dictionary<string, long> ByContent { get; } = new(StringComparer.Ordinal);
+        public Dictionary<long, TerrainMaterial> ById { get; } = [];
+        public int Added, Updated;
 
+        /// <summary>What a slot laying <paramref name="material"/> binds: its block, or the seeded pattern
+        /// holding it. A material that is neither is a fault in the folder, which the seed tests rule out.</summary>
+        public (long StyleId, SlotBlockDto? Block) Fill(TerrainMaterial material)
+            => Slots.AsBlock(material) is { } block
+                ? (0, block)
+                : ByContent.TryGetValue(TerrainThemeJson.Serialize(material), out var id)
+                    ? (id, null)
+                    : throw new InvalidDataException(
+                        $"the seed folder lays a pattern it does not name: {TerrainThemeJson.Serialize(material)}");
+    }
+
+    private async Task<Patterns> SeedPatternsAsync(CancellationToken ct)
+    {
+        var stored = await styles.ListStylesAsync(ct: ct);
+        var contents = stored.ToDictionary(row => row.Id, row => ThemeLibrary.ContentOf(row.Params));
+        var taken = new Taken(stored.Select(row => (row.Id, row.Name)));
+        var patterns = new Patterns(new Claims<StyleRow>(
+            keys, stored, SeedFolder.Patterns.Select(entry => entry.Name), row => row.Id, row => row.SeedKey));
+        foreach (var (seededName, material) in SeedFolder.Patterns)
+        {
+            var content = TerrainThemeJson.Serialize(material);
+            var kind = TerrainThemeComposer.KindOf(material);
+            var held = await patterns.Claims.ClaimAsync(seededName,
+                [row => contents[row.Id] == content, row => Named(row.Name, seededName)], ct);
+            long id;
+            if (held is not null)
+            {
+                id = held.Id;
+                var name = taken.For(seededName, id);
+                if (held.Name != name || held.Kind != kind || held.Params != content)
+                {
+                    await styles.UpdateStyleAsync(id, name, kind, content, ct);
+                    taken.Carry(id, held.Name, name);
+                    patterns.Updated++;
+                }
+            }
+            else
+            {
+                var fresh = taken.For(seededName, null);
+                id = await styles.CreateStyleAsync(
+                    new StyleRow { Name = fresh, SeedKey = seededName, Kind = kind, Params = content }, ct);
+                taken.Carry(id, null, fresh);
+                patterns.Added++;
+            }
+            patterns.ByContent[content] = id;
+            patterns.ById[id] = material;
+        }
+        return patterns;
+    }
+
+    private static bool Named(string name, string seeded) => string.Equals(name, seeded, StringComparison.OrdinalIgnoreCase);
+
+    // ── the roofs, storeys and porches ────────────────────────────────────────────────────────────────
+    private sealed record Built(
+        int Added, int Updated, Dictionary<string, long> Storeys,
+        Claims<RoofStyleRow> Roofs, Claims<StoreyStyleRow> StoreyClaims, Claims<PorchStyleRow> Porches);
+
+    /// <summary>The parts the houses are built of, each stored once however many houses share it, named for what
+    /// it is (<see cref="PartNames"/>) and keyed by what it holds. A house binds its storeys by id; its roof and
+    /// porch are its own columns, and the rows here are what the roof and porch libraries offer.</summary>
+    private async Task<Built> SeedPartsAsync(Patterns patterns, CancellationToken ct)
+    {
         int added = 0, updated = 0;
-        foreach (var (house, style) in Houses)
-        {
-            var roofName = $"{house} · roof";
-            var roofRequest = RoofRequestFor(house, style, roofName, bound.ByName);
-            var roofRow = HousePartLibrary.RowOf(roofRequest);
-            var roofCourses = HousePartLibrary.RoofCourseRowsOf(roofRequest);
-            if (roofs.TryGetValue(roofName, out var roofId))
-            {
-                await parts.UpdateRoofAsync(roofId, roofRow, roofCourses, ct);
-                updated++;
-            }
-            else
-            {
-                await parts.CreateRoofAsync(roofRow, roofCourses, ct);
-                added++;
-            }
 
-            if (style.Porch is not { } porch) continue;
-            var porchName = $"{house} · porch";
-            var porchRow = HousePartLibrary.RowOf(new PorchStyleSaveRequest(
-                porchName, porch.Depth, porch.Inset, PorchEdges.Canonical(NameOf(porch.Edge)),
-                RoofForms.Canonical(NameOf(porch.Roof)), porch.RailBlock));
-            if (porches.TryGetValue(porchName, out var porchId))
+        var roofs = Distinct(SeedFolder.Houses.Select(house => RoofRequest(house.Style, patterns)),
+            request => PartKey.Of(HousePartLibrary.RowOf(request), HousePartLibrary.RoofCourseRowsOf(request)),
+            (request, name) => request with { Name = name }, roof => PartNames.Roof(roof, patterns.ById));
+        var storedRoofs = await parts.ListRoofsAsync(ct);
+        var roofCourses = (await parts.GetAllRoofCoursesAsync(ct)).ToLookup(course => course.RoofStyleId);
+        var roofKeys = storedRoofs.ToDictionary(row => row.Id, row => PartKey.Of(row, roofCourses[row.Id]));
+        var roofClaims = new Claims<RoofStyleRow>(
+            keys, storedRoofs, roofs.Select(roof => PartKey.Hashed(roof.Key)), row => row.Id, row => row.SeedKey);
+        var roofNames = new Taken(storedRoofs.Select(row => (row.Id, row.Name)));
+        foreach (var (key, seeded) in roofs)
+        {
+            var held = await roofClaims.ClaimAsync(PartKey.Hashed(key), [row => roofKeys[row.Id] == key], ct);
+            var request = seeded with { Name = roofNames.For(seeded.Name, held?.Id) };
+            if (held is not null)
             {
-                await parts.UpdatePorchAsync(porchId, porchRow, ct);
+                if (held.Name == request.Name) continue;
+                roofNames.Carry(held.Id, held.Name, request.Name);
+                await parts.UpdateRoofAsync(held.Id, HousePartLibrary.RowOf(request),
+                    HousePartLibrary.RoofCourseRowsOf(request), ct);
                 updated++;
+                continue;
             }
-            else
-            {
-                await parts.CreatePorchAsync(porchRow, ct);
-                added++;
-            }
+            var row = HousePartLibrary.RowOf(request);
+            row.SeedKey = PartKey.Hashed(key);
+            roofNames.Carry(await parts.CreateRoofAsync(row, HousePartLibrary.RoofCourseRowsOf(request), ct),
+                null, request.Name);
+            added++;
         }
-        return (added, updated);
+
+        var storeys = Distinct(
+            SeedFolder.Houses.SelectMany(house => Enumerable.Range(0, house.Style.Storeys.Count)
+                .Select(level => StoreyRequest(house.Style, level, patterns))),
+            request => PartKey.Of(HousePartLibrary.RowOf(request), HousePartLibrary.StoreyCourseRowsOf(request)),
+            (request, name) => request with { Name = name }, storey => PartNames.Storey(storey, patterns.ById));
+        var storedStoreys = await parts.ListStoreysAsync(ct);
+        var storeyCourses = (await parts.GetAllStoreyCoursesAsync(ct)).ToLookup(course => course.StoreyStyleId);
+        var storeyKeys = storedStoreys.ToDictionary(row => row.Id, row => PartKey.Of(row, storeyCourses[row.Id]));
+        var storeyClaims = new Claims<StoreyStyleRow>(
+            keys, storedStoreys, storeys.Select(storey => PartKey.Hashed(storey.Key)), row => row.Id, row => row.SeedKey);
+        var storeyIds = new Dictionary<string, long>(StringComparer.Ordinal);
+        var storeyNames = new Taken(storedStoreys.Select(row => (row.Id, row.Name)));
+        foreach (var (key, seeded) in storeys)
+        {
+            var held = await storeyClaims.ClaimAsync(PartKey.Hashed(key), [row => storeyKeys[row.Id] == key], ct);
+            var request = seeded with { Name = storeyNames.For(seeded.Name, held?.Id) };
+            if (held is not null)
+            {
+                storeyIds[key] = held.Id;
+                if (held.Name == request.Name) continue;
+                storeyNames.Carry(held.Id, held.Name, request.Name);
+                await parts.UpdateStoreyAsync(held.Id, HousePartLibrary.RowOf(request),
+                    HousePartLibrary.StoreyCourseRowsOf(request), ct);
+                updated++;
+                continue;
+            }
+            var row = HousePartLibrary.RowOf(request);
+            row.SeedKey = PartKey.Hashed(key);
+            storeyIds[key] = await parts.CreateStoreyAsync(row, HousePartLibrary.StoreyCourseRowsOf(request), ct);
+            storeyNames.Carry(storeyIds[key], null, request.Name);
+            added++;
+        }
+
+        var porches = Distinct(
+            SeedFolder.Houses.Where(house => house.Style.Porch is not null)
+                .Select(house => PorchRequest(house.Style.Porch!)),
+            request => PartKey.Of(HousePartLibrary.RowOf(request), []),
+            (request, name) => request with { Name = name }, PartNames.Porch);
+        var storedPorches = await parts.ListPorchesAsync(ct);
+        var porchKeys = storedPorches.ToDictionary(row => row.Id, row => PartKey.Of(row, []));
+        var porchClaims = new Claims<PorchStyleRow>(
+            keys, storedPorches, porches.Select(porch => PartKey.Hashed(porch.Key)), row => row.Id, row => row.SeedKey);
+        var porchNames = new Taken(storedPorches.Select(row => (row.Id, row.Name)));
+        foreach (var (key, seeded) in porches)
+        {
+            var held = await porchClaims.ClaimAsync(PartKey.Hashed(key), [row => porchKeys[row.Id] == key], ct);
+            var request = seeded with { Name = porchNames.For(seeded.Name, held?.Id) };
+            if (held is not null)
+            {
+                if (held.Name == request.Name) continue;
+                porchNames.Carry(held.Id, held.Name, request.Name);
+                await parts.UpdatePorchAsync(held.Id, HousePartLibrary.RowOf(request), ct);
+                updated++;
+                continue;
+            }
+            var row = HousePartLibrary.RowOf(request);
+            row.SeedKey = PartKey.Hashed(key);
+            porchNames.Carry(await parts.CreatePorchAsync(row, ct), null, request.Name);
+            added++;
+        }
+        return new Built(added, updated, storeyIds, roofClaims, storeyClaims, porchClaims);
     }
 
-    /// <summary>One roof as the request the library stores, binding the materials seeded under its own names.</summary>
-    private static RoofStyleSaveRequest RoofRequestFor(
-        string house, HouseStyle style, string name, IReadOnlyDictionary<string, long> ids)
+    /// <summary>The distinct parts of a list, in the order each first appears, each under the name it describes
+    /// itself by (<see cref="PartNames"/>). Where two distinct parts describe themselves alike, each takes the
+    /// fewest words for what tells it apart, and a count only where nothing stated does.</summary>
+    private static List<(string Key, T Part)> Distinct<T>(
+        IEnumerable<T> all, Func<T, string> keyOf, Func<T, string, T> named, Func<T, PartName> describe)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var distinct = new List<(string Key, T Part, PartName Name)>();
+        foreach (var part in all)
+        {
+            var key = keyOf(part);
+            if (seen.Add(key)) distinct.Add((key, part, describe(part)));
+        }
+
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<(string, T)>();
+        var alike = distinct.ToLookup(entry => entry.Name.Base, StringComparer.Ordinal);
+        foreach (var (key, part, name) in distinct)
+        {
+            // An aspect is named only while another part still reads the same, and only where it tells this
+            // one apart from at least one of them.
+            var rivals = alike[name.Base].Where(other => other.Key != key).Select(other => other.Name).ToList();
+            var words = new List<string> { name.Base };
+            foreach (var (aspect, word) in name.Qualifiers)
+            {
+                if (rivals.Count == 0) break;
+                if (rivals.All(rival => rival.Word(aspect) == word)) continue;
+                words.Add(word);
+                rivals = [.. rivals.Where(rival => rival.Word(aspect) == word)];
+            }
+            var described = string.Join('-', words);
+            var unique = PatternNames.Unique(described, taken);
+            taken.Add(unique);
+            result.Add((key, named(part, unique)));
+        }
+        return result;
+    }
+
+    /// <summary>A house's roof as the request the library stores.</summary>
+    private static RoofStyleSaveRequest RoofRequest(HouseStyle style, Patterns patterns)
     {
         var roof = style.Roof;
         var courses = new List<RoomCourseDto>();
-        foreach (var part in new[] { RoomParts.Roof, RoomParts.Verge, RoomParts.Gable })
-            if (ids.TryGetValue($"{house} · {part}", out var id))
-                courses.Add(new RoomCourseDto(part, 0, id, 1));
+        void Bind(string part, TerrainMaterial? material)
+        {
+            if (material is null) return;
+            var (styleId, block) = patterns.Fill(material);
+            courses.Add(new RoomCourseDto(part, 0, styleId, block, 1));
+        }
+        Bind(RoomParts.Roof, roof.Body);
+        Bind(RoomParts.Verge, roof.Verge);
+        Bind(RoomParts.Gable, roof.Gable);
 
         return new RoofStyleSaveRequest(
-            Name: name, Form: RoofForms.Canonical(NameOf(roof.Form)), Pitch: roof.Pitch, Overhang: roof.Overhang,
+            Name: "", Form: RoofForms.Canonical(NameOf(roof.Form)), Pitch: roof.Pitch, Overhang: roof.Overhang,
             RoofHole: roof.Hole, RidgeCap: roof.RidgeCap, Courses: courses,
             RoofSlab: roof.Slab, RoofSlabData: roof.SlabData, RoofStair: roof.Stair, RoofWear: roof.Wear);
     }
 
-    // ── the finishes ──────────────────────────────────────────────────────────────────────────────────
-    /// <summary>Each preset finish as a theme row binding one style per bucket, both keyed by name. A theme
-    /// composed of nothing is a tab that opens on a sentence telling an author to start one, which is the
-    /// hardest thing in the library to start from nothing.</summary>
-    private async Task<(int Added, int Updated)> SeedThemesAsync(CancellationToken ct)
-    {
-        var existingStyles = (await styles.ListStylesAsync(ct: ct))
-            .GroupBy(style => style.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
-        var existingThemes = (await styles.ListThemesAsync(ct))
-            .GroupBy(theme => theme.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
-
-        int added = 0, updated = 0;
-        foreach (var (name, theme) in ThemePresets.All)
-        {
-            var decomposed = TerrainThemeComposer.Decompose(theme);
-            var buckets = new List<ThemeBucketRow>();
-            foreach (var binding in decomposed.Buckets)
-            {
-                var bucket = ThemeLibrary.FromBucket(binding.Bucket);
-                long? styleId = null;
-                if (binding is { Kind: { } kind, MaterialJson: { } material })
-                {
-                    var styleName = $"{name} · {bucket}";
-                    styleId = existingStyles.TryGetValue(styleName, out var stored)
-                        ? await Rewritten(stored, styleName, kind, material, ct)
-                        : await styles.CreateStyleAsync(
-                            new StyleRow { Name = styleName, Kind = kind, Params = material }, ct);
-                }
-                buckets.Add(new ThemeBucketRow
-                {
-                    Bucket = bucket, StyleId = styleId, Depth = binding.Depth, Enabled = binding.Enabled,
-                });
-            }
-
-            var themeRow = new ThemeRow
-            {
-                Name = name,
-                BedrockRelative = decomposed.BedrockRelative, BedrockValue = decomposed.BedrockValue,
-                RimEdges = ThemeLibrary.FromRimEdges(decomposed.RimEdges),
-                WallOnTerrainFaces = decomposed.WallOnTerrainFaces,
-            };
-            if (existingThemes.TryGetValue(name, out var themeId))
-            {
-                await styles.UpdateThemeAsync(themeId, themeRow, buckets, ct);
-                updated++;
-            }
-            else
-            {
-                await styles.CreateThemeAsync(themeRow, buckets, ct);
-                added++;
-            }
-        }
-        return (added, updated);
-    }
-
-    /// <summary>A bucket's style, rewritten in place where the preset has moved on from what is stored.</summary>
-    private async Task<long> Rewritten(StyleRow row, string name, string kind, string material, CancellationToken ct)
-    {
-        if (row.Kind != kind || row.Params != material) await styles.UpdateStyleAsync(row.Id, name, kind, material, ct);
-        return row.Id;
-    }
-
-    // ── the materials ─────────────────────────────────────────────────────────────────────────────────
-    /// <summary>Every distinct material the presets name, stored under a stable name and mapped back to the id
-    /// it landed on. The name is the key, so running twice binds the same rows rather than a second copy.</summary>
-    private async Task<StyleIds> SeedStylesAsync(CancellationToken ct)
-    {
-        var existing = (await styles.ListStylesAsync(ct: ct))
-            .GroupBy(style => style.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
-
-        var ids = new StyleIds();
-        foreach (var (name, material) in PresetMaterials())
-        {
-            var kind = TerrainThemeComposer.KindOf(material);
-            var json = TerrainThemeJson.Serialize(material);
-
-            if (existing.TryGetValue(name, out var row))
-            {
-                // Rewritten in place rather than left alone: the preset is the source of truth for a preset's
-                // own materials, and a stale one would compose a building that is not the one it names.
-                if (row.Kind != kind || row.Params != json)
-                {
-                    await styles.UpdateStyleAsync(row.Id, name, kind, json, ct);
-                    ids.Updated++;
-                }
-                ids.ByName[name] = row.Id;
-                continue;
-            }
-
-            ids.ByName[name] = await styles.CreateStyleAsync(
-                new StyleRow { Name = name, Kind = kind, Params = json }, ct);
-            ids.Added++;
-        }
-        return ids;
-    }
-
-    /// <summary>The materials the presets use. A house's are named for the house and the part they play, so a
-    /// library reads as a set of buildings rather than as forty loose blocks; the ground patterns in
-    /// <see cref="StylePresets"/> belong to no building and keep the names their author gave them.</summary>
-    private static IEnumerable<(string Name, TerrainMaterial Material)> PresetMaterials()
-    {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (house, style) in Houses)
-            foreach (var (part, material) in HouseMaterials(style))
-            {
-                var name = $"{house} · {part}";
-                if (seen.Add(name)) yield return (name, material);
-            }
-
-        // Last, so a house's own material keeps the house's name where the two happen to be the same block:
-        // a row is keyed by name, and the building is the one that needs its parts findable.
-        foreach (var (name, material) in StylePresets.All)
-            if (seen.Add(name)) yield return (name, material);
-    }
-
-    /// <summary>Every material one house names, tagged with the part it plays and the position in that part's
-    /// stack. A stack's courses are numbered so two courses of one part keep distinct names.</summary>
-    private static IEnumerable<(string Part, TerrainMaterial Material)> HouseMaterials(HouseStyle style)
-    {
-        foreach (var entry in PartCoursesOf(RoomParts.Floor, style.Foundation.Plate)) yield return entry;
-        foreach (var entry in PartCoursesOf(RoomParts.Wall, style.Wall)) yield return entry;
-        yield return (RoomParts.Roof, style.Roof.Body);
-        yield return (RoomParts.Verge, style.Roof.Verge);
-        if (style.Foundation.Footing is { } footing) yield return (RoomParts.Sill, footing);
-        if (style.Post is { } post) yield return (RoomParts.Post, post);
-        if (style.Roof.Gable is { } gable) yield return (RoomParts.Gable, gable);
-        if (style.Foundation.Surface.Field is { } field) yield return (RoomParts.Field, field);
-        if (style.Foundation.Surface.Border is { } border) yield return (RoomParts.Border, border);
-        if (style.Foundation.Surface.Inlay is { } inlay) yield return (RoomParts.Inlay, inlay);
-        if (style.Porch?.Canopy is { } canopy) yield return (RoomParts.Canopy, canopy);
-
-        // A storey's own wall and posts are materials of the building too — the library stores them on a
-        // storey style, but they are the same rows and are named per storey so two storeys keep theirs apart.
-        // The <em>resolved</em> storey, not the declared one: a storey that names no wall or windows of its own
-        // takes the building's, and what a storey style stores is what that storey actually is. Seeding the
-        // declared value instead stores an explicit "none" where the preset meant "the building's".
-        for (var level = 0; level < style.Storeys.Count; level++)
-        {
-            var storey = style.Levels[level];
-            if (storey.Wall is { } wall)
-                foreach (var (part, material) in PartCoursesOf(RoomParts.Wall, wall))
-                    yield return ($"storey {level + 1} {part}", material);
-            if (storey.Post is { } storeyPost) yield return ($"storey {level + 1} {RoomParts.Post}", storeyPost);
-            if (storey.Surface?.Field is { } storeyField) yield return ($"storey {level + 1} {RoomParts.Field}", storeyField);
-            // The deck as declared: unbound, the store gives a storey the floor's own top material, which is
-            // exactly what a storey naming no deck stands on.
-            if (style.Storeys[level].Deck is { } storeyDeck) yield return ($"storey {level + 1} {RoomParts.Deck}", storeyDeck);
-        }
-    }
-
-    private static IEnumerable<(string Part, TerrainMaterial Material)> PartCoursesOf(string part, RoomPart stack)
-    {
-        if (stack.Stack.Bands.Count <= 1) { yield return (part, stack.At(0).Material); yield break; }
-        for (var at = 0; at < stack.Stack.Bands.Count; at++)
-            yield return ($"{part} {at + 1}", stack.Stack.Bands[at].Material);
-    }
-
-    private sealed class StyleIds
-    {
-        public Dictionary<string, long> ByName { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public int Added, Updated;
-    }
-
-    // ── the storeys ───────────────────────────────────────────────────────────────────────────────────
-    /// <summary>Each storey of each preset as its own <c>storey_style</c> row, keyed by name and mapped back to
-    /// the id the house binds it at.
-    ///
-    /// <para>Without these a house's stack is a <em>count</em> and one clear, so a building whose storeys differ
-    /// from each other comes back as the same storey repeated — the right number of rooms and the wrong rooms.
-    /// A storey style is where a storey's own wall, posts, windows, floor zoning and deck live, which is the
-    /// whole reason the level exists.</para></summary>
-    private async Task<Dictionary<string, long>> SeedStoreysAsync(StyleIds bound, CancellationToken ct)
-    {
-        var existing = (await parts.ListStoreysAsync(ct))
-            .GroupBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
-
-        var ids = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (house, style) in Houses)
-            for (var level = 0; level < style.Storeys.Count; level++)
-            {
-                var name = StoreyName(house, level);
-                var request = StoreyRequestFor(house, style, level, name, bound.ByName);
-                var row = HousePartLibrary.RowOf(request);
-                var courses = HousePartLibrary.StoreyCourseRowsOf(request);
-
-                ids[name] = existing.TryGetValue(name, out var id)
-                    ? await parts.UpdateStoreyAsync(id, row, courses, ct) ? id : id
-                    : await parts.CreateStoreyAsync(row, courses, ct);
-            }
-        return ids;
-    }
-
-    private static string StoreyName(string house, int level) => $"{house} · storey {level + 1}";
-
-    /// <summary>One storey as the request the library stores. Its materials were seeded under the same
-    /// per-storey names, so binding them is a lookup rather than a second decomposition.</summary>
-    private static StoreyStyleSaveRequest StoreyRequestFor(
-        string house, HouseStyle style, int level, string name, IReadOnlyDictionary<string, long> ids)
+    /// <summary>One storey as the request the library stores — the <em>resolved</em> storey, not the declared
+    /// one: a storey that names no wall or windows of its own takes the building's, and what a storey style
+    /// stores is what that storey actually is. Its deck is the declared one: unbound, the store gives a storey
+    /// the floor's own top material, which is exactly what a storey naming no deck stands on.</summary>
+    private static StoreyStyleSaveRequest StoreyRequest(HouseStyle style, int level, Patterns patterns)
     {
         var storey = style.Levels[level];
         var courses = new List<RoomCourseDto>();
-
         void Bind(string part, TerrainMaterial? material, int ordinal = 0, int height = 1)
         {
             if (material is null) return;
-            if (ids.TryGetValue($"{house} · storey {level + 1} {part}", out var id))
-                courses.Add(new RoomCourseDto(PartOf(part), ordinal, id, height));
+            var (styleId, block) = patterns.Fill(material);
+            courses.Add(new RoomCourseDto(part, ordinal, styleId, block, height));
         }
 
         if (storey.Wall is { } wall)
             for (var at = 0; at < wall.Stack.Bands.Count; at++)
-            {
-                // Named exactly as the material was seeded — one course keeps the bare part name, a stack
-                // numbers its courses — and carrying each course's own height rather than the part's extent,
-                // which is a different number and belongs to the part.
-                var part = wall.Stack.Bands.Count <= 1 ? RoomParts.Wall : $"{RoomParts.Wall} {at + 1}";
-                Bind(part, wall.Stack.Bands[at].Material, at, wall.Stack.Bands[at].Thickness);
-            }
+                Bind(RoomParts.Wall, wall.Stack.Bands[at].Material, at, wall.Stack.Bands[at].Thickness);
         Bind(RoomParts.Post, storey.Post);
         Bind(RoomParts.Field, storey.Surface?.Field);
         Bind(RoomParts.Deck, style.Storeys[level].Deck);
 
-        var windows = storey.Windows ?? new WindowStyle();
         return new StoreyStyleSaveRequest(
-            Name: name,
+            Name: "",
             Clear: storey.Clear,
             BorderWidth: storey.Surface?.BorderWidth ?? 1,
             InlayInset: storey.Surface?.InlayInset ?? 2,
-            Windows: WindowDto(windows),
+            Windows: WindowDto(storey.Windows ?? new WindowStyle()),
             Courses: courses);
     }
 
-    // ── the houses ────────────────────────────────────────────────────────────────────────────────────
-    /// <summary>Every house the library is seeded with, by name: the presets, then the styles boards are built
-    /// with (<see cref="HousePresets.Kept"/>).</summary>
-    private static IEnumerable<(string Name, HouseStyle Style)> Houses =>
-        HousePresets.All.Select(house => (house.Name, house.Style)).Concat(HousePresets.Kept);
+    private static PorchStyleSaveRequest PorchRequest(PorchStyle porch) => new(
+        "", porch.Depth, porch.Inset, PorchEdges.Canonical(NameOf(porch.Edge)),
+        RoofForms.Canonical(NameOf(porch.Roof)), porch.RailBlock);
 
-    private async Task<(int Added, int Updated)> SeedHousesAsync(StyleIds bound, CancellationToken ct)
+    // ── the houses ────────────────────────────────────────────────────────────────────────────────────
+    private async Task<(int Added, int Updated, Claims<RoomStyleRow> Claims)> SeedHousesAsync(
+        Patterns patterns, IReadOnlyDictionary<string, long> storeyIds, CancellationToken ct)
     {
-        var storeyIds = await SeedStoreysAsync(bound, ct);
-        var existing = (await rooms.ListAsync(ct))
-            .GroupBy(room => room.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+        var stored = await rooms.ListAsync(ct);
+        var claims = new Claims<RoomStyleRow>(
+            keys, stored, SeedFolder.Houses.Select(house => house.Name), row => row.Id, row => row.SeedKey);
+        var names = new Taken(stored.Select(row => (row.Id, row.Name)));
 
         int added = 0, updated = 0;
-        foreach (var (house, style) in Houses)
+        foreach (var (house, style) in SeedFolder.Houses)
         {
-            var request = RequestFor(house, style, bound.ByName) with
+            var held = await claims.ClaimAsync(house, [row => Named(row.Name, house)], ct);
+            var request = HouseRequest(names.For(house, held?.Id), style, patterns) with
             {
-                StoreyStack = [.. Enumerable.Range(0, style.Storeys.Count)
-                    .Where(level => storeyIds.ContainsKey(StoreyName(house, level)))
-                    .Select(level => new RoomStoreyDto(storeyIds[StoreyName(house, level)], style.Storeys[level].Clear))],
+                StoreyStack = [.. Enumerable.Range(0, style.Storeys.Count).Select(level =>
+                {
+                    var storey = StoreyRequest(style, level, patterns);
+                    var key = PartKey.Of(HousePartLibrary.RowOf(storey), HousePartLibrary.StoreyCourseRowsOf(storey));
+                    return new RoomStoreyDto(storeyIds[key], style.Storeys[level].Clear);
+                })],
             };
-            if (existing.TryGetValue(house, out var row))
+            if (held is not null)
             {
                 await rooms.UpdateAsync(
-                    row.Id, RoomStyleLibrary.RowOf(request), RoomStyleLibrary.CourseRowsOf(request),
+                    held.Id, RoomStyleLibrary.RowOf(request), RoomStyleLibrary.CourseRowsOf(request),
                     RoomStyleLibrary.StoreyRowsOf(request), ct);
+                names.Carry(held.Id, held.Name, request.Name);
                 updated++;
                 continue;
             }
-            await rooms.CreateAsync(
-                RoomStyleLibrary.RowOf(request), RoomStyleLibrary.CourseRowsOf(request),
-                RoomStyleLibrary.StoreyRowsOf(request), ct);
+            var row = RoomStyleLibrary.RowOf(request);
+            row.SeedKey = house;
+            names.Carry(await rooms.CreateAsync(
+                row, RoomStyleLibrary.CourseRowsOf(request), RoomStyleLibrary.StoreyRowsOf(request), ct),
+                null, request.Name);
             added++;
         }
-        return (added, updated);
+        return (added, updated, claims);
     }
 
-    /// <summary>One preset as the save request the library stores — the same value the composer would have been
+    /// <summary>One house as the save request the library stores — the same value the composer would have been
     /// handed by an editor, so a seeded row is a row an author could have made.</summary>
-    private static RoomStyleSaveRequest RequestFor(string house, HouseStyle style, IReadOnlyDictionary<string, long> ids)
+    private static RoomStyleSaveRequest HouseRequest(string house, HouseStyle style, Patterns patterns)
     {
         var courses = new List<RoomCourseDto>();
 
         void Bind(string part, TerrainMaterial? material, int ordinal = 0, int height = 1)
         {
             if (material is null) return;
-            var key = $"{house} · {part}";
-            if (ids.TryGetValue(key, out var id)) courses.Add(new RoomCourseDto(PartOf(part), ordinal, id, height));
+            var (styleId, block) = patterns.Fill(material);
+            courses.Add(new RoomCourseDto(part, ordinal, styleId, block, height));
+        }
+
+        void BindStack(string part, RoomPart stack)
+        {
+            if (stack.Stack.Bands.Count <= 1)
+            {
+                Bind(part, stack.At(0).Material, height: stack.Stack.Bands.Count == 1 ? stack.Stack.Bands[0].Thickness : 1);
+                return;
+            }
+            for (var at = 0; at < stack.Stack.Bands.Count; at++)
+                Bind(part, stack.Stack.Bands[at].Material, at, stack.Stack.Bands[at].Thickness);
         }
 
         BindStack(RoomParts.Floor, style.Foundation.Plate);
@@ -468,17 +504,6 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         Bind(RoomParts.Border, style.Foundation.Surface.Border);
         Bind(RoomParts.Inlay, style.Foundation.Surface.Inlay);
         Bind(RoomParts.Canopy, style.Porch?.Canopy);
-
-        void BindStack(string part, RoomPart stack)
-        {
-            if (stack.Stack.Bands.Count <= 1)
-            {
-                Bind(part, stack.At(0).Material, height: stack.Stack.Bands.Count == 1 ? stack.Stack.Bands[0].Thickness : 1);
-                return;
-            }
-            for (var at = 0; at < stack.Stack.Bands.Count; at++)
-                Bind($"{part} {at + 1}", stack.Stack.Bands[at].Material, at, stack.Stack.Bands[at].Thickness);
-        }
 
         var windows = style.Windows;
         return new RoomStyleSaveRequest(
@@ -514,19 +539,183 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
                 NameOf(style.Doorway.Head.Form), style.Doorway.Head.Block,
                 NameOf(style.Doorway.Head.Fill), style.Doorway.Head.FillBlock, style.Doorway.Head.FillData),
             RoofStair: style.Roof.Stair,
-            RoofWear: style.Roof.Wear);
+            RoofWear: style.Roof.Wear,
+            Front: PorchEdges.Canonical(NameOf(style.Front)));
+    }
+
+    // ── the finishes ──────────────────────────────────────────────────────────────────────────────────
+    /// <summary>Each seeded finish as a theme row filling each bucket with a block or a pattern. A theme composed
+    /// of nothing is a tab that opens on a sentence telling an author to start one, which is the hardest thing in
+    /// the library to start from nothing.</summary>
+    private async Task<(int Added, int Updated, Claims<ThemeRow> Claims)> SeedThemesAsync(
+        Patterns patterns, CancellationToken ct)
+    {
+        var stored = await styles.ListThemesAsync(ct);
+        var claims = new Claims<ThemeRow>(
+            keys, stored, SeedFolder.Themes.Select(theme => theme.Name), row => row.Id, row => row.SeedKey);
+        var names = new Taken(stored.Select(row => (row.Id, row.Name)));
+
+        int added = 0, updated = 0;
+        foreach (var (seededName, theme) in SeedFolder.Themes)
+        {
+            var decomposed = TerrainThemeComposer.Decompose(theme);
+            var buckets = new List<ThemeBucketRow>();
+            foreach (var binding in decomposed.Buckets)
+            {
+                var row = new ThemeBucketRow
+                {
+                    Bucket = ThemeLibrary.FromBucket(binding.Bucket), Depth = binding.Depth, Enabled = binding.Enabled,
+                };
+                if (binding.MaterialJson is { } json)
+                {
+                    var (styleId, block) = patterns.Fill(TerrainThemeJson.DeserializeMaterial(json));
+                    if (block is not null) (row.BlockId, row.BlockData, row.BlockLaid) = (block.Id, block.Data, block.Laid);
+                    else row.StyleId = styleId;
+                }
+                buckets.Add(row);
+            }
+
+            var held = await claims.ClaimAsync(seededName, [row => Named(row.Name, seededName)], ct);
+            var themeRow = new ThemeRow
+            {
+                Name = names.For(seededName, held?.Id),
+                SeedKey = seededName,
+                BedrockRelative = decomposed.BedrockRelative, BedrockValue = decomposed.BedrockValue,
+                RimEdges = ThemeLibrary.FromRimEdges(decomposed.RimEdges),
+                WallOnTerrainFaces = decomposed.WallOnTerrainFaces,
+            };
+            if (held is not null)
+            {
+                await styles.UpdateThemeAsync(held.Id, themeRow, buckets, ct);
+                names.Carry(held.Id, held.Name, themeRow.Name);
+                updated++;
+                continue;
+            }
+            names.Carry(await styles.CreateThemeAsync(themeRow, buckets, ct), null, themeRow.Name);
+            added++;
+        }
+        return (added, updated, claims);
+    }
+
+    // ── the prop recipes ──────────────────────────────────────────────────────────────────────────────
+    private sealed record Recipes(int Added, int Updated, Claims<TreeStyleRow> Trees, Claims<BoulderStyleRow> Boulders);
+
+    /// <summary>The recipes a click puts down: a template tree per species at its natural height, the folder's
+    /// boulders and the trees cut out of the showcase world. Without them a studio opens two of its libraries on
+    /// nothing, and a picker with no rows in it is a picker an author cannot use at all. A template is keyed by its
+    /// species, a copied tree by its cut — the world it came from and the foot it stood on — and a boulder by its
+    /// name in the folder.</summary>
+    private async Task<Recipes> SeedRecipesAsync(CancellationToken ct)
+    {
+        int added = 0, updated = 0;
+        var cut = SeedFolder.Trees;
+        string TemplateKey(TreeSpecies species) => $"template {species.Name}";
+        string CutKey((int X, int Y, int Z) foot) => $"{cut.World} {foot.X} {foot.Y} {foot.Z}";
+
+        var trees = await props.ListTreesAsync(ct);
+        var treeClaims = new Claims<TreeStyleRow>(keys, trees,
+            DressingPalette.Species.Select(TemplateKey).Concat(cut.Trees.Select(tree => CutKey(tree.Foot))),
+            row => row.Id, row => row.SeedKey);
+        var treeNames = new Taken(trees.Select(row => (row.Id, row.Name)));
+
+        async Task SeedTreeAsync(string key, TreeStyleRow seeded, Func<TreeStyleRow, bool> holds)
+        {
+            var held = await treeClaims.ClaimAsync(key, [holds], ct);
+            seeded.Name = treeNames.For(seeded.Name, held?.Id);
+            seeded.SeedKey = key;
+            if (held is not null)
+            {
+                seeded.CutAt = held.CutAt ?? seeded.CutAt;
+                seeded.CutWorld = held.CutWorld ?? seeded.CutWorld;
+                if (held.Name == seeded.Name && held.Form == seeded.Form && held.Species == seeded.Species
+                    && held.Height.Equals(seeded.Height) && held.Body == seeded.Body
+                    && held.CutBuilder == seeded.CutBuilder) return;
+                await props.UpdateTreeAsync(held.Id, seeded, ct);
+                treeNames.Carry(held.Id, held.Name, seeded.Name);
+                updated++;
+                return;
+            }
+            treeNames.Carry(await props.CreateTreeAsync(seeded, ct), null, seeded.Name);
+            added++;
+        }
+
+        foreach (var species in DressingPalette.Species)
+            await SeedTreeAsync(TemplateKey(species),
+                PropStyleLibrary.RowOf(new TreeStyleSaveRequest(species.Name, TreeForms.Template, species.Name, species.Height)),
+                row => row.Form == TreeForms.Template && Named(row.Name, species.Name));
+
+        foreach (var tree in cut.Trees)
+        {
+            var seeded = PropStyleLibrary.RowOf(tree.Name, cut.World, tree.Foot, tree.Style);
+            seeded.CutAt = DateTime.UtcNow;
+            await SeedTreeAsync(CutKey(tree.Foot), seeded,
+                row => row is { CutWorld.Length: > 0, CutX: { } x, CutY: { } y, CutZ: { } z }
+                    && Path.GetFileName(row.CutWorld.TrimEnd('/')) == cut.World
+                    && (x, y, z) == tree.Foot);
+        }
+
+        var boulders = await props.ListBouldersAsync(ct);
+        var boulderClaims = new Claims<BoulderStyleRow>(
+            keys, boulders, SeedFolder.Boulders.Select(boulder => boulder.Name), row => row.Id, row => row.SeedKey);
+        var boulderNames = new Taken(boulders.Select(row => (row.Id, row.Name)));
+        foreach (var (name, boulder) in SeedFolder.Boulders)
+        {
+            var held = await boulderClaims.ClaimAsync(name, [row => Named(row.Name, name)], ct);
+            var seeded = PropStyleLibrary.RowOf(boulderNames.For(name, held?.Id), boulder);
+            seeded.SeedKey = name;
+            if (held is not null)
+            {
+                if (held.Name == seeded.Name && held.Form == seeded.Form && held.Size.Equals(seeded.Size)
+                    && held.Mossy == seeded.Mossy && held.Rock == seeded.Rock) continue;
+                await props.UpdateBoulderAsync(held.Id, seeded, ct);
+                boulderNames.Carry(held.Id, held.Name, seeded.Name);
+                updated++;
+                continue;
+            }
+            boulderNames.Carry(await props.CreateBoulderAsync(seeded, ct), null, seeded.Name);
+            added++;
+        }
+        return new Recipes(added, updated, treeClaims, boulderClaims);
+    }
+
+    // ── the biome patterns ────────────────────────────────────────────────────────────────────────────
+    /// <summary>One flat pattern per biome, so wanting a board that is simply desert is a pick rather than a
+    /// document to write. Computed from the biome table, keyed by the biome's id and named for the biome
+    /// (<see cref="LibraryNaming.Tidy"/>).</summary>
+    private async Task<Claims<BiomePatternRow>> SeedBiomesAsync(CancellationToken ct)
+    {
+        string KeyOf(PgmStudio.Minecraft.Palette.BiomeRow biome) => $"biome {biome.Id}";
+        var stored = await styles.ListBiomesAsync(ct: ct);
+        var claims = new Claims<BiomePatternRow>(
+            keys, stored, PgmStudio.Minecraft.Palette.Biome.All.Select(KeyOf), row => row.Id, row => row.SeedKey);
+        var names = new Taken(stored.Select(row => (row.Id, row.Name)));
+
+        foreach (var biome in PgmStudio.Minecraft.Palette.Biome.All)
+        {
+            var tidy = LibraryNaming.Tidy(biome.Name);
+            var held = await claims.ClaimAsync(KeyOf(biome), [row => Named(row.Name, tidy)], ct);
+            var name = names.For(tidy, held?.Id);
+            var json = TerrainThemeJson.SerializeBiome(new SolidBiome(biome.Id));
+            if (held is not null)
+            {
+                if (held.Name == name && held.Kind == BiomeKinds.Solid && held.Params == json) continue;
+                await styles.UpdateBiomeAsync(held.Id, name, BiomeKinds.Solid, json, ct);
+                names.Carry(held.Id, held.Name, name);
+                continue;
+            }
+            names.Carry(await styles.CreateBiomeAsync(new BiomePatternRow
+            {
+                Name = name, SeedKey = KeyOf(biome), Kind = BiomeKinds.Solid, Params = json,
+            }, ct), null, name);
+        }
+        return claims;
     }
 
     // ── what the store could not hold ─────────────────────────────────────────────────────────────────
     /// <summary>
-    /// Compose every seeded room style back out of the library and report where it differs from the preset it
-    /// was seeded from.
-    ///
-    /// <para>A seeder is only as good as the round trip under it, and a row model always lags the stamper by
-    /// however many knobs were added since: a preset that stores cleanly today grows a beam or a slab roof
-    /// tomorrow and starts arriving as a quieter building than it left. Rather than trust that the two sides
-    /// agree, this asks — and names each field that came back different, so the gap is a list rather than a
-    /// suspicion.</para>
+    /// Compose every seeded room style back out of the library and report where it differs from the house it
+    /// was seeded from. A row model lags the stamper by however many knobs were added since, so rather than
+    /// trust that the two sides agree, this asks — and names each field that came back different.
     /// </summary>
     public async Task<List<(string House, List<string> Lost)>> VerifyAsync(CancellationToken ct = default)
     {
@@ -536,7 +725,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
 
         var report = new List<(string, List<string>)>();
-        foreach (var (house, style) in Houses)
+        foreach (var (house, style) in SeedFolder.Houses)
         {
             if (!stored.TryGetValue(house, out var id)) { report.Add((house, ["not stored"])); continue; }
             if (await library.ComposeAsync(id, ct) is not { } back) { report.Add((house, ["unreadable"])); continue; }
@@ -545,9 +734,9 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         return report;
     }
 
-    /// <summary>The named fields on which a composed style differs from the preset. Spelled out one by one for
-    /// the reason <see cref="HouseStyle.Equals(HouseStyle)"/> is: a difference the comparison does not name is
-    /// a difference nobody goes and fixes.</summary>
+    /// <summary>The named fields on which a composed style differs from the seeded one. Spelled out one by one
+    /// for the reason <see cref="HouseStyle.Equals(HouseStyle)"/> is: a difference the comparison does not name
+    /// is a difference nobody goes and fixes.</summary>
     private static List<string> Differences(HouseStyle preset, HouseStyle back)
     {
         var lost = new List<string>();
@@ -581,10 +770,10 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         Check("doorWidth", preset.Doorway.Width, back.Doorway.Width);
         Check("doorHeight", preset.Doorway.Height, back.Doorway.Height);
         Check("porch", preset.Porch, back.Porch);
+        Check("front", preset.Front, back.Front);
 
-        // The stack storey by storey, not just how many there are. A room style stores a count and one clear,
-        // so a building whose storeys differ from each other comes back as the same storey repeated — the
-        // right number of rooms and the wrong rooms, which a count would call equal.
+        // The stack storey by storey, not just how many there are: a building whose storeys differ from each
+        // other must not come back as the same storey repeated.
         var mine = preset.Levels;
         var theirs = back.Levels;
         if (mine.Count != theirs.Count) lost.Add($"storeys ({mine.Count} became {theirs.Count})");
@@ -593,8 +782,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             {
                 if (mine[at].Clear != theirs[at].Clear) lost.Add($"storey {at + 1} clear");
                 // Course for course rather than part for part: a storey's wall extent is ignored by the
-                // stamper — its height is the storey's clear — so the store rebuilding it at the clear is the
-                // model working, not the preset losing anything.
+                // stamper — its height is the storey's clear.
                 if (!CoursesMatch(mine[at].Wall, theirs[at].Wall)) lost.Add($"storey {at + 1} wall");
                 if (!Equals(mine[at].Post, theirs[at].Post)) lost.Add($"storey {at + 1} post");
                 if (!Equals(mine[at].Windows, theirs[at].Windows)) lost.Add($"storey {at + 1} windows");
@@ -605,16 +793,11 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     }
 
     /// <summary>Whether two storey walls lay the same courses. Their extents are not compared: a storey's wall
-    /// takes its height from the storey's clear, so the one the store rebuilds carries the clear whatever the
-    /// preset happened to write.</summary>
+    /// takes its height from the storey's clear.</summary>
     private static bool CoursesMatch(RoomPart? mine, RoomPart? theirs)
         => mine is null || theirs is null
             ? ReferenceEquals(mine, theirs)
             : mine.Stack.Bands.SequenceEqual(theirs.Stack.Bands);
-
-    /// <summary>The stored part a course name belongs to — a stack's courses are named with their position and
-    /// all bind the same part.</summary>
-    private static string PartOf(string name) => name.Split(' ')[0];
 
     private static string NameOf(RoofForm form) => form switch
     {
@@ -648,4 +831,141 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         RoomEdge.PosX => PorchEdges.PosX,
         _ => PorchEdges.Front,
     };
+}
+
+/// <summary>The names one kind's rows carry, so a seeded name never lands on another row's: a library name is
+/// one row (<c>LB5</c>), and a name another row holds is counted on (<see cref="PatternNames.Unique"/>).</summary>
+internal sealed class Taken(IEnumerable<(long Id, string Name)> rows)
+{
+    private readonly Dictionary<string, long> holders = rows
+        .GroupBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(group => group.Key, group => group.Min(row => row.Id), StringComparer.OrdinalIgnoreCase);
+
+    /// <summary><paramref name="name"/> where nobody but <paramref name="self"/> carries it, else the first free
+    /// count after it.</summary>
+    public string For(string name, long? self)
+        => !holders.TryGetValue(name, out var holder) || holder == self
+            ? name
+            : PatternNames.Unique(name, holders.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase));
+
+    /// <summary>Row <paramref name="id"/> now carries <paramref name="name"/> rather than <paramref name="was"/>.</summary>
+    public void Carry(long id, string? was, string name)
+    {
+        if (was is not null && holders.TryGetValue(was, out var holder) && holder == id) holders.Remove(was);
+        holders[name] = id;
+    }
+}
+
+/// <summary>What a roof, a storey or a porch row holds, as one string two rows holding the same share: every
+/// column but its id, name, seed key and creation time, and its courses in stack order with their owner left out.</summary>
+internal static class PartKey
+{
+    private static readonly HashSet<string> Identity = new(StringComparer.Ordinal)
+    {
+        "Id", "Name", "SeedKey", "CreatedAt", "RoofStyleId", "StoreyStyleId", "RoomStyleId",
+    };
+
+    public static string Of(object row, IEnumerable<object> courses)
+    {
+        var ordered = courses.Select(Columns)
+            .OrderBy(course => course["Part"]?.GetValue<string>(), StringComparer.Ordinal)
+            .ThenBy(course => course["Ordinal"]?.GetValue<int>())
+            .ToList();
+        return new JsonObject { ["row"] = Columns(row), ["courses"] = new JsonArray([.. ordered]) }.ToJsonString();
+    }
+
+    /// <summary>A part's content as the seed key its row carries: short enough to index, and the same for the
+    /// same content.</summary>
+    public static string Hashed(string key) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(key)))[..32];
+
+    private static JsonObject Columns(object row)
+    {
+        var columns = JsonSerializer.SerializeToNode(row, row.GetType())!.AsObject();
+        foreach (var name in Identity) columns.Remove(name);
+        return columns;
+    }
+}
+
+/// <summary>The name a part describes itself by: a <see cref="Base"/> naming what it is laid in and what it is,
+/// and the <see cref="Qualifiers"/> a name takes where another part shares the base — each an aspect and the words
+/// for this part's value of it.</summary>
+internal sealed record PartName(string Base, IReadOnlyList<(string Aspect, string Word)> Qualifiers)
+{
+    public string? Word(string aspect) => Qualifiers.FirstOrDefault(qualifier => qualifier.Aspect == aspect).Word;
+}
+
+/// <summary>The names a seeded roof, storey and porch describe themselves by, in the words a pattern's name
+/// uses: <c>spruce-planks-gable-roof</c>, <c>cobblestone-andesite-spruce-log-storey</c>,
+/// <c>oak-fence-front-porch</c>, and <c>dark-oak-planks-gable-roof-pitch-2-spruce-planks-verge</c> where two roofs of
+/// one wood differ in pitch and verge. Computed from the part, because the parts are cut out of the seeded houses
+/// rather than stated.</summary>
+internal static class PartNames
+{
+    public static PartName Roof(RoofStyleSaveRequest roof, IReadOnlyDictionary<long, TerrainMaterial> patterns) => new(
+        $"{Laid(roof.Courses, RoomParts.Roof, patterns)}-{roof.Form}-roof",
+        [
+            ("pitch", $"pitch-{roof.Pitch}"),
+            ("verge", $"{Laid(roof.Courses, RoomParts.Verge, patterns)}-verge"),
+            ("gable", $"{Laid(roof.Courses, RoomParts.Gable, patterns)}-gables"),
+            ("stair", roof.RoofStair >= 0 ? PatternNames.BlockWord(roof.RoofStair, 0) : "block-stepped"),
+            ("slab", roof.RoofSlab >= 0 ? PatternNames.BlockWord(roof.RoofSlab, roof.RoofSlabData) : "unslabbed"),
+            ("overhang", $"overhang-{roof.Overhang}"),
+            ("ridge", roof.RidgeCap ? "ridge-capped" : "open-ridge"),
+            ("hole", roof.RoofHole ? "holed" : "whole"),
+            ("wear", $"worn-{Math.Round(roof.RoofWear * 100)}"),
+        ]);
+
+    public static PartName Storey(StoreyStyleSaveRequest storey, IReadOnlyDictionary<long, TerrainMaterial> patterns) => new(
+        $"{Laid(storey.Courses, RoomParts.Wall, patterns)}-storey",
+        [
+            ("clear", $"{storey.Clear}-high"),
+            ("post", $"{Laid(storey.Courses, RoomParts.Post, patterns)}-posts"),
+            ("windows", storey.Windows.Form == WindowForms.None
+                ? "windowless"
+                : $"{PatternNames.BlockWord(storey.Windows.Block, storey.Windows.Data)}-{Kebab(storey.Windows.Form)}-windows"),
+            ("windowSize", $"{storey.Windows.Width}x{storey.Windows.Height}-windows"),
+            ("spacing", $"spaced-{storey.Windows.Spacing}"),
+            ("sill", $"sill-{storey.Windows.Sill}"),
+            ("host", storey.Windows.HostBlock >= 0
+                ? $"set-in-{PatternNames.BlockWord(storey.Windows.HostBlock, storey.Windows.HostData)}"
+                : "unset"),
+            ("border", $"border-{storey.BorderWidth}"),
+            ("inlay", $"inlay-{storey.InlayInset}"),
+            ("field", $"{Laid(storey.Courses, RoomParts.Field, patterns)}-floor"),
+            ("deck", $"{Laid(storey.Courses, RoomParts.Deck, patterns)}-deck"),
+            ("wall", $"all-{Laid(storey.Courses, RoomParts.Wall, patterns, words: int.MaxValue)}"),
+            ("courses", Heights(storey.Courses, RoomParts.Wall)),
+        ]);
+
+    public static PartName Porch(PorchStyleSaveRequest porch) => new(
+        $"{PatternNames.BlockWord(porch.RailBlock, 0)}-{porch.Edge}-porch",
+        [("depth", $"{porch.Depth}-deep"), ("inset", $"inset-{porch.Inset}"), ("roof", $"{porch.Roof}-roofed")]);
+
+    /// <summary>How a part's courses stack, as their heights: <c>courses-3-1</c>, or <c>striped-12</c> past four.</summary>
+    private static string Heights(IEnumerable<RoomCourseDto> courses, string part)
+    {
+        var heights = courses.Where(course => course.Part == part).OrderBy(course => course.Ordinal)
+            .Select(course => course.Height).ToList();
+        return heights.Count > 4 ? $"striped-{heights.Count}" : $"courses-{string.Join('-', heights)}";
+    }
+
+    /// <summary>A camel-cased wire word as a name writes it: <c>stairLattice</c> as <c>stair-lattice</c>.</summary>
+    private static string Kebab(string word)
+        => string.Concat(word.Select(letter => char.IsUpper(letter) ? $"-{char.ToLowerInvariant(letter)}" : $"{letter}"));
+
+    /// <summary>What a part's courses are laid in, as up to <paramref name="words"/> block words.</summary>
+    private static string Laid(
+        IEnumerable<RoomCourseDto> courses, string part, IReadOnlyDictionary<long, TerrainMaterial> patterns,
+        int words = 3)
+    {
+        var laid = courses.Where(course => course.Part == part)
+            .OrderBy(course => course.Ordinal)
+            .SelectMany(course => course.Block is { } block
+                ? [PatternNames.BlockWord(block.Id, block.Data)]
+                : patterns.TryGetValue(course.StyleId, out var material) ? PatternNames.BlockWords(material) : [])
+            .Distinct()
+            .Take(words)
+            .ToList();
+        return laid.Count == 0 ? "bare" : string.Join('-', laid);
+    }
 }

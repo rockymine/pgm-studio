@@ -20,6 +20,8 @@ using Ctx = AuthoringContext;
 public partial class TeamAssignStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
+    /// <summary>Why the caller may not write this map, or null: a click on an island then assigns nothing.</summary>
+    [CascadingParameter(Name = "StudioWriteReason")] public string? WriteReason { get; set; }
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
@@ -170,7 +172,7 @@ public partial class TeamAssignStep
     // again clears it back to neutral.
     private async Task OnAssignIsland(int? islandId)
     {
-        if (islandId is not { } id || selectedTeamId is null) return;
+        if (islandId is not { } id || selectedTeamId is null || WriteReason is not null) return;
         var key = id.ToString();
         if (islandTeams.TryGetValue(key, out var cur) && cur == selectedTeamId) islandTeams.Remove(key);
         else islandTeams[key] = selectedTeamId;

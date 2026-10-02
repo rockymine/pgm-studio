@@ -1,5 +1,6 @@
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Vocabulary;
+using PgmStudio.Minecraft.Library;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
@@ -54,7 +55,7 @@ public sealed class HouseNamesTests
     [Test]
     public async Task Every_seeded_style_is_named_by_the_rule()
     {
-        var names = HousePresets.All.Select(house => house.Name).Concat(HousePresets.Kept.Select(kept => kept.Name));
+        var names = SeedFolder.Houses.Select(house => house.Name);
         var misnamed = names.Where(name => HouseNames.Check(name) != Findings.None).ToList();
         await Assert.That(misnamed).IsEmpty();
     }

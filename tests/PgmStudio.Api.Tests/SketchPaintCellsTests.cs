@@ -5,6 +5,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Library;
 
 namespace PgmStudio.Api.Tests;
 
@@ -69,7 +70,7 @@ public sealed class SketchPaintCellsTests
         // Meadow's rim is quartz and only the footprint edge takes it, so a flat "one colour per theme"
         // preview cannot produce it — its presence is what proves the real painter ran.
         var themes = new Dictionary<string, JsonElement>
-            { ["map"] = JsonSerializer.Deserialize<JsonElement>(TerrainThemeJson.Serialize(ThemePresets.Meadow)) };
+            { ["map"] = JsonSerializer.Deserialize<JsonElement>(TerrainThemeJson.Serialize(SeedFolder.Meadow)) };
         var cells = Paint(Layout(themes, "map", Rect("s0", 0, 0, 20, 20, null)));
         await Assert.That(cells.Any(c => c.BlockId == Quartz)).IsTrue();
         await Assert.That(cells.Any(c => c.BlockId != Quartz)).IsTrue();   // an interior that is not rim
