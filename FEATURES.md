@@ -188,6 +188,8 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   and quiets its slug; the not-found page has a heading and a way back; the plan tool's crumb names the plan;
   change history names the documents a change wrote as *sketch* and *game settings*; the plan sidebar's three
   panels are one even switch; and an In-game phase with no block textures says so in a callout.
+- **Every dropdown is `Select` (`C51`).** The plan tool, Configure, Edit, the sketch tool, the world canvas and
+  the pages hold no `<select>` of their own; the one left in the client is `Select.razor`'s.
 - **Sliders, number boxes and dropdowns are shared components (`C79`).** No raw number, range or select
   markup stands outside `Components/`: 28 sliders are `RangeField` (live `ValueChanged`, a release-only
   `OnCommit`), 33 number boxes join `NumberField` (now `double?`, invariant-culture, clamped, with `OnCleared`

@@ -631,15 +631,6 @@ is the standard the copy is held to.
   `/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
   no home on a map-backed plan.
 
-- [ ] **C51 — Nineteen selects outside the authoring surface are still hand-rolled.** `Select` and
-  `StyleSelect` serve the library and the terrain components (`B259`, `FEATURES.md`), and the sketch tool's
-  three inspectors have since adopted them. What is left is 25 raw `<select>` — the plan tool 10
-  (`PlanTool.razor` 9, `PlanInfoPhase` 1), Configure 5, Edit 6, the sketch tool 1, the world canvas 1 and a
-  page 1, plus `Select.razor`'s own — **of which Edit's six go with `TE3`**, so the work is 18. Each is the
-  same options-and-a-value question written as markup, so a group, a per-row note or a disabled row has to be
-  re-invented wherever one is wanted. Adopt the control at those sites; `docs/client/ui-conventions.md`'s
-  *Forms* tier already names it.
-
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
   stretch along a boundary, an **interval** is where two things touch. `BoardStructure` breaks it —
