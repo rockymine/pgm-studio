@@ -273,6 +273,14 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ### Shapes
 
+- [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
+  house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
+  resolves the shell over the row), but the same object under `roomStyles.spawn` stores 200, raises nothing and
+  builds the bare library row. Resolve `roomStyles.<part>` through the same reader the dressing registry uses,
+  or answer `RQ1` at the path; a second accepted shape that is silently dropped is the failure.
+  `docs/tools/sketch.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-halcyon-cays.md`, the kit section — the
+  spawn halls came out cyan clay over pink-white clay.*
+
 - [ ] **TS140 — A carve: a cave cut through ground that stays.** A subtract is a set of `(x, z)` cells
   that empties the whole column (`SketchRasterizer.cs:349`), and underground space is that hole under a flat
   override-add lid, so a chamber cannot keep the relief ground over it and every tunnel is a straight-walled
