@@ -587,15 +587,23 @@ is the standard the copy is held to.
   the plan and configure tools show the map's name, because the sketch tool loads no map summary. Read the name
   with the layout and put it in the crumb. `docs/tools/sketch.md`.
 
+- [ ] **C78 — Board pictures in the paper's four plan inks.** `PlanBoardPalette` paints seven role and zone
+  colours on a dark ground; `pgm-studio-mapgen/paper/preamble.tex` draws the same plans in four inks on white —
+  ground grey (`#E7EAEE`, edge `#A8B0B9`), spawn green (`#CBE3DA`/`#009E73`), wool room orange
+  (`#F3DCC8`/`#D55E00`), and a build zone as a dashed `#0072B2` outline — with the fanned half faint. Hub,
+  front line and other become ground; their names live in the structure line under each card. Change `Key`,
+  `PieceColor` and the SVG and PNG renderers together, and `--board-bg` to white. `docs/tools/generator.md`.
+
 - [ ] **C69 — A proportional UI font.** *Parked (author): waits on the design direction.* Every page is set
   in `ui-monospace` (`.editor-page`, `editor.css`), which reads as a terminal and is wider per word at the same
   size. The alternative is a system sans for interface text with monospace kept for data: slugs, coordinates,
   JSON, block counts. `docs/client/ui-conventions.md`.
 
-- [ ] **C70 — Which visual direction the studio takes.** *Parked (author): pick a mock-up.* Three directions
-  were mocked as artifacts (a cleaned-up version of today's look, a game-flavoured one, and a dense
-  pro-tool one), each covering the landing page with map pictures, the map list with authors, and the
-  sketch's In-game and change-history panels. The choice decides `tokens.css` and the landing and list
+- [ ] **C70 — Which visual direction the studio takes.** *Parked (author): pick a mock-up.* Four directions
+  were mocked as artifacts (a cleaned-up version of today's look, a game-flavoured one, a dense pro-tool one,
+  and *Paper*, the whitepaper's figure style: white ground, one ink, one accent, the four plan inks), each
+  covering the landing page with map pictures and the map list with authors, beside the sketch's In-game and
+  change-history panels. The choice decides `tokens.css` and the landing and list
   layouts; the components stay. `docs/client/ui-conventions.md`.
 
 ## User Experience
