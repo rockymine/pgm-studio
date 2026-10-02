@@ -343,17 +343,18 @@ export function markerAtWorld(doc, wx, wz) {
  * The item a click at world/block point `(wx, wz)` selects. Two levels, the group model the sketch tool
  * already sets (single-click picks the island, double-click enters a member): by default a box wins over the
  * pieces it groups, and `drill` (the double-click pass) skips boxes to reach the piece under the cursor.
+ * `boxes: false` takes boxes out of the pick altogether, for a view that does not show them.
  *
  * Markers pick first at both levels rather than sitting inside the group. Their hit radius is a fraction of a
  * cell and they paint on top, so they can't steal a click aimed at the box body — and a marker is carried by
  * a piece, not grouped by a box, so making spawns need a double-click would cost the marker workflow for
  * nothing. Below that: the topmost containing box (unless drilling), then the topmost piece, then a zone.
  */
-export function pickAtWorld(doc, wx, wz, { drill = false } = {}) {
+export function pickAtWorld(doc, wx, wz, { drill = false, boxes = true } = {}) {
   const m = markerAtWorld(doc, wx, wz);
   if (m) return m;
   const [cx, cz] = cellOfWorld(wx, wz, doc.globals.cell);
-  if (!drill) {
+  if (!drill && boxes) {
     const b = boxAtCell(doc, cx, cz);
     if (b) return { kind: "box", id: b.id };
   }
@@ -535,29 +536,31 @@ export function uniqueId(existing, base) {
 
 // ── content bounds + mirror ghost ───────────────────────────────────────────
 
-/** Block AABB enclosing every piece, zone, box and marker cell — null for an empty document. */
-export function contentBounds(doc) {
+/** Block AABB enclosing every piece, zone, box and marker cell — null for an empty document. `boxes: false`
+ *  leaves the boxes out, for a view that does not show them. */
+export function contentBounds(doc, { boxes = true } = {}) {
   const cell = doc.globals.cell;
   let b = null;
   const add = (bb) => { b = b ? { min_x: Math.min(b.min_x, bb.min_x), min_z: Math.min(b.min_z, bb.min_z), max_x: Math.max(b.max_x, bb.max_x), max_z: Math.max(b.max_z, bb.max_z) } : { ...bb }; };
   for (const p of doc.pieces) add(rectCellsToBlocks(p.rect, cell));
   for (const z of doc.zones) add(rectCellsToBlocks(z.rect, cell));
-  for (const bx of doc.boxes || []) add(rectCellsToBlocks(bx.rect, cell));
+  if (boxes) for (const bx of doc.boxes || []) add(rectCellsToBlocks(bx.rect, cell));
   for (const m of allMarkers(doc)) { const c = markerCell(doc, m.marker); if (c) add(rectCellsToBlocks([c[0], c[1], 1, 1], cell)); }
   return b;
 }
 
 /**
  * Block AABB enclosing the authored content AND its symmetry ghost images — what fit-to-view and the
- * grid must span so the mirrored half of the board is never cut off. Null for an empty document.
+ * grid must span so the mirrored half of the board is never cut off. Null for an empty document. `boxes: false`
+ * leaves the boxes and their images out.
  */
-export function viewBounds(doc) {
-  let b = contentBounds(doc);
+export function viewBounds(doc, { boxes = true } = {}) {
+  let b = contentBounds(doc, { boxes });
   if (!b) return null;
   const add = (bb) => { b = { min_x: Math.min(b.min_x, bb.min_x), min_z: Math.min(b.min_z, bb.min_z), max_x: Math.max(b.max_x, bb.max_x), max_z: Math.max(b.max_z, bb.max_z) }; };
   for (const img of pieceMirrorImages(doc)) add(img.bounds);
   for (const img of zoneMirrorImages(doc)) add(img.bounds);
-  for (const img of boxMirrorImages(doc)) add(img.bounds);
+  if (boxes) for (const img of boxMirrorImages(doc)) add(img.bounds);
   for (const m of markerMirrorImages(doc)) add({ min_x: m.x, min_z: m.z, max_x: m.x, max_z: m.z });
   return b;
 }

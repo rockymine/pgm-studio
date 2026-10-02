@@ -37,8 +37,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   // from, and re-entering an untouched plan draws it again instead of rebuilding.
   let view = "2d";
   let isoYaw = 30;
+  // Whether boxes are part of this editor's view. They stay in the document either way; the host says who
+  // gets to see them, and the producibility read, which is only about boxes, is asked for only when they show.
+  let boxesShown = false;
   let isoMesh = null, isoStamp = null, isoSeq = 0;
-  function refreshIso() { if (view === "iso" && isoMesh) canvas.drawIso(isoMesh, isoYaw, viewBounds(doc)); }
+  function refreshIso() { if (view === "iso" && isoMesh) canvas.drawIso(isoMesh, isoYaw, viewBounds(doc, { boxes: boxesShown })); }
   function dropIsoMesh() { isoMesh = null; isoStamp = null; }
 
   async function enterIso() {
@@ -47,14 +50,14 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     view = "iso";
 
     const state = toJson(doc);
-    if (isoMesh && isoStamp === state) { canvas.drawIso(isoMesh, isoYaw, viewBounds(doc)); return; }
+    if (isoMesh && isoStamp === state) { canvas.drawIso(isoMesh, isoYaw, viewBounds(doc, { boxes: boxesShown })); return; }
 
     const seq = ++isoSeq;
     const built = await fetchColumns(state);
     if (seq !== isoSeq || view !== "iso") return;
     if (!built.mesh) { canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable", built.error); return; }
     isoMesh = built.mesh; isoStamp = state;
-    canvas.drawIso(isoMesh, isoYaw, viewBounds(doc));
+    canvas.drawIso(isoMesh, isoYaw, viewBounds(doc, { boxes: boxesShown }));
   }
 
   // Answers {mesh} or {error} — see the sketch bridge: a refused build carries a sentence worth showing,
@@ -267,9 +270,9 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     inspectTimer = setTimeout(runLive, 300);
   }
   // One edit fires three live feeds: the structural derivation (interfaces/frontline/lint), the rule evaluator
-  // (score + fired-rule evidence), and the producibility read (could the composer have made this?). They are
-  // independent endpoints with their own stale-response guards.
-  function runLive() { runInspect(); runEvaluate(); runFeasibility(); }
+  // (score + fired-rule evidence), and the producibility read (could the composer have made this?), asked only
+  // while boxes are shown. They are independent endpoints with their own stale-response guards.
+  function runLive() { runInspect(); runEvaluate(); if (boxesShown) runFeasibility(); }
 
   async function runInspect() {
     const seq = ++inspectSeq;
@@ -379,6 +382,16 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     setRole(role) { canvasRole = ROLES.includes(role) ? role : "piece"; canvas.setPieceRole(canvasRole); },
     armBoxKind(kind) { canvasBoxKind = BOX_KINDS.includes(kind) ? kind : "hub"; canvas.setBoxKind(canvasBoxKind); },
     fit() { canvas.fit(); },
+
+    // Show or hide the boxes (see `boxesShown`). Showing them asks for the producibility read the live feeds
+    // skipped while they were hidden.
+    setBoxesShown(on) {
+      const next = !!on;
+      if (next === boxesShown) return;
+      boxesShown = next;
+      canvas.setBoxesShown(next);
+      if (next) scheduleInspect();
+    },
     resize() { canvas.resize(); },
 
     // Swap between the 2-D top-down view and the 3-D one. enterIso tells the host when the preview cannot

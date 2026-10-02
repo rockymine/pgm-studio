@@ -552,6 +552,22 @@ test("pickAtWorld picks the box over its pieces, and drill reaches past it", () 
   assert.deepEqual(pickAtWorld(doc, 0, 10, { drill: true }), { kind: "marker", markerKind: "spawn", index: 0 });
 });
 
+test("a view without boxes neither picks them nor measures them", () => {
+  const doc = normalizeDoc({
+    plan: 2, globals: { symmetry: "rot_180" },
+    pieces: [{ id: "p", role: "piece", rect: [0, 0, 1, 1] }],
+    boxes: [{ id: "b", kind: "hub", rect: [0, 0, 10, 10] }],
+  });
+  assert.deepEqual(pickAtWorld(doc, 2, 2), { kind: "box", id: "b" });
+  assert.deepEqual(pickAtWorld(doc, 2, 2, { boxes: false }), { kind: "piece", id: "p" });
+  assert.deepEqual(pickAtWorld(doc, 30, 30, { boxes: false }), null);
+  assert.deepEqual(contentBounds(doc, { boxes: false }), { min_x: 0, min_z: 0, max_x: 5, max_z: 5 });
+  assert.deepEqual(viewBounds(doc, { boxes: false }), { min_x: -5, min_z: -5, max_x: 5, max_z: 5 });
+  assert.deepEqual(contentBounds(doc), { min_x: 0, min_z: 0, max_x: 50, max_z: 50 });
+  // Leaving the boxes out of the view leaves them in the document.
+  assert.equal(doc.boxes.length, 1);
+});
+
 test("an unboxed plan is unaffected by the group model", () => {
   const doc = normalizeDoc({ plan: 2, pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }] });
   assert.deepEqual(pickAtWorld(doc, 10, 10), { kind: "piece", id: "p" });

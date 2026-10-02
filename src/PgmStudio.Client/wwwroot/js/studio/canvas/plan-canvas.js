@@ -104,6 +104,11 @@ export class PlanCanvas extends CanvasBase {
   // that box groups, and a click outside it leaves. The same model the sketch canvas holds, because two
   // tools with two grouping models is two things to learn for one idea.
   #scopeBoxId = null;
+
+  // Whether boxes are part of this view. A box is the composer's model of a layout, not the plan's, so a host
+  // that does not offer it leaves it out of the drawing, the picking and the fit — the boxes stay in the
+  // document untouched.
+  #boxesShown = false;
   #zoneKind = "build";              // which kind the zone tool draws — build (open now) | water-lane (opens later)
   #drag = null;                     // { mode:'move'|'draw', ... } live pointer op
   #resize = null;                   // { handle, id, kind } while dragging a resize handle
@@ -167,6 +172,19 @@ export class PlanCanvas extends CanvasBase {
   }
   setPieceRole(role) { this.#pieceRole = role; }
   setBoxKind(kind) { this.#boxKind = kind; }
+
+  /** Show or hide the boxes: drawn, picked and counted in the fit when shown, absent from the view when not. */
+  setBoxesShown(on) {
+    this.#boxesShown = !!on;
+    if (!this.#boxesShown) {
+      this.#scopeBoxId = null;
+      if (this.#tool === "box") { this.setTool("select"); this.#cb.onTool?.("select"); }
+      if (this.#sel?.kind === "box") { this.#sel = null; this.#fireSelect(); }
+    }
+    if (!this.#doc) return;
+    this.#paintWorld();
+    this.#refreshOverlay();
+  }
 
   /** Arm which kind the zone tool draws — build (open now) or water-lane (opens mid-match). */
   setZoneKind(kind) { this.#zoneKind = canonicalZoneKind(kind); }
@@ -420,7 +438,7 @@ export class PlanCanvas extends CanvasBase {
     const halfCells = Math.max(1, Math.round(DEFAULT_AREA_BLOCKS / cell / 2));
     const half = halfCells * cell;
     let area = { min_x: -half, min_z: -half, max_x: half, max_z: half };
-    const b = this.#doc ? viewBounds(this.#doc) : null;
+    const b = this.#doc ? viewBounds(this.#doc, { boxes: this.#boxesShown }) : null;
     if (b) {
       const pad = AREA_BUFFER_CELLS * cell;
       area = unionRect(area, snapOut(
@@ -504,8 +522,9 @@ export class PlanCanvas extends CanvasBase {
       for (const hole of img.holes)
         painter.rect(hole, { fill: "var(--bg-canvas)", fillAlpha: 0.5, stroke: accent, width: 0.8, dash: [3, 3] });
     }
-    for (const img of boxMirrorImages(this.#doc))
-      painter.rect(img.bounds, { stroke: BOX_COLORS[img.kind] || BOX_COLORS.mid, width: 1.5, dash: [8, 5], alpha: 0.35 });
+    if (this.#boxesShown)
+      for (const img of boxMirrorImages(this.#doc))
+        painter.rect(img.bounds, { stroke: BOX_COLORS[img.kind] || BOX_COLORS.mid, width: 1.5, dash: [8, 5], alpha: 0.35 });
     const cell = this.#doc.globals.cell;
     for (const m of markerMirrorImages(this.#doc))
       painter.circle(m.x, m.z, cell * 0.28, { fill: OBJECTIVE_COLORS[m.kind] || UNKNOWN_KIND_COLOR, fillAlpha: 0.3 });
@@ -570,6 +589,7 @@ export class PlanCanvas extends CanvasBase {
   // so the border stays visible over terrain. Unfilled by design — a box marks an extent, it never covers
   // what is inside it.
   #paintBoxes() {
+    if (!this.#boxesShown) return;
     const cell = this.#doc.globals.cell;
     for (const b of this.#doc.boxes || [])
       this.#painter.rect(rectCellsToBlocks(b.rect, cell),
@@ -793,7 +813,7 @@ export class PlanCanvas extends CanvasBase {
       if (showLabels || z.id === selId) { const b = rectCellsToBlocks(z.rect, cell); label(z.id, (b.min_x + b.max_x) / 2, b.min_z, "var(--accent-light)"); }
     // A box's id rides its top-left corner in the kind's colour, so several nested envelopes stay tellable
     // apart without their labels stacking on one another.
-    for (const bx of this.#doc.boxes || [])
+    for (const bx of this.#boxesShown ? this.#doc.boxes || [] : [])
       if (showLabels || bx.id === selId) { const b = rectCellsToBlocks(bx.rect, cell); label(bx.id, b.min_x + (b.max_x - b.min_x) * 0.14, b.min_z, BOX_COLORS[bx.kind] || BOX_COLORS.mid, "10"); }
 
     // Gap-link hop distances ride the screen-space overlay so they stay a fixed pixel size at any zoom.
@@ -821,7 +841,7 @@ export class PlanCanvas extends CanvasBase {
   // The box the canvas has entered, or nothing where it has entered none. A context rather than a selection:
   // no handles, no dimension pill, and a fill the selection never carries.
   #drawScopeBox(layer, toS, cell) {
-    if (!this.#scopeBoxId) return;
+    if (!this.#scopeBoxId || !this.#boxesShown) return;
     const box = this.#itemOf({ kind: "box", id: this.#scopeBoxId });
     if (!box) return;
     const b = rectCellsToBlocks(box.rect, cell);
@@ -931,6 +951,7 @@ export class PlanCanvas extends CanvasBase {
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#tool === "select") return this.#selectDown(e, svgPt, cx, cz);
     if (this.#tool === "wall") return this.#toggleWallAt(svgPt.x, svgPt.y);
+    if (this.#tool === "box" && !this.#boxesShown) return;
     if (this.#tool === "piece" || this.#tool === "zone" || this.#tool === "box") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#paintWorld(); return; }
     // Markers snap to the half-cell lattice — feed the fractional cell coordinate, not the floored cell.
     if (MARKER_KINDS.includes(this.#tool)) this.#placeMarker(this.#tool, svgPt.x / cell, svgPt.y / cell);
@@ -953,7 +974,7 @@ export class PlanCanvas extends CanvasBase {
    */
   #refreshHoverCursor(svgPt) {
     if (this.#tool !== "select" || this.#resize) return;
-    const over = pickAtWorld(this.#doc, svgPt.x, svgPt.y);
+    const over = pickAtWorld(this.#doc, svgPt.x, svgPt.y, { boxes: this.#boxesShown });
     this._svg.style.cursor = over ? "pointer" : "default";
   }
 
@@ -1003,8 +1024,9 @@ export class PlanCanvas extends CanvasBase {
    */
   #selectDown(e, svgPt, cx, cz) {
     const prev = this.#sel;
-    const shallow = pickAtWorld(this.#doc, svgPt.x, svgPt.y);
-    const drilled = pickAtWorld(this.#doc, svgPt.x, svgPt.y, { drill: true });
+    const boxes = this.#boxesShown;
+    const shallow = pickAtWorld(this.#doc, svgPt.x, svgPt.y, { boxes });
+    const drilled = pickAtWorld(this.#doc, svgPt.x, svgPt.y, { drill: true, boxes });
     const box = shallow?.kind === "box" ? shallow.id : null;
     // A member here is whatever the drill reaches — the box itself is never one, so a press on a box with
     // nothing under it stays a press on the box.
