@@ -39,7 +39,7 @@ export function openSheet() {
   const groups = Keys.sheet();
   const panel = shell("sheet", "Keyboard shortcuts");
   panel.innerHTML = `
-    <header class="keys-head"><h2>Keyboard</h2><span class="keys-hint">Esc to close</span></header>
+    <header class="keys-head"><h2>Keyboard shortcuts</h2><button type="button" class="keys-close" title="Close (Esc)" aria-label="Close">×</button></header>
     <div class="keys-groups">${groups.map(group => `
       <section class="keys-group">
         <h3>${escape(group.group)}</h3>
@@ -47,7 +47,8 @@ export function openSheet() {
           title="${item.available ? "" : "Not available right now"}"><span class="keys-row-keys">${chordHtml(item.keys)}</span>
           <span class="keys-row-label">${escape(item.label)}</span></div>`).join("")}
       </section>`).join("")}</div>`;
-  if (!groups.length) panel.querySelector(".keys-groups").innerHTML = `<p class="keys-empty">Nothing is bound here.</p>`;
+  panel.querySelector(".keys-close").addEventListener("click", close);
+  if (!groups.length) panel.querySelector(".keys-groups").innerHTML = `<p class="keys-empty">No shortcuts are available here.</p>`;
 }
 
 /** Every live binding by name, filtered as it is typed — what Ctrl/⌘K shows. Enter runs the highlighted row. */
@@ -55,7 +56,7 @@ export function openPalette() {
   const all = Keys.commands();
   const panel = shell("palette", "Command palette");
   panel.innerHTML = `
-    <div class="keys-search"><input class="keys-search-input" type="text" placeholder="Run a command…"
+    <div class="keys-search"><input class="keys-search-input" type="text" placeholder="Search commands…"
          aria-label="Filter commands" autocomplete="off" spellcheck="false" /></div>
     <div class="keys-list" role="listbox"></div>`;
   const input = panel.querySelector(".keys-search-input");
@@ -104,9 +105,9 @@ export function openPalette() {
  *  the sheet they open. Held at a low priority: a tool that genuinely needs one of these chords wins. */
 export function registerOverlayKeys() {
   Keys.register("overlay", [
-    { id: "keys.sheet", keys: ["?", "shift+/"], label: "Show the keyboard shortcuts", group: "Everywhere",
+    { id: "keys.sheet", keys: ["?"], label: "Show the keyboard shortcuts", group: "Everywhere",
       priority: -10, run: openSheet },
-    { id: "keys.palette", keys: "mod+k", label: "Run a command by name", group: "Everywhere",
+    { id: "keys.palette", keys: "mod+k", label: "Open the command palette", group: "Everywhere",
       priority: -10, inField: true, run: openPalette },
   ]);
 }

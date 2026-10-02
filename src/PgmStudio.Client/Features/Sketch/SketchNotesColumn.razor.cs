@@ -93,6 +93,8 @@ public partial class SketchNotesColumn : IDisposable
 
     private string draft = "";
     private string? tag;
+
+    private static readonly IReadOnlyList<SelectOption> TagOptions = Select.Words(NoteTags.All, word => word);
     private string reply = "";
     private bool sending;
     private string? sent;

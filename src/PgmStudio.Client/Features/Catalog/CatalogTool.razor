@@ -4,6 +4,8 @@
 @* Shape catalog (G144): the generation vocabulary as browsable cards — every approach family and body form
    the pipeline can build, rendered server-side, each badged with how far it actually gets. *@
 
+<PageTitle>Shape catalog · PGM Studio</PageTitle>
+
 <StudioShell Bare="true">
   <Bar>
     <Topbar>
@@ -13,10 +15,10 @@
   <ChildContent>
   <div class="lib-body">
     <aside class="lib-filters">
-      <Section Title="Filters">
+      <Section Title="Filter shapes">
 
-        <Field Label="Box kind">
-          <div class="filter-group-options">
+        <Field Label="Kind">
+          <div class="filter-group-options filter-group-options--multi">
             @foreach (var k in Kinds)
             {
               <Chip Active="kindFilter.Contains(k.Token)" Title="@k.Hint"
@@ -25,10 +27,9 @@
           </div>
         </Field>
 
-        <Field Label="Reach">
-          <LabelEnd><span class="text-xs text-muted">how far it gets</span></LabelEnd>
+        <Field Label="Usage">
           <ChildContent>
-            <div class="filter-group-options">
+            <div class="filter-group-options filter-group-options--multi">
               @foreach (var t in Tiers)
               {
                 <Chip Active="tierFilter.Contains(t.Token)" Title="@t.Hint"
@@ -38,12 +39,12 @@
           </ChildContent>
         </Field>
 
-        <Field Label="Family / form">
-          <div class="filter-group-options">
+        <Field Label="Shape family">
+          <div class="filter-group-options filter-group-options--multi">
             @foreach (var family in byFamily.Keys.OrderBy(FamilyOrder))
             {
               <Chip Active="familyFilter.Contains(family)"
-                    OnClick="() => Toggle(familyFilter, family)">@family<span class="filter-chip-n">@Count(byFamily, family)</span></Chip>
+                    OnClick="() => Toggle(familyFilter, family)">@FamilyLabel(family)<span class="filter-chip-n">@Count(byFamily, family)</span></Chip>
             }
           </div>
         </Field>
@@ -53,50 +54,53 @@
           <Button Full OnClick="ClearFilters">Clear filters</Button>
         }
 
-        <p class="section-desc">
-          The counts are the whole catalog, not the filtered slice — a chip says what it would show
-          before it is picked.
-        </p>
+        <p class="section-desc">The number on each option counts the whole catalog, whatever else is ticked.</p>
       </Section>
     </aside>
 
     <main class="lib-main">
       <p class="lib-intro">
-        Every shape the pipeline can put in a box, emitted once and drawn mouth-up. The composer docks all
-        four box edges; the other three orientations are the same shape turned, so only one is shown. Both
-        handednesses are kept — a flip is an authored variant, not a viewing angle.
+        Every shape the generator can place, drawn with its opening at the top. Rotations are not shown, but
+        mirrored versions are.
       </p>
 
       @if (error is not null) { <p class="lib-status">@error</p> }
-      else if (loading) { <p class="lib-status">Emitting the catalog…</p> }
+      else if (loading) { <p class="lib-status">Loading…</p> }
       else
       {
-        <p class="lib-count">@Shown.Count of @total shape@(total == 1 ? string.Empty : "s")</p>
+        <div class="gen-toolbar">
+          <p class="gen-scanned"><strong>@Shown.Count</strong> of @total shape@(total == 1 ? string.Empty : "s")</p>
+          <BoardKey Entries="key" />
+        </div>
         <div class="lib-grid">
           @foreach (var shape in Shown)
           {
-            <div class="lib-card cat-card--@shape.Tier">
-              <div class="lib-card-badges">
-                <span class="lib-badge cat-badge--family">@shape.Family</span>
-                <span class="lib-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
-              </div>
-              <button class="lib-card-fig" @onclick="() => OpenProbe(shape)"
-                      title="Open in the knob panel">@((MarkupString)shape.Svg)</button>
-              <div class="lib-card-foot">
-                <span class="lib-card-meta">@shape.BoxW×@shape.BoxH · w@(shape.CorridorCells)</span>
-                @foreach (var knob in shape.Knobs)
+            <div class="lib-card cat-card--@shape.Tier" @key="shape.Id">
+              <button class="lib-card-fig cat-card-fig" @onclick="() => OpenProbe(shape)"
+                      title="Open in shape settings">@((MarkupString)shape.Svg)</button>
+              <div class="lib-card-body">
+                <div class="lib-card-title">
+                  <span>@FamilyLabel(shape.Family)</span>
+                  <span class="lib-card-meta">@shape.BoxW × @shape.BoxH cells</span>
+                </div>
+                <div class="lib-card-badges">
+                  <span class="lib-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
+                  <span class="lib-badge">@KindLabel(shape.Kind)</span>
+                  <span class="lib-badge" title="Corridor width, in cells">Corridor @shape.CorridorCells</span>
+                  @foreach (var knob in shape.Knobs)
+                  {
+                    <span class="lib-badge cat-knob">@knob</span>
+                  }
+                </div>
+                @if (shape.Note is not null)
                 {
-                  <span class="cat-knob">@knob</span>
+                  <p class="lib-card-note">@shape.Note</p>
                 }
               </div>
-              @if (shape.Note is not null)
-              {
-                <p class="lib-card-note">@shape.Note</p>
-              }
             </div>
           }
         </div>
-        @if (Shown.Count == 0) { <p class="lib-status">No shape matches these filters.</p> }
+        @if (Shown.Count == 0) { <p class="lib-status">No shapes match these filters.</p> }
       }
     </main>
 
@@ -107,16 +111,18 @@
            scrolling to one must not take the shape off screen. *@
         <div class="lib-rail-pin">
           <div class="lib-rail-head">
-            <span class="lib-rail-title">Knob panel</span>
+            <span class="lib-rail-title">Shape settings</span>
             <button class="lib-rail-x" @onclick="CloseProbe" title="Close"><i data-lucide="x" @key="@("probe-x")"></i></button>
           </div>
           <div class="lib-fig @(probe?.Rejection is null ? null : "cat-probe-fig--refused")">
             @if (probe?.Svg is { } svg) { @((MarkupString)svg) }
-            else { <span class="cat-probe-none">no shape</span> }
+            else { <span class="cat-probe-none">No shape</span> }
           </div>
         </div>
 
         <div class="lib-rail-body">
+        <p class="section-desc">Built with the same checks the generator uses. If the shape can't be built,
+          the reason is shown here.</p>
         @if (probe?.Rejection is { } rejection)
         {
           <div class="cat-probe-reject">
@@ -140,7 +146,7 @@
             @foreach (var f in schemaFamilies)
             {
               <Chip Active="probeFamily == f.Token"
-                    Title="@(f.OnProductionMenu ? $"min {f.MinW}×{f.MinH}" : "off the production fill menu")"
+                    Title="@(f.OnProductionMenu ? $"Minimum {f.MinW} × {f.MinH}" : "Not used by the generator")"
                     OnClick="() => PickFamily(f.Token)">@f.Token</Chip>
             }
           </div>
@@ -149,25 +155,25 @@
         <Field Label="Box width">
           <LabelEnd><strong>@probeW</strong></LabelEnd>
           <ChildContent>
-            <input type="range" class="field-range" min="2" max="32" step="1" value="@probeW" @oninput="OnWidth" />
+            <RangeField Min="2" Max="32" Value="probeW" ValueChanged="OnWidth" />
           </ChildContent>
         </Field>
 
         <Field Label="Box height">
           <LabelEnd><strong>@probeH</strong></LabelEnd>
           <ChildContent>
-            <input type="range" class="field-range" min="2" max="32" step="1" value="@probeH" @oninput="OnHeight" />
+            <RangeField Min="2" Max="32" Value="probeH" ValueChanged="OnHeight" />
           </ChildContent>
         </Field>
 
         <Field Label="Corridor width">
           <LabelEnd><strong>w@(probeCw)</strong></LabelEnd>
           <ChildContent>
-            <input type="range" class="field-range" min="2" max="5" step="1" value="@probeCw" @oninput="OnCorridor" />
+            <RangeField Min="2" Max="5" Value="probeCw" ValueChanged="OnCorridor" />
           </ChildContent>
         </Field>
 
-        <Field Label="Mouth">
+        <Field Label="Opening">
           <div class="filter-group-options">
             @foreach (var edge in Edges)
             {
@@ -176,13 +182,13 @@
           </div>
         </Field>
 
-        <Field Label="Knobs">
+        <Field Label="Options">
           <div class="filter-group-options">
-            <Chip Active="probeFlip" OnClick="ToggleFlip">flip</Chip>
+            <Chip Active="probeFlip" OnClick="ToggleFlip">Flip</Chip>
             <Chip Active="probeSideTuck" Disabled="@(!SideTuckAllowed)"
-                  Title="@SideTuckTitle" OnClick="ToggleSideTuck">side-tuck</Chip>
+                  Title="@SideTuckTitle" OnClick="ToggleSideTuck">Side tuck</Chip>
             <Chip Active="probeWoolAtEnd" Disabled="@(!WoolAtEndAllowed)"
-                  Title="@WoolAtEndTitle" OnClick="ToggleWoolAtEnd">wool at end</Chip>
+                  Title="@WoolAtEndTitle" OnClick="ToggleWoolAtEnd">Wool at end</Chip>
           </div>
         </Field>
 
@@ -191,15 +197,11 @@
           <Field Label="Attachment width">
             <LabelEnd><strong>@(probeAttachW == 0 ? "default" : probeAttachW.ToString())</strong></LabelEnd>
             <ChildContent>
-              <input type="range" class="field-range" min="0" max="6" step="1" value="@probeAttachW" @oninput="OnAttachW" />
+              <RangeField Min="0" Max="6" Value="probeAttachW" ValueChanged="OnAttachW" />
             </ChildContent>
           </Field>
         }
 
-        <p class="section-desc">
-          Emitted through <code>BoxFiller</code>, so the profile check and the docking gate run exactly as they
-          do in composition. A refusal is an answer, not an error — it is the emitter's own words.
-        </p>
         </div>
       </aside>
     }

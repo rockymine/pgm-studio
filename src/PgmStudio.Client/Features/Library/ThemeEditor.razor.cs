@@ -76,7 +76,7 @@ public partial class ThemeEditor
                 var binding = Binding(info.Id);
                 var bound = StyleOf(binding.StyleId);
                 return new EditorPart(info.Id, info.Title, "layers",
-                    Badge: !binding.Enabled ? "off" : bound?.Name ?? "built-in");
+                    Badge: !binding.Enabled ? "off" : bound?.Name ?? "default");
             })];
             // The row names the section; what the section says is in the section, so the badge is the one
             // word that tells two themes apart at a glance rather than the whole sentence.
@@ -89,7 +89,7 @@ public partial class ThemeEditor
     private string Footnote => draft is null
         ? ""
         : $"{draft.Buckets.Count(binding => binding.Enabled && binding.StyleId != Unbound)} of "
-          + $"{ThemeBucketInfo.All.Count} buckets bound";
+          + $"{ThemeBucketInfo.All.Count} parts have a pattern";
 
     protected override async Task OnInitializedAsync()
         => styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
@@ -109,7 +109,7 @@ public partial class ThemeEditor
         {
             if (await Library.GetAsync<ThemeDetail>(LibraryKinds.Themes, id) is not { } detail)
             {
-                note = "That theme could not be read.";
+                note = "Couldn't load this palette. Reload the page to try again.";
                 draft = null;
                 return;
             }
@@ -149,7 +149,7 @@ public partial class ThemeEditor
     {
         importError = null;
         var id = await Library.ImportThemeAsync(draftName.Trim(), importJson);
-        if (id is null) { importError = "The library could not read that theme."; return; }
+        if (id is null) { importError = "Couldn't import this JSON. Check that it is a valid palette."; return; }
         await OnSaved.InvokeAsync("saved");
         Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{id}");
     }
@@ -163,8 +163,8 @@ public partial class ThemeEditor
     private Task ToggleBucket(string bucket)
         => Rebind(bucket, binding => binding with { Enabled = !binding.Enabled });
 
-    private Task SetDepth(string bucket, ChangeEventArgs e)
-        => Rebind(bucket, binding => binding with { Depth = Math.Max(1, Parse(e, binding.Depth)) });
+    private Task SetDepth(string bucket, double value)
+        => Rebind(bucket, binding => binding with { Depth = Math.Max(1, (int)value) });
 
     private Task Rebind(string bucket, Func<ThemeBucketDto, ThemeBucketDto> edit)
     {
@@ -183,15 +183,15 @@ public partial class ThemeEditor
     /// not claim.</summary>
     private static readonly IReadOnlyList<SelectOption> BedrockModes =
     [
-        new(AbsoluteBedrock, "blocks up from the bottom"),
-        new(RelativeBedrock, "everything under the painted depth"),
+        new(AbsoluteBedrock, "Blocks up from the bottom"),
+        new(RelativeBedrock, "Everything under the painted depth"),
     ];
 
     private Task SetBedrockMode(string mode)
         => Knob(theme => theme with { BedrockRelative = mode == RelativeBedrock });
 
-    private Task SetBedrockValue(ChangeEventArgs e)
-        => Knob(theme => theme with { BedrockValue = Math.Max(0, Parse(e, theme.BedrockValue)) });
+    private Task SetBedrockValue(double value)
+        => Knob(theme => theme with { BedrockValue = Math.Max(0, (int)value) });
 
     private Task SetRimEdges(string edges)
         => Knob(theme => theme with { RimEdges = RimEdgeModes.Canonical(edges) });
@@ -206,8 +206,6 @@ public partial class ThemeEditor
         return Preview();
     }
 
-    private static int Parse(ChangeEventArgs e, int fallback)
-        => int.TryParse((string?)e.Value, out var value) ? value : fallback;
 
     // ── preview + save ─────────────────────────────────────────────────────────────────────────────
     // Both go through the same request value: the preview is what the save would compose to.
@@ -234,7 +232,7 @@ public partial class ThemeEditor
         var saved = editingId is { } id
             ? await Library.UpdateAsync<ThemeDetail>(LibraryKinds.Themes, id, request)
             : await Library.CreateAsync<ThemeDetail>(LibraryKinds.Themes, request);
-        if (saved is null) { note = "The library refused that theme."; return; }
+        if (saved is null) { note = "Couldn't save this palette. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{saved.Id}");
@@ -246,7 +244,7 @@ public partial class ThemeEditor
         if (draft is null) return;
         var copy = await Library.CreateAsync<ThemeDetail>(LibraryKinds.Themes,
             Saveable(draft) with { Name = $"{draftName.Trim()} copy" });
-        if (copy is null) { note = "The library refused that theme."; return; }
+        if (copy is null) { note = "Couldn't save a copy of this palette. Try again."; return; }
         Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{copy.Id}");
     }
 

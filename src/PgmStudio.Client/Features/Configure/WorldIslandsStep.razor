@@ -10,8 +10,8 @@
       <Section Title="Islands">
         <Actions><Badge Kind="dim">@islands.Count detected</Badge></Actions>
         <ChildContent>
-        <p class="section-desc">Exclude islands that aren't part of the playable layout (observer towers,
-          decor). Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
+        <p class="section-desc">Exclude islands that aren't part of the playable map, such as observer
+          towers or decoration. Symmetry is detected again without them.</p>
         <div class="panel-list">
           @if (Included.Count == 0) { <div class="list-empty">No islands.</div> }
           @foreach (var isl in Included)
@@ -26,7 +26,7 @@
         </div>
         </ChildContent>
       </Section>
-      <Section Title="Excluded Islands">
+      <Section Title="Excluded islands">
         <div class="panel-list">
           @if (ExcludedList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
           @foreach (var isl in ExcludedList)
@@ -55,7 +55,7 @@
       {
         <Section @key="sel.Id">
           <DetailHeader Icon="layers" IconMuted Label="@Label(sel)">
-            <Badge Class="@(IsExcluded(sel) ? "badge--dim" : "badge--success")">@(IsExcluded(sel) ? "excluded" : "included")</Badge>
+            <Badge Class="@(IsExcluded(sel) ? "badge--dim" : "badge--success")">@(IsExcluded(sel) ? "Excluded" : "Included")</Badge>
           </DetailHeader>
           <div class="section-body">
             <Field Label="Centre">
@@ -84,8 +84,7 @@
       {
         <Section>
           <DetailHeader Icon="layers" IconMuted Label="Islands" />
-          <p class="section-desc">Select an island — in the list or on the canvas — to see its details and
-            exclude it.</p>
+          <p class="section-desc">Select an island in the list or on the canvas.</p>
         </Section>
       }
   </Inspector>

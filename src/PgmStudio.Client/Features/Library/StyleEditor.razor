@@ -9,11 +9,11 @@
                Outline="Outline" Selected="@selected" OnSelect="Pick"
                Footnote="@Footnote" Note="@note">
   <Views>
-    <LayerChip Icon="grid" Active="@(view == Plan)" Title="One course, from above"
+    <LayerChip Icon="grid" Active="@(view == Plan)" Title="One layer, seen from above"
                OnClick="() => view = Plan">Plan</LayerChip>
-    <LayerChip Icon="layers" Active="@(view == Section)" Title="The same material cut open downward"
+    <LayerChip Icon="layers" Active="@(view == Section)" Title="A vertical cut through the material"
                OnClick="() => view = Section">Section</LayerChip>
-    <LayerChip Icon="squares-intersect" Active="@(view == Both)" Title="Both views, side by side"
+    <LayerChip Icon="squares-intersect" Active="@(view == Both)" Title="Plan and section side by side"
                OnClick="() => view = Both">Both</LayerChip>
   </Views>
   <Preview>
@@ -31,7 +31,7 @@
     }
     else
     {
-      <p class="section-desc">That part of the material is gone — pick another row.</p>
+      <p class="section-desc">This part no longer exists. Pick another row.</p>
     }
   </Fields>
   <Actions>

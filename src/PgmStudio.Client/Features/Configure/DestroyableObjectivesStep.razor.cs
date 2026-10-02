@@ -182,6 +182,12 @@ public partial class DestroyableObjectivesStep
 
     private void SetName(D.Destroyable goal, string name) { goal.Name = name.Trim(); Write(); }
 
+    private IReadOnlyList<SelectOption> StyleOptions
+        => [.. defaults.StyleOptions.Select(style => new SelectOption(style, style))];
+
+    private IReadOnlyList<SelectOption> MaterialOptions
+        => [.. defaults.MaterialOptions.Select(materials => new SelectOption(materials, materials))];
+
     private void SetStyle(D.Destroyable goal, string style) { goal.Style = style; Write(); }
 
     private void SetMaterials(D.Destroyable goal, string materials) { goal.Materials = materials; Write(); }
@@ -208,12 +214,12 @@ public partial class DestroyableObjectivesStep
         {
             if (destroyables[i].Volume is not { } volume) continue;
             shapes.Add(Shape($"destroyable-{i}", volume, TeamHex(destroyables[i].Owner), i == selected,
-                $"destroyable · {(string.IsNullOrEmpty(destroyables[i].Owner) ? "no team" : TeamName(destroyables[i].Owner))}"));
+                $"Destroyable · {(string.IsNullOrEmpty(destroyables[i].Owner) ? "no team" : TeamName(destroyables[i].Owner))}"));
         }
         var n = 0;
         foreach (var proposal in Unconfirmed)
             if (proposal.Volume is { } volume)
-                shapes.Add(Shape($"destroyable-proposal-{n++}", volume, "#8a8f98", false, "proposed destroyable"));
+                shapes.Add(Shape($"destroyable-proposal-{n++}", volume, "#8a8f98", false, "Suggested destroyable"));
         await canvas.SetAuthorRegionsAsync(shapes);
     }
 

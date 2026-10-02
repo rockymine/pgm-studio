@@ -12,23 +12,22 @@
     <Section Title="Pre-flight checks">
       <Actions>
         @if (running) { <Badge Kind="neutral">Running…</Badge> }
-        else if (data is { IntentMap: false }) { <Badge Kind="dim">n/a</Badge> }
+        else if (data is { IntentMap: false }) { <Badge Kind="dim">Not needed</Badge> }
         else if (data is { ExportReady: true }) { <Badge Kind="success">Ready</Badge> }
         else { <Badge Kind="error">Blocked</Badge> }
       </Actions>
       <ChildContent>
-        <p class="section-desc">A generated map can be structurally valid yet <strong>unplayable</strong>, so
-          these four checks run before export. <strong>Traversability</strong> is the closing gate — a
-          disconnected spawn–wool chain blocks export with HTTP&nbsp;409.</p>
+        <p class="section-desc">These checks find maps that are valid but can't be played. Export is blocked
+          until every spawn and wool are connected.</p>
 
         @if (error is not null)
         {
-          <div class="panel-warning"><strong>Couldn't run pre-flight.</strong> @error</div>
+          <div class="panel-warning"><strong>Couldn't run the checks.</strong> Select Re-run checks to try again. (@error)</div>
         }
         else if (data is { IntentMap: false })
         {
-          <p class="panel-empty-msg" style="text-align:left">This map wasn't authored from intent, so there's
-            nothing to pre-flight. Export is unconditional for imported corpus maps.</p>
+          <p class="panel-empty-msg panel-empty-msg--left">This map wasn't set up in this wizard, so there is
+            nothing to check. It can be exported as it is.</p>
         }
         else
         {
@@ -45,9 +44,8 @@
             @* The validated map — one static top-down image (islands · bridges · spawn↔wool connectivity). *@
             @if (view is { } v)
             {
-              <div class="canvas-surface canvas-surface--svg" style="margin-top:var(--space-3);min-height:240px;max-height:380px;border-radius:var(--radius-sm);overflow:hidden">
-                <svg viewBox="@F(v.MinX) @F(v.MinZ) @F(v.W) @F(v.H)" preserveAspectRatio="xMidYMid meet"
-                     style="width:100%;height:100%;display:block">
+              <div class="canvas-surface canvas-surface--svg preflight-board">
+                <svg viewBox="@F(v.MinX) @F(v.MinZ) @F(v.W) @F(v.H)" preserveAspectRatio="xMidYMid meet">
                   @foreach (var b in v.Bridges)
                   {
                     <rect x="@F(b.X)" y="@F(b.Z)" width="@F(b.W)" height="@F(b.H)"
@@ -75,12 +73,12 @@
                     @if (d.Spawn)
                     {
                       <circle cx="@F(d.X)" cy="@F(d.Z)" r="@F(MarkerR)" fill="@d.Color"
-                              stroke="@(d.Isolated ? "#e5534b" : "white")" stroke-width="@(d.Isolated ? IsoSw : Sw)"><title>@d.Name spawn@(d.Isolated ? " — cut off" : "")</title></circle>
+                              stroke="@(d.Isolated ? "#e5534b" : "white")" stroke-width="@(d.Isolated ? IsoSw : Sw)"><title>@d.Name spawn@(d.Isolated ? " (cut off)" : "")</title></circle>
                     }
                     else
                     {
                       <rect x="@F(d.X - MarkerR)" y="@F(d.Z - MarkerR)" width="@F(MarkerR * 2)" height="@F(MarkerR * 2)" fill="@d.Color"
-                            stroke="@(d.Isolated ? "#e5534b" : "white")" stroke-width="@(d.Isolated ? IsoSw : Sw)"><title>@d.Name wool@(d.Isolated ? " — cut off" : "")</title></rect>
+                            stroke="@(d.Isolated ? "#e5534b" : "white")" stroke-width="@(d.Isolated ? IsoSw : Sw)"><title>@d.Name wool@(d.Isolated ? " (cut off)" : "")</title></rect>
                     }
                   }
                   @foreach (var mo in v.Monuments)
@@ -91,42 +89,42 @@
               </div>
               <p class="section-desc">
                 <Badge Class="@(data?.Traversability is { Connected: true } ? "badge--success" : "badge--error")">
-                  @(data?.Traversability is { Connected: true } ? "connected" : $"{data?.Traversability?.ComponentCount} components")
+                  @(data?.Traversability is { Connected: true } ? "Connected" : $"{data?.Traversability?.ComponentCount} separate parts")
                 </Badge>
-                Top-down view — islands · <span style="color:var(--canvas-add-stroke)">buildable bridges</span> ·
-                <strong>dashed box</strong> = spawn protection · <strong>filled box</strong> = wool room ·
-                <strong>●</strong> spawn (team colour), <strong>■</strong> wool &amp; <strong>◆</strong> its monument
-                (dye colour). A <span style="color:#e5534b">red ring</span> marks a node cut off from the
-                spawn↔wool chain.
+                Islands · <span class="preflight-key--bridge">buildable bridges</span> ·
+                <strong>dashed box:</strong> spawn protection · <strong>filled box:</strong> wool room ·
+                <strong>●</strong> spawn · <strong>■</strong> wool · <strong>◆</strong> monument.
+                A <span class="preflight-key--cut-off">red ring</span> marks a spawn or wool that is cut off.
               </p>
             }
 
             @if (Blocked && Failed("traversability") is { } tf)
             {
               <div class="panel-warning">
-                <strong>Export blocked.</strong> @tf.Detail. Return to the <strong>Build</strong> step and bridge
-                the gap — traversability re-runs when you come back.
+                <strong>Export blocked.</strong> @tf.Detail. Go back to the <strong>Build</strong> phase and add a
+                bridge across the gap. The checks run again when you return.
               </div>
             }
             else if (Blocked && Failed("buildability") is { } bf)
             {
-              <div class="panel-warning"><strong>Placement over void.</strong> @bf.Detail.</div>
+              <div class="panel-warning"><strong>Something is placed over the void.</strong> @bf.Detail.</div>
             }
             else if (Blocked && Failed("round-trip") is { } rf)
             {
               <div class="panel-warning">
-                <strong>Generator/codec bug.</strong> @rf.Detail — the map can't serialize to valid XML.
+                <strong>Couldn't write valid XML.</strong> @rf.Detail. This is a problem in the studio, not in
+                your map.
               </div>
             }
 
-            <div class="console-wrap" style="margin-top:var(--space-3)">
+            <div class="console-wrap console-wrap--separated">
               <div class="console-header">
-                <span class="console-title">Generate &amp; validate log</span>
+                <span class="console-title">Check log</span>
               </div>
               <div class="console-output">
                 @if (running)
                 {
-                  <div class="console-line console-line--info">running pre-flight…</div>
+                  <div class="console-line console-line--info">Running checks…</div>
                 }
                 else
                 {
@@ -142,13 +140,13 @@
           <div class="section-footer section-footer--separated">
             @if (data is { ExportReady: true })
             {
-              <Badge Kind="success">Export gate open</Badge>
-              <span class="panel-save-status">advance to the XML step to export</span>
+              <Badge Kind="success">Ready to export</Badge>
+              <span class="panel-save-status">Go to the XML step to export.</span>
             }
             else
             {
-              <Badge Kind="error">Export gate blocked</Badge>
-              <span class="panel-save-status">fix the failing check, then re-run</span>
+              <Badge Kind="error">Export blocked</Badge>
+              <span class="panel-save-status">Fix the failed check, then run the checks again.</span>
             }
             <Button OnClick="RunAsync" Disabled="@running">
               <i data-lucide="refresh-cw"></i> Re-run checks

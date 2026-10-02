@@ -17,9 +17,17 @@ public partial class SketchInfoPhase
     [Parameter] public string Mode { get; set; } = "rot_180";
     [Parameter] public double CenterX { get; set; }
     [Parameter] public double CenterZ { get; set; }
-    [Parameter] public EventCallback<ChangeEventArgs> OnModeChange { get; set; }
+    [Parameter] public EventCallback<string> OnModeChange { get; set; }
     [Parameter] public EventCallback<double> OnCenterX { get; set; }
     [Parameter] public EventCallback<double> OnCenterZ { get; set; }
+
+    private static readonly IReadOnlyList<SelectOption> ModeOptions =
+    [
+        new("mirror_x", "Mirror X"),
+        new("mirror_z", "Mirror Z"),
+        new("rot_180", "Rotate 180°"),
+        new("rot_90", "Rotate 90°"),
+    ];
 
     private int step;   // 0 = Identity, 1 = Settings
     private Task OnNextStep() { if (step < Steps.Length - 1) { step++; return Task.CompletedTask; } return OnNext.InvokeAsync(); }
@@ -42,7 +50,7 @@ public partial class SketchInfoPhase
                 authors.Add(new AuthorRow { Uuid = a.Uuid, Name = a.Name ?? "", Contribution = a.Contribution ?? "" });
             dirty = false; saveStatus = null;
         }
-        catch { saveStatus = "Failed to load."; }
+        catch { saveStatus = "Couldn't load the map details. Reload the page to try again."; }
     }
 
     private void Dirty() { dirty = true; saveStatus = null; }
@@ -64,9 +72,9 @@ public partial class SketchInfoPhase
         {
             var resp = await Http.PatchAsJsonAsync($"api/map/{Slug}/metadata", payload);
             if (resp.IsSuccessStatusCode) { dirty = false; saveStatus = "Saved."; }
-            else saveStatus = $"Save failed ({(int)resp.StatusCode}).";
+            else saveStatus = $"Couldn't save (HTTP {(int)resp.StatusCode}). Try again.";
         }
-        catch { saveStatus = "Save failed."; }
+        catch { saveStatus = "Couldn't save. Try again."; }
         StateHasChanged();
     }
 }

@@ -171,9 +171,12 @@ public partial class WorldCanvas
         await ResetViewAsync();
     }
 
-    private async Task OnFitIslandSelect(ChangeEventArgs e)
+    private IReadOnlyList<SelectOption> IslandOptions
+        => [.. islandIds.Select(id => new SelectOption(id.ToString(), $"Island {id}"))];
+
+    private async Task OnFitIslandSelect(string picked)
     {
-        islandSel = e.Value?.ToString() ?? "";
+        islandSel = picked;
         if (int.TryParse(islandSel, out var id)) await FitIslandAsync(id);
     }
 

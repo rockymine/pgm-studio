@@ -9,44 +9,23 @@ namespace PgmStudio.Pgm.Render;
 /// <summary>
 /// Renders a plan as a self-contained SVG of the <b>full fanned board</b> — every piece/zone fanned to its
 /// orbit images, coloured by role (the base unit at full strength, the fanned images faint), zones drawn as
-/// dashed build bands, and the spawn/wool/iron markers placed at their fanned cells. Pure over a
+/// dashed build bands, and the spawn/wool/iron markers placed at their fanned cells. It carries no legend: a
+/// page showing boards draws <see cref="PlanBoardPalette.Key"/> once beside them. Pure over a
 /// <see cref="PlanModel"/>, the geometry built once by <see cref="PlanBoardScene"/> and shared with
 /// <see cref="PlanBoardPng"/> so the two encodings of one plan can never disagree with each other. This is the
 /// browse feed's card image and, scaled up, its detail view.
 /// </summary>
 public static class PlanBoardSvg
 {
-    /// <summary>Role swatches, in the order <see cref="PlanBoardPalette.RoleName"/> would ever return them, plus
-    /// the two zone kinds — the key every plan render carries baked in rather than left to a caption
-    /// (<c>B95</c>, <c>docs/tools/capabilities.md</c>'s renderer section: an image is a check, not a source of
-    /// meaning). A reader with the picture and not this key is the failure the legend exists to close.</summary>
-    private static readonly (string Label, string Color)[] LegendRows =
-    [
-        ("hub", "#a78bfa"), ("spawn", "#34d399"), ("wool", "#fbbf24"), ("frontline", "#fb923c"), ("other", "#64748b"),
-        ("build zone", BuildZoneColor), ("water lane (hatched)", WaterLaneColor),
-    ];
-
-    private const int LegendRowHeight = 16;
-    private const int LegendSwatch = 10;
-
     /// <summary><b>scale</b> is pixels per proxy cell.
     /// <para><b>pad</b> — Pixel margin around the board.</para></summary>
     public static string Render(PlanModel plan, int scale = 9, int pad = 10)
     {
         var scene = PlanBoardScene.Build(plan);
-        var legendHeight = pad + LegendRows.Length * LegendRowHeight;
         if (scene is null)
-        {
-            int emptyWidth = 2 * pad, emptyHeight = 2 * pad + legendHeight;
-            var emptySvg = new StringBuilder();
-            emptySvg.Append($"<svg viewBox='0 0 {emptyWidth} {emptyHeight}' width='{emptyWidth}' height='{emptyHeight}' xmlns='http://www.w3.org/2000/svg'>");
-            AppendLegend(emptySvg, pad, 2 * pad);
-            emptySvg.Append("</svg>");
-            return emptySvg.ToString();
-        }
+            return $"<svg viewBox='0 0 {2 * pad} {2 * pad}' width='{2 * pad}' height='{2 * pad}' xmlns='http://www.w3.org/2000/svg'></svg>";
 
-        int boardWidth = scene.Width * scale + 2 * pad, boardHeight = scene.Height * scale + 2 * pad;
-        int vw = boardWidth, vh = boardHeight + legendHeight;
+        int vw = scene.Width * scale + 2 * pad, vh = scene.Height * scale + 2 * pad;
         double X(double cx) => (cx - scene.MinX) * scale + pad;
         double Z(double cz) => (cz - scene.MinZ) * scale + pad;
 
@@ -85,23 +64,8 @@ public static class PlanBoardSvg
         foreach (var marker in scene.Markers.Where(m => m.Kind == "wool")) DrawMarker(svg, marker, X, Z);
         foreach (var marker in scene.Markers.Where(m => m.Kind == "spawn")) DrawMarker(svg, marker, X, Z);
 
-        AppendLegend(svg, pad, boardHeight);
         svg.Append("</svg>");
         return svg.ToString();
-    }
-
-    /// <summary>The role/zone key, drawn as one swatch-plus-label row per <see cref="LegendRows"/> entry,
-    /// starting at <paramref name="top"/> — the strip beneath the board itself.</summary>
-    private static void AppendLegend(StringBuilder svg, int pad, int top)
-    {
-        var y = top;
-        foreach (var (label, color) in LegendRows)
-        {
-            svg.Append($"<rect x='{pad}' y='{N(y + 3)}' width='{LegendSwatch}' height='{LegendSwatch}' fill='{color}'/>");
-            svg.Append($"<text x='{pad + LegendSwatch + 5}' y='{N(y + 3 + LegendSwatch - 1.5)}' "
-                + "font-family='monospace' font-size='11' fill='#e2e8f5'>" + System.Net.WebUtility.HtmlEncode(label) + "</text>");
-            y += LegendRowHeight;
-        }
     }
 
     private static void DrawMarker(StringBuilder svg, MarkerFan marker, Func<double, double> X, Func<double, double> Z)

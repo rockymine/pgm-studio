@@ -1,11 +1,11 @@
 @namespace PgmStudio.Client.Components
 
-@* The inspector detail head — an icon chip (geo-type-icon, optionally muted or tinted via IconStyle),
+@* The inspector detail head — an icon chip (geo-type-icon, optionally muted or tinted with IconTint),
    the detail label (optionally monospaced), and an optional trailing slot for status badges (a bare
    Badge, or a .detail-header-badges wrapper of several). *@
 
 <div class="detail-header">
-    <span class="@IconCls" style="@IconStyle"><i data-lucide="@Icon"></i></span>
+    <span class="@IconCls" style="@(IconTint is null ? null : $"--icon-tint: {IconTint}")"><i data-lucide="@Icon"></i></span>
     <span class="@LabelCls">@Label</span>
     @ChildContent
 </div>
@@ -13,7 +13,7 @@
 @code {
     [Parameter] public string? Icon { get; set; }        // lucide glyph
     [Parameter] public bool IconMuted { get; set; }       // detail-icon--muted
-    [Parameter] public string? IconStyle { get; set; }    // inline style on the icon chip (e.g. a colour)
+    [Parameter] public string? IconTint { get; set; }     // the icon chip's colour (a team's, a wool's)
     [Parameter] public string? Label { get; set; }
     [Parameter] public bool Mono { get; set; }            // detail-label--mono
     [Parameter] public RenderFragment? ChildContent { get; set; }   // trailing badge(s)

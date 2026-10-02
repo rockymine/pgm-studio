@@ -10,11 +10,11 @@
    on the chip: a bucket swatch is a server render of a sample plateau, so a strip of them would be one
    round-trip per theme on every entry to the phase. *@
 
-<div class="canvas-theme-strip" role="group" aria-label="Themes">
+<div class="canvas-theme-strip" role="group" aria-label="Palettes">
   <span class="canvas-theme-strip-label">Paint</span>
   @if (Themes.Count == 0)
   {
-    <span class="canvas-theme-strip-empty">No themes on this board yet</span>
+    <span class="canvas-theme-strip-empty">No palettes yet</span>
   }
   else
   {
@@ -25,13 +25,13 @@
                 class="canvas-theme-swatch @(id == Brush ? "canvas-theme-swatch--on" : null)"
                 title="@Title(id)" @onclick="() => OnTake.InvokeAsync(id)">
           <span class="canvas-theme-swatch-name">@id</span>
-          @if (id == MapTheme) { <span class="canvas-theme-swatch-tag" title="Paints every cell no shape claims">def</span> }
+          @if (id == MapTheme) { <span class="canvas-theme-swatch-tag" title="Default palette: paints ground that no shape covers">default</span> }
         </button>
       }
     </div>
   }
   <button type="button" class="canvas-theme-add @(AddOpen ? "canvas-theme-add--on" : null)"
-          title="Add a theme from the library" aria-pressed="@AddOpen" @onclick="OnAdd">
+          title="Add a palette from the library" aria-pressed="@AddOpen" @onclick="OnAdd">
     <i data-lucide="plus" @key="@("theme-plus")"></i>
   </button>
 </div>
@@ -49,6 +49,6 @@
     [Parameter] public EventCallback OnAdd { get; set; }
 
     private string Title(string id) => id == Brush
-        ? $"Put “{id}” down"
-        : $"Take “{id}” in hand, then click a shape to paint it (Shift-click paints a whole group)";
+        ? $"Stop painting with “{id}”"
+        : $"Paint with “{id}”. Click a shape, or Shift-click to paint its group.";
 }

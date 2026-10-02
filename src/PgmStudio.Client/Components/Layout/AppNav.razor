@@ -20,18 +20,21 @@
         }
     </div>
     <div class="app-nav-right">
+        <TextSizeMenu />
         <ThemeToggle />
         <AccountMenu />
     </div>
 </nav>
 
 @code {
-    private sealed record NavLink(string Href, string Label, bool AdminOnly = false);
+    /// <summary>One tool link. <paramref name="Under"/> is the path it is lit under when that is wider than the
+    /// page it opens: the plan editor opens a new plan and is lit on every plan row too.</summary>
+    private sealed record NavLink(string Href, string Label, bool AdminOnly = false, string? Under = null);
 
     private static readonly NavLink[] Links =
     [
         new("maps", "Maps"),
-        new("plan-editor", "Plan editor"),
+        new("plans/new", "Plan editor", Under: "plans"),
         new("generator", "Generator"),
         new("catalog", "Catalog"),
         new("library", "Library"),
@@ -50,7 +53,8 @@
     private bool IsHere(NavLink link)
     {
         var path = Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0];
-        return path == link.Href || path.StartsWith(link.Href + "/", StringComparison.Ordinal);
+        var under = link.Under ?? link.Href;
+        return path == under || path.StartsWith(under + "/", StringComparison.Ordinal);
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>

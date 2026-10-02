@@ -1,0 +1,355 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   KEYBOARD — the sheet that lists the keymap and the palette that runs it.
+   Both are drawn by keys-overlay.js from the same registry the dispatcher
+   reads, so what is styled here is whatever the app actually binds.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.keys-overlay { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start; justify-content: center; }
+.keys-backdrop { position: absolute; inset: 0; background: rgb(0 0 0 / .48); }
+
+.keys-panel {
+  position: relative; z-index: 1; margin-top: 9vh; width: min(760px, calc(100vw - 32px));
+  max-height: 74vh; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: var(--radius-md, 6px); box-shadow: var(--shadow-float);
+}
+.keys-panel--palette { width: min(560px, calc(100vw - 32px)); }
+
+.keys-head {
+  display: flex; align-items: center; gap: var(--space-3); flex-shrink: 0;
+  padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border);
+}
+.keys-head h2 { margin: 0; font-size: var(--font-lg); color: var(--text-bright); font-weight: 600; }
+.keys-close {
+  margin-left: auto; width: calc(28px * var(--ui-scale)); height: calc(28px * var(--ui-scale));
+  border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary);
+  font: inherit; font-size: var(--font-xl); line-height: 1; cursor: pointer;
+}
+.keys-close:hover { background: var(--bg-vis-hover); color: var(--text-strong); }
+
+.keys-groups {
+  overflow-y: auto; padding: var(--space-3) var(--space-4) var(--space-4);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4);
+  align-content: start;
+}
+.keys-group h3 {
+  margin: 0 0 var(--space-2); font-size: var(--font-xs); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 600;
+}
+.keys-row { display: flex; align-items: baseline; gap: var(--space-2); padding: 3px 0; font-size: var(--font-base); }
+.keys-row-keys { flex: 0 0 auto; display: flex; gap: 3px; }
+.keys-row-label { color: var(--text-secondary); min-width: 0; }
+.keys-empty { padding: var(--space-4); color: var(--text-muted); font-size: var(--font-sm); text-align: center; }
+
+.keys-chord {
+  font-family: ui-monospace, monospace; font-size: var(--font-xs); color: var(--text-primary);
+  background: var(--bg-base); border: 1px solid var(--border); border-bottom-width: 2px;
+  border-radius: var(--radius-sm); padding: 1px 5px; white-space: nowrap;
+}
+
+.keys-search { flex-shrink: 0; padding: var(--space-2); border-bottom: 1px solid var(--border); }
+.keys-search-input {
+  width: 100%; height: 34px; padding: 0 var(--space-2); font: inherit; font-size: var(--font-md);
+  color: var(--text-bright); background: var(--bg-base); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); outline: none;
+}
+.keys-search-input:focus { border-color: var(--accent); }
+
+.keys-list { overflow-y: auto; padding: var(--space-1); display: flex; flex-direction: column; gap: 1px; }
+.keys-item {
+  display: flex; align-items: center; gap: var(--space-2); width: 100%; text-align: left;
+  padding: 6px 8px; border: 0; border-radius: var(--radius-sm); background: transparent;
+  color: var(--text-primary); font: inherit; font-size: var(--font-base); cursor: pointer;
+}
+.keys-item:hover { background: var(--bg-selected-hover); }
+.keys-item--at { background: var(--bg-selected); color: var(--text-strong); }
+.keys-item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.keys-item-group { flex: 0 0 auto; font-size: var(--font-xs); color: var(--text-muted); }
+.keys-item-keys { flex: 0 0 auto; display: flex; gap: 3px; }
+
+/* ── the storey strip ──
+   Which layer is being drawn on, floating at the foot of the canvas beside the dock. A layer is the
+   board's, not a phase's, so this is chrome rather than a panel: every phase that draws the canvas has it,
+   and whatever is placed lands on the layer it names. */
+.canvas-layer-strip {
+  position: absolute; left: 10px; bottom: 16px; z-index: 3;
+  display: flex; align-items: stretch; gap: 2px; padding: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--canvas-float-bg); backdrop-filter: blur(6px);
+  border: 1px solid var(--canvas-float-border); box-shadow: var(--canvas-float-shadow);
+  /* The dock is centred on the canvas (`.canvas-dock`, left 50% and translated back by half its width), so
+     what is left for the strip is the half-canvas beside it less the dock's own half, this element's own
+     left offset and a gap. Measured: the Draw dock is 350px wide, so 175 of half-width, and the number here
+     clears one up to about 490 — the phases carrying the most tools. Held as a calc against 50% rather than
+     as a share of the width, because the dock is a constant number of pixels while a share is not: on a
+     narrow canvas a percentage keeps growing past it. */
+  max-width: calc(50% - 260px);
+}
+/* Only the tabs scroll. `min-width: 0` is what lets a flex child shrink below its content and overflow at
+   all; without it the strip grows to fit the tabs and the cap above does nothing. */
+.canvas-layer-tabs {
+  display: flex; align-items: stretch; gap: 2px;
+  min-width: 0; overflow-x: auto; overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+.canvas-layer-strip-label, .canvas-layer-add { flex: none; }
+.canvas-layer-strip-label {
+  display: flex; align-items: center; padding: 0 6px;
+  font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
+}
+/* A tab and its delete are one pill, so the wrap carries the state and the two buttons inside it stay
+   transparent — a delete nested in the tab button would be a button inside a button. */
+.canvas-layer-tab-wrap {
+  display: flex; align-items: stretch; border-radius: var(--radius-sm); color: var(--text-secondary);
+}
+.canvas-layer-tab-wrap:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-layer-tab-wrap--on { background: var(--bg-selected); color: var(--text-strong); }
+.canvas-layer-tab {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+  padding: 3px 8px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: left;
+}
+.canvas-layer-tab-name { font-size: var(--font-sm); line-height: 1.2; max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.canvas-layer-tab-y { font-family: ui-monospace, monospace; font-size: var(--font-xs); color: var(--text-muted); line-height: 1.2; }
+.canvas-layer-tab-wrap--on .canvas-layer-tab-y { color: var(--accent-lighter); }
+/* Shown only on the hovered or active tab — a strip of storeys reads as a switch, and a delete on every one
+   of them reads as a list of deletes. Faded rather than hidden, and its slot held either way: a strip that
+   reflows as the pointer crosses it moves the target out from under the press that was aiming for it, and a
+   `visibility: hidden` button cannot be pressed at all until the hover it needs has already resolved. Nobody
+   presses one they cannot see — reaching it puts the pointer inside the tab, which is what fades it in. */
+.canvas-layer-del {
+  display: grid; place-items: center; width: 18px; padding: 0; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  opacity: 0; transition: opacity 90ms linear;
+}
+.canvas-layer-tab-wrap:hover .canvas-layer-del,
+.canvas-layer-tab-wrap--on .canvas-layer-del { opacity: 1; }
+.canvas-layer-del:hover { color: var(--color-error); }
+.canvas-layer-del svg { width: var(--icon-xs); height: var(--icon-xs); }
+.canvas-layer-add {
+  display: grid; place-items: center; width: 26px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.canvas-layer-add:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-layer-add svg { width: var(--icon-xs); height: var(--icon-xs); }
+/* ── the theme strip ──
+   The board's themes, floating above the dock: what is in hand, and what a click will paint. A theme is the
+   board's rather than a phase's, so like the storey strip this is chrome. It scrolls sideways, which is the
+   axis with room — a board carries anything from one theme to a couple of dozen. */
+.canvas-theme-strip {
+  position: absolute; left: 50%; bottom: 62px; transform: translateX(-50%); z-index: 3;
+  display: flex; align-items: center; gap: 4px; padding: 3px 3px 3px 4px;
+  max-width: calc(100% - 20px);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-float-bg); backdrop-filter: blur(6px);
+  border: 1px solid var(--canvas-float-border); box-shadow: var(--canvas-float-shadow);
+}
+.canvas-theme-strip-label {
+  flex: 0 0 auto; padding: 0 4px;
+  font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
+}
+.canvas-theme-strip-empty { padding: 3px 6px; font-size: var(--font-sm); color: var(--text-muted); }
+.canvas-theme-swatches { display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: thin; }
+.canvas-theme-swatch {
+  display: flex; align-items: center; gap: 5px; flex: 0 0 auto;
+  padding: 3px 8px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-secondary); font: inherit; cursor: pointer;
+}
+.canvas-theme-swatch:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-theme-swatch--on { background: var(--bg-selected); color: var(--text-strong); }
+.canvas-theme-swatch-name {
+  font-size: var(--font-sm); line-height: 1.2; max-width: 14ch;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* The one theme that paints without being placed. */
+.canvas-theme-swatch-tag {
+  font-size: var(--font-xs); letter-spacing: .06em; text-transform: uppercase; color: var(--accent-light);
+}
+.canvas-theme-add {
+  display: grid; place-items: center; flex: 0 0 auto; width: 26px; height: 24px;
+  border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.canvas-theme-add:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-theme-add--on { background: var(--bg-selected); color: var(--text-strong); }
+.canvas-theme-add svg { width: var(--icon-xs); height: var(--icon-xs); }
+
+/* The library rows the add panel offers, as a plain list rather than a select: a theme is picked by
+   recognising its name, and a dropdown hides every name but one. The panel it sits in scrolls, so this does
+   not — two nested scrolls over one list is one too many. */
+.lib-picklist { display: flex; flex-direction: column; gap: 2px; }
+
+/* A chord the tool has but cannot run yet — a delete with nothing selected. Listed, because a chord hidden
+   until it works is a chord nobody learns; dimmed, because it will not answer now. */
+.keys-row--off { opacity: .45; }
+
+/* ── Access: who is signed in, and a page that opens read-only ─────────────────────────────────── */
+
+/* A disabled fieldset greys every field and button inside it; it carries none of the box a fieldset draws. */
+.readonly-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.readonly-fieldset:disabled { opacity: 0.55; }
+
+.invite-link {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-2);
+}
+.invite-link .field-input { flex: 1; font-family: ui-monospace, monospace; font-size: var(--font-xs); }
+
+/* A player's head over the initial beneath, eight pixels drawn large; a head that does not load leaves the
+   initial showing. <PlayerHead> passes its edge as --head-size and the head as --head-image. */
+.author-mark { position: relative; overflow: hidden; }
+.player-head {
+  width: var(--head-size);
+  height: var(--head-size);
+  font-size: round(down, calc(var(--head-size) * 5 / 8), 1px);
+}
+.player-head-face {
+  position: absolute;
+  inset: 0;
+  background-image: var(--head-image);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+.user-actions { display: flex; flex: none; align-items: center; gap: var(--space-2); }
+.user-actions .field-input { width: auto; }
+.invite-link .field-input--slim { width: auto; flex: none; }
+
+/* ── The studio's own bar, the same on every page ──────────────────────────────────────────────── */
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 var(--space-3) 0 var(--space-4);
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
+  color: var(--nav-text);
+  font-size: var(--font-md);
+}
+.app-nav-home { display: flex; align-items: baseline; gap: 4px; text-decoration: none; color: var(--nav-text-strong); }
+.app-nav-pgm { font-weight: 700; }
+.app-nav-sub { font-size: var(--font-xs); letter-spacing: 0.12em; color: var(--nav-text-muted); }
+.app-nav-links { display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; }
+.app-nav-link {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--nav-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.app-nav-link:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
+.app-nav-link--active { color: var(--nav-text-strong); background: var(--nav-active); }
+.app-nav-right { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
+.app-nav .theme-toggle { color: var(--nav-text); }
+.app-nav .theme-toggle:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
+
+.account { position: relative; }
+.account-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-2) 0 4px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--nav-text-strong);
+  font: inherit;
+  cursor: pointer;
+}
+.account-button:hover, .account-button[aria-expanded="true"] { background: var(--nav-hover); }
+.account-button svg { width: 14px; height: 14px; }
+.account-name { font-weight: 600; }
+.account-role {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--nav-active);
+  color: var(--nav-text-strong);
+  font-size: var(--font-xs);
+}
+.account-local { display: flex; align-items: center; gap: var(--space-2); color: var(--nav-text); }
+.account-signin {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: #5865f2;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}
+.account-signin svg { width: 16px; height: 16px; }
+.account-scrim { position: fixed; inset: 0; z-index: 40; }
+.account-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 41;
+  width: 240px;
+  padding: var(--space-2);
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.account-menu-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.account-menu-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.account-menu-who .account-name { color: var(--text-bright); }
+.account-menu-note { color: var(--text-muted); font-size: var(--font-sm); }
+.account-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.account-menu-item:hover { background: var(--bg-selected-hover); }
+.account-menu-item svg { width: 16px; height: 16px; color: var(--text-secondary); }
+
+/* A page the caller may not write says so in the tool's bar; the reason is on hover. */
+.readonly-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: var(--space-3);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-bg);
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+}
+.readonly-tag svg { width: 14px; height: 14px; color: var(--color-warning); }
+
+button.app-footer-link { border: 0; background: none; padding: 0; font: inherit; cursor: pointer; }
+.app-footer-kbd {
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--font-xs);
+}

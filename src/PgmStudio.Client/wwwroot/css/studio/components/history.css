@@ -1,0 +1,23 @@
+/* The History phase's inspector: a change's note, its edits one a line, and the columns it moved. */
+.change-note { margin: 0; color: var(--text-primary); font-size: var(--font-sm); line-height: 1.5; font-style: italic; }
+.change-edits { display: flex; flex-direction: column; gap: 2px; }
+.change-edit {
+  display: grid; grid-template-columns: minmax(0, 9em) minmax(0, 1fr); gap: var(--space-2);
+  padding: 2px 0; font-size: var(--font-sm); line-height: 1.4;
+}
+.change-edit__subject { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.change-edit__says { color: var(--text-primary); overflow-wrap: anywhere; }
+.change-world { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--font-sm); }
+.change-world__swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.change-world__swatch--ground { background: var(--canvas-diff-ground); }
+.change-world__swatch--surface { background: var(--canvas-diff-surface); }
+.change-world__swatch--structure { background: var(--canvas-diff-structure); }
+
+/* The colours a change is drawn in on the map, named once above its edits. */
+.change-legend { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); font-size: var(--font-sm); color: var(--text-secondary); }
+.change-legend > span { display: inline-flex; align-items: center; gap: var(--space-1); }
+.change-legend__swatch { width: calc(10px * var(--ui-scale)); height: calc(10px * var(--ui-scale)); border-radius: 2px; }
+.change-legend__swatch--added    { background: var(--canvas-diff-added); }
+.change-legend__swatch--removed  { background: var(--canvas-diff-removed); }
+.change-legend__swatch--reshaped { background: var(--canvas-diff-reshaped); }
+.change-legend__swatch--changed  { background: var(--canvas-diff-changed); }

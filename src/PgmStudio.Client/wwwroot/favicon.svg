@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- PGM Studio: one block, seen from above at an angle. -->
+  <path d="M16 2.5 29 9.5v13L16 29.5 3 22.5v-13z" fill="#0f172a"/>
+  <path d="M16 4.6 27 10.4 16 16.2 5 10.4z" fill="#93c5fd"/>
+  <path d="M5 10.4 16 16.2v11.2L5 21.6z" fill="#3b82f6"/>
+  <path d="M27 10.4 16 16.2v11.2l11-5.8z" fill="#1d4ed8"/>
+</svg>

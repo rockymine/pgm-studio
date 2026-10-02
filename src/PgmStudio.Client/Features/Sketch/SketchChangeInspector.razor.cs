@@ -47,10 +47,10 @@ public partial class SketchChangeInspector
     private string Title => To - From == 1 || From == 0 && To == 1 ? $"Change #{To}" : $"#{From} → #{To}";
 
     private string RestoreReadout =>
-        From == 0 ? "Nothing was stated before the board's first change, so there is nothing to put back."
-        : From == Latest ? "The board already stands as it did then."
-        : Latest - From == 1 ? $"That takes back #{Latest}, as a new change."
-        : $"That takes back #{From + 1} to #{Latest}, {Latest - From} changes, as one new change.";
+        From == 0 ? "There is nothing before the first change to restore."
+        : From == Latest ? "This is the current version."
+        : Latest - From == 1 ? $"Undoes #{Latest} as a new change."
+        : $"Undoes #{From + 1} to #{Latest} ({Latest - From} changes) as one new change.";
 
     private string? OriginLink =>
         Change?.Origin is { Repo: { } repo } origin && Regex.IsMatch(repo, @"^[\w.-]+/[\w.-]+$")

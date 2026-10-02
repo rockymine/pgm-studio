@@ -24,7 +24,7 @@ public partial class WindowFields
     [Parameter] public IReadOnlyList<PaintBlockDto> Blocks { get; set; } = [];
 
     /// <summary>What the sill number is measured from, which differs by where the wall is.</summary>
-    [Parameter] public string SillTitle { get; set; } = "The course above the floor the opening starts at.";
+    [Parameter] public string SillTitle { get; set; } = "How many courses above the floor the window starts.";
 
     private bool Glazing => WindowForms.Canonical(Window.Form) != WindowForms.None;
 

@@ -12,11 +12,18 @@ A plan is authored as **one symmetry unit**. Everything drawn belongs to team 0;
 other teams' images by the plan's symmetry mode. Nothing in the document is per-team, and there is no way to
 give one team a different board from another.
 
-The tool opens on two routes. `/maps/{slug}/plan` edits the plan artifact of a map row and is the normal
-entry: the map carries its plan, its sketch and its configuration on one row, and rebuilding refreshes them in
-place. `/plan-editor` opens the generator's candidate pool instead, has no map row behind it, and originates
-one when a candidate is built. The Info phase and its rail appear only on the map-backed route; the bare route
-stays on the Draw workspace and keeps its settings in the sidebar.
+The tool binds to one of two stores, and the route names which. `/maps/{slug}/plan` edits the plan artifact
+of a map row and is the normal entry: the map carries its plan, its sketch and its configuration on one row,
+and rebuilding refreshes them in place. `/plans/{id}` opens a **plan row** — what the generator pins a
+candidate as, and what Save writes when no map is behind the plan — and `/plans/new` holds a blank plan until
+Save stores it as one. A plan row has no map, so building it originates one.
+
+Both bindings are the same tool: the rail's Info and Draw phases, the flow bar whose Next is Compile, and the
+Draw sidebar with its three panel chips, which folds away to give the canvas the width. Only the topbar
+follows the binding, because only saving differs. A map-backed plan's bar is *Save*, which writes the map's
+artifact in place. A plan row's bar carries what a row needs: *New*, *Import* a `*.plan.json`, *Open* a saved
+row, *Save*, and the row's origin as a badge — `authored` saves in place, while `generated` and `imported`
+fork into a new authored row on Save, and the address follows the copy.
 
 **New plan** creates the map row before anything is drawn, so a plan left without being saved is discarded
 on the way out: while it is still named *Untitled plan*, still holds the empty document it was created with,
@@ -478,12 +485,13 @@ its island, else a wool's owner, else neutral — so Configure opens pre-assigne
 
 ### Info
 
-Two steps, and only on the map-backed route. **Identity** is the display name and the authors, loaded once from
-`GET /api/map/{slug}` and saved with `PATCH /api/map/{slug}/metadata`; the name is live-synced into the plan
-document as it is typed because the compile reads it. **Settings** is the globals form — symmetry, cell size,
-base surface, surface step, max players — writing straight through to the live document. Continue on
-the last step advances to Draw. A blank map-backed plan opens here (`?phase=info`); an existing one opens on
-Draw.
+Two steps. **Identity** is the plan's name, live-synced into the plan document as it is typed because the
+compile reads it. On a map-backed plan it is the map's display name and stands beside the authors, both loaded
+once from `GET /api/map/{slug}` and saved with `PATCH /api/map/{slug}/metadata`; a plan row has no map to
+credit anyone on, so its name is all Identity holds and the topbar's Save stores it with the row.
+**Settings** is the globals form — symmetry, cell size, base surface, surface step, max players — writing
+straight through to the live document. Continue on the last step advances to Draw. A plan opened with
+`?phase=info` starts here, which is how a blank map-backed plan is named; any other opens on Draw.
 
 ### Draw
 
@@ -530,12 +538,12 @@ is the one field with no effective value to show: a wool that states no colour h
 team and the wools placed before it, which no single marker knows, so the picker offers *auto* as a word
 beside the sixteen dyes rather than naming a colour the compiler might not pick.
 
-Three panels share the sidebar. **Settings** holds the globals, the tracing reference and the overlay toggles
-(land interfaces, frontline edges, labels, and a height-map fill that tints pieces by surface).
-**Validation** shows the evaluator's score and every fired rule, and clicking a row isolates that rule's
-evidence on the canvas. **Feasibility** shows the producibility read per box, and clicking a box that nothing
+Three panels share the sidebar, switched by the chips at its head, beside the button that folds the sidebar
+away. **Settings** holds the tracing reference. The overlays — land interfaces, frontline edges, labels, and a
+height-map fill that tints pieces by surface — are chips on the canvas itself. **Checks** shows the evaluator's score and every fired rule, and clicking a row isolates that rule's
+evidence on the canvas. **Generator check** shows the producibility read per box, and clicking a box that nothing
 reproduces paints its nearest miss — the cells a candidate emits that the box does not, and the cells the box
-has that it does not. Each panel owns its overlay and drops it on leaving. All three feeds are debounced by
+has that it does not. Each panel owns its overlay and drops it on leaving, folded away included. All three feeds are debounced by
 300 ms after an edit and guard against stale responses.
 
 A read-only 3-D preview draws **the world the plan compiles to**, not an extrusion of its pieces: entering it
@@ -559,19 +567,19 @@ and build zones — and what it **keeps**: the relief on every island that survi
 corrected, the themes, room shells and dressing, and the authors.
 
 **A rebuild that would orphan a relief is asked again, not failed.** The layout write answers `409` with one
-`SK1` per group the new board has no island for, and the drawer names those groups and offers *Discard it and
+`SK1` per group the new board has no island for, and the drawer names those groups and offers *Delete and
 rebuild*, which reruns the chain with `?force=true`; *Cancel* leaves the map as it was. After a rebuild the
 drawer lists the sketch-drawn shapes the layout write reported as `dropped` (`SK29`).
 
 **The button under the panes reads the compile, not the map.** *Rebuild this map* / *Build the map* / *Create
 draft* is what it says in the one state where it can act; a compile that has not run yet reads *Compile
-first*, one that was refused reads *Fix N blocking problems first* — the count of the findings listed
-directly above it — and one that failed to answer reads *The compile failed*. The hammer goes with the word:
+first*, one that was refused reads *Fix N problems first* — the count of the findings listed
+directly above it — and one that failed to answer reads *Couldn't compile*. The hammer goes with the word:
 an icon for the act is wrong on a label that refuses it.
 
 **Compile does not open until the plan document has arrived.** The canvas and the toolbar are in the DOM
-before the document is, so both entries — the topbar button and the Draw phase's Next — read *Loading…* and
-stay disabled until the load settles. Without that gate a fast click on a map reached by an in-app hop posts
+before the document is, so the Draw phase's Next reads *Loading…* and stays disabled until the load
+settles. Without that gate a fast click on a map reached by an in-app hop posts
 the editor's blank default and is answered `422` `PL1`, *this plan has no pieces*, about a board that has
 them.
 
@@ -687,7 +695,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `GET /map/{slug}/plan/flow` | — | `text/plain` — how the board is come at and what that leaves unused: per objective, one reading per **demand set** (attack, back-run, defend, chase), each on the ground that side walks, with its distance, its ways and **one decision per door** — the hole, where the choice is made, how long it stays open, what the other way costs — plus whether the defence shares the attackers' road, and the ground no journey reaches, named with its pieces | 404 · 422 |
 | `GET /map/{slug}` · `PATCH /map/{slug}/metadata` | `{name, authors[]}` | the map's identity | 404 |
 
-**The candidate pool** (the bare `/plan-editor` route)
+**Plan rows** (the `/plans/{id}` and `/plans/new` routes)
 
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
@@ -760,7 +768,7 @@ draws the board as characters.
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
 | `POST /plan/compile` | the document | `{layout, intent}`, each half serialized with its consumer's options so both can be posted on verbatim; `warnings` rides beside them where the compile is complete enough to succeed and incomplete enough to remark on (today `PL3`, a map with no objective), and where the posted plan carried a field the reader has nowhere to keep (`RQ3`) | 422 `{findings}` structural or completeness errors · 400 malformed |
-| `POST /sketch` | `{name}` | `{slug}` — originates a map; only needed off the bare route | — |
+| `POST /sketch` | `{name}` | `{slug}` — originates a map; only needed for a plan row | — |
 | `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{orphaned, dropped}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers, and any field of the **posted** layout the reader had nowhere to keep (`RQ3`). `dropped` names every stored shape the compile does not produce and that carries no `intentRef` — a shape drawn in the sketch, which nothing carries since geometry is the plan's — with one `SK29` complaint beside it | 409 one `SK1` finding per orphaned group, subject = group id (`?force=true` accepts the loss) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes the layout into world geometry and moves the map to `stage=configure`, answering the stored document's own complaints under `warnings` on the way through | 404 unknown map · 422 the layout rasterizes to no ground · 422 `SK2` |
 | `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the stored **authors and contributors** onto it and nothing else. `symmetry` and `islandTeams` are deliberately not carried, so a rebuild clears both | 404 · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |

@@ -29,9 +29,17 @@ export function chordOf(e) {
   if (mod) parts.push("mod");
   if (isApple ? e.ctrlKey : e.metaKey) parts.push("ctrl");
   if (e.altKey) parts.push("alt");
-  if (e.shiftKey) parts.push("shift");
-  parts.push(keyName(e));
+  const key = keyName(e);
+  // A shifted symbol already names its shift: "?" is Shift+/ on one layout and Shift+ß on another, so the
+  // chord is the character, which is how a binding writes it.
+  if (e.shiftKey && !isShiftedSymbol(key)) parts.push("shift");
+  parts.push(key);
   return parts.join("+");
+}
+
+/** A single printed character with no case — punctuation, not a letter, digit or named key. */
+function isShiftedSymbol(key) {
+  return key.length === 1 && key.toLowerCase() === key.toUpperCase() && !/[0-9 ]/.test(key);
 }
 
 /** The key's own name, lowercased for letters and digits and left as-is for the named keys, so "Escape"

@@ -177,7 +177,7 @@ public partial class SketchInGamePhase
             handoff = await Http.GetFromJsonAsync<NoteHandoffDto>("api/notes/handoff");
             notesError = null;
         }
-        catch { notesError = "The notes could not be read — the studio could not be reached."; }
+        catch { notesError = "Couldn't load notes. Check your connection and reload."; }
     }
 
     /// <summary>Hand the open notes to the agent; <paramref name="again"/> repeats a hand-off nothing was written since.</summary>
@@ -191,7 +191,7 @@ public partial class SketchInGamePhase
             if (answer.IsSuccessStatusCode) handoff = await answer.Content.ReadFromJsonAsync<NoteHandoffDto>();
             else notesError = $"The notes were not handed over: {await ServerRefusal.SentenceAsync(answer)}";
         }
-        catch { notesError = "The notes were not handed over — the studio could not be reached."; }
+        catch { notesError = "Couldn't hand the notes over. Check your connection and try again."; }
         finally { handing = false; }
     }
 
@@ -255,10 +255,10 @@ public partial class SketchInGamePhase
     private static string Where(MapViewDto view)
     {
         var looking = string.Create(CultureInfo.InvariantCulture, $"looking at {view.LookX}, {view.LookZ}");
-        if (view.FromX is not { } x || view.FromZ is not { } z) return $"{looking} — the eye finds its own place";
-        var height = view.Y is { } y ? string.Create(CultureInfo.InvariantCulture, $", eye at y {y:0.#}") : "";
+        if (view.FromX is not { } x || view.FromZ is not { } z) return $"Camera placed automatically · {looking}";
+        var height = view.Y is { } y ? string.Create(CultureInfo.InvariantCulture, $", y {y:0.#}") : "";
         var tipped = view.Pitch is { } pitch ? string.Create(CultureInfo.InvariantCulture, $", {pitch:0}° down") : "";
-        return string.Create(CultureInfo.InvariantCulture, $"standing at {x}, {z}{height}{tipped}, {looking}");
+        return string.Create(CultureInfo.InvariantCulture, $"Camera at {x}, {z}{height}{tipped} · {looking}");
     }
 
     // ── the notes column ──
@@ -335,23 +335,22 @@ public partial class SketchInGamePhase
         : $"This view: {Shown?.Name}";
 
     private string AnchorBody => wholeMap
-        ? "Nothing spatial — the note is about the map as a whole."
+        ? "The note is about the whole map."
         : mark is null
-            ? "The note keeps the camera and a copy of this picture. Arm Point, Box or Lasso in the dock to pin it to ground on it."
-            : pickNote ?? (picked is null ? "Reading the ground under the mark…" : Ground(picked));
+            ? "The note saves this camera and picture. To pin it to a spot, pick Point, Box, or Lasso on the picture."
+            : pickNote ?? (picked is null ? "Finding the ground under the mark…" : Ground(picked));
 
     private static string Ground(EyePickDto pick)
     {
         if (pick.Hit is { } hit)
-            return string.Create(CultureInfo.InvariantCulture, $"The block at {hit.X}, {hit.Y}, {hit.Z}")
+            return string.Create(CultureInfo.InvariantCulture, $"Block at {hit.X}, {hit.Y}, {hit.Z}")
                 + (pick.Ground is { } ground && ground.Y != hit.Y
-                    ? string.Create(CultureInfo.InvariantCulture, $", over ground at y {ground.Y}.") : ".")
-                + " The note keeps it, the camera and a copy of this picture.";
+                    ? string.Create(CultureInfo.InvariantCulture, $", above ground at y {ground.Y}.") : ".");
         if (pick.Columns.Count > 0)
             return string.Create(CultureInfo.InvariantCulture, $"{pick.Columns.Count} ground columns")
                 + (pick.Sky > 0 ? string.Create(CultureInfo.InvariantCulture, $" and {pick.Sky} pixels of sky") : "")
-                + ". Ground hidden from this camera is not in it. The note keeps it, the camera and a copy of this picture.";
-        return "The mark is all sky, so it names no ground — only this picture.";
+                + ". Ground hidden from this camera isn't included.";
+        return "The mark covers only sky, so the note is pinned to the picture alone.";
     }
 
     private async Task<bool> SendNoteAsync(NoteWriting writing)
@@ -368,7 +367,7 @@ public partial class SketchInGamePhase
                 var camera = mark is null ? await PickAsync(view, null) : picked;
                 if (camera is null || Moved(camera))
                 {
-                    notesError = pickNote ?? "The camera this picture was drawn with could not be read, so the note was not sent.";
+                    notesError = pickNote ?? "Couldn't read this picture's camera, so the note wasn't sent.";
                     return false;
                 }
                 picture = await JS.InvokeAsync<string?>("studio.keepPicture", PictureSource(view));
@@ -399,7 +398,7 @@ public partial class SketchInGamePhase
         }
         catch
         {
-            notesError = "The note was not sent — the studio could not be reached.";
+            notesError = "Couldn't send the note. Check your connection and try again.";
             return false;
         }
         finally { StateHasChanged(); }
@@ -422,7 +421,7 @@ public partial class SketchInGamePhase
         }
         catch
         {
-            notesError = "The reply was not sent — the studio could not be reached.";
+            notesError = "Couldn't send the reply. Check your connection and try again.";
             return false;
         }
         finally { StateHasChanged(); }
@@ -444,7 +443,7 @@ public partial class SketchInGamePhase
             if (!answer.IsSuccessStatusCode) notesError = await ServerRefusal.SentenceAsync(answer);
             else await LoadNotesAsync();
         }
-        catch { notesError = "The thread was not changed — the studio could not be reached."; }
+        catch { notesError = "Couldn't update the note. Check your connection and try again."; }
         finally { busy = false; }
     }
 
@@ -453,8 +452,8 @@ public partial class SketchInGamePhase
     private string ToolHint => tool switch
     {
         NoteAnchors.Point => "Click the block the note is about.",
-        NoteAnchors.Box => "Drag a rectangle over the ground the note is about.",
-        _ => "Draw round the ground the note is about.",
+        NoteAnchors.Box => "Drag over the area the note is about.",
+        _ => "Draw around the area the note is about.",
     };
 
     /// <summary>Arming a tool opens a new note pinned to what it draws; arming it again puts it down.</summary>
@@ -545,7 +544,7 @@ public partial class SketchInGamePhase
             if (answer.IsSuccessStatusCode) return await answer.Content.ReadFromJsonAsync<EyePickDto>();
             pickNote = await ServerRefusal.SentenceAsync(answer);
         }
-        catch { pickNote = "The ground under the mark could not be read — the studio could not be reached."; }
+        catch { pickNote = "Couldn't read the ground under the mark. Check your connection."; }
         return null;
     }
 
@@ -559,5 +558,5 @@ public partial class SketchInGamePhase
     }
 
     private static string PinStyle(double x, double y) => string.Create(CultureInfo.InvariantCulture,
-        $"left: {x / PictureWidth * 100:0.##}%; top: {y / PictureHeight * 100:0.##}%");
+        $"--pin-x: {x / PictureWidth * 100:0.##}%; --pin-y: {y / PictureHeight * 100:0.##}%");
 }

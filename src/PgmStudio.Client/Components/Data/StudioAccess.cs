@@ -56,7 +56,7 @@ public sealed class StudioAccess(HttpClient http)
             return await MayEditMapAsync(segments[1]) ? null
                 : !caller.SignedIn ? "You are not signed in, so this map opens read-only."
                 : caller.Role is null ? "You are not on this studio's whitelist, so this map opens read-only."
-                : "Only this map's owner, the authors it credits or an admin can change it, so it opens read-only.";
+                : "Only this map's owner, its credited authors, or an admin can change it, so it opens read-only.";
 
         return caller.Role is not null ? null
             : !caller.SignedIn ? "You are not signed in, so this page opens read-only."

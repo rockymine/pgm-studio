@@ -42,19 +42,19 @@ public partial class ReviewXmlStep : IDisposable
             else if ((int)resp.StatusCode == 409)
             {
                 var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
-                blocked = refusal?.Message is { Length: > 0 } m ? m : "the spawn↔wool chain isn't connected";
+                blocked = refusal?.Message is { Length: > 0 } m ? m : "A spawn and a wool aren't connected";
                 Wizard.RegisterExport(false, null);
             }
             else if ((int)resp.StatusCode == 422)
             {
                 // A dressing document that failed to parse (DR-DOC) — named prop and field, not a codec crash.
                 var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
-                error = refusal?.Message is { Length: > 0 } m ? m : "the dressing document is invalid";
+                error = refusal?.Message is { Length: > 0 } m ? m : "The map's decoration is invalid.";
                 Wizard.RegisterExport(false, null);
             }
             else
             {
-                error = $"export failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+                error = $"The server returned an error (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
                 Wizard.RegisterExport(false, null);
             }
         }
@@ -77,7 +77,7 @@ public partial class ReviewXmlStep : IDisposable
 
         if (!resp.IsSuccessStatusCode)
         {
-            downloadError = $"export failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+            downloadError = $"(HTTP {(int)resp.StatusCode}) {Trunc(await resp.Content.ReadAsStringAsync())}";
             StateHasChanged();
             return;
         }

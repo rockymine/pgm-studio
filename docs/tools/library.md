@@ -6,17 +6,18 @@ The library is where a material is authored once and reused. It is the only tool
 nothing about maps: no slug, no stage, no map row anywhere in it. What it holds is recipes, and the tools that
 build worlds reach into it to pick one.
 
-Nine kinds, in three families. Six **compose upward**: **Styles** — a style is one material; **Themes** — a
-terrain finish made of styles; **Roofs**, **Storeys** and **Porches** — the parts a building binds, each made
-of styles; **Houses** — a whole building made of parts and styles. Two are **recipes a click puts down**:
-**Trees** and **Boulders**, which compose nothing and are what a placement names. One places nothing at all:
-**Biomes**, the byte each column carries, which tints the ground without adding a block. A style is browsed by
-what it looks like, everything above it by what it composes to, a recipe by what it builds, and a biome by the
-ground it colours. A house's row is a `room_style` and composes to a `HouseStyle`; the surface calls it what
-the thing is.
+Nine kinds, in three families. Six **compose upward**: **Styles** (*Patterns* on screen) — a style is one
+material; **Themes** (*Palettes* on screen) — a terrain finish made of styles; **Roofs**, **Storeys** and
+**Porches** — the parts a building binds, each made of styles; **Houses** — a whole building made of parts and
+styles. Two are **recipes a click puts down**: **Trees** and **Boulders**, which compose nothing and are what a
+placement names. One places nothing at all: **Biomes**, the byte each column carries, which tints the ground
+without adding a block. A style is browsed by what it looks like, everything above it by what it composes to, a
+recipe by what it builds, and a biome by the ground it colours. A house's row is a `room_style` and composes to a
+`HouseStyle`; the surface calls it what the thing is.
 
-Three routes, and the rail carries the nine kinds. `/library` is the chooser — one card per kind over its own
-count and a picture of what it holds. `/library/{kind}` browses that kind: a strip carrying a name search,
+Three routes, and the rail carries the nine kinds. `/library` is the chooser — one card per kind, grouped as
+*Terrain* (styles, themes, biomes), *Buildings* (houses, roofs, storeys, porches) and *Nature* (trees,
+boulders), each over the pictures of the newest three entries it holds and its count. `/library/{kind}` browses that kind: a strip carrying a name search,
 whatever else the kind filters by, and **New**, over a grid of cards. `/library/{kind}/{id}`, or
 `/library/{kind}/new`, opens one entry on a page of its own.
 
@@ -59,7 +60,7 @@ params cannot disagree.
 
 **A style may be filled with another style, because a style is a material and materials nest.** Every slot the
 material editor draws — a layer of a stack, a band of a voronoi, a patch of a cell field, a tint's neutral
-fallback, a frame's panel — offers *Fill from a style…* beside the control naming its kind, and the two answer
+fallback, a frame's panel — offers *Fill from a pattern…* beside the control naming its kind, and the two answer
 the same question: a kind gives an empty recipe of that shape, a style gives one already written. It is how a
 palette of small styles becomes a large one, which is the reason the level exists.
 
@@ -635,8 +636,8 @@ seconds, and a failure worded into that gap accuses the library of losing a docu
 handing over.
 
 **The outline is the document, not a menu.** Each row carries what its piece states without being opened — a
-part is *bound* or keeps the *built-in* finish, a stack says how many courses it runs, a theme bucket names
-the style it resolves through or says it is *off*. A material's outline is its own nest: a voronoi's bands, a
+part names its style or keeps the *default* finish, a stack says how many courses it runs, a theme bucket
+names the style it resolves through or says it is *off*. A material's outline is its own nest: a voronoi's bands, a
 stack's layers and a field's stops are each a row, indented by how deep they sit, so a five-entry pattern is
 five rows rather than five boxes inside one another.
 

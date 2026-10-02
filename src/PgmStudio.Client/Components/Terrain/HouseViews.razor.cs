@@ -29,11 +29,11 @@ public partial class HouseViews : IAsyncDisposable
     /// <summary>The views in the order they are offered, the overview first.</summary>
     public static readonly (string Id, string Label, string Icon, string Note)[] Offered =
     [
-        (All, "All", "layout-grid", "The building over the three cuts"),
-        (Iso, "3-D", "box", "The building standing up, turnable"),
-        (Plan, "Plan", "grid", "The roof from above — its form, its hole, its overhang"),
-        (Section, "Section", "layers", "The course stack, cut open"),
-        (Cutaway, "Cutaway", "square-dashed", "One plane at the scale of the pieces in it"),
+        (All, "All", "layout-grid", "The building and its three cuts"),
+        (Iso, "3-D", "box", "The building in 3-D. You can turn it."),
+        (Plan, "Plan", "grid", "The roof from above: its shape, opening, and overhang"),
+        (Section, "Section", "layers", "A vertical cut through the courses"),
+        (Cutaway, "Cutaway", "square-dashed", "One face, close up"),
     ];
 
     [Parameter] public RoomStylePreviewDto? Preview { get; set; }
@@ -73,7 +73,7 @@ public partial class HouseViews : IAsyncDisposable
 
             if (scene is null)
             {
-                unavailable = "This browser cannot draw the building in 3-D. The cuts beside it still read.";
+                unavailable = "This browser can't show the building in 3-D. The cuts are still available.";
                 StateHasChanged();
                 return;
             }

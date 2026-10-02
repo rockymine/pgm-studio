@@ -17,13 +17,11 @@
     @if (Draft is null)
     {
       <p class="plan-readout">
-        Press where the eye should stand and drag to what it looks at. A click without a drag names only what to
-        look at, and the eye finds its own place to see it from.
+        Press where the camera should stand and drag toward its target. A click without a drag places the camera
+        automatically.
       </p>
       <p class="plan-readout">
-        To change a camera already there, press it and drag to stand it elsewhere; a click opens it here as it is,
-        with the line it looks along, and its target is then dragged to turn it. Faint cameras are the studio's
-        suggestions, and keeping one keeps a copy.
+        Drag a camera to move it, or click it to edit it. Faint cameras are suggestions. Keeping one saves a copy.
       </p>
       @if (Note is not null) { <p class="dressing-refusal">@Note</p> }
     }
@@ -31,16 +29,16 @@
     {
       <SketchEyePicture Slug="@Slug" Query="@(Query ?? DraftQuery(Draft))" Round="Round" Alt="The view being placed" />
       <Field Label="Name" For="view-name">
-        <input id="view-name" class="field-input" type="text" placeholder="View" maxlength="80"
+        <input id="view-name" class="field-input" type="text" placeholder="e.g. Red spawn" maxlength="80"
                value="@name" @oninput="e => name = e.Value?.ToString() ?? string.Empty" />
       </Field>
       @if (standX is null)
       {
-        <p class="plan-readout">@(error ?? "Finding where the eye stands…")</p>
+        <p class="plan-readout">@(error ?? "Placing the camera…")</p>
       }
       else
       {
-        <Field Label="Standing at">
+        <Field Label="Position">
           <div class="ctrl-row">
             <CoordField Prefix="X" Type="number" Value="@standX" step="1" OnChange="e => Set(ref standX, e)" />
             <CoordField Prefix="Y" Type="number" Value="@Shown(eyeY)" step="0.5" min="0" max="320" OnChange="OnEyeY" />
@@ -51,7 +49,7 @@
           @Height
           @if (AtEyeHeight is { } eye && !OnTheGround)
           {
-            <text> </text><a href="" @onclick="() => SetEye(eye)" @onclick:preventDefault="true">Stand it on the ground</a>
+            <text> </text><a href="" @onclick="() => SetEye(eye)" @onclick:preventDefault="true">Move to eye height</a>
           }
         </p>
         <Field Label="Facing">
@@ -182,7 +180,7 @@
         }
         catch
         {
-            error = "The camera could not be read — the studio could not be reached.";
+            error = "Couldn't place the camera. Check your connection and try again.";
             return;
         }
         if (read is not { Camera: var camera }) return;
@@ -283,22 +281,22 @@
     private string Height => read?.Standing is not { } ground
         ? "Over the void: no ground under the camera."
         : OnTheGround
-            ? string.Create(CultureInfo.InvariantCulture, $"At a player's eye, standing on the ground at y {ground + 1}.")
+            ? string.Create(CultureInfo.InvariantCulture, $"At player eye height, on the ground at y {ground + 1}.")
             : eyeY is { } y
-                ? string.Create(CultureInfo.InvariantCulture, $"{y - (ground + 1):0.#} blocks over the ground at y {ground + 1}.")
+                ? string.Create(CultureInfo.InvariantCulture, $"{y - (ground + 1):0.#} blocks above the ground at y {ground + 1}.")
                 : "";
 
     /// <summary>What the middle of the picture lands on, against the angle stated.</summary>
     private string Looking => read?.Hit is not { } hit
-        ? "The middle of the picture lands on the sky."
+        ? "The centre of the picture is sky."
         : angleStated && (hit.X, hit.Y, hit.Z) != (angleX, angleY, angleZ)
-            ? string.Create(CultureInfo.InvariantCulture, $"The middle of the picture lands on {hit.X}, {hit.Y}, {hit.Z}, not on the angle: that block is open, or something stands before it.")
-            : "The block the middle of the picture lands on.";
+            ? string.Create(CultureInfo.InvariantCulture, $"The centre of the picture is {hit.X}, {hit.Y}, {hit.Z}, not the angle block. That block is air, or something is in front of it.")
+            : "The block at the centre of the picture.";
 
     /// <summary>Whether the draft changes a kept view rather than keeping a new one.</summary>
     private bool Changing => Draft?.Source is { Kept: true };
 
-    private string Title => Draft?.Source?.Name ?? "A view of your own";
+    private string Title => Draft?.Source?.Name ?? "New view";
 
     private async Task Keep()
     {

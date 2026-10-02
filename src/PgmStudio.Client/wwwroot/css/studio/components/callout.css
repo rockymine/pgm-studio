@@ -1,0 +1,16 @@
+/* Friendly info callout — an accent-edged note for a tip or an important aside. */
+.callout {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  font-size: var(--font-base);
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.callout-icon { flex: none; margin-top: 1px; color: var(--accent-light); }
+.callout strong { color: var(--text-bright); }

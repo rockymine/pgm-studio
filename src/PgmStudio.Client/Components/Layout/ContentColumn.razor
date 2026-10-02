@@ -4,7 +4,7 @@
    the info/review wizard steps, and list views (instead of a sidebar/canvas split). MaxWidth caps the
    column; it centres with auto side margins. On a read-only page its fields sit in a disabled fieldset. *@
 
-<div class="workspace-scroll" style="max-width: @(MaxWidth)px; margin: 0 auto;" @attributes="Extra">
+<div class="workspace-scroll content-column" style="--column-width: @(MaxWidth)px" @attributes="Extra">
     @if (ReadOnly)
     {
         <fieldset class="readonly-fieldset" disabled>@ChildContent</fieldset>

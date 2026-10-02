@@ -18,10 +18,8 @@
   <Fields>
     @if (tree is not null)
     {
-      <p class="section-desc">Two trees, not one with a switch. A <strong>vanilla</strong> tree is a named
-        species with a drawn canopy — a notched cone is a spruce, a flat umbrella on a leaning trunk an acacia, a dome hung with curtains a willow,
-        and neither is a knob setting of the other. A <strong>copied</strong> tree is one an author built by
-        hand, cut out of a world block by block and carried whole.</p>
+      <p class="section-desc">A <strong>vanilla</strong> tree is a Minecraft species with a drawn canopy. A
+        <strong>copied</strong> tree was built by hand and copied block by block from a world.</p>
       <Field Label="Which tree">
         <Select Options="@Select.Words(TreeForms.All, TreeForms.Describe)" Value="@tree.Form"
                 ValueChanged="SetTreeForm" />
@@ -40,54 +38,51 @@
         <p class="section-desc">
           @if (tree.Body is { Length: > 0 })
           {
-            <text>@tree.Body.Length blocks, @tree.Height.ToString("0") courses tall. The body is what was cut
-              and has no knob: it is retuned by cutting it again.</text>
+            <text>@tree.Body.Length blocks, @tree.Height.ToString("0") courses tall. To change it, copy it from
+              the world again.</text>
           }
           else
           {
-            <text>No body yet. A copied tree is cut out of a world with <code>tools/seed-trees.cs</code>, which
-              files every tree it finds here under its own name.</text>
+            <text>No blocks yet. Copied trees are imported from a world with
+              <code>tools/seed-trees.cs</code>.</text>
           }
           @if (tree.Cut is { } cut)
           {
-            <text> Cut from <code>@cut.World</code> at (@cut.X, @cut.Y, @cut.Z) on @cut.At.ToString("yyyy-MM-dd").</text>
+            <text> Copied from <code>@cut.World</code> at (@cut.X, @cut.Y, @cut.Z) on @cut.At.ToString("yyyy-MM-dd").</text>
             @if (cut.Builder is { Length: > 0 } builder)
             {
-              <text> Built by <strong>@builder</strong>, whom a map it stands on credits as a contributor for its
-                trees.</text>
+              <text> Built by <strong>@builder</strong>, who is credited as a contributor on maps that use
+                it.</text>
             }
           }
           else
           {
-            <text> No cut is recorded, so the library will not file it as copied.</text>
+            <text> No source is recorded, so it can't be saved as a copied tree.</text>
           }
         </p>
       }
       else
       {
         <Field Label="Height"><LabelEnd><strong>@($"{tree.Height:0} blocks")</strong></LabelEnd>
-          <ChildContent><input type="range" class="field-range" min="5" max="40" step="1" value="@((int)tree.Height)"
-                 @oninput="e => Tree(t => t with { Height = Number(e, t.Height) })" /></ChildContent></Field>
+          <ChildContent><RangeField Min="5" Max="40" Value="@((int)tree.Height)"
+                 ValueChanged="value => Tree(t => t with { Height = value })" /></ChildContent></Field>
       }
     }
     else if (boulder is not null)
     {
-      <p class="section-desc">An erratic: a mass a glacier carried and left. Its size is the reach a player
-        takes cover behind rather than steps over.</p>
       <Field Label="Shape">
         <Select Options="@Select.Words(BoulderForms.All, BoulderForms.Describe)" Value="@boulder.Form"
                 ValueChanged="v => Boulder(b => b with { Form = v })" />
       </Field>
       <Field Label="Size"><LabelEnd><strong>@($"{boulder.Size:0.0} blocks")</strong></LabelEnd>
-        <ChildContent><input type="range" class="field-range" min="20" max="100" step="1"
-               value="@((int)(boulder.Size * 10))"
-               @oninput="e => Boulder(b => b with { Size = Number(e, b.Size * 10) / 10 })" /></ChildContent></Field>
+        <ChildContent><RangeField Min="20" Max="100" Value="@((int)(boulder.Size * 10))"
+               ValueChanged="value => Boulder(b => b with { Size = value / 10 })" /></ChildContent></Field>
       <Field Label="Moss">
         <Chip Active="boulder.Mossy" OnClick="() => Boulder(b => b with { Mossy = !b.Mossy })">
-          @(boulder.Mossy ? "Creeps onto the sky-lit faces" : "Bare rock")
+          @(boulder.Mossy ? "On faces open to the sky" : "Bare rock")
         </Chip>
       </Field>
-      <div class="section-header section-header--ruled"><h2 class="section-title">Cut from</h2></div>
+      <div class="section-header section-header--ruled"><h2 class="section-title">Material</h2></div>
       <MaterialEditor Blocks="blocks" Styles="styles" Node="rock" OnChanged="RockChanged" />
     }
   </Fields>

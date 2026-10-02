@@ -1,11 +1,17 @@
 @page "/not-found"
 @layout StudioLayout
 
+<PageTitle>Page not found · PGM Studio</PageTitle>
+
 <StudioShell Viewport="false">
   <Bar><Topbar /></Bar>
   <ChildContent>
     <div class="workspace workspace--placeholder">
-      <p class="panel-empty-msg">Not found — the content you are looking for does not exist.</p>
+      <div class="empty-page">
+        <h1>Page not found</h1>
+        <p>This address doesn't match any page in the studio.</p>
+        <Button Variant="primary" Icon="house" Href="">Go to the start page</Button>
+      </div>
     </div>
   </ChildContent>
 </StudioShell>

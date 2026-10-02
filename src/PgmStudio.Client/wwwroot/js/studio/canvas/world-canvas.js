@@ -58,6 +58,7 @@ import { renderDimensionPill } from "../render/canvas-chrome.js";
 import { layerStack, clearLayer } from "../render/layer-stack.js";
 import { CanvasPainter } from "../render/canvas-painter.js";
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
+import { labelPx } from "../shared/ui-scale.js";
 import { WorldDrawController } from "../controllers/world-draw-controller.js";
 import { WorldEditController, RESIZABLE_TYPES } from "../controllers/world-edit-controller.js";
 import { SelectController } from "../controllers/select-controller.js";
@@ -66,7 +67,7 @@ import { blockToExtentBounds } from "../geometry/region-convert.js";
 import { pointInRing } from "../geometry/polygon.js";
 import { applySymmetryToBounds, orbitAxes } from "../geometry/symmetry.js";
 import { paintShape, paintAnchorBlock } from "../render/shape-render.js";
-import { primitiveStyle } from "../render/primitive-style.js";
+import { primitiveStyle, UNKNOWN_KIND_COLOR } from "../render/primitive-style.js";
 import { paintSymmetryOverlay } from "../render/symmetry-render.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
 import { geojsonToSimplified } from "../geometry/islands.js";
@@ -76,9 +77,9 @@ const COMPOSITE_TYPES = new Set(["union", "intersect", "negative", "complement"]
 // The points of interest, as the glyph each is drawn with and where its colour comes from. One table, so
 // three layers that differ only in those two things are three lines rather than three near-copies.
 const POI_LAYERS = [
-  { key: "spawns",    source: "spawns",    glyph: "★", size: 12, weight: "bold", color: (poi) => chatColorHex(poi.team_color ?? "") },
-  { key: "wools",     source: "wools",     glyph: "◆", size: 11, weight: null,   color: (poi) => dyeColorHex(poi.color ?? "") },
-  { key: "monuments", source: "monuments", glyph: "⊕", size: 13, weight: null,   color: (poi) => dyeColorHex(poi.color ?? "") },
+  { key: "spawns",    source: "spawns",    glyph: "★", size: 12, weight: "bold", color: (poi) => chatColorHex(poi.team_color) ?? UNKNOWN_KIND_COLOR },
+  { key: "wools",     source: "wools",     glyph: "◆", size: 11, weight: null,   color: (poi) => dyeColorHex(poi.color) ?? UNKNOWN_KIND_COLOR },
+  { key: "monuments", source: "monuments", glyph: "⊕", size: 13, weight: null,   color: (poi) => dyeColorHex(poi.color) ?? UNKNOWN_KIND_COLOR },
 ];
 
 export class WorldCanvas extends CanvasBase {
@@ -535,7 +536,7 @@ export class WorldCanvas extends CanvasBase {
       if (!n.bounds || n.marker || n.ghost) continue;   // mirror real rectangles only (not markers/ghosts)
       axes.forEach((ax, j) => out.push({
         id: `${n.id}~m${j}`, type: "rectangle", ghost: true,
-        color: n.color, label: `${n.label ?? n.id} (mirror)`,
+        color: n.color, label: `${n.label ?? n.id} (symmetry copy)`,
         bounds: applySymmetryToBounds(n.bounds, ax, cx, cz),
       }));
     }
@@ -609,9 +610,9 @@ export class WorldCanvas extends CanvasBase {
       this.#painter.begin(1, 0, 0);   // clear whatever the previous map painted
       const hint = svgEl("text", {
         x: w / 2, y: h / 2, "text-anchor": "middle", "dominant-baseline": "middle",
-        "font-size": "13", fill: "#888",
+        "font-size": "13", fill: "var(--text-muted)",
       });
-      hint.textContent = "No map bounds yet — run the pipeline to view this map.";
+      hint.textContent = "This map has no world data yet, so there is nothing to show.";
       this._svg.appendChild(hint);
       return;
     }
@@ -811,7 +812,7 @@ export class WorldCanvas extends CanvasBase {
     const nameEl = svgEl("text", {
       x: left, y: top - 5,
       "text-anchor": "start", "dominant-baseline": "alphabetic",
-      "font-size": "11", "font-family": "ui-monospace, monospace",
+      "font-size": labelPx(11), "font-family": "ui-monospace, monospace",
       fill: color, "pointer-events": "none",
     });
     nameEl.textContent = labelText;

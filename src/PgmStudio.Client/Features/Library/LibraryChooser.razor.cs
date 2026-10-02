@@ -14,19 +14,29 @@ public partial class LibraryChooser
 
     protected override async Task OnInitializedAsync()
     {
-        foreach (var kind in LibraryKinds.All) held[kind.Slug] = await Library.ListAsync<LibraryRow>(kind);
+        var lists = LibraryKinds.All.Select(async kind => (kind.Slug, Rows: await Library.ListAsync<LibraryRow>(kind)));
+        foreach (var (slug, rows) in await Task.WhenAll(lists)) held[slug] = rows;
         loading = false;
     }
 
-    /// <summary>The newest row's card picture, which is what the kind currently looks like.</summary>
-    private string? Sample(LibraryKind kind) =>
-        held.TryGetValue(kind.Slug, out var rows) ? rows.FirstOrDefault()?.Preview : null;
+    /// <summary>The libraries by what they dress: the ground, the buildings on it, and what grows or lies there.</summary>
+    private static readonly (string Group, string[] Slugs)[] Groups =
+    [
+        ("Terrain", [LibraryKinds.StylesSlug, LibraryKinds.ThemesSlug, LibraryKinds.BiomesSlug]),
+        ("Buildings", [LibraryKinds.HousesSlug, LibraryKinds.RoofsSlug, LibraryKinds.StoreysSlug, LibraryKinds.PorchesSlug]),
+        ("Nature", [LibraryKinds.TreesSlug, LibraryKinds.BouldersSlug]),
+    ];
+
+    /// <summary>The newest rows' card pictures, up to three, which is what the kind currently looks like.</summary>
+    private List<string> Samples(LibraryKind kind) =>
+        held.TryGetValue(kind.Slug, out var rows)
+            ? [.. rows.Select(row => row.Preview).Where(preview => !string.IsNullOrEmpty(preview)).Take(3)]
+            : [];
 
     private string CountLabel(LibraryKind kind)
     {
-        if (loading) return "…";
-        var count = held.TryGetValue(kind.Slug, out var rows) ? rows.Count : 0;
-        return count == 1 ? $"1 {kind.One}" : $"{count} {kind.Title.ToLowerInvariant()}";
+        if (loading) return string.Empty;
+        return held.TryGetValue(kind.Slug, out var rows) ? rows.Count.ToString() : "0";
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

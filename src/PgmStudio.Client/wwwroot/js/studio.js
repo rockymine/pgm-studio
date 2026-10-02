@@ -243,3 +243,19 @@ window.studioTheme = {
   },
   toggle() { this.set(this.get() === "light" ? "dark" : "light"); },
 };
+
+// ── Text size ───────────────────────────────────────────────────────────────
+// `data-text-size` on <html> picks the --ui-scale every size token multiplies (tokens.css). The inline
+// script in index.html applies the stored value before any CSS loads. A canvas sizes itself on resize, so a
+// change dispatches one to let every viewport re-measure.
+window.studioTextSize = {
+  KEY: "pgm-text-size",
+  SIZES: ["small", "default", "large", "larger"],
+  get() { return document.documentElement.getAttribute("data-text-size") || "default"; },
+  set(size) {
+    if (!this.SIZES.includes(size)) size = "default";
+    document.documentElement.setAttribute("data-text-size", size);
+    try { localStorage.setItem(this.KEY, size); } catch (e) { /* private mode */ }
+    window.dispatchEvent(new Event("resize"));
+  },
+};

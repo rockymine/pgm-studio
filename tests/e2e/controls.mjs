@@ -52,8 +52,11 @@ const ROWS = ".material-editor-head, .block-picker-row, .lib-bind";
 /** Measure every control in every row on the page, against the token the stylesheet declares. */
 async function measureRows(label) {
   const state = await page.evaluate(ROWS => {
-    const declared = parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue("--control-height"));
+    // A size token is a calc over --ui-scale, so it is read the way the stylesheet resolves it: on a probe.
+    const probe = document.body.appendChild(document.createElement("div"));
+    probe.style.height = "var(--control-height)";
+    const declared = probe.getBoundingClientRect().height;
+    probe.remove();
     const SQUARE = ".action-btn--icon, .block-chip, .lib-bind-swatch";
     const name = el => `${el.tagName.toLowerCase()}.${(el.className || "").toString().split(" ")[0]}`;
     const wrong = [], notSquare = [];
@@ -94,8 +97,11 @@ async function measureRows(label) {
  */
 async function measureUnconstrainedSelect(label) {
   const state = await page.evaluate(ROWS => {
-    const declared = parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue("--control-height"));
+    // A size token is a calc over --ui-scale, so it is read the way the stylesheet resolves it: on a probe.
+    const probe = document.body.appendChild(document.createElement("div"));
+    probe.style.height = "var(--control-height)";
+    const declared = probe.getBoundingClientRect().height;
+    probe.remove();
     const free = [...document.querySelectorAll("select.field-input")]
       .find(el => !el.parentElement?.matches(ROWS));
     return { declared, height: free ? free.getBoundingClientRect().height : null };
@@ -113,9 +119,13 @@ async function measureGlyphs(label) {
   await page.waitForFunction(() => document.querySelector("svg.lucide") !== null, { timeout: 20000 })
     .catch(() => {});
   const sizes = await page.evaluate(() => {
-    const root = getComputedStyle(document.documentElement);
-    const scale = ["xs", "sm", "md", "lg", "xl"]
-      .map(step => parseFloat(root.getPropertyValue(`--icon-${step}`)));
+    const scale = ["xs", "sm", "md", "lg", "xl"].map(step => {
+      const probe = document.body.appendChild(document.createElement("div"));
+      probe.style.width = `var(--icon-${step})`;
+      const width = probe.getBoundingClientRect().width;
+      probe.remove();
+      return width;
+    });
     const off = [];
     let seen = 0;
     for (const svg of document.querySelectorAll("svg.lucide")) {

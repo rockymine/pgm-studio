@@ -26,9 +26,9 @@ public partial class SketchStructuralInspector
 
     private string Label => Piece.Role switch
     {
-        StructuralRoles.Spawn => "spawn region",
-        StructuralRoles.WoolRoom => "wool room",
-        StructuralRoles.Building => "building footprint",
+        StructuralRoles.Spawn => "Spawn region",
+        StructuralRoles.WoolRoom => "Wool room",
+        StructuralRoles.Building => "Building",
         _ => Piece.Role,
     };
 

@@ -1,0 +1,28 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   TOPBAR ICON BUTTON  (theme toggle, and any future icon-only topbar action)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.topbar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.topbar-icon-btn:hover { color: var(--text-strong); background: var(--bg-vis-hover); }
+.topbar-icon-btn svg { width: var(--icon-md); height: var(--icon-md); }
+
+/* Theme toggle — show the icon for the CURRENT theme: moon while dark, sun while light.
+   Driven by <html data-theme>. */
+.theme-toggle-icon { display: inline-flex; line-height: 0; }
+.theme-toggle-icon--sun { display: none; }
+:root[data-theme="light"] .theme-toggle-icon--moon { display: none; }
+:root[data-theme="light"] .theme-toggle-icon--sun  { display: inline-flex; }

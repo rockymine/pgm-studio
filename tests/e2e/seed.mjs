@@ -62,6 +62,7 @@ async function main() {
     base: BASE,
     descriptor: plan.descriptor,
     planSlug: plan.slug,
+    planId: plan.planId,
     sketchSlug: draft.slug,
     mapSlug: finished.slug,
     planJson: plan.planJson,

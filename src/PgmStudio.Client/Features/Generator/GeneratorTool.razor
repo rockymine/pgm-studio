@@ -5,6 +5,8 @@
 @* Generator browse (G117): page through the composed-board library, sieve it, and pin the keepers. Cards are
    server-rendered SVGs of the full fanned board; pin/open keep the stored board the descriptor names. *@
 
+<PageTitle>Generator · PGM Studio</PageTitle>
+
 <StudioShell Bare="true">
   <Bar>
     <Topbar>
@@ -14,12 +16,12 @@
   <ChildContent>
   <div class="gen-body">
     <aside class="gen-filters">
-      <Section Title="Filters">
-
-        <Field Label="Players / team">
+      <Section Title="Layout settings">
+        <Field Label="Players per team">
           <LabelEnd><strong>@players</strong></LabelEnd>
           <ChildContent>
-            <input type="range" class="field-range" min="6" max="32" step="2" value="@players" @oninput="OnPlayers" />
+            <RangeField Min="6" Max="32" Step="2" Value="players" ValueChanged="OnPlayers" OnCommit="ApplyPlayers"
+                        aria-label="Players per team" />
           </ChildContent>
         </Field>
 
@@ -28,82 +30,93 @@
             @foreach (var s in Symmetries)
             {
               <Chip Active="symmetry == s.Id" Disabled="!s.Supported"
-                    Title="@(s.Supported ? s.Label : "the composer can't produce this yet")"
+                    Title="@(s.Supported ? s.Label : "Not available yet")"
                     OnClick="() => PickSymmetry(s.Id)">@s.Label</Chip>
             }
           </div>
         </Field>
 
-        <Field Label="Max score">
-          <LabelEnd><strong>@(maxScore >= ScoreCap ? "any" : maxScore.ToString("0.0"))</strong></LabelEnd>
+        <Field Label="Highest score">
+          <LabelEnd><strong>@(maxScore >= ScoreCap ? "Any" : maxScore.ToString("0.0"))</strong></LabelEnd>
           <ChildContent>
-            <input type="range" class="field-range" min="0" max="8" step="0.5" value="@maxScore" @oninput="OnMaxScore" />
+            <RangeField Min="0" Max="8" Step="0.5" Value="maxScore" ValueChanged="OnMaxScore" OnCommit="ApplyMaxScore"
+                        aria-label="Highest score" />
+            <span class="gen-hint">Lower scores are better.</span>
           </ChildContent>
         </Field>
 
-        <Field Label="Wool count">
+        <Field Label="Wools per team">
           <div class="gen-wool">
-            <input type="number" min="0" max="6" value="@woolMin" @oninput="OnWoolMin" title="min (0 = any)" />
-            <span>–</span>
-            <input type="number" min="0" max="6" value="@woolMax" @oninput="OnWoolMax" title="max (0 = any)" />
+            <NumberField Min="0" Max="6" Value="@(woolMin > 0 ? woolMin : null)" ValueChanged="OnWoolMin"
+                         OnCleared="() => OnWoolMin(0)" aria-label="At least" placeholder="Any" />
+            <span>to</span>
+            <NumberField Min="0" Max="6" Value="@(woolMax > 0 ? woolMax : null)" ValueChanged="OnWoolMax"
+                         OnCleared="() => OnWoolMax(0)" aria-label="At most" placeholder="Any" />
           </div>
         </Field>
+      </Section>
 
-        <Button Variant="primary" Full OnClick="Reload">Apply</Button>
-        <p class="section-desc">Players / score / wool count apply on the button. Structure filters below apply on click.</p>
-        @if (censusBoards > 0)
-        {
-          <p class="section-desc gen-census">
-            Counts are what the library holds for these settings, across @censusBoards
-            board@(censusBoards == 1 ? "" : "s")@(CensusIsTelling ? " — a form at zero is one they do not make." : ".")
-          </p>
-        }
+      <Section Title="Filter by shape">
+        <Actions>
+          @if (ShapeFiltered)
+          {
+            <Button Class="action-btn--push-end" OnClick="ClearShapeFilters">Clear</Button>
+          }
+        </Actions>
+        <ChildContent>
+          <Field Label="Wool approaches">
+            <LabelEnd><span class="text-xs text-muted">has all</span></LabelEnd>
+            <ChildContent>
+              <div class="filter-group-options filter-group-options--multi">
+                @foreach (var w in WoolChips)
+                {
+                  <Chip Active="woolFilter.Contains(w.Token)" Disabled="!w.InMix"
+                        Class="@(w.InMix && Unseen(seenWools, w.Token) ? "filter-chip--unseen" : null)"
+                        Title="@(w.InMix ? ChipTitle(seenWools, w.Token, w.Label) : "The generator doesn't use this shape")"
+                        OnClick="() => ToggleWool(w.Token)">@w.Label@if (censusBoards > 0 && w.InMix) { <span class="filter-chip-n">@(seenWools.GetValueOrDefault(w.Token))</span> }</Chip>
+                }
+              </div>
+            </ChildContent>
+          </Field>
 
-        <Field Label="Wool families">
-          <LabelEnd><span class="text-xs text-muted">all present</span></LabelEnd>
-          <ChildContent>
-            <div class="filter-group-options">
-              @foreach (var w in WoolChips)
-              {
-                <Chip Active="woolFilter.Contains(w.Token)" Disabled="!w.InMix"
-                      Class="@(w.InMix && Unseen(seenWools, w.Token) ? "filter-chip--unseen" : null)"
-                      Title="@(w.InMix ? ChipTitle(seenWools, w.Token, w.Label) : "not in the production mix")"
-                      OnClick="() => ToggleWool(w.Token)">@w.Label@if (censusBoards > 0 && w.InMix) { <span class="filter-chip-n">@(seenWools.GetValueOrDefault(w.Token))</span> }</Chip>
-              }
-            </div>
-          </ChildContent>
-        </Field>
+          <Field Label="Hub">
+            <LabelEnd><span class="text-xs text-muted">any of</span></LabelEnd>
+            <ChildContent>
+              <div class="filter-group-options filter-group-options--multi">
+                @foreach (var h in HubChips)
+                {
+                  <Chip Active="hubFilter.Contains(h.Token)"
+                        Class="@(Unseen(seenHubs, h.Token) ? "filter-chip--unseen" : null)"
+                        Title="@ChipTitle(seenHubs, h.Token, h.Label)"
+                        OnClick="() => ToggleHub(h.Token)">@h.Label@if (censusBoards > 0) { <span class="filter-chip-n">@(seenHubs.GetValueOrDefault(h.Token))</span> }</Chip>
+                }
+              </div>
+            </ChildContent>
+          </Field>
 
-        <Field Label="Hub form">
-          <LabelEnd><span class="text-xs text-muted">any of</span></LabelEnd>
-          <ChildContent>
-            <div class="filter-group-options">
-              @foreach (var h in HubChips)
-              {
-                <Chip Active="hubFilter.Contains(h.Token)"
-                      Class="@(Unseen(seenHubs, h.Token) ? "filter-chip--unseen" : null)"
-                      Title="@ChipTitle(seenHubs, h.Token, h.Label)"
-                      OnClick="() => ToggleHub(h.Token)">@h.Label@if (censusBoards > 0) { <span class="filter-chip-n">@(seenHubs.GetValueOrDefault(h.Token))</span> }</Chip>
-              }
-            </div>
-          </ChildContent>
-        </Field>
+          <Field Label="Front line">
+            <LabelEnd><span class="text-xs text-muted">any of</span></LabelEnd>
+            <ChildContent>
+              <div class="filter-group-options filter-group-options--multi">
+                @foreach (var f in FrontChips)
+                {
+                  <Chip Active="frontFilter.Contains(f.Token)"
+                        Class="@(Unseen(seenFronts, f.Token) ? "filter-chip--unseen" : null)"
+                        Title="@ChipTitle(seenFronts, f.Token, f.Label)"
+                        OnClick="() => ToggleFront(f.Token)">@f.Label@if (censusBoards > 0) { <span class="filter-chip-n">@(seenFronts.GetValueOrDefault(f.Token))</span> }</Chip>
+                }
+              </div>
+            </ChildContent>
+          </Field>
 
-        <Field Label="Frontline">
-          <LabelEnd><span class="text-xs text-muted">any of</span></LabelEnd>
-          <ChildContent>
-            <div class="filter-group-options">
-              @foreach (var f in FrontChips)
-              {
-                <Chip Active="frontFilter.Contains(f.Token)"
-                      Class="@(Unseen(seenFronts, f.Token) ? "filter-chip--unseen" : null)"
-                      Title="@ChipTitle(seenFronts, f.Token, f.Label)"
-                      OnClick="() => ToggleFront(f.Token)">@f.Label@if (censusBoards > 0) { <span class="filter-chip-n">@(seenFronts.GetValueOrDefault(f.Token))</span> }</Chip>
-              }
-            </div>
-          </ChildContent>
-        </Field>
-
+          @if (censusBoards > 0)
+          {
+            <p class="section-desc">
+              The number on each option is how many of the @censusBoards layouts for these settings have
+              it.@(CensusIsTelling ? " A shape at 0 is never generated with these settings." : "")
+            </p>
+          }
+        </ChildContent>
       </Section>
     </aside>
 
@@ -111,13 +124,13 @@
       @if (pinned.Count > 0)
       {
         <div class="gen-tray">
-          <span class="gen-tray-label"><i data-lucide="pin"></i> Held · @pinned.Count</span>
+          <span class="gen-tray-label"><i data-lucide="pin"></i> Pinned · @pinned.Count</span>
           <div class="gen-tray-items">
             @foreach (var p in pinned)
             {
               <div class="gen-tray-chip">
                 <a class="gen-tray-fig @(p.StaleComposer ? "gen-tray-fig--stale" : null)"
-                   href="@($"/plan-editor?plan={p.Id}")" title="Open in plan editor">
+                   href="@($"/plans/{p.Id}")" title="Open in plan editor">
                   @if (traySvg.TryGetValue(p.Id, out var s)) { @((MarkupString)s) }
                 </a>
                 @if (p.StaleComposer)
@@ -132,35 +145,37 @@
         </div>
       }
 
-      @if (censusBoards > 0)
-      {
-        <p class="gen-scanned">@matching of @censusBoards boards match</p>
-      }
+      <div class="gen-toolbar">
+        @if (censusBoards > 0)
+        {
+          <p class="gen-scanned"><strong>@matching</strong> of @censusBoards layouts match</p>
+        }
+        <BoardKey Entries="key" />
+      </div>
 
       <div class="gen-grid">
         @foreach (var card in cards)
         {
-          <div class="gen-card @(IsPinned(card) ? "gen-card--pinned" : null)">
-            <div class="gen-card-badges" title="Structure — filter from the sidebar">
-              @foreach (var w in card.Structure.Wools.Distinct())
-              {
-                <span class="gen-badge gen-badge--wool">@w</span>
-              }
-              <span class="gen-badge gen-badge--hub">@card.Structure.Hub</span>
-              <span class="gen-badge gen-badge--front">@card.Structure.Frontline</span>
-            </div>
+          <div class="gen-card @(IsPinned(card) ? "gen-card--pinned" : null)" @key="card.Descriptor.Seed">
             <button class="gen-card-fig" @onclick="() => OpenDetail(card)" title="Open details">
               @((MarkupString)card.Svg)
             </button>
-            <div class="gen-card-foot">
-              <span class="gen-card-score" title="Evaluator score — lower is better">@card.Score.ToString("0.0")</span>
-              <span class="gen-card-meta">@card.WoolCount wool · #@card.Descriptor.Seed</span>
-              @if (card.Spend is { } spend)
-              {
-                <span class="gen-card-land" title="@SpendTitle(spend)">@SpendShort(spend)</span>
-              }
-              <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
-                      title="@(IsPinned(card) ? "Unpin" : "Pin to hold tray")"><i data-lucide="pin"></i></button>
+            <div class="gen-card-body">
+              <dl class="gen-card-shape">
+                <div><dt>Wools</dt><dd>@WoolLabels(card.Structure.Wools)</dd></div>
+                <div><dt>Hub</dt><dd>@Label(HubChips, card.Structure.Hub)</dd></div>
+                <div><dt>Front line</dt><dd>@Label(FrontChips, card.Structure.Frontline)</dd></div>
+              </dl>
+              <div class="gen-card-foot">
+                <span class="gen-card-stat" title="Score: lower is better">Score <strong>@card.Score.ToString("0.0")</strong></span>
+                <span class="gen-card-stat">@card.WoolCount @(card.WoolCount == 1 ? "wool" : "wools")</span>
+                @if (card.Spend is { } spend)
+                {
+                  <span class="gen-card-stat" title="@SpendTitle(spend)">Land <strong>@SpendPercent(spend.Unit)</strong></span>
+                }
+                <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
+                        title="@(IsPinned(card) ? "Unpin" : "Pin")" aria-label="@(IsPinned(card) ? "Unpin" : "Pin")"><i data-lucide="pin"></i></button>
+              </div>
             </div>
           </div>
         }
@@ -169,7 +184,7 @@
       @if (feedError is not null) { <p class="gen-status">@feedError</p> }
       else if (loading) { <p class="gen-status">Loading…</p> }
       else if (cards.Count == 0) { <p class="gen-status">@EmptyFeedMessage()</p> }
-      else if (atEnd) { <p class="gen-status">That is every board for these settings.</p> }
+      else if (atEnd) { <p class="gen-status">No more layouts for these settings.</p> }
 
       <div @ref="sentinelRef" class="gen-sentinel"></div>
       @if (!atEnd && !loading && cards.Count > 0)
@@ -181,15 +196,16 @@
 
   @if (detail is { } d)
   {
-    <SideDrawer Open="true" Title="Board detail" Icon="layout-grid" OnClose="CloseDetail">
+    <SideDrawer Open="true" Title="Layout details" Icon="layout-grid" OnClose="CloseDetail">
       <Body>
         <div class="gen-detail-fig">@((MarkupString)d.Svg)</div>
+        <BoardKey Entries="key" />
         <div class="gen-detail-meta">
           Score <strong>@d.Score.ToString("0.00")</strong> · @d.WoolCount wool ·
           @d.Descriptor.Players players · @d.Descriptor.Symmetry · seed @d.Descriptor.Seed
         </div>
         <div class="gen-detail-meta">
-          <strong>@string.Join(", ", d.Structure.Wools)</strong> wools · hub <strong>@d.Structure.Hub</strong> · frontline <strong>@d.Structure.Frontline</strong>
+          Wools <strong>@WoolLabels(d.Structure.Wools)</strong> · hub <strong>@Label(HubChips, d.Structure.Hub)</strong> · front line <strong>@Label(FrontChips, d.Structure.Frontline)</strong>
         </div>
         @if (d.Spend is { } sp)
         {
@@ -204,7 +220,7 @@
               <span class="gen-spend-pct">@SpendPercent(sp.Unit)</span>
             </div>
             <table class="gen-spend-table">
-              <thead><tr><th>box</th><th>land</th><th>footprint</th></tr></thead>
+              <thead><tr><th>Box</th><th>Land</th><th>Footprint</th></tr></thead>
               <tbody>
                 @foreach (var k in sp.ByKind)
                 {
@@ -215,19 +231,17 @@
                   </tr>
                 }
               </tbody>
-              <tfoot><tr><td>total</td><td>@sp.Unit.Cells</td><td>@sp.FootprintCells</td></tr></tfoot>
+              <tfoot><tr><td>Total</td><td>@sp.Unit.Cells</td><td>@sp.FootprintCells</td></tr></tfoot>
             </table>
             <p class="section-desc">
-              Cells, for <strong>one team unit</strong> — the board is this unit fanned. The per-box rows are
-              footprints, the only currency a box carries before it is filled; the total land is what the
-              pieces actually cover, which is what the spend gate holds against the budget. The budget is the
-              size band's land for one team, converted from blocks².
+              In cells, for <strong>one team's half</strong>. Footprint is each box's size. Land is the area the
+              shapes actually cover, and is checked against the budget for this map size.
             </p>
           </div>
         }
         @if (d.HardTerms.Count > 0)
         {
-          <div class="plan-compile-errors"><p class="section-desc">hard terms fired: @string.Join(", ", d.HardTerms)</p></div>
+          <div class="plan-compile-errors"><p class="section-desc">Failed hard checks: @string.Join(", ", d.HardTerms)</p></div>
         }
         @if (d.TopSoft.Count > 0)
         {
@@ -241,12 +255,15 @@
             }
           </div>
         }
-        <pre class="gen-descriptor">@DescriptorJson(d)</pre>
+        <details class="gen-descriptor-box">
+          <summary>Layout code (JSON)</summary>
+          <pre class="gen-descriptor">@DescriptorJson(d)</pre>
+        </details>
       </Body>
       <Footer>
-        <Button Full Icon="clipboard" OnClick="() => CopyDescriptor(d)">Copy descriptor</Button>
-        <Button Full OnClick="() => TogglePin(d)">@(IsPinned(d) ? "Unpin" : "Pin to hold tray")</Button>
-        <Button Variant="primary" Full Icon="file-plus-2" OnClick="() => AuthorPlan(d)">Author this plan</Button>
+        <Button Full Icon="clipboard" OnClick="() => CopyDescriptor(d)">Copy JSON</Button>
+        <Button Full OnClick="() => TogglePin(d)">@(IsPinned(d) ? "Unpin" : "Pin")</Button>
+        <Button Variant="primary" Full Icon="file-plus-2" OnClick="() => AuthorPlan(d)">Open in plan editor</Button>
       </Footer>
     </SideDrawer>
   }

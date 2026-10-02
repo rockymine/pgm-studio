@@ -40,7 +40,18 @@ public partial class Select
     /// or a swatch.</summary>
     [Parameter] public bool Slim { get; set; } = true;
 
-    private string Cls => Slim ? "field-input field-input--slim" : "field-input";
+    /// <summary>The select standing in canvas chrome — the floating surface at chip height, not a panel field.</summary>
+    [Parameter] public bool Canvas { get; set; }
+
+    /// <summary>A class the site adds for its own layout.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The element id a <c>&lt;label for&gt;</c> names.</summary>
+    [Parameter] public string? Id { get; set; }
+
+    private string Cls => string.Join(' ',
+        new[] { Canvas ? "canvas-select" : Slim ? "field-input field-input--slim" : "field-input", Class }
+            .Where(name => !string.IsNullOrEmpty(name)));
 
     private Task Changed(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value as string ?? "");
 

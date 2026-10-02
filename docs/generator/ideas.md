@@ -202,7 +202,7 @@ landed, the rest is the idea.
   readout move is the most direct way to find out what the budget is actually worth.
 
 - [ ] **G151 — a box's rect should be the bounding box of its members.** The members inspector offers
-  "Fix these members" / "Follow containment", and the fixed half behaves oddly on purpose-built-for-something-
+  "Fix members" / "Use pieces inside", and the fixed half behaves oddly on purpose-built-for-something-
   else grounds: named membership (`PlanBoxes.MembersOf`, the `Members` list) ignores geometry entirely, so a
   piece can be dragged *out* of its box and still be carried when the box moves (`plan-canvas.js`, the box
   drag translates `d.carried` in both modes). That is not an authoring mode — named membership exists for

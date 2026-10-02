@@ -11,5 +11,5 @@ public static class Writers
     /// <summary>The whole of who wrote it, for a hover: the agent and whose token it wrote with, or the person.</summary>
     public static string Describe(string? person, string? token) =>
         token is null ? person ?? "unsigned"
-        : $"{token} — an agent, writing with {(person is null ? "an unsigned token" : $"{person}'s token")}";
+        : $"{token}, an agent writing with {(person is null ? "an unsigned token" : $"{person}'s token")}";
 }

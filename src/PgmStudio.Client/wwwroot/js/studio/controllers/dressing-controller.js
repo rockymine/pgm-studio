@@ -147,7 +147,7 @@ export class DressingController {
    */
   joinSelection() {
     const picked = this.selection.map(id => this.#doc.byId(id)).filter(prop => isRect(prop));
-    if (picked.length === 0) return { refused: "Pick a building first — a join is two rectangles becoming one." };
+    if (picked.length === 0) return { refused: "Select two buildings to join them." };
 
     if (picked.length === 1) {
       const only = picked[0];
@@ -173,14 +173,14 @@ export class DressingController {
     for (let a = 0; a < picked.length; a++)
       for (let b = a + 1; b < picked.length; b++)
         if (buildingsOverlap(picked[a], picked[b])) {
-          return { refused: "Those buildings stand on the same ground. A plan states its ground once, so "
-                          + "move one until they touch along an edge instead of sharing blocks." };
+          return { refused: "Those buildings overlap. Move one so they touch along an edge "
+                          + "without sharing blocks." };
         }
 
     const order = this.#doc.props.filter(prop => picked.some(one => one.id === prop.id));
     const rects = order.flatMap(prop => wingRects(prop));
     if (!rectsJoinUp(rects)) {
-      return { refused: "Those buildings do not touch. A building is one shell under one roof, so move them "
+      return { refused: "Those buildings don't touch. Move them "
                       + "until they meet along an edge." };
     }
 

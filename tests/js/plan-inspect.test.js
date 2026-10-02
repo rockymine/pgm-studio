@@ -1,4 +1,4 @@
-// Unit tests for the plan-editor inspect presentation helpers (pure, no DOM).
+// Unit tests for the plan editor's inspect presentation helpers (pure, no DOM).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

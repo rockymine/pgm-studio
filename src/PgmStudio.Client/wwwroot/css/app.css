@@ -7,7 +7,7 @@ h1:focus {
 }
 
 a {
-    color: #0071c1;
+    color: var(--accent-light);
 }
 
 .content {
@@ -78,5 +78,5 @@ a {
     }
 
 code {
-    color: #c02d76;
+    color: var(--code-color);
 }

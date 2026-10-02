@@ -6,14 +6,17 @@ using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Features.Plan;
 
-// Plan Info phase (map-backed plans only): two steps. Identity — the map's display name (saved to the map
-// metadata endpoint, since a plan is a map row) + username-verified authors via the shared AuthorsEditor.
+// Plan Info phase: two steps. Identity — the plan's name; on a map-backed plan that is the map's display
+// name (saved to the map metadata endpoint) beside username-verified authors via the shared AuthorsEditor.
 // Settings — the plan globals (symmetry + cell/surface/max-build-height/max-players), which live on the plan doc:
 // the host owns the canvas bridge, so this phase renders them as parameters and raises change callbacks the
 // host forwards to the bridge (the same split the Sketch tool uses for its symmetry settings).
 public partial class PlanInfoPhase
 {
-    [Parameter] public string Slug { get; set; } = "";
+    /// <summary>The map a map-backed plan belongs to; null on a plan row, which has no metadata of its own.</summary>
+    [Parameter] public string? Slug { get; set; }
+
+    private bool MapBacked => Slug is { Length: > 0 };
     /// <summary>Advance to the Draw phase (Continue on the last step) — the rail's Draw button does the same.</summary>
     [Parameter] public EventCallback OnNext { get; set; }
 
@@ -32,6 +35,16 @@ public partial class PlanInfoPhase
     [Parameter] public EventCallback<double> OnSurfaceStepChanged { get; set; }
     [Parameter] public EventCallback<double> OnMaxPlayersChanged { get; set; }
 
+    /// <summary>The symmetries a plan can state, offered in this order wherever a plan's symmetry is picked.</summary>
+    internal static readonly IReadOnlyList<SelectOption> SymmetryOptions =
+    [
+        new("rot_180", "Rotate 180°"),
+        new("rot_90", "Rotate 90°"),
+        new("mirror_x", "Mirror X"),
+        new("mirror_z", "Mirror Z"),
+        new("none", "None"),
+    ];
+
     private int step;   // 0 = Identity, 1 = Settings
     private Task OnNextStep() { if (step < Steps.Length - 1) { step++; return Task.CompletedTask; } return OnNext.InvokeAsync(); }
 
@@ -40,9 +53,11 @@ public partial class PlanInfoPhase
     private string? saveStatus;
 
     // Load name + authors once on mount from the map metadata (not OnParametersSet — the host re-renders on
-    // canvas callbacks while this phase is up, and re-loading would wipe unsaved edits). Slug is fixed here.
+    // canvas callbacks while this phase is up, and re-loading would wipe unsaved edits). The host keys this
+    // component by its map, so Slug is fixed for an instance.
     protected override async Task OnInitializedAsync()
     {
+        if (!MapBacked) return;
         try
         {
             var doc = await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{Slug}");
@@ -54,14 +69,14 @@ public partial class PlanInfoPhase
             if (loaded.Length > 0 && loaded != Name) await OnNameChanged.InvokeAsync(loaded);
             dirty = false; saveStatus = null;
         }
-        catch { saveStatus = "Failed to load."; }
+        catch { saveStatus = "Couldn't load the plan details. Reload the page to try again."; }
     }
 
     private async Task OnNameInput(ChangeEventArgs e)
     {
         var v = e.Value?.ToString() ?? "";
         await OnNameChanged.InvokeAsync(v);   // live-sync the plan doc (compile reads doc.meta.name)
-        Dirty();
+        if (MapBacked) Dirty();
     }
 
     private void Dirty() { dirty = true; saveStatus = null; }
@@ -82,9 +97,9 @@ public partial class PlanInfoPhase
         {
             var resp = await Http.PatchAsJsonAsync($"api/map/{Slug}/metadata", payload);
             if (resp.IsSuccessStatusCode) { dirty = false; saveStatus = "Saved."; }
-            else saveStatus = $"Save failed ({(int)resp.StatusCode}).";
+            else saveStatus = $"Couldn't save (HTTP {(int)resp.StatusCode}). Try again.";
         }
-        catch { saveStatus = "Save failed."; }
+        catch { saveStatus = "Couldn't save. Try again."; }
         StateHasChanged();
     }
 

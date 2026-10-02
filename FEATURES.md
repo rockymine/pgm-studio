@@ -157,6 +157,56 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **The interface is written for a mapmaker, not for the codebase (`C71`).** A first-time reader found the
+  copy hard to parse: internal names on screen (*pipeline*, *composer*, *emitter*, *BoxFiller*), noun phrases
+  hung off em dashes, metaphors, and descriptions where the control already said enough. The standard is
+  `docs/client/writing-for-the-ui.md` — plain sentences, verbs on buttons, names for headings, errors that say
+  what happened and what to do, no em dashes, the Oxford comma, and a glossary of the terms a reader has to
+  learn — and every page, tool, inspector, tooltip, status line and canvas message in `Client` was rewritten
+  to it, with the e2e specs and tool documents that quote a label moved in the same change.
+- **Text size is the reader's choice, and the default is larger (`C72`).** Every size token in `tokens.css`
+  is a design size times `--ui-scale`, and `TextSizeMenu` in the studio bar picks *Small*, *Default*, *Large*
+  or *Larger* (0.9 · 1 · 1.15 · 1.3), stored as `pgm-text-size` and applied before any stylesheet loads. Type,
+  icons, spacing, the control height and the panel widths follow it; the default type scale rose a pixel a
+  step to 15/14/13/12/11, buttons are at least 28px tall (WCAG 2.2's target size is 24), and labels drawn on a
+  canvas take the same scale through `labelPx`, a step larger than before.
+- **The studio has its own icon and title (`C73`).** `favicon.svg` (one block, three faces) with PNG and
+  apple-touch fallbacks replaces Blazor's default, and the tab reads *PGM Studio* where it read
+  *PgmStudio.Client*.
+- **`?` opens the shortcuts, and the sheet closes like a dialog (`C74`).** A shifted symbol is its own
+  character in `chordOf`, so `?` matches on any layout where it previously arrived as `shift+?` and matched
+  nothing. The sheet carries a close button where it showed a faint *Esc to close*.
+- **A page of boards is read with one key, and its cards hold their shape (`C76`).** A server-drawn board SVG
+  carries no legend: `PlanBoardPalette.Key` is the one list of role and zone colours, the PNG appends it under
+  its raster for a reader of the image alone, and `GET /compose` and `GET /shapes/catalog` return it as `key`
+  for `BoardKey` to draw once above the grid. Generator and catalog cards are a square picture on a dark
+  ground (`--board-bg`, since the swatches are tuned for one) with the structure and numbers under it rather
+  than badges over it. The generator's rail is *Layout settings*, applied on change with no Apply button, and
+  *Filter by shape*; multi-select filter chips lead with a checkbox (`filter-group-options--multi`).
+- **What a whole-page sweep found (`C77`).** The Blazor template's link and `code` colours (`#0071c1`, a pink)
+  are the studio's tokens; a list row that is a link is no longer underlined; a map row leads with its name
+  and quiets its slug; the not-found page has a heading and a way back; the plan tool's crumb names the plan;
+  change history names the documents a change wrote as *sketch* and *game settings*; the plan sidebar's three
+  panels are one even switch; and an In-game phase with no block textures says so in a callout.
+- **Every dropdown is `Select` (`C51`).** The plan tool, Configure, Edit, the sketch tool, the world canvas and
+  the pages hold no `<select>` of their own; the one left in the client is `Select.razor`'s.
+- **Sliders, number boxes and dropdowns are shared components (`C79`).** No raw number, range or select
+  markup stands outside `Components/`: 28 sliders are `RangeField` (live `ValueChanged`, a release-only
+  `OnCommit`), 33 number boxes join `NumberField` (now `double?`, invariant-culture, clamped, with `OnCleared`
+  where blank means none), and 20 dropdowns join `Select` (`Id`, `Class`, `Canvas`).
+- **No inline style sets a design value (`C80`).** Spacing is a modifier class in the component's stylesheet
+  (`panel-list--separated`, `meter--separated`, …); what remains inline is a runtime value handed to a class
+  as a custom property, one name per concept (`--swatch` for every swatch, `--meter-level`, `--pin-x`/`--pin-y`,
+  `--head-size`/`--head-image`). `DetailHeader` takes an `IconTint` where it took a style string.
+- **One stylesheet per component (`C81`).** `components.css` is the list of imports, in cascade order, over
+  one file per component under `css/studio/components/` (`buttons.css`, `form-fields.css`, `canvas-dock.css`, …); every
+  page renders pixel-identical in both themes, and a design direction restyles a component by opening its file.
+- **Every canvas colour is a token (`C82`).** Piece roles, box kinds, objectives, buildings, props, seams, rule
+  evidence and refused drops are `--canvas-*` tokens in `tokens.css`, read by the canvas JS with no fallback
+  beside them; the light theme darkens the three that lost contrast on its viewport (the mid box, the rule
+  limit, the side-view marker ring). Minecraft's chat and dye tables and the height ramps stay literal.
+- **Panning looks like panning (`C75`).** The pan tool shows an open hand over every canvas and a closed one
+  while the view is dragged, middle-button drags included (`canvas--pan`, `canvas--panning`).
 - **Three browser specs describe the tools the studio has (`TN17`, `TN18`, `TS106`).** Nothing had run the
   sweep, so three of them drove interactions that had moved on and the gate was red before any change.
   `plan-findings` and `plan-refusals` posted `plan: 1` where `PlanModel.CurrentVersion` is **2**, so both met
@@ -181,6 +231,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   three. The tool gates its own Compile on the document arriving, and the spec waits on
   `POST /api/plan/inspect` answering ok rather than on `waitForTimeout(1500)`: a condition where a duration
   had been standing in for one. 18/18 inside a full `./tools/e2e.sh all`, twice.
+- **No stylesheet styles markup nobody renders (`C64`).** Every class and id the studio stylesheets name is
+  produced by a `.razor`, `.cs`, `.js` or `index.html`, either literally or as a modifier a component composes
+  at runtime; a compound naming a live class inside a dead ancestor went with its ancestor. **245 lines** left
+  ten stylesheets, among them the `choice-*` tile chooser, `panel-accordion`, `vis-btn`, the `detail-table`,
+  the `gen-*` organic demo, the bucket editor, the context menu, `history-entry` and `#history-panel`;
+  `detail-table.css`, `layer-options.css` and `visibility-toggle.css` emptied and were deleted.
 - **The master-detail dashboard's stylesheet goes with the page it styled (`C62`, `C64`).** `editor.css`
   carried a two-pane maps dashboard — a sidebar with search, URL import and a map list beside a detail pane
   with a thumbnail, an authors row and stacked actions — and `/maps` is `Pages/Maps.razor`, which draws a
@@ -724,6 +780,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   answers, so a plan that will not compile is still the one an author can take a copy of — and the
   map-backed topbar is down to Save. The bare `/plan-editor` route has no flow bar and keeps its full bar
   (New · Import · Export · Save · Open · Compile). (C35)
+
+- **One plan editor on two bindings (`G154`).** A map's plan (`/maps/{slug}/plan`) and a plan row
+  (`/plans/{id}` and `/plans/new`, which replace `/plan-editor`) are the same tool: Info and Draw on the rail,
+  the flow bar, the sidebar's three panel chips, and a sidebar that folds away on both. Only the topbar follows
+  the binding: Save alone on a map, and New · Import · Open · Save with the origin badge on a row, whose Save
+  forks a generated or imported row and moves the address to the copy. `docs/tools/plan.md`.
 
 - **The library's editor rail is wide enough to edit in (C36).** The rail was a fixed 320px while the grid
   beside it — which only picks what to work on — took everything else. At that width a material's own row
@@ -5990,6 +6052,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   body's own material, never over a laid log and never beside a `roofSlab`. Both editors offer whole blocks,
   stairs or slabs, the stair and the wear; `M0057` adds the two columns to house and roof rows.
   `docs/world-export/structures.md` §7.1, `docs/tools/library.md`. (`WE161`)
+- **The library's front page shows what it holds (`TL38`).** `/library` groups its nine kinds as *Terrain*,
+  *Buildings* and *Nature*; each card is the pictures of the newest three entries over the kind's name, count
+  and one-line description, the nine lists load in parallel, and a browse card is its picture over the entry's
+  name and tag rather than a name in a footer under a badge laid on the picture. `docs/tools/library.md`.
 - **The library's house styles are named for what they are (TL36).** A room style's name is describing words
   then a kind of building, from the two lists `HouseNames` holds and `GET /api/room-styles/name-words` answers;
   `HS19` complains of any other on save. The library holds the author's review: the ten kept styles revised and

@@ -37,53 +37,44 @@ public static class LibraryKinds
     public const string BiomesSlug = "biomes";
 
     public static readonly LibraryKind Styles = new(
-        StylesSlug, "styles", "Styles", "style", "paintbrush",
-        "One named material recipe — a solid block, a layer stack, a team tint or one of the patterns. It "
-        + "is the unit a theme and a house course both reuse.",
+        StylesSlug, "styles", "Patterns", "pattern", "paintbrush",
+        "A block pattern: one block, layers of blocks, a team colour, or a mix. Even a single block is a pattern.",
         DraftPreview: false);
 
     public static readonly LibraryKind Themes = new(
-        ThemesSlug, "themes", "Themes", "theme", "layers",
-        "The whole finish: one style per bucket — the rim capping every edge, the wall on the riser under "
-        + "it, the surface band, the fill body — plus how deep the paint reaches.",
+        ThemesSlug, "themes", "Palettes", "palette", "layers",
+        "A set of patterns that gives the ground its look: one each for the rim, wall, surface, and fill.",
         Composed: true);
 
     public static readonly LibraryKind Roofs = new(
         RoofsSlug, "roof-styles", "Roofs", "roof", "triangle",
-        "Everything above the eave: which form the roof takes, how steeply it climbs, how far it oversails, "
-        + "and what its body, its edge and its gable face are made of.");
+        "Roofs: their shape, pitch, overhang, and materials.");
 
     public static readonly LibraryKind Storeys = new(
         StoreysSlug, "storey-styles", "Storeys", "storey", "brick-wall",
-        "One room: the air a player stands in, the wall around it, the windows through that wall and how "
-        + "its own floor is divided. A house stacks these in order.");
+        "One floor of a house: its height, walls, windows, and room layout.");
 
     public static readonly LibraryKind Porches = new(
         PorchesSlug, "porch-styles", "Porches", "porch", "door-open",
-        "The strip of footprint the walls give up, and what stands on it. Its deck is the house's floor and "
-        + "its canopy the roof's material, so what is left to it is its shape.");
+        "The part of a house's footprint outside its walls, and what stands on it.");
 
     /// <summary>The row is a <c>room_style</c> and composes to a <c>HouseStyle</c>; the surface calls it what
     /// the thing is.</summary>
     public static readonly LibraryKind Houses = new(
         HousesSlug, "room-styles", "Houses", "house", "house",
-        "A whole building: a stack of storeys under a roof, with a porch, openings and the foundation it "
-        + "stands on. It finishes a wool cage or a spawn cube without touching its size.",
+        "Whole buildings: storeys under a roof, with a porch, openings, and a foundation.",
         Composed: true);
 
     /// <summary>A tree is a recipe rather than a placement: what is put on the canvas is a position, and what
     /// stands there is one of these. The three forms are three trees, not one with a switch.</summary>
     public static readonly LibraryKind Trees = new(
         TreesSlug, "tree-styles", "Trees", "tree", "trees",
-        "One of three trees: a vanilla species with a drawn canopy, a skeleton grown from knobs you shape, "
-        + "or a tree an author built, copied out of a world. "
-        + "Placed by a click, so what is placed is a position and what stands there is this.",
+        "Trees: a vanilla species, a shaped skeleton, or a tree copied from a world.",
         Composed: true);
 
     public static readonly LibraryKind Boulders = new(
         BouldersSlug, "boulder-styles", "Boulders", "boulder", "mountain",
-        "A glacial erratic: its form, how far it reaches, what it is cut from and whether moss takes its "
-        + "sky-lit faces. Cut from any material a style may be.",
+        "Boulders: their shape, size, material, and moss.",
         Composed: true);
 
     /// <summary>A biome field is a recipe like a material is — a kind, a scale and a palette — so it is named
@@ -92,8 +83,7 @@ public static class LibraryKinds
     /// that byte tints.</summary>
     public static readonly LibraryKind Biomes = new(
         BiomesSlug, "biome-patterns", "Biomes", "biome", "sun",
-        "Which biome each column of the exported world carries — one byte that tints grass, leaves and water, "
-        + "and places nothing. One biome everywhere, jittered regions, or a field cut into bands.");
+        "The biome of each column, which tints grass, leaves, and water.");
 
     public static readonly IReadOnlyList<LibraryKind> All =
         [Styles, Themes, Roofs, Storeys, Porches, Houses, Trees, Boulders, Biomes];

@@ -7,7 +7,7 @@
    compose; /library chooses between them, /library/{kind} browses one, and /library/{kind}/{id} — or
    /new — edits an entry on a page of its own. The host owns only the shell and which route is showing. *@
 
-<PageTitle>@PageName — PGM Studio</PageTitle>
+<PageTitle>@PageName · PGM Studio</PageTitle>
 
 <StudioShell>
   <Bar>
@@ -38,7 +38,7 @@
   </Bar>
   <Rail>
     <NavRail>
-      <NavButton Icon="library" Title="Every library" Href="/library" Active="@(Open is null)" />
+      <NavButton Icon="library" Title="All libraries" Href="/library" Active="@(Open is null)" />
       <div class="nav-rail-div"></div>
       @foreach (var kind in LibraryKinds.All)
       {

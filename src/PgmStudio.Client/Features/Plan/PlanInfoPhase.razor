@@ -1,10 +1,11 @@
 @namespace PgmStudio.Client.Features.Plan
 @inject HttpClient Http
 
-@* Plan Info phase — two steps: Identity (display name + authors, saved to the map metadata via
-   GET/PATCH api/map/{slug}, since plans are map rows) and Settings (the plan globals: symmetry mode +
-   cell/surface/max-build-height/max-players, which drive the live plan document through the host's callbacks).
-   Continue on the last step advances to Draw. *@
+@* Plan Info phase — two steps: Identity (the plan's name, and on a map-backed plan the authors, saved to
+   the map metadata via GET/PATCH api/map/{slug}) and Settings (the plan globals: symmetry mode +
+   cell/surface/max-players, which drive the live plan document through the host's callbacks). A plan row has
+   no map to credit authors on, so its name is all Identity holds and the topbar's Save stores it with the
+   plan. Continue on the last step advances to Draw. *@
 
 <div class="phase-body">
   <FlowBar Class="flow-bar--flush" PhaseIcon="book-open-text" PhaseTitle="Info"
@@ -15,13 +16,15 @@
     <ContentColumn MaxWidth="720">
       @if (step == 0)
       {
-        <Section Title="Plan Identity">
+        <Section Title="Details">
           <Field Label="Plan name" Required For="pl-name">
             <input id="pl-name" class="field-input" type="text" placeholder="Untitled plan"
                    value="@Name" @oninput="OnNameInput" />
           </Field>
         </Section>
 
+        @if (MapBacked)
+        {
         <AuthorsEditor Authors="authors" OnChanged="Dirty" />
 
         <Section>
@@ -30,20 +33,15 @@
             <span class="panel-save-status">@saveStatus</span>
           </div>
         </Section>
+        }
       }
       else
       {
-        <Section Title="Symmetry &amp; globals">
-          <p class="section-desc">The mirror and grid the plan is built on. Symmetry drives the live preview
-            and the compiled team layout; the surface values set the block heights the compiler generates.</p>
+        <Section Title="Symmetry and grid">
+          <p class="section-desc">Symmetry is how the part you design is copied for the other teams: rotated
+            or mirrored. Surface values are heights in blocks.</p>
           <Field Label="Symmetry">
-            <select class="field-input" value="@Symmetry" @onchange="@(e => OnSymmetryChanged.InvokeAsync(e.Value?.ToString() ?? "rot_180"))">
-              <option value="rot_180">Rotate 180°</option>
-              <option value="rot_90">Rotate 90°</option>
-              <option value="mirror_x">Mirror X</option>
-              <option value="mirror_z">Mirror Z</option>
-              <option value="none">None — single unit</option>
-            </select>
+            <Select Slim="false" Options="SymmetryOptions" Value="@Symmetry" ValueChanged="OnSymmetryChanged" />
           </Field>
           <Field Label="Cell size (blocks)">
             <NumberField Value="Cell" ValueChanged="OnCellChanged" Min="1" />

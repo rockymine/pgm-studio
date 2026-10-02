@@ -125,6 +125,13 @@ public sealed record ObservedForms(
     IReadOnlyDictionary<string, int> Hubs,
     IReadOnlyDictionary<string, int> Frontlines);
 
+/// <summary>One row of the key a board picture is read by: a role or a zone kind, its colour, and whether the
+/// board hatches it. A page carries the key once, since the pictures it holds carry none.</summary>
+/// <param name="Label">The role or zone, as a reader names it.</param>
+/// <param name="Color">Its swatch, as CSS hex.</param>
+/// <param name="Hatched">Whether the board paints it under a diagonal hatch.</param>
+public sealed record BoardKeyEntry(string Label, string Color, bool Hatched);
+
 /// <summary>A page of the board library: <paramref name="Cards"/> from the position asked for,
 /// <paramref name="Next"/> the position to ask from next, <paramref name="End"/> true once the page reaches the
 /// last board the filters match, and <paramref name="Matching"/> how many they match in all.
@@ -136,9 +143,11 @@ public sealed record ObservedForms(
 /// <param name="Matching">How many boards the filters match in the library.</param>
 /// <param name="Observed">The census over every board the library holds for the band and symmetry, counted
 /// <b>before</b> the filters so a chip never hides the alternatives it is filtering against.</param>
+/// <param name="Key">The colours the card pictures are drawn in.</param>
 public sealed record ComposePage(
     IReadOnlyList<ComposeCard> Cards,
     int Next,
     bool End,
     int Matching,
-    ObservedForms? Observed = null);
+    ObservedForms? Observed = null,
+    IReadOnlyList<BoardKeyEntry>? Key = null);

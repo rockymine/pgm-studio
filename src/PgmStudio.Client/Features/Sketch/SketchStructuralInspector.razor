@@ -15,46 +15,42 @@
 
     @if (Piece.IsRegion)
     {
-      <div class="section-header section-header--ruled"><h2 class="section-title">Stated height</h2></div>
+      <div class="section-header section-header--ruled"><h2 class="section-title">Height</h2></div>
       <Field Label="Surface (blocks)">
         <NumberField Value="@(Piece.BaseHeight ?? 0)" ValueChanged="HeightChanged" Min="1" />
       </Field>
       <p class="plan-readout">
         @if (Piece.HeightAuthored)
         {
-          <text>Yours. A recompile carries this number onto the piece it writes, so refining the plan
-          will not put it back.</text>
+          <text>Set by you. Rebuilding from the plan keeps it.</text>
         }
         else
         {
-          <text>The plan's. It is the flat surface the piece was compiled at, and every recompile writes it
-          again — change it here and the correction is kept instead.</text>
+          <text>Set by the plan. Rebuilding from the plan resets it unless you change it here.</text>
         }
       </p>
     }
     else
     {
       <p class="plan-readout">
-        The footprint the room's shell stands on. It states no height of its own: the region around it is what
-        the group's relief is held against, and what a correction is made on.
+        The building has no height of its own. Change the height on the region around it.
       </p>
     }
 
-    <div class="section-header section-header--ruled"><h2 class="section-title">Where it stands</h2></div>
+    <div class="section-header section-header--ruled"><h2 class="section-title">Position</h2></div>
     <p class="plan-readout">
-      Drag it to move it. Where a room is belongs to the map's intent, so the move is written there —
+      Drag to move it.
       @(Piece.IsRegion
-        ? "and the region is the ground, so the marker, the building and the iron on it travel with it."
-        : "the building alone, since the region under it is the ground rather than the house.")
-      It moves and does not resize: a room's marker is a fraction of its own rectangle.
-      A plan rebuild draws it from the plan again.
+        ? "The marker, building, and iron on it move with it."
+        : "The region under it stays where it is.")
+      It can't be resized. Rebuilding from the plan puts it back.
     </p>
     @if (!string.IsNullOrEmpty(Note))
     {
       <p class="field-error">@Note</p>
     }
     <Button Full OnClick="() => OnClose.InvokeAsync()">
-      <i data-lucide="x"></i> Let go
+      <i data-lucide="x"></i> Deselect
     </Button>
   </Section>
 </Inspector>

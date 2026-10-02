@@ -42,7 +42,7 @@ const built = (await page.locator(".change-world").textContent()) ?? "";
 checks.add("and counts the ground it moved", /ground [1-9]/.test(built), built.trim());
 
 checks.section("putting the board back lands as a new change");
-await page.click("text=Put the board back as it stood at");
+await page.click('button:has-text("Restore to #")');
 await page.waitForFunction(
   (count) => document.querySelectorAll(".list-row").length > count, before.length, { timeout: 20000 });
 const after = (await api(`/map/${draft.slug}/changes`)).changes;

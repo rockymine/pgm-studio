@@ -19,27 +19,65 @@ public partial class PlanTool
 
     /// <summary>When routed as <c>/maps/{slug}/plan</c>, the plan is a <c>stage=plan</c> map row and the editor
     /// loads/saves its <c>plan_json</c> artifact (GET/PUT <c>/api/map/{slug}/plan</c>) in place — no fork doctrine.
-    /// Null on the bare <c>/plan-editor</c> route (the generator-candidate pool via <c>/api/plans</c>).</summary>
+    /// Null on a plan-row route.</summary>
     [Parameter] public string? Slug { get; set; }
+
+    /// <summary>The plan row <c>/plans/{id}</c> opens (<c>GET</c>/<c>POST /api/plans</c>). Null on
+    /// <c>/plans/new</c>, which holds a blank plan until Save stores it as a row.</summary>
+    [Parameter] public long? PlanId { get; set; }
 
     private bool MapBacked => Slug is { Length: > 0 };
 
-    // ── Phases (rail, map-backed plans only): Info (Identity + Settings steps) · Draw (the canvas). Draw
-    //    stays mounted while Info is up (hidden, not torn down) so the plan doc + zoom survive the trip. The
-    //    bare /plan-editor candidate route has no phase host — it stays on the Draw workspace. ──
+    /// <summary>What the route asks the editor to hold: a map, a plan row, or a new plan.</summary>
+    private string RouteKey => MapBacked ? $"map:{Slug}" : PlanId is { } id ? $"plan:{id}" : NewKey;
+
+    private const string NewKey = "new";
+
+    /// <summary>What the editor holds now, in <see cref="RouteKey"/>'s terms. It leads the route when Save
+    /// forks a row or Open picks one, and the URL is brought after it; it trails the route when the address
+    /// changes under a mounted editor, and <see cref="BindAsync"/> loads what the route names.</summary>
+    private string? boundKey;
+
+    /// <summary>The page component outlives a navigation between its own routes, and a route parameter
+    /// the new route does not name keeps its old value; both are cleared so each route states its binding.</summary>
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        Slug = null;
+        PlanId = null;
+        return base.SetParametersAsync(parameters);
+    }
+
+    // ── Phases (the rail): Info (Identity + Settings steps) · Draw (the canvas). Draw stays mounted while
+    //    Info is up (hidden, not torn down) so the plan doc + zoom survive the trip. ──
     [SupplyParameterFromQuery] public string? Phase { get; set; }
     private string active = "draw";
-    private bool InfoActive => MapBacked && active == "info";
-    private bool DrawActive => MapBacked && active == "draw";
+    private bool InfoActive => active == "info";
+    private bool DrawActive => active == "draw";
     // The Draw workspace stays mounted; it's hidden (not removed) on Info.
-    private bool DrawHidden => MapBacked && active != "draw";
-    // Map-backed Draw always shows its sidebar (part of the workspace); the bare route folds it via the rail.
-    private bool SidebarOpen => MapBacked || leftOpen;
+    private bool DrawHidden => active != "draw";
     private Task GoInfo() => SetPhase("info");
     private Task GoDraw() => SetPhase("draw");
 
-    // A blank map-backed plan lands on Info (?phase=info) to name it; opening an existing one goes to Draw.
-    protected override void OnInitialized() { if (Phase == "info") active = "info"; }
+    // A blank plan lands on Info (?phase=info) to name it; opening an existing one goes to Draw.
+    protected override void OnInitialized() => active = Phase == "info" ? "info" : "draw";
+
+    /// <summary>A navigation between this component's routes rebinds the mounted editor rather than
+    /// remounting it. The first binding is the first render's, once the canvas exists; a navigation that lands
+    /// while a binding loads is taken up when it finishes.</summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (handle is null || !documentLoaded || RouteKey == boundKey) return;
+        documentLoaded = false;
+        try { await BindToRouteAsync(); }
+        finally { documentLoaded = true; }
+        StateHasChanged();
+    }
+
+    private async Task BindToRouteAsync()
+    {
+        do await BindAsync();
+        while (handle is not null && RouteKey != boundKey);
+    }
 
     // Switching phases only flips which body renders: the canvas observes its own wrap and re-measures
     // (and runs a deferred fit) when Draw un-hides. Nudging it from here would run against the still-
@@ -63,7 +101,7 @@ public partial class PlanTool
     /// <summary>Whether the first render's load chain has finished. The canvas and the toolbar are in the DOM
     /// before the plan document is — nine interop round-trips and up to four reads separate them — so until
     /// this is set the editor is holding the bridge's blank default, and compiling it would post a plan with
-    /// no pieces and be told so. True on the bare route the moment the chain ends, since a plan drawn from
+    /// no pieces and be told so. True on /plans/new the moment the chain ends, since a plan drawn from
     /// scratch has nothing to wait for.</summary>
     private bool documentLoaded;
 
@@ -85,8 +123,8 @@ public partial class PlanTool
     // What the open map already holds, so the build can tell an origination from a rebuild before it runs.
     // A map with a sketch or a world has downstream work that the build replaces, which is worth saying
     // out loud once rather than discovering afterwards; a plan that has never been built has nothing to
-    // lose and gets no interruption. Null until the fetch lands, and on the bare /plan-editor route, where
-    // there is no map to ask about.
+    // lose and gets no interruption. Null until the fetch lands, and on a plan row, where there is no map to
+    // ask about.
     private MapState? state;
     private bool confirmingRebuild;
 
@@ -107,8 +145,8 @@ public partial class PlanTool
     private string DraftLabel
         => compiling ? "Compiling…"
          : compileErrors.Count > 0
-             ? $"Fix {compileErrors.Count} blocking problem{(compileErrors.Count == 1 ? "" : "s")} first"
-         : compileError is not null ? "The compile failed"
+             ? $"Fix {compileErrors.Count} problem{(compileErrors.Count == 1 ? "" : "s")} first"
+         : compileError is not null ? "Couldn't compile"
          : compiledLayout is null ? "Compile first"
          : BuildLabel;
 
@@ -141,31 +179,26 @@ public partial class PlanTool
     private bool isoUnavailable;
     private string? isoUnavailableWhy;
 
-    // The left panel is a rail-selected activity — "settings" (plan name / globals / reference / overlays)
-    // or "validation" (the evaluator score + fired rules) — plus a collapse flag. Each rail icon toggles its
-    // own panel: clicking the active-and-open one collapses the sidebar, clicking any other case opens that
-    // panel (switching is just clicking the other icon). The Rules evidence layer follows an open validation
-    // panel, so validation's icon doubles as that layer's toggle.
+    // The Draw sidebar holds one of three panels — "settings" (the tracing reference), "validation" (the
+    // evaluator score + fired rules) or "feasibility" (the producibility read) — switched by the chips at its
+    // head, and folds away to give the canvas the width. Each panel's overlay follows its panel being shown.
     private string leftPanel = "settings";
-    private bool leftOpen = true;
+    private bool sidebarOpen = true;
 
-    private async Task SelectActivity(string which)
-    {
-        if (leftPanel == which && leftOpen)
-            leftOpen = false;
-        else
-            (leftPanel, leftOpen) = (which, true);
-        await SyncPanelOverlays(leftOpen && leftPanel == "validation", leftOpen && leftPanel == "feasibility");
-    }
-
-    // Map-backed Draw: an in-sidebar switch between the Settings (reference + overlays), Validation and
-    // Feasibility panels — the rail is phases, not activities, so the panel toggle moves into the sidebar. No
-    // collapse (the sidebar is part of the Draw workspace); each panel's overlay follows its own panel.
-    private async Task SetPanel(string which)
+    private Task SetPanel(string which)
     {
         leftPanel = which;
-        await SyncPanelOverlays(leftPanel == "validation", leftPanel == "feasibility");
+        return SyncPanelOverlays();
     }
+
+    private Task ToggleSidebar()
+    {
+        sidebarOpen = !sidebarOpen;
+        return SyncPanelOverlays();
+    }
+
+    private Task SyncPanelOverlays()
+        => SyncPanelOverlays(sidebarOpen && leftPanel == "validation", sidebarOpen && leftPanel == "feasibility");
 
     /// <summary>Point each canvas overlay at the panel that owns it: the Rules layer follows Validation, the
     /// nearest-miss evidence follows Feasibility. Leaving a panel drops its overlay, so the canvas never carries
@@ -227,26 +260,26 @@ public partial class PlanTool
     // Both are drawn from the palette; markers (wool/spawn/iron/wall) and the build zone are separate tools.
     private static readonly RolePalette[] GeneratingRoles =
     [
-        new("piece", "Piece", "#7c8899"),
-        new("spawn", "Spawn", "#8f7bd6"),
-        new("wool-room", "Wool room", "#3fae74"),
+        new("piece", "Piece", "var(--canvas-role-piece)"),
+        new("spawn", "Spawn", "var(--canvas-role-spawn)"),
+        new("wool-room", "Wool room", "var(--canvas-role-wool-room)"),
     ];
     private static readonly RolePalette[] TechnicalRoles =
     [
-        new("buffer", "Buffer", "#f2792b"),
+        new("buffer", "Buffer", "var(--canvas-role-buffer)"),
     ];
     // Every assignable role, for the inspector's role dropdown (a piece can become any of them).
     private static readonly RolePalette[] Roles = [.. GeneratingRoles, .. TechnicalRoles];
 
     // The typed box kinds an envelope may carry — the partition vocabulary, offered on the box tool and in the
-    // inspector's kind dropdown. Colours match plan-doc's BOX_COLORS so palette, canvas and inspector agree.
+    // inspector's kind dropdown.
     private static readonly RolePalette[] BoxKinds =
     [
-        new("hub", "Hub", "#4ea3d8"),
-        new("wool", "Wool", "#3fae74"),
-        new("spawn", "Spawn", "#8f7bd6"),
-        new("frontline", "Frontline", "#e0714a"),
-        new("mid", "Mid", "#9aa7b4"),
+        new("hub", "Hub", "var(--canvas-box-hub)"),
+        new("wool", "Wool", "var(--canvas-box-wool)"),
+        new("spawn", "Spawn", "var(--canvas-box-spawn)"),
+        new("frontline", "Front line", "var(--canvas-box-frontline)"),
+        new("mid", "Mid", "var(--canvas-box-mid)"),
     ];
 
     // The kind armed for the box tool (the last one drawn), mirrored into the bridge.
@@ -255,7 +288,14 @@ public partial class PlanTool
     // The kind armed for the zone tool — build (open from the first tick) or water-lane (opens mid-match).
     private string zoneKind = "build";
 
-    private string BoxKindColor => BoxKinds.FirstOrDefault(k => k.Id == boxKind)?.Color ?? "#9aa7b4";
+    private static readonly IReadOnlyList<SelectOption> RoleOptions =
+        [.. Roles.Select(role => new SelectOption(role.Id, role.Label))];
+
+    private static readonly IReadOnlyList<SelectOption> BoxKindOptions =
+        [.. BoxKinds.Select(kind => new SelectOption(kind.Id, kind.Label))];
+
+    private IReadOnlyList<SelectOption> TraceMapOptions
+        => [.. traceMaps.Select(map => new SelectOption(map.Slug, map.Name))];
 
     private string OffsetLabel => sel?.At is { Length: 2 } a ? $"{a[0]}, {a[1]}" : "";
 
@@ -264,7 +304,7 @@ public partial class PlanTool
     private static string MarkerIcon(string kind) =>
         AllMarkerItems.FirstOrDefault(item => item.Key == kind)?.Icon ?? "flag";
 
-    /// <summary>Parse a number input, keeping the current value when the box is left unreadable.</summary>
+    /// <summary>Parse a picked number, keeping the current value when the pick is unreadable.</summary>
     private static int Num(object? value, int fallback)
         => int.TryParse(value?.ToString(), out var parsed) ? parsed : fallback;
 
@@ -281,8 +321,8 @@ public partial class PlanTool
         new { id = "plan.tool.zone",   keys = "z", label = "Zone",   group = "Tools" },
         new { id = "plan.tool.box",    keys = "g", label = "Box",    group = "Tools" },
         new { id = "plan.tool.wall",   keys = "w", label = "Wall",   group = "Tools" },
-        new { id = "plan.fit",         keys = "f", label = "Fit the plan", group = "Canvas" },
-        new { id = "plan.save",        keys = "mod+s", label = "Save the plan", group = "Everywhere", inField = true },
+        new { id = "plan.fit",         keys = "f", label = "Zoom to fit", group = "Canvas" },
+        new { id = "plan.save",        keys = "mod+s", label = "Save", group = "Everywhere", inField = true },
     ];
 
     /// <summary>A chord this tool registered. The registry holds the words; this holds what the chord does.</summary>
@@ -318,7 +358,7 @@ public partial class PlanTool
             try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
             try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
             // The Rules layer follows an open validation panel, not the persisted overlay flag — sync it to the initial state.
-            try { await handle.InvokeVoidAsync("setOverlay", "violations", leftOpen && leftPanel == "validation"); } catch { }
+            try { await handle.InvokeVoidAsync("setOverlay", "violations", sidebarOpen && leftPanel == "validation"); } catch { }
             await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
                 System.Text.Json.JsonSerializer.Serialize(Shortcuts));
             try { heightMap = await handle.InvokeAsync<bool>("getHeightMap"); } catch { /* keep default off */ }
@@ -330,25 +370,47 @@ public partial class PlanTool
             }
             catch { /* picker just stays empty */ }
             await LoadObjectiveVocabularyAsync();
-            // A map-backed plan (/maps/{slug}/plan) loads its artifact; the bare route honours the generator
-            // hand-off (?plan=<id> loads that candidate).
-            if (MapBacked) await LoadFromMap(Slug!);
-            else if (PlanIdFromQuery() is { } planId) await LoadFromDb(planId);
+            await BindToRouteAsync();
         }
         finally { documentLoaded = true; }
         StateHasChanged();
     }
 
-    /// <summary>The <c>plan</c> query-string id, if the editor was opened with one (generator hand-off).</summary>
-    private long? PlanIdFromQuery()
+    /// <summary>Load what the route names into the editor: a map's plan artifact, a plan row, or a blank plan.
+    /// A map left behind is offered the same discard the editor's disposal gives it, and everything read off
+    /// the previous binding — the selection, the open drawers, the map state — is dropped with it.</summary>
+    private async Task BindAsync()
     {
-        var query = new Uri(Nav.Uri).Query.TrimStart('?');
-        foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        if (handle is null) return;
+        var previous = boundKey;
+        if (previous is not null && previous.StartsWith("map:", StringComparison.Ordinal))
+            await DiscardIfEmptyAsync(previous["map:".Length..]);
+
+        boundKey = RouteKey;
+        sel = null;
+        state = null;
+        showCompile = showOpenDb = false;
+        importError = null;
+        ResetDbBinding();
+        if (previous is not null) active = Phase == "info" ? "info" : "draw";
+
+        if (MapBacked) await LoadFromMap(Slug!);
+        else if (PlanId is { } planId) await LoadFromDb(planId);
+        else if (previous is not null)
         {
-            var kv = pair.Split('=', 2);
-            if (kv.Length == 2 && kv[0] == "plan" && long.TryParse(kv[1], out var id)) return id;
+            await handle.InvokeVoidAsync("newDoc");
+            SyncMeta(await handle.InvokeAsync<string>("getMeta"));
         }
-        return null;
+    }
+
+    /// <summary>Bring the address to the plan row the editor now holds, without loading it again: a save
+    /// that forked, an Open, a New and an Import each change the row first and the URL after.</summary>
+    private void ShowBindingInUrl(bool replace = false)
+    {
+        if (MapBacked) return;
+        boundKey = planDbId is { } id ? $"plan:{id}" : NewKey;
+        if (boundKey == RouteKey) return;
+        Nav.NavigateTo(planDbId is { } row ? $"plans/{row}" : "plans/new", replace: replace);
     }
 
     // ── toolbar ────────────────────────────────────────────────────────────────
@@ -416,7 +478,7 @@ public partial class PlanTool
     // — differing only in when it opens.
     private static DockItem[] TechnicalItems =>
     [
-        new("zone", "Build zone", SwatchClass: "canvas-dock-swatch--build"),
+        new("zone", "Build area", SwatchClass: "canvas-dock-swatch--build"),
         new("water-lane", "Water lane", SwatchClass: "canvas-dock-swatch--water-lane"),
         .. TechnicalRoles.Select(r => new DockItem(r.Id, r.Label, SwatchClass: $"canvas-dock-swatch--{r.Id}")),
     ];
@@ -510,20 +572,19 @@ public partial class PlanTool
 
     // ── reference (tracing) backdrop ─────────────────────────────────────────────
 
-    private async Task OnPickReferenceMap(ChangeEventArgs e)
+    private async Task OnPickReferenceMap(string slug)
     {
         refError = null;
         if (handle is null) return;
-        var slug = e.Value?.ToString();
         var arg = string.IsNullOrEmpty(slug) ? null : slug;
         var err = await handle.InvokeAsync<string?>("setReferenceMap", arg);
         if (err is not null) refError = err;   // the bridge fires OnMeta on success, which re-syncs the form
         StateHasChanged();
     }
 
-    private async Task OnRefOpacity(ChangeEventArgs e)
+    private async Task OnRefOpacity(double opacity)
     {
-        if (double.TryParse(e.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var v)) refOpacity = v;
+        refOpacity = opacity;
         if (handle is not null) await handle.InvokeVoidAsync("setReferenceParam", "opacity", refOpacity);
     }
 
@@ -585,9 +646,7 @@ public partial class PlanTool
 
     // ── globals form ─────────────────────────────────────────────────────────────
 
-    private Task OnName(ChangeEventArgs e) => OnNameChanged(e.Value?.ToString() ?? "Untitled plan");
-
-    // Value-typed entry points shared by the Info phase (map-backed) and the bare-route sidebar controls.
+    // Value-typed entry points the Info phase raises; the host owns the bridge they write through.
     private async Task OnNameChanged(string v)
     {
         planName = v;
@@ -603,8 +662,6 @@ public partial class PlanTool
     /// naming the modes, so a new symmetry mode is classified rather than silently allowed.
     /// </summary>
     private bool ObjectivesOfferable => Symmetry.Order(symmetry) == 2;
-
-    private Task OnSymmetry(ChangeEventArgs e) => OnSymmetryChanged(e.Value?.ToString() ?? "rot_180");
 
     private async Task OnSymmetryChanged(string v)
     {
@@ -643,8 +700,8 @@ public partial class PlanTool
     private Task OnPieceId(ChangeEventArgs e)
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("setPieceId", sel.Id, e.Value?.ToString() ?? "").AsTask() : Task.CompletedTask;
 
-    private Task OnPieceRole(ChangeEventArgs e)
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setPieceRole", sel.Id, e.Value?.ToString() ?? "piece").AsTask() : Task.CompletedTask;
+    private Task OnPieceRole(string role)
+        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setPieceRole", sel.Id, role).AsTask() : Task.CompletedTask;
 
     private Task StepSurface(int delta)
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("stepPieceSurface", sel.Id, delta).AsTask() : Task.CompletedTask;
@@ -658,8 +715,8 @@ public partial class PlanTool
     private Task OnBoxId(ChangeEventArgs e)
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("setBoxId", sel.Id, e.Value?.ToString() ?? "").AsTask() : Task.CompletedTask;
 
-    private Task OnBoxKind(ChangeEventArgs e)
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setBoxKind", sel.Id, e.Value?.ToString() ?? "mid").AsTask() : Task.CompletedTask;
+    private Task OnBoxKind(string kind)
+        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setBoxKind", sel.Id, kind).AsTask() : Task.CompletedTask;
 
     private Task ToggleBoxMembers()
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("toggleBoxMembers", sel.Id).AsTask() : Task.CompletedTask;
@@ -724,6 +781,21 @@ public partial class PlanTool
     /// no default to fall back to: an unstated colour is resolved at compile time against the marker's team and
     /// the wools before it, which the editor cannot know from one marker.</summary>
     private string WoolColor => sel?.Color ?? "";
+
+    private IReadOnlyList<SelectOption> WoolColorOptions
+        => [.. vocabulary.Wool.Colors.Select(dye => new SelectOption(dye.Name, dye.Label))];
+
+    private IReadOnlyList<SelectOption> DestroyableStyleOptions
+        => [.. vocabulary.Destroyable.Styles.Select(design => new SelectOption(design, design))];
+
+    private IReadOnlyList<SelectOption> DestroyableMaterialOptions
+        => [.. vocabulary.Destroyable.MaterialChoices.Select(material => new SelectOption(material, material))];
+
+    private IReadOnlyList<SelectOption> LavaOptions
+        => [.. vocabulary.Core.LavaRange.Select(size => new SelectOption(size.ToString(), $"{size} × {size}"))];
+
+    private IReadOnlyList<SelectOption> LavaHeightOptions
+        => [.. vocabulary.Core.LavaHeightRange.Select(height => new SelectOption(height.ToString(), height.ToString()))];
 
     /// <summary>The swatch beside the picker: the stated dye's own colour, or the neutral the auto option
     /// stands for, since no one colour is what "auto" resolves to.</summary>
@@ -792,6 +864,7 @@ public partial class PlanTool
         SyncMeta(await handle.InvokeAsync<string>("getMeta"));
         ResetDbBinding();
         sel = null;
+        ShowBindingInUrl();
         StateHasChanged();
     }
 
@@ -806,23 +879,20 @@ public partial class PlanTool
             var err = await handle.InvokeAsync<string?>("importJson", text);
             if (err is not null) { importError = err; }
             // A file import is a fresh, not-yet-persisted plan — saving it creates a new authored row.
-            else { SyncMeta(await handle.InvokeAsync<string>("getMeta")); ResetDbBinding(); sel = null; }
+            else { SyncMeta(await handle.InvokeAsync<string>("getMeta")); ResetDbBinding(); sel = null; ShowBindingInUrl(); }
         }
-        catch { importError = "Could not read the file."; }
+        catch { importError = "Couldn't read the file."; }
         StateHasChanged();
-    }
-
-    private async Task ExportPlan()
-    {
-        if (handle is null) return;
-        var json = await handle.InvokeAsync<string>("exportJson");
-        var slug = string.IsNullOrWhiteSpace(planName) ? "plan" : planName.Trim().ToLowerInvariant().Replace(' ', '-');
-        await JS.InvokeVoidAsync("studio.downloadText", $"{slug}.plan.json", json, "application/json");
     }
 
     // ── plan store (DB save / open-from-DB) ──────────────────────────────────────
 
     private void ResetDbBinding() { planDbId = null; planOrigin = null; saveState = null; }
+
+    /// <summary>What the origin badge means for the next Save.</summary>
+    private string OriginTitle => planOrigin == "authored"
+        ? "Saving updates this plan"
+        : "Saving a generated or imported plan creates a new copy";
 
     // Save the current plan to the DB. The server applies the fork-or-mutate doctrine: a fresh or authored
     // plan is written in place; a loaded generated/imported plan forks a new authored row. The response is
@@ -839,7 +909,7 @@ public partial class PlanTool
             if (MapBacked)
             {
                 using var mapResp = await Http.PutAsync($"api/map/{Slug}/plan", new StringContent(planJson, Encoding.UTF8, "application/json"));
-                saveState = mapResp.IsSuccessStatusCode ? "Saved" : $"Save failed (HTTP {(int)mapResp.StatusCode}).";
+                saveState = mapResp.IsSuccessStatusCode ? "Saved" : $"Couldn't save (HTTP {(int)mapResp.StatusCode}). Try again.";
                 return;
             }
             using var resp = await Http.PostAsJsonAsync("api/plans", new PlanSaveRequest(planJson, planDbId));
@@ -851,11 +921,12 @@ public partial class PlanTool
                     planDbId = saved.Id;
                     planOrigin = saved.Origin;
                     saveState = "Saved";
+                    ShowBindingInUrl(replace: true);
                 }
             }
-            else { saveState = $"Save failed (HTTP {(int)resp.StatusCode})."; }
+            else { saveState = $"Couldn't save (HTTP {(int)resp.StatusCode}). Try again."; }
         }
-        catch { saveState = "Save failed."; }
+        catch { saveState = "Couldn't save. Try again."; }
         finally { saving = false; StateHasChanged(); }
     }
 
@@ -865,7 +936,7 @@ public partial class PlanTool
         dbBusy = true; dbError = null; dbPlans = [];
         StateHasChanged();
         try { dbPlans = await Http.GetFromJsonAsync<List<PlanSummary>>("api/plans") ?? []; }
-        catch { dbError = "Could not load plans."; }
+        catch { dbError = "Couldn't load plans. Try again."; }
         finally { dbBusy = false; StateHasChanged(); }
     }
 
@@ -874,8 +945,15 @@ public partial class PlanTool
     // A generated row made by an older composer opens exactly as stored — only its descriptor has stopped
     // reproducing it, which matters when re-composing that request, not when loading the row.
     private static string StaleTitle(PlanSummary p) =>
-        $"Made by composer {p.ComposerVersion ?? "(unrecorded)"}. The plan opens as stored; "
-        + "re-composing its seed on today's composer would give a different board.";
+        $"Made by generator version {p.ComposerVersion ?? "unknown"}. "
+        + "Generating it again today would give a different layout.";
+
+    // Open a plan row from the browser: load it, then bring the address to it.
+    private async Task OpenFromDb(long id)
+    {
+        await LoadFromDb(id);
+        if (planDbId == id) ShowBindingInUrl();
+    }
 
     private async Task LoadFromDb(long id)
     {
@@ -884,7 +962,7 @@ public partial class PlanTool
         try
         {
             var detail = await Http.GetFromJsonAsync<PlanDetail>($"api/plans/{id}");
-            if (detail is null) { dbError = "Plan not found."; return; }
+            if (detail is null) { importError = dbError = "Plan not found."; return; }
             var err = await handle.InvokeAsync<string?>("importJson", detail.PlanJson);
             if (err is not null) { importError = err; return; }
             SyncMeta(await handle.InvokeAsync<string>("getMeta"));
@@ -894,7 +972,7 @@ public partial class PlanTool
             sel = null;
             showOpenDb = false;
         }
-        catch { dbError = "Could not open the plan."; }
+        catch { importError = dbError = "Couldn't open the plan."; }
         StateHasChanged();
     }
 
@@ -930,7 +1008,7 @@ public partial class PlanTool
             catch { /* metadata unreachable — keep the doc's name */ }
             sel = null;
         }
-        catch { importError = "Could not open the plan."; }
+        catch { importError = "Couldn't open the plan."; }
         StateHasChanged();
     }
 
@@ -971,7 +1049,7 @@ public partial class PlanTool
     private static bool HasSubjects(Finding finding) => finding.SubjectIds.Count > 0;
 
     private static string? ShowFindingTitle(Finding finding)
-        => HasSubjects(finding) ? "Show this on the canvas" : null;
+        => HasSubjects(finding) ? "Show on the canvas" : null;
 
     // Click a compile finding to see what it is about. A finding names its subjects — pieces, zones, markers —
     // and the canvas can pulse them, but the compile drawer is modal and dims the board behind it, so the
@@ -1050,7 +1128,7 @@ public partial class PlanTool
             }
             else
             {
-                compileError = $"compile failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+                compileError = $"Couldn't compile the plan (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
             }
         }
         catch (Exception ex) { compileError = ex.Message; }
@@ -1074,7 +1152,7 @@ public partial class PlanTool
             yield return (PlanTabId, "Plan");
             if (compiledLayout is null) yield break;
             yield return (LayoutTabId, "Layout");
-            yield return (IntentTabId, "Intent");
+            yield return (IntentTabId, "Game settings");
         }
     }
 
@@ -1112,13 +1190,11 @@ public partial class PlanTool
     // A map-backed plan builds onto its OWN row: one map carries plan → sketch → configure, keeps its plan
     // blob beside the layout it compiled into, and re-running refreshes it in place instead of leaving a
     // trail of near-identical maps. The intent write carries the plan's name, so the map's identity follows
-    // the plan without a second call. Only the candidate pool (the bare /plan-editor, which has no map row)
-    // still originates one — there the build IS the map's creation.
+    // the plan without a second call. A plan row has no map, so building one originates the map: there the
+    // build IS the map's creation.
     //
     // Either way the plan itself is written to the map first, so the map carries the document its layout was
-    // compiled from. Without it a map built from the bare route held a layout whose source was nowhere: it
-    // could not be reopened in the plan editor, and opening it there showed a blank document over a board
-    // that plainly came from one.
+    // compiled from and opens in the plan editor on the board it was built from.
     //
     // Both writes go through their from-plan route rather than the plain PUT, for the same reason: a
     // compiled pair states what the plan states and nothing else, so a straight replace deleted everything
@@ -1138,17 +1214,17 @@ public partial class PlanTool
             {
                 draftStep = "Creating draft"; StateHasChanged();
                 using var createResp = await Http.PostAsJsonAsync("api/sketch", new { name = planName });
-                if (!await Ok(createResp, "create draft")) return;
+                if (!await Ok(createResp, "create the draft")) return;
                 slug = (await createResp.Content.ReadFromJsonAsync<OriginatedDto>())?.Slug;
-                if (string.IsNullOrEmpty(slug)) { draftError = "create draft: no slug returned"; return; }
+                if (string.IsNullOrEmpty(slug)) { draftError = "Couldn't create the draft. The server didn't return its name."; return; }
             }
 
-            draftStep = "Recording the plan"; StateHasChanged();
+            draftStep = "Saving the plan"; StateHasChanged();
             var planJson = await handle.InvokeAsync<string>("exportJson");
             using var planResp = await Http.PutAsync($"api/map/{slug}/plan", new StringContent(planJson, Encoding.UTF8, "application/json"));
-            if (!await Ok(planResp, "record the plan")) return;
+            if (!await Ok(planResp, "save the plan")) return;
 
-            draftStep = "Saving layout"; StateHasChanged();
+            draftStep = "Saving the layout"; StateHasChanged();
             using var layoutResp = await Http.PutAsync(
                 discardRelief ? $"api/map/{slug}/sketch/from-plan?force=true" : $"api/map/{slug}/sketch/from-plan",
                 new StringContent(compiledLayoutRaw, Encoding.UTF8, "application/json"));
@@ -1161,16 +1237,16 @@ public partial class PlanTool
                 orphanedRelief = groups;
                 return;
             }
-            if (!await Ok(layoutResp, "save layout")) return;
+            if (!await Ok(layoutResp, "save the layout")) return;
             droppedShapes = (await layoutResp.Content.ReadFromJsonAsync<SketchFromPlanDto>())?.Dropped ?? [];
 
-            draftStep = "Rasterizing"; StateHasChanged();
+            draftStep = "Building the world"; StateHasChanged();
             using var finishResp = await Http.PostAsync($"api/map/{slug}/sketch/finish", null);
-            if (!await Ok(finishResp, "finish (rasterize)")) return;
+            if (!await Ok(finishResp, "build the world")) return;
 
-            draftStep = "Applying intent"; StateHasChanged();
+            draftStep = "Applying game settings"; StateHasChanged();
             using var intentResp = await Http.PutAsync($"api/map/{slug}/intent/from-plan", new StringContent(compiledIntentRaw, Encoding.UTF8, "application/json"));
-            if (!await Ok(intentResp, "apply intent")) return;
+            if (!await Ok(intentResp, "apply the game settings")) return;
 
             draftSlug = slug;
             await LoadStateAsync();   // the map now holds a sketch and a world — the next build is a rebuild
@@ -1182,7 +1258,7 @@ public partial class PlanTool
     private async Task<bool> Ok(HttpResponseMessage resp, string step)
     {
         if (resp.IsSuccessStatusCode) return true;
-        draftError = $"{step} failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+        draftError = $"Couldn't {step} (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
         return false;
     }
 
@@ -1198,7 +1274,7 @@ public partial class PlanTool
 
         if (!resp.IsSuccessStatusCode)
         {
-            draftError = $"export failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+            draftError = $"Couldn't download the world (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
             StateHasChanged();
             return;
         }
@@ -1239,11 +1315,11 @@ public partial class PlanTool
     }
 
     /// <summary>The chip beside the toggle: what stopped the preview, in two words.</summary>
-    private string IsoNote => isoUnavailableWhy is null ? "no WebGL" : "3-D unavailable";
+    private string IsoNote => isoUnavailableWhy is null ? "No WebGL" : "3-D unavailable";
 
     /// <summary>The whole sentence, on hover.</summary>
     private string IsoNoteTitle => isoUnavailableWhy
-        ?? "The 3-D height preview needs WebGL, which this browser can't provide.";
+        ?? "The 3-D preview needs WebGL, which this browser doesn't support.";
 
     [JSInvokable]
     public void OnZoom(int pct) { zoomLabel = $"{pct}%"; StateHasChanged(); }
@@ -1283,14 +1359,16 @@ public partial class PlanTool
             JsonSerializer.Serialize(new { extra = box.Nearest.Extra, missing = box.Nearest.Missing }, Web));
     }
 
+    // A "New plan" draft never saved is discarded so an abandoned click doesn't linger on the dashboard; the
+    // server decides whether it is untouched (default name, never saved, no one else credited).
+    private async Task DiscardIfEmptyAsync(string slug)
+    {
+        try { await Http.DeleteAsync($"api/map/{slug}/discard-if-empty"); } catch { }
+    }
+
     public async ValueTask DisposeAsync()
     {
-        // A "New plan" draft never saved is discarded so an abandoned click doesn't linger on the dashboard;
-        // the server decides whether it is untouched (default name, never saved, no one else credited).
-        if (MapBacked)
-        {
-            try { await Http.DeleteAsync($"api/map/{Slug}/discard-if-empty"); } catch { }
-        }
+        if (MapBacked) await DiscardIfEmptyAsync(Slug!);
         try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null)
         {

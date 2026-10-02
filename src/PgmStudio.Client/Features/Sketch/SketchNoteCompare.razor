@@ -5,16 +5,15 @@
    the after over the before up to a seam the author drags. All three are one camera at one size, so the note's
    mark lands on each where it landed on the before. *@
 
-<figure class="note-compare" style="aspect-ratio: @Width / @Height">
+<figure class="note-compare" style="--aspect: @Width / @Height; --split: @(Split)%">
   @switch (Mode)
   {
     case Modes.Wipe when After is not null:
       <img class="note-compare__picture" src="@Before" alt="Before: the picture the note was written on" />
-      <img class="note-compare__picture note-compare__over" src="@After" alt="After: the same camera after the reply"
-           style="@ClipStyle" />
-      <span class="note-compare__seam" style="@SeamStyle" aria-hidden="true"></span>
-      <input class="note-compare__range" type="range" min="0" max="100" step="0.5" value="@Split"
-             aria-label="Wipe between before and after" @oninput="Wiped" @onkeydown:stopPropagation="true" />
+      <img class="note-compare__picture note-compare__over" src="@After" alt="After: the same camera after the reply" />
+      <span class="note-compare__seam" aria-hidden="true"></span>
+      <RangeField Class="note-compare__range" Min="0" Max="100" Step="0.5" Value="split" ValueChanged="Wiped" KeepKeys="true"
+                  aria-label="Wipe between before and after" />
       <span class="note-compare__label note-compare__label--left">Before · change @BeforeChange</span>
       <span class="note-compare__label note-compare__label--right">After · change @AfterChange</span>
       break;
@@ -72,13 +71,5 @@
     private double split = 50;
 
     private string Split => split.ToString(System.Globalization.CultureInfo.InvariantCulture);
-    private string ClipStyle => $"clip-path: inset(0 0 0 {Split}%)";
-    private string SeamStyle => $"left: {Split}%";
-
-    private void Wiped(ChangeEventArgs change)
-    {
-        if (double.TryParse(change.Value?.ToString(), System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out var at))
-            split = Math.Clamp(at, 0, 100);
-    }
+    private void Wiped(double at) => split = Math.Clamp(at, 0, 100);
 }

@@ -46,6 +46,24 @@ primitives whose call sites take plain numbers: `text`, `dot`, `line`. The box-s
 for the plan's x/z axes while this surface's second axis is elevation, so `min_z` would name a Y — those
 draws are raw context calls inside a `layer()` phase, which brackets them in save/restore.
 
+**Every colour a canvas draws in is a token, except the game's own.** The axis, a piece role, a box kind, a
+zone, an objective, a building, a dressing prop, a seam, rule evidence, a diff and a refused drop are each a
+`--canvas-*` custom property in `css/studio/tokens.css`: the dark value in `:root`, and a light one under
+`:root[data-theme="light"]` wherever the dark one loses its contrast on the light viewport. A layer writes
+`var(--canvas-…)` with no fallback beside it, so the stylesheet is the one source. An svg attribute takes the
+reference as it stands; the painter resolves it through `token` and drops its cache when `data-theme` moves.
+
+The per-kind tables name those tokens rather than colours: `ROLE_COLORS`, `BOX_COLORS` and `ZONE_COLORS` in
+`plan/plan-doc.js`, `OBJECTIVE_COLORS`, `BUILDING_COLORS`, `UNKNOWN_KIND_COLOR` and `REFUSED_COLOR` in
+`render/primitive-style.js`, and `KIND_STYLE` in `render/dressing-render.js`. The role tokens stay `#rrggbb`,
+because the plan resolves one and tints it towards white by the piece's surface height.
+
+Three kinds of colour stay literal. Minecraft's chat and dye colours are game data: `render/palette.js`
+mirrors `game-colors.json`, which the C# reads too, under a drift test, and a team, a wool or a monument is
+drawn in its own. A height ramp — the plan's height map, the relief marks, the side view's depth shading — is
+a function of a value whose stops sit beside it. And the painter's fallback for a token it cannot read is a
+literal, because it is what paints when the token is missing.
+
 ## 2. Five layers, one direction
 
 Modules are grouped by archetype, and imports run strictly **downward** — verified, with no cycles:
@@ -107,7 +125,9 @@ canvas layer can then reuse or test it.
 
 `CanvasBase` owns the machinery every interactive surface needs and nothing else: `_scale`/`_panX`/`_panY`,
 the viewport `<g>`, wheel zoom about the cursor, middle-drag and left-drag pan, a 4px click-vs-drag dead
-zone so a sloppy click still selects, body-drag of a grabbed handle, and `_clientToSvg`.
+zone so a sloppy click still selects, body-drag of a grabbed handle, and `_clientToSvg`. It also owns the pan
+cursor: `canvas--pan` (an open hand) while the pan tool is up and `canvas--panning` (a closed one) while the
+view is dragged.
 
 Subclasses do not override behaviour; they fill in hooks. `_onToolMousedown`, `_onPointerMove`,
 `_onToolMouseup`, `_onCanvasClick`, `_onViewportChanged`, `_onZoom` and `_onMouseleave` are notifications.
@@ -300,10 +320,10 @@ that id, when `settleGroups` gives it a fresh one. `SK12` reports a layout that 
 
 **A preview that cannot run says which of the two reasons it was.** `enterIso` fails for two unrelated
 causes — the browser has no WebGL, or the server would not build the board — and for a long time both crossed
-to C# as one bare `OnIsoUnavailable()`, so the canvas answered *no WebGL* on browsers that plainly had it and
+to C# as one bare `OnIsoUnavailable()`, so the canvas answered *No WebGL* on browsers that plainly had it and
 the reader went looking in the wrong place entirely. The bridges now carry a reason: an empty string is WebGL
 itself, and anything else is the sentence the build answered with, read out of the refusal envelope
-(`message`, then `error`, then the bare status). The host shows *no WebGL* for the first and the build's own
+(`message`, then `error`, then the bare status). The host shows *No WebGL* for the first and the build's own
 words for the second. A failure with a sentence available should never be reported as a different failure.
 
 **Four interop details cost an afternoon each the first time.** `InvokeVoidAsync(name, params object?[])`

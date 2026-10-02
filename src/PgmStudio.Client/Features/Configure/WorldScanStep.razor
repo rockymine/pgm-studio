@@ -7,24 +7,22 @@
 <Workspace>
 
   <Sidebar>
-      <Section Title="Scan — cleaned base">
-        <Actions><Badge Kind="success">auto</Badge></Actions>
+      <Section Title="Scan">
+        <Actions><Badge Kind="success">Automatic</Badge></Actions>
         <ChildContent>
-        <p class="section-desc">Islands were detected on the <strong>base (lowest-solid)</strong> layer,
-          auto-cleaned so the picture is stable. The extraction is done — this view is read-only.</p>
+        <p class="section-desc">Islands were found from the lowest solid blocks of the world. This view is
+          read-only.</p>
         <div class="panel-list">
           <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="droplet"></i></span><span class="list-label">Water · lava</span><span class="list-tag">excluded</span></ListRow>
-          <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="trees"></i></span><span class="list-label">Foliage · leaves / logs</span><span class="list-tag">excluded</span></ListRow>
+          <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="trees"></i></span><span class="list-label">Leaves and logs</span><span class="list-tag">excluded</span></ListRow>
           <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="zap"></i></span><span class="list-label">Redstone lines</span><span class="list-tag">excluded</span></ListRow>
           <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="grip"></i></span><span class="list-label">Cobweb</span><span class="list-tag">excluded</span></ListRow>
         </div>
         </ChildContent>
       </Section>
       <Section Title="Layer view">
-        <p class="section-desc">The canvas opens on the <strong>cleaned base</strong> (the island
-          detection). Toggle <strong>Blocks</strong> in the canvas toolbar to overlay the
-          <strong>surface</strong> — the map you built (wool rooms, spawns) — for orientation. Pan with the
-          hand tool, zoom with the wheel, or fit an island / reset from the toolbar.</p>
+        <p class="section-desc">The canvas shows the island outlines. Turn on <strong>Blocks</strong> in the
+          toolbar to see the full surface of the world.</p>
       </Section>
   </Sidebar>
 
@@ -37,12 +35,12 @@
 
   <Inspector>
       <Section>
-        <DetailHeader Icon="layers" IconMuted Label="Detection summary">
-          <Badge Kind="success">base · cleaned</Badge>
+        <DetailHeader Icon="layers" IconMuted Label="Scan summary">
+          <Badge Kind="success">Cleaned</Badge>
         </DetailHeader>
         <div class="section-body">
           <Field Label="Layer">
-            <div class="field-pick-row"><span class="field-value">Lowest solid</span><span class="list-tag">noise-excluded</span></div>
+            <div class="field-pick-row"><span class="field-value">Lowest solid</span><span class="list-tag">noise removed</span></div>
           </Field>
           <Field Label="Islands">
             <div class="field-pick-row"><span class="field-value">@islandCount</span><span class="list-tag">≥ 10 blocks</span></div>
@@ -53,8 +51,8 @@
               @if (symType is not null) { <Badge Kind="success">@symConfidence.ToString("P0")</Badge> }
             </div>
           </Field>
-          <p class="section-desc">The cleaned-base footprint becomes the island shapes in the next step;
-            the surface layer rides along as a visual aid only.</p>
+          <p class="section-desc">These outlines become the islands in the next step. The surface layer is
+            for reference only.</p>
         </div>
       </Section>
   </Inspector>

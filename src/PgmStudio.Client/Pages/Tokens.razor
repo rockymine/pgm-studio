@@ -1,7 +1,7 @@
 @page "/tokens"
 @layout StudioLayout
 
-<PageTitle>PGM Studio — Tokens</PageTitle>
+<PageTitle>Tokens · PGM Studio</PageTitle>
 
 @* The tokens that sign in as the person looking: for an agent or a script that drives the studio over HTTP
    without a browser. A token is shown once, when it is issued; the list says what each is for and when it was
@@ -24,27 +24,26 @@
         {
           <div class="callout">
             <span class="callout-icon"><i data-lucide="shield"></i></span>
-            <p>This studio is open: every request is its local admin, so a caller needs no token.</p>
+            <p>This studio is open to everyone as an admin, so no token is needed.</p>
           </div>
         }
         else if (me.Role is null)
         {
           <div class="callout">
             <span class="callout-icon"><i data-lucide="shield"></i></span>
-            <p>A token acts as someone on the whitelist. Sign in as them to issue one.</p>
+            <p>Sign in with a whitelisted account to issue a token.</p>
           </div>
         }
         else
         {
           <Section Title="Issue a token">
             <Description>
-              A token lets an agent or a script write to this studio as @me.Name, with your role, without a browser.
-              It is shown once. Keep it as a secret in the environment that holds it, never in a prompt or a file
-              that is committed, and revoke it here when that environment is done with it.
+              A token lets a script or an agent use this studio as @me.Name, with your role. Keep it secret, and
+              revoke it when it is no longer needed.
             </Description>
             <ChildContent>
               <div class="invite-link">
-                <input class="field-input" placeholder="What it is for — an agent, a machine" maxlength="100"
+                <input class="field-input" placeholder="e.g. Build server" maxlength="100"
                        @bind="label" @bind:event="oninput" />
                 <Button Variant="primary" Icon="shield-check" OnClick="IssueAsync" Busy="issuing" BusyLabel="Issuing…">Issue</Button>
               </div>
@@ -52,7 +51,7 @@
               {
                 <label class="check-row">
                   <input type="checkbox" checked="@notes" @onchange="e => notes = e.Value is true" />
-                  May read and answer map notes — the one thing a token does beyond a member's rights
+                  May read and answer map notes
                 </label>
               }
               @if (error is not null) { <div class="field-error">@error</div> }
@@ -63,8 +62,8 @@
                   <Button Icon="copy" OnClick="() => CopyAsync(issued.Token)">@(copied ? "Copied" : "Copy")</Button>
                 </div>
                 <p class="section-desc">
-                  Shown only now. A client sends it as <code>Authorization: Bearer &lt;token&gt;</code>; the mapgen
-                  tools read it from <code>PGM_STUDIO_TOKEN</code>, beside <code>PGM_STUDIO_API=@ApiRoot</code>.
+                  Copy it now. It is not shown again. Send it as <code>Authorization: Bearer &lt;token&gt;</code>, or
+                  set <code>PGM_STUDIO_TOKEN</code> and <code>PGM_STUDIO_API=@ApiRoot</code> for the mapgen tools.
                 </p>
               }
             </ChildContent>
@@ -73,9 +72,9 @@
           <Section Title="Your tokens">
             <Actions><Badge Kind="dim">@(tokens?.Count ?? 0)</Badge></Actions>
             <ChildContent>
-              <div class="panel-list" style="margin-top: var(--space-3);">
+              <div class="panel-list panel-list--separated">
                 @if (tokens is null) { <div class="list-empty">Loading…</div> }
-                else if (tokens.Count == 0) { <div class="list-empty">No token signs in as you.</div> }
+                else if (tokens.Count == 0) { <div class="list-empty">No tokens yet.</div> }
                 else
                 {
                   @foreach (var token in tokens)

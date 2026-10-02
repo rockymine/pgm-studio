@@ -337,6 +337,7 @@ export class CanvasBase {
       if (e.button === 1) {
         e.preventDefault();
         this.#midDragging = true;
+        this._svg.classList.add("canvas--panning");
         this.#dragAnchor  = { x: e.clientX, y: e.clientY, panX: this._panX, panY: this._panY };
         return;
       }
@@ -363,6 +364,8 @@ export class CanvasBase {
     document.addEventListener("mousemove", (e) => {
       if (this._onResizeMove(e)) return;
       if (!this._viewportG) return;
+      // The pan tool shows an open hand, and a closed one while the view is being dragged.
+      this._svg.classList.toggle("canvas--pan", this._activeTool === "move");
 
       if (this.#midDragging && this.#dragAnchor) {
         this._panX = this.#dragAnchor.panX + (e.clientX - this.#dragAnchor.x);
@@ -386,6 +389,7 @@ export class CanvasBase {
             }
           }
         } else if (this.#didDrag && this._activeTool === "move") {
+          this._svg.classList.add("canvas--panning");
           this._panX = this.#dragAnchor.panX + dx;
           this._panY = this.#dragAnchor.panY + dy;
           this._applyViewportTransform();
@@ -398,6 +402,7 @@ export class CanvasBase {
     // Release
     document.addEventListener("mouseup", (e) => {
       if (this._onResizeUp(e)) return;
+      this._svg?.classList.remove("canvas--panning");
       if (e.button === 1) { this.#midDragging = false; this.#dragAnchor = null; return; }
       if (e.button !== 0) return;
       if (this.#isDragging) {

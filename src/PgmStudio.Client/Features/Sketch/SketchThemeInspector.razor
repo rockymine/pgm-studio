@@ -12,17 +12,15 @@
      rather than pushing what the phase is showing down a scroll. *@
   @if (AddOpen)
   {
-    <Section Title="Add from the library">
+    <Section Title="Add from library">
       <Actions>
         <Button Variant="icon" Icon="x" Title="Close" OnClick="() => AddOpenChanged.InvokeAsync(false)" />
       </Actions>
       <ChildContent>
-        <p class="section-desc">Copying one in takes a snapshot, and the snapshot records the row it came
-           from — so copying the same row again refreshes the copy it already made, whichever of the two has
-           been renamed since.</p>
+        <p class="section-desc">Adds a copy to this map. Adding the same palette again updates that copy.</p>
         @if (libraryThemes.Count == 0)
         {
-          <p class="section-desc">The library has no themes yet.</p>
+          <p class="section-desc">No palettes in the library yet.</p>
         }
         else
         {
@@ -31,14 +29,14 @@
             {
               <ListRow Compact @key="theme.Id" OnClick="() => CopyIn(theme)">
                 <span class="list-label">@theme.Name</span>
-                @if (CopiedAs(theme.Id) is { } copy) { <Badge Kind="dim">on the board as @copy</Badge> }
-                <span class="list-tag">@(CopiedAs(theme.Id) is null ? "copy in" : "refresh")</span>
+                @if (CopiedAs(theme.Id) is { } copy) { <Badge Kind="dim">on this map as @copy</Badge> }
+                <span class="list-tag">@(CopiedAs(theme.Id) is null ? "Add" : "Update")</span>
               </ListRow>
             }
           </div>
         }
         <div class="panel-actions">
-          <Button Href="/library/themes" Icon="external-link">Author one in the library</Button>
+          <Button Href="/library/themes" Icon="external-link">Create one in the library</Button>
         </div>
       </ChildContent>
     </Section>
@@ -47,16 +45,16 @@
   {
   @if (InHand is { } held)
   {
-    <Section Title="In hand">
+    <Section Title="Painting with">
       <Actions><Badge Kind="neutral">@held</Badge></Actions>
       <ChildContent>
-        <p class="section-desc">Click to paint · Shift-click the group · Alt-click to lift · Esc to put down</p>
+        <p class="section-desc">Click: paint · Shift-click: paint the group · Alt-click: pick up a shape's palette · Esc: stop</p>
         @if (HeldSource is { } source)
         {
           <p class="section-desc">
-            Copied from the library’s “@source.Name”.
-            @if (heldMatchesSource == true) { <text>It still says what that row says.</text> }
-            else if (heldMatchesSource == false) { <text>The two have since parted — this copy or that row has been edited.</text> }
+            Copied from “@source.Name” in the library.
+            @if (heldMatchesSource == true) { <text>It matches the library version.</text> }
+            else if (heldMatchesSource == false) { <text>It differs from the library version. One of them has been edited.</text> }
           </p>
         }
         @if (preview is not null)
@@ -73,9 +71,9 @@
           </div>
         }
         <div class="panel-actions">
-          <Button Icon="upload" OnClick="SaveToLibrary" Title="Save this board theme to the library, one style per bucket">Save to library</Button>
+          <Button Icon="upload" OnClick="SaveToLibrary" Title="Save this palette to the library as one pattern per part">Save to library</Button>
           <Button Variant="danger" Icon="trash-2" OnClick="RemoveFromBoard"
-                  Title="Take it off the board — every shape painted with it goes back to the map default">Remove</Button>
+                  Title="Remove from this map. Shapes painted with it go back to the default palette.">Remove</Button>
         </div>
         @if (note is not null) { <p class="section-desc">@note</p> }
       </ChildContent>
@@ -93,7 +91,7 @@
           <span class="list-label list-label--mono">@(SelectedGroupId ?? SelectedShapeId)</span>
           @if (SelectionTheme() == Mixed) { <Badge Kind="neutral">mixed</Badge> }
           else if (SelectionTheme() is { Length: > 0 } current) { <Badge Kind="neutral">@current</Badge> }
-          else { <span class="section-desc">— unpainted, so the map default reaches it —</span> }
+          else { <span class="section-desc">Unpainted (uses the default palette)</span> }
         </div>
         <div class="panel-actions">
           <Button Icon="eraser" OnClick="ClearSelection" Disabled="@(SelectionTheme().Length == 0)">Unpaint</Button>
@@ -105,18 +103,18 @@
   {
     @* Nothing is selected, so the column describes the board: what paints where nothing else reaches, and how
        much of the board is still falling through to it. *@
-    <Section Title="Board defaults">
+    <Section Title="Map defaults">
       @* Every row is one library row bound to the whole board, and each carries the button through to the
          library that holds it. What a row is bound to is said by name; the pictures are the library's own.
          The order is the order a column is built: the paint under everything, the tint over it, then the
          finish stamped where a room stands. *@
-      <Field Label="Default theme">
-        <LabelHint>(the lowest layer — what paints a cell no shape claims)</LabelHint>
+      <Field Label="Default palette">
+        <LabelHint>(paints ground no shape covers)</LabelHint>
         <ChildContent>
           <div class="lib-bind">
             <Select Options="MapThemes" Value="@MapTheme" ValueChanged="SetMapDefault"
-                    Placeholder="(unthemed — stone)" />
-            <Button Variant="icon" Icon="library" Href="/library/themes" Title="Open the theme library" />
+                    Placeholder="None (stone)" />
+            <Button Variant="icon" Icon="library" Href="/library/themes" Title="Open the palette library" />
           </div>
         </ChildContent>
       </Field>
@@ -126,19 +124,19 @@
          bound here rather than placed. Picked, never authored: the row's own editor holds its palette and
          its scale. *@
       <Field Label="Map biome">
-        <LabelHint>(what tints every column — grass, leaves and water)</LabelHint>
+        <LabelHint>(tints grass, leaves, and water)</LabelHint>
         <ChildContent>
           <div class="lib-bind">
             <Select Options="BiomePatterns" Value="@BiomeChoice" ValueChanged="SetMapBiome"
-                    Placeholder="@(BiomeOffLibrary ? "(a field the library does not hold)" : "(none — plains everywhere)")"
+                    Placeholder="@(BiomeOffLibrary ? "(not in the library)" : "None (plains everywhere)")"
                     PlaceholderValue="0" />
             <Button Variant="icon" Icon="library" Href="/library/biomes" Title="Open the biome library" />
           </div>
         </ChildContent>
       </Field>
 
-      <p class="section-desc">A room shell is the finish its rooms are stamped with — never their size. One
-        shell each, since both are mirrored.</p>
+      <p class="section-desc">Room shells set how rooms look, not their size. Each room kind has one shell,
+        used on both sides.</p>
       @foreach (var kind in RoomKindInfo.All)
       {
         <Field Label="@kind.Title" @key="kind.Id">
@@ -148,7 +146,7 @@
                     Placeholder="@RoomPlaceholder(kind.Id)" PlaceholderValue="0" />
             @if (BoundRoom(kind.Id) is not null || IsOpenRoom(kind.Id))
             {
-              <Button Variant="icon" Icon="x" Title="Go back to the built-in shell"
+              <Button Variant="icon" Icon="x" Title="Use the built-in shell"
                       OnClick="() => ClearRoom(kind.Id)" />
             }
             <Button Variant="icon" Icon="library" Href="/library/houses" Title="Open the house library" />
@@ -157,7 +155,7 @@
       }
       @if (rooms.Count == 0)
       {
-        <p class="section-desc">The library has no room styles yet.</p>
+        <p class="section-desc">No room styles in the library yet.</p>
       }
     </Section>
   }

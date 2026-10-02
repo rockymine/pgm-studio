@@ -32,18 +32,9 @@ public partial class SketchInspector
     [Parameter] public EventCallback<double> OnRotate { get; set; }
     [Parameter] public EventCallback<(string Id, double Radius, string Edge, int Seed)> OnSetStrokeBand { get; set; }
 
-    // "Rotate (°)" field: a relative rotate-by input (rotation bakes into geometry, so there's no absolute
-    // angle to hold) — apply the entered degrees about the selection's bbox centre, then clear back to blank.
-    // Bumping the @key recreates the input so it resets to "" even when the model value is unchanged (""→""),
-    // which also lets you apply the same value repeatedly (a fresh input re-fires change on re-entry).
-    private const string rotateInput = "";
-    private int rotateNonce = 0;
-    private async Task RotateChanged(ChangeEventArgs e)
-    {
-        rotateNonce++;
-        if (double.TryParse(e.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var deg) && deg != 0)
-            await OnRotate.InvokeAsync(deg);
-    }
+    // "Rotate (°)" is a rotate-by box (rotation bakes into geometry, so there is no absolute angle to hold): its
+    // value is always blank, so NumberField snaps back to blank after each entry and the same angle applies again.
+    private Task RotateChanged(double degrees) => degrees != 0 ? OnRotate.InvokeAsync(degrees) : Task.CompletedTask;
 
     private static string TypeIcon(string t) => t switch
     {
@@ -60,8 +51,8 @@ public partial class SketchInspector
     private static readonly SelectOption[] StrokeEdges =
     [
         new("solid",   "Solid",   "One width the whole way."),
-        new("rough",   "Rough",   "The width wanders up to 45% either side, so the band reads organic."),
-        new("tapered", "Tapered", "Fat in the middle, thin at the ends."),
+        new("rough",   "Rough",   "The width varies by up to 45% on each side."),
+        new("tapered", "Tapered", "Wide in the middle, narrow at the ends."),
     ];
 
     // The author sets a width; the shape stores the half-width the band is offset by, so the two edges are
@@ -92,11 +83,11 @@ public partial class SketchInspector
     /// plates.</summary>
     private static readonly SelectOption[] HeightModes =
     [
-        new("",      "Ground", "Part of the landmass — the group's relief is what this shape's ground does."),
-        new("level", "Level",  "A mesa: a flat top at an absolute height, whatever the ground under it does, so its faces are cliffs."),
-        new("raise", "Raise",  "A monolith: this far above the middle of the ground it covers, so it keeps its prominence wherever it is dragged."),
-        new("sink",  "Sink",   "A quarry: this far below the middle of the ground it covers."),
-        new("drape", "Drape",  "A field wall or a hedge: this far above the ground at every cell, so it climbs the hillside it is laid over."),
+        new("",      "Ground", "Part of the land. It follows the group's terraformed ground."),
+        new("level", "Level",  "A flat top at a fixed height, whatever the ground does. Its sides are cliffs."),
+        new("raise", "Raise",  "Stands this far above the ground it covers, wherever it is moved."),
+        new("sink",  "Sink",   "Sits this far below the ground it covers."),
+        new("drape", "Drape",  "This far above the ground at every cell, so it follows slopes. Suits walls and hedges."),
     ];
 
     /// <summary>Where this shape's top actually lands, in its own numbers. A mode is a rule and a rule has to
@@ -104,10 +95,10 @@ public partial class SketchInspector
     /// Empty for ordinary ground, whose top the Floor and Height rows above already state.</summary>
     private string HeightModeReadout => Shape?.HeightMode switch
     {
-        "level" => $"Top cut flat at {Shape.Floor + Shape.BaseHeight}, whatever the ground under it does.",
-        "raise" => $"Stands {Shape.BaseHeight} above the middle of the ground it covers.",
-        "sink" => $"Cuts {Shape.BaseHeight} below the middle of the ground it covers.",
-        "drape" => $"Stands {Shape.BaseHeight} above the ground at every cell it covers.",
+        "level" => $"Flat top at {Shape.Floor + Shape.BaseHeight}.",
+        "raise" => $"Stands {Shape.BaseHeight} above the middle height of the ground under it.",
+        "sink" => $"Cuts {Shape.BaseHeight} below the middle height of the ground under it.",
+        "drape" => $"Stands {Shape.BaseHeight} above the ground at every cell.",
         _ => "",
     };
 
@@ -116,27 +107,27 @@ public partial class SketchInspector
     /// a seam wherever two of them meet and disagree about the height they share.</summary>
     private static readonly SelectOption[] ReliefScopeOptions =
     [
-        new("",        "Inherit", "Its ground is the group's ground — the relief rolls through it, which is what a shape drawn to make a landmass wants."),
-        new(Vocabulary.ReliefScopes.Follow,  "Follow",  "Flat, at whatever height the relief settles on under it — the shape moves with the terrain and keeps a level floor, which is what a room wants."),
-        new(Vocabulary.ReliefScopes.Hold,    "Hold",    "Flat at its own floor + height whatever the relief wants, with the surrounding surface solved knowing where it has to arrive — a walled town the valley runs up to, and a face where the ground disagrees."),
-        new(Vocabulary.ReliefScopes.Exclude, "Exclude", "Out of the solve entirely, so the land is whatever that outline would have made at any height — a citadel on its own plinth."),
+        new("",        "Inherit", "Follows the group's terraformed ground, like the rest of the land."),
+        new(Vocabulary.ReliefScopes.Follow,  "Follow",  "Stays flat at the height the terraformed ground reaches under it. Suits rooms."),
+        new(Vocabulary.ReliefScopes.Hold,    "Hold",    "Stays flat at its own height. The land around it is shaped to meet it."),
+        new(Vocabulary.ReliefScopes.Exclude, "Exclude", "Left out of the terraforming. The land around it is shaped as if it weren't there."),
     ];
 
     /// <summary>What this shape's scope works out to, in its own numbers. Empty for the default, which states
     /// nothing about the shape that the group's own relief does not already say.</summary>
     private string ReliefScopeReadout => Shape?.ReliefScope switch
     {
-        Vocabulary.ReliefScopes.Follow => "Flat at the height the relief settles on under it; the land around it keeps its own shape.",
-        Vocabulary.ReliefScopes.Hold => $"Held flat at {Shape.Floor + Shape.BaseHeight} whatever the relief wants; the land around it is solved to arrive there.",
-        Vocabulary.ReliefScopes.Exclude => "Out of the solve — the land is whatever the group would have made without it.",
+        Vocabulary.ReliefScopes.Follow => "Flat at the height of the terraformed ground under it. The land around it keeps its shape.",
+        Vocabulary.ReliefScopes.Hold => $"Flat at {Shape.Floor + Shape.BaseHeight}. The land around it is shaped to meet it.",
+        Vocabulary.ReliefScopes.Exclude => "Left out of the terraforming. The land around it ignores it.",
         _ => "",
     };
 
     /// <summary>What the skirt does at the number it is set to. Zero is the one value worth a word, because a
     /// sheer face is right for a built thing and wrong for a landform.</summary>
     private string SkirtReadout => Shape is null || Shape.Skirt <= 0
-        ? "A sheer face — right for a built thing, wrong for a landform."
-        : $"Eases into the ground it meets over {Shape.Skirt} block{(Shape.Skirt == 1 ? "" : "s")}.";
+        ? "Sheer sides."
+        : $"Blends into the ground over {Shape.Skirt} block{(Shape.Skirt == 1 ? "" : "s")}.";
 
     private Task ReliefScopeChanged(string word)
         => Shape is null || Handle is null

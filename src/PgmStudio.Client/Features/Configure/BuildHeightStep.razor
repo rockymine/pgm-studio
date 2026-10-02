@@ -5,12 +5,12 @@
 <Workspace>
 
   <Sidebar>
-      <Section Title="Maximum Build Height">
-        <p class="section-desc">The Y level above which no block placement is permitted (defaults to 20,
-          max 100). Drag the line on the side-view, or type a value. Leave blank for no vertical ceiling.</p>
-        <Field Label="Blocks">
-          <input class="field-input" type="number" min="0" max="100" step="1" placeholder="None"
-                 value="@height" @onchange="OnHeightInput" />
+      <Section Title="Build height">
+        <p class="section-desc">Players can't place blocks above this Y level. Drag the line in the side view
+          or type a value up to 100. Leave it blank for no limit.</p>
+        <Field Label="Y level">
+          <NumberField Min="0" Max="MaxHeight" Value="height" ValueChanged="OnHeightInput" OnCleared="ClearHeight"
+                       placeholder="None" />
         </Field>
       </Section>
   </Sidebar>

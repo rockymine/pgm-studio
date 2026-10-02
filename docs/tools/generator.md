@@ -46,6 +46,10 @@ map holds its own copy from that moment on, and editing the map cannot disturb t
 The hold tray is not a session — it *is* the generated half of the candidate pool. It lists every generated
 row the database holds, so a board pinned weeks ago is still in it, and unpinning is a delete.
 
+**A tray thumbnail opens its row in the Plan tool at `/plans/{id}`**, without originating a map. Looking at a
+candidate there costs nothing, and saving an edit forks it into a new `authored` row rather than altering what
+was pinned (`docs/tools/plan.md`, *What it is*).
+
 ## The request
 
 A composed board is named by five values and no geometry.
@@ -239,11 +243,13 @@ passes none of them.
 One workspace, no phases. The rail on the left holds the filters, the grid in the middle holds the cards, and
 the hold tray sits above them when anything is pinned.
 
-**The filters split in two.** Players, symmetry, max score and wool count apply on the Apply button and start
-the page from the library's first board. The structural filters — wool families, hub form, frontline
-form — apply the moment a chip is clicked. Wool families are **must-include**: every family named has to be
-present on the board. Hub and frontline are **any-of**. Max score is a slider to 8 where 8 means *any* and the
-bound is simply not sent; wool count is a min/max pair where 0 means unset. The player slider runs 6 to 32 in
+**The rail has two sections, and both apply at once.** *Layout settings* — players per team, symmetry, highest
+score and wools per team — restart the page from the library's first board when a value changes; a slider
+applies when it is let go. *Filter by shape* — wool approaches, hub and front line — is a set of ticked chips,
+each with the count of boards in the library that have it, and *Clear* empties all three. Wool approaches are
+**must-include**: every family ticked has to be present on the board. Hub and front line are **any-of**.
+Highest score is a slider to 8 where 8 means *any* and the bound is simply not sent; wools per team is a
+min/max pair where an empty box means unset. The player slider runs 6 to 32 in
 steps of two — 32 is the top band's floor, so the slider reaches every band — and a script is not bound
 by it: the request's own clamp is 6–47.
 
@@ -255,23 +261,24 @@ reasons.
 **Every filter is a query over the library.** The score, the wool count, the wool families, the hub form and
 the frontline form are columns of `composed_board`, so a filter narrows the stored set in the database and a
 strict conjunction costs what a loose one does. The response says how many boards match, and the page shows
-`M of N boards match` above the grid. **The feed ends where the library does**: scrolling and *Load more* stop
-at the last matching board, and the page says *that is every board for these settings*.
+`M of N layouts match` above the grid. **The feed ends where the library does**: scrolling and *Load more* stop
+at the last matching board, and the page says *No more layouts for these settings*.
 
 **The census is what makes an empty grid legible.** Every page carries the census over every board the library
 holds for the band and symmetry, counted before the filters, so picking a filter cannot hide the forms it
 filters against. Past 150 boards an absence is reported as an absence: a chip nothing in the library has is
-dimmed, and an empty grid says *this is not a mix these players and symmetry produce* rather than *no boards
-match*. A library with nothing for the settings says it is still being composed.
+dimmed, and an empty grid says *these players and symmetry don't produce it* rather than *none of the layouts
+match these filters*. A library with nothing for the settings says it is still being generated.
 
-**A card carries the board and its verdicts.** The picture is the whole fanned board, server-rendered from the
-same scene the PNG endpoint draws, coloured by role — hub violet, spawn green, wool amber, frontline orange —
-with a build zone in pink and a water lane in blue under a diagonal hatch, and a legend along the bottom
-naming every one of them. Badges along the top are the structural read, which are the same tokens the filter
-chips use. The
-foot carries the evaluator score, the wool count, the seed, and the land spend. Opening a card gives the same
-in a drawer, with the score to two places, the per-box spend table, the top three soft terms by contribution,
-and the descriptor as copyable JSON.
+**A card carries the board and its verdicts.** The picture is the whole fanned board in a square frame on a
+dark ground, server-rendered from the same scene the PNG endpoint draws, coloured by role — hub violet, spawn
+green, wool amber, front line orange — with a build zone in pink and a water lane in blue under a diagonal
+hatch. The picture carries no text: the page draws the key once above the grid, from the `key` the feed
+returns. Under the picture the card names its structure — its wool approach families, hub and front line, by
+the filter chips' labels — and then its score, its wool count and its land share, with the spend spelled out
+on hover. Opening a card gives the same in a drawer, with the key, the score to two places, the per-box spend
+table, the top three soft terms by contribution, and the descriptor as JSON under *Layout code*, beside
+*Copy JSON*.
 
 **Land spend is two currencies and the card says so.** *Footprint* is the box rectangle, fixed when the box
 was seated; *land* is what the filled pieces actually cover, which is what the spend gate holds against the
@@ -296,7 +303,7 @@ soft sum, which is why the slider stops at 8.
 
 **Pinning and authoring are the two exits.** The pin toggle keeps the library board the descriptor names and
 refreshes the tray; the tray's thumbnails come from the stored rows rather than from the cards, so a board held in an
-earlier session looks the same as one held a moment ago. *Author this plan* pins first if the board is not
+earlier session looks the same as one held a moment ago. *Open in plan editor* pins first if the board is not
 already held, then commits the candidate to a map and navigates to `/maps/{slug}/plan`.
 
 ## What it refuses
@@ -329,7 +336,7 @@ Every endpoint is rooted at `/api`; a read is open to anyone and a write needs s
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /compose?players=&symmetry=&from=&count=` | `{cards, next, end, matching, observed}` — a page of the library, best score first: each card its descriptor, score, wool count, structural read, hard terms, top three soft terms, board SVG and land spend; `next` the position to ask from, `end` whether this page reaches the last matching board, `matching` how many match, `observed` the census of every board held for the band and symmetry | 400 unsupported symmetry · 400 unsupported team count |
+| `GET /compose?players=&symmetry=&from=&count=` | `{cards, next, end, matching, observed, key}` — a page of the library, best score first: each card its descriptor, score, wool count, structural read, hard terms, top three soft terms, board SVG and land spend; `next` the position to ask from, `end` whether this page reaches the last matching board, `matching` how many match, `observed` the census of every board held for the band and symmetry, `key` the role and zone colours the SVGs are drawn in | 400 unsupported symmetry · 400 unsupported team count |
 | … `&maxScore=&woolMin=&woolMax=` | the same, sieved on the evaluator score and the wool count | — |
 | … `&wools=&hub=&front=` | the same, sieved structurally — `wools` must-include, `hub` and `front` any-of, all CSV | — |
 | `POST /compose/pin` | the stored `PlanDetail` — keeps the library board a **descriptor body** names, the `{players, teams, symmetry, seed, …}` record a card carries, labelled for its player count and saved as a generated row (idempotent by content hash) | 400 `RQ1` invalid descriptor · 404 a board the library does not hold |
@@ -421,9 +428,9 @@ the feed carries soft distance only.
 them again, so the denominator inflates across a long session of chip-toggling. The proportions stay right;
 the absolute number does not, and it is the number the confidence threshold reads.
 
-**The picture now carries a key.** The board render colours by role, and used to say so nowhere; blue being
-the universal visual code for water is what let a generated board's central build zone be read as water on a
-map that carried none. The card now draws a legend naming every role swatch and the two zone kinds, and a
-build zone paints in a hue no water ever wears rather than a second shade of blue (`B95`) — a card still
-answers *did this compose*, never *what is this*, but a reader can no longer mistake the colours for an
-answer to the second question.
+**The picture is read with a key.** The board render colours by role, and blue being the universal visual code
+for water is what lets a central build zone be read as water on a map that carries none. So a build zone
+paints in a hue no water ever wears rather than a second shade of blue, and every page that shows boards draws
+`PlanBoardPalette.Key` beside them, while the PNG an agent reads appends the same key under its raster
+(`B95`). A card still answers *did this compose*, never *what is this*, but a reader cannot mistake the colours
+for an answer to the second question.

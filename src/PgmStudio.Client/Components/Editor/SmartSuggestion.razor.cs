@@ -5,7 +5,7 @@ namespace PgmStudio.Client.Components;
 public partial class SmartSuggestion
 {
     /// <summary>Card title — should read like an intelligent prompt (e.g. "Smart Suggestion").</summary>
-    [Parameter] public string Header { get; set; } = "Smart Suggestion";
+    [Parameter] public string Header { get; set; } = "Suggestion";
     /// <summary>Lucide icon shown top-left; defaults to the sparkle.</summary>
     [Parameter] public string Icon { get; set; } = "sparkle";
     /// <summary>Optional neutral badge in the header (e.g. the detected symmetry "rot 90").</summary>

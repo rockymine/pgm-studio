@@ -38,7 +38,7 @@
 }
 .ds-nav-group { padding: var(--space-3) var(--space-4) var(--space-1); }
 .ds-intro { max-width: 720px; margin-bottom: calc(var(--space-6) * 2 + var(--space-2)); }
-.ds-intro h1 { margin: var(--space-2) 0; color: var(--text-strong); font-size: 24px; }
+.ds-intro h1 { margin: var(--space-2) 0; color: var(--text-strong); font-size: var(--font-2xl); }
 .ds-intro > p:last-child,
 .ds-section-heading > p {
   color: var(--text-secondary);
@@ -56,9 +56,10 @@
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border);
 }
-.ds-section-heading h2 { margin-top: var(--space-1); color: var(--text-strong); font-size: 18px; }
+.ds-section-heading h2 { margin-top: var(--space-1); color: var(--text-strong); font-size: var(--font-xl); }
 .ds-section-heading > p { max-width: 520px; text-align: right; }
 .ds-subsection { margin-bottom: var(--space-6); }
+.ds-subsection--separated { margin-top: var(--space-5); }
 .ds-subsection h3 { margin-bottom: var(--space-3); color: var(--text-primary); font-size: var(--font-base); }
 
 .ds-swatches {
@@ -203,62 +204,33 @@
 /* Smart-suggestion design-page sample: pin to sidebar width so density reads true. */
 .ds-sug-sample { max-width: 280px; }
 
-/* /concepts/organic — the Organic-generation pipeline demo (each stage = a panel with a live svg). */
-.gen-controls {
-  display: flex;
-  align-items: end;
-  gap: var(--space-3);
-  margin-top: var(--space-5);
-  padding: var(--space-3) var(--space-4);
+/* The card and list-row samples: the cards set apart from the list, the list framed at a panel's width. */
+.ds-card-sample { margin-bottom: var(--space-4); }
+.ds-list-sample {
+  max-width: 420px;
+  padding: var(--space-3);
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
 }
-.gen-field { margin: 0; }
-.gen-field .field-input { max-width: 7rem; }
 .gen-status { color: var(--text-muted); font-size: var(--font-sm); padding-bottom: 6px; }
-
-.gen-panel {
-  overflow: hidden;
-  background: var(--bg-canvas);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-}
-.gen-canvas { display: block; width: 100%; height: 460px; background: var(--bg-canvas); }
-
-.gen-legend { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-5); }
-.gen-legend-item { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); font-size: var(--font-base); }
-.gen-swatch { width: 14px; height: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
-.gen-swatch--mirror { background: var(--canvas-mirror-fill); border-color: var(--canvas-mirror-stroke); }
 
 /* Terrain-paint theme editor (TP10): a monospace, resizable JSON area — the one thing field-input isn't. */
 .theme-json { min-height: 200px; font-family: ui-monospace, "SF Mono", Menlo, monospace; resize: vertical; line-height: 1.4; }
-
-/* Theme preview swatches (TP10) — a per-bucket sample grid + the top-down applied-map render. */
-.theme-swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--space-3); }
-.theme-swatch { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); align-items: center; }
+/* A palette part's sample picture. */
 .theme-swatch-img { width: 100%; aspect-ratio: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-deep); }
 .theme-swatch-img svg { width: 100%; height: 100%; display: block; }
-.theme-swatch figcaption { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
 /* The cut-open sample plateau: one picture of a whole theme, so it gets the width a swatch grid doesn't. */
 .theme-section-figure { display: flex; justify-content: center; padding: var(--space-2); background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .theme-section-figure svg { width: 100%; max-width: 320px; height: auto; display: block; image-rendering: pixelated; }
 .theme-map-preview { display: flex; justify-content: center; padding: var(--space-3); background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: auto; }
 .theme-map-preview svg { max-width: 100%; height: auto; }
-.theme-json-details > summary { cursor: pointer; font-size: var(--font-xs); color: var(--text-muted); padding: var(--space-1) 0; }
 
 /* Theme Apply-step rail (G157): the theme's four bucket swatches in a row, and the current selection's rows. */
 .theme-apply-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); margin-top: var(--space-2); }
 .theme-apply-swatch { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); align-items: center; }
 .theme-apply-swatch figcaption { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
 .theme-apply-sel-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) 0; flex-wrap: wrap; }
-
-/* Theme editor (G158) — one bucket per section: the material form beside the sample it paints. */
-.bucket-editor { display: grid; grid-template-columns: 1fr 120px; gap: var(--space-3); align-items: start; }
-.bucket-editor-form { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
-.bucket-editor-swatch { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); align-items: center; position: sticky; top: var(--space-2); }
-.bucket-editor-swatch figcaption { font-size: var(--font-xs); color: var(--text-muted); text-align: center; }
-@media (max-width: 640px) { .bucket-editor { grid-template-columns: 1fr; } .bucket-editor-swatch { position: static; max-width: 140px; } }
 
 /* A material and, indented under it, the materials it is made of — the nesting IS the structure. */
 .material-editor { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
@@ -302,9 +274,9 @@
 /* The colour chip is a square reading of one block. It takes the row's height like everything else in the
    band and its width from that height, so it stands the same size as the controls beside it instead of a
    couple of pixels short of them — and stays square rather than stretching into a bar. */
-.block-chip { flex: 0 0 auto; aspect-ratio: 1; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.block-chip { flex: 0 0 auto; aspect-ratio: 1; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--swatch); }
 .block-picker-colors { display: flex; flex-wrap: wrap; gap: 3px; }
-.block-swatch { width: 1.25rem; height: 1.25rem; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; }
+.block-swatch { width: 1.25rem; height: 1.25rem; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--swatch); cursor: pointer; }
 .block-swatch:hover { outline: 1px solid var(--text-muted); }
 .block-swatch--on { outline: 2px solid var(--accent); outline-offset: 1px; }
 
@@ -336,5 +308,5 @@
 .prop-card--active { border-color: var(--accent); background: var(--accent-subtle); }
 .prop-card-art { display: block; line-height: 0; overflow: hidden; }
 .prop-card-art svg { width: 100%; height: auto; display: block; }
-.prop-card-label { font-size: 10px; color: var(--text-muted); text-align: center; }
+.prop-card-label { font-size: var(--font-xs); color: var(--text-muted); text-align: center; }
 .prop-card--active .prop-card-label { color: var(--accent); }

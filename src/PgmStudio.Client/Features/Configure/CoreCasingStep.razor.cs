@@ -80,7 +80,7 @@ public partial class CoreCasingStep
             {
                 id = $"core-{i}",
                 type = "cuboid", primary = i == selected, color = TeamHex(cores[i].Owner),
-                label = $"core · {(string.IsNullOrEmpty(cores[i].Owner) ? "no team" : TeamName(cores[i].Owner))}",
+                label = $"Core · {(string.IsNullOrEmpty(cores[i].Owner) ? "no team" : TeamName(cores[i].Owner))}",
                 bounds = new { min_x = (double)volume.MinX, min_z = (double)volume.MinZ, max_x = volume.MaxX + 1.0, max_z = volume.MaxZ + 1.0 },
             });
         }

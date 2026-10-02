@@ -18,7 +18,7 @@ public static class ServerRefusal
     /// answered no findings, and the status where the body is not a refusal at all.</summary>
     public static async Task<string> SentenceAsync(HttpResponseMessage response)
     {
-        var fallback = $"error {(int)response.StatusCode}";
+        var fallback = $"The server returned an error ({(int)response.StatusCode}). Try again.";
         try
         {
             var refusal = await response.Content.ReadFromJsonAsync<RefusalDto>();

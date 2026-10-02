@@ -202,12 +202,12 @@ public partial class CoreObjectivesStep
         {
             if (cores[i].Volume is not { } volume) continue;
             shapes.Add(Shape($"core-{i}", volume, TeamHex(cores[i].Owner), i == selected,
-                             $"core · {(string.IsNullOrEmpty(cores[i].Owner) ? "no team" : TeamName(cores[i].Owner))}"));
+                             $"Core · {(string.IsNullOrEmpty(cores[i].Owner) ? "no team" : TeamName(cores[i].Owner))}"));
         }
         var n = 0;
         foreach (var proposal in Unconfirmed)
             if (proposal.Volume is { } volume)
-                shapes.Add(Shape($"core-proposal-{n++}", volume, "#8a8f98", false, "proposed core"));
+                shapes.Add(Shape($"core-proposal-{n++}", volume, "#8a8f98", false, "Suggested core"));
         await canvas.SetAuthorRegionsAsync(shapes);
     }
 

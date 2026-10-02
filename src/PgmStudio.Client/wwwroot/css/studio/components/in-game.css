@@ -1,0 +1,108 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   IN GAME  (the Sketch tool's gallery of pictures from a player's eye)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* One picture: the frame holds its aspect before the image arrives, so a gallery does not reflow as the
+   server draws it one picture at a time. */
+.eye-picture {
+  position: relative; margin: 0; width: 100%; aspect-ratio: var(--aspect);
+  background: var(--bg-canvas); border-radius: var(--radius-sm); overflow: hidden;
+}
+.eye-picture img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 120ms; }
+.eye-picture img.is-loaded { opacity: 1; }
+.eye-picture__drawing,
+.eye-picture__why {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  padding: var(--space-3); text-align: center;
+  color: var(--text-muted); font-size: var(--font-sm);
+}
+.eye-picture__why { color: var(--color-warning); }
+
+.ingame { flex: 1; min-height: 0; overflow: auto; padding: var(--space-4); }
+.ingame__note { margin: var(--space-4) 0; max-width: 72ch; color: var(--text-secondary); }
+.ingame__note--warn { color: var(--color-warning); }
+.ingame__main > .ingame__note { margin: 0 0 var(--space-2); }
+.ingame__moved {
+  display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-warning); border-radius: var(--radius-sm); background: var(--color-warning-bg);
+  color: var(--color-warning); font-size: var(--font-sm);
+}
+.ingame__moved > span { flex: 1; }
+
+/* The stage: one picture enlarged with the gallery under it, and the notes column beside them. */
+.ingame--stage { display: flex; gap: var(--space-3); overflow: hidden; }
+.ingame__main {
+  flex: 1; min-width: 0; min-height: 0; overflow: auto; outline: none;
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.ingame__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.ingame__name { color: var(--text-strong); font-weight: 600; }
+.ingame__where { flex: 1; min-width: 12ch; color: var(--text-muted); font-size: var(--font-sm); }
+
+/* The picture and everything drawn over it share one box, so a mark's pixels and a pin's percentages land on
+   the picture however large it is drawn. */
+.ingame__frame { position: relative; width: min(100%, calc((100vh - 400px) * 16 / 9)); min-width: 320px; }
+.ingame__picture { border-radius: var(--radius-md); }
+.ingame__marks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* A note's before, after and now on the big picture. The wipe lays the after over the before up to a seam; the
+   range input covers the whole picture, invisibly, so a press anywhere moves the seam there. */
+.note-compare {
+  position: relative; width: 100%; margin: 0; overflow: hidden; aspect-ratio: var(--aspect);
+  border-radius: var(--radius-md); background: var(--bg-deep);
+}
+.note-compare__picture { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.note-compare__over { clip-path: inset(0 0 0 var(--split)); }
+.note-compare__seam {
+  position: absolute; top: 0; bottom: 0; left: var(--split); width: 2px; margin-left: -1px; background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35); pointer-events: none;
+}
+.note-compare__seam::after {
+  content: "◀ ▶"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  padding: 2px 6px; border-radius: 10px; background: #fff; color: #0f172a; font-size: var(--font-xs); white-space: nowrap;
+}
+.note-compare__range {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize;
+  -webkit-appearance: none; appearance: none;
+}
+.note-compare__label {
+  position: absolute; bottom: 8px; padding: 2px 8px; border-radius: 6px; pointer-events: none;
+  background: rgba(15, 23, 42, 0.72); color: #fff; font-size: var(--font-sm);
+}
+.note-compare__label--left { left: 8px; }
+.note-compare__label--right { right: 8px; }
+.note-compare__tabs {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; padding: 4px;
+  border-radius: 8px; background: color-mix(in srgb, var(--bg-panel) 85%, transparent);
+}
+.ingame__mark { fill: rgba(37, 99, 235, 0.14); stroke: #2563eb; stroke-width: 3; stroke-dasharray: 9 6; vector-effect: non-scaling-stroke; }
+.ingame__mark--open { fill: rgba(250, 204, 21, 0.16); stroke: #facc15; }
+.ingame__trap { position: absolute; inset: 0; z-index: 2; cursor: crosshair; touch-action: none; }
+.ingame__hint {
+  position: absolute; top: var(--space-2); left: 50%; transform: translateX(-50%); z-index: 3;
+  padding: 4px 10px; border-radius: var(--radius-sm); pointer-events: none;
+  background: var(--canvas-float-bg); border: 1px solid var(--canvas-float-border); color: var(--text-bright);
+  font-size: var(--font-sm);
+}
+.ingame__pin {
+  position: absolute; left: var(--pin-x); top: var(--pin-y); z-index: 1;
+  transform: translate(-50%, -100%); cursor: pointer; border: 0;
+}
+.ingame__divider { width: 1px; height: 20px; margin: 0 4px; background: var(--canvas-float-border); }
+
+.ingame__strip { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-1); }
+.ingame__card {
+  flex: none; width: 188px; display: flex; flex-direction: column; gap: 4px; padding: 4px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md);
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.ingame__card:hover, .ingame__card:focus-visible { border-color: var(--accent); outline: none; }
+.ingame__card--on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.ingame__thumb { position: relative; display: block; }
+.ingame__count {
+  position: absolute; top: 4px; right: 4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: #2563eb; color: #fff; font-size: var(--font-sm); font-weight: 700;
+}
+.ingame__caption { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); }
+.ingame__cardname { color: var(--text-bright); font-size: var(--font-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

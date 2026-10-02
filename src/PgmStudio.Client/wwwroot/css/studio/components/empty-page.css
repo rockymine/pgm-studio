@@ -1,0 +1,4 @@
+/* A page with nothing to show: a heading, a sentence, and the way out. */
+.empty-page { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); margin: auto; padding: var(--space-6); text-align: center; }
+.empty-page h1 { margin: 0; font-size: var(--font-xl); color: var(--text-bright); }
+.empty-page p { margin: 0; color: var(--text-secondary); }

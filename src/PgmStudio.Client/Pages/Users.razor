@@ -1,7 +1,7 @@
 @page "/admin/users"
 @layout StudioLayout
 
-<PageTitle>PGM Studio — Users</PageTitle>
+<PageTitle>Users · PGM Studio</PageTitle>
 
 @* The whitelist: who may write to this studio, in which role, and the invitations that let them sign in.
    An admin's page; anyone else is told so and shown nothing of the list. *@
@@ -23,17 +23,15 @@
         {
           <div class="callout">
             <span class="callout-icon"><i data-lucide="shield"></i></span>
-            <p>Only an admin keeps the whitelist.</p>
+            <p>Only admins can manage the whitelist.</p>
           </div>
         }
         else
         {
           <Section Title="Add a player">
             <Description>
-              A player on the whitelist may originate maps and edit the ones they own or are credited on; an admin
-              may edit every map and keep this list's members. Only an owner — named in the server's configuration,
-              not here — makes or unmakes an admin. Adding someone does not let them sign in yet — open an
-              invitation for them below and send them the link.
+              Members can create maps and edit the ones they own or are credited on. Admins can edit every map
+              and manage this list. After adding someone, send them an invitation link so they can sign in.
             </Description>
             <ChildContent>
               <div class="invite-link">
@@ -49,9 +47,9 @@
           <Section Title="Whitelist">
             <Actions><Badge Kind="dim">@(users?.Count ?? 0)</Badge></Actions>
             <ChildContent>
-              <div class="panel-list" style="margin-top: var(--space-3);">
+              <div class="panel-list panel-list--separated">
                 @if (users is null) { <div class="list-empty">Loading…</div> }
-                else if (users.Count == 0) { <div class="list-empty">Nobody is on the whitelist yet.</div> }
+                else if (users.Count == 0) { <div class="list-empty">Nobody is on the whitelist yet. Add a player above.</div> }
                 else
                 {
                   @foreach (var user in users)
@@ -61,7 +59,7 @@
                         <PlayerHead Uuid="@user.Uuid" Name="@user.Name" Size="20" />
                         <span class="list-label">@user.Name</span>
                         <span class="list-label list-label--mono" title="Minecraft uuid">@user.Uuid</span>
-                        @if (user.Owner) { <span class="list-tag" title="Named in the server's configuration; only the server changes an owner">owner</span> }
+                        @if (user.Owner) { <span class="list-tag" title="Set in the server configuration. Owners can only be changed there.">owner</span> }
                         <span class="list-tag">@SignInState(user)</span>
                       </ChildContent>
                       <Trailing>
@@ -70,10 +68,10 @@
                                 Disabled="@(RoleLocked(user) is not null)" Title="@(RoleLocked(user) ?? "Role")" />
                         <Button Variant="icon" Icon="link" OnClick="() => InviteAsync(user)"
                                 Disabled="@(InviteLocked(user) is not null)"
-                                Title="@(InviteLocked(user) ?? "Open an invitation and show its link")" />
+                                Title="@(InviteLocked(user) ?? "Create invitation link")" />
                         <Button Variant="icon" Icon="trash-2" OnClick="() => RemoveAsync(user)"
                                 Disabled="@(RemoveLocked(user) is not null)"
-                                Title="@(RemoveLocked(user) ?? "Take off the whitelist")" />
+                                Title="@(RemoveLocked(user) ?? "Remove from whitelist")" />
                         </div>
                       </Trailing>
                     </ListRow>
@@ -84,8 +82,8 @@
                         <Button Icon="copy" OnClick="() => CopyAsync(invite.Link)">@(copied == invite.Link ? "Copied" : "Copy")</Button>
                       </div>
                       <p class="section-desc">
-                        Works once, until @invite.ExpiresAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm"), and is shown only now.
-                        The first Discord account to sign in through it is bound to @user.Name.
+                        Works once, until @invite.ExpiresAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm"). Copy it now; it is not shown again.
+                        The first Discord account that signs in with it is linked to @user.Name.
                       </p>
                     }
                   }

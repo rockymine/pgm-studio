@@ -264,9 +264,9 @@ public partial class SketchTool
             var answer = await Http.GetAsync($"api/map/{Slug}/report");
             if (answer.IsSuccessStatusCode) report = await answer.Content.ReadFromJsonAsync<MapReportDto>();
             else reportError = (await answer.Content.ReadFromJsonAsync<RefusalDto>())?.Message is { Length: > 0 } why
-                ? why : "The report could not be read.";
+                ? why : "Couldn't load the report.";
         }
-        catch { reportError = "The report could not be read — the studio could not be reached."; }
+        catch { reportError = "Couldn't load the report. Check your connection and try again."; }
         StateHasChanged();
     }
 
@@ -334,7 +334,7 @@ public partial class SketchTool
     {
         changesError = null;
         try { changes = await Http.GetFromJsonAsync<MapChangesDto>($"api/map/{Slug}/changes"); }
-        catch { changesError = "The board's changes could not be read — the studio could not be reached."; }
+        catch { changesError = "Couldn't load the change history. Check your connection and try again."; }
         StateHasChanged();
     }
 
@@ -368,7 +368,7 @@ public partial class SketchTool
             before = from == 0 ? null : (await Http.GetFromJsonAsync<MapChangeDocumentsDto>($"api/map/{Slug}/changes/{from}"))?.Layout;
             after = (await Http.GetFromJsonAsync<MapChangeDocumentsDto>($"api/map/{Slug}/changes/{to}"))?.Layout;
         }
-        catch { spanWorldError = "The change could not be read — the studio could not be reached."; }
+        catch { spanWorldError = "Couldn't load this change. Check your connection and try again."; }
         if (round != spanRound) return;
         spanDiff = diff;
         (spanBefore, spanAfter) = (before, after);
@@ -377,7 +377,7 @@ public partial class SketchTool
 
         if (before is null || after is null)
         {
-            spanWorldError ??= "There is no board before the first change to build.";
+            spanWorldError ??= "There's nothing before the first change to build.";
             StateHasChanged();
             return;
         }
@@ -391,7 +391,7 @@ public partial class SketchTool
         catch
         {
             if (round != spanRound) return;
-            spanWorldError = "The boards could not be built at both changes.";
+            spanWorldError = "Couldn't build both versions.";
         }
         StateHasChanged();
     }
@@ -410,7 +410,7 @@ public partial class SketchTool
         await SaveAsync(CancellationToken.None);
         if (superseded)
         {
-            restoreError = "This tab's board is behind the stored one — reload the page before putting anything back.";
+            restoreError = "This tab is out of date. Reload the page before restoring.";
             return;
         }
         restoring = true;
@@ -422,14 +422,14 @@ public partial class SketchTool
             if (!answer.IsSuccessStatusCode)
             {
                 var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
-                restoreError = "Not put back — " + (refusal?.Message is { Length: > 0 } why ? why : $"the studio answered {(int)answer.StatusCode}.");
+                restoreError = refusal?.Message is { Length: > 0 } why ? $"Couldn't restore. {why}" : $"Couldn't restore (HTTP {(int)answer.StatusCode}). Try again.";
                 return;
             }
             await ReloadLayoutAsync();
             await LoadChangesAsync();
             if (LatestChange > 0) await PickChange(LatestChange);
         }
-        catch { restoreError = "Not put back — the studio could not be reached."; }
+        catch { restoreError = "Couldn't restore. Check your connection and try again."; }
         finally
         {
             restoring = false;
@@ -448,7 +448,7 @@ public partial class SketchTool
             StateHasChanged();
         }
         try { views = await Http.GetFromJsonAsync<MapViewsDto>($"api/map/{Slug}/views"); }
-        catch { viewsError = "The views could not be read — the studio could not be reached."; }
+        catch { viewsError = "Couldn't load views. Check your connection and try again."; }
         if (handle is not null)
             await handle.InvokeVoidAsync("setViews", JsonSerializer.Serialize((views?.Views ?? []).Select(view => new
             {
@@ -529,7 +529,7 @@ public partial class SketchTool
     [JSInvokable]
     public void OnBoardUnavailable(string reason)
     {
-        viewNote = reason is { Length: > 0 } ? $"The board could not be drawn: {reason}" : "The board could not be drawn.";
+        viewNote = reason is { Length: > 0 } ? $"Couldn't draw the map: {reason}" : "Couldn't draw the map.";
         StateHasChanged();
     }
 
@@ -557,13 +557,13 @@ public partial class SketchTool
             if (!answer.IsSuccessStatusCode)
             {
                 var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
-                viewNote = refusal?.Message is { Length: > 0 } why ? why : "The view was not kept.";
+                viewNote = refusal?.Message is { Length: > 0 } why ? why : "Couldn't save the view.";
                 return;
             }
         }
         catch
         {
-            viewNote = "The view was not kept — the studio could not be reached.";
+            viewNote = "Couldn't save the view. Check your connection and try again.";
             return;
         }
         await ShowGallery();
@@ -584,13 +584,13 @@ public partial class SketchTool
             using var answer = await Http.DeleteAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(view.Id)}");
             if (!answer.IsSuccessStatusCode)
             {
-                viewsRefusal = $"The view was not let go: {await ServerRefusal.SentenceAsync(answer)}";
+                viewsRefusal = $"Couldn't remove the view: {await ServerRefusal.SentenceAsync(answer)}";
                 return;
             }
         }
         catch
         {
-            viewsRefusal = "The view was not let go — the studio could not be reached.";
+            viewsRefusal = "Couldn't remove the view. Check your connection and try again.";
             return;
         }
         viewsRefusal = null;
@@ -610,13 +610,13 @@ public partial class SketchTool
                 : await Http.PostAsJsonAsync($"api/map/{Slug}/views", request);
             if (!answer.IsSuccessStatusCode)
             {
-                viewsRefusal = $"The map's picture was not changed: {await ServerRefusal.SentenceAsync(answer)}";
+                viewsRefusal = $"Couldn't set the map picture: {await ServerRefusal.SentenceAsync(answer)}";
                 return;
             }
         }
         catch
         {
-            viewsRefusal = "The map's picture was not changed — the studio could not be reached.";
+            viewsRefusal = "Couldn't set the map picture. Check your connection and try again.";
             return;
         }
         viewsRefusal = null;
@@ -658,8 +658,8 @@ public partial class SketchTool
 
     // The same toggle shows the bare voxelization while drawing and the paint on top of it once theming.
     private string BlocksChipTitle => ScopeApplyActive
-        ? "Show the blocks the export places — the rasterized footprint painted by its themes"
-        : "Show the rasterized block footprint — the exact cells the shapes voxelize into";
+        ? "Show the blocks the export places, painted by palette"
+        : "Show the exact blocks the shapes cover";
 
     // The shapes the current selection themes: a group's members, else the single selected shape, else none.
     private IReadOnlyList<string> ScopeTargetShapeIds =>
@@ -863,9 +863,9 @@ public partial class SketchTool
     [
         new { id = "sketch.phase.info",      keys = "1", label = "Go to Info",     group = "Phases" },
         new { id = "sketch.phase.draw",      keys = "2", label = "Go to Draw",     group = "Phases" },
-        new { id = "sketch.phase.relief",    keys = "3", label = "Go to Relief",   group = "Phases" },
-        new { id = "sketch.phase.theme",     keys = "4", label = "Go to Theme",    group = "Phases" },
-        new { id = "sketch.phase.dressing",  keys = "5", label = "Go to Dressing", group = "Phases" },
+        new { id = "sketch.phase.relief",    keys = "3", label = "Go to Terraform", group = "Phases" },
+        new { id = "sketch.phase.theme",     keys = "4", label = "Go to Palette",  group = "Phases" },
+        new { id = "sketch.phase.dressing",  keys = "5", label = "Go to Decoration", group = "Phases" },
         new { id = "sketch.phase.ingame",    keys = "6", label = "Go to In game",  group = "Phases" },
         new { id = "sketch.phase.history",   keys = "7", label = "Go to History",  group = "Phases" },
         new { id = "sketch.phase.report",    keys = "8", label = "Go to Report",   group = "Phases" },
@@ -876,17 +876,17 @@ public partial class SketchTool
         new { id = "sketch.tool.lasso",      keys = "l", label = "Lasso",   group = "Tools" },
         new { id = "sketch.tool.measure",    keys = "m", label = "Measure", group = "Tools" },
         new { id = "sketch.tool.split",      keys = "x", label = "Split",   group = "Tools" },
-        new { id = "sketch.op",              keys = "b", label = "Flip build ⇄ carve", group = "Tools" },
-        new { id = "sketch.fit",             keys = "f", label = "Fit the working bounds", group = "Canvas" },
-        new { id = "sketch.chip.shapes",     keys = "alt+1", label = "Show every shape",   group = "Overlays" },
+        new { id = "sketch.op",              keys = "b", label = "Switch build and carve", group = "Tools" },
+        new { id = "sketch.fit",             keys = "f", label = "Zoom to fit", group = "Canvas" },
+        new { id = "sketch.chip.shapes",     keys = "alt+1", label = "Show shapes",   group = "Overlays" },
         new { id = "sketch.chip.mirror",     keys = "alt+2", label = "Show the mirror",    group = "Overlays" },
         new { id = "sketch.chip.chunks",     keys = "alt+3", label = "Show the chunk grid", group = "Overlays" },
         new { id = "sketch.chip.blocks",     keys = "alt+4", label = "Show the blocks",    group = "Overlays" },
-        new { id = "sketch.chip.relief",     keys = "alt+5", label = "Show the contours",  group = "Overlays" },
+        new { id = "sketch.chip.relief",     keys = "alt+5", label = "Show contours",  group = "Overlays" },
         new { id = "sketch.chip.snap",       keys = "alt+6", label = "Snap while dragging", group = "Tools" },
-        new { id = "sketch.theme.next",      keys = "]", label = "Take the next theme in hand",     group = "Theme" },
-        new { id = "sketch.theme.prev",      keys = "[", label = "Take the previous theme in hand", group = "Theme" },
-        new { id = "sketch.save",            keys = "mod+s", label = "Save the sketch", group = "Everywhere", inField = true },
+        new { id = "sketch.theme.next",      keys = "]", label = "Next palette",     group = "Palette" },
+        new { id = "sketch.theme.prev",      keys = "[", label = "Previous palette", group = "Palette" },
+        new { id = "sketch.save",            keys = "mod+s", label = "Save", group = "Everywhere", inField = true },
     ];
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -974,9 +974,9 @@ public partial class SketchTool
         if (handle is not null) await handle.InvokeVoidAsync("setOperation", o);
     }
 
-    private async Task OnModeChange(ChangeEventArgs e)
+    private async Task OnModeChange(string picked)
     {
-        mode = e.Value?.ToString() ?? "rot_180";
+        mode = picked;
         if (handle is not null) await handle.InvokeVoidAsync("setMode", mode);
     }
 
@@ -1220,7 +1220,7 @@ public partial class SketchTool
         [.. isoNotBuilt.SelectMany(finding => finding.Subjects ?? []).Distinct(StringComparer.Ordinal)];
 
     /// <summary>Every finding behind the note, in full, for the tooltip: the rule and its own sentence.</summary>
-    private string IsoContestedWhy => string.Join("\n\n", isoNotBuilt.Select(f => $"{f.Rule} — {f.Message}"));
+    private string IsoContestedWhy => string.Join("\n\n", isoNotBuilt.Select(f => $"{f.Rule}: {f.Message}"));
 
     /// <summary>The build hands over everything it raised; this keeps the <b>declines</b>, which are the
     /// findings whose whole meaning is that a piece of what the author wrote is not in the world
@@ -1251,11 +1251,11 @@ public partial class SketchTool
     }
 
     /// <summary>The chip beside the toggle: what stopped the preview, in two words.</summary>
-    private string IsoNote => isoUnavailableWhy is null ? "no WebGL" : "3-D unavailable";
+    private string IsoNote => isoUnavailableWhy is null ? "No WebGL" : "3-D unavailable";
 
     /// <summary>The whole sentence, on hover.</summary>
     private string IsoNoteTitle => isoUnavailableWhy
-        ?? "The 3-D height preview needs WebGL, which this browser can't provide.";
+        ?? "The 3-D preview needs WebGL, which this browser doesn't support.";
 
     /// <summary>The bridge pushed the current group→shape tree (on every layout change).</summary>
     [JSInvokable]
@@ -1370,18 +1370,18 @@ public partial class SketchTool
             else if (resp.StatusCode == System.Net.HttpStatusCode.Conflict && heldRevision is not null)
             {
                 superseded = true;
-                saveError = "Not saved — this board was saved from somewhere else after this tab opened it. "
-                          + "Reload the page to take up the stored board; the edits made here since are not in it.";
+                saveError = "Not saved: this map was saved from somewhere else after this tab opened it. "
+                          + "Reload the page to get the latest version. Edits made here since then will be lost.";
             }
             else
             {
                 var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
-                saveError = "Not saved — " + (refusal?.Message is { Length: > 0 } why ? why
+                saveError = "Not saved. " + (refusal?.Message is { Length: > 0 } why ? why
                                               : refusal?.Error is { Length: > 0 } label ? label
-                                              : $"the studio answered {(int)resp.StatusCode}.");
+                                              : $"The server answered HTTP {(int)resp.StatusCode}. Try again.");
             }
         }
-        catch { saveError = "Not saved — the studio could not be reached."; }
+        catch { saveError = "Not saved. Check your connection and try again."; }
         finally { saving.Release(); }
         if (saveError != was) await InvokeAsync(StateHasChanged);
     }
@@ -1425,9 +1425,9 @@ public partial class SketchTool
             var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
             finishError = refusal?.Message is { Length: > 0 } why ? why
                         : refusal?.Error is { Length: > 0 } label ? label
-                        : "Finish failed.";
+                        : "Couldn't finish the sketch. Try again.";
         }
-        catch { finishError = "Finish failed."; }
+        catch { finishError = "Couldn't finish the sketch. Check your connection and try again."; }
 
         finishing = false;
         StateHasChanged();

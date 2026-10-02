@@ -114,8 +114,8 @@ try {
   await page.waitForSelector(".plan-rebuild-warn", { timeout: 5000 });
   const warn = await page.locator(".plan-rebuild-warn").textContent();
   checks.add("it names what is replaced", /Replaces/.test(warn) && /terrain/.test(warn), "board + structure");
-  checks.add("…and what is kept", /Keeps/.test(warn) && /themes/.test(warn) && /authors/.test(warn),
-    "themes, room shells, dressing, authors");
+  checks.add("…and what is kept", /Keeps/.test(warn) && /palettes/.test(warn) && /authors/.test(warn),
+    "palettes, room shells, decoration, authors");
 
   // Cancelling is a real exit, not a shrug: the map is untouched and the button is back.
   await page.click('button:has-text("Cancel")');

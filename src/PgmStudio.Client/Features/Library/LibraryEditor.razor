@@ -12,7 +12,7 @@
   <Sidebar>
     <fieldset class="readonly-fieldset lib-name" disabled="@ReadOnly">
       <label class="field-label" for="lib-entry-name">Name</label>
-      <input id="lib-entry-name" class="field-input" placeholder="@($"a {Kind.One} you will recognise")"
+      <input id="lib-entry-name" class="field-input" placeholder="@($"e.g. My {Kind.One}")"
              value="@Name" @oninput="OnNameInput" />
     </fieldset>
 
@@ -21,11 +21,11 @@
         @foreach (var part in Outline)
         {
           <button class="lib-outline-row @(part.Id == Selected ? "lib-outline-row--picked" : null)"
-                  style="@Indent(part)" @key="part.Id" @onclick="() => Choose(part.Id)">
+                  style="@Depth(part)" @key="part.Id" @onclick="() => Choose(part.Id)">
             <span class="lib-outline-mark">
               @if (part.Swatch is not null)
               {
-                <span class="lib-outline-swatch" style="@($"background:{part.Swatch}")"></span>
+                <span class="lib-outline-swatch" style="--swatch: @part.Swatch"></span>
               }
               else
               {
