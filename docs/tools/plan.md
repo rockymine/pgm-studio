@@ -531,6 +531,24 @@ the box itself, and a further press clears the selection; Delete or Backspace re
 here is a double-click. Dragging a box carries the pieces it groups, with membership resolved at
 grab time so nothing falls out mid-drag.
 
+**Pieces and zones can be selected together.** `Shift`+click toggles the piece or zone under the cursor in or
+out of the selection, resolving past any box and treating a marker or a building as the piece it sits on. With
+the select tool, pressing on **empty canvas** — nothing under the cursor, so not over any piece, zone, marker
+or box — and dragging draws a dashed marquee; on release the selection becomes every piece and zone whose rect
+lies **wholly inside** it, so a large zone lying under everything is taken only by a marquee that encloses it,
+and `Shift` held through the drag adds to the current selection instead of replacing it. A press on empty
+canvas without a drag clears the selection, as it does for one thing. A plain click on anything replaces the
+set with that one thing, and `Escape` clears it. Pan is the Move tool or the middle button, so a drag on empty
+canvas is free for the marquee.
+
+Dragging any member of a multi-selection moves every member by the same cell delta, with the snapping a
+single move has: a zone's holes travel with its rect, and markers and buildings, which are stored relative to
+their piece, ride along. A press that does not move narrows the selection to the member pressed. Delete or
+Backspace removes every member through the same removal a single piece or zone takes, so each piece's markers,
+cliff and wall marks and box member names go with it, and the plan is re-derived once. The inspector shows
+the count and the two gestures in place of any one item's fields. On a page the caller may not write, `Shift`
+and the marquee still select, and nothing moves or deletes.
+
 The tools are armed from the keyboard as well as the toolbar — `V` select, `H` pan, `R` piece, `Z` zone, `G`
 box (admin), `W` wall — and `F` fits the plan, `Ctrl`/`⌘`+`S` saves it. `?` lists every chord that is live and
 `Ctrl`/`⌘`+`K` runs one by name; both are drawn from the registry described in
@@ -540,7 +558,7 @@ grab band along each edge that stretches that one axis — each keeping the exte
 big it is as a pill under it, the same pill Configure draws under a region and the sketch under a shape. Clicking an already-selected spawn cycles its facing. Deleting a piece takes its
 markers, its cliff and wall marks, and its name out of any box member list with it.
 
-The inspector edits the selection: a piece's id, role, surface (stepped by the surface-step preference) and
+The inspector edits a single selection: a piece's id, role, surface (stepped by the surface-step preference) and
 mirror flag; a zone's id; a box's id, kind and whether its membership is frozen to a list (admin); a marker's position,
 a spawn's facing, a wool's dye, and every structure field of a destroyable or a core — each shown at its
 *effective* value, so an unset field renders as the number the stamper will use rather than as blank. The dye

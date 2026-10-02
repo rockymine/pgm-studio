@@ -17,10 +17,11 @@ import { CanvasPainter } from "../render/canvas-painter.js";
 import { blockDataToDataUrl } from "../render/block-render.js";
 import {
   ROLE_COLORS, BOX_COLORS, ZONE_COLORS, isWaterLane, canonicalZoneKind, FACING_DIR, rectCellsToBlocks, cellOfWorld, rectFromCells,
-  markerCell, attachMarker, markerAt, markerList, MARKER_KINDS, allMarkers, viewBounds, pickAtWorld, sameSelection,
+  markerCell, attachMarker, markerAt, markerAtWorld, markerList, MARKER_KINDS, allMarkers, viewBounds, pickAtWorld, sameSelection,
   footprintCell, clampFootprint, pieceBlocks, FOOTPRINT_KINDS,
   pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece,
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
+  selectableAtWorld, selectableItem, itemsWithinWorldRect, toggleRef, unionRefs, translateItem,
 } from "../plan/plan-doc.js";
 import { viewportWorldRect, snapOut, unionRect, gridStep, renderScaleBar, renderDimensionPill, renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
 import { OBJECTIVE_COLORS, BUILDING_COLORS, UNKNOWN_KIND_COLOR } from "../render/primitive-style.js";
@@ -32,6 +33,9 @@ import { MIN_FOOTPRINT_SPAN } from "../shared/building.js";
 import { labelPx } from "../shared/ui-scale.js";
 
 const FIT_MARGIN = 0.82;
+
+// How far, in screen pixels, a press on empty canvas travels before it is a marquee rather than a click.
+const MARQUEE_MIN_PX = 4;
 
 // What identifies a picked item to the selection rule. A piece and a zone have ids; a marker is a kind and
 // an index, so it is keyed by both — the rule only ever compares these for equality.
@@ -99,6 +103,11 @@ export class PlanCanvas extends CanvasBase {
   #pieceRole = "piece";             // role armed for the piece tool
   #boxKind = "hub";                 // kind armed for the box tool
   #sel = null;                      // { kind:'piece'|'zone'|'box', id } | { kind:'marker', markerKind, index }
+
+  // Pieces and zones selected together, as `{ kind, id }` refs. It holds the whole set, `#sel` included, once
+  // the set has two members, and is empty for a single selection or none — so everything that reads one
+  // selection keeps reading `#sel`, which is the member the inspector would show.
+  #multi = [];
 
   // The box a click is resolved INSIDE. Null means a click picks whole boxes; set, it reaches the pieces
   // that box groups, and a click outside it leaves. The same model the sketch canvas holds, because two
@@ -320,8 +329,33 @@ export class PlanCanvas extends CanvasBase {
   }
 
   getSelection() { return this.#sel; }
-  select(sel) { this.#sel = sel; this.#refreshOverlay(); this.#fireSelect(); }
-  clearSelection() { this.#sel = null; this.#refreshOverlay(); this.#fireSelect(); }
+
+  /** Everything selected, as refs: the members of a multi-selection, else the single selection, else none. */
+  getSelectionSet() { return this.#multi.length ? [...this.#multi] : this.#sel ? [this.#sel] : []; }
+
+  select(sel) { this.#multi = []; this.#sel = sel; this.#refreshOverlay(); this.#fireSelect(); }
+  clearSelection() { this.#multi = []; this.#sel = null; this.#refreshOverlay(); this.#fireSelect(); }
+
+  // The piece/zone refs a Shift-click or a marquee extends: the multi-selection, else the one piece or zone
+  // selected. A marker, footprint or box selection is not part of a set.
+  #selectedRefs() {
+    if (this.#multi.length) return this.#multi;
+    return this.#sel?.kind === "piece" || this.#sel?.kind === "zone" ? [this.#sel] : [];
+  }
+
+  // Make `refs` the selection: none clears, one is the plain single selection, and two or more are a set whose
+  // primary — the member the inspector's single-selection reads — is `primary` where it is in the set.
+  #applySet(refs, primary = null) {
+    if (refs.length >= 2) {
+      this.#multi = refs;
+      this.#sel = refs.find(ref => sameSelection(ref, primary)) || refs[refs.length - 1];
+    } else {
+      this.#multi = [];
+      this.#sel = refs[0] || null;
+    }
+    this.#refreshOverlay();
+    this.#fireSelect();
+  }
 
   // Frame the working area (union'd with any tracing backdrop), leaving a margin of grid visible around
   // it. Deferred when the wrap has no layout box yet — the tool mounts this canvas while the Draw phase is
@@ -798,11 +832,12 @@ export class PlanCanvas extends CanvasBase {
     // selected piece/zone still shows its own id for orientation. In height-map mode the piece's surface
     // height reads big at the centre (it is data, always shown); the id rides the top edge and follows Labels.
     const showLabels = this.#overlayOn.labels;
-    const selId = this.#sel && this.#sel.kind !== "marker" ? this.#sel.id : null;
+    const selIds = new Set((this.#multi.length ? this.#multi : [this.#sel])
+      .filter(ref => ref && ref.kind !== "marker").map(ref => ref.id));
     for (const p of this.#doc.pieces) {
       const b = rectCellsToBlocks(p.rect, cell);
       const mx = (b.min_x + b.max_x) / 2, mz = (b.min_z + b.max_z) / 2;
-      const showId = showLabels || p.id === selId;
+      const showId = showLabels || selIds.has(p.id);
       if (this.#heightMap) {
         label(String(pieceSurface(this.#doc, p)), mx, mz, "var(--canvas-ink)", "13");
         if (showId) label(p.id, mx, b.min_z, "var(--canvas-ink)", "9");
@@ -811,11 +846,11 @@ export class PlanCanvas extends CanvasBase {
       }
     }
     for (const z of this.#doc.zones)
-      if (showLabels || z.id === selId) { const b = rectCellsToBlocks(z.rect, cell); label(z.id, (b.min_x + b.max_x) / 2, b.min_z, "var(--accent-light)"); }
+      if (showLabels || selIds.has(z.id)) { const b = rectCellsToBlocks(z.rect, cell); label(z.id, (b.min_x + b.max_x) / 2, b.min_z, "var(--accent-light)"); }
     // A box's id rides its top-left corner in the kind's colour, so several nested envelopes stay tellable
     // apart without their labels stacking on one another.
     for (const bx of this.#boxesShown ? this.#doc.boxes || [] : [])
-      if (showLabels || bx.id === selId) { const b = rectCellsToBlocks(bx.rect, cell); label(bx.id, b.min_x + (b.max_x - b.min_x) * 0.14, b.min_z, BOX_COLORS[bx.kind] || BOX_COLORS.mid, "10"); }
+      if (showLabels || selIds.has(bx.id)) { const b = rectCellsToBlocks(bx.rect, cell); label(bx.id, b.min_x + (b.max_x - b.min_x) * 0.14, b.min_z, BOX_COLORS[bx.kind] || BOX_COLORS.mid, "10"); }
 
     // Gap-link hop distances ride the screen-space overlay so they stay a fixed pixel size at any zoom.
     if (showLabels)
@@ -835,8 +870,11 @@ export class PlanCanvas extends CanvasBase {
     // dashed accent box too and two dashed boxes say nothing about which is which.
     this.#drawScopeBox(layer, toS, cell);
 
-    // The selection outline: its box plus resize handles (a marker shows just a ring).
-    if (this.#sel) this.#drawSelectionOutline(this.#sel, layer, toS, cell, true);
+    // The selection outline: its box plus resize handles (a marker shows just a ring). Each member of a
+    // multi-selection wears the same outline, without the handles and the size pill that belong to one thing.
+    if (this.#multi.length)
+      for (const ref of this.#multi) this.#drawSelectionOutline(ref, layer, toS, cell, { handles: false, pill: false });
+    else if (this.#sel) this.#drawSelectionOutline(this.#sel, layer, toS, cell, { handles: true, pill: true });
   }
 
   // The box the canvas has entered, or nothing where it has entered none. A context rather than a selection:
@@ -857,8 +895,8 @@ export class PlanCanvas extends CanvasBase {
   }
 
   // Draw one selection's screen-space outline: a ring for a marker, a dashed box for a piece/zone/box, with
-  // resize handles only when `handles`.
-  #drawSelectionOutline(sel, layer, toS, cell, handles) {
+  // its size pill when `pill` and resize handles when `handles`.
+  #drawSelectionOutline(sel, layer, toS, cell, { handles, pill }) {
     if (!sel) return;
     if (sel.kind === "marker") {
       const m = markerAt(this.#doc, sel.markerKind, sel.index);
@@ -878,7 +916,7 @@ export class PlanCanvas extends CanvasBase {
     const l = Math.min(p0.x, p1.x), r = Math.max(p0.x, p1.x), t = Math.min(p0.y, p1.y), bot = Math.max(p0.y, p1.y);
     layer.appendChild(svgEl("rect", { x: l, y: t, width: r - l, height: bot - t, fill: "none", stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none" }));
     // How big the selected piece is, under it, the way Configure says it of a region.
-    renderDimensionPill(layer, {
+    if (pill) renderDimensionPill(layer, {
       left: l, right: r, bottom: bot, width: b.max_x - b.min_x, depth: b.max_z - b.min_z,
     });
     if (!handles) return;
@@ -908,6 +946,7 @@ export class PlanCanvas extends CanvasBase {
   #fireSelect() {
     const cb = this.#cb.onSelect;
     if (!cb) return;
+    if (this.#multi.length) { cb({ kind: "multi", count: this.#multi.length }); return; }
     if (!this.#sel) { cb(null); return; }
     if (this.#sel.kind === "marker") {
       const m = markerAt(this.#doc, this.#sel.markerKind, this.#sel.index);
@@ -965,6 +1004,7 @@ export class PlanCanvas extends CanvasBase {
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#cursorEl) this.#cursorEl.textContent = `cell ${cx}, ${cz}`;
     if (this.#drag?.mode === "draw") { this.#drag.b = [cx, cz]; this.#paintWorld(); return; }
+    if (this.#drag?.mode === "marquee") { this.#marqueeTo(svgPt); return; }
     if (this.#drag?.mode === "move") { this.#moveTo(cx, cz, svgPt.x / cell, svgPt.y / cell); return; }
     this.#refreshHoverCursor(svgPt);
   }
@@ -982,10 +1022,12 @@ export class PlanCanvas extends CanvasBase {
 
   _onToolMouseup(e, svgPt) {
     if (this.#drag?.mode === "draw") { this.#commitDraw(); return; }
+    if (this.#drag?.mode === "marquee") { this.#commitMarquee(svgPt); return; }
     if (this.#drag?.mode === "move") {
-      const { moved, reselect } = this.#drag;
+      const { moved, reselect, collapseTo } = this.#drag;
       this.#drag = null;
       if (moved) { this.render(); this.#cb.onChange?.(); this.#fireSelect(); }
+      else if (collapseTo) this.#applySet([collapseTo]);   // a click on a member of a set narrows it to that member
       else this.#clickSelect(reselect);   // a press without a drag = a plain click (select / cycle facing)
     }
   }
@@ -1025,6 +1067,9 @@ export class PlanCanvas extends CanvasBase {
    * finds, with `drill` skipping the boxes to reach what is under them.
    */
   #selectDown(e, svgPt, cx, cz) {
+    if (e.shiftKey) return this.#shiftDown(svgPt);
+    const grabbed = this.#grabSetMember(svgPt, cx, cz);
+    if (grabbed) { this.#drag = grabbed; return; }
     const prev = this.#sel;
     const boxes = this.#boxesShown;
     const shallow = pickAtWorld(this.#doc, svgPt.x, svgPt.y, { boxes });
@@ -1043,9 +1088,12 @@ export class PlanCanvas extends CanvasBase {
             : picked.pick === "member" ? member
             : shallow && shallow.kind !== "box" ? shallow : null;
 
+    this.#multi = [];
     this.#sel = hit;
     this.#refreshOverlay();
     this.#fireSelect();
+    // A press on nothing starts a marquee; a release without travel leaves it the plain click it was.
+    if (!hit) { this.#drag = this.#marqueeStart(svgPt, []); return; }
     // Read-only, the press only picks: no drag begins, and no re-click turns a spawn.
     if (this._readOnly) { this.#drag = null; return; }
     // A box drag carries its members — resolve them now, before the envelope starts moving.
@@ -1055,6 +1103,55 @@ export class PlanCanvas extends CanvasBase {
     const cell = this.#doc.globals.cell;
     const grab = hit?.kind === "footprint" ? [svgPt.x / cell, svgPt.y / cell] : [cx, cz];
     this.#drag = { mode: "move", sel: hit, grab, moved: false, reselect: sameSelection(prev, hit), carried };
+  }
+
+  /**
+   * Shift-press: toggle the piece or zone under the cursor in or out of the selection. A press on nothing
+   * starts a marquee that adds to the selection instead of replacing it. Boxes, markers and footprints are not
+   * set members — the piece they sit on is what toggles.
+   */
+  #shiftDown(svgPt) {
+    const ref = selectableAtWorld(this.#doc, svgPt.x, svgPt.y);
+    const base = this.#selectedRefs();
+    if (!ref) { this.#drag = this.#marqueeStart(svgPt, base, true); return; }
+    this.#drag = null;
+    this.#applySet(toggleRef(base, ref), ref);
+  }
+
+  /**
+   * A press on a member of a multi-selection grabs the whole set: the drag moves every member, and a release
+   * without travel narrows the selection to the one pressed. Null when nothing of the set is under the cursor,
+   * when a marker is — a marker paints above its piece and picks first, so it replaces the selection as usual —
+   * or when the page is read-only, where a press only picks.
+   */
+  #grabSetMember(svgPt, cx, cz) {
+    if (!this.#multi.length || this._readOnly || markerAtWorld(this.#doc, svgPt.x, svgPt.y)) return null;
+    const under = selectableAtWorld(this.#doc, svgPt.x, svgPt.y);
+    if (!under || !this.#multi.some(ref => sameSelection(ref, under))) return null;
+    const items = this.#multi.map(ref => selectableItem(this.#doc, ref)).filter(Boolean);
+    return { mode: "move", sel: this.#sel, multi: items, grab: [cx, cz], moved: false, reselect: false, collapseTo: under };
+  }
+
+  #marqueeStart(svgPt, base, additive = false) {
+    return { mode: "marquee", a: [svgPt.x, svgPt.y], b: [svgPt.x, svgPt.y], moved: false, base, additive };
+  }
+
+  #marqueeTo(svgPt) {
+    const d = this.#drag;
+    d.b = [svgPt.x, svgPt.y];
+    if (!d.moved && Math.hypot(d.b[0] - d.a[0], d.b[1] - d.a[1]) * this._scale > MARQUEE_MIN_PX) d.moved = true;
+    if (d.moved) this.#paintWorld();
+  }
+
+  // Release a marquee: select what lies wholly inside it, added to the set it started from when Shift was held.
+  // A release without travel is a click, which Shift leaves alone and a plain press has already cleared.
+  #commitMarquee(svgPt) {
+    const d = this.#drag;
+    this.#drag = null;
+    if (!d.moved) { this.#paintWorld(); return; }
+    const found = itemsWithinWorldRect(this.#doc, d.a[0], d.a[1], svgPt.x, svgPt.y);
+    this.#applySet(d.additive ? unionRefs(d.base, found) : found);
+    this.#paintWorld();
   }
 
   #moveTo(cx, cz, fcx, fcz) {
@@ -1087,13 +1184,17 @@ export class PlanCanvas extends CanvasBase {
     const ddx = cx - d.grab[0], ddz = cz - d.grab[1];
     if (!ddx && !ddz) return;
     d.grab = [cx, cz];
-    const item = this.#selItem();
-    if (item) {
+    // A multi-selection moves every member by the same cell delta, resolved at grab time like a box's members.
+    const item = d.multi ? null : this.#selItem();
+    if (d.multi) {
+      for (const member of d.multi) translateItem(member, ddx, ddz);
+      d.moved = true;
+    } else if (item) {
       // A box carries the pieces it groups: dragging the envelope relocates the whole part it annotates,
       // which is the point of typing it. Membership is resolved once at grab time (d.carried) so a piece
       // cannot fall out of a containment-grouped box mid-drag and be left behind.
-      if (d.sel.kind === "box") for (const p of d.carried || []) { p.rect[0] += ddx; p.rect[1] += ddz; }
-      item.rect[0] += ddx; item.rect[1] += ddz; d.moved = true;
+      if (d.sel.kind === "box") for (const p of d.carried || []) translateItem(p, ddx, ddz);
+      translateItem(item, ddx, ddz); d.moved = true;
     }
     this.render();
   }
@@ -1133,6 +1234,13 @@ export class PlanCanvas extends CanvasBase {
   }
 
   #paintPreview() {
+    if (this.#drag?.mode === "marquee") {
+      const { a, b, moved } = this.#drag;
+      if (moved) this.#painter.rect(
+        { min_x: Math.min(a[0], b[0]), min_z: Math.min(a[1], b[1]), max_x: Math.max(a[0], b[0]), max_z: Math.max(a[1], b[1]) },
+        { fill: "var(--accent)", fillAlpha: 0.08, stroke: "var(--accent)", width: 1.5, dash: [5, 3] });
+      return;
+    }
     if (this.#drag?.mode !== "draw") return;
     const cell = this.#doc.globals.cell;
     const b = rectCellsToBlocks(rectFromCells(...this.#drag.a, ...this.#drag.b), cell);
@@ -1240,7 +1348,7 @@ export class PlanCanvas extends CanvasBase {
     const live = () => this._wrap?.offsetParent != null && !this._isoOn;
     Keys.register("plan-canvas", [
       { id: "plan.delete", keys: ["delete", "backspace"], label: "Delete the selection", group: "Canvas",
-        when: () => live() && !this._readOnly && !!this.#sel, run: () => this.#cb.onDelete?.(this.#sel) },
+        when: () => live() && !this._readOnly && !!this.#sel, run: () => this.#cb.onDelete?.(this.getSelectionSet()) },
       { id: "plan.enter", keys: "enter", label: "Open the selected group", group: "Canvas",
         when: () => live() && this.#sel?.kind === "box",
         run: () => { this.#scopeBoxId = this.#sel.id; this.#refreshOverlay(); } },
@@ -1249,11 +1357,14 @@ export class PlanCanvas extends CanvasBase {
     ]);
   }
 
-  /** Escape walks the group model back out: an entered box is left with its own box selected, a drilled
-   *  piece pops to the box that groups it, and anything else clears. */
+  /** Escape walks the group model back out: a multi-selection clears, an entered box is left with its own box
+   *  selected, a drilled piece pops to the box that groups it, and anything else clears. */
   #popOut() {
     if (!this.#doc) return;
-    if (this.#scopeBoxId) {
+    if (this.#multi.length) {
+      this.#multi = [];
+      this.#sel = null;
+    } else if (this.#scopeBoxId) {
       this.#sel = { kind: "box", id: this.#scopeBoxId };
       this.#scopeBoxId = null;
     } else if (this.#sel?.kind === "piece") {

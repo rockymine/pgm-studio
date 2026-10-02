@@ -342,6 +342,14 @@
               {
                 <p class="section-desc">Select something to edit it. Draw a piece first, then place spawns and wools on it.</p>
               }
+              else if (sel.Kind == "multi")
+              {
+                <DetailHeader Icon="copy" Label="@($"{sel.Count} selected")" />
+                <p class="section-desc">Drag any of them to move them together. Delete removes them.</p>
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
+                  <i data-lucide="trash-2"></i> Delete @sel.Count items
+                </Button>
+              }
               else if (sel.Kind == "piece")
               {
                 <DetailHeader Icon="box" Label="Piece">

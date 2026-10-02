@@ -375,6 +375,69 @@ export function sameSelection(a, b) {
   return a.id === b.id;
 }
 
+// ── multi-selection (pieces and zones, selected together) ───────────────────
+
+/**
+ * The piece or zone a click at world/block point `(wx, wz)` adds to or removes from a multi-selection, as a
+ * `{ kind, id }` ref, or null. Only pieces and zones can be selected together: a marker or a footprint rides
+ * its piece and so is carried with it, and a box is a group rather than a member. Topmost piece first, then
+ * the topmost zone, the order a plain click resolves them in.
+ */
+export function selectableAtWorld(doc, wx, wz) {
+  const [cx, cz] = cellOfWorld(wx, wz, doc.globals.cell);
+  const piece = pieceAtCell(doc, cx, cz);
+  if (piece) return { kind: "piece", id: piece.id };
+  const zone = zoneAtCell(doc, cx, cz);
+  return zone ? { kind: "zone", id: zone.id } : null;
+}
+
+/** The piece or zone record a `{ kind, id }` ref names, or null. */
+export function selectableItem(doc, ref) {
+  if (ref?.kind === "piece") return pieceById(doc, ref.id);
+  if (ref?.kind === "zone") return doc.zones.find(z => z.id === ref.id) || null;
+  return null;
+}
+
+/**
+ * Every piece and zone whose rect lies **wholly** inside the world/block rectangle between two corner points
+ * (given in any order), as refs — pieces first, then zones, each in document order. Touching an edge counts
+ * as inside; merely intersecting does not, so a large zone under everything is not swept up by a marquee
+ * drawn over part of it.
+ */
+export function itemsWithinWorldRect(doc, ax, az, bx, bz) {
+  const box = { min_x: Math.min(ax, bx), min_z: Math.min(az, bz), max_x: Math.max(ax, bx), max_z: Math.max(az, bz) };
+  const cell = doc.globals.cell;
+  const inside = (rect) => {
+    const r = rectCellsToBlocks(rect, cell);
+    return r.min_x >= box.min_x && r.min_z >= box.min_z && r.max_x <= box.max_x && r.max_z <= box.max_z;
+  };
+  return [
+    ...doc.pieces.filter(p => inside(p.rect)).map(p => ({ kind: "piece", id: p.id })),
+    ...doc.zones.filter(z => inside(z.rect)).map(z => ({ kind: "zone", id: z.id })),
+  ];
+}
+
+/** `refs` with `ref` removed when it is there and appended when it is not. Returns a new list. */
+export function toggleRef(refs, ref) {
+  return refs.some(r => sameSelection(r, ref)) ? refs.filter(r => !sameSelection(r, ref)) : [...refs, ref];
+}
+
+/** `base` followed by every ref of `added` that `base` does not already hold. Returns a new list. */
+export function unionRefs(base, added) {
+  const out = [...base];
+  for (const ref of added) if (!out.some(r => sameSelection(r, ref))) out.push(ref);
+  return out;
+}
+
+/**
+ * Move a piece, zone or box by `(dx, dz)` cells, in place. A zone's holes are stated in absolute cells like its
+ * rect, so they move with it; markers and footprints are stored relative to their piece and need no write.
+ */
+export function translateItem(item, dx, dz) {
+  item.rect[0] += dx; item.rect[1] += dz;
+  for (const hole of item.holes || []) { hole[0] += dx; hole[1] += dz; }
+}
+
 /** A piece's surface height, resolving the inherited base from globals when the piece has none set. */
 export function pieceSurface(doc, p) { return p.surface ?? doc.globals.surface; }
 

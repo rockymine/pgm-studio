@@ -87,7 +87,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     onTool: (t) => fire("OnTool", t),
     onChange: () => afterEdit(),
     onCreate: (kind, rect) => createRect(kind, rect),
-    onDelete: (sel) => deleteSelection(sel),
+    onDelete: (sels) => deleteSelections(sels),
     onToggleWall: (a, b) => toggleWallMark(a, b),
     onCycleFacing: (index) => cycleFacing(index),
   });
@@ -198,8 +198,17 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     runLive();
   }
 
-  function deleteSelection(sel) {
-    if (!sel) return;
+  // Delete everything selected: each member goes through the one removal below, so a piece in a set takes its
+  // markers and marks with it exactly as a lone piece does, and the canvas and derived views refresh once.
+  function deleteSelections(sels) {
+    if (!sels?.length) return;
+    for (const sel of sels) removeFromDoc(sel);
+    canvas.clearSelection();
+    canvas.setDoc(doc);
+    afterEdit();
+  }
+
+  function removeFromDoc(sel) {
     if (sel.kind === "piece") {
       const p = doc.pieces.find(x => x.id === sel.id);
       doc.pieces = doc.pieces.filter(x => x.id !== sel.id);
@@ -230,9 +239,6 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       const m = markerList(doc, sel.markerKind)?.[sel.index];
       if (m) delete m.footprint;
     }
-    canvas.clearSelection();
-    canvas.setDoc(doc);
-    afterEdit();
   }
 
   // Role armed for the next drawn piece, and kind armed for the next drawn box (both mirrored in the canvas
@@ -508,7 +514,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       canvas.select({ kind: "marker", markerKind: kind, index });
       afterEdit();
     },
-    deleteSelected() { deleteSelection(canvas.getSelection()); },
+    deleteSelected() { deleteSelections(canvas.getSelectionSet()); },
 
     // Derived-structure overlays: toggle a layer (persisted) and pulse a finding's subjects on click.
     getOverlays() { return JSON.stringify(overlays); },

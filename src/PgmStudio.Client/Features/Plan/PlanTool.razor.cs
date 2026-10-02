@@ -1417,6 +1417,8 @@ public partial class PlanTool
         [JsonPropertyName("zoneKind")] public string ZoneKind { get; set; } = "";
         [JsonPropertyName("members")] public List<string>? Members { get; set; }
         [JsonPropertyName("membersNamed")] public bool MembersNamed { get; set; }
+        /// <summary>How many pieces and zones a <c>multi</c> selection holds.</summary>
+        [JsonPropertyName("count")] public int Count { get; set; }
     }
 
     private sealed class MetaDto
