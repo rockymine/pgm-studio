@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using PgmStudio.Client.Components;
 using PgmStudio.Contracts;
 using PgmStudio.Vocabulary;
 
@@ -31,7 +32,6 @@ public partial class SketchHistoryList
             _ => document,
         }).Distinct());
 
-    /// <summary>Who wrote a change: the person, and the token's label where a token wrote it.</summary>
-    internal static string Who(MapChangeDto change) =>
-        (change.Writer ?? "Unknown") + (change.Token is { } token ? $" (token “{token}”)" : "");
+    /// <summary>Who wrote a change: the person, or the agent and whose token it wrote with.</summary>
+    internal static string Who(MapChangeDto change) => Writers.Describe(change.Writer, change.Token);
 }

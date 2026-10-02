@@ -41,9 +41,9 @@ By tier, each grounded in the classes it emits.
 **Primitives** — leaf, style-only. `Button` (`action-btn` plus its `--primary`/`--danger`/`--warn`/`--icon`
 variants, an optional lucide `Icon` name, and an `Href` that switches it to an `<a>`), `Badge`, `Chip`
 (`filter-chip`), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, `Icon`, and `PlayerHead` —
-a person's initial on a neutral tile, with an account's face and hat cut in CSS from the
-skin the studio serves at `/api/minecraft/player/{uuid}/skin`, so a browser asks no third party and a skin the
-studio cannot get leaves the initial showing.
+a person's initial on a neutral tile, with the front of an account's head over it as the studio serves it at
+`/api/minecraft/player/{uuid}/head` — eight pixels drawn large, the face with the hat over it the way the game
+draws it — so a browser asks no third party and a head the studio cannot get leaves the initial showing.
 
 **Forms** — `Field` is the atom the whole system is built from: it owns the label, the required mark, the
 error line and the hint slots, and the input itself is `ChildContent`. Three controls carry every number and
@@ -240,6 +240,16 @@ and the child content, because the verb a button offers and the verb it is perfo
 site doing one without the other, and each half alone is its own fault: undisabled, a second click fires the
 action twice; unlabelled, the control sits inert with no sign the first click landed. `FlowBar` forwards the
 pair as `NextBusy`/`NextBusyLabel`, since the last step's Next is a verb rather than a move.
+
+**`Busy` is held by the component that runs the action.** A flag set by a parent reaches the button only when
+the parent renders, and a parent whose action was handed down as a plain delegate does not render until the
+action returns — so the button stays live and unlabelled for exactly the time it should be neither. The notes
+column's Send is the case: the column owns its sending state, and the phase it calls only answers whether the
+note landed.
+
+**A disabled button looks off, not lighter.** `:disabled` drops the variant's colour along with its strength and
+takes no hover, since a faded primary is still a tinted fill with an accent edge and reads as a lighter button
+that can be pressed. A busy button is disabled too but working, so `action-btn--busy` keeps its colour.
 
 The swap is **keyed on `Busy`**, which is what lets a busy button carry an icon at all. It is *An icon cannot
 change in place* below, applied to the one control that changes its own content: keyed, the whole button is

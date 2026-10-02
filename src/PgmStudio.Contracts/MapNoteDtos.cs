@@ -34,9 +34,11 @@ public sealed record PixelDto(int X, int Y);
 /// <param name="Sky">How many of the mark's pixels hit nothing.</param>
 /// <param name="Standing">The height of the ground under the camera — the top block a player would stand on
 /// there — or null where the camera is over the void; a camera at a player's eye is 2.62 over it.</param>
+/// <param name="Change">The map's latest change when the pick was cast: the board it read. A picture listed at an
+/// earlier change shows a board this one may not be.</param>
 public sealed record EyePickDto(
     EyeCameraDto Camera, string Query, BlockAtDto? Hit, BlockAtDto? Ground, IReadOnlyList<int[]> Columns, int Sky,
-    int? Standing = null);
+    int? Standing, long Change);
 
 /// <summary>
 /// What a note is pinned to. A <c>map</c> note names nothing spatial. Every other kind was written on a picture
@@ -128,6 +130,20 @@ public sealed record NoteReplyRequest(
 public sealed record NoteChangeRequest(
     [property: WordSet(typeof(NoteStatuses))] string? Status = null,
     [property: WordSet(typeof(NoteTags))] string? Tag = null);
+
+/// <summary>Where the author's notes stand with the agent (<c>GET</c> and <c>POST /api/notes/handoff</c>).</summary>
+/// <param name="Ready">Whether this studio names an agent to hand notes to.</param>
+/// <param name="Waiting">How many notes on every map are open — waiting for an agent.</param>
+/// <param name="Fresh">How many of those were written or answered since the last hand-off; all of them before the
+/// first.</param>
+/// <param name="HandedAt">When the last hand-off was taken, in UTC, or null.</param>
+/// <param name="Session">The session the last hand-off started, to watch it at, or null.</param>
+public sealed record NoteHandoffDto(bool Ready, int Waiting, int Fresh, DateTime? HandedAt, string? Session);
+
+/// <summary>A hand-off (<c>POST /api/notes/handoff</c>).</summary>
+/// <param name="Again">Hand the open notes over even where none was written since the last hand-off — a session
+/// that stopped short, asked again.</param>
+public sealed record NoteHandoffRequest(bool Again = false);
 
 /// <summary>A picture kept for a note (<c>POST /api/notes/pictures</c>).</summary>
 /// <param name="Hash">The SHA-256 of its bytes, which names it.</param>

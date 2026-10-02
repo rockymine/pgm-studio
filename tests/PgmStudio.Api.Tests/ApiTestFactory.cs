@@ -1,6 +1,8 @@
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using PgmStudio.Tests;
 
@@ -57,7 +59,26 @@ internal sealed class ApiTestFactory : WebApplicationFactory<Program>
         {
             ["ConnectionStrings:PgmStudio"] = ConnectionString,
             ["Access:Mode"] = "open",
+            ["Notes:Agent:Fire"] = RoutineStub.Fire,
+            ["Notes:Agent:Token"] = "test-token",
         }));
+        builder.ConfigureTestServices(services => services.AddHttpClient(PgmStudio.Api.Services.AgentHandoff.ClientName)
+            .ConfigurePrimaryHttpMessageHandler(() => new RoutineStub()));
+    }
+
+    /// <summary>The agent the test studio names: a Routine's <c>/fire</c> that starts nothing and answers as the
+    /// real one does, so a hand-off goes through without leaving the machine.</summary>
+    private sealed class RoutineStub : HttpMessageHandler
+    {
+        public const string Fire = "http://routine.test/fire";
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
+            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """{"type":"routine_fire","claude_code_session_id":"session_test","claude_code_session_url":"https://claude.ai/code/session_test"}""",
+                    System.Text.Encoding.UTF8, "application/json"),
+            });
     }
 
     /// <summary>The migrated schema with no rows in it — a clean database for the next test.</summary>

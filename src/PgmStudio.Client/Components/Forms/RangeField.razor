@@ -3,10 +3,12 @@
 @* The studio's slider. ValueChanged follows the thumb while it moves; OnCommit fires once when it is let
    go. A caller binds the one its work wants, or both where a readout moves live and the work waits for the
    release. An event nobody binds is left off the element, so a commit-only slider is silent while dragged.
-   The readout belongs to the Field's LabelEnd; extra attributes (aria-label, id…) pass straight through. *@
+   The readout belongs to the Field's LabelEnd; extra attributes (aria-label, id…) pass straight through.
+   KeepKeys keeps the arrow keys on the slider, for one that sits over a canvas whose shortcuts would take them. *@
 
-<input type="range" class="field-range" min="@Format(Min)" max="@Format(Max)" step="@Format(Step)"
-       value="@Format(Value)" @oninput="InputHandler" @onchange="CommitHandler" @attributes="Extra" />
+<input type="range" class="@(Class is null ? "field-range" : $"field-range {Class}")" min="@Format(Min)" max="@Format(Max)"
+       step="@Format(Step)" value="@Format(Value)" @oninput="InputHandler" @onchange="CommitHandler"
+       @onkeydown:stopPropagation="KeepKeys" @attributes="Extra" />
 
 @code {
     [Parameter] public double Value { get; set; }
@@ -17,6 +19,9 @@
     [Parameter, EditorRequired] public double Min { get; set; }
     [Parameter, EditorRequired] public double Max { get; set; }
     [Parameter] public double Step { get; set; } = 1;
+    /// <summary>An extra class beside field-range.</summary>
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public bool KeepKeys { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
 
     private EventCallback<ChangeEventArgs> InputHandler => Handler(ValueChanged);

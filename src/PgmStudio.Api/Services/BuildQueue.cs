@@ -126,23 +126,36 @@ public sealed class BuildQueue(BuildQueueOptions options)
             return;
         }
 
-        var queue = http.RequestServices.GetRequiredService<BuildQueue>();
+        using var turn = await http.RequestServices.GetRequiredService<BuildQueue>().TurnOfAsync(http);
+        if (turn is null)
+        {
+            await RefuseBusyAsync(http);
+            return;
+        }
+        await next(http);
+    }
+
+    /// <summary>Wait for the turn of the caller behind <paramref name="http"/> — a signed-in person by their
+    /// account, a visitor by their address — or null where they cannot have one. For a route that builds on
+    /// only some of its requests, which takes a turn where it does rather than being <see cref="QueuedAttribute"/>.</summary>
+    public async Task<Turn?> TurnOfAsync(HttpContext http)
+    {
         var caller = await http.RequestServices.GetRequiredService<Callers>().OfAsync(http, http.RequestAborted);
         var key = caller.Uuid is { } uuid ? $"account:{uuid}"
             : caller.Role is not null ? "local"
             : $"address:{http.Connection.RemoteIpAddress}";
+        return await EnterAsync(key, http.RequestAborted);
+    }
 
-        using var turn = await queue.EnterAsync(key, http.RequestAborted);
-        if (turn is null)
-        {
-            http.Response.Headers.RetryAfter = RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            await Refusals.WriteAsync(http, 429, "busy",
-                [new Finding(RequestRules.Busy,
-                    "the studio is running as many builds as it runs at once and this request could not wait its "
-                    + $"turn — try again in {RetryAfterSeconds} seconds")], http.RequestAborted);
-            return;
-        }
-        await next(http);
+    /// <summary>Answer a request that could not have a turn: 429, <see cref="RequestRules.Busy"/>, and when to ask
+    /// again.</summary>
+    public static async Task RefuseBusyAsync(HttpContext http)
+    {
+        http.Response.Headers.RetryAfter = RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        await Refusals.WriteAsync(http, 429, "busy",
+            [new Finding(RequestRules.Busy,
+                "the studio is running as many builds as it runs at once and this request could not wait its "
+                + $"turn — try again in {RetryAfterSeconds} seconds")], http.RequestAborted);
     }
 
     /// <summary>What a refused request is told to wait before asking again.</summary>

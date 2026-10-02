@@ -18,8 +18,7 @@
   flex-shrink: 0;
   text-decoration: none;
 }
-.action-btn:hover           { background: var(--border); color: var(--text-bright); }
-.action-btn:disabled        { opacity: 0.35; cursor: default; }
+.action-btn:not(:disabled):hover { background: var(--border); color: var(--text-bright); }
 /* Icon-only variant — equal padding on all sides, and a 1:1 box so it stays square wherever it lands. The
    padding alone only squared it in a row that sized to content: in a stretching row the height comes from
    the row and the width stayed padding + glyph, which drew it as a tall pill. With the ratio the width is
@@ -34,8 +33,16 @@
    of the studio already marks a state with (.filter-chip--active, .draw-tool-btn--active), in that
    meaning's own token — so a destructive action reads as destructive rather than as the Cancel beside it. */
 .action-btn--primary        { background: var(--bg-selected); border-color: var(--accent); color: var(--accent-lighter); }
-.action-btn--primary:hover  { background: var(--accent); border-color: var(--accent); color: var(--text-white); }
+.action-btn--primary:not(:disabled):hover  { background: var(--accent); border-color: var(--accent); color: var(--text-white); }
 .action-btn--danger         { background: var(--color-error-bg); border-color: var(--color-error); color: var(--color-error); }
-.action-btn--danger:hover   { background: var(--color-error); border-color: var(--color-error); color: var(--text-white); }
+.action-btn--danger:not(:disabled):hover   { background: var(--color-error); border-color: var(--color-error); color: var(--text-white); }
 .action-btn--warn           { background: var(--color-warning-bg); border-color: var(--color-warning); color: var(--color-warning); }
-.action-btn--warn:hover     { background: var(--color-warning); border-color: var(--color-warning); color: var(--text-on-status); }
+.action-btn--warn:not(:disabled):hover     { background: var(--color-warning); border-color: var(--color-warning); color: var(--text-on-status); }
+/* A disabled button drops its variant's colour as well as its strength, whatever the variant: a faded primary
+   is still a tinted fill with an accent edge, which reads as a lighter button rather than one that is off. A
+   busy one is disabled too, but it is working rather than off, so it keeps its colour. */
+.action-btn:disabled:not(.action-btn--busy) {
+  background: var(--bg-panel); border-color: var(--border); color: var(--text-muted);
+  opacity: 0.6; cursor: default;
+}
+.action-btn--busy { opacity: 0.8; cursor: progress; }

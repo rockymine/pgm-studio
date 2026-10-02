@@ -59,6 +59,22 @@
         }
       }
     </Section>
+    @if (Notes.Count > 0)
+    {
+      <Section Title="Notes written at it">
+        @foreach (var (note, message) in Notes)
+        {
+          <button type="button" class="notes-row" @key="note.Id" @onclick="() => OnOpenNote.InvokeAsync(note.Id)"
+                  title="Open the thread in In game">
+            <span class="@SketchNotesColumn.PinClass(note)">@SketchNotesColumn.Glyph(note)</span>
+            <span class="notes-row__text">
+              <span class="notes-row__top"><b>@SketchNotesColumn.Title(note)</b><span class="@($"note-status note-status--{note.Status}")">@NoteStatuses.Label(note.Status)</span></span>
+              <span class="notes-row__last">@Writers.Name(message.Author, message.Token): @message.Body</span>
+            </span>
+          </button>
+        }
+      </Section>
+    }
     <Section Title="World">
       @if (World is { } world)
       {

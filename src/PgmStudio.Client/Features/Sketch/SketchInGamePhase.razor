@@ -60,15 +60,33 @@
             }
           </div>
 
+          @if (Refusal is not null) { <p class="ingame__note ingame__note--warn" role="alert">@Refusal</p> }
+          @if (Landed is { } landed)
+          {
+            <div class="ingame__moved" role="status">
+              <span>The board has changed since these pictures were drawn: they show change @DrawnAt, and change @landed has landed.</span>
+              <Button Icon="refresh-cw" OnClick="RedrawAsync">Draw the pictures again</Button>
+            </div>
+          }
           <div class="ingame__frame">
-            <SketchEyePicture Slug="@Slug" Query="@shown.Query" Width="PictureWidth" Height="PictureHeight"
-                              Round="Round" Alt="@shown.Name" Class="ingame__picture" />
+            @if (Compared is { } compared)
+            {
+              <SketchNoteCompare Before="@compared.Before" BeforeChange="compared.BeforeChange" After="@compared.After"
+                                 AfterChange="compared.AfterChange" Now="@compared.Now" NowChange="compared.NowChange"
+                                 Width="compared.Width" Height="compared.Height" Mode="@CompareMode(compared)"
+                                 OnMode="mode => (comparing, compareMode) = (compared.Key, mode)" />
+            }
+            else
+            {
+              <SketchEyePicture Slug="@Slug" Query="@shown.Query" Width="PictureWidth" Height="PictureHeight"
+                                Round="Round" Alt="@shown.Name" Class="ingame__picture" />
+            }
             @if (mayNote)
             {
               @if (showMarks)
               {
                 <svg class="ingame__marks" viewBox="0 0 @PictureWidth @PictureHeight" preserveAspectRatio="none" aria-hidden="true">
-                  @if (OpenHere is { } open && open.Anchor.Marks is { Count: > 0 } openMarks)
+                  @if ((Compared is not null ? Current : OpenHere) is { } open && open.Anchor.Marks is { Count: > 0 } openMarks)
                   {
                     @Shape(open.Anchor.Kind, openMarks, "ingame__mark ingame__mark--open")
                   }
@@ -81,7 +99,7 @@
                     @Shape(live.Kind, live.Pixels, "ingame__mark ingame__mark--draft")
                   }
                 </svg>
-                @foreach (var note in PinnedHere)
+                @foreach (var note in Compared is null ? PinnedHere : [])
                 {
                   var (x, y) = PinAt(note);
                   <button type="button" class="@(SketchNotesColumn.PinClass(note) + " ingame__pin")" @key="note.Id"
@@ -137,8 +155,10 @@
                              HasMark="@(mark is not null)" WholeMap="wholeMap" Ready="Ready" Busy="busy" Error="@notesError"
                              OnFilter="f => filter = f" OnOpen="OpenNote" OnBack="BackToOverview" OnNew="StartNote"
                              OnClearMark="ClearMark" OnWholeMap="PinToMap" OnResolve="() => ChangeAsync(NoteStatuses.Resolved)"
-                             OnReopen="() => ChangeAsync(NoteStatuses.Open)" OnSend="SendNoteAsync" OnReply="ReplyAsync"
-                             Changes="Changes" OnChangesSince="OnChangesSince" />
+                             OnReopen="() => ChangeAsync(NoteStatuses.Open)"
+                             OnWontDo="() => ChangeAsync(NoteStatuses.WontDo)" OnRetag="RetagAsync" OnSend="SendNoteAsync" OnReply="ReplyAsync"
+                             Changes="Changes" OnChangesSince="OnChangesSince" Stale="stale" OnRedraw="RedrawAsync"
+                             MeUuid="@meUuid" Handoff="handoff" Handing="handing" OnHandOff="HandOffAsync" />
         }
       </div>
     }

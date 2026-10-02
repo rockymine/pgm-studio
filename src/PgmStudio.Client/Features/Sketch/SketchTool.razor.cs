@@ -12,6 +12,8 @@ public partial class SketchTool
 {
     [Parameter] public string Slug { get; set; } = "";
 
+    [Inject] private StudioAccess Access { get; set; } = default!;
+
     private ElementReference svgRef, wrapRef;
     /// <summary>The floating top-left readout. Its three elements are handed to the canvas on mount, which
     /// then writes cursor / size / zoom into them directly — per mousemove, far too often to render.</summary>
@@ -46,6 +48,16 @@ public partial class SketchTool
     /// <summary>A note to open, which opens the In game phase on its thread — the link a ruling written into
     /// the gameplay law carries back to where it was decided.</summary>
     [SupplyParameterFromQuery] public long? Note { get; set; }
+
+    /// <summary>The linked note while it waits to be opened. It is opened once: the link then leaves the address,
+    /// so coming back to In game shows what the author was reading rather than the link's thread.</summary>
+    private long? linkedNote;
+
+    private void LinkOpened()
+    {
+        linkedNote = null;
+        Nav.NavigateTo(Nav.GetUriWithQueryParameter("note", (long?)null), replace: true);
+    }
     private string active = "draw";
     private bool InfoActive => active == "info";
     private bool DrawActive => active == "draw";
@@ -162,12 +174,57 @@ public partial class SketchTool
     private bool PlacingViewActive => InGameActive && placingView;
     private MapViewsDto? views;
     private string? viewsError;
+    /// <summary>Why the last thing asked of a view — letting it go, drawing the map's picture from it — was
+    /// refused, said over the gallery rather than in place of it.</summary>
+    private string? viewsRefusal;
     /// <summary>Bumped on every entry, so a picture of a board that has changed since is asked for again.</summary>
     private int viewRound;
     private SketchViewDraft.ViewDraft? viewDraft;
     private string? viewNote;
 
     private IReadOnlyList<MapViewDto> KeptViews => views?.Views.Where(view => view.Kept).ToList() ?? [];
+
+    /// <summary>How often In game reads the board's changes again while it is up, so a drive landing behind it
+    /// moves the threads' counts and asks for the pictures to be drawn again.</summary>
+    private static readonly TimeSpan FollowEvery = TimeSpan.FromSeconds(30);
+    private CancellationTokenSource? following;
+    /// <summary>Bumped each time In game follows the board, so the phase reads its notes again with the changes.</summary>
+    private int followTick;
+
+    /// <summary>Read the board's changes every <see cref="FollowEvery"/> until In game is left.</summary>
+    private async Task FollowBoardAsync()
+    {
+        following?.Cancel();
+        var stop = (following = new CancellationTokenSource()).Token;
+        using var timer = new PeriodicTimer(FollowEvery);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stop) && InGameActive) await InvokeAsync(FollowOnceAsync);
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    /// <summary>The tab came back into view: the board may have moved while it was away.</summary>
+    [JSInvokable]
+    public async Task TabShown()
+    {
+        if (InGameActive) await FollowOnceAsync();
+    }
+
+    private Task FollowOnceAsync()
+    {
+        followTick++;
+        return LoadChangesAsync();
+    }
+
+    /// <summary>Draw In game's pictures again over the board as it is stored now. The views are asked for before
+    /// the round moves, so the build queue answers them ahead of the pictures the new round asks for.</summary>
+    private async Task RedrawInGame()
+    {
+        await LoadViewsAsync(clear: false);
+        viewRound++;
+        await LoadChangesAsync();
+    }
 
     private async Task GoInGame()
     {
@@ -179,6 +236,7 @@ public partial class SketchTool
         await SetPhase("ingame");
         await LoadViewsAsync();
         await LoadChangesAsync();
+        _ = FollowBoardAsync();
     }
 
     // ── Report (docs/world-scan/read-backs.md): everything a drive reads back about the board as stored ──
@@ -221,6 +279,8 @@ public partial class SketchTool
     private long? spanTo;
     private long spanFrom;
     private MapDiffDto? spanDiff;
+    /// <summary>The layouts at either end of the span, kept so coming back to History draws it again.</summary>
+    private JsonElement? spanBefore, spanAfter;
     private WorldChangesDto? spanWorld;
     private string? spanWorldError;
     /// <summary>Bumped on every pick, so an answer to an earlier one arriving late is dropped.</summary>
@@ -232,6 +292,32 @@ public partial class SketchTool
     private long LatestChange => changes?.Changes.LastOrDefault()?.Number ?? 0;
     private MapChangeDto? SpanChange => changes?.Changes.FirstOrDefault(change => change.Number == spanTo);
 
+    /// <summary>The board's notes, read on entering History for a caller who may read them, so a change can
+    /// name the threads written at it.</summary>
+    private List<MapNoteDto> historyNotes = [];
+
+    /// <summary>The threads with a message written in the span shown, each with its latest such message.</summary>
+    private IReadOnlyList<(MapNoteDto Note, NoteMessageDto Message)> SpanNotes =>
+        spanTo is not { } to ? []
+        : [.. historyNotes
+            .Select(note => (Note: note, Message: note.Messages.LastOrDefault(message => message.Change > spanFrom && message.Change <= to)))
+            .Where(entry => entry.Message is not null)
+            .Select(entry => (entry.Note, entry.Message!))];
+
+    private async Task LoadHistoryNotesAsync()
+    {
+        if (!(await Access.MeAsync()).Notes) return;
+        try { historyNotes = await Http.GetFromJsonAsync<List<MapNoteDto>>($"api/map/{Slug}/notes") ?? []; }
+        catch { historyNotes = []; }
+    }
+
+    /// <summary>Open a thread from History: In game, on that thread.</summary>
+    private async Task OpenNoteFromHistory(long id)
+    {
+        linkedNote = id;
+        await GoInGame();
+    }
+
     private async Task GoHistory()
     {
         tool = "select";
@@ -239,7 +325,9 @@ public partial class SketchTool
         await SaveAsync(CancellationToken.None);
         await SetPhase("history");
         await LoadChangesAsync();
-        if (spanTo is null && LatestChange > 0) await PickChange(LatestChange);
+        await LoadHistoryNotesAsync();
+        if (spanTo is null) { if (LatestChange > 0) await PickChange(LatestChange); }
+        else await DrawSpan(spanBefore, spanAfter, spanWorld);
     }
 
     private async Task LoadChangesAsync()
@@ -283,6 +371,7 @@ public partial class SketchTool
         catch { spanWorldError = "Couldn't load this change. Check your connection and try again."; }
         if (round != spanRound) return;
         spanDiff = diff;
+        (spanBefore, spanAfter) = (before, after);
         await DrawSpan(before, after, null);
         StateHasChanged();
 
@@ -348,11 +437,16 @@ public partial class SketchTool
         }
     }
 
-    private async Task LoadViewsAsync()
+    /// <summary>Read the views again. Clearing first shows the phase reading; a redraw keeps the gallery up, so a
+    /// note half written beside it stays.</summary>
+    private async Task LoadViewsAsync(bool clear = true)
     {
-        views = null;
         viewsError = null;
-        StateHasChanged();
+        if (clear)
+        {
+            views = null;
+            StateHasChanged();
+        }
         try { views = await Http.GetFromJsonAsync<MapViewsDto>($"api/map/{Slug}/views"); }
         catch { viewsError = "Couldn't load views. Check your connection and try again."; }
         if (handle is not null)
@@ -485,8 +579,21 @@ public partial class SketchTool
 
     private async Task LetGoView(MapViewDto view)
     {
-        try { await Http.DeleteAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(view.Id)}"); }
-        catch { viewsError = "Couldn't remove the view. Check your connection and try again."; return; }
+        try
+        {
+            using var answer = await Http.DeleteAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(view.Id)}");
+            if (!answer.IsSuccessStatusCode)
+            {
+                viewsRefusal = $"Couldn't remove the view: {await ServerRefusal.SentenceAsync(answer)}";
+                return;
+            }
+        }
+        catch
+        {
+            viewsRefusal = "Couldn't remove the view. Check your connection and try again.";
+            return;
+        }
+        viewsRefusal = null;
         await LoadViewsAsync();
     }
 
@@ -503,12 +610,16 @@ public partial class SketchTool
                 : await Http.PostAsJsonAsync($"api/map/{Slug}/views", request);
             if (!answer.IsSuccessStatusCode)
             {
-                viewsError = (await answer.Content.ReadFromJsonAsync<RefusalDto>())?.Message is { Length: > 0 } why
-                    ? why : "Couldn't set the map picture.";
+                viewsRefusal = $"Couldn't set the map picture: {await ServerRefusal.SentenceAsync(answer)}";
                 return;
             }
         }
-        catch { viewsError = "Couldn't set the map picture. Check your connection and try again."; return; }
+        catch
+        {
+            viewsRefusal = "Couldn't set the map picture. Check your connection and try again.";
+            return;
+        }
+        viewsRefusal = null;
         await LoadViewsAsync();
     }
 
@@ -787,8 +898,10 @@ public partial class SketchTool
             "studio.mountSketch", svgRef, wrapRef, readout!.Cursor, readout.Zoom, readout.Size, selfRef, Slug);
         await ReloadLayoutAsync();
         await LoadObjectives();
+        await JS.InvokeVoidAsync("studio.watchTabShown", KeyOwner, selfRef, nameof(TabShown));
         await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
             System.Text.Json.JsonSerializer.Serialize(Shortcuts));
+        linkedNote = Note;
         if (Phase == "ingame" || Note is not null) await GoInGame();
         else if (Phase == "history") await GoHistory();
         else if (Phase == "report") await GoReport();
@@ -1323,6 +1436,8 @@ public partial class SketchTool
     public async ValueTask DisposeAsync()
     {
         saveCts?.Cancel();
+        following?.Cancel();
+        try { await JS.InvokeVoidAsync("studio.unwatchTabShown", KeyOwner); } catch { }
         // Best-effort final flush of the last (<800 ms) change before tearing the handle down.
         await SaveAsync(CancellationToken.None);
         // A draft left with nothing drawn is discarded so an abandoned "New sketch" click doesn't linger on

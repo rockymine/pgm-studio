@@ -31,8 +31,14 @@ public partial class SketchInGamePhase
     /// <summary>Why the views could not be read, or null.</summary>
     [Parameter] public string? Error { get; set; }
 
+    /// <summary>Why the last thing asked of a view was refused, or null.</summary>
+    [Parameter] public string? Refusal { get; set; }
+
     /// <summary>Bumped by the host whenever the board may have changed since the pictures were asked for.</summary>
     [Parameter] public int Round { get; set; }
+
+    /// <summary>Bumped by the host each time it follows the board, which is when the notes are read again.</summary>
+    [Parameter] public int Tick { get; set; }
 
     [Parameter] public EventCallback OnBack { get; set; }
 
@@ -49,11 +55,17 @@ public partial class SketchInGamePhase
     /// <summary>A note to open on arriving, by id — a link into its thread.</summary>
     [Parameter] public long? LinkedNote { get; set; }
 
+    /// <summary>The linked note's thread has been opened, so the link is spent.</summary>
+    [Parameter] public EventCallback OnLinkOpened { get; set; }
+
     /// <summary>The numbers of the board's changes, handed on to the notes column.</summary>
     [Parameter] public IReadOnlyList<long> Changes { get; set; } = [];
 
     /// <summary>Open what changed after a thread's last message.</summary>
     [Parameter] public EventCallback<long> OnChangesSince { get; set; }
+
+    /// <summary>Draw the pictures again over the board as it is stored now.</summary>
+    [Parameter] public EventCallback OnRedraw { get; set; }
 
     /// <summary>A mark on the picture: the tool that drew it and its pixels.</summary>
     private sealed record Mark(string Kind, List<PixelDto> Pixels);
@@ -64,9 +76,11 @@ public partial class SketchInGamePhase
     private ElementReference trap;
 
     private bool mayNote;
-    private bool openedFromLink;
+    private string? meUuid;
     private List<MapNoteDto> notes = [];
-    private int notesRound = -1;
+    private NoteHandoffDto? handoff;
+    private bool handing;
+    private (int Round, int Tick) notesRound = (-1, -1);
     private NotesStep step = NotesStep.Overview;
     private long? currentId;
     private string filter = SketchNotesColumn.All;
@@ -82,6 +96,46 @@ public partial class SketchInGamePhase
     private string? pickNote;
     private int pickRound;
     private double scale = 1;
+    private bool stale;
+
+    /// <summary>The change the pictures are of: a note written on one was written at it.</summary>
+    private long DrawnAt => Views?.Change ?? 0;
+
+    /// <summary>A thread's pictures, compared on the big picture: the note's own, the latest after a reply carries,
+    /// and the note's camera over the board now. <paramref name="Key"/> names the thread and its latest after, so
+    /// a new after starts the comparison afresh.</summary>
+    private sealed record Comparison(string Key, string Before, long BeforeChange, string? After, long AfterChange,
+                                     string Now, long NowChange, int Width, int Height);
+
+    /// <summary>The open thread's comparison, where its note was written on a picture.</summary>
+    private Comparison? Compared
+    {
+        get
+        {
+            if (step != NotesStep.Thread || Current is not { Anchor.Camera: { } camera } note
+                || note.Messages.FirstOrDefault() is not { Picture: { } before } first) return null;
+            var after = note.Messages.Skip(1).LastOrDefault(message => message.Picture is not null);
+            var (width, height) = (note.Anchor.Width ?? PictureWidth, note.Anchor.Height ?? PictureHeight);
+            var latest = Changes.Count > 0 ? Changes[^1] : DrawnAt;
+            var now = string.Create(CultureInfo.InvariantCulture,
+                $"api/map/{Slug}/render/eye?eye={camera.X},{camera.Y},{camera.Z}&yaw={camera.Yaw}&pitch={camera.Pitch}&fov={camera.Fov}&width={width}&height={height}&round={Round}-{latest}");
+            return new Comparison($"{note.Id}:{after?.Picture}", $"api/notes/pictures/{before}", first.Change,
+                after?.Picture is { } shot ? $"api/notes/pictures/{shot}" : null, after?.Change ?? 0,
+                now, latest, width, height);
+        }
+    }
+
+    /// <summary>The comparison the author picked, for the thread and after it was picked on.</summary>
+    private string? comparing, compareMode;
+
+    /// <summary>What a comparison shows: what the author picked for it, else the wipe where there is an after and
+    /// the board now where there is not.</summary>
+    private string CompareMode(Comparison compared) =>
+        comparing == compared.Key && compareMode is { } picked ? picked
+        : compared.After is not null ? SketchNoteCompare.Modes.Wipe : SketchNoteCompare.Modes.Now;
+
+    /// <summary>The board's latest change where it is newer than the pictures, or null.</summary>
+    private long? Landed => Changes.Count > 0 && Changes[^1] > DrawnAt ? Changes[^1] : null;
 
     private MapViewDto? Shown => Views?.Views.FirstOrDefault(view => view.Id == shownId) ?? Views?.Views.FirstOrDefault();
     private IReadOnlyCollection<string> ViewIds => Views?.Views.Select(view => view.Id).ToHashSet() ?? [];
@@ -92,19 +146,24 @@ public partial class SketchInGamePhase
         note.Anchor.ViewId == Shown?.Id && note.Anchor.Marks is { Count: > 0 }
         && SketchNotesColumn.Passes(note, filter));
 
-    protected override async Task OnInitializedAsync() => mayNote = (await Access.MeAsync()).Notes;
+    protected override async Task OnInitializedAsync()
+    {
+        var me = await Access.MeAsync();
+        mayNote = me.Notes;
+        meUuid = me.Uuid;
+    }
 
     protected override async Task OnParametersSetAsync()
     {
-        if (!mayNote || notesRound == Round) return;
-        notesRound = Round;
+        if (!mayNote || notesRound == (Round, Tick)) return;
+        notesRound = (Round, Tick);
         await LoadNotesAsync();
-        if (!openedFromLink && LinkedNote is { } linked && notes.FirstOrDefault(note => note.Id == linked) is { } found)
+        if (LinkedNote is { } linked && notes.FirstOrDefault(note => note.Id == linked) is { } found)
         {
-            openedFromLink = true;
             currentId = found.Id;
             step = NotesStep.Thread;
             if (found.Anchor.ViewId is { } view) shownId = view;
+            await OnLinkOpened.InvokeAsync();
         }
     }
 
@@ -115,9 +174,25 @@ public partial class SketchInGamePhase
         try
         {
             notes = await Http.GetFromJsonAsync<List<MapNoteDto>>($"api/map/{Slug}/notes") ?? [];
+            handoff = await Http.GetFromJsonAsync<NoteHandoffDto>("api/notes/handoff");
             notesError = null;
         }
         catch { notesError = "Couldn't load notes. Check your connection and reload."; }
+    }
+
+    /// <summary>Hand the open notes to the agent; <paramref name="again"/> repeats a hand-off nothing was written since.</summary>
+    private async Task HandOffAsync(bool again)
+    {
+        handing = true;
+        notesError = null;
+        try
+        {
+            using var answer = await Http.PostAsJsonAsync("api/notes/handoff", new NoteHandoffRequest(again));
+            if (answer.IsSuccessStatusCode) handoff = await answer.Content.ReadFromJsonAsync<NoteHandoffDto>();
+            else notesError = $"The notes were not handed over: {await ServerRefusal.SentenceAsync(answer)}";
+        }
+        catch { notesError = "Couldn't hand the notes over. Check your connection and try again."; }
+        finally { handing = false; }
     }
 
     // ── the gallery ──
@@ -222,7 +297,28 @@ public partial class SketchInGamePhase
         mark = null;
         picked = null;
         pickNote = null;
+        stale = false;
         pickRound++;
+    }
+
+    /// <summary>Whether a pick read a board the pictures are not of, saying so where it did.</summary>
+    private bool Moved(EyePickDto pick)
+    {
+        if (pick.Change <= DrawnAt) return false;
+        stale = true;
+        pickNote = string.Create(CultureInfo.InvariantCulture,
+            $"The board has changed since this picture was drawn: it shows change {DrawnAt}, and change {pick.Change} has landed. Draw the pictures again, then mark it afresh.");
+        return true;
+    }
+
+    /// <summary>Draw the pictures again, keeping the note's text and arming the tool its mark was drawn with.</summary>
+    private async Task RedrawAsync()
+    {
+        var kind = mark?.Kind;
+        ClearMark();
+        notesError = null;
+        await OnRedraw.InvokeAsync();
+        if (kind is not null && step == NotesStep.New) tool = kind;
     }
 
     private void PinToMap()
@@ -260,7 +356,6 @@ public partial class SketchInGamePhase
     private async Task<bool> SendNoteAsync(NoteWriting writing)
     {
         if (Shown is not { } view) return false;
-        busy = true;
         notesError = null;
         try
         {
@@ -270,17 +365,23 @@ public partial class SketchInGamePhase
             else
             {
                 var camera = mark is null ? await PickAsync(view, null) : picked;
-                if (camera is null)
+                if (camera is null || Moved(camera))
                 {
                     notesError = pickNote ?? "Couldn't read this picture's camera, so the note wasn't sent.";
                     return false;
                 }
                 picture = await JS.InvokeAsync<string?>("studio.keepPicture", PictureSource(view));
+                if (picture is null)
+                {
+                    notesError = "The note was not sent: the browser could not keep a copy of the picture it is written on. Send it again.";
+                    return false;
+                }
                 anchor = new NoteAnchorDto(mark?.Kind ?? NoteAnchors.View, view.Id, view.Name, camera.Camera,
                     PictureWidth, PictureHeight, mark?.Pixels, camera.Hit, camera.Ground,
                     camera.Columns.Count > 0 ? camera.Columns : null);
             }
-            var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/notes", new MapNoteRequest(writing.Body, anchor, writing.Tag, picture));
+            var answer = await Http.PostAsJsonAsync($"api/map/{Slug}/notes",
+                new MapNoteRequest(writing.Body, anchor, writing.Tag, picture, DrawnAt));
             if (!answer.IsSuccessStatusCode)
             {
                 notesError = await ServerRefusal.SentenceAsync(answer);
@@ -293,8 +394,6 @@ public partial class SketchInGamePhase
             wholeMap = false;
             currentId = written?.Id;
             step = written is null ? NotesStep.Overview : NotesStep.Thread;
-            if (picture is null && anchor.Kind != NoteAnchors.Map)
-                notesError = "The note was sent without its picture. The browser couldn't save a copy.";
             return true;
         }
         catch
@@ -302,17 +401,12 @@ public partial class SketchInGamePhase
             notesError = "Couldn't send the note. Check your connection and try again.";
             return false;
         }
-        finally
-        {
-            busy = false;
-            StateHasChanged();
-        }
+        finally { StateHasChanged(); }
     }
 
     private async Task<bool> ReplyAsync(string body)
     {
         if (Current is not { } note) return false;
-        busy = true;
         notesError = null;
         try
         {
@@ -330,21 +424,22 @@ public partial class SketchInGamePhase
             notesError = "Couldn't send the reply. Check your connection and try again.";
             return false;
         }
-        finally
-        {
-            busy = false;
-            StateHasChanged();
-        }
+        finally { StateHasChanged(); }
     }
 
-    private async Task ChangeAsync(string status)
+    private Task ChangeAsync(string status) => PatchAsync(new NoteChangeRequest(status));
+
+    /// <summary>Change the open thread's tag; empty clears it.</summary>
+    private Task RetagAsync(string tag) => PatchAsync(new NoteChangeRequest(Tag: tag));
+
+    private async Task PatchAsync(NoteChangeRequest change)
     {
         if (Current is not { } note) return;
         busy = true;
         notesError = null;
         try
         {
-            var answer = await Http.PatchAsJsonAsync($"api/map/{Slug}/notes/{note.Id}", new NoteChangeRequest(status));
+            var answer = await Http.PatchAsJsonAsync($"api/map/{Slug}/notes/{note.Id}", change);
             if (!answer.IsSuccessStatusCode) notesError = await ServerRefusal.SentenceAsync(answer);
             else await LoadNotesAsync();
         }
@@ -419,7 +514,7 @@ public partial class SketchInGamePhase
         var round = ++pickRound;
         if (Shown is not { } view) return;
         var answer = await PickAsync(view, mark);
-        if (round != pickRound) return;
+        if (round != pickRound || (answer is not null && Moved(answer))) return;
         picked = answer;
     }
 

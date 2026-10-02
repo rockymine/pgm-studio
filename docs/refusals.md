@@ -494,7 +494,10 @@ sign-in on a studio with no Discord application is `RQ9` (`docs/access.md`), and
 own block textures on a studio that has none is `RQ10` (`docs/world-scan/read-backs.md`). Both are **503**,
 because no change to the request helps, and each finding names the settings that would. An export is the one
 route `RQ10` does not refuse: its world goes without the `map.png` the textures would have drawn, and the
-finding rides beside it in `Pgm-Warnings` as a complaint.
+finding rides beside it in `Pgm-Warnings` as a complaint. Handing the author's notes to an agent on a studio that
+names none, or one whose Routine refused the hand-off, is `RQ12` and **503** for the same reason
+(`docs/tools/sketch.md`, *Handing the notes to an agent*); its message names the settings, or the status the
+Routine answered.
 
 **`RQ11` — the studio is building as much as it builds at once.** A route that builds a world waits its turn
 in the build queue, and one that finds the queue full or waits past its limit is **429** with a `Retry-After`,

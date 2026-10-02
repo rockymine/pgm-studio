@@ -10,14 +10,14 @@ namespace PgmStudio.Api.Endpoints;
 
 /// <summary>GET /api/map/{slug}/render/eye/pick — what a mark drawn on a <c>render/eye</c> picture is on the
 /// ground. It takes the picture's own query words, so it resolves the same camera, and re-casts the ray through
-/// each pixel of the mark against the world the picture was drawn from: <c>at</c> is one pixel and answers the
-/// block it hits and the ground under it, <c>box</c> and <c>lasso</c> answer every ground column their pixels'
-/// rays hit. With none of the three it answers the camera alone, which is what a note on a whole picture
-/// keeps. Every answer names the camera exactly, since a picture that leaves the eye to find its own place may
-/// find another once the board changes.</summary>
+/// each pixel of the mark against the board as stored: <c>at</c> is one pixel and answers the block it hits and
+/// the ground under it, <c>box</c> and <c>lasso</c> answer every ground column their pixels' rays hit. With none
+/// of the three it answers the camera alone, which is what a note on a whole picture keeps. Every answer names
+/// the camera exactly, since a picture that leaves the eye to find its own place may find another once the board
+/// changes, and the change it read, since a picture of an earlier one is not of this board.</summary>
 [Queued]
 public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts,
-                                    BlockTextureStore textures)
+                                    BlockTextureStore textures, MapChangeLog log)
     : EndpointWithoutRequest<EyePickDto>
 {
     /// <summary>The most points a lasso's outline may carry.</summary>
@@ -75,12 +75,15 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
                     "this map has no stored sketch layout, so there is no world to pick from")], ct);
             return;
         }
+        // Read after the world: a change landing between the two then reads as one the pick has seen, which asks
+        // for a redraw rather than letting a stale picture through.
+        var change = await log.LatestAsync(map.Slug, ct);
 
         EyePickDto? answer;
         using (await EyeRenders.TurnAsync(ct))
         {
             var scene = EyeRenders.Scene(read.Built, set, aim.Flat);
-            answer = aim.Resolve(scene) is ({ } camera, _) ? Pick(scene, aim, camera, mark) : null;
+            answer = aim.Resolve(scene) is ({ } camera, _) ? Pick(scene, aim, camera, mark, change) : null;
         }
         if (answer is null)
         {
@@ -91,7 +94,7 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
         await Send.OkAsync(answer, ct);
     }
 
-    private static EyePickDto Pick(EyeScene scene, EyeAim aim, EyeCamera camera, Mark mark)
+    private static EyePickDto Pick(EyeScene scene, EyeAim aim, EyeCamera camera, Mark mark, long change)
     {
         var lens = new EyeCameraDto(camera.X, camera.Y, camera.Z, camera.Yaw, camera.Pitch, camera.Fov);
         var query = aim.Exact(camera);
@@ -102,14 +105,14 @@ public sealed class EyePickEndpoint(MapRepository repo, MapReader reader, MapArt
             return new EyePickDto(lens, query,
                 hit is { Block: var block } ? new BlockAtDto(block.X, block.Y, block.Z) : null,
                 hit?.Ground is { } ground ? new BlockAtDto(ground.X, ground.Y, ground.Z) : null,
-                [], hit is null ? 1 : 0, standing);
+                [], hit is null ? 1 : 0, standing, change);
         }
-        if (mark.Pixels.Count == 0) return new EyePickDto(lens, query, null, null, [], 0, standing);
+        if (mark.Pixels.Count == 0) return new EyePickDto(lens, query, null, null, [], 0, standing, change);
         var area = scene.Project(camera, aim.Width, aim.Height, mark.Pixels);
         return new EyePickDto(lens, query, null, null,
             [.. area.Columns.OrderBy(entry => entry.Key.X).ThenBy(entry => entry.Key.Z)
                 .Select(entry => new[] { entry.Key.X, entry.Value, entry.Key.Z })],
-            area.Sky, standing);
+            area.Sky, standing, change);
     }
 
     /// <summary>A mark in a picture's pixels: one pixel, or the pixels an area covers. Neither is the camera

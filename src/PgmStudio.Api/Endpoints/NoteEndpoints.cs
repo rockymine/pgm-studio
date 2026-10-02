@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using FastEndpoints;
 using LinqToDB;
@@ -113,7 +114,8 @@ internal static class NoteWire
 }
 
 /// <summary>GET /api/notes — every note on every map, newest change first, for an agent starting on what the
-/// author left. <c>status</c> takes one status or several between commas; absent is every note.</summary>
+/// author left. <c>status</c> takes one status or several between commas; absent is every note. <c>since</c>
+/// keeps the threads that moved at or after an instant, which is how a scheduled check asks what is new.</summary>
 public sealed class NotesAcrossMapsEndpoint(MapNoteStore notes, PgmDb db) : EndpointWithoutRequest<List<MapNoteDto>>
 {
     public override void Configure()
@@ -123,7 +125,9 @@ public sealed class NotesAcrossMapsEndpoint(MapNoteStore notes, PgmDb db) : Endp
         Description(b => b.Produces<List<MapNoteDto>>(200, "application/json").Reads(
             new QueryWord("status", "One status, or several between commas: "
                 + $"{string.Join(", ", NoteStatuses.All.Select(entry => $"`{entry.Id}`"))}. Absent is every note, and "
-                + "a word that is not a status is refused.")));
+                + "a word that is not a status is refused."),
+            new QueryWord("since", "An instant in ISO 8601, `2026-10-02T08:00:00Z`: only the threads whose last message "
+                + "or status change is at or after it. Absent is every thread; an instant that does not read is refused.")));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -136,9 +140,103 @@ public sealed class NotesAcrossMapsEndpoint(MapNoteStore notes, PgmDb db) : Endp
                 $"'{unknown}' is not a status — one of {string.Join(", ", NoteStatuses.All.Select(entry => entry.Id))}", ct, "status");
             return;
         }
-        var found = await notes.AcrossMapsAsync(asked, ct);
+        DateTime? since = null;
+        if (Query<string?>("since", isRequired: false) is { Length: > 0 } stated)
+        {
+            if (!DateTimeOffset.TryParse(stated, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var instant))
+            {
+                await Refusals.UnreadableAsync(HttpContext, "no such instant",
+                    $"'{stated}' is not an instant — ISO 8601, such as 2026-10-02T08:00:00Z", ct, "since");
+                return;
+            }
+            since = instant.UtcDateTime;
+        }
+        var found = await notes.AcrossMapsAsync(asked, since, ct);
         var names = await NoteWire.NamesAsync(db, found.Select(stored => stored.Note.MapSlug), ct);
         await Send.OkAsync([.. found.Select(stored => NoteWire.Dto(stored, names.GetValueOrDefault(stored.Note.MapSlug, stored.Note.MapSlug)))], ct);
+    }
+}
+
+/// <summary>Where the author's open notes stand with the agent: how many wait, how many since the last hand-off.</summary>
+internal static class NoteHandoffs
+{
+    public static async Task<(NoteHandoffDto Standing, List<StoredNote> Open)> StandingAsync(
+        MapNoteStore notes, AgentHandoff agent, CancellationToken ct)
+    {
+        var open = await notes.AcrossMapsAsync([NoteStatuses.Open], ct: ct);
+        var last = agent.Last;
+        var fresh = open.Count(stored => last is null || stored.Note.UpdatedAt > last.At);
+        return (new NoteHandoffDto(agent.Ready, open.Count, fresh, last?.At, last?.Session), open);
+    }
+}
+
+/// <summary>GET /api/notes/handoff — whether this studio names an agent, how many notes wait for one, and the last
+/// hand-off.</summary>
+public sealed class NoteHandoffStandingEndpoint(MapNoteStore notes, AgentHandoff agent) : EndpointWithoutRequest<NoteHandoffDto>
+{
+    public override void Configure()
+    {
+        Get("/notes/handoff");
+        Policies(AccessPolicies.Notes);
+        Description(b => b.Produces<NoteHandoffDto>(200, "application/json"));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct) =>
+        await Send.OkAsync((await NoteHandoffs.StandingAsync(notes, agent, ct)).Standing, ct);
+}
+
+/// <summary>POST /api/notes/handoff — the author hands the open notes to the agent, which starts one session that
+/// answers them. Refused where nothing was written since the last hand-off unless <c>again</c> asks to repeat it,
+/// 403 to a token — the author hands notes over and an agent answers them — and 503 where this studio names no
+/// agent or the service that starts one refused.</summary>
+public sealed class NoteHandoffEndpoint(MapNoteStore notes, AgentHandoff agent, Callers callers, PgmDb db)
+    : Endpoint<NoteHandoffRequest, NoteHandoffDto>
+{
+    public override void Configure()
+    {
+        Post("/notes/handoff");
+        Policies(AccessPolicies.Notes);
+        Description(b => b.Produces<NoteHandoffDto>(200, "application/json").Refuses(403, 409, 503));
+    }
+
+    public override async Task HandleAsync(NoteHandoffRequest request, CancellationToken ct)
+    {
+        if (await callers.OfAsync(HttpContext, ct) is { ViaToken: true })
+        {
+            await Refusals.WriteAsync(HttpContext, 403, "not permitted",
+                [new Finding(RequestRules.NotPermitted, "the author hands notes to an agent, and an agent answers them")], ct);
+            return;
+        }
+        if (!agent.Ready)
+        {
+            await Refusals.WriteAsync(HttpContext, 503, "no agent",
+                [new Finding(RequestRules.AgentUnavailable,
+                    "this studio names no agent to hand notes to — set Notes:Agent:Fire and Notes:Agent:Token")], ct);
+            return;
+        }
+        var (standing, open) = await NoteHandoffs.StandingAsync(notes, agent, ct);
+        if (standing.Waiting == 0 || (standing.Fresh == 0 && !request.Again))
+        {
+            await Refusals.WriteAsync(HttpContext, 409, "nothing to hand over",
+                [new Finding(RequestRules.Conflict, standing.Waiting == 0
+                    ? "no note is waiting for an agent"
+                    : $"every open note was handed over at {standing.HandedAt:HH:mm} UTC and none was written since — "
+                      + "`again` hands them over once more")], ct);
+            return;
+        }
+
+        var names = await NoteWire.NamesAsync(db, open.Select(stored => stored.Note.MapSlug), ct);
+        var maps = open.GroupBy(stored => stored.Note.MapSlug)
+            .Select(map => $"{names.GetValueOrDefault(map.Key, map.Key)} ({map.Key}): {map.Count()}");
+        var text = $"{standing.Waiting} open note(s), {standing.Fresh} written or answered since the last hand-off, "
+            + $"on {string.Join("; ", maps)}. Read them with GET /api/notes?status=open.";
+        var (_, why) = await agent.HandAsync(text, ct);
+        if (why is not null)
+        {
+            await Refusals.WriteAsync(HttpContext, 503, "no agent", [new Finding(RequestRules.AgentUnavailable, why)], ct);
+            return;
+        }
+        await Send.OkAsync((await NoteHandoffs.StandingAsync(notes, agent, ct)).Standing, ct);
     }
 }
 
@@ -206,9 +304,12 @@ public sealed class MapNoteCreateEndpoint(
 
 /// <summary>POST /api/map/{slug}/notes/{id}/replies — a reply in a thread, optionally carrying a picture. The
 /// reply leaves the thread where its <c>status</c> says: an agent answers, asks or declines, and the author's
-/// reply hands it back to an agent. A thread is resolved only through <c>PATCH</c>.</summary>
+/// reply hands it back to an agent. A thread is resolved only through <c>PATCH</c>. An agent's answer to a note
+/// written on a picture, at the board's latest change and stating no picture of its own, carries the note's
+/// camera drawn over the board as stored: the after to the note's before.</summary>
 public sealed class NoteReplyEndpoint(
-    MapRepository repo, MapNoteStore notes, NotePictures pictures, Callers callers, MapChangeLog log)
+    MapRepository repo, MapNoteStore notes, NotePictures pictures, Callers callers, MapChangeLog log,
+    MapReader reader, MapArtifactStore artifacts, BlockTextureStore textures, BuildQueue queue)
     : Endpoint<NoteReplyRequest, MapNoteDto>
 {
     private static readonly string[] Leaves = [NoteStatuses.Open, .. NoteStatuses.AgentReplies];
@@ -217,7 +318,7 @@ public sealed class NoteReplyEndpoint(
     {
         Post("/map/{slug}/notes/{id}/replies");
         Policies(AccessPolicies.Notes);
-        Description(b => b.Produces<MapNoteDto>(200, "application/json").Refuses(400, 404));
+        Description(b => b.Produces<MapNoteDto>(200, "application/json").Refuses(400, 404, 429));
     }
 
     public override async Task HandleAsync(NoteReplyRequest request, CancellationToken ct)
@@ -241,10 +342,45 @@ public sealed class NoteReplyEndpoint(
 
         var caller = await callers.OfAsync(HttpContext, ct);
         var status = request.Status ?? (caller.ViaToken ? NoteStatuses.Answered : NoteStatuses.Open);
-        var reply = NoteWire.Message(caller, request.Body, request.Change ?? latest, request.Picture, DateTime.UtcNow);
+        var picture = request.Picture;
+        var anchor = JsonSerializer.Deserialize<NoteAnchorDto>(stored.Note.AnchorJson, MapArtifactStore.Json);
+        if (caller.ViaToken && status == NoteStatuses.Answered && picture is null
+            && (request.Change ?? latest) == latest && anchor is { Camera: not null })
+        {
+            using var turn = await queue.TurnOfAsync(HttpContext);
+            if (turn is null)
+            {
+                await BuildQueue.RefuseBusyAsync(HttpContext);
+                return;
+            }
+            picture = await AfterAsync(map, anchor, ct);
+        }
+        var reply = NoteWire.Message(caller, request.Body, request.Change ?? latest, picture, DateTime.UtcNow);
         reply.NoteId = stored.Note.Id;
         await notes.AddAsync(reply, status, ct);
         await Send.OkAsync(NoteWire.Dto((await notes.GetAsync(map.Slug, stored.Note.Id, ct))!, map.Name), ct);
+    }
+
+    /// <summary>The note's own camera drawn over the board as stored and kept, answering the picture's hash; null
+    /// where none can be drawn here — no block textures, no world, or a camera that finds nothing.</summary>
+    private async Task<string?> AfterAsync(MapRow map, NoteAnchorDto anchor, CancellationToken ct)
+    {
+        if (anchor.Camera is not { } camera) return null;
+        var (set, _) = await textures.GetAsync(ct);
+        if (set is null || await WorldReads.LoadAsync(map, reader, artifacts, ct) is not { } read) return null;
+        var words = new Dictionary<string, string>
+        {
+            ["eye"] = string.Create(CultureInfo.InvariantCulture, $"{camera.X},{camera.Y},{camera.Z}"),
+            ["yaw"] = camera.Yaw.ToString(CultureInfo.InvariantCulture),
+            ["pitch"] = camera.Pitch.ToString(CultureInfo.InvariantCulture),
+            ["fov"] = camera.Fov.ToString(CultureInfo.InvariantCulture),
+            ["width"] = (anchor.Width ?? 1280).ToString(CultureInfo.InvariantCulture),
+            ["height"] = (anchor.Height ?? 720).ToString(CultureInfo.InvariantCulture),
+        };
+        EyeShot? shot;
+        using (await EyeRenders.TurnAsync(ct))
+            shot = EyeReadEndpoint.Shot(read.Built, set, EyeAim.Read(word => words.GetValueOrDefault(word)));
+        return shot is null ? null : await pictures.SaveAsync(shot.Png, ct);
     }
 }
 

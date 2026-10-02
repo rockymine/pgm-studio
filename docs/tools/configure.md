@@ -204,7 +204,7 @@ in it to credit. The rule is one constant in `PgmStudio.Vocabulary`, read by the
 the two cannot disagree about what a name is.
 
 A row's mark is the account's head where an account answered, served by the studio itself
-(`GET /api/minecraft/player/{uuid}/skin`), and a neutral tile with the name's initial otherwise; it carries no
+(`GET /api/minecraft/player/{uuid}/head`), and a neutral tile with the name's initial otherwise; it carries no
 colour of its own, so nothing in it reads as a status (`docs/client/ui-conventions.md`).
 
 A map a signed-in person originates already credits them: the first row is theirs, as an `author`, under their

@@ -1,0 +1,75 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* A note's before and after, in the place of the big picture: the picture the note was written on, the same camera
+   drawn after the latest reply that carries one, and the same camera over the board as it stands now. Wipe lays
+   the after over the before up to a seam the author drags. All three are one camera at one size, so the note's
+   mark lands on each where it landed on the before. *@
+
+<figure class="note-compare" style="--aspect: @Width / @Height; --split: @(Split)%">
+  @switch (Mode)
+  {
+    case Modes.Wipe when After is not null:
+      <img class="note-compare__picture" src="@Before" alt="Before: the picture the note was written on" />
+      <img class="note-compare__picture note-compare__over" src="@After" alt="After: the same camera after the reply" />
+      <span class="note-compare__seam" aria-hidden="true"></span>
+      <RangeField Class="note-compare__range" Min="0" Max="100" Step="0.5" Value="split" ValueChanged="Wiped" KeepKeys="true"
+                  aria-label="Wipe between before and after" />
+      <span class="note-compare__label note-compare__label--left">Before · change @BeforeChange</span>
+      <span class="note-compare__label note-compare__label--right">After · change @AfterChange</span>
+      break;
+    case Modes.After when After is not null:
+      <img class="note-compare__picture" src="@After" alt="After: the same camera after the reply" />
+      <span class="note-compare__label note-compare__label--left">After · change @AfterChange</span>
+      break;
+    case Modes.Now:
+      <img class="note-compare__picture" src="@Now" alt="Now: the same camera over the board as it stands" />
+      <span class="note-compare__label note-compare__label--left">Now · change @NowChange</span>
+      break;
+    default:
+      <img class="note-compare__picture" src="@Before" alt="Before: the picture the note was written on" />
+      <span class="note-compare__label note-compare__label--left">Before · change @BeforeChange</span>
+      break;
+  }
+  <div class="note-compare__tabs" role="tablist" aria-label="Compare the note's pictures">
+    <Chip Active="@(Mode == Modes.Before)" OnClick="() => OnMode.InvokeAsync(Modes.Before)">Before</Chip>
+    @if (After is not null)
+    {
+      <Chip Active="@(Mode == Modes.After)" OnClick="() => OnMode.InvokeAsync(Modes.After)">After</Chip>
+    }
+    <Chip Active="@(Mode == Modes.Now)" OnClick="() => OnMode.InvokeAsync(Modes.Now)">Now</Chip>
+    @if (After is not null)
+    {
+      <Chip Active="@(Mode == Modes.Wipe)" OnClick="() => OnMode.InvokeAsync(Modes.Wipe)">Wipe</Chip>
+    }
+  </div>
+</figure>
+
+@code {
+    /// <summary>What the comparison shows.</summary>
+    public static class Modes
+    {
+        public const string Before = "before", After = "after", Now = "now", Wipe = "wipe";
+    }
+
+    [Parameter, EditorRequired] public string Before { get; set; } = "";
+    [Parameter] public long BeforeChange { get; set; }
+
+    /// <summary>The latest after picture in the thread, or null where no reply carries one.</summary>
+    [Parameter] public string? After { get; set; }
+    [Parameter] public long AfterChange { get; set; }
+
+    [Parameter, EditorRequired] public string Now { get; set; } = "";
+    [Parameter] public long NowChange { get; set; }
+
+    [Parameter] public int Width { get; set; } = 1280;
+    [Parameter] public int Height { get; set; } = 720;
+
+    [Parameter] public string Mode { get; set; } = Modes.Before;
+    [Parameter] public EventCallback<string> OnMode { get; set; }
+
+    /// <summary>Where the seam stands, in percent of the width from the left: before to its left, after to its right.</summary>
+    private double split = 50;
+
+    private string Split => split.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private void Wiped(double at) => split = Math.Clamp(at, 0, 100);
+}

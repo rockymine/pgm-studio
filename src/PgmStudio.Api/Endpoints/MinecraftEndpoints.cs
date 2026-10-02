@@ -1,6 +1,8 @@
 using PgmStudio.Contracts;
 using FastEndpoints;
 using PgmStudio.Api.Services;
+using PgmStudio.Geom.Render;
+using PgmStudio.Minecraft.Render;
 
 using PgmStudio.Domain;
 using PgmStudio.Vocabulary;
@@ -52,21 +54,22 @@ public sealed class PlayerLookupEndpoint(PlayerLookup players) : EndpointWithout
     }
 }
 
-/// <summary>GET /api/minecraft/player/{uuid}/skin — the player's skin as a PNG, served from the studio's own
-/// origin so a browser draws a head without asking a third party. Kept for thirty days; 404 where the player
-/// has no skin or Mojang cannot be reached, and the client draws the player's initial instead.</summary>
-public sealed class PlayerSkinEndpoint(PlayerLookup players) : EndpointWithoutRequest
+/// <summary>GET /api/minecraft/player/{uuid}/head — the front of the player's head as an 8×8 PNG, their face with
+/// the hat over it as the game draws it (<see cref="SkinHead"/>), served from the studio's own origin so a browser
+/// draws a head without asking a third party. Kept for a day; 404 where the player has no skin or Mojang cannot
+/// be reached, and the client draws the player's initial instead.</summary>
+public sealed class PlayerHeadEndpoint(PlayerLookup players) : EndpointWithoutRequest
 {
     public override void Configure()
     {
-        Get("/minecraft/player/{uuid}/skin");
+        Get("/minecraft/player/{uuid}/head");
         Description(b => b.Png().Refuses(404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var uuid = Route<string>("uuid") ?? "";
-        if (await players.SkinAsync(uuid, ct) is not { } skin)
+        if (await players.SkinAsync(uuid, ct) is not { } skin || Front(skin) is not { } head)
         {
             HttpContext.Response.Headers.CacheControl = "public, max-age=300";
             await Refusals.WriteAsync(HttpContext, 404, "no skin",
@@ -76,6 +79,13 @@ public sealed class PlayerSkinEndpoint(PlayerLookup players) : EndpointWithoutRe
         }
         HttpContext.Response.Headers.CacheControl = "public, max-age=86400";
         HttpContext.Response.ContentType = "image/png";
-        await HttpContext.Response.Body.WriteAsync(skin, ct);
+        await HttpContext.Response.Body.WriteAsync(PngWriter.Encode(SkinHead.Size, SkinHead.Size, head), ct);
+    }
+
+    /// <summary>The head's front, or null where the bytes kept are not a skin.</summary>
+    private static byte[]? Front(byte[] skin)
+    {
+        try { return SkinHead.Front(PngReader.Decode(skin)); }
+        catch (Exception fault) when (fault is FormatException or InvalidDataException) { return null; }
     }
 }
