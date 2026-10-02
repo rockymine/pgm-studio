@@ -4,7 +4,7 @@ namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
 /// The false-colour scheme every stage image's legibility depends on (<c>docs/tools/capabilities.md</c>'s
-/// renderer section, <c>B98</c>): the categories a reader must tell apart at a glance have to separate by more
+/// renderer section): the categories a reader must tell apart at a glance have to separate by more
 /// than shade, and a block has to land in the category a reader would actually call it.
 /// </summary>
 public sealed class RenderCategoriesTests
@@ -21,8 +21,8 @@ public sealed class RenderCategoriesTests
     }
 
     // Chosen so two genuinely different hues clear it comfortably (the five category colours here score in
-    // the 250-500 range against each other) while two shades of the same hue - the exact failure B98 reports
-    // (stone/andesite/cobblestone all reading as one grey) - fall well under it.
+    // the 250-500 range against each other) while two shades of the same hue - the exact failure of
+    // stone/andesite/cobblestone all reading as one grey - fall well under it.
     private const double MinDistinctDistance = 120;
 
     [Test]
@@ -37,9 +37,9 @@ public sealed class RenderCategoriesTests
     [Test]
     public async Task Two_shades_of_the_same_grey_stone_family_fail_the_same_bar_the_categories_clear()
     {
-        // The exact bug the category scheme replaces: stone (1:0) and andesite (1:5) both read as
-        // near-identical greys under the real block palette, which is why a section through Ashen Quarry's
-        // town rendered as one undifferentiated slab. Proving the old material colours fail this bar is what
+        // The failure the category scheme exists for: stone (1:0) and andesite (1:5) both read as
+        // near-identical greys under the real block palette, so a section through a
+        // town renders as one undifferentiated slab. Proving the material colours fail this bar is what
         // shows the category scheme is doing real work rather than restating an already-legible picture.
         var stone = BlockPalette.PackedRgb(1, 0);
         var andesite = BlockPalette.PackedRgb(1, 5);
@@ -74,7 +74,7 @@ public sealed class RenderCategoriesTests
         await Assert.That(RenderCategories.Of(blockId)).IsEqualTo(expected);
     }
 
-    // ── the provenance-aware overload (B133) ────────────────────────────────────────────────────────
+    // ── the provenance-aware overload ────────────────────────────────────────────────────────
     // "A block does not know what placed it" — these prove the overload actually answers a different
     // question than the material-only one above, for the exact pair a material test cannot separate.
 
@@ -88,7 +88,7 @@ public sealed class RenderCategoriesTests
     [Test]
     public async Task A_ground_claim_reads_as_ground_even_over_a_built_looking_material()
     {
-        // Stone brick (98) reads Structure by material alone — this is B133's own finding, reproduced as the
+        // Stone brick (98) reads Structure by material alone — this is the
         // failing case the provenance overload exists to fix: a plaza painted in it is still ground once the
         // build says so.
         await Assert.That(RenderCategories.Of(98, null)).IsEqualTo(RenderCategory.Structure);

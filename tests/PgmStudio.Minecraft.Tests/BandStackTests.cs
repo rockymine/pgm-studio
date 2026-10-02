@@ -169,7 +169,7 @@ public sealed class LayeredAuthoringTests
     [Test]
     public async Task A_stored_flat_list_still_reads_and_still_repeats()
     {
-        // What a theme written before the stack had an ending carries. The editor no longer writes this, and
+        // What a theme written before the stack had an ending carries. The editor does not write this, and
         // reading it forward is why it may not: every such list owned its whole space, so it ends `repeat`.
         var theme = TerrainThemeJson.Deserialize("""
             {"fill":{"kind":"layered",

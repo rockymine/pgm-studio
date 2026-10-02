@@ -10,7 +10,7 @@
   border-right: 1px solid var(--border); overflow-y: auto;
   display: flex; flex-direction: column; gap: var(--space-3);
 }
-/* Filter rail vocabulary (title · fields · chips) now uses the canon: Section / Field / Chip
+/* Filter rail vocabulary (title · fields · chips) uses the canon: Section / Field / Chip
    (.filter-chip) / Button. Only the two-input wool-count range keeps its own micro-layout. */
 .gen-wool { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); font-size: var(--font-sm); }
 .gen-wool input { flex: 1; min-width: 0; }
@@ -109,7 +109,7 @@
   color: var(--text-secondary); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2);
 }
 
-/* land spend (G148) — what the board cost against the budget it was built to. Two currencies: footprint is
+/* land spend — what the board cost against the budget it was built to. Two currencies: footprint is
    the box rect, land is the walkable terrain inside it. */
 .gen-spend { margin: var(--space-2) 0; }
 .gen-spend-head {

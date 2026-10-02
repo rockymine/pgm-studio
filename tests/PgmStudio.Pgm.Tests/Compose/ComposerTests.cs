@@ -194,7 +194,7 @@ public sealed class ComposerTests
                 }
 
                 // BZ9: the band spans exactly the hull of the front faces AND their mirrors (min-z pieces under
-                // the default z-frame). Not the unit's own hull alone — a face slid off the axis (G123) makes
+                // the default z-frame). Not the unit's own hull alone — a face slid off the axis makes
                 // the two images' fronts differ, and the band has to reach both; taking the mirrored hull is
                 // also what keeps the band self-symmetric, so its fan image coincides with itself. A narrower
                 // band underfits a twin/U front and desyncs from that image.

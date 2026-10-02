@@ -9,7 +9,7 @@ using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Features.Configure;
 
-// Review & Export · XML step (N06): the final step. Shows the generated PGM map.xml, segmented into
+// Review & Export · XML step: the final step. Shows the generated PGM map.xml, segmented into
 // containers (Full document + teams/spawns/wools/filters/regions/apply rules) picked on the left. The
 // flow-bar Next becomes Export (download), enabled only when the pre-flight export gate is open — GET /xml
 // returns 409 for an un-traversable intent map, which blocks both the preview and the download. Writes nothing.

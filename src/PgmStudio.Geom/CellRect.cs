@@ -9,9 +9,9 @@ namespace PgmStudio.Geom;
 /// each axis. <see cref="MaxX"/>/<see cref="MaxZ"/> are therefore <b>exclusive</b>: one past the far edge,
 /// so <c>MaxX - X == Width</c> and a rect's cells are <c>x ∈ [X, MaxX)</c>.
 ///
-/// <para>This replaces the bare <c>int[]</c> the plan layer passed around as <c>[x, z, w, h]</c>, where the
-/// convention lived only in comments — a three-element array compiled, and reading <c>[3]</c> as a depth
-/// rather than a height compiled too.</para>
+/// <para>A type rather than a bare <c>int[]</c> of <c>[x, z, w, h]</c>, whose convention would live only in
+/// comments — a three-element array compiles, and reading <c>[3]</c> as a depth rather than a height
+/// compiles too.</para>
 ///
 /// <para><b>Not <see cref="Rect"/></b>, its neighbour in this namespace, which is the opposite convention
 /// throughout: world <b>blocks</b>, fractional, and an inclusive corner pair. Nor <see cref="BlockRect"/>,

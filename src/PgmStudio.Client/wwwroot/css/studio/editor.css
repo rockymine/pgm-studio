@@ -7,9 +7,9 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
 
-/* Ported from the reference's `body {}` rule. Scoped to `.editor-page` because the Blazor
+/* The editor's `body {}` rule, scoped to `.editor-page` because the Blazor
    WASM app shares one <body> across all routes (dashboard, editor, …); the editor's shell
-   is the full-screen wrapper instead. This is the only adaptation to the ported editor.css. */
+   is the full-screen wrapper instead. */
 .editor-page {
   font-family: ui-monospace, monospace;
   font-size: var(--font-lg);
@@ -60,7 +60,7 @@
   gap: var(--space-3);
 }
 
-/* Wizard save indicator (ND4): quiet text in the topbar — Saved · Saving… · Unsaved. */
+/* Wizard save indicator: quiet text in the topbar — Saved · Saving… · Unsaved. */
 .topbar-save-status {
   font-size: var(--font-sm);
   color: var(--text-muted);
@@ -150,7 +150,7 @@
 /* Positioned so it stacks above the canvas that precedes it in the DOM. */
 .map-canvas-svg { position: relative; }
 
-/* Build-height side-view canvas (C7) — fills its .svg-area; SideviewCanvas sizes the bitmap
+/* Build-height side-view canvas — fills its .svg-area; SideviewCanvas sizes the bitmap
    from this element's client box, so it must have real dimensions (no padding shrink surprises). */
 .sideview-canvas { width: 100%; height: 100%; display: block; }
 

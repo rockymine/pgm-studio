@@ -12,7 +12,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The house-part library's HTTP surface (B71). The cases that matter are the ones the level exists for: a part
+/// The house-part library's HTTP surface. The cases that matter are the ones the level exists for: a part
 /// round-trips with its stacks, a house that binds one builds <em>that</em> part rather than its own columns, a
 /// house that binds none is untouched, and a part a building still wears cannot be forgotten. Runs against
 /// <c>pgm_studio_test</c>; each test resets the schema, so they run serially.

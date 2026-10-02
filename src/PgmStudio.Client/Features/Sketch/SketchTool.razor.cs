@@ -29,7 +29,7 @@ public partial class SketchTool
     private bool mirrorOn = true;
     private bool shapesOn = false;
     private bool chunksOn = true;
-    private bool blocksOn = false;   // S23: the rasterized block-footprint preview
+    private bool blocksOn = false;   // the rasterized block-footprint preview
     private bool reliefOn = false;   // the height contours of whatever relief the groups carry
     private bool snapOn = true;
     private bool threeD = false;

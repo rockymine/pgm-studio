@@ -13,9 +13,9 @@ using PgmStudio.Migrations;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// PATCH /api/map/{slug}/symmetry confirm/reject (B7). The detector emits diagonal mirrors
+/// PATCH /api/map/{slug}/symmetry confirm/reject. The detector emits diagonal mirrors
 /// (<c>mirror_d1</c>/<c>mirror_d2</c>) and the GET endpoint surfaces one as the primary, so confirming
-/// that detected primary must be accepted — the whitelist used to omit the diagonals and rejected them
+/// that detected primary must be accepted — the whitelist has to include the diagonals, or they are rejected
 /// with 400. Runs against the <c>pgm_studio_test</c> schema (override with <c>PGM_STUDIO_TEST_DB</c>);
 /// each test resets the schema and seeds one map, so they run serially.
 /// </summary>

@@ -7,7 +7,7 @@ using PgmStudio.Data.Schema;
 
 namespace PgmStudio.Api.Services;
 
-/// <summary>Shared helpers for the symmetry endpoints (B7).</summary>
+/// <summary>Shared helpers for the symmetry endpoints.</summary>
 public static class SymmetrySupport
 {
     public static readonly HashSet<string> ValidTypes = ["rot_90", "rot_180", "mirror_x", "mirror_z", "mirror_d1", "mirror_d2"];

@@ -127,8 +127,8 @@ public sealed record ReliefGroup(IReadOnlyList<ReliefShape> Shapes, ReliefSpec S
         }
         foreach (var shape in Shapes.Where(shape => shape.Participation == Participation.Exclude))
         {
-            // The same surface the solve would have pinned, read through the mark rather than off the scalar
-            // it used to be: an excluded shape that tilts is stamped tilted.
+            // The same surface the solve would have pinned, read through the mark rather than off a flat
+            // scalar: an excluded shape that tilts is stamped tilted.
             var held = shape.Held();
             var covered = whole.Covered(shape.Ring);
             foreach (var (x, z) in whole.Land())

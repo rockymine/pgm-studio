@@ -68,7 +68,7 @@ internal static class ImportRules
 }
 
 /// <summary>
-/// POST /api/map/import-url — B8 import-from-url (docs/tools/configure.md, the Import phase). Server-side: fetch a zipped
+/// POST /api/map/import-url — import from a URL (docs/tools/configure.md, the Import phase). Server-side: fetch a zipped
 /// Minecraft world from an <b>allowlisted</b> host, safely extract only <c>region/*.mca</c>, create the map
 /// row, and scan it into MariaDB (reusing <see cref="WorldFeatureWriter"/>). The browser never sees the zip.
 /// <para><b>Safeguards:</b> https-only + host allowlist (SSRF) · no redirects · download size cap · zip
@@ -282,7 +282,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
 
 /// <summary>
 /// GET /api/maps/import-candidates — world folders under the maps roots with <c>region/*.mca</c> but no
-/// <c>map.xml</c> and not already a map: the new-map import candidates (B8 "open a local folder" source).
+/// <c>map.xml</c> and not already a map: the new-map import candidates (the "open a local folder" source).
 /// </summary>
 public sealed class ImportCandidatesEndpoint(MapRepository repo, ImportPolicy policy)
     : EndpointWithoutRequest<List<ImportCandidateDto>>
@@ -313,7 +313,7 @@ public sealed class ImportCandidatesEndpoint(MapRepository repo, ImportPolicy po
 }
 
 /// <summary>
-/// POST /api/map/import-folder { slug } — import a local xml-less world (B8 "open a folder"): resolve
+/// POST /api/map/import-folder { slug } — import a local xml-less world (the "open a folder" source): resolve
 /// <c>&lt;root&gt;/&lt;slug&gt;/region</c> via <see cref="MapsRoots"/> (only configured roots — no client path),
 /// create the map row, and scan into MariaDB. The slug must be a real candidate (region/*.mca, no map.xml,
 /// not already a map). Rolls back the row on failure.

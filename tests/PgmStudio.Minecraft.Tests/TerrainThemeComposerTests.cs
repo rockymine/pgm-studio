@@ -6,7 +6,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// The theme ↔ library-pieces round-trip (B44): decomposing a theme into per-bucket styles + knobs and
+/// The theme ↔ library-pieces round-trip: decomposing a theme into per-bucket styles + knobs and
 /// recomposing it yields the exact theme the painter consumes, the buckets carry the right kinds, and a
 /// pattern material survives the trip.
 /// </summary>

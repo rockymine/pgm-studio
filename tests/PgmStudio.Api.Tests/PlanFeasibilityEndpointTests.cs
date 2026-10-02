@@ -48,8 +48,7 @@ public sealed class PlanFeasibilityEndpointTests
         await Assert.That(spawn.GetProperty("producibleAs").GetString()).IsNotNull();
         await Assert.That(spawn.GetProperty("nearest").ValueKind).IsEqualTo(JsonValueKind.Null);
 
-        // the unit-level half: the arrangement findings, each citing the rule or task behind it. (The frontline's
-        // own two blockers used to be here and cite G123; that landed, so what remains is the seat gap.)
+        // the unit-level half: the arrangement findings, each citing the rule or task behind it. (What remains is the seat gap.)
         var unit = body.GetProperty("unit").EnumerateArray().ToList();
         await Assert.That(unit).IsNotEmpty();
         await Assert.That(unit.All(f => !string.IsNullOrEmpty(f.GetProperty("cites").GetString()))).IsTrue();
@@ -115,11 +114,11 @@ public sealed class PlanFeasibilityEndpointTests
         await Assert.That(body.GetProperty("unit").GetArrayLength()).IsEqualTo(0);
     }
 
-    /// <summary>The emptiest document there is used to answer <c>producible: true</c>, while
-    /// <c>/plan/compile</c> refused it outright with <c>PL1</c> — so the advice surface and the gate disagreed
-    /// about a plan with nothing in it, and the advice was the encouraging one. With no pieces there are no
-    /// boxes, and every box-level question is vacuously satisfied; the read now answers in the structural
-    /// validator's own words instead (B140).</summary>
+    /// <summary>The emptiest document there is must not answer <c>producible: true</c> while
+    /// <c>/plan/compile</c> refuses it outright with <c>PL1</c> — the advice surface and the gate would disagree
+    /// about a plan with nothing in it, and the advice would be the encouraging one. With no pieces there are no
+    /// boxes, and every box-level question is vacuously satisfied; the read answers in the structural
+    /// validator's own words instead.</summary>
     [Test]
     public async Task An_empty_plan_is_not_producible_and_says_why()
     {

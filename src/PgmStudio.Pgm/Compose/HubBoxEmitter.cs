@@ -17,7 +17,7 @@ public sealed record EmittedHub(
 /// of the spawn/wool/frontline neighbours, published here as <see cref="EdgeOffer"/>s (the
 /// <see cref="Designation.Hub"/> half of the offer mechanism): a consumed <see cref="EdgeOffer.WidthClass"/> is
 /// the neighbour's corridor width. The composer decides which offer each neighbour takes and drives the per-edge
-/// widths (G63-C); this emitter produces the body and the offers it sources.
+/// widths; this emitter produces the body and the offers it sources.
 ///
 /// <para>Form menu (<see cref="Forms"/>, authored — model.md §4): <b>Rectangle · L · U · Ring · P · Double-hole · G</b>,
 /// compact optionally-holed bodies, deliberately not Zig/Hook/the higher combs. Each is a <see cref="Compound"/>

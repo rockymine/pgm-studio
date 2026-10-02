@@ -29,7 +29,7 @@ public sealed class LibrarySeedTests
     /// <b>Every preset composes back to the building it went in as</b> — asserted empty, not pinned to a
     /// list of what is lost, so a house that starts losing a knob fails here whichever knob it is. That is
     /// the whole value of the check: a preset that grows a beam or a laid-log roof tomorrow starts arriving
-    /// back as a quieter building than it left, and nothing else says so (<c>TL12</c>).
+    /// back as a quieter building than it left, and nothing else says so.
     /// </summary>
     [Test]
     public async Task No_preset_loses_anything_through_the_store()
@@ -131,7 +131,7 @@ public sealed class LibrarySeedTests
     /// <summary>Two library rows whose names differ only by case seed without throwing. The seeder matches a
     /// name case-insensitively, so the grouping that decides which row is already there has to read a name the
     /// same way the lookup does — a pair that groups as two keys and collides as one takes the whole startup
-    /// down with it, since the seed runs at app start (<c>RP61</c>).</summary>
+    /// down with it, since the seed runs at app start.</summary>
     [Test]
     public async Task Two_rows_named_alike_but_for_case_do_not_collide()
     {

@@ -32,7 +32,7 @@ public sealed class ControlPointIntentTests
     // Every point is stated here rather than one side being left to the orbit, because a <b>compiled</b>
     // intent carries no symmetry — the plan compiler has already fanned the board, and the field is left
     // unset on purpose (IntentCarry). An intent that does carry one fans its points like any other unit
-    // (ControlPointSymmetryTests); a compiled one states them. Making the plan itself place them is TC8.
+    // (ControlPointSymmetryTests); a compiled one states them.
     private const string Points = """
         [
           { "name": "North",  "anchor": { "x": 0, "y": 0, "z": -24 }, "size": 7, "points": 1 },

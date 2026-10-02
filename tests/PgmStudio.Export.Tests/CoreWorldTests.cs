@@ -135,7 +135,7 @@ public sealed class CoreWorldTests
     [Test]
     public async Task Each_core_carries_a_sky_marker_in_its_owning_teams_colour_above_the_build_cap()
     {
-        // MG24/B89: the marker floats clear of BuildIntent.MaxHeight (globals surface 9 + headroom 11 = 20
+        // MG24: the marker floats clear of BuildIntent.MaxHeight (globals surface 9 + headroom 11 = 20
         // here) — above build height, so it cannot be reached or griefed.
         var (world, resolved) = Build(Json);
         var floorY = resolved.Build!.MaxHeight!.Value + BuildCeiling.MarkerOver;
@@ -168,8 +168,7 @@ public sealed class CoreWorldTests
     /// <summary>A core assembled by hand — not through <see cref="PlanCompiler"/>, which fills every knob —
     /// casts the same casing. The record's own defaults are the ones its plan-placement schema documents, so
     /// a caller that omits a key gets the modal core rather than a casing of no size: a <c>&lt;core&gt;</c>
-    /// over a region holding nothing is a goal at zero health, and the export answers 200 for it
-    /// (<c>WE15</c>).</summary>
+    /// over a region holding nothing is a goal at zero health, and the export answers 200 for it.</summary>
     [Test]
     public async Task A_core_built_by_hand_casts_the_casing_its_schema_documents()
     {

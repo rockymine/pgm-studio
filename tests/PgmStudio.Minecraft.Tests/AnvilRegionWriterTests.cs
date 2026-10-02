@@ -149,8 +149,7 @@ public sealed class AnvilRegionWriterTests
     }
     /// <summary>A second build into the same directory leaves that world alone in it. A region the new
     /// geometry does not reach is still a region a server loads, so a stale file left beside the fresh ones
-    /// is read back as part of the new map — and the same spec no longer rebuilds the same map
-    /// (<c>B102</c>).</summary>
+    /// is read back as part of the new map — and the same spec would not rebuild the same map.</summary>
     [Test]
     public async Task A_rebuild_leaves_no_region_the_new_world_did_not_write()
     {

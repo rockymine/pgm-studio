@@ -46,7 +46,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     onBoundsSave: (node, bounds) => dotnetRef.invokeMethodAsync("OnBoundsSave", node.id, bounds),
   });
   canvas.setActiveTool("move");
-  let blockData = null;   // cached top-surface layer (C6), fetched on first toggle-on
+  let blockData = null;   // cached top-surface layer, fetched on first toggle-on
 
   const handle = {
     async load(slugName) {
@@ -79,7 +79,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     },
     setTool(tool) { canvas.setActiveTool(tool === "select" ? null : tool); },
     setSelection(ids) { canvas.setSelectedRegions(ids ?? []); },
-    // Block-colour overlay (C6): lazily fetch the top-surface layer (B4), then toggle visibility.
+    // Block-colour overlay: lazily fetch the top-surface layer, then toggle visibility.
     // Returns false when no scan data is available, so the caller can leave the toggle off.
     async setBlocks(visible) {
       if (visible && !blockData) {

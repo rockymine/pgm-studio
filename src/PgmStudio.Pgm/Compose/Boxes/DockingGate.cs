@@ -5,7 +5,7 @@ namespace PgmStudio.Pgm.Compose;
 /// <summary>The dock role a template slot plays when a neighbour box meets the edge it sits on — the frozen
 /// docking law as data (docs/generator/rules.md). <see cref="DockingEdge"/>: an <c>entry</c> is where a
 /// host connects (its mouth). <see cref="NeverDock"/>: the wool <c>room</c> — a dock there seals the goal, so
-/// it never connects at this stage (it may, legally, at the elevation stage G81, which is why this is a rule,
+/// it never connects at this stage (it may, legally, at the elevation stage, which is why this is a rule,
 /// not a fact of the edge). <see cref="Internal"/>: a <c>run</c>/<c>bar</c>/<c>leg</c> (and the entry/room
 /// qualified runs and bars) is shape-internal corridor — it neither offers a dock nor forbids one.</summary>
 public enum SlotDockRole { DockingEdge, NeverDock, Internal }
@@ -16,7 +16,7 @@ public enum SlotDockRole { DockingEdge, NeverDock, Internal }
 public enum DockRejection { SealsWool, NotAnEntryEdge }
 
 /// <summary>
-/// The docking gate (G80): the one declarative place that decides whether a box edge may receive a dock. It is
+/// The docking gate: the one declarative place that decides whether a box edge may receive a dock. It is
 /// a <b>compose-side gate</b> — not an <c>ILayoutTerm</c>. The evaluator reads the derived board (never a shape
 /// or family name) and the interfaces drop at <c>Assemble</c>, so a docking term is doubly impossible; the
 /// filler/partitioner consults this gate as it docks a box and <b>emits only legal docks</b>, the existing hard
@@ -40,7 +40,7 @@ public static class DockingGate
     /// nothing never-docks: the hub's per-edge <see cref="DesignationMarks.Interface"/> and the frontline's
     /// <see cref="DesignationMarks.Face"/> are the docking edges their neighbours land on, every structural slot
     /// internal. Nothing stamps those two marks yet — the hub publishes <c>EdgeOffer</c>s and the frontline
-    /// returns its face edge directly — so this table is the binding waiting for them (G88/G89), and
+    /// returns its face edge directly — so this table is the binding waiting for them, and
     /// <see cref="Check"/> still scopes to the approach.</summary>
     public static SlotDockRole Role(Designation designation, string slotOrMark) => designation switch
     {

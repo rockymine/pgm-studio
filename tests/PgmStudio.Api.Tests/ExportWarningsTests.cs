@@ -143,7 +143,7 @@ public sealed class ExportWarningsTests
 
     /// <summary>The archive holds a world directory's own contents at its top. What a server is handed is the
     /// directory, so an entry under a folder named for the slug is one every caller unwraps before it can be
-    /// used (<c>RP58</c>).</summary>
+    /// used.</summary>
     [Test]
     public async Task The_export_zip_holds_the_world_at_its_top()
     {

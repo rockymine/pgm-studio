@@ -39,7 +39,7 @@ public static class BuildGenerator
     private const string PlaceVoidFilter = "block-place-void-filter";
 
     // One inline <void/> per use, never a shared named one. A `void` filter is trivial and XmlWriter
-    // deliberately never gives it an id (B15) -- so a single filter referenced by two parents is hoisted
+    // deliberately never gives it an id -- so a single filter referenced by two parents is hoisted
     // into the filters block by the >= 2 rule, written there as a bare <void/> with the id stripped, and
     // both references come out as <filter id="..."/> pointing at nothing. That document is well-formed,
     // round-trips, and is refused by PGM at load. Synthetic ids stay out of the block entirely.

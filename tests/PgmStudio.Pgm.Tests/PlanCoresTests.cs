@@ -147,9 +147,9 @@ public sealed class PlanCoresTests
         await Assert.That(Errors(Validate(Json), "without its pair")).IsFalse().Because("neither half is authored");
     }
 
-    /// <summary><b>A casing with no lava in it is no longer a thing that can be written down.</b> An author
-    /// used to state a size and a wall thickness — two numbers that can contradict each other, and a 5
-    /// against a 3 left a solid block of obsidian nothing could leak. Stating the interior instead makes the
+    /// <summary><b>A casing with no lava in it cannot be written down.</b> A size and a wall
+    /// thickness would be two numbers that can contradict each other, and a 5
+    /// against a 3 leaves a solid block of obsidian nothing can leak. Stating the interior instead makes the
     /// contradiction unrepresentable; what is left to check is the range, and a number outside it is named
     /// rather than quietly clamped.</summary>
     [Test]
@@ -205,7 +205,7 @@ public sealed class PlanCoresTests
 
     // A core is the destroyable's absolute-addressing exception, proved separately here because the two
     // markers resolve through independent loops in `PlanCompiler` and a fix to one does not imply the other.
-    // Under the old code `d.Piece("")` returned null and the whole core was dropped from the compiled intent.
+    // `d.Piece("")` returns null there, and the core must not be dropped from the compiled intent for it.
     [Test]
     public async Task A_core_with_no_piece_compiles_by_absolute_board_position()
     {

@@ -32,9 +32,8 @@ public sealed record BuiltTerrain(
     /// it, a wall, a build-region marker, the world spawn.
     ///
     /// <para><see cref="SurfaceTop"/> answers a different question — the highest thing standing at a cell —
-    /// and by now that is nobody's: a cloud drawn at y78 over a car park is the top of every column under it,
-    /// so a goal reading it stood on the cloud, eighty-three blocks up and over a build ceiling it had itself
-    /// pushed nowhere near. Read it for the cells it covers; read this for a height.</para></summary>
+    /// and that is not a place to stand: a cloud drawn at y78 over a car park is the top of every column under it,
+    /// so a goal reading it would stand on the cloud, eighty-three blocks up. Read it for the cells it covers; read this for a height.</para></summary>
     public IReadOnlyDictionary<(int X, int Z), int> Ground =>
         ground ??= MadeLayers is { Count: > 0 } made ? SurfaceExcept(made) : SurfaceTop;
 

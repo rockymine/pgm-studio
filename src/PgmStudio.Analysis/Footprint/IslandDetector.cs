@@ -52,7 +52,7 @@ public static class IslandDetector
     }
 
     /// <summary>
-    /// Height-aware island detection (ND2 §6a / A5). Like <see cref="Detect"/>, but two adjacent base
+    /// Height-aware island detection. Like <see cref="Detect"/>, but two adjacent base
     /// cells join into the same component only when their Y is <em>continuous</em>
     /// (|ΔY| ≤ <paramref name="heightTolerance"/>) — so a stark Y jump (the bottom-up base scan "shooting
     /// up" into a build floating over void) splits the floating mass off as its own component. Components
@@ -173,7 +173,7 @@ public static class IslandDetector
     }
 
     /// <summary>
-    /// Cleaned-base island detection with a degenerate-read fallback (ND2 §6a / A5). Runs
+    /// Cleaned-base island detection with a degenerate-read fallback. Runs
     /// <see cref="DetectHeightAware"/> on the cleaned-base cells; if that reads degenerately (≤ 1 island —
     /// e.g. a base that bridges everything at one level even after the noise exclude), retries on the
     /// supplied fallback layers (typically y0 then bedrock) and keeps the first that separates into ≥ 2

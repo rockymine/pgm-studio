@@ -156,7 +156,7 @@ public sealed class DestroyableWorldTests
     [Test]
     public async Task Each_destroyable_stands_on_a_buried_5x5_bedrock_platform_with_a_chest_beside_it()
     {
-        // MG23/B88: a one-block-thick 5×5 plate, seated three courses beneath the ground under the goal, so
+        // MG23: a one-block-thick 5×5 plate, seated three courses beneath the ground under the goal, so
         // the goal cannot be undermined from below — and a defence chest standing on the ground over it.
         var (world, resolved) = Build(Json);
         await Assert.That(resolved.Destroyables!.Count).IsEqualTo(2);
@@ -185,7 +185,7 @@ public sealed class DestroyableWorldTests
     [Test]
     public async Task Each_destroyable_carries_a_sky_marker_in_its_owning_teams_colour_above_the_build_cap()
     {
-        // MG24/B89: the marker floats clear of the build cap, out of build reach by construction. The cap is
+        // MG24: the marker floats clear of the build cap, out of build reach by construction. The cap is
         // the one the world build derived and wrote onto the intent, so this asserts the marker against what
         // the map actually declares rather than against a number restated here — the two agreeing is the
         // point. What the cap itself must be is asserted in BuildCeilingTests.
@@ -201,10 +201,10 @@ public sealed class DestroyableWorldTests
         }
     }
 
-    // B128: the demonstration. A destroyable rides an authored landform that carries no plan piece at all —
+    // The demonstration: a destroyable rides an authored landform that carries no plan piece at all —
     // the mesa's own shape, added the way Sketch actually authors one, with the marker naming only an
-    // absolute board position. Under the old code this destroyable would not exist in the compiled intent
-    // (the piece lookup for an empty id returned null and the whole marker was dropped); here it lands at the
+    // absolute board position. The destroyable exists in the compiled intent although the piece lookup for
+    // an empty id finds nothing, and it lands at the
     // height the "relief" left, not at any plan-nominal surface, because there is no piece to nominate one.
     [Test]
     public async Task A_destroyable_needs_no_plan_piece_when_it_rides_an_authored_landform()

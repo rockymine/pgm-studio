@@ -321,7 +321,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
         // every fresh plan with no reason given. But an empty evaluation is `score 0, valid: true`, which is
         // the shape of a perfect plan, and this endpoint was saying it about the emptiest document there is
         // while /plan/compile refused the same one outright. What it answers instead is the validator's own
-        // finding, cited rather than restated, so the advice surface and the gate agree (B140).
+        // finding, cited rather than restated, so the advice surface and the gate agree.
         //
         // Completeness, not Check, and only in this branch. Completeness deliberately sits outside the
         // continuous validation the editor runs — a plan under construction is legitimately missing a spawn
@@ -455,7 +455,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
         // The same emptiest-document case /plan/evaluate answers above, and for the same reason: with no
         // geometry there are no boxes, every box-level question is vacuously satisfied, and `producible: true`
         // is what came back. A plan the structural validator refuses is not a plan the composer could have
-        // produced, and it says so in the validator's own words (B140).
+        // produced, and it says so in the validator's own words.
         if (!plan.Pieces.Any(piece => PlanRoles.IsGenerating(piece.Role))
             && PlanValidator.Completeness(plan) is { Refuses: true } structural)
         {

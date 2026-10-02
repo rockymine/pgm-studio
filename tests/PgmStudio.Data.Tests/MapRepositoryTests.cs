@@ -33,7 +33,7 @@ public sealed class MapRepositoryTests
     /// <c>updated_at</c> records when the ingest pipeline last wrote it rather than when its author last
     /// worked on it — a re-processing pass stamps whole batches within a second of each other — so recency
     /// there orders the list by something that carries no authoring signal and renders as runs of
-    /// alphabetical batches (<c>B34</c>).</summary>
+    /// alphabetical batches.</summary>
     [Test]
     public async Task The_edit_stage_lists_by_slug_and_the_others_by_recency()
     {

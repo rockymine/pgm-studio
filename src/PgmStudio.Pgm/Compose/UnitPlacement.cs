@@ -15,7 +15,7 @@ namespace PgmStudio.Pgm.Compose;
 /// on the axis point, which makes the face and its image coincide and the band exactly the face. Nothing
 /// inside the unit moves relative to anything else — the funnel is preserved, because a face seated
 /// off-centre <em>on its hub</em> stays off-centre on its hub; what changes is that the hub, not the face,
-/// is now the thing allowed to sit off the axis. The two hubs consequently no longer mirror onto the same
+/// is now the thing allowed to sit off the axis. The two hubs consequently do not mirror onto the same
 /// lateral position, which is the point.</para>
 ///
 /// <para>A mirror symmetry needs none of this — it preserves the cross axis, so a face already coincides with

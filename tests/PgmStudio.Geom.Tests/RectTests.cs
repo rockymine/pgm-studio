@@ -3,7 +3,7 @@ using PgmStudio.Geom;
 namespace PgmStudio.Geom.Tests;
 
 /// <summary>
-/// The two shapes that used to be re-declared per consumer, and the conventions that make them two types
+/// The two shapes every consumer shares, and the conventions that make them two types
 /// rather than one.
 ///
 /// <para>Neither is interesting arithmetic. What is worth pinning is the convention each carries, because

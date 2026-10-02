@@ -3,7 +3,7 @@ namespace PgmStudio.Analysis.Scan;
 /// <summary>
 /// Side-view depth projection.
 /// Projects vertical solid segments onto a 2D (primary × y) grid; each cell holds the nearest
-/// depth index normalised to 0–255 (0 = nearest), or -1 for empty. Feeds the side-view canvases (C7).
+/// depth index normalised to 0–255 (0 = nearest), or -1 for empty. Feeds the side-view canvases.
 /// <para>The region can be inspected from any of four directions — the camera on the −/+ side of each
 /// axis: <c>nz</c>/<c>pz</c> look along Z (primary = x), <c>nx</c>/<c>px</c> look along X (primary = z).
 /// The negative-side cameras (<c>nz</c>/<c>nx</c>) take the smallest coord as the near face; the

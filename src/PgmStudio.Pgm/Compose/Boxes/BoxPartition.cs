@@ -18,7 +18,7 @@ namespace PgmStudio.Pgm.Compose;
 public sealed record BoxJoint(string BoxA, string BoxB, BoxAbutment Abutment, EdgeOffer? Grant = null);
 
 /// <summary>
-/// The <b>constraint graph</b> a partition is (G63): typed <see cref="Box"/>es (each an allocated
+/// The <b>constraint graph</b> a partition is: typed <see cref="Box"/>es (each an allocated
 /// <see cref="Box.Rect"/> footprint + its <see cref="Box.LandTargetCells"/> land half of the two-currency
 /// budget) and the <see cref="BoxJoint"/>s between them. This is what sampling produces once composition is
 /// partition-first — boxes allocated, then filled — replacing the imperative sample-then-place shape record.

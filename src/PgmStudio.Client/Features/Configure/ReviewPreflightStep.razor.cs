@@ -11,7 +11,7 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Features.Configure;
 
-// Review & Export · Pre-flight step (N05): the validation gate. Not an editing workspace — a read-only
+// Review & Export · Pre-flight step: the validation gate. Not an editing workspace — a read-only
 // overview. Runs the four generated-map checks server-side (GET /preflight) and surfaces them as check
 // rows + a validate log over a single static top-down map (real island geometry + the orbit-filled build
 // bridges + the spawn↔wool nodes in their real team/dye colours), the playability picture in one image.

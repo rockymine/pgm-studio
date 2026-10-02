@@ -9,7 +9,7 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
-/// <summary>Row ↔ wire-DTO mapping for the house-part library (B71), <see cref="RoomStyleMapping"/>'s sibling
+/// <summary>Row ↔ wire-DTO mapping for the house-part library, <see cref="RoomStyleMapping"/>'s sibling
 /// one level down.</summary>
 internal static class HousePartMapping
 {

@@ -7,10 +7,10 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// What the dressing pass records about the things it puts down. It used to record its buildings and nothing
-/// else, on the argument that a tree separates from built ground by material. It does — what material cannot
-/// say is that a pass put it there, or which prop it belonged to, so a flora prop that landed nothing looked
-/// exactly like one that was never authored. Every prop now answers for its own columns.
+/// What the dressing pass records about the things it puts down: every prop, not only its buildings. A tree
+/// separates from built ground by material, but what material cannot say is that a pass put it there, or which
+/// prop it belonged to, so a flora prop that landed nothing would look exactly like one that was never
+/// authored. Every prop answers for its own columns.
 /// </summary>
 public sealed class DressingProvenanceTests
 {

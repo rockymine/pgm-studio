@@ -247,7 +247,7 @@ export class WorldCanvas extends CanvasBase {
   _onResizeMove(e) { return this.#editCtrl?.onResizeMove(e) ?? false; }
   _onResizeUp(e)   { return this.#editCtrl?.onResizeUp(e) ?? false; }
 
-  // Body-drag (CV10): drag the selected region's body to move it. The editor fits through a transform,
+  // Body-drag: drag the selected region's body to move it. The editor fits through a transform,
   // so map SVG→world with the inverse; only resizable, non-ghost AABB regions are movable.
   _toWorld(svgPt) { return this.#toWorld ? this.#toWorld(svgPt.x, svgPt.y) : null; }
   _hitMovable(world) {

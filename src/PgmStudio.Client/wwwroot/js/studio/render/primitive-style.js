@@ -8,7 +8,7 @@
  * `radiusPx` for the treatments that draw a fixed-size dot. Colour is always supplied by the caller
  * (`color`, and optionally a distinct `stroke`/`fill`) — this module never decides colour, only the
  * opacity / stroke / dash knobs of each tier. A width is in screen pixels at every zoom, which is what
- * `vector-effect: non-scaling-stroke` used to buy and the painter now gives for nothing.
+ * `vector-effect: non-scaling-stroke` would buy and the painter gives for nothing.
  *
  * Treatments:
  *   region     translucent dashed outline — Edit/Configure regions (rect/point). States: normal/ghost/selected.

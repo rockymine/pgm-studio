@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The docking gate (G80): a dock is legal iff the box edge lands on an <c>entry</c> (docking) slot and touches
+/// The docking gate: a dock is legal iff the box edge lands on an <c>entry</c> (docking) slot and touches
 /// no <c>room</c> (never-dock) slot — <see cref="DockingGate"/> resolving each edge to its slots via the
 /// <see cref="BoxInterfaces"/> facts and applying the one table. Every family docks through a single mouth (the
 /// clamp too — its two legs meet the host on one edge, the wool clamped inside as a cut cell), so the verdict

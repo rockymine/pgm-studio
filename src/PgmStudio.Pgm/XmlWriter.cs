@@ -664,7 +664,7 @@ public static partial class XmlWriter
         XElement? Child(string cid) => FilterChildElem(cid, filters, counts, topLevel);
 
         var e = new XElement(MapTag(f.Type));
-        // A `void` filter is trivial and always inlined — `<void/>` is enough, it never needs an id (B15).
+        // A `void` filter is trivial and always inlined — `<void/>` is enough, it never needs an id.
         if (withId && fid.Length > 0 && !IsSynthetic(fid) && f.Type != "void") e.SetAttributeValue("id", fid);
 
         switch (f.Type)
@@ -778,7 +778,7 @@ public static partial class XmlWriter
         _ => 20,
     };
 
-    // Secondary ordering inside <regions> (B16): group same-type regions by semantic role (from the id
+    // Secondary ordering inside <regions>: group same-type regions by semantic role (from the id
     // pattern — `red-spawn-point`, `red-spawn`, `red-wool-spawn`, `red-wool`, `red-blue-team-monument`, …) so
     // the roles cluster instead of interleaving. Most-specific patterns first.
     private static int RoleRank(string id) =>

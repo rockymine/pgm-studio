@@ -217,7 +217,7 @@ public static class UnitTuning
     /// use the hub's full edge (which the side-tuck wool and the wide frontline face want).</summary>
     internal const int CornerClearanceCells = 0;
 
-    /// <summary>How often the frontline still takes the hub's <b>full</b> front width (G123). The pinned face
+    /// <summary>How often the frontline still takes the hub's <b>full</b> front width. The pinned face
     /// stays the common case; a partial front is the deliberate exception, not the new default.</summary>
     internal const double FullFaceChance = 0.6;
 

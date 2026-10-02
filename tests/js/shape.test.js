@@ -243,7 +243,7 @@ test("containsPoint includes the Bézier curve bulge (hit shape matches the draw
   assert.equal(containsPoint(curved, 5, -5), false);  // beyond the bulge
 });
 
-// ── snapShape (S23 grid-align) ──────────────────────────────────────────────────
+// ── snapShape (grid-align) ──────────────────────────────────────────────────
 test("snapShape rounds polygon vertices + Bézier controls to the block grid", () => {
   const s = snapShape({
     type: "polygon", id: "p", operation: "add", override: false,

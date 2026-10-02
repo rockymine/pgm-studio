@@ -7,7 +7,7 @@ using PgmStudio.Client.Models;
 
 namespace PgmStudio.Client.Features.Configure;
 
-// Review & Export · Region tree step (N07): the read-only inspect/debug view of the full generated
+// Review & Export · Region tree step: the read-only inspect/debug view of the full generated
 // region tree, between Pre-flight and XML. For intent maps the shaping steps drop the tree (structure is a
 // generated artifact), so it surfaces here. Reuses the editor's RegionTree component; writes nothing.
 public partial class ReviewTreeStep

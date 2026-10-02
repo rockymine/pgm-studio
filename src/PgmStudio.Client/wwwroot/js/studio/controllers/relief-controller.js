@@ -246,7 +246,7 @@ export class ReliefController {
    * Show a midpoint ghost where the pointer is near an edge of the selected mark, and insert a point there
    * when it is pressed — the draw stage's gesture, on the outline a mark is drawn as.
    *
-   * A mark's points are the shape of what it states, and until now the only way to change that shape was to
+   * A mark's points are the shape of what it states, and without this the only way to change that shape is to
    * redraw the mark: the grips move the points a trace happened to leave and nothing adds one. The heights
    * beside them are a different quantity and are spaced along the run, so adding a height cannot add a point
    * and never could.

@@ -214,7 +214,7 @@ public sealed class PlanCompilerTests
         await Assert.That(SketchLayout.Stack(layout)[0].Groups[0].Mirrors).IsTrue();
     }
 
-    // A spawn-role piece abutting a wool-room-role piece at one surface — S25's motivating case, since the
+    // A spawn-role piece abutting a wool-room-role piece at one surface, where the
     // single-height generator fuses same-plane pieces into one polygon.
     private const string StructuralUnit = """
         { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},

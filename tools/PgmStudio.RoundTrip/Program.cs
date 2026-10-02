@@ -19,7 +19,7 @@ CultureInfo.DefaultThreadCurrentUICulture = invariant;
 CultureInfo.CurrentCulture = invariant;
 CultureInfo.CurrentUICulture = invariant;
 
-// Corpus round-trip fidelity harness (C# port of tools/roundtrip_check.py).
+// Corpus round-trip fidelity harness.
 //
 //   check #1 — JSON idempotence (canonical):  ToDict(parse) == ToDict(FromDict(ToDict(parse)))
 //              with the derived bounds_2d stripped from regions.
@@ -82,7 +82,7 @@ if (rwIdx >= 0 && rwIdx + 1 < args.Length)
 }
 
 // --extract <regionDir> <oracleDir>: run every feature extractor over the .mca world and compare,
-// row-for-row, against the Python parquet oracles (wools/resources/chests/spawners/layer_segments).
+// row-for-row, against the oracle parquet files (wools/resources/chests/spawners/layer_segments).
 var exIdx = Array.IndexOf(args, "--extract");
 if (exIdx >= 0 && exIdx + 2 < args.Length)
     return await RunExtractParity(args[exIdx + 1], args[exIdx + 2]);
@@ -131,7 +131,7 @@ var isIdx = Array.IndexOf(args, "--islands");
 if (isIdx >= 0 && isIdx + 2 < args.Length)
     return await RunIslandParity(args[isIdx + 1], args[isIdx + 2]);
 
-// --clean-base-render <regionDir> <outSvg>: ND2/A5 cleaned-base island detection (noise-excluded base +
+// --clean-base-render <regionDir> <outSvg>: cleaned-base island detection (noise-excluded base +
 // height-aware connectivity + floating-mass prune, with a y0/bedrock fallback) rendered as an SVG of the
 // island outlines — the render-comparison pass for the cleaned base on real worlds.
 var cbrIdx = Array.IndexOf(args, "--clean-base-render");
@@ -141,7 +141,7 @@ if (cbrIdx >= 0 && cbrIdx + 2 < args.Length)
 // --topdown <regionDir> <outPng> [--map <map.xml>] [--scale N] [--ymax Y] [--subject ground|structure|foliage|objectives]
 // [--material] [--dressing <layout.json>]: the world's surface as a top-down PNG. The default reading sorts
 // every column into RenderCategory and false-colours it for legibility (foliage/structure/ground/water/void,
-// each a legend entry baked onto the image); --material switches back to the old per-block BlockPalette
+// each a legend entry baked onto the image); --material switches to per-block BlockPalette
 // colouring, for checking a theme's actual paint rather than the map's shape. --subject isolates one category
 // (or the map.xml overlay alone, for "objectives") instead of drawing the combined view. --map overlays what
 // the XML declares (objectives, spawns, apply-rule boxes) so the geometry can be read against the terrain.
@@ -280,7 +280,7 @@ if (sectionIdx >= 0 && sectionIdx + 2 < args.Length)
 // connectivity over the navigable columns (ground + 2 blocks headroom, plus any void column the map's own
 // buildable-region apply rule opens to bridging — requires --map to read that wiring), 4-connected
 // components coloured so one dominant colour reading through every marker is a connected board. Distinct
-// from --traversability (the Python-parity harness over parquet features) — this is the stage-image render.
+// from --traversability (the parity harness over parquet features) — this is the stage-image render.
 var travMapIdx = Array.IndexOf(args, "--traversability-map");
 if (travMapIdx >= 0 && travMapIdx + 2 < args.Length)
 {
@@ -503,7 +503,7 @@ if (riIdx >= 0 && riIdx + 1 < args.Length)
 if (args.Contains("--water-lanes"))
     return RunWaterLanes(defaultRoots, args, verbose);
 
-// --dump <map.xml>: print canonical ToDict(parse) as indented JSON for diffing against Python.
+// --dump <map.xml>: print canonical ToDict(parse) as indented JSON for diffing against another reader's output.
 var dumpIdx = Array.IndexOf(args, "--dump");
 if (dumpIdx >= 0 && dumpIdx + 1 < args.Length)
 {
@@ -569,7 +569,7 @@ static int RunIslandErasure(string[] corpusRoots, bool verbose)
         scanned++;
         if (!erased.IsEmpty) withErasure++;
 
-        // The old reading: stained glass excluded in every map, phantoms unread.
+        // The guessed reading: stained glass excluded in every map, phantoms unread.
         var guessExclude = new HashSet<int>(SurfaceExtractors.CleanBaseExclude) { 95 };
         var before = IslandDetector.DetectCleanedStairAware(
             SurfaceExtractors.CleanColumns(chunks, PhantomErasure.None, guessExclude)
@@ -895,7 +895,7 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
     // Materialise the world's chunks once — every extractor re-enumerates them (matches WorldFeatureWriter).
     var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
 
-    // feature rows → parquet (column names match the importer + the reference output)
+    // feature rows → parquet (column names match the importer)
     await WriteParquet(Path.Combine(outDir, "wools.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.Wools(chunks)
         .Select(w => new ScanWoolRow { WorldX = w.WorldX, WorldZ = w.WorldZ, WorldY = w.WorldY, Color = w.Color }).ToList());
     await WriteParquet(Path.Combine(outDir, "resources.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.Resources(chunks)
@@ -926,7 +926,7 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
     await File.WriteAllTextAsync(Path.Combine(outDir, "islands.json"), PgmStudio.Analysis.Footprint.IslandDetector.SerializeJson(islands));
 
     // Monument-candidate gather (F9 suggester) over the whole world → monument_candidates.parquet (the one
-    // world-derived dataset the live scan-world writes that the reference file set never had).
+    // world-derived dataset the live scan-world writes that no oracle file set carries).
     var worldBox = chunks.Count == 0
         ? new PgmStudio.Geom.BlockBox(0, 0, 0, 0, 0, 0)
         : new PgmStudio.Geom.BlockBox(chunks.Min(c => c.ChunkX) * 16, 0, chunks.Min(c => c.ChunkZ) * 16,
@@ -1754,7 +1754,7 @@ readonly record struct SuggestEval(
     List<PgmStudio.Analysis.Suggest.MonumentSuggestion> Sites);
 
 // Parquet shape for monument_slices.parquet (snake_case columns, one row per cell).
-// ── --scan-out parquet rows (column names match the importer + the reference pipeline output) ────────────
+// ── --scan-out parquet rows (column names match the importer) ────────────
 sealed class ScanWoolRow
 {
     [JP("world_x")] public int WorldX { get; set; }

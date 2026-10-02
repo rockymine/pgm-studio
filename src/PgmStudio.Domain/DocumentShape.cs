@@ -74,7 +74,7 @@ public static class DocumentShape
 
             // Zip by position: the reader kept them in order, so element i of the document is element i of
             // the value. A shorter value means entries were dropped, which is a different fault and not this
-            // one's to name — see B217, where a voronoi's palette carries only its first entry.
+            // one's to name — as when a voronoi's palette carries only its first entry.
             case JsonArray array when value is IEnumerable items and not string:
                 var kept = items.Cast<object?>().ToList();
                 for (var i = 0; i < array.Count && i < kept.Count; i++)

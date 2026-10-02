@@ -205,7 +205,7 @@ public sealed class CodecTests
         await Assert.That(min["y"]).IsNull();
     }
 
-    // ── author name (B6) ──────────────────────────────────────────────────────────
+    // ── author name ──────────────────────────────────────────────────────────
     // The studio caches a resolved Mojang username on the author; uuid stays canonical. The doc
     // dict must carry `name`, but only when set — map.xml has no names, so emitting it
     // unconditionally would break the corpus round-trip parity (tools/PgmStudio.RoundTrip).

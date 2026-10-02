@@ -31,7 +31,7 @@ public sealed class PlanBoardSvgTests
     [Test]
     public async Task The_key_names_every_role_and_both_zone_kinds_once()
     {
-        // B95: whoever shows a board shows its key, so the key has to cover every colour a board can paint,
+        // Whoever shows a board shows its key, so the key has to cover every colour a board can paint,
         // whether or not one particular board uses them all.
         var labels = PlanBoardPalette.Key.Select(entry => entry.Label).ToList();
 

@@ -106,7 +106,7 @@ public sealed class LineMarkTreadTests
         await Assert.That(trod[(34, 30)].Weight).IsLessThan(trod[(33, 30)].Weight);
     }
 
-    /// <summary>The regression this cost a build to find, stated as what must not happen: an earlier mark's
+    /// <summary>What must not happen: an earlier mark's
     /// height standing unblended beside a later mark's ground. A high line drawn first, a low one drawn over
     /// it with a tread — the shoulder must arrive at the high line's height gradually across its own width
     /// rather than in one cell.</summary>
@@ -193,7 +193,7 @@ public sealed class LineMarkTreadTests
             await Assert.That((cell, asked[cell])).IsEqualTo((cell, free[cell]));
     }
 
-    // ── the seam reading (WE33) ─────────────────────────────────────────────────────────────────────────
+    // ── the seam reading ─────────────────────────────────────────────────────────────────────────
 
     private static ReliefSpec Two(double tread = double.NaN) => new()
     {
@@ -257,7 +257,7 @@ public sealed class LineMarkTreadTests
         await Assert.That(atTurn).IsBetween(13.9, 20.1);
     }
 
-    // ── an area that tilts, and an edge that grades (WE103) ─────────────────────────────────────────────
+    // ── an area that tilts, and an edge that grades ─────────────────────────────────────────────
 
     private static double[][] Pad => [[20, 22], [40, 22], [40, 38], [20, 38]];
 

@@ -94,7 +94,7 @@ public sealed class HouseStyleValidationTests
         var style = Headed(HousePresets.Desert.Style,
             head => head with { Block = Blocks.Cobblestone, FillBlock = Blocks.Cobblestone });
         // Wrecking both fields at once also drops the door's clear height below the line (HS2) — the same
-        // fault sable-marsh's own spawn room carries, not a second problem this fixture introduced.
+        // fault a spawn room with such a head carries, not a second problem this fixture introduces.
         var findings = HouseStyleValidation.Check(style);
         await Assert.That(findings.Single(f => f.Field == "doorHead.block").Rule).IsEqualTo(HouseStyleRules.BlockKind);
         await Assert.That(findings.Single(f => f.Field == "doorHead.fillBlock").Rule).IsEqualTo(HouseStyleRules.BlockKind);

@@ -80,7 +80,7 @@ public static class DestroyableAuthoring
     {
         // Owner + anchor column is a destroyable's identity: one team may defend more than one, and the
         // structure step edits its knobs without moving it. Keys any entry the compiler wrote (piece / stamp)
-        // onto the rewrite so Configure does not delete what it does not model (N13).
+        // onto the rewrite so Configure does not delete what it does not model.
         var carry = IntentSlice.Carrier(intent, "destroyables", Identity);
 
         intent["destroyables"] = new JsonArray(destroyables.Select(d =>

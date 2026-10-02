@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace PgmStudio.Api.Tests;
 
-/// <summary>M0 smoke test: the host boots, FastEndpoints routing is live, and /api/health responds.</summary>
+/// <summary>Smoke test: the host boots, FastEndpoints routing is live, and /api/health responds.</summary>
 [NotInParallel("api-db")]
 public sealed class HealthEndpointTests
 {

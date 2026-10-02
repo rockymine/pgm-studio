@@ -1,7 +1,6 @@
 /**
  * Pure polygon math on rings of [[x,z], …] — no DOM.
- * The single home for point-in-polygon, polygon rasterisation, and half-plane clipping
- * (previously duplicated across world-canvas, converters, and the reference sketch tool).
+ * The single home for point-in-polygon, polygon rasterisation, and half-plane clipping.
  */
 
 /** Ray-casting point-in-polygon test for a ring [[x,z], …]. */

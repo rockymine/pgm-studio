@@ -1,6 +1,6 @@
 /**
  * Rasterize sketch shapes into the solid (x,z) block cells they voxelize into — the client twin of the C#
- * `PgmStudio.Pgm.Sketch.SketchRasterizer` (S23). It is the WYSIWYG half of the grid-aligned sketch: the
+ * `PgmStudio.Pgm.Sketch.SketchRasterizer`. It is the WYSIWYG half of the grid-aligned sketch: the
  * author draws smooth curves, and this shows the exact blocks the export will place, so nothing about the
  * voxelization is hidden. Pure, no DOM.
  *
@@ -39,7 +39,7 @@ function rasterShapeCells(shape) {
 export function rasterizeShapes(shapes) {
   const add = new Set(), sub = new Set(), oadd = new Set(), osub = new Set();
   for (const shape of shapes ?? []) {
-    if (shape.role) continue;   // structural annotation (S25) — not terrain, never rasterized
+    if (shape.role) continue;   // structural annotation — not terrain, never rasterized
     const cells = rasterShapeCells(shape);
     if (shape.operation === "subtract") {
       const set = shape.override ? osub : sub;

@@ -4,7 +4,7 @@ using PgmStudio.Geom.Algorithms;
 namespace PgmStudio.Geom.Tests.Algorithms;
 
 /// <summary>
-/// The pure leaves the dressing stage is grown from (G161). Each asserts the property the stage actually
+/// The pure leaves the dressing stage is grown from. Each asserts the property the stage actually
 /// depends on rather than a transcript of one output: that a scatter really is spaced, that asking on the
 /// orbit's representative makes it symmetric, that a blob is a closed volume, that a grown tree has a
 /// continuous trunk, and that a crown keeps its seams.
@@ -57,7 +57,7 @@ public sealed class DressingAlgorithmTests
     [Test]
     public async Task Asking_on_the_representative_is_what_makes_a_scatter_symmetric()
     {
-        // The correctness bug G162 names: a free scatter gives one team cover the other lacks. Count the sites
+        // A free scatter gives one team cover the other lacks. Count the sites
         // whose mirror image is bare — free scatter racks them up, the fanned pass is zero by construction.
         var cells = Enumerable.Range(-25, 50).SelectMany(z => Enumerable.Range(-25, 50).Select(x => (x, z))).ToList();
         var canonical = OrbitScatter.CanonicalizerFor("rot_180", 0, 0);
@@ -210,7 +210,7 @@ public sealed class DressingAlgorithmTests
     [Test]
     public async Task A_stream_beads_along_its_arc_where_a_canal_holds_one_width()
     {
-        // Parity with the decoration prototype's `drawChannel`: a stream is not one taper end-to-end, it beads —
+        // A stream is not one taper end-to-end, it beads —
         // its width pinches to half the radius and swells back on a fixed beat down the run, and never exceeds
         // the nominal width. A canal holds one width the whole way. The half-width per column across the run is
         // what shows it, on the interior columns so an end-cap disc doesn't read as a pinch.
@@ -229,7 +229,7 @@ public sealed class DressingAlgorithmTests
     [Test]
     public async Task A_stream_runs_shallower_than_a_canal_of_the_same_depth()
     {
-        // The other half of the prototype's stream: it runs shallow throughout, a whole length of riffle.
+        // The other half of a stream: it runs shallow throughout, a whole length of riffle.
         int Deepest(ChannelForm form)
             => FluidBed.Cells(Straight, radius: 5, depth: 6, form, edge: 0, seed: 5).Max(cell => cell.Depth);
         await Assert.That(Deepest(ChannelForm.Stream)).IsLessThan(Deepest(ChannelForm.Canal));

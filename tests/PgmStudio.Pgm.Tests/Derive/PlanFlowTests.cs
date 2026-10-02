@@ -210,9 +210,9 @@ public sealed class PlanFlowTests
             .IsEqualTo(leg.Approaches.Count).Because("one reading per demand set");
     }
 
-    /// <summary><b>A board with two doors reports two decisions, not one span across both.</b> The old single
-    /// fork ran from the first parting to the last merge, which on a two-choice approach describes neither of
-    /// them; the leg's own split and merge are the <em>last</em> choice, the one still open on arrival.</summary>
+    /// <summary><b>A board with two doors reports two decisions, not one span across both.</b> A single
+    /// fork from the first parting to the last merge would describe neither choice on a
+    /// two-choice approach; the leg's own split and merge are the <em>last</em> choice, the one still open on arrival.</summary>
     [Test]
     public async Task Two_doors_on_an_approach_are_two_decisions()
     {

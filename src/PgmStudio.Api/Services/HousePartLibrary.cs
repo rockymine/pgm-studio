@@ -11,7 +11,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Services;
 
 /// <summary>
-/// The composition-root half of the house-part library (B71): it bridges <see cref="HousePartStore"/> and the
+/// The composition-root half of the house-part library: it bridges <see cref="HousePartStore"/> and the
 /// stamper's own model. <see cref="RoomStyleLibrary"/>'s sibling one level down, and the same discipline — a
 /// draft composes exactly as a saved row does, so what an editor previews is what the save would build.
 ///

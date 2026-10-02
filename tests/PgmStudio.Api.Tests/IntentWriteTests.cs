@@ -55,8 +55,8 @@ public sealed class IntentWriteTests
 
     /// <summary>
     /// <b>The rebuild keeps the credits.</b> A plan rebuild replaces everything the plan states and the
-    /// authors are not among them, so an intent that names nobody leaves the map's people alone. Before this
-    /// held, the loop a driver actually runs — state the metadata, then rebuild — answered 200 twice and lost
+    /// authors are not among them, so an intent that names nobody leaves the map's people alone. Were it
+    /// not so, the loop a driver actually runs — state the metadata, then rebuild — would answer 200 twice and lose
     /// the author on the second call, with nothing in either body saying so.
     /// </summary>
     [Test]
@@ -91,7 +91,7 @@ public sealed class IntentWriteTests
     }
 
     /// <summary>And an intent that <em>does</em> name people still states them — the guard is over a document
-    /// that says nothing, not over the field itself, so nothing that could be set before can no longer be.
+    /// that says nothing, not over the field itself, so nothing that could be set can stop being settable.
     /// </summary>
     [Test]
     public async Task An_intent_that_names_people_states_them()
@@ -109,7 +109,7 @@ public sealed class IntentWriteTests
     /// <summary><b>A person the intent names under a string nobody could be called is refused, not dropped.</b>
     /// A name no Minecraft account carries is a pseudonym and stores; a string that is not a name at all
     /// cannot, and the answer says which person it meant. A row that vanished from a 200 is what makes an
-    /// author believe somebody was credited (<c>TC2</c>).</summary>
+    /// author believe somebody was credited.</summary>
     [Test]
     [Arguments("<script>alert(1)</script>", "meta.authors[0].name")]
     [Arguments("two  spaces", "meta.authors[0].name")]

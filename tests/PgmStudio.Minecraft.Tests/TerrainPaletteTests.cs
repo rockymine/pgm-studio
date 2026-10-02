@@ -47,7 +47,7 @@ public sealed class TerrainPaletteTests
     [Test]
     public async Task A_data_variant_is_offered_as_its_own_block_with_its_own_name_and_colour()
     {
-        // Andesite is stone with a data value of 5, and until it was offered it could only be reached by
+        // Andesite is stone with a data value of 5, and without being offered it could only be reached by
         // hand-writing the pair. It is a different block from stone, so it carries its own name and colour.
         var andesite = TerrainPalette.Paintable.Single(block => block is { Id: Blocks.Stone, Data: 5 });
         await Assert.That(andesite.Name).IsEqualTo("Andesite");
@@ -157,7 +157,7 @@ public sealed class TerrainPaletteTests
     [Test]
     public async Task Every_stained_clay_shade_resolves_to_a_tone_family()
     {
-        // Half the ramp used to fall through to the plain "Stained clay" shade row — a themed board built on
+        // A shade that fell through to the plain "Stained clay" shade row would leave a themed board built on
         // the other eight dyes painted mostly as unnamed magenta.
         for (var data = 0; data < 16; data++)
             await Assert.That(TerrainPalette.FamilyOf(Blocks.StainedClay, data)).IsNotNull();

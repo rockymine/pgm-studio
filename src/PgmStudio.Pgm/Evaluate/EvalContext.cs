@@ -10,7 +10,7 @@ namespace PgmStudio.Pgm.Evaluate;
 /// adjacency), the structural <see cref="Finding"/>s (parse/overlap/reachability), the raster-layer
 /// <see cref="BoardStructure"/> (islands, zone kinds, holes, lanes), and the authored metric bands. A term
 /// never re-derives any of these — it reads them here. <see cref="Board"/> is computed lazily, so a hard-only
-/// gate (which no ported term needs the board for) never pays for the raster derive on its resample loop.
+/// gate (which needs the board for no term) never pays for the raster derive on its resample loop.
 /// </summary>
 public sealed class EvalContext
 {

@@ -9,7 +9,7 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Export.Tests;
 
 /// <summary>
-/// The theme census (WS22): a board's ground cells counted by the theme that paints them, resolved through
+/// The theme census: a board's ground cells counted by the theme that paints them, resolved through
 /// the same shape and layer ownership <see cref="TerrainThemeScope"/> paints against.
 /// </summary>
 public sealed class ThemeCensusTests

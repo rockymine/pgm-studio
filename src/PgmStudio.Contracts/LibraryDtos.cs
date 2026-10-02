@@ -203,7 +203,7 @@ public sealed record RoomPorchDto(int Depth, int Inset,
     [property: WordSet(typeof(PorchEdges))] string Edge,
     [property: WordSet(typeof(RoofForms))] string Roof, int RailBlock);
 
-// ── the parts a house is composed from (B71) ─────────────────────────────────────────────────────────
+// ── the parts a house is composed from ─────────────────────────────────────────────────────────
 // A roof, a storey and a porch are each their own library row for the reason a style is: the level exists so
 // a part can be authored once and reused, which a knob living on the house cannot be. Each carries the knobs
 // of its part and — where the part has materials of its own — that part's course stacks, in the same

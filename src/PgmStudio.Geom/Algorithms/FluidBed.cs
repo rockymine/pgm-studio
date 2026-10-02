@@ -73,7 +73,7 @@ public static class FluidBed
             if (here <= 0 || hit.Distance > here) continue;
 
             // How far this cell sits from the centerline, as a fraction of the local half-width: 0 on the line,
-            // 1 at the shore. The bowl is deepest at 0 and one block deep at 1 — the prototype's cross-section.
+            // 1 at the shore. The bowl is deepest at 0 and one block deep at 1.
             var offset = Math.Clamp(hit.Distance / here, 0, 1);
             var bowl = 1 - offset * offset;
             // A stream runs shallow throughout, not just at its ends — its whole length is a riffle.
@@ -238,7 +238,7 @@ public static class FluidBed
     private static List<IReadOnlyList<double>> Cast(IReadOnlyList<double[]> ring)
         => [.. ring.Select(point => (IReadOnlyList<double>)point)];
 
-    // The half-width the fluid reaches at a cell, the prototype's `drawChannel` R. A canal holds the nominal
+    // The half-width the fluid reaches at a cell. A canal holds the nominal
     // radius. A natural edge wobbles it by an absolute amount (a value field, ±edge blocks). A stream beads: the
     // width runs a rectified sine along the arc — pinching to half the radius and swelling back to it on a fixed
     // beat — with the same small wobble on top, so it narrows and widens down its length rather than tapering once.
@@ -254,8 +254,8 @@ public static class FluidBed
     }
 
     // How far the beach reaches past the fluid at a cell. Off: the full width, an even band. On: a smooth field
-    // read along the arc — the same rescaling the prototype's `shoreWidth` uses to drop a shore to nothing in
-    // places — but sampled by arc position so both banks share one width and the beach stays wrapped to the fluid
+    // read along the arc, dropping a shore to nothing in
+    // places, but sampled by arc position so both banks share one width and the beach stays wrapped to the fluid
     // rather than a spatial field that opens on one bank and closes on the other around a bend.
     private static double ShoreAt(double shoreWidth, bool wander, PolylineHit hit, uint seed)
         => wander

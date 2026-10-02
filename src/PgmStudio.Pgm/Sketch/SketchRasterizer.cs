@@ -796,7 +796,7 @@ public static class SketchRasterizer
                 }
             }
 
-            // A structural annotation (a spawn or wool room, S25) is never listed in a group's own
+            // A structural annotation (a spawn or wool room) is never listed in a group's own
             // ShapeIds — that list is read elsewhere as the group's terrain rings — so a room binds by
             // footprint instead: if the room it marks overlaps ground this group already owns, a stated
             // relief_scope applies to it exactly as it would an ordinary shape's. RasterGroup still skips
@@ -1514,7 +1514,7 @@ public static class SketchRasterizer
         HashSet<(int, int)> sub = [], osub = [];
         foreach (var s in shapes)
         {
-            if (s.Role is not null) continue;   // structural annotation (S25) — not terrain, never rasterized
+            if (s.Role is not null) continue;   // structural annotation — not terrain, never rasterized
             if (s.Operation == "subtract")
             {
                 var set = s.Override ? osub : sub;

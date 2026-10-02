@@ -623,7 +623,7 @@ public sealed class HouseStamperTests
         var standing = 0;
         for (var x = 0; x < 13; x++)
         {
-            if (world.GetBlock(x, FloorY + 3, 0).Id != Blocks.Air) standing++;              // the old front wall
+            if (world.GetBlock(x, FloorY + 3, 0).Id != Blocks.Air) standing++;              // the front wall's line
             await Assert.That(world.GetBlock(x, FloorY, 0).Id).IsNotEqualTo(Blocks.Air);    // still floored
         }
         // Only the deck's posts stand on that line now — a 13-wide deck carries four, none of them a wall.
@@ -876,7 +876,7 @@ public sealed class HouseStamperTests
         var (minX, minZ, maxX, maxZ) = HouseStamper.StampedExtent((0, 0, width - 1, depth - 1), style);
 
         // The extent is a real bound, not a vacuous one: something stands strictly outside the plain wall
-        // rectangle, which is exactly the ground the old claim (the wall rect alone) used to miss.
+        // rectangle, which is exactly the ground a claim of the wall rect alone would miss.
         var sawOutsideWalls = false;
         for (var x = minX - 3; x <= maxX + 3; x++)
             for (var z = minZ - 3; z <= maxZ + 3; z++)
@@ -1054,8 +1054,8 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_door_on_a_narrow_wall_still_clears_the_post()
     {
-        // The case that started this: a two-wide door on a five-wide face used to sit at cells 2 and 3, and
-        // cell 3 is hard against the post at 4.
+        // A two-wide door on a five-wide face at cells 2 and 3 would have cell 3 hard against the post at 4,
+        // so it has to clear it.
         // Depth five so every width here is the long side and the house fronts on z — a house fronts on its
         // longer side, and a door on the other wall would simply not be at z = 0 to look for.
         foreach (var width in new[] { 5, 6, 7, 9, 11 })
@@ -1309,7 +1309,7 @@ public sealed class HouseStamperTests
     }
 
     /// <summary>A plan with no cell off its own wall has no room in it, whatever shape it is — the refusal a
-    /// span under three blocks used to be.</summary>
+    /// span under three blocks gets.</summary>
     [Test]
     public async Task A_plan_with_no_inside_is_refused()
     {
@@ -1820,7 +1820,7 @@ public sealed class HouseStamperTests
     /// <summary>
     /// <b>The same stop, where the hall has no ridge to strike at all.</b> A flat lid never rises, so a probe
     /// waiting to be "hit" by the hall's own roof waits forever: every course of the wing's gable is eventually
-    /// taller than the flat lid's one constant course, and the old march ran every one of them the length of
+    /// taller than the flat lid's one constant course, and a march without a bound would run every one of them the length of
     /// the hall. The distance bound does not care that the hall is flat — it never asked the hall anything.
     /// </summary>
     [Test]

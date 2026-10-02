@@ -169,8 +169,8 @@ public sealed class BuildingPlanTests
 // ── the runs of wall ────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>A wall ends wherever the building turns, so the count of runs is the count of the plan's sides.
-    /// A rectangle answers four — one per facing, which is what lets a caller that used to name a wall by its
-    /// direction keep every answer it had — and the shapes that turn a corner answer their own sides.</summary>
+    /// A rectangle answers four — one per facing, which is what lets a caller that names a wall by its
+    /// direction keep every answer — and the shapes that turn a corner answer their own sides.</summary>
     [Test]
     public async Task A_plan_stands_in_as_many_runs_of_wall_as_it_has_sides()
     {
@@ -180,7 +180,7 @@ public sealed class BuildingPlanTests
     }
 
     /// <summary>A rectangle's four runs are its four sides, each running corner to corner — the numbers a caller
-    /// used to read straight off a min and a max.</summary>
+    /// would read straight off a min and a max.</summary>
     [Test]
     public async Task A_rectangle_stands_in_its_own_four_sides()
     {

@@ -11,7 +11,7 @@ using PgmStudio.Pgm;
 namespace PgmStudio.Import.Tests;
 
 /// <summary>
-/// M3 integration test: import a synthetic map's xml_data.json into MariaDB and verify the
+/// Integration test: import a synthetic map's xml_data.json into MariaDB and verify the
 /// entity rows (counts, wool grouping, JSON column content). The parquet feature path is
 /// covered end-to-end by the corpus importer run (src/PgmStudio.Import over the output dir).
 /// </summary>

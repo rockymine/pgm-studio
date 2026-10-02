@@ -5,7 +5,7 @@ namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
 /// Block-colour lookup tests: the metadata-aware hierarchy (exact sub-type → base → hash), the sub-type
-/// families that used to collapse onto one colour, the three separate dye ramps, naming, and coverage of
+/// families that must not collapse onto one colour, the three separate dye ramps, naming, and coverage of
 /// the whole 1.8 id range.
 /// </summary>
 public sealed class BlockPaletteTests

@@ -8,13 +8,13 @@ namespace PgmStudio.Pgm.Tests;
 /// A spawn or wool-room piece binds into its island's relief solve (review.md MG5). The compiler states
 /// <c>relief_scope: hold</c> on the structural annotation it projects for the authored orbit image, at the
 /// piece's own surface — so a relief that later rolls across the island cannot cut the room's floor, even
-/// though the annotation carries no ShapeIds membership of its own (S25 keeps it out of the terrain-ring
+/// though the annotation carries no ShapeIds membership of its own (it is kept out of the terrain-ring
 /// lists that assume one).
 /// </summary>
 public sealed class PlanCompilerReliefTests
 {
     // A spawn piece abutting a large plain piece at the same surface, so the two fuse into one terrain
-    // shape (the S25 case) big enough for a relief to roll across it. rot_180 about the origin, so the
+    // shape big enough for a relief to roll across it. rot_180 about the origin, so the
     // whole authored half sits at positive x/z and its image lands at negative x/z untouched.
     private const string Json = """
         {

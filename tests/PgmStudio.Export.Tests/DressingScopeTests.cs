@@ -11,7 +11,7 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Export.Tests;
 
 /// <summary>
-/// The dressing stage's map-facing half (G161): reading what an author placed, what the pass must leave bare,
+/// The dressing stage's map-facing half: reading what an author placed, what the pass must leave bare,
 /// and how the map is mirrored. <see cref="PgmStudio.Api.Tests.DressingPreviewTests"/> is the sibling for the
 /// preview, which is asserted by what it <em>placed</em> rather than by the bytes it drew.
 /// </summary>
@@ -314,7 +314,7 @@ public sealed class DressingScopeTests
     [Test]
     public async Task The_mask_turns_every_kind_away_from_the_approach_boulders_included()
     {
-        // The old export-time refusal exempted boulders on a low-cover argument. A boulder is tall enough
+        // A low-cover argument would exempt boulders. A boulder is tall enough
         // that the sightline argument does not hold for it, and a mask that reads the prop's kind before
         // deciding whether a lane is a lane is a carve-out nobody driving the studio can predict.
         var (world, surface) = Ground(-40, 80);

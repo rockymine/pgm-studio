@@ -46,7 +46,7 @@ public static class TeamUnitAllocator
         var laneWidthCells = env.CorridorCells;                          // the map-wide lane width, from the band
         // what a goal keeps clear of its neighbour. Held apart from the lane width because they are different
         // quantities — one is how wide a corridor is, the other how much ground a goal keeps around it — and
-        // only the second is a distance a floor in blocks can be stated over (G264).
+        // only the second is a distance a floor in blocks can be stated over.
         var seatGapCells = laneWidthCells;
         var plan = UnitTuning.SamplePlan(env, rng);
 

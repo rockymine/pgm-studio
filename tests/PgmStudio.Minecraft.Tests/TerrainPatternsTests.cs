@@ -82,8 +82,8 @@ public sealed class TerrainPatternsTests
     public async Task A_voronoi_draws_its_first_band_as_one_connected_grid()
     {
         // The band that sits on the boundary IS the pattern's structure: cells are read off the line between
-        // them, so a line that comes apart into fragments is not a grid, it is speckle. The old single-threshold
-        // rim did exactly that at a one-block width.
+        // them, so a line that comes apart into fragments is not a grid, it is speckle. A single-threshold
+        // rim does exactly that at a one-block width.
         var vor = new VoronoiMaterial(7u, 10, [Band(50, 1), Band(1, 1)]);
         const int size = 80;
         var grid = new bool[size, size];

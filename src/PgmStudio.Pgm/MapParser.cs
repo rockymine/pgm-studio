@@ -69,7 +69,7 @@ public sealed partial class MapParser
     private static readonly HashSet<string> ParsedObjectiveModules =
         ["wools", "destroyables", "cores", "control-points", "king", "score"];
 
-    // Reject maps outside the supported range up front rather than silently mis-parsing them: the old
+    // Reject maps outside the supported range up front rather than silently mis-parsing them: the
     // positional format below proto 1.4.0 (anonymous teams, no region/filter ids), modern worlds whose
     // 1.13+ palette chunks the Anvil reader cannot decode, and maps whose objective we cannot represent.
     private void EnsureSupported()

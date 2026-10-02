@@ -18,7 +18,7 @@ public sealed record EmittedFrontline(
 /// offer) and the <b>face</b> (which it offers to the mid); the sides are inert. <b>Rotation is fixed by the
 /// designation</b>: the spine docks the hub and the arm-tips are the face toward the axis, so the emitter works
 /// in one canonical frame — spine <see cref="BoxEdge.Top"/>, face <see cref="BoxEdge.Bottom"/> — and the composer
-/// orients the placed box onto the hub (G63-C).
+/// orients the placed box onto the hub.
 ///
 /// <para>The <b>face offer</b> is <see cref="Designation.Frontline"/>'s half of the offer mechanism, and its
 /// <see cref="OfferGrouping"/> is the mid's contract (model.md §7): <b>joint</b> — one mid consumer spans all tips

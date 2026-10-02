@@ -23,7 +23,7 @@ export const ROLE_COLORS = {
 };
 export const ROLE_LABELS = { piece: "Piece", "wool-room": "Wool room", spawn: "Spawn", buffer: "Buffer" };
 
-// The generating (terrain-producing) roles vs the non-generating annotation roles — the G48 palette grouping.
+// The generating (terrain-producing) roles vs the non-generating annotation roles — the palette grouping.
 export const GENERATING_ROLES = ["piece", "wool-room", "spawn"];
 export const TECHNICAL_ROLES = ["buffer"];
 

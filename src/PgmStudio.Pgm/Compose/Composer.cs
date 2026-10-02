@@ -36,7 +36,7 @@ public static class Composer
     /// offset per cell of cap, halved.
     ///
     /// <para>This bounds an <b>authored</b> plan (the BZ9 finding in <see cref="Producibility"/>), which may draw
-    /// its front anywhere. The composer no longer consults it: it centres the unit on its face
+    /// its front anywhere. The composer does not consult it: it centres the unit on its face
     /// (<see cref="UnitPlacement.CentreFaceOnAxis"/>) and the face's span is even
     /// (<see cref="TeamUnitAllocator"/>), so a composed front's residual offset is at most half a cell — one cell
     /// of slack against a cap of four, which is why nothing resamples against it.</para></summary>
@@ -73,10 +73,9 @@ public static class Composer
             // place the finished unit rather than take where it was built: the allocator anchors on the hub, but
             // the face is what the mid docks, so re-anchor the unit on its face before the band is derived
             filled = filled with { Unit = UnitPlacement.CentreFaceOnAxis(filled.Unit, envelope.Symmetry) };
-            // the parallel-fronts resample stood here: under a laterally-flipping symmetry a front sitting off
-            // the axis makes the band overflow past the faces it docks, and a unit whose slack ran over the cap
-            // was thrown away. Centring the unit on its face is what that guard was reaching for, so it now has
-            // nothing left to catch — the residual offset is half a cell at most. The rule still binds authored
+            // no parallel-fronts resample is needed: under a laterally-flipping symmetry a front sitting off
+            // the axis would make the band overflow past the faces it docks, but centring the unit on its face
+            // leaves a residual offset of half a cell at most. The rule still binds authored
             // plans, which may draw a front anywhere; it is read back there (BZ9).
 
             // the spend gate: what the unit actually built, against the band's budget. The allocator aims in box
@@ -136,8 +135,8 @@ public static class Composer
     /// no slack"). This measures that excess: zero when the faces' hull is symmetric about the axis, growing as
     /// the front slides off it.</para>
     ///
-    /// <para>It replaces the older per-face mirror test (G123). That test asked every face to have its mirror
-    /// among the faces — which only a centred front can satisfy, so it rejected every shifted or asymmetrically
+    /// <para>The measure is the hull's offset, not a per-face mirror test: asking every face to have its mirror
+    /// among the faces is something only a centred front can satisfy, and would reject every shifted or asymmetrically
     /// legged front outright, including ones whose hull is perfectly symmetric and which cost the band nothing.
     /// The hull is what the band actually reads.</para>
     ///
