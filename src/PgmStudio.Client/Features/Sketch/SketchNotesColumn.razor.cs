@@ -58,6 +58,10 @@ public partial class SketchNotesColumn : IDisposable
     [Parameter] public EventCallback OnClearMark { get; set; }
     [Parameter] public EventCallback OnWholeMap { get; set; }
     [Parameter] public EventCallback OnResolve { get; set; }
+    [Parameter] public EventCallback OnWontDo { get; set; }
+
+    /// <summary>Change the thread's tag; empty clears it.</summary>
+    [Parameter] public EventCallback<string> OnRetag { get; set; }
     [Parameter] public EventCallback OnReopen { get; set; }
 
     /// <summary>Send a new note; answers whether it landed, which is what clears the text box.</summary>
@@ -193,7 +197,8 @@ public partial class SketchNotesColumn : IDisposable
         : string.Equals(message.AuthorUuid, MeUuid, StringComparison.OrdinalIgnoreCase) ? "note-message note-message--mine"
         : "note-message";
 
-    private static string Glyph(MapNoteDto note) =>
+    /// <summary>What a note's pin carries: its number, or nothing for a note on the whole map.</summary>
+    public static string Glyph(MapNoteDto note) =>
         note.Anchor.Kind == NoteAnchors.Map ? "" : note.Id.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>The pin's class: its shape says whether it is on the map or a picture, its colour the status.</summary>
@@ -204,12 +209,16 @@ public partial class SketchNotesColumn : IDisposable
 
     private static string Ago(DateTime at) => Moments.Ago(at);
 
-    /// <summary>How many of the board's changes landed after the thread's last message was written.</summary>
-    private int ChangesSince(MapNoteDto note) =>
-        note.Messages.LastOrDefault() is { } last ? Changes.Count(number => number > last.Change) : 0;
+    /// <summary>How many of the board's changes landed after <paramref name="change"/>.</summary>
+    private int Since(MapNoteDto note, long change) => note.Messages.Count == 0 ? 0 : Changes.Count(number => number > change);
 
-    /// <summary>The change the thread's last message was written at, which is where its diff starts.</summary>
+    /// <summary>The change the note was written at — the board its picture shows — where "since the note" starts.</summary>
+    private static long FirstChange(MapNoteDto note) => note.Messages.FirstOrDefault()?.Change ?? 0;
+
+    /// <summary>The change the thread's last message was written at.</summary>
     private static long LastChange(MapNoteDto note) => note.Messages.LastOrDefault()?.Change ?? 0;
+
+    private static string Changed(int count) => count == 1 ? "1 change" : $"{count} changes";
 }
 
 /// <summary>When something happened, in the words the Sketch tool's columns read in.</summary>

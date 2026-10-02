@@ -34,6 +34,13 @@ public partial class SketchChangeInspector
     /// <summary>Put the board back as it stood at a change.</summary>
     [Parameter] public EventCallback<long> OnRestore { get; set; }
 
+    /// <summary>The threads with a message written in the span, each with the latest such message — what a change
+    /// answered, and the notes written on its board.</summary>
+    [Parameter] public IReadOnlyList<(MapNoteDto Note, NoteMessageDto Message)> Notes { get; set; } = [];
+
+    /// <summary>Open a thread in In game, by its note's id.</summary>
+    [Parameter] public EventCallback<long> OnOpenNote { get; set; }
+
     /// <summary>The edits listed before the rest are only counted.</summary>
     private const int Shown = 60;
 

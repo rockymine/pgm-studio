@@ -31,8 +31,14 @@ public partial class SketchInGamePhase
     /// <summary>Why the views could not be read, or null.</summary>
     [Parameter] public string? Error { get; set; }
 
+    /// <summary>Why the last thing asked of a view was refused, or null.</summary>
+    [Parameter] public string? Refusal { get; set; }
+
     /// <summary>Bumped by the host whenever the board may have changed since the pictures were asked for.</summary>
     [Parameter] public int Round { get; set; }
+
+    /// <summary>Bumped by the host each time it follows the board, which is when the notes are read again.</summary>
+    [Parameter] public int Tick { get; set; }
 
     [Parameter] public EventCallback OnBack { get; set; }
 
@@ -48,6 +54,9 @@ public partial class SketchInGamePhase
 
     /// <summary>A note to open on arriving, by id — a link into its thread.</summary>
     [Parameter] public long? LinkedNote { get; set; }
+
+    /// <summary>The linked note's thread has been opened, so the link is spent.</summary>
+    [Parameter] public EventCallback OnLinkOpened { get; set; }
 
     /// <summary>The numbers of the board's changes, handed on to the notes column.</summary>
     [Parameter] public IReadOnlyList<long> Changes { get; set; } = [];
@@ -68,9 +77,8 @@ public partial class SketchInGamePhase
 
     private bool mayNote;
     private string? meUuid;
-    private bool openedFromLink;
     private List<MapNoteDto> notes = [];
-    private int notesRound = -1;
+    private (int Round, int Tick) notesRound = (-1, -1);
     private NotesStep step = NotesStep.Overview;
     private long? currentId;
     private string filter = SketchNotesColumn.All;
@@ -91,6 +99,42 @@ public partial class SketchInGamePhase
     /// <summary>The change the pictures are of: a note written on one was written at it.</summary>
     private long DrawnAt => Views?.Change ?? 0;
 
+    /// <summary>A thread's pictures, compared on the big picture: the note's own, the latest after a reply carries,
+    /// and the note's camera over the board now. <paramref name="Key"/> names the thread and its latest after, so
+    /// a new after starts the comparison afresh.</summary>
+    private sealed record Comparison(string Key, string Before, long BeforeChange, string? After, long AfterChange,
+                                     string Now, long NowChange, int Width, int Height);
+
+    /// <summary>The open thread's comparison, where its note was written on a picture.</summary>
+    private Comparison? Compared
+    {
+        get
+        {
+            if (step != NotesStep.Thread || Current is not { Anchor.Camera: { } camera } note
+                || note.Messages.FirstOrDefault() is not { Picture: { } before } first) return null;
+            var after = note.Messages.Skip(1).LastOrDefault(message => message.Picture is not null);
+            var (width, height) = (note.Anchor.Width ?? PictureWidth, note.Anchor.Height ?? PictureHeight);
+            var latest = Changes.Count > 0 ? Changes[^1] : DrawnAt;
+            var now = string.Create(CultureInfo.InvariantCulture,
+                $"api/map/{Slug}/render/eye?eye={camera.X},{camera.Y},{camera.Z}&yaw={camera.Yaw}&pitch={camera.Pitch}&fov={camera.Fov}&width={width}&height={height}&round={Round}-{latest}");
+            return new Comparison($"{note.Id}:{after?.Picture}", $"api/notes/pictures/{before}", first.Change,
+                after?.Picture is { } shot ? $"api/notes/pictures/{shot}" : null, after?.Change ?? 0,
+                now, latest, width, height);
+        }
+    }
+
+    /// <summary>The comparison the author picked, for the thread and after it was picked on.</summary>
+    private string? comparing, compareMode;
+
+    /// <summary>What a comparison shows: what the author picked for it, else the wipe where there is an after and
+    /// the board now where there is not.</summary>
+    private string CompareMode(Comparison compared) =>
+        comparing == compared.Key && compareMode is { } picked ? picked
+        : compared.After is not null ? SketchNoteCompare.Modes.Wipe : SketchNoteCompare.Modes.Now;
+
+    /// <summary>The board's latest change where it is newer than the pictures, or null.</summary>
+    private long? Landed => Changes.Count > 0 && Changes[^1] > DrawnAt ? Changes[^1] : null;
+
     private MapViewDto? Shown => Views?.Views.FirstOrDefault(view => view.Id == shownId) ?? Views?.Views.FirstOrDefault();
     private IReadOnlyCollection<string> ViewIds => Views?.Views.Select(view => view.Id).ToHashSet() ?? [];
     private MapNoteDto? Current => notes.FirstOrDefault(note => note.Id == currentId);
@@ -109,15 +153,15 @@ public partial class SketchInGamePhase
 
     protected override async Task OnParametersSetAsync()
     {
-        if (!mayNote || notesRound == Round) return;
-        notesRound = Round;
+        if (!mayNote || notesRound == (Round, Tick)) return;
+        notesRound = (Round, Tick);
         await LoadNotesAsync();
-        if (!openedFromLink && LinkedNote is { } linked && notes.FirstOrDefault(note => note.Id == linked) is { } found)
+        if (LinkedNote is { } linked && notes.FirstOrDefault(note => note.Id == linked) is { } found)
         {
-            openedFromLink = true;
             currentId = found.Id;
             step = NotesStep.Thread;
             if (found.Anchor.ViewId is { } view) shownId = view;
+            await OnLinkOpened.InvokeAsync();
         }
     }
 
@@ -366,14 +410,19 @@ public partial class SketchInGamePhase
         finally { StateHasChanged(); }
     }
 
-    private async Task ChangeAsync(string status)
+    private Task ChangeAsync(string status) => PatchAsync(new NoteChangeRequest(status));
+
+    /// <summary>Change the open thread's tag; empty clears it.</summary>
+    private Task RetagAsync(string tag) => PatchAsync(new NoteChangeRequest(Tag: tag));
+
+    private async Task PatchAsync(NoteChangeRequest change)
     {
         if (Current is not { } note) return;
         busy = true;
         notesError = null;
         try
         {
-            var answer = await Http.PatchAsJsonAsync($"api/map/{Slug}/notes/{note.Id}", new NoteChangeRequest(status));
+            var answer = await Http.PatchAsJsonAsync($"api/map/{Slug}/notes/{note.Id}", change);
             if (!answer.IsSuccessStatusCode) notesError = await ServerRefusal.SentenceAsync(answer);
             else await LoadNotesAsync();
         }

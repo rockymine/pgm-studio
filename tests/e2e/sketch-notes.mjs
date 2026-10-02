@@ -2,8 +2,9 @@
  * The Sketch tool's In game notes: Send is off until something is written, says it is sending and then that it
  * sent, and one press is one note however many clicks land; a reply joins the thread on the author's side; a
  * mark on a picture of a board that has changed since is refused until the pictures are drawn again, and the
- * note then records the change it was drawn at; a thread is resolved, opened from its link, and its "changes
- * since" open History.
+ * note then records the change it was drawn at; a thread with an after compares it with its before on the big
+ * picture, is retagged, declined and resolved, opens once from its link, counts the changes since its note and
+ * opens History on them, where the threads written in that span are listed and open again in In game.
  *
  * In game draws with Minecraft's block textures, which a studio has only when given them
  * (`Textures__AcceptMojangEula=true`, as CI runs it, or `Textures__Jar`). Without them there is no picture to
@@ -78,7 +79,7 @@ if (views.undrawable) {
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   };
   await point();
-  const redraw = page.getByRole("button", { name: "Draw the pictures again" });
+  const redraw = page.getByRole("button", { name: "Draw the pictures again" }).first();
   await redraw.waitFor({ timeout: 30000 });
   const refused = (await page.locator(".notes-column__anchor p").textContent()) ?? "";
   checks.add("the mark says the board has changed", refused.includes("has changed"), refused.trim());
@@ -97,20 +98,48 @@ if (views.undrawable) {
   checks.add("the note lands at the change the new pictures are of", second?.messages[0]?.change === latest,
     `${second?.messages[0]?.change} against ${latest}`);
 
-  checks.section("a thread is resolved, opened from its link, and its changes since open History");
+  checks.section("a thread is resolved");
   await page.click("text=Resolve");
   await page.waitForSelector(".notes-column__threadhead .note-status--resolved", { timeout: 15000 });
   checks.add("Resolve closes the thread", (await notes()).find((note) => note.id === second.id)?.status === "resolved");
+
+  checks.section("a thread with an after compares it with its before on the big picture");
+  await api(`/map/${draft.slug}/notes/${first.id}/replies`,
+    { method: "POST", body: { body: "Here is the after.", status: "answered", picture: first.messages[0].picture } });
   await page.goto(`${BASE}/maps/${draft.slug}/sketch?phase=ingame&note=${first.id}`, { waitUntil: "networkidle" });
   await page.waitForSelector(".notes-column__threadtitle", { timeout: 60000 });
   const opened = await page.locator(".note-message__body").first().textContent();
   checks.add("?note= opens that thread", opened === "The tree on the left floats.", opened ?? "");
+  checks.add("and the link leaves the address", !page.url().includes("note="), page.url());
+  await page.waitForSelector(".note-compare__seam", { timeout: 15000 });
+  const tabs = await page.locator(".note-compare__tabs button").allTextContents();
+  checks.add("it opens on the wipe, with before, after and now", tabs.join(",") === "Before,After,Now,Wipe", tabs.join(","));
+  await page.click(".note-compare__tabs >> text=Now");
+  checks.add("Now draws the note's camera over the board as it stands",
+    (await page.locator(".note-compare__picture").getAttribute("src"))?.includes("render/eye?eye=") ?? false);
+
+  checks.section("a thread is retagged and declined in the browser");
+  await page.selectOption("#thread-tag", "terrain");
+  await page.waitForTimeout(1000);
+  checks.add("the tag is changed", (await notes()).find((note) => note.id === first.id)?.tag === "terrain");
+  await page.click("text=Won't do");
+  await page.waitForSelector(".notes-column__threadhead .note-status--wont-do", { timeout: 15000 });
+  checks.add("Won't do declines it", (await notes()).find((note) => note.id === first.id)?.status === "wont-do");
+
+  checks.section("the changes since the note open History, which lists the threads written there");
   const since = page.locator(".notes-column__since");
-  checks.add("the thread counts the change since its last message", (await since.textContent())?.startsWith("1 change"),
-    (await since.textContent())?.trim() ?? "");
-  await since.click();
+  checks.add("the thread counts the change since its note", (await since.first().textContent())?.trim().startsWith("1 change since the note"),
+    (await since.first().textContent())?.trim() ?? "");
+  checks.add("and offers no second link while the last message has nothing since", (await since.count()) === 1);
+  await since.first().click();
   await page.waitForSelector(".change-edit", { timeout: 30000 });
-  checks.add("and opens History on it", page.url().includes("phase=history") || (await page.locator(".list-row--selected").count()) > 0);
+  checks.add("and opens History on it", (await page.locator(".list-row--selected").count()) > 0);
+  const listed = page.locator(".notes-row", { hasText: "Still floating" });
+  await listed.waitFor({ timeout: 15000 });
+  checks.add("History lists the thread written in the span", (await listed.count()) === 1);
+  await listed.click();
+  await page.waitForSelector(".notes-column__threadtitle", { timeout: 60000 });
+  checks.add("and opens it in In game", (await page.locator(".note-message__body").first().textContent()) === "Still floating after the move.");
 }
 
 checks.add("sketch notes is clean", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));

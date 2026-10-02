@@ -8454,9 +8454,32 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   who issued the token. History names a change's writer the same way (`Writers`). A thread opens on its newest
   message and follows each one that lands. `docs/tools/sketch.md` § Notes. (`TS143`)
 
+- **A note's before and after, side by side (`TS138`)** — an agent's `answered` reply on a picture note, at the
+  board's latest change and naming no picture, carries the note's camera drawn over the board as stored, taking a
+  build-queue turn only then (`BuildQueue.TurnOfAsync`). An open thread shows its pictures on the big picture —
+  Before, After, Now and a Wipe whose seam is dragged across it, which a thread with an after opens on — with the
+  note's mark on each. `docs/tools/sketch.md` § Notes, § Answering the notes an author left, `docs/access.md`.
+  (`TS138`)
+
+- **A thread and the changes that answer it (`TS131`, `TS132`, `TS133`)** — History lists under a span the threads
+  with a message written in it and opens each in In game; a thread counts the changes since its note, with a
+  second link for those since its last message where they differ; and coming back to History draws the span it
+  showed. `docs/tools/sketch.md` § In game, § History. (`TS131`, `TS132`, `TS133`)
+
+- **In game follows the board (`TS136`, `TS134`, `TS135`, `TS137`)** — the phase reads the board's changes and
+  its notes again every 30 seconds and when the tab comes back, and says over the picture when a change has
+  landed that the pictures do not show; a `?note=` link opens once and leaves the address; a refused let-go or
+  map picture is said over the gallery; and a thread is declined and retagged in the browser.
+  `docs/tools/sketch.md` § In game. (`TS136`, `TS134`, `TS135`, `TS137`)
+
+- **What is new since a scheduled check (`TS145`)** — `GET /api/notes?since=` keeps the threads whose last message
+  or status change is at or after an ISO 8601 instant, so a check on a schedule asks what is waiting and starts a
+  revision only where something is. `docs/tools/sketch.md` § Answering the notes an author left. (`TS145`)
+
 - **A browser test for In game's notes (`TS139`)** — `tests/e2e/sketch-notes.mjs` writes a note, double-clicks
   Send for one note, replies, refuses a mark on a picture of a changed board and lands it after the redraw,
-  resolves a thread, opens one from `?note=` and follows its changes since into History. CI runs the sweep
+  resolves, compares, retags and declines a thread, opens one from `?note=` and follows its changes since into
+  History and back. CI runs the sweep
   with Mojang's EULA accepted and the client jar cached, so the notes are written on real pictures; a studio
   without block textures checks only that the phase says why. `docs/tools/sketch.md`, `docs/cloud-setup.md`.
   (`TS139`)

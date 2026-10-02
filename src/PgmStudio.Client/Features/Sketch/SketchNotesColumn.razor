@@ -50,12 +50,25 @@
           <b class="notes-column__threadtitle">@Title(note)</b>
           <span class="@StatusClass(note.Status)">@NoteStatuses.Label(note.Status)</span>
         </div>
-        @if (note.Tag is { } noteTag) { <span class="notes-column__tag">@noteTag</span> }
-        @if (ChangesSince(note) is > 0 and var since)
+        <div class="notes-column__threadmeta">
+          <label class="notes-column__label" for="thread-tag">Tag</label>
+          <select id="thread-tag" class="field-input notes-column__tagpick" value="@(note.Tag ?? "")" disabled="@Busy"
+                  @onchange="e => OnRetag.InvokeAsync(e.Value?.ToString() ?? string.Empty)">
+            <option value="">none</option>
+            @foreach (var word in NoteTags.All) { <option value="@word">@word</option> }
+          </select>
+        </div>
+        @if (Since(note, FirstChange(note)) is > 0 and var sinceNote)
         {
-          <button type="button" class="notes-column__since" @onclick="() => OnChangesSince.InvokeAsync(LastChange(note))">
-            @since @(since == 1 ? "change" : "changes") since the last message ›
+          <button type="button" class="notes-column__since" @onclick="() => OnChangesSince.InvokeAsync(FirstChange(note))">
+            @Changed(sinceNote) since the note ›
           </button>
+          @if (note.Messages.Count > 1 && Since(note, LastChange(note)) is > 0 and var sinceLast && sinceLast != sinceNote)
+          {
+            <button type="button" class="notes-column__since" @onclick="() => OnChangesSince.InvokeAsync(LastChange(note))">
+              @Changed(sinceLast) since the last message ›
+            </button>
+          }
         }
       </div>
       <div class="notes-column__thread" @ref="thread">
@@ -100,6 +113,11 @@
           @if (note.Status != NoteStatuses.Resolved)
           {
             <Button Icon="check" OnClick="OnResolve" Busy="Busy" BusyLabel="Resolving…">Resolve</Button>
+          }
+          @if (note.Status != NoteStatuses.Resolved && note.Status != NoteStatuses.WontDo)
+          {
+            <Button Icon="x" OnClick="OnWontDo" Busy="Busy" BusyLabel="Declining…"
+                    Title="Close it as not to be done; it stays listed, and Reopen hands it back">Won't do</Button>
           }
         </div>
       </div>

@@ -1905,6 +1905,13 @@ button.app-footer-link { border: 0; background: none; padding: 0; font: inherit;
 .ingame { flex: 1; min-height: 0; overflow: auto; padding: var(--space-4); }
 .ingame__note { margin: var(--space-4) 0; max-width: 72ch; color: var(--text-secondary); }
 .ingame__note--warn { color: var(--color-warning); }
+.ingame__main > .ingame__note { margin: 0 0 var(--space-2); }
+.ingame__moved {
+  display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-warning); border-radius: var(--radius-sm); background: var(--color-warning-bg);
+  color: var(--color-warning); font-size: var(--font-sm);
+}
+.ingame__moved > span { flex: 1; }
 
 /* The stage: one picture enlarged with the gallery under it, and the notes column beside them. */
 .ingame--stage { display: flex; gap: var(--space-3); overflow: hidden; }
@@ -1921,6 +1928,33 @@ button.app-footer-link { border: 0; background: none; padding: 0; font: inherit;
 .ingame__frame { position: relative; width: min(100%, calc((100vh - 400px) * 16 / 9)); min-width: 320px; }
 .ingame__picture { border-radius: var(--radius-md); }
 .ingame__marks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* A note's before, after and now on the big picture. The wipe lays the after over the before up to a seam; the
+   range input covers the whole picture, invisibly, so a press anywhere moves the seam there. */
+.note-compare { position: relative; width: 100%; margin: 0; overflow: hidden; border-radius: var(--radius-md); background: var(--bg-deep); }
+.note-compare__picture { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.note-compare__seam {
+  position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35); pointer-events: none;
+}
+.note-compare__seam::after {
+  content: "◀ ▶"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  padding: 2px 6px; border-radius: 10px; background: #fff; color: #0f172a; font-size: 10px; white-space: nowrap;
+}
+.note-compare__range {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize;
+  -webkit-appearance: none; appearance: none;
+}
+.note-compare__label {
+  position: absolute; bottom: 8px; padding: 2px 8px; border-radius: 6px; pointer-events: none;
+  background: rgba(15, 23, 42, 0.72); color: #fff; font-size: var(--font-sm);
+}
+.note-compare__label--left { left: 8px; }
+.note-compare__label--right { right: 8px; }
+.note-compare__tabs {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; padding: 4px;
+  border-radius: 8px; background: color-mix(in srgb, var(--bg-panel) 85%, transparent);
+}
 .ingame__mark { fill: rgba(37, 99, 235, 0.14); stroke: #2563eb; stroke-width: 3; stroke-dasharray: 9 6; vector-effect: non-scaling-stroke; }
 .ingame__mark--open { fill: rgba(250, 204, 21, 0.16); stroke: #facc15; }
 .ingame__trap { position: absolute; inset: 0; z-index: 2; cursor: crosshair; touch-action: none; }
@@ -2020,7 +2054,6 @@ button.app-footer-link { border: 0; background: none; padding: 0; font: inherit;
 .notes-column__back { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer; }
 .notes-column__threadhead { display: flex; align-items: center; gap: var(--space-2); }
 .notes-column__threadtitle { flex: 1; min-width: 0; color: var(--text-strong); }
-.notes-column__tag { align-self: flex-start; font-size: 10px; padding: 1px 6px; border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); }
 .notes-column__anchor {
   display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2);
   border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--bg-selected);
@@ -2034,6 +2067,7 @@ button.app-footer-link { border: 0; background: none; padding: 0; font: inherit;
 .notes-column__hint { flex: 1; color: var(--text-muted); font-size: 11px; }
 .notes-column__sent { flex: 1; color: var(--color-success); font-size: var(--font-sm); font-weight: 600; }
 .notes-column__tagpick { width: auto; }
+.notes-column__threadmeta { display: flex; align-items: center; gap: var(--space-2); }
 .notes-column__since {
   align-self: flex-start; padding: 0; border: 0; background: none; cursor: pointer;
   color: var(--accent); font-size: var(--font-sm);

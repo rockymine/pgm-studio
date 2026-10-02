@@ -48,7 +48,8 @@
          the shared body below comes back for it. *@
       @if (InGameActive && !placingView)
       {
-        <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Round="viewRound" LinkedNote="Note"
+        <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Refusal="@viewsRefusal" Round="viewRound" Tick="followTick"
+                           LinkedNote="linkedNote" OnLinkOpened="LinkOpened"
                            OnBack="GoDressing" OnPlace="PlaceView" OnLetGo="LetGoView" OnPicture="PictureView"
                            Changes="ChangeNumbers" OnChangesSince="ShowChangesSince" OnRedraw="RedrawInGame" />
       }
@@ -321,7 +322,8 @@
           <div class="sidebar-handle"></div>
           <SketchChangeInspector Change="SpanChange" From="spanFrom" To="@(spanTo ?? 0)" Latest="LatestChange"
                                  Diff="spanDiff" World="spanWorld" WorldError="@spanWorldError"
-                                 Restoring="restoring" RestoreError="@restoreError" OnRestore="RestoreAsync" />
+                                 Restoring="restoring" RestoreError="@restoreError" OnRestore="RestoreAsync"
+                                 Notes="SpanNotes" OnOpenNote="OpenNoteFromHistory" />
         }
         else if (DressingActive)
         {
