@@ -40,9 +40,27 @@ public sealed class BlockFacesTests
     }
 
     [Test]
+    public async Task A_hay_bale_shows_its_cut_end_on_the_axis_it_lies_along()
+    {
+        await Assert.That(BlockFaces.Of(170, 0)!.Value.Grain).IsEqualTo(Grain.Up);
+        await Assert.That(BlockFaces.Of(170, 4)!.Value.Grain).IsEqualTo(Grain.AlongX);
+        await Assert.That(BlockFaces.Of(170, 8)!.Value).IsEqualTo(
+            new BlockFaces("hay_block_top", "hay_block_side", FaceForm.Cube, Grain: Grain.AlongZ));
+    }
+
+    [Test]
+    public async Task A_dispenser_wears_its_front_on_the_side_it_faces_and_none_facing_up()
+    {
+        var east = BlockFaces.Of(23, 5)!.Value;
+        await Assert.That((east.Front, east.Facing)).IsEqualTo(("dispenser_front_horizontal", RoomEdge.PosX));
+        await Assert.That(BlockFaces.Of(23, 1)!.Value.Front).IsNull();
+        await Assert.That(BlockFaces.Of(61, 2)!.Value.Front).IsEqualTo("furnace_front_off");
+    }
+
+    [Test]
     public async Task What_no_shape_is_named_for_is_not_drawn()
     {
-        foreach (var id in (int[])[0, 63, 64, 66, 77])
+        foreach (var id in (int[])[0, 93, 94, 117, 131])
             await Assert.That(BlockFaces.Of(id, 0)!.Value.Form).IsEqualTo(FaceForm.Hidden);
     }
 
@@ -120,5 +138,22 @@ public sealed class BlockFacesTests
         var grass = BlockFaces.Of(2, 0)!.Value;
         await Assert.That(grass.Side).IsEqualTo("grass_side");
         await Assert.That(grass.SideOverlay).IsEqualTo("grass_side_overlay");
+    }
+
+    [Test]
+    public async Task The_detail_blocks_are_drawn_in_the_sprites_named_for_them()
+    {
+        foreach (var (id, data, top, side) in ((int, int, string, string)[])
+                 [(63, 0, "planks_oak", "planks_oak"), (96, 0, "trapdoor", "trapdoor"),
+                  (167, 0, "iron_trapdoor", "iron_trapdoor"), (101, 0, "iron_bars", "iron_bars"),
+                  (64, 0, "door_wood_lower", "door_wood_lower"), (64, 8, "door_wood_upper", "door_wood_upper"),
+                  (197, 0, "door_dark_oak_lower", "door_dark_oak_lower"), (27, 8, "rail_golden_powered", "rail_golden"),
+                  (151, 0, "daylight_detector_top", "daylight_detector_side"),
+                  (178, 0, "daylight_detector_inverted_top", "daylight_detector_side"),
+                  (154, 0, "hopper_top", "hopper_outside"), (26, 8, "bed_head_top", "bed_head_side")])
+        {
+            var faces = BlockFaces.Of(id, data)!.Value;
+            await Assert.That((faces.Form, faces.Top, faces.Side)).IsEqualTo((FaceForm.Cube, top, side));
+        }
     }
 }
