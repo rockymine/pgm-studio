@@ -22,7 +22,7 @@
       <NavButton Icon="layout-dashboard" Title="Plans" Href="maps?stage=plan" Active="CurrentStage == MapStage.Plan" />
       <NavButton Icon="pencil-ruler" Title="Sketches" Href="maps?stage=sketch" Active="CurrentStage == MapStage.Sketch" />
       <NavButton Icon="settings-2" Title="Configuring" Href="maps?stage=configure" Active="CurrentStage == MapStage.Configure" />
-      <NavButton Icon="map" Title="Maps" Href="maps" Active="CurrentStage == MapStage.Edit" />
+      <NavButton Icon="map" Title="Maps" Href="maps" Active="CurrentStage is null" />
     </NavRail>
   </Rail>
   <ChildContent>
@@ -79,7 +79,8 @@
                     <ChildContent>
                       <span class="list-label map-row-name">@m.Name</span>
                       <span class="list-label list-label--mono map-row-slug">@m.Slug</span>
-                      @if (CurrentStage == MapStage.Edit)
+                      @if (CurrentStage is null) { <Badge Kind="neutral">@StageLabel(m.Stage)</Badge> }
+                      @if (CurrentStage is null or MapStage.Edit)
                       {
                         @* one tag per gamemode: a map can be more than one, and a map with no objective
                            module we read carries none rather than a blank tag *@

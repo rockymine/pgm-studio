@@ -41,7 +41,7 @@ public sealed class MapsListEndpointTests
         var counts = await client.GetFromJsonAsync<JsonElement>("/api/maps/stage-counts");
         await Assert.That(counts.GetProperty("sketch").GetInt32()).IsEqualTo(1);
         await Assert.That(counts.GetProperty("configure").GetInt32()).IsEqualTo(0);
-        await Assert.That(counts.GetProperty("edit").GetInt32()).IsEqualTo(0);
+        await Assert.That(counts.GetProperty("all").GetInt32()).IsEqualTo(1);
     }
 
     [Test]
@@ -86,6 +86,7 @@ public sealed class MapsListEndpointTests
         var counts = await client.GetFromJsonAsync<JsonElement>("/api/maps/stage-counts");
         await Assert.That(counts.GetProperty("sketch").GetInt32()).IsEqualTo(1);
         await Assert.That(counts.GetProperty("configure").GetInt32()).IsEqualTo(1);
+        await Assert.That(counts.GetProperty("all").GetInt32()).IsEqualTo(1);
     }
 
     [Test]

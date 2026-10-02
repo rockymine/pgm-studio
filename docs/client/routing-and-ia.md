@@ -25,7 +25,7 @@ phase a tool opens on (`?phase=info`), the row a listing should highlight (`?jus
 | Route | Component | Is |
 |---|---|---|
 | `/` | `Index` | the landing — seven cards over live counts |
-| `/maps` | `Maps` | the map collections; `?stage=plan\|sketch\|configure` selects one, absent means Maps |
+| `/maps` | `Maps` | the map collections; `?stage=plan\|sketch\|configure\|edit` selects one, absent lists every map |
 | `/maps/{slug}/plan` | `PlanTool` | the plan tool on a map |
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
 | `/maps/{slug}/configure` | `ConfigureTool` | the configure wizard |
@@ -65,22 +65,24 @@ module.
 
 ## The collections
 
-`?stage=` selects one of four, and they are not the same kind of question. Two list **a layer a map holds**
-and two list **a stage a map stands at**, which is why a map appears in more than one.
+`/maps` lists every map in the studio, each row naming the stage it has reached, and `?stage=` narrows it to
+one of four collections that are not the same kind of question. Two list **a layer a map holds** and two list
+**a stage a map stands at**, which is why a map appears in more than one.
 
 | List | Shows | Primary action |
 |---|---|---|
 | **Plans** (`?stage=plan`) | every map holding a plan, including ones long since built | New plan |
 | **Sketches** (`?stage=sketch`) | every map holding a drawn sketch, including ones already configured | New sketch |
 | **Configuring** (`?stage=configure`) | maps standing at `configure` — terrain but no finished `map.xml` | Import a world |
-| **Maps** (`/maps`) | maps standing at `edit` — a finished `map.xml` | — |
+| **Finished** (`?stage=edit`) | maps standing at `edit` — a finished `map.xml`, which the corpus import writes and no authoring tool sets | — |
+| **Maps** (`/maps`) | every map, with its stage on the row | — |
 
 A row opens the tool at its map's stage. A map at `edit` has no tool at its stage, so its row opens the last
 layer it holds — Configure, where it has a world — and one holding no layer is listed without a link.
 
 A map keeps every layer it has ever had, so "every map with a plan" and "every map at the plan stage" are
 different collections; each list says which in its own blurb. `GET /api/maps[?stage=…]` serves them and
-`GET /api/maps/stage-counts` the landing tallies, each counting exactly what its list does — so a card and the
+`GET /api/maps/stage-counts` the landing tallies (sketches, configuring, and every map), each counting exactly what its list does — so a card and the
 page it opens cannot disagree.
 
 ## The landing

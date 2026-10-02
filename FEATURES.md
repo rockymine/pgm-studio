@@ -26,6 +26,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A content page scrolls at the window's edge (`C84`).** `ContentColumn` and the start page scroll a
   full-width area with the capped column inside it, so the scrollbar stands at the window's edge rather than
   against the column; `MaxWidth` is the content's own width.
+- **`/maps` lists every map, by stage (`C86`).** With no `?stage=` the page lists every map in the studio and
+  names each row's stage, so it is useful from the first map; Plans, Sketches and Configuring narrow it, and
+  `?stage=edit` reads *Finished*. The landing's Maps card counts every map (`MapStageCounts.All`).
 - **`/maps` says when it could not load (`C85`).** A failed list request, such as a 502 while the studio
   restarts, shows a sentence and *Try again* rather than taking the page down.
 - **Map-centric URL structure** — the map is the path resource, the mode a trailing segment. Live:
