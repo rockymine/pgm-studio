@@ -169,6 +169,15 @@ public partial class SketchTool
 
     private IReadOnlyList<MapViewDto> KeptViews => views?.Views.Where(view => view.Kept).ToList() ?? [];
 
+    /// <summary>Draw In game's pictures again over the board as it is stored now. The views are asked for before
+    /// the round moves, so the build queue answers them ahead of the pictures the new round asks for.</summary>
+    private async Task RedrawInGame()
+    {
+        await LoadViewsAsync(clear: false);
+        viewRound++;
+        await LoadChangesAsync();
+    }
+
     private async Task GoInGame()
     {
         placingView = false;
@@ -348,11 +357,16 @@ public partial class SketchTool
         }
     }
 
-    private async Task LoadViewsAsync()
+    /// <summary>Read the views again. Clearing first shows the phase reading; a redraw keeps the gallery up, so a
+    /// note half written beside it stays.</summary>
+    private async Task LoadViewsAsync(bool clear = true)
     {
-        views = null;
         viewsError = null;
-        StateHasChanged();
+        if (clear)
+        {
+            views = null;
+            StateHasChanged();
+        }
         try { views = await Http.GetFromJsonAsync<MapViewsDto>($"api/map/{Slug}/views"); }
         catch { viewsError = "The views could not be read — the studio could not be reached."; }
         if (handle is not null)

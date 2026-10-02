@@ -315,12 +315,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Topbar` under it keeps the trail, a *View only* tag on a read-only page, and the tool's own actions; the
   logo left the tools' rails, and the keyboard shortcuts moved to the footer every page now carries, beside the
   `?` that opens them anywhere. `docs/client/routing-and-ia.md`, `docs/client/ui-conventions.md`.
-- **A player's head again, served by the studio (C65).** `GET /api/minecraft/player/{uuid}/skin` fetches the
-  skin from Mojang's session and texture servers — only `textures.minecraft.net`, over https, a PNG of at most
-  64 KB — and keeps it thirty days beside the name (`minecraft_player.skin_png`, `M0044`). `PlayerHead` cuts the
-  face and hat out of it in CSS over the initial the row already drew, so the head is back in the author rows,
-  the top bar and the whitelist, and nothing is fetched from the browser to a third party. A skin that cannot
-  be had leaves the initial.
+- **A player's head again, served by the studio (C65).** The studio fetches a skin from Mojang's session and
+  texture servers — only `textures.minecraft.net`, over https, a PNG of at most 64 KB — and keeps it thirty days
+  beside the name (`minecraft_player.skin_png`, `M0044`). `PlayerHead` draws the head over the initial the row
+  already drew, so the head is back in the author rows, the top bar and the whitelist, and nothing is fetched
+  from the browser to a third party. A skin that cannot be had leaves the initial.
+- **A head as the game draws it (C68).** `GET /api/minecraft/player/{uuid}/head` answers the front of the head as
+  an 8×8 PNG, the face with the hat over it (`SkinHead`), and drops a hat area that is opaque everywhere the way
+  the game does — an old 64×32 skin filled black there showed a black square. `docs/client/ui-conventions.md`.
+- **A disabled button looks off (C67).** `:disabled` drops a `Button`'s variant colour with its strength and takes
+  no hover, so an empty note's primary Send no longer reads as a pale button to press; a busy one keeps its
+  colour (`action-btn--busy`). `docs/client/ui-conventions.md`.
 - **One keyboard, one registry, and the help is generated from it (C53).** `wwwroot/js/studio/shared/keys.js`
   owns the app's single `keydown` listener and the registry every binding lives in. An entry is
   `{ id, keys, label, group, run, when?, priority?, inField?, passive? }`, and `label` and `group` are
@@ -8432,6 +8437,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the note's own picture as its after, and `?note={id}` on the Sketch route opens the In game phase on that
   thread, the link a resolved `ruling` carries into `docs/gameplay/approaches.md`. The mapgen skills read the open
   notes first and reply on every note a drive answered. `docs/tools/sketch.md`. (`TS118`)
+
+- **Sending a note says what it is doing (`TS140`)** — Send is off until something is written, reads *Sending…*
+  from the press on and *Note sent* or *Reply sent* once it lands; one press is one note however many clicks
+  follow, and Ctrl+Enter sends. The notes column owns the sending, since a busy flag handed down from the phase
+  reached the button only after the send returned. `docs/tools/sketch.md` § Notes. (`TS140`)
+
+- **A note is written at the change its picture shows (`TS141`, `TS142`)** — `GET …/views` and
+  `GET …/render/eye/pick` each answer the map's `change`; a mark whose pick read a later change than the
+  pictures were listed at is refused with both numbers and **Draw the pictures again**, which keeps the note's
+  text and re-arms its tool, and the note states the change its picture shows. A note whose picture the browser
+  could not keep is not sent. `docs/tools/sketch.md` § Notes, `docs/world-scan/read-backs.md`. (`TS141`, `TS142`)
+
+- **A thread reads as a chat (`TS143`)** — each message a bubble beside its writer's mark: a person's head, the
+  reader's own on the right, and an agent named by its token's label beside an *AI* mark, never by the person
+  who issued the token. History names a change's writer the same way (`Writers`). A thread opens on its newest
+  message and follows each one that lands. `docs/tools/sketch.md` § Notes. (`TS143`)
+
+- **A browser test for In game's notes (`TS139`)** — `tests/e2e/sketch-notes.mjs` writes a note, double-clicks
+  Send for one note, replies, refuses a mark on a picture of a changed board and lands it after the redraw,
+  resolves a thread, opens one from `?note=` and follows its changes since into History. On a studio without
+  block textures it checks only that the phase says why. `docs/tools/sketch.md`. (`TS139`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning

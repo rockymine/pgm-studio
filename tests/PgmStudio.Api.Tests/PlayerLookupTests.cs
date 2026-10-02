@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
+using PgmStudio.Geom.Render;
 
 namespace PgmStudio.Api.Tests;
 
@@ -16,6 +17,7 @@ namespace PgmStudio.Api.Tests;
 public sealed class PlayerLookupTests
 {
     private const string NotchUuid = "069a79f4-44e9-4726-a5be-fca90e38aaf5";
+    private const string JebUuid = "853c80ef-3c37-49fd-aa49-938b674adae6";
 
     /// <summary>A handler that never answers: reaching it is the failure the test is looking for.</summary>
     private sealed class Unreachable : HttpMessageHandler
@@ -185,19 +187,32 @@ public sealed class PlayerLookupTests
     /// <summary>The route serves a kept skin as a PNG from the studio's own origin, and answers 404 in the
     /// envelope for a uuid that is not one.</summary>
     [Test]
-    public async Task The_skin_route_serves_the_kept_skin()
+    public async Task The_head_route_draws_the_face_of_the_kept_skin()
     {
+        // A skin with the face one colour and every other pixel another: the hat area is opaque everywhere, so
+        // the game draws no hat and the head is the face alone.
+        var rgb = new byte[64 * 32 * 3];
+        for (var at = 0; at < rgb.Length; at += 3) (rgb[at], rgb[at + 1], rgb[at + 2]) = ((byte)20, (byte)40, (byte)60);
+        for (var y = 8; y < 16; y++)
+            for (var x = 8; x < 16; x++) (rgb[((y * 64) + x) * 3], rgb[((y * 64) + x) * 3 + 1], rgb[((y * 64) + x) * 3 + 2]) = ((byte)200, (byte)150, (byte)100);
         await ApiTestFactory.ResetSchemaAsync();
         using (var scope = ApiTestFactory.Shared.Services.CreateScope())
-            await scope.ServiceProvider.GetRequiredService<PlayerNameStore>()
-                .KeepSkinAsync(NotchUuid, "Notch", SkinServer.Png);
+        {
+            var names = scope.ServiceProvider.GetRequiredService<PlayerNameStore>();
+            await names.KeepSkinAsync(NotchUuid, "Notch", PngWriter.Encode(64, 32, rgb));
+            await names.KeepSkinAsync(JebUuid, "jeb_", SkinServer.Png);
+        }
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        using var skin = await client.GetAsync($"/api/minecraft/player/{NotchUuid}/skin");
-        await Assert.That(skin.Content.Headers.ContentType?.MediaType).IsEqualTo("image/png");
-        await Assert.That(await skin.Content.ReadAsByteArrayAsync()).IsEquivalentTo(SkinServer.Png);
+        using var head = await client.GetAsync($"/api/minecraft/player/{NotchUuid}/head");
+        await Assert.That(head.Content.Headers.ContentType?.MediaType).IsEqualTo("image/png");
+        var drawn = PngReader.Decode(await head.Content.ReadAsByteArrayAsync());
+        await Assert.That((drawn.Width, drawn.Height)).IsEqualTo((8, 8));
+        await Assert.That(drawn.Rgba[..4]).IsEquivalentTo(new byte[] { 200, 150, 100, 255 });
 
-        using var none = await client.GetAsync("/api/minecraft/player/not-a-uuid/skin");
+        using var unreadable = await client.GetAsync($"/api/minecraft/player/{JebUuid}/head");
+        await Assert.That(unreadable.StatusCode).IsEqualTo(System.Net.HttpStatusCode.NotFound);
+        using var none = await client.GetAsync("/api/minecraft/player/not-a-uuid/head");
         await Assert.That(none.StatusCode).IsEqualTo(System.Net.HttpStatusCode.NotFound);
     }
 }

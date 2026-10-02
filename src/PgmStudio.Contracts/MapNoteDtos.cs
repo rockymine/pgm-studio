@@ -34,9 +34,11 @@ public sealed record PixelDto(int X, int Y);
 /// <param name="Sky">How many of the mark's pixels hit nothing.</param>
 /// <param name="Standing">The height of the ground under the camera — the top block a player would stand on
 /// there — or null where the camera is over the void; a camera at a player's eye is 2.62 over it.</param>
+/// <param name="Change">The map's latest change when the pick was cast: the board it read. A picture listed at an
+/// earlier change shows a board this one may not be.</param>
 public sealed record EyePickDto(
     EyeCameraDto Camera, string Query, BlockAtDto? Hit, BlockAtDto? Ground, IReadOnlyList<int[]> Columns, int Sky,
-    int? Standing = null);
+    int? Standing, long Change);
 
 /// <summary>
 /// What a note is pinned to. A <c>map</c> note names nothing spatial. Every other kind was written on a picture

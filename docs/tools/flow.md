@@ -524,7 +524,7 @@ a new map through them means writing every region, filter and apply-rule by hand
 | `GET /map/{slug}/regions/tree` · `/regions` | the region tree grouped by category, and the flat registry |
 | `PATCH /map/{slug}/metadata` | name, version, objective, max build height, authors |
 | `GET /minecraft/player[?name=\|uuid=]` | one player as `{uuid, name}` — a typed username to the canonical uuid an author entry is stored under, and back. A value not shaped like an account name is never asked about, and a resolved pair is answered from `minecraft_player` for thirty days. **404** means no account is called that |
-| `GET /minecraft/player/{uuid}/skin` | the player's skin as a PNG, served from the studio so a browser draws a head without asking a third party; fetched from Mojang's texture server on first ask and kept thirty days beside the name. **404** means there is none to be had, and the client draws the player's initial instead |
+| `GET /minecraft/player/{uuid}/head` | the front of the player's head as an 8×8 PNG — the face with the hat over it, a hat area opaque everywhere dropped the way the game drops it — served from the studio so a browser draws a head without asking a third party; the skin is fetched from Mojang's texture server on first ask and kept thirty days beside the name. **404** means there is none to be had, and the client draws the player's initial instead |
 | `POST` · `PATCH` · `DELETE /map/{slug}/teams[/{teamId}]` | the teams |
 | `POST` · `PATCH` · `DELETE /map/{slug}/spawns[/{regionId}]` | a spawn's region, team, yaw and kit — the `kit` field names which kit the spawn grants, and nothing in the studio states what a kit contains |
 | `PATCH` · `DELETE /map/{slug}/observer-spawn` | the `<default>` spawn |

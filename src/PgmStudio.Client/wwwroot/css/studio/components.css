@@ -293,8 +293,7 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
   flex-shrink: 0;
   text-decoration: none;
 }
-.action-btn:hover           { background: var(--border); color: var(--text-bright); }
-.action-btn:disabled        { opacity: 0.35; cursor: default; }
+.action-btn:not(:disabled):hover { background: var(--border); color: var(--text-bright); }
 /* Icon-only variant — equal padding on all sides, and a 1:1 box so it stays square wherever it lands. The
    padding alone only squared it in a row that sized to content: in a stretching row the height comes from
    the row and the width stayed padding + glyph, which drew it as a tall pill. With the ratio the width is
@@ -309,11 +308,19 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
    of the studio already marks a state with (.filter-chip--active, .draw-tool-btn--active), in that
    meaning's own token — so a destructive action reads as destructive rather than as the Cancel beside it. */
 .action-btn--primary        { background: var(--bg-selected); border-color: var(--accent); color: var(--accent-lighter); }
-.action-btn--primary:hover  { background: var(--accent); border-color: var(--accent); color: var(--text-white); }
+.action-btn--primary:not(:disabled):hover  { background: var(--accent); border-color: var(--accent); color: var(--text-white); }
 .action-btn--danger         { background: var(--color-error-bg); border-color: var(--color-error); color: var(--color-error); }
-.action-btn--danger:hover   { background: var(--color-error); border-color: var(--color-error); color: var(--text-white); }
+.action-btn--danger:not(:disabled):hover   { background: var(--color-error); border-color: var(--color-error); color: var(--text-white); }
 .action-btn--warn           { background: var(--color-warning-bg); border-color: var(--color-warning); color: var(--color-warning); }
-.action-btn--warn:hover     { background: var(--color-warning); border-color: var(--color-warning); color: var(--text-on-status); }
+.action-btn--warn:not(:disabled):hover     { background: var(--color-warning); border-color: var(--color-warning); color: var(--text-on-status); }
+/* A disabled button drops its variant's colour as well as its strength, whatever the variant: a faded primary
+   is still a tinted fill with an accent edge, which reads as a lighter button rather than one that is off. A
+   busy one is disabled too, but it is working rather than off, so it keeps its colour. */
+.action-btn:disabled:not(.action-btn--busy) {
+  background: var(--bg-panel); border-color: var(--border); color: var(--text-muted);
+  opacity: 0.6; cursor: default;
+}
+.action-btn--busy { opacity: 0.8; cursor: progress; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    SMART SUGGESTION — sparkle-headed "intelligent" callout (reusable; <SmartSuggestion>)
@@ -1723,13 +1730,14 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 }
 .invite-link .field-input { flex: 1; font-family: ui-monospace, monospace; font-size: var(--font-xs); }
 
-/* A player's face and hat, cut from their skin over the initial beneath; a skin that does not load leaves
-   the initial showing. */
+/* A player's head over the initial beneath, eight pixels drawn large; a head that does not load leaves the
+   initial showing. */
 .author-mark { position: relative; overflow: hidden; }
 .player-head-face {
   position: absolute;
   inset: 0;
   background-repeat: no-repeat;
+  background-size: 100% 100%;
   image-rendering: pixelated;
 }
 .user-actions { display: flex; flex: none; align-items: center; gap: var(--space-2); }
@@ -2024,6 +2032,7 @@ button.app-footer-link { border: 0; background: none; padding: 0; font: inherit;
 .notes-column__label { font-size: var(--font-sm); color: var(--text-secondary); }
 .notes-column__send { display: flex; align-items: center; gap: var(--space-2); }
 .notes-column__hint { flex: 1; color: var(--text-muted); font-size: 11px; }
+.notes-column__sent { flex: 1; color: var(--color-success); font-size: var(--font-sm); font-weight: 600; }
 .notes-column__tagpick { width: auto; }
 .notes-column__since {
   align-self: flex-start; padding: 0; border: 0; background: none; cursor: pointer;
@@ -2057,10 +2066,37 @@ button.app-footer-link { border: 0; background: none; padding: 0; font: inherit;
 .notes-row__top b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notes-row__last { color: var(--text-secondary); font-size: var(--font-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.note-message { display: flex; flex-direction: column; gap: 4px; }
-.note-message--agent { padding: var(--space-2); border-radius: var(--radius-sm); background: var(--bg-base); }
-.note-message__who { font-size: 11px; color: var(--text-muted); }
+/* A thread reads as a chat: each message a bubble beside its writer's mark — a player's head for a person, an
+   AI mark for an agent. The caller's own sit on the right in the accent's tint, an agent's on the left in its
+   violet, and anyone else's on the left in the page's own colour. */
+.note-message { --agent-hue: #8b5cf6; display: flex; gap: var(--space-2); align-items: flex-start; }
+.note-message--mine { flex-direction: row-reverse; }
+.note-message__avatar { flex: none; display: inline-flex; }
+.note-message__avatar .author-mark { border-radius: 5px; }
+.agent-mark {
+  width: 28px; height: 28px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; user-select: none;
+  background: linear-gradient(135deg, var(--agent-hue), var(--accent));
+}
+.note-message__bubble {
+  min-width: 0; max-width: 88%; display: flex; flex-direction: column; gap: 4px;
+  padding: var(--space-2); border: 1px solid var(--border); border-radius: 10px 10px 10px 3px;
+  background: var(--bg-base);
+}
+.note-message--mine .note-message__bubble {
+  border-radius: 10px 10px 3px 10px; border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-panel));
+}
+.note-message--agent .note-message__bubble {
+  border-color: color-mix(in srgb, var(--agent-hue) 40%, var(--border));
+  background: color-mix(in srgb, var(--agent-hue) 12%, var(--bg-panel));
+}
+.note-message__who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; font-size: 11px; color: var(--text-muted); }
 .note-message__who b { color: var(--text-bright); }
-.note-message__body { line-height: 1.55; white-space: pre-wrap; }
+.note-message__badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; padding: 0 5px;
+  border-radius: 6px; color: var(--agent-hue); border: 1px solid color-mix(in srgb, var(--agent-hue) 50%, transparent);
+}
+.note-message__body { line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .note-message__picture { display: flex; flex-direction: column; gap: 2px; color: var(--text-muted); font-size: 10px; text-decoration: none; }
 .note-message__picture img { width: 100%; border-radius: var(--radius-sm); display: block; }

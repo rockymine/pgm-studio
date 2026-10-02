@@ -19,6 +19,11 @@ window.studio = {
     return box ? { width: box.width, height: box.height } : { width: 0, height: 0 };
   },
 
+  // Scroll a scrolling element to its end — a thread to its newest message.
+  scrollToEnd(el) {
+    if (el) el.scrollTop = el.scrollHeight;
+  },
+
   // Keep a picture for a note: the image at `src` (already in the browser's cache, since it is on screen) is
   // drawn to a canvas, encoded as WebP at quality 85 — a PNG where the browser cannot encode WebP — and posted
   // to api/notes/pictures. Answers the hash the studio names it by, or null where any step failed.

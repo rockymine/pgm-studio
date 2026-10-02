@@ -495,11 +495,17 @@ the author asked, and what the board did about it — and nothing yet joins them
   its picture is the note's camera, and have the studio draw it at the change the reply is written at.
   `docs/tools/sketch.md` § Answering the notes an author left.
 
-- [ ] **TS139 — A browser test for In game and its notes.** `tests/e2e` covers History (`sketch-history.mjs`)
-  and Report (`sketch-report.mjs`) and nothing of In game: no spec writes a note, replies, resolves one, opens a
-  thread from `?note=`, or follows "changes since" into History. Add one spec covering those five to
-  `./tools/e2e.sh all`; it is the test that would have caught `TS133` and `TS134`. `docs/tools/sketch.md` § In
-  game.
+- [ ] **TS144 — The author's reply can pin itself to the picture.** A reply is text only
+  (`SketchNotesColumn.razor`, the thread's compose box), so "no, *this* one" has to be said in words or written
+  as a second note. Let a reply carry a Point, Box or Lasso mark on the picture in view, projected and kept the
+  way a new note's anchor is (`NoteAnchorDto`), on the message rather than the note: a `NoteMessageDto.Mark`
+  beside its `Picture`, drawn on the picture while the thread is open. `docs/tools/sketch.md` § Notes.
+
+- [ ] **TS145 — An agent hears that notes are waiting.** *Parked (author): which channel?* Nothing tells an agent
+  a note was written; the author does (`docs/tools/sketch.md` § Answering the notes an author left). The studio
+  could fire a hook when a thread moves to `open`, an agent could ask `GET /api/notes?status=open&since=` on a
+  schedule, or a session could be woken through a routine — each needs the author's word on who is woken, how
+  often, and whether a note written on the deployed studio may wake anything at all.
 
 ## User Experience
 

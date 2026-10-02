@@ -1490,18 +1490,36 @@ draws it again.
 so the note stores the image it was written on: the browser encodes the picture on screen as WebP at quality 85
 and posts it to `POST /api/notes/pictures`, which keeps it once under its hash. A 1280×720 picture is about
 100 KB that way, a sixth of the PNG. An agent's reply carries the same camera drawn after its change, and the
-two are the before and after.
+two are the before and after. A note whose picture cannot be kept is not sent: the box keeps its text and says
+so, since a note on a picture it does not carry points at a board nobody can see again.
+
+**A note is written at the change its picture shows.** `GET …/views` answers the change the board stood at when
+the pictures were listed, and every pick answers the change it read. A mark whose pick read a later one — a
+drive landed while the phase was open — names no ground on the picture in view, so it is refused with both
+numbers and **Draw the pictures again**, which lists the views afresh, draws every picture again, keeps the
+note's text and arms the tool the mark was drawn with. The note states that change as its `change`, so a
+thread's count of the changes since starts where the author's picture did.
 
 **The tools sit in the dock at the bottom centre of the picture**: Point, Box and Lasso, and a switch that hides
 the notes' pins and marks. Arming a tool opens a new note; the column arms none. A mark is projected as soon as it
 is drawn, and the new note says what it landed on — the block and its ground, or how many columns and how much
 sky — before it can be sent.
 
+**Send is off until there is something to send, and says what it is doing.** It reads *Sending…* from the press
+on, and *Note sent* or *Reply sent* beside it once the message lands; a press is one note however many clicks
+follow it, and Ctrl+Enter (⌘+Enter) in either box sends it.
+
 **The column works in two steps.** The overview lists the notes on the picture in view under four filters — All,
 Waiting on you, With agent, Resolved — then the notes on the whole map, then any on a picture the gallery no
 longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **‹ All notes**
-goes back. A thread is its messages top to bottom, each with who wrote it, the token an agent wrote it with, and
-the change it was written at; its pictures; **Resolve** or **Reopen**; and the reply box. A new note shows
+goes back. A thread is its messages top to bottom, its pictures, **Resolve** or **Reopen**, and the reply box.
+
+**A thread reads as a chat.** It opens on its newest message and follows each one that lands. A message is a
+bubble beside its writer's mark, under their name, when it was written and the change it was written at. A
+person is their head and their name, and the reader's own messages sit on the right in the accent's tint. An
+agent is named by its token's label beside an *AI* mark, in a violet bubble on the left, and the hover says
+whose token it wrote with: a token acts as the person who issued it, and naming the agent by that person would
+show one writer answering itself. A new note shows
 what it is pinned to over its text box and an optional tag. The gallery counts each view's notes that are not
 resolved, and choosing another view switches the overview with it. `?note={id}` on the route opens the phase on
 that note's thread, which is the link a ruling written into `docs/gameplay/approaches.md` carries back to where it
@@ -2076,7 +2094,7 @@ drive reads back*).
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /map/{slug}/views` | `{views[], undrawable}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, yaw, query, eye, picture}`. `own` marks the straight-down view (`above`), kept by every board; `picture` the one the map's picture is drawn from — the kept view marked as it, else the `overview` suggestion; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null | 404 |
+| `GET /map/{slug}/views` | `{views[], undrawable, change}` — every view of the board: its own straight-down view first, then the studio's suggestions from the built board, then the others kept, each `{id, name, kept, own, lookX, lookZ, fromX, fromZ, y, pitch, yaw, query, eye, picture}`. `own` marks the straight-down view (`above`), kept by every board; `picture` the one the map's picture is drawn from — the kept view marked as it, else the `overview` suggestion; `eye` is the camera the view resolves to on the board as built — where an eye left to find its own place ends up — or null on a server with no block textures. A map with no sketch layout has no world to frame or suggest from and answers only what it kept. `undrawable` is why no picture can be drawn on this server, or null; `change` is the map's latest change when they were listed, the board the pictures are of | 404 |
 | `POST /map/{slug}/views` | the view kept, minted `view-{n}`. Body `{name?, lookX, lookZ, fromX?, fromZ?, y?, pitch?, yaw?, picture?}`; a blank name is `View {n}`, and `picture: true` draws the map's picture from this view and from no other. `y` and `pitch` together are an aerial shot: an eye raised to `y` and tipped `pitch` degrees down, 90 straight down. `yaw` states the camera whole — it turns from `fromX`, `fromZ` at `y`, and `look` is then only where the canvas draws its target; it is wrapped into the game's −180 to 180 | 400 `not a view` `RQ1` — a stand point stating one coordinate without the other, a coordinate off any board, an eye height below the world's floor or over its top, a pitch past straight up or down, or a `yaw` without its stand and `y` · 404 |
 | `PUT /map/{slug}/views/{viewId}` | the view changed in place, keeping its id. Body as for keeping one; a blank name keeps the view's own, `picture` absent keeps whether it is the map's picture and `false` stops it being. The board's own `above` is changed the same way, and the change is then kept in place of the framed one | 400 `not a view` `RQ1` · 404 no kept view has that id — a suggestion is not stored, so it cannot be changed |
 | `DELETE /map/{slug}/views/{viewId}` | the view let go. A suggestion is not kept, so it cannot be deleted; deleting a changed `above` puts the framed one back | 404 no kept view has that id · 409 `RQ5` the framed `above`, which is never let go |
@@ -2098,7 +2116,7 @@ permission (`docs/access.md`). A member, and every other token, is refused `RQ8`
 | `PATCH /map/{slug}/notes/{id}` | the note changed. Body `{status?, tag?}`: `resolved`, `wont-do` or `open` to reopen; a tag, or `""` to clear it | 400 `not a change` `RQ1` · 403 `RQ8` to a token — an agent answers in a reply, and only the author closes a thread · 404 |
 | `POST /notes/pictures` | `{hash, bytes}` — the picture kept under the SHA-256 of its bytes. The body is the picture itself, a WebP or a PNG sent as `image/webp`, `image/png` or `application/octet-stream`, up to 8 MB; the same bytes answer the same hash | 400 `not a picture` `RQ1` |
 | `GET /notes/pictures/{hash}` | the picture, `image/webp` or `image/png`, with a year's private cache — it never changes under its hash | 404 |
-| `GET /map/{slug}/render/eye/pick` | `{camera, query, hit, ground, columns[], sky, standing}` — what a mark on a `render/eye` picture is on the ground. It takes the picture's own query words, so it resolves the same camera, and `at=x,y` (one pixel: the block `hit` and the `ground` under it), `box=x,y,x,y` or `lasso=x,y;x,y;…` (every ground column the rays hit, each `[x, y, z]`); none of the three answers the camera alone. `query` is the camera exactly, as `eye=x,y,z&yaw=&pitch=&fov=&width=&height=`, which draws the same picture again. `standing` is the top of the ground under the eye, null over the void. Open to anyone, like `render/eye` | 404 · 422 no place sees what `look` names · 503 `RQ10` no block textures |
+| `GET /map/{slug}/render/eye/pick` | `{camera, query, hit, ground, columns[], sky, standing, change}` — what a mark on a `render/eye` picture is on the ground. It takes the picture's own query words, so it resolves the same camera, and `at=x,y` (one pixel: the block `hit` and the `ground` under it), `box=x,y,x,y` or `lasso=x,y;x,y;…` (every ground column the rays hit, each `[x, y, z]`); none of the three answers the camera alone. `query` is the camera exactly, as `eye=x,y,z&yaw=&pitch=&fov=&width=&height=`, which draws the same picture again. `standing` is the top of the ground under the eye, null over the void. `change` is the map's latest change when the pick was cast: the board it read, which a picture listed at an earlier change does not show. Open to anyone, like `render/eye` | 404 · 422 no place sees what `look` names · 503 `RQ10` no block textures |
 
 ```json POST /api/map/{slug}/notes
 {"body": "The monuments sit too close to the spawns.", "anchor": {"kind": "map"}, "tag": "gameplay"}

@@ -136,7 +136,8 @@
                              OnFilter="f => filter = f" OnOpen="OpenNote" OnBack="BackToOverview" OnNew="StartNote"
                              OnClearMark="ClearMark" OnWholeMap="PinToMap" OnResolve="() => ChangeAsync(NoteStatuses.Resolved)"
                              OnReopen="() => ChangeAsync(NoteStatuses.Open)" OnSend="SendNoteAsync" OnReply="ReplyAsync"
-                             Changes="Changes" OnChangesSince="OnChangesSince" />
+                             Changes="Changes" OnChangesSince="OnChangesSince" Stale="stale" OnRedraw="RedrawAsync"
+                             MeUuid="@meUuid" />
         }
       </div>
     }
