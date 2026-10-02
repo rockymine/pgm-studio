@@ -50,10 +50,12 @@ public sealed class TreeStyleDocumentEndpoint(PropStyleStore store) : EndpointWi
 /// cut: a copied tree is one cut out of a world, and nothing but the cutter records one.</summary>
 public sealed class TreeStyleCreateEndpoint(PropStyleStore store) : Endpoint<TreeStyleSaveRequest, TreeStyleDetail>
 {
-    public override void Configure() { Post("/tree-styles"); }
+    public override void Configure() { Post("/tree-styles"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(TreeStyleSaveRequest req, CancellationToken ct)
     {
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, null,
+            (await store.ListTreesAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         if (await Refusals.StopAsync(HttpContext, 400, "invalid tree style", PropStyleLibrary.Check(req), ct)) return;
         var row = PropStyleLibrary.RowOf(req);
         row.Id = await store.CreateTreeAsync(row, ct);
@@ -66,10 +68,14 @@ public sealed class TreeStyleCreateEndpoint(PropStyleStore store) : Endpoint<Tre
 /// answered.</summary>
 public sealed class TreeStyleUpdateEndpoint(PropStyleStore store) : Endpoint<TreeStyleSaveRequest, TreeStyleDetail>
 {
-    public override void Configure() { Put("/tree-styles/{id}"); Description(b => b.Refuses(404)); }
+    public override void Configure() { Put("/tree-styles/{id}"); Description(b => b.Refuses(404, 409)); }
 
     public override async Task HandleAsync(TreeStyleSaveRequest req, CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetTreeAsync(Route<long>("id"), ct))?.SeedKey, "tree", ct))
+            return;
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
+            (await store.ListTreesAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         if (await Refusals.StopAsync(HttpContext, 400, "invalid tree style", PropStyleLibrary.Check(req), ct)) return;
         var id = Route<long>("id");
         var row = PropStyleLibrary.RowOf(req);
@@ -93,10 +99,12 @@ public sealed class TreeStyleDraftPreviewEndpoint : Endpoint<TreeStyleSaveReques
 /// they were pulled from goes.</summary>
 public sealed class TreeStyleDeleteEndpoint(PropStyleStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/tree-styles/{id}"); }
+    public override void Configure() { Delete("/tree-styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetTreeAsync(Route<long>("id"), ct))?.SeedKey, "tree", ct))
+            return;
         await store.DeleteTreeAsync(Route<long>("id"), ct);
         await Send.NoContentAsync(ct);
     }
@@ -141,10 +149,12 @@ public sealed class BoulderStyleDocumentEndpoint(PropStyleStore store) : Endpoin
 public sealed class BoulderStyleCreateEndpoint(PropStyleStore store)
     : Endpoint<BoulderStyleSaveRequest, BoulderStyleDetail>
 {
-    public override void Configure() { Post("/boulder-styles"); }
+    public override void Configure() { Post("/boulder-styles"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(BoulderStyleSaveRequest req, CancellationToken ct)
     {
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, null,
+            (await store.ListBouldersAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var row = PropStyleLibrary.RowOf(req);
         row.Id = await store.CreateBoulderAsync(row, ct);
         await Send.OkAsync(PropStyleLibrary.ToDetail(row), ct);
@@ -154,10 +164,14 @@ public sealed class BoulderStyleCreateEndpoint(PropStyleStore store)
 public sealed class BoulderStyleUpdateEndpoint(PropStyleStore store)
     : Endpoint<BoulderStyleSaveRequest, BoulderStyleDetail>
 {
-    public override void Configure() { Put("/boulder-styles/{id}"); Description(b => b.Refuses(404)); }
+    public override void Configure() { Put("/boulder-styles/{id}"); Description(b => b.Refuses(404, 409)); }
 
     public override async Task HandleAsync(BoulderStyleSaveRequest req, CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBoulderAsync(Route<long>("id"), ct))?.SeedKey, "boulder", ct))
+            return;
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
+            (await store.ListBouldersAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var id = Route<long>("id");
         var row = PropStyleLibrary.RowOf(req);
         if (!await store.UpdateBoulderAsync(id, row, ct))
@@ -177,10 +191,12 @@ public sealed class BoulderStyleDraftPreviewEndpoint : Endpoint<BoulderStyleSave
 
 public sealed class BoulderStyleDeleteEndpoint(PropStyleStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/boulder-styles/{id}"); }
+    public override void Configure() { Delete("/boulder-styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBoulderAsync(Route<long>("id"), ct))?.SeedKey, "boulder", ct))
+            return;
         await store.DeleteBoulderAsync(Route<long>("id"), ct);
         await Send.NoContentAsync(ct);
     }

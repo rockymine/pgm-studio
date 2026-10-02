@@ -66,6 +66,10 @@ public partial class LibraryEditor
     /// <summary>What the last save or refusal said.</summary>
     [Parameter] public string? Note { get; set; }
 
+    /// <summary>Set where the seed folder states the open row: the studio refuses to change or delete it, so the
+    /// foot says so and the editor offers a copy instead.</summary>
+    [Parameter] public bool Seeded { get; set; }
+
     /// <summary>Whether the document nests. A nesting one is edited a node at a time; a flat one lays every
     /// section out at once and the outline becomes a way to reach one rather than a way to choose it.</summary>
     [Parameter] public bool Nests { get; set; } = true;

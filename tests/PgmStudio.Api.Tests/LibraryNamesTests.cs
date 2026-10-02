@@ -43,8 +43,8 @@ public sealed class LibraryNamesTests
         await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
 
         var layout = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/sketch");
-        await Assert.That(layout.GetProperty("themes").GetProperty("heath").GetProperty("surface").GetProperty("material")
-            .GetProperty("id").GetInt32()).IsEqualTo(12);
+        await Assert.That(FirstStop(layout.GetProperty("themes").GetProperty("heath").GetProperty("surface")
+            .GetProperty("material"))).IsEqualTo(12);
         await Assert.That(layout.GetProperty("themeSources").GetProperty("heath").GetInt64()).IsEqualTo(dunes)
             .Because("the Sketch tool says which row a copied theme came from");
         var kept = (await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/refinement"))
@@ -70,32 +70,30 @@ public sealed class LibraryNamesTests
         var heath = (await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/sketch"))
             .GetProperty("themes").GetProperty("heath");
         await Assert.That(heath.GetProperty("rimEdges").GetString()).IsEqualTo("boundary");
-        await Assert.That(heath.GetProperty("wall").GetProperty("id").GetInt32()).IsEqualTo(12)
+        await Assert.That(FirstStop(heath.GetProperty("wall"))).IsEqualTo(12)
             .Because("a name inside a theme stands for a material");
-        await Assert.That(heath.GetProperty("surface").GetProperty("material").GetProperty("id").GetInt32()).IsEqualTo(12)
+        await Assert.That(FirstStop(heath.GetProperty("surface").GetProperty("material"))).IsEqualTo(12)
             .Because("what was not stated beside the name is the row's");
     }
 
     [Test]
-    public async Task A_name_naming_no_row_or_several_refuses_the_source_and_an_id_names_one()
+    public async Task A_name_naming_no_row_refuses_the_source_and_a_name_is_read_without_case_or_by_id()
     {
         using var client = await FreshAsync();
-        var (sand, dunes) = await LibraryAsync(client);
-        await ThemeAsync(client, "weir-dunes", sand);
+        var (_, dunes) = await LibraryAsync(client);
 
         var none = await client.PutAsJsonAsync(Source, Body(new { themes = new { heath = new { library = "weir-dunez" } } }));
-        var several = await client.PutAsJsonAsync(Source, Body(new { themes = new { heath = new { library = "weir-dunes" } } }));
-        foreach (var (refused, says) in new[] { (none, "'weir-dunes'"), (several, $"#{dunes}") })
-        {
-            var text = await refused.Content.ReadAsStringAsync();
-            await Assert.That((int)refused.StatusCode).IsEqualTo(422).Because(text);
-            var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
-            await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("SR6");
-            await Assert.That(finding.GetProperty("message").GetString()).Contains(says);
-        }
+        var text = await none.Content.ReadAsStringAsync();
+        await Assert.That((int)none.StatusCode).IsEqualTo(422).Because(text);
+        var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("SR6");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("'weir-dunes'");
 
-        var byId = await client.PutAsJsonAsync(Source, Body(new { themes = new { heath = new { library = dunes } } }));
-        await Assert.That(byId.IsSuccessStatusCode).IsTrue().Because(await byId.Content.ReadAsStringAsync());
+        foreach (var named in new object[] { "WEIR-DUNES", dunes })
+        {
+            var stored = await client.PutAsJsonAsync(Source, Body(new { themes = new { heath = new { library = named } } }));
+            await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
+        }
     }
 
     [Test]
@@ -108,7 +106,7 @@ public sealed class LibraryNamesTests
         await Assert.That((await StateAsync(client)).GetProperty("behind").GetArrayLength()).IsEqualTo(0);
 
         var edited = await client.PutAsJsonAsync($"/api/styles/{sand}",
-            new { name = "weir-sand", kind = "solid", @params = """{"kind":"solid","id":24}""" });
+            new { name = "weir-sand", kind = "noise", @params = Field(24) });
         await Assert.That(edited.IsSuccessStatusCode).IsTrue().Because(await edited.Content.ReadAsStringAsync());
 
         var behind = (await StateAsync(client)).GetProperty("behind").EnumerateArray().Single();
@@ -116,8 +114,8 @@ public sealed class LibraryNamesTests
             .IsEqualTo(("themes.heath", "theme"));
         await Assert.That(behind.GetProperty("row").GetInt64()).IsEqualTo(dunes);
         var layout = await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/sketch");
-        await Assert.That(layout.GetProperty("themes").GetProperty("heath").GetProperty("surface").GetProperty("material")
-            .GetProperty("id").GetInt32()).IsEqualTo(12).Because("a library edit never rebuilds a stored board");
+        await Assert.That(FirstStop(layout.GetProperty("themes").GetProperty("heath").GetProperty("surface")
+            .GetProperty("material"))).IsEqualTo(12).Because("a library edit never rebuilds a stored board");
 
         var again = await client.PutAsJsonAsync(Source, body);
         await Assert.That(again.IsSuccessStatusCode).IsTrue().Because(await again.Content.ReadAsStringAsync());
@@ -135,11 +133,7 @@ public sealed class LibraryNamesTests
     {
         using var client = await FreshAsync();
         using (var scope = ApiTestFactory.Shared.Services.CreateScope())
-            await new Services.LibrarySeed(
-                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.ThemeStore>(),
-                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.RoomStyleStore>(),
-                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.HousePartStore>(),
-                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.PropStyleStore>()).SeedAsync();
+            await scope.ServiceProvider.GetRequiredService<Services.LibrarySeed>().SeedAsync();
 
         var stored = await client.PutAsJsonAsync(Source, Body(JsonDocument.Parse("""
             {"roomStyles": {"spawn": {"library": "brick-roofed-stone-and-dark-oak-house"}},
@@ -161,12 +155,12 @@ public sealed class LibraryNamesTests
         await Assert.That(kept.GetProperty("row").GetInt64()).IsGreaterThan(0);
     }
 
-    /// <summary>A material, <c>weir-sand</c>, and a theme, <c>weir-dunes</c>, surfacing with it. The studio seeds a
-    /// library of its own, so the names are ones it does not seed.</summary>
+    /// <summary>A pattern, <c>weir-sand</c> — sand mottled with red sand — and a theme, <c>weir-dunes</c>, surfacing
+    /// with it. The studio seeds a library of its own, so the names are ones it does not seed.</summary>
     private static async Task<(long Sand, long Dunes)> LibraryAsync(HttpClient client)
     {
         var sand = await client.PostAsJsonAsync("/api/styles",
-            new { name = "weir-sand", kind = "solid", @params = """{"kind":"solid","id":12}""" });
+            new { name = "weir-sand", kind = "noise", @params = Field(12) });
         await Assert.That(sand.IsSuccessStatusCode).IsTrue().Because(await sand.Content.ReadAsStringAsync());
         var sandId = (await sand.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt64();
         return (sandId, await ThemeAsync(client, "weir-dunes", sandId));
@@ -182,6 +176,14 @@ public sealed class LibraryNamesTests
         await Assert.That(theme.IsSuccessStatusCode).IsTrue().Because(await theme.Content.ReadAsStringAsync());
         return (await theme.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt64();
     }
+
+    /// <summary>A field of one block mottled with its own second variant.</summary>
+    private static string Field(int block) =>
+        $$"""{"kind":"noise","seed":5,"scale":2,"octaves":1,"stops":[{"kind":"solid","id":{{block}},"data":0},{"kind":"solid","id":{{block}},"data":1}],"rise":3}""";
+
+    /// <summary>The block a copied field lays first.</summary>
+    private static int FirstStop(JsonElement material) =>
+        material.GetProperty("stops")[0].GetProperty("id").GetInt32();
 
     private static Task<JsonElement> StateAsync(HttpClient client) =>
         client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/state");

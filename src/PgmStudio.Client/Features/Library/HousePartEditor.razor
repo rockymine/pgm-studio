@@ -9,7 +9,7 @@
 
 <LibraryEditor Kind="Part.Kind" Name="@draftName" NameChanged="SetName"
                Outline="Outline" Selected="@selected" OnSelect="Pick"
-               Footnote="@Part.FigureNote" Note="@note">
+               Footnote="@Part.FigureNote" Note="@note" Seeded="seeded">
   <Views>
     @foreach (var (id, label, icon, note) in HouseViews.Offered)
     {
@@ -164,23 +164,23 @@
       @foreach (var course in Courses(stacked.Id))
       {
         <div @key="@($"{stacked.Id}-{course.Ordinal}")">
-          <StyleSelect Styles="styles" Value="@course.StyleId" Unbound="None"
-                       ValueChanged="id => BindCourse(stacked.Id, course.Ordinal, id)">
+          <SlotSelect Styles="styles" Blocks="blocks" Value="@course.StyleId" Block="course.Block" Unbound="None"
+                      ValueChanged="fill => BindCourse(stacked.Id, course.Ordinal, fill)">
             <Trailing>
               <NumberField Slim Min="1" Value="course.Height" ValueChanged="value => SetCourseHeight(stacked.Id, course.Ordinal, value)"
                            title="Height in courses" />
               <Button Variant="icon" Icon="trash-2" Title="Remove this course"
                       OnClick="() => RemoveCourse(stacked.Id, course.Ordinal)" />
             </Trailing>
-          </StyleSelect>
+          </SlotSelect>
         </div>
       }
       @if (Courses(stacked.Id).Count == 0)
       {
-        <p class="section-desc">No pattern set. The default finish is used.</p>
+        <p class="section-desc">Nothing set. The default finish is used.</p>
       }
       <div class="panel-actions">
-        <Button Icon="plus" Disabled="@(styles.Count == 0)" OnClick="() => AddCourse(stacked.Id)">Add a course</Button>
+        <Button Icon="plus" OnClick="() => AddCourse(stacked.Id)">Add a course</Button>
       </div>
     }
     else if (SingleBound is { } single)
@@ -189,18 +189,22 @@
          post all the way up, and a ceiling is one slab. *@
       <p class="section-desc">@single.Blurb</p>
       <Field Label="Made of">
-        <StyleSelect Styles="styles" Value="@Single(single.Id)" Title="@single.Blurb"
-                     ValueChanged="id => BindSingle(single.Id, id)" />
+        <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(single.Id).StyleId" Block="Single(single.Id).Block"
+                    Title="@single.Blurb" ValueChanged="fill => BindSingle(single.Id, fill)" />
       </Field>
     }
   </Fields>
   <Actions>
-    <Button Variant="primary" Icon="save" Disabled="@(string.IsNullOrWhiteSpace(draftName))" Writes OnClick="Save">
-      @(editingId is null ? "Add to library" : "Save changes")
-    </Button>
+    @if (!seeded)
+    {
+      <Button Variant="primary" Icon="save" Disabled="@(string.IsNullOrWhiteSpace(draftName))" Writes OnClick="Save">
+        @(editingId is null ? "Add to library" : "Save changes")
+      </Button>
+    }
     @if (editingId is not null)
     {
-      <Button Variant="danger" Icon="trash-2" Deletes OnClick="Delete">Delete</Button>
+      <Button Icon="copy" Writes OnClick="SaveAsCopy">Save as copy</Button>
+      @if (!seeded) { <Button Variant="danger" Icon="trash-2" Deletes OnClick="Delete">Delete</Button> }
     }
   </Actions>
 </LibraryEditor>

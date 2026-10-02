@@ -8959,9 +8959,37 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **The showcase's trees are one snapshot a board copies from (`TL34`).** `tools/seed-trees.cs --json=<file>`
   writes the cut it would file into the library to a file instead: every tree under its name, the foot it stands
   on and the recipe the library answers for it, one body row to a line, the same bytes on a second cut of an
-  unchanged world. `pgm-studio-mapgen/corpus/tree-showcase/trees.json` is the showcase's, and a board names its
-  trees from it rather than from a studio's library or a cut of its own. (`tools/seed-trees.cs`,
+  unchanged world. The seed folder's `trees.json` is the showcase's, and a board reads its trees from the studio's
+  library, whose seeded rows are that file's (`TL39`). (`tools/seed-trees.cs`,
   `docs/tools/library.md`, `docs/world-export/tree-corpus.md`)
+- **The library is seeded from one folder, a slot holds a block or a pattern, and each pattern is held once
+  (`TL37`).** What a fresh library holds is `src/PgmStudio.Minecraft/Library` — 53 patterns, 8 themes, 57
+  houses, 4 boulders and the 94 trees cut out of the showcase — read by `SeedFolder` and put in by `LibrarySeed`,
+  matched by content so a second start changes nothing; the roofs, storeys and porches are cut out of the
+  houses, one row each however many share one, and a template tree per species and a biome per biome stay
+  computed. A theme bucket and a course hold one block in place (`block_id`, `block_data`, `block_laid`) or a
+  pattern by id: a single block is never a pattern (`LB1`), a slot names one of the two (`LB2`), and a pattern the
+  library holds is not saved twice (`LB3`); a theme import binds the pattern it finds. Patterns and parts are
+  named for what they contain (`PatternNames`, `PartNames`), and seed-only variants of one seeded pattern are one.
+  `M0058` carries a stored library: 838 rows on the deployed studio, 667 of them single blocks, become about 53
+  patterns, roofs fall from 57 to 51 and storeys from 84 to 71, and each map's current refinement follows.
+  `M0059` keeps a room style's `front`, which the store had been dropping. A library name is letters, digits,
+  spaces, dashes and underscores (`LB4`) and one row of its kind, compared without case (`LB5`), on every save of
+  all nine kinds; `M0060` makes every stored name one, counts a shared one on, indexes each table's names unique
+  and makes each map's refinement follow, and a source names a row without case. The editors fill every slot through
+  `SlotSelect`, and `tools/seed-trees.cs` writes the folder's `trees.json`, so a deploy carries the trees.
+  (`Minecraft/Library`, `Minecraft/Painting/PatternNames`, `Api/Services/{LibrarySeed,Slots,ThemeLibrary}`,
+  `Api/Endpoints/LibraryRules`, `Migrations/M0058_SlotsHoldBlocks`, `Migrations/M0059_RoomStyleFront`, `Migrations/M0060_LibraryNames`,
+  `Client/Components/Terrain/SlotSelect`, `docs/tools/library.md`, `docs/refusals.md`, `docs/deployment.md`)
+- **A seeded library row is the seed folder's (`TL39`).** Every row the folder states carries the key of its entry
+  (`seed_key`, `M0061`): a name, a part's content, a tree's cut, a template's species, a biome's id. Every start
+  rewrites each keyed row to its entry, keys an author's or a stale row already holding an entry no row carries,
+  and retires a row whose entry left — deleted, or handed to the author still binding it, key cleared. A `PUT` or
+  `DELETE` of a seeded row is refused 409 `LB6` on all nine kinds, every row's `GET` answers `seeded`, and the
+  editors offer *Save as copy* alone on one. The authoring repository keeps no copy of the trees and asks the
+  studio for them. (`Api/Services/LibrarySeed`, `Data/Theme/SeedKeyStore`, `Api/Endpoints/LibraryRules`,
+  `Migrations/M0061_SeedKeys`, `Client/Features/Library/LibraryEditor`, `docs/tools/library.md`,
+  `docs/refusals.md`, `pgm-studio-mapgen/tools/showcase.py`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

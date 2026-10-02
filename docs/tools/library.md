@@ -7,7 +7,7 @@ nothing about maps: no slug, no stage, no map row anywhere in it. What it holds 
 build worlds reach into it to pick one.
 
 Nine kinds, in three families. Six **compose upward**: **Styles** (*Patterns* on screen) — a style is one
-material; **Themes** (*Palettes* on screen) — a terrain finish made of styles; **Roofs**, **Storeys** and
+pattern, a material mixing blocks; **Themes** (*Palettes* on screen) — a terrain finish made of styles; **Roofs**, **Storeys** and
 **Porches** — the parts a building binds, each made of styles; **Houses** — a whole building made of parts and
 styles. Two are **recipes a click puts down**: **Trees** and **Boulders**, which compose nothing and are what a
 placement names. One places nothing at all: **Biomes**, the byte each column carries, which tints the ground
@@ -33,7 +33,7 @@ Eleven tables, one group per level: `style`; `theme` with `theme_bucket`; `roof_
 `room_style_course` and `room_style_storey`.
 
 **Two directions, and the difference between them is the whole design.** *Inside* the library, everything is
-bound **by id**: a theme names the style that fills each of its buckets, a room style names the courses and
+bound **by id**: a theme names the pattern that fills each of its buckets, a room style names the courses and
 parts it is built from. So editing a style reaches every theme and every room style binding it — the editor
 says so when it saves — and deleting one is refused rather than allowed to break them.
 
@@ -49,12 +49,37 @@ refinement the map keeps records the row each name resolved to and a hash of wha
 `GET /map/{slug}/state` names the ones whose row has moved on since; the next apply takes the row as it is then.
 *Driving it without the UI* has the shape.
 
+**A slot holds one block or one pattern.** Every theme bucket and every course of a house, a roof and a storey
+is filled either by a block written in place — `block_id`, `block_data`, and `block_laid` for a log lying along
+its run — or by a `style` row bound by id, never both. A single block is not a pattern: a block is named by its
+id and variant, which the block catalogue (`GET /terrain/blocks`) already answers, so it takes no row and no name.
+What the library lists as patterns is therefore only what mixes blocks, or tints one by team.
+
+**A name is letters, digits, spaces, dashes and underscores, and names one row of its kind.** A source names a
+row by it, so it is one a person types — no space at either end, none doubled — and two rows of a kind never
+carry it, compared without case; every table holds a unique index over its names. A save naming a row otherwise
+is refused, `LB4` for the characters and `LB5` for a name taken, and the seed counts a seeded name on, `-2`,
+where a row of the author's already carries it. A seeded biome takes the game's name made one:
+`Mesa (Bryce)` is `Mesa Bryce`, `Extreme hills+` is `Extreme hills plus`.
+
+**A row the seed folder states is the folder's, and is changed there.** Every start rewrites each seeded row to the
+entry it holds and retires one whose entry has left (*The seed*, under *Driving it without the UI*), so an edit
+made to it in the studio would be gone by the next start. A seeded row therefore answers `seeded`, refuses an edit
+or a delete with **409** `LB6`, and opens in its editor with *Save as copy* in place of *Save changes* and
+*Delete*: an author changes one by saving a copy of their own, or by changing the folder.
+
+**The library holds each pattern, roof, storey and porch once.** Two rows holding the same material are one
+pattern, so a save of a material the library already holds is refused, naming the row that holds it (`LB3`),
+and a theme import binds that row rather than adding a copy. A roof, a storey or a porch many seeded houses
+share is one row, which every house stacking it binds.
+
 ## The four levels
 
-### A style is one material
+### A style is a pattern, and a block is not one
 
-`style` rows carry a name, a kind and `params` — the serialized `TerrainMaterial` the painter itself reads.
-There is no second model of a material anywhere: the same editor authors a library style and a theme bucket in
+`style` rows carry a name, a kind and `params` — the serialized `TerrainMaterial` the painter itself reads,
+any of the kinds below but the two that lay one block: a `solid` and a `laidLog` are what a slot holds in place,
+and saving either as a pattern is refused (`LB1`). There is no second model of a material anywhere: the same editor authors a library style and a theme bucket in
 the Sketch tool, and the kind is read back off the JSON node the editor rewrote, so the row's kind and its
 params cannot disagree.
 
@@ -71,19 +96,16 @@ like any other — the style is where it came from, not what it is — which is 
 reading as an offer rather than staying on the name it was given. Editing the source style afterwards does not
 reach what was filled from it.
 
-**The library ships with an author's own set beside the generated presets.** Fifteen ground patterns, two
-themes and a house were made by hand and are seeded as presets like any other, so a fresh studio opens on
-them and an agent can bind them by name. They differ from the rest in what they are: every other preset exists
-because some pass needs it, and these exist because someone chose them — a choice nothing can re-derive, which
-is why they live in `StylePresets`, `ThemePresets` and `HousePresets` rather than in one database. The patterns
-are the first entries here belonging to no building, so they keep the names their author gave them rather than
-a `house · part` one. Being presets, they are rewritten in place by the seed on every start: they are the
-canonical set, and an edit to one in the studio does not survive a restart.
+**A pattern is named for what it contains.** A seeded pattern, and one a theme import lifts in, takes the name
+`PatternNames` describes it by: the blocks it lays in the order it first lays them, then the kind laying them —
+`cobblestone-andesite-noise`, `stone-bricks-andesite-polished-andesite-cells`, `team-stained-clay-gray-neutral`
+— with the words for what tells it apart where two would read alike, `cobblestone-andesite-columnar-noise`
+beside it. The author's own ground patterns keep the names their author gave them. A seed rearranges which block
+lands where and leaves what a wall looks like, so two seeded patterns never differ by their seed alone.
 
-**The house styles boards are built with are seeded beside them.** Forty-nine styles are kept as the stamper's
-own JSON, a file of each name under `Minecraft/Houses/Kept`, and seeded into the room library under those names
-(`HousePresets.Kept`): the ten the author's first review kept and revised, twelve designed from the author's
-rulings, and twenty-seven the author picked from the authoring repository's boards. A board names one as
+**The house styles boards are built with are in the seed folder.** Fifty-seven styles are kept as the stamper's
+own JSON, a file of each name under `Minecraft/Library/houses` (*The seed*, under *Driving it without the UI*),
+and seeded into the room library under those names. A board names one as
 `{"library": "brick-roofed-stone-and-dark-oak-house"}` wherever it states a room style or a house prop's style,
 and gets the building the file describes: each composes back out of the store to exactly the style the file
 states, which `LibrarySeedTests` asserts style by style, and each passes the house gate and the name rule
@@ -104,7 +126,8 @@ columns cut open downward, which is the axis a layer stack varies along and the 
 seen as. A stored style's `params` is exactly one of the nodes below, and a saved row is that node plus a name:
 
 ```json POST /api/styles
-{ "name": "quartz rim", "kind": "solid", "params": "{\"kind\":\"solid\",\"id\":155,\"data\":0}" }
+{ "name": "quartz and diorite rim", "kind": "noise",
+  "params": "{\"kind\":\"noise\",\"seed\":4021,\"scale\":2,\"octaves\":1,\"stops\":[{\"kind\":\"solid\",\"id\":155,\"data\":0},{\"kind\":\"solid\",\"id\":1,\"data\":3}]}" }
 ```
 
 ### The fourteen kinds
@@ -338,10 +361,12 @@ the wall and the fill are **bare materials**, the wall's toggle riding beside it
 seeded `meadow` finish, near enough: a quartz rim, grass over two dirt, a team-tinted clay wall, a stone
 body.
 
-In the library the same theme is a row of bindings rather than a document — each bucket naming a style id, a
-depth and a toggle — and `GET /themes/{id}/json` is what assembles the row into the above.
+In the library the same theme is a row of bindings rather than a document — each bucket holding a block or naming a
+pattern id, with a depth and a toggle — and `GET /themes/{id}/json` is what assembles the row into the above. The
+theme above is two blocks and two patterns: the quartz rim and the stone fill are not rows of their own, and the
+grass-over-dirt stack and the team-tinted clay are.
 
-**Unbound is a real answer, and so is switched off.** A bucket with no style (id 0) resolves to stone — what
+**Unbound is a real answer, and so is switched off.** A bucket holding neither a block nor a pattern resolves to stone — what
 `TerrainTheme.Default` states for every bucket, and what unpainted ground already is — and is stored by being
 left out, which is what makes the library worth having for the case it was built for —
 a rim and a fill bound once and reused, with only the surface and the wall differing between themes. A theme
@@ -351,16 +376,17 @@ is dropped on save, because that one says nothing.
 
 The preview is a sample plateau painted and cut open, plus a top-down swatch per bucket.
 `GET /themes/{id}/json` assembles the row into the painter's own theme JSON — the form the export consumes and
-a map snapshots — and `POST /themes/import` runs the other way, lifting a whole theme JSON into the library as
-one style per bucket plus a theme binding them. That import is also what the editor's **Start from JSON**
+a map snapshots — and `POST /themes/import` runs the other way, lifting a whole theme JSON into the library: a bucket laid in one block
+holds the block, and a bucket laid in a pattern binds the library's own copy of it, or a new pattern named for
+what it contains where the library holds none. That import is also what the editor's **Start from JSON**
 offers while a theme is being started: a whole painter theme pasted in — what an agent writes over the API,
 what a board saves out — lands as an editable row rather than a stored blob. It creates a row, so it is
 offered on a new theme and not on one that already exists.
 
 ### A part is a roof, a storey or a porch
 
-One composer serves all three, because they are the same act — pick a kind, bind styles to that kind's parts,
-turn that kind's knobs — and what differs between them is data rather than a third editor.
+One composer serves all three, because they are the same act — pick a kind, fill that kind's parts with blocks
+and patterns, turn that kind's knobs — and what differs between them is data rather than a third editor.
 
 A **roof** is everything above the eave: its form, pitch and overhang, whether it carries a hole and a ridge
 cap, the `roofSlab` a half-course rise steps on every odd course or the `roofStair` a whole-course rise steps
@@ -382,6 +408,13 @@ unless it names another, and a shed is complained of on a porch saved here as on
 
 Every part's picture stands it on a plain sample building, so what differs between two cards is the part and
 never the house around it.
+
+**A seeded part is named for what it is laid in.** The roofs, storeys and porches the seed cuts out of its houses
+are named by `PartNames`: a roof by its body's blocks and its form, `spruce-planks-gable-roof`; a storey by its
+wall's blocks, `cobblestone-andesite-spruce-log-storey`; a porch by its rail and edge, `jungle-fence-front-porch`.
+Where two would read alike, each takes the fewest words for what tells it apart — its pitch, its verge, its
+windows, how high it stands — so `dark-oak-planks-gable-roof-pitch-2-oak-log-verge` sits beside
+`dark-oak-planks-gable-roof-pitch-1-oak-log-verge`.
 
 ### A biome is the colour a column carries
 
@@ -436,7 +469,8 @@ so may be any of the fourteen kinds.
 
 **A copied tree is cut out of a world, not typed in.** `dotnet run tools/seed-trees.cs <worldDir>`
 reads a world where every tree stands clear of every other, takes each connected body of logs, leaves and
-carpentry — wooden slabs and stairs, fences, vines — that rests on something, and files it here. A body
+carpentry — wooden slabs and stairs, fences, vines — that rests on something, and writes it into the seed
+folder's `trees.json`, which the seed files into the library. A body
 hanging in the air is a fragment of a tree that broke and is reported rather than filed.
 
 **A copied tree is named for what it is.** The trees sort into rows by the z they stand at, placed along x,
@@ -445,12 +479,12 @@ the world's `region/`: `{"rows": {"17": "willow"}, "trees": {"7-4": "sequoia"}}`
 row does not describe. A tree is filed as `<kind>-<n>`, counted through the world in row order and along x,
 so two rows of one kind share one count — `oak-1` to `oak-10` over three rows. A world with a filed row the
 file names no kind for is refused, since nothing in the blocks says what a tree is: the showcase's willows are
-dark-oak log under oak leaves. A library row is matched by its **cut** — the world it came from and the foot
-it stood on — so a re-run updates the same rows and a relabelled row renames them. A wool tree opens a row of
+dark-oak log under oak leaves. A library row is matched by its **cut** — the world it came from and the foot it stood on — so a re-cut updates
+the same rows at the next start and a relabelled row renames them. A wool tree opens a row of
 its own whether or not `--wool` files it, so one flag does not move every row behind it. The 94 trees of `pgm-studio-mapgen/corpus/tree-showcase` are the corpus it was
 written for, and
-cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the seven template species
-and four erratics, and knows nothing about any world.
+cutting them is the only way a `copied` row comes to exist: the seed files the folder's cut beside the seven
+template species and the four erratics, and reads no world itself.
 
 **A cut can name who built the tree.** `--builder=<name>` records a Minecraft name on every cut the run files,
 answered as `cut.builder`; a pull carries it into the map's recipe as `builder`, and a map the tree stands on
@@ -462,17 +496,13 @@ until it is filed with the flag. The editor shows the name under the cut.
 dotnet run tools/seed-trees.cs ../pgm-studio-mapgen/corpus/tree-showcase --builder=rockymine
 ```
 
-**The same cut can be written to a file instead of the library.** `--json=<file>` writes every tree the run
-would file — its name, the foot it stands on in the world, and the recipe this library answers for it at
-`GET /api/tree-styles/{id}/json` — one body row to a line, and touches no database. A second cut of an
-unchanged world writes the same bytes. The showcase's is `pgm-studio-mapgen/corpus/tree-showcase/trees.json`,
-and a board copies its trees from that file rather than from any studio's library, so its trees do not move
-when a library is re-seeded or a row renamed.
-
-```
-dotnet run tools/seed-trees.cs ../pgm-studio-mapgen/corpus/tree-showcase --builder=rockymine \
-    --json=../pgm-studio-mapgen/corpus/tree-showcase/trees.json
-```
+**The cut is a file, and a re-cut of an unchanged world writes the same bytes.** Every tree the run cuts is
+written with its name, the foot it stands on in the world, and the recipe this library answers for it at
+`GET /api/tree-styles/{id}/json` — one body row to a line, so a re-cut diffs by the block — to
+`src/PgmStudio.Minecraft/Library/trees.json`, or to `--json=<file>`. That file is the one copy of the cut: a
+board asks the studio it is driven against for a tree by its name — `GET /tree-styles` lists them and
+`GET /tree-styles/{id}/json` answers the recipe — and since a seeded tree row is the folder's and refuses an edit
+(`LB6`), what a board reads there is the cut.
 
 **A `copied` save without a cut is refused.** The cutter is what writes a cut and nothing else does, so a
 row claiming the form states one or is turned away with `DR-COPY` at **400** — a block list typed into a
@@ -480,8 +510,7 @@ request, a dead-bush cluster, a log pile or a crate is not a tree cut from a wor
 such thing as one. There is no form word for a hand-built body: a prop that is not a tree cut from a world is
 not filed here at all. A re-save carries the `cut` the recipe's `GET` answered, which is what the editor sends.
 A row filed before the cut was recorded loads, browses and places as it did and answers no `cut`, so it cannot
-be saved again as `copied` until the cutter files it again — re-running `tools/seed-trees.cs` over the same
-world files every tree again with the cut recorded.
+be saved again as `copied` until the cutter files it again — the next start files every tree of the seed folder again with the cut recorded.
 
 **The card is the whole picture, and that is the point.** Seven woods differ in colour and seven species differ in
 *shape* — a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia, a dome hung with curtains
@@ -519,8 +548,8 @@ A house is loaded into a draft and the draft is PUT back, so what the load leave
 and a field with no control is exactly the one a hand-written list forgets. The mapping lives in one place so
 a field added later is added to it rather than around it.
 
-A course names its part, its ordinal (0 being the course nearest that part's own base), the style it resolves
-through and how many courses it runs. `post`, `verge` and `canopy` take one material rather than a stack — a post
+A course names its part, its ordinal (0 being the course nearest that part's own base), what it is laid in — a
+`block`, or a pattern's `styleId` — and how many courses it runs. `post`, `verge` and `canopy` take one material rather than a stack — a post
 is a post all the way up, and a canopy is one block rim and all — so only their first course is read. A part
 with no courses keeps the built-in finish, exactly as an unbound theme bucket does, which is what makes a room
 style that only changes its roof worth storing.
@@ -636,8 +665,10 @@ seconds, and a failure worded into that gap accuses the library of losing a docu
 handing over.
 
 **The outline is the document, not a menu.** Each row carries what its piece states without being opened — a
-part names its style or keeps the *default* finish, a stack says how many courses it runs, a theme bucket
-names the style it resolves through or says it is *off*. A material's outline is its own nest: a voronoi's bands, a
+part names its block or pattern or keeps the *default* finish, a stack says how many courses it runs, a theme
+bucket names its block or pattern or says it is *off*. Every slot is filled through one control, `SlotSelect`:
+one list offering nothing, *A single block* or a saved pattern by kind, with the block picker under it once a
+block is chosen and, for a log, whether it is laid along the run. A material's outline is its own nest: a voronoi's bands, a
 stack's layers and a field's stops are each a row, indented by how deep they sit, so a five-entry pattern is
 five rows rather than five boxes inside one another.
 
@@ -676,8 +707,21 @@ that row's own route, so the URL always names what is open.
 
 ## Refusals
 
-**A bound row cannot be forgotten.** `DELETE /styles/{id}` answers **409** naming the themes and room styles
-still binding it, so the refusal says what would break rather than surfacing a foreign-key error. It is the
+**A single block is not a pattern, and the library holds a pattern once.** `POST`/`PUT /styles` refuse params
+laying one block — a `solid`, or a `laidLog`, which is one log laid along its run — with **400** `LB1`, since a slot
+holds a block directly; and a material the library already holds under another row with **409** `LB3`, the
+finding's `subjects` naming that row. A theme bucket or a course naming both a `block` and a pattern's `styleId`
+is refused **400** `LB2` on every save that carries one — `/themes`, `/room-styles`, `/roof-styles`,
+`/storey-styles` — since a slot is filled by one.
+
+**A name is a name, and one row's.** Every `POST` and `PUT` of all nine kinds, and `POST /themes/import`, refuses a
+name holding anything but letters, digits, spaces, dashes and underscores, or a space at either end or doubled,
+with **400** `LB4`; and a name another row of the same kind already carries, compared without case, with **409**
+`LB5`, the finding's `subjects` naming it. A row being edited keeps its own name. An import naming nothing is
+"Imported theme", counted on where the library holds one.
+
+**A bound row cannot be forgotten.** `DELETE /styles/{id}` answers **409** naming the themes, houses, roofs and
+storeys still binding it, so the refusal says what would break rather than surfacing a foreign-key error. It is the
 same refusal envelope every other gate answers in — `{error, message, findings}` with the names in the
 finding's `subjects` — so a caller reads one shape whatever it asked to forget. The three part kinds answer
 identically: a roof, storey or porch a house still wears is refused.
@@ -685,6 +729,11 @@ identically: a roof, storey or porch a house still wears is refused.
 **A composition can be.** Deleting a theme or a room style is unguarded — a theme's bucket bindings and a room
 style's courses cascade, and the styles they bound stay. That asymmetry is deliberate: the things something
 else depends on are protected, and the things nothing depends on are the author's to discard.
+
+**A seeded row is changed in the folder.** Every `PUT` and `DELETE` of all nine kinds refuses a row the seed
+folder states with **409** `LB6`, the finding's `subjects` naming the entry, before anything else is read: the
+next start would rewrite the edit or put the row back. The row answers `seeded: true` on its `GET`, and the
+editor offers *Save as copy* alone.
 
 **A house style that names the wrong kind of block is refused where it is saved.** `PgmStudio.Minecraft`'s
 `HouseStyleValidation.Check` runs on every `POST`/`PUT` to `/room-styles` (over the composed shell), beside the
@@ -769,7 +818,10 @@ each geometry-carrying field names the kind of block its own form requires.
 
 ## The API
 
-Every endpoint is rooted at `/api` and takes no map. A read is open to anyone, a write needs someone on the
+Every endpoint is rooted at `/api` and takes no map. Every `POST` and `PUT` that saves a row answers **400**
+`LB4` for a name that is not one and **409** `LB5` for a name its kind already carries, and every `PUT` and
+`DELETE` answers **409** `LB6` for a row the seed folder states (*Refusals*, above). Every row's `GET` answers
+`seeded`, which says which those are. A read is open to anyone, a write needs someone on the
 whitelist, and a `DELETE` needs an admin, because a library row is shared by every map that uses it
 ([`docs/access.md`](../access.md)). The pages grey what the caller may not do, with the reason on hover: *New*
 and *Save* for anyone off the whitelist, and *Delete* for anyone but an admin.
@@ -777,17 +829,17 @@ and *Save* for anyone off the whitelist, and *Delete* for anyone but an admin.
 | Endpoint | Does |
 |---|---|
 | `GET /styles[?kind=]` · `GET /styles/{id}` | the style library, newest first, each with its card picture |
-| `POST /styles` · `PUT /styles/{id}` | save a material recipe — body `{name, kind, params}`, where `params` is the material as a **string** |
-| `DELETE /styles/{id}` | 409 `{error, message, findings}` when something still binds it — the finding's `subjects` name the themes and room styles |
+| `POST /styles` · `PUT /styles/{id}` | save a pattern — body `{name, kind, params}`, where `params` is the material as a **string**. 400 `LB1` for one laying a single block, 409 `LB3` naming the row already holding the same material |
+| `DELETE /styles/{id}` | 409 `{error, message, findings}` when something still binds it — the finding's `subjects` name the themes, houses, roofs and storeys |
 | `GET /themes` · `GET /themes/{id}` | the theme library and one theme's bucket bindings |
-| `POST /themes` · `PUT /themes/{id}` | compose from existing styles — body `{name, rimEdges, …knobs, buckets[]}`, the knobs plus bucket→style bindings |
+| `POST /themes` · `PUT /themes/{id}` | compose from blocks and patterns — body `{name, rimEdges, …knobs, buckets[]}`, the knobs plus a binding per bucket, `{bucket, styleId, block, depth, enabled}` with `block` `{id, data, laid}` or a pattern's `styleId`, never both (400 `LB2`) |
 | `POST /themes/preview` | what a set of bindings composes to, saving nothing — same body as `POST /themes` |
 | `GET /themes/{id}/json` | the painter-ready theme JSON — the form a map snapshots — as `{themeJson: "…"}`, the document itself being the **string** in that field |
-| `POST /themes/import` | lift a whole theme JSON in: one style per bucket plus a theme. Body `{name?, themeJson}` — the **mirror of the `GET` above**, the theme being the *stringified* document in `themeJson` rather than an object, and `name` optional (an unnamed import becomes "Imported theme"). 400, never 500, on bad JSON |
+| `POST /themes/import` | lift a whole theme JSON in: a block or the library's own pattern per bucket, a new pattern only where the library holds none, plus a theme. Body `{name?, themeJson}` — the **mirror of the `GET` above**, the theme being the *stringified* document in `themeJson` rather than an object, and `name` optional (an unnamed import becomes "Imported theme"). 400, never 500, on bad JSON |
 | `DELETE /themes/{id}` | forget a theme; its bindings cascade, its styles stay |
 | `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building. `POST`/`PUT …/roof-styles` and `…/storey-styles` answer 400 `{error, message, findings[]}` (`docs/refusals.md`) when the house-style gate refuses the roof (its materials, its `roofSlab`, and the slab against its pitch) or the window; a shed, on a roof or a porch canopy, rides on the 200 as a complaint (`HS14`) — Refusals, above |
 | `GET /room-styles` · `GET /room-styles/{id}` | the room library — each row `{id, name, preview, style}`, `style` being the composed shell as the stamper's own JSON, so a caller holding a snapshot can say which row it is by matching the document — and one room style's parts and courses |
-| `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles — body `{name, roofForm, …parts, courses[]}`. 400 `{error, message, findings[]}` when the composed shell fails one of the gate's refusals (`HS1`–`HS6`); its complaints, the name's (`HS19`) included, ride on the 200 as `warnings` |
+| `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts, blocks and patterns — body `{name, roofForm, front, …parts, courses[]}`, a course `{part, ordinal, styleId, block, height}` naming a block or a pattern and never both (400 `LB2`), and `front` the wall the doorway is cut through, `front` for the building's own. 400 `{error, message, findings[]}` when the composed shell fails one of the gate's refusals (`HS1`–`HS6`); its complaints, the name's (`HS19`) included, ride on the 200 as `warnings` |
 | `GET /room-styles/name-words` | the two lists a room style's name is made from — `{describing[], buildings[]}`: any number of describing words, then one building word last. The lists `HS19` reads a name against |
 | `GET /room-styles/doors` | the doors a room may be stamped with |
 | `GET /room-styles/block-kinds` | which kind of block each style field takes, and the ids of each kind — `{fields[], kinds[]}`. A field row is `{field, kind, when, means, alsoAt[]}` and a kind row is `{kind, blocks[]}` with each block `{id, data, name, material, hex}`. It is the table `HS1` refuses from, so a block it offers is one the gate accepts and a field's `means` is the sentence the refusal names it with |
@@ -842,7 +894,7 @@ rather than by kind, so a new kind reusing `seed` or `stops` starts sensibly wit
 being accepted fails a test rather than misleading a reader.
 
 ```json POST /api/styles
-{"name": "example-solid", "kind": "solid", "params": "{\"kind\":\"solid\",\"id\":1,\"data\":0}"}
+{"name": "example-field", "kind": "noise", "params": "{\"kind\":\"noise\",\"seed\":4022,\"scale\":3,\"octaves\":1,\"stops\":[{\"kind\":\"solid\",\"id\":1,\"data\":0},{\"kind\":\"solid\",\"id\":4,\"data\":0}]}"}
 ```
 
 ```json POST /api/themes/import
@@ -859,8 +911,8 @@ being accepted fails a test rather than misleading a reader.
 
 ## Driving it without the UI
 
-Composing a theme is three calls and a hand-off: `POST /styles` for each material the theme needs, `POST
-/themes` binding them to buckets with the geometry knobs, then `GET /themes/{id}/json` for the painter-ready
+Composing a theme is three calls and a hand-off: `POST /styles` for each pattern the theme needs, `POST
+/themes` filling each bucket with a block or one of them, with the geometry knobs, then `GET /themes/{id}/json` for the painter-ready
 form — which is what goes into a sketch's own `themes` registry, keyed under a name, with `mapTheme` or a
 shape's `theme` pointing at it. `POST /themes/import` collapses the first two when a theme JSON already exists.
 
@@ -872,8 +924,7 @@ snapshot, or a placed building carries as its `style`.
 Both `/json` endpoints answer a **string in a field** rather than the document — `{themeJson: "…"}` and
 `{styleJson: "…"}` — so what a sketch stores is the parse of that string, not the response.
 
-**A map's source names a row by what it is called.** `{"library": "dunes"}` — or `{"library": 12}` by id, where
-several rows share a name — stands wherever a refinement states a thing the library holds, and what it names is
+**A map's source names a row by what it is called.** `{"library": "dunes"}` — or `{"library": 12}` by id — stands wherever a refinement states a thing the library holds, and what it names is
 decided by where it stands. An entry of `themes` is a theme, of `roomStyles` a room style, a house prop's own
 `style` a room style too, of `dressing.styles` the prop style its `kind` says, the `biome` a biome, and anything
 else a material. The schema publishes a name
@@ -887,32 +938,74 @@ in its turn and replaces what it stands in:
 {"themes": {"heath": {"library": "dunes", "rimEdges": "boundary", "wall": {"library": "sandstone"}}}}
 ```
 
-**A name that names no single row refuses the source**, `422` with `SR6` naming the nearest names the library
-holds, or the ids of the rows sharing the name. A theme or a biome copied this way is recorded in the layout's
+**A name that names no row refuses the source**, `422` with `SR6` naming the nearest names the library holds.
+A name is compared without case, as the library keeps it one row of its kind. A theme or a biome copied this way is recorded in the layout's
 `themeSources` and `biomeSource` as one copied in the Sketch tool is, and the kept refinement carries each name's
 `row` and `hash` (`docs/tools/flow.md`, *A map's source*).
 
-**The built-in presets are put in at startup, not by a migration.** `LibrarySeed` runs as the API comes up and
-writes six of the nine libraries — the flat biome patterns among them, one per biome, so the
-select that picks one is never empty and a board that is simply desert needs nothing authored. It writes: the materials the house presets and the kept styles are made of, the storeys, roofs and porches
-they are built from, the houses that bind those, and six terrain finishes — `meadow`, `dunes`, `ashfall`,
-`firnline`, `claybed`, `oldstone` — decomposed out of `ThemePresets` into one style per bucket plus a theme
-binding them. It is idempotent and keyed by name: a row already there is updated in place and keeps the id
-that maps and themes depend on, and nothing is ever deleted, so a preset retired from the code stays as a row
-the author now owns. A studio nobody has seeded is not a state the app can be in, and a seed that fails is
-logged rather than fatal — an empty library is a usable studio and refusing to serve over one would be worse.
+### The seed
 
-**Renaming or retiring a seeded style is a migration's**, since the seed only adds and updates. `M0055` gave
+**What a fresh library holds is one folder, `src/PgmStudio.Minecraft/Library`, read by one seeder.**
+`patterns.json` is every pattern, the author's own ground patterns first; `themes/` holds a finish per file and
+`houses/` a house per file, each in its own document's form — the painter's theme, the stamper's style;
+`boulders.json` is the boulder recipes and `trees.json` the trees cut out of the showcase world. `SeedFolder`
+reads it, and nothing else states a seeded row. Every pattern a seeded house or theme lays is one of
+`patterns.json`'s, every block it lays is written into the slot, and the folder's own test holds it to that:
+no pattern is one block, no two hold the same material, none differs from another by its seed alone.
+
+**Two seeds are computed rather than stated, and stay code for that reason.** A template tree per species at
+its natural height is read off the species table, and a flat biome pattern per biome off the biome table, so
+a board that is simply desert needs nothing authored and the select that picks one is never empty. The roofs,
+storeys and porches the libraries list are the seeded houses' own, cut out of them and named by `PartNames`.
+
+**A seeded row carries the key of the entry it holds, and is the folder's.** `seed_key` is a pattern's, a
+house's, a theme's or a boulder's name in the folder, a roof's, storey's or porch's content hashed, a copied
+tree's cut (`tree-showcase 8 1 -493`), a template's species (`template oak`) and a biome's id (`biome 2`); an
+author's row carries none, and no two rows of a kind carry one. `LibrarySeed` runs as the API comes up and
+rewrites every keyed row to what its entry states, keeping its id, which is what everything binding it depends
+on. The studio refuses to edit or delete one (`LB6`), so a seeded row is changed by changing the folder.
+
+**An entry no row carries takes the row already holding it.** A row with no key, or one whose entry has left the
+folder, that holds the entry is keyed to it rather than a second row added beside it: a pattern holding the same
+material, else carrying the entry's name; a part holding the same content; a house, a theme, a boulder, a
+template or a biome under the entry's name; a tree cut at the same foot. Where a name the entry wants is an
+author's row's, the seeded row counts on, `-2`. A library stored before the keys existed comes to carry them this
+way on its first start, and a second start changes nothing.
+
+**A row whose entry has left the folder is retired.** It is deleted where the studio would let an author delete it
+— a theme, a house, a tree, a boulder or a biome always, a pattern or a part nothing binds — and handed to its
+author, key cleared and content kept, where a theme, a house or a part still binds it. A map that copied the row
+keeps its copy, and its state lists the name under `behind` as gone (`GET /map/{slug}/state`,
+`docs/tools/flow.md`). The houses,
+themes and recipes go before the parts and patterns they bind, so a row the folder no longer lays is unbound by
+the time it is reached, and a start that deleted a row runs once more, so a name the deleted row held goes to the
+entry that wanted it.
+
+A seed that fails is logged rather than fatal — an empty library is a usable studio and refusing to serve over
+one would be worse. `LibrarySeedTests` asserts that a fresh library is the folder: each pattern under its name,
+each house and theme composing back to its file, each copied tree to its cut, every row keyed; and that a row
+whose entry left is deleted or handed over.
+
+**What the seed cannot do to a stored row is a migration's.** `M0055` gave
 the house styles the names the author's review gave them, each with the parts filed under its name, and took out
 the twenty-four the reviews rejected together with the parts nothing else binds; the refinement each map last
 stated names a renamed style by its new name, and its change history keeps the name it was written with.
-`M0056` makes a gable the database's default porch form, as it is the code's. Nothing stored is rewritten for the
+`M0056` makes a gable the database's default porch form, as it is the code's. `M0058` moved every single block
+out of the pattern library into the slots that lay it, merged the patterns, roofs, storeys and porches holding the
+same thing into one row each, and gave each seeded pattern the name the folder states it under; a map's current
+refinement naming a block's row holds the block instead, and one naming a merged pattern names the row kept.
+`M0059` gives a room style the wall its doorway faces, which a house style could state and the row had nowhere
+to keep. `M0060` made every stored name a library name — a `+` spelled `plus`, any other character a name may not
+hold a space — gave each later row sharing a name, compared without case, the first free count after it, put a
+unique index over every table's names, and made each map's current refinement follow a renamed row. `M0061`
+gave the nine tables `seed_key`, empty, which the next start fills. Nothing stored is rewritten for the
 review's rules, which complain rather than refuse: a row keeps what it states, and a map keeps the houses it
 was built with, so an old board keeps the houses of its day (author).
 
-`dotnet run tools/seed-library.cs` runs the same seeder against a database of the caller's choosing, and
+`dotnet run tools/seed-library.cs` runs the same seeder against a database of the caller's choosing, says what it
+added, updated, deleted and handed over, and
 finishes by composing each seeded room style back out of the library and reporting any field that came back
-different — the only honest way to say whether a preset survived being stored.
+different — the only honest way to say whether a house survived being stored.
 
 ## Limits
 

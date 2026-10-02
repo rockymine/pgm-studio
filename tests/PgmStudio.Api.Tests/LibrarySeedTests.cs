@@ -1,38 +1,78 @@
-using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using PgmStudio.Api.Endpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
 using PgmStudio.Minecraft.Houses;
+using PgmStudio.Minecraft.Library;
 using PgmStudio.Minecraft.Painting;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// The seed's own round trip. A seeder is only as good as it, and <see cref="LibrarySeed.VerifyAsync"/> was
-/// written to ask the question and had nothing asking it: a preset that stores cleanly today grows a beam or a
-/// laid-log roof tomorrow and starts arriving back as a quieter building than it left, with nothing failing.
-/// Runs against <c>pgm_studio_test</c>; resets the schema, so it runs serially with the rest.
+/// The seed (<see cref="LibrarySeed"/>): a fresh library is exactly the seed folder — each pattern under its name,
+/// each house composing back to its file, each theme to its file, each copied tree to its cut — no single block
+/// is a pattern, a part many houses share is one row, and seeding again changes nothing. Runs against
+/// <c>pgm_studio_test</c>; resets the schema, so it runs serially with the rest.
 /// </summary>
 [NotInParallel("api-db")]
 public sealed class LibrarySeedTests
 {
     /// <summary>The seeder over the host's own stores, so it reads the database the host just seeded rather
     /// than a second connection with its own idea of what is there.</summary>
-    private static LibrarySeed Seed(IServiceScope scope) => new(
-        scope.ServiceProvider.GetRequiredService<ThemeStore>(),
-        scope.ServiceProvider.GetRequiredService<RoomStyleStore>(),
-        scope.ServiceProvider.GetRequiredService<HousePartStore>(),
-        scope.ServiceProvider.GetRequiredService<PropStyleStore>());
+    private static LibrarySeed Seed(IServiceScope scope) => scope.ServiceProvider.GetRequiredService<LibrarySeed>();
 
-    /// <summary>
-    /// <b>Every preset composes back to the building it went in as</b> — asserted empty, not pinned to a
-    /// list of what is lost, so a house that starts losing a knob fails here whichever knob it is. That is
-    /// the whole value of the check: a preset that grows a beam or a laid-log roof tomorrow starts arriving
-    /// back as a quieter building than it left, and nothing else says so (<c>TL12</c>).
-    /// </summary>
     [Test]
-    public async Task No_preset_loses_anything_through_the_store()
+    public async Task The_seeded_library_is_the_seed_folder()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        await Seed(scope).SeedAsync();
+        var styles = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+
+        var patterns = (await styles.ListStylesAsync()).Select(row => (row.Name, row.Params)).ToList();
+        await Assert.That(patterns).IsEquivalentTo(
+            SeedFolder.Patterns.Select(entry => (entry.Name, TerrainThemeJson.Serialize(entry.Material))));
+        await Assert.That(patterns.Where(row => Slots.IsBlockKind(TerrainThemeComposer.KindOf(
+            TerrainThemeJson.DeserializeMaterial(row.Params))))).IsEmpty().Because("a single block is never a pattern");
+
+        var rooms = scope.ServiceProvider.GetRequiredService<RoomStyleStore>();
+        var library = new RoomStyleLibrary(rooms, scope.ServiceProvider.GetRequiredService<HousePartStore>(), styles);
+        var stored = (await rooms.ListAsync()).ToDictionary(room => room.Name, room => room.Id, StringComparer.OrdinalIgnoreCase);
+        await Assert.That(stored.Keys).IsEquivalentTo(SeedFolder.Houses.Select(house => house.Name));
+        foreach (var (name, style) in SeedFolder.Houses)
+        {
+            var back = await library.ComposeAsync(stored[name]);
+            await Assert.That(HouseStyleJson.Serialize(back!)).IsEqualTo(HouseStyleJson.Serialize(style))
+                .Because($"{name} came back from the store as another building");
+        }
+
+        var themes = new ThemeLibrary(styles);
+        var finishes = (await styles.ListThemesAsync()).ToDictionary(theme => theme.Name, theme => theme.Id);
+        await Assert.That(finishes.Keys).IsEquivalentTo(SeedFolder.Themes.Select(theme => theme.Name));
+        foreach (var (name, theme) in SeedFolder.Themes)
+            await Assert.That(await themes.ComposeJsonAsync(finishes[name])).IsEqualTo(TerrainThemeJson.Serialize(theme))
+                .Because($"{name} came back from the store as another finish");
+
+        var props = scope.ServiceProvider.GetRequiredService<PropStyleStore>();
+        var trees = await props.ListTreesAsync();
+        foreach (var tree in SeedFolder.Trees.Trees)
+        {
+            var row = trees.SingleOrDefault(row => row.CutX == tree.Foot.X && row.CutY == tree.Foot.Y && row.CutZ == tree.Foot.Z);
+            await Assert.That(row?.Name).IsEqualTo(tree.Name);
+            await Assert.That(row!.Body).IsEqualTo(JsonSerializer.Serialize(tree.Style.Body));
+        }
+        await Assert.That((await props.ListBouldersAsync()).Select(row => row.Name))
+            .IsEquivalentTo(SeedFolder.Boulders.Select(boulder => boulder.Name));
+    }
+
+    /// <summary><b>Every house composes back to the building it went in as</b>, field by field, so a house that
+    /// starts losing a knob fails here whichever knob it is.</summary>
+    [Test]
+    public async Task No_house_loses_anything_through_the_store()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var _ = ApiTestFactory.Shared.CreateClient();
@@ -45,76 +85,38 @@ public sealed class LibrarySeedTests
                 .Because($"{house} lost {string.Join(", ", lost)} through the store");
     }
 
-    /// <summary>The hand-authored house composes back to exactly the building it went in as. Stated apart from
-    /// the pin above because this is the claim that must never soften: a generated preset can be regenerated,
-    /// and an author's cannot.</summary>
+    /// <summary>A storey or a roof many houses share is one row, which every house stacking it binds.</summary>
     [Test]
-    public async Task Every_authored_house_composes_back_to_its_preset()
-    {
-        await ApiTestFactory.ResetSchemaAsync();
-        using var _ = ApiTestFactory.Shared.CreateClient();
-        using var scope = ApiTestFactory.Shared.Services.CreateScope();
-        var seed = Seed(scope);
-        await seed.SeedAsync();
-
-        var authored = HousePresets.Authored.Select(house => house.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var (house, lost) in (await seed.VerifyAsync()).Where(entry => authored.Contains(entry.House)))
-            await Assert.That(lost).IsEmpty().Because($"{house} did not survive the store");
-    }
-
-    /// <summary>The hand-authored set is in the library after a seed, under the names it was authored as.
-    /// It is the one part of the seed that is somebody's work rather than a generated preset, so losing a name
-    /// is losing the thing — there is nothing to re-derive it from.</summary>
-    [Test]
-    public async Task The_authored_set_is_seeded_under_its_own_names()
-    {
-        await ApiTestFactory.ResetSchemaAsync();
-        using var client = ApiTestFactory.Shared.CreateClient();
-        using var scope = ApiTestFactory.Shared.Services.CreateScope();
-        await Seed(scope).SeedAsync();
-
-        var styles = await client.GetFromJsonAsync<List<PgmStudio.Contracts.StyleDto>>("/api/styles");
-        var names = styles!.Select(style => style.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var (name, _) in StylePresets.All)
-            await Assert.That(names.Contains(name)).IsTrue().Because($"{name} is not in the seeded library");
-
-        var houses = await client.GetFromJsonAsync<List<PgmStudio.Contracts.RoomStyleSummary>>("/api/room-styles");
-        var built = houses!.Select(house => house.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var house in HousePresets.Authored)
-            await Assert.That(built.Contains(house.Name)).IsTrue().Because($"{house.Name} is not in the seeded library");
-    }
-
-    /// <summary>
-    /// <b>A kept style composes back to the very style its file states</b> — the whole style, serialized, not a
-    /// list of fields. A board names a kept style by its library name where it once loaded the file, so the house
-    /// it stamps is the one the file described only if the store hands back every knob the file set.
-    /// </summary>
-    [Test]
-    public async Task Every_kept_style_composes_back_to_its_file()
+    public async Task A_part_many_houses_share_is_one_row()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var _ = ApiTestFactory.Shared.CreateClient();
         using var scope = ApiTestFactory.Shared.Services.CreateScope();
         await Seed(scope).SeedAsync();
+        var parts = scope.ServiceProvider.GetRequiredService<HousePartStore>();
 
-        var rooms = scope.ServiceProvider.GetRequiredService<RoomStyleStore>();
-        var library = new RoomStyleLibrary(rooms, scope.ServiceProvider.GetRequiredService<HousePartStore>(),
-                                           scope.ServiceProvider.GetRequiredService<ThemeStore>());
-        var stored = (await rooms.ListAsync()).ToDictionary(room => room.Name, room => room.Id, StringComparer.OrdinalIgnoreCase);
-        await Assert.That(HousePresets.Kept.Count).IsEqualTo(49);
-        foreach (var (name, style) in HousePresets.Kept)
-        {
-            await Assert.That(stored.ContainsKey(name)).IsTrue().Because($"{name} is not in the seeded library");
-            var back = await library.ComposeAsync(stored[name]);
-            await Assert.That(HouseStyleJson.Serialize(back!)).IsEqualTo(HouseStyleJson.Serialize(style))
-                .Because($"{name} came back from the store as another building");
-        }
+        var storeyCourses = (await parts.GetAllStoreyCoursesAsync()).ToLookup(course => course.StoreyStyleId);
+        var storeys = (await parts.ListStoreysAsync())
+            .Select(row => Content(row, storeyCourses[row.Id].Select(course => (course.Part, course.Ordinal,
+                course.StyleId, course.BlockId, course.BlockData, course.BlockLaid, course.Height))))
+            .ToList();
+        await Assert.That(storeys.Distinct().Count()).IsEqualTo(storeys.Count);
+        await Assert.That(storeys.Count).IsLessThan(SeedFolder.Houses.Sum(house => house.Style.Storeys.Count))
+            .Because("the seeded houses share storeys, and a shared storey is stored once");
+
+        var roofCourses = (await parts.GetAllRoofCoursesAsync()).ToLookup(course => course.RoofStyleId);
+        var roofs = (await parts.ListRoofsAsync())
+            .Select(row => Content(row, roofCourses[row.Id].Select(course => (course.Part, course.Ordinal,
+                course.StyleId, course.BlockId, course.BlockData, course.BlockLaid, course.Height))))
+            .ToList();
+        await Assert.That(roofs.Distinct().Count()).IsEqualTo(roofs.Count);
+        await Assert.That(roofs.Count).IsLessThan(SeedFolder.Houses.Count);
     }
 
-    /// <summary>Seeding twice adds nothing the second time. A library is something an author edits, so a seeder
+    /// <summary>Seeding twice changes nothing the second time. A library is something an author edits, so a seeder
     /// that created a second copy of every row on every start would bury their work in duplicates.</summary>
     [Test]
-    public async Task Seeding_twice_adds_nothing_the_second_time()
+    public async Task Seeding_twice_changes_nothing_the_second_time()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var _ = ApiTestFactory.Shared.CreateClient();
@@ -123,31 +125,169 @@ public sealed class LibrarySeedTests
         await seed.SeedAsync();
 
         var again = await seed.SeedAsync();
-        await Assert.That(again.StylesAdded).IsEqualTo(0);
-        await Assert.That(again.RoomsAdded).IsEqualTo(0);
-        await Assert.That(again.ThemesAdded).IsEqualTo(0);
+        await Assert.That((again.PatternsAdded, again.PatternsUpdated, again.PartsAdded, again.PartsUpdated,
+                again.HousesAdded, again.ThemesAdded, again.RecipesAdded, again.RecipesUpdated, again.Retired,
+                again.Released))
+            .IsEqualTo((0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
     }
 
-    /// <summary>Two library rows whose names differ only by case seed without throwing. The seeder matches a
-    /// name case-insensitively, so the grouping that decides which row is already there has to read a name the
-    /// same way the lookup does — a pair that groups as two keys and collides as one takes the whole startup
-    /// down with it, since the seed runs at app start (<c>RP61</c>).</summary>
+    /// <summary>Every row a fresh seed puts down carries the key of the entry it holds, and no two rows of a kind
+    /// carry one key.</summary>
     [Test]
-    public async Task Two_rows_named_alike_but_for_case_do_not_collide()
+    public async Task Every_seeded_row_carries_its_entrys_key()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var _ = ApiTestFactory.Shared.CreateClient();
         using var scope = ApiTestFactory.Shared.Services.CreateScope();
-        var themes = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+        await Seed(scope).SeedAsync();
+        var styles = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+        var parts = scope.ServiceProvider.GetRequiredService<HousePartStore>();
+        var props = scope.ServiceProvider.GetRequiredService<PropStyleStore>();
 
-        var (name, material) = StylePresets.All.First();
-        await themes.CreateStyleAsync(new StyleRow { Name = name.ToLowerInvariant(), Kind = "solid", Params = "{}" });
-        await themes.CreateStyleAsync(new StyleRow { Name = name.ToUpperInvariant(), Kind = "solid", Params = "{}" });
+        List<string?>[] kinds =
+        [
+            [.. (await styles.ListStylesAsync()).Select(row => row.SeedKey)],
+            [.. (await styles.ListThemesAsync()).Select(row => row.SeedKey)],
+            [.. (await styles.ListBiomesAsync()).Select(row => row.SeedKey)],
+            [.. (await parts.ListRoofsAsync()).Select(row => row.SeedKey)],
+            [.. (await parts.ListStoreysAsync()).Select(row => row.SeedKey)],
+            [.. (await parts.ListPorchesAsync()).Select(row => row.SeedKey)],
+            [.. (await scope.ServiceProvider.GetRequiredService<RoomStyleStore>().ListAsync()).Select(row => row.SeedKey)],
+            [.. (await props.ListTreesAsync()).Select(row => row.SeedKey)],
+            [.. (await props.ListBouldersAsync()).Select(row => row.SeedKey)],
+        ];
+        foreach (var seedKeys in kinds)
+        {
+            await Assert.That(seedKeys).DoesNotContain((string?)null);
+            await Assert.That(seedKeys.Distinct().Count()).IsEqualTo(seedKeys.Count);
+        }
+    }
+
+    /// <summary>A keyed row whose entry has left the folder is deleted where nothing binds it, and handed to its
+    /// author — key cleared, content kept — where a theme still binds it.</summary>
+    [Test]
+    public async Task A_row_whose_entry_left_is_deleted_or_handed_to_its_author()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var styles = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+        var props = scope.ServiceProvider.GetRequiredService<PropStyleStore>();
+        const string Gone = """{"kind":"noise","seed":91,"scale":2,"octaves":1,"stops":[{"kind":"solid","id":1,"data":0},{"kind":"solid","id":4,"data":0}],"rise":0}""";
+        const string Bound = """{"kind":"noise","seed":92,"scale":2,"octaves":1,"stops":[{"kind":"solid","id":1,"data":0},{"kind":"solid","id":4,"data":0}],"rise":0}""";
+
+        var loose = await styles.CreateStyleAsync(new StyleRow { Name = "gone", SeedKey = "gone", Kind = "noise", Params = Gone });
+        var held = await styles.CreateStyleAsync(new StyleRow { Name = "kept", SeedKey = "kept", Kind = "noise", Params = Bound });
+        await styles.CreateThemeAsync(new ThemeRow { Name = "mine" }, [new ThemeBucketRow { Bucket = "wall", StyleId = held }]);
+        var boulder = await props.CreateBoulderAsync(new BoulderStyleRow { Name = "retired-rock", SeedKey = "retired-rock" });
+
+        var tally = await Seed(scope).SeedAsync();
+
+        await Assert.That(await styles.GetStyleAsync(loose)).IsNull();
+        await Assert.That(await props.GetBoulderAsync(boulder)).IsNull();
+        var kept = await styles.GetStyleAsync(held);
+        await Assert.That(kept?.SeedKey).IsNull();
+        await Assert.That(kept!.Params).IsEqualTo(Bound);
+        await Assert.That((tally.Retired, tally.Released)).IsEqualTo((2, 1));
+    }
+
+    /// <summary>An author's row holding what a seeded entry holds is not taken once the entry's own row carries its
+    /// key: the key is held, so the author's row stays theirs.</summary>
+    [Test]
+    public async Task An_authors_row_is_not_taken_while_the_entrys_row_stands()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var styles = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+        await Seed(scope).SeedAsync();
+
+        var (_, material) = SeedFolder.Patterns.First();
+        var mine = await styles.CreateStyleAsync(new StyleRow
+        {
+            Name = "mine", Kind = TerrainThemeComposer.KindOf(material), Params = TerrainThemeJson.Serialize(material),
+        });
+        await Seed(scope).SeedAsync();
+
+        var row = await styles.GetStyleAsync(mine);
+        await Assert.That(row?.SeedKey).IsNull();
+        await Assert.That(row!.Name).IsEqualTo("mine");
+    }
+
+    /// <summary>A row already holding a seeded pattern is that pattern: it takes the seeded name and the entry's key
+    /// rather than the seed adding a second row beside it.</summary>
+    [Test]
+    public async Task A_row_holding_a_seeded_pattern_takes_its_name()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var styles = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+
+        var (name, material) = SeedFolder.Patterns.Last();
+        var id = await styles.CreateStyleAsync(new StyleRow
+        {
+            Name = "my field", Kind = TerrainThemeComposer.KindOf(material), Params = TerrainThemeJson.Serialize(material),
+        });
+        await Seed(scope).SeedAsync();
+
+        var stored = await styles.ListStylesAsync();
+        await Assert.That(stored.Count).IsEqualTo(SeedFolder.Patterns.Count);
+        await Assert.That(stored.Single(row => row.Id == id).Name).IsEqualTo(name);
+        await Assert.That(stored.Single(row => row.Id == id).SeedKey).IsEqualTo(name);
+    }
+
+    /// <summary>Every row the seed puts down carries a library name (<see cref="LibraryNaming.Valid"/>).</summary>
+    [Test]
+    public async Task Every_seeded_name_is_a_library_name()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        await Seed(scope).SeedAsync();
+        var styles = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+        var parts = scope.ServiceProvider.GetRequiredService<HousePartStore>();
+        var props = scope.ServiceProvider.GetRequiredService<PropStyleStore>();
+
+        List<string> names =
+        [
+            .. (await styles.ListStylesAsync()).Select(row => row.Name),
+            .. (await styles.ListThemesAsync()).Select(row => row.Name),
+            .. (await styles.ListBiomesAsync()).Select(row => row.Name),
+            .. (await parts.ListRoofsAsync()).Select(row => row.Name),
+            .. (await parts.ListStoreysAsync()).Select(row => row.Name),
+            .. (await parts.ListPorchesAsync()).Select(row => row.Name),
+            .. (await scope.ServiceProvider.GetRequiredService<RoomStyleStore>().ListAsync()).Select(row => row.Name),
+            .. (await props.ListTreesAsync()).Select(row => row.Name),
+            .. (await props.ListBouldersAsync()).Select(row => row.Name),
+        ];
+        await Assert.That(names.Where(name => !LibraryNaming.Valid(name))).IsEmpty();
+    }
+
+    /// <summary>A name an author's row already carries is theirs: the seeded part that would have taken it takes
+    /// the first free count after it, and the author's row keeps its name and what it holds.</summary>
+    [Test]
+    public async Task A_seeded_name_an_authors_row_carries_is_counted_on()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var parts = scope.ServiceProvider.GetRequiredService<HousePartStore>();
+        var mine = await parts.CreateRoofAsync(new RoofStyleRow { Name = "andesite-gable-roof", Pitch = 3 }, []);
 
         await Seed(scope).SeedAsync();
 
-        var stored = await themes.ListStylesAsync(ct: default);
-        await Assert.That(stored.Count(style => string.Equals(style.Name, name, StringComparison.OrdinalIgnoreCase)))
-            .IsEqualTo(2).Because("the seeder binds one of the two and adds no third");
+        var roofs = await parts.ListRoofsAsync();
+        await Assert.That(roofs.Single(row => row.Id == mine).Name).IsEqualTo("andesite-gable-roof");
+        await Assert.That(roofs.Select(row => row.Name)).Contains("andesite-gable-roof-2");
+    }
+
+    /// <summary>What a part row holds, as one string: every column but its id, name, seed key and creation time, and its
+    /// courses in stack order.</summary>
+    private static string Content<T>(T row, IEnumerable<(string, int, long?, int?, int, bool, int)> courses)
+    {
+        var columns = JsonSerializer.SerializeToNode(row)!.AsObject();
+        foreach (var identity in new[] { "Id", "Name", "SeedKey", "CreatedAt" }) columns.Remove(identity);
+        return columns.ToJsonString() + string.Join(";", courses.Order());
     }
 }

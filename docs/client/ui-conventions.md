@@ -91,8 +91,9 @@ picks between, where `DockModeButton` flips a two-state mode) and `DockFlyoutGro
 and `ViewModeToggle`.
 
 **Terrain** — the material vocabulary shared by the Sketch tool's Dressing phase and the library:
-`MaterialEditor`, `BlockPicker`, `StyleSelect` (binding a saved style — the same question, grouped by kind,
-with the bound style's own picture beside the control) and `HouseViews`.
+`MaterialEditor`, `BlockPicker`, `SlotSelect` (filling a slot with one block or a saved pattern — one list
+offering nothing, *A single block* or the patterns grouped by kind, the block picker under it once a block is
+chosen, and the bound pattern's own picture beside the control) and `HouseViews`.
 
 **Editor** — feature components that are not vocabulary but have more than one consumer: `SmartSuggestion`,
 which the Configure tool and the design showcase both mount. The world canvas and the bodies drawn beside it —

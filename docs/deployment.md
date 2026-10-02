@@ -100,10 +100,11 @@ the fix, clears it. `journalctl -u pgm-studio-deploy` is every tick's account, a
 `systemctl list-timers pgm-studio-deploy.timer` says when the next one is.
 
 **What the deploy cannot do on its own is a step no commit states.** A change that needs a new setting
-comes up unhealthy and is rolled back until the setting is in the environment file. Data the studio does not
-seed itself is the other case: the copied trees come only from `tools/seed-trees.cs` run over
-`pgm-studio-mapgen/corpus/tree-showcase` with `PGM_STUDIO_DB` pointing at the server's database, and a change
-to how that tool cuts means running it again after the deploy.
+comes up unhealthy and is rolled back until the setting is in the environment file. Data the studio does not seed itself is the other case. The library seeds itself at every start from the
+folder committed in `src/PgmStudio.Minecraft/Library`, the copied trees included, so a change to the seed — a
+re-cut of the showcase by `tools/seed-trees.cs`, a house, a pattern, an entry taken out — reaches the server
+with the commit and needs no step of its own. The commit is also the only way a seeded row changes: the studio
+refuses to edit one (`docs/tools/library.md`, *The seed*).
 
 `tools/deploy/install.sh` installs the scripts, the timer and its service, and records the release the server
 already runs as deployed, so its first tick deploys only a `main` that has moved past it.

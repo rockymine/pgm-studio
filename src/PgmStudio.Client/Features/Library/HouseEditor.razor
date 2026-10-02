@@ -9,7 +9,7 @@
 
 <LibraryEditor Kind="LibraryKinds.Houses" Name="@draftName" NameChanged="SetName"
                Outline="Outline" Selected="@selected" OnSelect="Pick"
-               Footnote="@Footnote" Note="@note">
+               Footnote="@Footnote" Note="@note" Seeded="seeded">
   <Views>
     @foreach (var (id, label, icon, note) in HouseViews.Offered)
     {
@@ -96,8 +96,9 @@
       @if (!part.Stacked)
       {
         <Field Label="Material">
-          <StyleSelect Styles="styles" Value="@Single(part.Id)" Title="@part.Blurb" Unbound="None (default finish)"
-                       ValueChanged="id => BindSingle(part.Id, id)" />
+          <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(part.Id).StyleId" Block="Single(part.Id).Block"
+                      Title="@part.Blurb" Unbound="None (default finish)"
+                      ValueChanged="fill => BindSingle(part.Id, fill)" />
         </Field>
       }
 
@@ -110,8 +111,8 @@
       @foreach (var course in Courses(part.Id))
       {
         <div @key="@($"{part.Id}-{course.Ordinal}")">
-          <StyleSelect Styles="styles" Value="@course.StyleId"
-                       ValueChanged="id => BindCourse(part.Id, course.Ordinal, id)">
+          <SlotSelect Styles="styles" Blocks="blocks" Value="@course.StyleId" Block="course.Block"
+                      ValueChanged="fill => BindCourse(part.Id, course.Ordinal, fill)">
             <Trailing>
               <NumberField Slim Min="1" Value="course.Height" ValueChanged="value => SetCourseHeight(part.Id, course.Ordinal, value)"
                            title="Height in courses" />
@@ -120,13 +121,13 @@
               <Button Variant="icon" Icon="trash-2" Title="Remove this course"
                       OnClick="() => RemoveCourse(part.Id, course.Ordinal)" />
             </Trailing>
-          </StyleSelect>
+          </SlotSelect>
         </div>
       }
 
       @if (Courses(part.Id).Count == 0)
       {
-        <p class="section-desc">No pattern set. The default finish is used.</p>
+        <p class="section-desc">Nothing set. The default finish is used.</p>
       }
 
       <div class="panel-actions">
@@ -143,8 +144,9 @@
         @foreach (var zone in RoomPartInfo.FloorZones)
         {
           <Field Label="@zone.Title" @key="zone.Id">
-            <StyleSelect Styles="styles" Value="@Single(zone.Id)" Title="@zone.Blurb" Unbound="None (floor shows through)"
-                         ValueChanged="id => BindSingle(zone.Id, id)" />
+            <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(zone.Id).StyleId" Block="Single(zone.Id).Block"
+                        Title="@zone.Blurb" Unbound="None (floor shows through)"
+                        ValueChanged="fill => BindSingle(zone.Id, fill)" />
           </Field>
         }
         <Field Label="Border width">
@@ -281,11 +283,11 @@
     {
       <p class="section-desc">Each trim piece uses one material. With none set, the corners match the walls and
       the roof edge matches the roof.</p>
-      @foreach (var trim in RoomPartInfo.Trim.Where(part => part.Id != RoomParts.Sill || Single(part.Id) > 0))
+      @foreach (var trim in RoomPartInfo.Trim.Where(part => part.Id != RoomParts.Sill || Single(part.Id).Bound))
       {
         <Field Label="@trim.Title" @key="trim.Id">
-          <StyleSelect Styles="styles" Value="@Single(trim.Id)" Title="@trim.Blurb" Unbound="None"
-                       ValueChanged="id => BindSingle(trim.Id, id)" />
+          <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(trim.Id).StyleId" Block="Single(trim.Id).Block"
+                      Title="@trim.Blurb" Unbound="None" ValueChanged="fill => BindSingle(trim.Id, fill)" />
         </Field>
       }
     }
@@ -317,8 +319,9 @@
                   Value="@deck.Roof" ValueChanged="SetPorchRoof" />
         </Field>
         <Field Label="@RoomPartInfo.Canopy.Title">
-          <StyleSelect Styles="styles" Value="@Single(RoomParts.Canopy)" Title="@RoomPartInfo.Canopy.Blurb"
-                       Unbound="The house roof" ValueChanged="id => BindSingle(RoomParts.Canopy, id)" />
+          <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(RoomParts.Canopy).StyleId"
+                      Block="Single(RoomParts.Canopy).Block" Title="@RoomPartInfo.Canopy.Blurb"
+                      Unbound="The house roof" ValueChanged="fill => BindSingle(RoomParts.Canopy, fill)" />
         </Field>
         <Field Label="Rail">
           <Chip Active="@(deck.RailBlock > 0)" OnClick="ToggleRail">
@@ -378,13 +381,16 @@
     }
   </Fields>
   <Actions>
-    <Button Variant="primary" Icon="save" Disabled="@(string.IsNullOrWhiteSpace(draftName))" Writes OnClick="Save">
-      @(editingId is null ? "Add to library" : "Save changes")
-    </Button>
+    @if (!seeded)
+    {
+      <Button Variant="primary" Icon="save" Disabled="@(string.IsNullOrWhiteSpace(draftName))" Writes OnClick="Save">
+        @(editingId is null ? "Add to library" : "Save changes")
+      </Button>
+    }
     @if (editingId is not null)
     {
       <Button Icon="copy" Writes OnClick="SaveAsCopy">Save as copy</Button>
-      <Button Variant="danger" Icon="trash-2" Deletes OnClick="Delete">Delete</Button>
+      @if (!seeded) { <Button Variant="danger" Icon="trash-2" Deletes OnClick="Delete">Delete</Button> }
     }
   </Actions>
 </LibraryEditor>

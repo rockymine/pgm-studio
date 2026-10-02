@@ -9,8 +9,8 @@ namespace PgmStudio.Data.Tests;
 /// <c>M0055</c> gives the library's house styles the names the author's review gave them, and takes the rejected
 /// ones out. A renamed style takes its parts with it and leaves its footing behind; a rejected one leaves with the
 /// parts nothing else binds; and a map's current refinement names a renamed style by its new name where a room
-/// style stands, and nowhere else. Rolls the schema back one migration and forward again, so it runs apart from
-/// every other database test.
+/// style stands, and nowhere else. Rolls the schema back one migration and forward to <c>M0055</c> alone, so it
+/// runs apart from every other database test.
 /// </summary>
 [NotInParallel]
 public sealed class HouseStyleNamesMigrationTests
@@ -56,7 +56,7 @@ public sealed class HouseStyleNamesMigrationTests
                     new DataParameter("map", map), new DataParameter("data", Encoding.UTF8.GetBytes(Refinement)));
             }
 
-            SchemaMigrator.MigrateUp(TestDb.ConnectionString);
+            SchemaMigrator.MigrateUp(TestDb.ConnectionString, 55);
             await using (var db = TestDb.Connect())
             {
                 await Assert.That(Names(db, "room_style")).IsEquivalentTo(

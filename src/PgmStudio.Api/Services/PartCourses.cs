@@ -8,9 +8,9 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Services;
 
 /// <summary>One course of some part's stack, whichever table it was read out of: which part it belongs to,
-/// where it sits in that part's stack (0 = nearest the part's own base), the style it resolves through, and
-/// how many courses it runs.</summary>
-public readonly record struct PartCourse(string Part, int Ordinal, long StyleId, int Height);
+/// where it sits in that part's stack (0 = nearest the part's own base), what it is laid in — one block or one
+/// pattern (<see cref="Slots"/>) — and how many courses it runs.</summary>
+public readonly record struct PartCourse(string Part, int Ordinal, long? StyleId, SlotBlockDto? Block, int Height);
 
 /// <summary>
 /// Resolves a set of <see cref="PartCourse"/> against the styles they bind — the one piece of logic a house,
@@ -21,13 +21,19 @@ public readonly record struct PartCourse(string Part, int Ordinal, long StyleId,
 public sealed class PartCourses(IReadOnlyList<PartCourse> courses, IReadOnlyDictionary<long, StyleRow> bound)
 {
     public static PartCourses Of(IEnumerable<RoomStyleCourseRow> rows, IReadOnlyDictionary<long, StyleRow> bound)
-        => new([.. rows.Select(row => new PartCourse(row.Part, row.Ordinal, row.StyleId, row.Height))], bound);
+        => new([.. rows.Select(row => new PartCourse(
+            row.Part, row.Ordinal, row.StyleId, Slots.BlockOf(row.BlockId, row.BlockData, row.BlockLaid), row.Height))],
+            bound);
 
     public static PartCourses Of(IEnumerable<RoofStyleCourseRow> rows, IReadOnlyDictionary<long, StyleRow> bound)
-        => new([.. rows.Select(row => new PartCourse(row.Part, row.Ordinal, row.StyleId, row.Height))], bound);
+        => new([.. rows.Select(row => new PartCourse(
+            row.Part, row.Ordinal, row.StyleId, Slots.BlockOf(row.BlockId, row.BlockData, row.BlockLaid), row.Height))],
+            bound);
 
     public static PartCourses Of(IEnumerable<StoreyStyleCourseRow> rows, IReadOnlyDictionary<long, StyleRow> bound)
-        => new([.. rows.Select(row => new PartCourse(row.Part, row.Ordinal, row.StyleId, row.Height))], bound);
+        => new([.. rows.Select(row => new PartCourse(
+            row.Part, row.Ordinal, row.StyleId, Slots.BlockOf(row.BlockId, row.BlockData, row.BlockLaid), row.Height))],
+            bound);
 
     /// <summary>The material a part that takes one rather than a stack resolves to — its first bound course —
     /// or null where nothing names it.</summary>
@@ -59,23 +65,15 @@ public sealed class PartCourses(IReadOnlyList<PartCourse> courses, IReadOnlyDict
             : new RoomPart(new BandStack(stack), Math.Max(1, extent));
     }
 
-    /// <summary>The material one course resolves through, or null when it names a style the library no longer
-    /// holds or one whose params this build cannot read. Deliberately forgiving for the reason a style's card
-    /// picture is: <c>params_json</c> is a hand-editable leaf, and a building that draws without one bad course
-    /// is more use than a library that refuses to list.</summary>
-    private TerrainMaterial? Material(PartCourse course)
-    {
-        if (!bound.TryGetValue(course.StyleId, out var style)) return null;
-        try { return TerrainThemeJson.DeserializeMaterial(style.Params); }
-        catch { return null; }
-    }
+    private TerrainMaterial? Material(PartCourse course) => Slots.Resolve(course.Block, course.StyleId, bound);
 
     /// <summary>The courses of a save request that name a part this build knows, as rows of whatever table
     /// owns them. A part it does not know is dropped rather than stored: the part vocabulary is the contract,
     /// and a row naming a part nothing stamps is a row nothing can ever draw.</summary>
     public static IEnumerable<PartCourse> Accepted(IEnumerable<RoomCourseDto> courses)
         => courses
-            .Where(course => RoomParts.All.Contains(course.Part))
+            .Where(course => RoomParts.All.Contains(course.Part) && (course.StyleId != 0 || course.Block is not null))
             .Select(course => new PartCourse(
-                course.Part, course.Ordinal, course.StyleId, Math.Max(1, course.Height)));
+                course.Part, course.Ordinal, course.StyleId == 0 ? null : course.StyleId, course.Block,
+                Math.Max(1, course.Height)));
 }
