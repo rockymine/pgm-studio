@@ -16,7 +16,7 @@ internal static class HousePartMapping
     public static RoofStyleDetail ToDetail(RoofStyleRow row, IReadOnlyList<RoofStyleCourseRow> courses) =>
         new(row.Id, row.Name, row.Form, row.Pitch, row.Overhang, row.RoofHole, row.RidgeCap,
             [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height))],
-            row.RoofSlab, row.RoofSlabData);
+            row.RoofSlab, row.RoofSlabData, row.RoofStair, row.RoofWear);
 
     /// <summary>What a saved roof comes back as — read off the <em>row</em> it composes to rather than off the
     /// request, so the clamps the row applies are the numbers the editor is handed back.</summary>

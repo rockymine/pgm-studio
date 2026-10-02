@@ -847,6 +847,8 @@ public sealed class RoomStyleRow
     [Column("beam_reach")] public int BeamReach { get; set; } = 1;
     [Column("roof_slab")] public int RoofSlab { get; set; } = -1;
     [Column("roof_slab_data")] public int RoofSlabData { get; set; }
+    [Column("roof_stair")] public int RoofStair { get; set; } = -1;
+    [Column("roof_wear")] public double RoofWear { get; set; }
     [Column("gable_window_form"), NotNull] public string GableWindowForm { get; set; } = "none";
     [Column("gable_window_block")] public int GableWindowBlock { get; set; } = 102;
     [Column("gable_window_data")] public int GableWindowData { get; set; }
@@ -877,6 +879,8 @@ public sealed class RoofStyleRow
     [Column("form"), NotNull] public string Form { get; set; } = "gable";
     [Column("roof_slab")] public int RoofSlab { get; set; } = -1;
     [Column("roof_slab_data")] public int RoofSlabData { get; set; }
+    [Column("roof_stair")] public int RoofStair { get; set; } = -1;
+    [Column("roof_wear")] public double RoofWear { get; set; }
     [Column("pitch")] public int Pitch { get; set; } = 1;
     [Column("overhang")] public int Overhang { get; set; } = 1;
     [Column("roof_hole")] public bool RoofHole { get; set; }

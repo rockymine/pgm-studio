@@ -464,11 +464,20 @@ public partial class HouseEditor
     /// what every style is until a slab is named.</summary>
     private bool Slabbed => (draft?.RoofSlab ?? -1) >= 0;
 
-    private Task ToggleRoofSlab() => Knob(d => d with
-    {
-        RoofSlab = d.RoofSlab >= 0 ? -1 : 126,     // wooden slab
-        RoofSlabData = 0,
-    });
+    /// <summary>Whether the roof is laid in stairs. -1 is a roof laid in cubes.</summary>
+    private bool Staired => (draft?.RoofStair ?? -1) >= 0;
+
+    private Task StepInBlocks() => Knob(d => d with { RoofSlab = -1, RoofSlabData = 0, RoofStair = -1 });
+
+    private Task StepInSlabs()
+        => Knob(d => d with { RoofSlab = 126, RoofSlabData = 0, RoofStair = -1 });     // wooden slab
+
+    private Task StepInStairs() => Knob(d => d with { RoofSlab = -1, RoofSlabData = 0, RoofStair = 53 });   // oak stairs
+
+    private Task PickRoofStair(PaintBlockDto block) => Knob(d => d with { RoofStair = block.Id });
+
+    private Task SetRoofWear(ChangeEventArgs e)
+        => Knob(d => d with { RoofWear = Math.Clamp(Parse(e, (int)(d.RoofWear * 100)), 0, 100) / 100.0 });
 
     private Task PickRoofSlab(PaintBlockDto block)
         => Knob(d => d with { RoofSlab = block.Id, RoofSlabData = block.Data });

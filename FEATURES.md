@@ -5973,6 +5973,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `M0056` makes a gable the database's default porch form, as it is the code's; a stored row keeps the form it
   states.
   `docs/world-export/structures.md` §7.1, §7.3, §7.6, §7.8. (`WE159`)
+
+- **Stair roofs, a rake with depth, and wear (`WE161`)** — a roof names the `roofStair` it steps in: every
+  column tops out in that stair climbing toward its ridge, the rim in the verge's own stair, and the ridge, a hip
+  line and a flat lid in whole blocks. Under every single-course column hanging past the gable or the eave the
+  stamper hangs the same stair upside down and turned the other way, or on a slab roof the upper half of the
+  course below, so the rake is one block deep from the second course to the ridge. `roofWear` (0–1) lays that
+  share of a stair roof's slope as whole blocks and of its rim as slabs, and leaves that share of the hung
+  courses out, hashed per cell so a house restamps alike. `HS1` and `HS3` hold the stair to a stair of the
+  body's own material, never over a laid log and never beside a `roofSlab`. Both editors offer whole blocks,
+  stairs or slabs, the stair and the wear; `M0057` adds the two columns to house and roof rows.
+  `docs/world-export/structures.md` §7.1, `docs/tools/library.md`. (`WE161`)
 - **The library's house styles are named for what they are (TL36).** A room style's name is describing words
   then a kind of building, from the two lists `HouseNames` holds and `GET /api/room-styles/name-words` answers;
   `HS19` complains of any other on save. The library holds the author's review: the ten kept styles revised and

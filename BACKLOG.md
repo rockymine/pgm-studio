@@ -629,6 +629,20 @@ server's backups and the edits a read-only page still lets start.
 
 ## The remainder: work no concept above has claimed
 
+- [ ] **RP97 — The sketch layout's words are published sets.** `GET /api/kit.py` checks a word only where
+  the schema lists it, and 44 of 574 string fields do: the layout an author writes most has none, so
+  `SketchShape(type="blob", height_mode="float")` is built and sent. Mark `[WordSet]` on `SketchShape.type`,
+  `operation`, `height_mode`, `relief_scope`, `stroke_edge`, `SketchLayer.kind`, a relief mark's `kind` and
+  `PlanGlobals.symmetry`, declaring each set in `Vocabulary` where it is not already; and publish `minimum`/
+  `maximum` for the 0–1 shares (`FloraSpec`, `RoofStyle.Wear`) so the kit refuses `coverage=5`.
+  `docs/architecture.md`. *Evidence: a constructor sweep against schema `a095aa2c71059f2c`.*
+
+- [ ] **RP98 — A stated null is a value the store refuses, not one the report trips on.** `kit.CellMaterial(
+  rise=None)` writes `"rise": null`; the store answers 200 and `GET /map/{slug}/report` then answers `400 RQ1
+  Cannot get the value of a token type 'Null' as a number @ rim.material.rise`. Refuse the null where the
+  document is stored (the material reader), and have the kit treat an argument of `None` as unstated.
+  `docs/architecture.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-pippin-coomb.md`, the kit section.*
+
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled
   room need `6 + 2 + 3` = 11 blocks on one axis and those spawn pieces are 10×10, 15×15 and 20×10. Nothing is

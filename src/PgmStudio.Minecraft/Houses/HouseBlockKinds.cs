@@ -76,6 +76,13 @@ public static class HouseBlockKinds
         + "included — comes out a full cube and the slope stops climbing by halves.",
         []);
 
+    /// <summary>The stair a roof laid in whole courses steps in.</summary>
+    public static readonly HouseBlockField RoofStair = new(
+        "roofStair", BlockKinds.Stair, null,
+        "A stair roof lays the stair on every column climbing toward the ridge, and hangs it upside down under "
+        + "the rake; anything else lays a cube there and the slope steps in blocks.",
+        []);
+
     /// <summary>The timber ends that run out past a corner.</summary>
     public static readonly HouseBlockField Beams = new(
         "beams.block", BlockKinds.Log, null,
@@ -84,7 +91,7 @@ public static class HouseBlockKinds
 
     /// <summary>Every field that names a block for its geometry, in the order a style states them.</summary>
     public static IReadOnlyList<HouseBlockField> Fields { get; } =
-        [DoorHeadBlock, DoorHeadFill, WindowStair, WindowSlab, RoofSlab, Beams];
+        [DoorHeadBlock, DoorHeadFill, WindowStair, WindowSlab, RoofSlab, RoofStair, Beams];
 
     /// <summary>Whether <paramref name="blockId"/> carries the geometry <paramref name="kind"/> names. An
     /// unknown kind accepts nothing: a field whose kind the catalogue cannot name is a field nothing can

@@ -71,6 +71,8 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
                 // slab a house named under a bound roof would be a second opinion on the same course.
                 Slab = row.RoofSlab,
                 SlabData = Math.Clamp(row.RoofSlabData, 0, 15),
+                Stair = row.RoofStair,
+                Wear = Math.Clamp(row.RoofWear, 0, 1),
             },
         };
     }
@@ -81,6 +83,8 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
         Form = RoofForms.Canonical(req.Form),
         RoofSlab = req.RoofSlab,
         RoofSlabData = Math.Clamp(req.RoofSlabData, 0, 15),
+        RoofStair = req.RoofStair,
+        RoofWear = Math.Clamp(req.RoofWear, 0, 1),
         Pitch = Math.Clamp(req.Pitch, 1, 4),
         Overhang = Math.Clamp(req.Overhang, 0, 4),
         RoofHole = req.RoofHole,

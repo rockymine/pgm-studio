@@ -241,9 +241,11 @@
           @* A slab halves the rise per block travelled inward, so a roof laid in slabs stands half as tall at
              the same pitch and the body fills the cubes between. *@
           <Field Label="Steps in">
-            <Chip Active="@Slabbed" OnClick="ToggleRoofSlab">
-              @(Slabbed ? "Half courses — slabs" : "Whole blocks")
-            </Chip>
+            <div class="chip-row">
+              <Chip Active="@(!Slabbed && !Staired)" OnClick="StepInBlocks">Whole blocks</Chip>
+              <Chip Active="@Staired" OnClick="StepInStairs">Stairs</Chip>
+              <Chip Active="@Slabbed" OnClick="StepInSlabs">Half courses — slabs</Chip>
+            </div>
           </Field>
           @if (Slabbed)
           {
@@ -254,6 +256,17 @@
             <p class="section-desc">A single slab, in the material the roof body is laid in —
               <code>HS3</code> refuses a pair that do not continue each other.</p>
           }
+          @if (Staired)
+          {
+            <Field Label="The stair">
+              <BlockPicker Blocks="blocks" Id="draft.RoofStair" Data="0" OnPick="PickRoofStair" />
+            </Field>
+            <p class="section-desc">A stair in the material the roof body is laid in. Under the rake it hangs
+              upside down, so the edge has a block of depth.</p>
+          }
+          <Field Label="Wear"><LabelEnd><strong>@($"{draft.RoofWear * 100:0}%")</strong></LabelEnd>
+            <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                   value="@((int)(draft.RoofWear * 100))" @onchange="SetRoofWear" /></ChildContent></Field>
           @* The gable is the triangle above the wall's own top, so what is cut into it is its own opening. *@
           <Field Label="Gable windows">
             <Chip Active="@Gabled" OnClick="ToggleGableWindows">

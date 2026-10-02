@@ -412,7 +412,125 @@ public sealed class HouseStamperTests
 
         await Assert.That(slabs.Count).IsGreaterThan(0);
         foreach (var (id, data) in slabs)
-            await Assert.That((id, data)).IsEqualTo((Blocks.WoodenSlab, Spruce));
+            await Assert.That((id, data & 7)).IsEqualTo((Blocks.WoodenSlab, Spruce));
+    }
+
+    private const int DarkOakStairs = 164;
+
+    /// <summary>The topmost block of a column and the course it is at.</summary>
+    private static (int Y, int Id, int Data) Top(VoxelWorld world, int x, int z)
+    {
+        for (var y = FloorY + 40; y > FloorY; y--)
+            if (world.GetBlock(x, y, z) is { Id: not Blocks.Air } block) return (y, block.Id, block.Data);
+        return (FloorY, Blocks.Air, 0);
+    }
+
+    /// <summary>An oak gable over a 13 × 9 plan: the ridge runs along x, so the slopes climb in z toward
+    /// z 4, with a dark oak verge.</summary>
+    private static HouseStyle StairRoof(double wear = 0) => new()
+    {
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Gable, Stair = Blocks.OakStairs, Wear = wear, RidgeCap = false,
+            Body = new SolidMaterial(Blocks.Planks, 0),
+            Verge = new SolidMaterial(Blocks.Planks, DarkOak),
+        },
+        Doorway = new Doorway { Door = DoorMaterial.StainedGlass },        // closure is asked of a glazed door
+    };
+
+    /// <summary><b>A stair roof steps in stairs climbing toward its ridge</b>: every column of the slope tops
+    /// out in the body's stair facing the ridge, the rim's in the verge's own stair, and the ridge itself — with
+    /// nothing higher beside it — in a whole block. It is still a shell.</summary>
+    [Test]
+    public async Task A_stair_roof_climbs_in_stairs_toward_its_ridge()
+    {
+        var world = House(13, 9, StairRoof());
+
+        for (var x = 1; x <= 11; x++)
+        {
+            for (var z = 0; z <= 3; z++)
+                await Assert.That(Top(world, x, z)).IsEqualTo((Top(world, x, z).Y, Blocks.OakStairs, Blocks.StairSouth));
+            for (var z = 5; z <= 8; z++)
+                await Assert.That(Top(world, x, z)).IsEqualTo((Top(world, x, z).Y, Blocks.OakStairs, Blocks.StairNorth));
+            await Assert.That(BlockFamilies.IsStair(Top(world, x, 4).Id)).IsFalse();
+        }
+        await Assert.That(Top(world, 6, -1).Id).IsEqualTo(DarkOakStairs);
+        await Assert.That(Top(world, -1, 2).Id).IsEqualTo(DarkOakStairs);
+        await Assert.That(Leaks(world, 13, 9)).IsFalse();
+    }
+
+    /// <summary><b>Under the rake hangs the same stair upside down and turned the other way</b>, so the verge
+    /// has one block of depth all the way up — except the lowest course of each slope, which has nothing below
+    /// it to meet. The verge overhang at x −1 is where it shows.</summary>
+    [Test]
+    public async Task A_stair_roofs_rake_has_an_upturned_stair_under_every_course_but_the_lowest()
+    {
+        var world = House(13, 9, StairRoof());
+
+        for (var z = 0; z <= 3; z++)
+        {
+            var (y, _, _) = Top(world, -1, z);
+            await Assert.That(world.GetBlock(-1, y - 1, z))
+                .IsEqualTo((DarkOakStairs, Blocks.StairNorth | Blocks.StairUpsideDown));
+        }
+        for (var z = 5; z <= 8; z++)
+        {
+            var (y, _, _) = Top(world, -1, z);
+            await Assert.That(world.GetBlock(-1, y - 1, z))
+                .IsEqualTo((DarkOakStairs, Blocks.StairSouth | Blocks.StairUpsideDown));
+        }
+        foreach (var z in (int[])[-1, 9])
+            await Assert.That(world.GetBlock(-1, Top(world, -1, z).Y - 1, z).Id).IsEqualTo(Blocks.Air);
+    }
+
+    /// <summary><b>A slab roof's rake is one block deep throughout</b>: under every half course hanging past
+    /// the gable but the lowest is the upper half of the course below, so the band no longer alternates half a
+    /// block and a whole one.</summary>
+    [Test]
+    public async Task A_slab_roofs_rake_is_one_block_deep()
+    {
+        var world = House(13, 9, new HouseStyle
+        {
+            Roof = new RoofStyle
+            {
+                Form = RoofForm.Shed, Slab = Blocks.WoodenSlab, SlabData = Spruce, RidgeCap = false,
+                Body = new SolidMaterial(Blocks.Planks, Spruce),
+                Verge = new SolidMaterial(Blocks.Planks, DarkOak),
+            },
+        });
+
+        var halves = Enumerable.Range(-1, 12)
+            .Select(z => (Z: z, Top: Top(world, -1, z)))
+            .Where(column => BlockFamilies.IsSlab(column.Top.Id))
+            .ToList();
+        await Assert.That(halves.Count).IsGreaterThan(2);
+        var lowest = halves.MinBy(column => column.Top.Y);
+        foreach (var (z, (y, id, data)) in halves.Where(column => column.Z != lowest.Z))
+            await Assert.That(world.GetBlock(-1, y - 1, z)).IsEqualTo((id, data | Blocks.SlabUpperHalf));
+    }
+
+    /// <summary><b>A worn roof shows grain and crumble, and the same wear every time it is stamped.</b> Some of
+    /// the slope's stairs are whole blocks of the body, some of the rim's are the verge's slab, and a worn roof
+    /// is still a shell; an unworn one has none of either.</summary>
+    [Test]
+    public async Task A_worn_stair_roof_lays_some_blocks_and_slabs_and_wears_alike_each_time()
+    {
+        var worn = House(13, 9, StairRoof(wear: 0.3));
+        var again = House(13, 9, StairRoof(wear: 0.3));
+        var true_ = House(13, 9, StairRoof());
+
+        var slope = (from x in Enumerable.Range(1, 11) from z in Enumerable.Range(0, 9) where z != 4 select (x, z)).ToList();
+        var rim = Enumerable.Range(-1, 15).Select(x => (X: x, Z: -1)).ToList();
+        int Cubes(VoxelWorld world) => slope.Count(cell => Top(world, cell.x, cell.z).Id == Blocks.Planks);
+        int Slabs(VoxelWorld world) => rim.Count(cell => BlockFamilies.IsSlab(Top(world, cell.X, cell.Z).Id));
+
+        await Assert.That(Cubes(worn)).IsGreaterThan(slope.Count / 10);
+        await Assert.That(Cubes(worn)).IsLessThan(slope.Count / 2);
+        await Assert.That(Slabs(worn)).IsGreaterThan(0);
+        await Assert.That(Cubes(true_)).IsEqualTo(0);
+        await Assert.That(Slabs(true_)).IsEqualTo(0);
+        foreach (var (x, z) in slope) await Assert.That(Top(again, x, z)).IsEqualTo(Top(worn, x, z));
+        await Assert.That(Leaks(worn, 13, 9)).IsFalse();
     }
 
     [Test]

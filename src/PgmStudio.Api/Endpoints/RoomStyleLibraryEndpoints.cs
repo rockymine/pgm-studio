@@ -88,7 +88,7 @@ internal static class RoomStyleMapping
                 ? null
                 : new RoomDoorHeadDto(row.DoorHeadForm, row.DoorHeadBlock, row.DoorHeadFill,
                     row.DoorHeadFillBlock, row.DoorHeadFillData),
-            row.DoorWidth);
+            row.DoorWidth, row.RoofStair, row.RoofWear);
 
     /// <summary>What a saved request comes back as — read off the <em>row</em> it composes to rather than off
     /// the request, so the clamps the row applies are the numbers the editor is handed back.</summary>

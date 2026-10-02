@@ -221,8 +221,10 @@ public sealed record RoofStyleSummary(long Id, string Name, string Preview);
 public sealed record RoofStyleDetail(
     long Id, string Name, string Form,
     int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
-    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0)
-    : RoofStyleSaveRequest(Name, Form, Pitch, Overhang, RoofHole, RidgeCap, Courses, RoofSlab, RoofSlabData);
+    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0, int RoofStair = -1,
+    double RoofWear = 0)
+    : RoofStyleSaveRequest(
+        Name, Form, Pitch, Overhang, RoofHole, RidgeCap, Courses, RoofSlab, RoofSlabData, RoofStair, RoofWear);
 
 /// <summary>Create or replace a roof style. <paramref name="RoofSlab"/> is the block a half-course rise steps
 /// on every odd course, or -1 for a roof laid in whole blocks — the roof's own, since a roof style owns
@@ -244,10 +246,15 @@ public sealed record RoofStyleDetail(
 /// whole blocks. It is the number the slab/pitch pairing is checked against.</param>
 /// <param name="RoofSlabData">That slab's variant nibble — which wood, which stone. Which half of the cube it
 /// fills is the stamper's and is not stated here.</param>
+/// <param name="RoofStair">The stair a roof laid in whole courses steps in, climbing toward its ridge and hung
+/// upside down under its rake, or -1 for a roof laid in cubes. Never with <paramref name="RoofSlab"/>.</param>
+/// <param name="RoofWear">0–1; how weathered the roof is: this share of a stair roof's slope laid as whole
+/// blocks and of its rim as slabs, and of the courses hung under any roof's edge left out.</param>
 public record RoofStyleSaveRequest(
     string Name, [property: WordSet(typeof(RoofForms))] string Form,
     int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
-    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0);
+    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0, int RoofStair = -1,
+    double RoofWear = 0);
 
 /// <summary>One row in the storey library, with the room it stamps. <paramref name="Clear"/> rides along
 /// because a house binding a stack of these has to say how tall the stack comes out, and asking the server
@@ -406,11 +413,12 @@ public sealed record RoomStyleDetail(
     long? RoofStyleId, long? PorchStyleId, IReadOnlyList<RoomStoreyDto> StoreyStack,
     IReadOnlyList<RoomCourseDto> Courses,
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
-    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2)
+    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2,
+    int RoofStair = -1, double RoofWear = 0)
     : RoomStyleSaveRequest(
         Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
         Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
-        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth)
+        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear)
 {
     /// <summary>The style as the request that would store it unchanged — every field, including the ones an
     /// editor draws no control for. An editor loading a row into a draft takes this rather than restating the
@@ -419,7 +427,7 @@ public sealed record RoomStyleDetail(
     public RoomStyleSaveRequest AsSaveRequest() => new(
         Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
         Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
-        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth);
+        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear);
 }
 
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}) — a whole
@@ -472,6 +480,9 @@ public sealed record RoomStyleDetail(
 /// <param name="DoorWidth">How wide the opening is asked for. Never cut under two however it is set: a
 /// single-width gap is not a door, and a room an objective is carried out of has to read as somewhere to walk
 /// through.</param>
+/// <param name="RoofStair">The stair a roof laid in whole courses steps in, or -1 for one laid in cubes.
+/// Never with <paramref name="RoofSlab"/>.</param>
+/// <param name="RoofWear">0–1; how weathered the roof is.</param>
 public record RoomStyleSaveRequest(
     string Name,
     int FloorDepth, int WallHeight,
@@ -485,7 +496,8 @@ public record RoomStyleSaveRequest(
     // Trailing and defaulted so every existing construction site keeps compiling and keeps meaning "this
     // building has none" — which is what every stored style already was.
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
-    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2);
+    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2,
+    int RoofStair = -1, double RoofWear = 0);
 
 /// <summary>What an editor draws a room style from: three flat pictures — from above, projected onto its
 /// front, and one plane at the scale of the pieces in it — and the building itself, as the columns a 3-D view

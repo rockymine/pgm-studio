@@ -287,6 +287,32 @@ public sealed class HouseStyleValidationTests
         await Assert.That(findings.Count(f => f.Rule == HouseStyleRules.RoofMaterial)).IsEqualTo(2);
     }
 
+    /// <summary>An oak-planked roof stepping in the stair named.</summary>
+    private static HouseStyle Staired(int stair, int slab = -1) => new()
+    {
+        Roof = new RoofStyle
+        {
+            Body = new SolidMaterial(Blocks.Planks, 0), Verge = new SolidMaterial(Blocks.Planks, 5),
+            Stair = stair, Slab = slab,
+        },
+    };
+
+    private static IEnumerable<Finding> AtRoofStair(HouseStyle style) =>
+        HouseStyleValidation.Check(style).Where(f => f.Field == "roofStair");
+
+    /// <summary><b>A roof stair is a stair of the body's own material, and a roof climbs in stairs or in
+    /// slabs.</b> Oak stairs over oak planks pass; a plank is not a stair (<c>HS1</c>); a spruce stair over oak
+    /// is two materials, and a stair beside a slab is two rises (<c>HS3</c>).</summary>
+    [Test]
+    public async Task A_roof_stair_is_a_stair_of_the_bodys_own_material_and_never_with_a_slab()
+    {
+        await Assert.That(AtRoofStair(Staired(Blocks.OakStairs))).IsEmpty();
+        await Assert.That(AtRoofStair(Staired(Blocks.Planks)).Select(f => f.Rule)).Contains(HouseStyleRules.BlockKind);
+        await Assert.That(AtRoofStair(Staired(134)).Select(f => f.Rule)).Contains(HouseStyleRules.RoofMaterial);
+        await Assert.That(AtRoofStair(Staired(Blocks.OakStairs, slab: Blocks.WoodenSlab)).Select(f => f.Rule))
+            .Contains(HouseStyleRules.RoofMaterial);
+    }
+
     [Test]
     public async Task RoofSlab_itself_has_to_be_a_single_slab_when_set()
     {
