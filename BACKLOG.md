@@ -273,6 +273,14 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 ### Shapes
 
+- [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
+  house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
+  resolves the shell over the row), but the same object under `roomStyles.spawn` stores 200, raises nothing and
+  builds the bare library row. Resolve `roomStyles.<part>` through the same reader the dressing registry uses,
+  or answer `RQ1` at the path; a second accepted shape that is silently dropped is the failure.
+  `docs/tools/sketch.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-halcyon-cays.md`, the kit section — the
+  spawn halls came out cyan clay over pink-white clay.*
+
 - [ ] **TS140 — A carve: a cave cut through ground that stays.** A subtract is a set of `(x, z)` cells
   that empties the whole column (`SketchRasterizer.cs:349`), and underground space is that hole under a flat
   override-add lid, so a chamber cannot keep the relief ground over it and every tunnel is a straight-walled
@@ -631,8 +639,8 @@ server's backups and the edits a read-only page still lets start.
 
 - [ ] **RP97 — The sketch layout's words are published sets.** `GET /api/kit.py` checks a word only where
   the schema lists it, and 44 of 574 string fields do: the layout an author writes most has none, so
-  `SketchShape(type="blob", height_mode="float")` is built and sent. Mark `[WordSet]` on `SketchShape.type`,
-  `operation`, `height_mode`, `relief_scope`, `stroke_edge`, `SketchLayer.kind`, a relief mark's `kind` and
+  `SketchShape(relief_scope="hld")` is built and sent. Mark `[WordSet]` on `SketchShape.operation`,
+  `relief_scope`, `stroke_edge`, `SketchLayer.kind`, a relief mark's `kind` and
   `PlanGlobals.symmetry`, declaring each set in `Vocabulary` where it is not already; and publish `minimum`/
   `maximum` for the 0–1 shares (`FloraSpec`, `RoofStyle.Wear`) so the kit refuses `coverage=5`.
   `docs/architecture.md`. *Evidence: a constructor sweep against schema `a095aa2c71059f2c`.*
