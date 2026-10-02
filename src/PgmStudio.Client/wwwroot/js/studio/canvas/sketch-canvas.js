@@ -17,6 +17,8 @@
  *
  * Callbacks: onShapeCreated(partial) · onShapeUpdated(shape) · onShapeSelected(id|null) [drill] ·
  * onGroupSelected(id|null) [single-click] · onShapeDeleted(id) · onSplit(a, b) [slice a shape in two]
+ * onVertexDelete(remove) [take the picked point out: the host runs `remove()` as one undo step and answers
+ * its `{ done } | { refused }` result]
  */
 
 import { CanvasBase } from "./canvas-base.js";
@@ -1327,8 +1329,14 @@ export class SketchCanvas extends CanvasBase {
       // inspector reachable — so an ungated shape-delete takes the island out from under the marks being
       // stated on it. Each phase answers for its own placed thing, and the shape chord stands down while one
       // of them is up.
+      // On the points rung with a point picked, the same keys take that one point out instead — the shape
+      // chord stands down so the two never both answer one press.
+      { id: "sketch.deleteVertex", keys: ["delete", "backspace"], label: "Delete the selected point",
+        group: "Canvas", priority: 10, when: () => writable() && this.#pointPicked(),
+        run: () => this.#callbacks.onVertexDelete?.(() => this.#edit.removeSelectedVertex()) },
       { id: "sketch.delete", keys: ["delete", "backspace"], label: "Delete the selected shape",
-        group: "Canvas", when: () => writable() && !this.#reliefOn && !this.#dressingOn && !!this.#selectedId,
+        group: "Canvas",
+        when: () => writable() && !this.#reliefOn && !this.#dressingOn && !!this.#selectedId && !this.#pointPicked(),
         run: () => this.#callbacks.onShapeDeleted?.(this.#selectedId) },
       { id: "relief.delete", keys: ["delete", "backspace"], label: "Delete the selected mark",
         group: "Terraform", when: () => writable() && this.#reliefOn && !!this.#reliefTools?.selectedId,
@@ -1354,6 +1362,12 @@ export class SketchCanvas extends CanvasBase {
         priority: 10, when: () => live() && (this._activeTool === "polygon" || this._activeTool === "polyline"),
         run: () => this.#draw.onDblClick() },
     ]);
+  }
+
+  /** Whether a single point of the selected outline is picked on the points rung — the state in which a
+   *  delete key takes the point rather than the shape. Relief and dressing own the key while they are up. */
+  #pointPicked() {
+    return !this.#placesOwnThings && !!this.#selectedId && this.#level === "points" && (this.#edit?.selectedVertex ?? -1) >= 0;
   }
 
   /** Escape, in the order a press means them: an in-progress draw, then one rung back up the ladder — the

@@ -229,6 +229,10 @@
                 Built differently from the drawing: @string.Join(", ", IsoContested)
               </span>
             }
+            @if (editNote is not null)
+            {
+              <span class="canvas-note canvas-note--warn" role="status">@editNote</span>
+            }
             @* Placing a view is 2-D only: the eye is stood on a map of the board. *@
             @if (!PlacingViewActive)
             {
