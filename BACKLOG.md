@@ -599,9 +599,10 @@ is the standard the copy is held to.
   size. The alternative is a system sans for interface text with monospace kept for data: slugs, coordinates,
   JSON, block counts. `docs/client/ui-conventions.md`.
 
-- [ ] **C70 — Which visual direction the studio takes.** *Parked (author): pick a mock-up.* Four directions
+- [ ] **C70 — Which visual direction the studio takes.** *Parked (author): pick a mock-up.* Five directions
   were mocked as artifacts (a cleaned-up version of today's look, a game-flavoured one, a dense pro-tool one,
-  and *Paper*, the whitepaper's figure style: white ground, one ink, one accent, the four plan inks), each
+  *Paper*, the whitepaper's figure style: white ground, one ink, one accent, the four plan inks, and *PGM*,
+  pgm.dev's look: its orange-red, the orange navbar bar, documentation layouts, light and dark), each
   covering the landing page with map pictures and the map list with authors, beside the sketch's In-game and
   change-history panels. The choice decides `tokens.css` and the landing and list
   layouts; the components stay. `docs/client/ui-conventions.md`.
