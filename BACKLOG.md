@@ -629,13 +629,7 @@ is the standard the copy is held to.
 
 The access rules, the Discord sign-in, tokens for callers without a browser and the read-only client are in
 place (`docs/access.md`), and the studio runs at pgmstudio.de (`docs/deployment.md`). What remains is the
-server's backups and the edits a read-only page still lets start.
-
-- [ ] **RP81 — The edits a read-only page still lets start.** Three reach past the shells that grey a page
-  (`docs/client/ui-conventions.md`): a `Sidebar`'s own inputs (the sketch layer's rename and base height), the
-  select tool's drag on the canvas, which moves a shape until the save is refused, and a `FlowBar` whose next
-  step writes (the sketch's Finish). Pass the cascaded `StudioReadOnly` into the canvas controllers as a flag
-  that refuses a drag, and let `FlowBar` disable a writing step. The server refuses all three today.
+server's backups.
 
 - [ ] **RP84 — The server's backups leave the machine, and a failed deploy says so.** Every dump in
   `/var/backups/pgm-studio` is taken before a deploy and sits on the disk the database is on, and nothing takes

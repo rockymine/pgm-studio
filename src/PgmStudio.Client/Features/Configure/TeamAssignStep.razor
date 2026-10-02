@@ -35,14 +35,17 @@
               <span class="list-swatch" style="--swatch: @Hex(t.Color)"></span>
               <span class="list-label list-label--mono">@t.Id</span>
               <Badge Class="@(idx == 0 ? "badge--success" : "badge--dim")">@(idx == 0 ? "Main" : "Copy")</Badge>
-              <button class="btn-remove btn-remove--hover-only" title="Remove" @onclick:stopPropagation="true" @onclick="() => RemoveTeam(t)"><i data-lucide="x"></i></button>
+              <WriteGate Context="closed">
+                <button class="btn-remove btn-remove--hover-only" title="@(closed ?? "Remove")" disabled="@(closed is not null)"
+                        @onclick:stopPropagation="true" @onclick="() => RemoveTeam(t)"><i data-lucide="x"></i></button>
+              </WriteGate>
             </ListRow>
           }
         </div>
         @if (AddableColors.Count > 0)
         {
           <Field Label="Add a team">
-            <SwatchRow TKey="string" OnPick="AddTeam"
+            <SwatchRow TKey="string" Writes OnPick="AddTeam"
                        Swatches="@AddableColors.Select(c => new SwatchRow<string>.Swatch(c.Value, c.Hex, c.Label)).ToList()" />
           </Field>
         }
@@ -74,7 +77,7 @@
         </ChildContent>
       </Section>
 
-      <Section Title="Team size and kit">
+      <Section Title="Team size and kit" Writes>
         <div class="section-body">
           <Field Label="Max players">
             <LabelHint><span class="list-tag">per team</span></LabelHint>

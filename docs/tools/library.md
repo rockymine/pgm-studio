@@ -771,7 +771,8 @@ each geometry-carrying field names the kind of block its own form requires.
 
 Every endpoint is rooted at `/api` and takes no map. A read is open to anyone, a write needs someone on the
 whitelist, and a `DELETE` needs an admin, because a library row is shared by every map that uses it
-([`docs/access.md`](../access.md)).
+([`docs/access.md`](../access.md)). The pages grey what the caller may not do, with the reason on hover: *New*
+and *Save* for anyone off the whitelist, and *Delete* for anyone but an admin.
 
 | Endpoint | Does |
 |---|---|

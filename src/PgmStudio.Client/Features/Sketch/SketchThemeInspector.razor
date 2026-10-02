@@ -36,7 +36,7 @@
           </div>
         }
         <div class="panel-actions">
-          <Button Href="/library/themes" Icon="external-link">Create one in the library</Button>
+          <Button Href="/library/themes" Icon="external-link" Writes>Create one in the library</Button>
         </div>
       </ChildContent>
     </Section>
@@ -71,8 +71,8 @@
           </div>
         }
         <div class="panel-actions">
-          <Button Icon="upload" OnClick="SaveToLibrary" Title="Save this palette to the library as one pattern per part">Save to library</Button>
-          <Button Variant="danger" Icon="trash-2" OnClick="RemoveFromBoard"
+          <Button Icon="upload" Writes OnClick="SaveToLibrary" Title="Save this palette to the library as one pattern per part">Save to library</Button>
+          <Button Variant="danger" Icon="trash-2" Writes OnClick="RemoveFromBoard"
                   Title="Remove from this map. Shapes painted with it go back to the default palette.">Remove</Button>
         </div>
         @if (note is not null) { <p class="section-desc">@note</p> }
@@ -94,7 +94,7 @@
           else { <span class="section-desc">Unpainted (uses the default palette)</span> }
         </div>
         <div class="panel-actions">
-          <Button Icon="eraser" OnClick="ClearSelection" Disabled="@(SelectionTheme().Length == 0)">Unpaint</Button>
+          <Button Icon="eraser" Writes OnClick="ClearSelection" Disabled="@(SelectionTheme().Length == 0)">Unpaint</Button>
         </div>
       </ChildContent>
     </Section>
@@ -146,7 +146,7 @@
                     Placeholder="@RoomPlaceholder(kind.Id)" PlaceholderValue="0" />
             @if (BoundRoom(kind.Id) is not null || IsOpenRoom(kind.Id))
             {
-              <Button Variant="icon" Icon="x" Title="Use the built-in shell"
+              <Button Variant="icon" Icon="x" Title="Use the built-in shell" Writes
                       OnClick="() => ClearRoom(kind.Id)" />
             }
             <Button Variant="icon" Icon="library" Href="/library/houses" Title="Open the house library" />
