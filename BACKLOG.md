@@ -261,6 +261,17 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   parses Bukkit's (`WOOD`), so the prop needs one table between them. `docs/world-export/decoration.md` §8a;
   `docs/pgm/`.
 
+- [ ] **WE160 — Crops on farmland.** Farmland (60) is paintable ground today (`PT1`) and the palette knows
+  wheat (59), carrots (141) and potatoes (142), but nothing places a crop, so a field is bare brown cells or a
+  hand-stamped square. Add a crop share to `FloraSpec` (`DressingModel.cs`) beside `mushroomShare`, decided
+  the same way — by the block underfoot only (`Decorator.cs:837`, `DressingPalette.KeepsMushroom`): on farmland
+  the cover is a crop. It states the crop mix, and a growth-stage range (data 0–7) drawn per patch at the
+  cover's `scale` so a plot reads as one crop at one ripeness rather than confetti. Pumpkin and melon stems
+  (104, 105) are the same rule. Farmland is written at moisture 7. The Dressing inspector gets the slider, and
+  `docs/world-export/decoration.md` §3 the rule. *Author's question before building: is a crop field a player
+  tramples to dirt in a match acceptable, or does it want `keepClear` ground only?* *Evidence: no source
+  under `src/` places block 59, 141 or 142.*
+
 - [ ] **WE152 — A room's door width, stated by its style.** *Parked (author): what a stored `door_width` of 2
   means.* `WX7` cuts a room's door from its wall (`RoomFrames.DoorWidth`: 4 on an even interior of six or more,
   3 on an odd one, 2 at four across) and a style's `doorway.width` reaches only the dressing's houses. Honouring
@@ -272,6 +283,17 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   note 10 asks for a 2-wide wool-room door.* `docs/world-export/structures.md` §7.
 
 ### Shapes
+
+- [ ] **TS140 — A carve: a cave cut through ground that stays.** A subtract is a set of `(x, z)` cells
+  that empties the whole column (`SketchRasterizer.cs:349`), and underground space is that hole under a flat
+  override-add lid, so a chamber cannot keep the relief ground over it and every tunnel is a straight-walled
+  shaft. Add a carve stated in three dimensions: a polyline whose vertices each carry a radius and a centre
+  height, splined like a polyline's points so the bore swells and narrows smoothly between vertices, with a
+  `rough` seed wandering the wall; a single point is the negative boulder, a lumpy ellipsoid. It removes
+  `[y − r, y + r]` from the **built** column and leaves what is above it, so it runs after the raster the way a
+  fluid already carves built terrain (`decoration.md` §7), and its walls show the theme's fill. Decide first
+  what the plan-tier walks (`SK11`) and the export's reach say about a void they cannot see. `docs/tools/sketch.md`.
+  *Evidence: `sketch.md` "A subtract with a lid over it": the lid comes back as the column's only span.*
 
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
