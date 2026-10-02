@@ -26,16 +26,6 @@ public static class RegionBoxes
     public static IReadOnlyList<BlockBox> Of(IReadOnlyDictionary<string, Region> registry, string regionId) =>
         registry.TryGetValue(regionId, out var region) ? Of(registry, region) : [];
 
-    /// <summary>The single box enclosing everything a region covers, or null when it reduces to nothing.</summary>
-    public static BlockBox? Enclosing(IReadOnlyDictionary<string, Region> registry, string regionId)
-    {
-        var boxes = Of(registry, regionId);
-        if (boxes.Count == 0) return null;
-        return new BlockBox(
-            boxes.Min(b => b.MinX), boxes.Min(b => b.MinY), boxes.Min(b => b.MinZ),
-            boxes.Max(b => b.MaxX), boxes.Max(b => b.MaxY), boxes.Max(b => b.MaxZ));
-    }
-
     private static IEnumerable<BlockBox> Walk(IReadOnlyDictionary<string, Region> registry, Region region,
                                               HashSet<string> path)
     {

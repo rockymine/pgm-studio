@@ -69,15 +69,6 @@ public static class BlockLook
     /// <summary>How it reads on the face a wall or fill bucket paints.</summary>
     public static FaceLook? Side(int id, int data) => Of(id, data)?.Side;
 
-    /// <summary>Whether two blocks wear the <b>same sprite</b> on the face a bucket paints, and so cannot be
-    /// told apart in a pattern that uses it. Null where either is not carried.</summary>
-    public static bool? SameOn(TerrainBucketFace face, int idA, int dataA, int idB, int dataB)
-    {
-        var a = face == TerrainBucketFace.Top ? Top(idA, dataA) : Side(idA, dataA);
-        var b = face == TerrainBucketFace.Top ? Top(idB, dataB) : Side(idB, dataB);
-        return a is null || b is null ? null : string.Equals(a.Value.Texture, b.Value.Texture, StringComparison.Ordinal);
-    }
-
     private static (FaceLook Top, FaceLook Side)? Of(int id, int data)
     {
         if (BlockLookData.ByBlock.TryGetValue((id << 4) | (data & 0xF), out var exact))

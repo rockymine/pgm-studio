@@ -61,9 +61,6 @@ public sealed class TerrainLibraryClient(HttpClient http)
     public async Task<IReadOnlyList<PropOptionDto>> FluidFormsAsync()
         => await GetOrDefault<List<PropOptionDto>>("api/terrain/fluid-forms") ?? [];
 
-    public async Task<IReadOnlyList<PropOptionDto>> SpeciesAsync()
-        => await GetOrDefault<List<PropOptionDto>>("api/terrain/species") ?? [];
-
     /// <summary>A sample patch the pass actually dressed with one prop, from above and cut open. The theme is
     /// passed because what the paint leaves on top is what decides whether flora grows and what a path may
     /// repaint — previewing against unthemed stone would promise ground the map's own finish would refuse.</summary>

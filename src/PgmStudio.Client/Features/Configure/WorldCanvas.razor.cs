@@ -155,11 +155,6 @@ public partial class WorldCanvas
         if (handle is not null) await handle.InvokeVoidAsync("setSelection", (object)ids.ToArray());
     }
 
-    public async Task ResizeAsync()
-    {
-        if (handle is not null) await handle.InvokeVoidAsync("resize");
-    }
-
     /// <summary>Pan/zoom the canvas so an island's bounding box fills the viewport (with a little padding).</summary>
     public async Task FitIslandAsync(int islandId)
     {
@@ -187,12 +182,6 @@ public partial class WorldCanvas
     {
         islandSel = picked;
         if (int.TryParse(islandSel, out var id)) await FitIslandAsync(id);
-    }
-
-    /// <summary>Pan/zoom the canvas so a world bounding box fills the viewport (with a little padding).</summary>
-    public async Task FitBoundsAsync(double minX, double minZ, double maxX, double maxZ)
-    {
-        if (handle is not null) await handle.InvokeVoidAsync("fitBounds", minX, minZ, maxX, maxZ);
     }
 
     [JSInvokable] public Task OnCanvasSelect(string? id) => OnSelect.InvokeAsync(id);

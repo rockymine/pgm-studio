@@ -24,16 +24,6 @@ public static class PlanBoardPalette
         : id.StartsWith("frontline") ? 0xfb923c
         : 0x64748b;
 
-    /// <summary>The role word a piece id's own colour stands for, in the order a legend lists them — read off
-    /// the same prefix test <see cref="PieceColor"/> uses, so the key can never name a role the picture does
-    /// not actually draw that way.</summary>
-    public static string RoleName(string id) =>
-        id.StartsWith("hub") ? "hub"
-        : id.StartsWith("spawn") ? "spawn"
-        : id.StartsWith("wool") ? "wool"
-        : id.StartsWith("frontline") ? "frontline"
-        : "other";
-
     /// <summary>A build zone's own colour — a gap open to building from the first tick. Deliberately not a
     /// shade of blue: blue is the one colour a reader brings a fixed meaning for (water) whether or not this
     /// render intends it, and a zone that is not water must not wear its colour (<c>B95</c>). Distinguished

@@ -78,14 +78,6 @@ public static class SeatGeometry
         return new BoxJoint(hubId, nbId, abutment, grant);
     }
 
-    /// <summary>The hub↔neighbour joint on <paramref name="edge"/>: the interface interval where they touch, and
-    /// the <see cref="BoxJoint.Grant"/> across it — width <paramref name="grantedWidthCells"/>, which the neighbour reads as its
-    /// <c>cw</c> (severally — each neighbour its own dock). <paramref name="grantedWidthCells"/> is chosen by the consumer's kind
-    /// upstream (the w2 wool lane, or the map lane width); the hub's own per-run capacity is a separate figure and
-    /// is not what is recorded here.</summary>
-    internal static BoxJoint HubJoint(string hubId, string nbId, BoxEdge edge, int alongStart, int along, int grantedWidthCells) =>
-        HubJointFrom(hubId, nbId, new BoxAbutment(edge, alongStart, along), grantedWidthCells);
-
     /// <summary>The hub's box edge facing <paramref name="side"/> — the (u, v) outward direction mapped through
     /// the <see cref="Frame"/> to a box-local edge (min-z Top, max-z Bottom, min-x Left, max-x Right).</summary>
     internal static BoxEdge SideEdge(Frame frame, UnitSide side)

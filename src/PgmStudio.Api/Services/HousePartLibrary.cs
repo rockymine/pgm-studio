@@ -23,13 +23,6 @@ namespace PgmStudio.Api.Services;
 public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
 {
     // ── roofs ─────────────────────────────────────────────────────────────────────────────────────────
-    public async Task<HouseStyle?> ComposeRoofAsync(long id, CancellationToken ct = default)
-    {
-        var row = await parts.GetRoofAsync(id, ct);
-        if (row is null) return null;
-        return RoofOver(row, await CoursesOf(await parts.GetRoofCoursesAsync(id, ct), ct), WallFor(row));
-    }
-
     /// <summary>Every roof with the building it composes to, newest first — the whole library in two reads.</summary>
     public async Task<List<(RoofStyleRow Row, HouseStyle Style)>> ComposeRoofsAsync(CancellationToken ct = default)
     {
@@ -100,13 +93,6 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
         });
 
     // ── storeys ───────────────────────────────────────────────────────────────────────────────────────
-    public async Task<HouseStyle?> ComposeStoreyAsync(long id, CancellationToken ct = default)
-    {
-        var row = await parts.GetStoreyAsync(id, ct);
-        if (row is null) return null;
-        return OnSample(StoreyOf(row, await CoursesOf(await parts.GetStoreyCoursesAsync(id, ct), ct)));
-    }
-
     public async Task<List<(StoreyStyleRow Row, HouseStyle Style)>> ComposeStoreysAsync(CancellationToken ct = default)
     {
         var rows = await parts.ListStoreysAsync(ct);
@@ -187,9 +173,6 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
     };
 
     // ── porches ───────────────────────────────────────────────────────────────────────────────────────
-    public async Task<HouseStyle?> ComposePorchAsync(long id, CancellationToken ct = default)
-        => await parts.GetPorchAsync(id, ct) is { } row ? OnSample(PorchOf(row)) : null;
-
     public async Task<List<(PorchStyleRow Row, HouseStyle Style)>> ComposePorchesAsync(
         CancellationToken ct = default)
         => [.. (await parts.ListPorchesAsync(ct)).Select(row => (row, OnSample(PorchOf(row))))];

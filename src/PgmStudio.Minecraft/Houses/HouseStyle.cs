@@ -259,10 +259,6 @@ public sealed record Foundation
     /// <summary>What a ground storey stands on, and what a deck falls back to.</summary>
     [JsonIgnore]
     public TerrainMaterial Deck => Plate.At(0).Material;
-
-    /// <summary>A floor and nothing round it: the plate alone, which is what a building seated into finished
-    /// terrain wants.</summary>
-    public Foundation WithoutFooting() => this with { Footing = null };
 }
 
 /// <summary>

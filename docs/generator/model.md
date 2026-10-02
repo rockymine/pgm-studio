@@ -1691,7 +1691,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `BoxPartition` | `Compose/Boxes/BoxPartition.cs` | the partition constraint graph: typed `Box`es + `BoxJoint`s, with hard invariants (`Valid`) and `Of` the derive-side mirror reading the partition a grown unit implies (`SharedEdge` finds the abutment intervals). The typed target the partition-first allocator (G63) emits; boxes may overlap, joints assert only real abutments. |
 | `MidCarver` | `Compose/MidCarver.cs` | the mid: the crossing's half-gap, the flush hull-exact build band, and the row of shared stones standing astride the axis inside it. |
 | `ClosureAnalysis` | `Compose/ClosureAnalysis.cs` | closure hole raster (`HoleSizes`, `AnyHoleRingedBy`). |
-| `ComposeGeometry` | `Compose/ComposeGeometry.cs` | fanning + the fanned-separation invariant. |
+| `ComposeGeometry` | `Compose/ComposeGeometry.cs` | fanning + the collinear-chain measurement. |
 | `PlanModel` · `PlanRoles` | `Plan/PlanModel.cs` | the plan format + the authored role set. |
 
 **Gates** (`dotnet run <path>` — a file-based script; see `CLAUDE.md` on the runfile cache before

@@ -25,9 +25,6 @@ public sealed record DressingSymmetry(string? Mode = null, double CenterX = 0, d
     /// makes the fan a copy rather than a second, independent roll.</summary>
     public (int X, int Z) Canonical(int x, int z) => OrbitScatter.Canonical(x, z, Mode, CenterX, CenterZ);
 
-    /// <summary>Whether a cell is the representative of its own orbit — the test a generator loops on.</summary>
-    public bool IsCanonical(int x, int z) => Canonical(x, z) == (x, z);
-
     /// <summary>Whether the <paramref name="k"/>-th image is a reflection, whose left and right hands are
     /// swapped — what a building stamped at it lays its off-centre choices out by.</summary>
     public bool Reflects(int k) => Symmetry.Reflects(Mode, k);

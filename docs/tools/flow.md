@@ -532,7 +532,6 @@ a new map through them means writing every region, filter and apply-rule by hand
 | `POST` · `PATCH` · `DELETE /map/{slug}/wools[/{woolId}]` | the wool objectives |
 | `POST` · `PATCH` · `DELETE /map/{slug}/wools/{woolId}/monuments[/{monId}]` | their capture points |
 | `POST` · `PATCH` · `DELETE /map/{slug}/regions[/{regionId}]` | create, re-coordinate or rename, delete — the numbers nested under `coords` on both writes |
-| `POST /map/{slug}/regions/group` · `/ungroup` | union two or more, dissolve a compound |
 | `POST /map/{slug}/regions/{regionId}/counterpart` · `/orbit` | mirror a region onto the other team, or round the orbit |
 | `GET /map/{slug}/xml` | the rendered `map.xml` |
 
@@ -552,8 +551,8 @@ revision the map is no longer at is refused as `RQ5`, and one stating nothing wr
 
 **Their bodies and answers are declared.** The request records are `Contracts/EditRequests.cs` and the answer
 records `Contracts/EditDtos.cs`, both published in the schema; `EditRequestShapeTests` and
-`EditAnswerShapeTests` hold each to the editor behind it. Most writes answer `{}`; a created, grouped,
-dissolved or fanned region answers the id the caller now names it by, and a wool, a monument or a team
+`EditAnswerShapeTests` hold each to the editor behind it. Most writes answer `{}`; a created or
+fanned region answers the id the caller now names it by, and a wool, a monument or a team
 answers the row in the shape `GET /map/{slug}` carries it.
 
 **A region's numbers always travel nested under `coords`, on a create and on a patch alike.** A patch takes
@@ -568,10 +567,10 @@ GET   /api/map/sentient                            → the whole document
 GET   /api/map/sentient/regions/tree               → the tree: the region's id, type and current numbers
 PATCH /api/map/sentient/regions/blue-spawn-point   {"coords": {"min_x": 234, "min_z": 149,
                                                                "max_x": 238, "max_z": 151}}
-POST  /api/map/sentient/regions/group              {"type": "union", "child_ids": ["blue-spawn-point"]}
-→ 400 { "error":    "edit not applicable",
-        "message":  "union requires at least 2 region(s)",
-        "findings": [ { "rule": "ED2", "message": "union requires at least 2 region(s)",
+PATCH /api/map/sentient/regions/blue-spawn-point   {}
+→ 400 { "error":    "invalid edit",
+        "message":  "provide 'id' or 'coords'",
+        "findings": [ { "rule": "RQ1", "message": "provide 'id' or 'coords'",
                         "severity": "refusal" } ] }
 ```
 

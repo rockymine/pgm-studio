@@ -73,7 +73,4 @@ public static class SpawnFacings
         (1, 1) => BackRight,
         _ => null,
     };
-
-    /// <summary>Whether the facing points between two walls rather than at one.</summary>
-    public static bool IsDiagonal(string? facing) => Direction(facing) is { Dx: not 0, Dz: not 0 };
 }
