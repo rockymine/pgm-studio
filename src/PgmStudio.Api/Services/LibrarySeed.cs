@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using PgmStudio.Api.Endpoints;
 using PgmStudio.Contracts;
 using PgmStudio.Domain;
 using PgmStudio.Data.Schema;
@@ -80,23 +81,28 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         var byName = stored.GroupBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.MinBy(row => row.Id)!, StringComparer.OrdinalIgnoreCase);
 
+        var taken = new Taken(stored.Select(row => (row.Id, row.Name)));
         var patterns = new Patterns();
-        foreach (var (name, material) in SeedFolder.Patterns)
+        foreach (var (seededName, material) in SeedFolder.Patterns)
         {
             var content = TerrainThemeJson.Serialize(material);
             var kind = TerrainThemeComposer.KindOf(material);
-            if (byContent.TryGetValue(content, out var held) || byName.TryGetValue(name, out held))
+            if (byContent.TryGetValue(content, out var held) || byName.TryGetValue(seededName, out held))
             {
+                var name = taken.For(seededName, held.Id);
                 if (held.Name != name || held.Kind != kind || held.Params != content)
                 {
                     await styles.UpdateStyleAsync(held.Id, name, kind, content, ct);
+                    taken.Carry(held.Id, held.Name, name);
                     patterns.Updated++;
                 }
                 patterns.ByContent[content] = held.Id;
                 patterns.ById[held.Id] = material;
                 continue;
             }
-            var id = await styles.CreateStyleAsync(new StyleRow { Name = name, Kind = kind, Params = content }, ct);
+            var fresh = taken.For(seededName, null);
+            var id = await styles.CreateStyleAsync(new StyleRow { Name = fresh, Kind = kind, Params = content }, ct);
+            taken.Carry(id, null, fresh);
             patterns.ByContent[content] = id;
             patterns.ById[id] = material;
             patterns.Added++;
@@ -120,17 +126,22 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         var roofCourses = (await parts.GetAllRoofCoursesAsync(ct)).ToLookup(course => course.RoofStyleId);
         var roofByKey = storedRoofs.GroupBy(row => PartKey.Of(row, roofCourses[row.Id]), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.MinBy(row => row.Id)!, StringComparer.Ordinal);
-        foreach (var (key, request) in roofs)
+        var roofNames = new Taken(storedRoofs.Select(row => (row.Id, row.Name)));
+        foreach (var (key, seeded) in roofs)
         {
-            if (roofByKey.TryGetValue(key, out var held))
+            var found = roofByKey.TryGetValue(key, out var held);
+            var request = seeded with { Name = roofNames.For(seeded.Name, found ? held!.Id : null) };
+            if (found)
             {
-                if (held.Name == request.Name) continue;
+                if (held!.Name == request.Name) continue;
+                roofNames.Carry(held.Id, held.Name, request.Name);
                 await parts.UpdateRoofAsync(held.Id, HousePartLibrary.RowOf(request),
                     HousePartLibrary.RoofCourseRowsOf(request), ct);
                 updated++;
                 continue;
             }
-            await parts.CreateRoofAsync(HousePartLibrary.RowOf(request), HousePartLibrary.RoofCourseRowsOf(request), ct);
+            roofNames.Carry(await parts.CreateRoofAsync(
+                HousePartLibrary.RowOf(request), HousePartLibrary.RoofCourseRowsOf(request), ct), null, request.Name);
             added++;
         }
 
@@ -144,12 +155,16 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         var storeyByKey = storedStoreys.GroupBy(row => PartKey.Of(row, storeyCourses[row.Id]), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.MinBy(row => row.Id)!, StringComparer.Ordinal);
         var storeyIds = new Dictionary<string, long>(StringComparer.Ordinal);
-        foreach (var (key, request) in storeys)
+        var storeyNames = new Taken(storedStoreys.Select(row => (row.Id, row.Name)));
+        foreach (var (key, seeded) in storeys)
         {
-            if (storeyByKey.TryGetValue(key, out var held))
+            var found = storeyByKey.TryGetValue(key, out var held);
+            var request = seeded with { Name = storeyNames.For(seeded.Name, found ? held!.Id : null) };
+            if (found)
             {
-                storeyIds[key] = held.Id;
+                storeyIds[key] = held!.Id;
                 if (held.Name == request.Name) continue;
+                storeyNames.Carry(held.Id, held.Name, request.Name);
                 await parts.UpdateStoreyAsync(held.Id, HousePartLibrary.RowOf(request),
                     HousePartLibrary.StoreyCourseRowsOf(request), ct);
                 updated++;
@@ -157,6 +172,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             }
             storeyIds[key] = await parts.CreateStoreyAsync(
                 HousePartLibrary.RowOf(request), HousePartLibrary.StoreyCourseRowsOf(request), ct);
+            storeyNames.Carry(storeyIds[key], null, request.Name);
             added++;
         }
 
@@ -165,19 +181,24 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
                 .Select(house => PorchRequest(house.Style.Porch!)),
             request => PartKey.Of(HousePartLibrary.RowOf(request), []),
             (request, name) => request with { Name = name }, PartNames.Porch);
-        var porchByKey = (await parts.ListPorchesAsync(ct))
+        var storedPorches = await parts.ListPorchesAsync(ct);
+        var porchByKey = storedPorches
             .GroupBy(row => PartKey.Of(row, []), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.MinBy(row => row.Id)!, StringComparer.Ordinal);
-        foreach (var (key, request) in porches)
+        var porchNames = new Taken(storedPorches.Select(row => (row.Id, row.Name)));
+        foreach (var (key, seeded) in porches)
         {
-            if (porchByKey.TryGetValue(key, out var held))
+            var found = porchByKey.TryGetValue(key, out var held);
+            var request = seeded with { Name = porchNames.For(seeded.Name, found ? held!.Id : null) };
+            if (found)
             {
-                if (held.Name == request.Name) continue;
+                if (held!.Name == request.Name) continue;
+                porchNames.Carry(held.Id, held.Name, request.Name);
                 await parts.UpdatePorchAsync(held.Id, HousePartLibrary.RowOf(request), ct);
                 updated++;
                 continue;
             }
-            await parts.CreatePorchAsync(HousePartLibrary.RowOf(request), ct);
+            porchNames.Carry(await parts.CreatePorchAsync(HousePartLibrary.RowOf(request), ct), null, request.Name);
             added++;
         }
         return (added, updated, storeyIds);
@@ -465,21 +486,25 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             .GroupBy(row => (World: Path.GetFileName(row.CutWorld!.TrimEnd('/')), X: row.CutX!.Value,
                              Y: row.CutY!.Value, Z: row.CutZ!.Value))
             .ToDictionary(group => group.Key, group => group.First());
+        var treeTaken = new Taken(trees.Select(row => (row.Id, row.Name)));
         foreach (var tree in cut.Trees)
         {
-            var seeded = PropStyleLibrary.RowOf(tree.Name, cut.World, tree.Foot, tree.Style);
-            if (byCut.TryGetValue((cut.World, tree.Foot.X, tree.Foot.Y, tree.Foot.Z), out var held))
+            var found = byCut.TryGetValue((cut.World, tree.Foot.X, tree.Foot.Y, tree.Foot.Z), out var held);
+            var seeded = PropStyleLibrary.RowOf(
+                treeTaken.For(tree.Name, found ? held!.Id : null), cut.World, tree.Foot, tree.Style);
+            if (found && held is not null)
             {
                 if (held.Name == seeded.Name && held.Body == seeded.Body && held.Species == seeded.Species
                     && held.CutBuilder == seeded.CutBuilder) continue;
                 seeded.CutAt = held.CutAt;
                 seeded.CutWorld = held.CutWorld;
                 await props.UpdateTreeAsync(held.Id, seeded, ct);
+                treeTaken.Carry(held.Id, held.Name, seeded.Name);
                 updated++;
                 continue;
             }
             seeded.CutAt = DateTime.UtcNow;
-            await props.CreateTreeAsync(seeded, ct);
+            treeTaken.Carry(await props.CreateTreeAsync(seeded, ct), null, seeded.Name);
             added++;
         }
 
@@ -496,8 +521,9 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
 
     // ── the biome patterns ────────────────────────────────────────────────────────────────────────────
     /// <summary>One flat pattern per biome, so wanting a board that is simply desert is a pick rather
-    /// than a document to write. Computed from the biome table, and idempotent by name like every other seed
-    /// here, so a preset an author has since retuned keeps their numbers.</summary>
+    /// than a document to write. Computed from the biome table, each under the biome's name made a library
+    /// name (<see cref="LibraryNaming.Tidy"/>), and idempotent by name like every other seed here, so a preset
+    /// an author has since retuned keeps their numbers.</summary>
     private async Task SeedBiomesAsync(CancellationToken ct)
     {
         var named = (await styles.ListBiomesAsync(ct: ct))
@@ -505,10 +531,11 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
 
         foreach (var biome in PgmStudio.Minecraft.Palette.Biome.All)
         {
-            if (named.Contains(biome.Name)) continue;
+            var name = LibraryNaming.Tidy(biome.Name);
+            if (!named.Add(name)) continue;
             await styles.CreateBiomeAsync(new BiomePatternRow
             {
-                Name = biome.Name,
+                Name = name,
                 Kind = BiomeKinds.Solid,
                 Params = TerrainThemeJson.SerializeBiome(new SolidBiome(biome.Id)),
             }, ct);
@@ -635,6 +662,29 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         RoomEdge.PosX => PorchEdges.PosX,
         _ => PorchEdges.Front,
     };
+}
+
+/// <summary>The names one kind's rows carry, so a seeded name never lands on another row's: a library name is
+/// one row (<c>LB5</c>), and a name another row holds is counted on (<see cref="PatternNames.Unique"/>).</summary>
+internal sealed class Taken(IEnumerable<(long Id, string Name)> rows)
+{
+    private readonly Dictionary<string, long> holders = rows
+        .GroupBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(group => group.Key, group => group.Min(row => row.Id), StringComparer.OrdinalIgnoreCase);
+
+    /// <summary><paramref name="name"/> where nobody but <paramref name="self"/> carries it, else the first free
+    /// count after it.</summary>
+    public string For(string name, long? self)
+        => !holders.TryGetValue(name, out var holder) || holder == self
+            ? name
+            : PatternNames.Unique(name, holders.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase));
+
+    /// <summary>Row <paramref name="id"/> now carries <paramref name="name"/> rather than <paramref name="was"/>.</summary>
+    public void Carry(long id, string? was, string name)
+    {
+        if (was is not null && holders.TryGetValue(was, out var holder) && holder == id) holders.Remove(was);
+        holders[name] = id;
+    }
 }
 
 /// <summary>What a roof, a storey or a porch row holds, as one string two rows holding the same share: every

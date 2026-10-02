@@ -78,6 +78,8 @@ public sealed class StyleCreateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
 
     public override async Task HandleAsync(StyleSaveRequest req, CancellationToken ct)
     {
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, null,
+            (await store.ListStylesAsync(ct: ct)).Select(row => (row.Id, row.Name)), ct)) return;
         if (await StyleSaving.RefusedAsync(HttpContext, store, req, self: null, ct)) return;
         var row = new StyleRow { Name = req.Name, Kind = req.Kind, Params = req.Params };
         row.Id = await store.CreateStyleAsync(row, ct);
@@ -113,6 +115,8 @@ public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
 
     public override async Task HandleAsync(StyleSaveRequest req, CancellationToken ct)
     {
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
+            (await store.ListStylesAsync(ct: ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var id = Route<long>("id");
         if (await StyleSaving.RefusedAsync(HttpContext, store, req, self: id, ct)) return;
         if (await store.UpdateStyleAsync(id, req.Name, req.Kind, req.Params, ct) == 0)
@@ -177,10 +181,12 @@ public sealed class ThemeGetEndpoint(ThemeStore store) : EndpointWithoutRequest<
 /// <summary>POST /api/themes — compose a theme from existing styles (the knobs + bucket→style bindings).</summary>
 public sealed class ThemeCreateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRequest, ThemeDetail>
 {
-    public override void Configure() { Post("/themes"); }
+    public override void Configure() { Post("/themes"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
     {
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, null,
+            (await store.ListThemesAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         if (await Refusals.StopAsync(HttpContext, 400, "invalid theme", LibraryGate.Buckets(req.Buckets), ct)) return;
         var id = await store.CreateThemeAsync(ThemeRowOf(req), BucketRowsOf(req), ct);
         await Send.OkAsync(new ThemeDetail(id, req.Name, req.BedrockRelative, req.BedrockValue,
@@ -208,10 +214,12 @@ public sealed class ThemeCreateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
 /// <summary>PUT /api/themes/{id} — replace a theme's knobs and its whole set of bucket bindings.</summary>
 public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRequest, ThemeDetail>
 {
-    public override void Configure() { Put("/themes/{id}"); Description(b => b.Refuses(404)); }
+    public override void Configure() { Put("/themes/{id}"); Description(b => b.Refuses(404, 409)); }
 
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
     {
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
+            (await store.ListThemesAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var id = Route<long>("id");
         if (await Refusals.StopAsync(HttpContext, 400, "invalid theme", LibraryGate.Buckets(req.Buckets), ct)) return;
         var updated = await store.UpdateThemeAsync(
@@ -258,16 +266,22 @@ public sealed class ThemeJsonEndpoint(ThemeLibrary library) : EndpointWithoutReq
     }
 }
 
-/// <summary>POST /api/themes/import — lift a whole theme JSON into the library: one style per bucket + a theme
-/// binding them. 400, never 500, on invalid theme JSON.</summary>
-public sealed class ThemeImportEndpoint(ThemeLibrary library) : Endpoint<ThemeImportRequest, CreatedDto>
+/// <summary>POST /api/themes/import — lift a whole theme JSON into the library: a block or a pattern per bucket + a
+/// theme binding them. 400, never 500, on invalid theme JSON. A theme named nothing is "Imported theme", counted on
+/// where the library holds one.</summary>
+public sealed class ThemeImportEndpoint(ThemeLibrary library, ThemeStore store) : Endpoint<ThemeImportRequest, CreatedDto>
 {
-    public override void Configure() { Post("/themes/import"); }
+    public override void Configure() { Post("/themes/import"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(ThemeImportRequest req, CancellationToken ct)
     {
+        var held = (await store.ListThemesAsync(ct)).Select(row => (row.Id, row.Name)).ToList();
+        var name = string.IsNullOrWhiteSpace(req.Name)
+            ? PatternNames.Unique("Imported theme", held.Select(row => row.Name).ToHashSet(StringComparer.OrdinalIgnoreCase))
+            : req.Name;
+        if (await LibraryNaming.RefusedAsync(HttpContext, name, null, held, ct)) return;
         long id;
-        try { id = await library.ImportAsync(string.IsNullOrWhiteSpace(req.Name) ? "Imported theme" : req.Name, req.ThemeJson, ct); }
+        try { id = await library.ImportAsync(name, req.ThemeJson, ct); }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "malformed theme JSON", ex, ct); return; }
         await Send.OkAsync(new CreatedDto(id), ct);
     }

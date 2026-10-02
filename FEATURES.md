@@ -8973,10 +8973,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   named for what they contain (`PatternNames`, `PartNames`), and seed-only variants of one seeded pattern are one.
   `M0058` carries a stored library: 838 rows on the deployed studio, 667 of them single blocks, become about 53
   patterns, roofs fall from 57 to 51 and storeys from 84 to 71, and each map's current refinement follows.
-  `M0059` keeps a room style's `front`, which the store had been dropping. The editors fill every slot through
+  `M0059` keeps a room style's `front`, which the store had been dropping. A library name is letters, digits,
+  spaces, dashes and underscores (`LB4`) and one row of its kind, compared without case (`LB5`), on every save of
+  all nine kinds; `M0060` makes every stored name one, counts a shared one on, indexes each table's names unique
+  and makes each map's refinement follow, and a source names a row without case. The editors fill every slot through
   `SlotSelect`, and `tools/seed-trees.cs` writes the folder's `trees.json`, so a deploy carries the trees.
   (`Minecraft/Library`, `Minecraft/Painting/PatternNames`, `Api/Services/{LibrarySeed,Slots,ThemeLibrary}`,
-  `Api/Endpoints/LibraryRules`, `Migrations/M0058_SlotsHoldBlocks`, `Migrations/M0059_RoomStyleFront`,
+  `Api/Endpoints/LibraryRules`, `Migrations/M0058_SlotsHoldBlocks`, `Migrations/M0059_RoomStyleFront`, `Migrations/M0060_LibraryNames`,
   `Client/Components/Terrain/SlotSelect`, `docs/tools/library.md`, `docs/refusals.md`, `docs/deployment.md`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material

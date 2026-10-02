@@ -179,10 +179,12 @@ public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithout
 public sealed class RoomStyleCreateEndpoint(RoomStyleStore store, RoomStyleLibrary library)
     : Endpoint<RoomStyleSaveRequest, RoomStyleDetail>
 {
-    public override void Configure() { Post("/room-styles"); }
+    public override void Configure() { Post("/room-styles"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, null,
+            (await store.ListAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var findings = LibraryGate.Courses(req.Courses)
             .And(HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct)))
             .And(HouseNames.Check(req.Name));
@@ -199,10 +201,12 @@ public sealed class RoomStyleCreateEndpoint(RoomStyleStore store, RoomStyleLibra
 public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store, RoomStyleLibrary library)
     : Endpoint<RoomStyleSaveRequest, RoomStyleDetail>
 {
-    public override void Configure() { Put("/room-styles/{id}"); Description(b => b.Refuses(404)); }
+    public override void Configure() { Put("/room-styles/{id}"); Description(b => b.Refuses(404, 409)); }
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
+            (await store.ListAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var findings = LibraryGate.Courses(req.Courses)
             .And(HouseStyleValidation.Check(await library.ComposeDraftAsync(req, ct)))
             .And(HouseNames.Check(req.Name));

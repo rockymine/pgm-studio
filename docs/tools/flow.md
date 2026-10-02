@@ -182,7 +182,7 @@ several places is stated once under `materials` and used as `{"use": "strata"}`.
 is named as `{"library": "dunes"}` wherever a material, a theme, a room style, a prop style or a biome is stated,
 and resolved when the source is applied (`docs/tools/library.md`). Either copy has the fields stated beside the
 name laid over it, and a name that names nothing refuses the source 422: `SR5` for a material the registry does
-not state, `SR6` for a library name that names no single row.
+not state, `SR6` for a library name that names no row.
 
 **A compiled shape is named by its component and its height, and a statement anchors to that name.** The id is
 the component's ordinally first piece and the surface it stands at — `dale-9` — with the patches after the

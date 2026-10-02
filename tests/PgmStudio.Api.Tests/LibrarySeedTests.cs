@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using PgmStudio.Api.Endpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
@@ -155,27 +156,49 @@ public sealed class LibrarySeedTests
         await Assert.That(stored.Single(row => row.Id == id).Name).IsEqualTo(name);
     }
 
-    /// <summary>Two library rows whose names differ only by case seed without throwing. The seeder matches a
-    /// name case-insensitively, so the grouping that decides which row is already there has to read a name the
-    /// same way the lookup does — a pair that groups as two keys and collides as one takes the whole startup
-    /// down with it, since the seed runs at app start (<c>RP61</c>).</summary>
+    /// <summary>Every row the seed puts down carries a library name (<see cref="LibraryNaming.Valid"/>).</summary>
     [Test]
-    public async Task Two_rows_named_alike_but_for_case_do_not_collide()
+    public async Task Every_seeded_name_is_a_library_name()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var _ = ApiTestFactory.Shared.CreateClient();
         using var scope = ApiTestFactory.Shared.Services.CreateScope();
-        var themes = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+        await Seed(scope).SeedAsync();
+        var styles = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+        var parts = scope.ServiceProvider.GetRequiredService<HousePartStore>();
+        var props = scope.ServiceProvider.GetRequiredService<PropStyleStore>();
 
-        var (name, _) = SeedFolder.Patterns.First();
-        await themes.CreateStyleAsync(new StyleRow { Name = name.ToLowerInvariant(), Kind = MaterialKind.Noise, Params = "{}" });
-        await themes.CreateStyleAsync(new StyleRow { Name = name.ToUpperInvariant(), Kind = MaterialKind.Noise, Params = "{}" });
+        List<string> names =
+        [
+            .. (await styles.ListStylesAsync()).Select(row => row.Name),
+            .. (await styles.ListThemesAsync()).Select(row => row.Name),
+            .. (await styles.ListBiomesAsync()).Select(row => row.Name),
+            .. (await parts.ListRoofsAsync()).Select(row => row.Name),
+            .. (await parts.ListStoreysAsync()).Select(row => row.Name),
+            .. (await parts.ListPorchesAsync()).Select(row => row.Name),
+            .. (await scope.ServiceProvider.GetRequiredService<RoomStyleStore>().ListAsync()).Select(row => row.Name),
+            .. (await props.ListTreesAsync()).Select(row => row.Name),
+            .. (await props.ListBouldersAsync()).Select(row => row.Name),
+        ];
+        await Assert.That(names.Where(name => !LibraryNaming.Valid(name))).IsEmpty();
+    }
+
+    /// <summary>A name an author's row already carries is theirs: the seeded part that would have taken it takes
+    /// the first free count after it, and the author's row keeps its name and what it holds.</summary>
+    [Test]
+    public async Task A_seeded_name_an_authors_row_carries_is_counted_on()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var parts = scope.ServiceProvider.GetRequiredService<HousePartStore>();
+        var mine = await parts.CreateRoofAsync(new RoofStyleRow { Name = "andesite-gable-roof", Pitch = 3 }, []);
 
         await Seed(scope).SeedAsync();
 
-        var stored = await themes.ListStylesAsync(ct: default);
-        await Assert.That(stored.Count(style => string.Equals(style.Name, name, StringComparison.OrdinalIgnoreCase)))
-            .IsEqualTo(2).Because("the seeder binds one of the two and adds no third");
+        var roofs = await parts.ListRoofsAsync();
+        await Assert.That(roofs.Single(row => row.Id == mine).Name).IsEqualTo("andesite-gable-roof");
+        await Assert.That(roofs.Select(row => row.Name)).Contains("andesite-gable-roof-2");
     }
 
     /// <summary>What a part row holds, as one string: every column but its id, name and creation time, and its

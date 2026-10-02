@@ -27,6 +27,65 @@ internal static class LibraryRules
     /// <remarks>Bind the pattern the finding names, or rename that one. A material differing in anything at all — a seed, a scale, a block — is a different pattern and saves.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request, RuleConcern.Material)]
     public const string PatternHeld = "LB3";
+
+    /// <summary>A library row's name is letters, digits, spaces, dashes and underscores, with no space at either
+    /// end and none doubled — a name a person types to name the row from a map's source. 400.</summary>
+    /// <remarks>Rename it with only those characters: <c>mesa-bryce</c> or <c>Mesa Bryce</c>, not <c>Mesa (Bryce)</c>.</remarks>
+    [Rule(RuleCategory.Malformed, RuleConcern.Request)]
+    public const string NameCharacters = "LB4";
+
+    /// <summary>A library row's name another row of the same kind already carries, compared without case. A map's
+    /// source names a row by its name, so one name is one row. 409, naming the row that carries it.</summary>
+    /// <remarks>Choose another name, or edit the row the finding names.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request)]
+    public const string NameTaken = "LB5";
+}
+
+/// <summary>What a library row's name has to be, on every save of every kind: <see cref="LibraryRules.NameCharacters"/>
+/// and <see cref="LibraryRules.NameTaken"/>.</summary>
+public static partial class LibraryNaming
+{
+    /// <summary>True when the name is refused and the refusal has been written: 400 for its characters, 409 for a
+    /// name another row of the kind in <paramref name="held"/> carries. <paramref name="self"/> is the row being
+    /// edited, which may keep its own name.</summary>
+    public static async Task<bool> RefusedAsync(
+        HttpContext http, string? name, long? self, IEnumerable<(long Id, string Name)> held, CancellationToken ct)
+    {
+        if (!Valid(name))
+        {
+            await Refusals.WriteAsync(http, 400, "invalid name",
+                [new Finding(LibraryRules.NameCharacters,
+                    $"`{name}` is not a library name: letters, digits, spaces, dashes and underscores, with no space "
+                    + "at either end and none doubled", Field: "name")], ct);
+            return true;
+        }
+        if (held.FirstOrDefault(row => row.Id != self
+                && string.Equals(row.Name, name, StringComparison.OrdinalIgnoreCase)) is not { Name: { } taken } other)
+            return false;
+        await Refusals.WriteAsync(http, 409, "name taken",
+            [new Finding(LibraryRules.NameTaken, $"`{taken}` (row {other.Id}) already carries this name",
+                Field: "name", Subjects: [taken])], ct);
+        return true;
+    }
+
+    /// <summary>Text made into a name a library row may carry: a <c>+</c> is spelled <c>plus</c>, any other
+    /// character a name may not hold becomes a space, and spaces are collapsed and trimmed — <c>Extreme hills+ M</c>
+    /// is <c>Extreme hills plus M</c>, <c>Mesa (Bryce)</c> is <c>Mesa Bryce</c>.</summary>
+    public static string Tidy(string text)
+    {
+        var spelled = new System.Text.StringBuilder(text.Length);
+        foreach (var character in text)
+            spelled.Append(character == '+' ? " plus "
+                : char.IsAsciiLetterOrDigit(character) || character is '-' or '_' ? character.ToString() : " ");
+        var tidy = string.Join(' ', spelled.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        return tidy.Length == 0 ? "unnamed" : tidy;
+    }
+
+    /// <summary>Whether a name is one a library row may carry.</summary>
+    public static bool Valid(string? name) => name is { Length: > 0 } && Shape().IsMatch(name);
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*$")]
+    private static partial System.Text.RegularExpressions.Regex Shape();
 }
 
 /// <summary>The checks <see cref="LibraryRules"/> names that read nothing but the request.</summary>

@@ -82,10 +82,12 @@ public sealed class BiomePatternCreateEndpoint(ThemeStore store)
     : Endpoint<BiomePatternSaveRequest, BiomePatternSummary>
 {
     public override void Configure()
-    { Post("/biome-patterns"); Description(b => b.Refuses(400)); }
+    { Post("/biome-patterns"); Description(b => b.Refuses(400, 409)); }
 
     public override async Task HandleAsync(BiomePatternSaveRequest req, CancellationToken ct)
     {
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, null,
+            (await store.ListBiomesAsync(ct: ct)).Select(row => (row.Id, row.Name)), ct)) return;
         if (BiomeBody.Stated(req.Params) is null) { await BiomeBody.RefuseAsync(HttpContext, ct); return; }
         var row = new BiomePatternRow { Name = req.Name, Kind = req.Kind, Params = req.Params };
         row.Id = await store.CreateBiomeAsync(row, ct);
@@ -99,10 +101,12 @@ public sealed class BiomePatternUpdateEndpoint(ThemeStore store)
     : Endpoint<BiomePatternSaveRequest, BiomePatternSummary>
 {
     public override void Configure()
-    { Put("/biome-patterns/{id}"); Description(b => b.Refuses(400, 404)); }
+    { Put("/biome-patterns/{id}"); Description(b => b.Refuses(400, 404, 409)); }
 
     public override async Task HandleAsync(BiomePatternSaveRequest req, CancellationToken ct)
     {
+        if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
+            (await store.ListBiomesAsync(ct: ct)).Select(row => (row.Id, row.Name)), ct)) return;
         if (BiomeBody.Stated(req.Params) is null) { await BiomeBody.RefuseAsync(HttpContext, ct); return; }
         var id = Route<long>("id");
         if (await store.UpdateBiomeAsync(id, req.Name, req.Kind, req.Params, ct) == 0)

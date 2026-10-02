@@ -55,6 +55,13 @@ its run — or by a `style` row bound by id, never both. A single block is not a
 id and variant, which the block catalogue (`GET /terrain/blocks`) already answers, so it takes no row and no name.
 What the library lists as patterns is therefore only what mixes blocks, or tints one by team.
 
+**A name is letters, digits, spaces, dashes and underscores, and names one row of its kind.** A source names a
+row by it, so it is one a person types — no space at either end, none doubled — and two rows of a kind never
+carry it, compared without case; every table holds a unique index over its names. A save naming a row otherwise
+is refused, `LB4` for the characters and `LB5` for a name taken, and the seed counts a seeded name on, `-2`,
+where a row of the author's already carries it. A seeded biome takes the game's name made one:
+`Mesa (Bryce)` is `Mesa Bryce`, `Extreme hills+` is `Extreme hills plus`.
+
 **The library holds each pattern, roof, storey and porch once.** Two rows holding the same material are one
 pattern, so a save of a material the library already holds is refused, naming the row that holds it (`LB3`),
 and a theme import binds that row rather than adding a copy. A roof, a storey or a porch many seeded houses
@@ -705,6 +712,12 @@ finding's `subjects` naming that row. A theme bucket or a course naming both a `
 is refused **400** `LB2` on every save that carries one — `/themes`, `/room-styles`, `/roof-styles`,
 `/storey-styles` — since a slot is filled by one.
 
+**A name is a name, and one row's.** Every `POST` and `PUT` of all nine kinds, and `POST /themes/import`, refuses a
+name holding anything but letters, digits, spaces, dashes and underscores, or a space at either end or doubled,
+with **400** `LB4`; and a name another row of the same kind already carries, compared without case, with **409**
+`LB5`, the finding's `subjects` naming it. A row being edited keeps its own name. An import naming nothing is
+"Imported theme", counted on where the library holds one.
+
 **A bound row cannot be forgotten.** `DELETE /styles/{id}` answers **409** naming the themes, houses, roofs and
 storeys still binding it, so the refusal says what would break rather than surfacing a foreign-key error. It is the
 same refusal envelope every other gate answers in — `{error, message, findings}` with the names in the
@@ -798,7 +811,8 @@ each geometry-carrying field names the kind of block its own form requires.
 
 ## The API
 
-Every endpoint is rooted at `/api` and takes no map. A read is open to anyone, a write needs someone on the
+Every endpoint is rooted at `/api` and takes no map. Every `POST` and `PUT` that saves a row answers **400**
+`LB4` for a name that is not one and **409** `LB5` for a name its kind already carries (*Refusals*, above). A read is open to anyone, a write needs someone on the
 whitelist, and a `DELETE` needs an admin, because a library row is shared by every map that uses it
 ([`docs/access.md`](../access.md)). The pages grey what the caller may not do, with the reason on hover: *New*
 and *Save* for anyone off the whitelist, and *Delete* for anyone but an admin.
@@ -901,8 +915,7 @@ snapshot, or a placed building carries as its `style`.
 Both `/json` endpoints answer a **string in a field** rather than the document — `{themeJson: "…"}` and
 `{styleJson: "…"}` — so what a sketch stores is the parse of that string, not the response.
 
-**A map's source names a row by what it is called.** `{"library": "dunes"}` — or `{"library": 12}` by id, where
-several rows share a name — stands wherever a refinement states a thing the library holds, and what it names is
+**A map's source names a row by what it is called.** `{"library": "dunes"}` — or `{"library": 12}` by id — stands wherever a refinement states a thing the library holds, and what it names is
 decided by where it stands. An entry of `themes` is a theme, of `roomStyles` a room style, a house prop's own
 `style` a room style too, of `dressing.styles` the prop style its `kind` says, the `biome` a biome, and anything
 else a material. The schema publishes a name
@@ -916,8 +929,8 @@ in its turn and replaces what it stands in:
 {"themes": {"heath": {"library": "dunes", "rimEdges": "boundary", "wall": {"library": "sandstone"}}}}
 ```
 
-**A name that names no single row refuses the source**, `422` with `SR6` naming the nearest names the library
-holds, or the ids of the rows sharing the name. A theme or a biome copied this way is recorded in the layout's
+**A name that names no row refuses the source**, `422` with `SR6` naming the nearest names the library holds.
+A name is compared without case, as the library keeps it one row of its kind. A theme or a biome copied this way is recorded in the layout's
 `themeSources` and `biomeSource` as one copied in the Sketch tool is, and the kept refinement carries each name's
 `row` and `hash` (`docs/tools/flow.md`, *A map's source*).
 
@@ -955,7 +968,9 @@ out of the pattern library into the slots that lay it, merged the patterns, roof
 same thing into one row each, and gave each seeded pattern the name the folder states it under; a map's current
 refinement naming a block's row holds the block instead, and one naming a merged pattern names the row kept.
 `M0059` gives a room style the wall its doorway faces, which a house style could state and the row had nowhere
-to keep. Nothing stored is rewritten for the
+to keep. `M0060` made every stored name a library name — a `+` spelled `plus`, any other character a name may not
+hold a space — gave each later row sharing a name, compared without case, the first free count after it, put a
+unique index over every table's names, and made each map's current refinement follow a renamed row. Nothing stored is rewritten for the
 review's rules, which complain rather than refuse: a row keeps what it states, and a map keeps the houses it
 was built with, so an old board keeps the houses of its day (author).
 

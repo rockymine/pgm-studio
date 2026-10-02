@@ -77,25 +77,23 @@ public sealed class LibraryNamesTests
     }
 
     [Test]
-    public async Task A_name_naming_no_row_or_several_refuses_the_source_and_an_id_names_one()
+    public async Task A_name_naming_no_row_refuses_the_source_and_a_name_is_read_without_case_or_by_id()
     {
         using var client = await FreshAsync();
-        var (sand, dunes) = await LibraryAsync(client);
-        await ThemeAsync(client, "weir-dunes", sand);
+        var (_, dunes) = await LibraryAsync(client);
 
         var none = await client.PutAsJsonAsync(Source, Body(new { themes = new { heath = new { library = "weir-dunez" } } }));
-        var several = await client.PutAsJsonAsync(Source, Body(new { themes = new { heath = new { library = "weir-dunes" } } }));
-        foreach (var (refused, says) in new[] { (none, "'weir-dunes'"), (several, $"#{dunes}") })
-        {
-            var text = await refused.Content.ReadAsStringAsync();
-            await Assert.That((int)refused.StatusCode).IsEqualTo(422).Because(text);
-            var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
-            await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("SR6");
-            await Assert.That(finding.GetProperty("message").GetString()).Contains(says);
-        }
+        var text = await none.Content.ReadAsStringAsync();
+        await Assert.That((int)none.StatusCode).IsEqualTo(422).Because(text);
+        var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("SR6");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("'weir-dunes'");
 
-        var byId = await client.PutAsJsonAsync(Source, Body(new { themes = new { heath = new { library = dunes } } }));
-        await Assert.That(byId.IsSuccessStatusCode).IsTrue().Because(await byId.Content.ReadAsStringAsync());
+        foreach (var named in new object[] { "WEIR-DUNES", dunes })
+        {
+            var stored = await client.PutAsJsonAsync(Source, Body(new { themes = new { heath = new { library = named } } }));
+            await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
+        }
     }
 
     [Test]
