@@ -69,7 +69,7 @@
       }
       @if (Note is not null) { <p class="dressing-refusal">@Note</p> }
       <div class="panel-actions">
-        <Button Variant="primary" Busy="keeping" BusyLabel="Keeping…" Disabled="@(standX is null)" OnClick="Keep">@(Changing ? "Save" : "Keep")</Button>
+        <Button Variant="primary" Busy="keeping" BusyLabel="Keeping…" Disabled="@(standX is null)" Writes OnClick="Keep">@(Changing ? "Save" : "Keep")</Button>
         <Button OnClick="OnDiscard">Discard</Button>
       </div>
     }

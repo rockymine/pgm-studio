@@ -39,7 +39,9 @@ classes the markup did — which is what makes it reversible per file and checka
 By tier, each grounded in the classes it emits.
 
 **Primitives** — leaf, style-only. `Button` (`action-btn` plus its `--primary`/`--danger`/`--warn`/`--icon`
-variants, an optional lucide `Icon` name, and an `Href` that switches it to an `<a>`), `Badge`, `Chip`
+variants, an optional lucide `Icon` name, an `Href` that switches it to an `<a>`, and `Writes`/`Deletes`, which
+close it where the caller may not, below), `WriteGate` (the same answer for a control that is not a
+`Button`), `Badge`, `Chip`
 (`filter-chip`), `HelpMark` (the hover explainer a `Section` can carry), `Toast`, `Icon`, and `PlayerHead` —
 a person's initial on a neutral tile, with the front of an account's head over it as the studio serves it at
 `/api/minecraft/player/{uuid}/head` — eight pixels drawn large, the face with the hat over it the way the game
@@ -112,6 +114,20 @@ which is the browser's own way of greying every input, select and button inside 
 editor does the same over its name, fields and save. `DockGroup` is authoring unless it is marked `Viewing`,
 and an authoring group is not drawn on a read-only page — so select and pan stay, and every tool that draws
 goes. What the shells do not reach is recorded as `RP81`.
+
+**An action that writes is marked as one, and closes where the caller may not write.** A `Button` marked
+`Writes` (a save, a *New*, an import, a build, a remove) reads the shell's `StudioWriteReason` cascade: where it
+is set the button is disabled and the reason is its tooltip, and a `Button` with an `Href` is drawn without
+its `href` and with `aria-disabled`, so a *New* that opens an editor goes nowhere. The reason is
+`StudioAccess.WriteReasonAsync`: on a page that writes it is the page's own read-only reason, and on a page
+that writes nothing, such as the map list, it is whether the caller may write at all, since an action there
+starts something on a page that does. Until the shell has asked, every such action is closed.
+
+**Deleting a shared row is an admin's, and `Deletes` says so.** A library entry or a pinned layout is shared
+by everyone, so a `DELETE` of one is refused to anyone but an admin; a `Button` marked `Deletes` reads
+`StudioDeleteReason` and closes the same way. A control that is not a `Button` (the generator's pin, the
+layer strip's add and remove) reads the same two answers through `WriteGate`, and a `FlowBar` whose Next
+writes takes `NextWrites`. Reading and downloading are never marked, so they stay open to a visitor.
 
 The server refuses every write the caller may not make whatever the page shows (`docs/access.md`); this is
 what lets the page say so before an edit rather than after it.

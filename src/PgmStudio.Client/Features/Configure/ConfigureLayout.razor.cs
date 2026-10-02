@@ -27,6 +27,8 @@ public partial class ConfigureLayout
     [Parameter] public string NextLabel { get; set; } = "Next";
     [Parameter] public bool NextBusy { get; set; }
     [Parameter] public string? NextBusyLabel { get; set; }
+    /// <summary>Next writes rather than moves (the import scan), so it is closed where the caller may not write.</summary>
+    [Parameter] public bool NextWrites { get; set; }
     /// <summary>Topbar save indicator text (Saved · Saving… · Unsaved); null/empty hides it (e.g. the
     /// landing, which has no save model).</summary>
     [Parameter] public string? SaveStatus { get; set; }

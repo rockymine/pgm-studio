@@ -12,10 +12,16 @@
 
    The shell also decides whether the page opens read-only (StudioAccess.ReadOnlyReasonAsync, from the
    address): the reason reaches the Bar as "StudioReadOnlyReason", which the Topbar shows, and the answer
-   reaches the body as "StudioReadOnly", which the panels, the dock and the fields that write read. *@
+   reaches the body as "StudioReadOnly", which the panels, the dock and the fields that write read. Why an
+   action that writes is closed (StudioAccess.WriteReasonAsync) reaches the Bar and the body both as
+   "StudioWriteReason", and why deleting a shared row is closed (StudioAccess.DeleteReasonAsync) as
+   "StudioDeleteReason"; a Button marked Writes or Deletes, and a WriteGate, read them. Until the answers are
+   in, both are closed. *@
 
 <div class="editor-page@(ReadOnly ? " studio-readonly" : "")">
     <AppNav />
+    <CascadingValue Name="StudioWriteReason" Value="writeReason">
+    <CascadingValue Name="StudioDeleteReason" Value="deleteReason">
     <CascadingValue Name="StudioReadOnlyReason" Value="readOnlyReason">
         @Bar
     </CascadingValue>
@@ -39,6 +45,8 @@
             </div>
         }
     </CascadingValue>
+    </CascadingValue>
+    </CascadingValue>
     <AppFooter />
 </div>
 
@@ -50,19 +58,30 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private string? readOnlyReason;
+    private const string Asking = "Checking whether you can change this…";
+    private string? writeReason = Asking;
+    private string? deleteReason = Asking;
 
     private bool ReadOnly => readOnlyReason is not null;
 
     protected override async Task OnInitializedAsync()
     {
         Nav.LocationChanged += OnLocationChanged;
-        readOnlyReason = await Access.ReadOnlyReasonAsync(Nav.ToBaseRelativePath(Nav.Uri));
+        await AskAsync();
     }
 
     private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
-        readOnlyReason = await Access.ReadOnlyReasonAsync(Nav.ToBaseRelativePath(Nav.Uri));
+        await AskAsync();
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AskAsync()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+        readOnlyReason = await Access.ReadOnlyReasonAsync(path);
+        writeReason = await Access.WriteReasonAsync(path);
+        deleteReason = await Access.DeleteReasonAsync(path);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");

@@ -21,8 +21,8 @@
         @if (downloadError is not null) { <span class="topbar-crumb topbar-crumb--warn" title="@downloadError">@downloadError</span> }
         @if (exportRefused) { <Button Href="@($"maps/{Slug}/configure")" Icon="settings-2">Open Configure</Button> }
         <span class="topbar-crumb topbar-crumb--dim">@groupLabel</span>
-        <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" OnClick="Undo" />
-        <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" OnClick="Redo" />
+        <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" Writes OnClick="Undo" />
+        <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" Writes OnClick="Redo" />
         <Button Variant="primary" Icon="download" Busy="downloading" BusyLabel="Building…" OnClick="DownloadMap"
                 Title="Download the map: its world and map.xml, ready for a server">Download map</Button>
       </Right>

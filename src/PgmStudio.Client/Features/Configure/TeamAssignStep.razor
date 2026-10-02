@@ -35,7 +35,10 @@
               <span class="list-swatch" style="--swatch: @Hex(t.Color)"></span>
               <span class="list-label list-label--mono">@t.Id</span>
               <Badge Class="@(idx == 0 ? "badge--success" : "badge--dim")">@(idx == 0 ? "Main" : "Copy")</Badge>
-              <button class="btn-remove btn-remove--hover-only" title="Remove" @onclick:stopPropagation="true" @onclick="() => RemoveTeam(t)"><i data-lucide="x"></i></button>
+              <WriteGate Context="closed">
+                <button class="btn-remove btn-remove--hover-only" title="@(closed ?? "Remove")" disabled="@(closed is not null)"
+                        @onclick:stopPropagation="true" @onclick="() => RemoveTeam(t)"><i data-lucide="x"></i></button>
+              </WriteGate>
             </ListRow>
           }
         </div>

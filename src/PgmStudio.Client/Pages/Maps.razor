@@ -3,7 +3,6 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject NavigationManager Nav
-@inject StudioAccess Access
 
 <PageTitle>@StageTitle · PGM Studio</PageTitle>
 
@@ -34,15 +33,15 @@
               <Badge Kind="dim">@(maps?.Count ?? 0)</Badge>
               @if (CurrentStage == MapStage.Plan)
               {
-                <Button Variant="primary" OnClick="NewPlan" Icon="plus" Class="action-btn--push-end" Disabled="@(creatingPlan || !mayWrite)" Title="@WriteTitle">New plan</Button>
+                <Button Variant="primary" OnClick="NewPlan" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingPlan">New plan</Button>
               }
               else if (CurrentStage == MapStage.Sketch)
               {
-                <Button Variant="primary" OnClick="NewSketch" Icon="plus" Class="action-btn--push-end" Disabled="@(creatingSketch || !mayWrite)" Title="@WriteTitle">New sketch</Button>
+                <Button Variant="primary" OnClick="NewSketch" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingSketch">New sketch</Button>
               }
-              else if (CurrentStage == MapStage.Configure && mayWrite)
+              else if (CurrentStage == MapStage.Configure)
               {
-                <Button Variant="primary" Href="maps/new" Icon="import" Class="action-btn--push-end">Import a world</Button>
+                <Button Variant="primary" Href="maps/new" Icon="import" Class="action-btn--push-end" Writes>Import a world</Button>
               }
             </Actions>
             <Description>@StageBlurb</Description>

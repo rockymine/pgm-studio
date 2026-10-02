@@ -50,12 +50,12 @@
                 </ListRow>
               }
             </div>
-            <Button Full Class="action-btn--separated" Variant="primary" OnClick="ConfirmAll">
+            <Button Writes Full Class="action-btn--separated" Variant="primary" OnClick="ConfirmAll">
               <i data-lucide="check"></i> Confirm all @proposals.Count
             </Button>
           }
 
-          <Button Full Class="action-btn--separated" Disabled="@loading" OnClick="DetectMapWide">
+          <Button Writes Full Class="action-btn--separated" Disabled="@loading" OnClick="DetectMapWide">
             <i data-lucide="scan-search"></i> Find suggestions again
           </Button>
         }
@@ -119,7 +119,7 @@
             }
 
             <div class="ctrl-row ctrl-row--separated">
-              <Button Fill OnClick="() => Remove(sel)" Title="Remove core"><i data-lucide="trash-2"></i> Remove</Button>
+              <Button Writes Fill OnClick="() => Remove(sel)" Title="Remove core"><i data-lucide="trash-2"></i> Remove</Button>
             </div>
           </div>
         </Section>

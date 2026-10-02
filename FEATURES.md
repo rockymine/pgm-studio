@@ -169,6 +169,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **An action the caller may not take is greyed, with the reason on hover (`C87`).** A `Button` marked
+  `Writes` closes where the shell's `StudioWriteReason` says the caller may not write, and one marked
+  `Deletes` where `StudioDeleteReason` says only an admin may delete; a closed link has no `href`. The map
+  list's New buttons, the library's *New* and every entry's Save, the plan editor's New, Import, Save and
+  Compile, the generator's Pin and Open in plan editor, and every save, build and remove in Sketch and
+  Configure carry it, and `WriteGate` and `FlowBar.NextWrites` cover the controls that are not a `Button`.
+  `access.mjs` checks both sides: open to the admin, closed to a visitor.
 - **The interface is written for a mapmaker, not for the codebase (`C71`).** A first-time reader found the
   copy hard to parse: internal names on screen (*pipeline*, *composer*, *emitter*, *BoxFiller*), noun phrases
   hung off em dashes, metaphors, and descriptions where the control already said enough. The standard is

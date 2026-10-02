@@ -1,0 +1,17 @@
+@namespace PgmStudio.Client.Components
+
+@* Hands a control that is not a Button why its write is closed, from the same "StudioWriteReason" and
+   "StudioDeleteReason" a Button marked Writes or Deletes reads: null where the caller may, the reason where
+   not. The control disables itself on it and shows it as its tooltip. *@
+
+@ChildContent?.Invoke(Closed)
+
+@code {
+    /// <summary>The control deletes a shared row, which only an admin may.</summary>
+    [Parameter] public bool Deletes { get; set; }
+    [Parameter] public RenderFragment<string?>? ChildContent { get; set; }
+    [CascadingParameter(Name = "StudioWriteReason")] public string? WriteReason { get; set; }
+    [CascadingParameter(Name = "StudioDeleteReason")] public string? DeleteReason { get; set; }
+
+    private string? Closed => Deletes ? DeleteReason : WriteReason;
+}

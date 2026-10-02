@@ -26,7 +26,7 @@
       <Right>
         @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
         @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
-        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)">Save</Button>
+        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)" Writes>Save</Button>
       </Right>
     </Topbar>
     }
@@ -46,13 +46,15 @@
         {
           <Badge Kind="neutral" title="@OriginTitle">@planOrigin</Badge>
         }
-        <Button OnClick="NewPlan" Title="Start a blank plan">New</Button>
-        <label class="action-btn" title="Import a *.plan.json file">
-          Import
-          <InputFile OnChange="OnImport" accept=".json" class="control-input--hidden" />
-        </label>
+        <Button OnClick="NewPlan" Title="Start a blank plan" Writes>New</Button>
+        <WriteGate Context="closed">
+          <label class="action-btn" title="@(closed ?? "Import a *.plan.json file")" aria-disabled="@(closed is not null ? "true" : null)">
+            Import
+            <InputFile OnChange="OnImport" accept=".json" class="control-input--hidden" disabled="@(closed is not null)" />
+          </label>
+        </WriteGate>
         <Button OnClick="OpenDbBrowser" Title="Open a saved plan">Open</Button>
-        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)">Save</Button>
+        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)" Writes>Save</Button>
       </Right>
     </Topbar>
     }
@@ -77,7 +79,7 @@
          the canvas re-measures itself when it un-hides. *@
       <div class="phase-body" hidden="@DrawHidden">
       <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
-               BackEnabled="true" NextLabel="Compile" NextBusy="@(!documentLoaded)" NextBusyLabel="Loading…"
+               BackEnabled="true" NextLabel="Compile" NextBusy="@(!documentLoaded)" NextBusyLabel="Loading…" NextWrites
                OnBack="GoInfo" OnNext="OpenCompile" />
       <Workspace>
         @if (sidebarOpen)
@@ -345,9 +347,9 @@
                 </Field>
                 <Field Label="Surface (y)">
                   <div class="ctrl-row">
-                    <Button Variant="icon" Title='@($"Lower surface by {(int)surfaceStep}")' OnClick="() => StepSurface(-(int)surfaceStep)">−</Button>
+                    <Button Variant="icon" Writes Title='@($"Lower surface by {(int)surfaceStep}")' OnClick="() => StepSurface(-(int)surfaceStep)">−</Button>
                     <span class="plan-stepper-value">@sel.Surface@(sel.SurfaceSet ? "" : " (base)")</span>
-                    <Button Variant="icon" Title='@($"Raise surface by {(int)surfaceStep}")' OnClick="() => StepSurface((int)surfaceStep)">+</Button>
+                    <Button Variant="icon" Writes Title='@($"Raise surface by {(int)surfaceStep}")' OnClick="() => StepSurface((int)surfaceStep)">+</Button>
                   </div>
                 </Field>
                 <Field Label="Step">
@@ -358,10 +360,10 @@
                     }
                   </div>
                 </Field>
-                <Button Full OnClick="ToggleMirrors">
+                <Button Full Writes OnClick="ToggleMirrors">
                   @(sel.Mirrors ? "Exclude from mirror" : "Include in mirror")
                 </Button>
-                <Button Full Variant="danger" OnClick="DeleteSelected">
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete piece
                 </Button>
               }
@@ -387,7 +389,7 @@
                   The piece around the building is its protected area. Drag the dashed rectangle to move
                   the building, or its handles to resize it.
                 </p>
-                <Button Full Variant="danger" OnClick="DeleteSelected">
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Clear building
                 </Button>
                 <p class="section-desc">Clearing it restores the default building.</p>
@@ -404,7 +406,7 @@
                     @(lane ? "During the match, when the lane floods" : "At the start of the match")
                   </div>
                 </Field>
-                <Button Full Variant="danger" OnClick="DeleteSelected">
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> @(lane ? "Delete water lane" : "Delete build area")
                 </Button>
               }
@@ -429,10 +431,10 @@
                     ? "Members are fixed. Resizing the box doesn't change them."
                     : "Members are the pieces fully inside the box. Dragging the box moves them too.")
                 </p>
-                <Button Full OnClick="ToggleBoxMembers">
+                <Button Full Writes OnClick="ToggleBoxMembers">
                   @(sel.MembersNamed ? "Use pieces inside" : "Fix members")
                 </Button>
-                <Button Full Variant="danger" OnClick="DeleteSelected">
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete box
                 </Button>
               }
@@ -447,7 +449,7 @@
                   <Field Label="Facing">
                     <div class="ctrl-row">
                       <span class="plan-stepper-value">@sel.Facing</span>
-                      <Button Variant="icon" OnClick="CycleFacing" Title="Turn"><i data-lucide="rotate-cw"></i></Button>
+                      <Button Variant="icon" Writes OnClick="CycleFacing" Title="Turn"><i data-lucide="rotate-cw"></i></Button>
                     </div>
                   </Field>
                 }
@@ -546,7 +548,7 @@
                     }
                   </p>
                 }
-                <Button Full Variant="danger" OnClick="DeleteSelected">
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete marker
                 </Button>
               }
@@ -643,7 +645,7 @@
                 islands is kept.</p>
               <div class="ctrl-row">
                 <Button Fill OnClick="KeepRelief">Cancel</Button>
-                <Button Variant="danger" Fill Disabled="@draftBusy" OnClick="DiscardReliefAndRebuild">
+                <Button Variant="danger" Fill Disabled="@draftBusy" Writes OnClick="DiscardReliefAndRebuild">
                   <i data-lucide="hammer"></i> Delete and rebuild
                 </Button>
               </div>
@@ -664,7 +666,7 @@
                  actually rebuilds furthest from where the eye lands. *@
               <div class="ctrl-row">
                 <Button Fill OnClick="CancelRebuild">Cancel</Button>
-                <Button Variant="danger" Fill Disabled="@draftBusy" OnClick="BuildRequested">
+                <Button Variant="danger" Fill Disabled="@draftBusy" Writes OnClick="BuildRequested">
                   <i data-lucide="hammer"></i> Rebuild
                 </Button>
               </div>
@@ -676,7 +678,7 @@
                nothing to build, and a button still offering the build is a dead control that says why only by
                being grey. The hammer goes with it — an icon for the act is wrong on a label that refuses it. *@
             <Button Variant="primary" Full Disabled="@(compiledLayout is null)" Busy="@draftBusy"
-                    BusyLabel="@($"{draftStep}…")" OnClick="BuildRequested">
+                    BusyLabel="@($"{draftStep}…")" Writes OnClick="BuildRequested">
               @if (compiledLayout is not null) { <i data-lucide="hammer"></i> }
               @DraftLabel
             </Button>

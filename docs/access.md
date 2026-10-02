@@ -173,8 +173,15 @@ list.
 
 A page the caller may not write opens read-only: the tool's bar says *View only*, with the reason on hover, the
 panels grey their fields and the canvas keeps only the tools that look. Signed in, a read-only Sketch page
-still draws the ground's relief, its paint and the 3-D preview; signed out, it draws the outlines alone. `docs/client/ui-conventions.md` says
-how the shell decides it. `tests/e2e/access.mjs` holds it, against a second server over the suite's database
+still draws the ground's relief, its paint and the 3-D preview; signed out, it draws the outlines alone.
+
+**An action the caller may not take is greyed wherever it sits, with the reason on hover.** That holds on a
+page that writes nothing as much as on one that writes: the map list's *New plan*, *New sketch* and *Import a
+world*, the library's *New* and an entry's *Save*, the plan editor's *New*, *Import*, *Save* and *Compile*, the
+generator's *Pin* and *Open in plan editor*, and every save, build and remove in the map tools. Deleting a
+library entry or unpinning a layout is greyed for anyone but an admin, since a `DELETE` outside a map is an
+admin's (below). Reading and downloading are never greyed. `docs/client/ui-conventions.md` says how the shell
+decides both. `tests/e2e/access.mjs` holds it, against a second server over the suite's database
 running invited with the browser signed out.
 
 ## Which route needs what is decided from the route
@@ -337,10 +344,10 @@ The handler builds Discord's `redirect_uri` from the request it sees, so a studi
 honour `X-Forwarded-Proto`; the deployed one does, and `docs/deployment.md` says how.
 
 
-- **A read-only page still lets a few edits start.** The panels grey their fields and the dock drops its
-  drawing tools (`docs/client/ui-conventions.md`), but a sidebar's own inputs, a select-and-drag on the canvas
-  and a phase bar's finish are not reached; each is refused by the server and springs back. Closing them is
-  `RP81`.
+- **A read-only page still lets a few edits start.** The panels grey their fields, the dock drops its
+  drawing tools and every action that writes is greyed (`docs/client/ui-conventions.md`), but a sidebar's own
+  inputs and pickers and a select-and-drag on the canvas are not reached; each is refused by the server and
+  springs back. Closing them is `RP81`.
 - **A world already built still waits its turn.** The queue does not know that a request would be answered
   from the studio's store of built worlds in milliseconds, so a caller's second read of the same board waits
   behind their first.

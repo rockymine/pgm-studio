@@ -96,7 +96,7 @@
     </Section>
     <Section>
       <Button Variant="primary" Icon="undo-2" Disabled="@(From == 0 || From == Latest)" Busy="Restoring"
-              BusyLabel="Restoring…" OnClick="() => OnRestore.InvokeAsync(From)">
+              BusyLabel="Restoring…" Writes OnClick="() => OnRestore.InvokeAsync(From)">
         Restore to #@From
       </Button>
       <p class="plan-readout">@RestoreReadout</p>

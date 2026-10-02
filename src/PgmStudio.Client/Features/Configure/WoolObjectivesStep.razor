@@ -111,13 +111,13 @@
             <div class="ctrl-row ctrl-row--separated">
               @if (sel.Included)
               {
-                <Button Fill OnClick="() => Toggle(sel)"><i data-lucide="x"></i> Exclude</Button>
+                <Button Writes Fill OnClick="() => Toggle(sel)"><i data-lucide="x"></i> Exclude</Button>
               }
               else
               {
-                <Button Variant="primary" Fill OnClick="() => Toggle(sel)"><i data-lucide="check"></i> Include@(string.IsNullOrEmpty(sel.ExcludeReason) ? "" : " anyway")</Button>
+                <Button Writes Variant="primary" Fill OnClick="() => Toggle(sel)"><i data-lucide="check"></i> Include@(string.IsNullOrEmpty(sel.ExcludeReason) ? "" : " anyway")</Button>
               }
-              <Button Fill OnClick="() => Remove(sel)" Title="Remove"><i data-lucide="trash-2"></i></Button>
+              <Button Writes Fill OnClick="() => Remove(sel)" Title="Remove"><i data-lucide="trash-2"></i></Button>
             </div>
             @if (!sel.Included && !string.IsNullOrEmpty(sel.ExcludeReason))
             {

@@ -265,7 +265,7 @@
             in the <strong>Library</strong>.</p>
         }
         <div class="panel-actions">
-          <Button OnClick="OpenLibrary">
+          <Button Writes OnClick="OpenLibrary">
             <i data-lucide="external-link"></i> @(recipes.Count == 0 ? "Create one" : "Create another")
           </Button>
         </div>
@@ -294,7 +294,7 @@
         <p class="section-desc">Shift-click a second building, then press <kbd>@JoinChord</kbd> to join them.
           Press it again to split them.</p>
         <div class="panel-actions">
-          <Button OnClick="Join" Disabled="@(!CanJoin)">
+          <Button Writes OnClick="Join" Disabled="@(!CanJoin)">
             <i data-lucide="@(Wings > 1 ? "ungroup" : "group")"></i> @JoinLabel
           </Button>
           <Badge Kind="dim">@Wings @(Wings == 1 ? "wing" : "wings")</Badge>
@@ -338,13 +338,13 @@
       <Field Label="Seed">
         <div class="panel-actions">
           <NumberField Value="Num(PropFields.Seed)" ValueChanged="v => Set(PropFields.Seed, JsonValue.Create((int)v))" Min="0" />
-          <Button OnClick="Reroll"><i data-lucide="refresh-cw"></i> Reroll</Button>
+          <Button Writes OnClick="Reroll"><i data-lucide="refresh-cw"></i> Reroll</Button>
         </div>
       </Field>
       <p class="section-desc">The same seed always gives the same result.</p>
       @if (editingSelection)
       {
-        <Button Full Variant="danger" OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>
+        <Button Full Variant="danger" Writes OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>
       }
     }
   </Section>
