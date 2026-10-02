@@ -158,8 +158,8 @@ public partial class Maps
     {
         maps = null;
         loadError = null;
-        var query = CurrentStage is null ? "" : $"?stage={CurrentStage}";
-        try { maps = await Http.GetFromJsonAsync<List<MapSummary>>($"api/maps{query}"); }
+        var route = CurrentStage is null ? "api/maps" : $"api/maps?stage={CurrentStage}";
+        try { maps = await Http.GetFromJsonAsync<List<MapSummary>>(route); }
         catch (HttpRequestException) { loadError = "Couldn't load the maps. The studio may be restarting; try again in a moment."; }
     }
 
