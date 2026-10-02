@@ -17,7 +17,7 @@ query parameter reads as an optional filter, and an editor without a map is not 
 not stable across a rename.
 
 **Query parameters are transient view state only** — selection, zoom, the active layer, an open panel, the
-phase a tool opens on (`?phase=info`), the row a listing should highlight (`?just={slug}`). The maps page's
+phase a tool opens on (`?phase=info`). The maps page's
 `?stage=` fits the rule: it selects which collection is shown, not which map.
 
 ## The routes
@@ -25,7 +25,7 @@ phase a tool opens on (`?phase=info`), the row a listing should highlight (`?jus
 | Route | Component | Is |
 |---|---|---|
 | `/` | `Index` | the landing — seven cards over live counts |
-| `/maps` | `Maps` | the map collections; `?stage=plan\|sketch\|configure` selects one, absent means Maps |
+| `/maps` | `Maps` | the map collections; `?stage=plan\|sketch\|configure\|edit` selects one, absent lists every map |
 | `/maps/{slug}/plan` | `PlanTool` | the plan tool on a map |
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
 | `/maps/{slug}/configure` | `ConfigureTool` | the configure wizard |
@@ -54,24 +54,35 @@ the WASM runtime asks for. What serves the client instead is a path-rewrite midd
 fingerprinted `/js/…<hash>.js` back to the real file name, and JS modules are loaded by a native `import()`
 from the classic `studio.js` rather than through the framework's asset pipeline.
 
+**Every hand-written file is revalidated on every use.** The CSS and JS under `wwwroot` keep their names across
+deploys, and a module imports its siblings by those names, so nothing in a URL changes when its file does.
+`UseStaticFiles` and the `index.html` fallback therefore send `Cache-Control: no-cache` in every environment: a
+browser keeps its copy but asks before each use, and gets a 304 when nothing changed. Without it a browser
+keeps a file for a freshness window it guesses from `Last-Modified`, a hard reload does not reach a module
+imported after load, and a deploy arrives piecemeal: new markup over an old stylesheet, a new module importing
+an old one that lacks the export it asks for. `smoke.mjs` checks the header on the page, a stylesheet and a
+module.
+
 ## The collections
 
-`?stage=` selects one of four, and they are not the same kind of question. Two list **a layer a map holds**
-and two list **a stage a map stands at**, which is why a map appears in more than one.
+`/maps` lists every map in the studio, each row naming the stage it has reached, and `?stage=` narrows it to
+one of four collections that are not the same kind of question. Two list **a layer a map holds** and two list
+**a stage a map stands at**, which is why a map appears in more than one.
 
 | List | Shows | Primary action |
 |---|---|---|
 | **Plans** (`?stage=plan`) | every map holding a plan, including ones long since built | New plan |
 | **Sketches** (`?stage=sketch`) | every map holding a drawn sketch, including ones already configured | New sketch |
 | **Configuring** (`?stage=configure`) | maps standing at `configure` — terrain but no finished `map.xml` | Import a world |
-| **Maps** (`/maps`) | maps standing at `edit` — a finished `map.xml` | — |
+| **Finished** (`?stage=edit`) | maps standing at `edit` — a finished `map.xml`, which the corpus import writes and no authoring tool sets | — |
+| **Maps** (`/maps`) | every map, with its stage on the row | — |
 
 A row opens the tool at its map's stage. A map at `edit` has no tool at its stage, so its row opens the last
 layer it holds — Configure, where it has a world — and one holding no layer is listed without a link.
 
 A map keeps every layer it has ever had, so "every map with a plan" and "every map at the plan stage" are
 different collections; each list says which in its own blurb. `GET /api/maps[?stage=…]` serves them and
-`GET /api/maps/stage-counts` the landing tallies, each counting exactly what its list does — so a card and the
+`GET /api/maps/stage-counts` the landing tallies (sketches, configuring, and every map), each counting exactly what its list does — so a card and the
 page it opens cannot disagree.
 
 ## The landing
@@ -121,7 +132,6 @@ maps page itself — carry no home link, because the studio's bar above them is 
 Beside that link the tool's bar carries the trail — the map's name, then the tool or phase, dimmed. Neither is a
 link: the map is already open, so a second way to it would be a way to nowhere.
 
-One exit is not a link at all. **Finishing a sketch** rasterizes the layout, advances the map to `configure`,
-and lands on the Configure collection with `?just={slug}`, which highlights the row and offers *Continue to
-Configure* — rather than force-marching into the wizard, since finishing the geometry and starting the
-configuration are two decisions.
+A finished sketch does not leave its tool to be handed over: **Download map** in the sketch's bar builds the
+world and saves the export where the author is (`docs/tools/sketch.md`). Configure is reached from the map's
+row, or from the bar when the export is refused for something only Configure states.

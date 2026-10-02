@@ -1,4 +1,6 @@
 using PgmStudio.Contracts;
+using PgmStudio.Client.Components;
+using PgmStudio.Vocabulary;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -18,11 +20,15 @@ public partial class ImportPhase : IAsyncDisposable
     [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private StudioAccess Access { get; set; } = default!;
 
 
     private static readonly string[] Steps = ["Source", "Found", "Plan"];
 
     private List<ImportCandidateDto> candidates = new();
+    /// <summary>Whether this studio reads worlds off its own disk: only one running on its author's machine
+    /// (<see cref="AccessModes.Open"/>), since nobody else can put a folder there.</summary>
+    private bool localFolders;
     private ImportCandidateDto? selected;
     private int step;
     private bool importing;
@@ -133,6 +139,8 @@ public partial class ImportPhase : IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        localFolders = (await Access.MeAsync()).Mode == AccessModes.Open;
+        if (!localFolders) return;
         try
         {
             candidates = await Http.GetFromJsonAsync<List<ImportCandidateDto>>("api/maps/import-candidates") ?? [];

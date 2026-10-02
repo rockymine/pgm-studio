@@ -19,6 +19,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   region geometry — all parity-verified against the Python reference. (M5, A1)
 
 ## App shell & routing
+- **A deploy reaches a browser whole (`RP102`).** The hand-written CSS and JS and `index.html` are sent with
+  `Cache-Control: no-cache` in every environment, so a browser revalidates each one rather than keeping it for a
+  window guessed from `Last-Modified`: a deploy no longer lands as new markup over old stylesheets, or a new
+  module importing an old one. `smoke.mjs` checks the header on the page, a stylesheet and a module.
+- **A content page scrolls at the window's edge (`C84`).** `ContentColumn` and the start page scroll a
+  full-width area with the capped column inside it, so the scrollbar stands at the window's edge rather than
+  against the column; `MaxWidth` is the content's own width.
+- **`/maps` lists every map, by stage (`C86`).** With no `?stage=` the page lists every map in the studio and
+  names each row's stage, so it is useful from the first map; Plans, Sketches and Configuring narrow it, and
+  `?stage=edit` reads *Finished*. The landing's Maps card counts every map (`MapStageCounts.All`).
+- **`/maps` says when it could not load (`C85`).** A failed list request, such as a 502 while the studio
+  restarts, shows a sentence and *Try again* rather than taking the page down.
 - **Map-centric URL structure** — the map is the path resource, the mode a trailing segment. Live:
   dashboard `/maps`, **Edit** `/maps/{id}/edit`, **Configure** `/maps/{id}/configure`, **Sketch**
   `/maps/{id}/sketch`, origination `/maps/new`, concept showcase `/concepts`, design system `/design`.
@@ -3405,6 +3417,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the entity routes `docs/tools/flow.md` documents. (`TE3`)
 
 ## Pipeline / world import (M7)
+- **World folders only where someone can put one (`TC12`).** `/maps/new` lists the imports root's world
+  folders on an `open` studio, the one on its author's machine; an invited studio offers the download link
+  alone, since nobody but its operator can write to its disk.
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)
 - **`POST /scan-world`** — world → DB feature rows. (P3)
@@ -8577,6 +8592,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`TS139`)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **The sketch hands over a finished map (`TS154`).** *Download map* in the top bar, on every phase, flushes
+  the layout, builds the world the first time a map has none (`sketch/finish`), and saves the export; a board
+  built from a plan carries the plan's game settings, so it needs no visit to Configure. A refused export shows
+  its sentence and *Open Configure*. Draw's *Done* goes on to Terraform, Ctrl+S saves, and the Configuring
+  list's "just finished" banner is gone with the redirect that fed it. Plan, Configure's Review and the sketch
+  save an export through one `MapDownload`.
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
   `{component}-{surface}` and each addressable — so a theme scoped per plateau paints one hillside as two or

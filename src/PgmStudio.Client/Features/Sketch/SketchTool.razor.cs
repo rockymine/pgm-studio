@@ -852,7 +852,10 @@ public partial class SketchTool
             case "sketch.theme.next": await CycleTheme(1); break;
             case "sketch.theme.prev": await CycleTheme(-1); break;
 
-            case "sketch.save": await Finish(); break;
+            case "sketch.save":
+                saveCts?.Cancel();
+                await SaveAsync(CancellationToken.None);
+                break;
         }
         StateHasChanged();
     }
@@ -1386,51 +1389,54 @@ public partial class SketchTool
         if (saveError != was) await InvokeAsync(StateHasChanged);
     }
 
-    // ── Finish: flush the layout, rasterize server-side, continue to Configure ──
+    // ── Download: the finished map, from whichever phase the author is in ──
 
-    private bool finishing;
-    private string? finishError;
+    private bool downloading;
+    private string? downloadError;
+    /// <summary>Whether the export itself refused the map, which Configure is where to answer.</summary>
+    private bool exportRefused;
 
-    private async Task Finish()
+    /// <summary>Save the drawing, build its world if the map has none yet, and hand the export to the browser.
+    /// A world built once follows later edits on its own, so the build runs only the first time; a caller who
+    /// may not edit the map downloads it as it is stored.</summary>
+    private async Task DownloadMap()
     {
-        if (handle is null) return;
-        finishing = true;
-        finishError = null;
+        if (downloading) return;
+        downloading = true;
+        downloadError = null;
+        exportRefused = false;
         StateHasChanged();
-
-        saveCts?.Cancel();          // flush the latest layout before the server rasterizes it
-        await SaveAsync(CancellationToken.None);
-        if (superseded)
-        {
-            // The stored board is not the one on screen, so finishing would build a board the author is not
-            // looking at.
-            finishError = saveError;
-            finishing = false;
-            StateHasChanged();
-            return;
-        }
-
         try
         {
-            var resp = await Http.PostAsync($"api/map/{Slug}/sketch/finish", null);
-            if (resp.IsSuccessStatusCode)
+            if (handle is not null && await Access.MayEditMapAsync(Slug))
             {
-                // Land back on the Configure overview (the draft is now a configure-stage map) and offer to
-                // continue into the wizard there — rather than force-marching straight into it.
-                Nav.NavigateTo($"maps?stage=configure&just={Slug}");
-                return;
+                saveCts?.Cancel();
+                await SaveAsync(CancellationToken.None);
+                if (superseded) { downloadError = saveError; return; }
+                if (await BuildWorldIfMissingAsync() is { } refused) { downloadError = refused; return; }
             }
-            // The sentence, not the label: "the board cannot be built as drawn" says nothing an author can
-            // act on, while the finding under it names the shapes and the columns they contest.
-            var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
-            finishError = refusal?.Message is { Length: > 0 } why ? why
-                        : refusal?.Error is { Length: > 0 } label ? label
-                        : "Couldn't finish the sketch. Try again.";
+            downloadError = await MapDownload.SaveAsync(Http, JS, Slug);
+            exportRefused = downloadError is not null;
         }
-        catch { finishError = "Couldn't finish the sketch. Check your connection and try again."; }
+        finally
+        {
+            downloading = false;
+            StateHasChanged();
+        }
+    }
 
-        finishing = false;
-        StateHasChanged();
+    /// <summary>Build the map's world from the drawing when it has none. Answers the sentence the build was
+    /// refused with, or null when the map has a world.</summary>
+    private async Task<string?> BuildWorldIfMissingAsync()
+    {
+        try
+        {
+            var state = await Http.GetFromJsonAsync<MapState>($"api/map/{Slug}/state");
+            if (state?.Artifacts.World == true) return null;
+            using var built = await Http.PostAsync($"api/map/{Slug}/sketch/finish", null);
+            return built.IsSuccessStatusCode ? null : await MapDownload.RefusalAsync(built);
+        }
+        catch (HttpRequestException) { return "Couldn't reach the studio. Check your connection and try again."; }
     }
 
     public async ValueTask DisposeAsync()

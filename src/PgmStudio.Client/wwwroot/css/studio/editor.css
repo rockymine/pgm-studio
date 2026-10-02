@@ -305,8 +305,16 @@
   display: flex;
   flex-direction: column;
 }
-/* <ContentColumn>: a centred column capped at the --column-width it is given. */
-.content-column { max-width: var(--column-width); margin: 0 auto; }
+/* <ContentColumn>: a centred column capped at the --column-width it is given, inside the full-width
+   .workspace-scroll, and spaced the way the scroll area spaces its own children. */
+.content-column {
+  width: 100%;
+  max-width: var(--column-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
 
 /* Canvas / main content column. position:relative makes it a positioning context
    for .canvas-hint and any other absolute overlays inside the canvas. */

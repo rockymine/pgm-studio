@@ -61,7 +61,7 @@ public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifa
 }
 
 /// <summary>GET /api/maps/stage-counts — the landing cards' tallies, each counting exactly what its list
-/// shows: sketches by the layer a map holds, the other two by the stage a map stands at.</summary>
+/// shows: sketches by the layer a map holds, Configuring by the stage a map stands at, and Maps every map.</summary>
 public sealed class MapStageCountsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapStageCounts>
 {
     public override void Configure()
@@ -76,6 +76,6 @@ public sealed class MapStageCountsEndpoint(MapRepository repo, MapArtifactStore 
         await Send.OkAsync(new MapStageCounts(
             sketched,
             c.GetValueOrDefault(MapStage.Configure),
-            c.GetValueOrDefault(MapStage.Edit)), ct);
+            c.Values.Sum()), ct);
     }
 }

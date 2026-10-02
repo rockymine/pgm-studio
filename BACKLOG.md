@@ -47,6 +47,13 @@ them one rather than with the contract work that shipped them.
 
 
 
+- [ ] **TC13 — An export with nothing in it is refused.** `GET /map/{slug}/export` on a map holding only a plan
+  (no intent, no sketch, no world) answers 200 with a five-line `map.xml`: name, an empty version, the
+  gamemode and an empty objective. EX1/EX2 gate only intent-authored maps, so nothing refuses it. Refuse it
+  in `MapExportLoader` with a finding that names what is missing (no game settings and no world), and the
+  matching `/xml` route the same way. `docs/tools/configure.md` § export gate.
+  *Evidence: `GET /api/map/composed-p12-t2-0/export` on a plan-stage map, 200, 144 bytes.*
+
 - [ ] **TC7 — The configure tool cannot place a hill.** The API is the way in — an agent adds
   `controlPoints` to the intent it already posts (`docs/pgm/control-points.md` §9) — and the wizard has no
   step for it. What the step states is a count and the anchors; the tuning is one shared block and already

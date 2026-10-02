@@ -23,17 +23,22 @@ drawing state and the zoom survive the trip. None of the five has steps: each sw
 which overlays the layer bar offers, and the canvas is reused as it stands. `?phase=history` opens the tool on
 History and `?phase=report` on Report.
 
-The tool saves continuously — every change schedules a debounced write 800 ms later — and leaves by
-**Finish**, which flushes the layout, rasterizes it server-side into world geometry, and moves the map to
-`stage=configure`. A draft that was never drawn on is discarded on the way out.
+The tool saves continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
+once. The finished map leaves by **Download map** in the top bar, on every phase: it flushes the layout, builds
+the world the first time (the finish below, `POST …/sketch/finish`, which rasterizes the layout and moves the
+map to `stage=configure`), and saves the export — the world ZIP with its `map.xml`. A board built from a plan
+carries the plan's game settings, so its export needs nothing from Configure. Where the export is refused, the
+bar shows its sentence and offers **Open Configure**, which is where a hand-drawn board's teams, spawns and
+objectives are stated. The phases run in order, Draw's *Done* going on to Terraform. A draft that was never
+drawn on is discarded on the way out.
 
-**The geometry follows the drawing after Finish, too.** The scan Finish writes records the layout revision it
+**The geometry follows the drawing after the first build, too.** The scan the finish writes records the layout revision it
 was rasterized from, so a layout written later (a vertex moved, a coast bent, a shape redrawn) is rasterized
 again the first time anything reads the scan (`SketchFinish.RefreshAsync`). Every read of it goes through one
 accessor, `FeatureData` — the segment rows behind `segments`, `column-floor` and `block-seat`, the surface
 layer behind `top-surface`, the islands behind `islands` and `symmetry`, the configuration and the bounds
 behind `regions/tree` and Configure — and an Api test fails on a route that loads the scan around it. So
-every route answers for the board as it is drawn now, never for the one Finish saw. A scan written again
+every route answers for the board as it is drawn now, never for the one the first build saw. A scan written again
 keeps what the author set on the configuration (the islands excluded), and drops a symmetry detected off the
 old islands unless the author confirmed it. The connectivity reads walk the built world instead
 (`docs/tools/configure.md`), and `scan-summary` counts wool, chests and resources a sketch scan never writes.
@@ -41,8 +46,8 @@ old islands unless the author confirmed it. The connectivity reads walk the buil
 **A tab writes only what was drawn in it, and only over the board it read.** It holds the `ETag` the layout
 was read at and states it as `If-Match` on every save, so where the stored board has moved on since — an agent
 driving the API, a second tab — the save is refused `RQ5` at 409 rather than writing the older board back over
-the newer. The topbar then says so, no further save is sent until the page is reloaded, and **Finish** stops
-rather than build a board that is not the one on screen. A flush with no edit behind it — entering In game,
+the newer. The topbar then says so, no further save is sent until the page is reloaded, and **Download map**
+stops rather than build a board that is not the one on screen. A flush with no edit behind it — entering In game,
 leaving the tool — sends nothing at all. What a layer states and the canvas has no control for — `kind`,
 `part_of`, `seat` — is held as it was read and written back with the layer, so a made thing an API caller
 seated stays seated through a save from the browser.
@@ -53,7 +58,7 @@ take one of those statements through to the blocks it becomes — `relief.md` (t
 Relief phase, with the measured terrain law), `terrain-painting.md` (what the painter makes of a theme, cell by
 cell), `structures.md` (the shells the Theme phase binds and the house the Dressing phase stamps),
 `decoration.md` (the dressing pass itself) and `tree-corpus.md` (the hand-built ground truth any generated
-foliage is scored against). `docs/world-export/sketch-world-export.md` is the world folder Finish writes into. Each is cited
+foliage is scored against). `docs/world-export/sketch-world-export.md` is the world folder the export writes. Each is cited
 below from the phase that feeds it.
 
 ## What it writes
@@ -555,7 +560,7 @@ by a fraction of a block, which is why the constants carry cross-referencing com
 Where a group carries a relief, its surface is solved first (`ReliefFields`) and the same solve is what the
 contour preview draws — which is the only reason a preview is worth drawing at all.
 
-What becomes of those columns once Finish runs — the layer scheme the world folder is written in, its
+What becomes of those columns once the map is exported — the layer scheme the world folder is written in, its
 `level.dat`, the coordinate anchoring, the wool-cage chests and the observer platform — is
 `docs/world-export/sketch-world-export.md`.
 
@@ -2397,7 +2402,7 @@ no raster to encode, so those two views are refused by name. The plan and the se
 answer either way, which is what matters: a building is looked at **in section** before it stands on a map,
 and an agent that can only open a raster could not.
 
-**After Finish**, the map holds rasterized world geometry and three more reads open up:
+**After the first build**, the map holds rasterized world geometry and three more reads open up:
 `GET /map/{slug}/top-surface` for the per-column surface colours, `GET /map/{slug}/segments` and
 `GET /map/{slug}/column-floor`. Data again, not pictures.
 

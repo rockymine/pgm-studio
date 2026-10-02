@@ -3,14 +3,15 @@
 ## What it is
 
 Configure turns terrain into a playable map. It is where a world stops being ground and becomes a match:
-teams, spawns, the space players may build in, the objectives and what capturing one means. It is also the
-only tool that **validates a map properly** and the only one that writes the `map.xml` and the region tree,
-which is why every route through the studio ends here.
+teams, spawns, the space players may build in, the objectives and what capturing one means. It is the tool
+that **shows a map's validation and its `map.xml`** step by step, and the one an imported world cannot do
+without.
 
 **It is entered two ways, and they are genuinely different jobs.** A map that came through Plan and Sketch
 arrives carrying an intent already — its teams, spawns, wools and build zones were compiled from the plan —
-and Configure is where that is finished: the objective colours picked, the observer placed, anything the plan
-could not state added. A world built in Minecraft **outside** the studio arrives with nothing: it is
+so it exports without a visit: the Sketch tool's **Download map** runs the same export gates and saves the
+world. Configure is where such a map is changed: the objective colours picked, the observer placed, anything
+the plan could not state added. A world built in Minecraft **outside** the studio arrives with nothing: it is
 imported, scanned into the database, and configured from an empty intent by drawing the regions over terrain
 that already exists. The phases are the same either way; what differs is how much is already filled in.
 
@@ -168,10 +169,12 @@ rail locks anything further on, and jumping back is always allowed.
 
 ### Import — phase zero
 
-Only on `/maps/new`, and only for a world that has no `map.xml`. Three steps. **Source** lists the importable
-world folders under the imports root — a folder with `region/*.mca`, no `map.xml`, and no map already using
-its slug — or takes a download link, which is fetched server-side from an allowlisted host and extracted
-`region/*.mca`-only, so the browser never sees the archive. Next scans the chosen world into MariaDB, which is
+Only on `/maps/new`, and only for a world that has no `map.xml`. Three steps. **Source** takes a download
+link, which is fetched server-side from an allowlisted host and extracted `region/*.mca`-only, so the browser
+never sees the archive. On a studio in `open` access mode (`docs/access.md`), the one running on its author's
+machine, it also lists the importable world folders under the imports root — a folder with `region/*.mca`, no
+`map.xml`, and no map already using its slug. An invited studio does not show them, because nobody but the
+server's operator can put a folder on its disk. Next scans the chosen world into MariaDB, which is
 what creates the map row. **Found** is the detection brief over the scanned world: islands, wool blocks,
 monument candidates, resource blocks, chests, spawners, and the detected symmetry with its suggested team
 count, each selectable for a detail explanation. **Plan** hands off to the wizard at Identity.

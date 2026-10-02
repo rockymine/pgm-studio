@@ -22,24 +22,12 @@
       <NavButton Icon="layout-dashboard" Title="Plans" Href="maps?stage=plan" Active="CurrentStage == MapStage.Plan" />
       <NavButton Icon="pencil-ruler" Title="Sketches" Href="maps?stage=sketch" Active="CurrentStage == MapStage.Sketch" />
       <NavButton Icon="settings-2" Title="Configuring" Href="maps?stage=configure" Active="CurrentStage == MapStage.Configure" />
-      <NavButton Icon="map" Title="Maps" Href="maps" Active="CurrentStage == MapStage.Edit" />
+      <NavButton Icon="map" Title="Maps" Href="maps" Active="CurrentStage is null" />
     </NavRail>
   </Rail>
   <ChildContent>
       <Workspace>
         <ContentColumn MaxWidth="960">
-
-          @if (Just is not null && JustMap is not null)
-          {
-            <div class="callout">
-              <span class="callout-icon"><i data-lucide="check-circle-2"></i></span>
-              <p><strong>@JustMap.Name</strong> is built and saved. Configure it next to make a playable
-                <code>map.xml</code>.</p>
-              <Button Variant="primary" Href="@($"maps/{Just}/configure")" Class="action-btn--push-end">
-                <i data-lucide="settings-2"></i><span>Configure</span>
-              </Button>
-            </div>
-          }
 
           <Section Title="@StageTitle">
             <Actions>
@@ -65,17 +53,22 @@
             @* --actions: every row reserves the layer column, so the list keeps one aligned edge whatever
                a given map has been through. *@
             <div class="panel-list panel-list--actions panel-list--separated">
-              @if (maps is null) { <div class="list-empty">Loading…</div> }
+              @if (loadError is not null)
+              {
+                <div class="list-empty">@loadError <Button OnClick="LoadAsync">Try again</Button></div>
+              }
+              else if (maps is null) { <div class="list-empty">Loading…</div> }
               else if (!Filtered.Any()) { <div class="list-empty">@EmptyMessage</div> }
               else
               {
                 @foreach (var m in Filtered)
                 {
-                  <ListRow Href="@(Opens(m) is { } layer ? $"maps/{m.Slug}/{layer}" : null)" Selected="m.Slug == Just" @key="m.Slug">
+                  <ListRow Href="@(Opens(m) is { } layer ? $"maps/{m.Slug}/{layer}" : null)" @key="m.Slug">
                     <ChildContent>
                       <span class="list-label map-row-name">@m.Name</span>
                       <span class="list-label list-label--mono map-row-slug">@m.Slug</span>
-                      @if (CurrentStage == MapStage.Edit)
+                      @if (CurrentStage is null) { <Badge Kind="neutral">@StageLabel(m.Stage)</Badge> }
+                      @if (CurrentStage is null or MapStage.Edit)
                       {
                         @* one tag per gamemode: a map can be more than one, and a map with no objective
                            module we read carries none rather than a blank tag *@

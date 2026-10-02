@@ -297,15 +297,12 @@ app.Use(async (ctx, next) =>
     }
     await next();
 });
-// In Development, force revalidation of static assets (the hand-written wwwroot CSS/JS are
-// served unfingerprinted and otherwise get a heuristic cache with no Cache-Control, so edits
-// don't show up on reload). no-cache = "cache but revalidate via ETag" → 200 when changed, 304 otherwise.
-var staticFileOptions = new StaticFileOptions();
-if (app.Environment.IsDevelopment())
+// The hand-written CSS and JS keep their names across deploys, and modules import each other by name, so a
+// browser must revalidate them rather than guess how long a copy stays good. index.html likewise.
+var staticFileOptions = new StaticFileOptions
 {
-    staticFileOptions.OnPrepareResponse = ctx =>
-        ctx.Context.Response.Headers["Cache-Control"] = "no-cache, must-revalidate";
-}
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
+};
 app.UseStaticFiles(staticFileOptions);
 
 // Nothing leaves /api as a stack trace. Every gate in the studio answers in one shape
@@ -418,7 +415,7 @@ app.UseSwaggerGen(
     });
 
 // SPA fallback: anything not matched by an API route or a static file serves the Blazor host page.
-app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("index.html", staticFileOptions);
 
 // The library's built-in presets. Idempotent and keyed by name — a row already there is updated in place and
 // keeps the id maps and themes depend on, and nothing is ever deleted — so a studio nobody has run the seeder

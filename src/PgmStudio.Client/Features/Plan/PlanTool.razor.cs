@@ -1262,30 +1262,12 @@ public partial class PlanTool
         return false;
     }
 
-    // Fetch the draft's world export (a {slug}/ ZIP) and save it — checking the status first so a non-2xx
-    // error body never lands on disk as a bogus export.
+    // Save the draft's world export, or say why it was refused.
     private async Task DownloadWorld()
     {
         if (draftSlug is null) return;
-        draftError = null;
-        HttpResponseMessage resp;
-        try { resp = await Http.GetAsync($"api/map/{draftSlug}/export"); }
-        catch (Exception ex) { draftError = ex.Message; StateHasChanged(); return; }
-
-        if (!resp.IsSuccessStatusCode)
-        {
-            draftError = $"Couldn't download the world (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
-            StateHasChanged();
-            return;
-        }
-
-        var filename = resp.Content.Headers.ContentDisposition?.FileName?.Trim('"')
-            ?? (resp.Content.Headers.ContentType?.MediaType == "application/zip" ? $"{draftSlug}.zip" : $"{draftSlug}.xml");
-        var mime = resp.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
-        var bytes = await resp.Content.ReadAsByteArrayAsync();
-        using var stream = new MemoryStream(bytes);
-        using var streamRef = new DotNetStreamReference(stream);
-        await JS.InvokeVoidAsync("studio.downloadStream", filename, streamRef, mime);
+        draftError = await MapDownload.SaveAsync(Http, JS, draftSlug);
+        StateHasChanged();
     }
 
     private static string Trunc(string s) => s.Length > 200 ? s[..200] + "…" : s;

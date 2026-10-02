@@ -74,6 +74,15 @@ await page.goto(`${BASE}/maps`, { waitUntil: "networkidle" });
 const errorUi = await page.locator("#blazor-error-ui").evaluate(el => getComputedStyle(el).display).catch(() => "none");
 checks.add("no Blazor error bar", errorUi === "none", `display: ${errorUi}`);
 
+// The page, a stylesheet and a module keep their names across deploys, so each must be revalidated rather than
+// kept for a guessed while: a browser that keeps one sees a deploy piecemeal.
+checks.section("hand-written files are revalidated on every use");
+for (const path of ["/", "/css/studio/components.css", "/js/studio/render/primitive-style.js"]) {
+  const answer = await fetch(`${BASE}${path}`);
+  const cacheControl = answer.headers.get("cache-control") ?? "";
+  checks.add(`${path} says no-cache`, cacheControl.includes("no-cache"), cacheControl || "no Cache-Control");
+}
+
 if (tolerated.size) {
   console.log("\ntolerated (see ALLOWED_FAULTS in lib/harness.mjs):");
   for (const t of tolerated) console.log(`  · ${t}`);
