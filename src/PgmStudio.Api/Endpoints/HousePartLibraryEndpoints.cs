@@ -16,7 +16,7 @@ internal static class HousePartMapping
     public static RoofStyleDetail ToDetail(RoofStyleRow row, IReadOnlyList<RoofStyleCourseRow> courses) =>
         new(row.Id, row.Name, row.Form, row.Pitch, row.Overhang, row.RoofHole, row.RidgeCap,
             [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId ?? 0, Slots.BlockOf(c.BlockId, c.BlockData, c.BlockLaid), c.Height))],
-            row.RoofSlab, row.RoofSlabData, row.RoofStair, row.RoofWear);
+            row.RoofSlab, row.RoofSlabData, row.RoofStair, row.RoofWear, row.SeedKey is not null);
 
     /// <summary>What a saved roof comes back as — read off the <em>row</em> it composes to rather than off the
     /// request, so the clamps the row applies are the numbers the editor is handed back.</summary>
@@ -32,7 +32,8 @@ internal static class HousePartMapping
             new RoomWindowDto(row.WindowForm, row.WindowBlock, row.WindowData, row.WindowSill,
                 row.WindowWidth, row.WindowHeight, row.WindowSpacing,
                 row.WindowHostBlock, row.WindowHostData),
-            [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId ?? 0, Slots.BlockOf(c.BlockId, c.BlockData, c.BlockLaid), c.Height))]);
+            [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId ?? 0, Slots.BlockOf(c.BlockId, c.BlockData, c.BlockLaid), c.Height))],
+            row.SeedKey is not null);
 
     public static StoreyStyleDetail ToDetail(long id, StoreyStyleSaveRequest req)
     {
@@ -42,7 +43,7 @@ internal static class HousePartMapping
     }
 
     public static PorchStyleDetail ToDetail(PorchStyleRow row) =>
-        new(row.Id, row.Name, row.Depth, row.Inset, row.Edge, row.RoofForm, row.RailBlock);
+        new(row.Id, row.Name, row.Depth, row.Inset, row.Edge, row.RoofForm, row.RailBlock, row.SeedKey is not null);
 
     public static PorchStyleDetail ToDetail(long id, PorchStyleSaveRequest req)
     {
@@ -110,6 +111,8 @@ public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibra
 
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetRoofAsync(Route<long>("id"), ct))?.SeedKey, "roof", ct))
+            return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListRoofsAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var composed = await library.ComposeRoofDraftAsync(req, ct);
@@ -143,6 +146,8 @@ public sealed class RoofStyleDeleteEndpoint(HousePartStore store) : EndpointWith
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetRoofAsync(Route<long>("id"), ct))?.SeedKey, "roof", ct))
+            return;
         var id = Route<long>("id");
         var used = await store.UsingRoofAsync(id, ct);
         if (used.Count > 0)
@@ -215,6 +220,8 @@ public sealed class StoreyStyleUpdateEndpoint(HousePartStore store)
 
     public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStoreyAsync(Route<long>("id"), ct))?.SeedKey, "storey", ct))
+            return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListStoreysAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var findings = LibraryGate.Courses(req.Courses)
@@ -245,6 +252,8 @@ public sealed class StoreyStyleDeleteEndpoint(HousePartStore store) : EndpointWi
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStoreyAsync(Route<long>("id"), ct))?.SeedKey, "storey", ct))
+            return;
         var id = Route<long>("id");
         var used = await store.UsingStoreyAsync(id, ct);
         if (used.Count > 0)
@@ -308,6 +317,8 @@ public sealed class PorchStyleUpdateEndpoint(HousePartStore store) : Endpoint<Po
 
     public override async Task HandleAsync(PorchStyleSaveRequest req, CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetPorchAsync(Route<long>("id"), ct))?.SeedKey, "porch", ct))
+            return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListPorchesAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var row = HousePartLibrary.RowOf(req);
@@ -335,6 +346,8 @@ public sealed class PorchStyleDeleteEndpoint(HousePartStore store) : EndpointWit
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetPorchAsync(Route<long>("id"), ct))?.SeedKey, "porch", ct))
+            return;
         var id = Route<long>("id");
         var used = await store.UsingPorchAsync(id, ct);
         if (used.Count > 0)

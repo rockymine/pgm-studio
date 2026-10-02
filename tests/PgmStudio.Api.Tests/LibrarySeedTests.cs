@@ -22,11 +22,7 @@ public sealed class LibrarySeedTests
 {
     /// <summary>The seeder over the host's own stores, so it reads the database the host just seeded rather
     /// than a second connection with its own idea of what is there.</summary>
-    private static LibrarySeed Seed(IServiceScope scope) => new(
-        scope.ServiceProvider.GetRequiredService<ThemeStore>(),
-        scope.ServiceProvider.GetRequiredService<RoomStyleStore>(),
-        scope.ServiceProvider.GetRequiredService<HousePartStore>(),
-        scope.ServiceProvider.GetRequiredService<PropStyleStore>());
+    private static LibrarySeed Seed(IServiceScope scope) => scope.ServiceProvider.GetRequiredService<LibrarySeed>();
 
     [Test]
     public async Task The_seeded_library_is_the_seed_folder()
@@ -130,12 +126,96 @@ public sealed class LibrarySeedTests
 
         var again = await seed.SeedAsync();
         await Assert.That((again.PatternsAdded, again.PatternsUpdated, again.PartsAdded, again.PartsUpdated,
-                again.HousesAdded, again.ThemesAdded, again.RecipesAdded, again.RecipesUpdated))
-            .IsEqualTo((0, 0, 0, 0, 0, 0, 0, 0));
+                again.HousesAdded, again.ThemesAdded, again.RecipesAdded, again.RecipesUpdated, again.Retired,
+                again.Released))
+            .IsEqualTo((0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
     }
 
-    /// <summary>A row already holding a seeded pattern is that pattern: it takes the seeded name rather than the
-    /// seed adding a second row beside it.</summary>
+    /// <summary>Every row a fresh seed puts down carries the key of the entry it holds, and no two rows of a kind
+    /// carry one key.</summary>
+    [Test]
+    public async Task Every_seeded_row_carries_its_entrys_key()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        await Seed(scope).SeedAsync();
+        var styles = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+        var parts = scope.ServiceProvider.GetRequiredService<HousePartStore>();
+        var props = scope.ServiceProvider.GetRequiredService<PropStyleStore>();
+
+        List<string?>[] kinds =
+        [
+            [.. (await styles.ListStylesAsync()).Select(row => row.SeedKey)],
+            [.. (await styles.ListThemesAsync()).Select(row => row.SeedKey)],
+            [.. (await styles.ListBiomesAsync()).Select(row => row.SeedKey)],
+            [.. (await parts.ListRoofsAsync()).Select(row => row.SeedKey)],
+            [.. (await parts.ListStoreysAsync()).Select(row => row.SeedKey)],
+            [.. (await parts.ListPorchesAsync()).Select(row => row.SeedKey)],
+            [.. (await scope.ServiceProvider.GetRequiredService<RoomStyleStore>().ListAsync()).Select(row => row.SeedKey)],
+            [.. (await props.ListTreesAsync()).Select(row => row.SeedKey)],
+            [.. (await props.ListBouldersAsync()).Select(row => row.SeedKey)],
+        ];
+        foreach (var seedKeys in kinds)
+        {
+            await Assert.That(seedKeys).DoesNotContain((string?)null);
+            await Assert.That(seedKeys.Distinct().Count()).IsEqualTo(seedKeys.Count);
+        }
+    }
+
+    /// <summary>A keyed row whose entry has left the folder is deleted where nothing binds it, and handed to its
+    /// author — key cleared, content kept — where a theme still binds it.</summary>
+    [Test]
+    public async Task A_row_whose_entry_left_is_deleted_or_handed_to_its_author()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var styles = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+        var props = scope.ServiceProvider.GetRequiredService<PropStyleStore>();
+        const string Gone = """{"kind":"noise","seed":91,"scale":2,"octaves":1,"stops":[{"kind":"solid","id":1,"data":0},{"kind":"solid","id":4,"data":0}],"rise":0}""";
+        const string Bound = """{"kind":"noise","seed":92,"scale":2,"octaves":1,"stops":[{"kind":"solid","id":1,"data":0},{"kind":"solid","id":4,"data":0}],"rise":0}""";
+
+        var loose = await styles.CreateStyleAsync(new StyleRow { Name = "gone", SeedKey = "gone", Kind = "noise", Params = Gone });
+        var held = await styles.CreateStyleAsync(new StyleRow { Name = "kept", SeedKey = "kept", Kind = "noise", Params = Bound });
+        await styles.CreateThemeAsync(new ThemeRow { Name = "mine" }, [new ThemeBucketRow { Bucket = "wall", StyleId = held }]);
+        var boulder = await props.CreateBoulderAsync(new BoulderStyleRow { Name = "retired-rock", SeedKey = "retired-rock" });
+
+        var tally = await Seed(scope).SeedAsync();
+
+        await Assert.That(await styles.GetStyleAsync(loose)).IsNull();
+        await Assert.That(await props.GetBoulderAsync(boulder)).IsNull();
+        var kept = await styles.GetStyleAsync(held);
+        await Assert.That(kept?.SeedKey).IsNull();
+        await Assert.That(kept!.Params).IsEqualTo(Bound);
+        await Assert.That((tally.Retired, tally.Released)).IsEqualTo((2, 1));
+    }
+
+    /// <summary>An author's row holding what a seeded entry holds is not taken once the entry's own row carries its
+    /// key: the key is held, so the author's row stays theirs.</summary>
+    [Test]
+    public async Task An_authors_row_is_not_taken_while_the_entrys_row_stands()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var styles = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+        await Seed(scope).SeedAsync();
+
+        var (_, material) = SeedFolder.Patterns.First();
+        var mine = await styles.CreateStyleAsync(new StyleRow
+        {
+            Name = "mine", Kind = TerrainThemeComposer.KindOf(material), Params = TerrainThemeJson.Serialize(material),
+        });
+        await Seed(scope).SeedAsync();
+
+        var row = await styles.GetStyleAsync(mine);
+        await Assert.That(row?.SeedKey).IsNull();
+        await Assert.That(row!.Name).IsEqualTo("mine");
+    }
+
+    /// <summary>A row already holding a seeded pattern is that pattern: it takes the seeded name and the entry's key
+    /// rather than the seed adding a second row beside it.</summary>
     [Test]
     public async Task A_row_holding_a_seeded_pattern_takes_its_name()
     {
@@ -154,6 +234,7 @@ public sealed class LibrarySeedTests
         var stored = await styles.ListStylesAsync();
         await Assert.That(stored.Count).IsEqualTo(SeedFolder.Patterns.Count);
         await Assert.That(stored.Single(row => row.Id == id).Name).IsEqualTo(name);
+        await Assert.That(stored.Single(row => row.Id == id).SeedKey).IsEqualTo(name);
     }
 
     /// <summary>Every row the seed puts down carries a library name (<see cref="LibraryNaming.Valid"/>).</summary>
@@ -201,12 +282,12 @@ public sealed class LibrarySeedTests
         await Assert.That(roofs.Select(row => row.Name)).Contains("andesite-gable-roof-2");
     }
 
-    /// <summary>What a part row holds, as one string: every column but its id, name and creation time, and its
+    /// <summary>What a part row holds, as one string: every column but its id, name, seed key and creation time, and its
     /// courses in stack order.</summary>
     private static string Content<T>(T row, IEnumerable<(string, int, long?, int?, int, bool, int)> courses)
     {
         var columns = JsonSerializer.SerializeToNode(row)!.AsObject();
-        foreach (var identity in new[] { "Id", "Name", "CreatedAt" }) columns.Remove(identity);
+        foreach (var identity in new[] { "Id", "Name", "SeedKey", "CreatedAt" }) columns.Remove(identity);
         return columns.ToJsonString() + string.Join(";", courses.Order());
     }
 }

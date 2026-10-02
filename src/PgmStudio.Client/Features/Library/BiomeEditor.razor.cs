@@ -29,6 +29,8 @@ public partial class BiomeEditor
     private const string FieldPart = "field";
 
     private long? editingId;
+    /// <summary>Whether the seed folder states the open row, which the studio refuses to change or delete.</summary>
+    private bool seeded;
     private string draftName = "";
     private string? note;
     private string? card;
@@ -89,6 +91,7 @@ public partial class BiomeEditor
     private void StartNew()
     {
         editingId = null;
+        seeded = false;
         draftName = "";
         drawn = Started(BiomeKinds.Solid, First, Second);
     }
@@ -101,6 +104,7 @@ public partial class BiomeEditor
             return;
         }
         (editingId, draftName) = (row.Id, row.Name);
+        seeded = row.Seeded;
         drawn = JsonNode.Parse(row.Params) as JsonObject ?? Started(BiomeKinds.Solid, First, Second);
     }
 

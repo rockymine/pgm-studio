@@ -9,7 +9,7 @@
 
 <LibraryEditor Kind="LibraryKinds.Houses" Name="@draftName" NameChanged="SetName"
                Outline="Outline" Selected="@selected" OnSelect="Pick"
-               Footnote="@Footnote" Note="@note">
+               Footnote="@Footnote" Note="@note" Seeded="seeded">
   <Views>
     @foreach (var (id, label, icon, note) in HouseViews.Offered)
     {
@@ -381,13 +381,16 @@
     }
   </Fields>
   <Actions>
-    <Button Variant="primary" Icon="save" Disabled="@(string.IsNullOrWhiteSpace(draftName))" Writes OnClick="Save">
-      @(editingId is null ? "Add to library" : "Save changes")
-    </Button>
+    @if (!seeded)
+    {
+      <Button Variant="primary" Icon="save" Disabled="@(string.IsNullOrWhiteSpace(draftName))" Writes OnClick="Save">
+        @(editingId is null ? "Add to library" : "Save changes")
+      </Button>
+    }
     @if (editingId is not null)
     {
       <Button Icon="copy" Writes OnClick="SaveAsCopy">Save as copy</Button>
-      <Button Variant="danger" Icon="trash-2" Deletes OnClick="Delete">Delete</Button>
+      @if (!seeded) { <Button Variant="danger" Icon="trash-2" Deletes OnClick="Delete">Delete</Button> }
     }
   </Actions>
 </LibraryEditor>

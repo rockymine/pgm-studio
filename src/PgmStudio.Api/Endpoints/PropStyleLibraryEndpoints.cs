@@ -72,6 +72,8 @@ public sealed class TreeStyleUpdateEndpoint(PropStyleStore store) : Endpoint<Tre
 
     public override async Task HandleAsync(TreeStyleSaveRequest req, CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetTreeAsync(Route<long>("id"), ct))?.SeedKey, "tree", ct))
+            return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListTreesAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         if (await Refusals.StopAsync(HttpContext, 400, "invalid tree style", PropStyleLibrary.Check(req), ct)) return;
@@ -97,10 +99,12 @@ public sealed class TreeStyleDraftPreviewEndpoint : Endpoint<TreeStyleSaveReques
 /// they were pulled from goes.</summary>
 public sealed class TreeStyleDeleteEndpoint(PropStyleStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/tree-styles/{id}"); }
+    public override void Configure() { Delete("/tree-styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetTreeAsync(Route<long>("id"), ct))?.SeedKey, "tree", ct))
+            return;
         await store.DeleteTreeAsync(Route<long>("id"), ct);
         await Send.NoContentAsync(ct);
     }
@@ -164,6 +168,8 @@ public sealed class BoulderStyleUpdateEndpoint(PropStyleStore store)
 
     public override async Task HandleAsync(BoulderStyleSaveRequest req, CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBoulderAsync(Route<long>("id"), ct))?.SeedKey, "boulder", ct))
+            return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListBouldersAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var id = Route<long>("id");
@@ -185,10 +191,12 @@ public sealed class BoulderStyleDraftPreviewEndpoint : Endpoint<BoulderStyleSave
 
 public sealed class BoulderStyleDeleteEndpoint(PropStyleStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/boulder-styles/{id}"); }
+    public override void Configure() { Delete("/boulder-styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBoulderAsync(Route<long>("id"), ct))?.SeedKey, "boulder", ct))
+            return;
         await store.DeleteBoulderAsync(Route<long>("id"), ct);
         await Send.NoContentAsync(ct);
     }

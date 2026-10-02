@@ -43,6 +43,8 @@ public partial class HouseEditor
 
     private RoomStyleSaveRequest? draft;
     private long? editingId;
+    /// <summary>Whether the seed folder states the open row, which the studio refuses to change or delete.</summary>
+    private bool seeded;
     private string draftName = "";
     private string selected = ComposedPart;
     private string? note;
@@ -197,6 +199,7 @@ public partial class HouseEditor
     private void StartNew()
     {
         editingId = null;
+        seeded = false;
         draftName = "";
         draft = EmptyDraft(draftName);
     }
@@ -210,6 +213,7 @@ public partial class HouseEditor
             return;
         }
         editingId = detail.Id;
+        seeded = detail.Seeded;
         draftName = detail.Name;
         // Every field the row states, not the ones the editor happens to draw a control for: a house loaded
         // through a shorter list and saved back writes the rest away, so a beam, a door head or a slab roof

@@ -88,7 +88,7 @@ internal static class RoomStyleMapping
                 ? null
                 : new RoomDoorHeadDto(row.DoorHeadForm, row.DoorHeadBlock, row.DoorHeadFill,
                     row.DoorHeadFillBlock, row.DoorHeadFillData),
-            row.DoorWidth, row.RoofStair, row.RoofWear, PorchEdges.Canonical(row.Front));
+            row.DoorWidth, row.RoofStair, row.RoofWear, PorchEdges.Canonical(row.Front), row.SeedKey is not null);
 
     /// <summary>What a saved request comes back as — read off the <em>row</em> it composes to rather than off
     /// the request, so the clamps the row applies are the numbers the editor is handed back.</summary>
@@ -205,6 +205,8 @@ public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store, RoomStyleLibra
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetAsync(Route<long>("id"), ct))?.SeedKey, "house", ct))
+            return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var findings = LibraryGate.Courses(req.Courses)
@@ -282,10 +284,12 @@ public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest<Ro
 /// <summary>DELETE /api/room-styles/{id} — forget a room style (its courses cascade; the styles stay).</summary>
 public sealed class RoomStyleDeleteEndpoint(RoomStyleStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/room-styles/{id}"); }
+    public override void Configure() { Delete("/room-styles/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetAsync(Route<long>("id"), ct))?.SeedKey, "house", ct))
+            return;
         await store.DeleteAsync(Route<long>("id"), ct);
         await Send.NoContentAsync(ct);
     }

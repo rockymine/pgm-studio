@@ -38,6 +38,8 @@ public partial class HousePartEditor
     private StoreyStyleSaveRequest? storey;
     private PorchStyleSaveRequest? porch;
     private long? editingId;
+    /// <summary>Whether the seed folder states the open row, which the studio refuses to change or delete.</summary>
+    private bool seeded;
     private string draftName = "";
     private string selected = KnobsPart;
     private string? note;
@@ -105,6 +107,7 @@ public partial class HousePartEditor
     private void StartNew()
     {
         editingId = null;
+        seeded = false;
         draftName = "";
         switch (Part.Kind.Slug)
         {
@@ -131,6 +134,7 @@ public partial class HousePartEditor
                     return;
                 }
                 (editingId, draftName) = (roofDetail.Id, roofDetail.Name);
+                seeded = roofDetail.Seeded;
                 roof = new RoofStyleSaveRequest(
                     roofDetail.Name, roofDetail.Form, roofDetail.Pitch,
                     roofDetail.Overhang, roofDetail.RoofHole, roofDetail.RidgeCap, roofDetail.Courses,
@@ -143,6 +147,7 @@ public partial class HousePartEditor
                     return;
                 }
                 (editingId, draftName) = (storeyDetail.Id, storeyDetail.Name);
+                seeded = storeyDetail.Seeded;
                 storey = new StoreyStyleSaveRequest(
                     storeyDetail.Name, storeyDetail.Clear, storeyDetail.BorderWidth, storeyDetail.InlayInset,
                     storeyDetail.Windows, storeyDetail.Courses);
@@ -154,6 +159,7 @@ public partial class HousePartEditor
                     return;
                 }
                 (editingId, draftName) = (porchDetail.Id, porchDetail.Name);
+                seeded = porchDetail.Seeded;
                 porch = new PorchStyleSaveRequest(
                     porchDetail.Name, porchDetail.Depth, porchDetail.Inset, porchDetail.Edge,
                     porchDetail.Roof, porchDetail.RailBlock);
@@ -364,6 +370,20 @@ public partial class HousePartEditor
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{Part.Kind.Slug}/{saved.Id}");
         else editingId = saved.Id;
+    }
+
+    /// <summary>Save the draft as a new part under the name with <c>copy</c> after it, and open that — what a part the
+    /// seed folder states is changed through.</summary>
+    private async Task SaveAsCopy()
+    {
+        if (string.IsNullOrWhiteSpace(draftName)) return;
+        if (Draft($"{draftName.Trim()} copy") is not { } request
+            || await Library.CreateAsync<PartSaved>(Part.Kind, request) is not { } copy)
+        {
+            note = "Couldn't save a copy of this part. Try again.";
+            return;
+        }
+        Nav.NavigateTo($"/library/{Part.Kind.Slug}/{copy.Id}");
     }
 
     /// <summary>The one field a save's answer is read for — the three part kinds each answer their own detail

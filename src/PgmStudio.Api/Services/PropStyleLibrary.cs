@@ -94,7 +94,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
 
     public static TreeStyleDetail ToDetail(TreeStyleRow row) => new(
         row.Id, row.Name, TreeForms.Canonical(row.Form), row.Species, row.Height,
-        BodyOf(row.Body)?.Select(cell => cell).ToArray(), CutOf(row));
+        BodyOf(row.Body)?.Select(cell => cell).ToArray(), CutOf(row), row.SeedKey is not null);
 
     /// <summary>The cut a row records, or none where it records no world.</summary>
     private static TreeCut? CutOf(TreeStyleRow row) =>
@@ -165,7 +165,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
     };
 
     public static BoulderStyleDetail ToDetail(BoulderStyleRow row) => new(
-        row.Id, row.Name, BoulderForms.Canonical(row.Form), row.Size, row.Mossy, row.Rock);
+        row.Id, row.Name, BoulderForms.Canonical(row.Form), row.Size, row.Mossy, row.Rock, row.SeedKey is not null);
 
     public static string CardOf(BoulderStyleSaveRequest draft) => Card(BoulderProp(RowOf(draft)), StageCell);
 

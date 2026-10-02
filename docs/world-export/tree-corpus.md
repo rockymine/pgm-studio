@@ -6,8 +6,8 @@ thresholds it supports are what any generated foliage is judged against. Every r
 fifteen bands `r1`–`r15` — 74 leafed trees and the wool one, 20,906 leaves — so the jungle, willow, baobab,
 olive and large-oak bands `r16`–`r20` are outside all of them. The world is committed at `pgm-studio-mapgen/corpus/tree-showcase`,
 and it is read by one tool: `tools/seed-trees.cs` cuts every tree standing in it into the library's seed folder,
-`src/PgmStudio.Minecraft/Library/trees.json`, which the library seed files at every start — and, with `--json`,
-into the snapshot `corpus/tree-showcase/trees.json` beside the world, which every board copies its trees from —
+`src/PgmStudio.Minecraft/Library/trees.json`, which the library seed files at every start and every board reads
+its trees from through the studio's library —
 as a **copied** recipe with its cut recorded — this world's directory, the foot there, the time and its builder,
 rockymine (`decoration.md` §6), which is how a board plants the author's own trees rather than a generated one,
 and how a board planting them credits their builder. Each is filed under the kind the author states for its band

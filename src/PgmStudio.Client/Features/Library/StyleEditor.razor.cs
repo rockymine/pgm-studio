@@ -33,6 +33,8 @@ public partial class StyleEditor
     private IReadOnlyList<StyleDto> styles = [];
     private JsonObject draft = ThemeFields.Solid(1);
     private long? editingId;
+    /// <summary>Whether the seed folder states the open row, which the studio refuses to change or delete.</summary>
+    private bool seeded;
     private string draftName = "";
     private string selected = "";
     private string view = Both;
@@ -90,12 +92,14 @@ public partial class StyleEditor
                 return;
             }
             editingId = row.Id;
+            seeded = row.Seeded;
             draftName = row.Name;
             draft = JsonNode.Parse(row.Params) as JsonObject ?? ThemeFields.Solid(1);
         }
         else
         {
             editingId = null;
+            seeded = false;
             draftName = "";
             draft = ThemeFields.Solid(1);
         }
@@ -141,7 +145,11 @@ public partial class StyleEditor
         if (!CanSave) return;
         var copy = await Library.CreateAsync<StyleDto>(LibraryKinds.Styles,
             new StyleSaveRequest($"{draftName.Trim()} copy", DraftKind, draft.ToJsonString()));
-        if (copy is null) { note = "Couldn't save a copy of this pattern. Try again."; return; }
+        if (copy is null)
+        {
+            note = "Couldn't save a copy of this pattern. The library holds each pattern once, so change it first.";
+            return;
+        }
         Nav.NavigateTo($"/library/{LibraryKinds.StylesSlug}/{copy.Id}");
     }
 

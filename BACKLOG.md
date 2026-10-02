@@ -248,7 +248,7 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 - [ ] **TL35 — A copied tree states no species.** A tree save requires `species` (`RQ1`) and the library
   answers one for every row, so every copied recipe states `"species": "oak"` — `acacia-1`, `birch-3` and
-  `sequoia-1` alike, and so every entry of `pgm-studio-mapgen/corpus/tree-showcase/trees.json`. A copied tree
+  `sequoia-1` alike, and so every entry of the seed folder's `trees.json`. A copied tree
   reads only its body, so the word is inert, but it says of an acacia what the showcase's `kinds.json` exists to
   stop anyone reading off a block. `TreeStyleSaveRequest.Species` is required of a template only,
   `PropStyleLibrary.TreeOf` gives a copied row none and `DressingJson` writes none for one; the snapshot is cut

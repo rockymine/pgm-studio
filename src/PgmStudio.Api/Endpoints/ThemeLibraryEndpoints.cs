@@ -15,14 +15,15 @@ namespace PgmStudio.Api.Endpoints;
 /// for why the picture travels with the row.</summary>
 internal static class ThemeLibraryMapping
 {
-    public static StyleDto ToDto(StyleRow row) => new(row.Id, row.Name, row.Kind, row.Params, PreviewOf(row));
+    public static StyleDto ToDto(StyleRow row)
+        => new(row.Id, row.Name, row.Kind, row.Params, PreviewOf(row), row.SeedKey is not null);
 
     public static ThemeDetail ToDetail(ThemeRow row, IReadOnlyList<ThemeBucketRow> buckets) =>
         new(row.Id, row.Name, row.BedrockRelative, row.BedrockValue, RimEdgeModes.Canonical(row.RimEdges),
             row.WallOnTerrainFaces,
             buckets.Select(b => new ThemeBucketDto(
                 b.Bucket, b.StyleId ?? 0, Slots.BlockOf(b.BlockId, b.BlockData, b.BlockLaid), b.Depth, b.Enabled))
-            .ToList());
+            .ToList(), row.SeedKey is not null);
 
     /// <summary>A style's card picture, or an empty string for params that do not form a material this build can
     /// draw. Deliberately catches everything: <c>params_json</c> is a hand-editable leaf, so it can be malformed
@@ -115,6 +116,8 @@ public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
 
     public override async Task HandleAsync(StyleSaveRequest req, CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStyleAsync(Route<long>("id"), ct))?.SeedKey, "pattern", ct))
+            return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListStylesAsync(ct: ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var id = Route<long>("id");
@@ -135,6 +138,8 @@ public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms, 
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetStyleAsync(Route<long>("id"), ct))?.SeedKey, "pattern", ct))
+            return;
         var id = Route<long>("id");
         var users = (await store.ThemesUsingStyleAsync(id, ct))
             .Concat(await rooms.UsingStyleAsync(id, ct))
@@ -218,6 +223,8 @@ public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
 
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetThemeAsync(Route<long>("id"), ct))?.SeedKey, "theme", ct))
+            return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListThemesAsync(ct)).Select(row => (row.Id, row.Name)), ct)) return;
         var id = Route<long>("id");
@@ -243,10 +250,12 @@ public sealed class ThemeDraftPreviewEndpoint(ThemeLibrary library) : Endpoint<T
 /// <summary>DELETE /api/themes/{id} — forget a theme (its bucket bindings cascade; the styles stay).</summary>
 public sealed class ThemeDeleteEndpoint(ThemeStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/themes/{id}"); }
+    public override void Configure() { Delete("/themes/{id}"); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetThemeAsync(Route<long>("id"), ct))?.SeedKey, "theme", ct))
+            return;
         await store.DeleteThemeAsync(Route<long>("id"), ct);
         await Send.NoContentAsync(ct);
     }

@@ -45,6 +45,8 @@ public partial class ThemeEditor
     private IReadOnlyList<PaintBlockDto> blocks = [];
     private ThemeSaveRequest? draft;
     private long? editingId;
+    /// <summary>Whether the seed folder states the open row, which the studio refuses to change or delete.</summary>
+    private bool seeded;
     private string draftName = "";
     private string selected = ThemeBuckets.Rim;
     private string? note;
@@ -124,6 +126,7 @@ public partial class ThemeEditor
                 return;
             }
             editingId = detail.Id;
+            seeded = detail.Seeded;
             draftName = detail.Name;
             // The stored theme names only the buckets it overrides; the editor shows all four, so the ones it
             // does not name come back as unbound.
@@ -137,6 +140,7 @@ public partial class ThemeEditor
         else
         {
             editingId = null;
+            seeded = false;
             draftName = "";
             draft = new ThemeSaveRequest(
                 "", BedrockRelative: false, BedrockValue: 1, RimEdgeModes.Drop, WallOnTerrainFaces: true,

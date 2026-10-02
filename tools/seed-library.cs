@@ -8,8 +8,8 @@
 //   dotnet run tools/seed-library.cs [connection string]
 //
 // Falls back to PGM_STUDIO_DB, then to the local dev database. Safe on an empty database and on a full one:
-// a row already holding a seeded entry is updated in place, so a second run changes nothing. Nothing is ever
-// deleted — an entry retired from the folder stays in the library as a row the author owns.
+// a row holding a seeded entry is rewritten in place, so a second run changes nothing, and a row whose entry
+// has left the folder is deleted, or handed to the author still binding it.
 //
 // It finishes by composing each seeded room style back out of the library and reporting any field that came
 // back different, which is the only honest way to say whether a house survived being stored.
@@ -38,7 +38,7 @@ var rooms = new RoomStyleStore(db);
 var parts = new HousePartStore(db);
 var props = new PropStyleStore(db);
 
-var seed = new LibrarySeed(styles, rooms, parts, props);
+var seed = new LibrarySeed(styles, rooms, parts, props, new SeedKeyStore(db));
 var tally = await seed.SeedAsync();
 
 Console.WriteLine($"\npatterns   {tally.PatternsAdded} added, {tally.PatternsUpdated} updated");
@@ -46,6 +46,7 @@ Console.WriteLine($"parts      {tally.PartsAdded} added, {tally.PartsUpdated} up
 Console.WriteLine($"houses     {tally.HousesAdded} added, {tally.HousesUpdated} updated");
 Console.WriteLine($"themes     {tally.ThemesAdded} added, {tally.ThemesUpdated} updated");
 Console.WriteLine($"recipes    {tally.RecipesAdded} added, {tally.RecipesUpdated} updated");
+Console.WriteLine($"retired    {tally.Retired} deleted, {tally.Released} handed to their authors");
 
 // ── did they survive? ─────────────────────────────────────────────────────────────────────────────────
 var report = await seed.VerifyAsync();

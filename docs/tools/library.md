@@ -62,6 +62,12 @@ is refused, `LB4` for the characters and `LB5` for a name taken, and the seed co
 where a row of the author's already carries it. A seeded biome takes the game's name made one:
 `Mesa (Bryce)` is `Mesa Bryce`, `Extreme hills+` is `Extreme hills plus`.
 
+**A row the seed folder states is the folder's, and is changed there.** Every start rewrites each seeded row to the
+entry it holds and retires one whose entry has left (*The seed*, under *Driving it without the UI*), so an edit
+made to it in the studio would be gone by the next start. A seeded row therefore answers `seeded`, refuses an edit
+or a delete with **409** `LB6`, and opens in its editor with *Save as copy* in place of *Save changes* and
+*Delete*: an author changes one by saving a copy of their own, or by changing the folder.
+
 **The library holds each pattern, roof, storey and porch once.** Two rows holding the same material are one
 pattern, so a save of a material the library already holds is refused, naming the row that holds it (`LB3`),
 and a theme import binds that row rather than adding a copy. A roof, a storey or a porch many seeded houses
@@ -493,14 +499,10 @@ dotnet run tools/seed-trees.cs ../pgm-studio-mapgen/corpus/tree-showcase --build
 **The cut is a file, and a re-cut of an unchanged world writes the same bytes.** Every tree the run cuts is
 written with its name, the foot it stands on in the world, and the recipe this library answers for it at
 `GET /api/tree-styles/{id}/json` — one body row to a line, so a re-cut diffs by the block — to
-`src/PgmStudio.Minecraft/Library/trees.json`, or to `--json=<file>`. The authoring repository keeps the same cut
-at `pgm-studio-mapgen/corpus/tree-showcase/trees.json`, and a board copies its trees from that file rather than
-from any studio's library, so its trees do not move when a library is re-seeded or a row renamed.
-
-```
-dotnet run tools/seed-trees.cs ../pgm-studio-mapgen/corpus/tree-showcase --builder=rockymine \
-    --json=../pgm-studio-mapgen/corpus/tree-showcase/trees.json
-```
+`src/PgmStudio.Minecraft/Library/trees.json`, or to `--json=<file>`. That file is the one copy of the cut: a
+board asks the studio it is driven against for a tree by its name — `GET /tree-styles` lists them and
+`GET /tree-styles/{id}/json` answers the recipe — and since a seeded tree row is the folder's and refuses an edit
+(`LB6`), what a board reads there is the cut.
 
 **A `copied` save without a cut is refused.** The cutter is what writes a cut and nothing else does, so a
 row claiming the form states one or is turned away with `DR-COPY` at **400** — a block list typed into a
@@ -728,6 +730,11 @@ identically: a roof, storey or porch a house still wears is refused.
 style's courses cascade, and the styles they bound stay. That asymmetry is deliberate: the things something
 else depends on are protected, and the things nothing depends on are the author's to discard.
 
+**A seeded row is changed in the folder.** Every `PUT` and `DELETE` of all nine kinds refuses a row the seed
+folder states with **409** `LB6`, the finding's `subjects` naming the entry, before anything else is read: the
+next start would rewrite the edit or put the row back. The row answers `seeded: true` on its `GET`, and the
+editor offers *Save as copy* alone.
+
 **A house style that names the wrong kind of block is refused where it is saved.** `PgmStudio.Minecraft`'s
 `HouseStyleValidation.Check` runs on every `POST`/`PUT` to `/room-styles` (over the composed shell), beside the
 name rule (`HouseNames.Check`), and the two `/storey-styles` verbs (over the storey's own window); the two
@@ -812,7 +819,9 @@ each geometry-carrying field names the kind of block its own form requires.
 ## The API
 
 Every endpoint is rooted at `/api` and takes no map. Every `POST` and `PUT` that saves a row answers **400**
-`LB4` for a name that is not one and **409** `LB5` for a name its kind already carries (*Refusals*, above). A read is open to anyone, a write needs someone on the
+`LB4` for a name that is not one and **409** `LB5` for a name its kind already carries, and every `PUT` and
+`DELETE` answers **409** `LB6` for a row the seed folder states (*Refusals*, above). Every row's `GET` answers
+`seeded`, which says which those are. A read is open to anyone, a write needs someone on the
 whitelist, and a `DELETE` needs an admin, because a library row is shared by every map that uses it
 ([`docs/access.md`](../access.md)). The pages grey what the caller may not do, with the reason on hover: *New*
 and *Save* for anyone off the whitelist, and *Delete* for anyone but an admin.
@@ -949,17 +958,35 @@ its natural height is read off the species table, and a flat biome pattern per b
 a board that is simply desert needs nothing authored and the select that picks one is never empty. The roofs,
 storeys and porches the libraries list are the seeded houses' own, cut out of them and named by `PartNames`.
 
-**`LibrarySeed` runs as the API comes up, and it is matched by what a row holds.** A pattern, roof, storey or
-porch row already holding the seeded content is that entry and takes its seeded name; a pattern found by its
-name instead takes the seeded content. A house and a theme are matched by name and rewritten from the folder, a
-copied tree by its cut, and a template tree or a boulder is put down only where no row has its name, since one
-an author has retuned is theirs. Each row keeps its id, which is what everything binding it depends on, nothing
-is ever deleted, and a second start changes nothing. A seed that fails is logged rather than fatal — an empty
-library is a usable studio and refusing to serve over one would be worse. `LibrarySeedTests` asserts that a
-fresh library is the folder: each pattern under its name, each house and theme composing back to its file, each
-copied tree to its cut.
+**A seeded row carries the key of the entry it holds, and is the folder's.** `seed_key` is a pattern's, a
+house's, a theme's or a boulder's name in the folder, a roof's, storey's or porch's content hashed, a copied
+tree's cut (`tree-showcase 8 1 -493`), a template's species (`template oak`) and a biome's id (`biome 2`); an
+author's row carries none, and no two rows of a kind carry one. `LibrarySeed` runs as the API comes up and
+rewrites every keyed row to what its entry states, keeping its id, which is what everything binding it depends
+on. The studio refuses to edit or delete one (`LB6`), so a seeded row is changed by changing the folder.
 
-**Renaming or retiring a seeded style is a migration's**, since the seed only adds and updates. `M0055` gave
+**An entry no row carries takes the row already holding it.** A row with no key, or one whose entry has left the
+folder, that holds the entry is keyed to it rather than a second row added beside it: a pattern holding the same
+material, else carrying the entry's name; a part holding the same content; a house, a theme, a boulder, a
+template or a biome under the entry's name; a tree cut at the same foot. Where a name the entry wants is an
+author's row's, the seeded row counts on, `-2`. A library stored before the keys existed comes to carry them this
+way on its first start, and a second start changes nothing.
+
+**A row whose entry has left the folder is retired.** It is deleted where the studio would let an author delete it
+— a theme, a house, a tree, a boulder or a biome always, a pattern or a part nothing binds — and handed to its
+author, key cleared and content kept, where a theme, a house or a part still binds it. A map that copied the row
+keeps its copy, and its state lists the name under `behind` as gone (`GET /map/{slug}/state`,
+`docs/tools/flow.md`). The houses,
+themes and recipes go before the parts and patterns they bind, so a row the folder no longer lays is unbound by
+the time it is reached, and a start that deleted a row runs once more, so a name the deleted row held goes to the
+entry that wanted it.
+
+A seed that fails is logged rather than fatal — an empty library is a usable studio and refusing to serve over
+one would be worse. `LibrarySeedTests` asserts that a fresh library is the folder: each pattern under its name,
+each house and theme composing back to its file, each copied tree to its cut, every row keyed; and that a row
+whose entry left is deleted or handed over.
+
+**What the seed cannot do to a stored row is a migration's.** `M0055` gave
 the house styles the names the author's review gave them, each with the parts filed under its name, and took out
 the twenty-four the reviews rejected together with the parts nothing else binds; the refinement each map last
 stated names a renamed style by its new name, and its change history keeps the name it was written with.
@@ -970,11 +997,13 @@ refinement naming a block's row holds the block instead, and one naming a merged
 `M0059` gives a room style the wall its doorway faces, which a house style could state and the row had nowhere
 to keep. `M0060` made every stored name a library name — a `+` spelled `plus`, any other character a name may not
 hold a space — gave each later row sharing a name, compared without case, the first free count after it, put a
-unique index over every table's names, and made each map's current refinement follow a renamed row. Nothing stored is rewritten for the
+unique index over every table's names, and made each map's current refinement follow a renamed row. `M0061`
+gave the nine tables `seed_key`, empty, which the next start fills. Nothing stored is rewritten for the
 review's rules, which complain rather than refuse: a row keeps what it states, and a map keeps the houses it
 was built with, so an old board keeps the houses of its day (author).
 
-`dotnet run tools/seed-library.cs` runs the same seeder against a database of the caller's choosing, and
+`dotnet run tools/seed-library.cs` runs the same seeder against a database of the caller's choosing, says what it
+added, updated, deleted and handed over, and
 finishes by composing each seeded room style back out of the library and reporting any field that came back
 different — the only honest way to say whether a house survived being stored.
 

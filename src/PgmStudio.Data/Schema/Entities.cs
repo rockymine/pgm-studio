@@ -746,6 +746,8 @@ public sealed class StyleRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
+    /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
+    [Column("seed_key")] public string? SeedKey { get; set; }
     [Column("kind"), NotNull] public string Kind { get; set; } = "";
     [Column("params_json"), NotNull] public string Params { get; set; } = "";
     [Column("created_at")] public DateTime CreatedAt { get; set; }
@@ -758,6 +760,8 @@ public sealed class BiomePatternRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
+    /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
+    [Column("seed_key")] public string? SeedKey { get; set; }
     [Column("kind"), NotNull] public string Kind { get; set; } = "";
     [Column("params_json"), NotNull] public string Params { get; set; } = "";
     [Column("created_at")] public DateTime CreatedAt { get; set; }
@@ -770,6 +774,8 @@ public sealed class ThemeRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
+    /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
+    [Column("seed_key")] public string? SeedKey { get; set; }
     [Column("bedrock_relative")] public bool BedrockRelative { get; set; }
     [Column("bedrock_value")] public int BedrockValue { get; set; }
     [Column("rim_edges"), NotNull] public string RimEdges { get; set; } = "drop";   // void | drop | boundary
@@ -805,6 +811,8 @@ public sealed class RoomStyleRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
+    /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
+    [Column("seed_key")] public string? SeedKey { get; set; }
     [Column("floor_depth")] public int FloorDepth { get; set; } = 1;
     [Column("wall_height")] public int WallHeight { get; set; } = 7;
     [Column("roof_form"), NotNull] public string RoofForm { get; set; } = "flat";
@@ -881,6 +889,8 @@ public sealed class RoofStyleRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
+    /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
+    [Column("seed_key")] public string? SeedKey { get; set; }
     [Column("form"), NotNull] public string Form { get; set; } = "gable";
     [Column("roof_slab")] public int RoofSlab { get; set; } = -1;
     [Column("roof_slab_data")] public int RoofSlabData { get; set; }
@@ -902,6 +912,8 @@ public sealed class StoreyStyleRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
+    /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
+    [Column("seed_key")] public string? SeedKey { get; set; }
     [Column("clear")] public int Clear { get; set; } = 3;
     [Column("border_width")] public int BorderWidth { get; set; } = 1;
     [Column("inlay_inset")] public int InlayInset { get; set; } = 2;
@@ -926,6 +938,8 @@ public sealed class PorchStyleRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
+    /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
+    [Column("seed_key")] public string? SeedKey { get; set; }
     [Column("depth")] public int Depth { get; set; } = 2;
     [Column("inset")] public int Inset { get; set; }
     [Column("edge"), NotNull] public string Edge { get; set; } = "front";
@@ -942,6 +956,8 @@ public sealed class TreeStyleRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
+    /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
+    [Column("seed_key")] public string? SeedKey { get; set; }
     [Column("form"), NotNull] public string Form { get; set; } = "template";
     [Column("species"), NotNull] public string Species { get; set; } = "oak";
     [Column("height")] public double Height { get; set; } = 12;
@@ -968,6 +984,8 @@ public sealed class BoulderStyleRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
+    /// <summary>The seed folder entry this row holds, or null for an author's row.</summary>
+    [Column("seed_key")] public string? SeedKey { get; set; }
     [Column("form"), NotNull] public string Form { get; set; } = "round";
     [Column("size")] public double Size { get; set; } = 4;
     [Column("mossy")] public bool Mossy { get; set; } = true;

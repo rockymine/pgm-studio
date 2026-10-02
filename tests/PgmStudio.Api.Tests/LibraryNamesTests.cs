@@ -133,11 +133,7 @@ public sealed class LibraryNamesTests
     {
         using var client = await FreshAsync();
         using (var scope = ApiTestFactory.Shared.Services.CreateScope())
-            await new Services.LibrarySeed(
-                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.ThemeStore>(),
-                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.RoomStyleStore>(),
-                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.HousePartStore>(),
-                scope.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.PropStyleStore>()).SeedAsync();
+            await scope.ServiceProvider.GetRequiredService<Services.LibrarySeed>().SeedAsync();
 
         var stored = await client.PutAsJsonAsync(Source, Body(JsonDocument.Parse("""
             {"roomStyles": {"spawn": {"library": "brick-roofed-stone-and-dark-oak-house"}},

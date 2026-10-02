@@ -194,6 +194,8 @@ builder.Services.AddScoped<PgmStudio.Data.Theme.HousePartStore>();
 builder.Services.AddScoped<PgmStudio.Api.Services.RoomStyleLibrary>();
 builder.Services.AddScoped<PgmStudio.Api.Services.HousePartLibrary>();
 builder.Services.AddScoped<PgmStudio.Data.Theme.PropStyleStore>();
+builder.Services.AddScoped<PgmStudio.Data.Theme.SeedKeyStore>();
+builder.Services.AddScoped<PgmStudio.Api.Services.LibrarySeed>();
 builder.Services.AddScoped<PgmStudio.Api.Services.PropStyleLibrary>();
 builder.Services.AddScoped<PgmStudio.Api.Services.LibraryNames>();
 builder.Services.AddScoped<MapReader>();
@@ -417,24 +419,20 @@ app.UseSwaggerGen(
 // SPA fallback: anything not matched by an API route or a static file serves the Blazor host page.
 app.MapFallbackToFile("index.html", staticFileOptions);
 
-// The library's seed folder. Idempotent — a row already holding a seeded entry is updated in place and keeps
-// the id everything binding it depends on, and nothing is ever deleted — so a studio nobody has run the seeder
-// against stops being a state the app can be in. A failure here is reported and never fatal: an empty library
-// is a usable studio, and refusing to serve over one would be worse than opening on it.
+// The library's seed folder. Every row it states is the folder's and is rewritten to it here, keeping the id
+// everything binding it depends on, and a row whose entry has left is retired — deleted, or handed to the author
+// still binding it. A failure here is reported and never fatal: an empty library is a usable studio, and refusing
+// to serve over one would be worse than opening on it.
 await using (var seeding = app.Services.CreateAsyncScope())
 {
-    var seed = new PgmStudio.Api.Services.LibrarySeed(
-        seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.ThemeStore>(),
-        seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.RoomStyleStore>(),
-        seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.HousePartStore>(),
-        seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.PropStyleStore>());
     try
     {
-        var tally = await seed.SeedAsync();
+        var tally = await seeding.ServiceProvider.GetRequiredService<PgmStudio.Api.Services.LibrarySeed>().SeedAsync();
         app.Logger.LogInformation(
             "library seeded: {Patterns} pattern(s), {Parts} part(s), {Houses} house(s), {Themes} theme(s) and "
-            + "{Recipes} recipe(s) added",
-            tally.PatternsAdded, tally.PartsAdded, tally.HousesAdded, tally.ThemesAdded, tally.RecipesAdded);
+            + "{Recipes} recipe(s) added; {Retired} row(s) retired and {Released} handed to their authors",
+            tally.PatternsAdded, tally.PartsAdded, tally.HousesAdded, tally.ThemesAdded, tally.RecipesAdded,
+            tally.Retired, tally.Released);
     }
     catch (Exception fault)
     {

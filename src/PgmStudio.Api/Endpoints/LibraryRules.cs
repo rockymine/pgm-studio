@@ -6,8 +6,9 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>
-/// The library's own refusals: what a pattern is, and what a slot binds. A single block is not a pattern, a
-/// slot holds one block or one pattern and never both, and the library holds each pattern once.
+/// The library's own refusals: what a pattern is, what a slot binds, what a row is called and whose it is. A single
+/// block is not a pattern, a slot holds one block or one pattern and never both, the library holds each pattern
+/// once, a name is one row's, and a row the seed folder states is changed in the folder.
 /// </summary>
 internal static class LibraryRules
 {
@@ -39,6 +40,29 @@ internal static class LibraryRules
     /// <remarks>Choose another name, or edit the row the finding names.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Request)]
     public const string NameTaken = "LB5";
+
+    /// <summary>A library row the seed folder states, edited or deleted. The row is the folder's: every start
+    /// rewrites it to the entry it holds, so an edit would be gone by the next one. 409, naming the entry.</summary>
+    /// <remarks>Save a copy under a name of its own and change that, or change the entry in the seed folder, <c>src/PgmStudio.Minecraft/Library</c>. A row's <c>seeded</c> says whether it is the folder's.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request)]
+    public const string SeededRow = "LB6";
+}
+
+/// <summary>What editing or deleting a library row refuses where the seed folder states it:
+/// <see cref="LibraryRules.SeededRow"/>, on every kind.</summary>
+public static class SeededRows
+{
+    /// <summary>True when the row carrying <paramref name="seedKey"/> is the folder's and the refusal has been
+    /// written; false for an author's row, and for a row that does not exist, which the caller answers itself.</summary>
+    public static async Task<bool> RefusedAsync(HttpContext http, string? seedKey, string what, CancellationToken ct)
+    {
+        if (seedKey is null) return false;
+        await Refusals.WriteAsync(http, 409, "seeded row",
+            [new Finding(LibraryRules.SeededRow,
+                $"this {what} is the seed folder's entry `{seedKey}`, rewritten on every start: save a copy and change "
+                + "that, or change the folder", Subjects: [seedKey])], ct);
+        return true;
+    }
 }
 
 /// <summary>What a library row's name has to be, on every save of every kind: <see cref="LibraryRules.NameCharacters"/>

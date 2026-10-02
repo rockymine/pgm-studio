@@ -32,7 +32,8 @@
 // named: every tree under its name, with the foot it stands on in the world and the recipe the library answers for
 // it, one body row to a line so a re-cut diffs by the block. The library seed matches a stored tree by its cut — the
 // world it came from and the foot it stood on — so a re-cut updates the same rows, a relabelled row renames them,
-// and nothing is duplicated. A board copies a tree from the same file where a studio's library is not the record.
+// and nothing is duplicated. A board reads a tree from the studio it is driven against, whose seeded rows are this
+// file's.
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;

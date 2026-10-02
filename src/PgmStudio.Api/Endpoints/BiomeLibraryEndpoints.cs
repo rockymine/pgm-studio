@@ -36,7 +36,7 @@ internal static class BiomeBody
 internal static class BiomeLibraryMapping
 {
     public static BiomePatternSummary ToDto(BiomePatternRow row) =>
-        new(row.Id, row.Name, row.Kind, row.Params, Picture(row.Params));
+        new(row.Id, row.Name, row.Kind, row.Params, Picture(row.Params), row.SeedKey is not null);
 
     /// <summary>The picture, or an empty string for a row whose stored field will not read — a library that
     /// cannot draw one row still lists the rest.</summary>
@@ -105,6 +105,8 @@ public sealed class BiomePatternUpdateEndpoint(ThemeStore store)
 
     public override async Task HandleAsync(BiomePatternSaveRequest req, CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBiomeAsync(Route<long>("id"), ct))?.SeedKey, "biome pattern", ct))
+            return;
         if (await LibraryNaming.RefusedAsync(HttpContext, req.Name, Route<long>("id"),
             (await store.ListBiomesAsync(ct: ct)).Select(row => (row.Id, row.Name)), ct)) return;
         if (BiomeBody.Stated(req.Params) is null) { await BiomeBody.RefuseAsync(HttpContext, ct); return; }
@@ -121,10 +123,12 @@ public sealed class BiomePatternUpdateEndpoint(ThemeStore store)
 public sealed class BiomePatternDeleteEndpoint(ThemeStore store) : EndpointWithoutRequest
 {
     public override void Configure()
-    { Delete("/biome-patterns/{id}"); Description(b => b.Refuses(404)); }
+    { Delete("/biome-patterns/{id}"); Description(b => b.Refuses(404, 409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (await SeededRows.RefusedAsync(HttpContext, (await store.GetBiomeAsync(Route<long>("id"), ct))?.SeedKey, "biome pattern", ct))
+            return;
         if (await store.DeleteBiomeAsync(Route<long>("id"), ct) == 0)
         { await Refusals.NotFoundAsync(HttpContext, "biome pattern", ct); return; }
         await Send.NoContentAsync(ct);
