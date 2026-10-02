@@ -10,22 +10,21 @@
     <Section Title="Identity">
       <div class="section-body">
         <Field Label="Map name" Required>
-          <input class="field-input" type="text" placeholder="My CTW Map" value="@name" @oninput="OnName" />
+          <input class="field-input" type="text" placeholder="e.g. Harbour Run" value="@name" @oninput="OnName" />
         </Field>
         <div class="field-row">
           <Field Label="Version">
-            <input class="field-input" type="text" value="@Version" disabled title="Auto-derived" />
+            <input class="field-input" type="text" value="@Version" disabled title="Set automatically" />
           </Field>
           <Field Label="Mode" Class="field--compact">
-            <input class="field-input" type="text" value="@Mode" disabled title="Auto-derived" />
+            <input class="field-input" type="text" value="@Mode" disabled title="Set automatically" />
           </Field>
         </div>
         <Field Label="Objective">
           <textarea class="field-input field-input--textarea" rows="2" disabled
-                    title="Auto-derived from gamemode">@Objective</textarea>
+                    title="Set automatically from the game mode">@Objective</textarea>
         </Field>
-        <p class="section-desc">Version, mode, and objective are auto-derived — the generator sets them, so
-          they aren't edited here.</p>
+        <p class="section-desc">Version, mode, and objective are set automatically.</p>
       </div>
     </Section>
 

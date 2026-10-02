@@ -80,12 +80,15 @@ export class ReliefController {
   #groupAt;              // (bx, bz) → the id of the group covering this cell, or null
   #groupTop;             // (groupId) → the level that group's ground already stands at, or null
   #contours;              // () → the traced contour payload on screen, or null
+  #editable;              // () → may this page change the relief at all?
 
   /**
    * @param doc          ReliefDoc — the stated relief (mutated through its own methods)
    * @param handlesLayer SVGGElement — screen-space handle layer for the selected mark's points
    * @param getViewport  () => { scale, panX, panY }
-   * @param callbacks    { onChanged, onSelected, onPreviewChanged, onPlaced, onGroupAt, onGroupTop }
+   * @param callbacks    { onChanged, onSelected, onPreviewChanged, onPlaced, onGroupAt, onGroupTop, isEditable }
+   *                     `isEditable` answers false on a page the caller may not write: a mark is still picked,
+   *                     and nothing is placed, dragged, inserted or given a grip.
    */
   constructor(doc, handlesLayer, getViewport, callbacks = {}) {
     this.#doc = doc;
@@ -95,6 +98,7 @@ export class ReliefController {
     this.#groupAt = callbacks.onGroupAt ?? (() => null);
     this.#groupTop = callbacks.onGroupTop ?? (() => null);
     this.#contours = callbacks.onContours ?? (() => null);
+    this.#editable = callbacks.isEditable ?? (() => true);
     for (const kind of ["point", "line", "area", "scarp", PUSH_KIND]) this.#settings[kind] = defaultMark(kind);
   }
 
@@ -139,7 +143,7 @@ export class ReliefController {
   /** Rename the selection and follow it, since the id is what the selection is. Returns the complaint the
    *  document refused with, or null. */
   renameSelected(next) {
-    if (!this.#selectedId) return "nothing selected";
+    if (!this.#selectedId) return "Nothing is selected.";
     const refused = this.#doc.rename(this.#selectedId, next);
     if (refused) return refused;
     this.#selectedId = String(next).trim();
@@ -163,6 +167,7 @@ export class ReliefController {
   onMouseDown(bx, bz, activeTool) {
     const kind = RELIEF_TOOLS[activeTool];
     if (kind) {
+      if (!this.#editable()) return true;   // a page that may not write states nothing
       const groupId = this.#groupAt(bx, bz);
       // A mark states something about a group's ground. Off every group there is no ground and no group
       // to state it about, so the press is consumed and nothing is begun.
@@ -178,7 +183,7 @@ export class ReliefController {
     const hit = this.#hitTest(bx, bz);
     if (hit) {
       this.select(hit.id);
-      this.#drag = { id: hit.id, fromX: bx, fromZ: bz, moved: false };
+      this.#drag = this.#editable() ? { id: hit.id, fromX: bx, fromZ: bz, moved: false } : null;
       return true;
     }
 
@@ -187,7 +192,7 @@ export class ReliefController {
     // that level. Marks win the press: one is a thing an author put there, and the contours are what the
     // solver made of them.
     const grabbed = contourAt(this.#contours(), bx, bz);
-    if (grabbed) {
+    if (grabbed && this.#editable()) {
       this.select(null);
       this.#contourDrag = { grabbed, fromX: bx, fromZ: bz, dx: 0, dz: 0 };
       return true;
@@ -252,7 +257,7 @@ export class ReliefController {
    * and never could.
    */
   #offerInsert(bx, bz, activeTool) {
-    const mark = this.#selectedId && (!activeTool || activeTool === "select")
+    const mark = this.#selectedId && (!activeTool || activeTool === "select") && this.#editable()
       ? this.#doc.byId(this.#selectedId) : null;
     const points = mark && !isSpot(mark) ? markPoints(mark) : [];
     if (points.length < 2) { this.#clearGhost(); return; }
@@ -405,7 +410,7 @@ export class ReliefController {
     this.#ghostEl = null;
     this.#hoveredEdge = -1;
     const mark = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
-    if (!mark) return;
+    if (!mark || !this.#editable()) return;
     markPoints(mark).forEach(([wx, wz], idx) => {
       const at = toScreen(wx, wz, this.#getViewport());
       const grip = svgEl("rect", {

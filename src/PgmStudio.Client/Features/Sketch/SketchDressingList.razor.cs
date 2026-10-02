@@ -54,7 +54,7 @@ public partial class SketchDressingList
         {
             PropKinds.Tree => new Row(id, "trees", Species(prop), Cell(prop)),
             PropKinds.Boulder => new Row(id, "mountain", $"{Field(prop, "form", "round")} boulder", Cell(prop)),
-            PropKinds.Stroke => new Row(id, "spline", $"{Field(prop, "style", "solid")} {(Bool(prop, "claimsGround") ? "claims" : "paint")}", Span(prop)),
+            PropKinds.Stroke => new Row(id, "spline", $"{Field(prop, "style", "solid")} {(Bool(prop, "claimsGround") ? "path" : "paint")}", Span(prop)),
             PropKinds.Fluid => new Row(id, "waves", $"{Field(prop, "form", "canal")} channel", Span(prop)),
             PropKinds.Flora => new Row(id, "flower", "ground cover", Span(prop)),
             PropKinds.House => new Row(id, "house", "building", Footprint(prop)),
@@ -80,7 +80,7 @@ public partial class SketchDressingList
     {
         if (!prop.TryGetProperty("points", out var points) || points.ValueKind != JsonValueKind.Array) return "";
         var count = points.GetArrayLength();
-        return count == 0 ? "" : $"{count} pts";
+        return count == 0 ? "" : $"{count} points";
     }
 
     /// <summary>A building's footprint in whole blocks, over the box drawn round every wing it carries. Each

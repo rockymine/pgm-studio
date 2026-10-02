@@ -22,10 +22,9 @@ from, a village behind, a void channel twenty blocks in front" and authors the d
 shapes,
 their heights, the themes on each, the relief, the dressing, the objective and its kit.
 
-**That is already possible, and it has already been done.** The house presets in `HousePresets` were authored
-exactly this way — described in prose and built from the description, down to "seven courses between spruce
-log posts that stand the full height, the bottom two cobble and andesite mixed" — and they work. Their
-docstrings are the briefs they came from. So the method is not a proposal; the gap is that it was applied to
+**That is already possible, and it has already been done.** The first seeded houses — now files in the
+library's seed folder — were authored exactly this way — described in prose and built from the description, down to "seven courses between spruce
+log posts that stand the full height, the bottom two cobble and andesite mixed" — and they work. The briefs they came from are in git beside the commits that wrote them. So the method is not a proposal; the gap is that it was applied to
 a building and never to a board. The surfaces exist — the tool documents beside this file describe them and
 `/api/openapi/v1.json` names every route — and
 nothing above needs a capability that has not been built. What it needs is an author that knows the surfaces

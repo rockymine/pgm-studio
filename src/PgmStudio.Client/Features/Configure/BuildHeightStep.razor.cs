@@ -36,12 +36,11 @@ public partial class BuildHeightStep
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    // Typed into the number input — the side-view picks up the new Height on re-render (blank = no ceiling).
-    private void OnHeightInput(ChangeEventArgs e)
-    {
-        height = double.TryParse(e.Value?.ToString(), out var v) ? Clamp(v) : null;
-        WriteHeight();
-    }
+    // Typed into the number input — the side-view picks up the new Height on re-render.
+    private void OnHeightInput(double typed) { height = Clamp(typed); WriteHeight(); }
+
+    // Emptied the number input: no ceiling.
+    private void ClearHeight() { height = null; WriteHeight(); }
 
     // Dragged the side-view line.
     private void OnSideviewHeight(double? y) { height = y is { } v ? Clamp(v) : null; WriteHeight(); }

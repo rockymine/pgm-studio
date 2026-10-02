@@ -3,6 +3,7 @@ using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Library;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Vocabulary;
 
@@ -23,7 +24,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
 {
     /// <summary>The theme a card is grown on. A recipe has no map behind it, so the sample ground is the one
     /// every other card in the library stands on.</summary>
-    private static TerrainTheme Sample => ThemePresets.Meadow;
+    private static TerrainTheme Sample => SeedFolder.Meadow;
 
     // ── trees ─────────────────────────────────────────────────────────────────────────────────────────
     public async Task<IReadOnlyList<(TreeStyleRow Row, string Card)>> ListTreesAsync(CancellationToken ct = default)
@@ -74,9 +75,26 @@ public sealed class PropStyleLibrary(PropStyleStore store)
         };
     }
 
+    /// <summary>A tree cut out of a world as the row the library files it under: the recipe, and the cut — the
+    /// world and the foot it stood on. The time of the cut is the caller's, since the cut it is read from does
+    /// not record one.</summary>
+    public static TreeStyleRow RowOf(string name, string world, (int X, int Y, int Z) foot, TreeStyle tree) => new()
+    {
+        Name = name,
+        Form = TreeForms.Copied,
+        Species = TreeSpeciesNames.Canonical(tree.Species),
+        Height = tree.BodyHeight,
+        Body = tree.Body is { Count: > 0 } body ? JsonSerializer.Serialize(body) : "",
+        CutWorld = world,
+        CutX = foot.X,
+        CutY = foot.Y,
+        CutZ = foot.Z,
+        CutBuilder = tree.Builder is { } builder && builder.Trim() is { Length: > 0 } named ? named : null,
+    };
+
     public static TreeStyleDetail ToDetail(TreeStyleRow row) => new(
         row.Id, row.Name, TreeForms.Canonical(row.Form), row.Species, row.Height,
-        BodyOf(row.Body)?.Select(cell => cell).ToArray(), CutOf(row));
+        BodyOf(row.Body)?.Select(cell => cell).ToArray(), CutOf(row), row.SeedKey is not null);
 
     /// <summary>The cut a row records, or none where it records no world.</summary>
     private static TreeCut? CutOf(TreeStyleRow row) =>
@@ -130,8 +148,24 @@ public sealed class PropStyleLibrary(PropStyleStore store)
         Rock = Readable(req.Rock),
     };
 
+    /// <summary>A boulder recipe as the row the library files it under.</summary>
+    public static BoulderStyleRow RowOf(string name, BoulderStyle boulder) => new()
+    {
+        Name = name,
+        Form = boulder.Form switch
+        {
+            BoulderForm.Angular => BoulderForms.Angular,
+            BoulderForm.Outcrop => BoulderForms.Outcrop,
+            BoulderForm.Cairn => BoulderForms.Cairn,
+            _ => BoulderForms.Round,
+        },
+        Size = boulder.Size,
+        Mossy = boulder.Mossy,
+        Rock = TerrainThemeJson.Serialize(boulder.Rock),
+    };
+
     public static BoulderStyleDetail ToDetail(BoulderStyleRow row) => new(
-        row.Id, row.Name, BoulderForms.Canonical(row.Form), row.Size, row.Mossy, row.Rock);
+        row.Id, row.Name, BoulderForms.Canonical(row.Form), row.Size, row.Mossy, row.Rock, row.SeedKey is not null);
 
     public static string CardOf(BoulderStyleSaveRequest draft) => Card(BoulderProp(RowOf(draft)), StageCell);
 

@@ -42,14 +42,14 @@
   </Field>
   <Field Label="Set into">
     <div class="panel-actions">
-      <Chip Active="@(Window.HostBlock < 0)" OnClick="ClearHost">The wall's own course</Chip>
+      <Chip Active="@(Window.HostBlock < 0)" OnClick="ClearHost">The wall</Chip>
       @if (Window.HostBlock >= 0)
       {
         <BlockPicker Blocks="Blocks" Id="Window.HostBlock" Data="Window.HostData" OnPick="PickHost" />
       }
       else
       {
-        <Button OnClick="HostBand"><i data-lucide="square-dashed"></i> A band of its own</Button>
+        <Button OnClick="HostBand"><i data-lucide="square-dashed"></i> Separate band</Button>
       }
     </div>
   </Field>

@@ -82,6 +82,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // footprints; a prop was put somewhere, so the canvas owns the placements and this owns only the load/save.
   // Theme phase: the canvas is a selection surface only. Geometry is the Draw phase's to edit.
   let selectOnly = false;
+  // The caller may not write this map: the canvas refuses every edit at its source, the tools that change the
+  // board cannot be armed, the chords that do stand down, and nothing is marked dirty, so nothing is saved.
+  let readOnly = false;
+  const VIEW_TOOLS = new Set(["select", "move", "measure"]);
   // The theme a click paints while the Apply step is up; "" is no brush. Held here as well as on the canvas
   // because the assignment is the bridge's and the hit test is the canvas's.
   let themeBrush = "";
@@ -93,7 +97,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   const fire = (name, ...args) => fireTo(dotnetRef, name, ...args);
-  const markDirty = () => fire("OnDirty", uniqueGroups(groups).length);
+  const markDirty = () => { if (!readOnly) fire("OnDirty", uniqueGroups(groups).length); };
   const syncActive = () => { if (layers[active]) layers[active].shapes = canvas.getShapes(); };
 
   // A layer's groups from its shapes, settled against the ones it was loaded with (used for non-active
@@ -252,7 +256,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const reference = owner?.intentRef;
     if (!reference) {
       canvas.restoreStructural(putBack);
-      fire("OnStructuralNote", "this piece is not linked to anything in the map's intent, so it cannot move.");
+      fire("OnStructuralNote", "This piece isn't linked to the map's game settings, so it can't be moved.");
       return;
     }
     try {
@@ -269,7 +273,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       }
     } catch {
       canvas.restoreStructural(putBack);
-      fire("OnStructuralNote", "the map could not be reached, so the move was not made.");
+      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't moved. Try again.");
       return;
     }
     fire("OnStructuralNote", null);
@@ -450,22 +454,22 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // failure read as "no WebGL", including on a browser that has it. A build that succeeds carries `warnings`
   // on the payload for the same reason: what it could not put in the world is the half a picture cannot show.
   async function fetchColumns(state) {
-    if (!slug) return { error: "this sketch has no map to build" };
+    if (!slug) return { error: "This sketch has no map to build." };
     try {
       const res = await fetch(`/api/map/${encodeURIComponent(slug)}/sketch/columns`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: state,
       });
       if (!res.ok) return { error: await refusalText(res) };
       return { payload: await res.json() };
-    } catch { return { error: "the build could not be reached" }; }   // offline or mid-navigation
+    } catch { return { error: "Couldn't reach the studio. Check your connection and try again." }; }   // offline or mid-navigation
   }
 
   // The sentence out of a refusal envelope {error, message, findings[]}, or the status when a body is not one.
   async function refusalText(res) {
     try {
       const body = await res.json();
-      return body?.message || body?.error || `the build answered ${res.status}`;
-    } catch { return `the build answered ${res.status}`; }
+      return body?.message || body?.error || `The studio returned an error (HTTP ${res.status}).`;
+    } catch { return `The studio returned an error (HTTP ${res.status}).`; }
   }
 
   function refreshMirror() {
@@ -547,7 +551,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   // Move the selection by whole blocks. A group moves as its shapes; a drilled shape moves alone.
   function nudge(dx, dz) {
-    if (selectOnly) return false;   // select-only: the arrows are a move, and moving belongs to Draw
+    if (selectOnly || readOnly) return false;   // select-only: the arrows are a move, and moving belongs to Draw
     return history.step(() => nudgeBy(dx, dz));
   }
 
@@ -578,16 +582,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     return nudge(dx * by, dz * by);
   };
   Keys.register("sketch-bridge", [
-    { id: "sketch.nudge", keys: Object.keys(ARROWS), label: "Nudge the selection one block",
+    { id: "sketch.nudge", keys: Object.keys(ARROWS), label: "Move the selection 1 block",
       group: "Canvas", when: onCanvas, run: (e) => step(e, 1) },
     { id: "sketch.nudge16", keys: Object.keys(ARROWS).map(key => `shift+${key}`),
-      label: "Nudge the selection sixteen blocks", group: "Canvas", when: onCanvas, run: (e) => step(e, 16) },
+      label: "Move the selection 16 blocks", group: "Canvas", when: onCanvas, run: (e) => step(e, 16) },
     { id: "sketch.undo", keys: "mod+z", label: "Undo", group: "Everywhere",
-      when: onCanvas, inField: true, run: () => history.undo() },
+      when: () => onCanvas() && !readOnly, inField: true, run: () => history.undo() },
     { id: "sketch.redo", keys: ["mod+shift+z", "mod+y"], label: "Redo", group: "Everywhere",
-      when: onCanvas, inField: true, run: () => history.redo() },
+      when: () => onCanvas() && !readOnly, inField: true, run: () => history.redo() },
     { id: "sketch.duplicate", keys: "mod+d", label: "Duplicate the selected shape", group: "Canvas",
-      when: () => onCanvas() && !selectOnly && !!canvas.selectedId, run: () => duplicateSelected() },
+      when: () => onCanvas() && !selectOnly && !readOnly && !!canvas.selectedId, run: () => duplicateSelected() },
   ]);
 
   // ── undo ────────────────────────────────────────────────────────────────────────────────────────
@@ -916,6 +920,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   const handle = {
     setTool(tool)      {
+      if (readOnly && !VIEW_TOOLS.has(tool)) { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); return; }
       canvas.setActiveTool(tool === "select" ? "select" : tool);
       // Leaving select mode clears the selection — otherwise arrow-nudge keeps moving a shape that's no
       // longer visibly selected (you've switched to panning/drawing). Arrow-move is a select-mode action.
@@ -933,6 +938,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (selectOnly) canvas.setActiveTool("select");
     },
     setOperation(op)   { canvas.setOperation(op); },
+    // The caller may not write this map. An armed tool that changes the board is put down for select.
+    setReadOnly(on)    {
+      readOnly = !!on;
+      canvas.setReadOnly(readOnly);
+      if (readOnly && !VIEW_TOOLS.has(canvas.activeTool ?? "move")) { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); }
+    },
     // ── In game: the views kept, and the one being placed ──
     setViews(viewsJson) { try { canvas.setViews(JSON.parse(viewsJson)); } catch { canvas.setViews([]); } },
     setViewDraft(viewJson) { canvas.setViewDraft(viewJson ? JSON.parse(viewJson) : null); },
@@ -1031,7 +1042,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setHeightMode(id, mode) {
       const s = canvas.getShape(id);
       if (!s) return;
-      if (mode === "level" || mode === "raise" || mode === "sink") s.height_mode = mode;
+      if (mode === "level" || mode === "raise" || mode === "sink" || mode === "drape") s.height_mode = mode;
       else delete s.height_mode;                    // absent, not empty: a shape without the word IS ground
       pushLayout(); dropIsoMesh(); markDirty();
     },
@@ -1091,7 +1102,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // string. Returns an error string on invalid JSON, else null.
     setBiome(text, source) {
       if (!text) { biome = undefined; biomeSource = 0; markDirty(); fire("OnBiome", getBiomeState()); return null; }
-      let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "Invalid JSON"; }
+      let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "This isn't valid JSON."; }
       biome = parsed;
       biomeSource = Number.isFinite(source) && source > 0 ? source : 0;
       markDirty(); fire("OnBiome", getBiomeState()); return null;
@@ -1135,8 +1146,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     // Replace a theme's material JSON (the raw TerrainTheme). Returns an error string on invalid JSON, else null.
     setThemeJson(id, text) {
-      if (!themes[id]) return "No such theme.";
-      let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "Invalid JSON"; }
+      if (!themes[id]) return "That palette no longer exists.";
+      let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "This isn't valid JSON."; }
       themes[id] = parsed; afterThemeChange(); return null;
     },
     /** Which unit a plain click picks with no group entered — "group" or "shape". The phase states it. */
@@ -1192,14 +1203,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     /** Patch the selected prop. `patchJson` is a partial prop; returns an error string on bad JSON, else null. */
     updateProp(patchJson) {
-      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
       canvas.dressingTools?.updateSelected(patch);
       afterDressingChange(); return null;
     },
     /** The starting values the next prop of a kind takes — what the inspector edits with nothing selected. */
     getPropSettings(kind) { return JSON.stringify(canvas.dressingTools?.settingsFor(kind) ?? {}); },
     setPropSettings(kind, patchJson) {
-      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
       canvas.dressingTools?.setSettings(kind, patch);
       fire("OnDressing", dressingState()); return null;
     },
@@ -1224,23 +1235,23 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
      */
     renameMark(next) {
       const tools = canvas.reliefTools;
-      if (!tools) return "nothing selected";
+      if (!tools) return "Nothing is selected.";
       const refused = tools.renameSelected(next);
       if (!refused) afterReliefChange();
       return refused;
     },
     /** Patch the selected mark. `patchJson` is a partial mark; returns an error string on bad JSON, else null. */
     updateMark(patchJson) {
-      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
       canvas.reliefTools?.updateSelected(patch);
       afterReliefChange(); return null;
     },
     /** Patch the group's own relief — base, reach, step, grain, and the rim it carries. Not a mark: these
      *  are what every mark in the group is stated against, so changing one moves the whole surface. */
     updateGroupRelief(patchJson) {
-      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
       const groupId = reliefGroup();
-      if (!groupId) return "no group selected";
+      if (!groupId) return "No group is selected.";
       canvas.reliefTools?.updateRelief(groupId, patch);
       afterReliefChange(); return null;
     },
@@ -1253,14 +1264,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setPushAmount(index, value) {
       const tools = canvas.reliefTools;
       const selected = tools?.selectedId ? canvas.relief.byId(tools.selectedId) : null;
-      if (!selected || !isPush(selected)) return "no push selected";
+      if (!selected || !isPush(selected)) return "No push is selected.";
       tools.updateSelected(pushAmountPatch(selected, Number(index), Number(value)));
       afterReliefChange(); return null;
     },
     /** The starting values the next mark of a kind takes — what the inspector edits with nothing selected. */
     getMarkSettings(kind) { return JSON.stringify(canvas.reliefTools?.settingsFor(kind) ?? {}); },
     setMarkSettings(kind, patchJson) {
-      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
       canvas.reliefTools?.setSettings(kind, patch);
       fire("OnRelief", reliefState()); return null;
     },

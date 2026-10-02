@@ -93,17 +93,17 @@ export class WorldEditController {
   // Arrow keys nudge the selected region by 1 block (Shift = 16), through the one registry every binding in
   // the app is held in — so this canvas's chords are listed by the `?` sheet like any other's.
   #setupKeyboardNudge() {
-    const live = () => !!this.#acc.getSelected()?.bounds && this.#acc.isVisible();
+    const live = () => !!this.#acc.getSelected()?.bounds && this.#acc.isVisible() && (this.#acc.isEditable?.() ?? true);
     const ARROWS = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] };
     const step = (e, by) => {
       const [dx, dz] = ARROWS[e.key.toLowerCase()] ?? [0, 0];
       this.moveSelected(dx * by, dz * by);
     };
     Keys.register("world-edit", [
-      { id: "edit.nudge", keys: Object.keys(ARROWS), label: "Nudge the selected region one block",
+      { id: "edit.nudge", keys: Object.keys(ARROWS), label: "Move the selected region 1 block",
         group: "Canvas", when: live, run: (e) => step(e, 1) },
       { id: "edit.nudge16", keys: Object.keys(ARROWS).map(key => `shift+${key}`),
-        label: "Nudge the selected region sixteen blocks", group: "Canvas", when: live, run: (e) => step(e, 16) },
+        label: "Move the selected region 16 blocks", group: "Canvas", when: live, run: (e) => step(e, 16) },
     ]);
   }
 

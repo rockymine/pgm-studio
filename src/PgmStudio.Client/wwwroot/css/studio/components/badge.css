@@ -1,0 +1,22 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   BADGE
+   Single chip system for status, validation, and type labels.
+   Variants are named by meaning — pick the one that fits semantically.
+   Works both inline (in text) and standalone (in list rows, panel headers).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.badge {
+  display: inline-block;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.badge--success { color: var(--color-success);  background: var(--color-success-bg); }
+.badge--warning { color: var(--color-warning);  background: var(--color-warning-bg); }
+.badge--error   { color: var(--color-error);    background: var(--color-error-bg); }
+.badge--neutral { color: var(--text-secondary); background: var(--bg-panel); border: 1px solid var(--border); }
+.badge--dim     { color: var(--text-muted);       background: var(--bg-base); }
+/* Filled with a team's colour, which the call site passes as --swatch. */
+.badge--team    { color: var(--text-white);       background: var(--swatch); }

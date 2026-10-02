@@ -14,7 +14,7 @@
   <ChildContent>
     <div class="author-list">
       @foreach (var p in Authors) { @Row(p, Authors) }
-      @if (Authors.Count == 0) { <p class="section-desc">Add at least one author — a Minecraft username, or any name.</p> }
+      @if (Authors.Count == 0) { <p class="section-desc">Add at least one author. Use a Minecraft username or any name.</p> }
     </div>
   </ChildContent>
 </Section>
@@ -26,7 +26,7 @@
     <ChildContent>
       <div class="author-list">
         @foreach (var p in Contributors) { @Row(p, Contributors) }
-        @if (Contributors.Count == 0) { <p class="section-desc">Optional — people who helped but aren't lead authors.</p> }
+        @if (Contributors.Count == 0) { <p class="section-desc">Optional. People who helped but are not lead authors.</p> }
       </div>
     </ChildContent>
   </Section>
@@ -42,7 +42,7 @@
                    placeholder="Minecraft username, or any name"
                    title="@(p.Error ? AuthorNames.Refuse(p.Name.Trim())
                             : p.Uuid.Length > 0 ? p.Uuid
-                            : "Stored as a pseudonym — no Minecraft account is called this")"
+                            : "No Minecraft account has this name, so it is saved as written")"
                    value="@p.Name"
                    @oninput="e => { p.Name = e.Value?.ToString() ?? string.Empty; NotifyChanged(); }"
                    @onblur="() => ResolveName(p)" />

@@ -1,0 +1,38 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   TOAST (Type 2 notification — Operation feedback)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9000;
+  padding: 9px 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-md);
+  font-family: ui-monospace, monospace;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  border: 1px solid transparent;
+}
+.toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.toast--success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+.toast--error {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+.toast--info {
+  background: var(--bg-panel);
+  border-color: var(--border);
+  color: var(--text-primary);
+}

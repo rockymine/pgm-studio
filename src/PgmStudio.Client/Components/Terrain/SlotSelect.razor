@@ -1,0 +1,27 @@
+@namespace PgmStudio.Client.Components
+
+@* Filling a slot, wherever one is filled: a theme's bucket, a house's course, a part's trim. One list offers
+   nothing, a single block, or a saved pattern grouped by kind; a block opens the block picker beneath it, and a
+   log can be laid along its run. The filled slot's own picture sits beside the control. *@
+
+<div class="lib-bind">
+  <Select Options="Rows" Value="@SelectedKey" ValueChanged="Picked"
+          Placeholder="@Unbound" PlaceholderValue="0" Title="@Title" Disabled="Disabled" />
+  @if (Bound is { } style)
+  {
+    <span class="lib-bind-swatch">@((MarkupString)style.Preview)</span>
+  }
+  @Trailing
+</div>
+@if (Block is { } block)
+{
+  <div class="lib-bind-block">
+    <BlockPicker Blocks="Blocks" Id="block.Id" Data="block.Data" OnPick="PickBlock" />
+    @if (Lays(block.Id))
+    {
+      <label class="lib-bind-laid" title="Lay the log along the run it sits in, bark out, rather than standing it upright">
+        <input type="checkbox" checked="@block.Laid" disabled="@Disabled" @onchange="SetLaid" /> Laid along the run
+      </label>
+    }
+  </div>
+}

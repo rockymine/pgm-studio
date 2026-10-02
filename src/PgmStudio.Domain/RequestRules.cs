@@ -111,4 +111,14 @@ public static class RequestRules
     /// queue holds as many of theirs as it keeps; send fewer at once.</remarks>
     [Rule(RuleCategory.Unavailable, RuleConcern.Request, RuleConcern.Studio)]
     public const string Busy = "RQ11";
+
+    /// <summary>The route hands the author's notes to an agent, and this studio has no agent to hand them to, or
+    /// the service that starts one did not take them. It answers <b>503</b>: nothing about the request is wrong,
+    /// and the finding's message says which of the two it was.</summary>
+    /// <remarks>The agent is a Claude Code Routine with an API trigger. Set <c>Notes:Agent:Fire</c> to the
+    /// Routine's <c>/fire</c> URL and <c>Notes:Agent:Token</c> to its token, the token as an environment variable
+    /// on the server and never in a file the repository holds. Where the service refused, the message carries its
+    /// status: a 401 is a token revoked or regenerated, a 429 the Routine's hourly limit.</remarks>
+    [Rule(RuleCategory.Unavailable, RuleConcern.Studio)]
+    public const string AgentUnavailable = "RQ12";
 }

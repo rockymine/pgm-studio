@@ -19,6 +19,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   region geometry — all parity-verified against the Python reference. (M5, A1)
 
 ## App shell & routing
+- **A deploy reaches a browser whole (`RP102`).** The hand-written CSS and JS and `index.html` are sent with
+  `Cache-Control: no-cache` in every environment, so a browser revalidates each one rather than keeping it for a
+  window guessed from `Last-Modified`: a deploy no longer lands as new markup over old stylesheets, or a new
+  module importing an old one. `smoke.mjs` checks the header on the page, a stylesheet and a module.
+- **A content page scrolls at the window's edge (`C84`).** `ContentColumn` and the start page scroll a
+  full-width area with the capped column inside it, so the scrollbar stands at the window's edge rather than
+  against the column; `MaxWidth` is the content's own width.
+- **`/maps` lists every map, by stage (`C86`).** With no `?stage=` the page lists every map in the studio and
+  names each row's stage, so it is useful from the first map; Plans, Sketches and Configuring narrow it, and
+  `?stage=edit` reads *Finished*. The landing's Maps card counts every map (`MapStageCounts.All`).
+- **`/maps` says when it could not load (`C85`).** A failed list request, such as a 502 while the studio
+  restarts, shows a sentence and *Try again* rather than taking the page down.
 - **Map-centric URL structure** — the map is the path resource, the mode a trailing segment. Live:
   dashboard `/maps`, **Edit** `/maps/{id}/edit`, **Configure** `/maps/{id}/configure`, **Sketch**
   `/maps/{id}/sketch`, origination `/maps/new`, concept showcase `/concepts`, design system `/design`.
@@ -157,6 +169,74 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **An action the caller may not take is greyed, with the reason on hover (`C87`).** A `Button` marked
+  `Writes` closes where the shell's `StudioWriteReason` says the caller may not write, and one marked
+  `Deletes` where `StudioDeleteReason` says only an admin may delete; a closed link has no `href`. The map
+  list's New buttons, the library's *New* and every entry's Save, the plan editor's New, Import, Save and
+  Compile, the generator's Pin and Open in plan editor, and every save, build and remove in Sketch and
+  Configure carry it, and `WriteGate` and `FlowBar.NextWrites` cover the controls that are not a `Button`.
+  `access.mjs` checks both sides: open to the admin, closed to a visitor.
+- **A read-only page starts no edit, in a sidebar or on a canvas (`RP81`).** A `Section`, `SwatchRow` or
+  `ListRow` marked `Writes` greys or stills the sidebar controls that write (a layer's name and base, the
+  plan's reference trace, adding a team or a wool, a suggested core, the symmetry and its centre, build height
+  and team size), and the rows that only pick stay live. Every canvas takes `setReadOnly`: it pans, zooms,
+  selects and measures, and begins no draw, drag, handle, placement, paint or editing chord, and the sketch
+  marks nothing dirty, so nothing is saved or discarded. `access.mjs` drags a picked group as a visitor and
+  checks that nothing moved and nothing was sent.
+- **Downloading a map needs a whitelisted account (`C88`).** `GET /api/map/{slug}/export` builds the world it
+  answers, so it is `[CostlyRead]` and takes the `member` policy like the posted sketch views; a visitor is
+  refused `401`. A `Button` marked `Builds` reads `StudioBuildReason` and closes the same way: the sketch's
+  *Download map*, the plan's world ZIP and Configure's export.
+- **The interface is written for a mapmaker, not for the codebase (`C71`).** A first-time reader found the
+  copy hard to parse: internal names on screen (*pipeline*, *composer*, *emitter*, *BoxFiller*), noun phrases
+  hung off em dashes, metaphors, and descriptions where the control already said enough. The standard is
+  `docs/client/writing-for-the-ui.md` — plain sentences, verbs on buttons, names for headings, errors that say
+  what happened and what to do, no em dashes, the Oxford comma, and a glossary of the terms a reader has to
+  learn — and every page, tool, inspector, tooltip, status line and canvas message in `Client` was rewritten
+  to it, with the e2e specs and tool documents that quote a label moved in the same change.
+- **Text size is the reader's choice, and the default is larger (`C72`).** Every size token in `tokens.css`
+  is a design size times `--ui-scale`, and `TextSizeMenu` in the studio bar picks *Small*, *Default*, *Large*
+  or *Larger* (0.9 · 1 · 1.15 · 1.3), stored as `pgm-text-size` and applied before any stylesheet loads. Type,
+  icons, spacing, the control height and the panel widths follow it; the default type scale rose a pixel a
+  step to 15/14/13/12/11, buttons are at least 28px tall (WCAG 2.2's target size is 24), and labels drawn on a
+  canvas take the same scale through `labelPx`, a step larger than before.
+- **The studio has its own icon and title (`C73`).** `favicon.svg` (one block, three faces) with PNG and
+  apple-touch fallbacks replaces Blazor's default, and the tab reads *PGM Studio* where it read
+  *PgmStudio.Client*.
+- **`?` opens the shortcuts, and the sheet closes like a dialog (`C74`).** A shifted symbol is its own
+  character in `chordOf`, so `?` matches on any layout where it previously arrived as `shift+?` and matched
+  nothing. The sheet carries a close button where it showed a faint *Esc to close*.
+- **A page of boards is read with one key, and its cards hold their shape (`C76`).** A server-drawn board SVG
+  carries no legend: `PlanBoardPalette.Key` is the one list of role and zone colours, the PNG appends it under
+  its raster for a reader of the image alone, and `GET /compose` and `GET /shapes/catalog` return it as `key`
+  for `BoardKey` to draw once above the grid. Generator and catalog cards are a square picture on a dark
+  ground (`--board-bg`, since the swatches are tuned for one) with the structure and numbers under it rather
+  than badges over it. The generator's rail is *Layout settings*, applied on change with no Apply button, and
+  *Filter by shape*; multi-select filter chips lead with a checkbox (`filter-group-options--multi`).
+- **What a whole-page sweep found (`C77`).** The Blazor template's link and `code` colours (`#0071c1`, a pink)
+  are the studio's tokens; a list row that is a link is no longer underlined; a map row leads with its name
+  and quiets its slug; the not-found page has a heading and a way back; the plan tool's crumb names the plan;
+  change history names the documents a change wrote as *sketch* and *game settings*; the plan sidebar's three
+  panels are one even switch; and an In-game phase with no block textures says so in a callout.
+- **Every dropdown is `Select` (`C51`).** The plan tool, Configure, Edit, the sketch tool, the world canvas and
+  the pages hold no `<select>` of their own; the one left in the client is `Select.razor`'s.
+- **Sliders, number boxes and dropdowns are shared components (`C79`).** No raw number, range or select
+  markup stands outside `Components/`: 28 sliders are `RangeField` (live `ValueChanged`, a release-only
+  `OnCommit`), 33 number boxes join `NumberField` (now `double?`, invariant-culture, clamped, with `OnCleared`
+  where blank means none), and 20 dropdowns join `Select` (`Id`, `Class`, `Canvas`).
+- **No inline style sets a design value (`C80`).** Spacing is a modifier class in the component's stylesheet
+  (`panel-list--separated`, `meter--separated`, …); what remains inline is a runtime value handed to a class
+  as a custom property, one name per concept (`--swatch` for every swatch, `--meter-level`, `--pin-x`/`--pin-y`,
+  `--head-size`/`--head-image`). `DetailHeader` takes an `IconTint` where it took a style string.
+- **One stylesheet per component (`C81`).** `components.css` is the list of imports, in cascade order, over
+  one file per component under `css/studio/components/` (`buttons.css`, `form-fields.css`, `canvas-dock.css`, …); every
+  page renders pixel-identical in both themes, and a design direction restyles a component by opening its file.
+- **Every canvas colour is a token (`C82`).** Piece roles, box kinds, objectives, buildings, props, seams, rule
+  evidence and refused drops are `--canvas-*` tokens in `tokens.css`, read by the canvas JS with no fallback
+  beside them; the light theme darkens the three that lost contrast on its viewport (the mid box, the rule
+  limit, the side-view marker ring). Minecraft's chat and dye tables and the height ramps stay literal.
+- **Panning looks like panning (`C75`).** The pan tool shows an open hand over every canvas and a closed one
+  while the view is dragged, middle-button drags included (`canvas--pan`, `canvas--panning`).
 - **Three browser specs describe the tools the studio has (`TN17`, `TN18`, `TS106`).** Nothing had run the
   sweep, so three of them drove interactions that had moved on and the gate was red before any change.
   `plan-findings` and `plan-refusals` posted `plan: 1` where `PlanModel.CurrentVersion` is **2**, so both met
@@ -181,6 +261,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   three. The tool gates its own Compile on the document arriving, and the spec waits on
   `POST /api/plan/inspect` answering ok rather than on `waitForTimeout(1500)`: a condition where a duration
   had been standing in for one. 18/18 inside a full `./tools/e2e.sh all`, twice.
+- **No stylesheet styles markup nobody renders (`C64`).** Every class and id the studio stylesheets name is
+  produced by a `.razor`, `.cs`, `.js` or `index.html`, either literally or as a modifier a component composes
+  at runtime; a compound naming a live class inside a dead ancestor went with its ancestor. **245 lines** left
+  ten stylesheets, among them the `choice-*` tile chooser, `panel-accordion`, `vis-btn`, the `detail-table`,
+  the `gen-*` organic demo, the bucket editor, the context menu, `history-entry` and `#history-panel`;
+  `detail-table.css`, `layer-options.css` and `visibility-toggle.css` emptied and were deleted.
 - **The master-detail dashboard's stylesheet goes with the page it styled (`C62`, `C64`).** `editor.css`
   carried a two-pane maps dashboard — a sidebar with search, URL import and a map list beside a detail pane
   with a thumbnail, an authors row and stacked actions — and `/maps` is `Pages/Maps.razor`, which draws a
@@ -315,12 +401,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Topbar` under it keeps the trail, a *View only* tag on a read-only page, and the tool's own actions; the
   logo left the tools' rails, and the keyboard shortcuts moved to the footer every page now carries, beside the
   `?` that opens them anywhere. `docs/client/routing-and-ia.md`, `docs/client/ui-conventions.md`.
-- **A player's head again, served by the studio (C65).** `GET /api/minecraft/player/{uuid}/skin` fetches the
-  skin from Mojang's session and texture servers — only `textures.minecraft.net`, over https, a PNG of at most
-  64 KB — and keeps it thirty days beside the name (`minecraft_player.skin_png`, `M0044`). `PlayerHead` cuts the
-  face and hat out of it in CSS over the initial the row already drew, so the head is back in the author rows,
-  the top bar and the whitelist, and nothing is fetched from the browser to a third party. A skin that cannot
-  be had leaves the initial.
+- **A player's head again, served by the studio (C65).** The studio fetches a skin from Mojang's session and
+  texture servers — only `textures.minecraft.net`, over https, a PNG of at most 64 KB — and keeps it thirty days
+  beside the name (`minecraft_player.skin_png`, `M0044`). `PlayerHead` draws the head over the initial the row
+  already drew, so the head is back in the author rows, the top bar and the whitelist, and nothing is fetched
+  from the browser to a third party. A skin that cannot be had leaves the initial.
+- **A head as the game draws it (C68).** `GET /api/minecraft/player/{uuid}/head` answers the front of the head as
+  an 8×8 PNG, the face with the hat over it (`SkinHead`), and drops a hat area that is opaque everywhere the way
+  the game does — an old 64×32 skin filled black there showed a black square. `docs/client/ui-conventions.md`.
+- **A disabled button looks off (C67).** `:disabled` drops a `Button`'s variant colour with its strength and takes
+  no hover, so an empty note's primary Send no longer reads as a pale button to press; a busy one keeps its
+  colour (`action-btn--busy`). `docs/client/ui-conventions.md`.
 - **One keyboard, one registry, and the help is generated from it (C53).** `wwwroot/js/studio/shared/keys.js`
   owns the app's single `keydown` listener and the registry every binding lives in. An entry is
   `{ id, keys, label, group, run, when?, priority?, inField?, passive? }`, and `label` and `group` are
@@ -719,6 +810,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   answers, so a plan that will not compile is still the one an author can take a copy of — and the
   map-backed topbar is down to Save. The bare `/plan-editor` route has no flow bar and keeps its full bar
   (New · Import · Export · Save · Open · Compile). (C35)
+
+- **One plan editor on two bindings (`G154`).** A map's plan (`/maps/{slug}/plan`) and a plan row
+  (`/plans/{id}` and `/plans/new`, which replace `/plan-editor`) are the same tool: Info and Draw on the rail,
+  the flow bar, the sidebar's three panel chips, and a sidebar that folds away on both. Only the topbar follows
+  the binding: Save alone on a map, and New · Import · Open · Save with the origin badge on a row, whose Save
+  forks a generated or imported row and moves the address to the copy. `docs/tools/plan.md`.
 
 - **The library's editor rail is wide enough to edit in (C36).** The rail was a fixed 320px while the grid
   beside it — which only picks what to work on — took everything else. At that width a material's own row
@@ -3338,6 +3435,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the entity routes `docs/tools/flow.md` documents. (`TE3`)
 
 ## Pipeline / world import (M7)
+- **World folders only where someone can put one (`TC12`).** `/maps/new` lists the imports root's world
+  folders on an `open` studio, the one on its author's machine; an invited studio offers the download link
+  alone, since nobody but its operator can write to its disk.
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)
 - **`POST /scan-world`** — world → DB feature rows. (P3)
@@ -5973,6 +6073,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `M0056` makes a gable the database's default porch form, as it is the code's; a stored row keeps the form it
   states.
   `docs/world-export/structures.md` §7.1, §7.3, §7.6, §7.8. (`WE159`)
+
+- **Stair roofs, a rake with depth, and wear (`WE161`)** — a roof names the `roofStair` it steps in: every
+  column tops out in that stair climbing toward its ridge, the rim in the verge's own stair; a ridge two blocks
+  wide is two stairs meeting, one a block wide is a slab with an upside-down stair under it at the gable facing
+  out of the end, and a hip line and a flat lid are whole blocks. Under every single-course column hanging past the gable or the eave the
+  stamper hangs the same stair upside down and turned the other way, or on a slab roof the upper half of the
+  course below, so the rake is one block deep from the second course to the ridge. `roofWear` (0–1) lays that
+  share of a stair roof's slope as whole blocks and of its rim as slabs, and leaves that share of the hung
+  courses out, hashed per cell so a house restamps alike. `HS1` and `HS3` hold the stair to a stair of the
+  body's own material, never over a laid log and never beside a `roofSlab`. Both editors offer whole blocks,
+  stairs or slabs, the stair and the wear; `M0057` adds the two columns to house and roof rows.
+  `docs/world-export/structures.md` §7.1, `docs/tools/library.md`. (`WE161`)
+- **The library's front page shows what it holds (`TL38`).** `/library` groups its nine kinds as *Terrain*,
+  *Buildings* and *Nature*; each card is the pictures of the newest three entries over the kind's name, count
+  and one-line description, the nine lists load in parallel, and a browse card is its picture over the entry's
+  name and tag rather than a name in a footer under a badge laid on the picture. `docs/tools/library.md`.
 - **The library's house styles are named for what they are (TL36).** A room style's name is describing words
   then a kind of building, from the two lists `HouseNames` holds and `GET /api/room-styles/name-words` answers;
   `HS19` complains of any other on save. The library holds the author's review: the ten kept styles revised and
@@ -8359,6 +8475,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   1.8 would drop it. Podzol grows the rest of its cover as any dirt does, and mycelium nothing else. The
   Dressing inspector offers the share. `docs/world-export/decoration.md` §3. (`WE157`)
 
+- **Crops on farmland (`WE160`)** — a flora area sows the farmland inside it at `cropShare`, which the
+  meadow's density field does not thin: square plots of the cover's patch size, each one of `crops` — wheat,
+  carrots or potatoes, wheat unstated — at `ripeness` up to a stage either side, a fifth of its cells a stage
+  behind, read at the folded cell so a mirrored board's fields are sown alike. Farmland grows nothing else.
+  The Dressing inspector offers the share, the crops and the ripeness. `docs/world-export/decoration.md` §3.
+  (`WE160`)
+
 - **Lily pads on open water (`WE156`)** — a flora area floats a lily pad on the open still water inside it at
   `lilyShare`, cut from a field at the cover's patch size so the pads gather in rafts as flowers gather in
   fields, and read at the folded cell so a mirrored board's halves float alike; a fluid's dry bed and beach grow nothing and lava floats
@@ -8433,7 +8556,66 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   thread, the link a resolved `ruling` carries into `docs/gameplay/approaches.md`. The mapgen skills read the open
   notes first and reply on every note a drive answered. `docs/tools/sketch.md`. (`TS118`)
 
+- **Sending a note says what it is doing (`TS147`)** — Send is off until something is written, reads *Sending…*
+  from the press on and *Note sent* or *Reply sent* once it lands; one press is one note however many clicks
+  follow, and Ctrl+Enter sends. The notes column owns the sending, since a busy flag handed down from the phase
+  reached the button only after the send returned. `docs/tools/sketch.md` § Notes. (`TS147`)
+
+- **A note is written at the change its picture shows (`TS148`, `TS149`)** — `GET …/views` and
+  `GET …/render/eye/pick` each answer the map's `change`; a mark whose pick read a later change than the
+  pictures were listed at is refused with both numbers and **Draw the pictures again**, which keeps the note's
+  text and re-arms its tool, and the note states the change its picture shows. A note whose picture the browser
+  could not keep is not sent. `docs/tools/sketch.md` § Notes, `docs/world-scan/read-backs.md`. (`TS148`, `TS149`)
+
+- **A thread reads as a chat (`TS143`)** — each message a bubble beside its writer's mark: a person's head, the
+  reader's own on the right, and an agent named by its token's label beside an *AI* mark, never by the person
+  who issued the token. History names a change's writer the same way (`Writers`). A thread opens on its newest
+  message and follows each one that lands. `docs/tools/sketch.md` § Notes. (`TS143`)
+
+- **A note's before and after, side by side (`TS138`)** — an agent's `answered` reply on a picture note, at the
+  board's latest change and naming no picture, carries the note's camera drawn over the board as stored, taking a
+  build-queue turn only then (`BuildQueue.TurnOfAsync`). An open thread shows its pictures on the big picture —
+  Before, After, Now and a Wipe whose seam is dragged across it, which a thread with an after opens on — with the
+  note's mark on each. `docs/tools/sketch.md` § Notes, § Answering the notes an author left, `docs/access.md`.
+  (`TS138`)
+
+- **A thread and the changes that answer it (`TS131`, `TS132`, `TS133`)** — History lists under a span the threads
+  with a message written in it and opens each in In game; a thread counts the changes since its note, with a
+  second link for those since its last message where they differ; and coming back to History draws the span it
+  showed. `docs/tools/sketch.md` § In game, § History. (`TS131`, `TS132`, `TS133`)
+
+- **In game follows the board (`TS136`, `TS134`, `TS135`, `TS137`)** — the phase reads the board's changes and
+  its notes again every 30 seconds and when the tab comes back, and says over the picture when a change has
+  landed that the pictures do not show; a `?note=` link opens once and leaves the address; a refused let-go or
+  map picture is said over the gallery; and a thread is declined and retagged in the browser.
+  `docs/tools/sketch.md` § In game. (`TS136`, `TS134`, `TS135`, `TS137`)
+
+- **What is new since a scheduled check (`TS145`)** — `GET /api/notes?since=` keeps the threads whose last message
+  or status change is at or after an ISO 8601 instant, so a check on a schedule asks what is waiting and starts a
+  revision only where something is. `docs/tools/sketch.md` § Answering the notes an author left. (`TS145`)
+
+- **The author hands the notes to an agent (`TS146`)** — a studio naming a Claude Code Routine's API trigger
+  (`Notes:Agent:Fire`, `Notes:Agent:Token`) offers **Hand to the agent** in the notes column, counting the open
+  notes on every map and those written since the last hand-off; pressing it fires the Routine, which starts one
+  session that answers them, and the column links that session. Nothing runs between hand-offs. A refused or
+  unnamed agent is `RQ12` at 503 (`AgentHandoff`, `GET`/`POST /api/notes/handoff`). `docs/tools/sketch.md`,
+  `docs/deployment.md`, `docs/refusals.md`. (`TS146`)
+
+- **A browser test for In game's notes (`TS139`)** — `tests/e2e/sketch-notes.mjs` writes a note, double-clicks
+  Send for one note, replies, refuses a mark on a picture of a changed board and lands it after the redraw,
+  resolves, compares, retags and declines a thread, opens one from `?note=` and follows its changes since into
+  History and back. CI runs the sweep
+  with Mojang's EULA accepted and the client jar cached, so the notes are written on real pictures; a studio
+  without block textures checks only that the phase says why. `docs/tools/sketch.md`, `docs/cloud-setup.md`.
+  (`TS139`)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **The sketch hands over a finished map (`TS154`).** *Download map* in the top bar, on every phase, flushes
+  the layout, builds the world the first time a map has none (`sketch/finish`), and saves the export; a board
+  built from a plan carries the plan's game settings, so it needs no visit to Configure. A refused export shows
+  its sentence and *Open Configure*. Draw's *Done* goes on to Terraform, Ctrl+S saves, and the Configuring
+  list's "just finished" banner is gone with the redirect that fed it. Plan, Configure's Review and the sketch
+  save an export through one `MapDownload`.
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
   `{component}-{surface}` and each addressable — so a theme scoped per plateau paints one hillside as two or
@@ -8751,6 +8933,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   another shape, `id (image)` where the board's symmetry draws one, or `void` — so a pull or a bend's `edges` is
   written from a read rather than from a ring copied into a script. (`Pgm/Sketch/ShapeEdges`,
   `Api/Endpoints/SketchGeometryEndpoints`, `docs/tools/sketch.md`)
+- **A shape draped over the ground (`TS142`)** — `height_mode: "drape"` holds a shape `base_height` above the
+  ground at every cell it covers, read per cell rather than at the median `raise` reads, so a field wall, a
+  hedge or a kerb drawn as a polyline climbs the hillside instead of digging into its high side and standing
+  as a cliff on its low one. The four height modes are a published word set (`HeightModes`), so the schema and
+  the kit name them, and the shape inspector offers Drape. `docs/world-export/relief.md` §7,
+  `docs/tools/sketch.md`. (`TS142`)
+
 - **A coast placed for play is stated as pulls (`TS128`).** A point edit states `pulls: {edge: [[fraction,
   blocks], …]}`: a point that fraction of the way along each named edge, moved that many blocks into the ring or
   out of it where negative, inside asked of the ring rather than read from its centroid, every edge's points
@@ -8770,9 +8959,37 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **The showcase's trees are one snapshot a board copies from (`TL34`).** `tools/seed-trees.cs --json=<file>`
   writes the cut it would file into the library to a file instead: every tree under its name, the foot it stands
   on and the recipe the library answers for it, one body row to a line, the same bytes on a second cut of an
-  unchanged world. `pgm-studio-mapgen/corpus/tree-showcase/trees.json` is the showcase's, and a board names its
-  trees from it rather than from a studio's library or a cut of its own. (`tools/seed-trees.cs`,
+  unchanged world. The seed folder's `trees.json` is the showcase's, and a board reads its trees from the studio's
+  library, whose seeded rows are that file's (`TL39`). (`tools/seed-trees.cs`,
   `docs/tools/library.md`, `docs/world-export/tree-corpus.md`)
+- **The library is seeded from one folder, a slot holds a block or a pattern, and each pattern is held once
+  (`TL37`).** What a fresh library holds is `src/PgmStudio.Minecraft/Library` — 53 patterns, 8 themes, 57
+  houses, 4 boulders and the 94 trees cut out of the showcase — read by `SeedFolder` and put in by `LibrarySeed`,
+  matched by content so a second start changes nothing; the roofs, storeys and porches are cut out of the
+  houses, one row each however many share one, and a template tree per species and a biome per biome stay
+  computed. A theme bucket and a course hold one block in place (`block_id`, `block_data`, `block_laid`) or a
+  pattern by id: a single block is never a pattern (`LB1`), a slot names one of the two (`LB2`), and a pattern the
+  library holds is not saved twice (`LB3`); a theme import binds the pattern it finds. Patterns and parts are
+  named for what they contain (`PatternNames`, `PartNames`), and seed-only variants of one seeded pattern are one.
+  `M0058` carries a stored library: 838 rows on the deployed studio, 667 of them single blocks, become about 53
+  patterns, roofs fall from 57 to 51 and storeys from 84 to 71, and each map's current refinement follows.
+  `M0059` keeps a room style's `front`, which the store had been dropping. A library name is letters, digits,
+  spaces, dashes and underscores (`LB4`) and one row of its kind, compared without case (`LB5`), on every save of
+  all nine kinds; `M0060` makes every stored name one, counts a shared one on, indexes each table's names unique
+  and makes each map's refinement follow, and a source names a row without case. The editors fill every slot through
+  `SlotSelect`, and `tools/seed-trees.cs` writes the folder's `trees.json`, so a deploy carries the trees.
+  (`Minecraft/Library`, `Minecraft/Painting/PatternNames`, `Api/Services/{LibrarySeed,Slots,ThemeLibrary}`,
+  `Api/Endpoints/LibraryRules`, `Migrations/M0058_SlotsHoldBlocks`, `Migrations/M0059_RoomStyleFront`, `Migrations/M0060_LibraryNames`,
+  `Client/Components/Terrain/SlotSelect`, `docs/tools/library.md`, `docs/refusals.md`, `docs/deployment.md`)
+- **A seeded library row is the seed folder's (`TL39`).** Every row the folder states carries the key of its entry
+  (`seed_key`, `M0061`): a name, a part's content, a tree's cut, a template's species, a biome's id. Every start
+  rewrites each keyed row to its entry, keys an author's or a stale row already holding an entry no row carries,
+  and retires a row whose entry left — deleted, or handed to the author still binding it, key cleared. A `PUT` or
+  `DELETE` of a seeded row is refused 409 `LB6` on all nine kinds, every row's `GET` answers `seeded`, and the
+  editors offer *Save as copy* alone on one. The authoring repository keeps no copy of the trees and asks the
+  studio for them. (`Api/Services/LibrarySeed`, `Data/Theme/SeedKeyStore`, `Api/Endpoints/LibraryRules`,
+  `Migrations/M0061_SeedKeys`, `Client/Features/Library/LibraryEditor`, `docs/tools/library.md`,
+  `docs/refusals.md`, `pgm-studio-mapgen/tools/showcase.py`)
 - **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
   `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
   in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500

@@ -67,14 +67,14 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       if (!res.ok) return { error: await refusalText(res) };
       const { meshColumns } = await import("../render/column-mesh.js");
       return { mesh: meshColumns(await res.json()) };
-    } catch { return { error: "the build could not be reached" }; }
+    } catch { return { error: "Couldn't reach the studio. Check your connection and try again." }; }
   }
 
   async function refusalText(res) {
     try {
       const body = await res.json();
-      return body?.message || body?.error || `the build answered ${res.status}`;
-    } catch { return `the build answered ${res.status}`; }
+      return body?.message || body?.error || `The studio returned an error (HTTP ${res.status}).`;
+    } catch { return `The studio returned an error (HTTP ${res.status}).`; }
   }
 
   const canvas = new PlanCanvas(svgEl, wrapEl, {
@@ -376,6 +376,8 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
 
   return {
     setTool(tool) { canvas.setTool(tool); },
+    // The caller may not write this plan: the canvas picks and measures, and changes nothing.
+    setReadOnly(on) { canvas.setReadOnly(on); },
     setRole(role) { canvasRole = ROLES.includes(role) ? role : "piece"; canvas.setPieceRole(canvasRole); },
     armBoxKind(kind) { canvasBoxKind = BOX_KINDS.includes(kind) ? kind : "hub"; canvas.setBoxKind(canvasBoxKind); },
     fit() { canvas.fit(); },
@@ -390,7 +392,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     rotateIso() { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
 
     newDoc() { load(emptyDoc()); },
-    importJson(text) { try { load(fromJson(text)); return null; } catch (e) { return e?.message || "Invalid plan JSON"; } },
+    importJson(text) { try { load(fromJson(text)); return null; } catch (e) { return e?.message || "This isn't a valid plan file."; } },
     exportJson() { return toJson(doc); },
     getMeta() { return metaJson(); },
 
@@ -398,7 +400,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     async setReferenceMap(slug) {
       if (!slug) { delete doc.reference; canvas.setReference(null, null); fire("OnMeta", metaJson()); afterEdit(); return null; }
       const data = await fetchSurface(slug);
-      if (!data) return "That map has no cached surface render.";
+      if (!data) return "That map has no surface image to trace over.";
       doc.reference = defaultReference(slug);
       canvas.setReference(data, { offset: doc.reference.offset, scale: doc.reference.scale, opacity: doc.reference.opacity });
       canvas.fit();

@@ -38,6 +38,8 @@ public partial class HousePartEditor
     private StoreyStyleSaveRequest? storey;
     private PorchStyleSaveRequest? porch;
     private long? editingId;
+    /// <summary>Whether the seed folder states the open row, which the studio refuses to change or delete.</summary>
+    private bool seeded;
     private string draftName = "";
     private string selected = KnobsPart;
     private string? note;
@@ -65,10 +67,10 @@ public partial class HousePartEditor
             }
             rows.AddRange(Part.Stacked.Select(piece => new EditorPart(
                 piece.Id, piece.Title, "layers",
-                Badge: Courses(piece.Id).Count is var n and > 0 ? $"{n} course{(n == 1 ? "" : "s")}" : "built-in")));
+                Badge: Courses(piece.Id).Count is var n and > 0 ? $"{n} course{(n == 1 ? "" : "s")}" : "default")));
             rows.AddRange(Part.Single.Select(piece => new EditorPart(
                 piece.Id, piece.Title, "dot",
-                Badge: StyleOf(Single(piece.Id))?.Name ?? "unbound")));
+                Badge: Single(piece.Id).Name(styles, blocks) ?? "none")));
             return rows;
         }
     }
@@ -105,6 +107,7 @@ public partial class HousePartEditor
     private void StartNew()
     {
         editingId = null;
+        seeded = false;
         draftName = "";
         switch (Part.Kind.Slug)
         {
@@ -131,10 +134,11 @@ public partial class HousePartEditor
                     return;
                 }
                 (editingId, draftName) = (roofDetail.Id, roofDetail.Name);
+                seeded = roofDetail.Seeded;
                 roof = new RoofStyleSaveRequest(
                     roofDetail.Name, roofDetail.Form, roofDetail.Pitch,
                     roofDetail.Overhang, roofDetail.RoofHole, roofDetail.RidgeCap, roofDetail.Courses,
-                    roofDetail.RoofSlab, roofDetail.RoofSlabData);
+                    roofDetail.RoofSlab, roofDetail.RoofSlabData, roofDetail.RoofStair, roofDetail.RoofWear);
                 break;
             case LibraryKinds.StoreysSlug:
                 if (await Library.GetAsync<StoreyStyleDetail>(Part.Kind, id) is not { } storeyDetail)
@@ -143,6 +147,7 @@ public partial class HousePartEditor
                     return;
                 }
                 (editingId, draftName) = (storeyDetail.Id, storeyDetail.Name);
+                seeded = storeyDetail.Seeded;
                 storey = new StoreyStyleSaveRequest(
                     storeyDetail.Name, storeyDetail.Clear, storeyDetail.BorderWidth, storeyDetail.InlayInset,
                     storeyDetail.Windows, storeyDetail.Courses);
@@ -154,6 +159,7 @@ public partial class HousePartEditor
                     return;
                 }
                 (editingId, draftName) = (porchDetail.Id, porchDetail.Name);
+                seeded = porchDetail.Seeded;
                 porch = new PorchStyleSaveRequest(
                     porchDetail.Name, porchDetail.Depth, porchDetail.Inset, porchDetail.Edge,
                     porchDetail.Roof, porchDetail.RailBlock);
@@ -161,10 +167,10 @@ public partial class HousePartEditor
         }
     }
 
-    private const string Unreadable = "That part could not be read.";
+    private const string Unreadable = "Couldn't load this part. Reload the page to try again.";
 
     /// <summary>What an unbound course says: a part with none keeps the finish the stamper builds in.</summary>
-    private const string Unbound = "Unbound — keeps the built-in finish";
+    private const string Unbound = "None (default finish)";
 
     private void Clear() => (roof, storey, porch) = (null, null, null);
 
@@ -202,21 +208,25 @@ public partial class HousePartEditor
     private List<RoomCourseDto> Courses(string part)
         => [.. Bindings.Where(course => course.Part == part).OrderBy(course => course.Ordinal)];
 
+    /// <summary>The course a stack gains: one course of stone, which is what an unpainted wall already is.</summary>
+    private static readonly SlotBlockDto NewCourse = new(1, 0, Laid: false);
+
     private Task AddCourse(string part)
     {
-        if (styles.Count == 0) return Task.CompletedTask;
         var stack = Courses(part);
-        return WriteCourses(part, [.. stack, new RoomCourseDto(part, stack.Count, styles[0].Id, 1)]);
+        return WriteCourses(part, [.. stack, new RoomCourseDto(part, stack.Count, 0, NewCourse, 1)]);
     }
 
     private Task RemoveCourse(string part, int ordinal)
         => WriteCourses(part, [.. Courses(part).Where(course => course.Ordinal != ordinal)]);
 
-    private Task BindCourse(string part, int ordinal, long styleId)
-        => EditCourse(part, ordinal, course => course with { StyleId = styleId });
+    private Task BindCourse(string part, int ordinal, SlotFill fill)
+        => fill.Bound
+            ? EditCourse(part, ordinal, course => course with { StyleId = fill.StyleId, Block = fill.Block })
+            : RemoveCourse(part, ordinal);
 
-    private Task SetCourseHeight(string part, int ordinal, ChangeEventArgs e)
-        => EditCourse(part, ordinal, course => course with { Height = Math.Max(1, Parse(e, course.Height)) });
+    private Task SetCourseHeight(string part, int ordinal, double value)
+        => EditCourse(part, ordinal, course => course with { Height = Math.Max(1, (int)value) });
 
     private Task EditCourse(string part, int ordinal, Func<RoomCourseDto, RoomCourseDto> edit)
         => WriteCourses(part, [.. Courses(part).Select(course => course.Ordinal == ordinal ? edit(course) : course)]);
@@ -232,25 +242,26 @@ public partial class HousePartEditor
         return Preview();
     }
 
-    private long Single(string part) => Courses(part).FirstOrDefault()?.StyleId ?? 0;
+    private SlotFill Single(string part)
+        => Courses(part).FirstOrDefault() is { } course ? new SlotFill(course.StyleId, course.Block) : SlotFill.None;
 
-    /// <summary>Whether a part has a style on it. A zone is not a zone until something names it — the floor
+    /// <summary>Whether a part has a block or a pattern on it. A zone is not a zone until something names it — the floor
     /// part shows through instead — so the numbers that shape one (a border's width, an inlay's inset) decide
     /// nothing until then, and a knob that decides nothing should say so rather than sit there turning.</summary>
     private bool Bound(string part) => Courses(part).Count > 0;
 
-    private Task BindSingle(string part, long styleId)
-        => WriteCourses(part, styleId <= 0 ? [] : [new RoomCourseDto(part, 0, styleId, 1)]);
+    private Task BindSingle(string part, SlotFill fill)
+        => WriteCourses(part, fill.Bound ? [new RoomCourseDto(part, 0, fill.StyleId, fill.Block, 1)] : []);
 
     // ── the roof's knobs ───────────────────────────────────────────────────────────────────────────
     private bool Sloped => RoofForms.Canonical(roof?.Form) != RoofForms.Flat;
 
     private Task SetForm(string form) => Roof(roof => roof with { Form = RoofForms.Canonical(form) });
 
-    private Task SetPitch(ChangeEventArgs e) => Roof(r => r with { Pitch = Math.Clamp(Parse(e, r.Pitch), 1, 4) });
+    private Task SetPitch(double value) => Roof(r => r with { Pitch = Math.Clamp((int)value, 1, 4) });
 
-    private Task SetOverhang(ChangeEventArgs e)
-        => Roof(r => r with { Overhang = Math.Clamp(Parse(e, r.Overhang), 0, 4) });
+    private Task SetOverhang(double value)
+        => Roof(r => r with { Overhang = Math.Clamp((int)value, 0, 4) });
 
     private Task ToggleHole() => Roof(r => r with { RoofHole = !r.RoofHole });
 
@@ -260,8 +271,20 @@ public partial class HousePartEditor
     /// what a row is until a slab is named.</summary>
     private bool Slabbed => (roof?.RoofSlab ?? -1) >= 0;
 
-    private Task ToggleRoofSlab()
-        => Roof(r => r with { RoofSlab = r.RoofSlab >= 0 ? -1 : 126, RoofSlabData = 0 });   // wooden slab
+    /// <summary>Whether the roof is laid in stairs. -1 is a roof laid in cubes.</summary>
+    private bool Staired => (roof?.RoofStair ?? -1) >= 0;
+
+    private Task StepInBlocks() => Roof(r => r with { RoofSlab = -1, RoofSlabData = 0, RoofStair = -1 });
+
+    private Task StepInSlabs()
+        => Roof(r => r with { RoofSlab = 126, RoofSlabData = 0, RoofStair = -1 });   // wooden slab
+
+    private Task StepInStairs() => Roof(r => r with { RoofSlab = -1, RoofSlabData = 0, RoofStair = 53 });   // oak stairs
+
+    private Task PickRoofStair(PaintBlockDto block) => Roof(r => r with { RoofStair = block.Id });
+
+    private Task SetRoofWear(double value)
+        => Roof(r => r with { RoofWear = Math.Clamp((int)value, 0, 100) / 100.0 });
 
     private Task PickRoofSlab(PaintBlockDto block)
         => Roof(r => r with { RoofSlab = block.Id, RoofSlabData = block.Data });
@@ -269,23 +292,23 @@ public partial class HousePartEditor
     // ── the storey's knobs ─────────────────────────────────────────────────────────────────────────
     private bool Glazing => WindowForms.Canonical(storey?.Windows.Form) != WindowForms.None;
 
-    private Task SetClear(ChangeEventArgs e)
-        => Storey(s => s with { Clear = Math.Clamp(Parse(e, s.Clear), 3, 16) });
+    private Task SetClear(double value)
+        => Storey(s => s with { Clear = Math.Clamp((int)value, 3, 16) });
 
-    private Task SetBorderWidth(ChangeEventArgs e)
-        => Storey(s => s with { BorderWidth = Math.Clamp(Parse(e, s.BorderWidth), 1, 4) });
+    private Task SetBorderWidth(double value)
+        => Storey(s => s with { BorderWidth = Math.Clamp((int)value, 1, 4) });
 
-    private Task SetInlayInset(ChangeEventArgs e)
-        => Storey(s => s with { InlayInset = Math.Clamp(Parse(e, s.InlayInset), 1, 8) });
+    private Task SetInlayInset(double value)
+        => Storey(s => s with { InlayInset = Math.Clamp((int)value, 1, 8) });
 
     private Task SetWindows(RoomWindowDto window) => Storey(s => s with { Windows = window });
 
     // ── the porch's knobs ──────────────────────────────────────────────────────────────────────────
-    private Task SetPorchDepth(ChangeEventArgs e)
-        => Porch(p => p with { Depth = Math.Clamp(Parse(e, p.Depth), 1, 8) });
+    private Task SetPorchDepth(double value)
+        => Porch(p => p with { Depth = Math.Clamp((int)value, 1, 8) });
 
-    private Task SetPorchInset(ChangeEventArgs e)
-        => Porch(p => p with { Inset = Math.Clamp(Parse(e, p.Inset), 0, 8) });
+    private Task SetPorchInset(double value)
+        => Porch(p => p with { Inset = Math.Clamp((int)value, 0, 8) });
 
     private Task SetPorchEdge(string edge) => Porch(porch => porch with { Edge = PorchEdges.Canonical(edge) });
 
@@ -338,15 +361,29 @@ public partial class HousePartEditor
     private async Task Save()
     {
         if (string.IsNullOrWhiteSpace(draftName)) return;
-        if (Draft(draftName.Trim()) is not { } request) { note = "That could not be saved."; return; }
+        if (Draft(draftName.Trim()) is not { } request) { note = "Couldn't save this part. Try again."; return; }
         var saved = editingId is { } id
             ? await Library.UpdateAsync<PartSaved>(Part.Kind, id, request)
             : await Library.CreateAsync<PartSaved>(Part.Kind, request);
-        if (saved is null) { note = "That could not be saved."; return; }
+        if (saved is null) { note = "Couldn't save this part. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{Part.Kind.Slug}/{saved.Id}");
         else editingId = saved.Id;
+    }
+
+    /// <summary>Save the draft as a new part under the name with <c>copy</c> after it, and open that — what a part the
+    /// seed folder states is changed through.</summary>
+    private async Task SaveAsCopy()
+    {
+        if (string.IsNullOrWhiteSpace(draftName)) return;
+        if (Draft($"{draftName.Trim()} copy") is not { } request
+            || await Library.CreateAsync<PartSaved>(Part.Kind, request) is not { } copy)
+        {
+            note = "Couldn't save a copy of this part. Try again.";
+            return;
+        }
+        Nav.NavigateTo($"/library/{Part.Kind.Slug}/{copy.Id}");
     }
 
     /// <summary>The one field a save's answer is read for — the three part kinds each answer their own detail
@@ -361,13 +398,11 @@ public partial class HousePartEditor
         if (await Library.DeleteAsync(Part.Kind, id) is { Deleted: false } refused)
         {
             note = refused.BoundBy.Count > 0
-                ? $"Still worn by {string.Join(", ", refused.BoundBy)} — change those first."
-                : "That could not be forgotten.";
+                ? $"Can't delete this part. It is used by {string.Join(", ", refused.BoundBy)}. Remove it there first."
+                : "Couldn't delete this part. Try again.";
             return;
         }
         Nav.NavigateTo($"/library/{Part.Kind.Slug}");
     }
 
-    private static int Parse(ChangeEventArgs e, int fallback)
-        => int.TryParse((string?)e.Value, out var value) ? value : fallback;
 }

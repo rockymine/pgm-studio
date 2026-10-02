@@ -47,6 +47,13 @@ them one rather than with the contract work that shipped them.
 
 
 
+- [ ] **TC13 — An export with nothing in it is refused.** `GET /map/{slug}/export` on a map holding only a plan
+  (no intent, no sketch, no world) answers 200 with a five-line `map.xml`: name, an empty version, the
+  gamemode and an empty objective. EX1/EX2 gate only intent-authored maps, so nothing refuses it. Refuse it
+  in `MapExportLoader` with a finding that names what is missing (no game settings and no world), and the
+  matching `/xml` route the same way. `docs/tools/configure.md` § export gate.
+  *Evidence: `GET /api/map/composed-p12-t2-0/export` on a plan-stage map, 200, 144 bytes.*
+
 - [ ] **TC7 — The configure tool cannot place a hill.** The API is the way in — an agent adds
   `controlPoints` to the intent it already posts (`docs/pgm/control-points.md` §9) — and the wizard has no
   step for it. What the step states is a count and the anchors; the tuning is one shared block and already
@@ -241,7 +248,7 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
 
 - [ ] **TL35 — A copied tree states no species.** A tree save requires `species` (`RQ1`) and the library
   answers one for every row, so every copied recipe states `"species": "oak"` — `acacia-1`, `birch-3` and
-  `sequoia-1` alike, and so every entry of `pgm-studio-mapgen/corpus/tree-showcase/trees.json`. A copied tree
+  `sequoia-1` alike, and so every entry of the seed folder's `trees.json`. A copied tree
   reads only its body, so the word is inert, but it says of an acacia what the showcase's `kinds.json` exists to
   stop anyone reading off a block. `TreeStyleSaveRequest.Species` is required of a template only,
   `PropStyleLibrary.TreeOf` gives a copied row none and `DressingJson` writes none for one; the snapshot is cut
@@ -272,6 +279,25 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   note 10 asks for a 2-wide wool-room door.* `docs/world-export/structures.md` §7.
 
 ### Shapes
+
+- [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
+  house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
+  resolves the shell over the row), but the same object under `roomStyles.spawn` stores 200, raises nothing and
+  builds the bare library row. Resolve `roomStyles.<part>` through the same reader the dressing registry uses,
+  or answer `RQ1` at the path; a second accepted shape that is silently dropped is the failure.
+  `docs/tools/sketch.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-halcyon-cays.md`, the kit section — the
+  spawn halls came out cyan clay over pink-white clay.*
+
+- [ ] **TS140 — A carve: a cave cut through ground that stays.** A subtract is a set of `(x, z)` cells
+  that empties the whole column (`SketchRasterizer.cs:349`), and underground space is that hole under a flat
+  override-add lid, so a chamber cannot keep the relief ground over it and every tunnel is a straight-walled
+  shaft. Add a carve stated in three dimensions: a polyline whose vertices each carry a radius and a centre
+  height, splined like a polyline's points so the bore swells and narrows smoothly between vertices, with a
+  `rough` seed wandering the wall; a single point is the negative boulder, a lumpy ellipsoid. It removes
+  `[y − r, y + r]` from the **built** column and leaves what is above it, so it runs after the raster the way a
+  fluid already carves built terrain (`decoration.md` §7), and its walls show the theme's fill. Decide first
+  what the plan-tier walks (`SK11`) and the export's reach say about a void they cannot see. `docs/tools/sketch.md`.
+  *Evidence: `sketch.md` "A subtract with a lid over it": the lid comes back as the column's only span.*
 
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
@@ -445,61 +471,101 @@ and what a `subtract` takes away.
 ## A note and the changes that answer it
 
 The In game phase's threads and the History phase's changes describe one piece of work from its two ends — what
-the author asked, and what the board did about it — and nothing yet joins them.
+the author asked, and what the board did about it. What remains is the author's side of a thread.
 
-- [ ] **TS131 — A change names the notes it answered, and History opens them.** A reply records the change it
-  was written at (`NoteMessageDto.Change`, `Contracts/MapNoteDtos.cs:76`), so the threads a change answered are
-  the ones holding a message written at it, and nothing reads that back: History's inspector shows a change's own
-  note only (`SketchChangeInspector.razor:21`) and has no way into In game. List under the picked change every
-  thread with a message written at it, each opening that thread in In game, which `SketchTool` already does by
-  id (`?note=`). `docs/tools/sketch.md` § History. *Evidence: answer a note with a drive and open History on the
-  change it landed as — the thread is nowhere on the screen.*
+- [ ] **TS144 — The author's reply can pin itself to the picture.** A reply is text only
+  (`SketchNotesColumn.razor`, the thread's compose box), so "no, *this* one" has to be said in words or written
+  as a second note. Let a reply carry a Point, Box or Lasso mark on the picture in view, projected and kept the
+  way a new note's anchor is (`NoteAnchorDto`), on the message rather than the note: a `NoteMessageDto.Mark`
+  beside its `Picture`, drawn on the picture while the thread is open. `docs/tools/sketch.md` § Notes.
 
-- [ ] **TS132 — A thread counts its changes from the note, not from its last message.** `ChangesSince`
-  (`SketchNotesColumn.razor.cs:130`) counts the changes after the thread's *last* message and `LastChange` starts
-  the diff there, so once an agent replies at the change that answered the note the count reads 0 and the link
-  to those changes is gone — the span the author most wants. Count from the note's own first message, and offer
-  "since the last message" as a second link only where a later change exists. `docs/tools/sketch.md` § In game.
+## A first-time reader: the words, the sizes, and the help a tool owes them
+A reviewer new to mapmaking read the studio cold and reported what stopped them. The copy pass and the
+text-size setting have shipped; what remains is what a sentence cannot fix — a term with nowhere to be looked
+up, controls that behave unlike every other tool, and the look itself. `docs/client/writing-for-the-ui.md`
+is the standard the copy is held to.
 
-- [ ] **TS133 — Coming back to History redraws the change it shows.** Leaving History clears the canvas diff
-  (`setDiff(null)`, `SketchTool.razor.cs:586`), and `GoHistory` (`:235`) picks a change only when `spanTo` is
-  null — so on return the inspector names the kept change while the canvas stays blank until one is clicked again.
-  Redraw the kept span on entry (`ShowSpan(spanFrom, spanTo)`). `docs/tools/sketch.md` § History.
+- [ ] **RP99 — A searchable help page, and the terms defined where they appear.** A `/help` route rendering the
+  glossary in `docs/client/writing-for-the-ui.md` (hub, front line, mid, approach, wool room, box, palette,
+  terraform…) with a search box, plus a `Term` component that underlines a word, shows its one-line definition on
+  hover and links to its entry. The definitions live once, in a `Glossary` table in `Client`, and the doc's
+  table is generated from or checked against it. Then the tool pages lose the explanatory paragraphs that are
+  standing in for help today. *Evidence: the reviewer's last note asks for "a searchable and indexable
+  documentation page" over descriptions scattered per page.* `docs/client/`.
 
-- [ ] **TS134 — A link to one note opens it once.** `?note=` is read from the query (`SketchTool.razor.cs:48`)
-  and stays in the URL, and In game's `openedFromLink` (`SketchInGamePhase.razor.cs:102`) lives on a component
-  torn down with the phase, so every return to In game reopens that thread over whatever the author was reading.
-  Drop `note` from the URL once its thread is open, replacing the entry rather than pushing one.
-  `docs/tools/sketch.md` § In game.
+- [ ] **RP100 — The map list says who made each map, and filters by them.** `/maps` rows carry no author;
+  add the first author's head and name to each row (`PlayerHead`, already used by `AuthorsEditor`) and an
+  author filter beside the search box. Needs the map summary DTO to carry the authors.
+  `docs/client/routing-and-ia.md`.
 
-- [ ] **TS135 — Letting go of a view says when the studio refused.** `LetGoView` (`SketchTool.razor.cs:486`)
-  reports only an unreachable studio and never reads the DELETE's status, so a refusal leaves the view on screen
-  with no word. Show the refusal's `message` in the views error the phase already renders.
-  `docs/tools/sketch.md` § In game.
+- [ ] **RP101 — The server's own messages get the same pass.** Refusals and findings shown in the plan,
+  sketch and configure panels are written server-side (the `*Rules` remarks, `Finding` messages) in the docs'
+  voice, and the client copy pass did not reach them. Rewrite the user-facing message of each to the standard
+  in `docs/client/writing-for-the-ui.md`, keeping the rule ids and the `/api/rules` remarks as reference
+  text. `docs/refusals.md`.
 
-- [ ] **TS136 — In game's change count follows the board while it is open.** The changes are read on entering
-  the phase (`SketchTool.razor.cs:181`) and not again, so a drive that lands while In game is open leaves every
-  thread's "changes since" stale until the author leaves and comes back. Read them again when the board's
-  revision moves while the phase is up. `docs/tools/sketch.md` § In game.
+- [ ] **C83 — Clicking the zoom readout resets the view.** The zoom percentage in `CanvasReadout` is
+  pointer-transparent; a reader expects clicking it to return to 100% or fit. Make the zoom item a button
+  (the rest of the readout stays transparent) that calls each canvas's existing fit command, in the plan,
+  sketch and configure canvases. `docs/client/canvas-interaction.md`.
 
-- [ ] **TS137 — A thread can be marked won't-do and retagged in the browser.** The thread offers Resolve and
-  Reopen only (`SketchInGamePhase.razor:137`), and a tag is chosen when a note is written and never after
-  (`SketchNotesColumn.razor:128`). `PATCH /map/{slug}/notes/{id}` already takes `wont-do` and a tag
-  (`NoteChangeRequest`, `Contracts/MapNoteDtos.cs:125`) and the client already calls it for the two statuses it
-  offers (`SketchInGamePhase.razor.cs:348`); add won't-do and a tag picker to the thread. `docs/tools/sketch.md`
-  § In game.
+- [ ] **TN25 — Undo and redo in the plan editor.** The sketch binds `mod+z` / `mod+shift+z` / `mod+y`
+  (`sketch-bridge.js`); the plan editor binds neither and keeps no history. A plan document is one JSON value,
+  so a step can be the whole `getState()` the way the sketch's is. `docs/tools/plan.md`.
 
-- [ ] **TS138 — A reply can ask the studio for its "after" picture.** Answering a note means fetching
-  `render/eye` with the note's own camera, posting the PNG to `POST /notes/pictures` and naming the hash as the
-  reply's `picture`: three calls every agent writes by hand (the `pgm-board` skill, §2). Let a reply state that
-  its picture is the note's camera, and have the studio draw it at the change the reply is written at.
-  `docs/tools/sketch.md` § Answering the notes an author left.
+- [ ] **TN26 — A failed 3-D preview says why and can be tried again.** In the plan editor the 3-D toggle
+  flashes and then greys out as *3-D unavailable* (`PlanTool.razor.cs`, `IsoNote`), with the reason only on
+  hover and no way back short of a reload. Show the reason inline and keep the toggle pressable so a second
+  attempt re-runs the WebGL probe. `docs/tools/plan.md`.
 
-- [ ] **TS139 — A browser test for In game and its notes.** `tests/e2e` covers History (`sketch-history.mjs`)
-  and Report (`sketch-report.mjs`) and nothing of In game: no spec writes a note, replies, resolves one, opens a
-  thread from `?note=`, or follows "changes since" into History. Add one spec covering those five to
-  `./tools/e2e.sh all`; it is the test that would have caught `TS133` and `TS134`. `docs/tools/sketch.md` § In
-  game.
+- [ ] **TS150 — Zoom in the sketch's 3-D view.** Reported: in a map's Draw phase with 3-D on, the wheel moves
+  the zoom readout and the scale bar but the picture stays still. Reproduce in the iso view
+  (`sketch-canvas.js`, the lazily loaded `iso-webgl`) first; the readout and the picture must answer the same
+  zoom. `docs/tools/sketch.md`.
+
+- [ ] **TG2 — The generator's board detail is cramped.** *Copy JSON*, *Pin* and *Open in plan editor* sit
+  with no vertical gap between them, and the JSON box is a one-line slit. Give the action row the shared
+  `ctrl-row` spacing and the JSON a `textarea` of at least twelve rows, or a collapsible block.
+  `docs/tools/generator.md`.
+
+- [ ] **TS151 — The In-game phase and the change history, laid out for the work.** Both are dense by layout,
+  not by wording. In game: `.ingame__head` puts name, coordinates (`flex:1`), *Full size*, *Set as map picture*
+  and *Remove* in one wrapping row; the picture is capped at `calc((100vh - 400px) * 16/9)` under a 188px strip
+  beside a 360px notes column; four filter chips plus three grouped lists head the notes. Move the coordinates
+  onto the picture, the two rarer actions into an overflow menu, the filters into tabs (*This view · Whole
+  map · All*) with a status select. History: up to 60 edit lines sit above *Restore*, so pin it in the
+  inspector's footer and show the three column counts as one row. The `InGame` and `History` boards of the
+  design canvas (`C70`) draw both. `docs/tools/sketch.md` § In game, § History.
+
+- [ ] **TS152 — The Report phase reads like a tool, not a log.** The Sketch tool's Report phase captions its
+  pictures and readings with raw API routes (`render/isometric`, `POST sketch/relief/read`) and lists them as
+  link text; a reader wants each reading by name, with the route behind a *Copy request* action for an agent.
+  `SketchReportPhase.razor`. `docs/tools/sketch.md` § Report.
+
+- [ ] **TS153 — The sketch tool's crumb names the map.** `SketchTool.razor` shows `@Slug` in the top bar where
+  the plan and configure tools show the map's name, because the sketch tool loads no map summary. Read the name
+  with the layout and put it in the crumb. `docs/tools/sketch.md`.
+
+- [ ] **C78 — Board pictures in the paper's four plan inks.** `PlanBoardPalette` paints seven role and zone
+  colours on a dark ground; `pgm-studio-mapgen/paper/preamble.tex` draws the same plans in four inks on white —
+  ground grey (`#E7EAEE`, edge `#A8B0B9`), spawn green (`#CBE3DA`/`#009E73`), wool room orange
+  (`#F3DCC8`/`#D55E00`), and a build zone as a dashed `#0072B2` outline — with the fanned half faint. Hub,
+  front line and other become ground; their names live in the structure line under each card. Change `Key`,
+  `PieceColor` and the SVG and PNG renderers together, and `--board-bg` to white. `docs/tools/generator.md`.
+
+- [ ] **C69 — A proportional UI font.** *Parked (author): waits on the design direction.* Every page is set
+  in `ui-monospace` (`.editor-page`, `editor.css`), which reads as a terminal and is wider per word at the same
+  size. The alternative is a system sans for interface text with monospace kept for data: slugs, coordinates,
+  JSON, block counts. `docs/client/ui-conventions.md`.
+
+- [ ] **C70 — Which visual direction the studio takes.** *Parked (author): pick a mock-up.* Six directions
+  were mocked as artifacts (a cleaned-up version of today's look, a game-flavoured one, a dense pro-tool one,
+  *Paper*, the whitepaper's figure style: white ground, one ink, one accent, the four plan inks; *PGM*,
+  pgm.dev's look: its orange-red, the orange navbar bar, documentation layouts, light and dark; and
+  *Overcast*, oc.tc's look: maroon and cream, Lexend, slanted pictures, ribbon panels, and a map page laid
+  out like a player profile), each covering the landing page with map pictures and the map list with
+  authors, beside the sketch's In-game and change-history panels. The choice decides `tokens.css` and the
+  landing and list layouts; the components stay. `docs/client/ui-conventions.md`.
 
 ## User Experience
 
@@ -523,26 +589,6 @@ the author asked, and what the board did about it — and nothing yet joins them
 
 ## Refactoring and cleanup
 
-- [ ] **TL37 — The library is seeded from one place.** What a fresh studio holds is stated in four kinds of
-  place: C# preset classes (`StylePresets`, `ThemePresets`, `HousePresets.All`), literals inside the seeder itself
-  (the boulder recipes, `LibrarySeed.cs:69`; a tree per `DressingPalette.Species`), 49 embedded JSON files
-  (`Minecraft/Houses/Kept`), and a tool run by hand at deploy that copies trees out of a world in the authoring
-  repository (`tools/seed-trees.cs` over `corpus/tree-showcase`). Inspect each and move every seeded row —
-  materials, themes, houses and their parts, tree and boulder recipes, the copied trees, the biome patterns — into
-  one fixture folder of data read by one seeder, with one test that the seeded library equals the folder. A
-  preset that is code because it is computed stays code and is named as such. `docs/tools/library.md` § the seed.
-
-- [ ] **C64 — What is left of the CSS that styles markup nobody renders.** The dashboard run is gone
-  (`FEATURES.md`); **54 of 598** selectors across the studio stylesheets are still matched by no `.razor`,
-  `.cs` or `.js` and are not a modifier a component composes at runtime — `components.css` **23**
-  (`panel-accordion`, the seven `choice-*`, `map-row-action`, `list-row-btn`), `editor.css` **18**
-  (`topbar-actions`, `topbar-changes-badge`, `map-svg`, `layer-item`, `page-placeholder`, `geo-label-input`)
-  and `design.css` **13** (the `gen-*` family). These are scattered rather than one surface, so each wants
-  its own look: a name here may be the last of a component that half-shipped rather than the leftover of one
-  that went. **Two traps.** A modifier whose stem is composed in C# — `action-btn--<variant>` — reads as dead
-  and is not, which is why the count excludes them. And a compound naming a live class inside a dead ancestor
-  reads as *live* and is not; `sidebar-import-row .field-input` was one, and a grep will never find the next.
-
 - [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
   `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,
   `PlanInspectDto:117`), and the two room families are the only ones naming a thing the rest of the studio
@@ -554,32 +600,6 @@ the author asked, and what the board did about it — and nothing yet joins them
   it reads. The prose goes with it: nine docstrings across `WorldBuilder`, `MapExportComposer`, `SketchRules`,
   `SketchMaterialGate` and `PlanStructurePreview` still call the structures a wool cage and a spawn cube,
   which is the same word under a different hat and wants renaming in one pass rather than in two.
-
-- [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
-  `/maps/{slug}/plan` from a single component through six `@if (MapBacked)` branches, and the two render as
-  different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
-  the bare route gets no flow bar, no phases, the same three panels as **rail buttons**, and a collapsible
-  sidebar the map-backed one cannot have (`SidebarOpen => MapBacked || leftOpen`). Same panels, two navigation
-  models, one file — the thing the tool-consistency alignment exists to prevent.
-  Unify on the phase-rail + flow-bar + chips structure and keep the collapsible sidebar for both. The route may
-  change **only** the topbar — its crumbs and which actions exist — because that is where the binding genuinely
-  differs: a map-backed plan saves into its map's artifact, while a plan row saves as a row and forks when it
-  was generated or imported. Rename the bare route to `/plans/{id}` (and `/plans/new`), which says what it is
-  bound to where `/plan-editor` says nothing, updating the generator hand-off, the smoke sweep's route list and
-  the plan schema doc with it.
-  **Do not delete the route.** It is the only surface that opens a **plan row**, which is what the generator
-  hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routing candidates through
-  `/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
-  no home on a map-backed plan.
-
-- [ ] **C51 — Nineteen selects outside the authoring surface are still hand-rolled.** `Select` and
-  `StyleSelect` serve the library and the terrain components (`B259`, `FEATURES.md`), and the sketch tool's
-  three inspectors have since adopted them. What is left is 25 raw `<select>` — the plan tool 10
-  (`PlanTool.razor` 9, `PlanInfoPhase` 1), Configure 5, Edit 6, the sketch tool 1, the world canvas 1 and a
-  page 1, plus `Select.razor`'s own — **of which Edit's six go with `TE3`**, so the work is 18. Each is the
-  same options-and-a-value question written as markup, so a group, a per-row note or a disabled row has to be
-  re-invented wherever one is wanted. Adopt the control at those sites; `docs/client/ui-conventions.md`'s
-  *Forms* tier already names it.
 
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
@@ -600,13 +620,7 @@ the author asked, and what the board did about it — and nothing yet joins them
 
 The access rules, the Discord sign-in, tokens for callers without a browser and the read-only client are in
 place (`docs/access.md`), and the studio runs at pgmstudio.de (`docs/deployment.md`). What remains is the
-server's backups and the edits a read-only page still lets start.
-
-- [ ] **RP81 — The edits a read-only page still lets start.** Three reach past the shells that grey a page
-  (`docs/client/ui-conventions.md`): a `Sidebar`'s own inputs (the sketch layer's rename and base height), the
-  select tool's drag on the canvas, which moves a shape until the save is refused, and a `FlowBar` whose next
-  step writes (the sketch's Finish). Pass the cascaded `StudioReadOnly` into the canvas controllers as a flag
-  that refuses a drag, and let `FlowBar` disable a writing step. The server refuses all three today.
+server's backups.
 
 - [ ] **RP84 — The server's backups leave the machine, and a failed deploy says so.** Every dump in
   `/var/backups/pgm-studio` is taken before a deploy and sits on the disk the database is on, and nothing takes
@@ -617,6 +631,29 @@ server's backups and the edits a read-only page still lets start.
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **WE162 — Two seeded houses stamp their doorway on other columns in a mirror image.** The stamper's
+  orbit tests (`A_room_and_its_rot_180_image_stand_on_the_same_columns`,
+  `A_room_and_its_mirror_images_stand_on_the_same_columns`, `HouseStamperTests`) run over the eight houses they
+  were written for and pass; run over every seeded house, `dark-oak-stilt-hut` (hip roof, stilts) and
+  `jungle-saltbox-cottage` (saltbox) fail, their door columns landing apart between a room and its image. Find
+  which of the two forms moves the doorway, fix it in `HouseStamper`, and widen `RoomStyles()` to
+  `SeedFolder.Houses`. `docs/world-export/structures.md`. *Evidence: `dark-oak-stilt-hut 18x9 door -z mirror_x at
+  (-9, 65, -73)`, `jungle-saltbox-cottage 14x13 door -x at (-6, 76, -78)`.*
+
+- [ ] **RP97 — The sketch layout's words are published sets.** `GET /api/kit.py` checks a word only where
+  the schema lists it, and 44 of 574 string fields do: the layout an author writes most has none, so
+  `SketchShape(relief_scope="hld")` is built and sent. Mark `[WordSet]` on `SketchShape.operation`,
+  `relief_scope`, `stroke_edge`, `SketchLayer.kind`, a relief mark's `kind` and
+  `PlanGlobals.symmetry`, declaring each set in `Vocabulary` where it is not already; and publish `minimum`/
+  `maximum` for the 0–1 shares (`FloraSpec`, `RoofStyle.Wear`) so the kit refuses `coverage=5`.
+  `docs/architecture.md`. *Evidence: a constructor sweep against schema `a095aa2c71059f2c`.*
+
+- [ ] **RP98 — A stated null is a value the store refuses, not one the report trips on.** `kit.CellMaterial(
+  rise=None)` writes `"rise": null`; the store answers 200 and `GET /map/{slug}/report` then answers `400 RQ1
+  Cannot get the value of a token type 'Null' as a number @ rim.material.rise`. Refuse the null where the
+  document is stored (the material reader), and have the kit treat an argument of `None` as unstated.
+  `docs/architecture.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-pippin-coomb.md`, the kit section.*
 
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled

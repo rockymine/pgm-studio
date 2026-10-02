@@ -1,0 +1,47 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   FILTER CHIP  (toggleable filter option inside a filter panel)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.filter-group-options { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+/* Expanded chip row — chips stretch to fill available width */
+
+/* Generic horizontal control row — label + inputs/buttons/chips side-by-side */
+.ctrl-row { display: flex; align-items: stretch; gap: var(--space-2); }
+.ctrl-row--separated { margin-top: var(--space-2); }
+.ctrl-row .filter-group-options,
+.ctrl-row .coord-field { flex: 1; }
+
+/* Stack of labeled chip rows */
+
+.filter-chip {
+  display: inline-flex; align-items: center;
+  font-size: var(--font-sm); font-family: inherit;
+  min-height: calc(24px * var(--ui-scale)); padding: 2px var(--space-2); border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-base); color: var(--text-secondary);
+  cursor: pointer;
+}
+.filter-chip:hover:not(:disabled) { border-color: var(--text-muted); color: var(--text-primary); }
+.filter-chip--active   { background: var(--bg-selected); border-color: var(--accent); color: var(--accent-lighter); }
+.filter-chip:disabled  { opacity: 0.35; cursor: default; }
+/* How many of the scanned boards carried this form — the chip saying what the request produces. */
+.filter-chip-n {
+  margin-left: 5px; font-family: ui-monospace, monospace; font-size: var(--font-xs);
+  font-variant-numeric: tabular-nums; color: var(--text-muted);
+}
+/* Never produced by the current request, on a sample big enough to mean it. Dimmed rather than disabled:
+   the count is the evidence, and a rare form should stay pickable if the author wants to hunt for it. */
+/* A group the reader can tick several of: each chip leads with a box that is ticked when it is on, so a row of
+   them reads as a set of checkboxes rather than as tags. A single-choice row (a symmetry) carries no box. */
+.filter-group-options--multi .filter-chip { gap: var(--space-1); padding-left: var(--space-1); }
+.filter-group-options--multi .filter-chip::before {
+  content: ""; flex: none; width: calc(12px * var(--ui-scale)); height: calc(12px * var(--ui-scale));
+  border: 1px solid var(--text-muted); border-radius: 2px; background: var(--bg-panel);
+}
+.filter-group-options--multi .filter-chip--active::before {
+  border-color: var(--accent); background: var(--accent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.6 9.5 3.6' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 100% no-repeat;
+}
+.filter-group-options--multi .filter-chip-n { margin-left: auto; padding-left: var(--space-1); }
+.filter-chip--unseen { opacity: 0.45; border-style: dashed; }
+.filter-chip--unseen .filter-chip-n { color: var(--text-muted); }

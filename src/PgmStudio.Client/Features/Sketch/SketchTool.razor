@@ -18,10 +18,13 @@
       </Crumbs>
       <Right>
         @if (saveError is not null) { <span class="topbar-crumb topbar-crumb--warn" title="@saveError">@saveError</span> }
-        @if (finishError is not null) { <span class="topbar-crumb topbar-crumb--warn" title="@finishError">@finishError</span> }
+        @if (downloadError is not null) { <span class="topbar-crumb topbar-crumb--warn" title="@downloadError">@downloadError</span> }
+        @if (exportRefused) { <Button Href="@($"maps/{Slug}/configure")" Icon="settings-2">Open Configure</Button> }
         <span class="topbar-crumb topbar-crumb--dim">@groupLabel</span>
-        <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" OnClick="Undo" />
-        <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" OnClick="Redo" />
+        <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" Writes OnClick="Undo" />
+        <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" Writes OnClick="Redo" />
+        <Button Variant="primary" Icon="download" Busy="downloading" BusyLabel="Building…" Builds OnClick="DownloadMap"
+                Title="Download the map: its world and map.xml, ready for a server">Download map</Button>
       </Right>
     </Topbar>
   </Bar>
@@ -29,15 +32,16 @@
     <NavRail>
       <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
       <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
-      <NavButton Icon="mountain" Title="Relief" Active="@ReliefActive" OnClick="GoRelief" />
-      <NavButton Icon="palette" Title="Theme" Active="@ThemeActive" OnClick="GoTheme" />
-      <NavButton Icon="trees" Title="Dressing" Active="@DressingActive" OnClick="GoDressing" />
+      <NavButton Icon="mountain" Title="Terraform" Active="@ReliefActive" OnClick="GoRelief" />
+      <NavButton Icon="palette" Title="Palette" Active="@ThemeActive" OnClick="GoTheme" />
+      <NavButton Icon="trees" Title="Decoration" Active="@DressingActive" OnClick="GoDressing" />
       <NavButton Icon="eye" Title="In game" Active="@InGameActive" OnClick="GoInGame" />
       <NavButton Icon="history" Title="History" Active="@HistoryActive" OnClick="GoHistory" />
       <NavButton Icon="clipboard" Title="Report" Active="@ReportActive" OnClick="GoReport" />
     </NavRail>
   </Rail>
   <ChildContent>
+      <WriteGate OnChanged="OnWriteReason" />
       @if (InfoActive)
       {
         <SketchInfoPhase Slug="@Slug" OnNext="GoDraw"
@@ -48,9 +52,10 @@
          the shared body below comes back for it. *@
       @if (InGameActive && !placingView)
       {
-        <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Round="viewRound" LinkedNote="Note"
+        <SketchInGamePhase Slug="@Slug" Views="views" Error="@viewsError" Refusal="@viewsRefusal" Round="viewRound" Tick="followTick"
+                           LinkedNote="linkedNote" OnLinkOpened="LinkOpened"
                            OnBack="GoDressing" OnPlace="PlaceView" OnLetGo="LetGoView" OnPicture="PictureView"
-                           Changes="ChangeNumbers" OnChangesSince="ShowChangesSince" />
+                           Changes="ChangeNumbers" OnChangesSince="ShowChangesSince" OnRedraw="RedrawInGame" />
       }
       @if (ReportActive)
       {
@@ -62,17 +67,17 @@
       <div class="phase-body" hidden="@(!(DrawActive || ThemeActive || DressingActive || ReliefActive || PlacingViewActive || HistoryActive))">
       @if (ThemeActive)
       {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
+        <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Palette"
                  BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoRelief" OnNext="GoDressing" />
       }
       else if (DressingActive)
       {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Dressing"
+        <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Decoration"
                  BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoTheme" OnNext="GoInGame" />
       }
       else if (ReliefActive)
       {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="mountain" PhaseTitle="Relief"
+        <FlowBar Class="flow-bar--flush" PhaseIcon="mountain" PhaseTitle="Terraform"
                  BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoDraw" OnNext="GoTheme" />
       }
       else if (HistoryActive)
@@ -82,14 +87,14 @@
       }
       else if (PlacingViewActive)
       {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="eye" PhaseTitle="In game — place a view"
+        <FlowBar Class="flow-bar--flush" PhaseIcon="eye" PhaseTitle="Place a view"
                  BackEnabled="true" NextLabel="Gallery" NextEnabled="true" OnBack="ShowGallery" OnNext="ShowGallery" />
       }
       else
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
-                 BackEnabled="true" NextLabel="Finish" NextEnabled="@(!finishing)"
-                 OnBack="GoInfo" OnNext="Finish" />
+                 BackEnabled="true" NextLabel="Done" NextEnabled="true"
+                 OnBack="GoInfo" OnNext="GoRelief" />
       }
       <Workspace>
         <Sidebar>
@@ -176,7 +181,7 @@
             {
               @if (ChipOffered(ChipShapes))
               {
-                <LayerChip Icon="shapes" Active="shapesOn" Title="Show the draw primitives over the groups"
+                <LayerChip Icon="shapes" Active="shapesOn" Title="Show the drawn shapes"
                            OnClick="ToggleShapes">Shapes</LayerChip>
               }
               @if (ChipOffered(ChipMirror))
@@ -196,17 +201,17 @@
               }
               @if (ChipOffered(ChipRelief))
               {
-                <LayerChip Icon="mountain" Active="reliefOn" Title="Show the height contours of the relief the groups carry"
-                           OnClick="ToggleRelief">Relief</LayerChip>
+                <LayerChip Icon="mountain" Active="reliefOn" Title="Show height contours"
+                           OnClick="ToggleRelief">Contours</LayerChip>
               }
-              <CanvasRoundButton Icon="scan" Title="Fit the working bounds" OnClick="OnFit" />
+              <CanvasRoundButton Icon="scan" Title="Zoom to fit (F)" OnClick="OnFit" />
             }
             else
             {
               @foreach (var id in isoLayers)
               {
                 <LayerChip Icon="layers" Active="@(!isoHidden.Contains(id))"
-                           Title="@($"Show the '{id}' layer in the preview")"
+                           Title="@($"Show layer '{id}'")"
                            OnClick="@(() => ToggleIsoLayer(id))">@id</LayerChip>
               }
               <CanvasRoundButton Icon="rotate-cw" Title="Rotate the preview 90°" OnClick="RotateIso" />
@@ -221,14 +226,14 @@
             @if (threeD && IsoContested.Count > 0)
             {
               <span class="canvas-note canvas-note--warn" title="@IsoContestedWhy">
-                drawn and built differ: @string.Join(", ", IsoContested)
+                Built differently from the drawing: @string.Join(", ", IsoContested)
               </span>
             }
             @* Placing a view is 2-D only: the eye is stood on a map of the board. *@
             @if (!PlacingViewActive)
             {
               <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
-                              Title="@(isoUnavailable ? IsoNoteTitle : "Isometric height preview (read-only)")"
+                              Title="@(isoUnavailable ? IsoNoteTitle : "3-D preview (read-only)")"
                               OnClick="Toggle3D" />
             }
           </CanvasLayerBar>
@@ -273,7 +278,7 @@
             else if (PlacingViewActive)
             {
               <DockGroup>
-                <DockButton Icon="camera" Title="Place a view: press where to stand, drag to what to look at"
+                <DockButton Icon="camera" Title="Place a view: press where to stand, then drag toward the target"
                             Active="@(tool == "eye")" OnClick='() => SetTool("eye")' />
               </DockGroup>
             }
@@ -309,7 +314,7 @@
                 <DockButton Icon="scissors" Title="Split" Active="@(tool == "split")" OnClick='() => SetTool("split")' />
                 @* Not an overlay: it changes what a drag does rather than what is drawn, so it sits with the
                    tools that drag rather than in the bar that says what is shown. *@
-                <DockButton Icon="magnet" Title="Snap to other shapes' edges while dragging (Alt bypasses)"
+                <DockButton Icon="magnet" Title="Snap to shape edges (hold Alt to skip)"
                             Active="@snapOn" OnClick="ToggleSnap" />
               </DockGroup>
             }
@@ -321,7 +326,8 @@
           <div class="sidebar-handle"></div>
           <SketchChangeInspector Change="SpanChange" From="spanFrom" To="@(spanTo ?? 0)" Latest="LatestChange"
                                  Diff="spanDiff" World="spanWorld" WorldError="@spanWorldError"
-                                 Restoring="restoring" RestoreError="@restoreError" OnRestore="RestoreAsync" />
+                                 Restoring="restoring" RestoreError="@restoreError" OnRestore="RestoreAsync"
+                                 Notes="SpanNotes" OnOpenNote="OpenNoteFromHistory" />
         }
         else if (DressingActive)
         {

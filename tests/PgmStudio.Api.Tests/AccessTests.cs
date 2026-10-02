@@ -138,7 +138,7 @@ public sealed class AccessTests
 
     /// <summary>The views a Sketch page is drawn from — its paint, its relief and the built world — are reads
     /// sent as a <c>POST</c>, so anyone signed in sees them on a map they may not change, and the same person is
-    /// still refused a write to it. Signed out, they are refused like a write.</summary>
+    /// still refused a write to it. Signed out, they are refused like a write, and so is the map's export.</summary>
     [Test]
     public async Task Anyone_signed_in_sees_a_maps_sketch_views_and_only_its_editors_change_it()
     {
@@ -166,6 +166,13 @@ public sealed class AccessTests
         using var unseen = await signedOut.PostAsync($"/api/map/{slug}/sketch/columns",
             new StringContent(Plate, System.Text.Encoding.UTF8, "application/json"));
         await AssertRefusedAsync(unseen, HttpStatusCode.Unauthorized, "RQ7");
+
+        // The export builds the world it answers, so it is a member's like the posted views: someone on the
+        // whitelist gets past the gate, a visitor is refused before any build.
+        using var exported = await stranger.GetAsync($"/api/map/{slug}/export");
+        await Assert.That((int)exported.StatusCode).IsNotEqualTo(401).And.IsNotEqualTo(403);
+        using var notExported = await signedOut.GetAsync($"/api/map/{slug}/export");
+        await AssertRefusedAsync(notExported, HttpStatusCode.Unauthorized, "RQ7");
     }
 
     /// <summary>A client with no browser sends the token it was issued and is the person it was issued for:
@@ -560,11 +567,13 @@ public sealed class AccessTests
         await Assert.That(me.Role).IsEqualTo("member");
     }
 
-    /// <summary>The routes that state their own access rather than taking the rule's.</summary>
+    /// <summary>The routes that state their own access rather than taking the rule's, and the reads marked
+    /// <c>[CostlyRead]</c>, which the rule guards like a write.</summary>
     private static readonly HashSet<string> StatesItsOwnAccess =
     [
         "GET /api/users", "POST /api/auth/sign-out", "GET /api/auth/discord/complete",
-        "GET /api/notes", "GET /api/map/{slug}/notes", "GET /api/notes/pictures/{hash}",
+        "GET /api/notes", "GET /api/map/{slug}/notes", "GET /api/notes/pictures/{hash}", "GET /api/notes/handoff",
+        "GET /api/map/{slug}/export",
     ];
 
     [Test]

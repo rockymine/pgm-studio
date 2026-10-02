@@ -533,12 +533,12 @@ public static class SketchRasterizer
         return null;
     }
 
-    /// <summary>The three words a shape can use to say how its top is decided. Anything else — including a
-    /// word a later build knows and this one does not — is ordinary ground, which places terrain an author
-    /// drew rather than terrain nobody asked for.</summary>
+    /// <summary>Whether a shape says how its top is decided, by one of <see cref="HeightModes"/>. Anything else
+    /// — including a word a later build knows and this one does not — is ordinary ground, which places terrain
+    /// an author drew rather than terrain nobody asked for.</summary>
     private static bool IsErected(SketchShape shape)
         => shape.Role is null && shape.Operation != "subtract"
-           && shape.HeightMode?.ToLowerInvariant() is "level" or "raise" or "sink";
+           && HeightModes.All.Contains(shape.HeightMode?.ToLowerInvariant());
 
     /// <summary>
     /// Applies the shapes that declare how their top is decided, over ground the relief has already made.
@@ -551,7 +551,9 @@ public static class SketchRasterizer
     /// cliffs. <b>raise</b> and <b>sink</b> are relative, and are read at the <b>median</b> of the ground the
     /// shape covers rather than per cell: a monolith standing a fixed amount above every cell under it would
     /// be a blanket following the hillside, where what the word means is one flat-topped thing standing proud
-    /// — which is also what keeps its prominence when it is dragged somewhere else on the map.</para>
+    /// — which is also what keeps its prominence when it is dragged somewhere else on the map. <b>drape</b> is
+    /// that blanket on purpose: read per cell, so a field wall or a hedge climbs the hillside it is laid over
+    /// instead of digging into its high side and standing as a cliff on its low one.</para>
     /// </summary>
     private static void Erect(Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes,
                               HashSet<(int, int)>? claimed = null)
@@ -572,12 +574,14 @@ public static class SketchRasterizer
             var surface = HeightFn(shape);
             var floor = Math.Max(0, (int)Math.Round(shape.Floor ?? 0));
 
-            // What a relative mode measures from: the middle of the ground the shape covers, read BEFORE any
-            // of it is moved. Per-cell would make a monolith a blanket following the hillside; the median is
-            // what makes it one thing standing proud, and what keeps its prominence when it is dragged.
-            var ground = covered.Select(cell => cells[cell].Top).OrderBy(height => height).ToList();
-            var datum = mode == "level" ? floor : ground[ground.Count / 2];
-            var rise = mode == "sink" ? -1 : 1;
+            // What a relative mode measures from, read BEFORE any of it is moved: the middle of the ground the
+            // shape covers for raise and sink, which makes a monolith one thing standing proud, and the ground
+            // at the cell itself for drape, which lays a wall over the hillside.
+            var under = covered.ToDictionary(cell => cell, cell => cells[cell].Top);
+            var ground = under.Values.OrderBy(height => height).ToList();
+            var median = mode == HeightModes.Level ? floor : ground[ground.Count / 2];
+            int Datum((int X, int Z) cell) => mode == HeightModes.Drape ? under[cell] : median;
+            var rise = mode == HeightModes.Sink ? -1 : 1;
 
             // Ties go one way, always. The surface is sampled at the cell's centre, so a ramp at one
             // course a cell — the most natural gradient there is — lands EVERY sample exactly on a half,
@@ -585,7 +589,7 @@ public static class SketchRasterizer
             // rather than as a stair of ones, and a two-block rise costs a placed block to climb. Rounding
             // ties away from zero moves only the samples that were on a tie, and moves them all alike.
             int Stated(int x, int z) =>
-                datum + rise * Math.Max(1, (int)Math.Floor(surface(x + 0.5, z + 0.5)));
+                Datum((x, z)) + rise * Math.Max(1, (int)Math.Floor(surface(x + 0.5, z + 0.5)));
 
             // The skirt: how far in from its own outline the shape eases back into the ground it meets, so it
             // sits IN the terrain rather than on it. Zero is a sheer face, which is right for a plinth and

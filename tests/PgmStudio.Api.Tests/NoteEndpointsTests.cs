@@ -160,6 +160,29 @@ public sealed class NoteEndpointsTests
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("change");
     }
 
+    [Test]
+    public async Task Since_keeps_the_threads_that_moved_at_or_after_an_instant()
+    {
+        using var client = await SketchBoard.FreshAsync();
+        var quiet = await (await client.PostAsJsonAsync(Notes, new MapNoteRequest("Old news.", new NoteAnchorDto(NoteAnchors.Map))))
+            .Content.ReadFromJsonAsync<MapNoteDto>();
+        await Task.Delay(TimeSpan.FromSeconds(1.1));
+        var cut = DateTime.UtcNow;
+        await Task.Delay(TimeSpan.FromSeconds(1.1));
+        var fresh = await (await client.PostAsJsonAsync(Notes, new MapNoteRequest("New.", new NoteAnchorDto(NoteAnchors.Map))))
+            .Content.ReadFromJsonAsync<MapNoteDto>();
+
+        var since = $"/api/notes?status=open&since={cut:yyyy-MM-ddTHH:mm:ssZ}";
+        await Assert.That((await client.GetFromJsonAsync<List<MapNoteDto>>(since))!.Select(note => note.Id))
+            .IsEquivalentTo([fresh!.Id]);
+        await client.PostAsJsonAsync($"{Notes}/{quiet!.Id}/replies", new NoteReplyRequest("Still waiting."));
+        await Assert.That((await client.GetFromJsonAsync<List<MapNoteDto>>(since))!.Select(note => note.Id))
+            .IsEquivalentTo([quiet.Id, fresh.Id]).Because("a reply moves its thread");
+
+        using var unread = await client.GetAsync("/api/notes?since=yesterday");
+        await Assert.That(unread.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
     private static async Task<long> LatestChangeAsync(HttpClient client)
     {
         var changes = (await client.GetFromJsonAsync<JsonElement>($"/api/map/{SketchBoard.Slug}/changes")).GetProperty("changes");

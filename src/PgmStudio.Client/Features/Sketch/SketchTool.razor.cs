@@ -12,6 +12,8 @@ public partial class SketchTool
 {
     [Parameter] public string Slug { get; set; } = "";
 
+    [Inject] private StudioAccess Access { get; set; } = default!;
+
     private ElementReference svgRef, wrapRef;
     /// <summary>The floating top-left readout. Its three elements are handed to the canvas on mount, which
     /// then writes cursor / size / zoom into them directly — per mousemove, far too often to render.</summary>
@@ -46,6 +48,16 @@ public partial class SketchTool
     /// <summary>A note to open, which opens the In game phase on its thread — the link a ruling written into
     /// the gameplay law carries back to where it was decided.</summary>
     [SupplyParameterFromQuery] public long? Note { get; set; }
+
+    /// <summary>The linked note while it waits to be opened. It is opened once: the link then leaves the address,
+    /// so coming back to In game shows what the author was reading rather than the link's thread.</summary>
+    private long? linkedNote;
+
+    private void LinkOpened()
+    {
+        linkedNote = null;
+        Nav.NavigateTo(Nav.GetUriWithQueryParameter("note", (long?)null), replace: true);
+    }
     private string active = "draw";
     private bool InfoActive => active == "info";
     private bool DrawActive => active == "draw";
@@ -162,12 +174,57 @@ public partial class SketchTool
     private bool PlacingViewActive => InGameActive && placingView;
     private MapViewsDto? views;
     private string? viewsError;
+    /// <summary>Why the last thing asked of a view — letting it go, drawing the map's picture from it — was
+    /// refused, said over the gallery rather than in place of it.</summary>
+    private string? viewsRefusal;
     /// <summary>Bumped on every entry, so a picture of a board that has changed since is asked for again.</summary>
     private int viewRound;
     private SketchViewDraft.ViewDraft? viewDraft;
     private string? viewNote;
 
     private IReadOnlyList<MapViewDto> KeptViews => views?.Views.Where(view => view.Kept).ToList() ?? [];
+
+    /// <summary>How often In game reads the board's changes again while it is up, so a drive landing behind it
+    /// moves the threads' counts and asks for the pictures to be drawn again.</summary>
+    private static readonly TimeSpan FollowEvery = TimeSpan.FromSeconds(30);
+    private CancellationTokenSource? following;
+    /// <summary>Bumped each time In game follows the board, so the phase reads its notes again with the changes.</summary>
+    private int followTick;
+
+    /// <summary>Read the board's changes every <see cref="FollowEvery"/> until In game is left.</summary>
+    private async Task FollowBoardAsync()
+    {
+        following?.Cancel();
+        var stop = (following = new CancellationTokenSource()).Token;
+        using var timer = new PeriodicTimer(FollowEvery);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stop) && InGameActive) await InvokeAsync(FollowOnceAsync);
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    /// <summary>The tab came back into view: the board may have moved while it was away.</summary>
+    [JSInvokable]
+    public async Task TabShown()
+    {
+        if (InGameActive) await FollowOnceAsync();
+    }
+
+    private Task FollowOnceAsync()
+    {
+        followTick++;
+        return LoadChangesAsync();
+    }
+
+    /// <summary>Draw In game's pictures again over the board as it is stored now. The views are asked for before
+    /// the round moves, so the build queue answers them ahead of the pictures the new round asks for.</summary>
+    private async Task RedrawInGame()
+    {
+        await LoadViewsAsync(clear: false);
+        viewRound++;
+        await LoadChangesAsync();
+    }
 
     private async Task GoInGame()
     {
@@ -179,6 +236,7 @@ public partial class SketchTool
         await SetPhase("ingame");
         await LoadViewsAsync();
         await LoadChangesAsync();
+        _ = FollowBoardAsync();
     }
 
     // ── Report (docs/world-scan/read-backs.md): everything a drive reads back about the board as stored ──
@@ -206,9 +264,9 @@ public partial class SketchTool
             var answer = await Http.GetAsync($"api/map/{Slug}/report");
             if (answer.IsSuccessStatusCode) report = await answer.Content.ReadFromJsonAsync<MapReportDto>();
             else reportError = (await answer.Content.ReadFromJsonAsync<RefusalDto>())?.Message is { Length: > 0 } why
-                ? why : "The report could not be read.";
+                ? why : "Couldn't load the report.";
         }
-        catch { reportError = "The report could not be read — the studio could not be reached."; }
+        catch { reportError = "Couldn't load the report. Check your connection and try again."; }
         StateHasChanged();
     }
 
@@ -221,6 +279,8 @@ public partial class SketchTool
     private long? spanTo;
     private long spanFrom;
     private MapDiffDto? spanDiff;
+    /// <summary>The layouts at either end of the span, kept so coming back to History draws it again.</summary>
+    private JsonElement? spanBefore, spanAfter;
     private WorldChangesDto? spanWorld;
     private string? spanWorldError;
     /// <summary>Bumped on every pick, so an answer to an earlier one arriving late is dropped.</summary>
@@ -232,6 +292,32 @@ public partial class SketchTool
     private long LatestChange => changes?.Changes.LastOrDefault()?.Number ?? 0;
     private MapChangeDto? SpanChange => changes?.Changes.FirstOrDefault(change => change.Number == spanTo);
 
+    /// <summary>The board's notes, read on entering History for a caller who may read them, so a change can
+    /// name the threads written at it.</summary>
+    private List<MapNoteDto> historyNotes = [];
+
+    /// <summary>The threads with a message written in the span shown, each with its latest such message.</summary>
+    private IReadOnlyList<(MapNoteDto Note, NoteMessageDto Message)> SpanNotes =>
+        spanTo is not { } to ? []
+        : [.. historyNotes
+            .Select(note => (Note: note, Message: note.Messages.LastOrDefault(message => message.Change > spanFrom && message.Change <= to)))
+            .Where(entry => entry.Message is not null)
+            .Select(entry => (entry.Note, entry.Message!))];
+
+    private async Task LoadHistoryNotesAsync()
+    {
+        if (!(await Access.MeAsync()).Notes) return;
+        try { historyNotes = await Http.GetFromJsonAsync<List<MapNoteDto>>($"api/map/{Slug}/notes") ?? []; }
+        catch { historyNotes = []; }
+    }
+
+    /// <summary>Open a thread from History: In game, on that thread.</summary>
+    private async Task OpenNoteFromHistory(long id)
+    {
+        linkedNote = id;
+        await GoInGame();
+    }
+
     private async Task GoHistory()
     {
         tool = "select";
@@ -239,14 +325,16 @@ public partial class SketchTool
         await SaveAsync(CancellationToken.None);
         await SetPhase("history");
         await LoadChangesAsync();
-        if (spanTo is null && LatestChange > 0) await PickChange(LatestChange);
+        await LoadHistoryNotesAsync();
+        if (spanTo is null) { if (LatestChange > 0) await PickChange(LatestChange); }
+        else await DrawSpan(spanBefore, spanAfter, spanWorld);
     }
 
     private async Task LoadChangesAsync()
     {
         changesError = null;
         try { changes = await Http.GetFromJsonAsync<MapChangesDto>($"api/map/{Slug}/changes"); }
-        catch { changesError = "The board's changes could not be read — the studio could not be reached."; }
+        catch { changesError = "Couldn't load the change history. Check your connection and try again."; }
         StateHasChanged();
     }
 
@@ -280,15 +368,16 @@ public partial class SketchTool
             before = from == 0 ? null : (await Http.GetFromJsonAsync<MapChangeDocumentsDto>($"api/map/{Slug}/changes/{from}"))?.Layout;
             after = (await Http.GetFromJsonAsync<MapChangeDocumentsDto>($"api/map/{Slug}/changes/{to}"))?.Layout;
         }
-        catch { spanWorldError = "The change could not be read — the studio could not be reached."; }
+        catch { spanWorldError = "Couldn't load this change. Check your connection and try again."; }
         if (round != spanRound) return;
         spanDiff = diff;
+        (spanBefore, spanAfter) = (before, after);
         await DrawSpan(before, after, null);
         StateHasChanged();
 
         if (before is null || after is null)
         {
-            spanWorldError ??= "There is no board before the first change to build.";
+            spanWorldError ??= "There's nothing before the first change to build.";
             StateHasChanged();
             return;
         }
@@ -302,7 +391,7 @@ public partial class SketchTool
         catch
         {
             if (round != spanRound) return;
-            spanWorldError = "The boards could not be built at both changes.";
+            spanWorldError = "Couldn't build both versions.";
         }
         StateHasChanged();
     }
@@ -321,7 +410,7 @@ public partial class SketchTool
         await SaveAsync(CancellationToken.None);
         if (superseded)
         {
-            restoreError = "This tab's board is behind the stored one — reload the page before putting anything back.";
+            restoreError = "This tab is out of date. Reload the page before restoring.";
             return;
         }
         restoring = true;
@@ -333,14 +422,14 @@ public partial class SketchTool
             if (!answer.IsSuccessStatusCode)
             {
                 var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
-                restoreError = "Not put back — " + (refusal?.Message is { Length: > 0 } why ? why : $"the studio answered {(int)answer.StatusCode}.");
+                restoreError = refusal?.Message is { Length: > 0 } why ? $"Couldn't restore. {why}" : $"Couldn't restore (HTTP {(int)answer.StatusCode}). Try again.";
                 return;
             }
             await ReloadLayoutAsync();
             await LoadChangesAsync();
             if (LatestChange > 0) await PickChange(LatestChange);
         }
-        catch { restoreError = "Not put back — the studio could not be reached."; }
+        catch { restoreError = "Couldn't restore. Check your connection and try again."; }
         finally
         {
             restoring = false;
@@ -348,13 +437,18 @@ public partial class SketchTool
         }
     }
 
-    private async Task LoadViewsAsync()
+    /// <summary>Read the views again. Clearing first shows the phase reading; a redraw keeps the gallery up, so a
+    /// note half written beside it stays.</summary>
+    private async Task LoadViewsAsync(bool clear = true)
     {
-        views = null;
         viewsError = null;
-        StateHasChanged();
+        if (clear)
+        {
+            views = null;
+            StateHasChanged();
+        }
         try { views = await Http.GetFromJsonAsync<MapViewsDto>($"api/map/{Slug}/views"); }
-        catch { viewsError = "The views could not be read — the studio could not be reached."; }
+        catch { viewsError = "Couldn't load views. Check your connection and try again."; }
         if (handle is not null)
             await handle.InvokeVoidAsync("setViews", JsonSerializer.Serialize((views?.Views ?? []).Select(view => new
             {
@@ -435,7 +529,7 @@ public partial class SketchTool
     [JSInvokable]
     public void OnBoardUnavailable(string reason)
     {
-        viewNote = reason is { Length: > 0 } ? $"The board could not be drawn: {reason}" : "The board could not be drawn.";
+        viewNote = reason is { Length: > 0 } ? $"Couldn't draw the map: {reason}" : "Couldn't draw the map.";
         StateHasChanged();
     }
 
@@ -463,13 +557,13 @@ public partial class SketchTool
             if (!answer.IsSuccessStatusCode)
             {
                 var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
-                viewNote = refusal?.Message is { Length: > 0 } why ? why : "The view was not kept.";
+                viewNote = refusal?.Message is { Length: > 0 } why ? why : "Couldn't save the view.";
                 return;
             }
         }
         catch
         {
-            viewNote = "The view was not kept — the studio could not be reached.";
+            viewNote = "Couldn't save the view. Check your connection and try again.";
             return;
         }
         await ShowGallery();
@@ -485,8 +579,21 @@ public partial class SketchTool
 
     private async Task LetGoView(MapViewDto view)
     {
-        try { await Http.DeleteAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(view.Id)}"); }
-        catch { viewsError = "The view was not let go — the studio could not be reached."; return; }
+        try
+        {
+            using var answer = await Http.DeleteAsync($"api/map/{Slug}/views/{Uri.EscapeDataString(view.Id)}");
+            if (!answer.IsSuccessStatusCode)
+            {
+                viewsRefusal = $"Couldn't remove the view: {await ServerRefusal.SentenceAsync(answer)}";
+                return;
+            }
+        }
+        catch
+        {
+            viewsRefusal = "Couldn't remove the view. Check your connection and try again.";
+            return;
+        }
+        viewsRefusal = null;
         await LoadViewsAsync();
     }
 
@@ -503,12 +610,16 @@ public partial class SketchTool
                 : await Http.PostAsJsonAsync($"api/map/{Slug}/views", request);
             if (!answer.IsSuccessStatusCode)
             {
-                viewsError = (await answer.Content.ReadFromJsonAsync<RefusalDto>())?.Message is { Length: > 0 } why
-                    ? why : "The map's picture was not changed.";
+                viewsRefusal = $"Couldn't set the map picture: {await ServerRefusal.SentenceAsync(answer)}";
                 return;
             }
         }
-        catch { viewsError = "The map's picture was not changed — the studio could not be reached."; return; }
+        catch
+        {
+            viewsRefusal = "Couldn't set the map picture. Check your connection and try again.";
+            return;
+        }
+        viewsRefusal = null;
         await LoadViewsAsync();
     }
 
@@ -547,8 +658,8 @@ public partial class SketchTool
 
     // The same toggle shows the bare voxelization while drawing and the paint on top of it once theming.
     private string BlocksChipTitle => ScopeApplyActive
-        ? "Show the blocks the export places — the rasterized footprint painted by its themes"
-        : "Show the rasterized block footprint — the exact cells the shapes voxelize into";
+        ? "Show the blocks the export places, painted by palette"
+        : "Show the exact blocks the shapes cover";
 
     // The shapes the current selection themes: a group's members, else the single selected shape, else none.
     private IReadOnlyList<string> ScopeTargetShapeIds =>
@@ -741,7 +852,10 @@ public partial class SketchTool
             case "sketch.theme.next": await CycleTheme(1); break;
             case "sketch.theme.prev": await CycleTheme(-1); break;
 
-            case "sketch.save": await Finish(); break;
+            case "sketch.save":
+                saveCts?.Cancel();
+                await SaveAsync(CancellationToken.None);
+                break;
         }
         StateHasChanged();
     }
@@ -752,9 +866,9 @@ public partial class SketchTool
     [
         new { id = "sketch.phase.info",      keys = "1", label = "Go to Info",     group = "Phases" },
         new { id = "sketch.phase.draw",      keys = "2", label = "Go to Draw",     group = "Phases" },
-        new { id = "sketch.phase.relief",    keys = "3", label = "Go to Relief",   group = "Phases" },
-        new { id = "sketch.phase.theme",     keys = "4", label = "Go to Theme",    group = "Phases" },
-        new { id = "sketch.phase.dressing",  keys = "5", label = "Go to Dressing", group = "Phases" },
+        new { id = "sketch.phase.relief",    keys = "3", label = "Go to Terraform", group = "Phases" },
+        new { id = "sketch.phase.theme",     keys = "4", label = "Go to Palette",  group = "Phases" },
+        new { id = "sketch.phase.dressing",  keys = "5", label = "Go to Decoration", group = "Phases" },
         new { id = "sketch.phase.ingame",    keys = "6", label = "Go to In game",  group = "Phases" },
         new { id = "sketch.phase.history",   keys = "7", label = "Go to History",  group = "Phases" },
         new { id = "sketch.phase.report",    keys = "8", label = "Go to Report",   group = "Phases" },
@@ -765,18 +879,29 @@ public partial class SketchTool
         new { id = "sketch.tool.lasso",      keys = "l", label = "Lasso",   group = "Tools" },
         new { id = "sketch.tool.measure",    keys = "m", label = "Measure", group = "Tools" },
         new { id = "sketch.tool.split",      keys = "x", label = "Split",   group = "Tools" },
-        new { id = "sketch.op",              keys = "b", label = "Flip build ⇄ carve", group = "Tools" },
-        new { id = "sketch.fit",             keys = "f", label = "Fit the working bounds", group = "Canvas" },
-        new { id = "sketch.chip.shapes",     keys = "alt+1", label = "Show every shape",   group = "Overlays" },
+        new { id = "sketch.op",              keys = "b", label = "Switch build and carve", group = "Tools" },
+        new { id = "sketch.fit",             keys = "f", label = "Zoom to fit", group = "Canvas" },
+        new { id = "sketch.chip.shapes",     keys = "alt+1", label = "Show shapes",   group = "Overlays" },
         new { id = "sketch.chip.mirror",     keys = "alt+2", label = "Show the mirror",    group = "Overlays" },
         new { id = "sketch.chip.chunks",     keys = "alt+3", label = "Show the chunk grid", group = "Overlays" },
         new { id = "sketch.chip.blocks",     keys = "alt+4", label = "Show the blocks",    group = "Overlays" },
-        new { id = "sketch.chip.relief",     keys = "alt+5", label = "Show the contours",  group = "Overlays" },
+        new { id = "sketch.chip.relief",     keys = "alt+5", label = "Show contours",  group = "Overlays" },
         new { id = "sketch.chip.snap",       keys = "alt+6", label = "Snap while dragging", group = "Tools" },
-        new { id = "sketch.theme.next",      keys = "]", label = "Take the next theme in hand",     group = "Theme" },
-        new { id = "sketch.theme.prev",      keys = "[", label = "Take the previous theme in hand", group = "Theme" },
-        new { id = "sketch.save",            keys = "mod+s", label = "Save the sketch", group = "Everywhere", inField = true },
+        new { id = "sketch.theme.next",      keys = "]", label = "Next palette",     group = "Palette" },
+        new { id = "sketch.theme.prev",      keys = "[", label = "Previous palette", group = "Palette" },
+        new { id = "sketch.save",            keys = "mod+s", label = "Save", group = "Everywhere", inField = true },
     ];
+
+    /// <summary>Whether the caller may not write this map, as the shell answers it (a <see cref="WriteGate"/>
+    /// in the body hands it over, since the shell's cascade never reaches the tool that renders the shell).
+    /// Closed until the answer is in: the canvas changes nothing, and nothing is saved or discarded.</summary>
+    private bool writeClosed = true;
+
+    private async Task OnWriteReason(string? reason)
+    {
+        writeClosed = reason is not null;
+        if (handle is not null) await handle.InvokeVoidAsync("setReadOnly", writeClosed);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -785,10 +910,13 @@ public partial class SketchTool
         selfRef = DotNetObjectReference.Create(this);
         handle = await JS.InvokeAsync<IJSObjectReference>(
             "studio.mountSketch", svgRef, wrapRef, readout!.Cursor, readout.Zoom, readout.Size, selfRef, Slug);
+        await handle.InvokeVoidAsync("setReadOnly", writeClosed);
         await ReloadLayoutAsync();
         await LoadObjectives();
+        await JS.InvokeVoidAsync("studio.watchTabShown", KeyOwner, selfRef, nameof(TabShown));
         await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
             System.Text.Json.JsonSerializer.Serialize(Shortcuts));
+        linkedNote = Note;
         if (Phase == "ingame" || Note is not null) await GoInGame();
         else if (Phase == "history") await GoHistory();
         else if (Phase == "report") await GoReport();
@@ -861,9 +989,9 @@ public partial class SketchTool
         if (handle is not null) await handle.InvokeVoidAsync("setOperation", o);
     }
 
-    private async Task OnModeChange(ChangeEventArgs e)
+    private async Task OnModeChange(string picked)
     {
-        mode = e.Value?.ToString() ?? "rot_180";
+        mode = picked;
         if (handle is not null) await handle.InvokeVoidAsync("setMode", mode);
     }
 
@@ -1107,7 +1235,7 @@ public partial class SketchTool
         [.. isoNotBuilt.SelectMany(finding => finding.Subjects ?? []).Distinct(StringComparer.Ordinal)];
 
     /// <summary>Every finding behind the note, in full, for the tooltip: the rule and its own sentence.</summary>
-    private string IsoContestedWhy => string.Join("\n\n", isoNotBuilt.Select(f => $"{f.Rule} — {f.Message}"));
+    private string IsoContestedWhy => string.Join("\n\n", isoNotBuilt.Select(f => $"{f.Rule}: {f.Message}"));
 
     /// <summary>The build hands over everything it raised; this keeps the <b>declines</b>, which are the
     /// findings whose whole meaning is that a piece of what the author wrote is not in the world
@@ -1138,11 +1266,11 @@ public partial class SketchTool
     }
 
     /// <summary>The chip beside the toggle: what stopped the preview, in two words.</summary>
-    private string IsoNote => isoUnavailableWhy is null ? "no WebGL" : "3-D unavailable";
+    private string IsoNote => isoUnavailableWhy is null ? "No WebGL" : "3-D unavailable";
 
     /// <summary>The whole sentence, on hover.</summary>
     private string IsoNoteTitle => isoUnavailableWhy
-        ?? "The 3-D height preview needs WebGL, which this browser can't provide.";
+        ?? "The 3-D preview needs WebGL, which this browser doesn't support.";
 
     /// <summary>The bridge pushed the current group→shape tree (on every layout change).</summary>
     [JSInvokable]
@@ -1231,7 +1359,7 @@ public partial class SketchTool
     /// is the one that knows which shape it could not take.</para></summary>
     private async Task SaveAsync(CancellationToken token)
     {
-        if (handle is null) return;
+        if (handle is null || writeClosed) return;
         try { await saving.WaitAsync(token); }
         catch (OperationCanceledException) { return; }   // superseded by a later edit; that one reports
         var was = saveError;
@@ -1257,78 +1385,83 @@ public partial class SketchTool
             else if (resp.StatusCode == System.Net.HttpStatusCode.Conflict && heldRevision is not null)
             {
                 superseded = true;
-                saveError = "Not saved — this board was saved from somewhere else after this tab opened it. "
-                          + "Reload the page to take up the stored board; the edits made here since are not in it.";
+                saveError = "Not saved: this map was saved from somewhere else after this tab opened it. "
+                          + "Reload the page to get the latest version. Edits made here since then will be lost.";
             }
             else
             {
                 var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
-                saveError = "Not saved — " + (refusal?.Message is { Length: > 0 } why ? why
+                saveError = "Not saved. " + (refusal?.Message is { Length: > 0 } why ? why
                                               : refusal?.Error is { Length: > 0 } label ? label
-                                              : $"the studio answered {(int)resp.StatusCode}.");
+                                              : $"The server answered HTTP {(int)resp.StatusCode}. Try again.");
             }
         }
-        catch { saveError = "Not saved — the studio could not be reached."; }
+        catch { saveError = "Not saved. Check your connection and try again."; }
         finally { saving.Release(); }
         if (saveError != was) await InvokeAsync(StateHasChanged);
     }
 
-    // ── Finish: flush the layout, rasterize server-side, continue to Configure ──
+    // ── Download: the finished map, from whichever phase the author is in ──
 
-    private bool finishing;
-    private string? finishError;
+    private bool downloading;
+    private string? downloadError;
+    /// <summary>Whether the export itself refused the map, which Configure is where to answer.</summary>
+    private bool exportRefused;
 
-    private async Task Finish()
+    /// <summary>Save the drawing, build its world if the map has none yet, and hand the export to the browser.
+    /// A world built once follows later edits on its own, so the build runs only the first time; a caller who
+    /// may not edit the map downloads it as it is stored.</summary>
+    private async Task DownloadMap()
     {
-        if (handle is null) return;
-        finishing = true;
-        finishError = null;
+        if (downloading) return;
+        downloading = true;
+        downloadError = null;
+        exportRefused = false;
         StateHasChanged();
-
-        saveCts?.Cancel();          // flush the latest layout before the server rasterizes it
-        await SaveAsync(CancellationToken.None);
-        if (superseded)
-        {
-            // The stored board is not the one on screen, so finishing would build a board the author is not
-            // looking at.
-            finishError = saveError;
-            finishing = false;
-            StateHasChanged();
-            return;
-        }
-
         try
         {
-            var resp = await Http.PostAsync($"api/map/{Slug}/sketch/finish", null);
-            if (resp.IsSuccessStatusCode)
+            if (handle is not null && await Access.MayEditMapAsync(Slug))
             {
-                // Land back on the Configure overview (the draft is now a configure-stage map) and offer to
-                // continue into the wizard there — rather than force-marching straight into it.
-                Nav.NavigateTo($"maps?stage=configure&just={Slug}");
-                return;
+                saveCts?.Cancel();
+                await SaveAsync(CancellationToken.None);
+                if (superseded) { downloadError = saveError; return; }
+                if (await BuildWorldIfMissingAsync() is { } refused) { downloadError = refused; return; }
             }
-            // The sentence, not the label: "the board cannot be built as drawn" says nothing an author can
-            // act on, while the finding under it names the shapes and the columns they contest.
-            var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
-            finishError = refusal?.Message is { Length: > 0 } why ? why
-                        : refusal?.Error is { Length: > 0 } label ? label
-                        : "Finish failed.";
+            downloadError = await MapDownload.SaveAsync(Http, JS, Slug);
+            exportRefused = downloadError is not null;
         }
-        catch { finishError = "Finish failed."; }
+        finally
+        {
+            downloading = false;
+            StateHasChanged();
+        }
+    }
 
-        finishing = false;
-        StateHasChanged();
+    /// <summary>Build the map's world from the drawing when it has none. Answers the sentence the build was
+    /// refused with, or null when the map has a world.</summary>
+    private async Task<string?> BuildWorldIfMissingAsync()
+    {
+        try
+        {
+            var state = await Http.GetFromJsonAsync<MapState>($"api/map/{Slug}/state");
+            if (state?.Artifacts.World == true) return null;
+            using var built = await Http.PostAsync($"api/map/{Slug}/sketch/finish", null);
+            return built.IsSuccessStatusCode ? null : await MapDownload.RefusalAsync(built);
+        }
+        catch (HttpRequestException) { return "Couldn't reach the studio. Check your connection and try again."; }
     }
 
     public async ValueTask DisposeAsync()
     {
         saveCts?.Cancel();
+        following?.Cancel();
+        try { await JS.InvokeVoidAsync("studio.unwatchTabShown", KeyOwner); } catch { }
         // Best-effort final flush of the last (<800 ms) change before tearing the handle down.
         await SaveAsync(CancellationToken.None);
         // A draft left with nothing drawn is discarded so an abandoned "New sketch" click doesn't linger on
         // the dashboard. The client gates on empty geometry to skip the call for real work; the server
         // re-checks the full pristine condition (default name, no authors, no shapes) before deleting.
-        if (shapes.Count == 0 && groups.Count == 0)
+        if (shapes.Count == 0 && groups.Count == 0 && !writeClosed)
         {
             try { await Http.DeleteAsync($"api/map/{Slug}/discard-if-empty"); } catch { }
         }

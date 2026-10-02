@@ -7,14 +7,12 @@
   <ContentColumn MaxWidth="760">
     <Section Title="Regions">
       <Actions>
-        <Badge Kind="dim">read-only@(RegionCount > 0 ? $" · {RegionCount} regions" : "")</Badge>
+        <Badge Kind="dim">Read-only@(RegionCount > 0 ? $" · {RegionCount} regions" : "")</Badge>
       </Actions>
       <ChildContent>
-        <p class="section-desc">For intent maps the shaping steps drop the tree — structure is a generated
-          artifact — so it lives here as the inspect &amp; debug view of what the generator produced. The
-          unions, the negative wrappers, and the synthetic <code>__anon_N</code> ids are structural glue, not
-          authored decisions. To change a region, return to the step that emits it (Teams · Build · Wools); the
-          tree regenerates on save.</p>
+        <p class="section-desc">Every region created for this map. To change one, go back to the phase that
+          creates it: Teams, Build, or Wools. Regions with ids like <code>__anon_1</code> are added
+          automatically to combine the others.</p>
 
         @if (loading)
         {
@@ -22,7 +20,7 @@
         }
         else if (error is not null)
         {
-          <div class="panel-warning"><strong>Couldn't load the region tree.</strong> @error</div>
+          <div class="panel-warning"><strong>Couldn't load the regions.</strong> Reload the page to try again. (@error)</div>
         }
         else
         {

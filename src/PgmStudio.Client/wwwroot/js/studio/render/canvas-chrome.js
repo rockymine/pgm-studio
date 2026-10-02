@@ -20,6 +20,7 @@
  */
 
 import { svgEl } from "./svg.js";
+import { labelPx } from "../shared/ui-scale.js";
 
 function clear(layer) { while (layer.firstChild) layer.removeChild(layer.firstChild); }
 
@@ -71,8 +72,8 @@ export function unionRect(a, b) {
 export function paintWorkArea(painter, area, { strokeAlpha = 0.45 } = {}) {
   if (!area) return;
   painter.rect(area, {
-    fill: "var(--canvas-ink, #ffffff)", fillAlpha: 0.05,
-    stroke: "var(--canvas-axis, #a78bfa)", strokeAlpha, width: 1.5,
+    fill: "var(--canvas-ink)", fillAlpha: 0.05,
+    stroke: "var(--canvas-axis)", strokeAlpha, width: 1.5,
   });
 }
 
@@ -92,7 +93,7 @@ export function renderDimensionPill(layer, { left, right, bottom, width, depth, 
   if (!layer || !isFinite(left) || !isFinite(right) || !isFinite(bottom)) return;
   const fmt = value => (Number.isInteger(value) ? String(value) : value.toFixed(1));
   const text = `${fmt(width)} × ${fmt(depth)}`;
-  const FONT = 10, PAD_X = 6, PAD_Y = 3;
+  const FONT = labelPx(10), PAD_X = 6, PAD_Y = 3;
   const boxH = FONT + PAD_Y * 2;
   const boxW = text.length * (FONT * 0.6) + PAD_X * 2;
   const mid = (left + right) / 2;
@@ -129,7 +130,7 @@ export function renderScaleBar(layer, { w, h, scale }) {
   layer.appendChild(svgEl("line", { x1: x2, y1: y - tick, x2, y2: y, ...ink }));
   const t = svgEl("text", {
     x: (x1 + x2) / 2, y: y - tick - 3, "text-anchor": "middle",
-    "font-size": "11", "font-family": "ui-monospace, monospace", "font-weight": "600",
+    "font-size": labelPx(11), "font-family": "ui-monospace, monospace", "font-weight": "600",
     fill: "var(--canvas-axis)", "pointer-events": "none",
     "paint-order": "stroke", stroke: "var(--bg-canvas)", "stroke-width": "3", "stroke-linejoin": "round",
   });

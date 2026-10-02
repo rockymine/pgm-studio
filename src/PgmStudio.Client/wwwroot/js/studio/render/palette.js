@@ -53,12 +53,14 @@ export const MINECRAFT_DYE_COLORS = [
 
 const _norm = name => (name ?? "").replace(/_/g, " ").toLowerCase();
 
+/** The chat colour's hex, or undefined for a name Minecraft does not have. */
 export function chatColorHex(name) {
-  return MINECRAFT_CHAT_COLORS.find(c => c.value === _norm(name))?.hex ?? "#475569";
+  return MINECRAFT_CHAT_COLORS.find(c => c.value === _norm(name))?.hex;
 }
 
+/** The dye colour's hex, or undefined for a name Minecraft does not have. */
 export function dyeColorHex(name) {
-  return MINECRAFT_DYE_COLORS.find(c => c.value === _norm(name))?.hex ?? "#475569";
+  return MINECRAFT_DYE_COLORS.find(c => c.value === _norm(name))?.hex;
 }
 
 export function dyeColorLabel(name) {

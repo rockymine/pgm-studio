@@ -1,0 +1,24 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   METER — thin confidence / score bar (track + fill).
+   The fill's width is the --meter-level the markup sets; the colour band is a modifier on the fill
+   (default = high/success, --mid = warning, --low = muted).
+   Used for ranked monument suggestions (confidence) and similar scores.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.meter {
+  position: relative;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.meter--separated { margin-top: var(--space-1); }
+.meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--meter-level);
+  border-radius: 999px;
+  background: var(--color-success);
+}
+.meter-fill--mid { background: var(--color-warning); }
+.meter-fill--low { background: var(--text-muted); }

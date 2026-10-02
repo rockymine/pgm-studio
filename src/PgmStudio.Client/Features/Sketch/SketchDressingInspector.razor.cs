@@ -229,7 +229,7 @@ public partial class SketchDressingInspector
     /// apart. The canvas answers the same question for the keyboard, and this is the button's half of it.</summary>
     private bool CanJoin => editingSelection && (picked > 1 || Wings > 1);
 
-    private string JoinLabel => Wings > 1 && picked <= 1 ? "Take apart" : "Join into one building";
+    private string JoinLabel => Wings > 1 && picked <= 1 ? "Split" : "Join buildings";
 
     /// <summary>The chord as the platform spells it, so the sentence naming it cannot disagree with the key
     /// that runs it.</summary>
@@ -283,6 +283,21 @@ public partial class SketchDressingInspector
         if (editingSelection) await Handle.InvokeVoidAsync("updateProp", patch.ToJsonString());
         else await Handle.InvokeVoidAsync("setPropSettings", kind, patch.ToJsonString());
         await RefreshPreview();
+    }
+
+    /// <summary>The crops a flora spec sows; unstated is wheat, which is what the pass sows then.</summary>
+    private IReadOnlyList<string> Crops() =>
+        prop?["spec"]?[SpecFields.Crops] is JsonArray named && named.Count > 0
+            ? [.. named.Select(word => word?.GetValue<string>() ?? string.Empty)]
+            : [CropKinds.Wheat];
+
+    /// <summary>Sow or stop sowing one crop. The last one left stays, since a field sows at least one.</summary>
+    private Task ToggleCrop(string crop)
+    {
+        var crops = Crops().ToList();
+        if (crops.Contains(crop)) { if (crops.Count > 1) crops.Remove(crop); }
+        else crops.Add(crop);
+        return SetSpec(SpecFields.Crops, new JsonArray([.. CropKinds.All.Where(crops.Contains).Select(word => JsonValue.Create(word))]));
     }
 
     private Task Delete() => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("deleteProp").AsTask();
@@ -362,11 +377,7 @@ public partial class SketchDressingInspector
         => prop?[field]?.GetValue<bool>() ?? fallback;
 
     // A slider stores 0–100 and the model stores 0–1, so every share crosses here rather than at each caller.
-    private static double Share(ChangeEventArgs e)
-        => double.TryParse(e.Value?.ToString(), out var value) ? Math.Clamp(value / 100, 0, 1) : 0;
-
-    private static double Whole(ChangeEventArgs e)
-        => double.TryParse(e.Value?.ToString(), out var value) ? value : 0;
+    private static double Share(double percent) => Math.Clamp(percent / 100, 0, 1);
 
     /// <summary>One of this prop's material nodes — a path's paving, a boulder's rock, a channel's bank. Each
     /// is a full terrain material edited by the same <c>MaterialEditor</c> the theme phase uses, and the editor
@@ -403,17 +414,17 @@ public partial class SketchDressingInspector
     private static readonly IReadOnlyDictionary<string, (string Icon, string Title, string Blurb)> KindInfo =
         new Dictionary<string, (string, string, string)>
         {
-            [PropKinds.Stroke] = ("spline", "Stroke", "A band of surface along a line you draw. It swaps the ground it crosses rather than building on it — a road, a worn trail, a smear of dirt or a painted forest floor, depending on the brush and what it lays. Mark it as claiming its ground and trees, boulders and buildings will keep clear of it."),
-            [PropKinds.Fluid] = ("waves", "Fluid", "A channel or pool of water or lava. It cuts a bed into the ground and fills it to a level line — the one prop that takes terrain away rather than standing on it. Only existing ground is cut, and it is mirrored across the map's symmetry."),
-            [PropKinds.Flora] = ("flower", "Cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
-            [PropKinds.Tree] = ("trees", "Tree", "One tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
-            [PropKinds.Boulder] = ("mountain", "Boulder", "One erratic, standing where you put it and bedded into the ground. Mirrored across the map's symmetry, so both teams get the same cover."),
-            [PropKinds.House] = ("home", "Building", "A building on the rectangle you dragged, raised in a shell from the room-style library. It settles into the ground it covers, and it is mirrored across the map's symmetry, so both teams get the same cover."),
-            [PropKinds.Chest] = ("box", "Chest", "One chest holding the stacks you list, on the ground where you put it or at a course you state — a tower's deck, a made thing's floor. Mirrored across the map's symmetry, so both teams get the same loot."),
+            [PropKinds.Stroke] = ("spline", "Stroke", "A band of surface along a line you draw, such as a road, a trail, or a forest floor. It replaces the ground it crosses. Make it a path to keep trees, boulders, and buildings off it."),
+            [PropKinds.Fluid] = ("waves", "Fluid", "A channel or pool of water or lava. It cuts a bed into existing ground and fills it to a level line. It is mirrored across the map."),
+            [PropKinds.Flora] = ("flower", "Ground cover", "Grass, ferns, and flowers on the soil inside the area you draw. Nothing grows on paved ground."),
+            [PropKinds.Tree] = ("trees", "Tree", "One tree, where you place it. Mirrored so both teams get the same cover."),
+            [PropKinds.Boulder] = ("mountain", "Boulder", "One boulder, set into the ground where you place it. Mirrored so both teams get the same cover."),
+            [PropKinds.House] = ("home", "Building", "A building on the rectangle you drag, using a room style from the library. It settles into the ground and is mirrored so both teams get the same cover."),
+            [PropKinds.Chest] = ("box", "Chest", "One chest with the items you list, on the ground or at a set height. Mirrored so both teams get the same loot."),
         };
 
     private (string Icon, string Title, string Blurb) Info
-        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Dressing", "");
+        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Decoration", "");
 }
 
 /// <summary>A prop's own fields (see <see cref="PropKinds"/> for why these are constants).</summary>
@@ -495,6 +506,9 @@ public static class SpecFields
     public const string CactusShare = "cactusShare";
     public const string LilyShare = "lilyShare";
     public const string MushroomShare = "mushroomShare";
+    public const string CropShare = "cropShare";
+    public const string Crops = "crops";
+    public const string Ripeness = "ripeness";
 }
 
 /// <summary>The dressing toolbar's tools, named once. The canvas routes on these strings, so the button, the

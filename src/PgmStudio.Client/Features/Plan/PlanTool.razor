@@ -1,15 +1,17 @@
-@page "/plan-editor"
+@page "/plans/new"
+@page "/plans/{PlanId:long}"
 @page "/maps/{Slug}/plan"
 @layout StudioLayout
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @implements IAsyncDisposable
 
-@* Plan editor (the seed studio) — a coarse cell-grid layout tool. Blazor renders the topbar, a thin
-   rail that folds the collapsible left settings panel (plan name · globals · reference · overlays), the
-   canvas shell whose toolbar holds the draw tools (pieces · build · markers · technical), and the right
-   inspector; the PlanCanvas JS (via bridge/plan-bridge.js) owns the plan document, the pointer tools and
-   the live symmetry mirror ghost. Plans import/export as *.plan.json; a map-backed plan is stored by Save. *@
+@* Plan editor — a coarse cell-grid layout tool, on one of two bindings: a map's plan artifact
+   (/maps/{slug}/plan) or a plan row (/plans/{id}, /plans/new). Both render the same tool: the rail's Info and
+   Draw phases, the flow bar, and a collapsible sidebar whose chips switch between Settings, Checks and
+   Generator check. Only the topbar follows the binding, because only saving differs: a map-backed plan saves
+   into its map, a plan row saves as a row and forks when it was generated or imported. The PlanCanvas JS
+   (via bridge/plan-bridge.js) owns the plan document, the pointer tools and the live symmetry mirror ghost. *@
 
 <StudioShell>
   <Bar>
@@ -17,135 +19,91 @@
     {
     <Topbar HomeHref="maps?stage=plan" HomeLabel="Plans" HomeTitle="Back to plans">
       <Crumbs>
-        <Crumb>@Slug!.Replace('-', ' ')</Crumb>
+        <Crumb>@planName</Crumb>
         <Crumb Dim>Plan</Crumb>
       </Crumbs>
-      @* Save only. A map-backed plan runs under the flow bar, whose Next IS Compile, and the drawer that
-         opens carries every download — a second copy of either in the bar says the same thing twice. *@
+      @* Save only. The flow bar's Next is Compile, and the drawer it opens carries every download. *@
       <Right>
         @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
         @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
-        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save this plan">Save</Button>
+        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)" Writes>Save</Button>
       </Right>
     </Topbar>
     }
     else
     {
+    @* A plan row has no map to hold it, so the bar carries what a row needs: starting one, importing a file,
+       opening a saved one, and the origin that decides whether Save writes in place or makes a copy. *@
     <Topbar>
-      <Crumbs><Crumb Sep="false" Dim>Plan editor</Crumb></Crumbs>
+      <Crumbs>
+        <Crumb Sep="false">@planName</Crumb>
+        <Crumb Dim>Plan</Crumb>
+      </Crumbs>
       <Right>
         @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
         @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
-        @if (planOrigin is not null) { <span class="topbar-crumb topbar-crumb--dim" title="Editing a generated or imported plan forks a new authored copy on save">@planOrigin</span> }
-        <Button OnClick="NewPlan" Title="Start a blank plan">New</Button>
-        <label class="action-btn" title="Import a *.plan.json file">
-          Import
-          <InputFile OnChange="OnImport" accept=".json" style="display:none" />
-        </label>
-        <Button OnClick="ExportPlan" Title="Download this plan as *.plan.json">Export</Button>
-        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save this plan to the studio database">Save</Button>
-        <Button OnClick="OpenDbBrowser" Title="Open a saved plan from the database">Open</Button>
-        <Button Variant="primary" OnClick="OpenCompile" Busy="@(!documentLoaded)" BusyLabel="Loading…"
-                Title="Compile the plan into a layout + intent, then create a draft">
-          <i data-lucide="play"></i> Compile
-        </Button>
+        @if (planOrigin is not null)
+        {
+          <Badge Kind="neutral" title="@OriginTitle">@planOrigin</Badge>
+        }
+        <Button OnClick="NewPlan" Title="Start a blank plan" Writes>New</Button>
+        <WriteGate Context="closed">
+          <label class="action-btn" title="@(closed ?? "Import a *.plan.json file")" aria-disabled="@(closed is not null ? "true" : null)">
+            Import
+            <InputFile OnChange="OnImport" accept=".json" class="control-input--hidden" disabled="@(closed is not null)" />
+          </label>
+        </WriteGate>
+        <Button OnClick="OpenDbBrowser" Title="Open a saved plan">Open</Button>
+        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save (Ctrl+S)" Writes>Save</Button>
       </Right>
     </Topbar>
     }
   </Bar>
   <Rail>
     <NavRail>
-      @if (MapBacked)
-      {
-        <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
-        <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
-      }
-      else
-      {
-        <NavButton Icon="sliders-horizontal" Title="Settings" Active="@(leftPanel == "settings" && leftOpen)" OnClick='() => SelectActivity("settings")' />
-        <NavButton Icon="shield-check" Title="Validation — evaluator score &amp; fired rules" Active="@(leftPanel == "validation" && leftOpen)" OnClick='() => SelectActivity("validation")' />
-        <NavButton Icon="factory" Title="Feasibility — could the composer have produced this?" Active="@(leftPanel == "feasibility" && leftOpen)" OnClick='() => SelectActivity("feasibility")' />
-      }
+      <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
+      <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
     </NavRail>
   </Rail>
   <ChildContent>
+      <WriteGate OnChanged="OnWriteReason" />
       @if (InfoActive)
       {
-        <PlanInfoPhase Slug="@Slug" OnNext="GoDraw"
+        <PlanInfoPhase @key="@Slug" Slug="@Slug" OnNext="GoDraw"
                        Name="@planName" Symmetry="@symmetry" Cell="cell" Surface="surface"
                        SurfaceStep="surfaceStep" MaxPlayers="maxPlayers"
                        OnNameChanged="OnNameChanged" OnSymmetryChanged="OnSymmetryChanged"
                        OnCellChanged="OnCell" OnSurfaceChanged="OnSurface" OnSurfaceStepChanged="OnSurfaceStep"
                        OnMaxPlayersChanged="OnMaxPlayers" />
       }
-      @* Draw stays mounted (hidden, not removed) so the plan-canvas bridge + zoom survive a trip to Info
-         on a map-backed plan; SetPhase re-measures the canvas on return. The bare route has no Info phase. *@
+      @* Draw stays mounted (hidden, not removed) so the plan-canvas bridge + zoom survive a trip to Info;
+         the canvas re-measures itself when it un-hides. *@
       <div class="phase-body" hidden="@DrawHidden">
-      @if (MapBacked)
-      {
-        <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
-                 BackEnabled="true" NextLabel="Compile" NextBusy="@(!documentLoaded)" NextBusyLabel="Loading…"
-                 OnBack="GoInfo" OnNext="OpenCompile" />
-      }
+      <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
+               BackEnabled="true" NextLabel="Compile" NextBusy="@(!documentLoaded)" NextBusyLabel="Loading…" NextWrites
+               OnBack="GoInfo" OnNext="OpenCompile" />
       <Workspace>
-        @if (SidebarOpen)
+        @if (sidebarOpen)
         {
         <Sidebar>
-            @if (MapBacked)
-            {
             <div class="plan-panel-switch">
               <Chip Active="@(leftPanel == "settings")" OnClick='() => SetPanel("settings")'>Settings</Chip>
-              <Chip Active="@(leftPanel == "validation")" OnClick='() => SetPanel("validation")'>Validation</Chip>
-              <Chip Active="@(leftPanel == "feasibility")" OnClick='() => SetPanel("feasibility")'>Feasibility</Chip>
+              <Chip Active="@(leftPanel == "validation")" OnClick='() => SetPanel("validation")'>Checks</Chip>
+              <Chip Active="@(leftPanel == "feasibility")" OnClick='() => SetPanel("feasibility")'>Generator check</Chip>
+              <Button Variant="icon" Icon="panel-left-close" Title="Hide panel" OnClick="ToggleSidebar" />
             </div>
-            }
             @if (leftPanel == "settings")
             {
-            @if (!MapBacked)
-            {
-            <Section>
-              <Field Label="Plan name">
-                <input class="field-input" value="@planName" @onchange="OnName" placeholder="Untitled plan" />
-              </Field>
-            </Section>
-
-            <Section Title="Symmetry &amp; globals">
-              <Field Label="Symmetry">
-                <select class="field-input" value="@symmetry" @onchange="OnSymmetry">
-                  <option value="rot_180">Rotate 180°</option>
-                  <option value="rot_90">Rotate 90°</option>
-                  <option value="mirror_x">Mirror X</option>
-                  <option value="mirror_z">Mirror Z</option>
-                  <option value="none">None — single unit</option>
-                </select>
-              </Field>
-              <Field Label="Cell size (blocks)">
-                <NumberField Value="cell" ValueChanged="OnCell" Min="1" />
-              </Field>
-              <Field Label="Base surface (y)">
-                <NumberField Value="surface" ValueChanged="OnSurface" Min="0" />
-              </Field>
-              <Field Label="Surface step (y)">
-                <NumberField Value="surfaceStep" ValueChanged="OnSurfaceStep" Min="1" />
-              </Field>
-              <Field Label="Max players per team">
-                <NumberField Value="maxPlayers" ValueChanged="OnMaxPlayers" Min="1" />
-              </Field>
-            </Section>
-            }
-
-            <Section Title="Reference">
+            <Section Title="Reference" Writes>
               <Field Label="Trace over map">
-                <select class="field-input" value="@refMap" @onchange="OnPickReferenceMap">
-                  <option value="">— none —</option>
-                  @foreach (var m in traceMaps) { <option value="@m.Slug">@m.Name</option> }
-                </select>
+                <Select Slim="false" Options="TraceMapOptions" Placeholder="None" Value="@(refMap ?? "")"
+                        ValueChanged="OnPickReferenceMap" />
               </Field>
               @if (refError is not null) { <p class="section-desc plan-compile-draft-error">@refError</p> }
               @if (refMap is not null)
               {
                 <Field Label="Opacity">
-                  <input type="range" class="field-input" min="0" max="1" step="0.05" value="@refOpacity" @oninput="OnRefOpacity" />
+                  <RangeField Min="0" Max="1" Step="0.05" Value="refOpacity" ValueChanged="OnRefOpacity" />
                 </Field>
                 <Field Label="Offset X (cells)">
                   <NumberField Value="refOffsetX" ValueChanged="OnRefOffsetX" Step="1" />
@@ -158,10 +116,10 @@
                 </Field>
                 <div class="ctrl-row">
                   <Button Full OnClick="RecenterReference" Title="Reset offset and scale">Recenter</Button>
-                  <Button Full OnClick="ClearReference" Title="Remove the backdrop (keeps the plan)">Clear</Button>
+                  <Button Full OnClick="ClearReference" Title="Remove the backdrop">Clear</Button>
                 </div>
               }
-              <p class="section-desc">Trace a real map's top-down render to build a plan from it. The backdrop is saved with the plan as provenance and never affects the compiled output.</p>
+              <p class="section-desc">Trace over another map's top-down view. The backdrop is saved with the plan but not built.</p>
             </Section>
 
             }
@@ -171,24 +129,24 @@
                unbuildable on its own geometry AND the unit unbuildable in how its boxes are arranged, so both
                are shown rather than the first failure. Clicking a box paints the cells by which it misses the
                nearest thing the emitters can build. *@
-            <Section Title="Feasibility">
+            <Section Title="Generator check">
               <Actions>
                 @if (feasibility is not null)
                 {
                   <Badge Class="@(feasibility.Producible ? "badge--success" : "badge--error")"
-                         title="Whether the composer could have produced this plan">
-                    @(feasibility.Producible ? "producible" : "not producible")
+                         title="Whether the generator could build this plan">
+                    @(feasibility.Producible ? "buildable" : "not buildable")
                   </Badge>
                 }
               </Actions>
               <ChildContent>
                 @if (feasibility is null)
                 {
-                  <p class="section-desc">Asks what the evaluator can't: could the composer have produced this? Draw a box around each part to get a read — the boxes are the grouping this hangs off.</p>
+                  <p class="section-desc">Shows whether the generator could build this layout. Draw a box around each part to check it.</p>
                 }
                 else if (feasibility.Boxes.Count == 0 && feasibility.Unit.Count == 0)
                 {
-                  <p class="section-desc">No boxes drawn. Add a box around each part — a hub, a wool approach, the spawn, the frontline — and each one gets its own read.</p>
+                  <p class="section-desc">No boxes drawn. Draw a box around each part (a hub, an approach, a spawn, or the front line) to check it.</p>
                 }
                 else
                 {
@@ -211,12 +169,12 @@
                     <div class="plan-feas-box">
                       <button class="plan-feas-head @(isolatedBox == b.BoxId ? "plan-feas-head--active" : null)"
                               disabled="@(b.Nearest is null)"
-                              title="@(b.Nearest is null ? "Nothing to show — no candidate geometry to compare" : "Show the cells this box differs by")"
+                              title="@(b.Nearest is null ? "Nothing to compare against" : "Show the cells that differ")"
                               @onclick="() => IsolateBox(b)">
                         <span class="plan-lint-dot @(b.Producible ? "plan-lint-dot--ok" : "plan-lint-dot--error")"></span>
                         <span class="plan-feas-id">@b.BoxId</span>
                         <span class="list-tag">@b.Kind</span>
-                        <span class="plan-feas-identity" title="What the derivers read the geometry as — a hint, not a verdict">@b.Identity</span>
+                        <span class="plan-feas-identity" title="What the shape looks like. A hint only.">@b.Identity</span>
                       </button>
                       @if (b.Producible)
                       {
@@ -225,7 +183,7 @@
                       else if (b.Nearest is not null)
                       {
                         <div class="plan-feas-finding">
-                          <span class="plan-lint-msg">Nearest: @b.Nearest.Label</span>
+                          <span class="plan-lint-msg">Closest: @b.Nearest.Label</span>
                           <span class="list-tag">@b.Nearest.DifferingCells cell@(b.Nearest.DifferingCells == 1 ? "" : "s")</span>
                         </div>
                       }
@@ -244,21 +202,21 @@
             }
             else
             {
-            <Section Title="Validation">
+            <Section Title="Checks">
               <Actions>
                 @if (evaluation is not null)
                 {
-                  <Badge Class="@(evaluation.Valid ? "badge--success" : "badge--error")" title="Evaluator cost — lower is better, 0 is perfect">@evaluation.Score.ToString("0.##")</Badge>
+                  <Badge Class="@(evaluation.Valid ? "badge--success" : "badge--error")" title="Score. Lower is better, and 0 is best.">@evaluation.Score.ToString("0.##")</Badge>
                 }
               </Actions>
               <ChildContent>
                 @if (evaluation is null)
                 {
-                  <p class="section-desc">The evaluator scores the plan against the layout rules — hard well-formedness first, then soft feel. Click a fired rule to isolate its evidence on the canvas.</p>
+                  <p class="section-desc">Checks the plan against the layout rules. Click a problem to show it on the canvas.</p>
                 }
                 else if (evaluation.Violations.Count == 0)
                 {
-                  <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> No rules fired</div>
+                  <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> No problems found</div>
                 }
                 else
                 {
@@ -267,7 +225,7 @@
                     {
                       var idx = i;
                       var v = evaluation.Violations[i];
-                      <button class="plan-lint-row @(selectedViolation == idx ? "plan-lint-row--active" : null)" @onclick="() => SelectViolation(idx)" title="Show only this rule's evidence on the canvas">
+                      <button class="plan-lint-row @(selectedViolation == idx ? "plan-lint-row--active" : null)" @onclick="() => SelectViolation(idx)" title="Show on the canvas">
                         <span class="plan-lint-dot @(v.Kind == "hard" ? "plan-lint-dot--error" : "plan-lint-dot--lint")"></span>
                         <span class="plan-lint-chip">@v.Finding.Rule</span>
                         <span class="plan-lint-msg">@v.Finding.Message</span>
@@ -281,6 +239,12 @@
             }
         </Sidebar>
         <div class="sidebar-handle"></div>
+        }
+        else
+        {
+        <div class="plan-sidebar-stub">
+          <Button Variant="icon" Icon="panel-left-open" Title="Show panel" OnClick="ToggleSidebar" />
+        </div>
         }
 
         <div class="workspace-canvas">
@@ -298,16 +262,16 @@
             @if (!threeD)
             {
               <LayerChip Icon="spline" Active="overlayInterfaces"
-                         Title="Land interfaces (green, slimmer core if narrow) · corner contacts (red)"
+                         Title="Where pieces touch: shared edges in green (thinner where narrow), corners in red"
                          OnClick='() => ToggleOverlay("interfaces")'>Interfaces</LayerChip>
               <LayerChip Icon="shield" Active="overlayFrontline" Title="Piece edges facing a build area"
-                         OnClick='() => ToggleOverlay("frontline")'>Frontline</LayerChip>
+                         OnClick='() => ToggleOverlay("frontline")'>Front line</LayerChip>
               <LayerChip Icon="type" Active="overlayLabels"
-                         Title="Piece / build-area id labels and build-area gap links with hop distance"
+                         Title="Names of pieces and build areas, and the distances between build areas"
                          OnClick='() => ToggleOverlay("labels")'>Labels</LayerChip>
-              <LayerChip Icon="mountain" Active="heightMap" Title="Colour pieces by island height (surface y)"
+              <LayerChip Icon="mountain" Active="heightMap" Title="Colour pieces by height"
                          OnClick="ToggleHeightMap">Heights</LayerChip>
-              <CanvasRoundButton Icon="scan" Title="Fit the plan to view" OnClick="Fit" />
+              <CanvasRoundButton Icon="scan" Title="Zoom to fit (F)" OnClick="Fit" />
             }
             else
             {
@@ -318,7 +282,7 @@
               <span class="canvas-note" title="@IsoNoteTitle">@IsoNote</span>
             }
             <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
-                            Title="@(isoUnavailable ? IsoNoteTitle : "Isometric height preview (read-only)")"
+                            Title="@(isoUnavailable ? IsoNoteTitle : "3-D preview (read-only)")"
                             OnClick="Toggle3D" />
           </CanvasLayerBar>
 
@@ -369,7 +333,7 @@
             <Section>
               @if (sel is null)
               {
-                <p class="section-desc">Select a piece, build area or marker to inspect. Draw a piece from the palette, then drop spawns / wools onto it.</p>
+                <p class="section-desc">Select something to edit it. Draw a piece first, then place spawns and wools on it.</p>
               }
               else if (sel.Kind == "piece")
               {
@@ -380,15 +344,13 @@
                   <input class="field-input" value="@sel.Id" @onchange="OnPieceId" />
                 </Field>
                 <Field Label="Role">
-                  <select class="field-input" value="@sel.Role" @onchange="OnPieceRole">
-                    @foreach (var r in Roles) { <option value="@r.Id">@r.Label</option> }
-                  </select>
+                  <Select Slim="false" Options="RoleOptions" Value="@sel.Role" ValueChanged="OnPieceRole" />
                 </Field>
                 <Field Label="Surface (y)">
                   <div class="ctrl-row">
-                    <Button Variant="icon" Title='@($"Lower surface by {(int)surfaceStep}")' OnClick="() => StepSurface(-(int)surfaceStep)">−</Button>
+                    <Button Variant="icon" Writes Title='@($"Lower surface by {(int)surfaceStep}")' OnClick="() => StepSurface(-(int)surfaceStep)">−</Button>
                     <span class="plan-stepper-value">@sel.Surface@(sel.SurfaceSet ? "" : " (base)")</span>
-                    <Button Variant="icon" Title='@($"Raise surface by {(int)surfaceStep}")' OnClick="() => StepSurface((int)surfaceStep)">+</Button>
+                    <Button Variant="icon" Writes Title='@($"Raise surface by {(int)surfaceStep}")' OnClick="() => StepSurface((int)surfaceStep)">+</Button>
                   </div>
                 </Field>
                 <Field Label="Step">
@@ -399,10 +361,10 @@
                     }
                   </div>
                 </Field>
-                <Button Full OnClick="ToggleMirrors">
+                <Button Full Writes OnClick="ToggleMirrors">
                   @(sel.Mirrors ? "Exclude from mirror" : "Include in mirror")
                 </Button>
-                <Button Full Variant="danger" OnClick="DeleteSelected">
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete piece
                 </Button>
               }
@@ -419,20 +381,19 @@
                     @(sel.Footprint is { Length: >= 4 } f ? $"{(int)f[2]} × {(int)f[3]}" : "—")
                   </div>
                 </Field>
-                <Field Label="From the piece corner">
+                <Field Label="Offset from piece corner">
                   <div class="plan-readout">
                     @(sel.Footprint is { Length: >= 4 } o ? $"x {(int)o[0]}, z {(int)o[1]}" : "—")
                   </div>
                 </Field>
                 <p class="section-desc">
-                  The room the shell is stamped on. The piece around it is the protection region and the
-                  bounds every marker on it is held to, so a wide region can carry a small hall. Drag the
-                  dashed rectangle to move it, its handles to resize.
+                  The piece around the building is its protected area. Drag the dashed rectangle to move
+                  the building, or its handles to resize it.
                 </p>
-                <Button Full Variant="danger" OnClick="DeleteSelected">
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Clear building
                 </Button>
-                <p class="section-desc">Clearing states no building, and the default one comes back.</p>
+                <p class="section-desc">Clearing it restores the default building.</p>
               }
               else if (sel.Kind == "zone")
               {
@@ -443,10 +404,10 @@
                 </Field>
                 <Field Label="Opens">
                   <div class="plan-readout">
-                    @(lane ? "mid-match, when the shared water-lanes fragment floods it" : "from the first tick")
+                    @(lane ? "During the match, when the lane floods" : "At the start of the match")
                   </div>
                 </Field>
-                <Button Full Variant="danger" OnClick="DeleteSelected">
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> @(lane ? "Delete water lane" : "Delete build area")
                 </Button>
               }
@@ -459,24 +420,22 @@
                   <input class="field-input" value="@sel.Id" @onchange="OnBoxId" />
                 </Field>
                 <Field Label="Kind">
-                  <select class="field-input" value="@sel.BoxKind" @onchange="OnBoxKind">
-                    @foreach (var k in BoxKinds) { <option value="@k.Id">@k.Label</option> }
-                  </select>
+                  <Select Slim="false" Options="BoxKindOptions" Value="@sel.BoxKind" ValueChanged="OnBoxKind" />
                 </Field>
                 <Field Label="@($"Members ({sel.Members?.Count ?? 0})")">
                   <div class="plan-readout">
-                    @(sel.Members is { Count: > 0 } ? string.Join(", ", sel.Members) : "none")
+                    @(sel.Members is { Count: > 0 } ? string.Join(", ", sel.Members) : "None")
                   </div>
                 </Field>
                 <p class="section-desc">
                   @(sel.MembersNamed
-                    ? "Membership is fixed to the pieces named above — resizing the box no longer changes it."
-                    : "Membership follows containment: every piece wholly inside the box. Drag the box to carry them with it.")
+                    ? "Members are fixed. Resizing the box doesn't change them."
+                    : "Members are the pieces fully inside the box. Dragging the box moves them too.")
                 </p>
-                <Button Full OnClick="ToggleBoxMembers">
-                  @(sel.MembersNamed ? "Follow containment" : "Fix these members")
+                <Button Full Writes OnClick="ToggleBoxMembers">
+                  @(sel.MembersNamed ? "Use pieces inside" : "Fix members")
                 </Button>
-                <Button Full Variant="danger" OnClick="DeleteSelected">
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete box
                 </Button>
               }
@@ -491,7 +450,7 @@
                   <Field Label="Facing">
                     <div class="ctrl-row">
                       <span class="plan-stepper-value">@sel.Facing</span>
-                      <Button Variant="icon" OnClick="CycleFacing" Title="Cycle facing"><i data-lucide="rotate-cw"></i></Button>
+                      <Button Variant="icon" Writes OnClick="CycleFacing" Title="Turn"><i data-lucide="rotate-cw"></i></Button>
                     </div>
                   </Field>
                 }
@@ -500,7 +459,7 @@
                 @if (sel.MarkerKind is "destroyable" or "core")
                 {
                   <Field Label="Name">
-                    <LabelHint>@(sel.MarkerKind == "core" ? "(optional — PGM names a core itself)" : "(optional — defaults to the owner's)")</LabelHint>
+                    <LabelHint>@(sel.MarkerKind == "core" ? "(optional)" : "(optional, defaults to the team's)")</LabelHint>
                     <ChildContent>
                       <input class="field-input" value="@sel.Name" placeholder="@(sel.MarkerKind == "core" ? "Core" : "Red Monument")"
                              @onchange="@(e => SetMarkerText("name", e.Value?.ToString(), string.Empty))" />
@@ -514,43 +473,27 @@
                      this one, so the option reads as what it is rather than naming a colour. *@
                   <Field Label="Colour">
                     <div class="field-pick-row">
-                      <span class="field-swatch" style="background:@WoolSwatch"></span>
-                      <select class="field-input" value="@WoolColor"
-                              @onchange="@(e => SetMarkerText("color", e.Value?.ToString(), string.Empty))">
-                        <option value="">Auto — team colour, then the next free dye</option>
-                        @foreach (var dye in vocabulary.Wool.Colors)
-                        {
-                          <option value="@dye.Name" selected="@(dye.Name == WoolColor)">@dye.Label</option>
-                        }
-                      </select>
+                      <span class="field-swatch" style="--swatch: @WoolSwatch"></span>
+                      <Select Slim="false" Options="WoolColorOptions" Placeholder="Auto" Value="@WoolColor"
+                              ValueChanged="@(value => SetMarkerText("color", value, string.Empty))" />
                     </div>
                   </Field>
                 }
                 @if (sel.MarkerKind == "destroyable")
                 {
                   <Field Label="Design">
-                    <select class="field-input" value="@DestroyableStyle"
-                            @onchange="@(e => SetMarkerText("style", e.Value?.ToString(), vocabulary.Destroyable.Style))">
-                      @foreach (var design in vocabulary.Destroyable.Styles)
-                      {
-                        <option value="@design" selected="@(design == DestroyableStyle)">@design</option>
-                      }
-                    </select>
+                    <Select Slim="false" Options="DestroyableStyleOptions" Value="@DestroyableStyle"
+                            ValueChanged="@(value => SetMarkerText("style", value, vocabulary.Destroyable.Style))" />
                   </Field>
                   <Field Label="Material">
-                    <select class="field-input" value="@DestroyableMaterials"
-                            @onchange="@(e => SetMarkerText("materials", e.Value?.ToString(), vocabulary.Destroyable.Materials))">
-                      @foreach (var material in vocabulary.Destroyable.MaterialChoices)
-                      {
-                        <option value="@material" selected="@(material == DestroyableMaterials)">@material</option>
-                      }
-                    </select>
+                    <Select Slim="false" Options="DestroyableMaterialOptions" Value="@DestroyableMaterials"
+                            ValueChanged="@(value => SetMarkerText("materials", value, vocabulary.Destroyable.Materials))" />
                   </Field>
                   <Field Label="Float">
                     <LabelHint>(air under it)</LabelHint>
                     <ChildContent>
-                      <input class="field-input" type="number" min="0" max="64" value="@DestroyableFloat"
-                             @onchange="@(e => SetMarkerNumber("float", Num(e.Value, DestroyableFloat), vocabulary.Destroyable.Float))" />
+                      <NumberField Min="0" Max="64" Value="DestroyableFloat"
+                                   ValueChanged="@(value => SetMarkerNumber("float", (int)value, vocabulary.Destroyable.Float))" />
                     </ChildContent>
                   </Field>
                 }
@@ -559,21 +502,17 @@
                   @* A core is chosen, not designed: the author states the lava and the casing follows, so a
                      casing with nothing in it cannot be typed. The readout is the obsidian those two imply. *@
                   <Field Label="Lava footprint">
-                    <LabelHint>(width &amp; depth)</LabelHint>
+                    <LabelHint>(width and depth)</LabelHint>
                     <ChildContent>
-                      <select class="field-input" value="@CoreLava"
-                              @onchange="@(e => SetMarkerNumber("lava", Num(e.Value, CoreLava), vocabulary.Core.Lava))">
-                        @foreach (var n in vocabulary.Core.LavaRange) { <option value="@n">@n × @n</option> }
-                      </select>
+                      <Select Slim="false" Options="LavaOptions" Value="@CoreLava.ToString()"
+                              ValueChanged="@(value => SetMarkerNumber("lava", Num(value, CoreLava), vocabulary.Core.Lava))" />
                     </ChildContent>
                   </Field>
                   <Field Label="Lava height">
-                    <LabelHint>(courses)</LabelHint>
+                    <LabelHint>(layers)</LabelHint>
                     <ChildContent>
-                      <select class="field-input" value="@CoreLavaHeight"
-                              @onchange="@(e => SetMarkerNumber("lavaHeight", Num(e.Value, CoreLavaHeight), vocabulary.Core.LavaHeight))">
-                        @foreach (var n in vocabulary.Core.LavaHeightRange) { <option value="@n">@n</option> }
-                      </select>
+                      <Select Slim="false" Options="LavaHeightOptions" Value="@CoreLavaHeight.ToString()"
+                              ValueChanged="@(value => SetMarkerNumber("lavaHeight", Num(value, CoreLavaHeight), vocabulary.Core.LavaHeight))" />
                     </ChildContent>
                   </Field>
                   <Field Label="Casing">
@@ -588,29 +527,29 @@
                   <Field Label="Float">
                     <LabelHint>(air under the casing)</LabelHint>
                     <ChildContent>
-                      <input class="field-input" type="number" min="0" max="64" value="@CoreFloat"
-                             @onchange="@(e => SetMarkerNumber("float", Num(e.Value, CoreFloat), vocabulary.Core.Float))" />
+                      <NumberField Min="0" Max="64" Value="CoreFloat"
+                                   ValueChanged="@(value => SetMarkerNumber("float", (int)value, vocabulary.Core.Float))" />
                     </ChildContent>
                   </Field>
                   <Field Label="Leak">
                     <LabelHint>(fall before it counts)</LabelHint>
                     <ChildContent>
-                      <input class="field-input" type="number" min="0" max="64" value="@CoreLeak"
-                             @onchange="@(e => SetMarkerNumber("leak", Num(e.Value, CoreLeak), vocabulary.Core.Leak))" />
+                      <NumberField Min="0" Max="64" Value="CoreLeak"
+                                   ValueChanged="@(value => SetMarkerNumber("leak", (int)value, vocabulary.Core.Leak))" />
                     </ChildContent>
                   </Field>
                   <p class="section-desc">
                     @if (CoreDigDepth > 0)
                     {
-                      <text>Capturing means breaching the casing <strong>and</strong> digging @CoreDigDepth block@(CoreDigDepth == 1 ? "" : "s") out of the ground beneath it.</text>
+                      <text>Capturing it means breaking the casing and digging @CoreDigDepth block@(CoreDigDepth == 1 ? "" : "s") below it.</text>
                     }
                     else
                     {
-                      <text>The lava leaks as soon as the casing is breached — no digging.</text>
+                      <text>The lava leaks as soon as the casing is broken, with no digging.</text>
                     }
                   </p>
                 }
-                <Button Full Variant="danger" OnClick="DeleteSelected">
+                <Button Full Variant="danger" Writes OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete marker
                 </Button>
               }
@@ -619,7 +558,7 @@
       </Workspace>
       </div>
 
-  <SideDrawer Open="showCompile" Title="Compile & test" Icon="play" OnClose="CloseCompile">
+  <SideDrawer Open="showCompile" Title="Compile" Icon="play" OnClose="CloseCompile">
     <Body>
       @if (compiling)
       {
@@ -630,7 +569,7 @@
         @if (compileErrors.Count > 0)
         {
           <div class="plan-compile-errors">
-            <p class="section-desc">Fix these structural errors before compiling (lint alone never blocks):</p>
+            <p class="section-desc">Fix these problems to compile:</p>
             @foreach (var f in compileErrors)
             {
               var finding = f;
@@ -653,7 +592,7 @@
         else if (compileWarnings.Count > 0)
         {
           <div class="plan-compile-warnings">
-            <p class="section-desc">Compiled, but worth a look:</p>
+            <p class="section-desc">Compiled with warnings:</p>
             @foreach (var f in compileWarnings)
             {
               var finding = f;
@@ -702,13 +641,13 @@
             @* The layout write refused (409): relief drawn on islands the rebuilt board no longer has. The
                way through is the author's to choose, so it is offered here rather than left as a failure. *@
             <div class="plan-rebuild-warn">
-              <p class="section-desc"><strong>The rebuilt board has no island for relief you drew</strong> on
-                @string.Join(", ", orphaned). Rebuilding discards that terrain; the relief on every island
-                that survives is kept.</p>
+              <p class="section-desc"><strong>The new layout has no island for the terraforming on
+                @string.Join(", ", orphaned).</strong> Rebuilding deletes it. Terraforming on the other
+                islands is kept.</p>
               <div class="ctrl-row">
                 <Button Fill OnClick="KeepRelief">Cancel</Button>
-                <Button Variant="danger" Fill Disabled="@draftBusy" OnClick="DiscardReliefAndRebuild">
-                  <i data-lucide="hammer"></i> Discard it and rebuild
+                <Button Variant="danger" Fill Disabled="@draftBusy" Writes OnClick="DiscardReliefAndRebuild">
+                  <i data-lucide="hammer"></i> Delete and rebuild
                 </Button>
               </div>
             </div>
@@ -716,20 +655,20 @@
           else if (confirmingRebuild)
           {
             <div class="plan-rebuild-warn">
-              <p class="section-desc"><strong>This map already has a board.</strong> Rebuilding it from the plan:</p>
+              <p class="section-desc"><strong>This map is already built.</strong> Rebuilding it from the plan:</p>
               <ul class="plan-rebuild-list">
                 <li><span class="plan-rebuild-mark plan-rebuild-mark--drop"><i data-lucide="refresh-cw"></i></span>
-                  <span><strong>Replaces</strong> the terrain and islands with the plan's, drops any shape drawn in the sketch that the plan does not produce, and rewrites the teams, spawns, wools and build zones.</span></li>
+                  <span><strong>Replaces</strong> the terrain and islands, removes sketch shapes the plan doesn't have, and rewrites the teams, spawns, wools, and build areas.</span></li>
                 <li><span class="plan-rebuild-mark plan-rebuild-mark--keep"><i data-lucide="check"></i></span>
-                  <span><strong>Keeps</strong> your relief on every island the rebuild still has, a room height you corrected, your terrain themes, room shells and placed dressing, and the map's authors.</span></li>
+                  <span><strong>Keeps</strong> terraforming on islands that remain, room heights you changed, palettes, room shells, decoration, and authors.</span></li>
               </ul>
-              <p class="section-desc">Anything you changed in Configure about the teams, spawns or wools is written over.</p>
+              <p class="section-desc">Changes made in Configure to teams, spawns, or wools are overwritten.</p>
               @* Fill, not Full: two full-width buttons wrap onto two rows, which pushed the one that
                  actually rebuilds furthest from where the eye lands. *@
               <div class="ctrl-row">
                 <Button Fill OnClick="CancelRebuild">Cancel</Button>
-                <Button Variant="danger" Fill Disabled="@draftBusy" OnClick="BuildRequested">
-                  <i data-lucide="hammer"></i> Rebuild anyway
+                <Button Variant="danger" Fill Disabled="@draftBusy" Writes OnClick="BuildRequested">
+                  <i data-lucide="hammer"></i> Rebuild
                 </Button>
               </div>
             </div>
@@ -740,7 +679,7 @@
                nothing to build, and a button still offering the build is a dead control that says why only by
                being grey. The hammer goes with it — an icon for the act is wrong on a label that refuses it. *@
             <Button Variant="primary" Full Disabled="@(compiledLayout is null)" Busy="@draftBusy"
-                    BusyLabel="@($"{draftStep}…")" OnClick="BuildRequested">
+                    BusyLabel="@($"{draftStep}…")" Writes OnClick="BuildRequested">
               @if (compiledLayout is not null) { <i data-lucide="hammer"></i> }
               @DraftLabel
             </Button>
@@ -750,18 +689,18 @@
         {
           <div class="plan-lint-ok">
             <i data-lucide="check-circle-2"></i>
-            @if (MapBacked) { <text>Built on this map — <strong>@draftSlug</strong></text> }
+            @if (MapBacked) { <text>Built <strong>@draftSlug</strong></text> }
             else { <text>Draft <strong>@draftSlug</strong> created</text> }
           </div>
           @if (droppedShapes.Count > 0)
           {
-            <p class="section-desc">Not kept: @droppedShapes.Count shape(s) drawn in the sketch that the plan
-              does not produce — @string.Join(", ", droppedShapes).</p>
+            <p class="section-desc">Removed @droppedShapes.Count sketch shape@(droppedShapes.Count == 1 ? "" : "s")
+              the plan doesn't have: @string.Join(", ", droppedShapes).</p>
           }
           <Button Full Href="@($"/maps/{draftSlug}/sketch")" target="_blank" rel="noopener">
             <i data-lucide="external-link"></i> Open in sketch editor
           </Button>
-          <Button Variant="primary" Full OnClick="DownloadWorld">
+          <Button Variant="primary" Full Builds OnClick="DownloadWorld">
             <i data-lucide="download"></i> Download world ZIP
           </Button>
         }
@@ -770,7 +709,7 @@
     </Footer>
   </SideDrawer>
 
-  <SideDrawer Open="showOpenDb" Title="Open from database" Icon="folder-open" OnClose="CloseDbBrowser">
+  <SideDrawer Open="showOpenDb" Title="Open plan" Icon="folder-open" OnClose="CloseDbBrowser">
     <Body>
       @if (dbBusy)
       {
@@ -782,19 +721,19 @@
       }
       else if (dbPlans.Count == 0)
       {
-        <p class="section-desc">No saved plans yet. Draw a plan and press Save to see it here.</p>
+        <p class="section-desc">No saved plans yet. Save a plan to see it here.</p>
       }
       else
       {
         <div class="plan-lint-list">
           @foreach (var p in dbPlans)
           {
-            <button class="plan-lint-row" @onclick="() => LoadFromDb(p.Id)" title="Open this plan">
+            <button class="plan-lint-row" @onclick="() => OpenFromDb(p.Id)" title="Open this plan">
               <span class="plan-lint-chip">@p.Origin</span>
               <span class="plan-lint-msg plan-db-name">@(string.IsNullOrWhiteSpace(p.Name) ? "Untitled plan" : p.Name)</span>
               @if (p.StaleComposer)
               {
-                <span class="plan-db-stale" title="@StaleTitle(p)">@(p.ComposerVersion ?? "no version")</span>
+                <span class="plan-db-stale" title="@StaleTitle(p)">@(p.ComposerVersion ?? "No version")</span>
               }
               <span class="plan-db-date">@p.UpdatedAt.ToLocalTime().ToString("MMM d")</span>
             </button>

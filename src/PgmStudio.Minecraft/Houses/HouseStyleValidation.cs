@@ -13,8 +13,8 @@ public static class HouseStyleRules
 {
     /// <summary>A block named for a geometric role — which way a stair climbs, which half a slab fills — is not
     /// that kind of block: <c>doorHead.block</c>, its <c>fillBlock</c> under <c>upperSlab</c>, a window's
-    /// <c>block</c> under <c>stairLattice</c>, <c>arched</c> or <c>slabBanded</c>, or <c>roofSlab</c>
-    /// itself.</summary>
+    /// <c>block</c> under <c>stairLattice</c>, <c>arched</c> or <c>slabBanded</c>, <c>roofSlab</c> or
+    /// <c>roofStair</c>.</summary>
     /// <remarks>Name a block of the kind the field means: a stair id where a stair is asked for, a slab where a slab is. The finding names the field it read and the kind that field takes, which is the whole of what has to change. `GET /api/room-styles/block-kinds` answers the same table it is refused from — every field, the kind it takes, and every id of that kind with the material it is cut from.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Style, RuleConcern.Material)]
     public const string BlockKind = "HS1";
@@ -36,7 +36,7 @@ public static class HouseStyleRules
     /// to anyone looking at the slope. A laid log takes the axis the surface is going — along the ridge, so
     /// the ends are buried in the gable at each end and only bark shows — which is how a great many hand-built
     /// houses roof. What was never a roof is the log with no axis, not the log.</para></summary>
-    /// <remarks>Give the roof one material and the verge one material. They may be the same — a brick body with a brick verge is a whole brick roof — or they may differ, which is how a dark oak verge trims a brick roof; what they may not be is a pattern, several blocks, a bare log or a ground material. A log belongs on a roof laid rather than solid: name it `laidLog` and it lies along the ridge instead of standing on end. Set `roofSlab` to a slab of the body's own material, or leave it unset and let the body carry the whole rise — a laid log has no slab, so a log roof carries its own rise. `roofSlab` is the *body's* half course and is stated once: the rim's is derived from the verge, so a verge is never named twice. The gable is the end wall and follows the wall, not this rule.</remarks>
+    /// <remarks>Give the roof one material and the verge one material. They may be the same — a brick body with a brick verge is a whole brick roof — or they may differ, which is how a dark oak verge trims a brick roof; what they may not be is a pattern, several blocks, a bare log or a ground material. A log belongs on a roof laid rather than solid: name it `laidLog` and it lies along the ridge instead of standing on end. Set `roofSlab` to a slab of the body's own material, or leave it unset and let the body carry the whole rise — a laid log has no slab, so a log roof carries its own rise. `roofSlab` is the *body's* half course and is stated once: the rim's is derived from the verge, so a verge is never named twice. `roofStair` is held the same way — a stair of the body's own material, never over a laid log — and a roof names `roofStair` or `roofSlab`, not both. The gable is the end wall and follows the wall, not this rule.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
     public const string RoofMaterial = "HS3";
 
@@ -690,6 +690,26 @@ public static class HouseStyleValidation
                 $"is {BlockMaterials.Of(body.Id, body.Data)}. The half-course slab continues the body, so it " +
                 "is the body's own material.",
                 Field: "roofSlab"));
+
+        // The stair is the body climbing in steps, so it is the body's own material, it is never cut from a
+        // log, and a roof climbs in halves or in stairs and not both.
+        if (roof.Stair >= 0)
+        {
+            Refuse(HouseBlockKinds.RoofStair, roof.Stair, findings);
+            if (roof.Slab >= 0)
+                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                    "roofStair and roofSlab are both set. A roof climbs half a block at a time in slabs or a whole " +
+                    "block at a time in stairs — name one of them.", Field: "roofStair"));
+            if (roof.Body is LaidLogMaterial)
+                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                    "roofStair is set over a roof laid in logs, and no stair is cut from a log — leave roofStair " +
+                    "unset.", Field: "roofStair"));
+            if (roof.Body is SolidMaterial solid && !BlockMaterials.Same(solid.Id, solid.Data, roof.Stair, 0))
+                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                    $"roofStair is {BlockMaterials.Of(roof.Stair, 0)} and the roof it steps in is " +
+                    $"{BlockMaterials.Of(solid.Id, solid.Data)}. The stair continues the body, so it is the body's " +
+                    "own material.", Field: "roofStair"));
+        }
         return findings;
     }
 

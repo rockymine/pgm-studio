@@ -19,25 +19,20 @@
   <CanvasLayerBar>
     @* Blocks overlay is a mode-independent visual aid (renders below the regions/markers); offered on every
        canvas so placement can be lined up against the real terrain. No-op when the map has no scan data. *@
-    <LayerChip Icon="box" Active="blocksOn" Title="Overlay the top-surface block colours"
+    <LayerChip Icon="box" Active="blocksOn" Title="Show the surface blocks"
                OnClick="ToggleBlocks">Blocks</LayerChip>
     @if (ShowEditZones)
     {
       <LayerChip Icon="hammer" Active="editZonesOn"
-                 Title="Overlay what makes each column editable (green build zone · light green ground at y=0 · yellow behind a filter · red nobody can edit)"
+                 Title="Show where players can build. Green: build zone. Light green: ground at y=0. Yellow: behind a filter. Red: nobody."
                  OnClick="ToggleEditZones">Editable</LayerChip>
     }
     @if (islandIds.Count > 0)
     {
-      <select class="canvas-select" title="Zoom to fit an island" value="@islandSel" @onchange="OnFitIslandSelect">
-        <option value="">Fit island…</option>
-        @foreach (var id in islandIds)
-        {
-          <option value="@id">Island @id</option>
-        }
-      </select>
+      <Select Canvas Title="Zoom to fit an island" Options="IslandOptions" Placeholder="Fit island…"
+              Value="@islandSel" ValueChanged="OnFitIslandSelect" />
     }
-    <CanvasRoundButton Icon="scan" Title="Reset zoom (fit whole map)" OnClick="OnResetClick" />
+    <CanvasRoundButton Icon="scan" Title="Fit whole map" OnClick="OnResetClick" />
   </CanvasLayerBar>
 
   <CanvasDock>

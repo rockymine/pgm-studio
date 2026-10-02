@@ -33,6 +33,8 @@ public partial class StyleEditor
     private IReadOnlyList<StyleDto> styles = [];
     private JsonObject draft = ThemeFields.Solid(1);
     private long? editingId;
+    /// <summary>Whether the seed folder states the open row, which the studio refuses to change or delete.</summary>
+    private bool seeded;
     private string draftName = "";
     private string selected = "";
     private string view = Both;
@@ -86,16 +88,18 @@ public partial class StyleEditor
         {
             if (await Library.GetAsync<StyleDto>(LibraryKinds.Styles, id) is not { } row)
             {
-                note = "That style could not be read.";
+                note = "Couldn't load this pattern. Reload the page to try again.";
                 return;
             }
             editingId = row.Id;
+            seeded = row.Seeded;
             draftName = row.Name;
             draft = JsonNode.Parse(row.Params) as JsonObject ?? ThemeFields.Solid(1);
         }
         else
         {
             editingId = null;
+            seeded = false;
             draftName = "";
             draft = ThemeFields.Solid(1);
         }
@@ -126,11 +130,11 @@ public partial class StyleEditor
         var saved = editingId is { } id
             ? await Library.UpdateAsync<StyleDto>(LibraryKinds.Styles, id, request)
             : await Library.CreateAsync<StyleDto>(LibraryKinds.Styles, request);
-        if (saved is null) { note = "The library refused that style."; return; }
+        if (saved is null) { note = "Couldn't save this pattern. Try again."; return; }
 
         // An edit reaches every theme binding this style — the library is the shared copy, and a map's applied
         // theme is its own snapshot, so nothing already exported moves.
-        note = editingId is null ? "Added to the library." : "Saved. Every theme binding it now paints this.";
+        note = editingId is null ? "Added to the library." : "Saved. Palettes using this pattern are updated.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{LibraryKinds.StylesSlug}/{saved.Id}");
         else editingId = saved.Id;
@@ -141,7 +145,11 @@ public partial class StyleEditor
         if (!CanSave) return;
         var copy = await Library.CreateAsync<StyleDto>(LibraryKinds.Styles,
             new StyleSaveRequest($"{draftName.Trim()} copy", DraftKind, draft.ToJsonString()));
-        if (copy is null) { note = "The library refused that style."; return; }
+        if (copy is null)
+        {
+            note = "Couldn't save a copy of this pattern. The library holds each pattern once, so change it first.";
+            return;
+        }
         Nav.NavigateTo($"/library/{LibraryKinds.StylesSlug}/{copy.Id}");
     }
 
@@ -151,8 +159,8 @@ public partial class StyleEditor
         if (await Library.DeleteAsync(LibraryKinds.Styles, id) is { Deleted: false } refused)
         {
             note = refused.BoundBy.Count > 0
-                ? $"Still bound by {string.Join(", ", refused.BoundBy)} — unbind it there first."
-                : "That style could not be forgotten.";
+                ? $"Can't delete this pattern. It is used by {string.Join(", ", refused.BoundBy)}. Remove it there first."
+                : "Couldn't delete this pattern. Try again.";
             return;
         }
         Nav.NavigateTo($"/library/{LibraryKinds.StylesSlug}");

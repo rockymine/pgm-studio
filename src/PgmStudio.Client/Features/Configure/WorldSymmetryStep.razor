@@ -8,26 +8,26 @@
 
   <Sidebar>
       <Section Title="Symmetry">
-        <p class="section-desc">Confirm the detected symmetry, pick another, or reject it — it seeds your
-          team count and mirrors one team's setup onto the rest.</p>
+        <p class="section-desc">Confirm the detected symmetry or pick another. It suggests the number of
+          teams and copies one team's setup to the others.</p>
         <div class="panel-list">
           @foreach (var m in Choices)
           {
-            <ListRow Compact Selected="selectedType == m.Type"
+            <ListRow Compact Writes Selected="selectedType == m.Type"
                  @key="m.Type" OnClick="() => Select(m.Type)">
               <span class="list-label">@SymmetryInfo.Label(m.Type)</span>
               <Badge Class="@(m.Confidence >= 0.999 ? "badge--success" : "badge--neutral")">@m.Confidence.ToString("P0")</Badge>
-              @if (m.Type == primaryType) { <Badge Kind="dim">detected</Badge> }
+              @if (m.Type == primaryType) { <Badge Kind="dim">Detected</Badge> }
             </ListRow>
           }
-          <ListRow Compact Selected="selectedType is null"
+          <ListRow Compact Writes Selected="selectedType is null"
                @key="@("none")" OnClick="() => Select(null)">
             <span class="list-label">No symmetry</span>
           </ListRow>
         </div>
       </Section>
 
-      <Section Title="Centre">
+      <Section Title="Centre" Writes>
         <div class="field-row">
           <Field Label="X">
             <NumberField Value="centerX" ValueChanged="@(v => OnCenter(v, true))" Step="0.5" disabled="@(selectedType is null)" />
@@ -36,7 +36,7 @@
             <NumberField Value="centerZ" ValueChanged="@(v => OnCenter(v, false))" Step="0.5" disabled="@(selectedType is null)" />
           </Field>
         </div>
-        <p class="section-desc">The point the layout mirrors / rotates about — defaults to the detected
+        <p class="section-desc">The point the map is mirrored or rotated around. It starts at the detected
           centre.</p>
       </Section>
   </Sidebar>
@@ -50,7 +50,7 @@
 
   <Inspector>
       <Section>
-        <DetailHeader Icon="sparkle" IconMuted Label="Detection summary" />
+        <DetailHeader Icon="sparkle" IconMuted Label="Summary" />
         <div class="section-body">
           <Field Label="Islands">
             <div class="field-pick-row"><span class="field-value">@islandCount</span></div>
@@ -63,17 +63,16 @@
               @if (SuggestedTeams is { } n)
               {
                 <Badge Kind="success">@n</Badge>
-                <span class="list-tag">from @selectedType</span>
+                <span class="list-tag">from the symmetry</span>
               }
               else
               {
                 <span class="field-value">—</span>
-                <span class="list-tag">set teams manually</span>
+                <span class="list-tag">Set teams by hand</span>
               }
             </div>
           </Field>
-          <p class="section-desc">The rotational/mirror order suggests the team count. You'll confirm it and
-            assign each island's owner next, in Teams.</p>
+          <p class="section-desc">You confirm the teams and give each island an owner in the next phase.</p>
         </div>
       </Section>
   </Inspector>

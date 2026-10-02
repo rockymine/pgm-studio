@@ -40,9 +40,11 @@ public sealed record CatalogShapeDto(
 /// filtered slice, so a chip says what it would show before it is picked.</param>
 /// <param name="ByFamily">How many the whole catalog holds per family.</param>
 /// <param name="ByKind">How many the whole catalog holds per kind.</param>
+/// <param name="Key">The colours the card pictures are drawn in.</param>
 public sealed record CatalogPage(
     IReadOnlyList<CatalogShapeDto> Shapes,
     int Total,
     IReadOnlyDictionary<string, int> ByTier,
     IReadOnlyDictionary<string, int> ByFamily,
-    IReadOnlyDictionary<string, int> ByKind);
+    IReadOnlyDictionary<string, int> ByKind,
+    IReadOnlyList<BoardKeyEntry>? Key = null);

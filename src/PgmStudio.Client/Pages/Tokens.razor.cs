@@ -58,7 +58,7 @@ public partial class Tokens
 
     private async Task RevokeAsync(StudioTokenDto token)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"Revoke '{token.Label}'? Whatever holds it signs in as nobody from then on."))
+        if (!await JS.InvokeAsync<bool>("confirm", $"Revoke '{token.Label}'? Anything using it will no longer be able to sign in."))
             return;
         error = null;
         using var response = await Http.DeleteAsync($"api/users/me/tokens/{token.Id}");

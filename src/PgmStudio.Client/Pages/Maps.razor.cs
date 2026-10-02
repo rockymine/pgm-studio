@@ -10,11 +10,11 @@ namespace PgmStudio.Client.Pages;
 public partial class Maps
 {
     [SupplyParameterFromQuery] public string? Stage { get; set; }
-    [SupplyParameterFromQuery] public string? Just { get; set; }   // slug just finished from Sketch → Configure
 
     private List<MapSummary>? maps;
     private string filter = "";
-    private string? loadedStage;   // guards against refetching the same stage on every parameter set
+    private bool loaded;
+    private string? loadedStage;   // guards against refetching the same collection on every parameter set
     private bool creatingSketch;
     private bool creatingPlan;
 
@@ -83,39 +83,52 @@ public partial class Maps
 
     private static string LayerTitle(MapSummary map, string layer) => layer switch
     {
-        MapStage.Plan => "Open the plan this map was compiled from. Nothing is rebuilt by looking.",
-        MapStage.Sketch => "Open the sketch this map's geometry was drawn in. Nothing is rebuilt by looking.",
-        _ => "Open the Configure wizard on this map's world.",
+        MapStage.Plan => "Open the plan this map was built from. Opening it changes nothing.",
+        MapStage.Sketch => "Open the sketch this map was drawn in. Opening it changes nothing.",
+        _ => "Open this map's world in Configure.",
     };
 
-    private string CurrentStage => MapStage.IsValid(Stage) ? Stage! : MapStage.Edit;
-    private MapSummary? JustMap => Just is null ? null : maps?.FirstOrDefault(m => m.Slug == Just);
+    /// <summary>The collection on show: a stage word, or null for every map in the studio.</summary>
+    private string? CurrentStage => MapStage.IsValid(Stage) ? Stage : null;
 
     private string StageTitle => CurrentStage switch
     {
         MapStage.Plan => "Plans",
         MapStage.Sketch => "Sketches",
         MapStage.Configure => "Configuring",
+        MapStage.Edit => "Finished",
         _ => "Maps",
     };
 
+    /// <summary>A row's stage, for the list of every map, where it is the one thing telling the rows apart.</summary>
+    private static string StageLabel(string stage) => stage switch
+    {
+        MapStage.Plan => "Plan",
+        MapStage.Sketch => "Sketch",
+        MapStage.Configure => "Configuring",
+        MapStage.Edit => "Finished",
+        _ => stage,
+    };
+
     // Plans and Sketches list every map holding that layer, whatever it has since become; Configuring and
-    // Maps list the maps standing at that stage. The blurbs say which, because "every map with a plan" and
-    // "every map at the plan stage" are different collections and the difference is the point.
+    // Finished list the maps standing at that stage, and Maps lists them all. The blurbs say which, because
+    // "every map with a plan" and "every map at the plan stage" are different collections.
     private string StageBlurb => CurrentStage switch
     {
-        MapStage.Plan => "Every map that holds a plan — including ones already built and configured. Open one to keep planning.",
-        MapStage.Sketch => "Every map that holds a drawn sketch — including ones already configured. Open one to keep sketching.",
-        MapStage.Configure => "Worlds with terrain but no finished map.xml — sketched or imported. Open one to keep configuring.",
-        _ => "Maps with a finished map.xml. Open one on the last layer it holds — its world in Configure, where it has one.",
+        MapStage.Plan => "Maps that have a plan, including finished ones.",
+        MapStage.Sketch => "Maps that have a sketch, including finished ones.",
+        MapStage.Configure => "Sketched or imported worlds that do not have a finished map.xml yet.",
+        MapStage.Edit => "Maps with a finished map.xml.",
+        _ => "Every map in the studio, at whatever stage it has reached.",
     };
 
     private string EmptyMessage => CurrentStage switch
     {
-        MapStage.Plan => "No plans yet — start one above, or author one from the generator.",
-        MapStage.Sketch => "No sketches yet — start one above.",
-        MapStage.Configure => "Nothing to configure — import a world, or finish a sketch.",
-        _ => "No maps yet.",
+        MapStage.Plan => "No plans yet. Create one, or open a layout from the generator.",
+        MapStage.Sketch => "No sketches yet. Create one to get started.",
+        MapStage.Configure => "Nothing to configure yet. Import a world, or build a sketch.",
+        MapStage.Edit => "No finished maps yet.",
+        _ => "No maps yet. Plan one, draw a sketch, or import a world.",
     };
 
     private IEnumerable<MapSummary> Filtered =>
@@ -124,19 +137,23 @@ public partial class Maps
             ? maps
             : maps.Where(m => (m.Slug + " " + m.Name).Contains(filter, StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Whether the caller may originate a map; the start buttons are greyed out until it is known
-    /// that they may.</summary>
-    private bool mayWrite;
-
-    private string? WriteTitle => mayWrite ? null : "Sign in as someone on the whitelist to start a map";
-
     protected override async Task OnParametersSetAsync()
     {
-        mayWrite = await Access.MayWriteAsync();
-        if (loadedStage == CurrentStage) return;   // stage unchanged → keep the loaded list
+        if (loaded && loadedStage == CurrentStage) return;   // collection unchanged → keep the loaded list
+        loaded = true;
         loadedStage = CurrentStage;
+        await LoadAsync();
+    }
+
+    private string? loadError;
+
+    private async Task LoadAsync()
+    {
         maps = null;
-        maps = await Http.GetFromJsonAsync<List<MapSummary>>($"api/maps?stage={CurrentStage}");
+        loadError = null;
+        var route = CurrentStage is null ? "api/maps" : $"api/maps?stage={CurrentStage}";
+        try { maps = await Http.GetFromJsonAsync<List<MapSummary>>(route); }
+        catch (HttpRequestException) { loadError = "Couldn't load the maps. The studio may be restarting; try again in a moment."; }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");

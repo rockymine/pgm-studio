@@ -1,0 +1,100 @@
+{
+ "bedrock": {
+  "relative": false,
+  "value": 1
+ },
+ "rimEdges": "drop",
+ "wallOnTerrainFaces": true,
+ "rim": {
+  "material": {
+   "kind": "solid",
+   "id": 159,
+   "data": 12
+  },
+  "depth": 1,
+  "enabled": true
+ },
+ "surface": {
+  "material": {
+   "kind": "layered",
+   "stack": {
+    "bands": [
+     {
+      "material": {
+       "kind": "noise",
+       "seed": 61,
+       "scale": 5,
+       "octaves": 2,
+       "stops": [
+        {
+         "kind": "solid",
+         "id": 172,
+         "data": 0
+        },
+        {
+         "kind": "solid",
+         "id": 159,
+         "data": 12
+        },
+        {
+         "kind": "solid",
+         "id": 172,
+         "data": 0
+        }
+       ],
+       "rise": 0
+      },
+      "thickness": 2
+     },
+     {
+      "material": {
+       "kind": "solid",
+       "id": 82,
+       "data": 0
+      },
+      "thickness": 2
+     }
+    ],
+    "ending": "repeat"
+   },
+   "axis": "depth"
+  },
+  "depth": 4,
+  "enabled": true
+ },
+ "wall": {
+  "kind": "teamTint",
+  "blockId": 159,
+  "neutral": {
+   "kind": "solid",
+   "id": 159,
+   "data": 12
+  }
+ },
+ "wallEnabled": true,
+ "fill": {
+  "kind": "voronoi",
+  "seed": 62,
+  "cellSize": 9,
+  "bands": [
+   {
+    "material": {
+     "kind": "solid",
+     "id": 1,
+     "data": 1
+    },
+    "depth": 1
+   },
+   {
+    "material": {
+     "kind": "solid",
+     "id": 172,
+     "data": 0
+    },
+    "depth": 4
+   }
+  ],
+  "rise": 3
+ },
+ "edgesFromGround": false
+}

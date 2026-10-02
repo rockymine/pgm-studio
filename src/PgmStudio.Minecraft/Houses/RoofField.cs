@@ -232,6 +232,52 @@ public sealed class RoofField
         return Math.Max(1, drop);
     }
 
+    /// <summary>Which way the slope climbs from this cell: toward the neighbour the roof covers whose surface
+    /// stands highest above this one's, across the ridge first where two stand equally high. Null where none
+    /// stands above it — the ridge, a hip line, a flat lid.</summary>
+    public RoomEdge? Upslope(int x, int z)
+    {
+        var (toward, highest) = ((RoomEdge?)null, Rise(x, z));
+        foreach (var edge in acrossZ ? AcrossZFirst : AcrossXFirst)
+        {
+            var (dx, dz) = edge.Outward();
+            if (!Covers(x + dx, z + dz)) continue;
+            var next = Rise(x + dx, z + dz);
+            if (next > highest) (toward, highest) = (edge, next);
+        }
+        return toward;
+    }
+
+    /// <summary>Whether the slope carries on below this cell: the neighbour the other side of
+    /// <see cref="Upslope"/> is covered and stands lower. The lowest course of a slope answers no.</summary>
+    public bool StepsDown(int x, int z)
+    {
+        if (Upslope(x, z) is not { } up) return false;
+        var (dx, dz) = up.Opposite().Outward();
+        return Covers(x + dx, z + dz) && Rise(x + dx, z + dz) < Rise(x, z);
+    }
+
+    /// <summary>On a ridge two blocks wide, the side the ridge's other half stands on; null on a ridge one block
+    /// wide and off the ridge.</summary>
+    public RoomEdge? RidgePartner(int x, int z)
+    {
+        if (!OnRidge(x, z)) return null;
+        foreach (var edge in acrossZ ? AcrossZFirst[..2] : AcrossXFirst[..2])
+        {
+            var (dx, dz) = edge.Outward();
+            if (Covers(x + dx, z + dz) && Crown(x + dx, z + dz) == Peak) return edge;
+        }
+        return null;
+    }
+
+    /// <summary>The way along the ridge from the middle of the roof to the nearer gable end.</summary>
+    public RoomEdge AlongRidgeOutward(int x, int z) => acrossZ
+        ? 2 * x < MinX + MaxX ? RoomEdge.NegX : RoomEdge.PosX
+        : 2 * z < MinZ + MaxZ ? RoomEdge.NegZ : RoomEdge.PosZ;
+
+    private static readonly RoomEdge[] AcrossZFirst = [RoomEdge.NegZ, RoomEdge.PosZ, RoomEdge.NegX, RoomEdge.PosX];
+    private static readonly RoomEdge[] AcrossXFirst = [RoomEdge.NegX, RoomEdge.PosX, RoomEdge.NegZ, RoomEdge.PosZ];
+
     /// <summary>The lowest course the column occupies — what a wall climbs to meet.</summary>
     public int Underside(int x, int z) => Crown(x, z) - Riser(x, z) + 1;
 

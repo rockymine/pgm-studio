@@ -3,14 +3,15 @@
 ## What it is
 
 Configure turns terrain into a playable map. It is where a world stops being ground and becomes a match:
-teams, spawns, the space players may build in, the objectives and what capturing one means. It is also the
-only tool that **validates a map properly** and the only one that writes the `map.xml` and the region tree,
-which is why every route through the studio ends here.
+teams, spawns, the space players may build in, the objectives and what capturing one means. It is the tool
+that **shows a map's validation and its `map.xml`** step by step, and the one an imported world cannot do
+without.
 
 **It is entered two ways, and they are genuinely different jobs.** A map that came through Plan and Sketch
 arrives carrying an intent already — its teams, spawns, wools and build zones were compiled from the plan —
-and Configure is where that is finished: the objective colours picked, the observer placed, anything the plan
-could not state added. A world built in Minecraft **outside** the studio arrives with nothing: it is
+so it exports without a visit: the Sketch tool's **Download map** runs the same export gates and saves the
+world. Configure is where such a map is changed: the objective colours picked, the observer placed, anything
+the plan could not state added. A world built in Minecraft **outside** the studio arrives with nothing: it is
 imported, scanned into the database, and configured from an empty intent by drawing the regions over terrain
 that already exists. The phases are the same either way; what differs is how much is already filled in.
 
@@ -140,7 +141,7 @@ for survives a save untouched.
 When `symmetry` is set, the generator **orbit-fills by default**: the author defines one team's unit and
 `SymmetryExpander` rotates or reflects it onto the others before projection, mapping orbit positions to
 `teams` in list order. That is why the steps below talk about placing team 0's spawn and getting the rest —
-the mirrored copies are generated, listed read-only with an *orbit* badge, and not separately editable. With
+the mirrored copies are generated, listed read-only with a *Copy* badge, and not separately editable. With
 no symmetry the intent passes through as authored and every team's units must be stated explicitly.
 
 ## What a save produces
@@ -168,10 +169,12 @@ rail locks anything further on, and jumping back is always allowed.
 
 ### Import — phase zero
 
-Only on `/maps/new`, and only for a world that has no `map.xml`. Three steps. **Source** lists the importable
-world folders under the imports root — a folder with `region/*.mca`, no `map.xml`, and no map already using
-its slug — or takes a download link, which is fetched server-side from an allowlisted host and extracted
-`region/*.mca`-only, so the browser never sees the archive. Next scans the chosen world into MariaDB, which is
+Only on `/maps/new`, and only for a world that has no `map.xml`. Three steps. **Source** takes a download
+link, which is fetched server-side from an allowlisted host and extracted `region/*.mca`-only, so the browser
+never sees the archive. On a studio in `open` access mode (`docs/access.md`), the one running on its author's
+machine, it also lists the importable world folders under the imports root — a folder with `region/*.mca`, no
+`map.xml`, and no map already using its slug. An invited studio does not show them, because nobody but the
+server's operator can put a folder on its disk. Next scans the chosen world into MariaDB, which is
 what creates the map row. **Found** is the detection brief over the scanned world: islands, wool blocks,
 monument candidates, resource blocks, chests, spawners, and the detected symmetry with its suggested team
 count, each selectable for a detail explanation. **Plan** hands off to the wizard at Identity.
@@ -204,7 +207,7 @@ in it to credit. The rule is one constant in `PgmStudio.Vocabulary`, read by the
 the two cannot disagree about what a name is.
 
 A row's mark is the account's head where an account answered, served by the studio itself
-(`GET /api/minecraft/player/{uuid}/skin`), and a neutral tile with the name's initial otherwise; it carries no
+(`GET /api/minecraft/player/{uuid}/head`), and a neutral tile with the name's initial otherwise; it carries no
 colour of its own, so nothing in it reads as a status (`docs/client/ui-conventions.md`).
 
 A map a signed-in person originates already credits them: the first row is theirs, as an `author`, under their
@@ -399,7 +402,7 @@ Leak is not a block: it is an attribute on the `<core>` element and nowhere else
 that authors the element. Paired with the measured float it states the dig — a leak greater than the float
 means breaching the casing is not enough and players must cut the ground out from under it.
 
-### Review & Export — Pre-flight · Region tree · XML
+### Review and export — Pre-flight · Region tree · XML
 
 **Pre-flight** runs five checks server-side over the generated map and reports the export verdict. Two are
 blocking and three advisory:
@@ -641,7 +644,7 @@ design.
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
 | `GET /map/{slug}/xml` | the `map.xml`, with `Pgm-Warnings` carrying the count and rule ids of everything the build complained about — a prop the dressing pass dropped (`OB19`), a goal it could not raise as authored, a capture point whose display regions show no colour (`OB29`), a team tint over land two teams share (`PT5`) | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `not a playable map` EX2/EX3/EX4/SH1 · **422** `dressing document invalid` DR-DOC · 404 |
-| `GET /map/{slug}/export` | the world ZIP, with `Pgm-Warnings` as above and `region/dressing-report.json` inside it carrying the rule, the cell and the prop for each; `map.png` beside `map.xml` is the picture a server lists the map by, and a studio without the block sprites leaves it out with an `RQ10` complaint | 404 unknown map · the same 409 and 422 as `/xml` (OB17/DR-DOC/EX3/EX4 sketch-origin maps only; EX1/EX2/SH1 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
+| `GET /map/{slug}/export` | the world ZIP, with `Pgm-Warnings` as above and `region/dressing-report.json` inside it carrying the rule, the cell and the prop for each; `map.png` beside `map.xml` is the picture a server lists the map by, and a studio without the block sprites leaves it out with an `RQ10` complaint | 401 signed out · 403 not on the whitelist (`docs/access.md`) · 404 unknown map · the same 409 and 422 as `/xml` (OB17/DR-DOC/EX3/EX4 sketch-origin maps only; EX1/EX2/SH1 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
 
 ## Driving it without the UI
 

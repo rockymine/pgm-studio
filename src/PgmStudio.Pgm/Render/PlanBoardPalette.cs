@@ -49,6 +49,19 @@ public static class PlanBoardPalette
     public const string WaterLaneColor = "#2563eb";
     public const int WaterLaneRgb = 0x2563eb;
 
+    /// <summary>The board's key: each role swatch, then the two zone kinds, in the order a legend lists them. The
+    /// PNG appends it under its raster, and a page showing board SVGs draws it once beside them, so the words and
+    /// the colours a reader is given are the ones the renderers paint with.</summary>
+    public static readonly IReadOnlyList<(string Label, int Rgb, bool Hatched)> Key =
+    [
+        ("Hub", 0xa78bfa, false), ("Spawn", 0x34d399, false), ("Wool", 0xfbbf24, false),
+        ("Front line", 0xfb923c, false), ("Other", 0x64748b, false),
+        ("Build zone", BuildZoneRgb, false), ("Water lane", WaterLaneRgb, true),
+    ];
+
+    /// <summary>A packed swatch as CSS hex.</summary>
+    public static string Hex(int rgb) => $"#{rgb:x6}";
+
     /// <summary>A wool marker's swatch, from the one dye table (<see cref="WoolColors"/>) the validator, the
     /// compiler and the editor all read, so a marker draws as the block it stamps.</summary>
     public static string WoolColor(string? color) => WoolColors.SwatchOf(color);

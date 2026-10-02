@@ -10,18 +10,17 @@
 
   <Sidebar>
       <Section Title="Wool spawn">
-        <p class="section-desc">Where each wool dispenses. The seed comes from the detected source; nudge it
-          with the <strong>point tool</strong> or the coordinates, and seat its Y on the side-view. Moving an
-          authored wool re-derives its mirror.</p>
+        <p class="section-desc">Where each wool spawns. It starts at the wool found in the world. Move it with
+          the <strong>point tool</strong> or the coordinates.</p>
         <div class="panel-list">
-          @if (wools.Count == 0) { <div class="list-empty">No wools — confirm objectives first.</div> }
+          @if (wools.Count == 0) { <div class="list-empty">No wools yet. Confirm them in the Objectives step first.</div> }
           @foreach (var w in wools)
           {
             <ListRow Compact Selected="selectedColor == w.Color"
                  @key="w.Color" OnClick="() => SelectWool(w.Color)">
-              <span class="geo-type-icon" style="color:@W.Hex(w.Color)"><i data-lucide="dot"></i></span>
+              <span class="geo-type-icon" style="--icon-tint: @W.Hex(w.Color)"><i data-lucide="dot"></i></span>
               <span class="list-label list-label--mono">@w.Color</span>
-              <Badge Class="@(IsAuthored(w) ? "badge--success" : "badge--dim")">@(IsAuthored(w) ? "authored" : "orbit")</Badge>
+              <Badge Class="@(IsAuthored(w) ? "badge--success" : "badge--dim")">@(IsAuthored(w) ? "Main" : "Copy")</Badge>
             </ListRow>
           }
         </div>
@@ -39,8 +38,8 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Color">
-          <DetailHeader Icon="dot" IconStyle="@($"color:{W.Hex(sel.Color)}")" Mono Label="@($"{sel.Color} wool")">
-            <Badge Class="@(IsAuthored(sel) ? "badge--success" : "badge--dim")">@(IsAuthored(sel) ? "authored" : "orbit")</Badge>
+          <DetailHeader Icon="dot" IconTint="@W.Hex(sel.Color)" Mono Label="@($"{sel.Color} wool")">
+            <Badge Class="@(IsAuthored(sel) ? "badge--success" : "badge--dim")">@(IsAuthored(sel) ? "Main" : "Copy")</Badge>
           </DetailHeader>
           <div class="section-body">
             <Field Label="Spawn location">
@@ -54,8 +53,8 @@
               </ChildContent>
             </Field>
             <SliceView Slug="@Slug" Node="@SpawnNode(sel)" OnYChanged="@(y => SetY(sel, y))" SeatOnFloor="true" />
-            <p class="section-desc">Owned by <strong>@(string.IsNullOrEmpty(sel.Owner) ? "—" : TeamName(sel.Owner))</strong>.
-              Drag the side-view line to set the Y. @(IsAuthored(sel) ? "Editing X/Z re-derives the mirror." : "")</p>
+            <p class="section-desc">@if (string.IsNullOrEmpty(sel.Owner)) { <text>No owner set.</text> } else { <text>Owned by <strong>@TeamName(sel.Owner)</strong>.</text> }
+              Drag the line in the side view to set its height.@(IsAuthored(sel) ? " Moving it also moves its symmetry copies." : "")</p>
           </div>
         </Section>
       }
@@ -63,7 +62,7 @@
       {
         <Section>
           <DetailHeader Icon="dot" IconMuted Label="Wool spawn" />
-          <p class="section-desc">Select a wool to place its source point and set its Y.</p>
+          <p class="section-desc">Select a wool to place its spawn.</p>
         </Section>
       }
   </Inspector>

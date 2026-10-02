@@ -22,6 +22,7 @@ export class CanvasBase {
   _panY       = 0;
   _viewportG  = null;
   _activeTool = null;
+  _readOnly   = false;   // the caller may not write this page: nothing the pointer does changes the document
 
   #isDragging   = false;
   #midDragging  = false;
@@ -108,6 +109,24 @@ export class CanvasBase {
 
   /** The drag ended — persist the grabbed handle's final position. */
   _commitMove(handle) {}
+
+  /** Called when `setReadOnly` changes the answer, for a surface to drop what it draws for editing. */
+  _onReadOnlyChanged() {}
+
+  /**
+   * Whether the caller may write the page this canvas is on. Read-only, the canvas still pans, zooms,
+   * selects and measures, and refuses every gesture that would change the document at its source: no body
+   * drag begins here, and each surface refuses its own draws, handles and chords.
+   */
+  /** The tool in hand — "move", "select", a draw tool, or null. */
+  get activeTool() { return this._activeTool; }
+
+  setReadOnly(on) {
+    const next = !!on;
+    if (next === this._readOnly) return;
+    this._readOnly = next;
+    this._onReadOnlyChanged();
+  }
 
   // ── shared API ─────────────────────────────────────────────────────────────
 
@@ -337,6 +356,7 @@ export class CanvasBase {
       if (e.button === 1) {
         e.preventDefault();
         this.#midDragging = true;
+        this._svg.classList.add("canvas--panning");
         this.#dragAnchor  = { x: e.clientX, y: e.clientY, panX: this._panX, panY: this._panY };
         return;
       }
@@ -348,7 +368,7 @@ export class CanvasBase {
       this.#dragAnchor = { x: e.clientX, y: e.clientY, panX: this._panX, panY: this._panY };
       // Body-drag: with the select tool, grabbing a movable shape/region drags it instead of panning.
       this.#moveState = null;
-      if (this._activeTool === "select") {
+      if (this._activeTool === "select" && !this._readOnly) {
         const world  = this._toWorld(svgPt);
         const handle = world ? this._hitMovable(world) : null;
         if (handle != null) {
@@ -363,6 +383,8 @@ export class CanvasBase {
     document.addEventListener("mousemove", (e) => {
       if (this._onResizeMove(e)) return;
       if (!this._viewportG) return;
+      // The pan tool shows an open hand, and a closed one while the view is being dragged.
+      this._svg.classList.toggle("canvas--pan", this._activeTool === "move");
 
       if (this.#midDragging && this.#dragAnchor) {
         this._panX = this.#dragAnchor.panX + (e.clientX - this.#dragAnchor.x);
@@ -386,6 +408,7 @@ export class CanvasBase {
             }
           }
         } else if (this.#didDrag && this._activeTool === "move") {
+          this._svg.classList.add("canvas--panning");
           this._panX = this.#dragAnchor.panX + dx;
           this._panY = this.#dragAnchor.panY + dy;
           this._applyViewportTransform();
@@ -398,6 +421,7 @@ export class CanvasBase {
     // Release
     document.addEventListener("mouseup", (e) => {
       if (this._onResizeUp(e)) return;
+      this._svg?.classList.remove("canvas--panning");
       if (e.button === 1) { this.#midDragging = false; this.#dragAnchor = null; return; }
       if (e.button !== 0) return;
       if (this.#isDragging) {

@@ -11,14 +11,14 @@
      as a separate setting rather than as the same one said exactly. Each half is a CoordField, which carries
      its own label inside the box — the only way two numbers fit beside a name without a heading each. *@
   <div class="block-picker-row">
-    <span class="block-chip" style="background:@Hex" title="@Name"></span>
+    <span class="block-chip" style="--swatch: @Hex" title="@Name"></span>
     <Select Options="Offered" Value="@SelectedKey" ValueChanged="ChooseBlock" />
     <CoordField Prefix="id" Type="number" Value="@Id" OnChange="SetId"
-                min="0" step="1" title="The block id this material places" />
+                min="0" step="1" title="Block ID" />
     @if (ShowColors)
     {
       <CoordField Prefix="data" Type="number" Value="@Data" OnChange="SetData"
-                  min="0" max="15" step="1" title="The block's data value — its shade, where it has one" />
+                  min="0" max="15" step="1" title="Data value (for example, the colour)" />
     }
   </div>
 

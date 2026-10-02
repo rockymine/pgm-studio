@@ -15,7 +15,7 @@
  * as floors rather than one plane — a gallery tree under the roof one is the same colour and fainter.
  */
 
-import { BUILDING_COLORS } from "./primitive-style.js";
+import { BUILDING_COLORS, REFUSED_COLOR } from "./primitive-style.js";
 import { strokeRing, strokePath } from "../geometry/stroke.js";
 import { isMarker, isRect, MAX_FOOTPRINT, onLayer, propAnchor, propReach, rectFootprint, rectPlan, wingCorners }
   from "../dressing/dressing-doc.js";
@@ -24,13 +24,13 @@ import polygonClipping from "../vendor/polygon-clipping.js";
 // One colour family per kind, so a glance separates a route from a stand of trees without reading a label. A
 // house takes the shared building ink, since a room's shell is drawn in it too.
 const KIND_STYLE = {
-  path:    { fill: "#8d8378", stroke: "#6f6459" },
-  fluid:   { fill: "#4a86c4", stroke: "#2f5f92" },
-  flora:   { fill: "#5aa64a", stroke: "#3f7f33" },
+  path:    { fill: "var(--canvas-prop-path-fill)", stroke: "var(--canvas-prop-path-stroke)" },
+  fluid:   { fill: "var(--canvas-prop-fluid-fill)", stroke: "var(--canvas-prop-fluid-stroke)" },
+  flora:   { fill: "var(--canvas-prop-flora-fill)", stroke: "var(--canvas-prop-flora-stroke)" },
   house:   BUILDING_COLORS,
-  tree:    { fill: "#2f7d46", stroke: "#1f5a31" },
-  boulder: { fill: "#8a8f96", stroke: "#5f656d" },
-  chest: { fill: "#a0722f", stroke: "#5c3d14" },
+  tree:    { fill: "var(--canvas-prop-tree-fill)", stroke: "var(--canvas-prop-tree-stroke)" },
+  boulder: { fill: "var(--canvas-prop-boulder-fill)", stroke: "var(--canvas-prop-boulder-stroke)" },
+  chest:   { fill: "var(--canvas-prop-chest-fill)", stroke: "var(--canvas-prop-chest-stroke)" },
 };
 
 const FILL_ALPHA = 0.34;
@@ -90,7 +90,7 @@ export function paintDressingPreview(painter, kind, points, radius) {
     // the first pixel of every drag — where being too big is a thing the author kept dragging to do.
     const plan = rectPlan({ points });
     if (plan && plan.width * plan.depth > MAX_FOOTPRINT) {
-      Object.assign(style, { fill: "#c0392b", fillAlpha: 0.12, stroke: "#c0392b", width: 1.5 });
+      Object.assign(style, { fill: REFUSED_COLOR, fillAlpha: 0.12, stroke: REFUSED_COLOR, width: 1.5 });
     }
     const rect = rectRing(points);
     if (rect.length >= 3) painter.ring(rect, style);
@@ -104,7 +104,7 @@ export function paintDressingPreview(painter, kind, points, radius) {
  *  ring — because a marker seats on the ground and there is none there to take it. */
 export function paintMarkerGhost(painter, kind, x, z, reach, valid = true) {
   const kindStyle = KIND_STYLE[kind] ?? KIND_STYLE.boulder;
-  const colour = valid ? kindStyle : { fill: "#c0392b", stroke: "#c0392b" };
+  const colour = valid ? kindStyle : { fill: REFUSED_COLOR, stroke: REFUSED_COLOR };
   painter.ring(disc(x, z, reach), {
     fill: colour.fill, fillAlpha: valid ? 0.2 : 0.12, stroke: colour.stroke, width: valid ? 1 : 1.5, dash: [5, 3],
   });

@@ -125,15 +125,17 @@ public partial class GeneratorTool : IAsyncDisposable
                 matching = page.Matching;
                 atEnd = page.End;
                 SetCensus(page.Observed);
+                key = page.Key;
             }
         }
-        catch { feedError = "Could not load boards."; atEnd = true; }
+        catch { feedError = "Couldn't load layouts. Reload the page to try again."; atEnd = true; }
         finally { loading = false; StateHasChanged(); }
     }
 
     // ── the structural census (what the library holds for these settings) ─────────────────────────────
     // Every page carries the census over the whole library for the band and symmetry, before the filters.
     private readonly Dictionary<string, int> seenWools = [], seenHubs = [], seenFronts = [];
+    private IReadOnlyList<BoardKeyEntry>? key;
     private int censusBoards;
 
     /// <summary>How many boards must be held before a token's absence is worth reporting as absence rather than
@@ -167,11 +169,11 @@ public partial class GeneratorTool : IAsyncDisposable
             .Select(f => f.Label)
             .ToList();
         if (censusBoards == 0)
-            return "The board library for these settings is still being composed. Check back later.";
+            return "Layouts for these settings are still being generated. Check back later.";
         if (never.Count == 0)
-            return $"No boards match these filters among the {censusBoards} held for these settings.";
-        return $"{string.Join(" and ", never)} did not turn up in any of the {censusBoards} boards held for these "
-             + "settings — it is not a mix these players and symmetry produce.";
+            return $"None of the {censusBoards} layouts for these settings match these filters.";
+        return $"{string.Join(" and ", never)} doesn't appear in any of the {censusBoards} layouts for these "
+             + "settings. These players and symmetry don't produce it.";
     }
 
     // every structural filter currently picked, with the census it reads against
@@ -188,10 +190,10 @@ public partial class GeneratorTool : IAsyncDisposable
     private string ChipTitle(Dictionary<string, int> seen, string token, string label)
     {
         var n = seen.GetValueOrDefault(token);
-        if (n > 0) return $"{label} — {n} of the {censusBoards} boards held for these settings";
+        if (n > 0) return $"{label}: {n} of {censusBoards} layouts";
         return CensusIsTelling
-            ? $"{label} — not produced by these settings (none in {censusBoards} boards)"
-            : $"{label} — none yet in {censusBoards} board{(censusBoards == 1 ? "" : "s")} held";
+            ? $"{label}: never generated with these settings (0 of {censusBoards} layouts)"
+            : $"{label}: none yet in {censusBoards} layout{(censusBoards == 1 ? "" : "s")}";
     }
 
     // ── structural filters (chips + card badges; toggling re-sieves the feed immediately) ────────────
@@ -253,8 +255,8 @@ public partial class GeneratorTool : IAsyncDisposable
     // A held board an older composer made. Its stored plan is intact and opens as-is; what has lapsed is the
     // descriptor's claim to reproduce it, so re-composing the same seed today gives a different board.
     private static string StaleTitle(PlanSummary p) =>
-        $"Held from composer {p.ComposerVersion ?? "(unrecorded)"}. Opens as stored; its seed no longer "
-        + "re-composes to this board.";
+        $"Made by an older generator version ({p.ComposerVersion ?? "unknown"}). It opens as saved, but its seed "
+        + "no longer produces this layout.";
 
     // ── detail dialog ──────────────────────────────────────────────────────────────
     private void OpenDetail(ComposeCard c) => detail = c;
@@ -294,11 +296,26 @@ public partial class GeneratorTool : IAsyncDisposable
     }
 
     // ── filter inputs ──────────────────────────────────────────────────────────────
-    private void OnPlayers(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var v)) players = v; }
-    private void OnMaxScore(ChangeEventArgs e) { if (double.TryParse(e.Value?.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var v)) maxScore = v; }
-    private void OnWoolMin(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var v)) woolMin = Math.Max(0, v); }
-    private void OnWoolMax(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var v)) woolMax = Math.Max(0, v); }
-    private void PickSymmetry(string s) => symmetry = s;
+    // A slider shows its value while it moves and applies when it is let go; everything else applies at once.
+    private void OnPlayers(double value) => players = (int)value;
+    private Task ApplyPlayers(double value) { OnPlayers(value); return Reload(); }
+    private void OnMaxScore(double value) => maxScore = value;
+    private Task ApplyMaxScore(double value) { OnMaxScore(value); return Reload(); }
+    private Task OnWoolMin(double value) { woolMin = Math.Max(0, (int)value); return Reload(); }
+    private Task OnWoolMax(double value) { woolMax = Math.Max(0, (int)value); return Reload(); }
+    private Task PickSymmetry(string s) { symmetry = s; return Reload(); }
+
+    private bool ShapeFiltered => woolFilter.Count + hubFilter.Count + frontFilter.Count > 0;
+
+    private Task ClearShapeFilters()
+    {
+        woolFilter.Clear(); hubFilter.Clear(); frontFilter.Clear();
+        return Reload();
+    }
+
+    /// <summary>A card's wool approach families by their filter labels, each once.</summary>
+    private string WoolLabels(IEnumerable<string> tokens) =>
+        string.Join(", ", tokens.Distinct().Select(t => Label(WoolChips.Select(w => (w.Token, w.Label)), t)));
 
     // ── land spend ───────────────────────────────────────────────────────────────
     // Two currencies, never one: footprint is the box rect (fixed when the box was seated), land is what the
@@ -322,9 +339,9 @@ public partial class GeneratorTool : IAsyncDisposable
     {
         var kinds = string.Join(", ", spend.ByKind.Select(k =>
             $"{k.Kind}{(k.Boxes > 1 ? $" x{k.Boxes}" : string.Empty)} {k.LandCells}"));
-        return $"Band {spend.Band}: land {spend.Unit.Cells} of {spend.Unit.BudgetCells:0} budget cells, one "
-             + $"team unit (footprint {spend.FootprintCells}); mid stones {spend.Mid.Cells} of "
-             + $"{spend.Mid.BudgetCells:0}, shared. By box: {kinds}.";
+        return $"Size {spend.Band}: land {spend.Unit.Cells} of {spend.Unit.BudgetCells:0} budget cells for one "
+             + $"team (footprint {spend.FootprintCells}). Mid: {spend.Mid.Cells} of "
+             + $"{spend.Mid.BudgetCells:0} cells, shared. By box: {kinds}.";
     }
 
     public async ValueTask DisposeAsync()

@@ -7,7 +7,9 @@ namespace PgmStudio.Contracts;
 /// request plus the row's id, which a theme binds it by, and its card picture. The preview is rendered
 /// through the real painter: a library is browsed by what its entries look like, so the picture travels with
 /// the row rather than costing one request per card.</summary>
-public sealed record StyleDto(long Id, string Name, string Kind, string Params, string Preview)
+/// <remarks><c>Seeded</c> says whether the seed folder states this row. A seeded row is rewritten on every start and
+/// refuses an edit or a delete (<c>LB6</c>); it is changed by saving a copy.</remarks>
+public sealed record StyleDto(long Id, string Name, string Kind, string Params, string Preview, bool Seeded = false)
     : StyleSaveRequest(Name, Kind, Params);
 
 /// <summary>Create/update a style (POST /api/styles, PUT /api/styles/{id}).</summary>
@@ -30,8 +32,10 @@ public record StyleSaveRequest(string Name, [property: WordSet(typeof(MaterialKi
 /// <param name="Params">The serialized <c>BiomeField</c>, as JSON text.</param>
 /// <param name="Preview">A top-down patch of grass under the field, as an SVG. Named as every other library
 /// row names its picture, because the browse grid reads one field across every kind.</param>
+/// <param name="Seeded">Whether the seed folder states this row. A seeded row is rewritten on every start and refuses an
+/// edit or a delete (<c>LB6</c>); it is changed by saving a copy.</param>
 public sealed record BiomePatternSummary(long Id, string Name, string Kind,
-    string Params, string Preview) : BiomePatternSaveRequest(Name, Kind, Params);
+    string Params, string Preview, bool Seeded = false) : BiomePatternSaveRequest(Name, Kind, Params);
 
 /// <summary>Create/update a biome pattern (POST /api/biome-patterns, PUT /api/biome-patterns/{id}).</summary>
 /// <param name="Name">What the library lists it under — the author's word, not a key.</param>
@@ -43,18 +47,29 @@ public sealed record BiomePatternSummary(long Id, string Name, string Kind,
 public record BiomePatternSaveRequest(string Name,
     [property: WordSet(typeof(BiomeKinds))] string Kind, string Params);
 
-/// <summary>One bucket binding of a theme (<see cref="ThemeBuckets"/>): the style that fills it, and the
-/// bucket's depth (rim/surface) and toggle. <paramref name="StyleId"/> 0 binds no style — the bucket keeps the
-/// built-in material and the binding carries only its depth and its toggle, which is how a theme says "no
-/// rim" without first being made to choose a rim material.</summary>
+/// <summary>One block filling a slot in place of a library pattern — a theme's bucket or a building's course.
+/// A single block is not a pattern: it is named by its id and variant, which the block catalogue
+/// (<c>GET /api/terrain/blocks</c>) already answers, so a slot holds it directly rather than through a row.</summary>
+/// <param name="Id">The block id.</param>
+/// <param name="Data">Its variant: a wood's species, a stone's kind, a clay's colour.</param>
+/// <param name="Laid">Whether the block is laid along the run it sits in rather than standing — a log lying
+/// with the wall or the roof, bark out, never end-on. Only a log has an axis to lay.</param>
+public sealed record SlotBlockDto(int Id, int Data, bool Laid);
+
+/// <summary>One bucket binding of a theme (<see cref="ThemeBuckets"/>): what fills it — one block, or a
+/// library pattern — and the bucket's depth (rim/surface) and toggle. Binding neither keeps the built-in
+/// material, and the binding carries only its depth and its toggle, which is how a theme says "no rim" without
+/// first being made to choose a rim material.</summary>
 /// <param name="Bucket">Which part of the ground this binding fills.</param>
-/// <param name="StyleId">The style that fills it, or <c>0</c> to bind none — which keeps the built-in
-/// material and is how a theme says "no rim" without first being made to choose a rim material.</param>
+/// <param name="StyleId">The pattern that fills it, or <c>0</c> where a block does or nothing does.</param>
+/// <param name="Block">The block that fills it, or null where a pattern does or nothing does. A binding naming
+/// both is refused.</param>
 /// <param name="Depth">How many top courses the bucket claims, where it claims a configurable number: the
 /// rim and the surface do, the wall's depth is the riser it finds, and the fill takes what is left.</param>
 /// <param name="Enabled">Whether the bucket is painted at all.</param>
 public sealed record ThemeBucketDto(
-    [property: WordSet(typeof(ThemeBuckets))] string Bucket, long StyleId, int Depth, bool Enabled);
+    [property: WordSet(typeof(ThemeBuckets))] string Bucket, long StyleId, SlotBlockDto? Block, int Depth,
+    bool Enabled);
 
 /// <summary>One row in the theme library list (GET /api/themes), with the sample plateau the theme finishes —
 /// the same reason <see cref="StyleDto.Preview"/> travels with a style.</summary>
@@ -68,10 +83,12 @@ public sealed record ThemeSummary(long Id, string Name, string Preview);
 /// restated the same fields would be one shape twice. The painter-ready JSON is served separately at
 /// GET /api/themes/{id}/json (assembled through the styles). The id is the row number a sketch pulls it in
 /// by; every other field is the save request's and is documented there.</summary>
+/// <remarks><c>Seeded</c> says whether the seed folder states this row. A seeded row is rewritten on every start and
+/// refuses an edit or a delete (<c>LB6</c>); it is changed by saving a copy.</remarks>
 public sealed record ThemeDetail(
     long Id, string Name,
     bool BedrockRelative, int BedrockValue, string RimEdges, bool WallOnTerrainFaces,
-    IReadOnlyList<ThemeBucketDto> Buckets)
+    IReadOnlyList<ThemeBucketDto> Buckets, bool Seeded = false)
     : ThemeSaveRequest(Name, BedrockRelative, BedrockValue, RimEdges, WallOnTerrainFaces, Buckets);
 
 /// <summary>Create or replace a theme built from existing styles (POST /api/themes, PUT /api/themes/{id}): the
@@ -125,16 +142,18 @@ public sealed record ThemePreviewDto(string Section, IReadOnlyDictionary<string,
 // an ordered *stack* of them rather than one, because that is what a shell's floor, wall and roof are.
 
 /// <summary>One course of a room style's part: which <see cref="RoomParts"/> it belongs to, where it sits in
-/// that part's stack (0 = the course nearest the part's own base), the style it resolves through, and how many
-/// courses it runs.</summary>
+/// that part's stack (0 = the course nearest the part's own base), what it is laid in — one block, or a library
+/// pattern — and how many courses it runs.</summary>
 /// <param name="Part">Which part of the shell the course belongs to.</param>
 /// <param name="Ordinal">Where it sits in that part's stack, 0 being the course nearest the part's own
 /// base. Counting up from the base is what pins a band: a stripe written at the fourth course stays at the
 /// fourth course when the wall grows.</param>
-/// <param name="StyleId">The library style it resolves through.</param>
+/// <param name="StyleId">The pattern it is laid in, or <c>0</c> where a block is.</param>
+/// <param name="Block">The block it is laid in, or null where a pattern is. Exactly one of the two is stated.</param>
 /// <param name="Height">How many courses it runs.</param>
 public sealed record RoomCourseDto(
-    [property: WordSet(typeof(RoomParts))] string Part, int Ordinal, long StyleId, int Height);
+    [property: WordSet(typeof(RoomParts))] string Part, int Ordinal, long StyleId, SlotBlockDto? Block,
+    int Height);
 
 /// <summary>One row in the room-style library list (GET /api/room-styles), with the shell it stamps.</summary>
 /// <param name="Id">The row number every later route names it by.</param>
@@ -218,11 +237,15 @@ public sealed record RoofStyleSummary(long Id, string Name, string Preview);
 
 /// <summary>A roof style: everything above the eave — the save request plus the row's id, which a room
 /// style binds it by. Its courses are the <c>roof</c>, <c>verge</c> and <c>gable</c> parts.</summary>
+/// <remarks><c>Seeded</c> says whether the seed folder states this row. A seeded row is rewritten on every start and
+/// refuses an edit or a delete (<c>LB6</c>); it is changed by saving a copy.</remarks>
 public sealed record RoofStyleDetail(
     long Id, string Name, string Form,
     int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
-    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0)
-    : RoofStyleSaveRequest(Name, Form, Pitch, Overhang, RoofHole, RidgeCap, Courses, RoofSlab, RoofSlabData);
+    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0, int RoofStair = -1,
+    double RoofWear = 0, bool Seeded = false)
+    : RoofStyleSaveRequest(
+        Name, Form, Pitch, Overhang, RoofHole, RidgeCap, Courses, RoofSlab, RoofSlabData, RoofStair, RoofWear);
 
 /// <summary>Create or replace a roof style. <paramref name="RoofSlab"/> is the block a half-course rise steps
 /// on every odd course, or -1 for a roof laid in whole blocks — the roof's own, since a roof style owns
@@ -244,10 +267,15 @@ public sealed record RoofStyleDetail(
 /// whole blocks. It is the number the slab/pitch pairing is checked against.</param>
 /// <param name="RoofSlabData">That slab's variant nibble — which wood, which stone. Which half of the cube it
 /// fills is the stamper's and is not stated here.</param>
+/// <param name="RoofStair">The stair a roof laid in whole courses steps in, climbing toward its ridge and hung
+/// upside down under its rake, or -1 for a roof laid in cubes. Never with <paramref name="RoofSlab"/>.</param>
+/// <param name="RoofWear">0–1; how weathered the roof is: this share of a stair roof's slope laid as whole
+/// blocks and of its rim as slabs, and of the courses hung under any roof's edge left out.</param>
 public record RoofStyleSaveRequest(
     string Name, [property: WordSet(typeof(RoofForms))] string Form,
     int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
-    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0);
+    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0, int RoofStair = -1,
+    double RoofWear = 0);
 
 /// <summary>One row in the storey library, with the room it stamps. <paramref name="Clear"/> rides along
 /// because a house binding a stack of these has to say how tall the stack comes out, and asking the server
@@ -261,9 +289,11 @@ public sealed record StoreyStyleSummary(long Id, string Name, int Clear, string 
 
 /// <summary>A storey style: one room, as the save request plus the row's id, which a room style's storey
 /// stack names it by. The courses are the <c>wall</c>, <c>post</c> and the three floor zones.</summary>
+/// <remarks><c>Seeded</c> says whether the seed folder states this row. A seeded row is rewritten on every start and
+/// refuses an edit or a delete (<c>LB6</c>); it is changed by saving a copy.</remarks>
 public sealed record StoreyStyleDetail(
     long Id, string Name, int Clear, int BorderWidth, int InlayInset, RoomWindowDto Windows,
-    IReadOnlyList<RoomCourseDto> Courses)
+    IReadOnlyList<RoomCourseDto> Courses, bool Seeded = false)
     : StoreyStyleSaveRequest(Name, Clear, BorderWidth, InlayInset, Windows, Courses);
 
 /// <summary>Create or replace a storey style.</summary>
@@ -289,8 +319,10 @@ public sealed record PorchStyleSummary(long Id, string Name, string Preview);
 /// <summary>A porch style: the strip of footprint the walls give up and what stands on it, as the save
 /// request plus the row's id, which a room style binds it by. No courses — a porch's deck is the house's
 /// floor and its canopy the roof's material, so what is left to it is its shape.</summary>
+/// <remarks><c>Seeded</c> says whether the seed folder states this row. A seeded row is rewritten on every start and
+/// refuses an edit or a delete (<c>LB6</c>); it is changed by saving a copy.</remarks>
 public sealed record PorchStyleDetail(
-    long Id, string Name, int Depth, int Inset, string Edge, string Roof, int RailBlock)
+    long Id, string Name, int Depth, int Inset, string Edge, string Roof, int RailBlock, bool Seeded = false)
     : PorchStyleSaveRequest(Name, Depth, Inset, Edge, Roof, RailBlock);
 
 /// <summary>Create or replace a porch style.</summary>
@@ -318,8 +350,10 @@ public sealed record TreeStyleSummary(long Id, string Name, string Preview);
 
 /// <summary>A tree recipe (GET /api/tree-styles/{id}): the save request plus the row's id, which a placement
 /// names it by once it is pulled into a map's dressing registry.</summary>
+/// <remarks><c>Seeded</c> says whether the seed folder states this row. A seeded row is rewritten on every start and
+/// refuses an edit or a delete (<c>LB6</c>); it is changed by saving a copy.</remarks>
 public sealed record TreeStyleDetail(
-    long Id, string Name, string Form, string Species, double Height, int[][]? Body = null, TreeCut? Cut = null)
+    long Id, string Name, string Form, string Species, double Height, int[][]? Body = null, TreeCut? Cut = null, bool Seeded = false)
     : TreeStyleSaveRequest(Name, Form, Species, Height, Body, Cut);
 
 /// <summary>Where a copied tree was cut: the world it stood in, its foot there, when, and who built it there.
@@ -365,8 +399,10 @@ public record TreeStyleSaveRequest(
 public sealed record BoulderStyleSummary(long Id, string Name, string Preview);
 
 /// <summary>A boulder recipe (GET /api/boulder-styles/{id}): the save request plus the row's id.</summary>
+/// <remarks><c>Seeded</c> says whether the seed folder states this row. A seeded row is rewritten on every start and
+/// refuses an edit or a delete (<c>LB6</c>); it is changed by saving a copy.</remarks>
 public sealed record BoulderStyleDetail(
-    long Id, string Name, string Form, double Size, bool Mossy, string Rock)
+    long Id, string Name, string Form, double Size, bool Mossy, string Rock, bool Seeded = false)
     : BoulderStyleSaveRequest(Name, Form, Size, Mossy, Rock);
 
 /// <summary>Create or replace a boulder recipe — a glacial erratic's form, its reach, what it is cut from and
@@ -395,6 +431,8 @@ public sealed record RoomStoreyDto(long StoreyStyleId, int Clear);
 /// answer that restated the same twenty-five fields would be one shape twice and the two would drift. A part
 /// with no courses keeps the built-in finish, the way an unbound theme bucket does. The id is the row
 /// number a sketch binds it by.</summary>
+/// <remarks><c>Seeded</c> says whether the seed folder states this row. A seeded row is rewritten on every start and
+/// refuses an edit or a delete (<c>LB6</c>); it is changed by saving a copy.</remarks>
 public sealed record RoomStyleDetail(
     long Id, string Name,
     int FloorDepth, int WallHeight,
@@ -406,11 +444,12 @@ public sealed record RoomStyleDetail(
     long? RoofStyleId, long? PorchStyleId, IReadOnlyList<RoomStoreyDto> StoreyStack,
     IReadOnlyList<RoomCourseDto> Courses,
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
-    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2)
+    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2,
+    int RoofStair = -1, double RoofWear = 0, string Front = PorchEdges.Front, bool Seeded = false)
     : RoomStyleSaveRequest(
         Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
         Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
-        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth)
+        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear, Front)
 {
     /// <summary>The style as the request that would store it unchanged — every field, including the ones an
     /// editor draws no control for. An editor loading a row into a draft takes this rather than restating the
@@ -419,7 +458,7 @@ public sealed record RoomStyleDetail(
     public RoomStyleSaveRequest AsSaveRequest() => new(
         Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
         Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
-        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth);
+        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear, Front);
 }
 
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}) — a whole
@@ -472,6 +511,11 @@ public sealed record RoomStyleDetail(
 /// <param name="DoorWidth">How wide the opening is asked for. Never cut under two however it is set: a
 /// single-width gap is not a door, and a room an objective is carried out of has to read as somewhere to walk
 /// through.</param>
+/// <param name="RoofStair">The stair a roof laid in whole courses steps in, or -1 for one laid in cubes.
+/// Never with <paramref name="RoofSlab"/>.</param>
+/// <param name="RoofWear">0–1; how weathered the roof is.</param>
+/// <param name="Front">The wall the doorway is cut through, from <see cref="PorchEdges"/>: <c>front</c> leaves the
+/// building's own, read off its footprint.</param>
 public record RoomStyleSaveRequest(
     string Name,
     int FloorDepth, int WallHeight,
@@ -485,7 +529,9 @@ public record RoomStyleSaveRequest(
     // Trailing and defaulted so every existing construction site keeps compiling and keeps meaning "this
     // building has none" — which is what every stored style already was.
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
-    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2);
+    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2,
+    int RoofStair = -1, double RoofWear = 0,
+    [property: WordSet(typeof(PorchEdges))] string Front = PorchEdges.Front);
 
 /// <summary>What an editor draws a room style from: three flat pictures — from above, projected onto its
 /// front, and one plane at the scale of the pieces in it — and the building itself, as the columns a 3-D view

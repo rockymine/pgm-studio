@@ -9,7 +9,7 @@
 
 <LibraryEditor Kind="LibraryKinds.Themes" Name="@draftName" NameChanged="SetName" Nests="false"
                Outline="Outline" Selected="@selected" OnSelect="Pick"
-               Footnote="@Footnote" Note="@note">
+               Footnote="@Footnote" Note="@note" Seeded="seeded">
   <Preview>
     @if (preview is null) { <p class="lib-status">Nothing to draw yet.</p> }
     else { <figure class="lib-fig lib-fig--section">@((MarkupString)preview.Section)</figure> }
@@ -17,7 +17,7 @@
   <Fields>
     @* No draft, no fields; and inside that, reading is not refused — the refusal is `note`'s and shows in the
        header. See HouseEditor. *@
-    @if (draft is null) { @if (note is null) { <p class="section-desc">Reading the theme…</p> } }
+    @if (draft is null) { @if (note is null) { <p class="section-desc">Loading…</p> } }
     else
     {
       @foreach (var bucket in ThemeBucketInfo.All)
@@ -31,7 +31,7 @@
               @* A bucket switches off whether or not it is bound: a theme needs neither a rim nor a wall, and
                  asking for a material first would be asking which colour the thing you do not want should be. *@
               <Chip Active="binding.Enabled" OnClick="() => ToggleBucket(bucket.Id)">
-                @(binding.Enabled ? "Painting" : "Off")
+                @(binding.Enabled ? "On" : "Off")
               </Chip>
             }
           </Actions>
@@ -42,14 +42,13 @@
               <div class="lib-bucket">
                 <div class="lib-bucket-fields">
                   <Field Label="Made of">
-                    <StyleSelect Styles="styles" Value="@binding.StyleId" Unbound="(unbound — stone)"
-                                 ValueChanged="id => BindStyle(bucket.Id, id)" />
+                    <SlotSelect Styles="styles" Blocks="blocks" Value="@binding.StyleId" Block="binding.Block"
+                                Unbound="Stone (default)" ValueChanged="fill => Fill(bucket.Id, fill)" />
                   </Field>
-                  @if (bucket.HasDepth && binding.StyleId != Unbound)
+                  @if (bucket.HasDepth && IsBound(binding))
                   {
                     <Field Label="Courses deep">
-                      <input class="field-input field-input--slim" type="number" min="1" step="1"
-                             value="@binding.Depth" @onchange="e => SetDepth(bucket.Id, e)" />
+                      <NumberField Slim Min="1" Value="binding.Depth" ValueChanged="value => SetDepth(bucket.Id, value)" />
                     </Field>
                   }
                 </div>
@@ -57,7 +56,7 @@
                    picture the sketch's apply rail shows, answered by the same preview call. *@
                 @if (Swatch(bucket.Id) is { Length: > 0 } swatch)
                 {
-                  <div class="theme-swatch-img lib-bucket-swatch" title="@($"What {bucket.Title} alone paints")">
+                  <div class="theme-swatch-img lib-bucket-swatch" title="@($"What the {bucket.Title.ToLowerInvariant()} paints on its own")">
                     @((MarkupString)swatch)
                   </div>
                 }
@@ -65,7 +64,7 @@
             }
             else
             {
-              <p class="section-desc">Off — its blocks fall through to @bucket.FallsTo.</p>
+              <p class="section-desc">Off. These blocks use @bucket.FallsTo instead.</p>
             }
           </ChildContent>
         </Section>
@@ -74,15 +73,14 @@
       @if (CanImport)
       {
         <Section Title="Start from JSON" Class="lib-section--wide">
-          <p class="section-desc">A whole terrain-paint theme, as the painter reads one — what an agent writes
-            over the API and what a board saves out. Importing it makes one style per bucket and binds them,
-            so it lands as an editable theme rather than a blob.</p>
+          <p class="section-desc">Paste a palette's JSON. Importing it creates one pattern for each part, so
+            the palette stays editable.</p>
           <Field Error="@importError">
             <textarea class="field-input theme-json" spellcheck="false" placeholder="{ &quot;rim&quot;: … }"
                       @bind="importJson"></textarea>
           </Field>
           <div class="panel-actions">
-            <Button Variant="primary" Icon="download" OnClick="ImportJson"
+            <Button Variant="primary" Icon="download" Writes OnClick="ImportJson"
                     Disabled="@(string.IsNullOrWhiteSpace(importJson) || string.IsNullOrWhiteSpace(draftName))">
               Import
             </Button>
@@ -92,14 +90,12 @@
 
       <Section Title="Ground and edges" Class="@($"{SectionCls(GroundPart)} lib-section--wide")"
                id="@LibraryEditor.SectionAnchor(GroundPart)">
-        <p class="section-desc">How far down the paint reaches, and which faces count as an edge worth
-          capping.</p>
+        <p class="section-desc">How deep the paint goes, and where the rim and wall are painted.</p>
         <div class="lib-knobs">
           <Field Label="Bedrock floor">
             <div class="panel-actions">
               <Select Options="BedrockModes" Value="@BedrockMode" ValueChanged="SetBedrockMode" />
-              <input class="field-input field-input--slim" type="number" min="0" step="1"
-                     value="@draft.BedrockValue" @onchange="SetBedrockValue" />
+              <NumberField Slim Min="0" Value="draft.BedrockValue" ValueChanged="SetBedrockValue" />
             </div>
           </Field>
           <Field Label="Where the rim runs">
@@ -108,7 +104,7 @@
           </Field>
           <Field Label="Where the wall runs">
             <Chip Active="draft.WallOnTerrainFaces" OnClick="ToggleWallFaces">
-              @(draft.WallOnTerrainFaces ? "Terrain and void risers" : "Only risers facing the void")
+              @(draft.WallOnTerrainFaces ? "Faces toward terrain or void" : "Only faces toward the void")
             </Chip>
           </Field>
         </div>
@@ -116,13 +112,16 @@
     }
   </Fields>
   <Actions>
-    <Button Variant="primary" Icon="save" Disabled="@(!CanSave)" OnClick="Save">
-      @(editingId is null ? "Add to library" : "Save changes")
-    </Button>
+    @if (!seeded)
+    {
+      <Button Variant="primary" Icon="save" Disabled="@(!CanSave)" Writes OnClick="Save">
+        @(editingId is null ? "Add to library" : "Save changes")
+      </Button>
+    }
     @if (editingId is not null)
     {
-      <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
-      <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
+      <Button Icon="copy" Writes OnClick="SaveAsCopy">Save as copy</Button>
+      @if (!seeded) { <Button Variant="danger" Icon="trash-2" Deletes OnClick="Delete">Delete</Button> }
     }
   </Actions>
 </LibraryEditor>

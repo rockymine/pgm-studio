@@ -26,7 +26,7 @@ public static class ConfigurePhases
         new("wools",  "goal",           "Wools",           ["Objectives", "Spawn", "Monuments", "Room"],      "N04"),
         new("dtm",    "gem",            "Destroyables",    ["Objectives"],                                    "N12"),
         new("cores",  "flame",          "Cores",           ["Objectives", "Casing"],                          "N12"),
-        new("review", "badge-check",    "Review & Export", ["Pre-flight", "Region tree", "XML"],              "N05"),
+        new("review", "badge-check",    "Review and export", ["Pre-flight", "Region tree", "XML"],              "N05"),
     ];
 
     /// <summary>The intent keys the objective phases author, in rail order. Every one of them contributes to

@@ -473,8 +473,8 @@ public sealed record BedrockSpec(bool Relative, int Value)
 /// <para><b>The material defaults are stone in every bucket</b>, which is what unpainted ground already is: the
 /// built-in states no finish, so ground nothing has themed reads as ground nothing has themed. The geometry
 /// defaults still hold — a rim runs where the ground drops, a wall covers every riser — they simply resolve to
-/// the same block until a theme says otherwise. Finishes worth starting from are the named themes in
-/// <see cref="ThemePresets"/>, seeded into the library and picked by an author.</para>
+/// the same block until a theme says otherwise. Finishes worth starting from are the named themes the library
+/// is seeded with (<see cref="Library.SeedFolder.Themes"/>), picked by an author.</para>
 /// </summary>
 public sealed record TerrainTheme
 {

@@ -8,7 +8,7 @@
 
 import { paintShape } from "./shape-render.js";
 import { toRing } from "../geometry/shape.js";
-import { primitiveStyle, opColors, OBJECTIVE_COLORS, BUILDING_COLORS } from "./primitive-style.js";
+import { primitiveStyle, opColors, OBJECTIVE_COLORS, BUILDING_COLORS, UNKNOWN_KIND_COLOR } from "./primitive-style.js";
 import { dyeColorLabel } from "./palette.js";
 
 function shapeStyle(shape, selected) {
@@ -40,10 +40,9 @@ export function paintSketchShape(painter, shape, { selected = false, alpha = 1 }
 // Human-readable kind word for a structural role (S25). Wool rooms read as "wool"; spawn stays "spawn".
 const STRUCT_KIND = { spawn: "spawn", woolRoom: "wool" };
 
-// Plan-tool role colours (the canonical set is plan/plan-doc.js ROLE_COLORS — purple spawn, green wool room),
-// so the surfaced pieces read in the same colours the plan drew them in. Kept as two local constants rather
-// than importing the plan module into the render leaf; if the plan palette changes these, mirror them here.
-const ROLE_FILL = { spawn: "#8f7bd6", woolRoom: "#3fae74" };
+// The plan's role tokens (plan/plan-doc.js ROLE_COLORS names the same two), so the surfaced pieces read in the
+// colours the plan drew them in without the render leaf importing the plan module.
+const ROLE_FILL = { spawn: "var(--canvas-role-spawn)", woolRoom: "var(--canvas-role-wool-room)" };
 
 /**
  * The plan's structural pieces (S25) — the spawn and wool-room regions the plan already placed, projected
@@ -61,7 +60,7 @@ const ROLE_FILL = { spawn: "#8f7bd6", woolRoom: "#3fae74" };
 export function paintStructural(painter, shapes, selectedId = null) {
   for (const s of shapes ?? []) {
     if (s.type !== "rectangle") continue;
-    const hex = ROLE_FILL[s.role] ?? "#8892a0";
+    const colour = ROLE_FILL[s.role] ?? UNKNOWN_KIND_COLOR;
     const box = { min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z };
     // The ring goes outside whatever the piece draws for itself, in the selection ink every other picked
     // thing on this canvas wears, so a picked region and a picked island read as the same kind of state.
@@ -76,7 +75,7 @@ export function paintStructural(painter, shapes, selectedId = null) {
       continue;
     }
     painter.rect({ min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z },
-      { fill: hex, fillAlpha: 0.32, stroke: hex, strokeAlpha: 0.95, width: 2 });
+      { fill: colour, fillAlpha: 0.32, stroke: colour, strokeAlpha: 0.95, width: 2 });
 
     const kind = STRUCT_KIND[s.role] ?? s.role ?? "";
     // The box colour carries the role, so the label carries the identity as "<who> <role>": a spawn by its
@@ -104,7 +103,7 @@ export function paintObjectives(painter, objectives) {
   const half = 1.6;
   for (const { kind, x, z } of objectives ?? []) {
     if (!Number.isFinite(x) || !Number.isFinite(z)) continue;
-    const color = OBJECTIVE_COLORS[kind] ?? "#888";
+    const color = OBJECTIVE_COLORS[kind] ?? UNKNOWN_KIND_COLOR;
     painter.rect({ min_x: x - half, min_z: z - half, max_x: x + half, max_z: z + half },
       { fill: color, fillAlpha: 0.85, stroke: "var(--canvas-ink)", strokeAlpha: 0.7, width: 1.5 });
   }

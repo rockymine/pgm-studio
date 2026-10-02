@@ -2,6 +2,7 @@ using PgmStudio.Geom;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Library;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
@@ -354,11 +355,11 @@ public sealed class TerrainPainterTests
             columns.Add(Seg(x, z, 1, 9));
 
         var red = Build(columns);
-        TerrainPainter.Paint(red.World, red.SurfaceTop, ThemePresets.Meadow, teamDamageAt: (_, _) => 14);
+        TerrainPainter.Paint(red.World, red.SurfaceTop, SeedFolder.Meadow, teamDamageAt: (_, _) => 14);
         await Assert.That(red.World.GetBlock(0, 5, 2)).IsEqualTo((Blocks.StainedClay, 14));   // wall = red clay
 
         var neutral = Build(columns);
-        TerrainPainter.Paint(neutral.World, neutral.SurfaceTop, ThemePresets.Meadow);            // no team map
+        TerrainPainter.Paint(neutral.World, neutral.SurfaceTop, SeedFolder.Meadow);            // no team map
         await Assert.That(neutral.World.GetBlock(0, 5, 2)).IsEqualTo((Blocks.StainedClay, 8));  // wall = neutral grey
     }
 

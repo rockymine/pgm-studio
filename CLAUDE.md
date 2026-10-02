@@ -228,8 +228,9 @@ renamed or retired changes its `vocabulary.md` row in the same commit.
   failures land as 30s route timeouts that look like page faults.
 - **`.github/workflows/ci.yml`** runs the same gates on every pull request and push to `main`: the build, all
   ten test projects (the three database ones serially, on MariaDB installed the way `docs/cloud-setup.md`
-  does), the JS suite, the census, the tool scripts and `./tools/e2e.sh all`. A red check there is the
-  same failure a local run would show, not an environment quirk.
+  does), the JS suite, the census, the tool scripts and `./tools/e2e.sh all` with
+  `Textures__AcceptMojangEula=true`, so In game draws real pictures. A red check there is the same failure a
+  local run made the same way would show, not an environment quirk.
 - **`tools/PgmStudio.RoundTrip --goldens [featureRoot] [--update]`** is the corpus regression net: the four
   map-level derivations over every corpus map, compared against `corpus-goldens.json`, so a change that moves
   a verdict says which maps and what moved. Re-record when the change is deliberate — it buys the look, not a
@@ -261,8 +262,9 @@ So a script earns a place in `tools/` only by being **re-run**, which is one of 
 
 - a **gate** that fails — `reproduction-gate`, `figure-check`, the fingerprints;
 - a **generator of a committed artifact** — `envelope-stats` writes `seed-envelopes.md`, `fingerprints` writes
-  `composer-fingerprints.json`, `census.sh` writes `project-structure.md`'s size table;
-- an **operational tool** the product needs — `seed-library` seeds the database, `seed-trees` its tree corpus.
+  `composer-fingerprints.json`, `census.sh` writes `project-structure.md`'s size table, `seed-trees` the library
+  seed folder's `trees.json`;
+- an **operational tool** the product needs — `seed-library` seeds a database from the library's seed folder.
 
 Nothing else. **"It might be useful again" is not one of them** — it is the sentence that produced all 44, and
 a fresh throwaway against today's `src/` beats a restored one against 2026's every time. Data is judged the

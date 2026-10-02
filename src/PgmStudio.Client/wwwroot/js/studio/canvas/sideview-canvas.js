@@ -30,7 +30,7 @@ import { CanvasPainter } from "../render/canvas-painter.js";
 // Color stops: nearest block = light stone, farthest = very dark
 const _NEAR  = [200, 195, 188];
 const _FAR   = [40,  38,  35];
-const _LINE_COLOR  = "var(--canvas-sideview-line, rgba(250, 110, 50, 0.9))";
+const _LINE_COLOR  = "var(--canvas-sideview-line)";
 const _LINE_DASH   = [5, 4];
 const _HANDLE_W    = 20;
 const _HANDLE_H    = 10;
@@ -47,6 +47,7 @@ export class SideviewCanvas {
   #marker     = null;   // { p: worldPrimary, y: worldY } — the point/block cell dot, or null
   #seatOnFloor = false; // true ⇒ the Y line snaps to the marker column's floors (spawn lines)
   #dragging   = false;
+  #readOnly   = false;  // the caller may not write this page: the line is drawn and never dragged
   #scale      = 4;
   #offsetX    = 0;
   #offsetY    = 0;
@@ -64,6 +65,9 @@ export class SideviewCanvas {
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
+
+  /** On a page the caller may not write, the height line is shown and cannot be dragged or set. */
+  setReadOnly(on) { this.#readOnly = !!on; this.#dragging = false; }
 
   setData(data) {
     this.#data = data;
@@ -194,14 +198,14 @@ export class SideviewCanvas {
     painter.begin(1, 0, 0);
 
     painter.layer("backdrop", () => {
-      ctx.fillStyle = painter.color("var(--bg-canvas, #111)");
+      ctx.fillStyle = painter.color("var(--bg-canvas)");
       ctx.fillRect(0, 0, W, H);
     });
 
     if (!this.#data || !this.#offscreen) {
       painter.layer("empty", () => {
-        painter.text("No segment data", W / 2, H / 2, {
-          fill: "var(--text-muted, #888)", size: 14, font: "system-ui, sans-serif",
+        painter.text("No scan data", W / 2, H / 2, {
+          fill: "var(--text-muted)", size: 14, font: "system-ui, sans-serif",
         });
       });
       return;
@@ -247,7 +251,7 @@ export class SideviewCanvas {
       if (pIdx < 0 || pIdx >= primary_count || yi < 0 || yi >= y_count) return;
       painter.dot(ox + (pIdx + 0.5) * s, oy + (y_count - 1 - yi) * s + s / 2, {
         radius: Math.max(4, s * 0.55),
-        fill: "var(--accent, #5b9cff)", stroke: "#fff", width: 1.5,
+        fill: "var(--accent)", stroke: "var(--canvas-marker-stroke)", width: 1.5,
       });
     });
   }
@@ -288,10 +292,11 @@ export class SideviewCanvas {
         this._applyDrag(cy);
         return;
       }
-      canvas.style.cursor = this._isNearLine(cy) ? "ns-resize" : "default";
+      canvas.style.cursor = !this.#readOnly && this._isNearLine(cy) ? "ns-resize" : "default";
     });
 
     canvas.addEventListener("mousedown", (e) => {
+      if (this.#readOnly) return;
       const cy = this._relY(e);
       if (this._isNearLine(cy)) {
         this.#dragging = true;

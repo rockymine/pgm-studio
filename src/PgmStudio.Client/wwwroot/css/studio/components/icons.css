@@ -1,0 +1,10 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   ICONS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Every lucide glyph is --icon-md unless the context it sits in says otherwise. It stands FIRST in this
+   file on purpose: a context rule is `.thing svg`, the same specificity as this one, so only source order
+   decides — and every one of them is either later in this file or in a stylesheet loaded after it.
+   `svg.lucide` and not a bare `svg`: the server-rendered previews (a style swatch, a plateau section) are
+   pictures, not glyphs, and size themselves. */
+svg.lucide { width: var(--icon-md); height: var(--icon-md); }

@@ -25,14 +25,15 @@ const ROUTES = [
   { path: "/catalog",                             name: "shape catalog",  expect: ".lib-grid .lib-card" },
   // the library renders from the database, so an empty kind is still a live page — the chooser's cards and a
   // browse strip are the proof, since those are what a dead component would take down with it
-  { path: "/library",                             name: "library chooser", expect: ".lib-choices .card" },
+  { path: "/library",                             name: "library chooser", expect: ".lib-choices .lib-choice" },
   { path: "/library/styles",                      name: "style library",  expect: ".lib-page .lib-strip" },
   { path: "/library/themes",                      name: "theme library",  expect: ".lib-page .lib-strip" },
   { path: "/library/houses",                      name: "house library",  expect: ".lib-page .lib-strip" },
   // an editor page is the half a browse grid cannot prove: its outline is built from the draft
   { path: "/library/styles/new",                  name: "style editor",   expect: ".lib-outline-row" },
   { path: "/library/houses/new",                  name: "house editor",   expect: ".lib-outline-row" },
-  { path: "/plan-editor",                         name: "plan editor (bare)", expect: ".map-canvas-svg" },
+  { path: "/plans/new",                           name: "plan editor (new)", expect: ".map-canvas-svg" },
+  { path: `/plans/${seed.planId}`,                name: "plan editor (row)", expect: ".map-canvas-svg" },
   { path: `/maps/${seed.planSlug}/plan`,          name: "plan tool",      expect: "body" },
   { path: `/maps/${seed.sketchSlug}/sketch`,      name: "sketch tool",    expect: "body" },
   { path: `/maps/${seed.mapSlug}/configure`,      name: "configure tool", expect: "body" },
@@ -72,6 +73,15 @@ clearFaults(page);
 await page.goto(`${BASE}/maps`, { waitUntil: "networkidle" });
 const errorUi = await page.locator("#blazor-error-ui").evaluate(el => getComputedStyle(el).display).catch(() => "none");
 checks.add("no Blazor error bar", errorUi === "none", `display: ${errorUi}`);
+
+// The page, a stylesheet and a module keep their names across deploys, so each must be revalidated rather than
+// kept for a guessed while: a browser that keeps one sees a deploy piecemeal.
+checks.section("hand-written files are revalidated on every use");
+for (const path of ["/", "/css/studio/components.css", "/js/studio/render/primitive-style.js"]) {
+  const answer = await fetch(`${BASE}${path}`);
+  const cacheControl = answer.headers.get("cache-control") ?? "";
+  checks.add(`${path} says no-cache`, cacheControl.includes("no-cache"), cacheControl || "no Cache-Control");
+}
 
 if (tolerated.size) {
   console.log("\ntolerated (see ALLOWED_FAULTS in lib/harness.mjs):");

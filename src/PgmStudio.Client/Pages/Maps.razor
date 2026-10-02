@@ -3,9 +3,8 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject NavigationManager Nav
-@inject StudioAccess Access
 
-<PageTitle>PGM Studio — @StageTitle</PageTitle>
+<PageTitle>@StageTitle · PGM Studio</PageTitle>
 
 @* Staged map collection — one overview, scoped by ?stage=sketch|configure|edit (default edit). The
    activity rail switches stage; each stage lists its maps with the matching resume target and a
@@ -22,60 +21,53 @@
       <NavButton Icon="layout-dashboard" Title="Plans" Href="maps?stage=plan" Active="CurrentStage == MapStage.Plan" />
       <NavButton Icon="pencil-ruler" Title="Sketches" Href="maps?stage=sketch" Active="CurrentStage == MapStage.Sketch" />
       <NavButton Icon="settings-2" Title="Configuring" Href="maps?stage=configure" Active="CurrentStage == MapStage.Configure" />
-      <NavButton Icon="map" Title="Maps" Href="maps" Active="CurrentStage == MapStage.Edit" />
+      <NavButton Icon="map" Title="Maps" Href="maps" Active="CurrentStage is null" />
     </NavRail>
   </Rail>
   <ChildContent>
       <Workspace>
         <ContentColumn MaxWidth="960">
 
-          @if (Just is not null && JustMap is not null)
-          {
-            <div class="callout">
-              <span class="callout-icon"><i data-lucide="check-circle-2"></i></span>
-              <p><strong>@JustMap.Name</strong> is rasterized and saved — ready to configure into a
-                playable <code>map.xml</code> whenever you are.</p>
-              <Button Variant="primary" Href="@($"maps/{Just}/configure")" style="margin-left:auto;">
-                <i data-lucide="settings-2"></i><span>Continue to Configure</span>
-              </Button>
-            </div>
-          }
-
           <Section Title="@StageTitle">
             <Actions>
               <Badge Kind="dim">@(maps?.Count ?? 0)</Badge>
               @if (CurrentStage == MapStage.Plan)
               {
-                <Button Variant="primary" OnClick="NewPlan" Icon="plus" Class="action-btn--push-end" Disabled="@(creatingPlan || !mayWrite)" Title="@WriteTitle">New plan</Button>
+                <Button Variant="primary" OnClick="NewPlan" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingPlan">New plan</Button>
               }
               else if (CurrentStage == MapStage.Sketch)
               {
-                <Button Variant="primary" OnClick="NewSketch" Icon="plus" Class="action-btn--push-end" Disabled="@(creatingSketch || !mayWrite)" Title="@WriteTitle">New sketch</Button>
+                <Button Variant="primary" OnClick="NewSketch" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingSketch">New sketch</Button>
               }
-              else if (CurrentStage == MapStage.Configure && mayWrite)
+              else if (CurrentStage == MapStage.Configure)
               {
-                <Button Variant="primary" Href="maps/new" Icon="import" Class="action-btn--push-end">Import a world</Button>
+                <Button Variant="primary" Href="maps/new" Icon="import" Class="action-btn--push-end" Writes>Import a world</Button>
               }
             </Actions>
             <Description>@StageBlurb</Description>
             <ChildContent>
 
-            <input class="field-input" placeholder="Search…" @bind="filter" @bind:event="oninput" style="margin-top: var(--space-3);" />
+            <input class="field-input field-input--separated" placeholder="Search…" @bind="filter" @bind:event="oninput" />
 
             @* --actions: every row reserves the layer column, so the list keeps one aligned edge whatever
                a given map has been through. *@
-            <div class="panel-list panel-list--actions" style="margin-top: var(--space-3);">
-              @if (maps is null) { <div class="list-empty">Loading…</div> }
+            <div class="panel-list panel-list--actions panel-list--separated">
+              @if (loadError is not null)
+              {
+                <div class="list-empty">@loadError <Button OnClick="LoadAsync">Try again</Button></div>
+              }
+              else if (maps is null) { <div class="list-empty">Loading…</div> }
               else if (!Filtered.Any()) { <div class="list-empty">@EmptyMessage</div> }
               else
               {
                 @foreach (var m in Filtered)
                 {
-                  <ListRow Href="@(Opens(m) is { } layer ? $"maps/{m.Slug}/{layer}" : null)" Selected="m.Slug == Just" @key="m.Slug">
+                  <ListRow Href="@(Opens(m) is { } layer ? $"maps/{m.Slug}/{layer}" : null)" @key="m.Slug">
                     <ChildContent>
-                      <span class="list-label list-label--mono">@m.Slug</span>
-                      <span class="list-label">@m.Name</span>
-                      @if (CurrentStage == MapStage.Edit)
+                      <span class="list-label map-row-name">@m.Name</span>
+                      <span class="list-label list-label--mono map-row-slug">@m.Slug</span>
+                      @if (CurrentStage is null) { <Badge Kind="neutral">@StageLabel(m.Stage)</Badge> }
+                      @if (CurrentStage is null or MapStage.Edit)
                       {
                         @* one tag per gamemode: a map can be more than one, and a map with no objective
                            module we read carries none rather than a blank tag *@

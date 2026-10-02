@@ -17,14 +17,10 @@ public static class PlanBoardPng
 {
     private const int Background = 0x11141a;
 
-    /// <summary>The same role/zone key <see cref="PlanBoardSvg"/> draws inline as SVG text, here appended by
-    /// <see cref="Legend"/> below the raster (<c>B95</c>) — water lane hatched to show the same texture the
-    /// board itself paints it with.</summary>
+    /// <summary><see cref="PlanBoardPalette.Key"/>, appended by <see cref="Legend"/> below the raster so an image
+    /// read on its own carries its key (<c>B95</c>) — the water lane hatched as the board paints it.</summary>
     private static readonly Legend.Entry[] LegendEntries =
-    [
-        new("HUB", 0xa78bfa), new("SPAWN", 0x34d399), new("WOOL", 0xfbbf24), new("FRONTLINE", 0xfb923c), new("OTHER", 0x64748b),
-        new("BUILD ZONE", BuildZoneRgb), new("WATER LANE", WaterLaneRgb, Hatched: true),
-    ];
+        [.. Key.Select(entry => new Legend.Entry(entry.Label.ToUpperInvariant(), entry.Rgb, entry.Hatched))];
 
     /// <summary><b>scale</b> is pixels per proxy cell. Raster has no lossless zoom, so this defaults higher than
     /// the SVG's own default — legible at the fixed size an image reader actually opens it at.

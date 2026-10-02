@@ -67,24 +67,6 @@
   white-space: nowrap;
 }
 
-/* Sketch topbar export actions */
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.topbar-changes-badge {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: var(--font-sm);
-  color: var(--color-warning);
-  white-space: nowrap;
-}
-.topbar-changes-badge svg { width: var(--icon-xs); height: var(--icon-xs); flex-shrink: 0; }
-
-
 /* ══════════════════════════════════════════════════════════════════════════
    EDITOR PAGE — main layout
    ══════════════════════════════════════════════════════════════════════════ */
@@ -167,23 +149,10 @@
 }
 /* Positioned so it stacks above the canvas that precedes it in the DOM. */
 .map-canvas-svg { position: relative; }
-.map-svg { max-width: 100%; max-height: 100%; cursor: default; }
 
 /* Build-height side-view canvas (C7) — fills its .svg-area; SideviewCanvas sizes the bitmap
    from this element's client box, so it must have real dimensions (no padding shrink surprises). */
 .sideview-canvas { width: 100%; height: 100%; display: block; }
-
-/* layer toggle item */
-.layer-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--font-base);
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
-}
-.layer-item input { accent-color: var(--text-muted); cursor: pointer; }
 
 /* draw toolbar */
 .draw-tool-btn {
@@ -216,16 +185,6 @@
   gap: 2px;
   background: var(--bg-panel);
   border-right: 1px solid var(--border);
-}
-.nav-logo {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px 0;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 6px;
 }
 .nav-logo-box {
   width: 38px;
@@ -317,6 +276,8 @@
   flex-direction: column;
   overflow: hidden;
 }
+/* A sidebar that only names what the column beside it shows — the XML review's list of containers. */
+.workspace-sidebar--narrow { width: 200px; flex: 0 0 200px; }
 
 /* Right sidebar — detail / property inspector */
 .workspace-inspector {
@@ -344,6 +305,16 @@
   display: flex;
   flex-direction: column;
 }
+/* <ContentColumn>: a centred column capped at the --column-width it is given, inside the full-width
+   .workspace-scroll, and spaced the way the scroll area spaces its own children. */
+.content-column {
+  width: 100%;
+  max-width: var(--column-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
 
 /* Canvas / main content column. position:relative makes it a positioning context
    for .canvas-hint and any other absolute overlays inside the canvas. */
@@ -355,6 +326,8 @@
   background: var(--bg-canvas);
   position: relative;
 }
+/* A content column that holds a document rather than a canvas. */
+.workspace-canvas--page { background: var(--bg-base); }
 
 /* Placeholder state for activities not yet implemented */
 .workspace--placeholder {
@@ -364,19 +337,6 @@
   font-size: var(--font-md);
 }
 
-/* Placeholder block for pages not yet implemented (configure stub, etc.) */
-.page-placeholder {
-  padding: var(--space-6);
-  color: var(--text-muted);
-  font-size: var(--font-md);
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   OVERVIEW WORKSPACE
-   ══════════════════════════════════════════════════════════════════════════ */
-
-
-
 /* ══════════════════════════════════════════════════════════════════════════
    TEAMS WORKSPACE
    ══════════════════════════════════════════════════════════════════════════ */
@@ -385,17 +345,12 @@
    text labels/readouts drawn on top of it. */
 .map-canvas-svg { max-width: 100%; max-height: 100%; cursor: default; user-select: none; -webkit-user-select: none; }
 
-
 /* ══════════════════════════════════════════════════════════════════════════
    REGIONS WORKSPACE (future)
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* Explicit collection wrapper for recursive region rows. */
 .region-tree { min-width: 0; }
-
-/* Visibility-toggle icon button — appears on row hover */
-.geo-row:hover .vis-btn    { opacity: 1; }
-.vis-btn--hidden           { opacity: 1; }
 
 /* ── Region tree row details (used by map-canvas + region sidebar) ── */
 .geo-row {
@@ -417,11 +372,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--icon-tint, var(--text-muted));
   line-height: 0;
   margin-right: 6px;
 }
 .geo-type-icon--warning { color: var(--color-warning); }
+.geo-type-icon--subtract { color: var(--canvas-sub-fill); }
 .geo-type-icon--flush { margin-right: 0; }
 .geo-label {
   flex: 1;
@@ -432,24 +388,6 @@
   color: var(--text-primary);
 }
 .geo-label--synthetic { font-style: italic; color: var(--text-muted); }
-
-/* Island name inline-edit: looks like text when readonly, becomes an input on dblclick */
-.geo-label-input {
-  background: none;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  padding: 0;
-  font-family: inherit;
-  min-width: 0;
-  cursor: default;
-}
-.geo-label-input:not([readonly]) {
-  background: var(--bg-base);
-  border-color: var(--accent);
-  padding: 0 4px;
-  cursor: text;
-  outline: none;
-}
 
 /* Faint "base" label on the first child of a complement region */
 .complement-base-tag {
@@ -480,31 +418,6 @@
 }
 .collapse-btn:hover { color: var(--text-secondary); }
 
-/* ── History panel ── */
-#history-panel {
-  flex-shrink: 0;
-  max-height: 140px;
-  overflow-y: auto;
-  border-top: 1px solid var(--border);
-  padding: var(--space-2) 14px 10px;
-}
-#history-panel .section-title { margin-bottom: 5px; }
-.history-entry {
-  font-size: var(--font-sm);
-  padding: 1px 4px;
-  border-radius: var(--radius-sm);
-  font-family: ui-monospace, monospace;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  user-select: none;
-  cursor: default;
-}
-.history-entry--undo    { color: var(--text-muted); }
-.history-entry--redo    { color: var(--text-muted); opacity: 0.55; text-decoration: line-through; }
-.history-entry--divider { color: var(--text-muted); font-size: var(--font-xs); text-align: center; padding: 2px 0; opacity: 0.5; }
-.history-entry--empty   { color: var(--text-muted); font-style: italic; }
-
 /* ── cat headers / tree ── */
 .cat-header {
   padding: 10px 14px 6px;
@@ -515,50 +428,6 @@
   user-select: none;
 }
 .cat-divider { margin: 6px 14px; border-top: 1px solid var(--border); }
-
-/* ── context menu ── */
-.ctx-menu {
-  position: fixed;
-  z-index: 9999;
-  min-width: 160px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-float);
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.ctx-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 5px 10px;
-  background: none;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--font-base);
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.ctx-item:hover  { background: var(--bg-selected-hover); color: var(--text-bright); }
-.ctx-item--danger:hover { background: var(--color-error-bg); color: var(--color-error); }
-.ctx-item kbd {
-  font-size: var(--font-xs);
-  color: var(--text-muted);
-  background: var(--bg-base);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 1px 5px;
-  font-family: inherit;
-  white-space: nowrap;
-}
-.ctx-sep { height: 1px; background: var(--border); margin: 3px 0; }
 
 /* ── detail widget (editor-specific — XML preview, region coordinate groups) ── */
 .detail-xml-pre {
@@ -575,15 +444,20 @@
   white-space: pre;
 }
 
+/* The pre-flight board picture, and the words in its key coloured as the board draws them. */
+.preflight-board {
+  margin-top: var(--space-3);
+  min-height: 240px;
+  max-height: 380px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.preflight-key--bridge { color: var(--canvas-add-stroke); }
+.preflight-key--cut-off { color: #e5534b; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    CONFIGURE ACTIVITY LAYOUT  (inside editor shell)
    ══════════════════════════════════════════════════════════════════════════ */
-
-/* Step panel — wraps one or more panel-section blocks inside cfg-scroll.
-   Must replicate the same gap that .workspace-scroll gives to direct
-   panel-section children so section spacing is consistent across all steps. */
-.cfg-step-panel { display: flex; flex-direction: column; gap: var(--space-6); }
 
 /* Inspector side-view slice (mini SideviewCanvas) — fixed-height box; the canvas fills it 1:1. */
 .slice-view { position: relative; height: 150px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-canvas); }
@@ -722,3 +596,18 @@
 .plan-rebuild-mark svg { width: var(--icon-md); height: var(--icon-md); }
 .plan-rebuild-mark--drop svg { color: var(--color-warning); }
 .plan-rebuild-mark--keep svg { color: var(--color-success); }
+
+/* The plan sidebar's three panels, as one even three-way switch rather than chips that wrap, closed by the
+   button that folds the sidebar away. */
+.plan-panel-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: var(--space-1); margin-bottom: var(--space-3); }
+.plan-panel-switch .filter-chip { justify-content: center; text-align: center; }
+/* The folded plan sidebar: a strip holding only the button that opens it again. */
+.plan-sidebar-stub {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-2) var(--space-1);
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+}

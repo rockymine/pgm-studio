@@ -1,0 +1,14 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   STEP ROW  (pipeline status lists)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.step-row { display: flex; align-items: center; gap: 10px; font-size: var(--font-md); }
+.step-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--border);
+}
+.step-dot--done    { background: var(--color-success); }
+.step-dot--error   { background: var(--color-error); }
+@keyframes step-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+.step-label  { color: var(--text-secondary); min-width: 70px; }
+.step-detail { color: var(--text-muted); font-size: var(--font-sm); flex: 1; }

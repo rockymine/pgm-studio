@@ -1,0 +1,155 @@
+{
+ "foundation": {
+  "plate": {
+   "stack": {
+    "bands": [
+     {
+      "material": {
+       "kind": "solid",
+       "id": 112,
+       "data": 0
+      },
+      "thickness": 1
+     }
+    ],
+    "ending": "repeat"
+   },
+   "extent": 1
+  },
+  "surface": {
+   "field": null,
+   "border": null,
+   "borderWidth": 1,
+   "inlay": null,
+   "inlayInset": 2,
+   "isPlain": true
+  },
+  "footing": null
+ },
+ "roof": {
+  "form": "gable",
+  "pitch": 2,
+  "slab": -1,
+  "slabData": 0,
+  "stair": -1,
+  "wear": 0,
+  "overhang": 1,
+  "ridgeCap": false,
+  "hole": false,
+  "body": {
+   "kind": "solid",
+   "id": 35,
+   "data": 15
+  },
+  "verge": {
+   "kind": "solid",
+   "id": 35,
+   "data": 15
+  },
+  "gable": {
+   "kind": "noise",
+   "seed": 20903,
+   "scale": 2,
+   "octaves": 1,
+   "stops": [
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 0
+    },
+    {
+     "kind": "solid",
+     "id": 1,
+     "data": 5
+    }
+   ],
+   "rise": 2
+  },
+  "gableWindows": {
+   "form": "none",
+   "block": 85,
+   "hostBlock": -1,
+   "hostData": 0,
+   "data": 0,
+   "sill": 2,
+   "width": 1,
+   "height": 1,
+   "spacing": 3
+  }
+ },
+ "wall": {
+  "stack": {
+   "bands": [
+    {
+     "material": {
+      "kind": "noise",
+      "seed": 3083,
+      "scale": 2,
+      "octaves": 1,
+      "stops": [
+       {
+        "kind": "solid",
+        "id": 4,
+        "data": 0
+       },
+       {
+        "kind": "solid",
+        "id": 1,
+        "data": 6
+       }
+      ],
+      "rise": 2
+     },
+     "thickness": 2
+    },
+    {
+     "material": {
+      "kind": "solid",
+      "id": 1,
+      "data": 5
+     },
+     "thickness": 3
+    }
+   ],
+   "ending": "repeat"
+  },
+  "extent": 5
+ },
+ "post": {
+  "kind": "solid",
+  "id": 17,
+  "data": 1
+ },
+ "windows": {
+  "form": "stairLattice",
+  "block": 53,
+  "hostBlock": -1,
+  "hostData": 0,
+  "data": 0,
+  "sill": 3,
+  "width": 1,
+  "height": 2,
+  "spacing": 3
+ },
+ "storeys": [],
+ "porch": null,
+ "front": null,
+ "beams": {
+  "block": 17,
+  "data": 1,
+  "reach": 1,
+  "any": true
+ },
+ "doorway": {
+  "door": "air",
+  "head": {
+   "form": "none",
+   "block": 112,
+   "fill": "upperSlab",
+   "fillBlock": 0,
+   "fillData": 0
+  },
+  "width": 2,
+  "height": 3
+ }
+}

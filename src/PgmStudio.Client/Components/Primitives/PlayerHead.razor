@@ -1,16 +1,17 @@
 @namespace PgmStudio.Client.Components
+@inject NavigationManager Navigation
 
-@* One person's mark: their initial on a neutral tile, and — for an account — their skin's face and hat
-   over it, cut from the skin the studio serves at /api/minecraft/player/{uuid}/skin. The skin
-   comes from the studio's own origin, never from a third party; where the studio has none to give, nothing
-   is drawn over the initial and the initial is the mark. *@
+@* One person's mark: their initial on a neutral tile, and — for an account — the front of their head over
+   it, as the studio serves it at /api/minecraft/player/{uuid}/head. The head comes from the studio's own
+   origin, never from a third party; where the studio has none to give, nothing is drawn over the initial and
+   the initial is the mark. *@
 
-<span class="author-mark@(HasAccount ? " author-mark--account" : null)" style="@SizeStyle" title="@Title"
+<span class="author-mark player-head@(HasAccount ? " author-mark--account" : null)" style="--head-size: @(Size)px" title="@Title"
       aria-hidden="true">
     @Initial
     @if (HasAccount)
     {
-        <span class="player-head-face" style="@FaceStyle"></span>
+        <span class="player-head-face" style="@HeadStyle"></span>
     }
 </span>
 
@@ -27,18 +28,8 @@
     private string Initial =>
         (Name ?? "").Trim() is { Length: > 0 } typed ? char.ToUpperInvariant(typed[0]).ToString() : "–";
 
-    private string SizeStyle => $"width:{Size}px;height:{Size}px;font-size:{Size * 5 / 8}px";
-
-    /// <summary>A skin is 64 pixels wide with the face at (8, 8) and the hat over it at (40, 8), each 8×8, so
-    /// the skin is scaled to eight marks wide and each layer shifted to its square. The hat is drawn first,
-    /// which in CSS is on top.</summary>
-    private string FaceStyle
-    {
-        get
-        {
-            var skin = $"url('api/minecraft/player/{Uri.EscapeDataString(Uuid!)}/skin')";
-            return $"background-image:{skin},{skin};background-size:{Size * 8}px auto;"
-                 + $"background-position:{-5 * Size}px {-Size}px,{-Size}px {-Size}px";
-        }
-    }
+    /// <summary>The head as an absolute address: a relative url() in a custom property would resolve against
+    /// the stylesheet that reads it rather than the page.</summary>
+    private string HeadStyle =>
+        $"--head-image: url('{Navigation.ToAbsoluteUri($"api/minecraft/player/{Uri.EscapeDataString(Uuid!)}/head")}')";
 }

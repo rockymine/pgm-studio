@@ -10,6 +10,7 @@
 # `pgm_studio`) — the specs create maps, and left on the dev DB they pile up in the dashboard.
 #
 #   E2E_PORT=7895  E2E_DB=pgm_studio_e2e  E2E_DB_USER=pgm  E2E_DB_PASS=pgm_dev_pw  PW_CHROMIUM=<path>
+#   Textures__AcceptMojangEula=true — the block textures In game draws with, as CI runs it
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

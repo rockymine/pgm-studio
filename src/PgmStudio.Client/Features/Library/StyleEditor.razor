@@ -7,13 +7,13 @@
 
 <LibraryEditor Kind="LibraryKinds.Styles" Name="@draftName" NameChanged="SetName"
                Outline="Outline" Selected="@selected" OnSelect="Pick"
-               Footnote="@Footnote" Note="@note">
+               Footnote="@Footnote" Note="@note" Seeded="seeded">
   <Views>
-    <LayerChip Icon="grid" Active="@(view == Plan)" Title="One course, from above"
+    <LayerChip Icon="grid" Active="@(view == Plan)" Title="One layer, seen from above"
                OnClick="() => view = Plan">Plan</LayerChip>
-    <LayerChip Icon="layers" Active="@(view == Section)" Title="The same material cut open downward"
+    <LayerChip Icon="layers" Active="@(view == Section)" Title="A vertical cut through the material"
                OnClick="() => view = Section">Section</LayerChip>
-    <LayerChip Icon="squares-intersect" Active="@(view == Both)" Title="Both views, side by side"
+    <LayerChip Icon="squares-intersect" Active="@(view == Both)" Title="Plan and section side by side"
                OnClick="() => view = Both">Both</LayerChip>
   </Views>
   <Preview>
@@ -31,17 +31,20 @@
     }
     else
     {
-      <p class="section-desc">That part of the material is gone — pick another row.</p>
+      <p class="section-desc">This part no longer exists. Pick another row.</p>
     }
   </Fields>
   <Actions>
-    <Button Variant="primary" Icon="save" Disabled="@(!CanSave)" OnClick="Save">
-      @(editingId is null ? "Add to library" : "Save changes")
-    </Button>
+    @if (!seeded)
+    {
+      <Button Variant="primary" Icon="save" Disabled="@(!CanSave)" Writes OnClick="Save">
+        @(editingId is null ? "Add to library" : "Save changes")
+      </Button>
+    }
     @if (editingId is not null)
     {
-      <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
-      <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
+      <Button Icon="copy" Writes OnClick="SaveAsCopy">Save as copy</Button>
+      @if (!seeded) { <Button Variant="danger" Icon="trash-2" Deletes OnClick="Delete">Delete</Button> }
     }
   </Actions>
 </LibraryEditor>

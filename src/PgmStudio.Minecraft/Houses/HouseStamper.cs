@@ -25,6 +25,9 @@ namespace PgmStudio.Minecraft.Houses;
 /// </summary>
 public static class HouseStamper
 {
+    /// <summary>The seed a roof's wear is hashed under.</summary>
+    private const uint RoofWearSeed = 0x5EA7;
+
     /// <summary>The full rectangle a house stamped over <paramref name="ground"/> in this <paramref name="style"/>
     /// actually writes into — never <paramref name="ground"/> itself, which is only the walls. Three things
     /// reach past it and this is their union: the roof's own <see cref="RoofStyle.Overhang"/>, the log ends a
@@ -557,8 +560,24 @@ public static class HouseStamper
             var ridgeRun = field.RidgeAlongX ? GridBoundary.RunAlongX : GridBoundary.RunAlongZ;
             var slab = field.Half(x, z);
             var from = Math.Max(field.Underside(x, z), lowest);
-            for (var y = from; y <= (slab ? crown - 1 : crown); y++)
+            var isBody = ReferenceEquals(material, style.Roof.Body);
+            var top = !slab && slabBlock < 0 && style.Roof.InStairs
+                ? StairTop(field, material, isBody, x, crown, z)
+                : null;
+            for (var y = from; y <= (slab || top is not null ? crown - 1 : crown); y++)
                 Put(x, y, z, material, ring, run: ridgeRun);
+
+            // <b>A stair roof steps in stairs</b>, each climbing toward the slope's higher neighbour. Worn, a
+            // stair on the slope is laid a whole block and one on the rim a slab, which is the grain and the
+            // crumble a weathered roof shows. The ridge is never worn.
+            if (top is { } laid && crown >= lowest && crown is > 0 and < VoxelWorld.MaxHeight)
+            {
+                var worn = laid.Slope && Worn(x, crown, z);
+                if (worn && isBody) Put(x, crown, z, material, ring, run: ridgeRun);
+                else if (worn && RimSlab(material, x, crown, z) is { } crumbled)
+                    world.SetBlock(x, crown, z, crumbled.Id, crumbled.Data);
+                else world.SetBlock(x, crown, z, laid.Id, laid.Data);
+            }
             // <b>A half course is cut from whatever that column is cut from.</b> The cubes under it already
             // take the verge on the roof's own rim, so writing the body's slab over them breaks the trim on
             // every other course and the rake reads as two materials alternating up the slope. Where the rim's
@@ -570,6 +589,23 @@ public static class HouseStamper
             if (slab && crown >= lowest && crown is > 0 and < VoxelWorld.MaxHeight)
                 world.SetBlock(x, crown, z, course.Item1, course.Item2);
 
+            // <b>A column hanging outside the building is given a block of depth</b>: under a stair the same
+            // stair upside down and turned the other way, under a slab the upper half of the course below, so
+            // the rake and the eave read as one band of even thickness instead of half a block and a whole one
+            // alternating. Only where the column is one course deep with open air under it, and never at the
+            // lowest course of a slope, which has nothing below it to meet. A canopy is left as it is: under
+            // it is the porch. Wear leaves one out only under a course it left whole, so the rake thins in
+            // places and never breaks.
+            if (owner is not null && !ground.Holds(x, z) && field.Riser(x, z) == 1
+                && crown - 1 >= lowest && crown - 1 > 0 && world.GetBlock(x, crown - 1, z).Id == Blocks.Air
+                && (top is { Slope: false } || Worn(x, crown, z) || !Worn(x, crown - 1, z)))
+            {
+                if (top is { } hanging && (!hanging.Slope || field.StepsDown(x, z)))
+                    world.SetBlock(x, crown - 1, z, hanging.Hung.Id, hanging.Hung.Data);
+                else if (slab && field.StepsDown(x, z))
+                    world.SetBlock(x, crown - 1, z, course.Item1, course.Item2 | Blocks.SlabUpperHalf);
+            }
+
             // The course the walls under this column have to stop below. The wall pass runs after every roof
             // volume is laid and deliberately outranks it, so without this the eave courses the roof has just
             // come down into are written back over in wall material — the same overlap the clamp above stops
@@ -577,6 +613,42 @@ public static class HouseStamper
             if (crown >= from)
                 roofFloor[(x, z)] = roofFloor.TryGetValue((x, z), out var already) ? Math.Min(already, from) : from;
         }
+
+        /// <summary>What a stair roof lays on top of a column, and what hangs under it where the column hangs
+        /// outside the building. On the slope a stair climbing toward the higher neighbour, with the same stair
+        /// upside down and turned the other way beneath. On a ridge two blocks wide a stair climbing toward the
+        /// other half, so the two meet in a peak. On a ridge one block wide the column's slab, since a whole
+        /// block there stands too sharp, with the stair beneath it upside down and facing out of the gable end:
+        /// its step toward whoever looks at the end, its raised half back under the roof. Null for a cube: a
+        /// hip line, a flat lid, a material with no slab.</summary>
+        (int Id, int Data, bool Slope, (int Id, int Data) Hung)? StairTop(
+            RoofField field, TerrainMaterial material, bool isBody, int x, int y, int z)
+        {
+            var stair = StairFor(material, isBody, x, y, z);
+            if (field.Upslope(x, z) is { } up)
+                return (stair, BlockGeometry.Stair(up), true, (stair, BlockGeometry.Stair(up.Opposite(), upsideDown: true)));
+            if (!field.OnRidge(x, z)) return null;
+            if (field.RidgePartner(x, z) is { } partner)
+                return (stair, BlockGeometry.Stair(partner), false,
+                        (stair, BlockGeometry.Stair(partner.Opposite(), upsideDown: true)));
+            if (RimSlab(material, x, y, z) is not { } ridgeSlab) return null;
+            return (ridgeSlab.Id, ridgeSlab.Data, false,
+                    (stair, BlockGeometry.Stair(field.AlongRidgeOutward(x, z).Opposite(), upsideDown: true)));
+        }
+
+        /// <summary>The stair a roof column is laid in: the style's own on the body, and on the rim or a canopy
+        /// the stair cut from the column's own material, or the style's where that material has none.</summary>
+        int StairFor(TerrainMaterial material, bool isBody, int x, int y, int z)
+        {
+            if (isBody) return style.Roof.Stair;
+            var (id, data) = material.Resolve(new BucketContext(x, y, z, TerrainBucket.Fill, 0, color));
+            return BlockMaterials.StairOf(id, data) ?? style.Roof.Stair;
+        }
+
+        /// <summary>Whether the roof's wear takes the block at this cell: a hash of the cell against
+        /// <see cref="RoofStyle.Wear"/>, so a house restamped wears the same way.</summary>
+        bool Worn(int x, int y, int z) =>
+            style.Roof.Wear > 0 && PatternNoise.Unit(x, y, z, RoofWearSeed) < style.Roof.Wear;
 
         /// <summary>The rectangle a wing's roof draws over: its own walls, lengthened along its own ridge to the
         /// far wall of every hall it <see cref="Wing.Projects"/> into. A wing that marches roofs its own

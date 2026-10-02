@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using PgmStudio.Client.Components;
 using PgmStudio.Contracts;
 using PgmStudio.Geom;
 
@@ -30,6 +31,10 @@ public static class AuthoringContext
                 teams.Add(new Team { Id = S(t, "id"), Name = S(t, "name"), Color = S(t, "color") });
         return teams;
     }
+
+    /// <summary>The teams as a team picker offers them: the id it writes, under the team's name.</summary>
+    public static IReadOnlyList<SelectOption> TeamOptions(IEnumerable<Team> teams)
+        => [.. teams.Select(team => new SelectOption(team.Id, team.Name))];
 
     /// <summary>The id a team of this colour is called by. One derivation, so a team added and a team
     /// recoloured cannot mint it differently.</summary>

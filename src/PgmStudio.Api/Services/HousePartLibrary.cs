@@ -36,7 +36,7 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
         var rows = await parts.ListRoofsAsync(ct);
         if (rows.Count == 0) return [];
         var all = await parts.GetAllRoofCoursesAsync(ct);
-        var bound = await StylesOf(all.Select(course => course.StyleId), ct);
+        var bound = await StylesOf(all.Select(course => course.StyleId).OfType<long>(), ct);
         var byRoof = all.ToLookup(course => course.RoofStyleId);
         return [.. rows.Select(row => (row, RoofOver(row, PartCourses.Of(byRoof[row.Id], bound), WallFor(row))))];
     }
@@ -71,6 +71,8 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
                 // slab a house named under a bound roof would be a second opinion on the same course.
                 Slab = row.RoofSlab,
                 SlabData = Math.Clamp(row.RoofSlabData, 0, 15),
+                Stair = row.RoofStair,
+                Wear = Math.Clamp(row.RoofWear, 0, 1),
             },
         };
     }
@@ -81,6 +83,8 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
         Form = RoofForms.Canonical(req.Form),
         RoofSlab = req.RoofSlab,
         RoofSlabData = Math.Clamp(req.RoofSlabData, 0, 15),
+        RoofStair = req.RoofStair,
+        RoofWear = Math.Clamp(req.RoofWear, 0, 1),
         Pitch = Math.Clamp(req.Pitch, 1, 4),
         Overhang = Math.Clamp(req.Overhang, 0, 4),
         RoofHole = req.RoofHole,
@@ -90,7 +94,9 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
     public static IEnumerable<RoofStyleCourseRow> RoofCourseRowsOf(RoofStyleSaveRequest req)
         => PartCourses.Accepted(req.Courses).Select(course => new RoofStyleCourseRow
         {
-            Part = course.Part, Ordinal = course.Ordinal, StyleId = course.StyleId, Height = course.Height,
+            Part = course.Part, Ordinal = course.Ordinal, StyleId = course.Block is null ? course.StyleId : null,
+            BlockId = course.Block?.Id, BlockData = course.Block?.Data ?? 0, BlockLaid = course.Block?.Laid ?? false,
+            Height = course.Height,
         });
 
     // ── storeys ───────────────────────────────────────────────────────────────────────────────────────
@@ -106,7 +112,7 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
         var rows = await parts.ListStoreysAsync(ct);
         if (rows.Count == 0) return [];
         var all = await parts.GetAllStoreyCoursesAsync(ct);
-        var bound = await StylesOf(all.Select(course => course.StyleId), ct);
+        var bound = await StylesOf(all.Select(course => course.StyleId).OfType<long>(), ct);
         var byStorey = all.ToLookup(course => course.StoreyStyleId);
         return [.. rows.Select(row => (row, OnSample(StoreyOf(row, PartCourses.Of(byStorey[row.Id], bound)))))];
     }
@@ -159,7 +165,9 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
     public static IEnumerable<StoreyStyleCourseRow> StoreyCourseRowsOf(StoreyStyleSaveRequest req)
         => PartCourses.Accepted(req.Courses).Select(course => new StoreyStyleCourseRow
         {
-            Part = course.Part, Ordinal = course.Ordinal, StyleId = course.StyleId, Height = course.Height,
+            Part = course.Part, Ordinal = course.Ordinal, StyleId = course.Block is null ? course.StyleId : null,
+            BlockId = course.Block?.Id, BlockData = course.Block?.Data ?? 0, BlockLaid = course.Block?.Laid ?? false,
+            Height = course.Height,
         });
 
     /// <summary>internal rather than private: the storey-style endpoints check a draft's window against
@@ -294,19 +302,19 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
     private async Task<PartCourses> CoursesOf(IEnumerable<RoofStyleCourseRow> rows, CancellationToken ct)
     {
         var list = rows.ToList();
-        return PartCourses.Of(list, await StylesOf(list.Select(course => course.StyleId), ct));
+        return PartCourses.Of(list, await StylesOf(list.Select(course => course.StyleId).OfType<long>(), ct));
     }
 
     private async Task<PartCourses> CoursesOf(IEnumerable<StoreyStyleCourseRow> rows, CancellationToken ct)
     {
         var list = rows.ToList();
-        return PartCourses.Of(list, await StylesOf(list.Select(course => course.StyleId), ct));
+        return PartCourses.Of(list, await StylesOf(list.Select(course => course.StyleId).OfType<long>(), ct));
     }
 
     private async Task<PartCourses> CoursesOf(IEnumerable<PartCourse> courses, CancellationToken ct)
     {
         var list = courses.ToList();
-        return new PartCourses(list, await StylesOf(list.Select(course => course.StyleId), ct));
+        return new PartCourses(list, await StylesOf(list.Select(course => course.StyleId).OfType<long>(), ct));
     }
 
     private async Task<Dictionary<long, StyleRow>> StylesOf(IEnumerable<long> ids, CancellationToken ct)

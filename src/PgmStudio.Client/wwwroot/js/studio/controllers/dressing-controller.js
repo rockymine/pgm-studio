@@ -62,12 +62,15 @@ export class DressingController {
   #alsoSelected = [];     // ids selected beside the primary, in click order — what a join reads
   #settings = {};         // per-kind starting values for the next prop placed
   #onTerrain;             // (bx, bz) → is this cell on the rasterized terrain a marker can seat on?
+  #editable;              // () → may this page change the placements at all?
 
   /**
    * @param doc          DressingDoc — the placed props (mutated through its own methods)
    * @param handlesLayer SVGGElement — screen-space handle layer for the selected prop's points
    * @param getViewport  () => { scale, panX, panY }
-   * @param callbacks    { onChanged, onSelected, onPreviewChanged, onPlaced, onTerrain }
+   * @param callbacks    { onChanged, onSelected, onPreviewChanged, onPlaced, onTerrain, isEditable }
+   *                     `isEditable` answers false on a page the caller may not write: a prop is still picked,
+   *                     and nothing is placed, dragged or given a grip.
    */
   constructor(doc, handlesLayer, getViewport, callbacks = {}) {
     this.#doc = doc;
@@ -75,6 +78,7 @@ export class DressingController {
     this.#getViewport = getViewport ?? (() => ({ scale: 1, panX: 0, panY: 0 }));
     this.#callbacks = callbacks;
     this.#onTerrain = callbacks.onTerrain ?? (() => true);
+    this.#editable = callbacks.isEditable ?? (() => true);
     for (const kind of ["stroke", "fluid", "flora", "house", "tree", "boulder", "chest"]) this.#settings[kind] = defaultProp(kind, seedFor(kind));
   }
 
@@ -147,7 +151,7 @@ export class DressingController {
    */
   joinSelection() {
     const picked = this.selection.map(id => this.#doc.byId(id)).filter(prop => isRect(prop));
-    if (picked.length === 0) return { refused: "Pick a building first — a join is two rectangles becoming one." };
+    if (picked.length === 0) return { refused: "Select two buildings to join them." };
 
     if (picked.length === 1) {
       const only = picked[0];
@@ -173,14 +177,14 @@ export class DressingController {
     for (let a = 0; a < picked.length; a++)
       for (let b = a + 1; b < picked.length; b++)
         if (buildingsOverlap(picked[a], picked[b])) {
-          return { refused: "Those buildings stand on the same ground. A plan states its ground once, so "
-                          + "move one until they touch along an edge instead of sharing blocks." };
+          return { refused: "Those buildings overlap. Move one so they touch along an edge "
+                          + "without sharing blocks." };
         }
 
     const order = this.#doc.props.filter(prop => picked.some(one => one.id === prop.id));
     const rects = order.flatMap(prop => wingRects(prop));
     if (!rectsJoinUp(rects)) {
-      return { refused: "Those buildings do not touch. A building is one shell under one roof, so move them "
+      return { refused: "Those buildings don't touch. Move them "
                       + "until they meet along an edge." };
     }
 
@@ -217,6 +221,7 @@ export class DressingController {
   onMouseDown(bx, bz, activeTool, additive = false) {
     const kind = DRESSING_TOOLS[activeTool];
     if (kind) {
+      if (!this.#editable()) return true;   // a page that may not write places nothing
       if (isMarker(kind)) { this.#place(kind, bx, bz); return true; }
       // A rectangle is a two-corner drag: the press fixes one corner and every move rewrites the other, where
       // a traced outline appends. Same trace state, one different rule about what a move does to it.
@@ -229,7 +234,7 @@ export class DressingController {
     // Select mode: pick the prop under the cursor and start dragging it.
     const hit = this.#hitTest(bx, bz);
     this.select(hit?.id ?? null, additive);
-    this.#drag = hit && !additive ? { id: hit.id, fromX: bx, fromZ: bz, moved: false } : null;
+    this.#drag = hit && !additive && this.#editable() ? { id: hit.id, fromX: bx, fromZ: bz, moved: false } : null;
     return hit !== null;
   }
 
@@ -359,7 +364,7 @@ export class DressingController {
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
-    if (!prop) return;
+    if (!prop || !this.#editable()) return;
     // A building wears grips on every wing it states, each carrying the wing it belongs to, so a joined L is
     // reshaped a rectangle at a time rather than only through the one the canvas happened to draw first.
     const grips = isMarker(prop) ? [{ point: propAnchor(prop), idx: -1, wing: 0 }]

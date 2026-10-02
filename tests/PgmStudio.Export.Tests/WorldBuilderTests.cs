@@ -12,6 +12,7 @@ using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Vocabulary;
+using PgmStudio.Minecraft.Library;
 
 namespace PgmStudio.Export.Tests;
 
@@ -222,7 +223,7 @@ public sealed class WorldBuilderTests
                 [])],
             Themes = new Dictionary<string, JsonElement>
             {
-                ["map"] = JsonSerializer.Deserialize<JsonElement>(TerrainThemeJson.Serialize(ThemePresets.Meadow)),
+                ["map"] = JsonSerializer.Deserialize<JsonElement>(TerrainThemeJson.Serialize(SeedFolder.Meadow)),
             },
             MapTheme = "map",
         }.ToJson();

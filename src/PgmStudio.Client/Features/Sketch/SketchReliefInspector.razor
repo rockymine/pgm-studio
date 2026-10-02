@@ -9,15 +9,15 @@
   <Section>
     @if (mark is null)
     {
-      <p class="section-desc">Pick a tool and state something.</p>
-      <p class="plan-readout">@markCount stated on this map.</p>
+      <p class="section-desc">Pick a tool and click inside a group.</p>
+      <p class="plan-readout">@markCount terraform mark@(markCount == 1 ? "" : "s") on this map.</p>
     }
     else
     {
       <DetailHeader Icon="@Info.Icon" Label="@Info.Title">
         <span class="detail-header-badges">
           @if (editingSelection) { <Badge Kind="neutral">selected</Badge> }
-          else { <Badge Kind="dim">next one</Badge> }
+          else { <Badge Kind="dim">next mark</Badge> }
           @if (kind == MarkKinds.Scarp) { <Badge Kind="warning">blocks movement</Badge> }
         </span>
       </DetailHeader>
@@ -48,13 +48,13 @@
       else if (kind == MarkKinds.Line)
       {
         <Field Label="Radius">
-          <LabelHint>(blocks held either side of the line)</LabelHint>
+          <LabelHint>(blocks held on each side)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(MarkFields.Radius, 2)" ValueChanged="SetRadius" Min="0" />
           </ChildContent>
         </Field>
         <p class="plan-readout">@LineReadout</p>
-        <div class="section-header section-header--ruled"><h2 class="section-title">Heights along it</h2></div>
+        <div class="section-header section-header--ruled"><h2 class="section-title">Heights</h2></div>
         @for (var i = 0; i < HeightCount; i++)
         {
           var at = i;
@@ -63,35 +63,35 @@
           </Field>
         }
         <div class="detail-header-badges">
-          <Button Variant="ghost" OnClick="AddHeight">Add a height</Button>
+          <Button Variant="ghost" Writes OnClick="AddHeight">Add a height</Button>
           @if (HeightCount > 1)
           {
-            <Button Variant="ghost" OnClick="LevelHeights">Make it level</Button>
+            <Button Variant="ghost" Writes OnClick="LevelHeights">Make it level</Button>
           }
         </div>
 
         @* How much of the band is flat, and how the rest of it falls. Off, the whole band is held — which
            is what a ridge wants. On, a line that comes back past itself grades between its own passes
            instead of stepping between them. *@
-        <div class="section-header section-header--ruled"><h2 class="section-title">Across the band</h2></div>
+        <div class="section-header section-header--ruled"><h2 class="section-title">Band profile</h2></div>
         <Field Label="Flat">
           <div class="filter-group-options">
             <Chip Active="@(!HasTread)" OnClick="() => ToggleTread(false)"
-                  Title="Every cell in the band takes the line's own height — what a ridge wants">the whole band</Chip>
+                  Title="Every cell in the band is at the line's height. Suits a ridge.">Whole band</Chip>
             <Chip Active="@HasTread" OnClick="() => ToggleTread(true)"
-                  Title="A flat tread either side, and the rest graded between the line's own passes">a tread, then graded</Chip>
+                  Title="A flat strip on each side, sloping between the line's passes">Tread, then slope</Chip>
           </div>
         </Field>
         @if (HasTread)
         {
           <Field Label="Tread">
-            <LabelHint>(blocks flat either side)</LabelHint>
+            <LabelHint>(flat blocks on each side)</LabelHint>
             <ChildContent>
               <NumberField Value="Tread" ValueChanged="SetTread" Min="0" Max="@Radius" Step="0.5" />
             </ChildContent>
           </Field>
           <Field Label="Batter">
-            <LabelHint>(degrees; 0 lets the drawing decide)</LabelHint>
+            <LabelHint>(degrees, 0 = automatic)</LabelHint>
             <ChildContent>
               <NumberField Value="Batter" ValueChanged="SetBatter" Min="0" Max="89" />
             </ChildContent>
@@ -112,7 +112,7 @@
               <NumberField Value="Height(at)" ValueChanged="v => SetHeight(at, v)" />
             </Field>
           }
-          <Button Variant="ghost" OnClick="LevelHeights">Make it level</Button>
+          <Button Variant="ghost" Writes OnClick="LevelHeights">Make it level</Button>
         }
         else
         {
@@ -121,11 +121,11 @@
           </Field>
           @if (RingCount >= 3)
           {
-            <Button Variant="ghost" OnClick="TiltArea">A height per corner</Button>
+            <Button Variant="ghost" Writes OnClick="TiltArea">Set per-corner heights</Button>
           }
         }
         <Field Label="Bevel">
-          <LabelHint>(blocks in from the rim; 0 meets its neighbour on a step)</LabelHint>
+          <LabelHint>(blocks in from the edge, 0 = a step)</LabelHint>
           <ChildContent>
             <NumberField Value="Bevel" ValueChanged="SetBevel" Min="0" />
           </ChildContent>
@@ -135,25 +135,25 @@
       else if (kind == MarkKinds.Scarp)
       {
         <Field Label="High side">
-          <LabelHint>(the level on the +z hand of the drawn line)</LabelHint>
+          <LabelHint>(height on the +z side of the line)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(MarkFields.High, 11)" ValueChanged="SetHigh" />
           </ChildContent>
         </Field>
         <Field Label="Low side">
-          <LabelHint>(the level on the other hand)</LabelHint>
+          <LabelHint>(height on the other side)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(MarkFields.Low, 5)" ValueChanged="SetLow" />
           </ChildContent>
         </Field>
         <Field Label="Face">
-          <LabelHint>(the drop's own width, left free to ramp between the two)</LabelHint>
+          <LabelHint>(width of the slope between them)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(MarkFields.Face, 2)" ValueChanged="SetFace" Min="1" />
           </ChildContent>
         </Field>
         <Field Label="Band">
-          <LabelHint>(how far out each level is held before the surface is free again)</LabelHint>
+          <LabelHint>(how far each side is held flat)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(MarkFields.Band, 5)" ValueChanged="SetBand" Min="1" />
           </ChildContent>
@@ -169,13 +169,13 @@
           </ChildContent>
         </Field>
         <Field Label="Skirt">
-          <LabelHint>(how far the lift falls away outside the ring)</LabelHint>
+          <LabelHint>(blocks it fades over outside the ring)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(PushFields.Falloff, 10)" ValueChanged="SetFalloff" Min="0" />
           </ChildContent>
         </Field>
         <Field Label="Crown">
-          <LabelHint>(how much higher the middle stands)</LabelHint>
+          <LabelHint>(extra height at the middle)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(PushFields.Crown)" ValueChanged="SetCrown" />
           </ChildContent>
@@ -203,7 +203,7 @@
           }
           @if (VariesAlongRing)
           {
-            <Button Variant="ghost" OnClick="LevelAmounts">Make it level</Button>
+            <Button Variant="ghost" Writes OnClick="LevelAmounts">Make it level</Button>
           }
         }
       }
@@ -213,7 +213,7 @@
       @if (kind != MarkKinds.Push)
       {
         <Field Label="Block step">
-          <LabelHint>(this mark's own ground; 0 takes the group's)</LabelHint>
+          <LabelHint>(this mark only, 0 = the group's)</LabelHint>
           <ChildContent>
             <NumberField Value="MarkStep" ValueChanged="SetMarkStep" Min="0" Max="4" />
           </ChildContent>
@@ -226,7 +226,7 @@
 
       @if (editingSelection)
       {
-        <Button Full Variant="danger" OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>
+        <Button Full Variant="danger" Writes OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>
       }
     }
   </Section>
@@ -240,14 +240,14 @@
   {
     <Section Title="@GroupTitle">
       <p class="plan-readout">@GroupLine</p>
-      <p class="section-desc">Pick the group in the list to change these.</p>
+      <p class="section-desc">Select the group in the list to edit these.</p>
     </Section>
   }
   else if (groupId is not null)
   {
     <Section Title="@GroupTitle">
       <Field Label="Base" Error="@groupError">
-        <LabelHint>(where the ground falls back to)</LabelHint>
+        <LabelHint>(default ground height)</LabelHint>
         <ChildContent>
           <NumberField Value="Base" ValueChanged="SetBase" />
         </ChildContent>
@@ -257,14 +257,14 @@
       @if (groupTop is { } top)
       {
         <p class="plan-readout">
-          Group top @top —
-          @if (Math.Abs(Base - top) < 0.5) { <span>the ground stays where it is</span> }
-          else if (Base > top) { <b>the group rises @Blocks(Base - top)</b> }
-          else { <b>the group drops @Blocks(top - Base)</b> }
+          Group top is @top.
+          @if (Math.Abs(Base - top) < 0.5) { <span>The ground stays where it is.</span> }
+          else if (Base > top) { <b>The group rises @Blocks(Base - top).</b> }
+          else { <b>The group drops @Blocks(top - Base).</b> }
         </p>
       }
       <Field Label="Reach">
-        <LabelHint>(0 = the marks decide everything)</LabelHint>
+        <LabelHint>(0 = marks decide everything)</LabelHint>
         <ChildContent>
           <NumberField Value="ReliefNum(ReliefFields.Reach, 0)" ValueChanged="SetReach" Min="0" />
         </ChildContent>
@@ -276,10 +276,10 @@
       {
         <p class="plan-readout">@StepReadout</p>
       }
-      <Field Label="Meant to be">
-        <LabelHint>(checked against the solve; shapes nothing)</LabelHint>
+      <Field Label="Landform">
+        <LabelHint>(a check only, it doesn't shape the ground)</LabelHint>
         <ChildContent>
-          <Select Options="Landforms" Value="@Landform" ValueChanged="SetLandform" Placeholder="not stated" />
+          <Select Options="Landforms" Value="@Landform" ValueChanged="SetLandform" Placeholder="Not set" />
         </ChildContent>
       </Field>
 
@@ -302,12 +302,12 @@
       </Field>
 
       <div class="section-header section-header--ruled"><h2 class="section-title">Rim</h2></div>
-      <Field Label="The outline">
+      <Field Label="Outline">
         <div class="filter-group-options">
           <Chip Active="@(!HasRim)" OnClick="() => ToggleRim(false)"
-                Title="Nothing is stated at the edge; the marks decide what the coast does">runs to the edge</Chip>
+                Title="The marks decide the height at the edge">Runs to the edge</Chip>
           <Chip Active="@HasRim" OnClick="() => ToggleRim(true)"
-                Title="The whole outline is held at one height, which keeps a hill inside the shape">held at a height</Chip>
+                Title="The whole outline is held at one height">Held at a height</Chip>
         </div>
       </Field>
       @if (HasRim)

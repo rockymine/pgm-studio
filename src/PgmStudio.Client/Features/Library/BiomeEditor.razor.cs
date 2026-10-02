@@ -29,6 +29,8 @@ public partial class BiomeEditor
     private const string FieldPart = "field";
 
     private long? editingId;
+    /// <summary>Whether the seed folder states the open row, which the studio refuses to change or delete.</summary>
+    private bool seeded;
     private string draftName = "";
     private string? note;
     private string? card;
@@ -48,10 +50,10 @@ public partial class BiomeEditor
 
     private string Kinds => drawn["kind"]?.GetValue<string>() ?? BiomeKinds.Solid;
 
-    private IReadOnlyList<EditorPart> Outline => [new(FieldPart, "The field", "sun")];
+    private IReadOnlyList<EditorPart> Outline => [new(FieldPart, "Layout", "sun")];
 
     private string Footnote =>
-        $"{BiomeKinds.Describe(Kinds)} A map takes a copy, so editing this retints nothing already built.";
+        $"{BiomeKinds.Describe(Kinds)} Maps keep their own copy, so editing this does not change maps already built.";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -89,6 +91,7 @@ public partial class BiomeEditor
     private void StartNew()
     {
         editingId = null;
+        seeded = false;
         draftName = "";
         drawn = Started(BiomeKinds.Solid, First, Second);
     }
@@ -97,10 +100,11 @@ public partial class BiomeEditor
     {
         if (await Library.GetAsync<BiomePatternSummary>(Kind, id) is not { } row)
         {
-            note = "That pattern could not be read.";
+            note = "Couldn't load this biome. Reload the page to try again.";
             return;
         }
         (editingId, draftName) = (row.Id, row.Name);
+        seeded = row.Seeded;
         drawn = JsonNode.Parse(row.Params) as JsonObject ?? Started(BiomeKinds.Solid, First, Second);
     }
 
@@ -189,7 +193,7 @@ public partial class BiomeEditor
         var saved = editingId is { } id
             ? await Library.UpdateAsync<BiomeSaved>(Kind, id, request)
             : await Library.CreateAsync<BiomeSaved>(Kind, request);
-        if (saved is null) { note = "That could not be saved."; return; }
+        if (saved is null) { note = "Couldn't save this biome. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{Kind.Slug}/{saved.Id}");
@@ -200,7 +204,7 @@ public partial class BiomeEditor
     {
         if (await Library.CreateAsync<BiomeSaved>(Kind, Draft($"{draftName.Trim()} copy")) is not { } saved)
         {
-            note = "That could not be copied.";
+            note = "Couldn't save a copy of this biome. Try again.";
             return;
         }
         await OnSaved.InvokeAsync("copied");
@@ -216,7 +220,7 @@ public partial class BiomeEditor
     {
         if (editingId is not { } id) return;
         if (await Library.DeleteAsync(Kind, id) is { Deleted: false })
-        { note = "That could not be forgotten."; return; }
+        { note = "Couldn't delete this biome. Try again."; return; }
         Nav.NavigateTo($"/library/{Kind.Slug}");
     }
 }

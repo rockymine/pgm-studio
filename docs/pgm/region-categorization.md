@@ -64,7 +64,7 @@ player materialises) — and **`protection`** — the surrounding anti-grief zon
 the "…enemy's spawn!" message, the spawn-floor block pattern, spawn-protection kits). The two are
 **disjoint across the whole 350-map corpus** (a spawn point never carries an enter rule), so the
 split is unambiguous: point ⟺ in `spawns[]`, every other `spawn` region is protection. The editor's
-Teams activity lists them as separate "Spawn Points" / "Spawn Protection" sections. (The protection
+Teams activity lists them as separate "Spawn points" / "Spawn protection" sections. (The protection
 *mechanism* — no-enter barrier vs no-edit/grief — is already in `roles`, so subtype + roles is complete.)
 
 Corpus distribution (named regions, after dropping block-targeting as a spatial signal):

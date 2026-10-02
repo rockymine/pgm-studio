@@ -1,0 +1,49 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   FLOW BAR + FLOW STEPS  (clean wizard step strip — the authoring nav model's
+   in-phase progress. The `.flow-bar` is a standalone header strip ABOVE the
+   workspace — it is NOT part of the canvas sub-bar, which keeps its own draw
+   toolbar. Holds the step labels on the left and Back/Next on the right.
+   Deliberately flat: text labels, an accent underline on the active step, a check
+   on completed ones. Replaces the numbered circles + dashes of .cfg-step-bar.)
+   ══════════════════════════════════════════════════════════════════════════ */
+.flow-bar {
+  display: flex; align-items: center;
+  gap: var(--space-4);
+  height: 42px; padding: 0 var(--space-4);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+}
+/* Phase identity — the current phase's icon + name, left-aligned ahead of the steps,
+   so the flow bar always says which of the 6 rail phases you're in. */
+.flow-bar-phase {
+  display: flex; align-items: center; gap: var(--space-2);
+  height: 60%;
+  color: var(--text-strong); font-weight: 600; font-size: var(--font-md);
+  white-space: nowrap;
+}
+/* Divider only when steps follow — a single-step phase (Map Info) shows the name alone. */
+.flow-bar-phase:has(+ .flow-steps) { padding-right: var(--space-4); border-right: 1px solid var(--border); }
+.flow-bar-phase svg { width: var(--icon-md); height: var(--icon-md); color: var(--accent); }
+.flow-bar-actions { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+.flow-steps { display: flex; align-items: center; gap: var(--space-5); height: 100%; }
+.flow-step {
+  position: relative;
+  display: flex; align-items: center; gap: 5px;
+  height: 100%; padding: 0;
+  background: none; border: none;
+  font-family: inherit; font-size: var(--font-base);
+  color: var(--text-muted); cursor: pointer; white-space: nowrap;
+}
+.flow-step:hover         { color: var(--text-bright); }
+.flow-step:disabled      { opacity: 0.35; cursor: default; }
+.flow-step:disabled:hover { color: var(--text-muted); }
+.flow-step svg           { width: var(--icon-xs); height: var(--icon-xs); }
+.flow-step--done         { color: var(--text-secondary); }
+.flow-step--done svg     { color: var(--color-success); }
+.flow-step--active       { color: var(--text-strong); }
+.flow-step--active::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0;
+  height: 2px; background: var(--accent); border-radius: 2px 2px 0 0;
+}

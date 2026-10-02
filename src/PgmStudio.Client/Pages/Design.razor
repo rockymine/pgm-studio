@@ -163,7 +163,7 @@
                 </Section>
                 <Section Title="Spawn Assignment">
                   <Field Label="Team">
-                    <select class="field-input"><option>Red</option></select>
+                    <Select Slim="false" Options="@Select.Words(["Red"], word => word)" Value="Red" />
                   </Field>
                 </Section>
               </div>
@@ -403,7 +403,7 @@
         </CanvasDock>
       </div>
 
-      <div class="ds-subsection" style="margin-top:var(--space-5)">
+      <div class="ds-subsection ds-subsection--separated">
         <h3>Dock groups</h3>
         <p class="ds-theming-note">The dock holds <code>DockGroup</code>s, never loose buttons: a group is
            one question the tool answers, and the gaps between them are the only grouping a row of equal
@@ -420,14 +420,14 @@
             <DockButton Icon="pentagon" Title="Polygon" />
           </DockGroup>
           <DockGroup>
-            <DockButton Swatch="#3fae74" Title="Wool room" Active />
+            <DockButton Swatch="var(--canvas-role-wool-room)" Title="Wool room" Active />
             <DockButton SwatchClass="canvas-dock-swatch--build" Title="Build zone" />
-            <DockButton Swatch="#4ea3d8" SwatchClass="canvas-dock-swatch--box" Title="Hub box" />
+            <DockButton Swatch="var(--canvas-box-hub)" SwatchClass="canvas-dock-swatch--box" Title="Hub box" />
           </DockGroup>
         </div>
       </div>
 
-      <div class="ds-subsection" style="margin-top:var(--space-5)">
+      <div class="ds-subsection ds-subsection--separated">
         <h3>Flow bar (wizard steps)</h3>
         <p class="ds-theming-note">A clean wizard step strip for guided multi-step phases — a
            left-aligned <strong>phase-identity cluster</strong> (<code>flow-bar-phase</code>: the current
@@ -467,12 +467,12 @@
           <input class="field-input field-input--error" value="spawn-red"/>
         </Field>
       </div>
-      @* Meter — thin confidence/score bar (track + .meter-fill; width inline, colour band by modifier).
+      @* Meter — thin confidence/score bar (track + .meter-fill; width as --meter-level, colour band by modifier).
          Used for ranked monument suggestions. *@
-      <div class="ds-state-grid" style="margin-top:var(--space-4)">
-        <Field Label="Confidence · high"><LabelHint>0.90</LabelHint><ChildContent><div class="meter"><div class="meter-fill" style="width:90%"></div></div></ChildContent></Field>
-        <Field Label="Confidence · mid"><LabelHint>0.55</LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--mid" style="width:55%"></div></div></ChildContent></Field>
-        <Field Label="Confidence · low"><LabelHint>0.25</LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--low" style="width:25%"></div></div></ChildContent></Field>
+      <div class="ds-state-grid">
+        <Field Label="Confidence · high"><LabelHint>0.90</LabelHint><ChildContent><div class="meter"><div class="meter-fill" style="--meter-level: 90%"></div></div></ChildContent></Field>
+        <Field Label="Confidence · mid"><LabelHint>0.55</LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--mid" style="--meter-level: 55%"></div></div></ChildContent></Field>
+        <Field Label="Confidence · low"><LabelHint>0.25</LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--low" style="--meter-level: 25%"></div></div></ChildContent></Field>
       </div>
     </section>
 
@@ -490,10 +490,10 @@
         <SmartSuggestion Header="Smart Suggestion" Badge="rot 90" AcceptLabel="Create 4 teams" RejectLabel="Dismiss">
           <p class="smart-suggestion__text">90° rotational symmetry suggests four teams.</p>
           <div class="smart-suggestion-teams">
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#FF5555"></span>Red Team</div>
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#5555FF"></span>Blue Team</div>
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#55FF55"></span>Green Team</div>
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#FFFF55"></span>Yellow Team</div>
+            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="--swatch: #FF5555"></span>Red Team</div>
+            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="--swatch: #5555FF"></span>Blue Team</div>
+            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="--swatch: #55FF55"></span>Green Team</div>
+            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="--swatch: #FFFF55"></span>Yellow Team</div>
           </div>
         </SmartSuggestion>
       </div>
@@ -510,13 +510,13 @@
            landing pattern that fans out to the staged dashboard. List rows gain a hover
            <code>.list-go</code> arrow when they navigate.</p>
       </div>
-      <div class="card-grid" style="margin-bottom: var(--space-4)">
+      <div class="card-grid ds-card-sample">
         <a class="card card--action" href="#cards">
           <div class="card-head">
             <span class="card-icon"><i data-lucide="pencil-ruler"></i></span>
             <span class="card-title">Sketch</span>
           </div>
-          <p class="card-desc">Draw a new map's islands from nothing — shapes, symmetry and mirror.</p>
+          <p class="card-desc">Draw a new map's islands and choose its symmetry.</p>
           <span class="card-foot">
             <span class="card-foot-count">3 drafts</span>
             <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
@@ -534,7 +534,7 @@
           </span>
         </a>
       </div>
-      <div style="max-width: 420px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3)">
+      <div class="ds-list-sample">
         <div class="panel-list">
           <ListRow Href="#cards">
             <span class="list-label list-label--mono">annealing_iv</span>

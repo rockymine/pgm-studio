@@ -4,6 +4,7 @@ using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Library;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Pgm.Plan;
@@ -291,7 +292,7 @@ public sealed class StrokeStyleCardsEndpoint : EndpointWithoutRequest<List<PropO
             Query<string>("pave", isRequired: false), new SolidMaterial(Blocks.Gravel));
         var template = new StrokeProp { Radius = 3, Seed = 5, Pave = pave };
         // A seeded finish, not the bare stone default: a prop card needs legible ground to read the prop against.
-        return Send.OkAsync([.. DressingPreview.StrokeStyleCards(template, ThemePresets.Meadow)], ct);
+        return Send.OkAsync([.. DressingPreview.StrokeStyleCards(template, SeedFolder.Meadow)], ct);
     }
 }
 
@@ -302,7 +303,7 @@ public sealed class FluidFormCardsEndpoint : EndpointWithoutRequest<List<PropOpt
 
     public override Task HandleAsync(CancellationToken ct)
         => Send.OkAsync([.. DressingPreview.FluidFormCards(
-            new FluidProp { Radius = 3, Depth = 2, Seed = 5 }, ThemePresets.Meadow)], ct);
+            new FluidProp { Radius = 3, Depth = 2, Seed = 5 }, SeedFolder.Meadow)], ct);
 }
 
 /// <summary>GET /api/terrain/boulder-forms — the four rock shapes, each an actual rock.</summary>
@@ -320,7 +321,7 @@ public sealed class BoulderFormCardsEndpoint : EndpointWithoutRequest<List<PropO
         var rock = PropOptionEndpoints.MaterialOf(
             Query<string>("rock", isRequired: false), new SolidMaterial(Blocks.Stone));
         return Send.OkAsync([.. DressingPreview.BoulderFormCards(
-            new BoulderProp { Seed = 3, Style = new BoulderStyle { Size = 3, Rock = rock } }, ThemePresets.Meadow)], ct);
+            new BoulderProp { Seed = 3, Style = new BoulderStyle { Size = 3, Rock = rock } }, SeedFolder.Meadow)], ct);
     }
 }
 
@@ -330,7 +331,7 @@ public sealed class TreeSpeciesEndpoint : EndpointWithoutRequest<List<PropOption
     public override void Configure() { Get("/terrain/species"); }
 
     public override Task HandleAsync(CancellationToken ct)
-        => Send.OkAsync([.. DressingPreview.SpeciesCards(ThemePresets.Meadow)], ct);
+        => Send.OkAsync([.. DressingPreview.SpeciesCards(SeedFolder.Meadow)], ct);
 }
 
 /// <summary>POST /api/terrain/theme-map-preview — body is a plan JSON; compiles it, paints the terrain through

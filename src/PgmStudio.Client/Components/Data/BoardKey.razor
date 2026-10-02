@@ -1,0 +1,22 @@
+@namespace PgmStudio.Client.Components
+@using PgmStudio.Contracts
+
+@* The key a page of board pictures is read by, drawn once: each role or zone with its swatch, a hatched
+   swatch for the one the board hatches. The pictures carry no key of their own. *@
+
+@if (Entries is { Count: > 0 })
+{
+  <div class="board-key" aria-label="Colours on the boards">
+    @foreach (var entry in Entries)
+    {
+      <span class="board-key-item" @key="entry.Label">
+        <span class="@(entry.Hatched ? "board-key-swatch board-key-swatch--hatched" : "board-key-swatch")"
+              style="--swatch: @entry.Color"></span>@entry.Label
+      </span>
+    }
+  </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<BoardKeyEntry>? Entries { get; set; }
+}

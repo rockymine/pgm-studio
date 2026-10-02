@@ -26,8 +26,8 @@
        style it came from is not something the slot goes on holding. *@
     @if (Styles.Count > 0)
     {
-      <Select Options="@StyleRows" Value="" Placeholder="Fill from a style…" @key="filled"
-              Title="Replace this material with a copy of a saved style, then edit it here like any other"
+      <Select Options="@StyleRows" Value="" Placeholder="Fill from a pattern…" @key="filled"
+              Title="Replace this material with a copy of a saved pattern"
               ValueChanged="FillFromStyle" />
     }
     @* What a kind is belongs beside the control that names it, and only where the material itself is being
@@ -65,92 +65,65 @@
       @switch (Kind)
       {
         case MaterialKind.Solid:
-          <p>The picker is the export's own palette, so the swatch is the colour that will land.</p>
+          <p>The swatch shows the block's colour in the exported world.</p>
           break;
 
         case MaterialKind.TeamTint:
-          <p>Takes the owning team's colour on the same 0–15 scale as wool, so the block has to be one that
-            colours by damage. Land with no team falls through to the neutral material.</p>
+          <p>Uses the owning team's colour, on the same 0–15 scale as wool, so pick a block that comes in
+            colours. Land with no team uses the neutral material.</p>
           break;
 
         case MaterialKind.Layered:
-          <p>Bands along a distance, each claiming a stated thickness. <strong>Read along</strong> is which
-            distance: <em>down the column</em> from the top of the bucket — grass over two dirt; <em>in from
-            the edge</em>, so the bands run as rings round the shape — a cobble rim, two rings of stone brick,
-            then a field; or <em>up from a world height</em>, which pins them to the world rather than to the
-            column.</p>
-          <p><strong>Past the last band</strong> is independent of the axis. A stack that owns its whole space
-            repeats its last band, so a deeper bucket never falls through. A stack that is a band <em>inside</em>
-            a larger space hands over instead, and what shows there is stone unless stated — which is what a
-            rim two rings in and then the ground needs.</p>
-          <p>The axes compose: a <em>down the column</em> stack whose first band is one course thick and is
-            itself an <em>in from the edge</em> stack rings the top course and leaves the courses under it
-            alone.</p>
+          <p>Bands of a set thickness, counted along a distance. <strong>Read along</strong> picks the distance:
+            down from the top of the ground, in from the edge (as rings), or up from a world height.</p>
+          <p><strong>Past the last band</strong> picks whether the last band repeats, or hands over to another
+            material (stone unless you set one).</p>
           break;
 
         case MaterialKind.Voronoi:
-          <p>Cells roughly one patch-size across, drawn as a <strong>ramp inward from the cell
-            boundary</strong>. The first band sits on the boundary itself, so it draws the grid; each one
-            after it is a ring further in, and the last takes the middle. A cell too small to reach a band
-            never shows it, so small cells come out filled by whichever band they did reach. Deterministic —
-            the same seed always paints it.</p>
+          <p>Cells about one patch size across, shaded in bands from the cell edge inward. The first band draws
+            the grid lines and the last fills the middle.</p>
           <p>@RiseNote</p>
           break;
 
         case MaterialKind.Cell:
-          <p>Patches of one material each, any two of which may meet — the fabric a voronoi's diagram is not.
-            <strong>Jitter</strong> is how far a patch's seed strays from its grid square (0% is the grid
-            itself, 100% is shards); <strong>edge wander</strong> is how many blocks the boundaries wobble,
-            which is what makes the patches organic rather than straight-edged.</p>
+          <p>Patches of one material each. <strong>Jitter</strong> sets how irregular the layout is (0% is a
+            grid, 100% is shards), and <strong>edge wander</strong> sets how many blocks the edges wobble.</p>
           <p>@RiseNote</p>
           break;
 
         case MaterialKind.Noise:
         case MaterialKind.Turbulence:
         case MaterialKind.Electric:
-          <p>@FieldBlurb Cut into bands by the stops in order — the first takes the lowest slice of the
-            field. Only neighbouring stops ever share a boundary, and the outermost two are accents rather
-            than halves, so a stop list reads as a ramp from one material to the next. More octaves add finer
-            detail without narrowing the field.</p>
+          <p>@FieldBlurb The stops split it into bands in order, from the lowest values up. More octaves add
+            finer detail.</p>
           <p>@RiseNote</p>
           break;
 
         case MaterialKind.WallRun:
-          <p>Stripes running along the wall that wrap the whole void-facing perimeter, corners included.
-            Widths are in wall cells and the stripes repeat in order.</p>
+          <p>Stripes along the wall, all the way around the edge that faces the void. Widths are in wall
+            cells, and the stripes repeat in order.</p>
           break;
 
         case MaterialKind.WallDiagonal:
-          <p>The same stripes, sheared: each course starts <strong>slope</strong> cells further round the
-            wall than the one below it, so they lean instead of standing. A slope of 1 moves one cell along
-            per course up, which is 45°; larger lays them flatter and a negative slope leans them the other
-            way. The shear is read off world height, so two walls of different heights standing together
-            meet with their diagonals in line.</p>
+          <p>Wall stripes that lean. Each course moves <strong>slope</strong> cells along: 1 is 45°, larger
+            values are flatter, and negative values lean the other way.</p>
           break;
 
         case MaterialKind.Checker:
-          <p>Two materials alternating over squares of the given side. The board is laid <strong>in the face
-            it paints</strong> — along the wall and up it on an outer wall, across the ground everywhere
-            else — so it reads as squares on both rather than as stripes down a wall.</p>
+          <p>Two materials in a checkerboard with squares of the given size. It lies flat on the ground and
+            upright on outer walls.</p>
           break;
 
         case MaterialKind.LogChecker:
-          <p>One log alternating over squares of the given side: <strong>upright on one, on its side on the
-            next</strong>. The grain runs vertically on one and across on the other, so a single block reads
-            as a woven board — the timbering the hand-built houses on the corpus use. A log on its side is
-            always laid <strong>along</strong> the wall, never across it, since a log laid across a wall
-            points its sawn end at whoever is looking.</p>
+          <p>One log in a checkerboard: upright on one square, on its side on the next. Logs on their side
+            always run along the wall.</p>
           break;
 
         case MaterialKind.WallFrame:
-          <p>Inks the wall's top and bottom courses and its corners, filling the panel between — a rectangle
-            comes out outlined the way a comic panel is. A corner is decided by <strong>how far the outline
-            turns</strong>, not by where it changes direction, so a staircased edge is not mistaken for one.
-            <strong>Angle</strong> is how sharp a turn has to be to be inked: a right angle is 90°, a shallow
-            bend far less, and a rounded shape never reaches a usable threshold — so a circle has no corners
-            at all and the frame falls back to its top and bottom, which is a layer stack. The same number
-            sets how far the ink wraps round each corner, since the turn ramps to a vertex rather than
-            switching on at it.</p>
+          <p>Outlines the wall's top, bottom, and corners, and fills the panel between. <strong>Angle</strong>
+            sets how sharp a turn must be to count as a corner (90° is a right angle), so rounded shapes have
+            no corners.</p>
           break;
       }
     </div>
@@ -186,14 +159,14 @@
             </Field>
             <Field Label="Follow %">
               <input class="field-input field-input--slim" type="number" min="0" max="100" step="5"
-                     title="How far the bands rise and fall with the ground: 0 keeps them level, 100 carries them with it."
+                     title="How closely the bands follow the ground: 0 keeps them level, 100 follows it fully."
                      value="@Int(ThemeFields.Follow, 0)" @onchange="SetFollow" />
             </Field>
             @if (Follows)
             {
               <Field Label="Reach">
                 <input class="field-input field-input--slim" type="number" min="1" max="64" step="1"
-                       title="How many blocks either side the ground is averaged over. Small lays the bands along every bump; wide keeps the broad shape of the land and lets a hill cut through them."
+                       title="How many blocks either side the ground is averaged over. Small values follow every bump, and large values follow only the broad shape."
                        value="@Int(ThemeFields.Reach, 16)" @onchange="SetReach" />
               </Field>
             }
@@ -205,7 +178,7 @@
                           Node="@layer.Material" OnChanged="Changed" OnRemove="@layer.Remove">
             <HeadExtra>
               <CoordField Prefix="@BandAxes.Extent(Axis)" Type="number" Value="@layer.Extent" OnChange="@layer.SetExtent"
-                          min="1" step="1" title="@($"How many {BandAxes.Extent(Axis).ToLowerInvariant()} this band claims")" />
+                          min="1" step="1" title="@($"How many {BandAxes.Extent(Axis).ToLowerInvariant()} this band covers")" />
             </HeadExtra>
           </MaterialEditor>
         }
@@ -217,7 +190,7 @@
         {
           <Field Label="What shows there">
             <Chip Active="@JsonEdit.Has(Node, ThemeFields.Beyond)" OnClick="ToggleBeyond">
-              @(JsonEdit.Has(Node, ThemeFields.Beyond) ? "A stated material" : "Stone")
+              @(JsonEdit.Has(Node, ThemeFields.Beyond) ? "Custom material" : "Stone")
             </Chip>
           </Field>
           @if (JsonEdit.Has(Node, ThemeFields.Beyond))
@@ -250,11 +223,11 @@
                           Node="@band.Material" OnChanged="Changed" OnRemove="@band.Remove">
             <HeadExtra>
               <CoordField Prefix="Blocks" Type="number" Value="@band.Extent" OnChange="@band.SetExtent"
-                          min="1" step="1" title="How many blocks in from the cell boundary this band runs" />
+                          min="1" step="1" title="How many blocks in from the cell edge this band covers" />
             </HeadExtra>
           </MaterialEditor>
         }
-        @ListFoot(ThemeFields.Bands, "Add a band")
+        @ListFoot(ThemeFields.Bands, "Add band")
         break;
 
       case MaterialKind.Cell:
@@ -286,7 +259,7 @@
           <MaterialEditor Nested Flat="Flat" Label="@EntryLabel(ThemeFields.Palette, entry.Index)" Blocks="Blocks" Styles="Styles" @key="entry.Node"
                           Node="@entry.Material" OnChanged="Changed" OnRemove="@entry.Remove" />
         }
-        @ListFoot(ThemeFields.Palette, "Add a patch material")
+        @ListFoot(ThemeFields.Palette, "Add material")
         break;
 
       case MaterialKind.Noise:
@@ -383,12 +356,12 @@
         <div class="material-editor-scalars">
           <Field Label="Corner angle">
             <input class="field-input field-input--slim" type="number" min="1" max="180" step="1"
-                   title="How far the outline must turn to count as a corner. 90° is a right angle; a rounded shape never reaches 45."
+                   title="How sharply the outline must turn to count as a corner. 90° is a right angle."
                    value="@Int(ThemeFields.Angle, 45)" @onchange="SetAngle" />
           </Field>
           <Field Label="Courses">
             <input class="field-input field-input--slim" type="number" min="1" step="1"
-                   title="Courses inked along the top and the bottom"
+                   title="Courses outlined at the top and bottom"
                    value="@Int(ThemeFields.Thickness, 1)" @onchange="SetThickness" />
           </Field>
         </div>
@@ -410,7 +383,7 @@
         @if (Families.Any())
         {
             <Select Options="@FamilyRows" Value="@MatchedFamily(field)" Placeholder="Fill from a family…"
-                    Title="Fill this list with a whole family of blocks, then remove the ones this ground does not use"
+                    Title="Fill this list with a family of blocks. Remove any you don't need."
                     ValueChanged="family => ApplyFamily(field, family)" />
         }
     </div>;

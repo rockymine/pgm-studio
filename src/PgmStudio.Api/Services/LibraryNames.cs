@@ -193,20 +193,18 @@ public sealed partial class LibraryNames(
     private async Task<Copy?> FindAsync(string kind, JsonValue name, string path, Resolution resolution, CancellationToken ct)
     {
         var rows = await RowsAsync(kind, ct);
-        var matching = name.TryGetValue<long>(out var id) ? rows.Where(row => row.Id == id).ToList()
-            : name.TryGetValue<string>(out var called) ? rows.Where(row => row.Name == called).ToList()
-            : [];
-        if (matching.Count == 1) return await CopyAsync(kind, matching[0].Id, ct);
+        var match = name.TryGetValue<long>(out var id) ? rows.FirstOrDefault(row => row.Id == id)
+            : name.TryGetValue<string>(out var called)
+                ? rows.FirstOrDefault(row => string.Equals(row.Name, called, StringComparison.OrdinalIgnoreCase))
+            : default;
+        if (match.Name is not null) return await CopyAsync(kind, match.Id, ct);
 
         var said = name.ToJsonString();
         var nearest = Nearest(rows.Select(row => row.Name), said.Trim('"')).ToList();
         resolution.Findings.Add(new Finding(SourceRules.NamesNoLibraryRow,
-            matching.Count == 0
-                ? $"{path} names the {kind} {said}, and the library holds none by that name"
-                  + (nearest.Count > 0 ? $" — the nearest it holds are {string.Join(", ", nearest.Take(12).Select(row => $"'{row}'"))}"
-                                         + (nearest.Count > 12 ? ", …" : "") : "")
-                : $"{path} names the {kind} {said}, and {matching.Count} rows answer to it — "
-                  + $"{string.Join(", ", matching.Select(row => $"#{row.Id}"))}; name one by its id",
+            $"{path} names the {kind} {said}, and the library holds none by that name"
+            + (nearest.Count > 0 ? $" — the nearest it holds are {string.Join(", ", nearest.Take(12).Select(row => $"'{row}'"))}"
+                                   + (nearest.Count > 12 ? ", …" : "") : ""),
             Field: $"refinement.{path}.library"));
         return null;
     }

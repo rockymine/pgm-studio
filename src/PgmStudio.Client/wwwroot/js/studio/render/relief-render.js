@@ -16,6 +16,7 @@
 
 import { markAnchor, markPoints, markReach, pushAmounts, isSpot, isRing, isPush, FALLBACK_BASE }
   from "../relief/relief-doc.js";
+import { REFUSED_COLOR } from "./primitive-style.js";
 
 // Screen px, both. A label is chrome rather than ground: it says what a mark states, and what a mark states
 // does not get bigger as the board is zoomed into. LABEL_MIN_PX is the mark's own on-screen reach, so a mark
@@ -135,7 +136,7 @@ export function paintMarkPreview(painter, kind, points, height, base = FALLBACK_
 /** Where a spot height will land, before the click that places it. Off any group it reads as refused — a
  *  relief is stated *inside* a group, so there is nothing off one for a mark to belong to. */
 export function paintSpotGhost(painter, x, z, radius, height, base = FALLBACK_BASE, valid = true) {
-  const colour = valid ? heightColor(height, base) : "#c0392b";
+  const colour = valid ? heightColor(height, base) : REFUSED_COLOR;
   painter.ring(disc(x, z, radius), {
     fill: colour, fillAlpha: valid ? 0.18 : 0.12, stroke: colour, width: valid ? 1 : 1.5, dash: [5, 3],
   });

@@ -23,12 +23,13 @@ import {
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
 import { viewportWorldRect, snapOut, unionRect, gridStep, renderScaleBar, renderDimensionPill, renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
-import { OBJECTIVE_COLORS, BUILDING_COLORS } from "../render/primitive-style.js";
+import { OBJECTIVE_COLORS, BUILDING_COLORS, UNKNOWN_KIND_COLOR } from "../render/primitive-style.js";
 import * as Keys from "../shared/keys.js";
 import { resolvePick } from "../shared/pick.js";
 // The drag holds the floor every building footprint shares. A shell needs two more on each axis,
 // which only the export knows, so that refusal stays where the style binding is read.
 import { MIN_FOOTPRINT_SPAN } from "../shared/building.js";
+import { labelPx } from "../shared/ui-scale.js";
 
 const FIT_MARGIN = 0.82;
 
@@ -57,7 +58,7 @@ const GRID_SNAP_CELLS = 4;
 const FIT_PAD_FRACTION = 0.2;
 
 
-// Lerp a #rrggbb colour toward white by t∈[0,1] — a higher surface tints the fill lighter.
+// Lerp a #rrggbb colour (a resolved role token) toward white by t∈[0,1] — a higher surface tints the fill lighter.
 function tint(hex, t) {
   const n = parseInt(hex.slice(1), 16);
   const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
@@ -70,12 +71,15 @@ function tint(hex, t) {
 // rule (red), `bound` the limit it should have respected (amber, dashed), `measure` a dimension line (accent,
 // dashed), `context` framing geometry (dim). Unknown tags (e.g. the `slot:*` convention) fall back to context.
 const EVIDENCE_STYLE = {
-  offender: { stroke: "#e5534b", width: 3, dash: null },
-  bound: { stroke: "#e8b923", width: 2.5, dash: "6 4" },
+  offender: { stroke: "var(--canvas-evidence-offender)", width: 3, dash: null },
+  bound: { stroke: "var(--canvas-evidence-bound)", width: 2.5, dash: "6 4" },
   measure: { stroke: "var(--accent)", width: 2, dash: "5 4" },
   context: { stroke: "var(--canvas-axis)", width: 2, dash: "2 3" },
 };
 const evidenceStyle = (tag) => EVIDENCE_STYLE[tag] || EVIDENCE_STYLE.context;
+
+// An objective marker's outline: dark in both themes, since it rims the marker rather than the canvas.
+const OBJECTIVE_OUTLINE = "var(--canvas-objective-outline)";
 
 // Height-map ramp: monotonically-lightening deep-blue → teal → pale-gold stops. Lowest surface → darkest,
 // highest → lightest, so island heights read at a glance on the dark canvas in either theme.
@@ -129,6 +133,7 @@ export class PlanCanvas extends CanvasBase {
   #screen = {};                     // screen-space layers (outside the viewport transform)
   #hatch = {};                      // role → CanvasPattern for the annotation fills, rebuilt per cell size
   #hatchCell = null;                // the cell size the patterns were built for
+  #hatchColor = null;               // the resolved buffer colour they were built in — a theme can move it
   #pulseUntil = 0;                  // timestamp the pulse animation runs to (see pulseSubjects)
   #pulseIds = [];
   #pulseFrame = 0;
@@ -230,6 +235,7 @@ export class PlanCanvas extends CanvasBase {
 
   _isoTag() { return "plan"; }
   _onIsoEnter() { this.#drag = null; this.#resize = null; }
+  _onReadOnlyChanged() { this.#drag = null; this.#resize = null; if (this.#doc) this.#refreshOverlay(); }
   _isoLayers() { return [this.#canvasEl, this._viewportG, this.#overlay]; }
 
   // ── reference (tracing) backdrop ────────────────────────────────────────────
@@ -367,15 +373,17 @@ export class PlanCanvas extends CanvasBase {
    * `userSpaceOnUse` tiles in world units and rotates by an attribute; a canvas pattern tiles in the
    * coordinate space in force and is rotated by a matrix on the pattern itself, so the tile is drawn
    * axis-aligned and turned 45° through `setTransform`. Sized to the cell, like the SVG version, so the
-   * hatch stays proportional to pieces — and rebuilt only when the cell moves, since building it
-   * rasterizes a tile.
+   * hatch stays proportional to pieces — and rebuilt only when the cell or the resolved colour moves,
+   * since building it rasterizes a tile.
    *
    * Buffer is a single diagonal — a reserved gap, clearly "not terrain".
    */
   #ensureHatch() {
     const cell = this.#doc?.globals.cell || 5;
-    if (this.#hatchCell === cell && this.#hatch.buffer) return;
+    const color = this.#painter.color(ROLE_COLORS.buffer);
+    if (this.#hatchCell === cell && this.#hatchColor === color && this.#hatch.buffer) return;
     this.#hatchCell = cell;
+    this.#hatchColor = color;
     const ctx = this.#painter.ctx;
     const step = Math.max(2, cell * 0.7);
     const strokeWidth = Math.max(0.6, cell * 0.14);
@@ -402,7 +410,7 @@ export class PlanCanvas extends CanvasBase {
       pattern?.setTransform?.({ a: cos, b: sin, c: -sin, d: cos, e: 0, f: 0 });
       return pattern;
     };
-    this.#hatch = { buffer: build(ROLE_COLORS.buffer, 0.12) };
+    this.#hatch = { buffer: build(color, 0.12) };
   }
 
   // The working area, in blocks: the default region (never absent, so a blank plan still says how big a
@@ -436,8 +444,8 @@ export class PlanCanvas extends CanvasBase {
     const area = this.#workArea();
     if (!area) return;
     this.#painter.rect(area, {
-      fill: "var(--canvas-ink, #ffffff)", fillAlpha: 0.05,
-      stroke: "var(--canvas-axis, #a78bfa)", width: 1.5,
+      fill: "var(--canvas-ink)", fillAlpha: 0.05,
+      stroke: "var(--canvas-axis)", width: 1.5,
     });
   }
 
@@ -460,10 +468,10 @@ export class PlanCanvas extends CanvasBase {
     const runs = [];
     for (let c = cx0; c <= cx1; c += step) runs.push({ x1: c * cell, z1: cz0 * cell, x2: c * cell, z2: cz1 * cell });
     for (let c = cz0; c <= cz1; c += step) runs.push({ x1: cx0 * cell, z1: c * cell, x2: cx1 * cell, z2: c * cell });
-    this.#painter.segments(runs, { stroke: "var(--canvas-chunk, rgba(167,139,250,0.38))", width: 1, dash: [3, 3] });
+    this.#painter.segments(runs, { stroke: "var(--canvas-chunk)", width: 1, dash: [3, 3] });
 
     // Heavier gridlines along the origin axes, drawn atop the cell grid.
-    const axis = { stroke: "var(--canvas-axis, #a78bfa)", width: 2 };
+    const axis = { stroke: "var(--canvas-axis)", width: 2 };
     if (0 >= cx0 && 0 <= cx1) this.#painter.line(0, cz0 * cell, 0, cz1 * cell, axis);
     if (0 >= cz0 && 0 <= cz1) this.#painter.line(cx0 * cell, 0, cx1 * cell, 0, axis);
   }
@@ -472,14 +480,14 @@ export class PlanCanvas extends CanvasBase {
   #paintCenter() {
     const cell = this.#doc.globals.cell;
     const arm = cell * 0.6, ringRadius = cell * 0.32;
-    const axis = { stroke: "var(--canvas-axis, #a78bfa)", width: 1.5 };
+    const axis = { stroke: "var(--canvas-axis)", width: 1.5 };
     this.#painter.line(-arm, 0, arm, 0, axis);
     this.#painter.line(0, -arm, 0, arm, axis);
     this.#painter.circle(0, 0, ringRadius, axis);
   }
 
   /** The hatch fill for an annotation role, or its flat colour if the pattern could not be built. */
-  #hatchFill(role) { return this.#hatch[role] || ROLE_COLORS[role] || "#888"; }
+  #hatchFill(role) { return this.#hatch[role] || ROLE_COLORS[role] || UNKNOWN_KIND_COLOR; }
 
   // The symmetry mirror: every piece, zone, box and marker fanned to its orbit images, dimmed and
   // non-editable, so a pinwheel's centre tiling is visible while authoring.
@@ -488,36 +496,35 @@ export class PlanCanvas extends CanvasBase {
     for (const img of pieceMirrorImages(this.#doc)) {
       const style = isAnnotationRole(img.role)
         ? { fill: this.#hatchFill(img.role), fillAlpha: 0.35, stroke: ROLE_COLORS[img.role], width: 1, dash: [6, 4] }
-        : { fill: ROLE_COLORS[img.role] || "#888", fillAlpha: 0.28, stroke: ROLE_COLORS[img.role] || "#888", width: 1 };
+        : { fill: ROLE_COLORS[img.role] || UNKNOWN_KIND_COLOR, fillAlpha: 0.28, stroke: ROLE_COLORS[img.role] || UNKNOWN_KIND_COLOR, width: 1 };
       painter.rect(img.bounds, style);
     }
-    const accent = "var(--accent, #5b9cff)";
+    const accent = ZONE_COLORS.build;
     for (const img of zoneMirrorImages(this.#doc)) {
       painter.rect(img.bounds, { fill: accent, fillAlpha: 0.06, stroke: accent, width: 1, dash: [4, 3] });
       for (const hole of img.holes)
-        painter.rect(hole, { fill: "var(--bg-canvas, #080f1a)", fillAlpha: 0.5, stroke: accent, width: 0.8, dash: [3, 3] });
+        painter.rect(hole, { fill: "var(--bg-canvas)", fillAlpha: 0.5, stroke: accent, width: 0.8, dash: [3, 3] });
     }
     for (const img of boxMirrorImages(this.#doc))
-      painter.rect(img.bounds, { stroke: BOX_COLORS[img.kind] || "#9aa7b4", width: 1.5, dash: [8, 5], alpha: 0.35 });
+      painter.rect(img.bounds, { stroke: BOX_COLORS[img.kind] || BOX_COLORS.mid, width: 1.5, dash: [8, 5], alpha: 0.35 });
     const cell = this.#doc.globals.cell;
     for (const m of markerMirrorImages(this.#doc))
-      painter.circle(m.x, m.z, cell * 0.28, { fill: OBJECTIVE_COLORS[m.kind] || "#888", fillAlpha: 0.3 });
+      painter.circle(m.x, m.z, cell * 0.28, { fill: OBJECTIVE_COLORS[m.kind] || UNKNOWN_KIND_COLOR, fillAlpha: 0.3 });
   }
 
   #paintZones() {
     const cell = this.#doc.globals.cell;
-    const accent = "var(--accent, #5b9cff)";
     for (const z of this.#doc.zones) {
       // A water lane reads as a denser, tighter-dashed version of the build zone it sits beside: the same
       // kind of thing (a gap players cross) drawn as the closed one, since on a still canvas the only
       // difference between them is which is open yet.
       const lane = isWaterLane(z);
-      const color = lane ? ZONE_COLORS["water-lane"] : accent;
+      const color = lane ? ZONE_COLORS["water-lane"] : ZONE_COLORS.build;
       this.#painter.rect(rectCellsToBlocks(z.rect, cell),
         { fill: color, fillAlpha: lane ? 0.3 : 0.12, stroke: color, width: 1.4, dash: lane ? [2, 3] : [5, 4] });
       for (const h of z.holes)
         this.#painter.rect(rectCellsToBlocks(h, cell),
-          { fill: "var(--bg-canvas, #080f1a)", fillAlpha: 0.6, stroke: color, width: 0.8, dash: [3, 3] });
+          { fill: "var(--bg-canvas)", fillAlpha: 0.6, stroke: color, width: 0.8, dash: [3, 3] });
     }
   }
 
@@ -539,8 +546,8 @@ export class PlanCanvas extends CanvasBase {
         stroke = fill;
       } else {
         const lift = Math.max(0, Math.min(0.6, (surf - base) / 16));   // higher surface → lighter fill
-        fill = tint(ROLE_COLORS[p.role] || "#888", lift);
-        stroke = ROLE_COLORS[p.role] || "#888";
+        stroke = ROLE_COLORS[p.role] || UNKNOWN_KIND_COLOR;
+        fill = tint(this.#painter.color(stroke), lift);
       }
       this.#painter.rect(b, { fill, stroke, width: 1.2 });
     }
@@ -567,7 +574,7 @@ export class PlanCanvas extends CanvasBase {
     const cell = this.#doc.globals.cell;
     for (const b of this.#doc.boxes || [])
       this.#painter.rect(rectCellsToBlocks(b.rect, cell),
-        { stroke: BOX_COLORS[b.kind] || "#9aa7b4", width: 2, dash: [8, 5] });
+        { stroke: BOX_COLORS[b.kind] || BOX_COLORS.mid, width: 2, dash: [8, 5] });
   }
 
   #paintMarkers() {
@@ -576,15 +583,15 @@ export class PlanCanvas extends CanvasBase {
       const c = markerCell(this.#doc, marker);
       if (!c) continue;
       const cx = c[0] * cell, cz = c[1] * cell, r = cell * 0.34;
-      const color = OBJECTIVE_COLORS[kind] || "#888";
+      const color = OBJECTIVE_COLORS[kind] || UNKNOWN_KIND_COLOR;
       if (kind === "spawn") {
-        this.#painter.circle(cx, cz, r, { fill: color, fillAlpha: 0.85, stroke: "#222", width: 1 });
+        this.#painter.circle(cx, cz, r, { fill: color, fillAlpha: 0.85, stroke: OBJECTIVE_OUTLINE, width: 1 });
         const [dx, dz] = FACING_DIR[marker.facing] || FACING_DIR.front;
-        this.#painter.line(cx, cz, cx + dx * r * 1.7, cz + dz * r * 1.7, { stroke: "#222", width: 2 });
+        this.#painter.line(cx, cz, cx + dx * r * 1.7, cz + dz * r * 1.7, { stroke: OBJECTIVE_OUTLINE, width: 2 });
       } else {
         const side = r * 1.5;
         this.#painter.rect({ min_x: cx - side / 2, min_z: cz - side / 2, max_x: cx + side / 2, max_z: cz + side / 2 },
-          { fill: color, fillAlpha: 0.85, stroke: "#222", width: 1 });
+          { fill: color, fillAlpha: 0.85, stroke: OBJECTIVE_OUTLINE, width: 1 });
       }
     }
   }
@@ -601,10 +608,10 @@ export class PlanCanvas extends CanvasBase {
     if (this.#overlayOn.frontline)
       for (const f of this.#inspect.frontline)
         painter.line(f.x1, f.z1, f.x2, f.z2,
-          { stroke: "var(--accent, #5b9cff)", width: 6, cap: "round", alpha: 0.4 });
+          { stroke: "var(--accent)", width: 6, cap: "round", alpha: 0.4 });
 
     if (this.#overlayOn.labels) {
-      const axis = "var(--canvas-axis, #a78bfa)";
+      const axis = "var(--canvas-axis)";
       for (const g of this.#inspect.gapLinks) {
         painter.line(g.x1, g.z1, g.x2, g.z2, { stroke: axis, width: 2.5, dash: [4, 3], cap: "round" });
         for (const [px, pz] of [[g.x1, g.z1], [g.x2, g.z2]])
@@ -615,7 +622,7 @@ export class PlanCanvas extends CanvasBase {
     if (this.#overlayOn.interfaces)
       for (const it of this.#inspect.interfaces) {
         if (it.x1 === it.x2 && it.z1 === it.z2) {
-          painter.circle(it.x1, it.z1, cell * 0.22, { stroke: "#d9534f", width: 2.5 });
+          painter.circle(it.x1, it.z1, cell * 0.22, { stroke: "var(--canvas-seam-corner)", width: 2.5 });
           continue;
         }
         // A land/narrow segment sits exactly on a piece seam, where the piece strokes (or a same-green
@@ -625,9 +632,9 @@ export class PlanCanvas extends CanvasBase {
         const narrow = it.kind === "narrow";
         const casing = narrow ? 5 : 7, core = narrow ? 2 : 3.5;
         const [casingColor, coreColor, casingWidth] = it.wall
-          ? ["#000000", "#3b3b44", narrow ? 8 : 11]
-          : it.woolRoom ? ["#4a1211", "#e5534b", casing]
-                        : ["#123d26", "#4ade80", casing];
+          ? ["var(--canvas-seam-wall-casing)", "var(--canvas-seam-wall)", narrow ? 8 : 11]
+          : it.woolRoom ? ["var(--canvas-seam-wool-casing)", "var(--canvas-seam-wool)", casing]
+                        : ["var(--canvas-seam-land-casing)", "var(--canvas-seam-land)", casing];
         painter.line(it.x1, it.z1, it.x2, it.z2, { stroke: casingColor, width: casingWidth, cap: "round" });
         painter.line(it.x1, it.z1, it.x2, it.z2, { stroke: coreColor, width: core, cap: "round" });
         if (it.wall) this.#paintWallChestFace(it, cell);
@@ -649,7 +656,7 @@ export class PlanCanvas extends CanvasBase {
     const offset = away * cell * 0.28;
     const [dx, dz] = vertical ? [offset, 0] : [0, offset];
     this.#painter.line(it.x1 + dx, it.z1 + dz, it.x2 + dx, it.z2 + dz,
-      { stroke: "#f0a63a", width: 3, cap: "round" });
+      { stroke: "var(--canvas-wall-face)", width: 3, cap: "round" });
   }
 
   // Evaluator-evidence overlay (world space, non-interactive): every fired rule's cell-space evidence painted
@@ -732,7 +739,7 @@ export class PlanCanvas extends CanvasBase {
       const item = this.#doc.pieces.find(p => p.id === id) || this.#doc.zones.find(z => z.id === id);
       if (item) {
         this.#painter.rect(rectCellsToBlocks(item.rect, cell),
-          { stroke: "var(--accent, #5b9cff)", width: 3, alpha });
+          { stroke: "var(--accent)", width: 3, alpha });
         continue;
       }
       // A finding may name a marker as readily as a piece — a goal refused for where it stands is about the
@@ -744,7 +751,7 @@ export class PlanCanvas extends CanvasBase {
       if (!point) continue;
       const cx = point[0] * cell, cz = point[1] * cell, reach = cell * 0.6;
       this.#painter.rect({ min_x: cx - reach, min_z: cz - reach, max_x: cx + reach, max_z: cz + reach },
-        { stroke: "var(--accent, #5b9cff)", width: 3, alpha });
+        { stroke: "var(--accent)", width: 3, alpha });
     }
   }
 
@@ -760,7 +767,7 @@ export class PlanCanvas extends CanvasBase {
       const c = toS(bx, bz);
       const t = svgEl("text", {
         x: c.x, y: c.y, "text-anchor": "middle", "dominant-baseline": "middle",
-        "font-size": size, "font-family": "ui-monospace, monospace", "font-weight": "600", fill: color,
+        "font-size": labelPx(Number(size)), "font-family": "ui-monospace, monospace", "font-weight": "600", fill: color,
         "paint-order": "stroke", stroke: "var(--bg-canvas)", "stroke-width": "3", "stroke-linejoin": "round",
         "pointer-events": "none",
       });
@@ -788,7 +795,7 @@ export class PlanCanvas extends CanvasBase {
     // A box's id rides its top-left corner in the kind's colour, so several nested envelopes stay tellable
     // apart without their labels stacking on one another.
     for (const bx of this.#doc.boxes || [])
-      if (showLabels || bx.id === selId) { const b = rectCellsToBlocks(bx.rect, cell); label(bx.id, b.min_x + (b.max_x - b.min_x) * 0.14, b.min_z, BOX_COLORS[bx.kind] || "#9aa7b4", "10"); }
+      if (showLabels || bx.id === selId) { const b = rectCellsToBlocks(bx.rect, cell); label(bx.id, b.min_x + (b.max_x - b.min_x) * 0.14, b.min_z, BOX_COLORS[bx.kind] || BOX_COLORS.mid, "10"); }
 
     // Gap-link hop distances ride the screen-space overlay so they stay a fixed pixel size at any zoom.
     if (showLabels)
@@ -859,7 +866,7 @@ export class PlanCanvas extends CanvasBase {
     // stretches one axis. The dashed outline is already drawn above, so the box is asked for its grips only.
     renderTransformBox(layer, { l, t, r, b: bot }, {
       outline: false, gripHalf: 4,
-      onScale: (grip, e) => this.#startResize(e, grip),
+      onScale: this._readOnly ? null : (grip, e) => this.#startResize(e, grip),
     });
   }
 
@@ -921,6 +928,7 @@ export class PlanCanvas extends CanvasBase {
 
   _onToolMousedown(e, svgPt) {
     if (this._isoOn) return;          // iso preview is read-only
+    if (this._readOnly && this.#tool !== "select") return;   // a page the caller may not write: a press picks
     const cell = this.#doc.globals.cell;
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#tool === "select") return this.#selectDown(e, svgPt, cx, cz);
@@ -1016,6 +1024,8 @@ export class PlanCanvas extends CanvasBase {
     this.#sel = hit;
     this.#refreshOverlay();
     this.#fireSelect();
+    // Read-only, the press only picks: no drag begins, and no re-click turns a spawn.
+    if (this._readOnly) { this.#drag = null; return; }
     // A box drag carries its members — resolve them now, before the envelope starts moving.
     const carried = hit?.kind === "box" ? boxMembers(this.#doc, boxById(this.#doc, hit.id) || { rect: [0, 0, 0, 0] }) : null;
     // A footprint moves a block at a time, so its grab is the fractional cell the cursor is actually at
@@ -1106,12 +1116,12 @@ export class PlanCanvas extends CanvasBase {
     const b = rectCellsToBlocks(rectFromCells(...this.#drag.a, ...this.#drag.b), cell);
     // A box preview is unfilled like the box itself — it frames pieces rather than covering them.
     if (this.#drag.kind === "box") {
-      this.#painter.rect(b, { stroke: BOX_COLORS[this.#boxKind] || "#9aa7b4", width: 2, dash: [8, 5] });
+      this.#painter.rect(b, { stroke: BOX_COLORS[this.#boxKind] || BOX_COLORS.mid, width: 2, dash: [8, 5] });
       return;
     }
     const isAnnotation = this.#drag.kind === "piece" && isAnnotationRole(this.#pieceRole);
     const color = this.#drag.kind === "zone"
-      ? (this.#zoneKind === "water-lane" ? ZONE_COLORS["water-lane"] : "var(--accent, #5b9cff)")
+      ? ZONE_COLORS[this.#zoneKind]
       : ROLE_COLORS[this.#pieceRole];
     this.#painter.rect(b, {
       fill: isAnnotation ? this.#hatchFill(this.#pieceRole) : color,
@@ -1131,7 +1141,7 @@ export class PlanCanvas extends CanvasBase {
   // Resize the selected piece/zone by dragging a handle: move the picked cell edge(s) to the cursor cell,
   // keeping each extent ≥ 1 cell.
   #startResize(e, handle) {
-    if (e.button !== 0 || !this.#sel || this.#sel.kind === "marker") return;   // a marker is a point, not a box
+    if (e.button !== 0 || !this.#sel || this.#sel.kind === "marker" || this._readOnly) return;   // a marker is a point, not a box
     e.stopPropagation(); e.preventDefault();
     this.#resize = { handle, sel: this.#sel };
   }
@@ -1208,11 +1218,11 @@ export class PlanCanvas extends CanvasBase {
     const live = () => this._wrap?.offsetParent != null && !this._isoOn;
     Keys.register("plan-canvas", [
       { id: "plan.delete", keys: ["delete", "backspace"], label: "Delete the selection", group: "Canvas",
-        when: () => live() && !!this.#sel, run: () => this.#cb.onDelete?.(this.#sel) },
-      { id: "plan.enter", keys: "enter", label: "Enter the selection's group", group: "Canvas",
+        when: () => live() && !this._readOnly && !!this.#sel, run: () => this.#cb.onDelete?.(this.#sel) },
+      { id: "plan.enter", keys: "enter", label: "Open the selected group", group: "Canvas",
         when: () => live() && this.#sel?.kind === "box",
         run: () => { this.#scopeBoxId = this.#sel.id; this.#refreshOverlay(); } },
-      { id: "plan.escape", keys: "escape", label: "Leave the group · deselect", group: "Canvas",
+      { id: "plan.escape", keys: "escape", label: "Leave the group or deselect", group: "Canvas",
         when: live, run: () => this.#popOut() },
     ]);
   }

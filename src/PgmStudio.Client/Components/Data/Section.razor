@@ -3,9 +3,25 @@
 @* The canonical panel section — a .panel-section stack of an optional header (SectionHeader built
    from Title/Variant + the Actions right slot, or a full Header override), an optional Description
    paragraph, the body (ChildContent), and an optional Footer (.section-footer). panel-section is a
-   flex column with gap, so header/desc/body/footer space themselves. *@
+   flex column with gap, so header/desc/body/footer space themselves.
+
+   Writes marks a section whose controls write and sit in no shell that greys them (a sidebar's). Where the
+   shell's "StudioWriteReason" says the caller may not write, its content goes in a disabled fieldset, as an
+   Inspector's does, with the reason on hover. *@
 
 <section class="@Cls" @attributes="Extra">
+    @if (Writes && WriteReason is not null)
+    {
+        <fieldset class="readonly-fieldset panel-section-fieldset" disabled title="@WriteReason">@Body</fieldset>
+    }
+    else
+    {
+        @Body
+    }
+</section>
+
+@code {
+    private RenderFragment Body => @<text>
     @if (Header is not null)
     {
         @Header
@@ -29,9 +45,8 @@
     @if (Description is not null) { <p class="section-desc">@Description</p> }
     @ChildContent
     @if (Footer is not null) { <div class="@FooterCls">@Footer</div> }
-</section>
+    </text>;
 
-@code {
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? Variant { get; set; } = "ruled";   // header context: ruled | list | plain
     [Parameter] public bool Required { get; set; }                // appends the field-required asterisk to the title
@@ -47,6 +62,9 @@
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+    /// <summary>Its controls write: grey them where the caller may not write.</summary>
+    [Parameter] public bool Writes { get; set; }
+    [CascadingParameter(Name = "StudioWriteReason")] public string? WriteReason { get; set; }
 
     private bool helpOpen;
 

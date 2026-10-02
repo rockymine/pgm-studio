@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Painting;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Dressing;
 
@@ -26,6 +27,14 @@ namespace PgmStudio.Minecraft.Dressing;
 /// <param name="MushroomShare">0–1; how much of the cover on podzol and mycelium is mushrooms, brown two in
 /// three — the two footings a mushroom keeps by day. Podzol grows the rest as any dirt does, and mycelium
 /// nothing else.</param>
+/// <param name="CropShare">0–1; how much of the farmland inside the area is sown. A field is sown rather than
+/// grown wild, so this is a share of the farmland itself and <see cref="Coverage"/> does not thin it; farmland
+/// carries a crop or nothing.</param>
+/// <param name="Crops">What is sown, one crop to a plot: each square of <see cref="Scale"/> blocks takes one of
+/// these, evenly. Unstated is wheat.</param>
+/// <param name="Ripeness">0–1; how far the crops have grown, from just sown to ready. Each plot stands up to a
+/// stage either side of it, and a fifth of its cells a stage behind the plot, so a field ripens together but
+/// not in step.</param>
 public sealed record FloraSpec(
     double Coverage = 0.45,
     int Scale = 12,
@@ -37,7 +46,12 @@ public sealed record FloraSpec(
     double DeadBushShare = 0.0,
     double CactusShare = 0.0,
     double LilyShare = 0.0,
-    double MushroomShare = 0.0);
+    double MushroomShare = 0.0,
+    double CropShare = 0.0,
+    [property: WordSet(typeof(CropKinds))]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<string>? Crops = null,
+    double Ripeness = 1.0);
 
 /// <summary>The shape family a boulder takes. Each is a list of lobes, not a code path — see
 /// <see cref="BoulderShapes"/>.</summary>

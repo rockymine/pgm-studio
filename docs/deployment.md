@@ -44,6 +44,7 @@ migrator, and an unquoted connection string ends at its first `;`.
 | `Access__Mode=invited`, `Access__Admins__0` | closed to anyone not invited; the owners, by Minecraft uuid — the admins who alone make and unmake admins, and whom only this file changes |
 | `Discord__ClientSecret` | the sign-in; the application's redirect list names `https://pgmstudio.de/api/auth/discord/callback` |
 | `Textures__AcceptMojangEula=true`, `Textures__Cache` | the eye view's block sprites, downloaded once from Mojang; the cache is set because the default resolves to nothing for a service user whose `~/.local/share` does not exist |
+| `Notes__Agent__Fire`, `Notes__Agent__Token` | the agent the author hands notes to: the `/fire` URL and token of a Claude Code Routine's API trigger, both copied from the Routine's edit form. Absent, In game offers no hand-off. The token starts a session on its owner's Claude account, so it lives here and nowhere else (`docs/tools/sketch.md`, *Handing the notes to an agent*) |
 
 **The forwarded headers cannot be forged through Caddy.** Caddy has no `trusted_proxies`, so it replaces
 whatever `X-Forwarded-For` a client sends with the address it sees, and the API listens on loopback only.
@@ -99,10 +100,11 @@ the fix, clears it. `journalctl -u pgm-studio-deploy` is every tick's account, a
 `systemctl list-timers pgm-studio-deploy.timer` says when the next one is.
 
 **What the deploy cannot do on its own is a step no commit states.** A change that needs a new setting
-comes up unhealthy and is rolled back until the setting is in the environment file. Data the studio does not
-seed itself is the other case: the copied trees come only from `tools/seed-trees.cs` run over
-`pgm-studio-mapgen/corpus/tree-showcase` with `PGM_STUDIO_DB` pointing at the server's database, and a change
-to how that tool cuts means running it again after the deploy.
+comes up unhealthy and is rolled back until the setting is in the environment file. Data the studio does not seed itself is the other case. The library seeds itself at every start from the
+folder committed in `src/PgmStudio.Minecraft/Library`, the copied trees included, so a change to the seed — a
+re-cut of the showcase by `tools/seed-trees.cs`, a house, a pattern, an entry taken out — reaches the server
+with the commit and needs no step of its own. The commit is also the only way a seeded row changes: the studio
+refuses to edit one (`docs/tools/library.md`, *The seed*).
 
 `tools/deploy/install.sh` installs the scripts, the timer and its service, and records the release the server
 already runs as deployed, so its first tick deploys only a `main` that has moved past it.

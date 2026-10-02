@@ -99,11 +99,11 @@ public partial class WoolMonumentsStep
     private string SeatMessage => seat switch
     {
         null => "",
-        { Scanned: false } => "This column carries no scan — nothing can be said about the block.",
-        { Clear: false } => "A block already stands here: the wool cannot be placed, and PGM warns on load.",
-        { Support: false } => "Nothing on any of its six faces — a wool is placed against a block, and there is none.",
-        { Pedestal: false } => "Clear, and held by the block against it: a wool can be placed here.",
-        _ => "Clear, and standing on a pedestal: a wool can be placed here.",
+        { Scanned: false } => "This spot has no scan data, so the block can't be checked.",
+        { Clear: false } => "A block is already here. The wool can't be placed, and PGM shows a warning when the map loads.",
+        { Support: false } => "No block touches this spot. A wool has to be placed against a block.",
+        { Pedestal: false } => "Clear and touching a block. A wool can be placed here.",
+        _ => "Clear and on a pedestal. A wool can be placed here.",
     };
 
     /// <summary>A verdict that costs the author something is the tool's own warning panel; one that costs

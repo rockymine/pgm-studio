@@ -27,10 +27,12 @@ public sealed class RoomStyleLibraryEndpointsTests
         Door: "stained-glass-pane", DoorHeight: 3,
         RoofStyleId: null, PorchStyleId: null, StoreyStack: [], Courses: courses);
 
-    private static async Task<long> StyleAsync(HttpClient client, string name, int blockId)
+    /// <summary>A pattern of two blocks, saved, as its row id.</summary>
+    private static async Task<long> PatternAsync(HttpClient client, string name, int blockId, int otherId)
     {
         var saved = await (await client.PostAsJsonAsync("/api/styles", new StyleSaveRequest(
-                name, MaterialKind.Solid, TerrainThemeJson.Serialize(new SolidMaterial(blockId)))))
+                name, MaterialKind.Noise, TerrainThemeJson.Serialize(
+                    new NoiseMaterial(3, 2, 1, [new SolidMaterial(blockId), new SolidMaterial(otherId)])))))
             .Content.ReadFromJsonAsync<StyleDto>();
         return saved!.Id;
     }
@@ -116,8 +118,8 @@ public sealed class RoomStyleLibraryEndpointsTests
         // mapping: a window cut from the same material as its host (HS4), a beam that is a log (HS1), and a
         // half-course slab in the material the roof body is laid in (HS3).
         const int StoneBricks = 98, StoneBrickStairs = 109, StoneBrickSlabData = 5;
-        var brick = await StyleAsync(client, "stone bricks", StoneBricks);
-        var draft = Draft("stone-brick-roofed-house", new RoomCourseDto(RoomParts.Roof, 0, brick, 1)) with
+        var brick = new SlotBlockDto(StoneBricks, 0, Laid: false);
+        var draft = Draft("stone-brick-roofed-house", new RoomCourseDto(RoomParts.Roof, 0, 0, brick, 1)) with
         {
             RoofForm = RoofForms.Gable,
             Windows = new RoomWindowDto(WindowForms.StairLattice, Blocks.CobblestoneStairs, 0, 2, 2, 2, 3,
@@ -166,8 +168,8 @@ public sealed class RoomStyleLibraryEndpointsTests
         using var client = ApiTestFactory.Shared.CreateClient();
 
         const int StoneBricks = 98, StoneBrickStairs = 109, StoneBrickSlabData = 5;
-        var brick = await StyleAsync(client, "stone bricks", StoneBricks);
-        var draft = Draft("stone-brick-roofed-cottage", new RoomCourseDto(RoomParts.Roof, 0, brick, 1)) with
+        var brick = new SlotBlockDto(StoneBricks, 0, Laid: false);
+        var draft = Draft("stone-brick-roofed-cottage", new RoomCourseDto(RoomParts.Roof, 0, 0, brick, 1)) with
         {
             RoofForm = RoofForms.Gable,
             Windows = new RoomWindowDto(WindowForms.StairLattice, Blocks.CobblestoneStairs, 0, 2, 2, 2, 3,
@@ -178,6 +180,7 @@ public sealed class RoomStyleLibraryEndpointsTests
             DoorHead = new RoomDoorHeadDto(DoorHeadForms.Arched, StoneBrickStairs,
                 DoorHeadFills.UpperSlab, Blocks.StoneSlab, StoneBrickSlabData),
             DoorWidth = 3,
+            RoofWear = 0.2,
         };
 
         var created = await client.PostAsJsonAsync("/api/room-styles", draft);
@@ -197,6 +200,7 @@ public sealed class RoomStyleLibraryEndpointsTests
         await Assert.That(after.DoorHead).IsNotNull();
         await Assert.That(after.DoorHead!.Form).IsEqualTo(DoorHeadForms.Arched);
         await Assert.That(after.DoorWidth).IsEqualTo(3);
+        await Assert.That(after.RoofWear).IsEqualTo(0.2);
         await Assert.That(after.Windows.HostBlock).IsEqualTo(Blocks.Cobblestone);
     }
 
@@ -224,19 +228,19 @@ public sealed class RoomStyleLibraryEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var stone = await StyleAsync(client, "stone", Blocks.Stone);
-        var clay = await StyleAsync(client, "clay", Blocks.StainedClay);
+        var stone = new SlotBlockDto(Blocks.Stone, 0, Laid: false);
+        var clay = new SlotBlockDto(Blocks.StainedClay, 0, Laid: false);
 
         var created = await (await client.PostAsJsonAsync("/api/room-styles", Draft("squat-stone-house",
-                new RoomCourseDto(RoomParts.Wall, 0, stone, 3),
-                new RoomCourseDto(RoomParts.Wall, 1, clay, 1),
-                new RoomCourseDto(RoomParts.Wall, 2, stone, 1),
-                new RoomCourseDto(RoomParts.Roof, 0, clay, 1))))
+                new RoomCourseDto(RoomParts.Wall, 0, 0, stone, 3),
+                new RoomCourseDto(RoomParts.Wall, 1, 0, clay, 1),
+                new RoomCourseDto(RoomParts.Wall, 2, 0, stone, 1),
+                new RoomCourseDto(RoomParts.Roof, 0, 0, clay, 1))))
             .Content.ReadFromJsonAsync<RoomStyleDetail>();
 
         var detail = await client.GetFromJsonAsync<RoomStyleDetail>($"/api/room-styles/{created!.Id}");
         var wall = detail!.Courses.Where(c => c.Part == RoomParts.Wall).OrderBy(c => c.Ordinal).ToList();
-        await Assert.That(wall.Select(c => c.StyleId)).IsEquivalentTo(new[] { stone, clay, stone });
+        await Assert.That(wall.Select(c => c.Block!)).IsEquivalentTo(new[] { stone, clay, stone });
         await Assert.That(wall[0].Height).IsEqualTo(3);
         await Assert.That(detail.Courses.Count(c => c.Part == RoomParts.Roof)).IsEqualTo(1);
 
@@ -259,7 +263,7 @@ public sealed class RoomStyleLibraryEndpointsTests
 
         var bare = await Preview(client, Draft("bare"));
         var roofed = await Preview(client, Draft("roofed",
-            new RoomCourseDto(RoomParts.Roof, 0, await StyleAsync(client, "clay", Blocks.StainedClay), 1)));
+            new RoomCourseDto(RoomParts.Roof, 0, 0, new SlotBlockDto(Blocks.StainedClay, 0, Laid: false), 1)));
 
         // Read from above, the roof is what a plan view shows. Unbound it is the built-in bedrock; bound it is
         // the style — and the floor seen through the roof's hole is still bedrock either way, because naming
@@ -321,8 +325,8 @@ public sealed class RoomStyleLibraryEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var stone = await StyleAsync(client, "stone", Blocks.Stone);
-        await client.PostAsJsonAsync("/api/room-styles", Draft("squat-stone-house", new RoomCourseDto(RoomParts.Wall, 0, stone, 1)));
+        var stone = await PatternAsync(client, "stone and cobble", Blocks.Stone, Blocks.Cobblestone);
+        await client.PostAsJsonAsync("/api/room-styles", Draft("squat-stone-house", new RoomCourseDto(RoomParts.Wall, 0, stone, null, 1)));
 
         var refused = await client.DeleteAsync($"/api/styles/{stone}");
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.Conflict);

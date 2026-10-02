@@ -112,7 +112,7 @@ try {
   await page.waitForSelector("canvas", { timeout: 20000 });
   await page.waitForTimeout(1500);
 
-  await page.click('button[title="Dressing"]', { timeout: 8000 });
+  await page.click('button[title="Decoration"]', { timeout: 8000 });
   await page.waitForTimeout(1500);
 
   const groups = await page.locator(".canvas-dock .canvas-dock-group").evaluateAll(

@@ -53,6 +53,8 @@ public sealed class HousePartStore(PgmDb db)
                 .Set(r => r.Form, roof.Form)
                 .Set(r => r.RoofSlab, roof.RoofSlab)
                 .Set(r => r.RoofSlabData, roof.RoofSlabData)
+                .Set(r => r.RoofStair, roof.RoofStair)
+                .Set(r => r.RoofWear, roof.RoofWear)
                 .Set(r => r.Pitch, roof.Pitch)
                 .Set(r => r.Overhang, roof.Overhang)
                 .Set(r => r.RoofHole, roof.RoofHole)
@@ -67,6 +69,18 @@ public sealed class HousePartStore(PgmDb db)
 
     public Task<int> DeleteRoofAsync(long id, CancellationToken ct = default)
         => db.RoofStyles.Where(r => r.Id == id).DeleteAsync(ct);     // roof_style_course cascades (M0018)
+
+    /// <summary>The names of the roofs and storeys still binding a pattern — what a caller asks, beside the
+    /// themes and the houses, before forgetting one.</summary>
+    public async Task<List<string>> UsingStyleAsync(long styleId, CancellationToken ct = default)
+        => [.. await (from c in db.RoofStyleCourses
+                      join r in db.RoofStyles on c.RoofStyleId equals r.Id
+                      where c.StyleId == styleId
+                      select r.Name).Distinct().ToListAsync(ct),
+            .. await (from c in db.StoreyStyleCourses
+                      join s in db.StoreyStyles on c.StoreyStyleId equals s.Id
+                      where c.StyleId == styleId
+                      select s.Name).Distinct().ToListAsync(ct)];
 
     /// <summary>The names of the houses still binding this roof, newest first. A part bound by a house is one
     /// the library must refuse to forget — the answer a style already gives a theme.</summary>

@@ -55,8 +55,9 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
         foreach (var row in rows)
         {
             var entries = byRoom[row.Id].ToList();
-            var bound = entries.GroupBy(entry => entry.Course.StyleId)
-                .ToDictionary(group => group.Key, group => group.First().Style);
+            var bound = entries.Where(entry => entry.Style is not null)
+                .GroupBy(entry => entry.Style!.Id)
+                .ToDictionary(group => group.Key, group => group.First().Style!);
             var house = Compose(row, entries.Select(entry => entry.Course).ToList(), bound);
             composed.Add((row, Bind(house, row, [.. stacks[row.Id]], shelf)));
         }
@@ -137,7 +138,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
                 storeyCourses.ToLookup(course => course.StoreyStyleId),
                 (await parts.ListPorchesAsync(ct)).ToDictionary(porch => porch.Id),
                 await StyleMapAsync(
-                    styles, roofCourses.Select(c => c.StyleId).Concat(storeyCourses.Select(c => c.StyleId)), ct));
+                    styles, roofCourses.Select(c => c.StyleId).Concat(storeyCourses.Select(c => c.StyleId)).OfType<long>(), ct));
         }
 
         /// <summary>Only the parts one house binds — what an editor previewing a single style pays for, rather
@@ -172,7 +173,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
                 storeys, storeyCourses.ToLookup(course => course.StoreyStyleId),
                 porches,
                 await StyleMapAsync(
-                    styles, roofCourses.Select(c => c.StyleId).Concat(storeyCourses.Select(c => c.StyleId)), ct));
+                    styles, roofCourses.Select(c => c.StyleId).Concat(storeyCourses.Select(c => c.StyleId)).OfType<long>(), ct));
         }
 
         private static async Task<Dictionary<long, StyleRow>> StyleMapAsync(
@@ -224,6 +225,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
         PorchDepth = Math.Clamp(req.Porch?.Depth ?? 0, 0, 8),
         PorchInset = Math.Clamp(req.Porch?.Inset ?? 0, 0, 8),
         PorchEdge = PorchEdges.Canonical(req.Porch?.Edge),
+        Front = PorchEdges.Canonical(req.Front),
         PorchRoof = RoofForms.Canonical(req.Porch?.Roof ?? RoofForms.Gable),
         PorchRailBlock = Math.Max(0, req.Porch?.RailBlock ?? Blocks.OakFence),
         RoofStyleId = req.RoofStyleId,
@@ -238,6 +240,8 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
 
         RoofSlab = req.RoofSlab,
         RoofSlabData = Math.Clamp(req.RoofSlabData, 0, 15),
+        RoofStair = req.RoofStair,
+        RoofWear = Math.Clamp(req.RoofWear, 0, 1),
 
         GableWindowForm = WindowForms.Canonical(req.GableWindows?.Form),
         GableWindowBlock = Math.Max(0, req.GableWindows?.Block ?? Blocks.GlassPane),
@@ -254,17 +258,16 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
     };
 
     public static IEnumerable<RoomStyleCourseRow> CourseRowsOf(RoomStyleSaveRequest req)
-        => req.Courses
-            .Where(course => RoomParts.All.Contains(course.Part))
-            .Select(course => new RoomStyleCourseRow
-            {
-                Part = course.Part, Ordinal = course.Ordinal, StyleId = course.StyleId,
-                Height = Math.Max(1, course.Height),
-            });
+        => PartCourses.Accepted(req.Courses).Select(course => new RoomStyleCourseRow
+        {
+            Part = course.Part, Ordinal = course.Ordinal, StyleId = course.Block is null ? course.StyleId : null,
+            BlockId = course.Block?.Id, BlockData = course.Block?.Data ?? 0, BlockLaid = course.Block?.Laid ?? false,
+            Height = course.Height,
+        });
 
     private async Task<Dictionary<long, StyleRow>> StylesOf(
         IReadOnlyList<RoomStyleCourseRow> courses, CancellationToken ct)
-        => (await styles.GetStylesAsync(courses.Select(course => course.StyleId), ct))
+        => (await styles.GetStylesAsync(courses.Select(course => course.StyleId).OfType<long>(), ct))
             .ToDictionary(style => style.Id);
 
     /// <summary>Rows to the stamper's model: each part's courses in stack order, with its extent and knobs.</summary>
@@ -297,6 +300,8 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
                 // so a row saved before the row had columns for them builds exactly what it always did.
                 Slab = row.RoofSlab,
                 SlabData = row.RoofSlabData,
+                Stair = row.RoofStair,
+                Wear = row.RoofWear,
                 GableWindows = GableWindowOf(row),
             },
             // A house's three: unbound they stay what a shell is — corners that are wall like the rest of it,
@@ -321,6 +326,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
             Windows = WindowOf(row),
             Storeys = StoreysOf(row),
             Porch = PorchOf(row) is { } porch ? porch with { Canopy = stack.Bound(RoomParts.Canopy) } : null,
+            Front = EdgeOf(row.Front),
             Doorway = new Doorway
             {
                 Door = DoorMaterials.TryParse(row.Door, out var door) ? door : DoorMaterial.StainedGlassPane,
@@ -408,16 +414,19 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
     {
         Depth = row.PorchDepth,
         Inset = Math.Max(0, row.PorchInset),
-        Edge = PorchEdges.Canonical(row.PorchEdge) switch
-        {
-            PorchEdges.NegZ => RoomEdge.NegZ,
-            PorchEdges.PosZ => RoomEdge.PosZ,
-            PorchEdges.NegX => RoomEdge.NegX,
-            PorchEdges.PosX => RoomEdge.PosX,
-            _ => null,
-        },
+        Edge = EdgeOf(row.PorchEdge),
         Roof = FormOf(row.PorchRoof),
         RailBlock = Math.Max(0, row.PorchRailBlock),
+    };
+
+    /// <summary>A stored edge word as the wall it names; <c>front</c> names none, leaving the building's own.</summary>
+    private static RoomEdge? EdgeOf(string? edge) => PorchEdges.Canonical(edge) switch
+    {
+        PorchEdges.NegZ => RoomEdge.NegZ,
+        PorchEdges.PosZ => RoomEdge.PosZ,
+        PorchEdges.NegX => RoomEdge.NegX,
+        PorchEdges.PosX => RoomEdge.PosX,
+        _ => null,
     };
 
 }

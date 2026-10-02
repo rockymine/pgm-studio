@@ -91,5 +91,5 @@
         item.SwatchClass is null ? "canvas-dock-swatch" : $"canvas-dock-swatch {item.SwatchClass}";
 
     private static string? SwatchStyle(DockItem item) =>
-        item.Swatch is null ? null : $"--swatch-color:{item.Swatch}";
+        item.Swatch is null ? null : $"--swatch: {item.Swatch}";
 }

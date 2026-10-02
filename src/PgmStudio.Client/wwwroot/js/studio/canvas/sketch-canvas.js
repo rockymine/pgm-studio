@@ -49,6 +49,7 @@ import {
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
 import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar, renderDimensionPill, renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
+import { labelPx } from "../shared/ui-scale.js";
 // iso-webgl is loaded lazily (on first 3-D toggle) so a missing/blocked WebGL stack — or any failure
 // to load that module — degrades to "no 3-D preview" instead of breaking the whole editor at page load.
 
@@ -448,7 +449,24 @@ export class SketchCanvas extends CanvasBase {
    */
   setSelectOnly(on) {
     this.#selectOnly = !!on;
-    this.#edit?.setEnabled(!this.#selectOnly);
+    this.#edit?.setEnabled(!this.#frozen);
+    this.#renderTransformChrome();
+  }
+
+  /** Geometry may not be edited here: a select-only phase, or a page the caller may not write. */
+  get #frozen() { return this.#selectOnly || this._readOnly; }
+
+  /**
+   * A page the caller may not write is select-only and more: the same restrictions at the source, and no
+   * prop or mark is placed, dragged or given grips, no brush paints and no draw tool begins (CanvasBase
+   * `setReadOnly`).
+   */
+  _onReadOnlyChanged() {
+    this.#edit?.setEnabled(!this.#frozen);
+    this.#draw?.cancel();
+    if (this._readOnly && this.#level === "points") this.#setLevel("shape");
+    this.#dressing?.refreshHandles();
+    this.#reliefTools?.refreshHandles();
     this.#renderTransformChrome();
   }
 
@@ -522,10 +540,13 @@ export class SketchCanvas extends CanvasBase {
     this.#placementClick = false;
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
+    // A page the caller may not write: a press measures or picks, and nothing else begins.
+    if (this._readOnly && this._activeTool !== "select") return;
     if (this._activeTool === "eye") { this.#view = this.#grabView(svgPt) ?? { ax: bx, az: bz, bx, bz, live: true, grab: "look" }; this.#paintWorld(); return; }
     if (this._activeTool === "split") { this.#onSplitClick(bx, bz); return; }
     if (this.#reliefOn && this.#reliefTools?.onMouseDown(bx, bz, this._activeTool)) return;
     if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool, e.shiftKey)) return;
+    if (this._readOnly) return;
     this.#draw?.onMouseDown(bx, bz, this._activeTool);
   }
 
@@ -575,7 +596,7 @@ export class SketchCanvas extends CanvasBase {
     // A brush is armed: paint what is under the pointer, or lift what is on it. The modifiers are read
     // against what is held rather than against the grouping — Alt is the eyedropper here rather than
     // select-the-parent, and Shift widens the stroke to every shape the group holds.
-    if (this.#themeBrush && shape) {
+    if (this.#themeBrush && shape && !this._readOnly) {
       if (up) this.#callbacks.onThemeLift?.(shape);
       else if (e.shiftKey && group) this.#callbacks.onThemePaintGroup?.(group);
       else this.#callbacks.onThemePaint?.(shape);
@@ -638,7 +659,7 @@ export class SketchCanvas extends CanvasBase {
    * therefore enters the group instead.
    */
   #deeper(wx = null, wz = null) {
-    if (this.#selectOnly || this._isoOn || this.#level === "points") return;
+    if (this.#frozen || this._isoOn || this.#level === "points") return;
     if (this.#level === "shape") { this.#setLevel("points"); return; }
     const group = this.#selectedGroupId;
     const sole = this.#soleMemberOf(group);
@@ -702,7 +723,7 @@ export class SketchCanvas extends CanvasBase {
   #isPieceHandle(h) { return !!(h && typeof h === "object" && h.pieceId); }
 
   _hitMovable(world) {
-    if (this._isoOn || this.#selectOnly) return null;   // select-only: a selected thing is not draggable
+    if (this._isoOn || this.#frozen) return null;   // select-only or read-only: a selected thing is not draggable
     // A picked plan piece is dragged from anywhere inside it. It is the thing the click chose and the thing
     // drawn on top, so a drag starting in it is a drag of it — and the terrain under it stays unreachable
     // until the piece is let go, which is the same rule the shape rung follows.
@@ -1105,7 +1126,7 @@ export class SketchCanvas extends CanvasBase {
     };
     // In select-only mode the dashed box is the whole chrome: it says what is selected, which is all a phase
     // that picks needs, while every grabbable part of it is an edit affordance and is not drawn at all.
-    const editable = !this.#selectOnly;
+    const editable = !this.#frozen;
     renderTransformBox(layer, box, {
       onScale: editable ? (grip, e) => this.#startScale(e, grip) : null,
       onRotate: editable ? (e) => this.#startRotate(e) : null,
@@ -1255,6 +1276,7 @@ export class SketchCanvas extends CanvasBase {
       // A marker (a tree, a boulder) may only land on the rasterized terrain — the export refuses one seated on
       // nothing, so the canvas refuses to drop it there in the first place.
       onTerrain: (bx, bz) => this.#cellOnTerrain(bx, bz),
+      isEditable: () => !this._readOnly,
     });
     // Relief states the ground inside a group, so its tools live on the same canvas for the same reason
     // dressing's do — and its own controller for the same reason too.
@@ -1275,6 +1297,7 @@ export class SketchCanvas extends CanvasBase {
       // placed, which is why they are read from the overlay rather than kept by the controller: what an
       // author grabs is exactly what is drawn, and when the overlay is off there is nothing to grab.
       onContours: () => this.#relief,
+      isEditable: () => !this._readOnly,
     });
     this.#edit = new SketchEditController(this.#screen.handles, getViewport, (id) => this.#shapes.get(id), {
       onShapeUpdated: (shape) => { this.updateShape(shape); this.#callbacks.onShapeUpdated?.(shape); },
@@ -1291,10 +1314,12 @@ export class SketchCanvas extends CanvasBase {
     // What the canvas answers for on the keyboard. Registered rather than listened for, so the chords are
     // listed by the `?` sheet and dropped with the canvas; `when` keeps a hidden canvas from answering.
     const live = () => this._wrap?.offsetParent != null && !this._isoOn;
+    // The chords that change the document stand down on a page the caller may not write.
+    const writable = () => live() && !this._readOnly;
     Keys.register("sketch-canvas", [
-      { id: "sketch.cancel", keys: "escape", label: "Put the brush down · cancel the draw · step back up a level · deselect",
+      { id: "sketch.cancel", keys: "escape", label: "Cancel, go up a level, or deselect",
         group: "Canvas", when: live, inField: false, run: () => this.#onEscape() },
-      { id: "sketch.enter", keys: "enter", label: "Go one level deeper — into a group, then into a shape's points",
+      { id: "sketch.enter", keys: "enter", label: "Open the selected group or shape",
         group: "Canvas", when: () => live() && (this.#selectedId || this.#selectedGroupId),
         run: () => this.enterSelection() },
       // Delete reaches whatever the phase in front of the author is editing. A relief phase leaves a shape
@@ -1303,29 +1328,29 @@ export class SketchCanvas extends CanvasBase {
       // stated on it. Each phase answers for its own placed thing, and the shape chord stands down while one
       // of them is up.
       { id: "sketch.delete", keys: ["delete", "backspace"], label: "Delete the selected shape",
-        group: "Canvas", when: () => live() && !this.#reliefOn && !this.#dressingOn && !!this.#selectedId,
+        group: "Canvas", when: () => writable() && !this.#reliefOn && !this.#dressingOn && !!this.#selectedId,
         run: () => this.#callbacks.onShapeDeleted?.(this.#selectedId) },
       { id: "relief.delete", keys: ["delete", "backspace"], label: "Delete the selected mark",
-        group: "Relief", when: () => live() && this.#reliefOn && !!this.#reliefTools?.selectedId,
+        group: "Terraform", when: () => writable() && this.#reliefOn && !!this.#reliefTools?.selectedId,
         run: () => this.#reliefTools?.deleteSelected() },
       { id: "dressing.delete", keys: ["delete", "backspace"], label: "Delete the selected prop",
-        group: "Dressing", when: () => live() && this.#dressingOn && !!this.#dressing?.selectedId,
+        group: "Decoration", when: () => writable() && this.#dressingOn && !!this.#dressing?.selectedId,
         run: () => this.#dressing?.deleteSelected() },
-      { id: "sketch.promote", keys: "shift+p", label: "Promote the shape to its own group",
-        group: "Sketch", when: () => live() && !!this.#selectedId,
+      { id: "sketch.promote", keys: "shift+p", label: "Move the shape into its own group",
+        group: "Sketch", when: () => writable() && !!this.#selectedId,
         run: () => this.#callbacks.onShapePromote?.(this.#selectedId) },
       // The label says *building* rather than group: a group on this canvas is a shape's orbit, and one chord
       // listed twice under one word in the help sheet is two operations nobody can tell apart.
       { id: "dressing.join", keys: "mod+g",
-        label: "Join the selected buildings into one · take a joined one apart",
-        group: "Dressing", when: () => live() && this.#dressingOn && !!this.#dressing?.selectedId,
+        label: "Join or separate buildings",
+        group: "Decoration", when: () => writable() && this.#dressingOn && !!this.#dressing?.selectedId,
         run: () => this.joinDressing() },
     ]);
 
     // A click-by-click draw ends on Enter or on a click back at its first vertex. Neither is a click count,
     // so nothing on this canvas is reached by how fast two presses land.
     Keys.register("sketch-draw", [
-      { id: "sketch.close", keys: "enter", label: "Close the polygon · end the path", group: "Sketch",
+      { id: "sketch.close", keys: "enter", label: "Finish the polygon or path", group: "Sketch",
         priority: 10, when: () => live() && (this._activeTool === "polygon" || this._activeTool === "polyline"),
         run: () => this.#draw.onDblClick() },
     ]);
@@ -1433,7 +1458,7 @@ export class SketchCanvas extends CanvasBase {
     const t = svgEl("text", {
       x: tx, y: ty, transform: `rotate(${deg.toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)})`,
       "text-anchor": "middle", "dominant-baseline": "middle",
-      "font-size": "11", "font-family": "ui-monospace, monospace", "font-weight": "600",
+      "font-size": labelPx(11), "font-family": "ui-monospace, monospace", "font-weight": "600",
       fill: "var(--canvas-axis)", "pointer-events": "none",
       "paint-order": "stroke", stroke: "var(--bg-canvas)", "stroke-width": "3", "stroke-linejoin": "round",
     });

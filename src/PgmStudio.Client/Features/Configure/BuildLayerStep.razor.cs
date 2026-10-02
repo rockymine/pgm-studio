@@ -33,7 +33,7 @@ public partial class BuildLayerStep
 
     // The button already prints the mode it is in, so its tooltip has only the other half to give: what the
     // click does.
-    private string DrawModeTitle => HoleMode ? "Switch to Bridge" : "Switch to Hole";
+    private string DrawModeTitle => HoleMode ? "Switch to bridge" : "Switch to hole";
 
     private void ToggleDrawMode() => drawMode = HoleMode ? "area" : "hole";
 

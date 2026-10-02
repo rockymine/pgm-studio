@@ -2,17 +2,17 @@
 // A file-based app turns reflection-based JSON off by default, and the theme materials are a polymorphic
 // tagged union serialized that way — without this every material comes back as "reflection is disabled".
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// seed-library: put the built-in presets into a database — the materials the house presets are made of and the
-// room styles that bind them.
+// seed-library: put the seed folder (src/PgmStudio.Minecraft/Library) into a database — the patterns, themes,
+// houses and the parts they are built of, the boulders and the copied trees — without starting the studio.
 //
 //   dotnet run tools/seed-library.cs [connection string]
 //
 // Falls back to PGM_STUDIO_DB, then to the local dev database. Safe on an empty database and on a full one:
-// every row is keyed by name, so a second run updates what it put there and leaves everything else alone.
-// Nothing is ever deleted — a preset retired from the code stays in the library as a row the author owns.
+// a row holding a seeded entry is rewritten in place, so a second run changes nothing, and a row whose entry
+// has left the folder is deleted, or handed to the author still binding it.
 //
 // It finishes by composing each seeded room style back out of the library and reporting any field that came
-// back different, which is the only honest way to say whether a preset survived being stored.
+// back different, which is the only honest way to say whether a house survived being stored.
 using PgmStudio.Api.Services;
 using PgmStudio.Data;
 using PgmStudio.Data.Schema;
@@ -38,12 +38,15 @@ var rooms = new RoomStyleStore(db);
 var parts = new HousePartStore(db);
 var props = new PropStyleStore(db);
 
-var seed = new LibrarySeed(styles, rooms, parts, props);
+var seed = new LibrarySeed(styles, rooms, parts, props, new SeedKeyStore(db));
 var tally = await seed.SeedAsync();
 
-Console.WriteLine($"\nmaterials  {tally.StylesAdded} added, {tally.StylesUpdated} updated");
-Console.WriteLine($"buildings  {tally.RoomsAdded} added, {tally.RoomsUpdated} updated");
+Console.WriteLine($"\npatterns   {tally.PatternsAdded} added, {tally.PatternsUpdated} updated");
+Console.WriteLine($"parts      {tally.PartsAdded} added, {tally.PartsUpdated} updated");
+Console.WriteLine($"houses     {tally.HousesAdded} added, {tally.HousesUpdated} updated");
 Console.WriteLine($"themes     {tally.ThemesAdded} added, {tally.ThemesUpdated} updated");
+Console.WriteLine($"recipes    {tally.RecipesAdded} added, {tally.RecipesUpdated} updated");
+Console.WriteLine($"retired    {tally.Retired} deleted, {tally.Released} handed to their authors");
 
 // ── did they survive? ─────────────────────────────────────────────────────────────────────────────────
 var report = await seed.VerifyAsync();
@@ -59,11 +62,11 @@ foreach (var (house, lost) in report)
 Console.WriteLine();
 if (whole == report.Count)
 {
-    Console.WriteLine($"all {whole} presets round-trip through the library.");
+    Console.WriteLine($"all {whole} houses round-trip through the library.");
     return 0;
 }
 
-Console.WriteLine($"{whole} of {report.Count} presets round-trip; the rest name knobs the room-style row has");
+Console.WriteLine($"{whole} of {report.Count} houses round-trip; the rest name knobs the room-style row has");
 Console.WriteLine("no column for. Those houses are stored as the building the library can describe, which is");
 Console.WriteLine("not the building the preset is — see the fields listed above.");
 return 0;

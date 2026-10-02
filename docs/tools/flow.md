@@ -39,7 +39,7 @@ shipped.
 |---|---|---|---|
 | **Generator** | `/generator` | the board | nothing, until a candidate is kept |
 | **Shape catalog** | `/catalog` | — | nothing; it is the vocabulary the generator builds from |
-| **Plan** | `/maps/{slug}/plan` | the board | `plan_json` |
+| **Plan** | `/maps/{slug}/plan` · `/plans/{id}` | the board | `plan_json`, or a `plan` row |
 | **Sketch** | `/maps/{slug}/sketch` | the ground | `sketch_layout_json` |
 | **Configure** | `/maps/{slug}/configure` | the play | `map_intent_json`, and the projected document |
 | **Library** | `/library` | — | its own tables, shared across every map |
@@ -59,7 +59,8 @@ document, and it is the one an agent should reach for.
 teams, no spawns and no objective, so a map begun here arrives at Configure with geometry and nothing else.
 
 **From the generator.** `/generator` browses a library of whole boards the composer made from a size band, a
-symmetry and a seed, 500 for each band and symmetry. Keeping one stores it as a candidate; authoring it originates a map at the plan stage. From that point it is an
+symmetry and a seed, 500 for each band and symmetry. Keeping one stores it as a candidate, which the Plan tool
+opens at `/plans/{id}` without a map behind it; authoring it originates a map at the plan stage. From that point it is an
 ordinary planned map.
 
 **From a world built outside the studio.** `/maps/new` imports a Minecraft world that has terrain and no
@@ -72,7 +73,7 @@ this folder takes a map; these are what a caller with no map reaches for first.
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
-| `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
+| `GET /maps/stage-counts` | the landing's tallies: maps holding a sketch, maps configuring, and every map | — |
 | `GET /kit.py` | a Python kit written from the studio's own schema: a constructor per shape a route takes, by the studio's field names, writing only what is stated and checking each word and type before anything is sent; `Studio`, a method per route under a name taken from it, which waits out a `429`, prints `warnings` and raises `Refusal`; `find()` over every description; `build()` through the constructors. Its `ETag` is the schema's hash | 304 `If-None-Match` names the kit's hash, which is current |
 | `DELETE /map/{slug}` | nothing — **204**, and the map is gone with everything stored under it: its teams, regions, authors, objectives, scans and every document it held, since each of those rows cascades from the map's. A world folder under a maps root is what a map was scanned from rather than something it holds, and stays; an imported one is offered as an import candidate again. The call for a driver cleaning up after a variant, or a spec re-driven under a corrected slug | 404 `RQ4` no map at that slug |
 | `PUT /map/{slug}/source[?dry=true&discard=]` | `{slug, change, replaced, edits, cells, islands, configureUrl}`, and on a dry run the `layout` and `intent` it would store — a whole map stored from its source, a plan compiled or a drawn layout and intent, with the refinement applied onto it, as one change. **The authoring call for a headless caller**, not only the import one, and the whole of it: the compile, the refinement, the finish and the intent's projection run inside it. A map already at that slug is replaced, and only once the source has passed everything it is refused for; `?dry=true` decides all of it, answers the edits and stores nothing. A map made from a refinement refuses a source over a change it has not seen, and `?discard=` names the ones it drops. See *A map's source is the way in, and the way back in* below. Every document answers `RQ3` under the member it was stated as | 400 `not a slug` `RQ1` · 400 `no such change` `RQ1` naming `after` or `discard` · 400 `unreadable discard` · 400 `no base` `RQ1` naming `plan`, `layout` or `intent` · 400 `unreadable document` `RQ1` naming the first field each binder cannot read, under its member (`intent.modes[0]`) · 400 `no name given` · 400 `note too long` · 400 `invalid style or theme` · 400 a person nobody could be called · 403 `RQ8` a map at that slug the caller may not edit · 422 `plan not compilable` · 422 `refinement not applicable` `SR3`/`SR4`/`SR5`/`SR6` · 409 `changes not seen` `SR1`, one per edit a change the source has not seen made, handed over · 422 the drawing carries no ground `SK7` — a refused source stores nothing |
@@ -131,7 +132,7 @@ have to be walked again — the World phase's gate is the presence of a confirme
 behind it until they are.
 
 **Layout → world.** `POST /api/map/{slug}/sketch/finish` rasterizes the layout into world geometry and moves
-the map to the configure stage. This is the only stage transition the studio performs at runtime.
+the map to the configure stage; the sketch tool's **Download map** runs it the first time a map is downloaded. This is the only stage transition the studio performs at runtime.
 
 **Intent → document → `map.xml`.** `PUT /api/map/{slug}/intent` stores the intent and projects it into the PGM
 document — teams, kits, regions, filters, apply-rules, spawns — in one idempotent pass.
@@ -181,7 +182,7 @@ several places is stated once under `materials` and used as `{"use": "strata"}`.
 is named as `{"library": "dunes"}` wherever a material, a theme, a room style, a prop style or a biome is stated,
 and resolved when the source is applied (`docs/tools/library.md`). Either copy has the fields stated beside the
 name laid over it, and a name that names nothing refuses the source 422: `SR5` for a material the registry does
-not state, `SR6` for a library name that names no single row.
+not state, `SR6` for a library name that names no row.
 
 **A compiled shape is named by its component and its height, and a statement anchors to that name.** The id is
 the component's ordinally first piece and the surface it stands at — `dale-9` — with the patches after the
@@ -524,7 +525,7 @@ a new map through them means writing every region, filter and apply-rule by hand
 | `GET /map/{slug}/regions/tree` · `/regions` | the region tree grouped by category, and the flat registry |
 | `PATCH /map/{slug}/metadata` | name, version, objective, max build height, authors |
 | `GET /minecraft/player[?name=\|uuid=]` | one player as `{uuid, name}` — a typed username to the canonical uuid an author entry is stored under, and back. A value not shaped like an account name is never asked about, and a resolved pair is answered from `minecraft_player` for thirty days. **404** means no account is called that |
-| `GET /minecraft/player/{uuid}/skin` | the player's skin as a PNG, served from the studio so a browser draws a head without asking a third party; fetched from Mojang's texture server on first ask and kept thirty days beside the name. **404** means there is none to be had, and the client draws the player's initial instead |
+| `GET /minecraft/player/{uuid}/head` | the front of the player's head as an 8×8 PNG — the face with the hat over it, a hat area opaque everywhere dropped the way the game drops it — served from the studio so a browser draws a head without asking a third party; the skin is fetched from Mojang's texture server on first ask and kept thirty days beside the name. **404** means there is none to be had, and the client draws the player's initial instead |
 | `POST` · `PATCH` · `DELETE /map/{slug}/teams[/{teamId}]` | the teams |
 | `POST` · `PATCH` · `DELETE /map/{slug}/spawns[/{regionId}]` | a spawn's region, team, yaw and kit — the `kit` field names which kit the spawn grants, and nothing in the studio states what a kit contains |
 | `PATCH` · `DELETE /map/{slug}/observer-spawn` | the `<default>` spawn |

@@ -35,13 +35,12 @@ public sealed record MapSummary(
     bool HasPlan = false,
     bool HasSketch = false);
 
-/// <summary>Map counts for the dashboard landing cards (GET /api/maps/stage-counts). <see cref="Sketch"/>
-/// counts maps that <em>hold a sketch layer</em>, matching what the Sketches list shows; the other two count
-/// maps sitting at that stage, which is what those lists show.</summary>
+/// <summary>Map counts for the landing cards (GET /api/maps/stage-counts), each counting what the list its
+/// card opens shows.</summary>
 /// <param name="Sketch">Maps holding a sketch layer, whatever stage they sit at.</param>
 /// <param name="Configure">Maps sitting at the Configure stage.</param>
-/// <param name="Edit">Maps sitting at the Edit stage.</param>
-public sealed record MapStageCounts(int Sketch, int Configure, int Edit);
+/// <param name="All">Every map in the studio.</param>
+public sealed record MapStageCounts(int Sketch, int Configure, int All);
 
 /// <summary>Which authoring artifacts one map holds (GET /api/map/{slug}/state) — the same four facts
 /// <see cref="MapSummary"/> carries per row, asked about a single map. A tool uses it to know whether an
