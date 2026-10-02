@@ -79,7 +79,7 @@ public sealed class ComposeBrowseEndpoint(ComposedBoardStore library) : Endpoint
         if (await library.ServedVersionAsync(band, symmetry, ComposerVersion.Current, ComposedBoardLibrary.PerBand, ct)
             is not { } version)
         {
-            await Send.OkAsync(new ComposePage([], 0, true, 0, ComposedBoardLibrary.Census([])), ct);
+            await Send.OkAsync(new ComposePage([], 0, true, 0, ComposedBoardLibrary.Census([]), BoardKey.Entries), ct);
             return;
         }
 
@@ -93,7 +93,8 @@ public sealed class ComposeBrowseEndpoint(ComposedBoardStore library) : Endpoint
         var census = ComposedBoardLibrary.Census(await library.FormsAsync(version, band, symmetry, ct));
         var next = from + rows.Count;
         await Send.OkAsync(new ComposePage(
-            [.. rows.Select(row => ComposedBoardLibrary.CardOf(row, players))], next, next >= matching, matching, census), ct);
+            [.. rows.Select(row => ComposedBoardLibrary.CardOf(row, players))], next, next >= matching, matching, census,
+            BoardKey.Entries), ct);
     }
 
     private List<string> Csv(string key) =>
@@ -206,4 +207,11 @@ public sealed class PlanPngEndpoint(PlanStore store) : EndpointWithoutRequest
         HttpContext.Response.ContentType = "image/png";
         await HttpContext.Response.Body.WriteAsync(png, ct);
     }
+}
+
+/// <summary><see cref="PlanBoardPalette.Key"/> on the wire: what a page of board pictures is read by.</summary>
+internal static class BoardKey
+{
+    public static readonly IReadOnlyList<BoardKeyEntry> Entries =
+        [.. PlanBoardPalette.Key.Select(entry => new BoardKeyEntry(entry.Label, PlanBoardPalette.Hex(entry.Rgb), entry.Hatched))];
 }

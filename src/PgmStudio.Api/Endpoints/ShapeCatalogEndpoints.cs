@@ -49,7 +49,8 @@ public sealed class ShapeCatalogEndpoint : EndpointWithoutRequest<CatalogPage>
             all.Count,
             Tally(all, s => TierToken(s.Tier)),
             Tally(all, s => s.Family),
-            Tally(all, s => s.Kind));
+            Tally(all, s => s.Kind),
+            BoardKey.Entries);
         await Send.ResponseAsync(page, cancellation: ct);
     }
 

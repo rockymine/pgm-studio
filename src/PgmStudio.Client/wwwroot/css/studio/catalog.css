@@ -3,17 +3,13 @@
    it says twice: as a badge and in the card's own edge, so a scan of the grid separates the tiers. */
 
 .cat-card--reachable { border-style: dashed; }
-.cat-card--emitter-only { border-style: dotted; opacity: .82; }
+.cat-card--emitter-only { border-style: dotted; }
 
-.cat-badge--family { color: var(--accent-lighter, var(--accent)); }
-.cat-badge--in-mix { color: var(--text-secondary); }
+.cat-badge--in-mix { color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 50%, var(--border)); }
 .cat-badge--reachable { color: var(--warn, #d9a441); border-color: var(--warn, #d9a441); }
 .cat-badge--emitter-only { color: var(--text-muted, var(--text-secondary)); border-style: dashed; }
 
-.cat-knob {
-  padding: 0 5px; font-size: var(--font-xs); font-family: ui-monospace, monospace;
-  color: var(--text-secondary); background: var(--bg-selected); border-radius: var(--radius-sm);
-}
+.cat-knob { background: var(--bg-selected); color: var(--accent-lighter); border-color: transparent; }
 
 /* The knob panel's own additions: an emission that was refused, in the emitter's words. */
 .cat-probe-fig--refused { border-style: dashed; border-color: var(--warn, #d9a441); }

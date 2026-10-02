@@ -73,8 +73,8 @@
                 {
                   <ListRow Href="@(Opens(m) is { } layer ? $"maps/{m.Slug}/{layer}" : null)" Selected="m.Slug == Just" @key="m.Slug">
                     <ChildContent>
-                      <span class="list-label list-label--mono">@m.Slug</span>
-                      <span class="list-label">@m.Name</span>
+                      <span class="list-label map-row-name">@m.Name</span>
+                      <span class="list-label list-label--mono map-row-slug">@m.Slug</span>
                       @if (CurrentStage == MapStage.Edit)
                       {
                         @* one tag per gamemode: a map can be more than one, and a map with no objective

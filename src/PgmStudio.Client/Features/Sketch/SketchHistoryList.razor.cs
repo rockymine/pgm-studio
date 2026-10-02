@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using PgmStudio.Contracts;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
@@ -19,7 +20,16 @@ public partial class SketchHistoryList
 
     /// <summary>What a change is, in its writer's words where they gave some and by what it wrote where not.</summary>
     internal static string Said(MapChangeDto change) =>
-        change.Note is { Length: > 0 } note ? note : $"Changed the {string.Join(", ", change.Documents)}";
+        change.Note is { Length: > 0 } note ? note : $"Changed the {Documents(change.Documents)}";
+
+    /// <summary>The documents a change wrote, by the names the tools give them.</summary>
+    internal static string Documents(IEnumerable<string> documents) =>
+        string.Join(", ", documents.Select(document => document switch
+        {
+            MapDocuments.Layout => "sketch",
+            MapDocuments.Intent => "game settings",
+            _ => document,
+        }).Distinct());
 
     /// <summary>Who wrote a change: the person, and the token's label where a token wrote it.</summary>
     internal static string Who(MapChangeDto change) =>

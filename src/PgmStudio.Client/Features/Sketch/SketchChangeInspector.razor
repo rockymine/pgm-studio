@@ -13,7 +13,7 @@
     }
     else
     {
-      <p class="plan-readout">@SketchHistoryList.Who(Change) · @Moments.Ago(Change.At) · changed the @string.Join(", ", Change.Documents)</p>
+      <p class="plan-readout">@SketchHistoryList.Who(Change) · @Moments.Ago(Change.At) · changed the @SketchHistoryList.Documents(Change.Documents)</p>
       @if (Change.Note is { Length: > 0 } note) { <p class="change-note">“@note”</p> }
       @if (Change.Discarded is { Count: > 0 } dropped)
       {

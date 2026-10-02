@@ -15,10 +15,10 @@
   <ChildContent>
   <div class="lib-body">
     <aside class="lib-filters">
-      <Section Title="Filters">
+      <Section Title="Filter shapes">
 
         <Field Label="Kind">
-          <div class="filter-group-options">
+          <div class="filter-group-options filter-group-options--multi">
             @foreach (var k in Kinds)
             {
               <Chip Active="kindFilter.Contains(k.Token)" Title="@k.Hint"
@@ -29,7 +29,7 @@
 
         <Field Label="Usage">
           <ChildContent>
-            <div class="filter-group-options">
+            <div class="filter-group-options filter-group-options--multi">
               @foreach (var t in Tiers)
               {
                 <Chip Active="tierFilter.Contains(t.Token)" Title="@t.Hint"
@@ -40,11 +40,11 @@
         </Field>
 
         <Field Label="Shape family">
-          <div class="filter-group-options">
+          <div class="filter-group-options filter-group-options--multi">
             @foreach (var family in byFamily.Keys.OrderBy(FamilyOrder))
             {
               <Chip Active="familyFilter.Contains(family)"
-                    OnClick="() => Toggle(familyFilter, family)">@family<span class="filter-chip-n">@Count(byFamily, family)</span></Chip>
+                    OnClick="() => Toggle(familyFilter, family)">@FamilyLabel(family)<span class="filter-chip-n">@Count(byFamily, family)</span></Chip>
             }
           </div>
         </Field>
@@ -54,7 +54,7 @@
           <Button Full OnClick="ClearFilters">Clear filters</Button>
         }
 
-        <p class="section-desc">Counts are for the whole catalog, not the filtered results.</p>
+        <p class="section-desc">The number on each option counts the whole catalog, whatever else is ticked.</p>
       </Section>
     </aside>
 
@@ -68,28 +68,35 @@
       else if (loading) { <p class="lib-status">Loading…</p> }
       else
       {
-        <p class="lib-count">@Shown.Count of @total shape@(total == 1 ? string.Empty : "s")</p>
+        <div class="gen-toolbar">
+          <p class="gen-scanned"><strong>@Shown.Count</strong> of @total shape@(total == 1 ? string.Empty : "s")</p>
+          <BoardKey Entries="key" />
+        </div>
         <div class="lib-grid">
           @foreach (var shape in Shown)
           {
-            <div class="lib-card cat-card--@shape.Tier">
-              <div class="lib-card-badges">
-                <span class="lib-badge cat-badge--family">@shape.Family</span>
-                <span class="lib-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
-              </div>
-              <button class="lib-card-fig" @onclick="() => OpenProbe(shape)"
+            <div class="lib-card cat-card--@shape.Tier" @key="shape.Id">
+              <button class="lib-card-fig cat-card-fig" @onclick="() => OpenProbe(shape)"
                       title="Open in shape settings">@((MarkupString)shape.Svg)</button>
-              <div class="lib-card-foot">
-                <span class="lib-card-meta">@shape.BoxW×@shape.BoxH · w@(shape.CorridorCells)</span>
-                @foreach (var knob in shape.Knobs)
+              <div class="lib-card-body">
+                <div class="lib-card-title">
+                  <span>@FamilyLabel(shape.Family)</span>
+                  <span class="lib-card-meta">@shape.BoxW × @shape.BoxH cells</span>
+                </div>
+                <div class="lib-card-badges">
+                  <span class="lib-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
+                  <span class="lib-badge">@KindLabel(shape.Kind)</span>
+                  <span class="lib-badge" title="Corridor width, in cells">Corridor @shape.CorridorCells</span>
+                  @foreach (var knob in shape.Knobs)
+                  {
+                    <span class="lib-badge cat-knob">@knob</span>
+                  }
+                </div>
+                @if (shape.Note is not null)
                 {
-                  <span class="cat-knob">@knob</span>
+                  <p class="lib-card-note">@shape.Note</p>
                 }
               </div>
-              @if (shape.Note is not null)
-              {
-                <p class="lib-card-note">@shape.Note</p>
-              }
             </div>
           }
         </div>

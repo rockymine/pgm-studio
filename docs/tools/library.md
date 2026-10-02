@@ -15,8 +15,9 @@ what it looks like, everything above it by what it composes to, a recipe by what
 ground it colours. A house's row is a `room_style` and composes to a `HouseStyle`; the surface calls it what
 the thing is.
 
-Three routes, and the rail carries the nine kinds. `/library` is the chooser — one card per kind over its own
-count and a picture of what it holds. `/library/{kind}` browses that kind: a strip carrying a name search,
+Three routes, and the rail carries the nine kinds. `/library` is the chooser — one card per kind, grouped as
+*Terrain* (styles, themes, biomes), *Buildings* (houses, roofs, storeys, porches) and *Nature* (trees,
+boulders), each over the pictures of the newest three entries it holds and its count. `/library/{kind}` browses that kind: a strip carrying a name search,
 whatever else the kind filters by, and **New**, over a grid of cards. `/library/{kind}/{id}`, or
 `/library/{kind}/new`, opens one entry on a page of its own.
 

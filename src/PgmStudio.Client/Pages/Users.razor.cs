@@ -14,9 +14,9 @@ public partial class Users
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private static readonly IReadOnlyList<SelectOption> Roles =
-        [new(StudioRoles.Member, "member"), new(StudioRoles.Admin, "admin")];
+        [new(StudioRoles.Member, "Member"), new(StudioRoles.Admin, "Admin")];
 
-    private static readonly IReadOnlyList<SelectOption> MemberOnly = [new(StudioRoles.Member, "member")];
+    private static readonly IReadOnlyList<SelectOption> MemberOnly = [new(StudioRoles.Member, "Member")];
 
     private bool? admin;
     private CallerDto? me;

@@ -125,6 +125,7 @@ public partial class GeneratorTool : IAsyncDisposable
                 matching = page.Matching;
                 atEnd = page.End;
                 SetCensus(page.Observed);
+                key = page.Key;
             }
         }
         catch { feedError = "Couldn't load layouts. Reload the page to try again."; atEnd = true; }
@@ -134,6 +135,7 @@ public partial class GeneratorTool : IAsyncDisposable
     // ── the structural census (what the library holds for these settings) ─────────────────────────────
     // Every page carries the census over the whole library for the band and symmetry, before the filters.
     private readonly Dictionary<string, int> seenWools = [], seenHubs = [], seenFronts = [];
+    private IReadOnlyList<BoardKeyEntry>? key;
     private int censusBoards;
 
     /// <summary>How many boards must be held before a token's absence is worth reporting as absence rather than
@@ -294,11 +296,26 @@ public partial class GeneratorTool : IAsyncDisposable
     }
 
     // ── filter inputs ──────────────────────────────────────────────────────────────
+    // A slider shows its value while it moves and applies when it is let go; everything else applies at once.
     private void OnPlayers(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var v)) players = v; }
+    private Task ApplyPlayers(ChangeEventArgs e) { OnPlayers(e); return Reload(); }
     private void OnMaxScore(ChangeEventArgs e) { if (double.TryParse(e.Value?.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var v)) maxScore = v; }
-    private void OnWoolMin(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var v)) woolMin = Math.Max(0, v); }
-    private void OnWoolMax(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var v)) woolMax = Math.Max(0, v); }
-    private void PickSymmetry(string s) => symmetry = s;
+    private Task ApplyMaxScore(ChangeEventArgs e) { OnMaxScore(e); return Reload(); }
+    private Task OnWoolMin(ChangeEventArgs e) { woolMin = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(0, v) : 0; return Reload(); }
+    private Task OnWoolMax(ChangeEventArgs e) { woolMax = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(0, v) : 0; return Reload(); }
+    private Task PickSymmetry(string s) { symmetry = s; return Reload(); }
+
+    private bool ShapeFiltered => woolFilter.Count + hubFilter.Count + frontFilter.Count > 0;
+
+    private Task ClearShapeFilters()
+    {
+        woolFilter.Clear(); hubFilter.Clear(); frontFilter.Clear();
+        return Reload();
+    }
+
+    /// <summary>A card's wool approach families by their filter labels, each once.</summary>
+    private string WoolLabels(IEnumerable<string> tokens) =>
+        string.Join(", ", tokens.Distinct().Select(t => Label(WoolChips.Select(w => (w.Token, w.Label)), t)));
 
     // ── land spend ───────────────────────────────────────────────────────────────
     // Two currencies, never one: footprint is the box rect (fixed when the box was seated), land is what the

@@ -22,9 +22,11 @@
     else if (Views.Undrawable is { } why)
     {
       <div class="ingame">
-        <p class="ingame__note ingame__note--warn">
-          In-game pictures need Minecraft 1.8.9's block textures, and this server doesn't have them. @why
-        </p>
+        <div class="callout ingame__note">
+          <span class="callout-icon"><i data-lucide="info"></i></span>
+          <p><strong>In-game pictures aren't available on this server.</strong> They need Minecraft 1.8.9's block
+            textures, which it doesn't have. @why</p>
+        </div>
       </div>
     }
     else if (Views.Views.Count == 0 || Shown is not { } shown)

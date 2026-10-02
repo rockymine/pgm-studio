@@ -722,3 +722,7 @@
 .plan-rebuild-mark svg { width: var(--icon-md); height: var(--icon-md); }
 .plan-rebuild-mark--drop svg { color: var(--color-warning); }
 .plan-rebuild-mark--keep svg { color: var(--color-success); }
+
+/* The plan sidebar's three panels, as one even three-way switch rather than chips that wrap. */
+.plan-panel-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1); margin-bottom: var(--space-3); }
+.plan-panel-switch .filter-chip { justify-content: center; text-align: center; }

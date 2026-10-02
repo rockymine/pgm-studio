@@ -25,7 +25,7 @@ const ROUTES = [
   { path: "/catalog",                             name: "shape catalog",  expect: ".lib-grid .lib-card" },
   // the library renders from the database, so an empty kind is still a live page — the chooser's cards and a
   // browse strip are the proof, since those are what a dead component would take down with it
-  { path: "/library",                             name: "library chooser", expect: ".lib-choices .card" },
+  { path: "/library",                             name: "library chooser", expect: ".lib-choices .lib-choice" },
   { path: "/library/styles",                      name: "style library",  expect: ".lib-page .lib-strip" },
   { path: "/library/themes",                      name: "theme library",  expect: ".lib-page .lib-strip" },
   { path: "/library/houses",                      name: "house library",  expect: ".lib-page .lib-strip" },

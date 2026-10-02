@@ -29,6 +29,7 @@ public partial class CatalogTool
     private IReadOnlyDictionary<string, int> byTier = new Dictionary<string, int>();
     private IReadOnlyDictionary<string, int> byFamily = new Dictionary<string, int>();
     private IReadOnlyDictionary<string, int> byKind = new Dictionary<string, int>();
+    private IReadOnlyList<BoardKeyEntry>? key;
     private int total;
     private bool loading = true;
     private string? error;
@@ -74,6 +75,7 @@ public partial class CatalogTool
             byTier = page.ByTier;
             byFamily = page.ByFamily;
             byKind = page.ByKind;
+            key = page.Key;
         }
         catch (HttpRequestException e)
         {
@@ -115,6 +117,13 @@ public partial class CatalogTool
         var at = Array.IndexOf(FamilyOrderTokens, family);
         return at < 0 ? FamilyOrderTokens.Length : at;
     }
+
+    /// <summary>A family token as a name: a one-letter family stays a capital letter, a word is capitalised.</summary>
+    private static string FamilyLabel(string family) =>
+        family.Length == 0 ? family : char.ToUpperInvariant(family[0]) + family[1..];
+
+    private static string KindLabel(string kind) =>
+        Kinds.FirstOrDefault(k => k.Token == kind).Label ?? kind;
 
     private static string TierLabel(string tier) =>
         Tiers.FirstOrDefault(t => t.Token == tier).Label ?? tier;

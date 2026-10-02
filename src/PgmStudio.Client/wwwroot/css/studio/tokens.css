@@ -107,6 +107,10 @@
   --canvas-contour:       rgba(251, 191, 36, 0.45);   /* amber-400 */
   --canvas-contour-index: rgba(251, 191, 36, 0.92);
 
+  /* The ground a server-drawn board picture (generator, shape catalog) is painted for. Its swatches are
+     mid-tones at partial opacity chosen against a dark ground, so this stays dark in both themes. */
+  --board-bg: #0b1222;
+
   /* Canvas SVG area background */
   --canvas-bg: var(--bg-canvas);   /* alias — the viewport background (follows the theme) */
 

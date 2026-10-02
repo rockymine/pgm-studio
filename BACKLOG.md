@@ -578,6 +578,15 @@ is the standard the copy is held to.
   inspector's footer and show the three column counts as one row. The `InGame` and `History` boards of the
   design canvas (`C70`) draw both. `docs/tools/sketch.md` § In game, § History.
 
+- [ ] **TS145 — The Report phase reads like a tool, not a log.** The Sketch tool's Report phase captions its
+  pictures and readings with raw API routes (`render/isometric`, `POST sketch/relief/read`) and lists them as
+  link text; a reader wants each reading by name, with the route behind a *Copy request* action for an agent.
+  `SketchReportPhase.razor`. `docs/tools/sketch.md` § Report.
+
+- [ ] **TS146 — The sketch tool's crumb names the map.** `SketchTool.razor` shows `@Slug` in the top bar where
+  the plan and configure tools show the map's name, because the sketch tool loads no map summary. Read the name
+  with the layout and put it in the crumb. `docs/tools/sketch.md`.
+
 - [ ] **C69 — A proportional UI font.** *Parked (author): waits on the design direction.* Every page is set
   in `ui-monospace` (`.editor-page`, `editor.css`), which reads as a terminal and is wider per word at the same
   size. The alternative is a system sans for interface text with monospace kept for data: slugs, coordinates,

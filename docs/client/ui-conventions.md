@@ -53,7 +53,8 @@ is an initial over a hue hashed from the row's own uuid or name, so a page carry
 from outside the studio to draw them.
 
 **Data** — `Section` (`panel-section` plus its header, description, help, actions and footer), `SectionHeader`
-on its own, `ListRow` (the list row with its swatch, label, tag, go-arrow and a `Trailing` slot for a control
+on its own, `BoardKey` (the role and zone colours a page of server-drawn boards is read by, drawn once beside
+them), `ListRow` (the list row with its swatch, label, tag, go-arrow and a `Trailing` slot for a control
 the row carries), and `DetailHeader` (an inspector head: icon, label, trailing badges).
 
 **Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + the two bars + body + footer);
@@ -97,6 +98,14 @@ goes. What the shells do not reach is recorded as `RP81`.
 
 The server refuses every write the caller may not make whatever the page shows (`docs/access.md`); this is
 what lets the page say so before an edit rather than after it.
+
+## A filter looks like a filter
+
+**A set the reader can tick several of leads each chip with a checkbox.** `filter-group-options--multi` on the
+chip row draws the box, ticked when the chip is on, and moves the chip's count to its right edge; a row where
+exactly one option holds (a symmetry, a panel switch) carries no box. The generator and the shape catalog
+title their rails for what the rail does — *Layout settings*, *Filter by shape*, *Filter shapes* — rather
+than *Filters*, and every change in them applies at once: there is no Apply button to forget.
 
 ## Text size
 

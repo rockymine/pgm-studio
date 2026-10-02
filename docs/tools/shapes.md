@@ -100,11 +100,12 @@ admit it is `G81`.
 ## The grid
 
 Cards are laid out in pipeline-legibility order — straight, bent, branch, enclosing, then the bodies — so the
-grid reads as a progression rather than alphabetically. Each carries its family and tier as badges, the shape
-itself, and a foot naming the box it was emitted at, the corridor width, and any knobs set. A non-in-mix card
-adds the note explaining its tier.
+grid reads as a progression rather than alphabetically. Each card is the shape in a square frame on a dark
+ground, then its family and the box it was emitted at, then tags for its tier, its kind, the corridor width
+and any knobs set. A non-in-mix card adds the note explaining its tier. The pictures carry no text; the page
+draws the role and zone key once above the grid, from the `key` the catalog returns.
 
-Three filters narrow it: *Kind* (the box kind), *Usage* (the reach tier), and *Shape family*. Each is any-of within itself and all-of across facets.
+Three filters narrow it, each a set of ticked chips: *Kind* (the box kind), *Usage* (the reach tier), and *Shape family*. Each is any-of within itself and all-of across facets.
 The counts on the chips always describe the **whole** catalog rather than the filtered slice, so a chip says
 what it would show before it is picked.
 
@@ -160,7 +161,7 @@ Both endpoints are reads open to anyone, rooted at `/api`, and take no map ([`do
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /shapes/catalog[?kind=&tier=&family=]` | `{shapes, total, byTier, byFamily, byKind}` — every card as `{id, kind, family, tier, boxW, boxH, corridorCells, knobs, note, svg}`. Filters are CSV and narrow the returned cards; the tallies always describe the whole catalog | — |
+| `GET /shapes/catalog[?kind=&tier=&family=]` | `{shapes, total, byTier, byFamily, byKind, key}` — every card as `{id, kind, family, tier, boxW, boxH, corridorCells, knobs, note, svg}`, and `key` the role and zone colours the SVGs are drawn in. Filters are CSV and narrow the returned cards; the tallies always describe the whole catalog | — |
 | `GET /shapes/probe?family=&w=&h=&cw=&mouth=&flip=&sideTuck=&woolAtEnd=&attachW=` | `{svg, rejection, landCells, slots}` — one emission through `BoxFiller`. A refusal is a 200 with `rejection` set and `svg` null | 400 unknown family |
 | `GET /shapes/probe/schema` | `{families, mouths, minCorridorCells, maxCorridorCells}` — per family its token, its minimum box in the dock frame, whether the production menu admits it, and which knobs it takes | — |
 

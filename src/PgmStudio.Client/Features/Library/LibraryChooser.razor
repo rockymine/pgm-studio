@@ -2,34 +2,47 @@
 @inject TerrainLibraryClient Library
 @inject IJSRuntime JS
 
-@* What /library opens on: the six libraries as cards, in the order they compose, each over its own count and
-   a picture taken from the first row it holds. *@
+@* What /library opens on: every library as a card, grouped by what it dresses, each showing what it holds. *@
 
-<ContentColumn MaxWidth="1080">
+<ContentColumn MaxWidth="1200">
   <header class="lib-hero">
     <h1 class="lib-hero-title">Libraries</h1>
     <p class="lib-hero-lead">Make materials, terrain finishes, buildings, and props once, and use them on
       every map.</p>
   </header>
 
-  <div class="card-grid lib-choices">
-    @foreach (var kind in LibraryKinds.All)
-    {
-      <a class="card card--action lib-choice" href="@($"/library/{kind.Slug}")" @key="kind.Slug">
-        <div class="card-head">
-          <span class="card-icon"><i data-lucide="@kind.Icon" @key="kind.Icon"></i></span>
-          <span class="card-title">@kind.Title</span>
-        </div>
-        <div class="lib-choice-fig">
-          @if (Sample(kind) is { } picture) { @((MarkupString)picture) }
-          else { <span class="lib-choice-empty">Empty</span> }
-        </div>
-        <p class="card-desc">@kind.Blurb</p>
-        <span class="card-foot">
-          <span class="card-foot-count">@CountLabel(kind)</span>
-          <span class="card-foot-go">Open <i data-lucide="arrow-right" @key="@($"go-{kind.Slug}")"></i></span>
-        </span>
-      </a>
-    }
-  </div>
+  @foreach (var (group, slugs) in Groups)
+  {
+    <section class="lib-group" @key="group">
+      <h2 class="lib-group-title">@group</h2>
+      <div class="lib-choices">
+        @foreach (var kind in LibraryKinds.All.Where(k => slugs.Contains(k.Slug)))
+        {
+          <a class="lib-choice" href="@($"/library/{kind.Slug}")" @key="kind.Slug">
+            <div class="lib-choice-fig">
+              @if (Samples(kind) is { Count: > 0 } pictures)
+              {
+                @foreach (var picture in pictures)
+                {
+                  <span class="lib-choice-pic">@((MarkupString)picture)</span>
+                }
+              }
+              else
+              {
+                <span class="lib-choice-empty">@(loading ? "Loading…" : $"No {kind.Title.ToLowerInvariant()} yet")</span>
+              }
+            </div>
+            <div class="lib-choice-body">
+              <div class="lib-choice-head">
+                <span class="lib-choice-icon"><i data-lucide="@kind.Icon" @key="kind.Icon"></i></span>
+                <span class="lib-choice-title">@kind.Title</span>
+                <span class="lib-choice-count">@CountLabel(kind)</span>
+              </div>
+              <p class="lib-choice-desc">@kind.Blurb</p>
+            </div>
+          </a>
+        }
+      </div>
+    </section>
+  }
 </ContentColumn>

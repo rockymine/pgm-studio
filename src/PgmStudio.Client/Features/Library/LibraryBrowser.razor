@@ -24,14 +24,16 @@
         @foreach (var row in Shown)
         {
           <div class="lib-card" @key="row.Id">
-            @if (Badge is not null)
-            {
-              <div class="lib-card-badges"><span class="lib-badge">@Badge(row)</span></div>
-            }
             <a class="lib-card-fig" href="@($"/library/{Kind.Slug}/{row.Id}")" title="@($"Open {row.Name}")">
               @((MarkupString)row.Preview)
             </a>
-            <div class="lib-card-foot"><span class="lib-card-meta">@row.Name</span></div>
+            <div class="lib-card-body">
+              <div class="lib-card-title"><span>@row.Name</span></div>
+              @if (Badge is not null)
+              {
+                <div class="lib-card-badges"><span class="lib-badge">@Badge(row)</span></div>
+              }
+            </div>
           </div>
         }
       </div>

@@ -176,6 +176,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **`?` opens the shortcuts, and the sheet closes like a dialog (`C74`).** A shifted symbol is its own
   character in `chordOf`, so `?` matches on any layout where it previously arrived as `shift+?` and matched
   nothing. The sheet carries a close button where it showed a faint *Esc to close*.
+- **A page of boards is read with one key, and its cards hold their shape (`C76`).** A server-drawn board SVG
+  carries no legend: `PlanBoardPalette.Key` is the one list of role and zone colours, the PNG appends it under
+  its raster for a reader of the image alone, and `GET /compose` and `GET /shapes/catalog` return it as `key`
+  for `BoardKey` to draw once above the grid. Generator and catalog cards are a square picture on a dark
+  ground (`--board-bg`, since the swatches are tuned for one) with the structure and numbers under it rather
+  than badges over it. The generator's rail is *Layout settings*, applied on change with no Apply button, and
+  *Filter by shape*; multi-select filter chips lead with a checkbox (`filter-group-options--multi`).
+- **What a whole-page sweep found (`C77`).** The Blazor template's link and `code` colours (`#0071c1`, a pink)
+  are the studio's tokens; a list row that is a link is no longer underlined; a map row leads with its name
+  and quiets its slug; the not-found page has a heading and a way back; the plan tool's crumb names the plan;
+  change history names the documents a change wrote as *sketch* and *game settings*; the plan sidebar's three
+  panels are one even switch; and an In-game phase with no block textures says so in a callout.
 - **Panning looks like panning (`C75`).** The pan tool shows an open hand over every canvas and a closed one
   while the view is dragged, middle-button drags included (`canvas--pan`, `canvas--panning`).
 - **Three browser specs describe the tools the studio has (`TN17`, `TN18`, `TS106`).** Nothing had run the
@@ -6006,6 +6018,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   body's own material, never over a laid log and never beside a `roofSlab`. Both editors offer whole blocks,
   stairs or slabs, the stair and the wear; `M0057` adds the two columns to house and roof rows.
   `docs/world-export/structures.md` §7.1, `docs/tools/library.md`. (`WE161`)
+- **The library's front page shows what it holds (`TL38`).** `/library` groups its nine kinds as *Terrain*,
+  *Buildings* and *Nature*; each card is the pictures of the newest three entries over the kind's name, count
+  and one-line description, the nine lists load in parallel, and a browse card is its picture over the entry's
+  name and tag rather than a name in a footer under a badge laid on the picture. `docs/tools/library.md`.
 - **The library's house styles are named for what they are (TL36).** A room style's name is describing words
   then a kind of building, from the two lists `HouseNames` holds and `GET /api/room-styles/name-words` answers;
   `HS19` complains of any other on save. The library holds the author's review: the ten kept styles revised and

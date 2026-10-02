@@ -29,15 +29,23 @@ public sealed class PlanBoardSvgTests
     }
 
     [Test]
-    public async Task Every_render_carries_a_legend_naming_every_role_and_both_zone_kinds()
+    public async Task The_key_names_every_role_and_both_zone_kinds_once()
     {
-        // Even a board with no zones still carries the full key (B95) — an image is a check, not a source of
-        // meaning, and that has to hold whether or not this particular board happens to use every colour.
-        var plan = Composer.Compose(new ComposeRequest(12, seed: 3));
-        var svg = PlanBoardSvg.Render(plan);
+        // B95: whoever shows a board shows its key, so the key has to cover every colour a board can paint,
+        // whether or not one particular board uses them all.
+        var labels = PlanBoardPalette.Key.Select(entry => entry.Label).ToList();
 
-        foreach (var label in new[] { "hub", "spawn", "wool", "frontline", "other", "build zone", "water lane" })
-            await Assert.That(svg).Contains(label);
+        await Assert.That(labels).IsEquivalentTo(new[] { "Hub", "Spawn", "Wool", "Front line", "Other", "Build zone", "Water lane" });
+        await Assert.That(PlanBoardPalette.Key.Single(entry => entry.Hatched).Label).IsEqualTo("Water lane");
+    }
+
+    [Test]
+    public async Task A_board_picture_carries_no_text()
+    {
+        // The page draws the key once beside its pictures; a key inside each one is unreadable at card size.
+        var svg = PlanBoardSvg.Render(Composer.Compose(new ComposeRequest(12, seed: 3)));
+
+        await Assert.That(svg).DoesNotContain("<text");
     }
 
     [Test]
