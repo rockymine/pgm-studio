@@ -173,7 +173,7 @@ public sealed class HousePartLibraryEndpointsTests
         await Assert.That(detail!.RoofStair).IsEqualTo(Blocks.OakStairs);
         await Assert.That(detail.RoofWear).IsEqualTo(0.25);
 
-        var both = await client.PostAsJsonAsync("/api/roof-styles", staired with { RoofSlab = Blocks.WoodenSlab });
+        var both = await client.PostAsJsonAsync("/api/roof-styles", staired with { Name = "worn-oak-slabbed", RoofSlab = Blocks.WoodenSlab });
         await Assert.That((int)both.StatusCode).IsEqualTo(400);
     }
 
